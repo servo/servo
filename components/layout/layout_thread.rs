@@ -44,9 +44,9 @@ use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use profile_traits::time::{self, TimerMetadata, profile};
 use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request};
 use query::{process_node_geometry_request, process_node_scroll_area_request, process_offset_parent_query};
-use query::{process_resolved_style_request, process_margin_style_query};
+use query::{process_node_overflow_request, process_resolved_style_request, process_margin_style_query};
 use script::dom::node::OpaqueStyleAndLayoutData;
-use script::layout_interface::{LayoutRPC, OffsetParentResponse, MarginStyleResponse};
+use script::layout_interface::{LayoutRPC, OffsetParentResponse, NodeOverflowResponse, MarginStyleResponse};
 use script::layout_interface::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow};
 use script::reporter::CSSErrorReporter;
@@ -119,6 +119,9 @@ pub struct LayoutThreadData {
 
     /// A queued response for the scroll {top, left, width, height} of a node in pixels.
     pub scroll_area_response: Rect<i32>,
+
+    /// A pair of overflow property in x and y
+    pub overflow_response: NodeOverflowResponse,
 
     /// A queued response for the resolved style property of an element.
     pub resolved_style_response: Option<String>,
@@ -466,6 +469,7 @@ impl LayoutThread {
                     client_rect_response: Rect::zero(),
                     hit_test_response: (None, false),
                     scroll_area_response: Rect::zero(),
+                    overflow_response: NodeOverflowResponse(None),
                     resolved_style_response: None,
                     offset_parent_response: OffsetParentResponse::empty(),
                     margin_style_response: MarginStyleResponse::empty(),
@@ -996,6 +1000,9 @@ impl LayoutThread {
                     ReflowQueryType::NodeScrollGeometryQuery(_) => {
                         rw_data.scroll_area_response = Rect::zero();
                     },
+                    ReflowQueryType::NodeOverflowQuery(_) => {
+                        rw_data.overflow_response = NodeOverflowResponse(None);
+                    },
                     ReflowQueryType::ResolvedStyleQuery(_, _, _) => {
                         rw_data.resolved_style_response = None;
                     },
@@ -1146,6 +1153,10 @@ impl LayoutThread {
                     } else {
                         (None, update_cursor)
                     };
+                },
+                ReflowQueryType::NodeOverflowQuery(node) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.overflow_response = process_node_overflow_request(node);
                 },
                 ReflowQueryType::NodeGeometryQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };

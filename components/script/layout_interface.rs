@@ -23,7 +23,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use string_cache::Atom;
 use style::context::ReflowGoal;
-use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left};
+use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left, overflow_x};
 use style::selector_impl::PseudoElement;
 use style::servo::Stylesheet;
 use url::Url;
@@ -106,6 +106,8 @@ pub trait LayoutRPC {
     fn node_geometry(&self) -> NodeGeometryResponse;
     /// Requests the scroll geometry of this node. Used by APIs such as `scrollTop`.
     fn node_scroll_area(&self) -> NodeGeometryResponse;
+    /// Requests the overflow-x and overflow-y of this node. Used by `scrollTop` etc.
+    fn node_overflow(&self) -> NodeOverflowResponse;
     /// Requests the node containing the point of interest
     fn hit_test(&self) -> HitTestResponse;
     /// Query layout for the resolved value of a given CSS property
@@ -133,6 +135,11 @@ impl MarginStyleResponse {
         }
     }
 }
+
+pub struct NodeOverflowResponse(pub Option<(
+    overflow_x::computed_value::T,
+    overflow_x::computed_value::T
+)>);
 
 pub struct ContentBoxResponse(pub Rect<Au>);
 pub struct ContentBoxesResponse(pub Vec<Rect<Au>>);
@@ -167,6 +174,7 @@ pub enum ReflowQueryType {
     ContentBoxesQuery(TrustedNodeAddress),
     HitTestQuery(Point2D<f32>, bool),
     NodeGeometryQuery(TrustedNodeAddress),
+    NodeOverflowQuery(TrustedNodeAddress),
     NodeScrollGeometryQuery(TrustedNodeAddress),
     ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, Atom),
     OffsetParentQuery(TrustedNodeAddress),

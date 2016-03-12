@@ -17,7 +17,7 @@ use layout_thread::LayoutThreadData;
 use msg::constellation_msg::ConstellationChan;
 use opaque_node::OpaqueNodeMethods;
 use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse, NodeGeometryResponse};
-use script::layout_interface::{HitTestResponse, LayoutRPC, OffsetParentResponse};
+use script::layout_interface::{HitTestResponse, LayoutRPC, NodeOverflowResponse, OffsetParentResponse};
 use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan, MarginStyleResponse};
 use script_traits::LayoutMsg as ConstellationMsg;
 use sequential;
@@ -95,6 +95,13 @@ impl LayoutRPC for LayoutRPCImpl {
     fn node_scroll_area(&self) -> NodeGeometryResponse {
         NodeGeometryResponse {
             client_rect: self.0.lock().unwrap().scroll_area_response
+        }
+    }
+
+    fn node_overflow(&self) -> NodeOverflowResponse {
+        match self.0.lock().unwrap().overflow_response {
+            NodeOverflowResponse(Some(x)) => NodeOverflowResponse(Some(x)),
+            NodeOverflowResponse(None)    => NodeOverflowResponse(None),
         }
     }
 
@@ -680,4 +687,13 @@ pub fn process_margin_style_query<'ln, N: LayoutNode<'ln>>(requested_node: N)
         bottom: margin.margin_bottom,
         left: margin.margin_left,
     }
+}
+
+
+pub fn process_node_overflow_request<'ln, N: LayoutNode<'ln>>(requested_node: N) -> NodeOverflowResponse {
+    let layout_node = requested_node.to_threadsafe();
+    let style = &*layout_node.style();
+    let style_box = style.get_box();
+
+    NodeOverflowResponse(Some((style_box.overflow_x, style_box.overflow_y.0)))
 }

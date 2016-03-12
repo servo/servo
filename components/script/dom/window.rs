@@ -73,6 +73,7 @@ use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
+use style::properties::longhands::{overflow_x};
 use style::selector_impl::PseudoElement;
 use task_source::TaskSource;
 use task_source::dom_manipulation::{DOMManipulationTaskSource, DOMManipulationTask};
@@ -1117,6 +1118,16 @@ impl Window {
         self.layout_rpc.node_scroll_area().client_rect
     }
 
+    pub fn overflow_query(&self, node: TrustedNodeAddress) -> (
+        overflow_x::computed_value::T,
+        overflow_x::computed_value::T
+    ) {
+        self.reflow(ReflowGoal::ForScriptQuery,
+                    ReflowQueryType::NodeOverflowQuery(node),
+                    ReflowReason::Query);
+        self.layout_rpc.node_overflow().0.unwrap()
+    }
+
     pub fn resolved_style_query(&self,
                             element: TrustedNodeAddress,
                             pseudo: Option<PseudoElement>,
@@ -1465,11 +1476,13 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
     });
 
     debug_msg.push_str(match *query_type {
+        // XXX: Should we somehow derive it?
         ReflowQueryType::NoQuery => "\tNoQuery",
         ReflowQueryType::ContentBoxQuery(_n) => "\tContentBoxQuery",
         ReflowQueryType::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
         ReflowQueryType::HitTestQuery(_n, _o) => "\tHitTestQuery",
         ReflowQueryType::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
+        ReflowQueryType::NodeOverflowQuery(_n) => "\tNodeOverFlowQuery",
         ReflowQueryType::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",
         ReflowQueryType::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
         ReflowQueryType::OffsetParentQuery(_n) => "\tOffsetParentQuery",

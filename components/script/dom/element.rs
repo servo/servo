@@ -86,7 +86,7 @@ use string_cache::{Atom, Namespace, QualName};
 use style::element_state::*;
 use style::error_reporting::ParseErrorReporter;
 use style::properties::DeclaredValue;
-use style::properties::longhands::{font_size, display, overflow_x};
+use style::properties::longhands::{font_size, overflow_x};
 use style::properties::longhands::{self, background_image, border_spacing, font_family};
 use style::properties::style_structs::Box;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
@@ -170,38 +170,31 @@ impl Element {
     // https://drafts.csswg.org/cssom-view/#css-layout-box
     // Elements that have a computed value of the display property
     // that is table-column or table-column-group
+    // FIXME: Currently, it is assumed to be true always
     fn has_css_layout_box(&self) -> bool {
-        let style_box = self.get_computed();
-
-        style_box.display == display::computed_value::T::table_column_group ||
-        style_box.display == display::computed_value::T::table_column
+        true
     }
 
     // https://drafts.csswg.org/cssom-view/#potentially-scrollable
+    // NOTE: After some simplication
     fn potentially_scrollable(&self) -> bool {
-        let node = self.upcast::<Node>();
-        let doc = node.owner_doc();
+        // let node = self.upcast::<Node>();
+        // let doc = node.owner_doc();
 
         self.has_css_layout_box() &&
-        (doc.GetBody().r() != self.downcast::<HTMLElement>() ||
-         (doc.GetBody().r() == self.downcast::<HTMLElement>() &&
-          doc.GetDocumentElement().r().map_or(false, |v| v.overflow_not_visible()))) &&
+        // (doc.GetBody().r() != self.downcast::<HTMLElement>() ||
+        //  (doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+        //   doc.GetDocumentElement().r().map_or(false, |v| v.overflow_not_visible()))) &&
         self.overflow_not_visible()
     }
 
     // used value of overflow-x or overflow-y is not visible
     fn overflow_not_visible(&self) -> bool {
-        let style_box = self.get_computed();
+        let window = window_from_node(self);
+        let overflow_pair = window.overflow_query(self.upcast::<Node>().to_trusted_node_address());
 
-        style_box.overflow_x   != overflow_x::computed_value::T::visible ||
-        style_box.overflow_y.0 != overflow_x::computed_value::T::visible
-    }
-
-    // Fetch the ComputedValue of a Fragment
-    // XXX: Is it necessary? It is correct to be used here?
-    //      How to implement it?
-    fn get_computed(&self) -> Box {
-        unimplemented!()
+        overflow_pair.0 != overflow_x::computed_value::T::visible ||
+        overflow_pair.1 != overflow_x::computed_value::T::visible
     }
 
     // https://drafts.csswg.org/cssom-view/#scrolling-box
@@ -210,11 +203,13 @@ impl Element {
     // or it overflows its content area and the used value of
     // the overflow-x or overflow-y property is hidden.
     fn has_scrolling_box(&self) -> bool {
-        let style_box = self.get_computed();
+        let window = window_from_node(self);
+        let overflow_pair = window.overflow_query(self.upcast::<Node>().to_trusted_node_address());
+
         /* FIXME: has_a_scrolling_mechanism || */
         (!self.has_no_overflow() &&
-         style_box.overflow_x   == overflow_x::computed_value::T::hidden ||
-         style_box.overflow_y.0 == overflow_x::computed_value::T::hidden)
+         overflow_pair.0 == overflow_x::computed_value::T::hidden ||
+         overflow_pair.1 == overflow_x::computed_value::T::hidden)
     }
 
     // https://drafts.csswg.org/css-overflow-4/#propdef-overflow
@@ -1531,7 +1526,7 @@ impl ElementMethods for Element {
             // 5. If the element is the root element and document is in quirks mode,
             //    return zero and terminate these steps.
             if *self.get_root_element() == *self {
-                if doc.quirks_mode() != NoQuirks {
+                if doc.quirks_mode() == Quirks {
                     return 0.0
                 }
 
@@ -1542,7 +1537,7 @@ impl ElementMethods for Element {
             // 7. If the element is the HTML body element, document is in quirks mode,
             //    and the element is not potentially scrollable, return the value of scrollY on window.
             if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
-               doc.quirks_mode() != NoQuirks &&
+               doc.quirks_mode() == Quirks &&
                !self.potentially_scrollable() {
                     return (*win).ScrollY() as f64;
             }
@@ -1585,7 +1580,7 @@ impl ElementMethods for Element {
 
             // 7. If the element is the root element and document is in quirks mode, terminate these steps.
             if *self.get_root_element() == *self {
-                if doc.quirks_mode() != NoQuirks {
+                if doc.quirks_mode() == Quirks {
                     return;
                 }
 
@@ -1601,7 +1596,7 @@ impl ElementMethods for Element {
             //    invoke scroll() on window with scrollX as first argument and y as second argument,
             //    and terminate these steps.
             if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
-               doc.quirks_mode() != NoQuirks &&
+               doc.quirks_mode() == Quirks &&
                !self.potentially_scrollable() {
                     (*win).scroll((*win).ScrollX() as f64, y, ScrollBehavior::Auto);
                     return;
@@ -1639,7 +1634,7 @@ impl ElementMethods for Element {
             // 5. If the element is the root element and document is in quirks mode,
             //    return zero and terminate these steps.
             if *self.get_root_element() == *self {
-                if doc.quirks_mode() != NoQuirks {
+                if doc.quirks_mode() == Quirks {
                     return 0.0
                 }
 
@@ -1650,7 +1645,7 @@ impl ElementMethods for Element {
             // 7. If the element is the HTML body element, document is in quirks mode,
             //    and the element is not potentially scrollable, return the value of scrollX on window.
             if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
-               doc.quirks_mode() != NoQuirks &&
+               doc.quirks_mode() == Quirks &&
                !self.potentially_scrollable() {
                     return (*win).ScrollX() as f64;
             }
