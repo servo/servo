@@ -82,7 +82,7 @@ use task_source::dom_manipulation::{DOMManipulationTaskSource, DOMManipulationTa
 use task_source::file_reading::FileReadingTaskSource;
 use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
-use task_source::user_interaction::UserInteractionTaskSource;
+use task_source::user_interaction::{UserInteractionTaskSource, UserInteractionTask};
 use time;
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback};
 use url::Url;
@@ -270,7 +270,7 @@ impl Window {
         self.dom_manipulation_task_source.clone()
     }
 
-    pub fn user_interaction_task_source(&self) -> Box<ScriptChan + Send> {
+    pub fn user_interaction_task_source(&self) -> Box<TaskSource<UserInteractionTask> + Send> {
         self.user_interaction_task_source.clone()
     }
 
