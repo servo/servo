@@ -12,5 +12,4 @@ use std::result::Result;
 
 pub trait TaskSource<T> {
     fn queue(&self, msg: T) -> Result<(), ()>;
-    fn clone(&self) -> Box<TaskSource<T> + Send>;
 }
