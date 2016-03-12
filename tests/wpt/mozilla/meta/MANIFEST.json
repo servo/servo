@@ -6096,6 +6096,18 @@
             "url": "/_mozilla/mozilla/script_type.html"
           }
         ],
+        "mozilla/send-without-response-type-arraybuffer.htm": [
+          {
+            "path": "mozilla/send-without-response-type-arraybuffer.htm",
+            "url": "/_mozilla/mozilla/send-without-response-type-arraybuffer.htm"
+          }
+        ],
+        "mozilla/send-without-response-type-blob.htm": [
+          {
+            "path": "mozilla/send-without-response-type-blob.htm",
+            "url": "/_mozilla/mozilla/send-without-response-type-blob.htm"
+          }
+        ],
         "mozilla/sequence-hole.html": [
           {
             "path": "mozilla/sequence-hole.html",
