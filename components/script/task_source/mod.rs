@@ -9,8 +9,17 @@ pub mod networking;
 pub mod user_interaction;
 
 use std::result::Result;
+use dom::bindings::refcounted::Trusted;
+use dom::event::{EventBubbles, EventCancelable};
+use dom::eventtarget::EventTarget;
+use string_cache::Atom;
 
 pub trait TaskSource<T> {
     fn queue(&self, msg: T) -> Result<(), ()>;
+    fn queue_event(&self,
+                   target: Trusted<EventTarget>,
+                   name: Atom,
+                   bubbles: EventBubbles,
+                   cancelable: EventCancelable);
     fn clone(&self) -> Box<TaskSource<T> + Send>;
 }
