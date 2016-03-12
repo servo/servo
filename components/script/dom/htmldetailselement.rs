@@ -76,7 +76,7 @@ impl VirtualMethods for HTMLDetailsElement {
             let task_source = window.dom_manipulation_task_source();
             let chan = MainThreadScriptChan(window.main_thread_script_chan().clone()).clone();
             let details = Trusted::new(self, chan.clone());
-            let runnable = box ToggleEventRunnable {
+            let runnable = box DetailsNotificationRunnable {
                 element: details,
                 toggle_number: counter
             };
@@ -85,13 +85,13 @@ impl VirtualMethods for HTMLDetailsElement {
     }
 }
 
-pub struct ToggleEventRunnable {
+pub struct DetailsNotificationRunnable {
     element: Trusted<HTMLDetailsElement>,
     toggle_number: u32
 }
 
-impl Runnable for ToggleEventRunnable {
-    fn handler(self: Box<ToggleEventRunnable>) {
+impl Runnable for DetailsNotificationRunnable {
+    fn handler(self: Box<DetailsNotificationRunnable>) {
         let target = self.element.root();
         if target.check_toggle_count(self.toggle_number) {
             target.upcast::<EventTarget>().fire_simple_event("toggle");
