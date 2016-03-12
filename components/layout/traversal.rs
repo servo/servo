@@ -28,7 +28,7 @@ pub struct RecalcStyleAndConstructFlows<'lc> {
     root: OpaqueNode,
 }
 
-impl<'lc, 'ln> DomTraversalContext<'ln, ServoLayoutNode<'ln>> for RecalcStyleAndConstructFlows<'lc> {
+impl<'lc, 'ln> DomTraversalContext<ServoLayoutNode<'ln>> for RecalcStyleAndConstructFlows<'lc> {
     type SharedContext = SharedLayoutContext;
     #[allow(unsafe_code)]
     fn new<'a>(shared: &'a Self::SharedContext, root: OpaqueNode) -> Self {
