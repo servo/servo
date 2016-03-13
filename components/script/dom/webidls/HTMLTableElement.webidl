@@ -8,13 +8,15 @@ interface HTMLTableElement : HTMLElement {
            attribute HTMLTableCaptionElement? caption;
   HTMLElement createCaption();
   void deleteCaption();
-  //         attribute HTMLTableSectionElement? tHead;
-  //HTMLElement createTHead();
-  //void deleteTHead();
-  //         attribute HTMLTableSectionElement? tFoot;
-  //HTMLElement createTFoot();
-  //void deleteTFoot();
-  //readonly attribute HTMLCollection tBodies;
+  [SetterThrows]
+           attribute HTMLTableSectionElement? tHead;
+  HTMLTableSectionElement createTHead();
+  void deleteTHead();
+  [SetterThrows]
+           attribute HTMLTableSectionElement? tFoot;
+  HTMLTableSectionElement createTFoot();
+  void deleteTFoot();
+  readonly attribute HTMLCollection tBodies;
   HTMLTableSectionElement createTBody();
   readonly attribute HTMLCollection rows;
   //HTMLElement insertRow(optional long index = -1);
