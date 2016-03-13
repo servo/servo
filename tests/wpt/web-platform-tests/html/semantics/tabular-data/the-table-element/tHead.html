@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>tHead tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<table id="t">
+<caption id="tcaption"></caption><thead id="thead1"></thead><thead id="thead2"></thead><thead id="thead3"></thead><tbody id="tbody1"></tbody><tbody id="tbody2"></tbody><tfoot id="tfoot"></tfoot>
+</table>
+<table>
+<thead id="t2thead">
+<td>
+<table id="t2">
+</table>
+</table>
+<script>
+test(function() {
+    var t = document.getElementById("t");
+    var thead1 = document.getElementById("thead1");
+
+    assert_equals(t.tHead, thead1);
+
+    var thead2 = document.getElementById("thead2");
+    t.tHead = null;
+
+    assert_equals(t.tHead, thead2);
+
+    var thead3 = document.getElementById("thead3");
+    t.deleteTHead();
+
+    assert_equals(t.tHead, thead3);
+
+    var thead = t.createTHead();
+    assert_equals(t.tHead, thead);
+    assert_equals(thead, thead3);
+
+    t.deleteTHead();
+    assert_equals(t.tHead, null);
+
+    var tcaption = document.getElementById("tcaption");
+    var tbody1 = document.getElementById("tbody1");
+
+    thead = t.createTHead();
+    assert_equals(t.tHead, thead);
+
+    assert_equals(t.tHead.previousSibling, tcaption);
+    assert_equals(t.tHead.nextSibling, tbody1);
+
+    assert_throws(new TypeError(), function(){
+        t.tHead = document.createElement("div");
+    });
+
+    assert_throws("HierarchyRequestError", function(){
+        t.tHead = document.createElement("tbody");
+    });
+
+});
+
+test(function() {
+    var t2 = document.getElementById("t2");
+    var t2thead = document.getElementById("t2thead");
+
+    assert_throws("HierarchyRequestError", function() {
+        t2.tHead = t2thead;
+    });
+});
+</script>
