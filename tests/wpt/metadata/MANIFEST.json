@@ -34540,6 +34540,18 @@
             "url": "/html/semantics/forms/form-submission-0/getactionurl.html"
           }
         ],
+        "html/semantics/tabular-data/the-table-element/tFoot.html": [
+          {
+            "path": "html/semantics/tabular-data/the-table-element/tFoot.html",
+            "url": "/html/semantics/tabular-data/the-table-element/tFoot.html"
+          }
+        ],
+        "html/semantics/tabular-data/the-table-element/tHead.html": [
+          {
+            "path": "html/semantics/tabular-data/the-table-element/tHead.html",
+            "url": "/html/semantics/tabular-data/the-table-element/tHead.html"
+          }
+        ],
         "html/webappapis/scripting/events/event-handler-processing-algorithm.html": [
           {
             "path": "html/webappapis/scripting/events/event-handler-processing-algorithm.html",
