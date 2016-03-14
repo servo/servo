@@ -30,7 +30,7 @@
 
         assert_equals(client.responseText, "Hello, World!");
         assert_equals(client.status, 200);
-        assert_equals(client.getResponseHeader('Content-Type').replace(/;\s+/g, ';').toLowerCase(), charset);
+        assert_true(new RegExp(charset, "i").test(client.getResponseHeader('Content-Type')));
         var allHeaders = client.getAllResponseHeaders();
         assert_regexp_match(allHeaders, /content\-type\:/i, 'getAllResponseHeaders() includes Content-Type');
         assert_false(/content\-length\:/i.test(allHeaders), 'getAllResponseHeaders() must not include Content-Length');
