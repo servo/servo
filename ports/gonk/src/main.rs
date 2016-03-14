@@ -62,8 +62,6 @@ fn main() {
     // Parse the command line options and store them globally
     opts::from_cmdline_args(env::args().collect::<Vec<_>>().as_slice());
 
-    hosts::global_init();
-
     let window = if opts::get().headless {
         None
     } else {
