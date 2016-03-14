@@ -57,9 +57,10 @@ pub unsafe extern "C" fn define_property(cx: *mut JSContext,
                                          desc: Handle<JSPropertyDescriptor>,
                                          result: *mut ObjectOpResult)
                                          -> bool {
-    // FIXME: Workaround for https://github.com/mozilla/rust/issues/13385
+    // FIXME: Workaround for https://github.com/rust-lang/rfcs/issues/718
     let setter: *const libc::c_void = mem::transmute(desc.get().setter);
-    let setter_stub: *const libc::c_void = mem::transmute(JS_StrictPropertyStub);
+    let setter_stub: unsafe extern fn(_, _, _, _, _) -> _ = JS_StrictPropertyStub;
+    let setter_stub: *const libc::c_void = mem::transmute(setter_stub);
     if (desc.get().attrs & JSPROP_GETTER) != 0 && setter == setter_stub {
         (*result).code_ = JSErrNum::JSMSG_GETTER_ONLY as ::libc::uintptr_t;
         return true;
