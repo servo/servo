@@ -279,6 +279,7 @@ impl Pipeline {
             size: size,
             running_animations: false,
             is_private: false,
+            visible: true,
         }
     }
 
@@ -374,10 +375,10 @@ impl Pipeline {
         self.visible = visible;
         match visible {
             true => { 
-                self.script_chan.send(ConstellationControlMsg::SetVisible(self.id));
+                self.script_chan.send(ConstellationControlMsg::SetVisible(self.id)).unwrap();
             }
             false => {
-                self.script_chan.send(ConstellationControlMsg::SetNonVisible(self.id));
+                self.script_chan.send(ConstellationControlMsg::SetNonVisible(self.id)).unwrap();
             }
         }
     }

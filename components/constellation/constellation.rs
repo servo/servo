@@ -1486,8 +1486,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    fn handle_set_visible_msg(&self, pipeline_id: PipelineId, visible: bool) {
-        self.pipeline(pipeline_id).set_visible(visible);
+    fn handle_set_visible_msg(&mut self, pipeline_id: PipelineId, visible: bool) {
+        self.mut_pipeline(pipeline_id).set_visible(visible);
     }
 
     fn handle_create_canvas_paint_thread_msg(

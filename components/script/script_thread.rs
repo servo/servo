@@ -139,6 +139,8 @@ struct InProgressLoad {
     clip_rect: Option<Rect<f32>>,
     /// Window is frozen (navigated away while loading for example).
     is_frozen: bool,
+    /// Window is not visible.
+    is_hidden: bool,
     /// The requested URL of the load.
     url: Url,
 }
@@ -157,6 +159,7 @@ impl InProgressLoad {
             window_size: window_size,
             clip_rect: None,
             is_frozen: false,
+            is_hidden: false,
             url: url,
         }
     }
@@ -918,6 +921,10 @@ impl ScriptThread {
                 self.handle_freeze_msg(pipeline_id),
             ConstellationControlMsg::Thaw(pipeline_id) =>
                 self.handle_thaw_msg(pipeline_id),
+            ConstellationControlMsg::SetVisible(pipeline_id) =>
+                self.handle_visible_msg(pipeline_id),
+            ConstellationControlMsg::SetNonVisible(pipeline_id) =>
+                self.handle_nonvisible_msg(pipeline_id),
             ConstellationControlMsg::MozBrowserEvent(parent_pipeline_id,
                                                      subpage_id,
                                                      event) =>
@@ -1215,6 +1222,38 @@ impl ScriptThread {
         let path_seg = format!("url({})", urls.join(", "));
         reports.extend(get_reports(self.get_cx(), path_seg));
         reports_chan.send(reports);
+    }
+
+
+    ///Handle make pipeline visible message
+    fn handle_visible_msg(&self, id: PipelineId) {
+        if let Some(root_page) = self.page.borrow().as_ref() {
+            if let Some(ref inner_page) = root_page.find(id) {
+                let window = inner_page.window();
+                window.speed_up_timers();
+                return;
+            }
+        }
+        let mut loads = self.incomplete_loads.borrow_mut();
+        if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
+            load.is_hidden = false;
+            return;
+        }
+        panic!("set as visible message sent to nonexistent pipeline");
+    }
+
+    fn handle_nonvisible_msg(&self, id: PipelineId) {
+        if let Some(ref inner_page) = self.root_page().find(id) {
+            let window = inner_page.window();
+            window.slow_down_timers();
+            return;
+        }
+        let mut loads = self.incomplete_loads.borrow_mut();
+        if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
+            load.is_hidden = true;
+            return;
+        }
+        panic!("set as nonvisible message sent to nonexistent pipeline");
     }
 
     /// Handles freeze message
@@ -1690,6 +1729,10 @@ impl ScriptThread {
 
         if incomplete.is_frozen {
             window.freeze();
+        }
+
+        if incomplete.is_hidden {
+            window.slow_down_timers();
         }
 
         context_remover.neuter();
