@@ -209,8 +209,8 @@ impl InlineFragmentsAccumulator {
         }
     }
 
-    fn from_inline_node<'ln, N>(node: &N) -> InlineFragmentsAccumulator
-            where N: ThreadSafeLayoutNode<'ln> {
+    fn from_inline_node<N>(node: &N) -> InlineFragmentsAccumulator
+            where N: ThreadSafeLayoutNode {
         InlineFragmentsAccumulator {
             fragments: IntermediateInlineFragments::new(),
             enclosing_node: Some(InlineFragmentNodeInfo {
@@ -267,22 +267,20 @@ impl InlineFragmentsAccumulator {
 }
 
 /// An object that knows how to create flows.
-pub struct FlowConstructor<'a, 'ln, N: ThreadSafeLayoutNode<'ln>> {
+pub struct FlowConstructor<'a, N: ThreadSafeLayoutNode> {
     /// The layout context.
     pub layout_context: &'a LayoutContext<'a>,
     /// Satisfy the compiler about the unused parameters, which we use to improve the ergonomics of
     /// the ensuing impl {} by removing the need to parameterize all the methods individually.
-    phantom1: PhantomData<&'ln ()>,
     phantom2: PhantomData<N>,
 }
 
-impl<'a, 'ln, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>>
-  FlowConstructor<'a, 'ln, ConcreteThreadSafeLayoutNode> {
+impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
+  FlowConstructor<'a, ConcreteThreadSafeLayoutNode> {
     /// Creates a new flow constructor.
     pub fn new(layout_context: &'a LayoutContext<'a>) -> Self {
         FlowConstructor {
             layout_context: layout_context,
-            phantom1: PhantomData,
             phantom2: PhantomData,
         }
     }
@@ -1444,9 +1442,9 @@ impl<'a, 'ln, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln>>
     }
 }
 
-impl<'a, 'ln, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<'ln, ConcreteThreadSafeLayoutNode>
-                                            for FlowConstructor<'a, 'ln, ConcreteThreadSafeLayoutNode>
-                                            where ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln> {
+impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadSafeLayoutNode>
+                                       for FlowConstructor<'a, ConcreteThreadSafeLayoutNode>
+                                       where ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode {
     // Construct Flow based on 'display', 'position', and 'float' values.
     //
     // CSS 2.1 Section 9.7
@@ -1623,8 +1621,8 @@ trait NodeUtils {
     fn swap_out_construction_result(self) -> ConstructionResult;
 }
 
-impl<'ln, ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNode
-                                                  where ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'ln> {
+impl<ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNode
+                                             where ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode {
     fn is_replaced_content(&self) -> bool {
         match self.type_id() {
             None |
@@ -1674,10 +1672,7 @@ impl<'ln, ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNo
 }
 
 /// Methods for interacting with HTMLObjectElement nodes
-trait ObjectElement<'a> {
-    /// Returns None if this node is not matching attributes.
-    fn get_type_and_data(&self) -> (Option<&'a str>, Option<&'a str>);
-
+trait ObjectElement {
     /// Returns true if this node has object data that is correct uri.
     fn has_object_data(&self) -> bool;
 
@@ -1685,21 +1680,20 @@ trait ObjectElement<'a> {
     fn object_data(&self) -> Option<Url>;
 }
 
-impl<'ln, N> ObjectElement<'ln> for N  where N: ThreadSafeLayoutNode<'ln> {
-    fn get_type_and_data(&self) -> (Option<&'ln str>, Option<&'ln str>) {
-        let elem = self.as_element();
-        (elem.get_attr(&ns!(), &atom!("type")), elem.get_attr(&ns!(), &atom!("data")))
-    }
-
+impl<N> ObjectElement for N  where N: ThreadSafeLayoutNode {
     fn has_object_data(&self) -> bool {
-        match self.get_type_and_data() {
+        let elem = self.as_element();
+        let type_and_data = (elem.get_attr(&ns!(), &atom!("type")), elem.get_attr(&ns!(), &atom!("data")));
+        match type_and_data {
             (None, Some(uri)) => is_image_data(uri),
             _ => false
         }
     }
 
     fn object_data(&self) -> Option<Url> {
-        match self.get_type_and_data() {
+        let elem = self.as_element();
+        let type_and_data = (elem.get_attr(&ns!(), &atom!("type")), elem.get_attr(&ns!(), &atom!("data")));
+        match type_and_data {
             (None, Some(uri)) if is_image_data(uri) => Url::parse(uri).ok(),
             _ => None
         }

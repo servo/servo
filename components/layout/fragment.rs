@@ -323,7 +323,7 @@ pub struct CanvasFragmentInfo {
 }
 
 impl CanvasFragmentInfo {
-    pub fn new<'ln, N: ThreadSafeLayoutNode<'ln>>(node: &N, data: HTMLCanvasData) -> CanvasFragmentInfo {
+    pub fn new<N: ThreadSafeLayoutNode>(node: &N, data: HTMLCanvasData) -> CanvasFragmentInfo {
         CanvasFragmentInfo {
             replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node),
             renderer_id: data.renderer_id,
@@ -368,8 +368,8 @@ impl ImageFragmentInfo {
     ///
     /// FIXME(pcwalton): The fact that image fragments store the cache in the fragment makes little
     /// sense to me.
-    pub fn new<'ln, N: ThreadSafeLayoutNode<'ln>>(node: &N, url: Option<Url>,
-                                                  layout_context: &LayoutContext) -> ImageFragmentInfo {
+    pub fn new<N: ThreadSafeLayoutNode>(node: &N, url: Option<Url>,
+                                        layout_context: &LayoutContext) -> ImageFragmentInfo {
         let image_or_metadata = url.and_then(|url| {
             layout_context.get_or_request_image_or_meta(url, UsePlaceholder::Yes)
         });
@@ -446,8 +446,8 @@ pub struct ReplacedImageFragmentInfo {
 }
 
 impl ReplacedImageFragmentInfo {
-    pub fn new<'ln, N>(node: &N) -> ReplacedImageFragmentInfo
-            where N: ThreadSafeLayoutNode<'ln> {
+    pub fn new<N>(node: &N) -> ReplacedImageFragmentInfo
+            where N: ThreadSafeLayoutNode {
         let is_vertical = node.style().writing_mode.is_vertical();
         ReplacedImageFragmentInfo {
             computed_inline_size: None,
@@ -590,7 +590,7 @@ pub struct IframeFragmentInfo {
 
 impl IframeFragmentInfo {
     /// Creates the information specific to an iframe fragment.
-    pub fn new<'ln, N: ThreadSafeLayoutNode<'ln>>(node: &N) -> IframeFragmentInfo {
+    pub fn new<N: ThreadSafeLayoutNode>(node: &N) -> IframeFragmentInfo {
         let pipeline_id = node.iframe_pipeline_id();
         IframeFragmentInfo {
             pipeline_id: pipeline_id,
@@ -765,7 +765,7 @@ pub struct TableColumnFragmentInfo {
 
 impl TableColumnFragmentInfo {
     /// Create the information specific to an table column fragment.
-    pub fn new<'ln, N: ThreadSafeLayoutNode<'ln>>(node: &N) -> TableColumnFragmentInfo {
+    pub fn new<N: ThreadSafeLayoutNode>(node: &N) -> TableColumnFragmentInfo {
         let element = node.as_element();
         let span = element.get_attr(&ns!(), &atom!("span"))
                           .and_then(|string| string.parse().ok())
@@ -778,7 +778,7 @@ impl TableColumnFragmentInfo {
 
 impl Fragment {
     /// Constructs a new `Fragment` instance.
-    pub fn new<'ln, N: ThreadSafeLayoutNode<'ln>>(node: &N, specific: SpecificFragmentInfo) -> Fragment {
+    pub fn new<N: ThreadSafeLayoutNode>(node: &N, specific: SpecificFragmentInfo) -> Fragment {
         let style = node.style().clone();
         let writing_mode = style.writing_mode;
 

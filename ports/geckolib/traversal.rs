@@ -64,7 +64,7 @@ pub struct RecalcStyleOnly<'lc> {
     root: OpaqueNode,
 }
 
-impl<'lc, 'ln, N: TNode<'ln>> DomTraversalContext<'ln, N> for RecalcStyleOnly<'lc>
+impl<'lc, N: TNode> DomTraversalContext<N> for RecalcStyleOnly<'lc>
     where N::ConcreteElement: ::selectors::Element<Impl=GeckoSelectorImpl> {
     type SharedContext = SharedStyleContext;
     #[allow(unsafe_code)]

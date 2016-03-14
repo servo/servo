@@ -483,7 +483,7 @@ pub trait ImmutableFlowUtils {
     fn need_anonymous_flow(self, child: &Flow) -> bool;
 
     /// Generates missing child flow of this flow.
-    fn generate_missing_child_flow<'ln, N: ThreadSafeLayoutNode<'ln>>(self, node: &N) -> FlowRef;
+    fn generate_missing_child_flow<N: ThreadSafeLayoutNode>(self, node: &N) -> FlowRef;
 
     /// Returns true if this flow contains fragments that are roots of an absolute flow tree.
     fn contains_roots_of_absolute_flow_tree(&self) -> bool;
@@ -1272,7 +1272,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     /// FIXME(pcwalton): This duplicates some logic in
     /// `generate_anonymous_table_flows_if_necessary()`. We should remove this function eventually,
     /// as it's harder to understand.
-    fn generate_missing_child_flow<'ln, N: ThreadSafeLayoutNode<'ln>>(self, node: &N) -> FlowRef {
+    fn generate_missing_child_flow<N: ThreadSafeLayoutNode>(self, node: &N) -> FlowRef {
         let mut style = node.style().clone();
         match self.class() {
             FlowClass::Table | FlowClass::TableRowGroup => {

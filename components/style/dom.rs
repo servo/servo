@@ -13,7 +13,6 @@ use selectors::Element;
 use selectors::matching::DeclarationBlock;
 use smallvec::VecLike;
 use std::cell::{Ref, RefMut};
-use std::marker::PhantomData;
 use std::ops::BitOr;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace};
@@ -48,9 +47,9 @@ pub trait TRestyleDamage : BitOr<Output=Self> + Copy {
     fn rebuild_and_reflow() -> Self;
 }
 
-pub trait TNode<'ln> : Sized + Copy + Clone {
-    type ConcreteElement: TElement<'ln, ConcreteNode = Self, ConcreteDocument = Self::ConcreteDocument>;
-    type ConcreteDocument: TDocument<'ln, ConcreteNode = Self, ConcreteElement = Self::ConcreteElement>;
+pub trait TNode : Sized + Copy + Clone {
+    type ConcreteElement: TElement<ConcreteNode = Self, ConcreteDocument = Self::ConcreteDocument>;
+    type ConcreteDocument: TDocument<ConcreteNode = Self, ConcreteElement = Self::ConcreteElement>;
     type ConcreteRestyleDamage: TRestyleDamage;
 
     fn to_unsafe(&self) -> UnsafeNode;
@@ -65,22 +64,20 @@ pub trait TNode<'ln> : Sized + Copy + Clone {
 
     fn dump(self);
 
-    fn traverse_preorder(self) -> TreeIterator<'ln, Self> {
+    fn traverse_preorder(self) -> TreeIterator<Self> {
         TreeIterator::new(self)
     }
 
     /// Returns an iterator over this node's children.
-    fn children(self) -> ChildrenIterator<'ln, Self> {
+    fn children(self) -> ChildrenIterator<Self> {
         ChildrenIterator {
             current: self.first_child(),
-            phantom: PhantomData,
         }
     }
 
-    fn rev_children(self) -> ReverseChildrenIterator<'ln, Self> {
+    fn rev_children(self) -> ReverseChildrenIterator<Self> {
         ReverseChildrenIterator {
             current: self.last_child(),
-            phantom: PhantomData,
         }
     }
 
@@ -169,7 +166,7 @@ pub trait TNode<'ln> : Sized + Copy + Clone {
 
     /// Returns the style results for the given node. If CSS selector matching
     /// has not yet been performed, fails.
-    fn style(&'ln self) -> Ref<Arc<ComputedValues>> {
+    fn style(&self) -> Ref<Arc<ComputedValues>> {
         Ref::map(self.borrow_data().unwrap(), |data| data.style.as_ref().unwrap())
     }
 
@@ -179,9 +176,9 @@ pub trait TNode<'ln> : Sized + Copy + Clone {
     }
 }
 
-pub trait TDocument<'ld> : Sized + Copy + Clone {
-    type ConcreteNode: TNode<'ld, ConcreteElement = Self::ConcreteElement, ConcreteDocument = Self>;
-    type ConcreteElement: TElement<'ld, ConcreteNode = Self::ConcreteNode, ConcreteDocument = Self>;
+pub trait TDocument : Sized + Copy + Clone {
+    type ConcreteNode: TNode<ConcreteElement = Self::ConcreteElement, ConcreteDocument = Self>;
+    type ConcreteElement: TElement<ConcreteNode = Self::ConcreteNode, ConcreteDocument = Self>;
 
     fn as_node(&self) -> Self::ConcreteNode;
 
@@ -190,13 +187,13 @@ pub trait TDocument<'ld> : Sized + Copy + Clone {
     fn drain_modified_elements(&self) -> Vec<(Self::ConcreteElement, ElementSnapshot)>;
 }
 
-pub trait TElement<'le> : Sized + Copy + Clone + ElementExt {
-    type ConcreteNode: TNode<'le, ConcreteElement = Self, ConcreteDocument = Self::ConcreteDocument>;
-    type ConcreteDocument: TDocument<'le, ConcreteNode = Self::ConcreteNode, ConcreteElement = Self>;
+pub trait TElement : Sized + Copy + Clone + ElementExt {
+    type ConcreteNode: TNode<ConcreteElement = Self, ConcreteDocument = Self::ConcreteDocument>;
+    type ConcreteDocument: TDocument<ConcreteNode = Self::ConcreteNode, ConcreteElement = Self>;
 
     fn as_node(&self) -> Self::ConcreteNode;
 
-    fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock>;
+    fn style_attribute(&self) -> &Option<PropertyDeclarationBlock>;
 
     fn get_state(&self) -> ElementState;
 
@@ -248,25 +245,22 @@ pub trait TElement<'le> : Sized + Copy + Clone + ElementExt {
     }
 }
 
-pub struct TreeIterator<'a, ConcreteNode> where ConcreteNode: TNode<'a> {
+pub struct TreeIterator<ConcreteNode> where ConcreteNode: TNode {
     stack: Vec<ConcreteNode>,
-    // Satisfy the compiler about the unused lifetime.
-    phantom: PhantomData<&'a ()>,
 }
 
-impl<'a, ConcreteNode> TreeIterator<'a, ConcreteNode> where ConcreteNode: TNode<'a> {
-    fn new(root: ConcreteNode) -> TreeIterator<'a, ConcreteNode> {
+impl<ConcreteNode> TreeIterator<ConcreteNode> where ConcreteNode: TNode {
+    fn new(root: ConcreteNode) -> TreeIterator<ConcreteNode> {
         let mut stack = vec!();
         stack.push(root);
         TreeIterator {
             stack: stack,
-            phantom: PhantomData,
         }
     }
 }
 
-impl<'a, ConcreteNode> Iterator for TreeIterator<'a, ConcreteNode>
-                                where ConcreteNode: TNode<'a> {
+impl<ConcreteNode> Iterator for TreeIterator<ConcreteNode>
+                            where ConcreteNode: TNode {
     type Item = ConcreteNode;
     fn next(&mut self) -> Option<ConcreteNode> {
         let ret = self.stack.pop();
@@ -275,14 +269,12 @@ impl<'a, ConcreteNode> Iterator for TreeIterator<'a, ConcreteNode>
     }
 }
 
-pub struct ChildrenIterator<'a, ConcreteNode> where ConcreteNode: TNode<'a> {
+pub struct ChildrenIterator<ConcreteNode> where ConcreteNode: TNode {
     current: Option<ConcreteNode>,
-    // Satisfy the compiler about the unused lifetime.
-    phantom: PhantomData<&'a ()>,
 }
 
-impl<'a, ConcreteNode> Iterator for ChildrenIterator<'a, ConcreteNode>
-                                where ConcreteNode: TNode<'a> {
+impl<ConcreteNode> Iterator for ChildrenIterator<ConcreteNode>
+                            where ConcreteNode: TNode {
     type Item = ConcreteNode;
     fn next(&mut self) -> Option<ConcreteNode> {
         let node = self.current;
@@ -291,14 +283,12 @@ impl<'a, ConcreteNode> Iterator for ChildrenIterator<'a, ConcreteNode>
     }
 }
 
-pub struct ReverseChildrenIterator<'a, ConcreteNode> where ConcreteNode: TNode<'a> {
+pub struct ReverseChildrenIterator<ConcreteNode> where ConcreteNode: TNode {
     current: Option<ConcreteNode>,
-    // Satisfy the compiler about the unused lifetime.
-    phantom: PhantomData<&'a ()>,
 }
 
-impl<'a, ConcreteNode> Iterator for ReverseChildrenIterator<'a, ConcreteNode>
-                                where ConcreteNode: TNode<'a> {
+impl<ConcreteNode> Iterator for ReverseChildrenIterator<ConcreteNode>
+                            where ConcreteNode: TNode {
     type Item = ConcreteNode;
     fn next(&mut self) -> Option<ConcreteNode> {
         let node = self.current;

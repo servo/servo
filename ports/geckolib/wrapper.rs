@@ -88,7 +88,7 @@ impl BitOr for DummyRestyleDamage {
 
 
 
-impl<'ln> TNode<'ln> for GeckoNode<'ln> {
+impl<'ln> TNode for GeckoNode<'ln> {
     type ConcreteDocument = GeckoDocument<'ln>;
     type ConcreteElement = GeckoElement<'ln>;
     type ConcreteRestyleDamage = DummyRestyleDamage;
@@ -268,7 +268,7 @@ impl<'ld> GeckoDocument<'ld> {
     }
 }
 
-impl<'ld> TDocument<'ld> for GeckoDocument<'ld> {
+impl<'ld> TDocument for GeckoDocument<'ld> {
     type ConcreteNode = GeckoNode<'ld>;
     type ConcreteElement = GeckoElement<'ld>;
 
@@ -309,7 +309,7 @@ impl<'le> GeckoElement<'le> {
     }
 }
 
-impl<'le> TElement<'le> for GeckoElement<'le> {
+impl<'le> TElement for GeckoElement<'le> {
     type ConcreteNode = GeckoNode<'le>;
     type ConcreteDocument = GeckoDocument<'le>;
 
@@ -317,7 +317,7 @@ impl<'le> TElement<'le> for GeckoElement<'le> {
         unsafe { GeckoNode::from_raw(self.element as *mut RawGeckoNode) }
     }
 
-    fn style_attribute(&self) -> &'le Option<PropertyDeclarationBlock> {
+    fn style_attribute(&self) -> &Option<PropertyDeclarationBlock> {
         panic!("Requires signature modification - only implemented in stylo branch");
         /*
         // FIXME(bholley): We should do what Servo does here. Gecko needs to
