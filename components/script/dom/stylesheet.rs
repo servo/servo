@@ -1,8 +1,16 @@
-use dom::bindings::reflector::Reflector;
+//use dom::bindings::reflector::Reflector;
 use util::str::DOMString;
 //use dom::bindings::codegen::UnionTypes::ElementOrProcessingInstruction;
 use dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
 //use dom::processinginstruction::ProcessingInstruction;
+use dom::bindings::codegen::Bindings::StyleSheetBinding;
+use dom::bindings::global::GlobalRef;
+use dom::bindings::js::{JS, Root};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+//use dom::document::Document;
+//use dom::stylesheet::StyleSheet;
+use dom::window::Window;
+
 
 #[dom_struct]
 pub struct StyleSheet {
@@ -16,6 +24,24 @@ pub struct StyleSheet {
     
     media: MediaList,
     disabled: Cell<bool>,*/
+}
+
+impl StyleSheet {
+    #[allow(unrooted_must_root)]
+    fn new_inherited(type_: DOMString, href: Option<DOMString>, title: Option<DOMString>) -> StyleSheet {
+        StyleSheet {
+            reflector_: Reflector::new(),
+            type_: type_,
+            href: href,
+            title: title
+        }
+    }
+
+    #[allow(unrooted_must_root)]
+    pub fn new(window: &Window, type_: DOMString, href: Option<DOMString>, title: Option<DOMString>) -> Root<StyleSheet> {
+        reflect_dom_object(box StyleSheet::new_inherited(type_,href,title),
+                           GlobalRef::Window(window), StyleSheetBinding::Wrap)
+    }
 }
 
 
