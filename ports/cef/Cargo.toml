@@ -80,7 +80,7 @@ features = ["plugins"]
 objc = "0.1"
 cocoa = "0.2.5"
 core-foundation = "0.2"
-core-graphics = "0.2"
+core-graphics = "0.3"
 core-text = "1.1"
 cgl = "0.1"
 
