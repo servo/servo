@@ -6,7 +6,7 @@ use compositing::windowing::{WindowEvent, MouseWindowEvent};
 use errno::errno;
 use euclid::point::Point2D;
 use libc::{c_int, c_long, time_t};
-use script_traits::MouseButton;
+use script_traits::{MouseButton, TouchEventType};
 use std::fs::File;
 use std::io::Read;
 use std::mem::{size_of, transmute, zeroed};
@@ -185,7 +185,8 @@ fn read_input_device(device_path: &Path,
                         println!("Touch move x: {}, y: {}", slotA.x, slotA.y);
                         sender.send(
                             WindowEvent::Scroll(Point2D::typed((slotA.x - last_x) as f32, (slotA.y - last_y) as f32),
-                                                Point2D::typed(slotA.x, slotA.y))).ok().unwrap();
+                                                Point2D::typed(slotA.x, slotA.y),
+                                                TouchEventType::Move)).ok().unwrap();
                         last_x = slotA.x;
                         last_y = slotA.y;
                         if touch_count >= 2 {
