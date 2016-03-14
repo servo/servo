@@ -66,12 +66,11 @@ headless = ["glutin_app/headless"]
 webdriver = ["webdriver_server"]
 energy-profiling = ["profile_traits/energy-profiling"]
 
+[profile.release]
+opt-level = 3
+codegen-units = 4
 # Uncomment to profile on Linux:
-#
-# [profile.release]
-# opt-level = 3
 # debug = true
-# rpath = false
 # lto = false
 
 [dependencies.compositing]
