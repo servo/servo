@@ -26,6 +26,6 @@ optional = true
 path = "../plugins"
 
 [dependencies]
-serde = "0.6"
-serde_macros = "0.6"
+serde = "0.7"
+serde_macros = "0.7"
 time = "0.1.12"
