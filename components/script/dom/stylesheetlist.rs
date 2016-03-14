@@ -6,6 +6,8 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 //use dom::document::Document;
 use dom::stylesheet::StyleSheet;
 use dom::window::Window;
+//use std::sync::Arc;
+//use dom::bindings::cell::DOMRefCell;
 
 #[dom_struct]
 pub struct StyleSheetList {
