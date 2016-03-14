@@ -24,9 +24,6 @@ path = "../../components/script_traits"
 [dependencies.style_traits]
 path = "../../components/style_traits"
 
-[dependencies.net_traits]
-path = "../../components/net_traits"
-
 [dependencies.gfx]
 path = "../../components/gfx"
 

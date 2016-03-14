@@ -32,7 +32,6 @@ extern crate gleam;
 extern crate layers;
 extern crate libc;
 extern crate msg;
-extern crate net_traits;
 extern crate script_traits;
 extern crate servo;
 extern crate style_traits;
@@ -44,7 +43,6 @@ extern crate util;
 extern {}
 
 use compositing::windowing::WindowEvent;
-use net_traits::hosts;
 use servo::Browser;
 use std::env;
 use util::opts;
@@ -61,8 +59,6 @@ fn main() {
 
     // Parse the command line options and store them globally
     opts::from_cmdline_args(env::args().collect::<Vec<_>>().as_slice());
-
-    hosts::global_init();
 
     let window = if opts::get().headless {
         None
