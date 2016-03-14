@@ -1,41 +1,46 @@
-use dom::ProcessingInstruction;
 use dom::bindings::reflector::Reflector;
 use util::str::DOMString;
+//use dom::bindings::codegen::UnionTypes::ElementOrProcessingInstruction;
+use dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
+//use dom::processinginstruction::ProcessingInstruction;
 
-//#[dom_struct]
+#[dom_struct]
 pub struct StyleSheet {
-    type_: DOMString,
     reflector_: Reflector,
-    /*href: DOMString,
-    ownerNode: ProcessingInstruction,
+    type_: DOMString,
+    href: Option<DOMString>,
+    title: Option<DOMString>,
+    //ownerNode: Option<ProcessingInstruction>,
+    /*parentStyleSheet: StyleSheet,
     parentStyleSheet: StyleSheet,
-    title: DOMString,
+    
     media: MediaList,
     disabled: Cell<bool>,*/
 }
 
-impl StyleSheetMethods for StyleSheet{
+
+impl StyleSheetMethods for StyleSheet {
     // http://dev.w3.org/csswg/cssom/#serialize-an-identifier
-    pub fn type_(&self)-> &DOMString{
-	&self.type_
+    fn Type_(&self)-> DOMString{
+	self.type_.clone()
     }
-    /*pub fn href(&self)-> &DOMString{
-	&self.href
+    fn GetHref(&self)-> Option<DOMString>{
+	self.href.clone()
     }
-    pub fn title(&self)-> &DOMString{
-	&self.title
+    fn GetTitle(&self)-> Option<DOMString>{
+	self.title.clone()
+    }/*
+    fn GetOwnerNode(&self) -> Option<ProcessingInstruction>{
+	self.ownerNode
     }
-    pub fn parentStyleSheet(&self)-> StyleSheet{
+    fn Disabled(&self)-> bool{
+	self.disabled.clone()
+    }
+    fn parentStyleSheet(&self)-> &StyleSheet{
 	&self.parentStyleSheet
     }
     pub fn media(&self)-> MediaList{
 	&self.media
-    }
-    pub fn disabled(&self)-> bool{
-	&self.disabled
-    }
-    pub fn ownerNode(&self)-> ProcessingInstruction{
-	&self.ownerNode
     }
     pub fn set_disable(&self,val: bool) -> StyleSheet{
         if val{
@@ -45,5 +50,6 @@ impl StyleSheetMethods for StyleSheet{
 	}
         &self
     }*/
+	
 }
 
