@@ -112,7 +112,7 @@ impl Deref for CachedCTFont {
 
 impl Serialize for CachedCTFont {
     fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
-        serializer.visit_none()
+        serializer.serialize_none()
     }
 }
 
@@ -130,7 +130,7 @@ impl Deserialize for CachedCTFont {
             }
         }
 
-        deserializer.visit_option(NoneOptionVisitor)
+        deserializer.deserialize_option(NoneOptionVisitor)
     }
 }
 
