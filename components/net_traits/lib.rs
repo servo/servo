@@ -11,6 +11,8 @@
 #![feature(custom_attribute)]
 #![plugin(heapsize_plugin, serde_macros)]
 
+#![deny(unsafe_code)]
+
 extern crate heapsize;
 extern crate hyper;
 extern crate image as piston_image;
