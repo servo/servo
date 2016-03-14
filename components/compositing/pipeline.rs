@@ -277,6 +277,7 @@ impl Pipeline {
             children: vec!(),
             size: size,
             running_animations: false,
+            visible: true, //TODO: jmr0 check this
         }
     }
 
@@ -355,10 +356,10 @@ impl Pipeline {
         self.visible = visible;
         match visible {
             true => { 
-                self.script_chan.send(ConstellationControlMsg::SetVisible(self.id));
+                self.script_chan.send(ConstellationControlMsg::SetVisible(self.id)).unwrap();
             }
             false => {
-                self.script_chan.send(ConstellationControlMsg::SetNonVisible(self.id));
+                self.script_chan.send(ConstellationControlMsg::SetNonVisible(self.id)).unwrap();
             }
         }
     }
