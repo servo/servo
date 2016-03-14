@@ -18,7 +18,7 @@ use std::fs::File;
 use std::io::Read;
 use std::mem;
 use std::sync::Arc;
-use std::sync::mpsc::{Sender, channel};
+use std::sync::mpsc::{Sender, Receiver, channel};
 use url::Url;
 use util::resource_files::resources_dir_path;
 use util::thread::spawn_named;
@@ -261,6 +261,32 @@ struct DecoderMsg {
     image: Option<Image>,
 }
 
+struct Receivers {
+    cmd_receiver: Receiver<ImageCacheCommand>,
+    decoder_receiver: Receiver<DecoderMsg>,
+    progress_receiver: Receiver<ResourceLoadInfo>,
+}
+
+impl Receivers {
+    #[allow(unsafe_code)]
+    fn recv(&self) -> SelectResult {
+        let cmd_receiver = &self.cmd_receiver;
+        let decoder_receiver = &self.decoder_receiver;
+        let progress_receiver = &self.progress_receiver;
+        select! {
+            msg = cmd_receiver.recv() => {
+                SelectResult::Command(msg.unwrap())
+            },
+            msg = decoder_receiver.recv() => {
+                SelectResult::Decoder(msg.unwrap())
+            },
+            msg = progress_receiver.recv() => {
+                SelectResult::Progress(msg.unwrap())
+            }
+        }
+    }
+}
+
 /// The types of messages that the main image cache thread receives.
 enum SelectResult {
     Command(ImageCacheCommand),
@@ -317,22 +343,16 @@ impl ImageCache {
             webrender_api: webrender_api,
         };
 
+        let receivers = Receivers {
+            cmd_receiver: cmd_receiver,
+            decoder_receiver: decoder_receiver,
+            progress_receiver: progress_receiver,
+        };
+
         let mut exit_sender: Option<IpcSender<()>> = None;
 
         loop {
-            let result = select! {
-                msg = cmd_receiver.recv() => {
-                    SelectResult::Command(msg.unwrap())
-                },
-                msg = decoder_receiver.recv() => {
-                    SelectResult::Decoder(msg.unwrap())
-                },
-                msg = progress_receiver.recv() => {
-                    SelectResult::Progress(msg.unwrap())
-                }
-            };
-
-            match result {
+            match receivers.recv() {
                 SelectResult::Command(cmd) => {
                     exit_sender = cache.handle_cmd(cmd);
                 }
