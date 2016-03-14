@@ -8,6 +8,13 @@ name = "embedding"
 path = "lib.rs"
 crate-type = ["dylib"]
 
+[profile.release]
+opt-level = 3
+codegen-units = 4
+# Uncomment to profile on Linux:
+# debug = true
+# lto = false
+
 [dependencies]
 euclid = {version = "0.6.4", features = ["plugins"]}
 gleam = "0.2.8"
