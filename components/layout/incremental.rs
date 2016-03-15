@@ -240,7 +240,6 @@ impl<'a> LayoutDamageComputation for &'a mut Flow {
                 has_counter_affecting_children = has_counter_affecting_children ||
                     flow::base(kid).flags.intersects(AFFECTS_COUNTERS |
                                                      HAS_COUNTER_AFFECTING_CHILDREN);
-
             }
         }
 
