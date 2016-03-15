@@ -869,49 +869,58 @@ impl LayoutThread {
             flow::mut_base(flow_ref::deref_mut(layout_root)).clip =
                 ClippingRegion::from_rect(&data.page_clip_rect);
 
-            let mut root_stacking_context =
-                StackingContext::new(StackingContextId::new(0),
-                                     StackingContextType::Real,
-                                     &Rect::zero(),
-                                     &Rect::zero(),
-                                     0,
-                                     filter::T::new(Vec::new()),
-                                     mix_blend_mode::T::normal,
-                                     Matrix4::identity(),
-                                     Matrix4::identity(),
-                                     true,
-                                     false,
-                                     None);
-
-            let display_list_entries =
-                sequential::build_display_list_for_subtree(layout_root,
-                                                           &mut root_stacking_context,
-                                                           shared_layout_context);
-
             if data.goal == ReflowGoal::ForDisplay {
-                debug!("Done building display list.");
+                let display_list = if flow::base(&**layout_root).restyle_damage
+                                                                .contains(REPAINT) ||
+                        rw_data.display_list.is_none() {
+                    println!("rebuilding display list");
+                    let mut root_stacking_context =
+                        StackingContext::new(StackingContextId::new(0),
+                                             StackingContextType::Real,
+                                             &Rect::zero(),
+                                             &Rect::zero(),
+                                             0,
+                                             filter::T::new(Vec::new()),
+                                             mix_blend_mode::T::normal,
+                                             Matrix4::identity(),
+                                             Matrix4::identity(),
+                                             true,
+                                             false,
+                                             None);
 
-                let root_background_color = get_root_flow_background_color(
-                    flow_ref::deref_mut(layout_root));
-                let root_size = {
-                    let root_flow = flow::base(&**layout_root);
-                    if rw_data.stylist.viewport_constraints().is_some() {
-                        root_flow.position.size.to_physical(root_flow.writing_mode)
-                    } else {
-                        root_flow.overflow.scroll.size
-                    }
+                    let display_list_entries =
+                        sequential::build_display_list_for_subtree(layout_root,
+                                                                   &mut root_stacking_context,
+                                                                   shared_layout_context);
+
+                    debug!("Done building display list.");
+
+                    let root_background_color = get_root_flow_background_color(
+                        flow_ref::deref_mut(layout_root));
+                    let root_size = {
+                        let root_flow = flow::base(&**layout_root);
+                        if rw_data.stylist.viewport_constraints().is_some() {
+                            root_flow.position.size.to_physical(root_flow.writing_mode)
+                        } else {
+                            root_flow.overflow.scroll.size
+                        }
+                    };
+
+                    let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
+                    root_stacking_context.bounds = origin;
+                    root_stacking_context.overflow = origin;
+                    root_stacking_context.layer_info =
+                        Some(LayerInfo::new(layout_root.layer_id(),
+                                            ScrollPolicy::Scrollable,
+                                            None,
+                                            root_background_color));
+
+                    Arc::new(DisplayList::new(root_stacking_context,
+                                              &mut Some(display_list_entries)))
+                } else {
+                    (*rw_data.display_list.as_ref().unwrap()).clone()
                 };
 
-                let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
-                root_stacking_context.bounds = origin;
-                root_stacking_context.overflow = origin;
-                root_stacking_context.layer_info = Some(LayerInfo::new(layout_root.layer_id(),
-                                                                       ScrollPolicy::Scrollable,
-                                                                       None,
-                                                                       root_background_color));
-
-                let display_list = DisplayList::new(root_stacking_context,
-                                                    &mut Some(display_list_entries));
                 if opts::get().dump_display_list {
                     display_list.print();
                 }
@@ -919,7 +928,6 @@ impl LayoutThread {
                     println!("{}", serde_json::to_string_pretty(&display_list).unwrap());
                 }
 
-                let display_list = Arc::new(display_list);
                 rw_data.display_list = Some(display_list.clone());
 
                 debug!("Layout done!");
@@ -942,10 +950,13 @@ impl LayoutThread {
                         epoch,
                         Some(root_scroll_layer_id),
                         &mut auxiliary_lists_builder);
-                    let root_background_color = webrender_traits::ColorF::new(root_background_color.r,
-                                                                       root_background_color.g,
-                                                                       root_background_color.b,
-                                                                       root_background_color.a);
+                    let root_background_color = get_root_flow_background_color(
+                        flow_ref::deref_mut(layout_root));
+                    let root_background_color =
+                        webrender_traits::ColorF::new(root_background_color.r,
+                                                      root_background_color.g,
+                                                      root_background_color.b,
+                                                      root_background_color.a);
 
                     let viewport_size = Size2D::new(self.viewport_size.width.to_f32_px(),
                                                     self.viewport_size.height.to_f32_px());
