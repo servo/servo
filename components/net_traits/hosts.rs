@@ -9,38 +9,34 @@ use std::io::{BufReader, Read};
 use std::net::{Ipv4Addr, Ipv6Addr};
 use url::Url;
 
-static mut HOST_TABLE: Option<*mut HashMap<String, String>> = None;
+lazy_static! {
+    static ref HOST_TABLE: Option<HashMap<String, String>> = create_host_table();
+}
 
-
-pub fn global_init() {
+fn create_host_table() -> Option<HashMap<String, String>> {
     //TODO: handle bad file path
     let path = match env::var("HOST_FILE") {
         Ok(host_file_path) => host_file_path,
-        Err(_) => return,
+        Err(_) => return None,
     };
 
     let mut file = match File::open(&path) {
         Ok(f) => BufReader::new(f),
-        Err(_) => return,
+        Err(_) => return None,
     };
 
     let mut lines = String::new();
     match file.read_to_string(&mut lines) {
         Ok(_) => (),
-        Err(_) => return,
+        Err(_) => return None,
     };
 
-    unsafe {
-        let host_table = Box::into_raw(parse_hostsfile(&lines));
-        HOST_TABLE = Some(host_table);
-    }
+    return Some(parse_hostsfile(&lines));
 }
 
-pub fn parse_hostsfile(hostsfile_content: &str) -> Box<HashMap<String, String>> {
+pub fn parse_hostsfile(hostsfile_content: &str) -> HashMap<String, String> {
     let mut host_table = HashMap::new();
-    let lines: Vec<&str> = hostsfile_content.split('\n').collect();
-
-    for line in &lines {
+    for line in hostsfile_content.split('\n') {
         let ip_host: Vec<&str> = line.trim().split(|c: char| c == ' ' || c == '\t').collect();
         if ip_host.len() > 1 {
             if ip_host[0].parse::<Ipv4Addr>().is_err() && ip_host[0].parse::<Ipv6Addr>().is_err() {
@@ -56,25 +52,21 @@ pub fn parse_hostsfile(hostsfile_content: &str) -> Box<HashMap<String, String>> 
             }
         }
     }
-    box host_table
+    host_table
 }
 
 pub fn replace_hosts(url: &Url) -> Url {
-    unsafe {
-        HOST_TABLE.map_or_else(|| url.clone(), |host_table| {
-            host_replacement(host_table, url)
-        })
-    }
+    HOST_TABLE.as_ref().map_or_else(|| url.clone(), |host_table| {
+        host_replacement(host_table, url)
+    })
 }
 
-pub fn host_replacement(host_table: *mut HashMap<String, String>,
+pub fn host_replacement(host_table: &HashMap<String, String>,
                         url: &Url) -> Url {
-    unsafe {
-        url.domain().and_then(|domain|
-                              (*host_table).get(domain).map(|ip| {
-                                  let mut net_url = url.clone();
-                                  *net_url.domain_mut().unwrap() = ip.clone();
-                                  net_url
-                              })).unwrap_or(url.clone())
-    }
+    url.domain().and_then(|domain|
+                          host_table.get(domain).map(|ip| {
+                              let mut net_url = url.clone();
+                              *net_url.domain_mut().unwrap() = ip.clone();
+                              net_url
+                          })).unwrap_or(url.clone())
 }

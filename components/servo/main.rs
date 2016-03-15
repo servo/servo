@@ -36,7 +36,6 @@ use gleam::gl;
 use offscreen_gl_context::{GLContext, NativeGLContext};
 use servo::Browser;
 use servo::compositing::windowing::WindowEvent;
-use servo::net_traits::hosts;
 use servo::util::opts::{self, ArgumentParsingResult};
 use std::rc::Rc;
 
@@ -65,9 +64,6 @@ fn main() {
     env_logger::init().unwrap();
 
     setup_logging();
-
-    // Possibly interpret the `HOST_FILE` environment variable
-    hosts::global_init();
 
     if let Some(token) = content_process_token {
         return servo::run_content_process(token)

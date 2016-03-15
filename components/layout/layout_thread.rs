@@ -794,7 +794,7 @@ impl LayoutThread {
         possibly_locked_rw_data.block(rw_data);
     }
 
-    fn try_get_layout_root<'ln, N: LayoutNode<'ln>>(&self, node: N) -> Option<FlowRef> {
+    fn try_get_layout_root<N: LayoutNode>(&self, node: N) -> Option<FlowRef> {
         let mut data = match node.mutate_layout_data() {
             Some(x) => x,
             None => return None,
@@ -1372,7 +1372,7 @@ impl LayoutThread {
         }
     }
 
-    unsafe fn dirty_all_nodes<'ln, N: LayoutNode<'ln>>(node: N) {
+    unsafe fn dirty_all_nodes<N: LayoutNode>(node: N) {
         for node in node.traverse_preorder() {
             // TODO(cgaebel): mark nodes which are sensitive to media queries as
             // "changed":
