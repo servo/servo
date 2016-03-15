@@ -10,11 +10,12 @@ use dom::bindings::utils::get_proto_or_iface_array;
 use js::glue::UncheckedUnwrapObject;
 use js::jsapi::{Class, ClassExtension, ClassSpec, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{HandleObject, HandleValue, JSClass, JSContext, JSFunctionSpec};
-use js::jsapi::{JSPropertySpec, JSString, JS_DefineProperty1, JS_DefineProperty2};
+use js::jsapi::{JSPropertySpec, JSString, JS_DefineProperty1,JS_DefineProperty2};
 use js::jsapi::{JS_DefineProperty4, JS_GetClass, JS_GetFunctionObject, JS_GetPrototype};
 use js::jsapi::{JS_InternString, JS_LinkConstructorAndPrototype, JS_NewFunction, JS_NewObject};
-use js::jsapi::{JS_NewObjectWithUniqueType, JS_DefineProperty, MutableHandleObject};
-use js::jsapi::{MutableHandleValue, ObjectOps, RootedObject, RootedString, RootedValue, Value};
+use js::jsapi::{JS_NewObjectWithUniqueType, JS_NewStringCopyZ, JS_DefineProperty};
+use js::jsapi::{MutableHandleObject, MutableHandleValue, ObjectOps, RootedObject, RootedString};
+use js::jsapi::{RootedValue, Value};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
 use js::rust::{define_methods, define_properties};
 use js::{JSPROP_ENUMERATE, JSFUN_CONSTRUCTOR, JSPROP_PERMANENT, JSPROP_READONLY};
@@ -79,16 +80,15 @@ pub fn define_constants(cx: *mut JSContext, obj: HandleObject, constants: &'stat
     }
 }
 
+unsafe extern "C" fn fun_to_string(cx: *mut JSContext, obj: HandleObject, _indent: u32) -> *mut JSString {
+    let js_class = JS_GetClass(obj.get());
+    let object_class = &*(js_class as *const NonCallbackInterfaceObjectClass);
+    JS_NewStringCopyZ(cx, object_class.representation.as_ptr() as *const i8)
+}
+
 /// A constructor class hook.
 pub type ConstructorClassHook =
     unsafe extern "C" fn(cx: *mut JSContext, argc: u32, vp: *mut Value) -> bool;
-
-/// A fun_to_string class hook.
-pub type FunToStringHook =
-    unsafe extern "C" fn(cx: *mut JSContext,
-                         obj: HandleObject,
-                         indent: u32)
-                         -> *mut JSString;
 
 /// The class of a non-callback interface object.
 #[derive(Copy, Clone)]
@@ -99,6 +99,8 @@ pub struct NonCallbackInterfaceObjectClass {
     pub proto_id: PrototypeList::ID,
     /// The prototype depth of that interface, used in the hasInstance hook.
     pub proto_depth: u16,
+    /// the string representation of the object (ends with '\0')
+    pub representation: &'static [u8],
 }
 
 unsafe impl Sync for NonCallbackInterfaceObjectClass {}
@@ -107,7 +109,7 @@ impl NonCallbackInterfaceObjectClass {
     /// Create a new `NonCallbackInterfaceObjectClass` structure.
     pub const fn new(
             constructor: ConstructorClassHook,
-            fun_to_string: FunToStringHook,
+            string_rep: &'static [u8],
             proto_id: PrototypeList::ID,
             proto_depth: u16)
             -> NonCallbackInterfaceObjectClass {
@@ -162,6 +164,7 @@ impl NonCallbackInterfaceObjectClass {
             },
             proto_id: proto_id,
             proto_depth: proto_depth,
+            representation: string_rep,
         }
     }
 
