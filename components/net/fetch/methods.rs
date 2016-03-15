@@ -124,7 +124,13 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     // TODO this step, based off of http_loader.rs
 
     // Step 5
-    // TODO this step
+    // TODO: set reponse to network error if request is to be blocked:
+    // 1) as mixed content https://w3c.github.io/webappsec-mixed-content/#should-block-fetch
+    // or
+    // 2) by Content Security Policy https://w3c.github.io/webappsec-csp/#should-block-request
+    if should_block_request_due_to_bad_port(&*request) {
+        response = Some(Response::network_error())
+    }
 
     // Step 6
     if request.referer != Referer::NoReferer {
@@ -1065,5 +1071,91 @@ fn is_null_body_status(status: &Option<StatusCode>) -> bool {
             _ => false
         },
         _ => false
+    }
+}
+
+// list of bad ports according to
+// https://fetch.spec.whatwg.org/#port-blocking
+const BAD_PORTS_LIST: &'static [u16] = &[
+    1,    // tcpmux
+    7,    // echo
+    9,    // discard
+    11,   // systat
+    13,   // daytime
+    15,   // netstat
+    17,   // qotd
+    19,   // chargen
+    20,   // ftp-data
+    21,   // ftp
+    22,   // ssh
+    23,   // telnet
+    25,   // smtp
+    37,   // time
+    42,   // name
+    43,   // nicname
+    53,   // domain
+    77,   // priv-rjs
+    79,   // finger
+    87,   // ttylink
+    95,   // supdup
+    101,  // hostriame
+    102,  // iso-tsap
+    103,  // gppitnp
+    104,  // acr-nema
+    109,  // pop2
+    110,  // pop3
+    111,  // sunrpc
+    113,  // auth
+    115,  // sftp
+    117,  // uucp-path
+    119,  // nntp
+    123,  // ntp
+    135,  // loc-srv / epmap
+    139,  // netbios
+    143,  // imap2
+    179,  // bgp
+    389,  // ldap
+    465,  // smtp+ssl
+    512,  // print / exec
+    513,  // login
+    514,  // shell
+    515,  // printer
+    526,  // tempo
+    530,  // courier
+    531,  // chat
+    532,  // netnews
+    540,  // uucp
+    556,  // remotefs
+    563,  // nntp+ssl
+    587,  // smtp
+    601,  // syslog-conn
+    636,  // ldap+ssl
+    993,  // imap+ssl
+    995,  // pop3+ssl
+    2049, // nfs
+    3659, // apple-sasl
+    4045, // lockd
+    6000, // x11
+    6665, // irc (alternate)
+    6666, // irc (alternate)
+    6667, // irc (default)
+    6668, // irc (alternate)
+    6669, // irc (alternate)
+];
+
+/// [Port Blocking](https://fetch.spec.whatwg.org/#port-blocking)
+pub fn should_block_request_due_to_bad_port(request: &Request) -> bool {
+    let current_url = request.current_url();
+    let port: u16 = current_url.port().unwrap();
+    let scheme = current_url.scheme;
+
+    if &scheme == "ftp" && (port == 20 || port == 21) {
+        false
+    } else if
+        (&scheme == "ftp" || &scheme == "http" || &scheme == "https") &&
+        BAD_PORTS_LIST.iter().any(|&p| p == port) {
+        true
+    } else {
+        false
     }
 }
