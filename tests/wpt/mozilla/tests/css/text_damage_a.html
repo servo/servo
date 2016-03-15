@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title></title>
+<link rel="match" href="text_damage_ref.html">
+<span class="lock" style="display: none">foo</span><span>bar</span>
+<script>
+window.onload = function() {
+    document.querySelector(".lock").style.display = "inline";
+    document.documentElement.classList.remove("reftest-wait");
+};
+</script>
+
+

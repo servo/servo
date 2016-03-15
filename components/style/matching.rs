@@ -655,6 +655,7 @@ pub trait MatchMethods : TNode {
             }
         };
 
+        let damage;
         if self.is_text_node() {
             // Text nodes get a copy of the parent style. This ensures
             // that during fragment construction any non-inherited
@@ -663,9 +664,11 @@ pub trait MatchMethods : TNode {
             let mut data_ref = self.mutate_data().unwrap();
             let mut data = &mut *data_ref;
             let cloned_parent_style = parent_style.unwrap().clone();
+            damage = Self::ConcreteRestyleDamage::compute(data.style.as_ref(),
+                                                          &*cloned_parent_style);
             data.style = Some(cloned_parent_style);
         } else {
-            let damage = {
+            damage = {
                 let mut data_ref = self.mutate_data().unwrap();
                 let mut data = &mut *data_ref;
                 let (mut damage, final_style) = self.cascade_node_pseudo_element(
@@ -706,13 +709,15 @@ pub trait MatchMethods : TNode {
 
             // This method needs to borrow the data as mutable, so make sure data_ref goes out of
             // scope first.
-            self.set_restyle_damage(damage);
-
             self.set_can_be_fragmented(parent.map_or(false, |p| {
                 p.can_be_fragmented() ||
                 parent_style.as_ref().unwrap().is_multicol()
             }));
         }
+
+        // This method needs to borrow the data as mutable, so make sure data_ref goes out of
+        // scope first.
+        self.set_restyle_damage(damage);
     }
 }
 
