@@ -241,12 +241,12 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
         self.upcast::<HTMLElement>().labels()
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea/input-selectiondirection
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
     fn SetSelectionDirection(&self, direction: DOMString) {
         self.SetSelectionRange(self.SelectionStart(), self.SelectionEnd(), Some(direction));
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea/input-selectiondirection
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
     fn SelectionDirection(&self) -> DOMString {
         match self.selection_direction.get() {
             SelectionDirection::Forward => DOMString::from("forward"),
@@ -255,23 +255,23 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea/input-selectionend
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
     fn SetSelectionEnd(&self, end: u32) {
         self.set_selection_range(self.SelectionStart(), end, &self.selection_direction.get());
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea/input-selectionend
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
     fn SelectionEnd(&self) -> u32 {
         let text_input = self.textinput.borrow();
         text_input.get_absolute_insertion_point() as u32
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea/input-selectionstart
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
     fn SetSelectionStart(&self, start: u32) {
         self.set_selection_range(start, self.SelectionEnd(), &self.selection_direction.get());
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea/input-selectionstart
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
     fn SelectionStart(&self) -> u32 {
         let text_input = self.textinput.borrow();
         let selection_start = match text_input.selection_begin {
@@ -284,7 +284,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
         selection_start as u32
     }
 
-    // https://html.spec.whatwg.org/multipage/forms.html#dom-textarea/input-setselectionrange
+    // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) {
         let selection_direction = match direction {
             Some(selection_direction) => {
