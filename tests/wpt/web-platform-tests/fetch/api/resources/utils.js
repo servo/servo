@@ -44,25 +44,31 @@ function checkRequest(request, ExpectedValuesDict) {
   }
 }
 
-//check reader's text content in an asyncronous test
-function readTextStream(reader, asyncTest, expectedValue, retrievedText) {
-  if (!retrievedText)
-    retrievedText = "";
-  reader.read().then(function(data) {
+function stringToArray(str) {
+  var array = new Uint8Array(str.length);
+  for (var i=0, strLen = str.length; i < strLen; i++)
+    array[i] = str.charCodeAt(i);
+  return array;
+}
+
+function validateBufferFromString(buffer, expectedValue, message)
+{
+  return assert_array_equals(new Uint8Array(buffer), stringToArray(expectedValue), message);
+}
+
+function validateStreamFromString(reader, expectedValue, retrievedArrayBuffer) {
+  return reader.read().then(function(data) {
     if (!data.done) {
-      var decoder = new TextDecoder();
-      retrievedText += decoder.decode(data.value);
-      readTextStream(reader, asyncTest, expectedValue, retrievedText);
-      return;
+      var newBuffer;
+      if (retrievedArrayBuffer) {
+        newBuffer =  new ArrayBuffer(data.value.length + retrievedArrayBuffer.length);
+        newBuffer.set(retrievedArrayBuffer, 0);
+        newBuffer.set(data.value, retrievedArrayBuffer.length);
+      } else {
+        newBuffer = data.value;
+      }
+      return validateStreamFromString(reader, expectedValue, newBuffer);
     }
-    asyncTest.step(function() {
-      assert_equals(retrievedText, expectedValue, "Retrieve and verify stream");
-      asyncTest.done();
-    });
-  }).catch(function(e) {
-    asyncTest.step(function() {
-      assert_unreached("Cannot read stream " + e);
-      asyncTest.done();
-    });
+    validateBufferFromString(retrievedArrayBuffer, expectedValue, "Retrieve and verify stream");
   });
 }

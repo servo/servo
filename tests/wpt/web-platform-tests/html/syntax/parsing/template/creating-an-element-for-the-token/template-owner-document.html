@@ -68,26 +68,6 @@ test(function () {
 
 test(function () {
     var doc = newHTMLDocument();
-
-    doc.open();
-    doc.write('<frameset><template id="tmpl1"><div id="div">DIV</div></template></frameset>');
-    doc.close();
-
-    var template = doc.querySelector('#tmpl1');
-
-    var div = template.content.querySelector('#div');
-
-    assert_equals(div.ownerDocument, template.content.ownerDocument,
-            'Wrong ownerDocument of the element in template');
-
-}, 'Test ownerDocument property of the element in a template. '
-    + 'Current DOCUMENT has no browsing context. Test template element '
-    + 'in the root of the frameset');
-
-
-
-test(function () {
-    var doc = newHTMLDocument();
     doc.body.innerHTML = '<template id="tmpl1">'
         + '<template id="tmpl2"><div id="div">DIV</div></template></template>';
 

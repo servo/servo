@@ -45,12 +45,12 @@
           "Expect response.headers has name:value header");
       }, "Check Response's clone has the expected attribute values");
 
-      async_test(function(test) {
-        readTextStream(response.body.getReader(), test, body);
+      promise_test(function(test) {
+        return validateStreamFromString(response.body.getReader(), body);
       }, "Check orginal response's body after cloning");
 
-      async_test(function(test) {
-        readTextStream(clonedResponse.body.getReader(), test, body);
+      promise_test(function(test) {
+        return validateStreamFromString(clonedResponse.body.getReader(), body);
       }, "Check cloned response's body");
 
       promise_test(function(test) {

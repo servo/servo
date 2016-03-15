@@ -2384,7 +2384,7 @@
     "xhtml/elements/keygen/360-novalid.xhtml": "The \u201clabel\u201d element may contain at most one \u201cbutton\u201d, \u201cinput\u201d, \u201ckeygen\u201d, \u201cmeter\u201d, \u201coutput\u201d, \u201cprogress\u201d, \u201cselect\u201d, or \u201ctextarea\u201d descendant.",
     "xhtml/elements/keygen/361-novalid.xhtml": "The element \u201ckeygen\u201d must not appear as a descendant of the \u201ca\u201d element.",
     "xhtml/elements/link/001-novalid.xhtml": "Element \u201clink\u201d is missing required attribute \u201chref\u201d.",
-    "xhtml/elements/menu/001-haswarn.xhtml": "The \u201cmenu\u201d element is not supported by browsers yet. It would probably be better to wait for implementations.",
+    "xhtml/elements/menu/001-haswarn.xhtml": "The \u201cmenu\u201d element is not supported in all browsers. Please be sure to test, and consider using a polyfill.",
     "xhtml/elements/menu/001-novalid.xhtml": "The \u201ccontextmenu\u201d attribute must refer to a \u201cmenu\u201d element.",
     "xhtml/elements/meter/010-novalid.xhtml": "The value of the \u201cmin\u201d attribute must be less than or equal to the value of the \u201cvalue\u201d attribute.",
     "xhtml/elements/meter/011-novalid.xhtml": "Element \u201cmeter\u201d is missing required attribute \u201cvalue\u201d.",

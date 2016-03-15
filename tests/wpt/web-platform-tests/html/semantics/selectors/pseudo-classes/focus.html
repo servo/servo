@@ -11,7 +11,6 @@
   <button id=button1 type=submit>button1</button>
   <input id=input1>
   <input id=input2 disabled>
-  <input id=input3 autofocus>
   <textarea id=textarea1>textarea1</textarea>
   <input type=checkbox id=checkbox1 checked>
   <input type=radio id=radio1 checked>
@@ -20,8 +19,6 @@
   <iframe src="focus-iframe.html" id=iframe onload="load()"></iframe>
 
   <script>
-    testSelector(":focus", ["input3"], "input3 has the attribute autofocus");
-
     document.getElementById("input1").focus(); // set the focus on input1
     testSelector(":focus", ["input1"], "input1 has the focus");
 

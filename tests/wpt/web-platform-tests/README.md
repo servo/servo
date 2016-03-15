@@ -137,14 +137,6 @@ they will be under `html/browsers/history/the-history-interface/`.
 Various resources that tests depend on are in `common`, `images`, and
 `fonts`.
 
-
-If you're looking at a section of the specification and can't figure
-out where the directory is for it in the tree, just run:
-
-```
-node tools/scripts/id2path.js your-id
-```
-
 Branches
 ========
 
