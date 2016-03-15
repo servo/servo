@@ -280,36 +280,6 @@ class MachCommands(CommandBase):
             print("Unable to parse chromium HSTS preload list, has the format changed?")
             sys.exit(1)
 
-    @Command('update-submodules',
-             description='Update submodules',
-             category='bootstrap')
-    def update_submodules(self):
-        # Ensure that the installed git version is >= 1.8.1
-        gitversion_output = subprocess.check_output(["git", "--version"])
-        gitversion = LooseVersion(gitversion_output.split(" ")[-1])
-        if gitversion < LooseVersion("1.8.1"):
-            print("Git version 1.8.1 or above required. Current version is {}"
-                  .format(gitversion))
-            sys.exit(1)
-        submodules = subprocess.check_output(["git", "submodule", "status"])
-        for line in submodules.split('\n'):
-            components = line.strip().split(' ')
-            if len(components) > 1:
-                module_path = components[1]
-                if path.exists(module_path):
-                    with cd(module_path):
-                        output = subprocess.check_output(
-                            ["git", "status", "--porcelain"])
-                        if len(output) != 0:
-                            print("error: submodule %s is not clean"
-                                  % module_path)
-                            print("\nClean the submodule and try again.")
-                            return 1
-        check_call(
-            ["git", "submodule", "--quiet", "sync", "--recursive"])
-        check_call(
-            ["git", "submodule", "update", "--init", "--recursive"])
-
     @Command('clean-nightlies',
              description='Clean unused nightly builds of Rust and Cargo',
              category='bootstrap')
