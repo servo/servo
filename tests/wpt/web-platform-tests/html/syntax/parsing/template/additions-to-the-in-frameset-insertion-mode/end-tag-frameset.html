@@ -3,8 +3,8 @@
 <head>
 <title>HTML Templates: additions to 'in frameset' insertion mode</title>
 <meta name="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
-<meta name="assert" content="If parser is in 'in frameset' insertion mode and meets frameset end tag then if the stack of open elements has a template element in html scope then this is a parse error; ignore the token">
-<link rel="help" href="http://www.w3.org/TR/2013/WD-html-templates-20130214/#in-head-addition">
+<meta name="assert" content="If parser is in 'in frameset' insertion mode then a start tag or an end tag whose name is 'template' is a parsing error">
+<link rel="help" href="https://www.w3.org/TR/2015/WD-html51-20151008/syntax.html#parsing-main-inframeset">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/html/resources/common.js"></script>
@@ -18,15 +18,9 @@ testInIFrame('/html/semantics/scripting-1/the-template-element/resources/framese
     var doc = context.iframes[0].contentDocument;
 
     var frameset = doc.querySelector('frameset');
-    assert_equals(frameset.children.length, 1, 'Wrong number of frameset children elements');
+    assert_equals(frameset.children.length, 0, 'Wrong number of frameset children elements');
 
-    var template = frameset.querySelector('template');
-    assert_equals(template.tagName, 'TEMPLATE', 'FRAMESET should contain template element');
-    assert_equals(template.content.childNodes.length, 0,
-            'Template content should be empty');
-
-}, '</frameset> tag should be ignored if there\'s TEMPLATE element in '
-    + 'the stack of open elements');
+}, '<template> tag should be ignored in "in frameset" insertion mode');
 
 </script>
 </body>

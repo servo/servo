@@ -33,11 +33,23 @@ function testAlias(arg, iface) {
                   "isTrusted should be initialized to false");
   }, "createEvent('" + arg + "') should be initialized correctly.");
 }
-aliases.forEach(function(alias) {
-  testAlias(alias[0], alias[1]);
-  testAlias(alias[0].toLowerCase(), alias[1]);
-  testAlias(alias[0].toUpperCase(), alias[1]);
-});
+for (var alias in aliases) {
+  var iface = aliases[alias];
+  testAlias(alias, iface);
+  testAlias(alias.toLowerCase(), iface);
+  testAlias(alias.toUpperCase(), iface);
+
+  if (!alias.endsWith("s")) {
+    var plural = alias + "s";
+    if (!(plural in aliases)) {
+      test(function () {
+        assert_throws("NOT_SUPPORTED_ERR", function () {
+          var evt = document.createEvent(plural);
+        });
+      }, 'Should throw NOT_SUPPORTED_ERR for pluralized legacy event interface "' + plural + '"');
+    }
+  }
+}
 
 test(function() {
   assert_throws("NOT_SUPPORTED_ERR", function() {
@@ -61,11 +73,73 @@ This list is not exhaustive.
 */
 var someNonCreateableEvents = [
   "AnimationEvent",
+  "AnimationPlayerEvent",
+  "ApplicationCacheErrorEvent",
+  "AudioProcessingEvent",
+  "AutocompleteErrorEvent",
+  "BeforeInstallPromptEvent",
+  "BeforeUnloadEvent",
+  "BlobEvent",
+  "ClipboardEvent",
+  "CloseEvent",
+  "CompositionEvent",
+  "DeviceLightEvent",
+  "DeviceMotionEvent",
+  "DeviceOrientationEvent",
   "DragEvent",
   "ErrorEvent",
+  "ExtendableEvent",
+  "ExtendableMessageEvent",
+  "FetchEvent",
   "FocusEvent",
+  "FontFaceSetLoadEvent",
+  "GamepadEvent",
+  "GeofencingEvent",
+  "HashChangeEvent",
+  "IDBVersionChangeEvent",
+  "InstallEvent",
+  "KeyEvent",
+  "MIDIConnectionEvent",
+  "MIDIMessageEvent",
+  "MediaEncryptedEvent",
+  "MediaKeyEvent",
+  "MediaKeyMessageEvent",
+  "MediaQueryListEvent",
+  "MediaStreamEvent",
+  "MediaStreamTrackEvent",
+  "MutationEvent",
+  "NotificationEvent",
+  "OfflineAudioCompletionEvent",
+  "OrientationEvent",
+  "PageTransitionEvent",
   "PointerEvent",
+  "PopStateEvent",
+  "PresentationConnectionAvailableEvent",
+  "PresentationConnectionCloseEvent",
+  "ProgressEvent",
+  "PromiseRejectionEvent",
+  "PushEvent",
+  "RTCDTMFToneChangeEvent",
+  "RTCDataChannelEvent",
+  "RTCIceCandidateEvent",
+  "RelatedEvent",
+  "ResourceProgressEvent",
+  "SVGEvent",
+  "SVGZoomEvent",
+  "SecurityPolicyViolationEvent",
+  "ServicePortConnectEvent",
+  "ServiceWorkerMessageEvent",
+  "SpeechRecognitionError",
+  "SpeechRecognitionEvent",
+  "SpeechSynthesisEvent",
+  "StorageEvent",
+  "SyncEvent",
+  "TextEvent",
+  "TrackEvent",
   "TransitionEvent",
+  "WebGLContextEvent",
+  "WebKitAnimationEvent",
+  "WebKitTransitionEvent",
   "WheelEvent"
 ];
 someNonCreateableEvents.forEach(function (eventInterface) {

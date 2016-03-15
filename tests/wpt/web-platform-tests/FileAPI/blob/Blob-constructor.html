@@ -8,11 +8,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../support/Blob.js"></script>
-<p><strong><a href="https://www.w3.org/Bugs/Public/show_bug.cgi?id=23683">Discussion</a>
-is ongoing that will affect a number of the following tests.</strong>
 <div id="log"></div>
-<!-- used by "platform object that supports indexed properties" tests -->
-<iframe style="display:none"></iframe>
 <script>
 test(function() {
   assert_true("Blob" in window, "window should have a Blob property.");
@@ -51,6 +47,10 @@ test(function() {
     "FAIL",
     new Date(),
     new RegExp(),
+    {},
+    { 0: "FAIL", length: 1 },
+    document.createElement("div"),
+    window,
   ];
   args.forEach(function(arg) {
     assert_throws(new TypeError(), function() {
@@ -60,18 +60,24 @@ test(function() {
 }, "Passing non-objects, Dates and RegExps for blobParts should throw a TypeError.");
 
 test_blob(function() {
-  return new Blob({});
+  return new Blob({
+    [Symbol.iterator]: Array.prototype[Symbol.iterator],
+  });
 }, {
   expected: "",
   type: "",
-  desc: "A plain object should be treated as a sequence for the blobParts argument."
+  desc: "A plain object with @@iterator should be treated as a sequence for the blobParts argument."
 });
 test_blob(function() {
-  return new Blob({ 0: "PASS", length: 1 });
+  return new Blob({
+    [Symbol.iterator]: Array.prototype[Symbol.iterator],
+    0: "PASS",
+    length: 1
+  });
 }, {
   expected: "PASS",
   type: "",
-  desc: "A plain object with a length property should be treated as a sequence for the blobParts argument."
+  desc: "A plain object with @@iterator and a length property should be treated as a sequence for the blobParts argument."
 });
 test_blob(function() {
   return new Blob(new String("xyz"));
@@ -88,10 +94,14 @@ test_blob(function() {
   desc: "A Uint8Array object should be treated as a sequence for the blobParts argument."
 });
 
-var test_error = { name: "test" };
+var test_error = {
+  name: "test",
+  message: "test error",
+};
 
 test(function() {
   var obj = {
+    [Symbol.iterator]: Array.prototype[Symbol.iterator],
     get length() { throw test_error; }
   };
   assert_throws(test_error, function() {
@@ -99,7 +109,7 @@ test(function() {
   });
 }, "The length getter should be invoked and any exceptions should be propagated.");
 
-test_blob(function() {
+test(function() {
   var element = document.createElement("div");
   element.appendChild(document.createElement("div"));
   element.appendChild(document.createElement("p"));
@@ -107,16 +117,15 @@ test_blob(function() {
   Object.defineProperty(list, "length", {
     get: function() { throw test_error; }
   });
-  return new Blob(list);
-}, {
-  expected: "[object HTMLDivElement][object HTMLParagraphElement]",
-  type: "",
-  desc: "A platform object that supports indexed properties should be treated as a sequence for the blobParts argument (overwritten 'length'.)"
-});
+  assert_throws(test_error, function() {
+    new Blob(list);
+  });
+}, "A platform object that supports indexed properties should be treated as a sequence for the blobParts argument (overwritten 'length'.)");
 
 test(function() {
   assert_throws(test_error, function() {
     var obj = {
+      [Symbol.iterator]: Array.prototype[Symbol.iterator],
       length: {
         valueOf: null,
         toString: function() { throw test_error; }
@@ -126,6 +135,7 @@ test(function() {
   });
   assert_throws(test_error, function() {
     var obj = {
+      [Symbol.iterator]: Array.prototype[Symbol.iterator],
       length: { valueOf: function() { throw test_error; } }
     };
     new Blob(obj);
@@ -135,6 +145,10 @@ test(function() {
 test(function() {
   var received = [];
   var obj = {
+    get [Symbol.iterator]() {
+      received.push("Symbol.iterator");
+      return Array.prototype[Symbol.iterator];
+    },
     get length() {
       received.push("length getter");
       return {
@@ -166,15 +180,18 @@ test(function() {
     new Blob(obj);
   });
   assert_array_equals(received, [
+    "Symbol.iterator",
     "length getter",
     "length valueOf",
     "0 getter",
     "0 toString",
-    "1 getter"
+    "length getter",
+    "length valueOf",
+    "1 getter",
   ]);
 }, "Getters and value conversions should happen in order until an exception is thrown.");
 
-// XXX should add tests edge cases of ToUint32(length)
+// XXX should add tests edge cases of ToLength(length)
 
 test(function() {
   assert_throws(test_error, function() {
@@ -201,7 +218,7 @@ test_blob(function() {
   ];
   return new Blob(arr);
 }, {
-  expected: "PASSundefined",
+  expected: "PASS",
   type: "",
   desc: "Changes to the blobParts array should be reflected in the returned Blob (pop)."
 });
@@ -211,19 +228,19 @@ test_blob(function() {
     {
       toString: function() {
         if (arr.length === 3) {
-          return "SS";
+          return "A";
         }
         arr.unshift({
           toString: function() {
             assert_unreached("Should only access index 0 once.");
           }
         });
-        return "PA";
+        return "P";
       }
     },
     {
       toString: function() {
-        assert_unreached("Should not access the final element.");
+        return "SS";
       }
     }
   ];
@@ -297,29 +314,6 @@ test_blob(function() {
   desc: "Passing a Float64Array as element of the blobParts array should work."
 });
 
-test_blob(function() {
-  return new Blob(document.createElement("div"));
-}, {
-  expected: "",
-  type: "",
-  desc: "Passing an element as the blobParts array should work."
-});
-
-test_blob(function() {
-  return new Blob(window);
-}, {
-  expected: "[object Window]",
-  type: "",
-  desc: "Passing an platform object that supports indexed properties as the blobParts array should work (window)."
-});
-test_blob(function() {
-  window[0].toString = function() { return "foo"; };
-  return new Blob(window);
-}, {
-  expected: "foo",
-  type: "",
-  desc: "Passing an platform object that supports indexed properties as the blobParts array should work (window with custom toString)."
-});
 test_blob(function() {
   var select = document.createElement("select");
   select.appendChild(document.createElement("option"));
