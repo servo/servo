@@ -9,7 +9,7 @@ interface Navigator {
 };
 Navigator implements NavigatorID;
 Navigator implements NavigatorBluetooth;
-//Navigator implements NavigatorLanguage;
+Navigator implements NavigatorLanguage;
 //Navigator implements NavigatorOnLine;
 //Navigator implements NavigatorContentUtils;
 //Navigator implements NavigatorStorageUtils;
@@ -30,4 +30,11 @@ interface NavigatorID {
 [NoInterfaceObject]
 interface NavigatorBluetooth {
     readonly attribute Bluetooth bluetooth;
+};
+
+// https://html.spec.whatwg.org/multipage/#navigatorlanguage
+[NoInterfaceObject/*, Exposed=Window,Worker*/]
+interface NavigatorLanguage {
+  readonly attribute DOMString language;
+  //readonly attribute DOMString[] languages;
 };
