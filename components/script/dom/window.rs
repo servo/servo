@@ -1104,7 +1104,7 @@ impl Window {
 
     pub fn hit_test_query(&self, hit_test_request: Point2D<f32>, update_cursor: bool)
                           -> Option<UntrustedNodeAddress> {
-        self.reflow(ReflowGoal::ForDisplay,
+        self.reflow(ReflowGoal::ForScriptQuery,
                     ReflowQueryType::HitTestQuery(hit_test_request, update_cursor),
                     ReflowReason::Query);
         self.layout_rpc.hit_test().node_address
