@@ -149,6 +149,15 @@ def _activate_virtualenv(topdir):
 def bootstrap(topdir):
     topdir = os.path.abspath(topdir)
 
+    # We don't support paths with Unicode characters for now
+    # https://github.com/servo/servo/issues/10002
+    try:
+        topdir.decode('ascii')
+    except UnicodeDecodeError:
+        print('Cannot run mach in a path with Unicode characters.')
+        print('Current path:', topdir)
+        sys.exit(1)
+
     # We don't support paths with spaces for now
     # https://github.com/servo/servo/issues/9442
     if ' ' in topdir:
