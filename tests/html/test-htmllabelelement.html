@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+1st checkbox should be selected<br>
+<label id="first">hi <input type="checkbox"><input type="checkbox"></label><br>
+<script>document.getElementById("first").click()</script>
+<br>
+Nothing should be selected<br>
+<label id="second">hi <input type="checkbox" disabled><input type="checkbox"></label><br>
+<script>document.getElementById("second").click()</script>
+<br>
+Checkbox should be selected<br>
+<label id="third">hi <a href="about:blank">foo</a><input type="checkbox"></label><br>
+<script>document.getElementById("third").click()</script>
+<br>
+Radio button should be selected<br>
+<label id="fourth">hi <input type="radio"><input type="checkbox"></label><br>
+<script>document.getElementById("fourth").click()</script>
+<br>
+Nothing should be selected<br>
+<label id="fifth">hi <input type="radio" disabled><input type="checkbox"></label><br>
+<script>document.getElementById("fifth").click()</script>
+<br>
+Nothing should be selected<br>
+<label id="sixth">hi <input type="submit"><input type="checkbox"></label><br>
+<script>document.getElementById("sixth").click()</script>
+<br>
+<label id="seventh">hi <input type="submit" disabled><input type="checkbox"></label><br>
+<script>document.getElementById("seventh").click()</script>
+<br>
+2nd checkbox should be selected<br>
+<label for="c2" id="eighth">ForLabel 
+<input type="checkbox" id="c1">
+<input type="checkbox" id="c2"></label>
+<script>document.getElementById("eighth").click()</script>
+<br>
+2nd checkbox should be selected<br>
+<label for="c4" id="ninth">ForLabel</label>
+<input type="checkbox" id="c3">
+<input type="checkbox" id="c4">
+<script>document.getElementById("ninth").click()</script>
+<br>
+
+<!-- The following testcase submits the form when click() is invoked, affirming the behaviour of the sixth testcase -->
+<!--<label id="tenth">hi <form action="about:blank"><input type="submit"></form><input type="checkbox"></label><br>
+<script>document.getElementById("tenth").click()</script>-->
