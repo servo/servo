@@ -39,7 +39,7 @@ use string_cache::Atom;
 use style::element_state::*;
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
-use textinput::TextInput;
+use textinput::{TextInput, SelectionDirection};
 use util::str::{DOMString, search_index};
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
@@ -68,14 +68,6 @@ enum ValueMode {
     Filename,
 }
 
-#[derive(JSTraceable, PartialEq, Copy, Clone)]
-#[derive(HeapSizeOf)]
-enum SelectionDirection {
-    Forward,
-    Backward,
-    None
-}
-
 #[dom_struct]
 pub struct HTMLInputElement {
     htmlelement: HTMLElement,
@@ -90,8 +82,6 @@ pub struct HTMLInputElement {
     activation_state: DOMRefCell<InputActivationState>,
     // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag
     value_dirty: Cell<bool>,
-
-    selection_direction: Cell<SelectionDirection>,
 
     // TODO: selected files for file input
 }
@@ -139,10 +129,9 @@ impl HTMLInputElement {
             value_changed: Cell::new(false),
             maxlength: Cell::new(DEFAULT_MAX_LENGTH),
             size: Cell::new(DEFAULT_INPUT_SIZE),
-            textinput: DOMRefCell::new(TextInput::new(Single, DOMString::new(), chan, None)),
+            textinput: DOMRefCell::new(TextInput::new(Single, DOMString::new(), chan, None, SelectionDirection::None)),
             activation_state: DOMRefCell::new(InputActivationState::new()),
             value_dirty: Cell::new(false),
-            selection_direction: Cell::new(SelectionDirection::None)
         }
     }
 
@@ -174,32 +163,6 @@ impl HTMLInputElement {
             InputType::InputFile => ValueMode::Filename,
         }
     }
-
-    // this method exists so that the functions SetSelectionStart() and SetSelectionEnd()
-    // don't needlessly allocate strings
-    fn set_selection_range(&self, start: u32, end: u32, direction: &SelectionDirection) {
-        let mut text_input = self.textinput.borrow_mut();
-
-        let mut start = start as usize;
-        let mut end = end as usize;
-
-        let text_end = text_input.get_content().len();
-        if start > text_end {
-            start = text_end;
-        }
-        if end > text_end {
-            end = text_end;
-        }
-
-        if start >= end {
-            start = end;
-        }
-
-        text_input.selection_begin = Some(text_input.get_text_point_for_absolute_point(start));
-        text_input.edit_point = text_input.get_text_point_for_absolute_point(end);
-        self.selection_direction.set(*direction);
-    }
-
 }
 
 pub trait LayoutHTMLInputElementHelpers {
@@ -496,47 +459,37 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
     fn SetSelectionStart(&self, start: u32) {
-        self.set_selection_range(start, self.SelectionEnd(), &self.selection_direction.get());
+        self.textinput.borrow_mut().set_selection_range(start, self.SelectionEnd(), self.SelectionDirection());
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
     fn SelectionEnd(&self) -> u32 {
-        let text_input = self.textinput.borrow();
-        text_input.get_absolute_insertion_point() as u32
+        self.textinput.borrow().get_absolute_insertion_point() as u32
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
     fn SetSelectionEnd(&self, end: u32) {
-        self.set_selection_range(self.SelectionStart(), end, &self.selection_direction.get());
+        self.textinput.borrow_mut().set_selection_range(self.SelectionStart(), end, self.SelectionDirection())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
     fn SelectionDirection(&self) -> DOMString {
-        match self.selection_direction.get() {
-            SelectionDirection::Forward => DOMString::from("forward"),
-            SelectionDirection::Backward => DOMString::from("backward"),
-            SelectionDirection::None => DOMString::from("none"),
-        }
+        self.textinput.borrow().get_selection_direction()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
     fn SetSelectionDirection(&self, direction: DOMString) {
-        self.SetSelectionRange(self.SelectionStart(), self.SelectionEnd(), Some(direction));
+        self.textinput.borrow_mut().set_selection_direction(direction);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) {
-        let selection_direction = match direction {
+        match direction {
             Some(selection_direction) => {
-                match &*selection_direction {
-                    "forward" => SelectionDirection::Forward,
-                    "backward" => SelectionDirection::Backward,
-                    _ => SelectionDirection::None,
-                }
+                self.textinput.borrow_mut().set_selection_range(start, end, selection_direction)
             },
-            None => SelectionDirection::None,
+            None => self.textinput.borrow_mut().set_selection_range(start, end, DOMString::from("none"))
         };
-        self.set_selection_range(start, end, &selection_direction);
     }
 }
 

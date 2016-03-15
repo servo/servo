@@ -29,16 +29,8 @@ use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
 use string_cache::Atom;
 use style::element_state::*;
-use textinput::{KeyReaction, Lines, TextInput};
+use textinput::{KeyReaction, Lines, TextInput, SelectionDirection};
 use util::str::DOMString;
-
-#[derive(JSTraceable, PartialEq, Copy, Clone)]
-#[derive(HeapSizeOf)]
-enum SelectionDirection {
-    Forward,
-    Backward,
-    None,
-}
 
 #[dom_struct]
 pub struct HTMLTextAreaElement {
@@ -47,7 +39,6 @@ pub struct HTMLTextAreaElement {
     textinput: DOMRefCell<TextInput<ConstellationChan<ConstellationMsg>>>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_changed: Cell<bool>,
-    selection_direction: Cell<SelectionDirection>,
 }
 
 pub trait LayoutHTMLTextAreaElementHelpers {
@@ -110,9 +101,9 @@ impl HTMLTextAreaElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
                                                       localName, prefix, document),
-            textinput: DOMRefCell::new(TextInput::new(Lines::Multiple, DOMString::new(), chan, None)),
+            textinput: DOMRefCell::new(TextInput::new(
+                    Lines::Multiple, DOMString::new(), chan, None, SelectionDirection::None)),
             value_changed: Cell::new(false),
-            selection_direction: Cell::new(SelectionDirection::None),
         }
     }
 
@@ -122,25 +113,6 @@ impl HTMLTextAreaElement {
                document: &Document) -> Root<HTMLTextAreaElement> {
         let element = HTMLTextAreaElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLTextAreaElementBinding::Wrap)
-    }
-
-    fn set_selection_range(&self, start: u32, end: u32, direction: &SelectionDirection) {
-        let mut text_input = self.textinput.borrow_mut();
-        let mut start = start as usize;
-        let mut end = end as usize;
-        let text_end = text_input.get_content().len();
-
-        if start > text_end {
-            start = text_end;
-        } else if end > text_end {
-            end = text_end;
-        } else if start >= end {
-            start = end;
-        }
-
-        text_input.selection_begin = Some(text_input.get_text_point_for_absolute_point(start));
-        text_input.edit_point = text_input.get_text_point_for_absolute_point(end);
-        self.selection_direction.set(*direction);
     }
 }
 
@@ -243,60 +215,42 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
     fn SetSelectionDirection(&self, direction: DOMString) {
-        self.SetSelectionRange(self.SelectionStart(), self.SelectionEnd(), Some(direction));
+        self.textinput.borrow_mut().set_selection_direction(direction);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
     fn SelectionDirection(&self) -> DOMString {
-        match self.selection_direction.get() {
-            SelectionDirection::Forward => DOMString::from("forward"),
-            SelectionDirection::Backward => DOMString::from("backward"),
-            SelectionDirection::None => DOMString::from("none"),
-        }
+        self.textinput.borrow().get_selection_direction()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
     fn SetSelectionEnd(&self, end: u32) {
-        self.set_selection_range(self.SelectionStart(), end, &self.selection_direction.get());
+        self.textinput.borrow_mut().set_selection_range(self.SelectionStart(), end, self.SelectionDirection())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
     fn SelectionEnd(&self) -> u32 {
-        let text_input = self.textinput.borrow();
-        text_input.get_absolute_insertion_point() as u32
+        self.textinput.borrow().get_absolute_insertion_point() as u32
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
     fn SetSelectionStart(&self, start: u32) {
-        self.set_selection_range(start, self.SelectionEnd(), &self.selection_direction.get());
+        self.textinput.borrow_mut().set_selection_range(start, self.SelectionEnd(), self.SelectionDirection());
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
     fn SelectionStart(&self) -> u32 {
-        let text_input = self.textinput.borrow();
-        let selection_start = match text_input.selection_begin {
-            Some(selection_begin_point) => {
-                text_input.get_absolute_point_for_text_point(&selection_begin_point)
-            },
-            None => text_input.get_absolute_insertion_point()
-        };
-
-        selection_start as u32
+        self.textinput.borrow().get_selection_start()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) {
-        let selection_direction = match direction {
+        match direction {
             Some(selection_direction) => {
-                match &*selection_direction {
-                    "forward" => SelectionDirection::Forward,
-                    "backward" => SelectionDirection::Backward,
-                    _ => SelectionDirection::None,
-                }
+                self.textinput.borrow_mut().set_selection_range(start, end, selection_direction)
             },
-            None => SelectionDirection::None,
+            None => self.textinput.borrow_mut().set_selection_range(start, end, DOMString::from("none"))
         };
-        self.set_selection_range(start, end, &selection_direction);
     }
 }
 
