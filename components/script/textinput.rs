@@ -497,6 +497,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         };
         self.edit_point.line = min(self.edit_point.line, self.lines.len() - 1);
         self.edit_point.index = min(self.edit_point.index, self.current_line_length());
+        self.selection_begin = None;
     }
 
     pub fn get_absolute_insertion_point(&self) -> usize {
