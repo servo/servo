@@ -1893,15 +1893,16 @@ class CGInterfaceObjectJSClass(CGThing):
             constructor = CONSTRUCT_HOOK_NAME
         else:
             constructor = "throwing_constructor"
+        name = self.descriptor.interface.identifier.name
         args = {
             "constructor": constructor,
-            "name": self.descriptor.interface.identifier.name,
-            "id": self.descriptor.interface.identifier.name,
+            "id": name,
+            "representation": str_to_const_array("function %s() {\\n    [native code]\\n}" % name),
             "depth": self.descriptor.prototypeDepth
         }
         return """\
 static InterfaceObjectClass: NonCallbackInterfaceObjectClass =
-    NonCallbackInterfaceObjectClass::new(%(constructor)s, fun_to_string,
+    NonCallbackInterfaceObjectClass::new(%(constructor)s, %(representation)s,
                                          PrototypeList::ID::%(id)s, %(depth)s);
 """ % args
 
@@ -4824,21 +4825,6 @@ let args = CallArgs::from_vp(vp, argc);
         return CGList([preamble, callGenerator])
 
 
-class CGClassFunToStringHook(CGAbstractExternMethod):
-    """
-    A hook to convert functions to strings.
-    """
-    def __init__(self, descriptor):
-        args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', '_obj'),
-                Argument('u32', '_indent')]
-        CGAbstractExternMethod.__init__(self, descriptor, "fun_to_string", '*mut JSString', args)
-
-    def definition_body(self):
-        name = self.descriptor.interface.identifier.name
-        string = str_to_const_array("function %s() {\\n    [native code]\\n}" % name)
-        return CGGeneric("JS_NewStringCopyZ(cx, %s as *const _ as *const libc::c_char)" % string)
-
-
 class CGClassFinalizeHook(CGAbstractClassHook):
     """
     A hook for finalize, used to release our native object.
@@ -5007,7 +4993,6 @@ class CGDescriptor(CGThing):
                 cgThings.append(CGClassConstructHook(descriptor, ctor))
             if not descriptor.interface.isCallback():
                 cgThings.append(CGInterfaceObjectJSClass(descriptor))
-                cgThings.append(CGClassFunToStringHook(descriptor))
 
         if not descriptor.interface.isCallback():
             cgThings.append(CGPrototypeJSClass(descriptor))
