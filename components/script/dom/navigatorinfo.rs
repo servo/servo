@@ -43,3 +43,7 @@ pub fn UserAgent() -> DOMString {
 pub fn AppVersion() -> DOMString {
     DOMString::from("4.0")
 }
+
+pub fn Language() -> DOMString {
+    DOMString::from("en-US")
+}

@@ -72,5 +72,9 @@ impl NavigatorMethods for Navigator {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-navigator-bluetooth
     fn Bluetooth(&self) -> Root<Bluetooth> {
         self.bluetooth.or_init(|| Bluetooth::new(self.global().r()))
+
+    // https://html.spec.whatwg.org/multipage/#navigatorlanguage
+    fn GetLanguage(&self) -> Option<DOMString>  {
+        Some(navigatorinfo::Language())
     }
 }
