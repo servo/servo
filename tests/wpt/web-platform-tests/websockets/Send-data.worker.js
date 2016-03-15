@@ -1,5 +1,5 @@
 importScripts("/resources/testharness.js");
-importScripts('websocket.js?pipe=sub')
+importScripts('websocket.sub.js')
 
 var data = "test data";
 

@@ -8,6 +8,7 @@
     <meta name="author" title="Canon Research France" href="https://www.crf.canon.fr">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
+    <script src="../resources/utils.js"></script>
   </head>
   <body>
     <script>
@@ -37,19 +38,9 @@
       });
     }
 
-    <!-- Taken from https://developers.google.com -->
-    function str2ab(str) {
-      var buf = new ArrayBuffer(str.length*2); // 2 bytes for each char
-      var bufView = new Uint16Array(buf);
-      for (var i=0, strLen=str.length; i < strLen; i++) {
-        bufView[i] = str.charCodeAt(i);
-      }
-      return buf;
-    }
-
     function checkBodyArrayBuffer(request, expectedBody) {
-      return request.arrayBuffer().then( function(bodyAsArrayBuffer) {
-        assert_array_equals(bodyAsArrayBuffer, str2ab(expectedBody), "Retrieve and verify request's body");
+      return request.arrayBuffer().then(function(bodyAsArrayBuffer) {
+        validateBufferFromString(bodyAsArrayBuffer, expectedBody, "Retrieve and verify request's body");
         assert_true(request.bodyUsed, "body as arrayBuffer: bodyUsed turned true");
       });
     }
@@ -79,11 +70,27 @@
 
     var formData = new FormData();
     formData.append("name", "value")
-    checkRequestBody("This is request's body", "text", checkBodyText);
-    checkRequestBody("This is request's body", "blob", checkBodyBlob);
-    checkRequestBody("This is request's body", "arrayBuffer", checkBodyArrayBuffer);
-    checkRequestBody(JSON.stringify("This is request's body"), "json", checkBodyJSON);
+    var textData = JSON.stringify("This is response's body");
+    var blob = new Blob([textData], { "type" : "text/plain" });
+
+    checkRequestBody(textData, "text", checkBodyText);
+    checkRequestBody(textData, "blob", checkBodyBlob);
+    checkRequestBody(textData, "arrayBuffer", checkBodyArrayBuffer);
+    checkRequestBody(textData, "json", checkBodyJSON);
     checkRequestBody(formData, "formData", checkBodyFormData);
+
+    function checkBlobResponseBody(blobBody, blobData, bodyType, checkFunction) {
+      promise_test(function(test) {
+        var response = new Response(blobBody);
+        assert_false(response.bodyUsed, "bodyUsed is false at init");
+        return checkFunction(response, blobData);
+      }, "Consume blob response's body as " + bodyType);
+    }
+
+    checkBlobResponseBody(blob, textData, "blob", checkBodyBlob);
+    checkBlobResponseBody(blob, textData, "text", checkBodyText);
+    checkBlobResponseBody(blob, textData, "json", checkBodyJSON);
+    checkBlobResponseBody(blob, textData, "arrayBuffer", checkBodyArrayBuffer);
 
     var goodJSONValues = ["null", "1", "true", "\"string\""];
     goodJSONValues.forEach(function(value) {

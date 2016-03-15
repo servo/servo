@@ -32,8 +32,11 @@ test(function() {
 
     assert_equals(template.ownerDocument, doc.body.ownerDocument,
             'Wrong template node owner document');
-    assert_equals(template.content.ownerDocument, doc,
-            'Wrong template content owner document');
+    var ownerDoc = template.content.ownerDocument;
+    assert_not_equals(ownerDoc, doc, 'Wrong template content owner document');
+    assert_not_equals(ownerDoc, document, 'Wrong template content owner document');
+    assert_equals(ownerDoc.defaultView, null,
+            'Template content owner document should not have a browsing context');
 
 }, 'Parsing XHTML: Node\'s node document must be set to that of the element '
     + 'to which it will be appended. Test empty template');

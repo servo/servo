@@ -1,0 +1,131 @@
+<!DOCTYPE HTML>
+<title>Input element programmatic selection support</title>
+<link rel="author" title="yaycmyk" href="mailto:evan@yaycmyk.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/forms.html#dom-textarea/input-select">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+
+/* all textual, non-hidden inputs support .select() */
+test(function() {
+  var valid = [
+    "text",
+    "search",
+    "url",
+    "tel",
+    "email",
+    "password",
+    "date",
+    "month",
+    "week",
+    "time",
+    "datetime-local",
+    "number",
+    "color",
+    "file",
+  ];
+
+  var invalid = [
+    "hidden",
+    "range",
+    "checkbox",
+    "radio",
+    "submit",
+    "image",
+    "reset",
+    "button"
+  ];
+
+  valid.forEach(function(type) {
+    test(function() {
+      var input = document.createElement("input");
+      var a;
+
+      input.type = type;
+      assert_equals(input.type, type, "the given input type is not supported");
+
+      input.select();
+
+    }, "input type " + type + " should support the select() method");
+  });
+
+  invalid.forEach(function(type) {
+    test(function() {
+      var input = document.createElement("input");
+
+      input.type = type;
+      assert_equals(input.type, type, "the given input type is not supported");
+
+      assert_throws("INVALID_STATE_ERR", function() { input.select(); });
+
+    }, "input type " + type + " should not support the select() method");
+  });
+});
+
+/* only certain input types are allowed to have a variable-length selection */
+test(function() {
+  var valid = [
+    "text",
+    "search",
+    "url",
+    "tel",
+    "password"
+  ];
+
+  var invalid = [
+    "hidden",
+    "email",
+    "date",
+    "month",
+    "week",
+    "time",
+    "datetime-local",
+    "number",
+    "range",
+    "color",
+    "checkbox",
+    "radio",
+    "file",
+    "submit",
+    "image",
+    "reset",
+    "button"
+  ];
+
+  valid.forEach(function(type) {
+    test(function() {
+      var input = document.createElement("input");
+      var a;
+
+      input.type = type;
+      assert_equals(input.type, type, "the given input type is not supported");
+
+      a = input.selectionStart;
+      input.selectionStart = 0;
+      a = input.selectionEnd;
+      input.selectionEnd = 0;
+      input.setSelectionRange(0, 0);
+      input.setRangeText('', 0, 0);
+
+    }, "input type " + type + " should support all selection attributes and methods");
+  });
+
+  invalid.forEach(function(type) {
+    test(function() {
+      var input = document.createElement("input");
+
+      input.type = type;
+      assert_equals(input.type, type, "the given input type is not supported");
+
+      assert_throws("INVALID_STATE_ERR", function() { var a = input.selectionStart; });
+      assert_throws("INVALID_STATE_ERR", function() { input.selectionStart = 0; });
+      assert_throws("INVALID_STATE_ERR", function() { var a = input.selectionEnd; });
+      assert_throws("INVALID_STATE_ERR", function() { input.selectionEnd = 0; });
+      assert_throws("INVALID_STATE_ERR", function() { input.setSelectionRange(0, 0); });
+      assert_throws("INVALID_STATE_ERR", function() { input.setRangeText('', 0, 0); });
+
+    }, "input type " + type + " should not support variable-length selections");
+  });
+});
+</script>

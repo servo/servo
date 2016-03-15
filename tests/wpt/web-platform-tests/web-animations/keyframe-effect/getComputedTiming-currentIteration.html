@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>currentIteration of KeyframeEffectReadOnly getComputedTiming() tests</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#dom-animationeffectreadonly-getcomputedtiming">
+<link rel="author" title="Daisuke Akatsuka" href="mailto:daisuke@mozilla-japan.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+function executeTests(tests, description) {
+  tests.forEach(function(currentTest) {
+    var testParams = '';
+    for (var attr in currentTest.input) {
+      testParams += ' ' + attr + ':' + currentTest.input[attr];
+    }
+    test(function(t) {
+      var div = createDiv(t);
+      var anim = div.animate({ opacity: [ 0, 1 ] }, currentTest.input);
+      assert_equals(anim.effect.getComputedTiming().currentIteration,
+                    currentTest.before);
+      anim.currentTime = currentTest.input.delay || 0;
+      assert_equals(anim.effect.getComputedTiming().currentIteration,
+                    currentTest.active);
+      if (typeof currentTest.after !== 'undefined') {
+        anim.finish();
+        assert_equals(anim.effect.getComputedTiming().currentIteration,
+                      currentTest.after);
+      }
+    }, description + testParams);
+  });
+}
+
+async_test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, { delay: 1 });
+  assert_equals(anim.effect.getComputedTiming().currentIteration, null);
+  anim.finished.then(t.step_func(function() {
+    assert_equals(anim.effect.getComputedTiming().currentIteration, null);
+    t.done();
+  }));
+}, 'Test currentIteration during before and after phase when fill is none');
+
+var gTests_zero_iterations = [
+  {
+    input:    { iterations: 0,
+                iterationStart: 0,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    active: 0,
+    after: 0
+  },
+
+  {
+    input:    { iterations: 0,
+                iterationStart: 0,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    active: 0,
+    after: 0
+  },
+
+  {
+    input:    { iterations: 0,
+                iterationStart: 0,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    active: 0,
+    after: 0
+  },
+
+  {
+    input:    { iterations: 0,
+                iterationStart: 2.5,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    active: 2,
+    after: 2
+  },
+
+  {
+    input:    { iterations: 0,
+                iterationStart: 2.5,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    active: 2,
+    after: 2
+  },
+
+  {
+    input:    { iterations: 0,
+                iterationStart: 2.5,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    active: 2,
+    after: 2
+  },
+
+  {
+    input:    { iterations: 0,
+                iterationStart: 3,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    active: 3,
+    after: 3
+  },
+
+  {
+    input:    { iterations: 0,
+                iterationStart: 3,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    active: 3,
+    after: 3
+  },
+
+  {
+    input:    { iterations: 0,
+                iterationStart: 3,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    active: 3,
+    after: 3
+  }
+];
+
+var gTests_integer_iterations = [
+  {
+    input:    { iterations: 3,
+                iterationStart: 0,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    active: 2,
+    after: 2
+  },
+
+  {
+    input:    { iterations: 3,
+                iterationStart: 0,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    active: 0,
+    after: 2
+  },
+
+  {
+    input:    { iterations: 3,
+                iterationStart: 0,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    active: 0
+  },
+
+  {
+    input:    { iterations: 3,
+                iterationStart: 2.5,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    active: 5,
+    after: 5
+  },
+
+  {
+    input:    { iterations: 3,
+                iterationStart: 2.5,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    active: 2,
+    after: 5
+  },
+
+  {
+    input:    { iterations: 3,
+                iterationStart: 2.5,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    active: 2
+  },
+
+  {
+    input:    { iterations: 3,
+                iterationStart: 3,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    active: 5,
+    after: 5
+  },
+
+  {
+    input:    { iterations: 3,
+                iterationStart: 3,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    active: 3,
+    after: 5
+  },
+
+  {
+    input:    { iterations: 3,
+                iterationStart: 3,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    active: 3
+  }
+];
+
+var gTests_fractional_iterations = [
+  {
+    input:    { iterations: 3.5,
+                iterationStart: 0,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    active: 3,
+    after: 3
+  },
+
+  {
+    input:    { iterations: 3.5,
+                iterationStart: 0,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    active: 0,
+    after: 3
+  },
+
+  {
+    input:    { iterations: 3.5,
+                iterationStart: 0,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    active: 0
+  },
+
+  {
+    input:    { iterations: 3.5,
+                iterationStart: 2.5,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    active: 5,
+    after: 5
+  },
+
+  {
+    input:    { iterations: 3.5,
+                iterationStart: 2.5,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    active: 2,
+    after: 5
+  },
+
+  {
+    input:    { iterations: 3.5,
+                iterationStart: 2.5,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    active: 2
+  },
+
+  {
+    input:    { iterations: 3.5,
+                iterationStart: 3,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    active: 6,
+    after: 6
+  },
+
+  {
+    input:    { iterations: 3.5,
+                iterationStart: 3,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    active: 3,
+    after: 6
+  },
+
+  {
+    input:    { iterations: 3.5,
+                iterationStart: 3,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    active: 3
+  }
+];
+
+var gTests_infinity_iterations = [
+  {
+    input:    { iterations: Infinity,
+                iterationStart: 0,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    active: Infinity,
+    after: Infinity
+  },
+
+  {
+    input:    { iterations: Infinity,
+                iterationStart: 0,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    active: 0
+  },
+
+  {
+    input:    { iterations: Infinity,
+                iterationStart: 0,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 0,
+    active: 0
+  },
+
+  {
+    input:    { iterations: Infinity,
+                iterationStart: 2.5,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    active: Infinity,
+    after: Infinity
+  },
+
+  {
+    input:    { iterations: Infinity,
+                iterationStart: 2.5,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    active: 2
+  },
+
+  {
+    input:    { iterations: Infinity,
+                iterationStart: 2.5,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 2,
+    active: 2
+  },
+
+  {
+    input:    { iterations: Infinity,
+                iterationStart: 3,
+                duration: 0,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    active: Infinity,
+    after: Infinity
+  },
+
+  {
+    input:    { iterations: Infinity,
+                iterationStart: 3,
+                duration: 100,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    active: 3
+  },
+
+  {
+    input:    { iterations: Infinity,
+                iterationStart: 3,
+                duration: Infinity,
+                delay: 1,
+                fill: 'both' },
+    before: 3,
+    active: 3
+  }
+];
+
+executeTests(gTests_zero_iterations, "Test zero iterations:");
+executeTests(gTests_integer_iterations, "Test integer iterations:");
+executeTests(gTests_fractional_iterations, "Test fractional iterations:");
+executeTests(gTests_infinity_iterations, "Test infinity iterations:");
+
+</script>
+</body>
