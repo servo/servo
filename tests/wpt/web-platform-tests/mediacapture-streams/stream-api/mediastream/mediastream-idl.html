@@ -3,13 +3,12 @@
 <head>
 <title>MediaStream constructor algorithm</title>
 <link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
-<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#idl-def-MediaStream">
-<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-MediaStream-id">
-<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#mediastream">
-<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#event-mediastream-ended">
-<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-MediaStreamTrack-stop-void">
-<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-MediaStreamTrack-clone-MediaStreamTrack">
-<link rel='stylesheet' href='/resources/testharness.css' media='all'/>
+<link rel="help" href="http://w3c.github.io/mediacapture-main/getusermedia.html#idl-def-MediaStream">
+<link rel="help" href="http://w3c.github.io/mediacapture-main/getusermedia.html#widl-MediaStream-id">
+<link rel="help" href="http://w3c.github.io/mediacapture-main/getusermedia.html#mediastream">
+<link rel="help" href="http://w3c.github.io/mediacapture-main/getusermedia.html#event-mediastreamtrack-ended">
+<link rel="help" href="http://w3c.github.io/mediacapture-main/getusermedia.html#widl-MediaStreamTrack-stop-void">
+<link rel="help" href="http://w3c.github.io/mediacapture-main/getusermedia.html#widl-MediaStreamTrack-clone-MediaStreamTrack">
 </head>
 <body>
 <p class="instructions">When prompted, accept to share your video and audio stream.</p>
@@ -42,7 +41,7 @@ t.step(function() {
       assert_equals(stream3.getTrackById(audioTrack2.id), null, "an ended track doesn't get added via the MediaStream constructor");
       assert_equals(stream3.getTrackById(videoTrack.id), videoTrack, "a non-ended track gets added via the MediaStream constructor even if the previous track was ended");
       var stream5 = new MediaStream([audioTrack2]);
-     assert_true(stream5.ended, "a MediaStream created using the MediaStream() constructor whose arguments are lists of MediaStreamTrack objects that are all ended, the MediaStream object MUST be created with its ended attribute set to true");
+     assert_false(stream5.active, "a MediaStream created using the MediaStream() constructor whose arguments are lists of MediaStreamTrack objects that are all ended, the MediaStream object MUST be created with its active attribute set to false");
       t.done();
     }), false);
     audioTrack2.stop();

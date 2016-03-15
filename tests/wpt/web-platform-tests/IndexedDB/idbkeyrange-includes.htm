@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+
+  test( function() {
+    var closedRange = IDBKeyRange.bound(5, 20);
+    assert_true(!!closedRange.includes, "IDBKeyRange has a .includes");
+    assert_true(closedRange.includes(7), "in range");
+    assert_false(closedRange.includes(1), "below range");
+    assert_false(closedRange.includes(42), "above range");
+    assert_true(closedRange.includes(5) && closedRange.includes(20),
+                 "boundary points");
+    assert_throws("DataError", function() { closedRange.includes({}) },
+                  "invalid key");
+  }, "IDBKeyRange.includes() with a closed range");
+
+  test( function() {
+    var openRange = IDBKeyRange.bound(5, 20, true, true);
+    assert_false(openRange.includes(5) || openRange.includes(20),
+                 "boundary points");
+  }, "IDBKeyRange.includes() with an open range");
+
+  test( function() {
+    var range = IDBKeyRange.only(42);
+    assert_true(range.includes(42), "in range");
+    assert_false(range.includes(1), "below range");
+    assert_false(range.includes(9000), "above range");
+  }, "IDBKeyRange.includes() with an only range");
+
+</script>

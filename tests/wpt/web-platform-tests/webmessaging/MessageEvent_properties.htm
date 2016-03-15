@@ -9,39 +9,24 @@
 <div id=log></div>
 
 <div style="display:none">
-    <iframe width="70%" onload="PostMessageTest()" src="./support/ChildWindowPostMessage.htm"></iframe>
+    <iframe width="70%" onload="do_test()" src="./support/ChildWindowPostMessage.htm"></iframe>
 </div>
 
 <script>
+async_test(function() {
+    window.do_test = this.step_func(function() {
+        document.querySelector("iframe").contentWindow.postMessage("foo", "*");
+    })
 
-
-    var description = "Test Description: " +
-            "Create an event that uses the MessageEvent interface, with the event type message, " +
-            "which does not bubble, is not cancelable, and has no default action.";
-
-    var t = async_test(description);
-
-    var DATA = "foo";
-    var TARGET = document.querySelector("iframe");
-    var ExpectedResult = [true, true, false, false, false];
-    var ActualResult = [];
-
-    function PostMessageTest()
-    {
-        TARGET.contentWindow.postMessage(DATA, "*");
-    }
-
-    window.addEventListener("message", t.step_func(function(e)
-    {
+    window.addEventListener("message", this.step_func_done(function(e) {
         e.preventDefault();
-
-        ActualResult = [(e instanceof MessageEvent), (e.type == "message"), e.bubbles, e.cancelable, e.defaultPrevented];
-
-        assert_array_equals(ActualResult, ExpectedResult, "ActualResult");
-
-        t.done();
-
+        assert_true(e instanceof MessageEvent, "Should be MessageEvent");
+        assert_equals(e.type, "message");
+        assert_false(e.bubbles, "bubbles");
+        assert_false(e.cancelable, "cancelable");
+        assert_false(e.defaultPrevented, "defaultPrevented");
     }), false);
+});
 </script>
 </body>
 </html>

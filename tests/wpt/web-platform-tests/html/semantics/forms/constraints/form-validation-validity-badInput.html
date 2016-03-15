@@ -24,21 +24,21 @@ var testElements = [
     },
     {
       tag: "input",
-      types: ["datetime"],
+      types: ["datetime-local"],
       testData: [
         {conditions: {value: ""}, expected: false, name: "[target] The value attribute is empty"},
-        {conditions: {value: "2000-01-01T12:00:00Z"}, expected: false, name: "[target] The value attribute is a valid date and time string"},
-        {conditions: {value: "abc"}, expected: true, name: "[target] The value attribute cannot convert to a valid normalized forced-UTC global date and time string"}
+        {conditions: {value: "2000-01-01T12:00:00"}, expected: false, name: "[target] The value attribute is a valid date and time string"},
+        {conditions: {value: "abc"}, expected: false, name: "[target] The value attribute cannot convert to a valid normalized forced-UTC global date and time string"}
       ]
     },
     {
       tag: "input",
       types: ["color"],
       testData: [
-        {conditions: {value: ""}, expected: true, name: "[target] The value attribute is empty"},
+        {conditions: {value: ""}, expected: false, name: "[target] The value attribute is empty"},
         {conditions: {value: "#000000"}, expected: false, name: "[target] The value attribute is a valid sample color"},
         {conditions: {value: "#FFFFFF"}, expected: false, name: "[target] The value attribute is not a valid lowercase sample color"},
-        {conditions: {value: "abc"}, expected: true, name: "[target] The value attribute cannot convert to a valid sample color"}
+        {conditions: {value: "abc"}, expected: false, name: "[target] The value attribute cannot convert to a valid sample color"}
       ]
     },
   ];

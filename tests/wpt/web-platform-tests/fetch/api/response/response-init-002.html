@@ -52,10 +52,10 @@
       checkResponseInit(urlSearchParams, "application/x-www-form-urlencoded;charset=UTF-8", "name=value");
       checkResponseInit(usvString, "text/plain;charset=UTF-8", "This is a USVString");
 
-      async_test(function(test) {
+      promise_test(function(test) {
         var body = "This is response body";
         var response = new Response(body);
-        readTextStream(response.body.getReader(), test, body);
+        return validateStreamFromString(response.body.getReader(), body);
       }, "Read Response's body as readableStream");
     </script>
   </body>

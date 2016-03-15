@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>getComputedStyle tests</title>
+<link rel="help" href="http://w3c.github.io/web-animations/#animationeffecttiming">
+<link rel="author" title="Ryo Motozawa" href="mailto:motozawa@mozilla-japan.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 100000);
+  anim.finish();
+  assert_equals(getComputedStyle(div).opacity, '1', 'animation finished');
+  anim.effect.timing.duration *= 2;
+  assert_equals(getComputedStyle(div).opacity, '0.5', 'set double duration');
+  anim.effect.timing.duration = 0;
+  assert_equals(getComputedStyle(div).opacity, '1', 'set duration 0');
+  anim.effect.timing.duration = 'auto';
+  assert_equals(getComputedStyle(div).opacity, '1', 'set duration \'auto\'');
+}, 'changed duration immediately updates its computed styles');
+
+</script>
+</body>

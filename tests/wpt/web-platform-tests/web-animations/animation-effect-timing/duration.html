@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>duration tests</title>
+<link rel="help" href="http://w3c.github.io/web-animations/#dom-animationeffecttiming-duration">
+<link rel="author" title="Ryo Motozawa" href="mailto:motozawa@mozilla-japan.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  anim.effect.timing.duration = 123.45;
+  assert_approx_equals(anim.effect.timing.duration, 123.45, 0.000001,
+                       'set duration 123.45');
+  assert_approx_equals(anim.effect.getComputedTiming().duration, 123.45,
+                       0.000001,
+                       'getComputedTiming() after set duration 123.45');
+}, 'set duration 123.45');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  anim.effect.timing.duration = 'auto';
+  assert_equals(anim.effect.timing.duration, 0, 'set duration \'auto\'');
+  assert_equals(anim.effect.getComputedTiming().duration, 0,
+                'getComputedTiming() after set duration \'auto\'');
+}, 'set duration auto');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  anim.effect.timing.duration = -100;
+  assert_equals(anim.effect.timing.duration, 0, 'set duration -100');
+  assert_equals(anim.effect.getComputedTiming().duration, 0,
+                'getComputedTiming() after set duration -100');
+}, 'set duration -100');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  anim.effect.timing.duration = 'abc';
+  assert_equals(anim.effect.timing.duration, 0, 'set duration \'abc\'');
+  assert_equals(anim.effect.getComputedTiming().duration, 0,
+                'getComputedTiming() after set duration \'abc\'');
+}, 'set duration abc');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  anim.effect.timing.duration = '100';
+  assert_equals(anim.effect.timing.duration, 0, 'set duration \'100\'');
+  assert_equals(anim.effect.getComputedTiming().duration, 0,
+                'getComputedTiming() after set duration \'100\'');
+}, 'set duration string 100');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  anim.effect.timing.duration = Infinity;
+  assert_equals(anim.effect.timing.duration, Infinity, 'set duration Infinity');
+  assert_equals(anim.effect.getComputedTiming().duration, Infinity,
+                'getComputedTiming() after set duration Infinity');
+}, 'set duration Infinity');
+
+
+</script>
+</body>
