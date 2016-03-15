@@ -20,6 +20,14 @@ pub enum Selection {
     NotSelected
 }
 
+#[derive(JSTraceable, PartialEq, Copy, Clone)]
+#[derive(HeapSizeOf)]
+pub enum SelectionDirection {
+    Forward,
+    Backward,
+    None,
+}
+
 #[derive(JSTraceable, Copy, Clone, HeapSizeOf)]
 pub struct TextPoint {
     /// 0-based line number
@@ -41,7 +49,8 @@ pub struct TextInput<T: ClipboardProvider> {
     multiline: bool,
     #[ignore_heap_size_of = "Can't easily measure this generic type"]
     clipboard_provider: T,
-    pub max_length: Option<usize>
+    pub max_length: Option<usize>,
+    pub selection_direction: SelectionDirection,
 }
 
 /// Resulting action to be taken by the owner of a text input that is handling an event.
@@ -108,14 +117,17 @@ fn is_printable_key(key: Key) -> bool {
 
 impl<T: ClipboardProvider> TextInput<T> {
     /// Instantiate a new text input control
-    pub fn new(lines: Lines, initial: DOMString, clipboard_provider: T, max_length: Option<usize>) -> TextInput<T> {
+    pub fn new(lines: Lines, initial: DOMString,
+               clipboard_provider: T, max_length: Option<usize>,
+               selection_direction: SelectionDirection) -> TextInput<T> {
         let mut i = TextInput {
             lines: vec!(),
             edit_point: Default::default(),
             selection_begin: None,
             multiline: lines == Lines::Multiple,
             clipboard_provider: clipboard_provider,
-            max_length: max_length
+            max_length: max_length,
+            selection_direction: selection_direction,
         };
         i.set_content(initial);
         i
@@ -535,5 +547,50 @@ impl<T: ClipboardProvider> TextInput<T> {
         TextPoint {
             line: line, index: index
         }
+    }
+
+    pub fn set_selection_range(&mut self, start: u32, end: u32, direction: DOMString) {
+        let mut start = start as usize;
+        let mut end = end as usize;
+        let text_end = self.get_content().len();
+
+        if start > text_end {
+            start = text_end;
+        } else if end > text_end {
+            end = text_end;
+        } else if start >= end {
+            start = end;
+        }
+
+        self.selection_begin = Some(self.get_text_point_for_absolute_point(start));
+        self.edit_point = self.get_text_point_for_absolute_point(end);
+        self.set_selection_direction(direction);
+    }
+
+    pub fn set_selection_direction(&mut self, direction: DOMString) {
+        match direction.as_ref() {
+            "forward" => self.selection_direction = SelectionDirection::Forward,
+            "backward" => self.selection_direction = SelectionDirection::Backward,
+            _ => self.selection_direction = SelectionDirection::None,
+        }
+    }
+
+    pub fn get_selection_direction(&self) -> DOMString {
+        match self.selection_direction {
+            SelectionDirection::Forward => DOMString::from("forward"),
+            SelectionDirection::Backward => DOMString::from("backward"),
+            SelectionDirection::None => DOMString::from("none"),
+        }
+    }
+
+    pub fn get_selection_start(&self) -> u32 {
+        let selection_start = match self.selection_begin {
+            Some(selection_begin_point) => {
+                self.get_absolute_point_for_text_point(&selection_begin_point)
+            },
+            None => self.get_absolute_insertion_point()
+        };
+
+        selection_start as u32
     }
 }
