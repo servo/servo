@@ -30,7 +30,8 @@ use gfx::font_context;
 use gfx::paint_thread::LayoutToPaintMsg;
 use gfx_traits::{color, Epoch, LayerId, ScrollPolicy};
 use heapsize::HeapSizeOf;
-use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
+use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REFLOW_OUT_OF_FLOW};
+use incremental::{REPAINT};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_debug;
@@ -1331,26 +1332,28 @@ impl LayoutThread {
 
             // Perform the primary layout passes over the flow tree to compute the locations of all
             // the boxes.
-            profile(time::ProfilerCategory::LayoutMain,
-                    self.profiler_metadata(),
-                    self.time_profiler_chan.clone(),
-                    || {
-                let profiler_metadata = self.profiler_metadata();
-                match self.parallel_traversal {
-                    None => {
-                        // Sequential mode.
-                        LayoutThread::solve_constraints(&mut root_flow, &layout_context)
+            if flow::base(&*root_flow).restyle_damage.intersects(REFLOW | REFLOW_OUT_OF_FLOW) {
+                profile(time::ProfilerCategory::LayoutMain,
+                        self.profiler_metadata(),
+                        self.time_profiler_chan.clone(),
+                        || {
+                    let profiler_metadata = self.profiler_metadata();
+                    match self.parallel_traversal {
+                        None => {
+                            // Sequential mode.
+                            LayoutThread::solve_constraints(&mut root_flow, &layout_context)
+                        }
+                        Some(ref mut parallel) => {
+                            // Parallel mode.
+                            LayoutThread::solve_constraints_parallel(parallel,
+                                                                   &mut root_flow,
+                                                                   profiler_metadata,
+                                                                   self.time_profiler_chan.clone(),
+                                                                   &*layout_context);
+                        }
                     }
-                    Some(ref mut parallel) => {
-                        // Parallel mode.
-                        LayoutThread::solve_constraints_parallel(parallel,
-                                                               &mut root_flow,
-                                                               profiler_metadata,
-                                                               self.time_profiler_chan.clone(),
-                                                               &*layout_context);
-                    }
-                }
-            });
+                });
+            }
 
             self.perform_post_main_layout_passes(data, rw_data, layout_context);
         }
