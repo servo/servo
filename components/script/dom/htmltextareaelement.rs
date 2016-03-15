@@ -225,7 +225,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
     fn SetSelectionEnd(&self, end: u32) {
-        self.textinput.borrow_mut().set_selection_range(self.SelectionStart(), end, self.SelectionDirection())
+        self.textinput.borrow_mut().set_selection_range(self.SelectionStart(), end)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
@@ -235,7 +235,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
     fn SetSelectionStart(&self, start: u32) {
-        self.textinput.borrow_mut().set_selection_range(start, self.SelectionEnd(), self.SelectionDirection());
+        self.textinput.borrow_mut().set_selection_range(start, self.SelectionEnd());
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
@@ -247,10 +247,11 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) {
         match direction {
             Some(selection_direction) => {
-                self.textinput.borrow_mut().set_selection_range(start, end, selection_direction)
+                self.textinput.borrow_mut().set_selection_direction(selection_direction)
             },
-            None => self.textinput.borrow_mut().set_selection_range(start, end, DOMString::from("none"))
+            None => self.textinput.borrow_mut().selection_direction = SelectionDirection::None
         };
+        self.textinput.borrow_mut().set_selection_range(start, end)
     }
 }
 

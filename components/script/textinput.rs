@@ -549,7 +549,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
     }
 
-    pub fn set_selection_range(&mut self, start: u32, end: u32, direction: DOMString) {
+    pub fn set_selection_range(&mut self, start: u32, end: u32) {
         let mut start = start as usize;
         let mut end = end as usize;
         let text_end = self.get_content().len();
@@ -564,7 +564,6 @@ impl<T: ClipboardProvider> TextInput<T> {
 
         self.selection_begin = Some(self.get_text_point_for_absolute_point(start));
         self.edit_point = self.get_text_point_for_absolute_point(end);
-        self.set_selection_direction(direction);
     }
 
     pub fn set_selection_direction(&mut self, direction: DOMString) {

@@ -446,20 +446,12 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-selectionstart
     fn SelectionStart(&self) -> u32 {
-        let text_input = self.textinput.borrow();
-        let selection_start = match text_input.selection_begin {
-            Some(selection_begin_point) => {
-                text_input.get_absolute_point_for_text_point(&selection_begin_point)
-            },
-            None => text_input.get_absolute_insertion_point()
-        };
-
-        selection_start as u32
+        self.textinput.borrow().get_selection_start()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
     fn SetSelectionStart(&self, start: u32) {
-        self.textinput.borrow_mut().set_selection_range(start, self.SelectionEnd(), self.SelectionDirection());
+        self.textinput.borrow_mut().set_selection_range(start, self.SelectionEnd());
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
@@ -469,7 +461,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
     fn SetSelectionEnd(&self, end: u32) {
-        self.textinput.borrow_mut().set_selection_range(self.SelectionStart(), end, self.SelectionDirection())
+        self.textinput.borrow_mut().set_selection_range(self.SelectionStart(), end)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
@@ -486,10 +478,11 @@ impl HTMLInputElementMethods for HTMLInputElement {
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) {
         match direction {
             Some(selection_direction) => {
-                self.textinput.borrow_mut().set_selection_range(start, end, selection_direction)
+                self.textinput.borrow_mut().set_selection_direction(selection_direction)
             },
-            None => self.textinput.borrow_mut().set_selection_range(start, end, DOMString::from("none"))
+            None => self.textinput.borrow_mut().selection_direction = SelectionDirection::None
         };
+        self.textinput.borrow_mut().set_selection_range(start, end)
     }
 }
 
