@@ -65,4 +65,9 @@ impl NavigatorMethods for Navigator {
     fn AppVersion(&self) -> DOMString {
         navigatorinfo::AppVersion()
     }
+
+    // https://html.spec.whatwg.org/multipage/#navigatorlanguage
+    fn GetLanguage(&self) -> Option<DOMString>  {
+        Some(navigatorinfo::Language())
+    }
 }
