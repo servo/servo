@@ -28,7 +28,7 @@ git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
 image = "0.7"
-log = "0.3"
+log = "0.3.5"
 hyper = "0.7"
 rustc-serialize = "0.3.4"
 regex = "0.1.55"
