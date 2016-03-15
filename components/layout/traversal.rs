@@ -236,6 +236,6 @@ impl<'a> BuildDisplayList<'a> {
 
     #[inline]
     fn should_process(&self) -> bool {
-        self.state.layout_context.shared_context().goal == ReflowGoal::ForDisplay
+        true
     }
 }
