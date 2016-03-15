@@ -401,8 +401,6 @@ class CommandBase(object):
         if self.context.bootstrapped:
             return
 
-        Registrar.dispatch("update-submodules", context=self.context)
-
         if not self.config["tools"]["system-rust"] and \
            (not path.exists(path.join(
                             self.config["tools"]["rust-root"], "rustc", "bin", "rustc" + BIN_SUFFIX)) or
