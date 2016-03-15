@@ -1021,7 +1021,11 @@ impl Window {
 
         debug!("script: layout joined");
 
-        self.pending_reflow_count.set(0);
+        // Pending reflows require display, so only reset the pending reflow count if this reflow
+        // was to be displayed.
+        if goal == ReflowGoal::ForDisplay {
+            self.pending_reflow_count.set(0);
+        }
 
         if let Some(marker) = marker {
             self.emit_timeline_marker(marker.end());
@@ -1104,7 +1108,7 @@ impl Window {
 
     pub fn hit_test_query(&self, hit_test_request: Point2D<f32>, update_cursor: bool)
                           -> Option<UntrustedNodeAddress> {
-        self.reflow(ReflowGoal::ForDisplay,
+        self.reflow(ReflowGoal::ForScriptQuery,
                     ReflowQueryType::HitTestQuery(hit_test_request, update_cursor),
                     ReflowReason::Query);
         self.layout_rpc.hit_test().node_address
