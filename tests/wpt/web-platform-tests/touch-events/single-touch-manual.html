@@ -236,7 +236,7 @@
         }, "touchstart: touch screenX/screenY pageX/pageY and clientX/clientY values are no less than 0");
       });
 
-      on_event(target0, "touchmove", function onTouchMove(ev) {
+      target0.ontouchmove = function (ev) {
         ev.preventDefault();
 
         if (touchmove_received)
@@ -283,13 +283,13 @@
           check_screenXY_clientXY_pageXY(tt);
         }, "touchmove: touch screenX/screenY pageX/pageY and clientX/clientY values are no less than 0");
 
-      });
+      };
 
       on_event(target1, "touchmove", function onTouchMove(ev) {
         invalid_touchmove_received = true;
       });
 
-      on_event(window, "touchend", function onTouchEnd(ev) {
+      window.ontouchend = function(ev) {
         touchend_received = true;
 
         test_touchend.step(function() {
@@ -329,7 +329,7 @@
         }, "touchend: touch screenX/screenY pageX/pageY and clientX/clientY values are no less than 0");
 
         done();
-      });
+      };
 
       on_event(target0, "mousedown", function onMouseDown(ev) {
         test_mousedown.step(function() {

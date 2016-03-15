@@ -4208,5 +4208,21 @@
     "pathname": "/jqueryui@1.2.3",
     "search": "",
     "hash": ""
+  },
+  "# tab/LF/CR",
+  {
+    "input": "h\tt\nt\rp://h\to\ns\rt:9\t0\n0\r0/p\ta\nt\rh?q\tu\ne\rry#f\tr\na\rg",
+    "base": "about:blank",
+    "href": "http://host:9000/path?query#frag",
+    "origin": "http://host:9000",
+    "protocol": "http:",
+    "username": "",
+    "password": "",
+    "host": "host:9000",
+    "hostname": "host",
+    "port": "9000",
+    "pathname": "/path",
+    "search": "?query",
+    "hash": "#frag"
   }
 ]

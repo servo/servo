@@ -1020,6 +1020,40 @@ function assertGLError(gl, err, name, f) {
   return true;
 }
 
+// Assert that f generates a GL error from a list.
+function assertGLErrorIn(gl, expectedErrorList, name, f) {
+  if (f == null) { f = name; name = null; }
+
+  var actualError = 0;
+  try {
+    f();
+  } catch(e) {
+    if ('glError' in e) {
+      actualError = e.glError;
+    } else {
+      testFailed("assertGLError: UNEXPCETED EXCEPTION", name, f);
+      return false;
+    }
+  }
+
+  var expectedErrorStrList = [];
+  var expectedErrorSet = {};
+  for (var i in expectedErrorList) {
+    var cur = expectedErrorList[i];
+    expectedErrorSet[cur] = true;
+    expectedErrorStrList.push(getGLErrorAsString(gl, cur));
+  }
+  var expectedErrorListStr = "[" + expectedErrorStrList.join(", ") + "]";
+
+  if (actualError in expectedErrorSet) {
+    return true;
+  }
+
+  testFailed("assertGLError: expected: " + expectedErrorListStr +
+             " actual: " + getGLErrorAsString(gl, actualError), name, f);
+  return false;
+}
+
 // Assert that f generates some GL error. Used in situations where it's
 // ambigious which of multiple possible errors will be generated.
 function assertSomeGLError(gl, name, f) {
