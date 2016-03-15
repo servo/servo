@@ -101,9 +101,6 @@ class MachCommands(CommandBase):
         suites = OrderedDict([
             ("tidy", {"kwargs": {"faster": faster, "no_progress": no_progress},
                       "include_arg": "include"}),
-            ("ref", {"kwargs": {"kind": render_mode},
-                     "paths": [path.abspath(path.join("tests", "ref"))],
-                     "include_arg": "include"}),
             ("wpt", {"kwargs": {"release": release},
                      "paths": [path.abspath(path.join("tests", "wpt", "web-platform-tests")),
                                path.abspath(path.join("tests", "wpt", "mozilla"))],
