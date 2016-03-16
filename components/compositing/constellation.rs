@@ -1005,11 +1005,11 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
         let forward = !self.frame(frame_id).next.is_empty();
         let back = !self.frame(frame_id).prev.is_empty();
-        self.compositor_proxy.send(ToCompositorMsg::LoadComplete(back, forward));
+        let root = self.root_frame_id.is_none() || self.root_frame_id == Some(frame_id);
+        self.compositor_proxy.send(ToCompositorMsg::LoadComplete(back, forward, root));
     }
 
-    fn handle_dom_load(&mut self,
-                       pipeline_id: PipelineId) {
+    fn handle_dom_load(&mut self, pipeline_id: PipelineId) {
         let mut webdriver_reset = false;
         if let Some((expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
             debug!("Sending load to WebDriver");
