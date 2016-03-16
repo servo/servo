@@ -4572,6 +4572,18 @@
             "url": "/_mozilla/css/text_align_start_end.html"
           }
         ],
+        "css/text_damage_a.html": [
+          {
+            "path": "css/text_damage_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_damage_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_damage_a.html"
+          }
+        ],
         "css/text_decoration_cached.html": [
           {
             "path": "css/text_decoration_cached.html",
@@ -10782,6 +10794,18 @@
             ]
           ],
           "url": "/_mozilla/css/text_align_start_end.html"
+        }
+      ],
+      "css/text_damage_a.html": [
+        {
+          "path": "css/text_damage_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_damage_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_damage_a.html"
         }
       ],
       "css/text_decoration_cached.html": [
