@@ -89,7 +89,11 @@ class MachCommands(CommandBase):
                       "include_arg": "test_name"}),
             ("compiletest", {"kwargs": {"release": release},
                              "paths": [path.abspath(path.join("tests", "compiletest"))],
-                             "include_arg": "test_name"})
+                             "include_arg": "test_name"}),
+            ("webdriver", {"kwargs": {},
+                      "paths": [path.abspath(path.join("tests", "webdriver"))],
+                      "include_arg": "test_name"})
+
         ])
 
         suites_by_prefix = {path: k for k, v in suites.iteritems() if "paths" in v for path in v["paths"]}
@@ -241,6 +245,12 @@ class MachCommands(CommandBase):
         result = call(args, env=env, cwd=self.servo_crate())
         if result != 0:
             return result
+    
+    @Command('test-webdriver',
+             description='Run the webdriver tests',
+             category='testing')
+    def test_webdriver(self,params=None):
+        print("i am running")
 
     @Command('test-content',
              description='Run the content tests',
