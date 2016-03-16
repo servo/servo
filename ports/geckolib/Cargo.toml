@@ -3,6 +3,8 @@ name = "geckoservo"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 
+build = "build.rs"
+
 [lib]
 name = "geckoservo"
 path = "lib.rs"
