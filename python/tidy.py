@@ -38,6 +38,7 @@ ignored_files = [
     os.path.join(".", "resources", "hsts_preload.json"),
     os.path.join(".", "tests", "wpt", "metadata", "MANIFEST.json"),
     os.path.join(".", "tests", "wpt", "metadata-css", "MANIFEST.json"),
+    os.path.join(".", "python", "tidy_self_test", "tidy_self_test.py"),
     # Hidden files
     os.path.join(".", "."),
 ]
@@ -54,6 +55,7 @@ ignored_dirs = [
     os.path.join(".", "tests", "wpt", "sync"),
     os.path.join(".", "tests", "wpt", "sync_css"),
     os.path.join(".", "python", "mach"),
+    os.path.join(".", "python", "tidy_self_test"),
     os.path.join(".", "components", "script", "dom", "bindings", "codegen", "parser"),
     os.path.join(".", "components", "script", "dom", "bindings", "codegen", "ply"),
     os.path.join(".", "python", "_virtualenv"),
@@ -606,17 +608,18 @@ def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
                 yield os.path.join(root, f)
 
 
-def scan(faster=False, progress=True):
+def scan(faster=False, progress=True, check_dir='.'):
     # standard checks
-    files_to_check = filter_files('.', faster, progress)
+    files_to_check = filter_files(check_dir, faster, progress)
     checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
     line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec)
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
 
-    # wpt lint checks
-    wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(faster, progress))
-    # collect errors
-    errors = itertools.chain(errors, wpt_lint_errors)
+    if check_dir == '.':
+        # wpt lint checks
+        wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(faster, progress))
+        # collect errors
+        errors = itertools.chain(errors, wpt_lint_errors)
 
     error = None
     for error in errors:
