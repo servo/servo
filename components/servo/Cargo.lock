@@ -2294,7 +2294,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.1.0"
-source = "git+https://github.com/servo/webrender#ce55aca74c7628ee05b57b31a3f7ffc9ebf132cb"
+source = "git+https://github.com/servo/webrender#ab1c795612a5bd560a8adf750b4630cf1d24f706"
 dependencies = [
  "app_units 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2305,6 +2305,7 @@ dependencies = [
  "gleam 0.2.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.1 (git+https://github.com/servo/ipc-channel)",
  "lazy_static 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.31 (registry+https://github.com/rust-lang/crates.io-index)",
  "offscreen_gl_context 0.1.0 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
  "scoped_threadpool 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
