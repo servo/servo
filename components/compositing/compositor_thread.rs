@@ -195,8 +195,8 @@ pub enum Msg {
     SetFrameTree(SendableFrameTree, IpcSender<()>, Sender<ConstellationMsg>),
     /// The load of a page has begun: (can go back, can go forward).
     LoadStart(bool, bool),
-    /// The load of a page has completed: (can go back, can go forward).
-    LoadComplete(bool, bool),
+    /// The load of a page has completed: (can go back, can go forward, is root frame).
+    LoadComplete(bool, bool, bool),
     /// We hit the delayed composition timeout. (See `delayed_composition.rs`.)
     DelayedCompositionTimeout(u64),
     /// Composite.
