@@ -820,7 +820,7 @@ impl WindowMethods for Window {
     fn load_start(&self, _: bool, _: bool) {
     }
 
-    fn load_end(&self, _: bool, _: bool) {
+    fn load_end(&self, _: bool, _: bool, _: bool) {
     }
 
     fn load_error(&self, _: NetError, _: String) {

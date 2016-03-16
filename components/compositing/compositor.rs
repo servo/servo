@@ -592,7 +592,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.window.load_start(back, forward);
             }
 
-            (Msg::LoadComplete(back, forward), ShutdownState::NotShuttingDown) => {
+            (Msg::LoadComplete(back, forward, root), ShutdownState::NotShuttingDown) => {
                 self.got_load_complete_message = true;
 
                 // If we're painting in headless mode, schedule a recomposite.
@@ -603,7 +603,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 // Inform the embedder that the load has finished.
                 //
                 // TODO(pcwalton): Specify which frame's load completed.
-                self.window.load_end(back, forward);
+                self.window.load_end(back, forward, root);
             }
 
             (Msg::DelayedCompositionTimeout(timestamp), ShutdownState::NotShuttingDown) => {
