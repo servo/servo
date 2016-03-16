@@ -101,6 +101,9 @@ class MachCommands(CommandBase):
         suites = OrderedDict([
             ("tidy", {"kwargs": {"faster": faster, "no_progress": no_progress},
                       "include_arg": "include"}),
+            ("ref", {"kwargs": {"kind": render_mode},
+                     "paths": [path.abspath(path.join("tests", "ref"))],
+                     "include_arg": "include"}),
             ("wpt", {"kwargs": {"release": release},
                      "paths": [path.abspath(path.join("tests", "wpt", "web-platform-tests")),
                                path.abspath(path.join("tests", "wpt", "mozilla"))],
@@ -113,7 +116,11 @@ class MachCommands(CommandBase):
                       "include_arg": "test_name"}),
             ("compiletest", {"kwargs": {"release": release},
                              "paths": [path.abspath(path.join("tests", "compiletest"))],
-                             "include_arg": "test_name"})
+                             "include_arg": "test_name"}),
+            ("webdriver", {"kwargs": {},
+                      "paths": [path.abspath(path.join("tests", "webdriver"))],
+                      "include_arg": "test_name"})
+
         ])
 
         suites_by_prefix = {path: k for k, v in suites.iteritems() if "paths" in v for path in v["paths"]}
@@ -278,6 +285,12 @@ class MachCommands(CommandBase):
         print("Ref tests have been replaced by web-platform-tests under "
               "tests/wpt/mozilla/.")
         return 0
+
+    @Command('test-webdriver',
+             description='Run the webdriver tests',
+             category='testing')
+    def test_webdriver(self,params=None):
+        print("i am running")
 
     @Command('test-content',
              description='Run the content tests',
