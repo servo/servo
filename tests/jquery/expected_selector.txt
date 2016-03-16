@@ -9,6 +9,6 @@
 [jQuery test] [7/0/7] element - jQuery only
 [jQuery test] [0/2/2] Sizzle cache collides with multiple Sizzles on a page
 [jQuery test] [1/0/1] disconnected nodes
-[jQuery test] [50/4/54] attributes
+[jQuery test] [54/0/54] attributes
 [jQuery test] [3/0/3] disconnected nodes - jQuery only
 [jQuery test] [26/0/26] id
