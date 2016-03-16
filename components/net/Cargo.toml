@@ -39,7 +39,7 @@ hyper = { version = "0.7", features = [ "serde-serialization" ] }
 immeta = "0.3.1"
 log = "0.3.5"
 mime_guess = "1.1.1"
-openssl = "0.7.0"
+openssl = "0.7.6"
 rustc-serialize = "0.3"
 time = "0.1.17"
 url = {version = "0.5.7", features = ["heap_size"]}
