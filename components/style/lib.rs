@@ -50,7 +50,7 @@ pub mod animation;
 pub mod attr;
 pub mod bezier;
 pub mod context;
-mod custom_properties;
+pub mod custom_properties;
 pub mod data;
 pub mod dom;
 pub mod element_state;
