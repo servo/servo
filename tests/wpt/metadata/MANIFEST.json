@@ -34784,7 +34784,16 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "testharness": {
+        "html/semantics/forms/textfieldselection/selection-after-content-change.html": [
+          {
+            "path": "html/semantics/forms/textfieldselection/selection-after-content-change.html",
+            "url": "/html/semantics/forms/textfieldselection/selection-after-content-change.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
