@@ -15,6 +15,7 @@ use std::cmp;
 use std::default::Default;
 use std::env;
 use std::fs::File;
+use std::fs;
 use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process;
@@ -187,8 +188,13 @@ pub struct Opts {
     /// True if WebRender should use multisample antialiasing.
     pub use_msaa: bool,
 
+    /// Create path for persistent sessions
+    pub profile_dir: Option<String>,
+
     // Which rendering API to use.
     pub render_api: RenderApi,
+
+    
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -499,6 +505,7 @@ pub fn default_opts() -> Opts {
         webrender_stats: false,
         use_msaa: false,
         render_api: DEFAULT_RENDER_API,
+        profile_dir: None,
     }
 }
 
@@ -544,6 +551,8 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
     opts.optflag("w", "webrender", "Use webrender backend");
     opts.optopt("G", "graphics", "Select graphics backend (gl or es2)", "gl");
+    opts.optflagopt("", "profile-dir",
+                    "optional directory path for user sessions", "");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -555,6 +564,17 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     if opt_match.opt_present("h") || opt_match.opt_present("help") {
         print_usage(app_name, &opts);
         process::exit(0);
+    };
+
+    if opt_match.opt_present("profile-dir") {
+
+        let profile_dir_option = opt_match.opt_default("profile-dir", "");
+        let profile_dir_string = profile_dir_option.as_ref().unwrap();
+
+        match fs::create_dir_all(profile_dir_string) {
+            Err(why) => println!("! {:?}", why.kind()),
+            Ok(_) => {},
+        }
     };
 
     // If this is the content process, we'll receive the real options over IPC. So just fill in
@@ -746,6 +766,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         use_webrender: use_webrender,
         webrender_stats: debug_options.webrender_stats,
         use_msaa: debug_options.use_msaa,
+        profile_dir: opt_match.opt_default("profile-dir", ""),
     };
 
     set_defaults(opts);
