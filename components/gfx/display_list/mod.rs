@@ -168,14 +168,14 @@ impl<K, V> DerefMut for FnvHashMap<K, V> {
 impl<K, V> Serialize for FnvHashMap<K, V> where K: Eq + Hash + Serialize, V: Serialize {
     #[inline]
     fn serialize<S>(&self, serializer: &mut S) -> Result<(), S::Error> where S: Serializer {
-        serializer.visit_map(MapIteratorVisitor::new(self.iter(), Some(self.len())))
+        serializer.serialize_map(MapIteratorVisitor::new(self.iter(), Some(self.len())))
     }
 }
 
 impl<K, V> Deserialize for FnvHashMap<K, V> where K: Eq + Hash + Deserialize, V: Deserialize {
     #[inline]
     fn deserialize<D>(deserializer: &mut D) -> Result<Self, D::Error> where D: Deserializer {
-        deserializer.visit_map(FnvHashMapVisitor::new())
+        deserializer.deserialize_map(FnvHashMapVisitor::new())
     }
 }
 /// A visitor that produces a map.

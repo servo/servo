@@ -33,15 +33,15 @@ git = "https://github.com/servo/ipc-channel"
 git = "https://github.com/servo/webrender_traits"
 
 [dependencies]
-hyper = { version = "0.7", features = [ "serde-serialization" ] }
-log = "0.3"
-time = "0.1.17"
-openssl = "0.7.0"
-rustc-serialize = "0.3"
 cookie = "0.2"
-mime_guess = "1.1.1"
 flate2 = "0.2.0"
-uuid = "0.1.16"
-url = {version = "0.5.7", features = ["heap_size"]}
-websocket = "0.15.0"
+hyper = { version = "0.8", features = [ "serde-serialization" ] }
 immeta = "0.3.1"
+log = "0.3.5"
+mime_guess = "1.6.0"
+openssl = "0.7.6"
+rustc-serialize = "0.3"
+time = "0.1.17"
+url = {version = "0.5.7", features = ["heap_size"]}
+uuid = "0.1.16"
+websocket = "0.15.2"

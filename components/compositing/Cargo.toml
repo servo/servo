@@ -93,13 +93,13 @@ app_units = {version = "0.2.3", features = ["plugins"]}
 euclid = {version = "0.6.4", features = ["plugins"]}
 gleam = "0.2.8"
 image = "0.7"
-log = "0.3"
+log = "0.3.5"
 num = "0.1.24"
-serde = "0.6"
-serde_macros = "0.6"
+serde = "0.7"
+serde_macros = "0.7"
 time = "0.1.17"
 url = {version = "0.5.7", features = ["heap_size"]}
 
 [target.x86_64-apple-darwin.dependencies]
-core-graphics = "0.2"
+core-graphics = "0.3"
 core-text = "1.1"
