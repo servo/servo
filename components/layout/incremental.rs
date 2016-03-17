@@ -16,27 +16,31 @@ bitflags! {
         #[doc = "Currently unused; need to decide how this propagates."]
         const REPAINT = 0x01,
 
+        #[doc = "Recompute the overflow regions (bounding box of object and all descendants)."]
+        #[doc = "Propagates down the flow tree because the computation is bottom-up."]
+        const STORE_OVERFLOW = 0x02,
+
         #[doc = "Recompute intrinsic inline_sizes (minimum and preferred)."]
         #[doc = "Propagates down the flow tree because the computation is"]
         #[doc = "bottom-up."]
-        const BUBBLE_ISIZES = 0x02,
+        const BUBBLE_ISIZES = 0x04,
 
         #[doc = "Recompute actual inline-sizes and block-sizes, only taking out-of-flow children \
                  into account. \
                  Propagates up the flow tree because the computation is top-down."]
-        const REFLOW_OUT_OF_FLOW = 0x04,
+        const REFLOW_OUT_OF_FLOW = 0x08,
 
         #[doc = "Recompute actual inline_sizes and block_sizes."]
         #[doc = "Propagates up the flow tree because the computation is"]
         #[doc = "top-down."]
-        const REFLOW = 0x08,
+        const REFLOW = 0x10,
 
         #[doc = "Re-resolve generated content. \
                  Propagates up the flow tree because the computation is inorder."]
-        const RESOLVE_GENERATED_CONTENT = 0x10,
+        const RESOLVE_GENERATED_CONTENT = 0x20,
 
         #[doc = "The entire flow needs to be reconstructed."]
-        const RECONSTRUCT_FLOW = 0x20
+        const RECONSTRUCT_FLOW = 0x40
     }
 }
 
@@ -56,7 +60,7 @@ impl TRestyleDamage for RestyleDamage {
     /// Use this instead of `RestyleDamage::all()` because `RestyleDamage::all()` will result in
     /// unnecessary sequential resolution of generated content.
     fn rebuild_and_reflow() -> RestyleDamage {
-        REPAINT | BUBBLE_ISIZES | REFLOW_OUT_OF_FLOW | REFLOW | RECONSTRUCT_FLOW
+        REPAINT | STORE_OVERFLOW | BUBBLE_ISIZES | REFLOW_OUT_OF_FLOW | REFLOW | RECONSTRUCT_FLOW
     }
 }
 
@@ -66,9 +70,10 @@ impl RestyleDamage {
     /// we should add to the *parent* of this flow.
     pub fn damage_for_parent(self, child_is_absolutely_positioned: bool) -> RestyleDamage {
         if child_is_absolutely_positioned {
-            self & (REPAINT | REFLOW_OUT_OF_FLOW | RESOLVE_GENERATED_CONTENT)
+            self & (REPAINT | STORE_OVERFLOW | REFLOW_OUT_OF_FLOW | RESOLVE_GENERATED_CONTENT)
         } else {
-            self & (REPAINT | REFLOW | REFLOW_OUT_OF_FLOW | RESOLVE_GENERATED_CONTENT)
+            self & (REPAINT | STORE_OVERFLOW | REFLOW | REFLOW_OUT_OF_FLOW |
+                    RESOLVE_GENERATED_CONTENT)
         }
     }
 
@@ -108,6 +113,7 @@ impl fmt::Display for RestyleDamage {
 
         let to_iter =
             [ (REPAINT, "Repaint")
+            , (STORE_OVERFLOW, "StoreOverflow")
             , (BUBBLE_ISIZES, "BubbleISizes")
             , (REFLOW_OUT_OF_FLOW, "ReflowOutOfFlow")
             , (REFLOW, "Reflow")
@@ -165,13 +171,13 @@ pub fn compute_damage(old: Option<&Arc<ComputedValues>>, new: &ComputedValues) -
     ]);
 
     add_if_not_equal!(old, new, damage,
-                      [ REPAINT, REFLOW_OUT_OF_FLOW ], [
+                      [ REPAINT, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW ], [
         get_positionoffsets.top, get_positionoffsets.left,
         get_positionoffsets.right, get_positionoffsets.bottom
     ]);
 
     add_if_not_equal!(old, new, damage,
-                      [ REPAINT, BUBBLE_ISIZES, REFLOW_OUT_OF_FLOW, REFLOW ], [
+                      [ REPAINT, STORE_OVERFLOW, BUBBLE_ISIZES, REFLOW_OUT_OF_FLOW, REFLOW ], [
         get_border.border_top_width, get_border.border_right_width,
         get_border.border_bottom_width, get_border.border_left_width,
         get_margin.margin_top, get_margin.margin_right,
@@ -183,7 +189,14 @@ pub fn compute_damage(old: Option<&Arc<ComputedValues>>, new: &ComputedValues) -
     ]);
 
     add_if_not_equal!(old, new, damage,
-                      [ REPAINT, BUBBLE_ISIZES, REFLOW_OUT_OF_FLOW, REFLOW, RECONSTRUCT_FLOW ], [
+                      [
+                        REPAINT,
+                        STORE_OVERFLOW,
+                        BUBBLE_ISIZES,
+                        REFLOW_OUT_OF_FLOW,
+                        REFLOW,
+                        RECONSTRUCT_FLOW
+                      ], [
         get_box.float, get_box.display, get_box.position, get_box.content,
         get_counters.counter_reset, get_counters.counter_increment,
         get_list.quotes, get_list.list_style_type,
