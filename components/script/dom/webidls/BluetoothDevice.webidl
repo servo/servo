@@ -8,7 +8,8 @@
 // Allocation authorities for Vendor IDs:
 enum VendorIDSource {
     "bluetooth",
-    "usb"
+    "usb",
+    "unknown"
 };
 
 interface BluetoothDevice {
