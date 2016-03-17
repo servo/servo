@@ -37,6 +37,10 @@ impl File {
     pub fn name(&self) -> &DOMString {
         &self.name
     }
+
+    pub fn blob(&self) -> &Blob {
+        &self.blob
+    }
 }
 
 impl FileMethods for File {

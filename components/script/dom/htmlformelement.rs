@@ -19,6 +19,8 @@ use dom::document::Document;
 use dom::element::Element;
 use dom::event::{EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::file::File;
+use dom::formdata::{generate_boundary, generate_multipart_data};
 use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlcollection::CollectionFilter;
 use dom::htmldatalistelement::HTMLDataListElement;
@@ -263,7 +265,7 @@ impl HTMLFormElement {
             }
         }
         // Step 6
-        let form_data = self.get_form_dataset(Some(submitter));
+        let mut form_data = self.get_form_dataset(Some(submitter));
         // Step 7
         let mut action = submitter.action();
         // Step 8
@@ -287,11 +289,22 @@ impl HTMLFormElement {
 
         let parsed_data = match enctype {
             FormEncType::UrlEncoded => {
-                let mime: mime::Mime = "application/x-www-form-urlencoded".parse().unwrap();
+                let mime: mime::Mime = mime!(Application/WwwFormUrlEncoded);
                 load_data.headers.set(ContentType(mime));
-                serialize(form_data.iter().map(|d| (&*d.name, &*d.value)))
+
+                serialize(form_data.iter().map(|d| (&*d.name, match d.value {
+                    FileOrString::StringData(ref s) => String::from(s.clone()),
+                    FileOrString::FileData(ref f) => String::from(f.name().clone())
+                })))
             }
-            _ => "".to_owned() // TODO: Add serializers for the other encoding types
+            FormEncType::FormDataEncoded => {
+                let boundary = generate_boundary();
+                let mime: mime::Mime = mime!(Multipart/FormData; Boundary=(&boundary));
+                load_data.headers.set(ContentType(mime));
+
+                generate_multipart_data(&mut form_data, boundary)
+            }
+            FormEncType::TextPlainEncoded => "".to_owned()
         };
 
         // Step 18
@@ -433,7 +446,7 @@ impl HTMLFormElement {
                             data_set.push(FormDatum {
                                 ty: textarea.Type(),
                                 name: name,
-                                value: textarea.Value()
+                                value: FileOrString::StringData(textarea.Value())
                             });
                         }
                     }
@@ -487,7 +500,10 @@ impl HTMLFormElement {
                 "file" | "textarea" => (),
                 _ => {
                     datum.name = clean_crlf(&datum.name);
-                    datum.value = clean_crlf(&datum.value);
+                    datum.value = FileOrString::StringData(clean_crlf( match datum.value {
+                        FileOrString::StringData(ref s) => s,
+                        FileOrString::FileData(_) => unreachable!()
+                    }));
                 }
             }
         };
@@ -542,12 +558,16 @@ impl HTMLFormElement {
 
 }
 
-// TODO: add file support
-#[derive(HeapSizeOf)]
+pub enum FileOrString {
+    FileData(Root<File>),
+    StringData(DOMString)
+}
+
+// #[derive(HeapSizeOf)]
 pub struct FormDatum {
     pub ty: DOMString,
     pub name: DOMString,
-    pub value: DOMString
+    pub value: FileOrString
 }
 
 #[derive(Copy, Clone, HeapSizeOf)]
