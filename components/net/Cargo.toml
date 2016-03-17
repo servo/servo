@@ -32,8 +32,13 @@ git = "https://github.com/servo/ipc-channel"
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender_traits"
 
+
 [dependencies.tinyfiledialogs]
 git = "https://github.com/jdm/tinyfiledialogs"
+
+[dependencies.device]
+git = "https://github.com/dati91/devices"
+branch = "device-api"
 
 [dependencies]
 cookie = "0.2"

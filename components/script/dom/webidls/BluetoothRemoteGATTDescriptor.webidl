@@ -9,7 +9,7 @@ interface BluetoothRemoteGATTDescriptor {
   readonly attribute BluetoothRemoteGATTCharacteristic characteristic;
   readonly attribute DOMString uuid;
   readonly attribute ByteString? value;
-
+  [Throws]
   ByteString readValue();
   //Promise<DataView> readValue();
   //Promise<void> writeValue(BufferSource value);
