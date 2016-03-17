@@ -50,6 +50,7 @@ pub enum ProfilerCategory {
     LayoutGeneratedContent,
     LayoutDisplayListSorting,
     LayoutMain,
+    LayoutStoreOverflow,
     LayoutParallelWarmup,
     LayoutDispListBuild,
     PaintingPerTile,

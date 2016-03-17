@@ -12,7 +12,7 @@ use app_units::Au;
 use azure::azure::AzColor;
 use canvas_traits::CanvasMsg;
 use construct::ConstructionResult;
-use context::{SharedLayoutContext, heap_size_of_local_context};
+use context::{LayoutContext, SharedLayoutContext, heap_size_of_local_context};
 use display_list_builder::ToGfxColor;
 use euclid::Matrix4;
 use euclid::point::Point2D;
@@ -1336,12 +1336,21 @@ impl LayoutThread {
                     Some(ref mut parallel) => {
                         // Parallel mode.
                         LayoutThread::solve_constraints_parallel(parallel,
-                                                               &mut root_flow,
-                                                               profiler_metadata,
-                                                               self.time_profiler_chan.clone(),
-                                                               &*layout_context);
+                                                                 &mut root_flow,
+                                                                 profiler_metadata,
+                                                                 self.time_profiler_chan.clone(),
+                                                                 &*layout_context);
                     }
                 }
+            });
+
+            profile(time::ProfilerCategory::LayoutStoreOverflow,
+                    self.profiler_metadata(),
+                    self.time_profiler_chan.clone(),
+                    || {
+                let layout_context = LayoutContext::new(&*layout_context);
+                sequential::store_overflow(&layout_context,
+                                           flow_ref::deref_mut(&mut root_flow) as &mut Flow);
             });
 
             self.perform_post_main_layout_passes(data, rw_data, layout_context);

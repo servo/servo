@@ -14,6 +14,7 @@ use flow_ref::{self, FlowRef};
 use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
 use gfx::display_list::{DisplayListEntry, StackingContext};
+use incremental::STORE_OVERFLOW;
 use style::dom::TNode;
 use style::traversal::DomTraversalContext;
 use traversal::{AssignBSizes, AssignISizes};
@@ -117,3 +118,18 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut FlowRef,
 
     doit(flow_ref::deref_mut(root), 0, iterator, &Point2D::zero());
 }
+
+pub fn store_overflow(layout_context: &LayoutContext, flow: &mut Flow) {
+    if !flow::base(flow).restyle_damage.contains(STORE_OVERFLOW) {
+        return
+    }
+
+    for mut kid in flow::mut_base(flow).child_iter() {
+        store_overflow(layout_context, kid);
+    }
+
+    flow.store_overflow(layout_context);
+
+    flow::mut_base(flow).restyle_damage.remove(STORE_OVERFLOW);
+}
+
