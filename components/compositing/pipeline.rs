@@ -19,6 +19,7 @@ use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId, Su
 use msg::constellation_msg::{LoadData, WindowSizeData};
 use msg::constellation_msg::{PipelineNamespaceId};
 use net_traits::ResourceThread;
+use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::StorageThread;
 use profile_traits::mem as profile_mem;
@@ -93,6 +94,8 @@ pub struct InitialPipelineState {
     pub compositor_proxy: Box<CompositorProxy + 'static + Send>,
     /// A channel to the developer tools, if applicable.
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    /// A channel to the bluetooth thread.
+    pub bluetooth_thread: IpcSender<BluetoothMethodMsg>,
     /// A channel to the image cache thread.
     pub image_cache_thread: ImageCacheThread,
     /// A channel to the font cache thread.
@@ -217,6 +220,7 @@ impl Pipeline {
             constellation_chan: state.constellation_chan,
             scheduler_chan: state.scheduler_chan,
             devtools_chan: script_to_devtools_chan,
+            bluetooth_thread: state.bluetooth_thread,
             image_cache_thread: state.image_cache_thread,
             font_cache_thread: state.font_cache_thread.clone(),
             resource_thread: state.resource_thread,
@@ -394,6 +398,7 @@ pub struct UnprivilegedPipelineContent {
     scheduler_chan: IpcSender<TimerEventRequest>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     script_to_compositor_chan: IpcSender<ScriptToCompositorMsg>,
+    bluetooth_thread: IpcSender<BluetoothMethodMsg>,
     image_cache_thread: ImageCacheThread,
     font_cache_thread: FontCacheThread,
     resource_thread: ResourceThread,
@@ -434,6 +439,7 @@ impl UnprivilegedPipelineContent {
             layout_to_constellation_chan: self.layout_to_constellation_chan.clone(),
             scheduler_chan: self.scheduler_chan.clone(),
             failure_info: self.failure.clone(),
+            bluetooth_thread: self.bluetooth_thread.clone(),
             resource_thread: self.resource_thread,
             storage_thread: self.storage_thread.clone(),
             image_cache_thread: self.image_cache_thread.clone(),
