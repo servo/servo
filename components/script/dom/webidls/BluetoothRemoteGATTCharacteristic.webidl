@@ -14,8 +14,10 @@ interface BluetoothRemoteGATTCharacteristic {
   //Promise<BluetoothRemoteGATTDescriptor> getDescriptor(BluetoothDescriptorUUID descriptor);
   //Promise<sequence<BluetoothRemoteGATTDescriptor>>
   //getDescriptors(optional BluetoothDescriptorUUID descriptor);
-  //Promise<DataView> readValue();
+  [Throws]
   ByteString readValue();
+  //Promise<DataView> readValue();
+  void writeValue(sequence<octet> value);
   //Promise<void> writeValue(BufferSource value);
   //Promise<void> startNotifications();
   //Promise<void> stopNotifications();

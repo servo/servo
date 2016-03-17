@@ -36,6 +36,7 @@ use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, NavigationD
 use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
 use msg::constellation_msg::{self, ConstellationChan, PanicMsg};
 use msg::webdriver_msg;
+use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::{StorageThread, StorageThreadMsg};
 use net_traits::{self, ResourceThread};
@@ -123,6 +124,9 @@ pub struct Constellation<LTF, STF> {
     /// A channel through which messages can be sent to the developer tools.
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 
+    /// A channel through which messages can be sent to the bluetooth thread.
+    bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+
     /// A channel through which messages can be sent to the storage thread.
     storage_thread: StorageThread,
 
@@ -197,6 +201,8 @@ pub struct InitialConstellationState {
     pub compositor_proxy: Box<CompositorProxy + Send>,
     /// A channel to the developer tools, if applicable.
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    /// A channel to the bluetooth thread.
+    pub bluetooth_thread: IpcSender<BluetoothMethodMsg>,
     /// A channel to the image cache thread.
     pub image_cache_thread: ImageCacheThread,
     /// A channel to the font cache thread.
@@ -338,6 +344,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 panic_receiver: panic_receiver,
                 compositor_proxy: state.compositor_proxy,
                 devtools_chan: state.devtools_chan,
+                bluetooth_thread: state.bluetooth_thread,
                 resource_thread: state.resource_thread,
                 image_cache_thread: state.image_cache_thread,
                 font_cache_thread: state.font_cache_thread,
@@ -424,6 +431,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 scheduler_chan: self.scheduler_chan.clone(),
                 compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
                 devtools_chan: self.devtools_chan.clone(),
+                bluetooth_thread: self.bluetooth_thread.clone(),
                 image_cache_thread: self.image_cache_thread.clone(),
                 font_cache_thread: self.font_cache_thread.clone(),
                 resource_thread: self.resource_thread.clone(),
@@ -839,6 +847,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
         if let Err(e) = self.storage_thread.send(StorageThreadMsg::Exit) {
             warn!("Exit storage thread failed ({})", e);
+        }
+        if let Err(e) = self.bluetooth_thread.send(BluetoothMethodMsg::Exit) {
+            warn!("Exit bluetooth thread failed ({})", e);
         }
         self.font_cache_thread.exit();
         self.compositor_proxy.send(ToCompositorMsg::ShutdownComplete);

@@ -47,6 +47,7 @@ use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId}
 use msg::constellation_msg::{WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceThread;
+use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::storage_thread::{StorageThread, StorageType};
 use num_traits::ToPrimitive;
@@ -212,6 +213,10 @@ pub struct Window {
     #[ignore_heap_size_of = "channels are hard"]
     resource_thread: Arc<ResourceThread>,
 
+    /// A handle for communicating messages to the bluetooth thread.
+    #[ignore_heap_size_of = "channels are hard"]
+    bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+
     /// A handle for communicating messages to the storage thread.
     #[ignore_heap_size_of = "channels are hard"]
     storage_thread: StorageThread,
@@ -332,6 +337,10 @@ impl Window {
 
     pub fn page(&self) -> &Page {
         &*self.page
+    }
+
+    pub fn bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
+        self.bluetooth_thread.clone()
     }
 
     pub fn storage_thread(&self) -> StorageThread {
@@ -1401,6 +1410,7 @@ impl Window {
                compositor: IpcSender<ScriptToCompositorMsg>,
                image_cache_thread: ImageCacheThread,
                resource_thread: Arc<ResourceThread>,
+               bluetooth_thread: IpcSender<BluetoothMethodMsg>,
                storage_thread: StorageThread,
                mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
@@ -1456,6 +1466,7 @@ impl Window {
             dom_static: GlobalStaticData::new(),
             js_runtime: DOMRefCell::new(Some(runtime.clone())),
             resource_thread: resource_thread,
+            bluetooth_thread: bluetooth_thread,
             storage_thread: storage_thread,
             constellation_chan: constellation_chan,
             page_clip_rect: Cell::new(MAX_RECT),
