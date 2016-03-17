@@ -172,15 +172,14 @@ impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
 }
 
 /// The assign-block-sizes-and-store-overflow traversal, the last (and most expensive) part of
-/// layout computation. Determines the final block-sizes for all layout objects, computes
-/// positions, and computes overflow regions. In Gecko this corresponds to `Reflow` and
-/// `FinishAndStoreOverflow`.
+/// layout computation. Determines the final block-sizes for all layout objects and computes
+/// positions. In Gecko this corresponds to `Reflow`.
 #[derive(Copy, Clone)]
-pub struct AssignBSizesAndStoreOverflow<'a> {
+pub struct AssignBSizes<'a> {
     pub layout_context: &'a LayoutContext<'a>,
 }
 
-impl<'a> PostorderFlowTraversal for AssignBSizesAndStoreOverflow<'a> {
+impl<'a> PostorderFlowTraversal for AssignBSizes<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
         // Can't do anything with flows impacted by floats until we reach their inorder parent.

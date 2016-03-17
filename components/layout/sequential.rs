@@ -16,7 +16,7 @@ use generated_content::ResolveGeneratedContent;
 use gfx::display_list::{DisplayListEntry, StackingContext};
 use style::dom::TNode;
 use style::traversal::DomTraversalContext;
-use traversal::{AssignBSizesAndStoreOverflow, AssignISizes};
+use traversal::{AssignBSizes, AssignISizes};
 use traversal::{BubbleISizes, BuildDisplayList, ComputeAbsolutePositions, PostorderNodeMutTraversal};
 use util::opts;
 
@@ -44,7 +44,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
                                    shared_layout_context: &SharedLayoutContext) {
     fn doit(flow: &mut Flow,
             assign_inline_sizes: AssignISizes,
-            assign_block_sizes: AssignBSizesAndStoreOverflow) {
+            assign_block_sizes: AssignBSizes) {
         if assign_inline_sizes.should_process(flow) {
             assign_inline_sizes.process(flow);
         }
@@ -71,7 +71,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
     }
 
     let assign_inline_sizes = AssignISizes                 { layout_context: &layout_context };
-    let assign_block_sizes  = AssignBSizesAndStoreOverflow { layout_context: &layout_context };
+    let assign_block_sizes  = AssignBSizes { layout_context: &layout_context };
 
     doit(root, assign_inline_sizes, assign_block_sizes);
 }
