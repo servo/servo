@@ -32,10 +32,46 @@ pub enum EventBubbles {
     DoesNotBubble
 }
 
+impl From<EventBubbles> for bool {
+    fn from(bubbles: EventBubbles) -> Self {
+        match bubbles {
+            EventBubbles::Bubbles => true,
+            EventBubbles::DoesNotBubble => false
+        }
+    }
+}
+
+impl From<bool> for EventBubbles {
+    fn from(boolean: bool) -> Self {
+        match boolean {
+            true => EventBubbles::Bubbles,
+            false => EventBubbles::DoesNotBubble
+        }
+    }
+}
+
 #[derive(PartialEq, HeapSizeOf)]
 pub enum EventCancelable {
     Cancelable,
     NotCancelable
+}
+
+impl From<EventCancelable> for bool {
+    fn from(bubbles: EventCancelable) -> Self {
+        match bubbles {
+            EventCancelable::Cancelable => true,
+            EventCancelable::NotCancelable => false
+        }
+    }
+}
+
+impl From<bool> for EventCancelable {
+    fn from(boolean: bool) -> Self {
+        match boolean {
+            true => EventCancelable::Cancelable,
+            false => EventCancelable::NotCancelable
+        }
+    }
 }
 
 #[dom_struct]
@@ -87,15 +123,15 @@ impl Event {
                bubbles: EventBubbles,
                cancelable: EventCancelable) -> Root<Event> {
         let event = Event::new_uninitialized(global);
-        event.init_event(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
+        event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
         event
     }
 
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &EventBinding::EventInit) -> Fallible<Root<Event>> {
-        let bubbles = if init.bubbles { EventBubbles::Bubbles } else { EventBubbles::DoesNotBubble };
-        let cancelable = if init.cancelable { EventCancelable::Cancelable } else { EventCancelable::NotCancelable };
+        let bubbles = EventBubbles::from(init.bubbles);
+        let cancelable = EventCancelable::from(init.cancelable);
         Ok(Event::new(global, Atom::from(type_), bubbles, cancelable))
     }
 
