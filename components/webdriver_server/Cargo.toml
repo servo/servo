@@ -20,17 +20,15 @@ path = "../plugins"
 [dependencies.util]
 path = "../util"
 
-[dependencies.webdriver]
-git = "https://github.com/jgraham/webdriver-rust.git"
-
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
 image = "0.7"
-log = "0.3"
-hyper = "0.7"
+log = "0.3.5"
+hyper = "0.8"
 rustc-serialize = "0.3.4"
 regex = "0.1.55"
 url = {version = "0.5.7", features = ["heap_size"]}
 uuid = "0.1"
+webdriver = "0.7"

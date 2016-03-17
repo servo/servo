@@ -19,12 +19,12 @@ heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
 lazy_static = "0.1"
 libc = "0.2"
-log = "0.3"
-mime = "0.1"
+log = "0.3.5"
+mime = "0.2"
 rand = "0.3"
 rustc-serialize = "0.3"
-serde = "0.6"
-serde_macros = "0.6"
+serde = "0.7"
+serde_macros = "0.7"
 servo-skia = "0.20130412.0"
 smallvec = "0.1"
 string_cache = {version = "0.2.11", features = ["heap_size"]}
@@ -78,7 +78,7 @@ git = "https://github.com/servo/webrender_traits"
 
 [target.x86_64-apple-darwin.dependencies]
 core-foundation = "0.2"
-core-graphics = "0.2"
+core-graphics = "0.3"
 core-text = "1.1"
 
 [target.i686-unknown-linux-gnu.dependencies]

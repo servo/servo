@@ -24,7 +24,7 @@ string_cache = {version = "0.2.11", features = ["heap_size", "unstable"]}
 url = {version = "0.5.7", features = ["heap_size", "query_encoding", "serde_serialization"]}
 
 [dependencies.log]
-version = "0.3"
+version = "0.3.5"
 features = ["release_max_level_info"]
 
 [dependencies.plugins]
