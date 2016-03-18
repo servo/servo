@@ -184,4 +184,5 @@ partial interface Document {
 // https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint
 partial interface Document {
   Element? elementFromPoint(double x, double y);
+  sequence<Element> elementsFromPoint(double x, double y);
 };
