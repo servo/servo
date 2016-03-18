@@ -6120,6 +6120,18 @@
             "url": "/_mozilla/mozilla/script_type.html"
           }
         ],
+        "mozilla/send-arraybuffer.htm": [
+          {
+            "path": "mozilla/send-arraybuffer.htm",
+            "url": "/_mozilla/mozilla/send-arraybuffer.htm"
+          }
+        ],
+        "mozilla/send-blob.htm": [
+          {
+            "path": "mozilla/send-blob.htm",
+            "url": "/_mozilla/mozilla/send-blob.htm"
+          }
+        ],
         "mozilla/sequence-hole.html": [
           {
             "path": "mozilla/sequence-hole.html",
