@@ -185,3 +185,8 @@ partial interface Document {
 partial interface Document {
   Element? elementFromPoint(double x, double y);
 };
+
+// https://drafts.csswg.org/cssom/#extensions-to-the-document-interface
+partial interface Document {
+  [SameObject] readonly attribute StyleSheetList styleSheets;
+};
