@@ -1321,6 +1321,12 @@ impl LayoutThread {
                     self.time_profiler_chan.clone(),
                     || sequential::resolve_generated_content(&mut root_flow, &layout_context));
 
+            // Guess float placement.
+            profile(time::ProfilerCategory::LayoutFloatPlacementSpeculation,
+                    self.profiler_metadata(),
+                    self.time_profiler_chan.clone(),
+                    || sequential::guess_float_placement(flow_ref::deref_mut(&mut root_flow)));
+
             // Perform the primary layout passes over the flow tree to compute the locations of all
             // the boxes.
             profile(time::ProfilerCategory::LayoutMain,
