@@ -82,6 +82,7 @@ num = "0.1.24"
 rand = "0.3"
 phf = "0.7.13"
 phf_macros = "0.7.13"
+range = { path = "../range" }
 ref_filter_map = "1.0"
 ref_slice = "0.1.0"
 regex = "0.1.43"

@@ -31,6 +31,7 @@ use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
+use range::Range;
 use script_thread::ScriptThreadEventCategory::InputEvent;
 use script_thread::{CommonScriptMsg, Runnable};
 use script_traits::ScriptMsg as ConstellationMsg;
@@ -209,7 +210,7 @@ pub trait LayoutHTMLInputElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn get_size_for_layout(self) -> u32;
     #[allow(unsafe_code)]
-    unsafe fn get_insertion_point_index_for_layout(self) -> Option<isize>;
+    unsafe fn get_selection_for_layout(self) -> Option<Range<isize>>;
     #[allow(unsafe_code)]
     unsafe fn get_checked_state_for_layout(self) -> bool;
     #[allow(unsafe_code)]
@@ -242,7 +243,7 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
             InputType::InputPassword => {
                 let text = get_raw_textinput_value(self);
                 if !text.is_empty() {
-                    // The implementation of get_insertion_point_index_for_layout expects a 1:1 mapping of chars.
+                    // The implementation of get_selection_for_layout expects a 1:1 mapping of chars.
                     text.chars().map(|_| '●').collect()
                 } else {
                     String::from((*self.unsafe_get()).placeholder.borrow_for_layout().clone())
@@ -251,7 +252,7 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
             _ => {
                 let text = get_raw_textinput_value(self);
                 if !text.is_empty() {
-                    // The implementation of get_insertion_point_index_for_layout expects a 1:1 mapping of chars.
+                    // The implementation of get_selection_for_layout expects a 1:1 mapping of chars.
                     String::from(text)
                 } else {
                     String::from((*self.unsafe_get()).placeholder.borrow_for_layout().clone())
@@ -268,25 +269,24 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_insertion_point_index_for_layout(self) -> Option<isize> {
+    unsafe fn get_selection_for_layout(self) -> Option<Range<isize>> {
         if !(*self.unsafe_get()).upcast::<Element>().get_focus_state() {
             return None;
         }
-        match (*self.unsafe_get()).input_type.get() {
-            InputType::InputText  => {
-                let raw = self.get_value_for_layout();
-                Some(search_index((*self.unsafe_get()).textinput.borrow_for_layout().edit_point.index,
-                                  raw.char_indices()))
-            }
-            InputType::InputPassword => {
-                // Use the raw textinput to get the index as long as we use a 1:1 char mapping
-                // in get_input_value_for_layout.
-                let raw = get_raw_textinput_value(self);
-                Some(search_index((*self.unsafe_get()).textinput.borrow_for_layout().edit_point.index,
-                                  raw.char_indices()))
-            }
-            _ => None
-        }
+
+        // Use the raw textinput to get the index as long as we use a 1:1 char mapping
+        // in get_value_for_layout.
+        let raw = match (*self.unsafe_get()).input_type.get() {
+            InputType::InputText |
+            InputType::InputPassword => get_raw_textinput_value(self),
+            _ => return None
+        };
+        let textinput = (*self.unsafe_get()).textinput.borrow_for_layout();
+        let selection = textinput.get_absolute_selection_range();
+        let begin_byte = selection.begin();
+        let begin = search_index(begin_byte, raw.char_indices());
+        let length = search_index(selection.length(), raw[begin_byte..].char_indices());
+        Some(Range::new(begin, length))
     }
 
     #[allow(unrooted_must_root)]

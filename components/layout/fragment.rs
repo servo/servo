@@ -655,9 +655,10 @@ pub struct ScannedTextFragmentInfo {
     pub content_size: LogicalSize<Au>,
 
     /// The position of the insertion point in characters, if any.
-    ///
-    /// TODO(pcwalton): Make this a range.
     pub insertion_point: Option<CharIndex>,
+
+    /// Is this fragment selected?
+    pub selected: bool,
 
     /// The range within the above text run that this represents.
     pub range: Range<CharIndex>,
@@ -677,13 +678,15 @@ impl ScannedTextFragmentInfo {
     pub fn new(run: Arc<TextRun>,
                range: Range<CharIndex>,
                content_size: LogicalSize<Au>,
-               insertion_point: &Option<CharIndex>,
+               insertion_point: Option<CharIndex>,
+               selected: bool,
                requires_line_break_afterward_if_wrapping_on_newlines: bool)
                -> ScannedTextFragmentInfo {
         ScannedTextFragmentInfo {
             run: run,
             range: range,
-            insertion_point: *insertion_point,
+            insertion_point: insertion_point,
+            selected: selected,
             content_size: content_size,
             range_end_including_stripped_whitespace: range.end(),
             requires_line_break_afterward_if_wrapping_on_newlines:
@@ -737,19 +740,17 @@ pub struct UnscannedTextFragmentInfo {
     /// The text inside the fragment.
     pub text: Box<str>,
 
-    /// The position of the insertion point, if any.
-    ///
-    /// TODO(pcwalton): Make this a range.
-    pub insertion_point: Option<CharIndex>,
+    /// The selected text range.  An empty range represents the insertion point.
+    pub selection: Option<Range<CharIndex>>,
 }
 
 impl UnscannedTextFragmentInfo {
     /// Creates a new instance of `UnscannedTextFragmentInfo` from the given text.
     #[inline]
-    pub fn new(text: String, insertion_point: Option<CharIndex>) -> UnscannedTextFragmentInfo {
+    pub fn new(text: String, selection: Option<Range<CharIndex>>) -> UnscannedTextFragmentInfo {
         UnscannedTextFragmentInfo {
             text: text.into_boxed_str(),
-            insertion_point: insertion_point,
+            selection: selection,
         }
     }
 }
@@ -872,7 +873,8 @@ impl Fragment {
             text_run,
             split.range,
             size,
-            &None,
+            None,
+            false,
             requires_line_break_afterward_if_wrapping_on_newlines);
         self.transform(size, SpecificFragmentInfo::ScannedText(info))
     }
