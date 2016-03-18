@@ -15,6 +15,7 @@ use std::cmp;
 use std::default::Default;
 use std::env;
 use std::fs::File;
+use std::fs;
 use std::io::{self, Read, Write};
 use std::path::Path;
 use std::process;
@@ -563,6 +564,17 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     if opt_match.opt_present("h") || opt_match.opt_present("help") {
         print_usage(app_name, &opts);
         process::exit(0);
+    };
+
+    if opt_match.opt_present("profile-dir") {
+
+        let profile_dir_option = opt_match.opt_default("profile-dir", "");
+        let profile_dir_string = profile_dir_option.as_ref().unwrap();
+
+        match fs::create_dir_all(profile_dir_string) {
+            Err(why) => println!("! {:?}", why.kind()),
+            Ok(_) => {},
+        }
     };
 
     // If this is the content process, we'll receive the real options over IPC. So just fill in
