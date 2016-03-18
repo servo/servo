@@ -8,6 +8,7 @@ use clipboard_provider::ClipboardProvider;
 use dom::keyboardevent::{KeyboardEvent, key_value};
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers};
+use range::Range;
 use std::borrow::ToOwned;
 use std::cmp::{max, min};
 use std::default::Default;
@@ -152,6 +153,15 @@ impl<T: ClipboardProvider> TextInput<T> {
                 (end, begin)
             }
         })
+    }
+
+    pub fn get_absolute_selection_range(&self) -> Range<usize> {
+        match self.get_sorted_selection() {
+            Some((begin, _end)) =>
+                Range::new(self.get_absolute_point_for_text_point(&begin), self.selection_len()),
+            None =>
+                Range::new(self.get_absolute_insertion_point(), 0)
+        }
     }
 
     pub fn get_selection_text(&self) -> Option<String> {

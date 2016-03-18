@@ -709,13 +709,13 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             return
         }
 
-        let insertion_point = node.insertion_point();
+        let selection = node.selection();
         let mut style = (*style).clone();
         properties::modify_style_for_text(&mut style);
 
         match text_content {
             TextContent::Text(string) => {
-                let info = UnscannedTextFragmentInfo::new(string, insertion_point);
+                let info = UnscannedTextFragmentInfo::new(string, selection);
                 let specific_fragment_info = SpecificFragmentInfo::UnscannedText(info);
                 fragments.fragments.push_back(Fragment::from_opaque_node_and_style(
                         node.opaque(),

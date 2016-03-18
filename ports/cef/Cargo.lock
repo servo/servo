@@ -1591,6 +1591,7 @@ dependencies = [
  "plugins 0.0.1",
  "profile_traits 0.0.1",
  "rand 0.3.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "range 0.0.1",
  "ref_filter_map 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ref_slice 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "regex 0.1.55 (registry+https://github.com/rust-lang/crates.io-index)",
