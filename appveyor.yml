@@ -25,12 +25,19 @@ install:
   - bash -lc "mv /mingw64/bin/python2.exe /mingw64/bin/python2-mingw64.exe"
   - bash -lc "mv /mingw64/bin/python2.7.exe /mingw64/bin/python2.7-mingw64.exe"
 
+# Uncomment these lines to expose RDP access information to the build machine in the build log.
+#init:
+#  - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+#
+#on_finish:
+#  - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
 build_script:
   - cmd: >-
       set MSYSTEM=MINGW64
 
       PATH C:\msys64\mingw64\bin;C:\msys64\usr\bin\;%PATH%
 
-      bash -lc "cd $APPVEYOR_BUILD_FOLDER; ./mach build -d -v"
+      bash -lc "cd $APPVEYOR_BUILD_FOLDER; ./mach build -d -v && ./mach test-unit"
 
 test: off
