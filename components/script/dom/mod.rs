@@ -359,6 +359,8 @@ pub mod servohtmlparser;
 pub mod servoxmlparser;
 pub mod storage;
 pub mod storageevent;
+pub mod stylesheet;
+pub mod stylesheetlist;
 pub mod testbinding;
 pub mod testbindingproxy;
 pub mod text;
