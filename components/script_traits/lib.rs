@@ -227,8 +227,21 @@ pub enum CompositorEvent {
     MouseMoveEvent(Option<Point2D<f32>>),
     /// A touch event was generated with a touch ID and location.
     TouchEvent(TouchEventType, TouchId, Point2D<f32>),
+    /// Touchpad pressure event
+    TouchpadPressureEvent(Point2D<f32>, f32, TouchpadPressurePhase),
     /// A key was pressed.
     KeyEvent(Key, KeyState, KeyModifiers),
+}
+
+/// Touchpad pressure phase for TouchpadPressureEvent.
+#[derive(Copy, Clone, HeapSizeOf, PartialEq, Deserialize, Serialize)]
+pub enum TouchpadPressurePhase {
+    /// Pressure before a regular click.
+    BeforeClick,
+    /// Pressure after a regular click.
+    AfterFirstClick,
+    /// Pressure after a "forceTouch" click
+    AfterSecondClick,
 }
 
 /// An opaque wrapper around script<->layout channels to avoid leaking message types into
