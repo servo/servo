@@ -72,7 +72,8 @@ dictionary TestDictionaryDefaults {
 
 [Constructor,
  Constructor(sequence<unrestricted double> numberSequence),
-  Constructor(unrestricted double num)]
+ Constructor(unrestricted double num),
+ Pref="dom.testbinding.enabled"]
 interface TestBinding {
            attribute boolean booleanAttribute;
            attribute byte byteAttribute;

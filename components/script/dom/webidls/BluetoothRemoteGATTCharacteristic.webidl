@@ -4,6 +4,7 @@
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattcharacteristic
 
+[Pref="dom.bluetooth.enabled"]
 interface BluetoothRemoteGATTCharacteristic {
   readonly attribute BluetoothRemoteGATTService service;
   readonly attribute DOMString uuid;

@@ -4,6 +4,7 @@
 
 // https://webbluetoothcg.github.io/web-bluetooth/#characteristicproperties
 
+[Pref="dom.bluetooth.enabled"]
 interface BluetoothCharacteristicProperties {
     readonly attribute boolean broadcast;
     readonly attribute boolean read;
