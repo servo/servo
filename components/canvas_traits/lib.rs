@@ -8,6 +8,8 @@
 #![feature(plugin)]
 #![plugin(heapsize_plugin, plugins, serde_macros)]
 
+#![deny(unsafe_code)]
+
 extern crate azure;
 extern crate core;
 extern crate cssparser;

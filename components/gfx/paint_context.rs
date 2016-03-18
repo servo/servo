@@ -1774,6 +1774,7 @@ trait ScaledFontExtensionMethods {
 }
 
 impl ScaledFontExtensionMethods for ScaledFont {
+    #[allow(unsafe_code)]
     fn draw_text(&self,
                  draw_target: &DrawTarget,
                  run: &TextRun,

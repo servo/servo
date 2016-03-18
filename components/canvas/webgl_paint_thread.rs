@@ -153,6 +153,7 @@ impl WebGLPaintThread {
         unimplemented!()
     }
 
+    #[allow(unsafe_code)]
     fn recreate(&mut self, size: Size2D<i32>) -> Result<(), &'static str> {
         match self.data {
             WebGLPaintTaskData::Servo(ref mut context) => {

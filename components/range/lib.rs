@@ -10,6 +10,8 @@
 #![plugin(heapsize_plugin)]
 #![plugin(serde_macros)]
 
+#![deny(unsafe_code)]
+
 extern crate heapsize;
 extern crate num as num_lib;
 extern crate rustc_serialize;
