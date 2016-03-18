@@ -1150,7 +1150,7 @@ impl XMLHttpRequest {
             _ => { return None; }
         }
         // Step 9
-        temp_doc.set_encoding_name(DOMString::from(charset.name()));
+        temp_doc.set_encoding(charset);
         // Step 13
         self.response_xml.set(Some(temp_doc.r()));
         return self.response_xml.get();
