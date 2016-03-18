@@ -1913,7 +1913,10 @@ class CGList(CGThing):
     """
     def __init__(self, children, joiner=""):
         CGThing.__init__(self)
-        self.children = children
+        # Make a copy of the kids into a list, because if someone passes in a
+        # generator we won't be able to both declare and define ourselves, or
+        # define ourselves more than once!
+        self.children = list(children)
         self.joiner = joiner
 
     def append(self, child):
@@ -1922,11 +1925,14 @@ class CGList(CGThing):
     def prepend(self, child):
         self.children.insert(0, child)
 
-    def join(self, generator):
-        return self.joiner.join(filter(lambda s: len(s) > 0, (child for child in generator)))
+    def join(self, iterable):
+        return self.joiner.join(s for s in iterable if len(s) > 0)
 
     def define(self):
         return self.join(child.define() for child in self.children if child is not None)
+
+    def __len__(self):
+        return len(self.children)
 
 
 class CGIfElseWrapper(CGList):
@@ -2131,6 +2137,49 @@ class CGAbstractMethod(CGThing):
 
     def definition_body(self):
         raise NotImplementedError  # Override me!
+
+
+class CGConstructorEnabled(CGAbstractMethod):
+    """
+    A method for testing whether we should be exposing this interface
+    object or navigator property.  This can perform various tests
+    depending on what conditions are specified on the interface.
+    """
+    def __init__(self, descriptor):
+        CGAbstractMethod.__init__(self, descriptor,
+                                  'ConstructorEnabled', 'bool',
+                                  [Argument("*mut JSContext", "aCx"),
+                                   Argument("HandleObject", "aObj")])
+
+    def definition_body(self):
+        body = CGList([], "\n")
+
+        conditions = []
+        iface = self.descriptor.interface
+
+        pref = iface.getExtendedAttribute("Pref")
+        if pref:
+            assert isinstance(pref, list) and len(pref) == 1
+            conditions.append('prefs::get_pref("%s").as_boolean().unwrap_or(false)' % pref[0])
+        func = iface.getExtendedAttribute("Func")
+        if func:
+            assert isinstance(func, list) and len(func) == 1
+            conditions.append("%s(aCx, aObj)" % func[0])
+        # We should really have some conditions
+        assert len(body) or len(conditions)
+
+        conditionsWrapper = ""
+        if len(conditions):
+            conditionsWrapper = CGWrapper(CGList((CGGeneric(cond) for cond in conditions),
+                                                 " &&\n"),
+                                          pre="return ",
+                                          post=";\n",
+                                          reindent=True)
+        else:
+            conditionsWrapper = CGGeneric("return true;\n")
+
+        body.append(conditionsWrapper)
+        return body
 
 
 def CreateBindingJSObject(descriptor, parent=None):
@@ -2674,15 +2723,21 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         return CGAbstractMethod.define(self)
 
     def definition_body(self):
+        def getCheck(desc):
+            if not desc.isExposedConditionally():
+                return ""
+            else:
+                return "if !ConstructorEnabled(cx, global) { return; }"
         if self.descriptor.interface.isCallback():
             function = "GetConstructorObject"
         else:
             function = "GetProtoObject"
         return CGGeneric("""\
 assert!(!global.get().is_null());
+%s
 let mut proto = RootedObject::new(cx, ptr::null_mut());
 %s(cx, global, proto.handle_mut());
-assert!(!proto.ptr.is_null());""" % function)
+assert!(!proto.ptr.is_null());""" % (getCheck(self.descriptor), function))
 
 
 def needCx(returnType, arguments, considerTypes):
@@ -5025,6 +5080,8 @@ class CGDescriptor(CGThing):
 
         if descriptor.interface.hasInterfaceObject():
             cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
+            if descriptor.isExposedConditionally():
+                cgThings.append(CGConstructorEnabled(descriptor))
 
         if descriptor.proxy:
             cgThings.append(CGDefineProxyHandler(descriptor))
@@ -5459,6 +5516,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::weakref::{DOM_WEAK_SLOT, WeakBox, WeakReferenceable}',
             'mem::heap_size_of_raw_self_and_children',
             'libc',
+            'util::prefs',
             'util::str::DOMString',
             'std::borrow::ToOwned',
             'std::cmp',
