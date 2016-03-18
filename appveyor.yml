@@ -31,4 +31,6 @@ build_script:
 
       bash -lc "cd $APPVEYOR_BUILD_FOLDER; ./mach build -d -v"
 
+      bash -lc "cd $APPVEYOR_BUILD_FOLDER; ./mach test-unit"
+
 test: off
