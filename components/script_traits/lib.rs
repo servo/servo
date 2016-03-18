@@ -9,6 +9,7 @@
 #![feature(custom_derive, plugin)]
 #![plugin(heapsize_plugin, plugins, serde_macros)]
 #![deny(missing_docs)]
+#![deny(unsafe_code)]
 
 extern crate app_units;
 extern crate canvas_traits;
@@ -59,6 +60,7 @@ pub use script_msg::{LayoutMsg, ScriptMsg};
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
 #[derive(Copy, Clone, Debug)]
 pub struct UntrustedNodeAddress(pub *const c_void);
+#[allow(unsafe_code)]
 unsafe impl Send for UntrustedNodeAddress {}
 
 /// Messages sent to the layout thread from the constellation and/or compositor.

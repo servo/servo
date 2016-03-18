@@ -450,6 +450,7 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
         }, ConstellationMsg::Failure(failure_msg), c);
     }
 
+    #[allow(unsafe_code)]
     fn start(&mut self) {
         debug!("PaintThread: beginning painting loop");
 

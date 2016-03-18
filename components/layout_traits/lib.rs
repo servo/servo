@@ -5,6 +5,8 @@
 #![feature(custom_derive, plugin)]
 #![plugin(serde_macros)]
 
+#![deny(unsafe_code)]
+
 extern crate gfx;
 extern crate ipc_channel;
 extern crate msg;

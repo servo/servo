@@ -8,6 +8,8 @@
 #![crate_name = "gfx_traits"]
 #![crate_type = "rlib"]
 
+#![deny(unsafe_code)]
+
 extern crate azure;
 extern crate euclid;
 extern crate heapsize;

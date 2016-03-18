@@ -10,6 +10,8 @@
 #![feature(custom_derive, plugin)]
 #![plugin(plugins, serde_macros)]
 
+#![deny(unsafe_code)]
+
 extern crate ipc_channel;
 extern crate serde;
 

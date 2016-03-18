@@ -18,6 +18,8 @@
 #![plugin(plugins)]
 #![plugin(serde_macros)]
 
+#![deny(unsafe_code)]
+
 extern crate alloc;
 extern crate app_units;
 extern crate azure;
@@ -98,7 +100,9 @@ pub mod font_template;
 pub mod paint_thread;
 
 // Platform-specific implementations.
+#[allow(unsafe_code)]
 pub mod platform;
 
 // Text
+#[allow(unsafe_code)]
 pub mod text;
