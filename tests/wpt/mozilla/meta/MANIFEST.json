@@ -5976,6 +5976,12 @@
             "url": "/_mozilla/mozilla/mime_sniffing_font_context.html"
           }
         ],
+        "mozilla/mozbrowser/crossorigin_xhr.html": [
+          {
+            "path": "mozilla/mozbrowser/crossorigin_xhr.html",
+            "url": "/_mozilla/mozilla/mozbrowser/crossorigin_xhr.html"
+          }
+        ],
         "mozilla/mozbrowser/iframe_goback.html": [
           {
             "path": "mozilla/mozbrowser/iframe_goback.html",
