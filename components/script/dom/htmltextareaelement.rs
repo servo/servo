@@ -26,6 +26,7 @@ use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
+use range::Range;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
 use string_cache::Atom;
@@ -46,7 +47,7 @@ pub trait LayoutHTMLTextAreaElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn get_value_for_layout(self) -> String;
     #[allow(unsafe_code)]
-    unsafe fn get_absolute_insertion_point_for_layout(self) -> Option<usize>;
+    unsafe fn get_absolute_selection_for_layout(self) -> Option<Range<usize>>;
     #[allow(unsafe_code)]
     fn get_cols(self) -> u32;
     #[allow(unsafe_code)]
@@ -62,10 +63,10 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_absolute_insertion_point_for_layout(self) -> Option<usize> {
+    unsafe fn get_absolute_selection_for_layout(self) -> Option<Range<usize>> {
         if (*self.unsafe_get()).upcast::<Element>().get_focus_state() {
             Some((*self.unsafe_get()).textinput.borrow_for_layout()
-                                      .get_absolute_insertion_point())
+                                      .get_absolute_selection_range())
         } else {
             None
         }
