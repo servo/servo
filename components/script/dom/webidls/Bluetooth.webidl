@@ -4,6 +4,7 @@
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetooth
 
+[Pref="dom.bluetooth.enabled"]
 interface Bluetooth {
     // Promise<BluetoothDevice> requestDevice(RequestDeviceOptions options);
     BluetoothDevice? requestDevice(/*RequestDeviceOptions options*/);
