@@ -225,6 +225,8 @@ pub enum CompositorEvent {
     MouseMoveEvent(Option<Point2D<f32>>),
     /// A touch event was generated with a touch ID and location.
     TouchEvent(TouchEventType, TouchId, Point2D<f32>),
+    /// Touchpad pressure event
+    TouchpadPressureEvent(Point2D<f32>, f32, i64),
     /// A key was pressed.
     KeyEvent(Key, KeyState, KeyModifiers),
 }

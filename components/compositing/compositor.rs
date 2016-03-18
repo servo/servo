@@ -50,8 +50,8 @@ use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use url::Url;
 use util::geometry::{PagePx, ScreenPx, ViewportPx};
-use util::opts;
 use util::print_tree::PrintTree;
+use util::{opts, prefs};
 use webrender;
 use webrender_traits::{self, ScrollEventPhase};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
@@ -1219,6 +1219,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.on_navigation_window_event(direction);
             }
 
+            WindowEvent::TouchpadPressure(cursor, pressure, stage) => {
+                self.on_touchpad_pressure_event(cursor, pressure, stage);
+            }
+
             WindowEvent::KeyEvent(key, state, modifiers) => {
                 self.on_key_event(key, state, modifiers);
             }
@@ -1692,6 +1696,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             windowing::WindowNavigateMsg::Back => NavigationDirection::Back,
         };
         self.constellation_chan.send(ConstellationMsg::Navigate(None, direction)).unwrap()
+    }
+
+    fn on_touchpad_pressure_event(&self, cursor: TypedPoint2D<DevicePixel, f32>, pressure: f32, stage: i64) {
+        if prefs::get_pref("dom.forcetouch.enabled").as_boolean().unwrap_or(false) {
+            match self.find_topmost_layer_at_point(cursor / self.scene.scale) {
+                Some(result) => result.layer.send_touchpad_pressure_event(self, result.point, pressure, stage),
+                None => {},
+            }
+        }
     }
 
     fn on_key_event(&self, key: Key, state: KeyState, modifiers: KeyModifiers) {
