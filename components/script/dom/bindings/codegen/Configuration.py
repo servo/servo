@@ -351,6 +351,9 @@ class Descriptor(DescriptorProvider):
         assert self.interface.hasInterfaceObject()
         return self.interface.isCallback() or self.hasDescendants()
 
+    def isExposedConditionally(self):
+        return self.interface.isExposedConditionally()
+
     def isGlobal(self):
         """
         Returns true if this is the primary interface for a global object
