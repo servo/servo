@@ -76,6 +76,8 @@ use dom::touchlist::TouchList;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::window::{ReflowReason, Window};
+use encoding::EncodingRef;
+use encoding::all::UTF_8;
 use euclid::point::Point2D;
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
 use ipc_channel::ipc::{self, IpcSender};
@@ -138,7 +140,7 @@ pub struct Document {
     location: MutNullableHeap<JS<Location>>,
     content_type: DOMString,
     last_modified: Option<String>,
-    encoding_name: DOMRefCell<DOMString>,
+    encoding: Cell<EncodingRef>,
     is_html_document: bool,
     url: Url,
     quirks_mode: Cell<QuirksMode>,
@@ -296,11 +298,6 @@ impl Document {
     }
 
     #[inline]
-    pub fn encoding_name(&self) -> Ref<DOMString> {
-        self.encoding_name.borrow()
-    }
-
-    #[inline]
     pub fn is_html_document(&self) -> bool {
         self.is_html_document
     }
@@ -393,36 +390,12 @@ impl Document {
         }
     }
 
-    pub fn set_encoding_name(&self, name: DOMString) {
-        *self.encoding_name.borrow_mut() = DOMString::from(
-            match name.as_ref() {
-                "utf-8"         => "UTF-8",
-                "ibm866"        => "IBM866",
-                "iso-8859-2"    => "ISO-8859-2",
-                "iso-8859-3"    => "ISO-8859-3",
-                "iso-8859-4"    => "ISO-8859-4",
-                "iso-8859-5"    => "ISO-8859-5",
-                "iso-8859-6"    => "ISO-8859-6",
-                "iso-8859-7"    => "ISO-8859-7",
-                "iso-8859-8"    => "ISO-8859-8",
-                "iso-8859-8-i"  => "ISO-8859-8-I",
-                "iso-8859-10"   => "ISO-8859-10",
-                "iso-8859-13"   => "ISO-8859-13",
-                "iso-8859-14"   => "ISO-8859-14",
-                "iso-8859-15"   => "ISO-8859-15",
-                "iso-8859-16"   => "ISO-8859-16",
-                "koi8-r"        => "KOI8-R",
-                "koi8-u"        => "KOI8-U",
-                "gbk"           => "GBK",
-                "big5"          => "Big5",
-                "euc-jp"        => "EUC-JP",
-                "iso-2022-jp"   => "ISO-2022-JP",
-                "shift_jis"     => "Shift_JIS",
-                "euc-kr"        => "EUC-KR",
-                "utf-16be"      => "UTF-16BE",
-                "utf-16le"      => "UTF-16LE",
-                _               => &*name
-        });
+    pub fn encoding(&self) -> EncodingRef {
+        self.encoding.get()
+    }
+
+    pub fn set_encoding(&self, encoding: EncodingRef) {
+        self.encoding.set(encoding);
     }
 
     pub fn content_changed(&self, node: &Node, damage: NodeDamage) {
@@ -1561,7 +1534,7 @@ impl Document {
             // https://dom.spec.whatwg.org/#concept-document-quirks
             quirks_mode: Cell::new(NoQuirks),
             // https://dom.spec.whatwg.org/#concept-document-encoding
-            encoding_name: DOMRefCell::new(DOMString::from("UTF-8")),
+            encoding: Cell::new(UTF_8),
             is_html_document: is_html_document == IsHTMLDocument::HTMLDocument,
             id_map: DOMRefCell::new(HashMap::new()),
             tag_map: DOMRefCell::new(HashMap::new()),
@@ -1818,7 +1791,34 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-characterset
     fn CharacterSet(&self) -> DOMString {
-        self.encoding_name.borrow().clone()
+        DOMString::from(match self.encoding.get().name() {
+            "utf-8"         => "UTF-8",
+            "ibm866"        => "IBM866",
+            "iso-8859-2"    => "ISO-8859-2",
+            "iso-8859-3"    => "ISO-8859-3",
+            "iso-8859-4"    => "ISO-8859-4",
+            "iso-8859-5"    => "ISO-8859-5",
+            "iso-8859-6"    => "ISO-8859-6",
+            "iso-8859-7"    => "ISO-8859-7",
+            "iso-8859-8"    => "ISO-8859-8",
+            "iso-8859-8-i"  => "ISO-8859-8-I",
+            "iso-8859-10"   => "ISO-8859-10",
+            "iso-8859-13"   => "ISO-8859-13",
+            "iso-8859-14"   => "ISO-8859-14",
+            "iso-8859-15"   => "ISO-8859-15",
+            "iso-8859-16"   => "ISO-8859-16",
+            "koi8-r"        => "KOI8-R",
+            "koi8-u"        => "KOI8-U",
+            "gbk"           => "GBK",
+            "big5"          => "Big5",
+            "euc-jp"        => "EUC-JP",
+            "iso-2022-jp"   => "ISO-2022-JP",
+            "shift_jis"     => "Shift_JIS",
+            "euc-kr"        => "EUC-KR",
+            "utf-16be"      => "UTF-16BE",
+            "utf-16le"      => "UTF-16LE",
+            name            => name
+        })
     }
 
     // https://dom.spec.whatwg.org/#dom-document-charset
