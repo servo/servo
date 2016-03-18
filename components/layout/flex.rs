@@ -17,7 +17,6 @@ use flow::INLINE_POSITION_IS_STATIC;
 use flow::IS_ABSOLUTELY_POSITIONED;
 use flow::ImmutableFlowUtils;
 use flow::{Flow, FlowClass, OpaqueFlow};
-use flow::{HAS_LEFT_FLOATED_DESCENDANTS, HAS_RIGHT_FLOATED_DESCENDANTS};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::{StackingContext, StackingContextId};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
@@ -26,7 +25,7 @@ use model::MaybeAuto;
 use model::{IntrinsicISizes};
 use std::cmp::max;
 use std::sync::Arc;
-use style::computed_values::{flex_direction, float};
+use style::computed_values::flex_direction;
 use style::logical_geometry::LogicalSize;
 use style::properties::style_structs;
 use style::properties::{ComputedValues, TComputedValues};
@@ -324,25 +323,10 @@ impl Flow for FlexFlow {
         // TODO(zentner): We need to re-order the items at some point. However, all the operations
         // here ignore order, so we can afford to do it later, if necessary.
 
-        // `flex item`s (our children) cannot be floated. Furthermore, they all establish BFC's.
-        // Therefore, we do not have to handle any floats here.
-
-        let mut flags = self.block_flow.base.flags;
-        flags.remove(HAS_LEFT_FLOATED_DESCENDANTS);
-        flags.remove(HAS_RIGHT_FLOATED_DESCENDANTS);
-
         match self.main_mode {
             Mode::Inline => self.inline_mode_bubble_inline_sizes(),
             Mode::Block  => self.block_mode_bubble_inline_sizes()
         }
-
-        // Although our children can't be floated, we can.
-        match self.block_flow.fragment.style().get_box().float {
-            float::T::none => {}
-            float::T::left => flags.insert(HAS_LEFT_FLOATED_DESCENDANTS),
-            float::T::right => flags.insert(HAS_RIGHT_FLOATED_DESCENDANTS),
-        }
-        self.block_flow.base.flags = flags
     }
 
     fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
