@@ -73,4 +73,9 @@ impl NavigatorMethods for Navigator {
     fn Bluetooth(&self) -> Root<Bluetooth> {
         self.bluetooth.or_init(|| Bluetooth::new(self.global().r()))
     }
+
+    // https://html.spec.whatwg.org/multipage/#navigatorlanguage
+    fn Language(&self) -> DOMString {
+        navigatorinfo::Language()
+    }
 }
