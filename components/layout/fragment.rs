@@ -1027,6 +1027,24 @@ impl Fragment {
         }
     }
 
+    /// Returns a guess as to the distances from the margin edge of this fragment to its content
+    /// in the inline direction. This will generally be correct unless percentages are involved.
+    ///
+    /// This is used for the float placement speculation logic.
+    pub fn guess_inline_content_edge_offsets(&self) -> SpeculatedInlineContentEdgeOffsets {
+        let logical_margin = self.style.logical_margin();
+        let logical_padding = self.style.logical_padding();
+        let border_width = self.border_width();
+        SpeculatedInlineContentEdgeOffsets {
+            start: MaybeAuto::from_style(logical_margin.inline_start, Au(0)).specified_or_zero() +
+                model::specified(logical_padding.inline_start, Au(0)) +
+                border_width.inline_start,
+            end: MaybeAuto::from_style(logical_margin.inline_end, Au(0)).specified_or_zero() +
+                model::specified(logical_padding.inline_end, Au(0)) +
+                border_width.inline_end,
+        }
+    }
+
     pub fn calculate_line_height(&self, layout_context: &LayoutContext) -> Au {
         let font_style = self.style.get_font_arc();
         let font_metrics = text::font_metrics_for_style(&mut layout_context.font_context(), font_style);
@@ -2634,3 +2652,13 @@ bitflags! {
         const HAS_LAYER = 0x01,
     }
 }
+
+/// Specified distances from the margin edge of a block to its content in the inline direction.
+/// These are returned by `guess_inline_content_edge_offsets()` and are used in the float placement
+/// speculation logic.
+#[derive(Copy, Clone, Debug)]
+pub struct SpeculatedInlineContentEdgeOffsets {
+    pub start: Au,
+    pub end: Au,
+}
+

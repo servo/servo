@@ -59,6 +59,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::LayoutNonIncrementalReset |
             ProfilerCategory::LayoutGeneratedContent |
             ProfilerCategory::LayoutDisplayListSorting |
+            ProfilerCategory::LayoutFloatPlacementSpeculation |
             ProfilerCategory::LayoutMain |
             ProfilerCategory::LayoutStoreOverflow |
             ProfilerCategory::LayoutDispListBuild |
@@ -83,6 +84,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::LayoutDamagePropagate => "Damage Propagation",
             ProfilerCategory::LayoutDisplayListSorting => "Sorting Display List",
             ProfilerCategory::LayoutGeneratedContent => "Generated Content Resolution",
+            ProfilerCategory::LayoutFloatPlacementSpeculation => "Float Placement Speculation",
             ProfilerCategory::LayoutMain => "Primary Layout Pass",
             ProfilerCategory::LayoutStoreOverflow => "Store Overflow",
             ProfilerCategory::LayoutParallelWarmup => "Parallel Warmup",
