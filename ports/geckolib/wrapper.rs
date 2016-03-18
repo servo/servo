@@ -300,7 +300,7 @@ pub struct GeckoElement<'le> {
 }
 
 impl<'le> GeckoElement<'le> {
-    unsafe fn from_raw(el: *mut RawGeckoElement) -> GeckoElement<'le> {
+    pub unsafe fn from_raw(el: *mut RawGeckoElement) -> GeckoElement<'le> {
         GeckoElement {
             element: el,
             chain: PhantomData,

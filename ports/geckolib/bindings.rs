@@ -28,6 +28,7 @@ pub type intptr_t = int64_t;
 pub type uintptr_t = uint64_t;
 pub type intmax_t = ::libc::c_long;
 pub type uintmax_t = ::libc::c_ulong;
+pub enum nsIAtom { }
 pub enum nsINode { }
 pub type RawGeckoNode = nsINode;
 pub enum Element { }
@@ -35,6 +36,7 @@ pub type RawGeckoElement = Element;
 pub enum nsIDocument { }
 pub type RawGeckoDocument = nsIDocument;
 pub enum ServoNodeData { }
+pub enum ServoComputedValues { }
 pub enum RawServoStyleSheet { }
 pub enum RawServoStyleSet { }
 extern "C" {
@@ -72,7 +74,8 @@ extern "C" {
     pub fn Servo_StylesheetFromUTF8Bytes(bytes: *const uint8_t,
                                          length: uint32_t)
      -> *mut RawServoStyleSheet;
-    pub fn Servo_ReleaseStylesheet(sheet: *mut RawServoStyleSheet);
+    pub fn Servo_AddRefStyleSheet(sheet: *mut RawServoStyleSheet);
+    pub fn Servo_ReleaseStyleSheet(sheet: *mut RawServoStyleSheet);
     pub fn Servo_AppendStyleSheet(sheet: *mut RawServoStyleSheet,
                                   set: *mut RawServoStyleSet);
     pub fn Servo_PrependStyleSheet(sheet: *mut RawServoStyleSheet,
@@ -82,6 +85,12 @@ extern "C" {
     pub fn Servo_StyleSheetHasRules(sheet: *mut RawServoStyleSheet) -> bool;
     pub fn Servo_InitStyleSet() -> *mut RawServoStyleSet;
     pub fn Servo_DropStyleSet(set: *mut RawServoStyleSet);
+    pub fn Servo_GetComputedValues(element: *mut RawGeckoElement)
+     -> *mut ServoComputedValues;
+    pub fn Servo_GetComputedValuesForAnonymousBox(pseudoTag: *mut nsIAtom)
+     -> *mut ServoComputedValues;
+    pub fn Servo_AddRefComputedValues(arg1: *mut ServoComputedValues);
+    pub fn Servo_ReleaseComputedValues(arg1: *mut ServoComputedValues);
     pub fn Gecko_GetAttrAsUTF8(element: *mut RawGeckoElement,
                                ns: *const uint8_t, name: *const uint8_t,
                                length: *mut uint32_t)
