@@ -16,6 +16,7 @@ use dom::eventtarget::{CompiledEventListener, EventTarget, ListenerPhase};
 use dom::node::Node;
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
+use string_cache::Atom;
 
 struct AutoDOMEventMarker {
     window: Root<Window>,
@@ -180,16 +181,36 @@ fn invoke(window: Option<&Window>,
     // Step 1.
     assert!(!event.stop_propagation());
 
-    // Steps 2-3.
+    // Step 2.
     let listeners = object.get_listeners_for(&event.type_(), specific_listener_phase);
 
-    // Step 4.
+    // Step 3.
     event.set_current_target(object);
 
-    // Step 5.
-    inner_invoke(window, object, event, &listeners);
+    // Step 4.
+    let found = inner_invoke(window, object, event, &listeners);
 
-    // TODO: step 6.
+    // Step 5.
+    if !found {
+
+        // Step 5.1
+        let original_event_type = event.type_();
+
+        // Step 5.2
+        match &*original_event_type {
+            "animationend" => event.set_type_(Atom::from("webkitAnimationEnd")),
+            "animationiteration" => event.set_type_(Atom::from("webkitAnimationIteration")),
+            "animationstart" => event.set_type_(Atom::from("webkitAnimationStart")),
+            "transitionend" => event.set_type_(Atom::from("webkitTransitionEnd")),
+            _ => return,
+        }
+
+        // Step 5.3
+        inner_invoke(window, object, event, &listeners);
+
+        // Step 5.4
+        event.set_type_(orignal_event_type);
+    }
 }
 
 // https://dom.spec.whatwg.org/#concept-event-listener-inner-invoke
