@@ -20,7 +20,7 @@ use layers::platform::surface::NativeDisplay;
 use msg::constellation_msg::{KeyState, NONE, CONTROL, SHIFT, ALT, SUPER};
 use msg::constellation_msg::{self, Key};
 use net_traits::net_error_list::NetError;
-use script_traits::TouchEventType;
+use script_traits::{TouchEventType, TouchpadPressurePhase};
 use std::cell::{Cell, RefCell};
 use std::os::raw::c_void;
 use std::rc::Rc;
@@ -240,6 +240,12 @@ impl Window {
                 let id = TouchId(touch.id as i32);
                 let point = Point2D::typed(touch.location.0 as f32, touch.location.1 as f32);
                 self.event_queue.borrow_mut().push(WindowEvent::Touch(phase, id, point));
+            }
+            Event::TouchpadPressure(pressure, stage) => {
+                let m = self.mouse_pos.get();
+                let point = Point2D::typed(m.x as f32, m.y as f32);
+                let phase = glutin_pressure_stage_to_touchpad_pressure_phase(stage);
+                self.event_queue.borrow_mut().push(WindowEvent::TouchpadPressure(point, pressure, phase));
             }
             Event::Refresh => {
                 self.event_queue.borrow_mut().push(WindowEvent::Refresh);
@@ -809,6 +815,16 @@ fn glutin_phase_to_touch_event_type(phase: TouchPhase) -> TouchEventType {
         TouchPhase::Moved => TouchEventType::Move,
         TouchPhase::Ended => TouchEventType::Up,
         TouchPhase::Cancelled => TouchEventType::Cancel,
+    }
+}
+
+fn glutin_pressure_stage_to_touchpad_pressure_phase(stage: i64) -> TouchpadPressurePhase {
+    if stage < 1 {
+        TouchpadPressurePhase::BeforeClick
+    } else if stage < 2 {
+        TouchpadPressurePhase::AfterFirstClick
+    } else {
+        TouchpadPressurePhase::AfterSecondClick
     }
 }
 
