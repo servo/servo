@@ -28,6 +28,7 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::node::{Node, NodeDamage, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
+use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 use script_thread::ScriptThreadEventCategory::InputEvent;
@@ -907,6 +908,8 @@ impl VirtualMethods for HTMLInputElement {
 }
 
 impl FormControl for HTMLInputElement {}
+
+impl Validatable for HTMLInputElement {}
 
 impl Activatable for HTMLInputElement {
     fn as_element(&self) -> &Element {
