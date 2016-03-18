@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#![allow(unsafe_code)]
+
 use std::collections::HashMap;
 use std::env;
 use std::fs::File;

@@ -9,6 +9,8 @@
 #![feature(plugin)]
 #![plugin(plugins)]
 
+#![deny(unsafe_code)]
+
 extern crate brotli;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
