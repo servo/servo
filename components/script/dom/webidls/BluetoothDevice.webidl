@@ -11,6 +11,7 @@ enum VendorIDSource {
     "usb"
 };
 
+[Pref="dom.bluetooth.enabled"]
 interface BluetoothDevice {
     readonly attribute DOMString id;
     readonly attribute DOMString? name;
