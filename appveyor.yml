@@ -30,5 +30,6 @@ build_script:
       PATH C:\msys64\mingw64\bin;C:\msys64\usr\bin\;%PATH%
 
       bash -lc "cd $APPVEYOR_BUILD_FOLDER; ./mach build -d -v"
+      bash -lc "cd $APPVEYOR_BUILD_FOLDER; ./mach test-unit"
 
 test: off
