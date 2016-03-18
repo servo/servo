@@ -1,4 +1,5 @@
 {
+  "dom.forcetouch.enabled": false,
   "dom.mouseevent.which.enabled": false,
   "dom.mozbrowser.enabled": false,
   "gfx.webrender.enabled": false,

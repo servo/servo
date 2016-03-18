@@ -64,7 +64,7 @@ use net_traits::storage_thread::StorageType;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_thread::ScriptChan;
-use script_traits::{LayoutMsg, ScriptMsg, TimerEventId, TimerSource, UntrustedNodeAddress};
+use script_traits::{LayoutMsg, ScriptMsg, TimerEventId, TimerSource, TouchpadPressurePhase, UntrustedNodeAddress};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use std::boxed::FnBox;
@@ -319,6 +319,7 @@ no_jsmanaged_fields!(AttrIdentifier);
 no_jsmanaged_fields!(AttrValue);
 no_jsmanaged_fields!(ElementSnapshot);
 no_jsmanaged_fields!(HttpsState);
+no_jsmanaged_fields!(TouchpadPressurePhase);
 
 impl JSTraceable for ConstellationChan<ScriptMsg> {
     #[inline]
