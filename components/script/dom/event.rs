@@ -174,6 +174,11 @@ impl Event {
     pub fn type_(&self) -> Atom {
         self.type_.borrow().clone()
     }
+
+    #[inline]
+    pub fn set_type_(&self, type_: Atom) {
+        *self.type_.borrow_mut() = type_;
+    }
 }
 
 impl EventMethods for Event {
