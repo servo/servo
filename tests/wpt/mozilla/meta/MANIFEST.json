@@ -564,6 +564,18 @@
             "url": "/_mozilla/css/block_formatting_context_containing_floats_a.html"
           }
         ],
+        "css/block_formatting_context_float_inorder_interaction_a.html": [
+          {
+            "path": "css/block_formatting_context_float_inorder_interaction_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_formatting_context_float_inorder_interaction_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_formatting_context_float_inorder_interaction_a.html"
+          }
+        ],
         "css/block_formatting_context_float_placement_a.html": [
           {
             "path": "css/block_formatting_context_float_placement_a.html",
@@ -6822,6 +6834,18 @@
             ]
           ],
           "url": "/_mozilla/css/block_formatting_context_containing_floats_a.html"
+        }
+      ],
+      "css/block_formatting_context_float_inorder_interaction_a.html": [
+        {
+          "path": "css/block_formatting_context_float_inorder_interaction_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_formatting_context_float_inorder_interaction_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_formatting_context_float_inorder_interaction_a.html"
         }
       ],
       "css/block_formatting_context_float_placement_a.html": [
