@@ -14,6 +14,7 @@ use resource_files::set_resources_path;
 use std::cmp;
 use std::default::Default;
 use std::env;
+use std::fs;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::path::Path;
@@ -186,6 +187,9 @@ pub struct Opts {
 
     /// True if WebRender should use multisample antialiasing.
     pub use_msaa: bool,
+
+    /// Directory path for persistent session
+    pub profile_dir: Option<String>,
 
     // Which rendering API to use.
     pub render_api: RenderApi,
@@ -499,6 +503,7 @@ pub fn default_opts() -> Opts {
         webrender_stats: false,
         use_msaa: false,
         render_api: DEFAULT_RENDER_API,
+        profile_dir: None,
     }
 }
 
@@ -544,6 +549,8 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
     opts.optflag("w", "webrender", "Use webrender backend");
     opts.optopt("G", "graphics", "Select graphics backend (gl or es2)", "gl");
+    opts.optopt("", "profile-dir",
+                    "optional directory path for user sessions", "");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -556,6 +563,12 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         print_usage(app_name, &opts);
         process::exit(0);
     };
+
+    if let Some(ref profile_dir) = opt_match.opt_str("profile-dir") {
+        if let Err(why) = fs::create_dir_all(profile_dir) {
+            error!("Couldn't create/open {:?}: {:?}", Path::new(profile_dir).to_string_lossy(), why);
+        }
+    }
 
     // If this is the content process, we'll receive the real options over IPC. So just fill in
     // some dummy options for now.
@@ -746,6 +759,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         use_webrender: use_webrender,
         webrender_stats: debug_options.webrender_stats,
         use_msaa: debug_options.use_msaa,
+        profile_dir: opt_match.opt_str("profile-dir"),
     };
 
     set_defaults(opts);
