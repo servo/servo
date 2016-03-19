@@ -60,6 +60,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::LayoutGeneratedContent |
             ProfilerCategory::LayoutDisplayListSorting |
             ProfilerCategory::LayoutMain |
+            ProfilerCategory::LayoutStoreOverflow |
             ProfilerCategory::LayoutDispListBuild |
             ProfilerCategory::LayoutDamagePropagate |
             ProfilerCategory::PaintingPerTile |
@@ -83,6 +84,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::LayoutDisplayListSorting => "Sorting Display List",
             ProfilerCategory::LayoutGeneratedContent => "Generated Content Resolution",
             ProfilerCategory::LayoutMain => "Primary Layout Pass",
+            ProfilerCategory::LayoutStoreOverflow => "Store Overflow",
             ProfilerCategory::LayoutParallelWarmup => "Parallel Warmup",
             ProfilerCategory::LayoutDispListBuild => "Display List Construction",
             ProfilerCategory::PaintingPerTile => "Painting Per Tile",
