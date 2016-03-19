@@ -36,5 +36,6 @@ interface NavigatorBluetooth {
 [NoInterfaceObject/*, Exposed=Window,Worker*/]
 interface NavigatorLanguage {
   readonly attribute DOMString language;
+  // https://github.com/servo/servo/issues/10073
   //readonly attribute DOMString[] languages;
 };
