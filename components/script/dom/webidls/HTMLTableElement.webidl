@@ -16,7 +16,7 @@ interface HTMLTableElement : HTMLElement {
   //void deleteTFoot();
   //readonly attribute HTMLCollection tBodies;
   HTMLTableSectionElement createTBody();
-  //readonly attribute HTMLCollection rows;
+  readonly attribute HTMLCollection rows;
   //HTMLElement insertRow(optional long index = -1);
   //void deleteRow(long index);
   //         attribute boolean sortable;
