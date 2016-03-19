@@ -4,12 +4,12 @@
 
 use dom::bindings::codegen::Bindings::ValidityStateBinding;
 use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
-//use dom::bindings::codegen::Bindings::ValidityStateBinding::Validatable;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::element::Element;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::window::Window;
+
 
 pub enum ValidityStatus {
     ValueMissing,
@@ -96,11 +96,3 @@ impl ValidityStateMethods for ValidityState {
         false
     }
 }
-
-//impl Validatable for ValidityState {
-//
-//   fn is_instance_validatable(&self) -> bool{
-//    false
-//    }
-//
-//}

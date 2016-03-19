@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::{Attr, AttrValue};
+use dom::validation::Validatable;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
@@ -234,3 +235,13 @@ impl VirtualMethods for HTMLSelectElement {
 }
 
 impl FormControl for HTMLSelectElement {}
+
+impl Validatable for HTMLSelectElement {
+     fn as_element(&self) -> &Element {
+        self.upcast()
+    }
+    
+    fn is_instance_validatable(&self) -> bool {
+        true
+    }
+}

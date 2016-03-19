@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::{Attr, AttrValue};
+use dom::validation::Validatable;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
@@ -334,3 +335,13 @@ impl VirtualMethods for HTMLTextAreaElement {
 }
 
 impl FormControl for HTMLTextAreaElement {}
+
+impl Validatable for HTMLTextAreaElement {
+     fn as_element(&self) -> &Element {
+        self.upcast()
+    }
+    
+    fn is_instance_validatable(&self) -> bool {
+        true
+    }
+}

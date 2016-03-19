@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::activation::Activatable;
+use dom::validation::Validatable;
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
@@ -202,6 +203,17 @@ impl VirtualMethods for HTMLButtonElement {
 }
 
 impl FormControl for HTMLButtonElement {}
+
+impl Validatable for HTMLButtonElement{
+    fn as_element(&self) -> &Element {
+        self.upcast()
+    }
+
+    fn is_instance_validatable(&self) -> bool {
+        //https://html.spec.whatwg.org/multipage/#the-button-element
+        false
+    }
+}
 
 impl Activatable for HTMLButtonElement {
     fn as_element(&self) -> &Element {

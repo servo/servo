@@ -8,6 +8,7 @@ use app_units::Au;
 use cssparser::Color;
 use devtools_traits::AttrInfo;
 use dom::activation::Activatable;
+use dom::validation::Validatable;
 use dom::attr::AttrValue;
 use dom::attr::{Attr, AttrHelpersForLayout};
 use dom::bindings::cell::DOMRefCell;
@@ -38,6 +39,7 @@ use dom::event::Event;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementLayoutHelpers};
 use dom::htmlbuttonelement::HTMLButtonElement;
+use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlfontelement::{HTMLFontElement, HTMLFontElementLayoutHelpers};
@@ -1895,6 +1897,45 @@ impl Element {
         };
         element.and_then(|elem| {
             if elem.is_instance_activatable() {
+                Some(elem)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn as_maybe_validatable(&self) -> Option<&Validatable> {
+        let element = match self.upcast::<Node>().type_id() {
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
+                let element = self.downcast::<HTMLInputElement>().unwrap();
+                Some(element as &Validatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) => {
+                let element = self.downcast::<HTMLButtonElement>().unwrap();
+                Some(element as &Validatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
+                let element = self.downcast::<HTMLAnchorElement>().unwrap();
+                Some(element as &Validatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLabelElement)) => {
+                let element = self.downcast::<HTMLLabelElement>().unwrap();
+                Some(element as &Validatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
+                let element = self.downcast::<HTMLSelectElement>().unwrap();
+                Some(element as &Validatable)
+            },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
+                let element = self.downcast::<HTMLTextAreaElement>().unwrap();
+                Some(element as &Validatable)
+            },
+            _ => {
+                None
+            }
+        };
+        element.and_then(|elem| {
+            if elem.is_instance_validatable() {
                 Some(elem)
             } else {
                 None
