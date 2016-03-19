@@ -188,13 +188,11 @@ pub struct Opts {
     /// True if WebRender should use multisample antialiasing.
     pub use_msaa: bool,
 
-    /// Create path for persistent sessions
+    /// Directory path for persistent session
     pub profile_dir: Option<String>,
 
     // Which rendering API to use.
     pub render_api: RenderApi,
-
-    
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -551,7 +549,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
     opts.optflag("w", "webrender", "Use webrender backend");
     opts.optopt("G", "graphics", "Select graphics backend (gl or es2)", "gl");
-    opts.optflagopt("", "profile-dir",
+    opts.optopt("", "profile-dir",
                     "optional directory path for user sessions", "");
 
     let opt_match = match opts.parse(args) {
@@ -566,16 +564,11 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         process::exit(0);
     };
 
-    if opt_match.opt_present("profile-dir") {
-
-        let profile_dir_option = opt_match.opt_default("profile-dir", "");
-        let profile_dir_string = profile_dir_option.as_ref().unwrap();
-
-        match fs::create_dir_all(profile_dir_string) {
-            Err(why) => println!("! {:?}", why.kind()),
-            Ok(_) => {},
+    if let Some(ref profile_dir) = opt_match.opt_str("profile-dir") {
+        if let Err(why) = fs::create_dir_all(profile_dir) {
+            error!("Couldn't create/open {:?}: {:?}", Path::new(profile_dir).to_string_lossy(), why);
         }
-    };
+    }
 
     // If this is the content process, we'll receive the real options over IPC. So just fill in
     // some dummy options for now.
@@ -766,7 +759,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         use_webrender: use_webrender,
         webrender_stats: debug_options.webrender_stats,
         use_msaa: debug_options.use_msaa,
-        profile_dir: opt_match.opt_default("profile-dir", ""),
+        profile_dir: opt_match.opt_string("profile-dir", ""),
     };
 
     set_defaults(opts);
