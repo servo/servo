@@ -41,6 +41,7 @@ log = "0.3.5"
 mime_guess = "1.6.0"
 openssl = "0.7.6"
 rustc-serialize = "0.3"
+threadpool = "1.0"
 time = "0.1.17"
 url = {version = "0.5.7", features = ["heap_size"]}
 uuid = "0.1.16"
