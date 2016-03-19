@@ -8,13 +8,15 @@ use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{LayoutJS, Root, RootedReference};
+use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
+use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
+use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
-use dom::node::{Node, document_from_node};
+use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use string_cache::Atom;
@@ -51,6 +53,32 @@ impl HTMLTableElement {
 }
 
 impl HTMLTableElementMethods for HTMLTableElement {
+    // https://html.spec.whatwg.org/multipage/#dom-table-rows
+    fn Rows(&self) -> Root<HTMLCollection> {
+        #[allow(unrooted_must_root)]
+        #[derive(JSTraceable, HeapSizeOf)]
+        struct TableRowFilter {
+            sections: Vec<JS<Node>>
+        }
+
+        impl CollectionFilter for TableRowFilter {
+            fn filter(&self, elem: &Element, root: &Node) -> bool {
+                elem.is::<HTMLTableRowElement>()
+                    && (root.is_parent_of(elem.upcast())
+                        || self.sections.iter().any(|ref section| section.is_parent_of(elem.upcast())))
+            }
+        }
+
+        let filter = TableRowFilter {
+            sections: self.upcast::<Node>()
+                          .children()
+                          .filter_map(|ref node|
+                                node.downcast::<HTMLTableSectionElement>().map(|_| JS::from_rooted(node)))
+                          .collect()
+        };
+        HTMLCollection::new(window_from_node(self).r(), self.upcast(), box filter)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-table-caption
     fn GetCaption(&self) -> Option<Root<HTMLTableCaptionElement>> {
         self.upcast::<Node>().children().filter_map(Root::downcast).next()
