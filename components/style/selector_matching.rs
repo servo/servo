@@ -226,12 +226,16 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         if let Some(ref constraints) = self.viewport_constraints {
             device = Device::new(MediaType::Screen, constraints.size);
         }
-        let is_device_dirty = self.is_device_dirty || stylesheets.iter()
-            .flat_map(|stylesheet| stylesheet.rules().media())
-            .any(|media_rule| media_rule.evaluate(&self.device) != media_rule.evaluate(&device));
+
+        let size_changed = device.viewport_size != self.device.viewport_size;
+
+        self.is_device_dirty |= stylesheets.iter().any(|stylesheet| {
+                (size_changed && stylesheet.dirty_on_viewport_size_change) ||
+                stylesheet.rules().media().any(|media_rule|
+                    media_rule.evaluate(&self.device) != media_rule.evaluate(&device))
+        });
 
         self.device = device;
-        self.is_device_dirty |= is_device_dirty;
     }
 
     pub fn viewport_constraints(&self) -> &Option<ViewportConstraints> {
