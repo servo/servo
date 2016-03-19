@@ -83,6 +83,7 @@ lazy_static! {
     };
 }
 
+#[derive(HeapSizeOf)]
 pub struct Stylist<Impl: SelectorImplExt> {
     // Device that the stylist is currently evaluating against.
     pub device: Device,
@@ -340,6 +341,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
     }
 }
 
+#[derive(HeapSizeOf)]
 struct PerOriginSelectorMap<Impl: SelectorImpl> {
     normal: SelectorMap<Vec<PropertyDeclaration>, Impl>,
     important: SelectorMap<Vec<PropertyDeclaration>, Impl>,
@@ -355,6 +357,7 @@ impl<Impl: SelectorImpl> PerOriginSelectorMap<Impl> {
     }
 }
 
+#[derive(HeapSizeOf)]
 struct PerPseudoElementSelectorMap<Impl: SelectorImpl> {
     user_agent: PerOriginSelectorMap<Impl>,
     author: PerOriginSelectorMap<Impl>,
