@@ -8,7 +8,7 @@ use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, 
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use parser::{ParserContext, log_css_error};
-use properties::longhands;
+use properties::INITIAL_VALUES;
 use std::ascii::AsciiExt;
 use std::collections::hash_map::{Entry, HashMap};
 use std::fmt;
@@ -594,23 +594,8 @@ impl MaybeNew for ViewportConstraints {
         let context = Context {
             is_root_element: false,
             viewport_size: initial_viewport,
-            inherited_font_weight: longhands::font_weight::get_initial_value(),
-            inherited_font_size: longhands::font_size::get_initial_value(),
-            inherited_text_decorations_in_effect: longhands::_servo_text_decorations_in_effect::get_initial_value(),
-            font_size: longhands::font_size::get_initial_value(),
-            root_font_size: longhands::font_size::get_initial_value(),
-            display: longhands::display::get_initial_value(),
-            color: longhands::color::get_initial_value(),
-            text_decoration: longhands::text_decoration::get_initial_value(),
-            overflow_x: longhands::overflow_x::get_initial_value(),
-            overflow_y: longhands::overflow_y::get_initial_value(),
-            positioned: false,
-            floated: false,
-            border_top_present: false,
-            border_right_present: false,
-            border_bottom_present: false,
-            border_left_present: false,
-            outline_style_present: false,
+            inherited_style: &*INITIAL_VALUES,
+            style: INITIAL_VALUES.clone(),
         };
 
         // DEVICE-ADAPT § 9.3 Resolving 'extend-to-zoom'

@@ -1377,6 +1377,12 @@ pub mod specified {
         "outset" => outset = 2,
     }
 
+    impl BorderStyle {
+        pub fn none_or_hidden(&self) -> bool {
+            matches!(*self, BorderStyle::none | BorderStyle::hidden)
+        }
+    }
+
     /// A time in seconds according to CSS-VALUES § 6.2.
     #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, HeapSizeOf)]
     pub struct Time(pub CSSFloat);
@@ -1431,7 +1437,7 @@ pub mod specified {
 pub mod computed {
     use app_units::Au;
     use euclid::size::Size2D;
-    use properties::longhands;
+    use properties::ComputedValues;
     use std::fmt;
     use super::AuExtensionMethods;
     use super::specified::AngleOrCorner;
@@ -1440,28 +1446,14 @@ pub mod computed {
     pub use cssparser::Color as CSSColor;
     pub use super::specified::{Angle, BorderStyle, Time};
 
-    pub struct Context {
-        pub inherited_font_weight: longhands::font_weight::computed_value::T,
-        pub inherited_font_size: longhands::font_size::computed_value::T,
-        pub inherited_text_decorations_in_effect:
-            longhands::_servo_text_decorations_in_effect::computed_value::T,
-        pub color: longhands::color::computed_value::T,
-        pub text_decoration: longhands::text_decoration::computed_value::T,
-        pub font_size: longhands::font_size::computed_value::T,
-        pub root_font_size: longhands::font_size::computed_value::T,
-        pub display: longhands::display::computed_value::T,
-        pub overflow_x: longhands::overflow_x::computed_value::T,
-        pub overflow_y: longhands::overflow_y::computed_value::T,
-        pub positioned: bool,
-        pub floated: bool,
-        pub border_top_present: bool,
-        pub border_right_present: bool,
-        pub border_bottom_present: bool,
-        pub border_left_present: bool,
+    pub struct Context<'a> {
         pub is_root_element: bool,
         pub viewport_size: Size2D<Au>,
-        pub outline_style_present: bool,
-        // TODO, as needed: viewport size, etc.
+        pub inherited_style: &'a ComputedValues,
+
+        /// Values access through this need to be in the properties "computed early":
+        /// color, text-decoration, font-size, display, position, float, border-*-style, outline-style
+        pub style: ComputedValues,
     }
 
     pub trait ToComputedValue {
@@ -1502,11 +1494,12 @@ pub mod computed {
                 specified::Length::Absolute(length) => length,
                 specified::Length::Calc(calc) => calc.to_computed_value(context).length(),
                 specified::Length::FontRelative(length) =>
-                    length.to_computed_value(context.font_size, context.root_font_size),
+                    length.to_computed_value(context.style.get_font().font_size,
+                                             context.style.root_font_size),
                 specified::Length::ViewportPercentage(length) =>
                     length.to_computed_value(context.viewport_size),
                 specified::Length::ServoCharacterWidth(length) =>
-                    length.to_computed_value(context.font_size)
+                    length.to_computed_value(context.style.get_font().font_size)
             }
         }
     }
@@ -1605,8 +1598,8 @@ pub mod computed {
             }
             for val in &[self.ch, self.em, self.ex, self.rem] {
                 if let Some(val) = *val {
-                    length = Some(length.unwrap_or(Au(0)) +
-                        val.to_computed_value(context.font_size, context.root_font_size));
+                    length = Some(length.unwrap_or(Au(0)) + val.to_computed_value(
+                        context.style.get_font().font_size, context.style.root_font_size));
                 }
             }
 

@@ -33,7 +33,7 @@ use selectors::matching::DeclarationBlock;
 use stylesheets::Origin;
 use values::AuExtensionMethods;
 use values::computed::{self, ToComputedValue};
-use values::specified::{Length, BorderStyle};
+use values::specified::BorderStyle;
 
 use self::property_bit_field::PropertyBitField;
 
@@ -151,9 +151,8 @@ pub mod longhands {
             ${caller.body()}
             #[allow(unused_variables)]
             pub fn cascade_property(declaration: &PropertyDeclaration,
-                                    style: &mut ComputedValues,
                                     inherited_style: &ComputedValues,
-                                    context: &computed::Context,
+                                    context: &mut computed::Context,
                                     seen: &mut PropertyBitField,
                                     cacheable: &mut bool,
                                     error_reporter: &mut Box<ParseErrorReporter + Send>) {
@@ -169,7 +168,7 @@ pub mod longhands {
                     }
                     seen.set_${property.ident}();
                     let computed_value = ::properties::substitute_variables_${property.ident}(
-                        declared_value, &style.custom_properties, |value| match *value {
+                        declared_value, &context.style.custom_properties, |value| match *value {
                             DeclaredValue::Value(ref specified_value) => {
                                 specified_value.to_computed_value(&context)
                             }
@@ -187,13 +186,12 @@ pub mod longhands {
                             }
                         }, error_reporter
                     );
-                    Arc::make_mut(&mut style.${THIS_STYLE_STRUCT.ident}).${property.ident} =
+                    Arc::make_mut(&mut context.style.${THIS_STYLE_STRUCT.ident}).${property.ident} =
                         computed_value;
 
                     % if custom_cascade:
                         cascade_property_custom(&computed_value,
                                                 declaration,
-                                                style,
                                                 inherited_style,
                                                 context,
                                                 seen,
@@ -364,11 +362,7 @@ pub mod longhands {
 
                 #[inline]
                 fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                    if !context.border_${side}_present {
-                        Au(0)
-                    } else {
-                        self.0.to_computed_value(context)
-                    }
+                    self.0.to_computed_value(context)
                 }
             }
         </%self:longhand>
@@ -428,11 +422,7 @@ pub mod longhands {
 
             #[inline]
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                if !context.outline_style_present {
-                    Au(0)
-                } else {
-                    self.0.to_computed_value(context)
-                }
+                self.0.to_computed_value(context)
             }
         }
     </%self:longhand>
@@ -462,7 +452,7 @@ pub mod longhands {
             experimental_values = set("flex".split())
         %>
         pub use self::computed_value::T as SpecifiedValue;
-        use values::computed::Context;
+        use values::computed::{Context, ComputedValueAsSpecified};
 
         pub mod computed_value {
             #[allow(non_camel_case_types)]
@@ -506,47 +496,19 @@ pub mod longhands {
             }
         }
 
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
+        impl ComputedValueAsSpecified for SpecifiedValue {}
 
-            #[inline]
-            fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                use self::computed_value::T;
-    //            if context.is_root_element && value == list_item {
-    //                return block
-    //            }
-                if context.positioned || context.floated || context.is_root_element {
-                    match *self {
-                        T::inline_table => T::table,
-                        T::inline | T::inline_block |
-                        T::table_row_group | T::table_column |
-                        T::table_column_group | T::table_header_group |
-                        T::table_footer_group | T::table_row | T::table_cell |
-                        T::table_caption
-                        => T::block,
-                        _ => *self,
-                    }
-                } else {
-                    *self
-                }
-            }
-        }
-
-        fn cascade_property_custom(computed_value: &computed_value::T,
+        fn cascade_property_custom(_computed_value: &computed_value::T,
                                    _declaration: &PropertyDeclaration,
-                                   style: &mut ComputedValues,
                                    _inherited_style: &ComputedValues,
-                                   context: &computed::Context,
+                                   context: &mut computed::Context,
                                    _seen: &mut PropertyBitField,
                                    _cacheable: &mut bool,
                                    _error_reporter: &mut Box<ParseErrorReporter + Send>) {
-            Arc::make_mut(&mut style.box_)._servo_display_for_hypothetical_box =
-                longhands::_servo_display_for_hypothetical_box::derive_from_display(
-                    *computed_value,
-                    &context);
-            Arc::make_mut(&mut style.inheritedtext)._servo_text_decorations_in_effect =
-                longhands::_servo_text_decorations_in_effect::derive_from_display(*computed_value,
-                                                                                  &context);
+            Arc::make_mut(&mut context.style.box_)._servo_display_for_hypothetical_box =
+                longhands::_servo_display_for_hypothetical_box::derive_from_display(&context);
+            Arc::make_mut(&mut context.style.inheritedtext)._servo_text_decorations_in_effect =
+                longhands::_servo_text_decorations_in_effect::derive_from_display(&context);
         }
     </%self:longhand>
 
@@ -560,7 +522,10 @@ pub mod longhands {
 
             #[inline]
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                if context.positioned {
+                let positioned = matches!(context.style.box_.position,
+                    longhands::position::SpecifiedValue::absolute |
+                    longhands::position::SpecifiedValue::fixed);
+                if positioned {
                     SpecifiedValue::none
                 } else {
                     *self
@@ -581,14 +546,9 @@ pub mod longhands {
         }
 
         #[inline]
-        pub fn derive_from_display(computed_value: super::display::computed_value::T,
-                                   context: &computed::Context)
+        pub fn derive_from_display(context: &computed::Context)
                                    -> computed_value::T {
-            if context.is_root_element {
-                computed_value
-            } else {
-                context.display
-            }
+            context.style.box_.display
         }
 
     </%self:longhand>
@@ -858,32 +818,7 @@ pub mod longhands {
     ${single_keyword("-servo-overflow-clip-box", "padding-box content-box", internal=True)}
 
     // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-    <%self:single_keyword_computed name="overflow-x" values="visible hidden scroll auto">
-        use values::computed::Context;
-
-        pub fn compute_with_other_overflow_direction(value: SpecifiedValue,
-                                                     other_direction: SpecifiedValue)
-                                                     -> computed_value::T {
-            // CSS-OVERFLOW 3 states "Otherwise, if one cascaded values is one of the scrolling
-            // values and the other is `visible`, then computed values are the cascaded values with
-            // `visible` changed to `auto`."
-            match (value, other_direction) {
-                (SpecifiedValue::visible, SpecifiedValue::hidden) |
-                (SpecifiedValue::visible, SpecifiedValue::scroll) |
-                (SpecifiedValue::visible, SpecifiedValue::auto) => computed_value::T::auto,
-                _ => value,
-            }
-        }
-
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
-
-            #[inline]
-            fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                compute_with_other_overflow_direction(*self, context.overflow_y.0)
-            }
-        }
-    </%self:single_keyword_computed>
+    ${single_keyword("overflow-x", "visible hidden scroll auto")}
 
     // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
     <%self:longhand name="overflow-y">
@@ -911,10 +846,7 @@ pub mod longhands {
 
             #[inline]
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                let computed_value::T(this) = *self;
-                computed_value::T(overflow_x::compute_with_other_overflow_direction(
-                        this,
-                        context.overflow_x))
+                computed_value::T(self.0.to_computed_value(context))
             }
         }
 
@@ -926,7 +858,6 @@ pub mod longhands {
             overflow_x::parse(context, input).map(SpecifiedValue)
         }
     </%self:longhand>
-
 
     ${switch_to_style_struct("InheritedBox")}
 
@@ -1905,7 +1836,7 @@ pub mod longhands {
                     % for weight in range(100, 901, 100):
                         SpecifiedValue::Weight${weight} => computed_value::T::Weight${weight},
                     % endfor
-                    SpecifiedValue::Bolder => match context.inherited_font_weight {
+                    SpecifiedValue::Bolder => match context.inherited_style.font.font_weight {
                         computed_value::T::Weight100 => computed_value::T::Weight400,
                         computed_value::T::Weight200 => computed_value::T::Weight400,
                         computed_value::T::Weight300 => computed_value::T::Weight400,
@@ -1916,7 +1847,7 @@ pub mod longhands {
                         computed_value::T::Weight800 => computed_value::T::Weight900,
                         computed_value::T::Weight900 => computed_value::T::Weight900,
                     },
-                    SpecifiedValue::Lighter => match context.inherited_font_weight {
+                    SpecifiedValue::Lighter => match context.inherited_style.font.font_weight {
                         computed_value::T::Weight100 => computed_value::T::Weight100,
                         computed_value::T::Weight200 => computed_value::T::Weight100,
                         computed_value::T::Weight300 => computed_value::T::Weight100,
@@ -1938,6 +1869,7 @@ pub mod longhands {
         use std::fmt;
         use values::FONT_MEDIUM_PX;
         use values::computed::Context;
+        use values::specified::{LengthOrPercentage, Length, Percentage};
 
         impl ToCss for SpecifiedValue {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
@@ -1960,8 +1892,25 @@ pub mod longhands {
 
             #[inline]
             fn to_computed_value(&self, context: &Context) -> computed_value::T {
-                // We already computed this element's font size; no need to compute it again.
-                return context.font_size
+                match self.0 {
+                    LengthOrPercentage::Length(Length::FontRelative(value)) => {
+                        value.to_computed_value(context.inherited_style.font.font_size,
+                                                context.style.root_font_size)
+                    }
+                    LengthOrPercentage::Length(Length::ServoCharacterWidth(value)) => {
+                        value.to_computed_value(context.inherited_style.font.font_size)
+                    }
+                    LengthOrPercentage::Length(l) => {
+                        l.to_computed_value(&context)
+                    }
+                    LengthOrPercentage::Percentage(Percentage(value)) => {
+                        context.inherited_style.font.font_size.scale_by(value)
+                    }
+                    LengthOrPercentage::Calc(calc) => {
+                        let calc = calc.to_computed_value(&context);
+                        calc.length() + context.inherited_style.font.font_size.scale_by(calc.percentage())
+                    }
+                }
             }
         }
         /// <length> | <percentage> | <absolute-size> | <relative-size>
@@ -2258,17 +2207,15 @@ pub mod longhands {
             if !empty { Ok(result) } else { Err(()) }
         }
 
-        fn cascade_property_custom(computed_value: &computed_value::T,
+        fn cascade_property_custom(_computed_value: &computed_value::T,
                                    _declaration: &PropertyDeclaration,
-                                   style: &mut ComputedValues,
                                    _inherited_style: &ComputedValues,
-                                   context: &computed::Context,
+                                   context: &mut computed::Context,
                                    _seen: &mut PropertyBitField,
                                    _cacheable: &mut bool,
                                    _error_reporter: &mut Box<ParseErrorReporter + Send>) {
-            Arc::make_mut(&mut style.inheritedtext)._servo_text_decorations_in_effect =
+            Arc::make_mut(&mut context.style.inheritedtext)._servo_text_decorations_in_effect =
                 longhands::_servo_text_decorations_in_effect::derive_from_text_decoration(
-                    *computed_value,
                     &context);
         }
     </%self:longhand>
@@ -2313,7 +2260,7 @@ pub mod longhands {
 
         fn maybe(flag: bool, context: &computed::Context) -> Option<RGBA> {
             if flag {
-                Some(context.color)
+                Some(context.style.color.color)
             } else {
                 None
             }
@@ -2322,9 +2269,9 @@ pub mod longhands {
         fn derive(context: &computed::Context) -> computed_value::T {
             // Start with no declarations if this is a block; otherwise, start with the
             // declarations in effect and add in the text decorations that this inline specifies.
-            let mut result = match context.display {
+            let mut result = match context.style.box_.display {
                 super::display::computed_value::T::inline => {
-                    context.inherited_text_decorations_in_effect
+                    context.inherited_style.inheritedtext._servo_text_decorations_in_effect
                 }
                 _ => {
                     SpecifiedValue {
@@ -2336,27 +2283,25 @@ pub mod longhands {
             };
 
             if result.underline.is_none() {
-                result.underline = maybe(context.text_decoration.underline, context)
+                result.underline = maybe(context.style.text.text_decoration.underline, context)
             }
             if result.overline.is_none() {
-                result.overline = maybe(context.text_decoration.overline, context)
+                result.overline = maybe(context.style.text.text_decoration.overline, context)
             }
             if result.line_through.is_none() {
-                result.line_through = maybe(context.text_decoration.line_through, context)
+                result.line_through = maybe(context.style.text.text_decoration.line_through, context)
             }
             result
         }
 
         #[inline]
-        pub fn derive_from_text_decoration(_: super::text_decoration::computed_value::T,
-                                           context: &computed::Context)
+        pub fn derive_from_text_decoration(context: &computed::Context)
                                            -> computed_value::T {
             derive(context)
         }
 
         #[inline]
-        pub fn derive_from_display(_: super::display::computed_value::T,
-                                   context: &computed::Context)
+        pub fn derive_from_display(context: &computed::Context)
                                    -> computed_value::T {
             derive(context)
         }
@@ -6446,21 +6391,34 @@ lazy_static! {
 /// Fast path for the function below. Only computes new inherited styles.
 #[allow(unused_mut)]
 fn cascade_with_cached_declarations(
+        viewport_size: Size2D<Au>,
         applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclaration>>],
         shareable: bool,
         parent_style: &ComputedValues,
         cached_style: &ComputedValues,
         custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
-        context: &computed::Context,
         mut error_reporter: Box<ParseErrorReporter + Send>)
         -> ComputedValues {
-    % for style_struct in STYLE_STRUCTS:
-        % if style_struct.inherited:
-            let mut style_${style_struct.ident} = parent_style.${style_struct.ident}.clone();
-        % else:
-            let mut style_${style_struct.ident} = cached_style.${style_struct.ident}.clone();
-        % endif
-    % endfor
+    let mut context = computed::Context {
+        is_root_element: false,
+        viewport_size: viewport_size,
+        inherited_style: parent_style,
+        style: ComputedValues {
+            % for style_struct in STYLE_STRUCTS:
+                ${style_struct.ident}:
+                    % if style_struct.inherited:
+                        parent_style
+                    % else:
+                        cached_style
+                    % endif
+                    .${style_struct.ident}.clone(),
+            % endfor
+            custom_properties: custom_properties,
+            shareable: shareable,
+            writing_mode: WritingMode::empty(),
+            root_font_size: parent_style.root_font_size,
+        },
+    };
     let mut seen = PropertyBitField::new();
     // Declaration blocks are stored in increasing precedence order,
     // we want them in decreasing order here.
@@ -6481,9 +6439,10 @@ fn cascade_with_cached_declarations(
                                     seen.set_${property.ident}();
                                     let computed_value =
                                     substitute_variables_${property.ident}(
-                                        declared_value, &custom_properties, |value| match *value {
+                                        declared_value, &context.style.custom_properties,
+                                        |value| match *value {
                                             DeclaredValue::Value(ref specified_value)
-                                            => specified_value.to_computed_value(context),
+                                            => specified_value.to_computed_value(&context),
                                             DeclaredValue::Initial
                                             => longhands::${property.ident}::get_initial_value(),
                                             DeclaredValue::Inherit => {
@@ -6498,23 +6457,17 @@ fn cascade_with_cached_declarations(
                                             DeclaredValue::WithVariables { .. } => unreachable!()
                                         }, &mut error_reporter
                                     );
-                                    Arc::make_mut(&mut style_${style_struct.ident})
+                                    Arc::make_mut(&mut context.style.${style_struct.ident})
                                         .${property.ident} = computed_value;
                                 % endif
 
                                 % if property.name in DERIVED_LONGHANDS:
-                                    % if not style_struct.inherited:
-                                        // Use the cached value.
-                                        let computed_value = style_${style_struct.ident}
-                                            .${property.ident}.clone();
-                                    % endif
                                     % for derived in DERIVED_LONGHANDS[property.name]:
-                                        Arc::make_mut(&mut style_${derived.style_struct.ident})
+                                        Arc::make_mut(&mut context.style.${derived.style_struct.ident})
                                              .${derived.ident} =
                                             longhands::${derived.ident}
                                                      ::derive_from_${property.ident}(
-                                                         computed_value,
-                                                         context);
+                                                         &context);
                                     % endfor
                                 % endif
                             }
@@ -6532,24 +6485,15 @@ fn cascade_with_cached_declarations(
 
     if seen.get_font_style() || seen.get_font_weight() || seen.get_font_stretch() ||
             seen.get_font_family() {
-        compute_font_hash(&mut *Arc::make_mut(&mut style_font))
+        compute_font_hash(&mut *Arc::make_mut(&mut context.style.font))
     }
 
-    ComputedValues {
-        writing_mode: get_writing_mode(&*style_inheritedbox),
-        % for style_struct in STYLE_STRUCTS:
-            ${style_struct.ident}: style_${style_struct.ident},
-        % endfor
-        custom_properties: custom_properties,
-        shareable: shareable,
-        root_font_size: parent_style.root_font_size,
-    }
+    context.style
 }
 
 type CascadePropertyFn = extern "Rust" fn(declaration: &PropertyDeclaration,
-                                          style: &mut ComputedValues,
                                           inherited_style: &ComputedValues,
-                                          context: &computed::Context,
+                                          context: &mut computed::Context,
                                           seen: &mut PropertyBitField,
                                           cacheable: &mut bool,
                                           error_reporter: &mut Box<ParseErrorReporter + Send>);
@@ -6624,171 +6568,39 @@ pub fn cascade(viewport_size: Size2D<Au>,
     let custom_properties = ::custom_properties::finish_cascade(
             custom_properties, &inherited_style.custom_properties);
 
-    let mut context = {
-        let inherited_font_style = inherited_style.get_font();
-        computed::Context {
-            is_root_element: is_root_element,
-            viewport_size: viewport_size,
-            inherited_font_weight: inherited_font_style.font_weight,
-            inherited_font_size: inherited_font_style.font_size,
-            inherited_text_decorations_in_effect:
-                inherited_style.get_inheritedtext()._servo_text_decorations_in_effect,
-            // To be overridden by applicable declarations:
-            font_size: inherited_font_style.font_size,
-            root_font_size: inherited_style.root_font_size,
-            display: longhands::display::get_initial_value(),
-            color: inherited_style.get_color().color,
-            text_decoration: longhands::text_decoration::get_initial_value(),
-            overflow_x: longhands::overflow_x::get_initial_value(),
-            overflow_y: longhands::overflow_y::get_initial_value(),
-            positioned: false,
-            floated: false,
-            border_top_present: false,
-            border_right_present: false,
-            border_bottom_present: false,
-            border_left_present: false,
-            outline_style_present: false,
-        }
-    };
-
-    // This assumes that the computed and specified values have the same Rust type.
-    macro_rules! get_specified(
-        ($style_struct_getter: ident, $property: ident, $declared_value: expr, $error_reporter: expr) => {
-            concat_idents!(substitute_variables_, $property)(
-                $declared_value, &custom_properties, |value| match *value {
-                    DeclaredValue::Value(specified_value) => specified_value,
-                    DeclaredValue::Initial => longhands::$property::get_initial_value(),
-                    DeclaredValue::Inherit => {
-                        inherited_style.$style_struct_getter().$property.clone()
-                    }
-                    DeclaredValue::WithVariables { .. } => unreachable!()
-                }, &mut $error_reporter
-            )
-        };
-    );
-
-    // Initialize `context`
-    // Declarations blocks are already stored in increasing precedence order.
-    for sub_list in applicable_declarations {
-        use values::specified::{LengthOrPercentage, Percentage};
-        // Declarations are stored in reverse source order, we want them in forward order here.
-        for declaration in sub_list.declarations.iter().rev() {
-            match *declaration {
-                PropertyDeclaration::FontSize(ref value) => {
-                    context.font_size = substitute_variables_font_size(
-                        value, &custom_properties, |value| match *value {
-                            DeclaredValue::Value(ref specified_value) => {
-                                match specified_value.0 {
-                                    LengthOrPercentage::Length(Length::FontRelative(value)) => {
-                                        value.to_computed_value(context.inherited_font_size,
-                                                                context.root_font_size)
-                                    }
-                                    LengthOrPercentage::Length(Length::ServoCharacterWidth(value)) => {
-                                        value.to_computed_value(context.inherited_font_size)
-                                    }
-                                    LengthOrPercentage::Length(l) => {
-                                        l.to_computed_value(&context)
-                                    }
-                                    LengthOrPercentage::Percentage(Percentage(value)) => {
-                                        context.inherited_font_size.scale_by(value)
-                                    }
-                                    LengthOrPercentage::Calc(calc) => {
-                                        let calc = calc.to_computed_value(&context);
-                                        calc.length() + context.inherited_font_size.scale_by(calc.percentage())
-                                    }
-                                }
-                            }
-                            DeclaredValue::Initial => longhands::font_size::get_initial_value(),
-                            DeclaredValue::Inherit => context.inherited_font_size,
-                            DeclaredValue::WithVariables { .. } => unreachable!(),
-                        }, &mut error_reporter
-                    );
-                }
-                PropertyDeclaration::Color(ref value) => {
-                    context.color = substitute_variables_color(
-                        value, &custom_properties, |value| match *value {
-                            DeclaredValue::Value(ref specified_value) => {
-                                specified_value.parsed
-                            }
-                            DeclaredValue::Initial => longhands::color::get_initial_value(),
-                            DeclaredValue::Inherit => inherited_style.get_color().color.clone(),
-                            DeclaredValue::WithVariables { .. } => unreachable!(),
-                        }, &mut error_reporter
-                    );
-                }
-                PropertyDeclaration::Display(ref value) => {
-                    context.display = get_specified!(get_box, display, value, error_reporter);
-                }
-                PropertyDeclaration::Position(ref value) => {
-                    context.positioned = match get_specified!(get_box, position, value, error_reporter) {
-                        longhands::position::SpecifiedValue::absolute |
-                        longhands::position::SpecifiedValue::fixed => true,
-                        _ => false,
-                    }
-                }
-                PropertyDeclaration::OverflowX(ref value) => {
-                    context.overflow_x = get_specified!(get_box, overflow_x, value, error_reporter);
-                }
-                PropertyDeclaration::OverflowY(ref value) => {
-                    context.overflow_y = get_specified!(get_box, overflow_y, value, error_reporter);
-                }
-                PropertyDeclaration::Float(ref value) => {
-                    context.floated = get_specified!(get_box, float, value, error_reporter)
-                                      != longhands::float::SpecifiedValue::none;
-                }
-                PropertyDeclaration::TextDecoration(ref value) => {
-                    context.text_decoration = get_specified!(get_text, text_decoration, value, error_reporter);
-                }
-                PropertyDeclaration::OutlineStyle(ref value) => {
-                    context.outline_style_present =
-                        match get_specified!(get_outline, outline_style, value, error_reporter) {
-                            BorderStyle::none => false,
-                            _ => true,
-                        };
-                }
-                % for side in ["top", "right", "bottom", "left"]:
-                    PropertyDeclaration::Border${side.capitalize()}Style(ref value) => {
-                        context.border_${side}_present =
-                            match get_specified!(get_border, border_${side}_style, value, error_reporter) {
-                                BorderStyle::none | BorderStyle::hidden => false,
-                                _ => true,
-                            };
-                    }
-                % endfor
-                _ => {}
-            }
-        }
-    }
-
-    match (cached_style, parent_style) {
-        (Some(cached_style), Some(parent_style)) => {
-            return (cascade_with_cached_declarations(applicable_declarations,
+    if let (Some(cached_style), Some(parent_style)) = (cached_style, parent_style) {
+        let style = cascade_with_cached_declarations(viewport_size,
+                                                     applicable_declarations,
                                                      shareable,
                                                      parent_style,
                                                      cached_style,
                                                      custom_properties,
-                                                     &context,
-                                                     error_reporter), false)
-        }
-        (_, _) => {}
+                                                     error_reporter);
+        return (style, false)
     }
 
-    // Set computed values, overwriting earlier declarations for the same property.
-    let mut style = ComputedValues {
-        % for style_struct in STYLE_STRUCTS:
-            ${style_struct.ident}:
-                % if style_struct.inherited:
-                    inherited_style
-                % else:
-                    initial_values
-                % endif
-                .${style_struct.ident}.clone(),
-        % endfor
-        custom_properties: custom_properties,
-        shareable: shareable,
-        writing_mode: WritingMode::empty(),
-        root_font_size: context.root_font_size,
+    let mut context = computed::Context {
+        is_root_element: is_root_element,
+        viewport_size: viewport_size,
+        inherited_style: inherited_style,
+        style: ComputedValues {
+            % for style_struct in STYLE_STRUCTS:
+                ${style_struct.ident}:
+                    % if style_struct.inherited:
+                        inherited_style
+                    % else:
+                        initial_values
+                    % endif
+                    .${style_struct.ident}.clone(),
+            % endfor
+            custom_properties: custom_properties,
+            shareable: shareable,
+            writing_mode: WritingMode::empty(),
+            root_font_size: inherited_style.root_font_size,
+        },
     };
+
+    // Set computed values, overwriting earlier declarations for the same property.
     let mut cacheable = true;
     let mut seen = PropertyBitField::new();
     // Declaration blocks are stored in increasing precedence order, we want them in decreasing
@@ -6798,56 +6610,114 @@ pub fn cascade(viewport_size: Size2D<Au>,
     // of compiled code! To improve i-cache behavior, we outline the individual functions and use
     // virtual dispatch instead.
     CASCADE_PROPERTY.with(|cascade_property| {
-        for sub_list in applicable_declarations.iter().rev() {
-            // Declarations are already stored in reverse order.
-            for declaration in sub_list.declarations.iter() {
-                if let PropertyDeclaration::Custom(..) = *declaration {
-                    continue
+        % for category_to_cascade_now in ["early", "other"]:
+            for sub_list in applicable_declarations.iter().rev() {
+                // Declarations are already stored in reverse order.
+                for declaration in sub_list.declarations.iter() {
+                    if let PropertyDeclaration::Custom(..) = *declaration {
+                        continue
+                    }
+                    // The computed value of some properties depends on the (sometimes computed)
+                    // value of *other* properties.
+                    // So we classify properties into "early" and "other",
+                    // such that the only dependencies can be from "other" to "early".
+                    // We iterate applicable_declarations twice, first cascading "early" properties
+                    // then "other".
+                    // Unfortunately, it’s not easy to check that this classification is correct.
+                    let is_early_property = matches!(*declaration,
+                        PropertyDeclaration::FontSize(_) |
+                        PropertyDeclaration::Color(_) |
+                        PropertyDeclaration::Position(_) |
+                        PropertyDeclaration::Float(_) |
+                        PropertyDeclaration::TextDecoration(_)
+                    );
+                    if
+                        % if category_to_cascade_now == "early":
+                            !
+                        % endif
+                        is_early_property
+                    {
+                        continue
+                    }
+                    let discriminant = unsafe {
+                        intrinsics::discriminant_value(declaration) as usize
+                    };
+                    (cascade_property[discriminant].unwrap())(declaration,
+                                                              inherited_style,
+                                                              &mut context,
+                                                              &mut seen,
+                                                              &mut cacheable,
+                                                              &mut error_reporter);
                 }
-                let discriminant = unsafe {
-                    intrinsics::discriminant_value(declaration) as usize
-                };
-                (cascade_property[discriminant].unwrap())(declaration,
-                                                          &mut style,
-                                                          inherited_style,
-                                                          &context,
-                                                          &mut seen,
-                                                          &mut cacheable,
-                                                          &mut error_reporter);
-            }
-        }
-    });
-
-    // The initial value of border-*-width may be changed at computed value time.
-    {
-        let border = Arc::make_mut(&mut style.border);
-        % for side in ["top", "right", "bottom", "left"]:
-            // Like calling to_computed_value, which wouldn't type check.
-            if !context.border_${side}_present {
-                border.border_${side}_width = Au(0);
             }
         % endfor
+    });
+
+    let mut style = context.style;
+
+    let positioned = matches!(style.box_.position,
+        longhands::position::SpecifiedValue::absolute |
+        longhands::position::SpecifiedValue::fixed);
+    let floated = style.box_.float != longhands::float::SpecifiedValue::none;
+    if positioned || floated || is_root_element {
+        use computed_values::display::T;
+
+        let specified_display = style.box_.display;
+        let computed_display = match specified_display {
+            T::inline_table => {
+                Some(T::table)
+            }
+            T::inline | T::inline_block |
+            T::table_row_group | T::table_column |
+            T::table_column_group | T::table_header_group |
+            T::table_footer_group | T::table_row | T::table_cell |
+            T::table_caption => {
+                Some(T::block)
+            }
+            _ => None
+        };
+        if let Some(computed_display) = computed_display {
+            let box_ = Arc::make_mut(&mut style.box_);
+            box_.display = computed_display;
+            box_._servo_display_for_hypothetical_box = if is_root_element {
+                computed_display
+            } else {
+                specified_display
+            };
+        }
     }
 
-    // The initial value of display may be changed at computed value time.
-    if !seen.get_display() {
-        let box_ = Arc::make_mut(&mut style.box_);
-        let computed_value = box_.display.to_computed_value(&context);
-        box_.display = computed_value;
-        box_._servo_display_for_hypothetical_box =
-            longhands::_servo_display_for_hypothetical_box::derive_from_display(
-                    computed_value,
-                    &context);
+    {
+        use computed_values::overflow_x::T as overflow;
+        use computed_values::overflow_y;
+        match (style.box_.overflow_x, style.box_.overflow_y.0) {
+            (overflow::visible, overflow::visible) => {}
+            (overflow::visible, _) => {
+                Arc::make_mut(&mut style.box_).overflow_x = overflow::auto
+            }
+            (_, overflow::visible) => {
+                Arc::make_mut(&mut style.box_).overflow_y = overflow_y::T(overflow::auto)
+            }
+            _ => {}
+        }
     }
+
+    // The initial value of border-*-width may be changed at computed value time.
+    % for side in ["top", "right", "bottom", "left"]:
+        // Like calling to_computed_value, which wouldn't type check.
+        if style.border.border_${side}_style.none_or_hidden() &&
+           style.border.border_${side}_width != Au(0) {
+            Arc::make_mut(&mut style.border).border_${side}_width = Au(0);
+        }
+    % endfor
 
     // The initial value of outline width may be changed at computed value time.
-    if !context.outline_style_present {
-        let outline = Arc::make_mut(&mut style.outline);
-        outline.outline_width = Au(0);
+    if style.outline.outline_style.none_or_hidden() && style.outline.outline_width != Au(0) {
+        Arc::make_mut(&mut style.outline).outline_width = Au(0);
     }
 
     if is_root_element {
-        context.root_font_size = context.font_size;
+        style.root_font_size = style.font.font_size;
     }
 
     if seen.get_font_style() || seen.get_font_weight() || seen.get_font_stretch() ||
