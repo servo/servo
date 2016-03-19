@@ -5892,6 +5892,12 @@
             "url": "/_mozilla/mozilla/htmlfontelement_size_attribute.html"
           }
         ],
+        "mozilla/htmllabel-activation.html": [
+          {
+            "path": "mozilla/htmllabel-activation.html",
+            "url": "/_mozilla/mozilla/htmllabel-activation.html"
+          }
+        ],
         "mozilla/htmlspacechars.html": [
           {
             "path": "mozilla/htmlspacechars.html",
