@@ -1,0 +1,147 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Click action on label</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<label id="first">hi 
+<input type="checkbox" id="checkbox1"><input type="checkbox" id="checkbox2">
+</label>
+<label id="second">hi 
+<input type="checkbox" disabled id="disabledcb1"><input type="checkbox" id="checkbox3">
+</label>
+<label id="third">hi 
+<a href="about:blank" id="link1">foo</a><input type="checkbox" id=checkbox4>
+</label>
+<label id="fourth">hi 
+<input type="radio" id="radio1"><input type="checkbox" id="checkbox5">
+</label>
+<label id="fifth">hi 
+<input type="radio" disabled id="disabledRadio"><input type="checkbox" id="checkbox6">
+</label>
+<label id="sixth">hi 
+<input type="submit" id="submit1" onclick="toggleSixth()"><input type="checkbox" id="checkbox7">
+</label>
+<label id="seventh">hi 
+<input type="submit" disabled id="disabledSubmit" onclick="toggleSeventh()"><input type="checkbox" id="checkbox8">
+</label>
+
+<label for="checkbox10" id="eighth">hi 
+<input type="checkbox" id="checkbox9"><input type="checkbox" id="checkbox10">
+</label>
+
+<label for="checkbox12" id="ninth">hi </label>
+<input type="checkbox" id="checkbox11">
+<input type="checkbox" id="checkbox12">
+
+<!-- TODO?? -->
+<label id="tenth">hi <form action="about:blank"><input type="submit"></form><input type="checkbox"></label><br>
+
+
+<script>
+	var sixthClicked = false;
+	function toggleSixth() {
+	    sixthClicked = true;
+	}
+
+	var seventhClicked = false;
+	function toggleSeventh() {
+	    seventhClicked = true;
+	}
+
+	var eleventhClicked = false;
+	function toggleEleventh() {
+	    eleventhClicked = true;
+	}
+
+
+	var checkbox1 = document.getElementById('checkbox1'),
+		checkbox2 = document.getElementById('checkbox2'),
+		disabledcb1 = document.getElementById('disabledcb1'),
+		checkbox3 = document.getElementById('checkbox3'),
+		link1 = document.getElementById('link1'),
+		checkbox4 = document.getElementById('checkbox4'),
+		radio1 = document.getElementById('radio1'),
+		checkbox5 = document.getElementById('checkbox5'),
+		disabledRadio = document.getElementById('disabledRadio'),
+		checkbox6 = document.getElementById('checkbox6'),
+		submit1 = document.getElementById('submit1'),
+		checkbox7 = document.getElementById('checkbox7'),
+		disabledSubmit = document.getElementById('disabledSubmit'),
+		checkbox8 = document.getElementById('checkbox8'),
+		checkbox9 = document.getElementById('checkbox9'),
+		checkbox10 = document.getElementById('checkbox10'),
+		checkbox11 = document.getElementById('checkbox11'),
+		checkbox12 = document.getElementById('checkbox12');
+
+	console.log(link1.clicked);
+
+	test(function() {
+		document.getElementById("first").click();
+		assert_true(checkbox1.checked, "checkbox should be checked")
+		assert_false(checkbox2.checked, "checkbox should not be checked")
+		document.getElementById("first").click();
+		assert_false(checkbox1.checked, "checkbox should not be checked")
+		assert_false(checkbox2.checked, "checkbox should not be checked")
+	}, "Check if click on label selects 1st item (checkbox button)");
+
+	test(function() {
+		document.getElementById("second").click();
+		assert_false(disabledcb1.checked, "checkbox should not be checked")
+		assert_false(checkbox3.checked, "checkbox should not be checked")
+	}, "If label's 1st child is disabled, click should have no impact");
+
+	test(function() {
+		document.getElementById("third").click();
+		assert_true(checkbox4.checked, "checkbox should be checked")
+		document.getElementById("third").click();
+		assert_false(checkbox4.checked, "checkbox should not be checked")
+	}, "Label's 1st labelable element should be clicked");
+
+	test(function() {
+		document.getElementById("fourth").click();
+		assert_true(radio1.checked, "radio should be checked")
+		assert_false(checkbox5.checked, "checkbox should not be checked")
+	}, "Check if click on label selects 1st item (radio button)");
+
+	test(function() {
+		//Disabled radio button is getting checked???
+		document.getElementById("fifth").click();
+		assert_false(disabledRadio.checked, "disabled radio should not be checked")
+		assert_false(checkbox6.checked, "checkbox should not be checked")
+	}, "If label's 1st child is disabled, click should have no impact");
+
+
+	test(function() {
+		document.getElementById("sixth").click();
+		assert_true(sixthClicked, "submit should be selected")
+		assert_false(checkbox7.checked, "checkbox should not be checked")
+	}, "Check if click on label selects 1st item (submit)");
+
+	test(function() {
+		//Disabled submit is getting checked???
+		document.getElementById("seventh").click();
+		assert_false(seventhClicked, "disabled submit should not have been selected")
+		assert_false(checkbox8.checked, "checkbox should not be checked")
+	}, "If label's 1st child is disabled, click should have no impact");
+
+	test(function() {
+		document.getElementById("eighth").click();
+		assert_false(checkbox9.checked, "checkbox should not be checked")
+		assert_true(checkbox10.checked, "checkbox should be checked")
+		document.getElementById("eighth").click();
+		assert_false(checkbox9.checked, "checkbox should not be checked")
+		assert_false(checkbox10.checked, "checkbox should not be checked")
+	}, "Label 'for' logic should take precedence over nesting logic");
+
+	test(function() {
+		document.getElementById("ninth").click();
+		assert_false(checkbox11.checked, "checkbox should not be checked")
+		assert_true(checkbox12.checked, "checkbox should be checked")
+		document.getElementById("ninth").click();
+		assert_false(checkbox11.checked, "checkbox should not be checked")
+		assert_false(checkbox12.checked, "checkbox should not be checked")
+	}, "Verify non-nested label 'for' logic");
+
+
+</script>
