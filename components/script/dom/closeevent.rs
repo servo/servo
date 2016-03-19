@@ -46,8 +46,8 @@ impl CloseEvent {
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_,
-                             bubbles == EventBubbles::Bubbles,
-                             cancelable == EventCancelable::Cancelable);
+                             bool::from(bubbles),
+                             bool::from(cancelable));
         }
         ev
     }
@@ -56,16 +56,8 @@ impl CloseEvent {
                        type_: DOMString,
                        init: &CloseEventBinding::CloseEventInit)
                        -> Fallible<Root<CloseEvent>> {
-        let bubbles = if init.parent.bubbles {
-            EventBubbles::Bubbles
-        } else {
-            EventBubbles::DoesNotBubble
-        };
-        let cancelable = if init.parent.cancelable {
-            EventCancelable::Cancelable
-        } else {
-            EventCancelable::NotCancelable
-        };
+        let bubbles = EventBubbles::from(init.parent.bubbles);
+        let cancelable = EventCancelable::from(init.parent.cancelable);
         Ok(CloseEvent::new(global,
                            Atom::from(type_),
                            bubbles,

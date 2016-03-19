@@ -68,8 +68,8 @@ impl TouchEvent {
                metaKey: bool) -> Root<TouchEvent> {
         let ev = TouchEvent::new_uninitialized(window, touches, changed_touches, target_touches);
         ev.upcast::<UIEvent>().InitUIEvent(type_,
-                                           canBubble == EventBubbles::Bubbles,
-                                           cancelable == EventCancelable::Cancelable,
+                                           bool::from(canBubble),
+                                           bool::from(cancelable),
                                            view, detail);
         ev.ctrl_key.set(ctrlKey);
         ev.alt_key.set(altKey);
