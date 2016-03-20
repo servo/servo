@@ -34,11 +34,26 @@ use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
 #[dom_struct]
+#[derive(Debug)]
+//define data type for image_request and add current, pending request to HTMLImageElement
+enum state{
+    Unavailable,
+    Partially_available,
+    Completely_available,
+    Broken,
+}
+struct image_request {
+    state: state,
+    current_url: String,
+    image_data: i32,
+}
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
     url: DOMRefCell<Option<Url>>,
     image: DOMRefCell<Option<Arc<Image>>>,
     metadata: DOMRefCell<Option<ImageMetadata>>,
+    pending_request : image_request,
+    current_request : image_request,
 }
 
 impl HTMLImageElement {
