@@ -1696,7 +1696,7 @@ impl Node {
             NodeTypeId::Document(_) => {
                 let node_doc = node.downcast::<Document>().unwrap();
                 let copy_doc = copy.downcast::<Document>().unwrap();
-                copy_doc.set_encoding_name(node_doc.encoding_name().clone());
+                copy_doc.set_encoding(node_doc.encoding());
                 copy_doc.set_quirks_mode(node_doc.quirks_mode());
             },
             NodeTypeId::Element(..) => {
