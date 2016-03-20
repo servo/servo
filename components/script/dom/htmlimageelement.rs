@@ -115,8 +115,6 @@ impl HTMLImageElement {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
     fn update_image(&self, value: Option<(DOMString, Url)>) {
-        let pending_request = null;
-        let current_request = 
         let document = document_from_node(self);
         let window = document.window();
         let image_cache = window.image_cache_thread();
