@@ -14,6 +14,8 @@
 #![plugin(plugins)]
 #![plugin(serde_macros)]
 
+#![deny(unsafe_code)]
+
 #![recursion_limit = "500"]  // For match_ignore_ascii_case in PropertyDeclaration::parse
 
 extern crate app_units;

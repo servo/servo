@@ -8,6 +8,8 @@
 #![feature(plugin)]
 #![plugin(plugins)]
 
+#![deny(unsafe_code)]
+
 extern crate compositing;
 extern crate hyper;
 extern crate image;

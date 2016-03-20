@@ -5,6 +5,8 @@
 #![feature(custom_attribute, custom_derive, plugin)]
 #![plugin(heapsize_plugin, serde_macros, plugins)]
 
+#![deny(unsafe_code)]
+
 #[macro_use]
 extern crate bitflags;
 extern crate euclid;
