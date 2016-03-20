@@ -31,7 +31,7 @@ use net_traits::response::HttpsState;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, LoadData, Metadata};
 use openssl::ssl::error::{SslError, OpensslError};
 use openssl::ssl::{SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER, SslContext, SslMethod};
-use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt};
+use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt,AuthorizationCache};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::collections::HashSet;
@@ -80,6 +80,7 @@ pub fn create_http_connector() -> Arc<Pool<Connector>> {
 pub fn factory(user_agent: String,
                hsts_list: Arc<RwLock<HSTSList>>,
                cookie_jar: Arc<RwLock<CookieStorage>>,
+               auth_cache_storage: Arc<RwLock<AuthorizationCache>>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                connector: Arc<Pool<Connector>>)
                -> Box<FnBox(LoadData,
@@ -94,6 +95,7 @@ pub fn factory(user_agent: String,
                               connector,
                               hsts_list,
                               cookie_jar,
+                              auth_cache_storage,
                               devtools_chan,
                               cancel_listener,
                               user_agent)
@@ -130,6 +132,7 @@ fn load_for_consumer(load_data: LoadData,
                      connector: Arc<Pool<Connector>>,
                      hsts_list: Arc<RwLock<HSTSList>>,
                      cookie_jar: Arc<RwLock<CookieStorage>>,
+                     auth_cache_storage: Arc<RwLock<AuthorizationCache>>,
                      devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                      cancel_listener: CancellationListener,
                      user_agent: String) {
@@ -139,9 +142,9 @@ fn load_for_consumer(load_data: LoadData,
     };
     let context = load_data.context.clone();
     match load::<WrappedHttpRequest>(load_data, hsts_list,
-                                     cookie_jar, devtools_chan,
-                                     &factory, user_agent,
-                                     &cancel_listener) {
+                                     cookie_jar, auth_cache_storage,
+                                     devtools_chan, &factory,
+                                     user_agent, &cancel_listener) {
         Err(LoadError::UnsupportedScheme(url)) => {
             let s = format!("{} request, but we don't support that scheme", &*url.scheme);
             send_error(url, s, start_chan)
@@ -516,6 +519,7 @@ pub fn modify_request_headers(headers: &mut Headers,
                               url: &Url,
                               user_agent: &str,
                               cookie_jar: &Arc<RwLock<CookieStorage>>,
+                              auth_cache_storage: &Arc<RwLock<AuthorizationCache>>,
                               load_data: &LoadData) {
     // Ensure that the host header is set from the original url
     let host = Host {
@@ -536,17 +540,41 @@ pub fn modify_request_headers(headers: &mut Headers,
 
     set_default_accept(headers);
     set_default_accept_encoding(headers);
+
     // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
     if load_data.credentials_flag {
         set_request_cookies(url.clone(), headers, cookie_jar);
 
         // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch step 12
-        if !headers.has::<Authorization<Basic>>() {
-            if let Some(auth) = auth_from_url(url) {
-                headers.set(auth);
+        set_auth_header(headers,url,auth_cache_storage);
+    }
+}
+
+fn set_auth_header (headers: &mut Headers,
+                    url: &Url,
+                    auth_cache: &Arc<RwLock<AuthorizationCache>>) {
+
+    if !headers.has::<Authorization<Basic>>() {
+
+        if let Some(auth) = auth_from_url(url) {
+            
+            headers.set(auth);
+        }
+        else if auth_cache.read().unwrap().user_name != "" {
+            if let Some(auth) = auth_from_entry(auth_cache) {
+
+                headers.set(auth); 
             }
         }
     }
+}
+
+fn auth_from_entry (auth_cache: &Arc<RwLock<AuthorizationCache>>)  -> Option<Authorization<Basic>> {
+
+    let user_name = auth_cache.read().unwrap().user_name.clone();
+    let password  = Some(auth_cache.read().unwrap().password.clone());
+
+    return Some(Authorization(Basic { username: user_name, password: password }));
 }
 
 fn auth_from_url(doc_url: &Url) -> Option<Authorization<Basic>> {
@@ -665,6 +693,7 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
 pub fn load<A>(load_data: LoadData,
                hsts_list: Arc<RwLock<HSTSList>>,
                cookie_jar: Arc<RwLock<CookieStorage>>,
+               auth_cache_storage: Arc<RwLock<AuthorizationCache>>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                request_factory: &HttpRequestFactory<R=A>,
                user_agent: String,
@@ -730,7 +759,7 @@ pub fn load<A>(load_data: LoadData,
 
         let request_id = uuid::Uuid::new_v4().to_simple_string();
 
-        modify_request_headers(&mut request_headers, &doc_url, &user_agent, &cookie_jar, &load_data);
+        modify_request_headers(&mut request_headers, &doc_url, &user_agent, &cookie_jar, &auth_cache_storage, &load_data);
 
         let response = try!(obtain_response(request_factory, &doc_url, &method, &request_headers,
                                             &cancel_listener, &load_data.data, &load_data.method,
