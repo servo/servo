@@ -115,6 +115,8 @@ impl HTMLImageElement {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
     fn update_image(&self, value: Option<(DOMString, Url)>) {
+        let pending_request = null;
+        let current_request = 
         let document = document_from_node(self);
         let window = document.window();
         let image_cache = window.image_cache_thread();
@@ -244,6 +246,12 @@ impl HTMLImageElementMethods for HTMLImageElement {
     make_getter!(UseMap, "usemap");
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
     make_setter!(SetUseMap, "usemap");
+
+    // https://html.spec.whatwg.org/multipage/#dom-img-crossorigin
+    make_getter!(CrossOrigin, "crossorigin");
+    // https://html.spec.whatwg.org/multipage/#dom-img-crossorigin
+    make_setter!(SetCrossOrigin, "crossorigin");
+
 
     // https://html.spec.whatwg.org/multipage/#dom-img-ismap
     make_bool_getter!(IsMap, "ismap");
