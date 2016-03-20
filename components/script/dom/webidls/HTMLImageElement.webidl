@@ -17,6 +17,7 @@ interface HTMLImageElement : HTMLElement {
   readonly attribute unsigned long naturalWidth;
   readonly attribute unsigned long naturalHeight;
   readonly attribute boolean complete;
+  readonly attribute DOMString currerntSrc;
 
   // also has obsolete members
 };
