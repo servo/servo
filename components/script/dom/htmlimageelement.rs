@@ -62,6 +62,7 @@ impl ImageResponseHandlerRunnable {
     }
 }
 
+
 impl Runnable for ImageResponseHandlerRunnable {
     fn handler(self: Box<Self>) {
         // Update the image field
