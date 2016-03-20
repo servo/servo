@@ -269,9 +269,15 @@ impl Drop for CancellationListener {
     }
 }
 
+pub struct AuthCacheEntry {
+    pub user_name: String,
+    pub password: String,
+}
+
 pub struct ResourceManager {
     user_agent: String,
     cookie_storage: Arc<RwLock<CookieStorage>>,
+    auth_cache: Arc<RwLock<HashMap<Url, AuthCacheEntry>>>,
     mime_classifier: Arc<MIMEClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     hsts_list: Arc<RwLock<HSTSList>>,
@@ -287,6 +293,7 @@ impl ResourceManager {
         ResourceManager {
             user_agent: user_agent,
             cookie_storage: Arc::new(RwLock::new(CookieStorage::new())),
+            auth_cache: Arc::new(RwLock::new(HashMap::new())),
             mime_classifier: Arc::new(MIMEClassifier::new()),
             devtools_chan: devtools_channel,
             hsts_list: Arc::new(RwLock::new(hsts_list)),
@@ -341,6 +348,7 @@ impl ResourceManager {
                 http_loader::factory(self.user_agent.clone(),
                                      self.hsts_list.clone(),
                                      self.cookie_storage.clone(),
+                                     self.auth_cache.clone(),
                                      self.devtools_chan.clone(),
                                      self.connector.clone()),
             "data" => from_factory(data_loader::factory),
