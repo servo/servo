@@ -11,15 +11,15 @@ import sys
 import re
 import subprocess
 
-symbol_regex = re.compile("D  \*UND\*\t(.*) (.*)$")
-allowed_symbols = frozenset(['unshare', 'malloc_usable_size'])
+symbol_regex = re.compile(b"D  \*UND\*\t(.*) (.*)$")
+allowed_symbols = frozenset([b'unshare', b'malloc_usable_size'])
 actual_symbols = set()
 
 objdump_output = subprocess.check_output([
     'arm-linux-androideabi-objdump',
     '-T',
     'target/arm-linux-androideabi/debug/libservo.so']
-).split('\n')
+).split(b'\n')
 
 for line in objdump_output:
     m = symbol_regex.search(line)
