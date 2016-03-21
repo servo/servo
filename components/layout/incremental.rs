@@ -145,6 +145,9 @@ macro_rules! add_if_not_equal(
      [ $($effect:ident),* ], [ $($style_struct_getter:ident.$name:ident),* ]) => ({
         if $( ($old.$style_struct_getter().$name != $new.$style_struct_getter().$name) )||* {
             $damage.insert($($effect)|*);
+            true
+        } else {
+            false
         }
     })
 );
@@ -157,46 +160,19 @@ pub fn compute_damage(old: Option<&Arc<ComputedValues>>, new: &ComputedValues) -
 
     let mut damage = RestyleDamage::empty();
 
-    // This checks every CSS property, as enumerated in
-    // impl<'self> CssComputedStyle<'self>
-    // in src/support/netsurfcss/rust-netsurfcss/netsurfcss.rc.
+    // This should check every CSS property, as enumerated in the fields of
+    // http://doc.servo.org/style/properties/struct.ComputedValues.html
 
-    // FIXME: We can short-circuit more of this.
-
-    add_if_not_equal!(old, new, damage,
-                      [ REPAINT ], [
-        get_color.color, get_background.background_color,
-        get_border.border_top_color, get_border.border_right_color,
-        get_border.border_bottom_color, get_border.border_left_color,
-        get_effects.transform, get_box.z_index
-    ]);
-
-    add_if_not_equal!(old, new, damage,
-                      [ REPAINT, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW ], [
-        get_positionoffsets.top, get_positionoffsets.left,
-        get_positionoffsets.right, get_positionoffsets.bottom
-    ]);
-
-    add_if_not_equal!(old, new, damage,
-                      [ REPAINT, STORE_OVERFLOW, BUBBLE_ISIZES, REFLOW_OUT_OF_FLOW, REFLOW ], [
-        get_border.border_top_width, get_border.border_right_width,
-        get_border.border_bottom_width, get_border.border_left_width,
-        get_margin.margin_top, get_margin.margin_right,
-        get_margin.margin_bottom, get_margin.margin_left,
-        get_padding.padding_top, get_padding.padding_right,
-        get_padding.padding_bottom, get_padding.padding_left,
-        get_box.width, get_box.height,
-        get_inheritedtext.text_align, get_text.text_decoration, get_inheritedbox.line_height
-    ]);
+    // FIXME: Test somehow that every property is included.
 
     add_if_not_equal!(old, new, damage,
                       [
-                        REPAINT,
-                        STORE_OVERFLOW,
-                        BUBBLE_ISIZES,
-                        REFLOW_OUT_OF_FLOW,
-                        REFLOW,
-                        RECONSTRUCT_FLOW
+                          REPAINT,
+                          STORE_OVERFLOW,
+                          BUBBLE_ISIZES,
+                          REFLOW_OUT_OF_FLOW,
+                          REFLOW,
+                          RECONSTRUCT_FLOW
                       ], [
         get_box.float, get_box.display, get_box.position, get_box.content,
         get_counters.counter_reset, get_counters.counter_increment,
@@ -208,6 +184,25 @@ pub fn compute_damage(old: Option<&Arc<ComputedValues>>, new: &ComputedValues) -
         get_inheritedtext.text_transform, get_inheritedtext.word_spacing,
         get_font.font_family, get_font.font_style, get_font.font_variant, get_font.font_weight,
         get_font.font_size, get_font.font_stretch
+    ]) || add_if_not_equal!(old, new, damage,
+                            [ REPAINT, STORE_OVERFLOW, BUBBLE_ISIZES, REFLOW_OUT_OF_FLOW, REFLOW ],
+        [get_border.border_top_width, get_border.border_right_width,
+        get_border.border_bottom_width, get_border.border_left_width,
+        get_margin.margin_top, get_margin.margin_right,
+        get_margin.margin_bottom, get_margin.margin_left,
+        get_padding.padding_top, get_padding.padding_right,
+        get_padding.padding_bottom, get_padding.padding_left,
+        get_box.width, get_box.height,
+        get_inheritedtext.text_align, get_text.text_decoration, get_inheritedbox.line_height
+    ]) || add_if_not_equal!(old, new, damage,
+                            [ REPAINT, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW ], [
+        get_positionoffsets.top, get_positionoffsets.left,
+        get_positionoffsets.right, get_positionoffsets.bottom
+    ]) || add_if_not_equal!(old, new, damage,
+                            [ REPAINT ], [
+        get_color.color, get_background.background_color,
+        get_border.border_top_color, get_border.border_right_color,
+        get_border.border_bottom_color, get_border.border_left_color
     ]);
 
     // If the layer requirements of this flow have changed due to the value
@@ -216,7 +211,6 @@ pub fn compute_damage(old: Option<&Arc<ComputedValues>>, new: &ComputedValues) -
         damage.insert(RestyleDamage::rebuild_and_reflow());
     }
 
-    // FIXME: test somehow that we checked every CSS property
     damage
 }
 
