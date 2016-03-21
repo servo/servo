@@ -1182,6 +1182,7 @@ impl ScriptThread {
 
     ///Handle make pipeline visible message
     fn handle_visible_msg(&self, id: PipelineId) {
+        println!("GOT TO script thread with set visible");
         if let Some(root_page) = self.page.borrow().as_ref() {
             if let Some(ref inner_page) = root_page.find(id) {
                 let window = inner_page.window();

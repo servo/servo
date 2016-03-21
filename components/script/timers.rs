@@ -210,10 +210,12 @@ impl OneshotTimers {
     }
 
     pub fn slow_down(&self) {
+        println!("slowing down timers");
         self.js_timers.set_min_duration(MsDuration::new(1000)); //TODO: jmr0: where to store this constant?
     }
 
     pub fn speed_up(&self) {
+        println!("speeding up timers");
         self.js_timers.remove_min_duration();
     }
 
@@ -347,6 +349,7 @@ impl HeapSizeOf for InternalTimerCallback {
 
 impl JsTimers {
     pub fn new() -> JsTimers {
+        println!("Made jstimers!");
         JsTimers {
             next_timer_handle: Cell::new(JsTimerHandle(1)),
             active_timers: DOMRefCell::new(HashMap::new()),
@@ -426,7 +429,10 @@ impl JsTimers {
     // see step 13 of https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
     fn user_agent_pad(&self, current_duration: MsDuration) -> MsDuration {
         match self.min_duration.get() {
-            Some(min_duration) => cmp::max(min_duration, current_duration),
+            Some(min_duration) => {
+                println!("min duration set to: {:?}", min_duration);
+                cmp::max(min_duration, current_duration)
+            },
             None => current_duration
         }
     }
@@ -441,7 +447,7 @@ impl JsTimers {
 
         // step 7, 13
         let duration = self.user_agent_pad(clamp_duration(nesting_level, task.duration));
-
+        println!("event duration set to: {:?}", duration);
         // step 8, 9
         task.nesting_level = nesting_level + 1;
 
