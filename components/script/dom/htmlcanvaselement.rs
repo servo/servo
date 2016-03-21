@@ -94,7 +94,6 @@ impl HTMLCanvasElement {
 }
 
 pub struct HTMLCanvasData {
-    pub renderer_id: Option<usize>,
     pub ipc_renderer: Option<IpcSender<CanvasMsg>>,
     pub width: u32,
     pub height: u32,
@@ -109,22 +108,20 @@ impl LayoutHTMLCanvasElementHelpers for LayoutJS<HTMLCanvasElement> {
     fn data(&self) -> HTMLCanvasData {
         unsafe {
             let canvas = &*self.unsafe_get();
-            let (renderer_id, ipc_renderer) = match canvas.context.borrow_for_layout().as_ref() {
-                Some(&CanvasContext::Context2d(ref context)) => {
-                    let context = context.to_layout();
-                    (Some(context.get_renderer_id()), Some(context.get_ipc_renderer()))
-                },
-                Some(&CanvasContext::WebGL(ref context)) => {
-                    let context = context.to_layout();
-                    (Some(context.get_renderer_id()), Some(context.get_ipc_renderer()))
-                },
-                None => (None, None),
-            };
+            let ipc_renderer = canvas.context.borrow_for_layout().as_ref().map(|context| {
+                match *context {
+                    CanvasContext::Context2d(ref context) => {
+                        context.to_layout().get_ipc_renderer()
+                    },
+                    CanvasContext::WebGL(ref context) => {
+                        context.to_layout().get_ipc_renderer()
+                    },
+                }
+            });
 
             let width_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(), &atom!("width"));
             let height_attr = canvas.upcast::<Element>().get_attr_for_layout(&ns!(), &atom!("height"));
             HTMLCanvasData {
-                renderer_id: renderer_id,
                 ipc_renderer: ipc_renderer,
                 width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
                 height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
