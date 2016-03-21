@@ -1195,16 +1195,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
 pub trait LayoutCanvasWebGLRenderingContextHelpers {
     #[allow(unsafe_code)]
-    unsafe fn get_renderer_id(&self) -> usize;
-    #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg>;
 }
 
 impl LayoutCanvasWebGLRenderingContextHelpers for LayoutJS<WebGLRenderingContext> {
-    #[allow(unsafe_code)]
-    unsafe fn get_renderer_id(&self) -> usize {
-        (*self.unsafe_get()).renderer_id
-    }
     #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
         (*self.unsafe_get()).ipc_renderer.clone()
