@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::activation::{Activatable, ActivationSource, synthetic_click_activation};
+use dom::validation::Validatable;
 use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
@@ -40,6 +41,16 @@ impl HTMLLabelElement {
                document: &Document) -> Root<HTMLLabelElement> {
         let element = HTMLLabelElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLLabelElementBinding::Wrap)
+    }
+}
+
+impl Validatable for HTMLLabelElement {
+    fn as_element(&self) -> &Element {
+        self.upcast::<Element>()
+    }
+
+    fn is_instance_validatable(&self) -> bool {
+        false
     }
 }
 

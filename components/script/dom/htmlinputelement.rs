@@ -4,6 +4,7 @@
 
 use caseless::compatibility_caseless_match_str;
 use dom::activation::{Activatable, ActivationSource, synthetic_click_activation};
+use dom::validation::Validatable;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
@@ -908,6 +909,20 @@ impl VirtualMethods for HTMLInputElement {
 
 impl FormControl for HTMLInputElement {}
 
+impl Validatable for HTMLInputElement {
+    fn as_element(&self) -> &Element {
+        self.upcast()
+    }
+    
+    fn is_instance_validatable(&self) -> bool {
+        match self.input_type.get() {
+            InputType::InputText | InputType::InputFile | InputType::InputPassword
+            | InputType::InputCheckbox | InputType::InputRadio => true,
+            _ => false
+        }
+    }
+}
+
 impl Activatable for HTMLInputElement {
     fn as_element(&self) -> &Element {
         self.upcast()
@@ -924,6 +939,8 @@ impl Activatable for HTMLInputElement {
             _ => false
         }
     }
+
+
 
     // https://html.spec.whatwg.org/multipage/#run-pre-click-activation-steps
     #[allow(unsafe_code)]

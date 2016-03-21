@@ -398,3 +398,4 @@ pub mod xmldocument;
 pub mod xmlhttprequest;
 pub mod xmlhttprequesteventtarget;
 pub mod xmlhttprequestupload;
+pub mod validation;

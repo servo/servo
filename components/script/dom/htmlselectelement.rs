@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::{Attr, AttrValue};
+use dom::validation::Validatable;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
@@ -130,7 +131,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
     fn Validity(&self) -> Root<ValidityState> {
         let window = window_from_node(self);
-        ValidityState::new(window.r())
+        ValidityState::new(window.r(),self.upcast())
     }
 
     // Note: this function currently only exists for union.html.
@@ -234,3 +235,13 @@ impl VirtualMethods for HTMLSelectElement {
 }
 
 impl FormControl for HTMLSelectElement {}
+
+impl Validatable for HTMLSelectElement {
+     fn as_element(&self) -> &Element {
+        self.upcast()
+    }
+    
+    fn is_instance_validatable(&self) -> bool {
+        true
+    }
+}
