@@ -359,6 +359,10 @@ impl Pipeline {
     }
 
     pub fn set_visible(&mut self, visible: bool) {
+        if visible == self.visible {
+            return; //No changes
+        }
+
         self.visible = visible;
         match visible {
             true => { 
@@ -368,6 +372,7 @@ impl Pipeline {
                 self.script_chan.send(ConstellationControlMsg::SetNonVisible(self.id)).unwrap();
             }
         }
+        self.compositor_proxy.send(CompositorMsg::PipelineVisibilityChanged(self.id, visible))
     }
 
 }

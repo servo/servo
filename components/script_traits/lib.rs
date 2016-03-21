@@ -279,7 +279,8 @@ pub enum TimerSource {
 pub struct TimerEventId(pub u32);
 
 /// Unit of measurement.
-#[derive(Clone, Copy, HeapSizeOf)]
+/// TODO: jmr0 remove Debug
+#[derive(Clone, Copy, Debug, HeapSizeOf)]
 pub enum Milliseconds {}
 /// Unit of measurement.
 #[derive(Clone, Copy, HeapSizeOf)]

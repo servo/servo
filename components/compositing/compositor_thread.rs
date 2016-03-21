@@ -231,6 +231,8 @@ pub enum Msg {
     MoveTo(Point2D<i32>),
     /// Resize the window to size
     ResizeTo(Size2D<u32>),
+    /// Pipeline visibility changed
+    PipelineVisibilityChanged(PipelineId, bool),
     /// A pipeline was shut down.
     // This message acts as a synchronization point between the constellation,
     // when it shuts down a pipeline, to the compositor; when the compositor
@@ -271,6 +273,7 @@ impl Debug for Msg {
             Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
             Msg::MoveTo(..) => write!(f, "MoveTo"),
             Msg::ResizeTo(..) => write!(f, "ResizeTo"),
+            Msg::PipelineVisibilityChanged(..) => write!(f, "PipelineVisibilityChanged"),
             Msg::PipelineExited(..) => write!(f, "PipelineExited"),
         }
     }
