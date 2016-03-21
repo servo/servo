@@ -290,7 +290,7 @@ class MachCommands(CommandBase):
              description='Run the webdriver tests',
              category='testing')
     def test_webdriver(self,params=None):
-        print("i am running")
+        print("")
 
     @Command('test-content',
              description='Run the content tests',
