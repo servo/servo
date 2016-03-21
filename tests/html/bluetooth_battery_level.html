@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<title>Battery Level</title>
+<body>
+    <input id="name" type="text" placeholder="Device Name">
+    <input id="namePrefix" type="text" placeholder="Device Name Prefix">
+    <button type="button" onclick="onButtonClick()">Get Bluetooth Device's Battery Level</button>
+    <pre id="log"></pre>
+    <script>
+    function onButtonClick() {
+        clear();
+        var options = {filters: [{services: ['battery_service']}], optinalServices: []};
+
+        var filterName = document.getElementById('name').value;
+        if (filterName)
+            options.filters.push({name: filterName});
+
+        var filterNamePrefix = document.getElementById('namePrefix').value;
+        if (filterNamePrefix)
+            options.filters.push({namePrefix: filterNamePrefix});
+
+        try {
+            log('Requesting Bluetooth Device...');
+            var bluetooth = window.navigator.bluetooth;
+            var device = bluetooth.requestDevice(options);
+
+            log('Connecting to GATT Server on device...');
+            var server = device.gatt.connect();
+
+            log('Getting Battery Service...');
+            var service = server.getPrimaryService('battery_service');
+
+            log('Getting Battery Level Characteristic...');
+            var characteristic = service.getCharacteristic('battery_level');
+
+            log('Reading Battery Level...');
+            var value = AsciiToDecimal(characteristic.readValue());
+            log('> Battery Level is ' + value + '%');
+        } catch(err) {
+            log(err);
+        }
+    }
+
+    function clear() {
+        document.getElementById("log").textContent = "";
+    }
+
+    function log(line) {
+        document.getElementById("log").textContent += line + '\n';
+    }
+
+    function AsciiToDecimal(bytestr) {
+        var result = [];
+        for(i = 0; i < bytestr.length; i++) {
+            result[i] = bytestr[i].charCodeAt(0) ;
+        }
+        return result;
+    }
+    </script>
+</body>
+</html>
