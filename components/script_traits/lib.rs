@@ -424,7 +424,7 @@ pub enum MozBrowserEvent {
     /// Sent when the browser `<iframe>` starts to load a new page.
     LoadStart,
     /// Sent when a browser `<iframe>`'s location changes.
-    LocationChange(String),
+    LocationChange(String, bool, bool),
     /// Sent when window.open() is called within a browser `<iframe>`.
     OpenWindow,
     /// Sent when the SSL state changes within a browser `<iframe>`.
@@ -451,7 +451,7 @@ impl MozBrowserEvent {
             MozBrowserEvent::IconChange(_, _, _) => "mozbrowsericonchange",
             MozBrowserEvent::LoadEnd => "mozbrowserloadend",
             MozBrowserEvent::LoadStart => "mozbrowserloadstart",
-            MozBrowserEvent::LocationChange(_) => "mozbrowserlocationchange",
+            MozBrowserEvent::LocationChange(_, _, _) => "mozbrowserlocationchange",
             MozBrowserEvent::OpenWindow => "mozbrowseropenwindow",
             MozBrowserEvent::SecurityChange(_) => "mozbrowsersecuritychange",
             MozBrowserEvent::ShowModalPrompt(_, _, _, _) => "mozbrowsershowmodalprompt",
