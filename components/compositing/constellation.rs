@@ -1206,26 +1206,24 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     fn handle_create_canvas_paint_thread_msg(
             &mut self,
             size: &Size2D<i32>,
-            response_sender: IpcSender<(IpcSender<CanvasMsg>, usize)>) {
-        let id = self.canvas_paint_threads.len();
+            response_sender: IpcSender<IpcSender<CanvasMsg>>) {
         let webrender_api = self.webrender_api_sender.clone();
         let (out_of_process_sender, in_process_sender) = CanvasPaintThread::start(*size,
                                                                                   webrender_api);
         self.canvas_paint_threads.push(in_process_sender);
-        response_sender.send((out_of_process_sender, id)).unwrap()
+        response_sender.send(out_of_process_sender).unwrap()
     }
 
     fn handle_create_webgl_paint_thread_msg(
             &mut self,
             size: &Size2D<i32>,
             attributes: GLContextAttributes,
-            response_sender: IpcSender<Result<(IpcSender<CanvasMsg>, usize), String>>) {
+            response_sender: IpcSender<Result<IpcSender<CanvasMsg>, String>>) {
         let webrender_api = self.webrender_api_sender.clone();
         let response = match WebGLPaintThread::start(*size, attributes, webrender_api) {
             Ok((out_of_process_sender, in_process_sender)) => {
-                let id = self.webgl_paint_threads.len();
                 self.webgl_paint_threads.push(in_process_sender);
-                Ok((out_of_process_sender, id))
+                Ok(out_of_process_sender)
             },
             Err(msg) => Err(msg),
         };
