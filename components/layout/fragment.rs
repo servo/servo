@@ -316,7 +316,6 @@ impl InlineAbsoluteFragmentInfo {
 #[derive(Clone)]
 pub struct CanvasFragmentInfo {
     pub replaced_image_fragment_info: ReplacedImageFragmentInfo,
-    pub renderer_id: Option<usize>,
     pub ipc_renderer: Option<Arc<Mutex<IpcSender<CanvasMsg>>>>,
     pub dom_width: Au,
     pub dom_height: Au,
@@ -326,7 +325,6 @@ impl CanvasFragmentInfo {
     pub fn new<N: ThreadSafeLayoutNode>(node: &N, data: HTMLCanvasData) -> CanvasFragmentInfo {
         CanvasFragmentInfo {
             replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node),
-            renderer_id: data.renderer_id,
             ipc_renderer: data.ipc_renderer
                               .map(|renderer| Arc::new(Mutex::new(renderer))),
             dom_width: Au::from_px(data.width as i32),
