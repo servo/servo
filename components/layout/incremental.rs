@@ -168,7 +168,7 @@ pub fn compute_damage(old: Option<&Arc<ComputedValues>>, new: &ComputedValues) -
         get_color.color, get_background.background_color,
         get_border.border_top_color, get_border.border_right_color,
         get_border.border_bottom_color, get_border.border_left_color,
-        get_effects.transform
+        get_effects.transform, get_box.z_index
     ]);
 
     add_if_not_equal!(old, new, damage,
