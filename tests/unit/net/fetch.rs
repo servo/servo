@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use hyper::header::{AccessControlAllowHeaders, AccessControlAllowOrigin};
+use hyper::header::{AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowOrigin};
+use hyper::header::{AccessControlAllowMethods, AccessControlRequestHeaders, AccessControlRequestMethod};
 use hyper::header::{CacheControl, ContentLanguage, ContentType, Expires, LastModified};
 use hyper::header::{Headers, HttpDate, Location, SetCookie, Pragma};
 use hyper::method::Method;
@@ -16,6 +17,7 @@ use net_traits::AsyncFetchListener;
 use net_traits::request::{Origin, RedirectMode, Referer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use std::rc::Rc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Sender, channel};
 use std::sync::{Arc, Mutex};
 use time::{self, Duration};
@@ -134,6 +136,74 @@ fn test_fetch_data() {
         },
         ResponseBody::Empty => panic!(),
     }
+}
+
+#[test]
+fn test_cors_preflight_fetch() {
+    static ACK: &'static [u8] = b"ACK";
+    let state = Arc::new(AtomicUsize::new(0));
+    let handler = move |request: HyperRequest, mut response: HyperResponse| {
+        if request.method == Method::Options && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
+            assert!(request.headers.has::<AccessControlRequestMethod>());
+            assert!(request.headers.has::<AccessControlRequestHeaders>());
+            response.headers_mut().set(AccessControlAllowOrigin::Any);
+            response.headers_mut().set(AccessControlAllowCredentials);
+            response.headers_mut().set(AccessControlAllowMethods(vec![Method::Get]));
+        } else {
+            response.headers_mut().set(AccessControlAllowOrigin::Any);
+            response.send(ACK).unwrap();
+        }
+    };
+    let (mut server, url) = make_server(handler);
+
+    let origin = Origin::Origin(UrlOrigin::UID(OpaqueOrigin::new()));
+    let mut request = Request::new(url, Some(origin), false);
+    request.referer = Referer::NoReferer;
+    request.use_cors_preflight = true;
+    request.mode = RequestMode::CORSMode;
+    let wrapped_request = Rc::new(request);
+
+    let fetch_response = fetch(wrapped_request);
+    let _ = server.close();
+
+    assert!(!fetch_response.is_network_error());
+
+    match *fetch_response.body.lock().unwrap() {
+        ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
+        _ => panic!()
+    };
+}
+
+#[test]
+fn test_cors_preflight_fetch_network_error() {
+    static ACK: &'static [u8] = b"ACK";
+    let state = Arc::new(AtomicUsize::new(0));
+    let handler = move |request: HyperRequest, mut response: HyperResponse| {
+        if request.method == Method::Options && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
+            assert!(request.headers.has::<AccessControlRequestMethod>());
+            assert!(request.headers.has::<AccessControlRequestHeaders>());
+            response.headers_mut().set(AccessControlAllowOrigin::Any);
+            response.headers_mut().set(AccessControlAllowCredentials);
+            response.headers_mut().set(AccessControlAllowMethods(vec![Method::Get]));
+        } else {
+            response.headers_mut().set(AccessControlAllowOrigin::Any);
+            response.send(ACK).unwrap();
+        }
+    };
+    let (mut server, url) = make_server(handler);
+
+    let origin = Origin::Origin(UrlOrigin::UID(OpaqueOrigin::new()));
+    let mut request = Request::new(url, Some(origin), false);
+    *request.method.borrow_mut() = Method::Extension("CHICKEN".to_owned());
+    request.referer = Referer::NoReferer;
+    request.use_cors_preflight = true;
+    request.mode = RequestMode::CORSMode;
+    let wrapped_request = Rc::new(request);
+
+    let fetch_response = fetch(wrapped_request);
+    let _ = server.close();
+
+    assert!(fetch_response.is_network_error());
 }
 
 #[test]
@@ -342,7 +412,7 @@ fn test_fetch_with_local_urls_only() {
     assert!(server_response.is_network_error());
 }
 
-fn test_fetch_redirect_count(message: &'static [u8], redirect_cap: u32) -> Response {
+fn setup_server_and_fetch(message: &'static [u8], redirect_cap: u32) -> Response {
 
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
 
@@ -382,7 +452,7 @@ fn test_fetch_redirect_count_ceiling() {
     // how many redirects to cause
     let redirect_cap = 20;
 
-    let fetch_response = test_fetch_redirect_count(MESSAGE, redirect_cap);
+    let fetch_response = setup_server_and_fetch(MESSAGE, redirect_cap);
 
     assert!(!fetch_response.is_network_error());
     assert_eq!(fetch_response.response_type, ResponseType::Basic);
@@ -402,7 +472,7 @@ fn test_fetch_redirect_count_failure() {
     // how many redirects to cause
     let redirect_cap = 21;
 
-    let fetch_response = test_fetch_redirect_count(MESSAGE, redirect_cap);
+    let fetch_response = setup_server_and_fetch(MESSAGE, redirect_cap);
 
     assert!(fetch_response.is_network_error());
 
