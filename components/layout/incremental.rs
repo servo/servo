@@ -167,7 +167,8 @@ pub fn compute_damage(old: Option<&Arc<ComputedValues>>, new: &ComputedValues) -
                       [ REPAINT ], [
         get_color.color, get_background.background_color,
         get_border.border_top_color, get_border.border_right_color,
-        get_border.border_bottom_color, get_border.border_left_color
+        get_border.border_bottom_color, get_border.border_left_color,
+        get_effects.transform, get_box.z_index
     ]);
 
     add_if_not_equal!(old, new, damage,
@@ -252,7 +253,6 @@ impl<'a> LayoutDamageComputation for &'a mut Flow {
                 has_counter_affecting_children = has_counter_affecting_children ||
                     flow::base(kid).flags.intersects(AFFECTS_COUNTERS |
                                                      HAS_COUNTER_AFFECTING_CHILDREN);
-
             }
         }
 
