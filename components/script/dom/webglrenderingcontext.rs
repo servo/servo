@@ -94,7 +94,7 @@ impl WebGLRenderingContext {
                           .unwrap();
         let result = receiver.recv().unwrap();
 
-        result.map(|(ipc_renderer, _)| {
+        result.map(|ipc_renderer| {
             WebGLRenderingContext {
                 reflector_: Reflector::new(),
                 ipc_renderer: ipc_renderer,
