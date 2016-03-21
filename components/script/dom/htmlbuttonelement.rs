@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::activation::{Activatable, ActivationSource, synthetic_click_activation};
-use dom::validation::Validatable;
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
@@ -19,6 +18,7 @@ use dom::htmlformelement::{FormControl, FormSubmitter, ResetFrom};
 use dom::htmlformelement::{SubmittedFrom, HTMLFormElement};
 use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::nodelist::NodeList;
+use dom::validation::Validatable;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use std::ascii::AsciiExt;
@@ -67,7 +67,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
     fn Validity(&self) -> Root<ValidityState> {
         let window = window_from_node(self);
-        ValidityState::new(window.r(),self.upcast())
+        ValidityState::new(window.r(), self.upcast())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
@@ -204,7 +204,7 @@ impl VirtualMethods for HTMLButtonElement {
 
 impl FormControl for HTMLButtonElement {}
 
-impl Validatable for HTMLButtonElement{
+impl Validatable for HTMLButtonElement {
     fn is_instance_validatable(&self) -> bool {
         //https://html.spec.whatwg.org/multipage/#the-button-element
         false

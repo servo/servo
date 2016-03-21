@@ -4,7 +4,6 @@
 
 use caseless::compatibility_caseless_match_str;
 use dom::activation::{Activatable, ActivationSource, synthetic_click_activation};
-use dom::validation::Validatable;
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
@@ -29,6 +28,7 @@ use dom::keyboardevent::KeyboardEvent;
 use dom::node::{Node, NodeDamage, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
+use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 use script_thread::ScriptThreadEventCategory::InputEvent;

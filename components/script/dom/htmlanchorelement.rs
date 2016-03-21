@@ -4,7 +4,6 @@
 
 
 use dom::activation::Activatable;
-use dom::validation::Validatable;
 use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
@@ -22,6 +21,7 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::mouseevent::MouseEvent;
 use dom::node::{Node, document_from_node, window_from_node};
+use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use num::ToPrimitive;
 use std::default::Default;
