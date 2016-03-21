@@ -251,6 +251,9 @@ pub struct PipelineDetails {
 
     /// Whether there are animation callbacks
     animation_callbacks_running: bool,
+
+    /// Whether current pipeline is visible
+    visible: bool,
 }
 
 impl PipelineDetails {
@@ -260,6 +263,7 @@ impl PipelineDetails {
             current_epoch: Epoch(0),
             animations_running: false,
             animation_callbacks_running: false,
+            visible: true, //TODO: jmr0: default true?
         }
     }
 }
@@ -716,6 +720,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 reports_chan.send(reports);
             }
 
+            (Msg::PipelineVisibilityChanged(pipeline_id, visible), ShutdownState::NotShuttingDown) => {
+                self.pipeline_details(pipeline_id).visible = visible;
+            }
+
             (Msg::PipelineExited(pipeline_id, sender), _) => {
                 debug!("Compositor got pipeline exited: {:?}", pipeline_id);
                 self.pending_subpages.remove(&pipeline_id);
@@ -751,14 +759,20 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                        animation_state: AnimationState) {
         match animation_state {
             AnimationState::AnimationsPresent => {
-                self.pipeline_details(pipeline_id).animations_running = true;
-                self.composite_if_necessary(CompositingReason::Animation);
+                let visible = self.pipeline_details(pipeline_id).visible;
+                if visible {
+                    self.pipeline_details(pipeline_id).animations_running = true;
+                    self.composite_if_necessary(CompositingReason::Animation);
+                }
             }
             AnimationState::AnimationCallbacksPresent => {
-                if !self.pipeline_details(pipeline_id).animation_callbacks_running {
-                    self.pipeline_details(pipeline_id).animation_callbacks_running =
-                        true;
-                    self.tick_animations_for_pipeline(pipeline_id);
+                let visible = self.pipeline_details(pipeline_id).visible;
+                if visible {
+                    if !self.pipeline_details(pipeline_id).animation_callbacks_running {
+                        self.pipeline_details(pipeline_id).animation_callbacks_running =
+                            true;
+                        self.tick_animations_for_pipeline(pipeline_id);
+                    }
                 }
             }
             AnimationState::NoAnimationsPresent => {
