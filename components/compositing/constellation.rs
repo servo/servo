@@ -1200,8 +1200,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             size: &Size2D<i32>,
             response_sender: IpcSender<IpcSender<CanvasMsg>>) {
         let webrender_api = self.webrender_api_sender.clone();
-        let (out_of_process_sender, _) = CanvasPaintThread::start(*size, webrender_api);
-        response_sender.send(out_of_process_sender).unwrap()
+        let sender = CanvasPaintThread::start(*size, webrender_api);
+        response_sender.send(sender).unwrap()
     }
 
     fn handle_create_webgl_paint_thread_msg(
@@ -1210,14 +1210,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             attributes: GLContextAttributes,
             response_sender: IpcSender<Result<IpcSender<CanvasMsg>, String>>) {
         let webrender_api = self.webrender_api_sender.clone();
-        let response = match WebGLPaintThread::start(*size, attributes, webrender_api) {
-            Ok((out_of_process_sender, _)) => {
-                Ok(out_of_process_sender)
-            },
-            Err(msg) => Err(msg),
-        };
+        let sender = WebGLPaintThread::start(*size, attributes, webrender_api);
 
-        response_sender.send(response).unwrap()
+        response_sender.send(sender).unwrap()
     }
 
     fn handle_webdriver_msg(&mut self, msg: WebDriverCommandMsg) {
