@@ -237,10 +237,6 @@ impl VirtualMethods for HTMLSelectElement {
 impl FormControl for HTMLSelectElement {}
 
 impl Validatable for HTMLSelectElement {
-     fn as_element(&self) -> &Element {
-        self.upcast()
-    }
-    
     fn is_instance_validatable(&self) -> bool {
         true
     }

@@ -337,10 +337,6 @@ impl VirtualMethods for HTMLTextAreaElement {
 impl FormControl for HTMLTextAreaElement {}
 
 impl Validatable for HTMLTextAreaElement {
-     fn as_element(&self) -> &Element {
-        self.upcast()
-    }
-    
     fn is_instance_validatable(&self) -> bool {
         true
     }

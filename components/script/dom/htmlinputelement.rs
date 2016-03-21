@@ -910,10 +910,6 @@ impl VirtualMethods for HTMLInputElement {
 impl FormControl for HTMLInputElement {}
 
 impl Validatable for HTMLInputElement {
-    fn as_element(&self) -> &Element {
-        self.upcast()
-    }
-    
     fn is_instance_validatable(&self) -> bool {
         match self.input_type.get() {
             InputType::InputText | InputType::InputFile | InputType::InputPassword

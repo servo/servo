@@ -6,5 +6,4 @@ use dom::element::Element;
 
 pub trait Validatable {
     fn is_instance_validatable(&self) -> bool;
-    fn as_element(&self) -> &Element;
 }

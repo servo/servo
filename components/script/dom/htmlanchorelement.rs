@@ -111,16 +111,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
 }
 
 impl Validatable for HTMLAnchorElement {
-    fn as_element(&self) -> &Element {
-        self.upcast::<Element>()
-    }
-
     fn is_instance_validatable(&self) -> bool {
-        // https://html.spec.whatwg.org/multipage/#hyperlink
-        // "a [...] element[s] with an href attribute [...] must [..] create a
-        // hyperlink"
-        // https://html.spec.whatwg.org/multipage/#the-a-element
-        // "The activation behaviour of a elements *that create hyperlinks*"
         false
     }
 }

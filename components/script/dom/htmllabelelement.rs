@@ -45,10 +45,6 @@ impl HTMLLabelElement {
 }
 
 impl Validatable for HTMLLabelElement {
-    fn as_element(&self) -> &Element {
-        self.upcast::<Element>()
-    }
-
     fn is_instance_validatable(&self) -> bool {
         false
     }
