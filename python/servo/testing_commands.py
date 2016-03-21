@@ -16,6 +16,8 @@ import os
 import os.path as path
 from collections import OrderedDict
 from time import time
+from os.path import dirname, basename, isfile
+import glob
 
 from mach.registrar import Registrar
 from mach.decorators import (
@@ -251,6 +253,10 @@ class MachCommands(CommandBase):
              category='testing')
     def test_webdriver(self,params=None):
         print("i am running")
+        run_file = path.abspath(path.join(self.context.topdir, "tests", "webdriver","test1.py"))
+        modules = glob.glob(dirname(run_file)+"/*.py")
+        __all__ = [ basename(f)[:-3] for f in modules if isfile(f)]
+        print(__all__)
 
     @Command('test-content',
              description='Run the content tests',
