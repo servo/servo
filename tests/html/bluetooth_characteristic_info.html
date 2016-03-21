@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<title>Characteristic info</title>
+<body>
+    <input id="service" type="text" autofocus placeholder="Bluetooth Service">
+    <input id="characteristic" type="text" autofocus placeholder="Bluetooth Characteristic">
+    <button type="button" onclick="onButtonClick()">Get Characteristic Info</button>
+    <pre id="log"></pre>
+    <script>
+    function onButtonClick() {
+        clear();
+        var serviceUuid = document.getElementById('service').value;
+        if (serviceUuid.startsWith('0x'))
+            serviceUuid = parseInt(serviceUuid, 16);
+
+        var characteristicUuid = document.getElementById('characteristic').value;
+        if (characteristicUuid.startsWith('0x'))
+            characteristicUuid = parseInt(characteristicUuid, 16);
+
+        try {
+            log('Requesting Bluetooth Device...');
+            var device = window.navigator.bluetooth.requestDevice({filters: [{services: [serviceUuid]}]});
+
+            log('Connecting to GATTserver on device...');
+            var server = device.gatt.connect();
+
+            log('Getting Primary Service...');
+            var primaryService = server.getPrimaryService(serviceUuid);
+
+            log('Getting Characteristic...');
+            var characteristic = primaryService.getCharacteristic(characteristicUuid);
+
+            log('Characteristic found!');
+            log('> Characteristic service: ' + characteristic.service.uuid);
+            log('> Characteristic UUID:    ' + characteristic.uuid);
+            log('> Broadcast:              ' + characteristic.properties.broadcast);
+            log('> Read:                   ' + characteristic.properties.read);
+            log('> Write w/o response:     ' + characteristic.properties.writeWithoutResponse);
+            log('> Write:                  ' + characteristic.properties.write);
+            log('> Notify:                 ' + characteristic.properties.notify);
+            log('> Indicate:               ' + characteristic.properties.indicate);
+            log('> Signed Write:           ' + characteristic.properties.authenticatedSignedWrites);
+            log('> Queued Write:           ' + characteristic.properties.reliableWrite);
+            log('> Writable Auxiliaries:   ' + characteristic.properties.writableAuxiliaries);
+            characteristic.readValue();
+            log('> Characteristic value:   ' + AsciiToDecimal(characteristic.value));
+        } catch(err) {
+            log(err);
+        }
+    }
+
+    function clear() {
+        document.getElementById("log").textContent = "";
+    }
+
+    function log(line) {
+        document.getElementById("log").textContent += line + '\n';
+    }
+
+    function AsciiToDecimal(bytestr) {
+        var result = [];
+        for(i = 0; i < bytestr.length; i++) {
+            result[i] = bytestr[i].charCodeAt(0) ;
+        }
+        return result;
+    }
+    </script>
+</body>
+</html>
