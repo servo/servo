@@ -106,10 +106,11 @@ interface BrowserElementCommon {
    CheckAnyPermissions="browser embed-widgets"]
   void setVisible(boolean visible);
 
-  //[Throws,
-  // Pref="dom.mozBrowserFramesEnabled",
-  // CheckAnyPermissions="browser embed-widgets"]
-  //DOMRequest getVisible();
+  //TODO: getVisible should be eventually implented as an async method, and return e.g. a Promise instead
+  [Throws,
+   Pref="dom.mozBrowserFramesEnabled",
+   CheckAnyPermissions="browser embed-widgets"]
+  boolean getVisible();
 
   //[Throws,
   // Pref="dom.mozBrowserFramesEnabled",

@@ -66,6 +66,7 @@ pub struct HTMLIFrameElement {
     subpage_id: Cell<Option<SubpageId>>,
     sandbox: Cell<Option<u8>>,
     load_blocker: DOMRefCell<Option<LoadBlocker>>,
+    visibility: Cell<bool>,
 }
 
 impl HTMLIFrameElement {
@@ -196,6 +197,7 @@ impl HTMLIFrameElement {
             subpage_id: Cell::new(None),
             sandbox: Cell::new(None),
             load_blocker: DOMRefCell::new(None),
+            visibility: Cell::new(true), //TODO: jmr0 should true be the default?
         }
     }
 
@@ -506,8 +508,20 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
                 let window = window.r();
                 let ConstellationChan(ref chan) = window.constellation_chan();
                 chan.send(ConstellationMsg::SetVisible(pipeline_id, visible)).unwrap();
+                self.visibility.set(visible); //TODO: This is wrong, but it's a work-around until we can implement GetVisible as async
             }
             Ok(())
+        } else {
+            debug!("this frame is not mozbrowser: mozbrowser attribute missing, or not a top
+                level window, or mozbrowser preference not set (use --pref dom.mozbrowser.enabled)");
+            Err(Error::NotSupported)
+        }
+    }
+
+    // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/getVisible
+    fn GetVisible(&self) -> Fallible<bool> {
+        if self.Mozbrowser() {
+            Ok(self.visibility.get())
         } else {
             debug!("this frame is not mozbrowser: mozbrowser attribute missing, or not a top
                 level window, or mozbrowser preference not set (use --pref dom.mozbrowser.enabled)");
