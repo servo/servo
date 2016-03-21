@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<title>Device Disconnect</title>
+<body>
+    <input id="service" type="text" autofocus placeholder="Bluetooth Service">
+    <input id="name" type="text" placeholder="Device Name">
+    <input id="namePrefix" type="text" placeholder="Device Name Prefix">
+    <button type="button" onclick="onScanButtonClick()">Scan()</button>
+    <button type="button" onclick="onDisconnectButtonClick()">Disconnect()</button>
+    <button type="button" onclick="onReconnectButtonClick()">Reconnect()</button>
+    <pre id="log"></pre>
+    <script>
+    var bluetoothDevice;
+
+    function onScanButtonClick() {
+        clear();
+        var options = {filters: []};
+
+        var filterService = document.getElementById('service').value;
+        if (filterService.startsWith('0x'))
+            filterService = parseInt(filterService, 16);
+
+        if (filterService)
+            options.filters.push({services: [filterService]});
+
+        var filterName = document.getElementById('name').value;
+        if (filterName)
+            options.filters.push({name: filterName});
+
+        var filterNamePrefix = document.getElementById('namePrefix').value;
+        if (filterNamePrefix)
+            options.filters.push({namePrefix: filterNamePrefix});
+
+        bluetoothDevice = null;
+
+        try {
+            log('Requesting Bluetooth Device...');
+            bluetoothDevice = window.navigator.bluetooth.requestDevice(options);
+            connect();
+        } catch(err) {
+            log(err);
+        }
+    }
+
+    function onDisconnectButtonClick() {
+        clear();
+        if (!bluetoothDevice)
+            return;
+
+        try {
+            log('Disconnecting from Bluetooth Device...');
+            if (bluetoothDevice.gatt.connected) {
+                bluetoothDevice.gatt.disconnect();
+                log('> Bluetooth Device connected: ' + bluetoothDevice.gatt.connected);
+            } else {
+                log('> Bluetooth Device is already disconnected');
+            }
+        } catch(err) {
+            log(err);
+        }
+    }
+
+    function onReconnectButtonClick() {
+        clear();
+        if (!bluetoothDevice)
+            log('> There is no connected Bluetooth Device instance')
+        if (bluetoothDevice.gatt.connected) {
+            log('> Bluetooth Device is already connected');
+            return;
+        } else {
+            connect();
+        }
+    }
+
+    function connect() {
+        try {
+            log('Connecting to Bluetooth Device...');
+            bluetoothDevice.gatt.connect();
+            log('> Bluetooth Device connected: ' + bluetoothDevice.gatt.connected);
+        } catch(err) {
+            log(err);
+        }
+    }
+
+    function clear() {
+        document.getElementById("log").textContent = "";
+    }
+
+    function log(line) {
+        document.getElementById("log").textContent += line + '\n';
+    }
+    </script>
+</body>
+</html>
