@@ -144,7 +144,7 @@ impl Response {
         }
     }
 
-    pub fn get_actual_response(&self) -> &Response {
+    pub fn actual_response(&self) -> &Response {
         if self.return_internal.get() && self.internal_response.is_some() {
             &**self.internal_response.as_ref().unwrap()
         } else {
