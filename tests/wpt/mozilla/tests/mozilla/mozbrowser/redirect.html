@@ -10,7 +10,7 @@
         iframe.mozbrowser = "true";
         iframe.src = "redirect_init.html?pipe=status(302)|header(Location,redirect_final.html)";
         iframe.addEventListener("mozbrowserlocationchange", t.step_func(e => {
-            assert_equals(e.detail, new URL("redirect_final.html", location).href);
+            assert_equals(e.detail.uri, new URL("redirect_final.html", location).href);
             t.done();
         }));
         document.body.appendChild(iframe);

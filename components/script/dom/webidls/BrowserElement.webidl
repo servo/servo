@@ -54,6 +54,12 @@ dictionary BrowserElementSecurityChangeDetail {
   boolean mixedContent;
 };
 
+dictionary BrowserElementLocationChangeEventDetail {
+  DOMString uri;
+  boolean canGoBack;
+  boolean canGoForward;
+};
+
 dictionary BrowserElementIconChangeEventDetail {
   DOMString rel;
   DOMString href;

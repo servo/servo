@@ -6,6 +6,7 @@ use document_loader::{LoadType, LoadBlocker};
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementIconChangeEventDetail;
+use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementLocationChangeEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementSecurityChangeDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserShowModalPromptEventDetail;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
@@ -323,8 +324,15 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
                     mixedState: None,
                 }.to_jsval(cx, rval);
             }
-            MozBrowserEvent::LocationChange(ref string) | MozBrowserEvent::TitleChange(ref string) => {
+            MozBrowserEvent::TitleChange(ref string) => {
                 string.to_jsval(cx, rval);
+            }
+            MozBrowserEvent::LocationChange(uri, can_go_back, can_go_forward) => {
+                BrowserElementLocationChangeEventDetail {
+                    uri: Some(DOMString::from(uri)),
+                    canGoBack: Some(can_go_back),
+                    canGoForward: Some(can_go_forward),
+                }.to_jsval(cx, rval);
             }
             MozBrowserEvent::IconChange(rel, href, sizes) => {
                 BrowserElementIconChangeEventDetail {
