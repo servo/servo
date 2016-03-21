@@ -62,7 +62,6 @@ enum CanvasFillOrStrokeStyle {
 #[dom_struct]
 pub struct CanvasRenderingContext2D {
     reflector_: Reflector,
-    renderer_id: usize,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     ipc_renderer: IpcSender<CanvasMsg>,
     canvas: JS<HTMLCanvasElement>,
@@ -125,10 +124,9 @@ impl CanvasRenderingContext2D {
         let (sender, receiver) = ipc::channel().unwrap();
         let constellation_chan = global.constellation_chan();
         constellation_chan.0.send(ConstellationMsg::CreateCanvasPaintThread(size, sender)).unwrap();
-        let (ipc_renderer, renderer_id) = receiver.recv().unwrap();
+        let (ipc_renderer, _) = receiver.recv().unwrap();
         CanvasRenderingContext2D {
             reflector_: Reflector::new(),
-            renderer_id: renderer_id,
             ipc_renderer: ipc_renderer,
             canvas: JS::from_ref(canvas),
             state: DOMRefCell::new(CanvasContextState::new()),
