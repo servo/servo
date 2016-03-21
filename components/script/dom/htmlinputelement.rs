@@ -823,7 +823,7 @@ impl Validatable for HTMLInputElement {
     fn is_instance_validatable(&self) -> bool {
         match self.input_type.get() {
             InputType::InputText | InputType::InputFile | InputType::InputPassword
-            | InputType::InputCheckbox | InputType::InputRadio => self.mutable(),
+            | InputType::InputCheckbox | InputType::InputRadio => true,
             _ => false
         }
     }
