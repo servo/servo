@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<title>Descriptor info</title>
+<body>
+    <input id="service" type="text" autofocus placeholder="Bluetooth Service">
+    <input id="characteristic" type="text" autofocus placeholder="Bluetooth Characteristic">
+    <input id="descriptor" type="text" autofocus placeholder="Bluetooth Descriptor">
+    <button type="button" onclick="onButtonClick()">Get Descriptor Info</button>
+    <pre id="log"></pre>
+    <script>
+    function onButtonClick() {
+        clear();
+        var serviceUuid = document.getElementById('service').value;
+        if (serviceUuid.startsWith('0x'))
+            serviceUuid = parseInt(serviceUuid, 16);
+
+        var characteristicUuid = document.getElementById('characteristic').value;
+        if (characteristicUuid.startsWith('0x'))
+            characteristicUuid = parseInt(characteristicUuid, 16);
+
+        var descriptorUuid = document.getElementById('descriptor').value;
+        if (descriptorUuid.startsWith('0x'))
+            descriptorUuid = parseInt(descriptorUuid, 16);
+
+        try {
+            log('Requesting Bluetooth Device...');
+            var device = window.navigator.bluetooth.requestDevice({filters: [{services: [serviceUuid]}]});
+
+            log('Connecting to GATTserver on device...');
+            var server = device.gatt.connect();
+
+            log('Getting Primary Service...');
+            var primaryService = server.getPrimaryService(serviceUuid);
+
+            log('Getting Characteristic...');
+            var characteristic = primaryService.getCharacteristic(characteristicUuid);
+
+            log('Getting Descriptor...');
+            var descriptor = characteristic.getDescriptor(descriptorUuid);
+
+            log('Descriptor found!');
+            log('> Descriptor characteristic: ' + descriptor.characteristic.uuid);
+            log('> Descriptor UUID:           ' + descriptor.uuid);
+            descriptor.readValue();
+            log('> Descriptor value:          ' + AsciiToDecimal(descriptor.value));
+        } catch(err) {
+            log(err);
+        }
+    }
+
+    function clear() {
+        document.getElementById("log").textContent = "";
+    }
+
+    function log(line) {
+        document.getElementById("log").textContent += line + '\n';
+    }
+
+    function AsciiToDecimal(bytestr) {
+        var result = [];
+        for(i = 0; i < bytestr.length; i++) {
+            result[i] = bytestr[i].charCodeAt(0) ;
+        }
+        return result;
+    }
+    </script>
+</body>
+</html>
