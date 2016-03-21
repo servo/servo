@@ -68,7 +68,6 @@ bitflags! {
 #[dom_struct]
 pub struct WebGLRenderingContext {
     reflector_: Reflector,
-    renderer_id: usize,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     ipc_renderer: IpcSender<CanvasMsg>,
     canvas: JS<HTMLCanvasElement>,
@@ -95,10 +94,9 @@ impl WebGLRenderingContext {
                           .unwrap();
         let result = receiver.recv().unwrap();
 
-        result.map(|(ipc_renderer, renderer_id)| {
+        result.map(|(ipc_renderer, _)| {
             WebGLRenderingContext {
                 reflector_: Reflector::new(),
-                renderer_id: renderer_id,
                 ipc_renderer: ipc_renderer,
                 canvas: JS::from_ref(canvas),
                 last_error: Cell::new(None),
