@@ -132,6 +132,7 @@ impl CompositorEventListener for NullCompositor {
             Msg::HeadParsed => {}
             Msg::ReturnUnusedNativeSurfaces(..) => {}
             Msg::CollectMemoryReports(..) => {}
+            Msg::PipelineVisibilityChanged(..) => {}
             Msg::PipelineExited(..) => {}
         }
         true

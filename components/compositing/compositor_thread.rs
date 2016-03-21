@@ -232,6 +232,8 @@ pub enum Msg {
     MoveTo(Point2D<i32>),
     /// Resize the window to size
     ResizeTo(Size2D<u32>),
+    /// Pipeline visibility changed
+    PipelineVisibilityChanged(PipelineId, bool),
     /// A pipeline was shut down.
     PipelineExited(PipelineId),
 }
@@ -268,6 +270,7 @@ impl Debug for Msg {
             Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
             Msg::MoveTo(..) => write!(f, "MoveTo"),
             Msg::ResizeTo(..) => write!(f, "ResizeTo"),
+            Msg::PipelineVisibilityChanged(..) => write!(f, "PipelineVisibilityChanged"),
             Msg::PipelineExited(..) => write!(f, "PipelineExited"),
         }
     }
