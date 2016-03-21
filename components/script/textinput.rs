@@ -28,6 +28,26 @@ pub enum SelectionDirection {
     None,
 }
 
+impl From<DOMString> for SelectionDirection {
+    fn from(direction: DOMString) -> SelectionDirection {
+        match direction.as_ref() {
+            "forward" => SelectionDirection::Forward,
+            "backward" => SelectionDirection::Backward,
+            _ => SelectionDirection::None,
+        }
+    }
+}
+
+impl From<SelectionDirection> for DOMString {
+    fn from(direction: SelectionDirection) -> DOMString {
+        match direction {
+            SelectionDirection::Forward => DOMString::from("forward"),
+            SelectionDirection::Backward => DOMString::from("backward"),
+            SelectionDirection::None => DOMString::from("none"),
+        }
+    }
+}
+
 #[derive(JSTraceable, Copy, Clone, HeapSizeOf)]
 pub struct TextPoint {
     /// 0-based line number
@@ -564,22 +584,6 @@ impl<T: ClipboardProvider> TextInput<T> {
 
         self.selection_begin = Some(self.get_text_point_for_absolute_point(start));
         self.edit_point = self.get_text_point_for_absolute_point(end);
-    }
-
-    pub fn set_selection_direction(&mut self, direction: DOMString) {
-        match direction.as_ref() {
-            "forward" => self.selection_direction = SelectionDirection::Forward,
-            "backward" => self.selection_direction = SelectionDirection::Backward,
-            _ => self.selection_direction = SelectionDirection::None,
-        }
-    }
-
-    pub fn get_selection_direction(&self) -> DOMString {
-        match self.selection_direction {
-            SelectionDirection::Forward => DOMString::from("forward"),
-            SelectionDirection::Backward => DOMString::from("backward"),
-            SelectionDirection::None => DOMString::from("none"),
-        }
     }
 
     pub fn get_selection_start(&self) -> u32 {

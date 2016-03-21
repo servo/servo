@@ -466,19 +466,19 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
     fn SelectionDirection(&self) -> DOMString {
-        self.textinput.borrow().get_selection_direction()
+        DOMString::from(self.textinput.borrow().selection_direction)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection
     fn SetSelectionDirection(&self, direction: DOMString) {
-        self.textinput.borrow_mut().set_selection_direction(direction);
+        self.textinput.borrow_mut().selection_direction = SelectionDirection::from(direction);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange
     fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) {
         match direction {
             Some(selection_direction) => {
-                self.textinput.borrow_mut().set_selection_direction(selection_direction)
+                self.textinput.borrow_mut().selection_direction = SelectionDirection::from(selection_direction)
             },
             None => self.textinput.borrow_mut().selection_direction = SelectionDirection::None
         };
