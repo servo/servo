@@ -772,10 +772,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     }
                 }
             }
-            Request::Script(FromScriptMsg::SetVisible(pipeline_id, visible)) => {
+            Request::Script(FromScriptMsg::SetVisible(containing_id, pipeline_id, visible)) => {
                 debug!("constellation got set visible messsage");
                 println!("constellation got set visible messsage");
-                self.handle_set_visible_msg(pipeline_id, visible);
+                self.handle_set_visible_msg(containing_id, pipeline_id, visible);
             }
             Request::Script(FromScriptMsg::RemoveIFrame(pipeline_id, sender)) => {
                 debug!("constellation got remove iframe message");
@@ -1462,8 +1462,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
     }
 
-    fn handle_set_visible_msg(&mut self, pipeline_id: PipelineId, visible: bool) {
-        self.mut_pipeline(pipeline_id).set_visible(visible);
+    fn handle_set_visible_msg(&mut self, containing_id: PipelineId, pipeline_id: PipelineId, visible: bool) {
+        self.mut_pipeline(pipeline_id).set_visible(containing_id, visible);
     }
 
     fn handle_create_canvas_paint_thread_msg(

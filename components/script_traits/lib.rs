@@ -125,9 +125,9 @@ pub enum ConstellationControlMsg {
     /// Notifies script thread to resume all its timers
     Thaw(PipelineId),
     /// Notifies script thread that its timers should be slowed down
-    SetNonVisible(PipelineId),
+    SetNonVisible(PipelineId, PipelineId),
     /// Notifies script thread to run its trimers at a normal rate
-    SetVisible(PipelineId),
+    SetVisible(PipelineId, PipelineId),
     /// Notifies script thread that a url should be loaded in this iframe.
     Navigate(PipelineId, SubpageId, LoadData),
     /// Requests the script thread forward a mozbrowser event to an iframe it owns
