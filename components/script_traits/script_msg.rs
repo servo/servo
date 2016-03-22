@@ -76,7 +76,7 @@ pub enum ScriptMsg {
     /// Notification that this iframe should be removed.
     RemoveIFrame(PipelineId),
     /// Change pipeline visibility
-    SetVisible(PipelineId, bool),
+    SetVisible(PipelineId, PipelineId, bool),
     /// A load has been requested in an IFrame.
     ScriptLoadedURLInIFrame(IFrameLoadInfo),
     /// Requests that the constellation set the contents of the clipboard
