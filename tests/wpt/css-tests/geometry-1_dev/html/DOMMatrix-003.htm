@@ -41,6 +41,7 @@
           return f(matrix), matrix;
         }
 
+
         test(function() {
           var result = initialDOMMatrix().translate(1, 5, 3);
           var expected = update(initialMatrix(), function(m) {
@@ -50,6 +51,7 @@
           });
           checkDOMMatrix(result, expected);
         },"test translate()");
+
 
         test(function() {
           var result = initialDOMMatrix().scale(2, 5, 3);
@@ -61,6 +63,7 @@
           checkDOMMatrix(result, expected);
         },"test scale() without offsets");
 
+
         test(function() {
           var result = initialDOMMatrix().scale(2, 5, 3, 11, 7, 13);
           var expected = initialDOMMatrix()
@@ -69,6 +72,7 @@
                           .translate(-11, -7, -13);
           checkDOMMatrix(result, expected);
         },"test scale() with offsets");
+
 
         test(function() {
           var result = initialDOMMatrix().scale3d(7, 5, 2, 3);
@@ -98,7 +102,6 @@
         },"test rotate()");
 
 
-
         test(function() {
           var result = initialDOMMatrix().rotateFromVector(1, 1);
           var expected = initialDOMMatrix().rotate(45);
@@ -117,6 +120,7 @@
           checkDOMMatrix(result, initialMatrix());
         },"test rotateAxisAngle() ");
 
+
         test(function() {
           var angleDeg = 75;
           var result = initialDOMMatrix().skewX(angleDeg);
@@ -129,6 +133,7 @@
           var expected = skew.multiply(initialDOMMatrix());
           checkDOMMatrix(result, expected);
         },"test skewX()");
+
 
         test(function() {
           var angleDeg = 18;
@@ -149,6 +154,7 @@
           checkDOMMatrix(result, identity());
         },"test multiply with inverse is identity");
 
+
         test(function() {
           var result = initialDOMMatrix().flipX();
           var expected = initialDOMMatrix().multiply(new DOMMatrix([-1, 0, 0, 1, 0, 0]));
@@ -161,6 +167,7 @@
           var expected = initialDOMMatrix().multiply(new DOMMatrix([1, 0, 0, -1, 0, 0]));
           checkDOMMatrix(result, expected);
         },"test flipY()");
+
 
         function checkDOMMatrix(m, exp) {
           assert_approx_equals(m.m11, exp.m11, epsilon, "Expected value for m11 is " + exp.m11);
