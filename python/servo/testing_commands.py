@@ -292,11 +292,10 @@ class MachCommands(CommandBase):
              description='Run the webdriver tests',
              category='testing')
     def test_webdriver(self,params=None):
-        print("i am running")
         run_file = path.abspath(path.join(self.context.topdir, "tests", "webdriver","test1.py"))
         modules = glob.glob(dirname(run_file)+"/*.py")
         __all__ = [ basename(f)[:-3] for f in modules if isfile(f)]
-        print(__all__)
+        self.test_web_driver(run_file,__all__)
 
     @Command('test-content',
              description='Run the content tests',
@@ -375,6 +374,11 @@ class MachCommands(CommandBase):
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
         return run_globals["run_tests"](**kwargs)
+    #Helper for test_webdriver
+    def test_web_driver(self,run_file, __all__):
+        for c in __all__:
+            command= "python "+dirname(run_file)+"/"+c+".py"
+            subprocess.Popen([command], shell=True)
 
     @Command('update-wpt',
              description='Update the web platform tests',
