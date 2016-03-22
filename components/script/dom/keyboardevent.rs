@@ -617,7 +617,7 @@ fn code_value(key: Key) -> &'static str {
         Key::LeftControl | Key::RightControl => "Control",
         Key::LeftAlt | Key::RightAlt => "Alt",
         Key::LeftSuper | Key::RightSuper => "Super",
-        Key::Menu => "Menu",
+        Key::Menu => "ContextMenu",
 
         Key::NavigateForward => "BrowserForward",
         Key::NavigateBackward => "BrowserBackward",
