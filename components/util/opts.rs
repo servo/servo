@@ -766,7 +766,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     // These must happen after setting the default options, since the prefs rely on
     // on the resource path.
-    // Note that command line preferences have the highest precedent
+    // Note that command line preferences have the highest precedence
     if get().profile_dir.is_some() {
         prefs::add_user_prefs();
     }
