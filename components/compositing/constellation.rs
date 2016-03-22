@@ -170,12 +170,6 @@ pub struct Constellation<LTF, STF> {
     /// Bits of state used to interact with the webdriver implementation
     webdriver: WebDriverData,
 
-    /// A list of in-process senders to `CanvasPaintThread`s.
-    canvas_paint_threads: Vec<Sender<CanvasMsg>>,
-
-    /// A list of in-process senders to `WebGLPaintThread`s.
-    webgl_paint_threads: Vec<Sender<CanvasMsg>>,
-
     scheduler_chan: IpcSender<TimerEventRequest>,
 
     /// A list of child content processes.
@@ -349,8 +343,6 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     None
                 },
                 webdriver: WebDriverData::new(),
-                canvas_paint_threads: Vec::new(),
-                webgl_paint_threads: Vec::new(),
                 scheduler_chan: TimerScheduler::start(),
                 child_processes: Vec::new(),
                 document_states: HashMap::new(),
@@ -1206,31 +1198,21 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     fn handle_create_canvas_paint_thread_msg(
             &mut self,
             size: &Size2D<i32>,
-            response_sender: IpcSender<(IpcSender<CanvasMsg>, usize)>) {
-        let id = self.canvas_paint_threads.len();
+            response_sender: IpcSender<IpcSender<CanvasMsg>>) {
         let webrender_api = self.webrender_api_sender.clone();
-        let (out_of_process_sender, in_process_sender) = CanvasPaintThread::start(*size,
-                                                                                  webrender_api);
-        self.canvas_paint_threads.push(in_process_sender);
-        response_sender.send((out_of_process_sender, id)).unwrap()
+        let sender = CanvasPaintThread::start(*size, webrender_api);
+        response_sender.send(sender).unwrap()
     }
 
     fn handle_create_webgl_paint_thread_msg(
             &mut self,
             size: &Size2D<i32>,
             attributes: GLContextAttributes,
-            response_sender: IpcSender<Result<(IpcSender<CanvasMsg>, usize), String>>) {
+            response_sender: IpcSender<Result<IpcSender<CanvasMsg>, String>>) {
         let webrender_api = self.webrender_api_sender.clone();
-        let response = match WebGLPaintThread::start(*size, attributes, webrender_api) {
-            Ok((out_of_process_sender, in_process_sender)) => {
-                let id = self.webgl_paint_threads.len();
-                self.webgl_paint_threads.push(in_process_sender);
-                Ok((out_of_process_sender, id))
-            },
-            Err(msg) => Err(msg),
-        };
+        let sender = WebGLPaintThread::start(*size, attributes, webrender_api);
 
-        response_sender.send(response).unwrap()
+        response_sender.send(sender).unwrap()
     }
 
     fn handle_webdriver_msg(&mut self, msg: WebDriverCommandMsg) {
@@ -1655,8 +1637,11 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             // If this is an iframe, then send the event with new url
             if let Some((containing_pipeline_id, subpage_id, url)) = event_info {
                 let parent_pipeline = self.pipeline(containing_pipeline_id);
-                parent_pipeline.trigger_mozbrowser_event(subpage_id,
-                                                         MozBrowserEvent::LocationChange(url));
+                let frame_id = *self.pipeline_to_frame_map.get(&pipeline_id).unwrap();
+                let can_go_backward = !self.frame(frame_id).prev.is_empty();
+                let can_go_forward = !self.frame(frame_id).next.is_empty();
+                let event = MozBrowserEvent::LocationChange(url, can_go_backward, can_go_forward);
+                parent_pipeline.trigger_mozbrowser_event(subpage_id, event);
             }
         }
     }

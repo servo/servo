@@ -202,7 +202,7 @@ And to search for a function full name/regex:
 (gdb) info functions <name> #gdb
 ```
 
-See this [lldb turorial](http://lldb.llvm.org/tutorial.html) and this [gdb turorial](http://www.unknownroad.com/rtfm/gdbtut/gdbtoc.html).
+See this [lldb tutorial](http://lldb.llvm.org/tutorial.html) and this [gdb tutorial](http://www.unknownroad.com/rtfm/gdbtut/gdbtoc.html).
 
 To inspect variables and you are new with lldb, we recommend using the `gui` mode (use left/right to expand variables):
 

@@ -30,7 +30,8 @@ use gfx::font_context;
 use gfx::paint_thread::LayoutToPaintMsg;
 use gfx_traits::{color, Epoch, LayerId, ScrollPolicy};
 use heapsize::HeapSizeOf;
-use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REPAINT};
+use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REFLOW_OUT_OF_FLOW};
+use incremental::{REPAINT};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_debug;
@@ -688,6 +689,13 @@ impl LayoutThread {
             size: display_list.map_or(0, |sc| sc.heap_size_of_children()),
         });
 
+        let stylist = rw_data.stylist.as_ref();
+        reports.push(Report {
+            path: path![formatted_url, "layout-thread", "stylist"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: stylist.heap_size_of_children(),
+        });
+
         // The LayoutThread has a context in TLS...
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "local-context"],
@@ -869,26 +877,27 @@ impl LayoutThread {
             flow::mut_base(flow_ref::deref_mut(layout_root)).clip =
                 ClippingRegion::from_rect(&data.page_clip_rect);
 
-            let mut root_stacking_context =
-                StackingContext::new(StackingContextId::new(0),
-                                     StackingContextType::Real,
-                                     &Rect::zero(),
-                                     &Rect::zero(),
-                                     0,
-                                     filter::T::new(Vec::new()),
-                                     mix_blend_mode::T::normal,
-                                     Matrix4::identity(),
-                                     Matrix4::identity(),
-                                     true,
-                                     false,
-                                     None);
+            if flow::base(&**layout_root).restyle_damage.contains(REPAINT) ||
+                    rw_data.display_list.is_none() {
+                let mut root_stacking_context =
+                    StackingContext::new(StackingContextId::new(0),
+                                         StackingContextType::Real,
+                                         &Rect::zero(),
+                                         &Rect::zero(),
+                                         0,
+                                         filter::T::new(Vec::new()),
+                                         mix_blend_mode::T::normal,
+                                         Matrix4::identity(),
+                                         Matrix4::identity(),
+                                         true,
+                                         false,
+                                         None);
 
-            let display_list_entries =
-                sequential::build_display_list_for_subtree(layout_root,
-                                                           &mut root_stacking_context,
-                                                           shared_layout_context);
+                let display_list_entries =
+                    sequential::build_display_list_for_subtree(layout_root,
+                                                               &mut root_stacking_context,
+                                                               shared_layout_context);
 
-            if data.goal == ReflowGoal::ForDisplay {
                 debug!("Done building display list.");
 
                 let root_background_color = get_root_flow_background_color(
@@ -905,22 +914,26 @@ impl LayoutThread {
                 let origin = Rect::new(Point2D::new(Au(0), Au(0)), root_size);
                 root_stacking_context.bounds = origin;
                 root_stacking_context.overflow = origin;
-                root_stacking_context.layer_info = Some(LayerInfo::new(layout_root.layer_id(),
-                                                                       ScrollPolicy::Scrollable,
-                                                                       None,
-                                                                       root_background_color));
+                root_stacking_context.layer_info =
+                    Some(LayerInfo::new(layout_root.layer_id(),
+                                        ScrollPolicy::Scrollable,
+                                        None,
+                                        root_background_color));
 
-                let display_list = DisplayList::new(root_stacking_context,
-                                                    &mut Some(display_list_entries));
+                rw_data.display_list =
+                    Some(Arc::new(DisplayList::new(root_stacking_context,
+                                                   &mut Some(display_list_entries))))
+            }
+
+            if data.goal == ReflowGoal::ForDisplay {
+                let display_list = (*rw_data.display_list.as_ref().unwrap()).clone();
+
                 if opts::get().dump_display_list {
                     display_list.print();
                 }
                 if opts::get().dump_display_list_json {
                     println!("{}", serde_json::to_string_pretty(&display_list).unwrap());
                 }
-
-                let display_list = Arc::new(display_list);
-                rw_data.display_list = Some(display_list.clone());
 
                 debug!("Layout done!");
 
@@ -942,10 +955,13 @@ impl LayoutThread {
                         epoch,
                         Some(root_scroll_layer_id),
                         &mut auxiliary_lists_builder);
-                    let root_background_color = webrender_traits::ColorF::new(root_background_color.r,
-                                                                       root_background_color.g,
-                                                                       root_background_color.b,
-                                                                       root_background_color.a);
+                    let root_background_color = get_root_flow_background_color(
+                        flow_ref::deref_mut(layout_root));
+                    let root_background_color =
+                        webrender_traits::ColorF::new(root_background_color.r,
+                                                      root_background_color.g,
+                                                      root_background_color.b,
+                                                      root_background_color.a);
 
                     let viewport_size = Size2D::new(self.viewport_size.width.to_f32_px(),
                                                     self.viewport_size.height.to_f32_px());
@@ -1040,6 +1056,8 @@ impl LayoutThread {
         };
 
         // Handle conditions where the entire flow tree is invalid.
+        let mut needs_dirtying = false;
+
         let viewport_size_changed = self.viewport_size != old_viewport_size;
         if viewport_size_changed {
             if let Some(constraints) = constraints {
@@ -1048,11 +1066,15 @@ impl LayoutThread {
                 constellation_chan.send(ConstellationMsg::ViewportConstrained(
                         self.id, constraints)).unwrap();
             }
+            // FIXME (#10104): Only dirty nodes affected by vh/vw/vmin/vmax styles.
+            if data.document_stylesheets.iter().any(|sheet| sheet.dirty_on_viewport_size_change) {
+                needs_dirtying = true;
+            }
         }
 
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
-        let needs_dirtying = rw_data.stylist.update(&data.document_stylesheets,
-                                                    data.stylesheets_changed);
+        needs_dirtying |= rw_data.stylist.update(&data.document_stylesheets,
+                                                 data.stylesheets_changed);
         let needs_reflow = viewport_size_changed && !needs_dirtying;
         unsafe {
             if needs_dirtying {
@@ -1323,26 +1345,28 @@ impl LayoutThread {
 
             // Perform the primary layout passes over the flow tree to compute the locations of all
             // the boxes.
-            profile(time::ProfilerCategory::LayoutMain,
-                    self.profiler_metadata(),
-                    self.time_profiler_chan.clone(),
-                    || {
-                let profiler_metadata = self.profiler_metadata();
-                match self.parallel_traversal {
-                    None => {
-                        // Sequential mode.
-                        LayoutThread::solve_constraints(&mut root_flow, &layout_context)
+            if flow::base(&*root_flow).restyle_damage.intersects(REFLOW | REFLOW_OUT_OF_FLOW) {
+                profile(time::ProfilerCategory::LayoutMain,
+                        self.profiler_metadata(),
+                        self.time_profiler_chan.clone(),
+                        || {
+                    let profiler_metadata = self.profiler_metadata();
+                    match self.parallel_traversal {
+                        None => {
+                            // Sequential mode.
+                            LayoutThread::solve_constraints(&mut root_flow, &layout_context)
+                        }
+                        Some(ref mut parallel) => {
+                            // Parallel mode.
+                            LayoutThread::solve_constraints_parallel(parallel,
+                                                                   &mut root_flow,
+                                                                   profiler_metadata,
+                                                                   self.time_profiler_chan.clone(),
+                                                                   &*layout_context);
+                        }
                     }
-                    Some(ref mut parallel) => {
-                        // Parallel mode.
-                        LayoutThread::solve_constraints_parallel(parallel,
-                                                                 &mut root_flow,
-                                                                 profiler_metadata,
-                                                                 self.time_profiler_chan.clone(),
-                                                                 &*layout_context);
-                    }
-                }
-            });
+                });
+            }
 
             profile(time::ProfilerCategory::LayoutStoreOverflow,
                     self.profiler_metadata(),

@@ -59,11 +59,6 @@ def host_triple():
     return "%s-%s" % (cpu_type, os_type)
 
 
-def use_nightly_rust():
-    envvar = os.environ.get("SERVO_USE_NIGHTLY_RUST", "0")
-    return envvar != "0"
-
-
 def call(*args, **kwargs):
     """Wrap `subprocess.call`, printing the command if verbose=True."""
     verbose = kwargs.pop('verbose', False)

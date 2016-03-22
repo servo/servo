@@ -83,6 +83,7 @@ lazy_static! {
     };
 }
 
+#[derive(HeapSizeOf)]
 pub struct Stylist<Impl: SelectorImplExt> {
     // Device that the stylist is currently evaluating against.
     pub device: Device,
@@ -226,10 +227,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
             device = Device::new(MediaType::Screen, constraints.size);
         }
 
-        let size_changed = device.viewport_size != self.device.viewport_size;
-
         self.is_device_dirty |= stylesheets.iter().any(|stylesheet| {
-                (size_changed && stylesheet.dirty_on_viewport_size_change) ||
                 stylesheet.rules().media().any(|media_rule|
                     media_rule.evaluate(&self.device) != media_rule.evaluate(&device))
         });
@@ -340,6 +338,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
     }
 }
 
+#[derive(HeapSizeOf)]
 struct PerOriginSelectorMap<Impl: SelectorImpl> {
     normal: SelectorMap<Vec<PropertyDeclaration>, Impl>,
     important: SelectorMap<Vec<PropertyDeclaration>, Impl>,
@@ -355,6 +354,7 @@ impl<Impl: SelectorImpl> PerOriginSelectorMap<Impl> {
     }
 }
 
+#[derive(HeapSizeOf)]
 struct PerPseudoElementSelectorMap<Impl: SelectorImpl> {
     user_agent: PerOriginSelectorMap<Impl>,
     author: PerOriginSelectorMap<Impl>,

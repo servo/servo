@@ -125,12 +125,12 @@ impl<'a> CanvasPaintThread<'a> {
     /// sender for it.
     pub fn start(size: Size2D<i32>,
                  webrender_api_sender: Option<webrender_traits::RenderApiSender>)
-                    -> (IpcSender<CanvasMsg>, Sender<CanvasMsg>) {
+                 -> IpcSender<CanvasMsg> {
         // TODO(pcwalton): Ask the pipeline to create this for us instead of spawning it directly.
         // This will be needed for multiprocess Servo.
         let (out_of_process_chan, out_of_process_port) = ipc::channel::<CanvasMsg>().unwrap();
         let (in_process_chan, in_process_port) = channel();
-        ROUTER.route_ipc_receiver_to_mpsc_sender(out_of_process_port, in_process_chan.clone());
+        ROUTER.route_ipc_receiver_to_mpsc_sender(out_of_process_port, in_process_chan);
         spawn_named("CanvasThread".to_owned(), move || {
             let mut painter = CanvasPaintThread::new(size, webrender_api_sender);
             loop {
@@ -217,7 +217,7 @@ impl<'a> CanvasPaintThread<'a> {
             }
         });
 
-        (out_of_process_chan, in_process_chan)
+        out_of_process_chan
     }
 
     fn save_context_state(&mut self) {

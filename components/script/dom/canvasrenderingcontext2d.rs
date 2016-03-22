@@ -62,7 +62,6 @@ enum CanvasFillOrStrokeStyle {
 #[dom_struct]
 pub struct CanvasRenderingContext2D {
     reflector_: Reflector,
-    renderer_id: usize,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     ipc_renderer: IpcSender<CanvasMsg>,
     canvas: JS<HTMLCanvasElement>,
@@ -125,10 +124,9 @@ impl CanvasRenderingContext2D {
         let (sender, receiver) = ipc::channel().unwrap();
         let constellation_chan = global.constellation_chan();
         constellation_chan.0.send(ConstellationMsg::CreateCanvasPaintThread(size, sender)).unwrap();
-        let (ipc_renderer, renderer_id) = receiver.recv().unwrap();
+        let ipc_renderer = receiver.recv().unwrap();
         CanvasRenderingContext2D {
             reflector_: Reflector::new(),
-            renderer_id: renderer_id,
             ipc_renderer: ipc_renderer,
             canvas: JS::from_ref(canvas),
             state: DOMRefCell::new(CanvasContextState::new()),
@@ -501,9 +499,6 @@ impl CanvasRenderingContext2D {
         }
     }
 
-    pub fn get_renderer_id(&self) -> usize {
-        self.renderer_id
-    }
     pub fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
         self.ipc_renderer.clone()
     }
@@ -519,16 +514,10 @@ impl CanvasRenderingContext2D {
 
 pub trait LayoutCanvasRenderingContext2DHelpers {
     #[allow(unsafe_code)]
-    unsafe fn get_renderer_id(&self) -> usize;
-    #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg>;
 }
 
 impl LayoutCanvasRenderingContext2DHelpers for LayoutJS<CanvasRenderingContext2D> {
-    #[allow(unsafe_code)]
-    unsafe fn get_renderer_id(&self) -> usize {
-        (*self.unsafe_get()).renderer_id
-    }
     #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
         (*self.unsafe_get()).ipc_renderer.clone()
