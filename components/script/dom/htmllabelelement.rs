@@ -15,7 +15,6 @@ use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{document_from_node, Node};
-use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
 use util::str::DOMString;
@@ -41,12 +40,6 @@ impl HTMLLabelElement {
                document: &Document) -> Root<HTMLLabelElement> {
         let element = HTMLLabelElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLLabelElementBinding::Wrap)
-    }
-}
-
-impl Validatable for HTMLLabelElement {
-    fn is_instance_validatable(&self) -> bool {
-        false
     }
 }
 

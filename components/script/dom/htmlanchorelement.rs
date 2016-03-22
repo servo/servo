@@ -21,7 +21,6 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::mouseevent::MouseEvent;
 use dom::node::{Node, document_from_node, window_from_node};
-use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use num::ToPrimitive;
 use std::default::Default;
@@ -108,12 +107,6 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-a-shape
     make_setter!(SetShape, "shape");
-}
-
-impl Validatable for HTMLAnchorElement {
-    fn is_instance_validatable(&self) -> bool {
-        false
-    }
 }
 
 impl Activatable for HTMLAnchorElement {

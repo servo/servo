@@ -204,12 +204,7 @@ impl VirtualMethods for HTMLButtonElement {
 
 impl FormControl for HTMLButtonElement {}
 
-impl Validatable for HTMLButtonElement {
-    fn is_instance_validatable(&self) -> bool {
-        //https://html.spec.whatwg.org/multipage/#the-button-element
-        false
-    }
-}
+impl Validatable for HTMLButtonElement {}
 
 impl Activatable for HTMLButtonElement {
     fn as_element(&self) -> &Element {
