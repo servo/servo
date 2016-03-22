@@ -2,15 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use util::prefs::{PrefValue, extend_prefs, read_prefs_from_file, get_pref, set_pref,
-                  reset_pref, reset_all_prefs};
+use util::prefs::{PrefValue, extend_prefs, read_prefs_from_file, get_pref, set_pref, reset_pref, reset_all_prefs};
 
 #[test]
 fn test_create_pref() {
-    let json_str = "{
-  \"layout.writing-mode.enabled\": true,
-  \"net.mime.sniff\": false,
-  \"shell.homepage\": \"http://servo.org\"
+    let json_str = "{\
+  \"layout.writing-mode.enabled\": true,\
+  \"net.mime.sniff\": false,\
+  \"shell.homepage\": \"http://servo.org\"\
 }";
 
     let prefs = read_prefs_from_file(json_str.as_bytes());
@@ -22,10 +21,10 @@ fn test_create_pref() {
 
 #[test]
 fn test_get_set_reset_extend() {
-    let json_str = "{
-  \"layout.writing-mode.enabled\": true,
-  \"extra.stuff\": false,
-  \"shell.homepage\": \"https://google.com\"
+    let json_str = "{\
+  \"layout.writing-mode.enabled\": true,\
+  \"extra.stuff\": false,\
+  \"shell.homepage\": \"https://google.com\"\
 }";
 
     assert_eq!(*get_pref("test"), PrefValue::Missing);
