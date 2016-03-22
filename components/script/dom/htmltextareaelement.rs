@@ -336,8 +336,4 @@ impl VirtualMethods for HTMLTextAreaElement {
 
 impl FormControl for HTMLTextAreaElement {}
 
-impl Validatable for HTMLTextAreaElement {
-    fn is_instance_validatable(&self) -> bool {
-        true
-    }
-}
+impl Validatable for HTMLTextAreaElement {}

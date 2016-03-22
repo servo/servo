@@ -10,7 +10,9 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::element::Element;
 use dom::window::Window;
 
-
+// https://html.spec.whatwg.org/multipage/#validity-states
+#[derive_JSTraceable]
+#[derive_HeapSizeOf]
 pub enum ValidityStatus {
     ValueMissing,
     TypeMismatch,
@@ -22,7 +24,7 @@ pub enum ValidityStatus {
     StepMismatch,
     BadInput,
     CustomError,
-    Valid,
+    Valid
 }
 
 // https://html.spec.whatwg.org/multipage/#validitystate
@@ -30,7 +32,7 @@ pub enum ValidityStatus {
 pub struct ValidityState {
     reflector_: Reflector,
     element: JS<Element>,
-    state: u8,
+    state: ValidityStatus
 }
 
 
@@ -39,7 +41,7 @@ impl ValidityState {
         ValidityState {
             reflector_: Reflector::new(),
             element: JS::from_ref(element),
-            state: 0,
+            state: ValidityStatus::Valid
         }
     }
 
@@ -52,57 +54,57 @@ impl ValidityState {
 
 impl ValidityStateMethods for ValidityState {
 
-    // https://html.spec.whatwg.org/multipage/#validitystate
+    // https://html.spec.whatwg.org/multipage/#dom-validitystate-valuemissing
     fn ValueMissing(&self) -> bool {
         false
     }
 
-    // https://html.spec.whatwg.org/multipage/#validitystate
+    // https://html.spec.whatwg.org/multipage/#dom-validitystate-typemismatch
     fn TypeMismatch(&self) -> bool {
         false
     }
 
-    // https://html.spec.whatwg.org/multipage/#validitystate
+    // https://html.spec.whatwg.org/multipage/#dom-validitystate-patternmismatch
     fn PatternMismatch(&self) -> bool {
         false
     }
 
-    // https://html.spec.whatwg.org/multipage/#validitystate
+    // https://html.spec.whatwg.org/multipage/#dom-validitystate-toolong
     fn TooLong(&self) -> bool {
         false
     }
 
-    // https://html.spec.whatwg.org/multipage/#validitystate
+    // https://html.spec.whatwg.org/multipage/#dom-validitystate-tooshort
     fn TooShort(&self) -> bool {
         false
     }
 
-    // https://html.spec.whatwg.org/multipage/#validitystate
+    // https://html.spec.whatwg.org/multipage/#dom-validitystate-rangeunderflow
     fn RangeUnderflow(&self) -> bool {
         false
     }
 
-    // https://html.spec.whatwg.org/multipage/#validitystate
+    // https://html.spec.whatwg.org/multipage/#dom-validitystate-rangeoverflow
     fn RangeOverflow(&self) -> bool {
         false
     }
 
-    // https://html.spec.whatwg.org/multipage/#validitystate
+    // https://html.spec.whatwg.org/multipage/#dom-validitystate-stepmismatch
     fn StepMismatch(&self) -> bool {
         false
     }
 
-    // https://html.spec.whatwg.org/multipage/#validitystate
+    // https://html.spec.whatwg.org/multipage/#dom-validitystate-badinput
     fn BadInput(&self) -> bool {
         false
     }
 
-    // https://html.spec.whatwg.org/multipage/#validitystate
+    // https://html.spec.whatwg.org/multipage/#dom-validitystate-customerror
     fn CustomError(&self) -> bool {
         false
     }
 
-    // https://html.spec.whatwg.org/multipage/#validitystate
+    // https://html.spec.whatwg.org/multipage/#dom-validitystate-valid
     fn Valid(&self) -> bool {
         false
     }
