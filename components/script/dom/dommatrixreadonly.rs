@@ -400,9 +400,15 @@ impl DOMMatrixMutateMethods for DOMMatrixReadOnly {
                     Some(rz) => (rotX, ry, rz)
             }
         };
-        *matrix = Matrix4::create_rotation(0.0, 0.0, 1.0, rotZ as f32).mul(&matrix);
-        *matrix = Matrix4::create_rotation(0.0, 1.0, 0.0, rotY as f32).mul(&matrix);
-        *matrix = Matrix4::create_rotation(1.0, 0.0, 0.0, rotX as f32).mul(&matrix);
+        if rotZ != 0.0 {
+            *matrix = Matrix4::create_rotation(0.0, 0.0, 1.0, deg_to_rad(rotZ) as f32).mul(&matrix);
+        }
+        if rotY != 0.0 {
+            *matrix = Matrix4::create_rotation(0.0, 1.0, 0.0, deg_to_rad(rotY) as f32).mul(&matrix);
+        }
+        if rotX != 0.0 {
+            *matrix = Matrix4::create_rotation(1.0, 0.0, 0.0, deg_to_rad(rotX) as f32).mul(&matrix);
+        }
         if rotX != 0.0 || rotY != 0.0 {
             self.is2D.set(false);
         }
@@ -420,7 +426,7 @@ impl DOMMatrixMutateMethods for DOMMatrixReadOnly {
     fn RotateAxisAngleSelf(&self, x: f64, y: f64, z: f64, angle: f64) {
         let mut matrix = self.matrix.borrow_mut();
         let (norm_x, norm_y, norm_z) = normalize_point(x, y, z);
-        let rotation: Matrix4 = Matrix4::create_rotation(norm_x as f32, norm_y as f32, norm_z as f32, angle as f32);
+        let rotation: Matrix4 = Matrix4::create_rotation(norm_x as f32, norm_y as f32, norm_z as f32, deg_to_rad(angle) as f32);
         *matrix = rotation.mul(&matrix);
         if x != 0.0 || y != 0.0 {
             self.is2D.set(false);
@@ -429,13 +435,13 @@ impl DOMMatrixMutateMethods for DOMMatrixReadOnly {
 
     fn SkewXSelf(&self, sx: f64) {
         let mut matrix = self.matrix.borrow_mut();
-        let skew_x = Matrix4::create_skew(sx as f32, 0.0);
+        let skew_x = Matrix4::create_skew(deg_to_rad(sx) as f32, 0.0);
         *matrix = skew_x.mul(&matrix);
     }
 
     fn SkewYSelf(&self, sy: f64) {
         let mut matrix = self.matrix.borrow_mut();
-        let skew_y = Matrix4::create_skew(0.0, sy as f32);
+        let skew_y = Matrix4::create_skew(0.0, deg_to_rad(sy) as f32);
         *matrix = skew_y.mul(&matrix);
     }
 
@@ -453,6 +459,12 @@ impl DOMMatrixMutateMethods for DOMMatrixReadOnly {
     }
 }
 
+#[inline]
+fn deg_to_rad(x: f64) -> f64 {
+    x * f64::consts::PI / 180.0
+}
+
+#[inline]
 fn normalize_point(x: f64, y: f64, z: f64) -> (f64, f64, f64) {
     let len = (x * x + y * y + z * z).sqrt();
     if len == 0.0 {
