@@ -111,6 +111,12 @@ class CommandBase(object):
     def __init__(self, context):
         self.context = context
 
+        def get_env_bool(var, default):
+            # Contents of env vars are strings by default. This returns the
+            # boolean value of the specified environment variable, or the
+            # speciried default if the var doesn't contain True or False
+            return {'True': True, 'False': False}.get(os.environ.get(var), default)
+
         def resolverelative(category, key):
             # Allow ~
             self.config[category][key] = path.expanduser(self.config[category][key])
@@ -151,7 +157,7 @@ class CommandBase(object):
         if not self.config["tools"]["system-cargo"]:
             self.config["tools"]["cargo-root"] = path.join(
                 context.sharedir, "cargo", self.cargo_build_id())
-        self.config["tools"].setdefault("rustc-with-gold", True)
+        self.config["tools"].setdefault("rustc-with-gold", get_env_bool("SERVO_RUSTC_WITH_GOLD", True))
 
         self.config.setdefault("build", {})
         self.config["build"].setdefault("android", False)
