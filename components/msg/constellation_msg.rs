@@ -186,6 +186,9 @@ pub enum Key {
     RightAlt,
     RightSuper,
     Menu,
+
+    NavigateBackward,
+    NavigateForward,
 }
 
 bitflags! {

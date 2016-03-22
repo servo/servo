@@ -319,6 +319,8 @@ pub fn key_value(key: Key, mods: KeyModifiers) -> &'static str {
         Key::RightAlt => "Alt",
         Key::RightSuper => "Super",
         Key::Menu => "ContextMenu",
+        Key::NavigateForward => "BrowserForward",
+        Key::NavigateBackward => "BrowserBack",
     }
 }
 
@@ -489,6 +491,8 @@ fn key_from_string(key_string: &str, location: u32) -> Option<Key> {
         "Alt" if location == KeyboardEventConstants::DOM_KEY_LOCATION_RIGHT => Some(Key::RightAlt),
         "Super" if location == KeyboardEventConstants::DOM_KEY_LOCATION_RIGHT => Some(Key::RightSuper),
         "ContextMenu" => Some(Key::Menu),
+        "BrowserForward" => Some(Key::NavigateForward),
+        "BrowserBack" => Some(Key::NavigateBackward),
         _ => None
     }
 }
@@ -614,6 +618,9 @@ fn code_value(key: Key) -> &'static str {
         Key::LeftAlt | Key::RightAlt => "Alt",
         Key::LeftSuper | Key::RightSuper => "Super",
         Key::Menu => "Menu",
+
+        Key::NavigateForward => "BrowserForward",
+        Key::NavigateBackward => "BrowserBackward",
     }
 }
 
