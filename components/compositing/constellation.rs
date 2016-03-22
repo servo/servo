@@ -1705,11 +1705,13 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             // If this is an iframe, then send the event with new url
             if let Some((containing_pipeline_id, subpage_id, url)) = event_info {
                 if let Some(parent_pipeline) = self.pipelines.get(&containing_pipeline_id) {
-                    if let frame_id = *self.pipeline_to_frame_map.get(&pipeline_id).unwrap() {
-                        let can_go_backward = !self.frame(frame_id).prev.is_empty();
-                        let can_go_forward = !self.frame(frame_id).next.is_empty();
-                        let event = MozBrowserEvent::LocationChange(url, can_go_backward, can_go_forward);
-                        parent_pipeline.trigger_mozbrowser_event(subpage_id, event);
+                    if let Some(frame_id) = self.pipeline_to_frame_map.get(&pipeline_id) {
+                        if let Some(frame) = self.frames.get(&frame_id) {
+                            let can_go_backward = !frame.prev.is_empty();
+                            let can_go_forward = !frame.next.is_empty();
+                            let event = MozBrowserEvent::LocationChange(url, can_go_backward, can_go_forward);
+                            parent_pipeline.trigger_mozbrowser_event(subpage_id, event);
+                        }
                     }
                 }
             }
