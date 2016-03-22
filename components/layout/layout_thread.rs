@@ -689,6 +689,13 @@ impl LayoutThread {
             size: display_list.map_or(0, |sc| sc.heap_size_of_children()),
         });
 
+        let stylist = rw_data.stylist.as_ref();
+        reports.push(Report {
+            path: path![formatted_url, "layout-thread", "stylist"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: stylist.heap_size_of_children(),
+        });
+
         // The LayoutThread has a context in TLS...
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "local-context"],

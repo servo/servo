@@ -347,7 +347,7 @@ pub mod longhands {
                                    -> Result<SpecifiedValue, ()> {
                 specified::parse_border_width(input).map(SpecifiedValue)
             }
-            #[derive(Debug, Clone, PartialEq)]
+            #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
             pub struct SpecifiedValue(pub specified::Length);
             pub mod computed_value {
                 use app_units::Au;
@@ -410,7 +410,7 @@ pub mod longhands {
         pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
             specified::parse_border_width(input).map(SpecifiedValue)
         }
-        #[derive(Debug, Clone, PartialEq)]
+        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
         pub struct SpecifiedValue(pub specified::Length);
         pub mod computed_value {
             use app_units::Au;
@@ -638,7 +638,7 @@ pub mod longhands {
         use values::CSSFloat;
         use values::computed::Context;
 
-        #[derive(Debug, Clone, PartialEq, Copy)]
+        #[derive(Debug, Clone, PartialEq, Copy, HeapSizeOf)]
         pub enum SpecifiedValue {
             Normal,
             Number(CSSFloat),
@@ -734,7 +734,7 @@ pub mod longhands {
         <% vertical_align_keywords = (
             "baseline sub super top text-top middle bottom text-bottom".split()) %>
         #[allow(non_camel_case_types)]
-        #[derive(Debug, Clone, PartialEq, Copy)]
+        #[derive(Debug, Clone, PartialEq, Copy, HeapSizeOf)]
         pub enum SpecifiedValue {
             % for keyword in vertical_align_keywords:
                 ${to_rust_ident(keyword)},
@@ -1055,7 +1055,7 @@ pub mod longhands {
         use values::computed::Context;
         use values::LocalToCss;
 
-        #[derive(Debug, Clone, PartialEq, Eq)]
+        #[derive(Debug, Clone, PartialEq, Eq, HeapSizeOf)]
         pub enum SpecifiedValue {
             None,
             Url(Url),
@@ -1293,7 +1293,7 @@ pub mod longhands {
             }
         }
 
-        #[derive(Debug, Clone, PartialEq)]
+        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
         pub struct SpecifiedValue(pub Option<Image>);
 
         impl ToCss for SpecifiedValue {
@@ -1346,7 +1346,7 @@ pub mod longhands {
                 }
             }
 
-            #[derive(Debug, Clone, PartialEq, Copy)]
+            #[derive(Debug, Clone, PartialEq, Copy, HeapSizeOf)]
             pub struct SpecifiedValue {
                 pub horizontal: specified::LengthOrPercentage,
                 pub vertical: specified::LengthOrPercentage,
@@ -1485,7 +1485,7 @@ pub mod longhands {
             }
         }
 
-        #[derive(Clone, PartialEq, Debug)]
+        #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
         pub struct SpecifiedExplicitSize {
             pub width: specified::LengthOrPercentageOrAuto,
             pub height: specified::LengthOrPercentageOrAuto,
@@ -1508,7 +1508,7 @@ pub mod longhands {
         }
 
 
-        #[derive(Clone, PartialEq, Debug)]
+        #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
         pub enum SpecifiedValue {
             Explicit(SpecifiedExplicitSize),
             Cover,
@@ -1749,7 +1749,7 @@ pub mod longhands {
         use std::fmt;
         use values::computed::Context;
 
-        #[derive(Debug, Clone, PartialEq, Eq, Copy)]
+        #[derive(Debug, Clone, PartialEq, Eq, Copy, HeapSizeOf)]
         pub enum SpecifiedValue {
             Bolder,
             Lighter,
@@ -1877,7 +1877,7 @@ pub mod longhands {
             }
         }
 
-        #[derive(Debug, Clone, PartialEq)]
+        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
         pub struct SpecifiedValue(pub specified::LengthOrPercentage);
         pub mod computed_value {
             use app_units::Au;
@@ -1994,7 +1994,7 @@ pub mod longhands {
         use values::AuExtensionMethods;
         use values::computed::Context;
 
-        #[derive(Debug, Clone, Copy, PartialEq)]
+        #[derive(Debug, Clone, Copy, PartialEq, HeapSizeOf)]
         pub enum SpecifiedValue {
             Normal,
             Specified(specified::Length),
@@ -2057,7 +2057,7 @@ pub mod longhands {
         use values::AuExtensionMethods;
         use values::computed::Context;
 
-        #[derive(Debug, Clone, Copy, PartialEq)]
+        #[derive(Debug, Clone, Copy, PartialEq, HeapSizeOf)]
         pub enum SpecifiedValue {
             Normal,
             Specified(specified::Length),  // FIXME(SimonSapin) support percentages
@@ -2380,7 +2380,7 @@ pub mod longhands {
             }
         }
 
-        #[derive(Clone, Debug, PartialEq)]
+        #[derive(Clone, Debug, PartialEq, HeapSizeOf)]
         pub struct SpecifiedValue {
             pub horizontal: specified::Length,
             pub vertical: specified::Length,
@@ -2531,7 +2531,7 @@ pub mod longhands {
         use values::AuExtensionMethods;
         use values::computed::Context;
 
-        #[derive(Debug, Clone, Copy, PartialEq)]
+        #[derive(Debug, Clone, Copy, PartialEq, HeapSizeOf)]
         pub enum SpecifiedValue {
             Auto,
             Specified(specified::Length),
@@ -2593,7 +2593,7 @@ pub mod longhands {
         use std::fmt;
         use values::computed::Context;
 
-        #[derive(Debug, Clone, Copy, PartialEq)]
+        #[derive(Debug, Clone, Copy, PartialEq, HeapSizeOf)]
         pub enum SpecifiedValue {
             Auto,
             Specified(u32),
@@ -2660,7 +2660,7 @@ pub mod longhands {
         use values::AuExtensionMethods;
         use values::computed::Context;
 
-        #[derive(Debug, Clone, Copy, PartialEq)]
+        #[derive(Debug, Clone, Copy, PartialEq, HeapSizeOf)]
         pub enum SpecifiedValue {
             Normal,
             Specified(specified::Length),
@@ -2732,7 +2732,7 @@ pub mod longhands {
             }
         }
 
-        #[derive(Debug, Clone, PartialEq)]
+        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
         pub struct SpecifiedValue(pub CSSFloat);
         pub mod computed_value {
             use values::CSSFloat;
@@ -2768,10 +2768,10 @@ pub mod longhands {
         use values::AuExtensionMethods;
         use values::computed::Context;
 
-        #[derive(Debug, Clone, PartialEq)]
+        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
         pub struct SpecifiedValue(Vec<SpecifiedBoxShadow>);
 
-        #[derive(Debug, Clone, PartialEq)]
+        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
         pub struct SpecifiedBoxShadow {
             pub offset_x: specified::Length,
             pub offset_y: specified::Length,
@@ -3025,7 +3025,7 @@ pub mod longhands {
             }
         }
 
-        #[derive(Clone, Debug, PartialEq, Copy)]
+        #[derive(Clone, Debug, PartialEq, Copy, HeapSizeOf)]
         pub struct SpecifiedClipRect {
             pub top: specified::Length,
             pub right: Option<specified::Length>,
@@ -3033,7 +3033,7 @@ pub mod longhands {
             pub left: specified::Length,
         }
 
-        #[derive(Clone, Debug, PartialEq, Copy)]
+        #[derive(Clone, Debug, PartialEq, Copy, HeapSizeOf)]
         pub struct SpecifiedValue(Option<SpecifiedClipRect>);
 
         impl ToCss for SpecifiedClipRect {
@@ -3132,10 +3132,10 @@ pub mod longhands {
         use values::AuExtensionMethods;
         use values::computed::Context;
 
-        #[derive(Clone, PartialEq, Debug)]
+        #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
         pub struct SpecifiedValue(Vec<SpecifiedTextShadow>);
 
-        #[derive(Clone, PartialEq, Debug)]
+        #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
         pub struct SpecifiedTextShadow {
             pub offset_x: specified::Length,
             pub offset_y: specified::Length,
@@ -3313,11 +3313,11 @@ pub mod longhands {
         use values::CSSFloat;
         use values::specified::{Angle, Length};
 
-        #[derive(Debug, Clone, PartialEq)]
+        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
         pub struct SpecifiedValue(Vec<SpecifiedFilter>);
 
         // TODO(pcwalton): `drop-shadow`
-        #[derive(Clone, PartialEq, Debug)]
+        #[derive(Clone, PartialEq, Debug, HeapSizeOf)]
         pub enum SpecifiedFilter {
             Blur(Length),
             Brightness(CSSFloat),
@@ -3615,7 +3615,7 @@ pub mod longhands {
             Ok((first, second))
         }
 
-        #[derive(Copy, Clone, Debug, PartialEq)]
+        #[derive(Copy, Clone, Debug, PartialEq, HeapSizeOf)]
         enum TranslateKind {
             Translate,
             TranslateX,
@@ -3624,7 +3624,7 @@ pub mod longhands {
             Translate3D,
         }
 
-        #[derive(Clone, Debug, PartialEq)]
+        #[derive(Clone, Debug, PartialEq, HeapSizeOf)]
         enum SpecifiedOperation {
             Matrix(SpecifiedMatrix),
             Skew(specified::Angle, specified::Angle),
@@ -3703,7 +3703,7 @@ pub mod longhands {
             }
         }
 
-        #[derive(Clone, Debug, PartialEq)]
+        #[derive(Clone, Debug, PartialEq, HeapSizeOf)]
         pub struct SpecifiedValue(Vec<SpecifiedOperation>);
 
         impl ToCss for SpecifiedValue {
@@ -4100,7 +4100,7 @@ pub mod longhands {
             }
         }
 
-        #[derive(Clone, Copy, Debug, PartialEq)]
+        #[derive(Clone, Copy, Debug, PartialEq, HeapSizeOf)]
         pub struct SpecifiedValue {
             horizontal: LengthOrPercentage,
             vertical: LengthOrPercentage,
@@ -4188,7 +4188,7 @@ pub mod longhands {
             }
         }
 
-        #[derive(Clone, Copy, Debug, PartialEq)]
+        #[derive(Clone, Copy, Debug, PartialEq, HeapSizeOf)]
         pub struct SpecifiedValue {
             horizontal: LengthOrPercentage,
             vertical: LengthOrPercentage,
@@ -5800,7 +5800,7 @@ impl CSSWideKeyword {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Clone, Copy, Eq, PartialEq, Debug, HeapSizeOf)]
 pub enum Shorthand {
     % for property in SHORTHANDS:
         ${property.camel_case},
@@ -5833,7 +5833,7 @@ impl Shorthand {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Debug)]
+#[derive(Clone, PartialEq, Eq, Debug, HeapSizeOf)]
 pub enum DeclaredValue<T> {
     Value(T),
     WithVariables {
@@ -5864,7 +5864,7 @@ impl<T: ToCss> ToCss for DeclaredValue<T> {
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, HeapSizeOf)]
 pub enum PropertyDeclaration {
     % for property in LONGHANDS:
         ${property.camel_case}(DeclaredValue<longhands::${property.ident}::SpecifiedValue>),
