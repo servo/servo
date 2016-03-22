@@ -1,19 +1,16 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>Geometry Interfaces: Test DOMMatrix mutating methods</title>
+<html><head>
+    <title>Geometry Interfaces: Test DOMMatrix non-mutating methods</title>
     <link href="mailto:peter.hall@algomi.com" rel="author" title="Peter Hall">
-    <link rel="help" href="https://drafts.fxtf.org/geometry/#dom-dommatrixreadonly">
+    <link href="https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly" rel="help">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
 </head>
 <body>
-    <p>Test DOMMatrix mutating methods</p>
+    <p>Test DOMMatrix non-mutating methods</p>
     <div id="log"></div>
     <script>
-        var epsilon64bit = 0.000000000005;
-        var epsilon32bit = 0.000002;
-        var epsilon = epsilon32bit;
+        var epsilon = 0.0000000005;
 
         function initialMatrix(){
           return {
@@ -25,12 +22,25 @@
             };
         }
 
+        function initialDOMMatrix() {
+          return DOMMatrixReadOnly.fromMatrix(initialMatrix())
+        }
+
+        function identity() {
+          return new DOMMatrix(
+            [1, 0, 0, 0,
+             0, 1, 0 ,0,
+             0, 0, 1, 0,
+             0, 0, 0, 1]);
+        }
+
         function update(matrix, f) {
-          return f(matrix), matrix;
+          f(matrix);
+          return matrix;
         }
 
         test(function() {
-          var result = DOMMatrixReadOnly.fromMatrix(initialMatrix()).translate(1, 5, 3);
+          var result = initialDOMMatrix().translate(1, 5, 3);
           var expected = update(initialMatrix(), function(m) {
             m.m41 += 1;
             m.m42 += 5;
@@ -40,7 +50,7 @@
         },"test translate()");
 
         test(function() {
-          var result = DOMMatrixReadOnly.fromMatrix(initialMatrix()).scale(2, 5, 3);
+          var result = initialDOMMatrix().scale(2, 5, 3);
           var expected = new DOMMatrix(
               [2.0,  -2.5,  1.5,  0.0,
                1.0,  10.0,  -1.5, 0.0,
@@ -50,11 +60,8 @@
         },"test scale() without offsets");
 
         test(function() {
-          var result = DOMMatrixReadOnly
-                          .fromMatrix(initialMatrix())
-                          .scale(2, 5, 3, 11, 7, 13);
-          var expected = DOMMatrixReadOnly
-                          .fromMatrix(initialMatrix())
+          var result = initialDOMMatrix().scale(2, 5, 3, 11, 7, 13);
+          var expected = initialDOMMatrix()
                           .translate(11, 7, 13)
                           .scale(2, 5, 3)
                           .translate(-11, -7, -13);
@@ -62,22 +69,16 @@
         },"test scale() with offsets");
 
         test(function() {
-          var result = DOMMatrixReadOnly
-                          .fromMatrix(initialMatrix())
-                          .scale3d(7, 5, 2, 3);
-          var expected = DOMMatrixReadOnly
-                          .fromMatrix(initialMatrix())
+          var result = initialDOMMatrix().scale3d(7, 5, 2, 3);
+          var expected = initialDOMMatrix()
                           .translate(5, 2, 3)
                           .scale(7, 7, 7)
                           .translate(-5, -2, -3);
           checkDOMMatrix(result, expected);
         },"test scale3d()");
 
-
         test(function() {
-          var result = DOMMatrixReadOnly
-                          .fromMatrix(initialMatrix())
-                          .rotate(-Math.PI/2);
+          var result = initialDOMMatrix().rotate(-90);
           var expected = new DOMMatrix(
               [ 0.5,   1.0, 0.5,  0.0,
                 -2.0,  0.5, -0.5, 0.0,
@@ -86,76 +87,72 @@
           checkDOMMatrix(result, expected);
         },"test rotate() 2d");
 
-
         test(function() {
-          var result = DOMMatrixReadOnly
-                          .fromMatrix(initialMatrix())
-                          .rotate(Math.PI, Math.PI, Math.PI/2);
-          var expected = DOMMatrixReadOnly
-                          .fromMatrix(initialMatrix())
-                          .rotate(0,0,-Math.PI/2);
+          var result = initialDOMMatrix().rotate(180, 180, 90);
+          var expected = initialDOMMatrix().rotate(0,0,-90);
           checkDOMMatrix(result, expected);
         },"test rotate()");
 
-
-
         test(function() {
-          var result = DOMMatrixReadOnly
-                          .fromMatrix(initialMatrix())
-                          .rotateFromVector(1,1);
-          var expected = DOMMatrixReadOnly
-                          .fromMatrix(initialMatrix())
-                          .rotate(Math.PI/4);
+          var result = initialDOMMatrix().rotateFromVector(1, 1);
+          var expected = initialDOMMatrix().rotate(45);
           checkDOMMatrix(result, expected);
         },"test rotateFromVector()");
 
+        test(function() {
+          var swap = new DOMMatrix([
+            0,1,0,0,
+            0,0,1,0,
+            1,0,0,0,
+            0,0,0,1]);
+          var result = swap.multiply(
+                            initialDOMMatrix().rotateAxisAngle(3, 3, 3, 120));
+          checkDOMMatrix(result, initialMatrix());
+        },"test rotateAxisAngle() ");
 
         test(function() {
-          var matrix = DOMMatrixReadOnly.fromMatrix(initial);
-          matrix.rotateAxisAngle(3,4,5, Math.PI/6);
-          checkDOMMatrix(matrix, initial);
-        },"test rotateAxisAngle() ");
-        //
-        // test(function() {
-        //   var matrix = DOMMatrixReadOnly.fromMatrix(initial);
-        //   matrix.skewX(20);
-        //   checkDOMMatrix(matrix, initial);
-        // },"test skewX() doesn't mutate");
-        //
-        // test(function() {
-        //   var matrix = DOMMatrixReadOnly.fromMatrix(initial);
-        //   matrix.skewY(20);
-        //   checkDOMMatrix(matrix, initial);
-        // },"test skewY() doesn't mutate");
-        //
-        // test(function() {
-        //   var matrix = DOMMatrixReadOnly.fromMatrix(initial);
-        //   matrix.multiply({ m11:1, m12:2, m13: 0, m14:0,
-        //                     m21:-1, m22:2, m23: -1, m24:0,
-        //                     m31:0, m32:0, m33: 1, m34:0,
-        //                     m41:5, m42:0, m43: 2, m44:1,
-        //                     is2D: false,
-        //                     isIdentity:false });
-        //   checkDOMMatrix(matrix, initial);
-        // },"test multiply() doesn't mutate");
-        //
-        // test(function() {
-        //   var matrix = DOMMatrixReadOnly.fromMatrix(initial);
-        //   matrix.flipX();
-        //   checkDOMMatrix(matrix, initial);
-        // },"test flipX() doesn't mutate");
-        //
-        // test(function() {
-        //   var matrix = DOMMatrixReadOnly.fromMatrix(initial);
-        //   matrix.flipY();
-        //   checkDOMMatrix(matrix, initial);
-        // },"test flipY() doesn't mutate");
-        //
-        // test(function() {
-        //   var matrix = DOMMatrixReadOnly.fromMatrix(initial);
-        //   matrix.inverse();
-        //   checkDOMMatrix(matrix, initial);
-        // },"test inverse() doesn't mutate");
+          var angleDeg = 75;
+          var result = initialDOMMatrix().skewX(angleDeg);
+          var tangent = Math.tan(angleDeg * Math.PI/180);
+          var skew = new DOMMatrix([
+                1,       0, 0, 0,
+                tangent, 1, 0, 0,
+                0,       0, 1, 0,
+                0,       0, 0, 1])
+          var expected = skew.multiply(initialDOMMatrix());
+          checkDOMMatrix(result, expected);
+        },"test skewX()");
+
+        test(function() {
+          var angleDeg = 18;
+          var result = initialDOMMatrix().skewY(angleDeg);
+          var tangent = Math.tan(angleDeg * Math.PI/180);
+          var skew = new DOMMatrix([
+                1, tangent, 0, 0,
+                0, 1,       0, 0,
+                0, 0,       1, 0,
+                0, 0,       0, 1])
+          var expected = skew.multiply(initialDOMMatrix());
+          checkDOMMatrix(result, expected);
+        },"test skewY()");
+
+        test(function() {
+          var result = initialDOMMatrix().multiply(initialDOMMatrix().inverse());
+          checkDOMMatrix(result, identity());
+        },"test multiply with inverse is identity");
+
+        test(function() {
+          var result = initialDOMMatrix().flipX();
+          var expected = initialDOMMatrix().multiply(new DOMMatrix([-1, 0, 0, 1, 0, 0]));
+          checkDOMMatrix(result, expected);
+        },"test flipX()");
+
+        test(function() {
+          var result = initialDOMMatrix().flipY();
+          var expected = initialDOMMatrix().multiply(new DOMMatrix([1, 0, 0, -1, 0, 0]));
+          checkDOMMatrix(result, expected);
+        },"test flipY()");
+
 
         function checkDOMMatrix(m, exp) {
           assert_approx_equals(m.m11, exp.m11, epsilon, "Expected value for m11 is " + exp.m11);
@@ -177,7 +174,7 @@
           assert_equals(m.is2D, exp.is2D, "Expected value for is2D is " + exp.is2D);
         }
 
-
     </script>
-</body>
-</html>
+
+
+</body></html>
