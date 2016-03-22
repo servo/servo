@@ -1,6 +1,6 @@
 import sys
 import unittest
-sys.path.insert(0, '/Users/krunal/Git/servo/tests/wpt/harness/wptrunner/executors/')
+sys.path.insert(0, '~/servo/tests/wpt/harness/wptrunner/executors/')
 import webdriver
 import subprocess
 class ServoProcess(object):
