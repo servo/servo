@@ -148,7 +148,7 @@ impl KeyboardEvent {
 }
 
 
-// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3Events-key.html
+// https://w3c.github.io/uievents-key/#key-value-tables
 pub fn key_value(key: Key, mods: KeyModifiers) -> &'static str {
     let shift = mods.contains(constellation_msg::SHIFT);
     match key {
@@ -497,7 +497,7 @@ fn key_from_string(key_string: &str, location: u32) -> Option<Key> {
     }
 }
 
-// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3Events-code.html
+// https://w3c.github.io/uievents-code/#code-value-tables
 fn code_value(key: Key) -> &'static str {
     match key {
         Key::Space => "Space",
