@@ -738,6 +738,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             (Msg::PipelineVisibilityChanged(pipeline_id, visible), ShutdownState::NotShuttingDown) => {
+                println!("compositor setting pipeline to: {:?}", visible);
                 self.pipeline_details(pipeline_id).visible = visible;
             }
 

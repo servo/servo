@@ -219,6 +219,10 @@ impl HTMLIFrameElement {
         self.pipeline_id.get()
     }
 
+    pub fn set_visibility(&self, visibility: bool) {
+        self.visibility.set(visibility);
+    }
+
     /// https://html.spec.whatwg.org/multipage/#iframe-load-event-steps steps 1-4
     pub fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId) {
         // TODO(#9592): assert that the load blocker is present at all times when we
@@ -484,8 +488,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
                 let window = window_from_node(self);
                 let window = window.r();
                 let ConstellationChan(ref chan) = window.constellation_chan();
-                chan.send(ConstellationMsg::SetVisible(pipeline_id, visible)).unwrap();
-                self.visibility.set(visible); //TODO: This is wrong, but it's a work-around until we can implement GetVisible as async
+                chan.send(ConstellationMsg::SetVisible(self.containing_page_pipeline_id.get().unwrap(), pipeline_id, visible)).unwrap();
             }
             Ok(())
         } else {
