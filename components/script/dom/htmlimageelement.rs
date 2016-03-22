@@ -33,28 +33,28 @@ use std::sync::Arc;
 use string_cache::Atom;
 use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
-
-#[dom_struct]
-#[derive(Debug)]
-//define data type for image_request and add current, pending request to HTMLImageElement
-enum state{
+use heapsize::{HeapSizeOf};
+#[derive(JSTraceable,HeapSizeOf,Copy,Clone)]
+enum State{
     Unavailable,
-    Partially_available,
-    Completely_available,
+    PartiallyAvailable,
+    CompletelyAvailable,
     Broken,
 }
-struct image_request {
-    state: state,
+#[derive(JSTraceable,HeapSizeOf,Copy,Clone)]
+pub struct ImageRequest {
+    state: State,
     current_url: String,
-    image_data: i32,
+    image_data: u8,
 }
+#[dom_struct]
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
     url: DOMRefCell<Option<Url>>,
     image: DOMRefCell<Option<Arc<Image>>>,
     metadata: DOMRefCell<Option<ImageMetadata>>,
-    pending_request : image_request,
-    current_request : image_request,
+    currentrequest: DOMRefCell<ImageRequest>,
+    pendingrequest: DOMRefCell<ImageRequest>,
 }
 
 impl HTMLImageElement {
@@ -151,13 +151,22 @@ impl HTMLImageElement {
             }
         }
     }
-
     fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
+        let un = State::Unavailable;
+        let ur = "Abc";
+        let ima = 0;
+        let currReq = ImageRequest{
+            state: un,
+            current_url: ur.to_string(),
+            image_data: ima
+            };
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             url: DOMRefCell::new(None),
             image: DOMRefCell::new(None),
             metadata: DOMRefCell::new(None),
+            currentrequest: DOMRefCell::new(currReq),
+            pendingrequest: DOMRefCell::new(currReq),
         }
     }
 
@@ -241,15 +250,15 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_setter!(SetSrc, "src");
 
+        // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
+    make_getter!(CrossOrigin, "crossorigin");
+    // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
+    make_setter!(SetCrossOrigin, "crossorigin");
+
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
     make_getter!(UseMap, "usemap");
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
     make_setter!(SetUseMap, "usemap");
-
-    // https://html.spec.whatwg.org/multipage/#dom-img-crossorigin
-    make_getter!(CrossOrigin, "crossorigin");
-    // https://html.spec.whatwg.org/multipage/#dom-img-crossorigin
-    make_setter!(SetCrossOrigin, "crossorigin");
 
 
     // https://html.spec.whatwg.org/multipage/#dom-img-ismap
@@ -307,14 +316,6 @@ impl HTMLImageElementMethods for HTMLImageElement {
         image.is_some()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-img-currentsrc
-    fn CurrentSrc(&self) -> String {
-        let current_request = self.current_request.borrow();
-
-        match *current_request {
-            Some(ref current_url) => current_request.current_url,
-        }
-    }    
 
     // https://html.spec.whatwg.org/multipage/#dom-img-name
     make_getter!(Name, "name");
