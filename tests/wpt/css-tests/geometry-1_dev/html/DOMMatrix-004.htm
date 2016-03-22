@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Geometry Interfaces: Test DOMMatrix mutating and non-mutating methods work the same</title>
+    <link href="mailto:peter.hall@algomi.com" rel="author" title="Peter Hall">
+    <link rel="help" href="https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly">
+    <script src="../../resources/testharness.js"></script>
+    <script src="../../resources/testharnessreport.js"></script>
+</head>
+<body>
+    <p>Test DOMMatrix mutating and non-mutating methods work the same</p>
+    <div id="log"></div>
+    <script>
+        var epsilon64bit = 0.000000000005;
+        var epsilon32bit = 0.00002;
+        var epsilon = epsilon32bit;
+
+        function initialMatrix(){
+          return {
+              m11:1,   m12:-0.5, m13: 0.5,  m14:0,
+              m21:0.5, m22:2,    m23: -0.5, m24:0,
+              m31:0,   m32:0,    m33: 1,    m34:0,
+              m41:10,  m42:20,   m43: 10,   m44:1,
+              is2D: false
+            };
+        }
+
+        function initialDOMMatrix() {
+          return DOMMatrix.fromMatrix(initialMatrix());
+        }
+
+        function identity() {
+          return new DOMMatrix(
+            [1, 0, 0, 0,
+             0, 1, 0 ,0,
+             0, 0, 1, 0,
+             0, 0, 0, 1]);
+        }
+        
+
+        test(function() {
+          var result = initialDOMMatrix();
+          result.translateSelf(1, 5, 3);
+          var expected = initialDOMMatrix().translate(1, 5, 3);
+          checkDOMMatrix(result, expected);
+        },"test translate() works like translateSelf()");
+
+
+        test(function() {
+          var result = initialDOMMatrix();
+          result.scaleSelf(2, 5, 3, 11, 7, 13);
+          var expected = initialDOMMatrix().scale(2, 5, 3, 11, 7, 13);
+          checkDOMMatrix(result, expected);
+        },"test scale() works like scaleSelf()");
+
+
+        test(function() {
+          var result = initialDOMMatrix();
+          result.scale3dSelf(7, 5, 2, 3);
+          var expected = initialDOMMatrix().scale3d(7, 5, 2, 3);
+          checkDOMMatrix(result, expected);
+        },"test scale3d() works like scale3dSelf()");
+
+
+        test(function() {
+          var result = initialDOMMatrix();
+          result.rotateSelf(123, -88, 31);
+          var expected = initialDOMMatrix().rotate(123, -88, 31);
+          checkDOMMatrix(result, expected);
+        },"test rotate() works like rotateSelf()");
+
+
+        test(function() {
+          var result = initialDOMMatrix();
+          result.rotateFromVectorSelf(31, -0.9);
+          var expected = initialDOMMatrix().rotateFromVector(31, -0.9);
+          checkDOMMatrix(result, expected);
+        },"test rotateFromVector() works like rotateFromVectorSelf()");
+
+
+        test(function() {
+          var result = initialDOMMatrix();
+          result.rotateAxisAngleSelf(3.1, 0.5, -0.35, 87);
+          var expected = initialDOMMatrix().rotateAxisAngle(3.1, 0.5, -0.35, 87);
+          checkDOMMatrix(result, expected);
+        },"test rotateAxisAngle() works like rotateAxisAngleSelf()");
+
+
+        test(function() {
+          var result = initialDOMMatrix();
+          result.skewXSelf(28.1);
+          var expected = initialDOMMatrix().skewX(28.1);
+          checkDOMMatrix(result, expected);
+        },"test skewX() works like skewXSelf()");
+
+
+        test(function() {
+          var result = initialDOMMatrix();
+          result.skewYSelf(111);
+          var expected = initialDOMMatrix().skewY(111);
+          checkDOMMatrix(result, expected);
+        },"test skewY() works like skewYSelf()");
+
+
+        test(function() {
+          var result = initialDOMMatrix();
+          result.multiplySelf(initialDOMMatrix());
+          var expected = initialDOMMatrix().multiply(initialDOMMatrix());
+          checkDOMMatrix(result, expected);
+        },"test multiply() works like multiplySelf()");
+
+
+        test(function() {
+          var result = initialDOMMatrix();
+          result.invertSelf();
+          var expected = initialDOMMatrix().inverse();
+          checkDOMMatrix(result, expected);
+        },"test inverse() works like invertSelf()");
+
+
+        function checkDOMMatrix(m, exp) {
+          assert_approx_equals(m.m11, exp.m11, epsilon, "Expected value for m11 is " + exp.m11);
+          assert_approx_equals(m.m12, exp.m12, epsilon, "Expected value for m12 is " + exp.m12);
+          assert_approx_equals(m.m13, exp.m13, epsilon, "Expected value for m13 is " + exp.m13);
+          assert_approx_equals(m.m14, exp.m14, epsilon, "Expected value for m14 is " + exp.m14);
+          assert_approx_equals(m.m21, exp.m21, epsilon, "Expected value for m21 is " + exp.m21);
+          assert_approx_equals(m.m22, exp.m22, epsilon, "Expected value for m22 is " + exp.m22);
+          assert_approx_equals(m.m23, exp.m23, epsilon, "Expected value for m23 is " + exp.m23);
+          assert_approx_equals(m.m24, exp.m24, epsilon, "Expected value for m24 is " + exp.m24);
+          assert_approx_equals(m.m31, exp.m31, epsilon, "Expected value for m31 is " + exp.m31);
+          assert_approx_equals(m.m32, exp.m32, epsilon, "Expected value for m32 is " + exp.m32);
+          assert_approx_equals(m.m33, exp.m33, epsilon, "Expected value for m33 is " + exp.m33);
+          assert_approx_equals(m.m34, exp.m34, epsilon, "Expected value for m34 is " + exp.m34);
+          assert_approx_equals(m.m41, exp.m41, epsilon, "Expected value for m41 is " + exp.m41);
+          assert_approx_equals(m.m42, exp.m42, epsilon, "Expected value for m42 is " + exp.m42);
+          assert_approx_equals(m.m43, exp.m43, epsilon, "Expected value for m43 is " + exp.m43);
+          assert_approx_equals(m.m44, exp.m44, epsilon, "Expected value for m44 is " + exp.m44);
+          assert_equals(m.is2D, exp.is2D, "Expected value for is2D is " + exp.is2D);
+        }
+
+    </script>
+</body>
+</html>
