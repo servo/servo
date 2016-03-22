@@ -764,8 +764,12 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     set_defaults(opts);
 
-    // This must happen after setting the default options, since the prefs rely on
+    // These must happen after setting the default options, since the prefs rely on
     // on the resource path.
+    // Note that command line preferences have the highest precedent
+    if get().profile_dir.is_some() {
+        prefs::add_user_prefs();
+    }
     for pref in opt_match.opt_strs("pref").iter() {
         prefs::set_pref(pref, PrefValue::Boolean(true));
     }
