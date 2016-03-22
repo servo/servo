@@ -921,10 +921,10 @@ impl ScriptThread {
                 self.handle_freeze_msg(pipeline_id),
             ConstellationControlMsg::Thaw(pipeline_id) =>
                 self.handle_thaw_msg(pipeline_id),
-            ConstellationControlMsg::SetVisible(pipeline_id) =>
-                self.handle_visible_msg(pipeline_id),
-            ConstellationControlMsg::SetNonVisible(pipeline_id) =>
-                self.handle_nonvisible_msg(pipeline_id),
+            ConstellationControlMsg::SetVisible(containing_id, pipeline_id) =>
+                self.handle_visible_msg(containing_id, pipeline_id),
+            ConstellationControlMsg::SetNonVisible(containing_id, pipeline_id) =>
+                self.handle_nonvisible_msg(containing_id, pipeline_id),
             ConstellationControlMsg::MozBrowserEvent(parent_pipeline_id,
                                                      subpage_id,
                                                      event) =>
@@ -1226,15 +1226,23 @@ impl ScriptThread {
 
 
     ///Handle make pipeline visible message
-    fn handle_visible_msg(&self, id: PipelineId) {
-        println!("GOT TO script thread with set visible");
+    fn handle_visible_msg(&self, containing_id: PipelineId, id: PipelineId) {
+        let page = get_page(&self.root_page(), containing_id);
+        let document = page.document();
+        if let Some(iframe) = document.find_iframe_by_pipeline(id) {
+            println!("script set iframe to true");
+            iframe.set_visibility(true);
+        }
+
         if let Some(root_page) = self.page.borrow().as_ref() {
             if let Some(ref inner_page) = root_page.find(id) {
                 let window = inner_page.window();
+                let document = inner_page.document();
                 window.speed_up_timers();
                 return;
             }
         }
+
         let mut loads = self.incomplete_loads.borrow_mut();
         if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
             load.is_hidden = false;
@@ -1243,7 +1251,14 @@ impl ScriptThread {
         panic!("set as visible message sent to nonexistent pipeline");
     }
 
-    fn handle_nonvisible_msg(&self, id: PipelineId) {
+    fn handle_nonvisible_msg(&self, containing_id: PipelineId, id: PipelineId) {
+        let page = get_page(&self.root_page(), containing_id);
+        let document = page.document();
+        if let Some(iframe) = document.find_iframe_by_pipeline(id) {
+            println!("script set iframe to false");
+            iframe.set_visibility(false);
+        }
+
         if let Some(ref inner_page) = self.root_page().find(id) {
             let window = inner_page.window();
             window.slow_down_timers();
