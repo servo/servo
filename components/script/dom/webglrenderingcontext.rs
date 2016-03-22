@@ -68,7 +68,6 @@ bitflags! {
 #[dom_struct]
 pub struct WebGLRenderingContext {
     reflector_: Reflector,
-    renderer_id: usize,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     ipc_renderer: IpcSender<CanvasMsg>,
     canvas: JS<HTMLCanvasElement>,
@@ -95,10 +94,9 @@ impl WebGLRenderingContext {
                           .unwrap();
         let result = receiver.recv().unwrap();
 
-        result.map(|(ipc_renderer, renderer_id)| {
+        result.map(|ipc_renderer| {
             WebGLRenderingContext {
                 reflector_: Reflector::new(),
-                renderer_id: renderer_id,
                 ipc_renderer: ipc_renderer,
                 canvas: JS::from_ref(canvas),
                 last_error: Cell::new(None),
@@ -1195,16 +1193,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
 pub trait LayoutCanvasWebGLRenderingContextHelpers {
     #[allow(unsafe_code)]
-    unsafe fn get_renderer_id(&self) -> usize;
-    #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg>;
 }
 
 impl LayoutCanvasWebGLRenderingContextHelpers for LayoutJS<WebGLRenderingContext> {
-    #[allow(unsafe_code)]
-    unsafe fn get_renderer_id(&self) -> usize {
-        (*self.unsafe_get()).renderer_id
-    }
     #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
         (*self.unsafe_get()).ipc_renderer.clone()
