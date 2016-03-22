@@ -8,6 +8,7 @@ use opts;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::fs::File;
+use std::io::Read;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -69,7 +70,7 @@ impl ToJson for PrefValue {
 }
 
 #[derive(Debug)]
-enum Pref {
+pub enum Pref {
     NoDefault(Arc<PrefValue>),
     WithDefault(Arc<PrefValue>, Option<Arc<PrefValue>>)
 }
@@ -121,7 +122,8 @@ impl ToJson for Pref {
     }
 }
 
-fn read_prefs_from_file(mut file: File) -> Result<HashMap<String, Pref>, ()> {
+pub fn read_prefs_from_file<T>(mut file: T)
+    -> Result<HashMap<String, Pref>, ()> where T: Read {
     let json = try!(Json::from_reader(&mut file).or_else(|e| {
         println!("Ignoring invalid JSON in preferences: {:?}.", e);
         Err(())
@@ -141,13 +143,17 @@ fn read_prefs_from_file(mut file: File) -> Result<HashMap<String, Pref>, ()> {
     Ok(prefs)
 }
 
+pub fn extend_prefs(extension: HashMap<String, Pref>) {
+    PREFS.lock().unwrap().extend(extension);
+}
+
 pub fn add_user_prefs() {
     if let Some(ref dir) = opts::get().profile_dir {
         let mut path = PathBuf::from(dir);
         path.push("prefs.json");
         if let Ok(file) = File::open(path) {
             if let Ok(prefs) = read_prefs_from_file(file) {
-                PREFS.lock().unwrap().extend(prefs);
+                extend_prefs(prefs);
             }
         } else {
             println!("Error opening prefs.json from profile_dir");
