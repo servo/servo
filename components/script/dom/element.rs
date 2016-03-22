@@ -47,6 +47,7 @@ use dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
 use dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use dom::htmllabelelement::HTMLLabelElement;
 use dom::htmllegendelement::HTMLLegendElement;
+use dom::htmlobjectelement::HTMLObjectElement;
 use dom::htmloptgroupelement::HTMLOptGroupElement;
 use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmltablecellelement::{HTMLTableCellElement, HTMLTableCellElementLayoutHelpers};
@@ -1915,6 +1916,7 @@ impl Element {
         })
     }
 
+    // https://html.spec.whatwg.org/multipage/#category-submit
     pub fn as_maybe_validatable(&self) -> Option<&Validatable> {
         let element = match self.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
@@ -1925,12 +1927,8 @@ impl Element {
                 let element = self.downcast::<HTMLButtonElement>().unwrap();
                 Some(element as &Validatable)
             },
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLAnchorElement)) => {
-                let element = self.downcast::<HTMLAnchorElement>().unwrap();
-                Some(element as &Validatable)
-            },
-            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLabelElement)) => {
-                let element = self.downcast::<HTMLLabelElement>().unwrap();
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)) => {
+                let element = self.downcast::<HTMLObjectElement>().unwrap();
                 Some(element as &Validatable)
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
@@ -1945,13 +1943,7 @@ impl Element {
                 None
             }
         };
-        element.and_then(|elem| {
-            if elem.is_instance_validatable() {
-                Some(elem)
-            } else {
-                None
-            }
-        })
+        element
     }
 
     pub fn click_in_progress(&self) -> bool {

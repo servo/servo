@@ -13,6 +13,7 @@ use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{Node, window_from_node};
+use dom::validation::Validatable;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use net_traits::image::base::Image;
@@ -90,6 +91,8 @@ impl HTMLObjectElementMethods for HTMLObjectElement {
         self.form_owner()
     }
 }
+
+impl Validatable for HTMLObjectElement {}
 
 impl VirtualMethods for HTMLObjectElement {
     fn super_type(&self) -> Option<&VirtualMethods> {

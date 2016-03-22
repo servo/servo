@@ -909,15 +909,7 @@ impl VirtualMethods for HTMLInputElement {
 
 impl FormControl for HTMLInputElement {}
 
-impl Validatable for HTMLInputElement {
-    fn is_instance_validatable(&self) -> bool {
-        match self.input_type.get() {
-            InputType::InputText | InputType::InputFile | InputType::InputPassword
-            | InputType::InputCheckbox | InputType::InputRadio => true,
-            _ => false
-        }
-    }
-}
+impl Validatable for HTMLInputElement {}
 
 impl Activatable for HTMLInputElement {
     fn as_element(&self) -> &Element {
@@ -935,8 +927,6 @@ impl Activatable for HTMLInputElement {
             _ => false
         }
     }
-
-
 
     // https://html.spec.whatwg.org/multipage/#run-pre-click-activation-steps
     #[allow(unsafe_code)]
