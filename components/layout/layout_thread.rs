@@ -1056,6 +1056,8 @@ impl LayoutThread {
         };
 
         // Handle conditions where the entire flow tree is invalid.
+        let mut needs_dirtying = false;
+
         let viewport_size_changed = self.viewport_size != old_viewport_size;
         if viewport_size_changed {
             if let Some(constraints) = constraints {
@@ -1064,11 +1066,15 @@ impl LayoutThread {
                 constellation_chan.send(ConstellationMsg::ViewportConstrained(
                         self.id, constraints)).unwrap();
             }
+            // FIXME (#10104): Only dirty nodes affected by vh/vw/vmin/vmax styles.
+            if data.document_stylesheets.iter().any(|sheet| sheet.dirty_on_viewport_size_change) {
+                needs_dirtying = true;
+            }
         }
 
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
-        let needs_dirtying = rw_data.stylist.update(&data.document_stylesheets,
-                                                    data.stylesheets_changed);
+        needs_dirtying |= rw_data.stylist.update(&data.document_stylesheets,
+                                                 data.stylesheets_changed);
         let needs_reflow = viewport_size_changed && !needs_dirtying;
         unsafe {
             if needs_dirtying {
