@@ -34794,6 +34794,12 @@
     "deleted": [],
     "items": {
       "testharness": {
+        "XMLHttpRequest/responseurl.html": [
+          {
+            "path": "XMLHttpRequest/responseurl.html",
+            "url": "/XMLHttpRequest/responseurl.html"
+          }
+        ],
         "html/semantics/forms/textfieldselection/selection-after-content-change.html": [
           {
             "path": "html/semantics/forms/textfieldselection/selection-after-content-change.html",
