@@ -145,6 +145,9 @@ macro_rules! add_if_not_equal(
      [ $($effect:ident),* ], [ $($style_struct_getter:ident.$name:ident),* ]) => ({
         if $( ($old.$style_struct_getter().$name != $new.$style_struct_getter().$name) )||* {
             $damage.insert($($effect)|*);
+            true
+        } else {
+            false
         }
     })
 );
@@ -157,46 +160,19 @@ pub fn compute_damage(old: Option<&Arc<ComputedValues>>, new: &ComputedValues) -
 
     let mut damage = RestyleDamage::empty();
 
-    // This checks every CSS property, as enumerated in
-    // impl<'self> CssComputedStyle<'self>
-    // in src/support/netsurfcss/rust-netsurfcss/netsurfcss.rc.
+    // This should check every CSS property, as enumerated in the fields of
+    // http://doc.servo.org/style/properties/struct.ComputedValues.html
 
-    // FIXME: We can short-circuit more of this.
-
-    add_if_not_equal!(old, new, damage,
-                      [ REPAINT ], [
-        get_color.color, get_background.background_color,
-        get_border.border_top_color, get_border.border_right_color,
-        get_border.border_bottom_color, get_border.border_left_color,
-        get_effects.transform, get_box.z_index
-    ]);
-
-    add_if_not_equal!(old, new, damage,
-                      [ REPAINT, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW ], [
-        get_positionoffsets.top, get_positionoffsets.left,
-        get_positionoffsets.right, get_positionoffsets.bottom
-    ]);
-
-    add_if_not_equal!(old, new, damage,
-                      [ REPAINT, STORE_OVERFLOW, BUBBLE_ISIZES, REFLOW_OUT_OF_FLOW, REFLOW ], [
-        get_border.border_top_width, get_border.border_right_width,
-        get_border.border_bottom_width, get_border.border_left_width,
-        get_margin.margin_top, get_margin.margin_right,
-        get_margin.margin_bottom, get_margin.margin_left,
-        get_padding.padding_top, get_padding.padding_right,
-        get_padding.padding_bottom, get_padding.padding_left,
-        get_box.width, get_box.height,
-        get_inheritedtext.text_align, get_text.text_decoration, get_inheritedbox.line_height
-    ]);
+    // FIXME: Test somehow that every property is included.
 
     add_if_not_equal!(old, new, damage,
                       [
-                        REPAINT,
-                        STORE_OVERFLOW,
-                        BUBBLE_ISIZES,
-                        REFLOW_OUT_OF_FLOW,
-                        REFLOW,
-                        RECONSTRUCT_FLOW
+                          REPAINT,
+                          STORE_OVERFLOW,
+                          BUBBLE_ISIZES,
+                          REFLOW_OUT_OF_FLOW,
+                          REFLOW,
+                          RECONSTRUCT_FLOW
                       ], [
         get_box.float, get_box.display, get_box.position, get_box.content,
         get_counters.counter_reset, get_counters.counter_increment,
@@ -206,8 +182,58 @@ pub fn compute_damage(old: Option<&Arc<ComputedValues>>, new: &ComputedValues) -
         // text shaping is re-run.
         get_inheritedtext.letter_spacing, get_inheritedtext.text_rendering,
         get_inheritedtext.text_transform, get_inheritedtext.word_spacing,
+        get_inheritedtext.overflow_wrap, get_inheritedtext.text_justify,
+        get_inheritedtext.white_space, get_inheritedtext.word_break, get_inheritedtext.text_overflow,
         get_font.font_family, get_font.font_style, get_font.font_variant, get_font.font_weight,
-        get_font.font_size, get_font.font_stretch
+        get_font.font_size, get_font.font_stretch,
+        get_inheritedbox.direction, get_inheritedbox.writing_mode,
+        get_inheritedbox.text_orientation,
+        get_text.text_decoration, get_text.unicode_bidi,
+        get_inheritedtable.empty_cells, get_inheritedtable.caption_side,
+        get_column.column_width, get_column.column_count
+    ]) || add_if_not_equal!(old, new, damage,
+                            [ REPAINT, STORE_OVERFLOW, BUBBLE_ISIZES, REFLOW_OUT_OF_FLOW, REFLOW ],
+        [get_border.border_top_width, get_border.border_right_width,
+        get_border.border_bottom_width, get_border.border_left_width,
+        get_margin.margin_top, get_margin.margin_right,
+        get_margin.margin_bottom, get_margin.margin_left,
+        get_padding.padding_top, get_padding.padding_right,
+        get_padding.padding_bottom, get_padding.padding_left,
+        get_box.width, get_box.height,
+        get_inheritedbox.line_height,
+        get_inheritedtext.text_align, get_inheritedtext.text_indent,
+        get_table.table_layout,
+        get_inheritedtable.border_collapse,
+        get_inheritedtable.border_spacing,
+        get_column.column_gap,
+        get_flex.flex_direction
+    ]) || add_if_not_equal!(old, new, damage,
+                            [ REPAINT, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW ], [
+        get_positionoffsets.top, get_positionoffsets.left,
+        get_positionoffsets.right, get_positionoffsets.bottom
+    ]) || add_if_not_equal!(old, new, damage,
+                            [ REPAINT ], [
+        get_color.color, get_background.background_color,
+        get_background.background_image, get_background.background_position,
+        get_background.background_repeat, get_background.background_attachment,
+        get_background.background_clip, get_background.background_origin,
+        get_background.background_size,
+        get_border.border_top_color, get_border.border_right_color,
+        get_border.border_bottom_color, get_border.border_left_color,
+        get_border.border_top_style, get_border.border_right_style,
+        get_border.border_bottom_style, get_border.border_left_style,
+        get_border.border_top_left_radius, get_border.border_top_right_radius,
+        get_border.border_bottom_left_radius, get_border.border_bottom_right_radius,
+        get_box.z_index, get_box._servo_overflow_clip_box,
+        get_inheritedtext._servo_text_decorations_in_effect,
+        get_pointing.cursor, get_pointing.pointer_events,
+        get_effects.box_shadow, get_effects.clip, get_effects.text_shadow, get_effects.filter,
+        get_effects.transform, get_effects.backface_visibility, get_effects.transform_style,
+        get_effects.transform_origin, get_effects.perspective, get_effects.perspective_origin,
+        get_effects.mix_blend_mode, get_effects.image_rendering,
+
+        // Note: May require REFLOW et al. if `visibility: collapse` is implemented.
+        get_inheritedbox.visibility
     ]);
 
     // If the layer requirements of this flow have changed due to the value
@@ -216,7 +242,6 @@ pub fn compute_damage(old: Option<&Arc<ComputedValues>>, new: &ComputedValues) -
         damage.insert(RestyleDamage::rebuild_and_reflow());
     }
 
-    // FIXME: test somehow that we checked every CSS property
     damage
 }
 

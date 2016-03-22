@@ -2072,6 +2072,30 @@
             "url": "/_mozilla/css/incremental_text_color_a.html"
           }
         ],
+        "css/incremental_visibility_a.html": [
+          {
+            "path": "css/incremental_visibility_a.html",
+            "references": [
+              [
+                "/_mozilla/css/incremental_visibility_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/incremental_visibility_a.html"
+          }
+        ],
+        "css/incremental_visibility_ref.html": [
+          {
+            "path": "css/incremental_visibility_ref.html",
+            "references": [
+              [
+                "/_mozilla/css/incremental_visibility_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/incremental_visibility_ref.html"
+          }
+        ],
         "css/inline_absolute_hypothetical_clip_a.html": [
           {
             "path": "css/inline_absolute_hypothetical_clip_a.html",
@@ -8336,6 +8360,30 @@
             ]
           ],
           "url": "/_mozilla/css/incremental_text_color_a.html"
+        }
+      ],
+      "css/incremental_visibility_a.html": [
+        {
+          "path": "css/incremental_visibility_a.html",
+          "references": [
+            [
+              "/_mozilla/css/incremental_visibility_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/incremental_visibility_a.html"
+        }
+      ],
+      "css/incremental_visibility_ref.html": [
+        {
+          "path": "css/incremental_visibility_ref.html",
+          "references": [
+            [
+              "/_mozilla/css/incremental_visibility_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/incremental_visibility_ref.html"
         }
       ],
       "css/inline_absolute_hypothetical_clip_a.html": [
