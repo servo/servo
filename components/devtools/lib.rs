@@ -42,6 +42,7 @@ use actors::performance::PerformanceActor;
 use actors::profiler::ProfilerActor;
 use actors::root::RootActor;
 use actors::tab::TabActor;
+use actors::thread::ThreadActor;
 use actors::timeline::TimelineActor;
 use actors::worker::WorkerActor;
 use devtools_traits::{ChromeToDevtoolsControlMsg, ConsoleMessage, DevtoolsControlMsg};
@@ -73,6 +74,7 @@ mod actors {
     pub mod profiler;
     pub mod root;
     pub mod tab;
+    pub mod thread;
     pub mod timeline;
     pub mod worker;
 }
@@ -248,7 +250,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         let (pipeline, worker_id) = ids;
 
         //TODO: move all this actor creation into a constructor method on TabActor
-        let (tab, console, inspector, timeline, profiler, performance) = {
+        let (tab, console, inspector, timeline, profiler, performance, thread) = {
             let console = ConsoleActor {
                 name: actors.new_name("console"),
                 script_chan: script_sender.clone(),
@@ -271,6 +273,8 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
             let profiler = ProfilerActor::new(actors.new_name("profiler"));
             let performance = PerformanceActor::new(actors.new_name("performance"));
 
+            let thread = ThreadActor::new(actors.new_name("context"));
+
             let DevtoolsPageInfo { title, url } = page_info;
             let tab = TabActor {
                 name: actors.new_name("tab"),
@@ -281,12 +285,13 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 timeline: timeline.name(),
                 profiler: profiler.name(),
                 performance: performance.name(),
+                thread: thread.name(),
             };
 
             let root = actors.find_mut::<RootActor>("root");
             root.tabs.push(tab.name.clone());
 
-            (tab, console, inspector, timeline, profiler, performance)
+            (tab, console, inspector, timeline, profiler, performance, thread)
         };
 
         if let Some(id) = worker_id {
@@ -306,6 +311,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         actors.register(box timeline);
         actors.register(box profiler);
         actors.register(box performance);
+        actors.register(box thread);
     }
 
     fn handle_console_message(actors: Arc<Mutex<ActorRegistry>>,
