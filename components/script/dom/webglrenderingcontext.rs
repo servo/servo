@@ -610,7 +610,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
-    // TODO(ecoal95): Probably in the future we should keep track of the
+    // TODO(emilio): Probably in the future we should keep track of the
     // generated objects, either here or in the webgl thread
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn CreateBuffer(&self) -> Option<Root<WebGLBuffer>> {
@@ -1116,8 +1116,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if texture.is_none() {
             return self.webgl_error(InvalidOperation);
         }
-        // TODO(ecoal95): Validate more parameters
-
+        // TODO(emilio): Validate more parameters
         let source = match source {
             Some(s) => s,
             None => return,
@@ -1144,7 +1143,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 };
 
                 let size = Size2D::new(img.width as i32, img.height as i32);
-                // TODO(ecoal95): Validate that the format argument is coherent with the image.
+                // TODO(emilio): Validate that the format argument is coherent with the image.
                 // RGB8 should be easy to support too
                 let mut data = match img.format {
                     PixelFormat::RGBA8 => img.bytes.to_vec(),
@@ -1155,7 +1154,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
                 (data, size)
             },
-            // TODO(ecoal95): Getting canvas data is implemented in CanvasRenderingContext2D, but
+            // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D, but
             // we need to refactor it moving it to `HTMLCanvasElement` and supporting WebGLContext
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLCanvasElement(canvas) => {
                 let canvas = canvas.r();
@@ -1170,7 +1169,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 => unimplemented!(),
         };
 
-        // TODO(ecoal95): Invert axis, convert colorspace, premultiply alpha if requested
+        // TODO(emilio): Invert axis, convert colorspace, premultiply alpha if requested
         let msg = CanvasWebGLMsg::TexImage2D(target, level, internal_format as i32,
                                              size.width, size.height,
                                              format, data_type, pixels);
