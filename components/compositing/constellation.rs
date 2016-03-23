@@ -912,7 +912,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
             let window_size = old_pipeline.and_then(|old_pipeline| old_pipeline.size);
 
-            old_pipeline.map(Pipeline::freeze);
+            if let Some(old_pipeline) = old_pipeline {
+                old_pipeline.freeze();
+            }
 
             (new_url, script_chan, window_size)
 
@@ -1027,7 +1029,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 self.push_pending_frame(new_pipeline_id, Some(source_id));
 
                 // Send message to ScriptThread that will suspend all timers
-                self.pipelines.get(&source_id).map(Pipeline::freeze);
+                if let Some(source) = self.pipelines.get(&source_id) {
+                    source.freeze();
+                }
+
                 Some(new_pipeline_id)
             }
         }
@@ -1142,8 +1147,12 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
 
         // Suspend the old pipeline, and resume the new one.
-        self.pipelines.get(&prev_pipeline_id).map(Pipeline::freeze);
-        self.pipelines.get(&next_pipeline_id).map(Pipeline::thaw);
+        if let Some(prev_pipeline) = self.pipelines.get(&prev_pipeline_id) {
+            prev_pipeline.freeze();
+        }
+        if let Some(next_pipeline) = self.pipelines.get(&next_pipeline_id) {
+            next_pipeline.thaw();
+        }
 
         // Set paint permissions correctly for the compositor layers.
         self.revoke_paint_permission(prev_pipeline_id);
@@ -1383,7 +1392,6 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         if let None = evicted_frames {
             // The new pipeline is in a new frame with no history
             let frame_id = self.new_frame(frame_change.new_pipeline_id);
-            self.pipeline_to_frame_map.insert(frame_change.new_pipeline_id, frame_id);
 
             // If a child frame, add it to the parent pipeline. Otherwise
             // it must surely be the root frame being created!
@@ -1471,20 +1479,23 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         if let Some(root_frame_id) = self.root_frame_id {
             // Send Resize (or ResizeInactive) messages to each
             // pipeline in the frame tree.
-            if let Some(frame) = self.frames.get(&root_frame_id) {
-                if let Some(pipeline) = self.pipelines.get(&frame.current) {
-                    let _ = pipeline.script_chan.send(
-                        ConstellationControlMsg::Resize(pipeline.id, new_size)
-                    );
-
-                    for pipeline_id in frame.prev.iter().chain(&frame.next) {
-                        if let Some(pipeline) = self.pipelines.get(pipeline_id) {
-                            let _ = pipeline.script_chan.send(
-                                ConstellationControlMsg::ResizeInactive(pipeline.id, new_size)
-                            );
-                        }
-                    }
-                }
+            let frame = match self.frames.get(&root_frame_id) {
+                None => return debug!("Frame {:?} resized after closing.", root_frame_id),
+                Some(frame) => frame,
+            };
+            let pipeline_id = frame.current;
+            let pipeline = match self.pipelines.get(&pipeline_id) {
+                None => return debug!("Pipeline {:?} resized after closing.", pipeline_id),
+                Some(pipeline) => pipeline,
+            };
+            let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(pipeline.id, new_size));
+            for pipeline_id in frame.prev.iter().chain(&frame.next) {
+                let pipeline = match self.pipelines.get(&pipeline_id) {
+                    None => { debug!("Inactive pipeline {:?} resized after closing.", pipeline_id); continue; },
+                    Some(pipeline) => pipeline,
+                };
+                let _ = pipeline.script_chan.send(ConstellationControlMsg::ResizeInactive(pipeline.id,
+                                                                                          new_size));
             }
         }
 
@@ -1635,9 +1646,11 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         self.frames.remove(&frame_id).unwrap();
 
         if let Some((parent_pipeline_id, _)) = parent_info {
-            if let Some(parent_pipeline) = self.pipelines.get_mut(&parent_pipeline_id) {
-                parent_pipeline.remove_child(frame_id);
-            }
+            let parent_pipeline = match self.pipelines.get_mut(&parent_pipeline_id) {
+                None => return debug!("Pipeline {:?} child closed after parent.", parent_pipeline_id),
+                Some(parent_pipeline) => parent_pipeline,
+            };
+            parent_pipeline.remove_child(frame_id);
         }
     }
 
