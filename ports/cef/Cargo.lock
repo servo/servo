@@ -968,7 +968,6 @@ dependencies = [
  "app_units 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "azure 0.4.3 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "canvas 0.0.1",
  "canvas_traits 0.0.1",
  "cssparser 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
