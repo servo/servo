@@ -158,7 +158,7 @@ impl HTMLImageElement {
             //image: DOMRefCell::new(None),
             //metadata: DOMRefCell::new(None),
             currentrequest: ImageRequest{state: State::CompletelyAvailable,url:DOMRefCell::new(None),image:DOMRefCell::new(None),metadata:DOMRefCell::new(None)},
-            pendingrequest: ImageRequest{state: State::CompletelyAvailable,url:DOMRefCell::new(None),image:DOMRefCell::new(None),metadata:DOMRefCell::new(None)},
+            pendingrequest: ImageRequest{state: State::Unavailable,url:DOMRefCell::new(None),image:DOMRefCell::new(None),metadata:DOMRefCell::new(None)},
         //    currentrequest: currreq,
         //    pendingrequest: currreq,
         }
