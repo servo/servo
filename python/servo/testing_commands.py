@@ -270,15 +270,6 @@ class MachCommands(CommandBase):
         if result != 0:
             return result
 
-    @Command('test-ref',
-             description='Run the reference tests',
-             category='testing')
-    @CommandArgument('params', default=None, nargs=argparse.REMAINDER)
-    def test_ref(self, params=None):
-        print("Ref tests have been replaced by web-platform-tests under "
-              "tests/wpt/mozilla/.")
-        return 0
-
     @Command('test-content',
              description='Run the content tests',
              category='testing')
