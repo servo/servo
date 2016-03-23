@@ -8,7 +8,6 @@
 #![allow(unsafe_code)]
 
 use app_units::Au;
-use canvas_traits::CanvasMsg;
 use euclid::Rect;
 use fnv::FnvHasher;
 use gfx::display_list::WebRenderImageInfo;
@@ -16,7 +15,7 @@ use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
 use gfx_traits::LayerId;
 use heapsize::HeapSizeOf;
-use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{self, IpcSharedMemory};
 use net_traits::image::base::Image;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread, ImageResponse, ImageState};
 use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
@@ -24,7 +23,6 @@ use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::rc::Rc;
-use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex, RwLock};
 use style::context::{LocalStyleContext, StyleContext};
 use style::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
@@ -94,9 +92,6 @@ pub struct SharedLayoutContext {
 
     /// The URL.
     pub url: Url,
-
-    /// A channel to send canvas renderers to paint thread, in order to correctly paint the layers
-    pub canvas_layers_sender: Mutex<Sender<(LayerId, IpcSender<CanvasMsg>)>>,
 
     /// The visible rects for each layer, as reported to us by the compositor.
     pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, BuildHasherDefault<FnvHasher>>>,
