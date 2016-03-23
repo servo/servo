@@ -1,7 +1,9 @@
 {
+  "dom.bluetooth.enabled": false,
   "dom.forcetouch.enabled": false,
   "dom.mouseevent.which.enabled": false,
   "dom.mozbrowser.enabled": false,
+  "dom.testbinding.enabled": false,
   "gfx.webrender.enabled": false,
   "js.baseline.enabled": true,
   "js.ion.enabled": true,
