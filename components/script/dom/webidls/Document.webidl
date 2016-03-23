@@ -186,6 +186,6 @@ partial interface Document {
   Element? elementFromPoint(double x, double y);
 };
 
-partial interface Document {
-  [SameObject] readonly attribute StyleSheetList styleSheets;
-};
+//partial interface Document {
+//  [SameObject] readonly attribute StyleSheetList styleSheets;
+//};
