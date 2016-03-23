@@ -21,7 +21,7 @@ path = "../style_traits"
 
 [dependencies]
 app_units = {version = "0.2.3", features = ["plugins"]}
-bitflags = "0.3"
+bitflags = "0.5"
 cssparser = {version = "0.5.5", features = ["heap_size", "serde-serialization"]}
 encoding = "0.2"
 euclid = {version = "0.6.4", features = ["plugins"]}
@@ -40,4 +40,3 @@ smallvec = "0.1"
 string_cache = {version = "0.2.11", features = ["heap_size"]}
 time = "0.1"
 url = {version = "0.5.7", features = ["heap_size"]}
-

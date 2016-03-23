@@ -26,8 +26,7 @@ heapsize_plugin = "0.1.2"
 hyper = { version = "0.8", features = [ "serde-serialization" ] }
 time = "0.1"
 rustc-serialize = "0.3"
-bitflags = "0.3"
+bitflags = "0.5"
 serde = "0.7"
 serde_macros = "0.7"
 url = {version = "0.5.7", features = ["heap_size"]}
-
