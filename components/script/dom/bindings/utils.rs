@@ -557,3 +557,9 @@ unsafe extern "C" fn instance_class_has_proto_at_depth(clasp: *const js::jsapi::
 pub const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };
+
+#[allow(missing_docs)]
+pub struct Prefable<T: 'static> {
+    pub pref: Option<&'static str>,
+    pub specs: &'static [T]
+}

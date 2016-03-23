@@ -1368,9 +1368,17 @@ class PropertyDefiner:
         if specTerminator:
             specs.append(specTerminator)
 
-        return (("const %s: &'static [%s] = &[\n" +
-                 ",\n".join(specs) + "\n" +
-                 "];\n") % (name, specType))
+        specsArray = ("const %s_specs: &'static [%s] = &[\n" +
+                      ",\n".join(specs) + "\n" +
+                      "];\n") % (name, specType)
+
+        prefArray = ("const %s: &'static [Prefable<%s>] = &[\n" +
+                     "    Prefable {\n" +
+                     "        pref: None,\n" +
+                     "        specs: &%s_specs,\n" +
+                     "    },\n" +
+                    "];\n") % (name, specType, name)
+        return specsArray + prefArray
 
 
 # The length of a method is the minimum of the lengths of the
@@ -2240,8 +2248,8 @@ def InitUnforgeablePropertiesOnHolder(descriptor, properties):
     """
     unforgeables = []
 
-    defineUnforgeableAttrs = "define_properties(cx, unforgeable_holder.handle(), %s).unwrap();"
-    defineUnforgeableMethods = "define_methods(cx, unforgeable_holder.handle(), %s).unwrap();"
+    defineUnforgeableAttrs = "define_properties(cx, unforgeable_holder.handle(), %s_specs).unwrap();"
+    defineUnforgeableMethods = "define_methods(cx, unforgeable_holder.handle(), %s_specs).unwrap();"
 
     unforgeableMembers = [
         (defineUnforgeableAttrs, properties.unforgeable_attrs),
@@ -5467,7 +5475,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::js::{JS, Root, RootedReference}',
             'dom::bindings::js::{OptionalRootedReference}',
             'dom::bindings::reflector::{Reflectable}',
-            'dom::bindings::utils::{DOMClass, DOMJSClass}',
+            'dom::bindings::utils::{DOMClass, DOMJSClass, Prefable}',
             'dom::bindings::utils::{DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, JSCLASS_DOM_GLOBAL}',
             'dom::bindings::utils::{ProtoOrIfaceArray, create_dom_global}',
             'dom::bindings::utils::{enumerate_global, finalize_global, find_enum_string_index}',
