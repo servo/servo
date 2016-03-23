@@ -26,9 +26,8 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageResponder, ImageResponse};
-use script_runtime::ScriptThreadEventCategory::UpdateReplacedElement;
-use script_runtime::{CommonScriptMsg, ScriptChan};
-use script_thread::Runnable;
+use script_thread::ScriptThreadEventCategory::UpdateReplacedElement;
+use script_thread::{CommonScriptMsg, Runnable, ScriptChan};
 use std::sync::Arc;
 use string_cache::Atom;
 use url::Url;
@@ -100,7 +99,7 @@ impl Runnable for ImageResponseHandlerRunnable {
 
         // Mark the node dirty
         let document = document_from_node(&*element);
-        element.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        document.content_changed(element.upcast(), NodeDamage::OtherNodeDamage);
 
         // Fire image.onload
         if trigger_image_load {
@@ -153,7 +152,7 @@ impl HTMLImageElement {
         }
     }
     fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
-        HTMLImageElement {
+       HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             //url: DOMRefCell::new(None),
             //image: DOMRefCell::new(None),
@@ -262,7 +261,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn Width(&self) -> u32 {
         let node = self.upcast::<Node>();
-        let rect = node.bounding_content_box();
+        let rect = node.get_bounding_content_box();
         rect.size.width.to_px() as u32
     }
 
@@ -274,7 +273,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn Height(&self) -> u32 {
         let node = self.upcast::<Node>();
-        let rect = node.bounding_content_box();
+        let rect = node.get_bounding_content_box();
         rect.size.height.to_px() as u32
     }
 
