@@ -18,7 +18,8 @@ import subprocess
 import json
 from collections import OrderedDict
 from time import time
-from os.path import dirname
+from os.path import dirname, basename, isfile
+import glob
 
 from mach.registrar import Registrar
 from mach.decorators import (
@@ -291,18 +292,10 @@ class MachCommands(CommandBase):
              description='Run the webdriver tests',
              category='testing')
     def test_webdriver(self, params=None):
-        test_dir = path.abspath(path.join(self.context.topdir, "tests", "webdriver"))
-        sys.path.append(path.join(self.context.topdir, "tests", "webdriver", "harness"))
-        for f in os.listdir(test_dir):
-            name, ext = os.path.splitext(f)
-            if ext != '.py':
-                continue
-            try:
-                execfile(path.join(test_dir, f), {})
-                # TODO the test passed
-            except Exception as e:
-                # TODO the test failed
-                pass
+        run_file = path.abspath(path.join(self.context.topdir, "tests", "webdriver", "test1.py"))
+        modules = glob.glob(dirname(run_file) + "/*.py")
+        __all__ = [basename(f)[:-3] for f in modules if isfile(f)]
+        self.test_web_driver(run_file, __all__)
 
     @Command('test-content',
              description='Run the content tests',
