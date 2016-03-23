@@ -266,7 +266,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         let map = match pseudo_element {
             Some(ref pseudo) => match self.pseudos_map.get(pseudo) {
                 Some(map) => map,
-                // TODO(ecoal95): get non eagerly-cascaded pseudo-element rules here.
+                // TODO(emilio): get non eagerly-cascaded pseudo-element rules here.
                 // Actually assume there are no rules applicable.
                 None => return true,
             },

@@ -206,7 +206,7 @@ impl HTMLCanvasElement {
                 CanvasData::Pixels(pixel_data)
                     => pixel_data.image_data.to_vec(),
                 CanvasData::WebGL(_)
-                    // TODO(ecoal95): Not sure if WebGL canvas is required for 2d spec,
+                    // TODO(emilio): Not sure if WebGL canvas is required for 2d spec,
                     // but I think it's not.
                     => return None,
             }

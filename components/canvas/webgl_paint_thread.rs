@@ -81,7 +81,7 @@ impl WebGLPaintThread {
                     CanvasMsg::Common(message) => {
                         match message {
                             CanvasCommonMsg::Close => break,
-                            // TODO(ecoal95): handle error nicely
+                            // TODO(emilio): handle error nicely
                             CanvasCommonMsg::Recreate(size) => painter.recreate(size).unwrap(),
                         }
                     },
