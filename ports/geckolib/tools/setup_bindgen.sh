@@ -4,7 +4,9 @@
 cd "$(dirname $0)"
 
 # Setup and build bindgen.
-export LIBCLANG_PATH="$(pwd)/llvm/build/Release+Asserts/lib"
+export LIBCLANG_PATH="$(pwd)/llvm/build/lib"
+export LD_LIBRARY_PATH="$(pwd)/llvm/build/lib"
+export DYLD_LIBRARY_PATH="$(pwd)/llvm/build/lib"
 
 
 # Make sure we have a custom clang set up.
