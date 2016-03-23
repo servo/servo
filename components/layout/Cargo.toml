@@ -12,9 +12,6 @@ path = "lib.rs"
 git = "https://github.com/servo/rust-azure"
 features = ["plugins"]
 
-[dependencies.canvas]
-path = "../canvas"
-
 [dependencies.canvas_traits]
 path = "../canvas_traits"
 
