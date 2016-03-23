@@ -15,10 +15,6 @@ path = "../gfx_traits"
 git = "https://github.com/servo/rust-azure"
 features = ["plugins"]
 
-[dependencies.layers]
-git = "https://github.com/servo/rust-layers"
-features = ["plugins"]
-
 [dependencies.offscreen_gl_context]
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 
