@@ -6,7 +6,7 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::conversions::get_dom_class;
-use dom::bindings::utils::get_proto_or_iface_array;
+use dom::bindings::utils::{get_proto_or_iface_array, Prefable};
 use js::error::throw_type_error;
 use js::glue::UncheckedUnwrapObject;
 use js::jsapi::{Class, ClassExtension, ClassSpec, GetGlobalForObjectCrossCompartment};
@@ -212,13 +212,15 @@ impl InterfaceConstructorBehavior {
 pub unsafe fn create_callback_interface_object(
         cx: *mut JSContext,
         receiver: HandleObject,
-        constants: &'static [ConstantSpec],
+        constants: &'static [Prefable<ConstantSpec>],
         name: &'static [u8],
         rval: MutableHandleObject) {
     assert!(!constants.is_empty());
     rval.set(JS_NewObject(cx, ptr::null()));
     assert!(!rval.ptr.is_null());
-    define_constants(cx, rval.handle(), constants);
+    for prefable in constants {
+        define_constants(cx, rval.handle(), prefable.specs);
+    }
     define_name(cx, rval.handle(), name);
     define_on_global_object(cx, receiver, name, rval.handle());
 }
@@ -228,9 +230,9 @@ pub unsafe fn create_interface_prototype_object(
         cx: *mut JSContext,
         proto: HandleObject,
         class: &'static JSClass,
-        regular_methods: Option<&'static [JSFunctionSpec]>,
-        regular_properties: Option<&'static [JSPropertySpec]>,
-        constants: &'static [ConstantSpec],
+        regular_methods: Option<&'static [Prefable<JSFunctionSpec>]>,
+        regular_properties: Option<&'static [Prefable<JSPropertySpec>]>,
+        constants: &'static [Prefable<ConstantSpec>],
         rval: MutableHandleObject) {
     create_object(cx, proto, class, regular_methods, regular_properties, constants, rval);
 }
@@ -241,9 +243,9 @@ pub unsafe fn create_noncallback_interface_object(
         receiver: HandleObject,
         proto: HandleObject,
         class: &'static NonCallbackInterfaceObjectClass,
-        static_methods: Option<&'static [JSFunctionSpec]>,
-        static_properties: Option<&'static [JSPropertySpec]>,
-        constants: &'static [ConstantSpec],
+        static_methods: Option<&'static [Prefable<JSFunctionSpec>]>,
+        static_properties: Option<&'static [Prefable<JSPropertySpec>]>,
+        constants: &'static [Prefable<ConstantSpec>],
         interface_prototype_object: HandleObject,
         name: &'static [u8],
         length: u32,
@@ -355,19 +357,25 @@ unsafe fn create_object(
         cx: *mut JSContext,
         proto: HandleObject,
         class: &'static JSClass,
-        methods: Option<&'static [JSFunctionSpec]>,
-        properties: Option<&'static [JSPropertySpec]>,
-        constants: &'static [ConstantSpec],
+        methods: Option<&'static [Prefable<JSFunctionSpec>]>,
+        properties: Option<&'static [Prefable<JSPropertySpec>]>,
+        constants: &'static [Prefable<ConstantSpec>],
         rval: MutableHandleObject) {
     rval.set(JS_NewObjectWithUniqueType(cx, class, proto));
     assert!(!rval.ptr.is_null());
     if let Some(methods) = methods {
-        define_methods(cx, rval.handle(), methods).unwrap();
+        for prefable in methods {
+            define_methods(cx, rval.handle(), prefable.specs).unwrap();
+        }
     }
     if let Some(properties) = properties {
-        define_properties(cx, rval.handle(), properties).unwrap();
+        for prefable in properties {
+            define_properties(cx, rval.handle(), prefable.specs).unwrap();
+        }
     }
-    define_constants(cx, rval.handle(), constants);
+    for prefable in constants {
+        define_constants(cx, rval.handle(), prefable.specs);
+    }
 }
 
 unsafe fn define_name(cx: *mut JSContext, obj: HandleObject, name: &'static [u8]) {
