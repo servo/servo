@@ -1751,10 +1751,10 @@ impl Element {
 }
 
 impl DocumentMethods for Document {
-    /*fn StyleSheets(&self) -> Root<StyleSheetList> {
+    fn StyleSheets(&self) -> Root<StyleSheetList> {
         //Some(Root::from_ref(&*(self.list)))
-        StyleSheetList::new(&self.window, self.stylesheets)
-    }*/
+        StyleSheetList::new(&self.window, JS::from_ref(&self))
+    }
     // https://dom.spec.whatwg.org/#dom-document-implementation
     fn Implementation(&self) -> Root<DOMImplementation> {
         self.implementation.or_init(|| DOMImplementation::new(self))

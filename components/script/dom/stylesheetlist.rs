@@ -4,7 +4,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::document::Document;
-use dom::stylesheet::StyleSheet;
+//use dom::stylesheet::StyleSheet;
 use dom::window::Window;
 //use std::cell::RefMut;
 //use std::sync::Arc;

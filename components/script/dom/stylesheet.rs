@@ -5,7 +5,7 @@ use dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
 //use dom::processinginstruction::ProcessingInstruction;
 use dom::bindings::codegen::Bindings::StyleSheetBinding;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, Root};
+use dom::bindings::js::{Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 //use dom::document::Document;
 //use dom::stylesheet::StyleSheet;
