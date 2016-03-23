@@ -69,12 +69,6 @@ fi
   -match "nsSubstring"                                              \
   -match "nsTSubstring"                                             \
   -match "nsTString"                                                \
-  -blacklist-type "nsStringComparator"                              \
-  -blacklist-type "nsCStringComparator"                             \
-  -blacklist-type "nsDefaultStringComparator"                       \
-  -blacklist-type "nsDefaultCStringComparator"                      \
-  -blacklist-type "nsCaseInsensitiveCStringArrayComparator"         \
-  -blacklist-type "nsCaseInsensitiveCStringComparator"              \
   -include "$1/mozilla-config.h"                                    \
   -o ../gecko_style_structs.rs                                      \
   "$DIST_INCLUDE/nsString.h"

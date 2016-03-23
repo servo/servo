@@ -33,6 +33,14 @@ pub mod root {
         pub mPosition: *mut CharT,
     }
     #[repr(C)]
+    #[derive(Copy, Clone)]
+    pub struct nsStringComparator;
+    #[repr(C)]
+    #[derive(Copy, Clone)]
+    pub struct nsDefaultStringComparator {
+        pub _base: nsStringComparator,
+    }
+    #[repr(C)]
     pub struct nsAString_internal {
         pub mData: *mut ::std::os::raw::c_ushort,
         pub mLength: ::std::os::raw::c_uint,
@@ -58,20 +66,10 @@ pub mod root {
     #[repr(C)]
     #[derive(Copy, Clone)]
     pub struct nsCStringComparator;
-    #[test]
-    fn bindgen_test_layout_nsCStringComparator() {
-        assert_eq!(:: std:: mem:: size_of:: < nsCStringComparator > (  ) ,
-                   8usize);
-    }
     #[repr(C)]
     #[derive(Copy, Clone)]
     pub struct nsDefaultCStringComparator {
         pub _base: nsCStringComparator,
-    }
-    #[test]
-    fn bindgen_test_layout_nsDefaultCStringComparator() {
-        assert_eq!(:: std:: mem:: size_of:: < nsDefaultCStringComparator > (
-                   ) , 8usize);
     }
     #[repr(C)]
     pub struct nsACString_internal {
@@ -105,19 +103,9 @@ pub mod root {
     pub struct nsCaseInsensitiveCStringComparator {
         pub _base: nsCStringComparator,
     }
-    #[test]
-    fn bindgen_test_layout_nsCaseInsensitiveCStringComparator() {
-        assert_eq!(:: std:: mem:: size_of:: <
-                   nsCaseInsensitiveCStringComparator > (  ) , 8usize);
-    }
     #[repr(C)]
     #[derive(Copy, Clone)]
     pub struct nsCaseInsensitiveCStringArrayComparator;
-    #[test]
-    fn bindgen_test_layout_nsCaseInsensitiveCStringArrayComparator() {
-        assert_eq!(:: std:: mem:: size_of:: <
-                   nsCaseInsensitiveCStringArrayComparator > (  ) , 1usize);
-    }
     #[repr(C)]
     #[derive(Copy, Clone)]
     pub struct nsSubstringTuple {
