@@ -4,7 +4,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://drafts.csswg.org/cssom/#the-stylesheet-interface
-
 interface StyleSheet {
   readonly attribute DOMString type_;
   readonly attribute DOMString? href;

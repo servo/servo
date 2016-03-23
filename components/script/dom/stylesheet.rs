@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//use dom::bindings::codegen::UnionTypes::ElementOrProcessingInstruction;
-//use dom::processinginstruction::ProcessingInstruction;
 use dom::bindings::codegen::Bindings::StyleSheetBinding;
 use dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
 use dom::bindings::global::GlobalRef;
@@ -19,12 +17,6 @@ pub struct StyleSheet {
     type_: DOMString,
     href: Option<DOMString>,
     title: Option<DOMString>,
-    /*ownerNode: Option<ProcessingInstruction>,
-    parentStyleSheet: StyleSheet,
-    parentStyleSheet: StyleSheet,
-
-    media: MediaList,
-    disabled: Cell<bool>,*/
 }
 
 impl StyleSheet {
@@ -64,27 +56,5 @@ impl StyleSheetMethods for StyleSheet {
     fn GetTitle(&self) -> Option<DOMString> {
         self.title.clone()
     }
-
-    /*
-    // https://drafts.csswg.org/cssom/#dom-stylesheet-ownernode
-    fn OwnerNode(&self) -> Option<ProcessingInstruction>{
-        self.ownerNode
-    }
-
-    // https://drafts.csswg.org/cssom/#dom-stylesheet-disabled
-    fn Disabled(&self)-> bool{
-        self.disabled.clone()
-    }
-
-    // https://drafts.csswg.org/cssom/#dom-stylesheet-parentstylesheet
-    fn parentStyleSheet(&self)-> &StyleSheet{
-        &self.parentStyleSheet
-    }
-
-    // https://drafts.csswg.org/cssom/#dom-stylesheet-media
-    pub fn media(&self)-> MediaList{
-        &self.media
-    }
-    */
 }
 

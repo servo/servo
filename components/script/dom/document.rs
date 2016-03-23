@@ -1753,7 +1753,6 @@ impl Element {
 impl DocumentMethods for Document {
     // https://drafts.csswg.org/cssom/#document-css-style-sheets
     fn StyleSheets(&self) -> Root<StyleSheetList> {
-        //Some(Root::from_ref(&*(self.list)))
         StyleSheetList::new(&self.window, JS::from_ref(&self))
     }
 
@@ -2634,7 +2633,6 @@ impl DocumentProgressHandler {
                       ReflowQueryType::NoQuery,
                       ReflowReason::DocumentLoaded);
     }
-
 }
 
 impl Runnable for DocumentProgressHandler {

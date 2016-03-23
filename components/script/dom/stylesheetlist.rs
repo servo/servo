@@ -8,11 +8,8 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::document::Document;
-//use dom::stylesheet::StyleSheet;
+use dom::stylesheet::StyleSheet;
 use dom::window::Window;
-//use std::cell::RefMut;
-//use std::sync::Arc;
-//use dom::bindings::cell::DOMRefCell;
 
 #[dom_struct]
 pub struct StyleSheetList {
@@ -43,12 +40,15 @@ impl StyleSheetListMethods for StyleSheetList {
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheetlist-item
-    /*fn Item(&self, index: u32) -> Option<Ref<StyleSheet>> {
-        if (index > self.Length()) {
-            None
-        } else {
-            Some(self.document.stylesheets.borrow_mut())
-        }
-    }*/
+    fn Item(&self, index: u32) -> Option<Root<StyleSheet>> {
+        None
+        //TODO Create a new StyleSheet object and return it
+    }
 
+    // https://drafts.csswg.org/cssom/#dom-stylesheetlist-IndexedGetter
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<StyleSheet>>{
+        let item = self.Item(index);
+        *found = item.is_some();
+        item
+    }
 }
