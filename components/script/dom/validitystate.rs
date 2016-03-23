@@ -11,9 +11,8 @@ use dom::element::Element;
 use dom::window::Window;
 
 // https://html.spec.whatwg.org/multipage/#validity-states
-#[derive_JSTraceable]
-#[derive_HeapSizeOf]
-pub enum ValidityStatus {
+#[derive(JSTraceable, HeapSizeOf)]
+pub enum ValidityStates {
     ValueMissing,
     TypeMismatch,
     PatternMismatch,
@@ -32,7 +31,7 @@ pub enum ValidityStatus {
 pub struct ValidityState {
     reflector_: Reflector,
     element: JS<Element>,
-    state: ValidityStatus
+    state: ValidityStates
 }
 
 
@@ -41,7 +40,7 @@ impl ValidityState {
         ValidityState {
             reflector_: Reflector::new(),
             element: JS::from_ref(element),
-            state: ValidityStatus::Valid
+            state: ValidityStates::Valid
         }
     }
 
