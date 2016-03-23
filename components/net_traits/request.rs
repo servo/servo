@@ -152,7 +152,7 @@ impl Request {
     pub fn new(url: Url,
                origin: Option<Origin>,
                is_service_worker_global_scope: bool) -> Request {
-         Request {
+        Request {
             method: RefCell::new(Method::Get),
             local_urls_only: false,
             sandboxed_storage_area_urls: false,
@@ -256,5 +256,9 @@ impl Request {
                 | Destination::None => true,
             _ => false
         }
+    }
+
+    pub fn set_local_urls_only(&mut self, local_urls_only: bool) {
+        self.local_urls_only = local_urls_only;
     }
 }
