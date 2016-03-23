@@ -400,6 +400,8 @@ pub struct IFrameLoadInfo {
     pub new_pipeline_id: PipelineId,
     /// Sandbox type of this iframe
     pub sandbox: IFrameSandboxState,
+    /// boolean variable to indicate whether session is private or not
+    pub is_private: bool,
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events

@@ -1501,6 +1501,16 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         ReadyToSave::Ready
     }
 
+    /// Checks whether the pipeline or its ancestors are private and sends an appropriate reply
+     fn check_is_pipeline_private(pipeline_id: PipelineId, sender: Sender<bool>) -> bool {
+         // Try to figure this one out. I think you need to accpet pipline id
+         // Then check the pipeline for the private_pipeline field
+         // Then do the same for all its ancestors until you find if it is private
+         // return using the Sender<bool>. Check the type of Sender and figure it out   
+         false
+     }
+ 
+
     // Close a frame (and all children)
     fn close_frame(&mut self, frame_id: FrameId, exit_mode: ExitPipelineMode) {
         // Store information about the pipelines to be closed. Then close the
