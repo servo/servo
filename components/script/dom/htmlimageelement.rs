@@ -34,32 +34,33 @@ use string_cache::Atom;
 use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 use heapsize::{HeapSizeOf};
-#[derive(JSTraceable,HeapSizeOf,Copy,Clone)]
+#[derive(JSTraceable,HeapSizeOf)]
 enum State{
     Unavailable,
     PartiallyAvailable,
     CompletelyAvailable,
     Broken,
 }
-#[derive(JSTraceable,HeapSizeOf,Copy,Clone)]
-pub struct ImageRequest {
+#[derive(JSTraceable,HeapSizeOf)]
+struct ImageRequest {
     state: State,
-    current_url: String,
-    image_data: u8,
+    url: DOMRefCell<Option<Url>>,
+    image: DOMRefCell<Option<Arc<Image>>>,
+    metadata: DOMRefCell<Option<ImageMetadata>>,
 }
 #[dom_struct]
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
-    url: DOMRefCell<Option<Url>>,
-    image: DOMRefCell<Option<Arc<Image>>>,
-    metadata: DOMRefCell<Option<ImageMetadata>>,
+//    url: DOMRefCell<Option<Url>>,
+//    image: DOMRefCell<Option<Arc<Image>>>,
+//    metadata: DOMRefCell<Option<ImageMetadata>>,
     currentrequest: DOMRefCell<ImageRequest>,
     pendingrequest: DOMRefCell<ImageRequest>,
 }
 
 impl HTMLImageElement {
     pub fn get_url(&self) -> Option<Url>{
-        self.url.borrow().clone()
+        self.currentrequest.url.borrow().clone()
     }
 }
 
@@ -94,7 +95,7 @@ impl Runnable for ImageResponseHandlerRunnable {
             }
             ImageResponse::None => (None, None, true)
         };
-        *element_ref.image.borrow_mut() = image;
+        *element_ref.currentrequest.image.borrow_mut() = image;
         *element_ref.metadata.borrow_mut() = metadata;
 
         // Mark the node dirty
@@ -121,8 +122,8 @@ impl HTMLImageElement {
         let image_cache = window.image_cache_thread();
         match value {
             None => {
-                *self.url.borrow_mut() = None;
-                *self.image.borrow_mut() = None;
+                *self.currentrequest.url.borrow_mut() = None;
+                *self.currentrequest.image.borrow_mut() = None;
             }
             Some((src, base_url)) => {
                 let img_url = base_url.join(&src);
@@ -152,21 +153,13 @@ impl HTMLImageElement {
         }
     }
     fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
-        let un = State::Unavailable;
-        let ur = "Abc";
-        let ima = 0;
-        let currReq = ImageRequest{
-            state: un,
-            current_url: ur.to_string(),
-            image_data: ima
-            };
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             url: DOMRefCell::new(None),
             image: DOMRefCell::new(None),
             metadata: DOMRefCell::new(None),
-            currentrequest: DOMRefCell::new(currReq),
-            pendingrequest: DOMRefCell::new(currReq),
+           // currentrequest: DOMRefCell::new(currReq),
+           // pendingrequest: DOMRefCell::new(currReq),
         }
     }
 
