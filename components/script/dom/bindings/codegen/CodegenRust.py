@@ -1361,9 +1361,17 @@ class PropertyDefiner:
         if specTerminator:
             specs.append(specTerminator)
 
-        return (("const %s: &'static [%s] = &[\n" +
-                 ",\n".join(specs) + "\n" +
-                 "];\n") % (name, specType))
+        specsArray = ("const %s_specs: &'static [%s] = &[\n" +
+                      ",\n".join(specs) + "\n" +
+                      "];\n") % (name, specType)
+
+        prefArray = ("const %s: &'static [Prefable<%s>] = &[\n" +
+                     "    Prefable {\n" +
+                     "        pref: None,\n" +
+                     "        specs: &%s_specs,\n" +
+                     "    },\n" +
+                    "];\n") % (name, specType, name)
+        return specsArray + prefArray
 
 
 # The length of a method is the minimum of the lengths of the
@@ -2228,8 +2236,8 @@ def InitUnforgeablePropertiesOnHolder(descriptor, properties):
     """
     unforgeables = []
 
-    defineUnforgeableAttrs = "define_properties(cx, unforgeable_holder.handle(), %s).unwrap();"
-    defineUnforgeableMethods = "define_methods(cx, unforgeable_holder.handle(), %s).unwrap();"
+    defineUnforgeableAttrs = "define_properties(cx, unforgeable_holder.handle(), %s_specs).unwrap();"
+    defineUnforgeableMethods = "define_methods(cx, unforgeable_holder.handle(), %s_specs).unwrap();"
 
     unforgeableMembers = [
         (defineUnforgeableAttrs, properties.unforgeable_attrs),
@@ -2463,10 +2471,10 @@ assert!(!prototype_proto.ptr.is_null());""" % getPrototypeProto)]
         for arrayName in self.properties.arrayNames():
             array = getattr(self.properties, arrayName)
             if arrayName == "consts":
-                if array.length():
-                    properties[arrayName] = array.variableName()
+                if not array.length():
+                    properties[arrayName] = "EMPTY_CONSTANTS"
                 else:
-                    properties[arrayName] = "&[]"
+                    properties[arrayName] = array.variableName()
             elif array.length():
                 properties[arrayName] = "Some(%s)" % array.variableName()
             else:
@@ -5476,12 +5484,12 @@ class CGBindingRoot(CGThing):
             'dom::bindings::interface::{NonCallbackInterfaceObjectClass, create_callback_interface_object}',
             'dom::bindings::interface::{create_interface_prototype_object, create_named_constructors}',
             'dom::bindings::interface::{create_noncallback_interface_object}',
-            'dom::bindings::interface::{ConstantSpec, NonNullJSNative}',
+            'dom::bindings::interface::{ConstantSpec, NonNullJSNative, EMPTY_CONSTANTS}',
             'dom::bindings::interface::ConstantVal::{IntVal, UintVal}',
             'dom::bindings::js::{JS, Root, RootedReference}',
             'dom::bindings::js::{OptionalRootedReference}',
             'dom::bindings::reflector::{Reflectable}',
-            'dom::bindings::utils::{DOMClass, DOMJSClass}',
+            'dom::bindings::utils::{DOMClass, DOMJSClass, Prefable}',
             'dom::bindings::utils::{DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, JSCLASS_DOM_GLOBAL}',
             'dom::bindings::utils::{ProtoOrIfaceArray, create_dom_global}',
             'dom::bindings::utils::{enumerate_global, finalize_global, find_enum_string_index}',
