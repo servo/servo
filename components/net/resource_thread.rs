@@ -274,17 +274,6 @@ pub struct AuthCacheEntry {
     pub password: String,
 }
 
-impl AuthCacheEntry {
-
-    /* will need
-    fn new() -> AuthCacheEntry {
-        AuthCacheEntry {
-            user_name: String::new(),
-            password: String::new(),
-        }
-    }*/
-}
-
 pub struct ResourceManager {
     user_agent: String,
     cookie_storage: Arc<RwLock<CookieStorage>>,

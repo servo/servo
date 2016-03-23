@@ -550,33 +550,26 @@ pub fn modify_request_headers(headers: &mut Headers,
     }
 }
 
-fn set_auth_header (headers: &mut Headers,
+fn set_auth_header(headers: &mut Headers,
                     url: &Url,
                     auth_cache: &Arc<RwLock<HashMap<Url, AuthCacheEntry>>>) {
 
     if !headers.has::<Authorization<Basic>>() {
-
         if let Some(auth) = auth_from_url(url) {
-
             headers.set(auth);
-        }
-        else {
-
-            match auth_cache.read().unwrap().get(url) {
-                Some( ref auth_entry) => auth_from_entry(&auth_entry, headers),
-                _ => return
+        } else {
+            if let Some(ref auth_entry) = auth_cache.read().unwrap().get(url) {
+                auth_from_entry(&auth_entry, headers);
             }
         }
     }
 }
 
-fn auth_from_entry (auth_entry: &AuthCacheEntry, headers: &mut Headers) {
+fn auth_from_entry(auth_entry: &AuthCacheEntry, headers: &mut Headers) {
     let user_name = auth_entry.user_name.clone();
     let password  = Some(auth_entry.password.clone());
 
-    if let Some(auth) = Some(Authorization(Basic { username: user_name, password: password })) {
-        headers.set(auth);
-    }
+    headers.set(Authorization(Basic { username: user_name, password: password }));
 }
 
 fn auth_from_url(doc_url: &Url) -> Option<Authorization<Basic>> {
