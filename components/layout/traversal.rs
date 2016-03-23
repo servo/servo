@@ -4,9 +4,6 @@
 
 //! Traversals over the DOM and flow trees, running the layout computations.
 
-// For thread_local.
-#![allow(unsafe_code)]
-
 use construct::FlowConstructor;
 use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::DisplayListBuildState;
