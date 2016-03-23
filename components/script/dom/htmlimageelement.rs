@@ -53,8 +53,8 @@ pub struct HTMLImageElement {
 //    url: DOMRefCell<Option<Url>>,
 //    image: DOMRefCell<Option<Arc<Image>>>,
 //    metadata: DOMRefCell<Option<ImageMetadata>>,
-    currentrequest: DOMRefCell<ImageRequest>,
-    pendingrequest: DOMRefCell<ImageRequest>,
+    currentrequest: ImageRequest,
+    pendingrequest: ImageRequest,
 }
 
 impl HTMLImageElement {
@@ -95,7 +95,7 @@ impl Runnable for ImageResponseHandlerRunnable {
             ImageResponse::None => (None, None, true)
         };
         *element_ref.currentrequest.image.borrow_mut() = image;
-        *element_ref.metadata.borrow_mut() = metadata;
+        *element_ref.currentrequest.metadata.borrow_mut() = metadata;
 
         // Mark the node dirty
         let document = document_from_node(&*element);
@@ -128,7 +128,7 @@ impl HTMLImageElement {
                 let img_url = base_url.join(&src);
                 // FIXME: handle URL parse errors more gracefully.
                 let img_url = img_url.unwrap();
-                *self.url.borrow_mut() = Some(img_url.clone());
+                *self.currentrequest.url.borrow_mut() = Some(img_url.clone());
 
                 let trusted_node = Trusted::new(self, window.networking_task_source());
                 let (responder_sender, responder_receiver) = ipc::channel().unwrap();
@@ -154,11 +154,11 @@ impl HTMLImageElement {
     fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
-            url: DOMRefCell::new(None),
-            image: DOMRefCell::new(None),
-            metadata: DOMRefCell::new(None),
-           // currentrequest: DOMRefCell::new(currReq),
-           // pendingrequest: DOMRefCell::new(currReq),
+            //url: DOMRefCell::new(None),
+            //image: DOMRefCell::new(None),
+            //metadata: DOMRefCell::new(None),
+            currentrequest: new(None),
+            pendingrequest: new(None),
         }
     }
 
@@ -200,12 +200,12 @@ pub trait LayoutHTMLImageElementHelpers {
 impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
     #[allow(unsafe_code)]
     unsafe fn image(&self) -> Option<Arc<Image>> {
-        (*self.unsafe_get()).image.borrow_for_layout().clone()
+        (*self.unsafe_get()).currentrequest.image.borrow_for_layout().clone()
     }
 
     #[allow(unsafe_code)]
     unsafe fn image_url(&self) -> Option<Url> {
-        (*self.unsafe_get()).url.borrow_for_layout().clone()
+        (*self.unsafe_get()).currentrequest.url.borrow_for_layout().clone()
     }
 
     #[allow(unsafe_code)]
@@ -284,7 +284,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth
     fn NaturalWidth(&self) -> u32 {
-        let metadata = self.metadata.borrow();
+        let metadata = self.currentrequest.metadata.borrow();
 
         match *metadata {
             Some(ref metadata) => metadata.width,
@@ -294,7 +294,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalheight
     fn NaturalHeight(&self) -> u32 {
-        let metadata = self.metadata.borrow();
+        let metadata = self.currentrequest.metadata.borrow();
 
         match *metadata {
             Some(ref metadata) => metadata.height,
@@ -304,7 +304,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-complete
     fn Complete(&self) -> bool {
-        let image = self.image.borrow();
+        let image = self.currentrequest.image.borrow();
         image.is_some()
     }
 
