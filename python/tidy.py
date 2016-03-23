@@ -39,6 +39,7 @@ ignored_files = [
     os.path.join(".", "resources", "hsts_preload.json"),
     os.path.join(".", "tests", "wpt", "metadata", "MANIFEST.json"),
     os.path.join(".", "tests", "wpt", "metadata-css", "MANIFEST.json"),
+    os.path.join(".", "components", "script", "dom", "webidls", "ForceTouchEvent.webidl"),
     # Hidden files
     os.path.join(".", "."),
 ]
