@@ -152,21 +152,13 @@ impl HTMLImageElement {
         }
     }
     fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
-        
-        let currreq: ImageRequest = ImageRequest{
-            state: State::Unavailable,
-            url: DOMRefCell::new(None),
-            image: DOMRefCell::new(None),
-            metadata: DOMRefCell::new(None) 
-        };
-
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             //url: DOMRefCell::new(None),
             //image: DOMRefCell::new(None),
             //metadata: DOMRefCell::new(None),
-            currentrequest: ImageRequest(State::Unavailable,None,None,None),
-            ImageRequest: pendingrequest(State::Unavailable,None,None,None),
+            currentrequest: ImageRequest{state: State::CompletelyAvailable,url:DOMRefCell::new(None),image:DOMRefCell::new(None),metadata:DOMRefCell::new(None)},
+            pendingrequest: ImageRequest{state: State::CompletelyAvailable,url:DOMRefCell::new(None),image:DOMRefCell::new(None),metadata:DOMRefCell::new(None)},
         //    currentrequest: currreq,
         //    pendingrequest: currreq,
         }
