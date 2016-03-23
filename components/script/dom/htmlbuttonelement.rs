@@ -18,6 +18,7 @@ use dom::htmlformelement::{FormControl, FormSubmitter, ResetFrom};
 use dom::htmlformelement::{SubmittedFrom, HTMLFormElement};
 use dom::node::{Node, UnbindContext, document_from_node, window_from_node};
 use dom::nodelist::NodeList;
+use dom::validation::Validatable;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use std::ascii::AsciiExt;
@@ -66,7 +67,7 @@ impl HTMLButtonElementMethods for HTMLButtonElement {
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
     fn Validity(&self) -> Root<ValidityState> {
         let window = window_from_node(self);
-        ValidityState::new(window.r())
+        ValidityState::new(window.r(), self.upcast())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
@@ -203,6 +204,8 @@ impl VirtualMethods for HTMLButtonElement {
 
 impl FormControl for HTMLButtonElement {}
 
+impl Validatable for HTMLButtonElement {}
+
 impl Activatable for HTMLButtonElement {
     fn as_element(&self) -> &Element {
         self.upcast()
@@ -256,11 +259,6 @@ impl Activatable for HTMLButtonElement {
         node.query_selector_iter(DOMString::from("button[type=submit]")).unwrap()
             .filter_map(Root::downcast::<HTMLButtonElement>)
             .find(|r| r.form_owner() == owner)
-            .map(|s| synthetic_click_activation(s.r().as_element(),
-                                                ctrlKey,
-                                                shiftKey,
-                                                altKey,
-                                                metaKey,
-                                                ActivationSource::NotFromClick));
+            .map(|s| s.r().synthetic_click_activation(ctrlKey, shiftKey, altKey, metaKey));
     }
 }
