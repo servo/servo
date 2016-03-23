@@ -52,10 +52,12 @@ fi
 # /Applications/Xcode.app/Contents/Developer/usr/bin/lldb --
 # gdb -ex "break rust_panic" -ex run  --args                          \
 ./rust-bindgen/target/debug/bindgen                                 \
+  -o ../gecko_style_structs.rs                                      \
   -x c++ -std=gnu++0x                                               \
   -allow-unknown-types                                              \
   $CLANG_SEARCH_DIRS                                                \
   "-I$DIST_INCLUDE" "-I$DIST_INCLUDE/nspr"                          \
+  "-I$1/../nsprpub/pr/include"                                      \
   $PLATFORM_DEPENDENT_DEFINES                                       \
   -ignore-functions                                                 \
   -enable-cxx-namespaces                                            \
@@ -69,10 +71,22 @@ fi
   -match "nsSubstring"                                              \
   -match "nsTSubstring"                                             \
   -match "nsTString"                                                \
+  -match "nsColor.h"                                                \
+  -match "nsCoord.h"                                                \
+  -match "nsPoint.h"                                                \
+  -match "nsMargin.h"                                               \
+  -opaque-type "nsIntMargin"                                        \
+  -opaque-type "nsMargin"                                           \
+  -opaque-type "nsIntPoint"                                         \
+  -opaque-type "nsPoint"                                            \
   -include "$1/mozilla-config.h"                                    \
-  -o ../gecko_style_structs.rs                                      \
-  "$DIST_INCLUDE/nsString.h"
+  "$DIST_INCLUDE/nsStyleStruct.h"
 yes \
+  -match "nsMargin.h"                                               \
+  -match "Rect.h"                                                   \
+  -match "Point.h"                                                  \
+  -match "BaseMargin.h"                                             \
+  -match "nsMargin.h"                                               \
   -match "nsStyleStruct"                                            \
   -match "stdint"                                                   \
   -match "nsColor"                                                  \
@@ -84,4 +98,4 @@ yes \
   -match "nsTArray"                                                 \
   -match "nsString"                                                 \
   -match "imgIRequest"                                              \
-  # "$DIST_INCLUDE/nsStyleStruct.h"
+  "$DIST_INCLUDE/nsString.h"

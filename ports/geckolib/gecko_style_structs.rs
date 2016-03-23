@@ -3,6 +3,8 @@
 pub use root::*;
 pub mod root {
     pub const MOZ_STRING_WITH_OBSOLETE_API: ::std::os::raw::c_uint = 1;
+    pub const TWIPS_PER_POINT_INT: ::std::os::raw::c_uint = 20;
+    pub const POINTS_PER_INCH_INT: ::std::os::raw::c_uint = 72;
     /**
  * typedefs for backwards compatibility
  */
@@ -316,4 +318,60 @@ pub mod root {
                    160usize);
     }
     pub type nsVoidableString = nsAutoString;
+    pub type nscolor = u32;
+    pub type nscoord = i32;
+    #[repr(C)]
+    #[derive(Copy, Clone, Debug)]
+    struct nsIntPoint {
+        _bindgen_opaque_blob: [u8; 8usize],
+    }
+    #[test]
+    fn bindgen_test_layout_nsIntPoint() {
+        assert_eq!(:: std:: mem:: size_of:: < nsIntPoint > (  ) , 8usize);
+    }
+    #[repr(C)]
+    #[derive(Copy, Clone, Debug)]
+    struct nsPoint {
+        _bindgen_opaque_blob: [u8; 8usize],
+    }
+    #[test]
+    fn bindgen_test_layout_nsPoint() {
+        assert_eq!(:: std:: mem:: size_of:: < nsPoint > (  ) , 8usize);
+    }
+    #[repr(C)]
+    #[derive(Copy, Clone, Debug)]
+    struct nsMargin {
+        _bindgen_opaque_blob: [u8; 16usize],
+    }
+    #[test]
+    fn bindgen_test_layout_nsMargin() {
+        assert_eq!(:: std:: mem:: size_of:: < nsMargin > (  ) , 16usize);
+    }
+    #[repr(C)]
+    #[derive(Copy, Clone, Debug)]
+    struct nsIntMargin {
+        _bindgen_opaque_blob: [u8; 16usize],
+    }
+    #[test]
+    fn bindgen_test_layout_nsIntMargin() {
+        assert_eq!(:: std:: mem:: size_of:: < nsIntMargin > (  ) , 16usize);
+    }
+    /**
+ * This structure precedes the string buffers "we" allocate.  It may be the
+ * case that nsTAString::mData does not point to one of these special
+ * buffers.  The mFlags member variable distinguishes the buffer type.
+ *
+ * When this header is in use, it enables reference counting, and capacity
+ * tracking.  NOTE: A string buffer can be modified only if its reference
+ * count is 1.
+ */
+    #[repr(C)]
+    pub struct nsStringBuffer {
+        pub mRefCount: [u8; 4usize],
+        pub mStorageSize: u32,
+    }
+    #[test]
+    fn bindgen_test_layout_nsStringBuffer() {
+        assert_eq!(:: std:: mem:: size_of:: < nsStringBuffer > (  ) , 8usize);
+    }
 }
