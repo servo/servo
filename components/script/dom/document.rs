@@ -1751,7 +1751,7 @@ impl Element {
 }
 
 impl DocumentMethods for Document {
-    // https://drafts.csswg.org/cssom/#document-css-style-sheets
+    // https://drafts.csswg.org/cssom/#dom-document-stylesheets
     fn StyleSheets(&self) -> Root<StyleSheetList> {
         StyleSheetList::new(&self.window, JS::from_ref(&self))
     }

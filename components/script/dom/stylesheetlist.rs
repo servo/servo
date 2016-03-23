@@ -45,7 +45,7 @@ impl StyleSheetListMethods for StyleSheetList {
         //TODO Create a new StyleSheet object and return it
     }
 
-    // https://drafts.csswg.org/cssom/#dom-stylesheetlist-IndexedGetter
+    // check-tidy: no specs after this line
     fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<StyleSheet>>{
         let item = self.Item(index);
         *found = item.is_some();
