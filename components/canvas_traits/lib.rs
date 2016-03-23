@@ -55,7 +55,6 @@ pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg),
     Common(CanvasCommonMsg),
     FromLayout(FromLayoutMsg),
-    FromPaint(FromPaintMsg),
     WebGL(CanvasWebGLMsg),
 }
 
@@ -80,23 +79,6 @@ pub struct CanvasPixelData {
 #[derive(Clone, Deserialize, Serialize)]
 pub enum FromLayoutMsg {
     SendData(IpcSender<CanvasData>),
-}
-
-#[derive(Clone)]
-pub enum FromPaintMsg {
-    SendNativeSurface(Sender<NativeSurface>),
-}
-
-impl Serialize for FromPaintMsg {
-    fn serialize<S>(&self, _: &mut S) -> Result<(), S::Error> where S: Serializer {
-        panic!("can't serialize a `FromPaintMsg`!")
-    }
-}
-
-impl Deserialize for FromPaintMsg {
-    fn deserialize<D>(_: &mut D) -> Result<FromPaintMsg, D::Error> where D: Deserializer {
-        panic!("can't deserialize a `FromPaintMsg`!")
-    }
 }
 
 #[derive(Clone, Deserialize, Serialize)]

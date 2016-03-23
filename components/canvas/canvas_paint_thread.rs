@@ -15,12 +15,11 @@ use gfx_traits::color;
 use ipc_channel::ipc::IpcSharedMemory;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use layers::platform::surface::NativeSurface;
 use num::ToPrimitive;
 use premultiplytable::PREMULTIPLY_TABLE;
 use std::borrow::ToOwned;
 use std::mem;
-use std::sync::mpsc::{Sender, channel};
+use std::sync::mpsc::channel;
 use util::opts;
 use util::thread::spawn_named;
 use util::vec::byte_swap;
@@ -202,13 +201,6 @@ impl<'a> CanvasPaintThread<'a> {
                         match message {
                             FromLayoutMsg::SendData(chan) => {
                                 painter.send_data(chan)
-                            }
-                        }
-                    }
-                    CanvasMsg::FromPaint(message) => {
-                        match message {
-                            FromPaintMsg::SendNativeSurface(chan) => {
-                                painter.send_native_surface(chan)
                             }
                         }
                     }
@@ -548,12 +540,6 @@ impl<'a> CanvasPaintThread<'a> {
             };
             chan.send(CanvasData::Pixels(pixel_data)).unwrap();
         })
-    }
-
-    fn send_native_surface(&self, _chan: Sender<NativeSurface>) {
-        // FIXME(mrobinson): We need a handle on the NativeDisplay to create compatible
-        // NativeSurfaces for the compositor.
-        unimplemented!()
     }
 
     fn image_data(&self,
