@@ -1,6 +1,8 @@
 {
+  "dom.bluetooth.enabled": false,
   "dom.mouseevent.which.enabled": false,
   "dom.mozbrowser.enabled": false,
+  "dom.testbinding.enabled": false,
   "layout.columns.enabled": false,
   "layout.column-width.enabled": false,
   "layout.column-count.enabled": false,
