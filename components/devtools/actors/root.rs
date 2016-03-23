@@ -21,11 +21,13 @@ struct ActorTraits {
 }
 
 #[derive(RustcEncodable)]
-struct ErrorReply {
+struct ListAddonsReply {
     from: String,
-    error: String,
-    message: String,
+    addons: Vec<AddonMsg>,
 }
+
+#[derive(RustcEncodable)]
+enum AddonMsg {}
 
 #[derive(RustcEncodable)]
 struct ListTabsReply {
@@ -57,10 +59,9 @@ impl Actor for RootActor {
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "listAddons" => {
-                let actor = ErrorReply {
+                let actor = ListAddonsReply {
                     from: "root".to_owned(),
-                    error: "noAddons".to_owned(),
-                    message: "This root actor has no browser addons.".to_owned(),
+                    addons: vec![],
                 };
                 stream.write_json_packet(&actor);
                 ActorMessageStatus::Processed
