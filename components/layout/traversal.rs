@@ -4,9 +4,6 @@
 
 //! Traversals over the DOM and flow trees, running the layout computations.
 
-// For thread_local.
-#![allow(unsafe_code)]
-
 use construct::FlowConstructor;
 use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::DisplayListBuildState;
@@ -15,7 +12,7 @@ use flow::{self, Flow, CAN_BE_FRAGMENTED};
 use gfx::display_list::OpaqueNode;
 use incremental::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
 use std::mem;
-use style::context::{StyleContext, ReflowGoal};
+use style::context::StyleContext;
 use style::matching::MatchMethods;
 use style::traversal::{DomTraversalContext, STYLE_BLOOM};
 use style::traversal::{put_thread_local_bloom_filter, recalc_style_at};
