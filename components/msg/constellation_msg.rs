@@ -222,7 +222,7 @@ pub struct ImageMetadata {
     pub height: u32,
 }
 
-#[derive(Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct Image {
     pub width: u32,
     pub height: u32,

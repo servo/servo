@@ -24,6 +24,7 @@ use flow_ref::{self, FlowRef};
 use fnv::FnvHasher;
 use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, LayerInfo};
 use gfx::display_list::{OpaqueNode, StackingContext, StackingContextId, StackingContextType};
+use gfx::display_list::{WebRenderImageInfo};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
@@ -39,6 +40,7 @@ use layout_traits::LayoutThreadFactory;
 use log;
 use msg::constellation_msg::{ConstellationChan, ConvertPipelineIdToWebRender, Failure, PipelineId};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
+use net_traits::image_cache_thread::{UsePlaceholder};
 use parallel;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
@@ -83,8 +85,8 @@ use util::opts;
 use util::thread;
 use util::thread_state;
 use util::workqueue::WorkQueue;
-use webrender_helpers::WebRenderDisplayListConverter;
-use webrender_traits::{self, AuxiliaryListsBuilder};
+use webrender_helpers::{WebRenderDisplayListConverter, WebRenderFrameBuilder};
+use webrender_traits;
 use wrapper::{LayoutNode, NonOpaqueStyleAndLayoutData, ServoLayoutNode, ThreadSafeLayoutNode};
 
 /// The number of screens of data we're allowed to generate display lists for in each direction.
@@ -234,6 +236,10 @@ pub struct LayoutThread {
 
     /// The CSS error reporter for all CSS loaded in this layout thread
     error_reporter: CSSErrorReporter,
+
+    webrender_image_cache: Arc<RwLock<HashMap<(Url, UsePlaceholder),
+                                              WebRenderImageInfo,
+                                              BuildHasherDefault<FnvHasher>>>>,
 
     // Webrender interface, if enabled.
     webrender_api: Option<webrender_traits::RenderApi>,
@@ -475,6 +481,8 @@ impl LayoutThread {
                   pipelineid: id,
                   script_chan: Arc::new(Mutex::new(script_chan)),
               },
+              webrender_image_cache:
+                  Arc::new(RwLock::new(HashMap::with_hasher(Default::default()))),
         }
     }
 
@@ -516,6 +524,7 @@ impl LayoutThread {
             canvas_layers_sender: Mutex::new(self.canvas_layers_sender.clone()),
             url: (*url).clone(),
             visible_rects: self.visible_rects.clone(),
+            webrender_image_cache: self.webrender_image_cache.clone(),
         }
     }
 
@@ -940,7 +949,6 @@ impl LayoutThread {
                 self.epoch.next();
 
                 if opts::get().use_webrender {
-                    let api = self.webrender_api.as_ref().unwrap();
                     // TODO: Avoid the temporary conversion and build webrender sc/dl directly!
                     let Epoch(epoch_number) = self.epoch;
                     let epoch = webrender_traits::Epoch(epoch_number);
@@ -948,13 +956,13 @@ impl LayoutThread {
 
                     // TODO(gw) For now only create a root scrolling layer!
                     let root_scroll_layer_id = webrender_traits::ScrollLayerId::new(pipeline_id, 0);
-                    let mut auxiliary_lists_builder = AuxiliaryListsBuilder::new();
+                    let mut frame_builder = WebRenderFrameBuilder::new(pipeline_id);
                     let sc_id = rw_data.display_list.as_ref().unwrap().convert_to_webrender(
-                        &self.webrender_api.as_ref().unwrap(),
+                        &mut self.webrender_api.as_mut().unwrap(),
                         pipeline_id,
                         epoch,
                         Some(root_scroll_layer_id),
-                        &mut auxiliary_lists_builder);
+                        &mut frame_builder);
                     let root_background_color = get_root_flow_background_color(
                         flow_ref::deref_mut(layout_root));
                     let root_background_color =
@@ -966,12 +974,16 @@ impl LayoutThread {
                     let viewport_size = Size2D::new(self.viewport_size.width.to_f32_px(),
                                                     self.viewport_size.height.to_f32_px());
 
+                    let api = self.webrender_api.as_ref().unwrap();
                     api.set_root_stacking_context(sc_id,
                                                   root_background_color,
                                                   epoch,
                                                   pipeline_id,
                                                   viewport_size,
-                                                  auxiliary_lists_builder.finalize());
+                                                  frame_builder.stacking_contexts,
+                                                  frame_builder.display_lists,
+                                                  frame_builder.auxiliary_lists_builder
+                                                               .finalize());
                 } else {
                     self.paint_chan
                         .send(LayoutToPaintMsg::PaintInit(self.epoch, display_list))
