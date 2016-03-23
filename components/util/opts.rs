@@ -146,6 +146,14 @@ pub struct Opts {
     /// Whether we're running inside the sandbox.
     pub sandbox: bool,
 
+    /// Probability of randomly closing a pipeline,
+    /// used for testing the hardening of the constellation.
+    pub random_pipeline_closure_probability: Option<f32>,
+
+    /// The seed for the RNG used to randomly close pipelines,
+    /// used for testing the hardening of the constellation.
+    pub random_pipeline_closure_seed: Option<usize>,
+
     /// Dumps the flow tree after a layout.
     pub dump_flow_tree: bool,
 
@@ -282,6 +290,7 @@ pub struct DebugOptions {
 
     /// Use multisample antialiasing in WebRender.
     pub use_msaa: bool,
+
 }
 
 
@@ -485,6 +494,8 @@ pub fn default_opts() -> Opts {
         initial_window_size: Size2D::typed(800, 600),
         user_agent: default_user_agent_string(DEFAULT_USER_AGENT),
         multiprocess: false,
+        random_pipeline_closure_probability: None,
+        random_pipeline_closure_seed: None,
         sandbox: false,
         dump_flow_tree: false,
         dump_display_list: false,
@@ -538,6 +549,11 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                 "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)");
     opts.optflag("M", "multiprocess", "Run in multiprocess mode");
     opts.optflag("S", "sandbox", "Run in a sandbox if multiprocess");
+    opts.optopt("",
+                "random-pipeline-closure-probability",
+                "Probability of randomly closing a pipeline (for testing constellation hardening).",
+                "0.0");
+    opts.optopt("", "random-pipeline-closure-seed", "A fixed seed for repeatbility of random pipeline closure.", "");
     opts.optopt("Z", "debug",
                 "A comma-separated string of debug options. Pass help to show available options.", "");
     opts.optflag("h", "help", "Print this message");
@@ -649,6 +665,14 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     let nonincremental_layout = opt_match.opt_present("i");
 
+    let random_pipeline_closure_probability = opt_match.opt_str("random-pipeline-closure-probability").map(|prob|
+        prob.parse().expect("Error parsing option: --random-pipeline-closure-probability")
+    );
+
+    let random_pipeline_closure_seed = opt_match.opt_str("random-pipeline-closure-seed").map(|seed|
+        seed.parse().expect("Error parsing option: --random-pipeline-closure-seed")
+    );
+
     let mut bubble_inline_sizes_separately = debug_options.bubble_widths;
     if debug_options.trace_layout {
         paint_threads = 1;
@@ -737,6 +761,8 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         user_agent: user_agent,
         multiprocess: opt_match.opt_present("M"),
         sandbox: opt_match.opt_present("S"),
+        random_pipeline_closure_probability: random_pipeline_closure_probability,
+        random_pipeline_closure_seed: random_pipeline_closure_seed,
         render_api: render_api,
         show_debug_borders: debug_options.show_compositor_borders,
         show_debug_fragment_borders: debug_options.show_fragment_borders,
