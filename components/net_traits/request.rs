@@ -257,8 +257,4 @@ impl Request {
             _ => false
         }
     }
-
-    pub fn set_local_urls_only(&mut self, local_urls_only: bool) {
-        self.local_urls_only = local_urls_only;
-    }
 }

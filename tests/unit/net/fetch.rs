@@ -284,17 +284,20 @@ fn test_fetch_with_local_urls_only() {
         request.referer = Referer::NoReferer;
 
         // Set the flag.
-        request.set_local_urls_only(true);
+        request.local_urls_only = true;
 
         let wrapped_request = Rc::new(request);
         fetch(wrapped_request)
     };
 
-    let local_url = Url::parse("about:config").unwrap();
-    assert!(do_fetch(local_url).is_network_error());
-    assert!(!do_fetch(server_url).is_network_error());
+    let local_url = Url::parse("about:blank").unwrap();
+    let local_response = do_fetch(local_url);
+    let server_response = do_fetch(server_url);
 
     let _ = server.close();
+
+    assert!(!local_response.is_network_error());
+    assert!(server_response.is_network_error());
 }
 
 fn test_fetch_redirect_count(message: &'static [u8], redirect_cap: u32) -> Response {

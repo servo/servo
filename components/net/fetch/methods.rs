@@ -110,8 +110,11 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     let mut response = None;
 
     // Step 2
-    if request.local_urls_only && !url_is_local(&request.current_url()) {
-        response = Some(Response::network_error());
+    if request.local_urls_only {
+        match &*request.current_url().scheme {
+            "about" | "blob" | "data" | "filesystem" => (), // Ok, the URL is local.
+            _ => response = Some(Response::network_error())
+        }
     }
 
     // Step 3
@@ -1042,13 +1045,6 @@ fn includes_credentials(url: &Url) -> bool {
     }
 
     false
-}
-
-fn url_is_local(url: &Url) -> bool {
-    match &*url.scheme {
-        "about" | "blob" | "data" | "filesystem" => true,
-        _ => false
-    }
 }
 
 fn response_needs_revalidation(_response: &Response) -> bool {
