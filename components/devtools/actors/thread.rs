@@ -30,6 +30,11 @@ struct ThreadResumedReply {
     __type__: String,
 }
 
+#[derive(RustcEncodable)]
+struct ReconfigureReply {
+    from: String
+}
+
 pub struct ThreadActor {
     name: String,
 }
@@ -73,6 +78,11 @@ impl Actor for ThreadActor {
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
+
+            "reconfigure" => {
+                stream.write_json_packet(&ReconfigureReply { from: self.name() });
+                ActorMessageStatus::Processed
+            }
 
             _ => ActorMessageStatus::Ignored,
         })

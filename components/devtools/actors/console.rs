@@ -77,6 +77,12 @@ struct EvaluateJSReply {
     helperResult: Json,
 }
 
+#[derive(RustcEncodable)]
+struct SetPreferencesReply {
+    from: String,
+    updated: Vec<String>,
+}
+
 pub struct ConsoleActor {
     pub name: String,
     pub pipeline: PipelineId,
@@ -232,6 +238,15 @@ impl Actor for ConsoleActor {
                     exception: Json::Object(BTreeMap::new()),
                     exceptionMessage: "".to_owned(),
                     helperResult: Json::Object(BTreeMap::new()),
+                };
+                stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            }
+
+            "setPreferences" => {
+                let msg = SetPreferencesReply {
+                    from: self.name(),
+                    updated: vec![],
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
