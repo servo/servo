@@ -12,6 +12,20 @@ use std::error::Error;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
+#[derive(Serialize)]
+pub struct ActorDescription {
+    pub category: &'static str,
+    pub typeName: &'static str,
+    pub methods: Vec<Method>,
+}
+
+#[derive(Serialize)]
+pub struct Method {
+    pub name: &'static str,
+    pub request: Value,
+    pub response: Value,
+}
+
 pub trait JsonPacketStream {
     fn write_json_packet<T: Serialize>(&mut self, obj: &T);
     fn read_json_packet(&mut self) -> Result<Option<Value>, String>;
