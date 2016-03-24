@@ -294,6 +294,7 @@ fn basic_fetch(request: Rc<Request>) -> Response {
                     response.headers.set(ContentType(Mime(
                         TopLevel::Text, SubLevel::Html,
                         vec![(Attr::Charset, Value::Utf8)])));
+                    *response.body.lock().unwrap() = ResponseBody::Done(vec![]);
                     response
                 },
                 _ => Response::network_error()
