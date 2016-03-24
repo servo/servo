@@ -1197,13 +1197,7 @@ impl FragmentDisplayListBuilding for Fragment {
                             let (sender, receiver) = ipc::channel().unwrap();
                             ipc_renderer.send(CanvasMsg::FromLayout(
                                 FromLayoutMsg::SendData(sender))).unwrap();
-                            let data = receiver.recv().unwrap();
-
-                            // Propagate the layer and the renderer to the paint task.
-                            state.layout_context.shared.canvas_layers_sender.lock().unwrap().send(
-                                (layer_id, (*ipc_renderer).clone())).unwrap();
-
-                            data
+                            receiver.recv().unwrap()
                         },
                         None => CanvasData::Pixels(CanvasPixelData {
                             image_data: IpcSharedMemory::from_byte(0xFFu8, width * height * 4),

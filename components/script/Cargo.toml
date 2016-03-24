@@ -50,7 +50,7 @@ git = "https://github.com/servo/rust-mozjs"
 git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
 
 [dependencies.angle]
-git = "https://github.com/ecoal95/angle"
+git = "https://github.com/emilio/angle"
 branch = "servo"
 
 [dependencies.ipc-channel]

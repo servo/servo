@@ -72,7 +72,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "angle"
 version = "0.1.0"
-source = "git+https://github.com/ecoal95/angle?branch=servo#b31e70ef5cb675582de910d09b0c385ea2000a64"
+source = "git+https://github.com/emilio/angle?branch=servo#b31e70ef5cb675582de910d09b0c385ea2000a64"
 dependencies = [
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -187,7 +187,6 @@ dependencies = [
  "heapsize 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.1 (git+https://github.com/servo/ipc-channel)",
- "layers 0.2.4 (git+https://github.com/servo/rust-layers)",
  "offscreen_gl_context 0.1.0 (git+https://github.com/ecoal95/rust-offscreen-rendering-context)",
  "plugins 0.0.1",
  "serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -681,7 +680,6 @@ dependencies = [
  "app_units 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "azure 0.4.3 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "canvas_traits 0.0.1",
  "core-foundation 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1048,7 +1046,6 @@ dependencies = [
  "app_units 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "azure 0.4.3 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "canvas 0.0.1",
  "canvas_traits 0.0.1",
  "cssparser 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1689,7 +1686,7 @@ dependencies = [
 name = "script"
 version = "0.0.1"
 dependencies = [
- "angle 0.1.0 (git+https://github.com/ecoal95/angle?branch=servo)",
+ "angle 0.1.0 (git+https://github.com/emilio/angle?branch=servo)",
  "app_units 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas 0.0.1",

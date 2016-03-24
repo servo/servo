@@ -25,7 +25,6 @@ extern crate app_units;
 extern crate azure;
 #[macro_use]
 extern crate bitflags;
-extern crate canvas_traits;
 
 // Mac OS-specific library dependencies
 #[cfg(target_os = "macos")] extern crate core_foundation;
