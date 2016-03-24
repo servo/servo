@@ -498,6 +498,8 @@ impl Window {
             VirtualKeyCode::Tab => Ok(Key::Tab),
             VirtualKeyCode::Subtract => Ok(Key::Minus),
 
+            VirtualKeyCode::NavigateBackward => Ok(Key::NavigateBackward),
+            VirtualKeyCode::NavigateForward => Ok(Key::NavigateForward),
             _ => Err(()),
         }
     }
@@ -729,6 +731,12 @@ impl WindowMethods for Window {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
             }
             (NONE, Key::Backspace) => {
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
+            }
+            (SHIFT, Key::NavigateForward) => {
+                self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
+            }
+            (NONE, Key::NavigateBackward) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
             }
 

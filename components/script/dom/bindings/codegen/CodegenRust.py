@@ -5334,8 +5334,8 @@ class CGBindingRoot(CGThing):
         # Do codegen for all the typdefs
         for t in typedefs:
             if t.innerType.isUnion():
-                cgthings.extend([CGGeneric("\npub type %s = %s;\n\n" % (t.identifier.name,
-                                                                        "UnionTypes::" + str(t.innerType)))])
+                cgthings.extend([CGGeneric("\npub use dom::bindings::codegen::UnionTypes::%s as %s;\n\n" %
+                                           (t.innerType, t.identifier.name))])
             else:
                 assert not typeNeedsRooting(t.innerType, config.getDescriptorProvider)
                 cgthings.extend([CGGeneric("\npub type %s = " % (t.identifier.name)),

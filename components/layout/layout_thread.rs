@@ -10,7 +10,6 @@
 use animation;
 use app_units::Au;
 use azure::azure::AzColor;
-use canvas_traits::CanvasMsg;
 use construct::ConstructionResult;
 use context::{LayoutContext, SharedLayoutContext, heap_size_of_local_context};
 use display_list_builder::ToGfxColor;
@@ -185,11 +184,6 @@ pub struct LayoutThread {
 
     /// Is this the first reflow in this LayoutThread?
     first_reflow: bool,
-
-    /// To receive a canvas renderer associated to a layer, this message is propagated
-    /// to the paint chan
-    canvas_layers_receiver: Receiver<(LayerId, IpcSender<CanvasMsg>)>,
-    canvas_layers_sender: Sender<(LayerId, IpcSender<CanvasMsg>)>,
 
     /// The workers that we use for parallel operation.
     parallel_traversal: Option<WorkQueue<SharedLayoutContext, WorkQueueData>>,
@@ -406,7 +400,6 @@ impl LayoutThread {
 
         // Create the channel on which new animations can be sent.
         let (new_animations_sender, new_animations_receiver) = channel();
-        let (canvas_layers_sender, canvas_layers_receiver) = channel();
 
         // Proxy IPC messages from the pipeline to the layout thread.
         let pipeline_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(pipeline_port);
@@ -449,8 +442,6 @@ impl LayoutThread {
             image_cache_sender: ImageCacheChan(ipc_image_cache_sender),
             font_cache_receiver: font_cache_receiver,
             font_cache_sender: ipc_font_cache_sender,
-            canvas_layers_receiver: canvas_layers_receiver,
-            canvas_layers_sender: canvas_layers_sender,
             parallel_traversal: parallel_traversal,
             generation: 0,
             new_animations_sender: new_animations_sender,
@@ -521,7 +512,6 @@ impl LayoutThread {
             image_cache_thread: self.image_cache_thread.clone(),
             image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
-            canvas_layers_sender: Mutex::new(self.canvas_layers_sender.clone()),
             url: (*url).clone(),
             visible_rects: self.visible_rects.clone(),
             webrender_image_cache: self.webrender_image_cache.clone(),
@@ -1146,12 +1136,6 @@ impl LayoutThread {
 
             // Retrieve the (possibly rebuilt) root flow.
             self.root_flow = self.try_get_layout_root(node);
-        }
-
-        // Send new canvas renderers to the paint thread
-        while let Ok((layer_id, renderer)) = self.canvas_layers_receiver.try_recv() {
-            // Just send if there's an actual renderer
-            self.paint_chan.send(LayoutToPaintMsg::CanvasLayer(layer_id, renderer)).unwrap();
         }
 
         // Perform post-style recalculation layout passes.

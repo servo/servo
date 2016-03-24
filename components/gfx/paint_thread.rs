@@ -7,7 +7,6 @@
 use app_units::Au;
 use azure::AzFloat;
 use azure::azure_hl::{BackendType, Color, DrawTarget, SurfaceFormat};
-use canvas_traits::CanvasMsg;
 use display_list::{DisplayItem, DisplayList, DisplayListEntry, DisplayListTraversal};
 use display_list::{LayerInfo, StackingContext, StackingContextId, StackingContextType};
 use euclid::Matrix4;
@@ -343,7 +342,6 @@ pub enum Msg {
 #[derive(Deserialize, Serialize)]
 pub enum LayoutToPaintMsg {
     PaintInit(Epoch, Arc<DisplayList>),
-    CanvasLayer(LayerId, IpcSender<CanvasMsg>),
     Exit(IpcSender<()>),
 }
 
@@ -379,9 +377,6 @@ pub struct PaintThread<C> {
 
     /// Communication handles to each of the worker threads.
     worker_threads: Vec<WorkerThreadProxy>,
-
-    /// A map to track the canvas specific layers
-    canvas_map: HashMap<LayerId, IpcSender<CanvasMsg>>,
 }
 
 // If we implement this as a function, we get borrowck errors from borrowing
@@ -431,7 +426,6 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
                     paint_permission: false,
                     current_epoch: None,
                     worker_threads: worker_threads,
-                    canvas_map: HashMap::new()
                 };
 
                 let reporter_name = format!("paint-reporter-{}", id);
@@ -474,11 +468,6 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
                     if self.paint_permission {
                         self.initialize_layers();
                     }
-                }
-                // Inserts a new canvas renderer to the layer map
-                Msg::FromLayout(LayoutToPaintMsg::CanvasLayer(layer_id, canvas_renderer)) => {
-                    debug!("Renderer received for canvas with layer {:?}", layer_id);
-                    self.canvas_map.insert(layer_id, canvas_renderer);
                 }
                 Msg::FromChrome(ChromeToPaintMsg::Paint(requests, frame_tree_id)) => {
                     if self.paint_permission && self.root_display_list.is_some() {

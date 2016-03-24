@@ -95,6 +95,20 @@ fn test_fetch_response_body_matches_const_message() {
 }
 
 #[test]
+fn test_fetch_aboutblank() {
+
+    let url = Url::parse("about:blank").unwrap();
+    let origin = Origin::Origin(url.origin());
+    let mut request = Request::new(url, Some(origin), false);
+    request.referer = Referer::NoReferer;
+    let wrapped_request = Rc::new(request);
+
+    let fetch_response = fetch(wrapped_request);
+    assert!(!fetch_response.is_network_error());
+    assert!(*fetch_response.body.lock().unwrap() == ResponseBody::Done(vec![]));
+}
+
+#[test]
 fn test_fetch_response_is_basic_filtered() {
 
     static MESSAGE: &'static [u8] = b"";

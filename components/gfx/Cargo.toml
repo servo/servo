@@ -41,9 +41,6 @@ path = "../gfx_traits"
 [dependencies.net_traits]
 path = "../net_traits"
 
-[dependencies.canvas_traits]
-path = "../canvas_traits"
-
 [dependencies.util]
 path = "../util"
 
