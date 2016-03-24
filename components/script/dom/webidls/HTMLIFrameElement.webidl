@@ -32,7 +32,7 @@ partial interface HTMLIFrameElement {
 };
 
 partial interface HTMLIFrameElement {
-  [ChromeOnly,SetterThrows]
+  [ChromeOnly,SetterThrows,Pref="dom.mozbrowser.enabled"]
            attribute boolean mozbrowser;
 };
 
