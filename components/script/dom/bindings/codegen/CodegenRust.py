@@ -1310,6 +1310,33 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
                     returnType)
 
 
+class MemberCondition:
+    """
+    An object representing the condition for a member to actually be
+    exposed.  Any of the arguments can be None.  If not
+    None, they should have the following types:
+
+    pref: The name of the preference.
+    func: The name of the function.
+    """
+    def __init__(self, pref=None, func=None):
+        assert pref is None or isinstance(pref, str)
+        assert func is None or isinstance(func, str)
+        self.pref = pref
+
+        def toFuncPtr(val):
+            if val is None:
+                return "None"
+            return "Some(%s)" % val
+        self.func = toFuncPtr(func)
+
+    def __eq__(self, other):
+        return (self.pref == other.pref and self.func == other.func)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+
 class PropertyDefiner:
     """
     A common superclass for defining things on prototype objects.
@@ -1333,8 +1360,26 @@ class PropertyDefiner:
         # up used via ResolveProperty or EnumerateProperties.
         return self.generateArray(self.regular, self.variableName())
 
+    @staticmethod
+    def getStringAttr(member, name):
+        attr = member.getExtendedAttribute(name)
+        if attr is None:
+            return None
+        # It's a list of strings
+        assert len(attr) == 1
+        assert attr[0] is not None
+        return attr[0]
+
+    @staticmethod
+    def getControllingCondition(interfaceMember, descriptor):
+        return MemberCondition(
+            PropertyDefiner.getStringAttr(interfaceMember,
+                                          "Pref"),
+            PropertyDefiner.getStringAttr(interfaceMember,
+                                          "Func"))
+
     def generatePrefableArray(self, array, name, specTemplate, specTerminator,
-                              specType, getDataTuple):
+                              specType, getCondition, getDataTuple):
         """
         This method generates our various arrays.
 
@@ -1353,24 +1398,51 @@ class PropertyDefiner:
           returns a tuple suitable for substitution into specTemplate.
         """
 
+        # We want to generate a single list of specs, but with specTerminator
+        # inserted at every point where the pref name controlling the member
+        # changes.  That will make sure the order of the properties as exposed
+        # on the interface and interface prototype objects does not change when
+        # pref control is added to members while still allowing us to define all
+        # the members in the smallest number of JSAPI calls.
         assert len(array) != 0
+        # So we won't put a specTerminator at the very front of the list:
+        lastCondition = getCondition(array[0], self.descriptor)
+        lastSwitch = 0
         specs = []
+        prefableSpecs = []
+
+        prefableTemplate = '    Prefable { pref: %s, base_specs: %s, start: %d, end: %d, terminator: %s }'
+
+        def switchToCondition(props, condition, start):
+            prefableSpecs.append(prefableTemplate %
+                                 ('Some("%s")' % condition.pref if condition.pref else 'None',
+                                  name + "_specs",
+                                  start, len(specs),
+                                  'true' if specTerminator else 'false'))
 
         for member in array:
+            curCondition = getCondition(member, self.descriptor)
+            if lastCondition != curCondition:
+                # Terminate previous list
+                if specTerminator:
+                    specs.append(specTerminator)
+                # And switch to our new pref
+                switchToCondition(self, lastCondition, lastSwitch)
+                lastCondition = curCondition
+                lastSwitch = len(specs)
+            # And the actual spec
             specs.append(specTemplate % getDataTuple(member))
         if specTerminator:
             specs.append(specTerminator)
+        switchToCondition(self, lastCondition, lastSwitch)
 
         specsArray = ("const %s_specs: &'static [%s] = &[\n" +
                       ",\n".join(specs) + "\n" +
                       "];\n") % (name, specType)
 
         prefArray = ("const %s: &'static [Prefable<%s>] = &[\n" +
-                     "    Prefable {\n" +
-                     "        pref: None,\n" +
-                     "        specs: &%s_specs,\n" +
-                     "    },\n" +
-                    "];\n") % (name, specType, name)
+                     ",\n".join(prefableSpecs) + "\n" +
+                     "];\n") % (name, specType)
         return specsArray + prefArray
 
 
@@ -1405,14 +1477,17 @@ class MethodDefiner(PropertyDefiner):
             methods = []
         self.regular = [{"name": m.identifier.name,
                          "methodInfo": not m.isStatic(),
-                         "length": methodLength(m)} for m in methods]
+                         "length": methodLength(m),
+                         "condition": PropertyDefiner.getControllingCondition(m, descriptor)}
+                        for m in methods]
 
         # FIXME Check for an existing iterator on the interface first.
         if any(m.isGetter() and m.isIndexed() for m in methods):
             self.regular.append({"name": '@@iterator',
                                  "methodInfo": False,
                                  "selfHostedName": "ArrayValues",
-                                 "length": 0})
+                                 "length": 0,
+                                 "condition": MemberCondition()})
 
         isUnforgeableInterface = bool(descriptor.interface.getExtendedAttribute("Unforgeable"))
         if not static and unforgeable == isUnforgeableInterface:
@@ -1422,12 +1497,16 @@ class MethodDefiner(PropertyDefiner):
                     "name": "toString",
                     "nativeName": stringifier.identifier.name,
                     "length": 0,
+                    "condition": PropertyDefiner.getControllingCondition(stringifier, descriptor)
                 })
         self.unforgeable = unforgeable
 
     def generateArray(self, array, name):
         if len(array) == 0:
             return ""
+
+        def condition(m, d):
+            return m["condition"]
 
         flags = "JSPROP_ENUMERATE"
         if self.unforgeable:
@@ -1476,7 +1555,7 @@ class MethodDefiner(PropertyDefiner):
             '        selfHostedName: 0 as *const libc::c_char\n'
             '    }',
             'JSFunctionSpec',
-            specData)
+            condition, specData)
 
 
 class AttrDefiner(PropertyDefiner):
@@ -1554,7 +1633,7 @@ class AttrDefiner(PropertyDefiner):
             '        setter: JSNativeWrapper { op: None, info: 0 as *const JSJitInfo }\n'
             '    }',
             'JSPropertySpec',
-            specData)
+            PropertyDefiner.getControllingCondition, specData)
 
 
 class ConstDefiner(PropertyDefiner):
@@ -1579,7 +1658,7 @@ class ConstDefiner(PropertyDefiner):
             '    ConstantSpec { name: %s, value: %s }',
             None,
             'ConstantSpec',
-            specData)
+            PropertyDefiner.getControllingCondition, specData)
 
 # We'll want to insert the indent at the beginnings of lines, but we
 # don't want to indent empty lines.  So only indent lines that have a
@@ -2236,8 +2315,8 @@ def InitUnforgeablePropertiesOnHolder(descriptor, properties):
     """
     unforgeables = []
 
-    defineUnforgeableAttrs = "define_properties(cx, unforgeable_holder.handle(), %s_specs).unwrap();"
-    defineUnforgeableMethods = "define_methods(cx, unforgeable_holder.handle(), %s_specs).unwrap();"
+    defineUnforgeableAttrs = "define_prefable_properties(cx, unforgeable_holder.handle(), %s);"
+    defineUnforgeableMethods = "define_prefable_methods(cx, unforgeable_holder.handle(), %s);"
 
     unforgeableMembers = [
         (defineUnforgeableAttrs, properties.unforgeable_attrs),
@@ -5484,6 +5563,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::interface::{NonCallbackInterfaceObjectClass, create_callback_interface_object}',
             'dom::bindings::interface::{create_interface_prototype_object, create_named_constructors}',
             'dom::bindings::interface::{create_noncallback_interface_object}',
+            'dom::bindings::interface::{define_prefable_methods, define_prefable_properties}',
             'dom::bindings::interface::{ConstantSpec, NonNullJSNative, EMPTY_CONSTANTS}',
             'dom::bindings::interface::ConstantVal::{IntVal, UintVal}',
             'dom::bindings::js::{JS, Root, RootedReference}',

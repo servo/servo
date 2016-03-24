@@ -486,10 +486,18 @@ impl TestBindingMethods for TestBinding {
     fn PassVariadicUnion6(&self, _: Vec<UnsignedLongOrBoolean>) {}
     fn PassVariadicAny(&self, _: *mut JSContext, _: Vec<HandleValue>) {}
     fn PassVariadicObject(&self, _: *mut JSContext, _: Vec<*mut JSObject>) {}
+    fn PrefControlledAttributeDisabled(&self) -> bool { false }
+    fn PrefControlledAttributeEnabled(&self) -> bool { false }
+    fn PrefControlledMethodDisabled(&self) {}
+    fn PrefControlledMethodEnabled(&self) {}
 }
 
 impl TestBinding {
     pub fn BooleanAttributeStatic(_: GlobalRef) -> bool { false }
     pub fn SetBooleanAttributeStatic(_: GlobalRef, _: bool) {}
     pub fn ReceiveVoidStatic(_: GlobalRef) {}
+    pub fn PrefControlledStaticAttributeDisabled(_: GlobalRef) -> bool { false }
+    pub fn PrefControlledStaticAttributeEnabled(_: GlobalRef) -> bool { false }
+    pub fn PrefControlledStaticMethodDisabled(_: GlobalRef) {}
+    pub fn PrefControlledStaticMethodEnabled(_: GlobalRef) {}
 }
