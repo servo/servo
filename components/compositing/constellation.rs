@@ -1502,11 +1502,11 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     }
 
     /// Checks whether the pipeline or its ancestors are private and sends an appropriate reply
-     fn check_is_pipeline_private(pipeline_id: PipelineId, sender: Sender<bool>) -> bool {
-         // Try to figure this one out. I think you need to accpet pipline id
-         // Then check the pipeline for the private_pipeline field
-         // Then do the same for all its ancestors until you find if it is private
-         // return using the Sender<bool>. Check the type of Sender and figure it out   
+     fn check_is_pipeline_private(&mut self,pipeline_id: PipelineId, sender: Sender<bool>) -> bool {
+         let pipeline = self.pipeline(pipeline_id);   
+         if pipeline.is_private_pipeline==true{
+             return true;
+         } 
          false
      }
  
