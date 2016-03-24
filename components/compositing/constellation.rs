@@ -1091,7 +1091,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             let (_, new_subpage_id) = self.pipeline(next_pipeline_id).parent_info.unwrap();
             script_chan.send(ConstellationControlMsg::UpdateSubpageId(parent_pipeline_id,
                                                                       subpage_id,
-                                                                      new_subpage_id)).unwrap();
+                                                                      new_subpage_id,
+                                                                      next_pipeline_id)).unwrap();
 
             // If this is an iframe, send a mozbrowser location change event.
             // This is the result of a back/forward navigation.
