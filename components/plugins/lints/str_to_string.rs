@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use rustc::lint::{LateContext, LintPass, LintArray, LateLintPass, LintContext};
-use rustc::middle::ty;
+use rustc::ty;
 use rustc_front::hir;
 
 declare_lint!(STR_TO_STRING, Deny,
