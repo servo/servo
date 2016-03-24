@@ -126,6 +126,22 @@ fn inner_url(url: &Url) -> Url {
     Url::parse(inner_url).unwrap()
 }
 
+pub struct HttpState {
+    pub hsts_list: Arc<RwLock<HSTSList>>,
+    pub cookie_jar: Arc<RwLock<CookieStorage>>,
+    pub auth_cache: Arc<RwLock<HashMap<Url, AuthCacheEntry>>>,
+}
+
+impl HttpState {
+    pub fn new() -> HttpState {
+        HttpState {
+            hsts_list: Arc::new(RwLock::new(HSTSList::new())),
+            cookie_jar: Arc::new(RwLock::new(CookieStorage::new())),
+            auth_cache: Arc::new(RwLock::new(HashMap::new())),
+        }
+    }
+}
+
 fn load_for_consumer(load_data: LoadData,
                      start_chan: LoadConsumer,
                      classifier: Arc<MIMEClassifier>,
