@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
-use protocol::JsonPacketStream;
+use protocol::{ActorDescription, JsonPacketStream, Method};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::net::TcpStream;
@@ -68,6 +68,14 @@ impl PerformanceActor {
     pub fn new(name: String) -> PerformanceActor {
         PerformanceActor {
             name: name,
+        }
+    }
+
+    pub fn description() -> ActorDescription {
+        ActorDescription {
+            category: "actor",
+            typeName: "performance",
+            methods: vec![],
         }
     }
 }
