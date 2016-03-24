@@ -219,7 +219,7 @@ pub unsafe fn create_callback_interface_object(
     rval.set(JS_NewObject(cx, ptr::null()));
     assert!(!rval.ptr.is_null());
     for prefable in constants {
-        define_constants(cx, rval.handle(), prefable.specs);
+        define_constants(cx, rval.handle(), prefable.specs());
     }
     define_name(cx, rval.handle(), name);
     define_on_global_object(cx, receiver, name, rval.handle());
@@ -364,17 +364,31 @@ unsafe fn create_object(
     rval.set(JS_NewObjectWithUniqueType(cx, class, proto));
     assert!(!rval.ptr.is_null());
     if let Some(methods) = methods {
-        for prefable in methods {
-            define_methods(cx, rval.handle(), prefable.specs).unwrap();
-        }
+        define_prefable_methods(cx, rval.handle(), methods);
     }
     if let Some(properties) = properties {
-        for prefable in properties {
-            define_properties(cx, rval.handle(), prefable.specs).unwrap();
-        }
+        define_prefable_properties(cx, rval.handle(), properties);
     }
     for prefable in constants {
-        define_constants(cx, rval.handle(), prefable.specs);
+        define_constants(cx, rval.handle(), prefable.specs());
+    }
+}
+
+/// Conditionally define methods on an object.
+pub unsafe fn define_prefable_methods(cx: *mut JSContext,
+                                      obj: HandleObject,
+                                      methods: &'static [Prefable<JSFunctionSpec>]) {
+    for prefable in methods {
+        define_methods(cx, obj, prefable.specs()).unwrap();
+    }
+}
+
+/// Conditionally define properties on an object.
+pub unsafe fn define_prefable_properties(cx: *mut JSContext,
+                                         obj: HandleObject,
+                                         properties: &'static [Prefable<JSPropertySpec>]) {
+    for prefable in properties {
+        define_properties(cx, obj, prefable.specs()).unwrap();
     }
 }
 
