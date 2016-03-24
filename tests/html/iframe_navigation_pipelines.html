@@ -1,0 +1,8 @@
+<!-- dom.mozbrowser.enabled needed -->
+<iframe style="display:block;width:300px;height:300px" mozbrowser="true" src="data:,foo"></iframe>
+<button onclick="f.src = 'data:,bar'">go to next page</button>
+<button onclick="f.goBack()">goBack</button>
+<button onclick="f.goForward()">goForward</button>
+<script>
+  var f = document.querySelector("iframe");
+</script>
