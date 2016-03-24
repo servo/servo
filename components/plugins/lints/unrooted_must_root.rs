@@ -5,7 +5,7 @@
 use rustc::front::map as ast_map;
 use rustc::lint::{LateContext, LintPass, LintArray, LateLintPass, LintContext};
 use rustc::middle::pat_util::pat_is_binding;
-use rustc::middle::ty;
+use rustc::ty;
 use rustc_front::hir;
 use rustc_front::intravisit as visit;
 use syntax::attr::AttrMetaMethods;
@@ -125,11 +125,11 @@ impl LateLintPass for UnrootedPass {
     fn check_fn(&mut self, cx: &LateContext, kind: visit::FnKind, decl: &hir::FnDecl,
                 block: &hir::Block, span: codemap::Span, _id: ast::NodeId) {
         let in_new_function = match kind {
-            visit::FnKind::ItemFn(n, _, _, _, _, _) |
-            visit::FnKind::Method(n, _, _) => {
+            visit::FnKind::ItemFn(n, _, _, _, _, _, _) |
+            visit::FnKind::Method(n, _, _, _) => {
                 n.as_str() == "new" || n.as_str().starts_with("new_")
             }
-            visit::FnKind::Closure => return,
+            visit::FnKind::Closure(_) => return,
         };
 
         for arg in &decl.inputs {
@@ -223,7 +223,7 @@ impl<'a, 'b: 'a, 'tcx: 'a+'b> visit::Visitor<'a> for FnDefVisitor<'a, 'b, 'tcx> 
 
     fn visit_fn(&mut self, kind: visit::FnKind<'a>, decl: &'a hir::FnDecl,
                 block: &'a hir::Block, span: codemap::Span, _id: ast::NodeId) {
-        if kind == visit::FnKind::Closure {
+        if let visit::FnKind::Closure(_) = kind {
             visit::walk_fn(self, kind, decl, block, span);
         }
     }
