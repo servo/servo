@@ -8,7 +8,48 @@
 <iframe src=htmllabel-form-activation.html id="foo" name="foo"></iframe>
 
 <script>
+
     var div = document.getElementById("test");
+    test(function() {
+        document.querySelector("#test").innerHTML = '';
+        var label = document.createElement("label");
+        var checkbox1 = document.createElement("input");
+        checkbox1.type = "checkbox";
+        var checkbox2 = document.createElement("input");
+        checkbox2.type = "checkbox";
+
+        div.appendChild(label);
+        label.appendChild(checkbox1);
+        label.appendChild(checkbox2);
+        
+        label.click();
+        assert_true(checkbox1.checked, "checkbox should be checked")
+        assert_false(checkbox2.checked, "checkbox should not be checked")
+
+        label.click();
+        assert_false(checkbox1.checked, "checkbox should not be checked")
+        assert_false(checkbox2.checked, "checkbox should not be checked")
+    }, "Check if click on label selects 1st item (checkbox button)");
+
+
+    test(function() {
+        document.querySelector("#test").innerHTML = '<label id="label">hi \
+            <input type="checkbox" disabled id="disabledcb"> \
+            <input type="checkbox" id="checkbox"></label>';
+
+        var label = document.getElementById('label'),
+            disabledcb = document.getElementById('disabledcb'),
+            checkbox = document.getElementById('checkbox');
+        
+        label.click();
+        assert_false(disabledcb.checked, "checkbox should not be checked")
+        assert_false(checkbox.checked, "checkbox should not be checked")
+    }, "If label's 1st child is disabled, click should have no impact");
+
+
+    // IGNORE HERE DOWN FOR NOW 
+
+    
     var label = document.createElement("label");
 
     //create a variety of element types to add to the label
@@ -37,7 +78,6 @@
     var disabledSubmitClicked = false;
     disabledSubmit.onclick = function() { disabledSubmitClicked = true };
 
-
     function resetAll() {
         document.querySelector("#test").innerHTML = '';
         label.removeAttribute("htmlFor");
@@ -52,32 +92,6 @@
         submitClicked = false;
         disabledSubmitClicked = false;
     }
-
-    test(function() {
-        resetAll()
-        div.appendChild(label);
-        label.appendChild(checkbox1);
-        label.appendChild(checkbox2);
-        
-        label.click();
-        assert_true(checkbox1.checked, "checkbox should be checked")
-        assert_false(checkbox2.checked, "checkbox should not be checked")
-
-        label.click();
-        assert_false(checkbox1.checked, "checkbox should not be checked")
-        assert_false(checkbox2.checked, "checkbox should not be checked")
-    }, "Check if click on label selects 1st item (checkbox button)");
-
-    test(function() {
-        resetAll()
-        div.appendChild(label);
-        label.appendChild(disabledCheckbox);
-        label.appendChild(checkbox1);
-        
-        label.click();
-        assert_false(disabledCheckbox.checked, "checkbox should not be checked")
-        assert_false(checkbox1.checked, "checkbox should not be checked")
-    }, "If label's 1st child is disabled, click should have no impact");
 
     test(function() {
         resetAll()
@@ -179,5 +193,5 @@
             }
         });
     }, "label click should flow down to form");
-    
+
 </script>
