@@ -644,7 +644,7 @@ dependencies = [
 [[package]]
 name = "gaol"
 version = "0.0.1"
-source = "git+https://github.com/servo/gaol#5cfbd4d148210d22f945f8809ac45c6795e14aaf"
+source = "git+https://github.com/servo/gaol#cbb2518029901f078f871a87ebe05cf96d727713"
 dependencies = [
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
