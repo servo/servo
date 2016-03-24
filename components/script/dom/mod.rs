@@ -373,6 +373,7 @@ pub mod url;
 pub mod urlhelper;
 pub mod urlsearchparams;
 pub mod userscripts;
+pub mod validation;
 pub mod validitystate;
 pub mod values;
 pub mod virtualmethods;

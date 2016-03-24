@@ -18,6 +18,7 @@ use dom::htmlformelement::{FormControl, FormDatum, HTMLFormElement};
 use dom::htmloptionelement::HTMLOptionElement;
 use dom::node::{Node, UnbindContext, window_from_node};
 use dom::nodelist::NodeList;
+use dom::validation::Validatable;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
@@ -130,7 +131,7 @@ impl HTMLSelectElementMethods for HTMLSelectElement {
     // https://html.spec.whatwg.org/multipage/#dom-cva-validity
     fn Validity(&self) -> Root<ValidityState> {
         let window = window_from_node(self);
-        ValidityState::new(window.r())
+        ValidityState::new(window.r(), self.upcast())
     }
 
     // Note: this function currently only exists for union.html.
@@ -234,3 +235,5 @@ impl VirtualMethods for HTMLSelectElement {
 }
 
 impl FormControl for HTMLSelectElement {}
+
+impl Validatable for HTMLSelectElement {}
