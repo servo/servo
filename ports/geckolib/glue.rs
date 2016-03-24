@@ -5,24 +5,28 @@
 #![allow(unsafe_code)]
 
 use app_units::Au;
-use bindings::RawGeckoDocument;
-use bindings::{ServoNodeData, RawServoStyleSet, RawServoStyleSheet, uint8_t, uint32_t};
+use bindings::{RawGeckoDocument, RawGeckoElement};
+use bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues, ServoNodeData};
+use bindings::{nsIAtom, uint8_t, uint32_t};
 use data::PerDocumentStyleData;
 use euclid::Size2D;
+use properties::GeckoComputedValues;
 use selector_impl::{SharedStyleContext, Stylesheet};
+use std::marker::PhantomData;
 use std::mem::{forget, transmute};
+use std::ptr;
 use std::slice;
 use std::str::from_utf8_unchecked;
 use std::sync::{Arc, Mutex};
 use style::context::{ReflowGoal, StylistWrapper};
-use style::dom::{TDocument, TNode};
+use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::parallel;
 use style::stylesheets::Origin;
 use traversal::RecalcStyleOnly;
 use url::Url;
 use util::arc_ptr_eq;
-use wrapper::{GeckoDocument, GeckoNode, NonOpaqueStyleData};
+use wrapper::{GeckoDocument, GeckoElement, GeckoNode, NonOpaqueStyleData};
 
 /*
  * For Gecko->Servo function calls, we need to redeclare the same signature that was declared in
@@ -82,23 +86,39 @@ pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const uint8_t,
     }
 }
 
-fn with_arc_stylesheet<F, Output>(raw: *mut RawServoStyleSheet, cb: F) -> Output
-                                 where F: FnOnce(&Arc<Stylesheet>) -> Output {
-    let owned = unsafe { consume_arc_stylesheet(raw) };
-    let result = cb(&owned);
-    forget(owned);
-    result
+struct ArcHelpers<GeckoType, ServoType> {
+    phantom1: PhantomData<GeckoType>,
+    phantom2: PhantomData<ServoType>,
 }
 
-unsafe fn consume_arc_stylesheet(raw: *mut RawServoStyleSheet) -> Arc<Stylesheet> {
-    transmute(raw)
+impl<GeckoType, ServoType> ArcHelpers<GeckoType, ServoType> {
+    fn with<F, Output>(raw: *mut GeckoType, cb: F) -> Output
+                       where F: FnOnce(&Arc<ServoType>) -> Output {
+        let owned = unsafe { Self::into(raw) };
+        let result = cb(&owned);
+        forget(owned);
+        result
+    }
+
+    unsafe fn into(ptr: *mut GeckoType) -> Arc<ServoType> {
+        transmute(ptr)
+    }
+
+    unsafe fn addref(ptr: *mut GeckoType) {
+        Self::with(ptr, |arc| forget(arc.clone()));
+    }
+
+    unsafe fn release(ptr: *mut GeckoType) {
+        let _ = Self::into(ptr);
+    }
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_AppendStyleSheet(raw_sheet: *mut RawServoStyleSheet,
                                          raw_data: *mut RawServoStyleSet) {
+    type Helpers = ArcHelpers<RawServoStyleSheet, Stylesheet>;
     let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
-    with_arc_stylesheet(raw_sheet, |sheet| {
+    Helpers::with(raw_sheet, |sheet| {
         data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
         data.stylesheets.push(sheet.clone());
         data.stylesheets_changed = true;
@@ -108,8 +128,9 @@ pub extern "C" fn Servo_AppendStyleSheet(raw_sheet: *mut RawServoStyleSheet,
 #[no_mangle]
 pub extern "C" fn Servo_PrependStyleSheet(raw_sheet: *mut RawServoStyleSheet,
                                           raw_data: *mut RawServoStyleSet) {
+    type Helpers = ArcHelpers<RawServoStyleSheet, Stylesheet>;
     let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
-    with_arc_stylesheet(raw_sheet, |sheet| {
+    Helpers::with(raw_sheet, |sheet| {
         data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
         data.stylesheets.insert(0, sheet.clone());
         data.stylesheets_changed = true;
@@ -119,8 +140,9 @@ pub extern "C" fn Servo_PrependStyleSheet(raw_sheet: *mut RawServoStyleSheet,
 #[no_mangle]
 pub extern "C" fn Servo_RemoveStyleSheet(raw_sheet: *mut RawServoStyleSheet,
                                          raw_data: *mut RawServoStyleSet) {
+    type Helpers = ArcHelpers<RawServoStyleSheet, Stylesheet>;
     let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
-    with_arc_stylesheet(raw_sheet, |sheet| {
+    Helpers::with(raw_sheet, |sheet| {
         data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
         data.stylesheets_changed = true;
     });
@@ -128,15 +150,46 @@ pub extern "C" fn Servo_RemoveStyleSheet(raw_sheet: *mut RawServoStyleSheet,
 
 #[no_mangle]
 pub extern "C" fn Servo_StyleSheetHasRules(raw_sheet: *mut RawServoStyleSheet) -> bool {
-    with_arc_stylesheet(raw_sheet, |sheet| !sheet.rules.is_empty())
+    type Helpers = ArcHelpers<RawServoStyleSheet, Stylesheet>;
+    Helpers::with(raw_sheet, |sheet| !sheet.rules.is_empty())
 }
 
+#[no_mangle]
+pub extern "C" fn Servo_AddRefStyleSheet(sheet: *mut RawServoStyleSheet) -> () {
+    type Helpers = ArcHelpers<RawServoStyleSheet, Stylesheet>;
+    unsafe { Helpers::addref(sheet) };
+}
 
 #[no_mangle]
-pub extern "C" fn Servo_ReleaseStylesheet(sheet: *mut RawServoStyleSheet) -> () {
-    unsafe {
-        let _ = consume_arc_stylesheet(sheet);
-    }
+pub extern "C" fn Servo_ReleaseStyleSheet(sheet: *mut RawServoStyleSheet) -> () {
+    type Helpers = ArcHelpers<RawServoStyleSheet, Stylesheet>;
+    unsafe { Helpers::release(sheet) };
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_GetComputedValues(element: *mut RawGeckoElement)
+     -> *mut ServoComputedValues {
+    let node = unsafe { GeckoElement::from_raw(element).as_node() };
+    let arc_cv = node.borrow_data().map(|data| data.style.clone());
+    arc_cv.map_or(ptr::null_mut(), |arc| unsafe { transmute(arc) })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(_: *mut nsIAtom)
+     -> *mut ServoComputedValues {
+    unimplemented!();
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_AddRefComputedValues(ptr: *mut ServoComputedValues) -> () {
+    type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
+    unsafe { Helpers::addref(ptr) };
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ReleaseComputedValues(ptr: *mut ServoComputedValues) -> () {
+    type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
+    unsafe { Helpers::release(ptr) };
 }
 
 #[no_mangle]
@@ -144,7 +197,6 @@ pub extern "C" fn Servo_InitStyleSet() -> *mut RawServoStyleSet {
     let data = Box::new(PerDocumentStyleData::new());
     Box::into_raw(data) as *mut RawServoStyleSet
 }
-
 
 #[no_mangle]
 pub extern "C" fn Servo_DropStyleSet(data: *mut RawServoStyleSet) -> () {

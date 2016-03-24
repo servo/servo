@@ -19,6 +19,7 @@ use bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsElement, Gecko_SetN
 use bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use bindings::{ServoNodeData};
 use libc::uintptr_t;
+use properties::GeckoComputedValues;
 use selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PrivateStyleData};
 use selectors::Element;
 use selectors::matching::DeclarationBlock;
@@ -35,7 +36,7 @@ use style::dom::{OpaqueNode, TDocument, TElement, TNode, TRestyleDamage, UnsafeN
 use style::element_state::ElementState;
 #[allow(unused_imports)] // Used in commented-out code.
 use style::error_reporting::StdoutErrorReporter;
-use style::properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
+use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 #[allow(unused_imports)] // Used in commented-out code.
 use style::properties::{parse_style_attribute};
 use style::restyle_hints::ElementSnapshot;
@@ -78,7 +79,8 @@ impl<'ln> GeckoNode<'ln> {
 #[derive(Clone, Copy)]
 pub struct DummyRestyleDamage;
 impl TRestyleDamage for DummyRestyleDamage {
-    fn compute(_: Option<&Arc<ComputedValues>>, _: &ComputedValues) -> Self { DummyRestyleDamage }
+    type ConcreteComputedValues = GeckoComputedValues;
+    fn compute(_: Option<&Arc<GeckoComputedValues>>, _: &GeckoComputedValues) -> Self { DummyRestyleDamage }
     fn rebuild_and_reflow() -> Self { DummyRestyleDamage }
 }
 impl BitOr for DummyRestyleDamage {
@@ -92,6 +94,7 @@ impl<'ln> TNode for GeckoNode<'ln> {
     type ConcreteDocument = GeckoDocument<'ln>;
     type ConcreteElement = GeckoElement<'ln>;
     type ConcreteRestyleDamage = DummyRestyleDamage;
+    type ConcreteComputedValues = GeckoComputedValues;
 
     fn to_unsafe(&self) -> UnsafeNode {
         (self.node as usize, 0)
@@ -297,7 +300,7 @@ pub struct GeckoElement<'le> {
 }
 
 impl<'le> GeckoElement<'le> {
-    unsafe fn from_raw(el: *mut RawGeckoElement) -> GeckoElement<'le> {
+    pub unsafe fn from_raw(el: *mut RawGeckoElement) -> GeckoElement<'le> {
         GeckoElement {
             element: el,
             chain: PhantomData,

@@ -27,6 +27,7 @@ use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::computed_values;
 use style::logical_geometry::{WritingMode, BlockFlowDirection, InlineBaseDirection};
+use style::properties::TComputedValues;
 use style::properties::longhands::{display, position};
 use style::properties::style_structs;
 use style::selector_impl::PseudoElement;

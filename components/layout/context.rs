@@ -26,13 +26,14 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex, RwLock};
 use style::context::{LocalStyleContext, StyleContext};
 use style::matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
+use style::properties::ComputedValues;
 use style::selector_impl::ServoSelectorImpl;
 use style::servo::SharedStyleContext;
 use url::Url;
 use util::opts;
 
 struct LocalLayoutContext {
-    style_context: LocalStyleContext,
+    style_context: LocalStyleContext<ComputedValues>,
     font_context: RefCell<FontContext>,
 }
 
@@ -107,12 +108,12 @@ pub struct LayoutContext<'a> {
     cached_local_layout_context: Rc<LocalLayoutContext>,
 }
 
-impl<'a> StyleContext<'a, ServoSelectorImpl> for LayoutContext<'a> {
+impl<'a> StyleContext<'a, ServoSelectorImpl, ComputedValues> for LayoutContext<'a> {
     fn shared_context(&self) -> &'a SharedStyleContext {
         &self.shared.style_context
     }
 
-    fn local_context(&self) -> &LocalStyleContext {
+    fn local_context(&self) -> &LocalStyleContext<ComputedValues> {
         &self.cached_local_layout_context.style_context
     }
 }

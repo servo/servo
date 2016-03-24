@@ -41,7 +41,7 @@ use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use style::computed_values::{border_style, cursor, filter, image_rendering, mix_blend_mode};
 use style::computed_values::{pointer_events};
-use style::properties::ComputedValues;
+use style::properties::{ComputedValues, TComputedValues};
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::CharIndex;
