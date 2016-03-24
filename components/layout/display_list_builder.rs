@@ -930,7 +930,7 @@ impl FragmentDisplayListBuilding for Fragment {
         // Draw a highlighted background if the text is selected.
         //
         // TODO: Allow non-text fragments to be selected too.
-        if scanned_text_fragment_info.selected {
+        if scanned_text_fragment_info.selected() {
             state.add_display_item(
                 DisplayItem::SolidColorClass(box SolidColorDisplayItem {
                     base: BaseDisplayItem::new(stacking_relative_border_box,
@@ -1116,7 +1116,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 //
                 // NB: According to CSS-BACKGROUNDS, text shadows render in *reverse* order (front
                 // to back).
-                let text_color = if text_fragment.selected {
+                let text_color = if text_fragment.selected() {
                     SELECTION_FOREGROUND_COLOR
                 } else {
                     self.style().get_color().color

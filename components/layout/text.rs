@@ -7,7 +7,8 @@
 #![deny(unsafe_code)]
 
 use app_units::Au;
-use fragment::{Fragment, ScannedTextFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
+use fragment::{Fragment, REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES, ScannedTextFlags};
+use fragment::{ScannedTextFragmentInfo, SELECTED, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use gfx::font::{DISABLE_KERNING_SHAPING_FLAG, FontMetrics, IGNORE_LIGATURES_SHAPING_FLAG};
 use gfx::font::{RTL_FLAG, RunMetrics, ShapingFlags, ShapingOptions};
 use gfx::font_context::FontContext;
@@ -344,13 +345,20 @@ impl TextRunScanner {
                 }
 
                 let text_size = old_fragment.border_box.size;
+
+                let mut flags = ScannedTextFlags::empty();
+                if mapping.selected {
+                    flags.insert(SELECTED);
+                }
+                if requires_line_break_afterward_if_wrapping_on_newlines {
+                    flags.insert(REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES);
+                }
                 let mut new_text_fragment_info = box ScannedTextFragmentInfo::new(
                     scanned_run.run,
                     mapping.char_range,
                     text_size,
                     scanned_run.insertion_point,
-                    mapping.selected,
-                    requires_line_break_afterward_if_wrapping_on_newlines);
+                    flags);
 
                 let new_metrics = new_text_fragment_info.run.metrics_for_range(&mapping.char_range);
                 let writing_mode = old_fragment.style.writing_mode;
