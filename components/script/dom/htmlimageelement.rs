@@ -1,8 +1,7 @@
-// This is snehas comment
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-//This is my comment to start things off
+
 use app_units::Au;
 use dom::attr::Attr;
 use dom::attr::AttrValue;
@@ -22,6 +21,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::VirtualMethods;
+use heapsize::{HeapSizeOf};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::image::base::{Image, ImageMetadata};
@@ -32,15 +32,14 @@ use std::sync::Arc;
 use string_cache::Atom;
 use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
-use heapsize::{HeapSizeOf};
-#[derive(JSTraceable,HeapSizeOf)]
-enum State{
+#[derive(JSTraceable, HeapSizeOf)]
+enum State {
     Unavailable,
     PartiallyAvailable,
     CompletelyAvailable,
     Broken,
 }
-#[derive(JSTraceable,HeapSizeOf)]
+#[derive(JSTraceable, HeapSizeOf)]
 struct ImageRequest {
     state: State,
     url: DOMRefCell<Option<Url>>,
@@ -154,11 +153,10 @@ impl HTMLImageElement {
     fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
        HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
-            //url: DOMRefCell::new(None),
-            //image: DOMRefCell::new(None),
-            //metadata: DOMRefCell::new(None),
-            currentrequest: ImageRequest{state: State::CompletelyAvailable,url:DOMRefCell::new(None),image:DOMRefCell::new(None),metadata:DOMRefCell::new(None)},
-            pendingrequest: ImageRequest{state: State::Unavailable,url:DOMRefCell::new(None),image:DOMRefCell::new(None),metadata:DOMRefCell::new(None)},
+            currentrequest: ImageRequest { state: State::CompletelyAvailable,
+                url: DOMRefCell::new(None), image: DOMRefCell::new(None), metadata: DOMRefCell::new(None) },
+            pendingrequest: ImageRequest { state: State::Unavailable,
+                url: DOMRefCell::new(None), image: DOMRefCell::new(None), metadata: DOMRefCell::new(None) },
         }
     }
 
@@ -308,12 +306,12 @@ impl HTMLImageElementMethods for HTMLImageElement {
         image.is_some()
     }
 
-    //https://html.spec.whatwg.org/multipage/embedded-content.html#dom-img-currentsrc
+    // https://html.spec.whatwg.org/multipage/#dom-img-currentsrc
     fn CurrentSrc(&self) -> DOMString {
         let url = self.currentrequest.url.borrow();
-         match *url{
+         match *url {
             Some(ref url) => DOMString::from(url.serialize()),
-            None => {DOMString::from("")},
+            None => { DOMString::from("") },
         }
 
     }
