@@ -5,22 +5,16 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <div id="test"></div>
-<iframe src=htmllabel-form-activation.html id="foo" name="foo"></iframe>
 
 <script>
-
-    var div = document.getElementById("test");
     test(function() {
-        document.querySelector("#test").innerHTML = '';
-        var label = document.createElement("label");
-        var checkbox1 = document.createElement("input");
-        checkbox1.type = "checkbox";
-        var checkbox2 = document.createElement("input");
-        checkbox2.type = "checkbox";
+        document.querySelector("#test").innerHTML = '<label id="label">hi \
+            <input type="checkbox" id="checkbox1"> \
+            <input type="checkbox" id="checkbox2"></label>';
 
-        div.appendChild(label);
-        label.appendChild(checkbox1);
-        label.appendChild(checkbox2);
+        var label = document.getElementById('label'),
+            checkbox1 = document.getElementById('checkbox1'),
+            checkbox2 = document.getElementById('checkbox2');
         
         label.click();
         assert_true(checkbox1.checked, "checkbox should be checked")
@@ -30,7 +24,6 @@
         assert_false(checkbox1.checked, "checkbox should not be checked")
         assert_false(checkbox2.checked, "checkbox should not be checked")
     }, "Check if click on label selects 1st item (checkbox button)");
-
 
     test(function() {
         document.querySelector("#test").innerHTML = '<label id="label">hi \
@@ -46,117 +39,93 @@
         assert_false(checkbox.checked, "checkbox should not be checked")
     }, "If label's 1st child is disabled, click should have no impact");
 
-
-    // IGNORE HERE DOWN FOR NOW 
-
-    
-    var label = document.createElement("label");
-
-    //create a variety of element types to add to the label
-    var checkbox1 = document.createElement("input");
-    checkbox1.type = "checkbox";
-    var checkbox2 = document.createElement("input");
-    checkbox2.type = "checkbox";
-    checkbox2.id = "checkbox2";
-    var disabledCheckbox = document.createElement("input");
-    disabledCheckbox.type = "checkbox";
-    disabledCheckbox.disabled = true;
-    var anchor = document.createElement("a");
-    anchor.href = "about:blank";
-    var radio = document.createElement("input");
-    radio.type = "radio";
-    var disabledRadio = document.createElement("input");
-    disabledRadio.type = "radio";
-    disabledRadio.disabled = true;
-    var submit = document.createElement("input");
-    submit.type = "submit";
-    var submitClicked = false;
-    submit.onclick = function() { submitClicked = true  };
-    var disabledSubmit = document.createElement("input");
-    disabledSubmit.type = "submit";
-    disabledSubmit.disabled = true;
-    var disabledSubmitClicked = false;
-    disabledSubmit.onclick = function() { disabledSubmitClicked = true };
-
-    function resetAll() {
-        document.querySelector("#test").innerHTML = '';
-        label.removeAttribute("htmlFor");
-        while (label.childElementCount != 0) {
-            label.removeChild(label.firstChild)
-        }
-        checkbox1.checked = false;
-        checkbox2.checked = false;
-        disabledCheckbox.checked = false;
-        radio.checked = false;
-        disabledRadio.checked = false;
-        submitClicked = false;
-        disabledSubmitClicked = false;
-    }
-
     test(function() {
-        resetAll()
-        div.appendChild(label);
-        label.appendChild(anchor);
-        label.appendChild(checkbox1);
+        document.querySelector("#test").innerHTML = '<label id="label">hi \
+            <a href="about:blank" id="anchor">foo</a> \
+            <input type="checkbox" id=checkbox></label>';
+
+        var label = document.getElementById('label'),
+            anchor = document.getElementById('anchor'),
+            checkbox = document.getElementById('checkbox');
 
         label.click();
-        assert_true(checkbox1.checked, "checkbox should be checked")
+        assert_true(checkbox.checked, "checkbox should be checked")
 
         label.click();
-        assert_false(checkbox1.checked, "checkbox should not be checked")
+        assert_false(checkbox.checked, "checkbox should not be checked")
     }, "Label's 1st labelable element should be clicked");
 
     test(function() {
-        resetAll()
-        div.appendChild(label)
-        label.appendChild(radio)
-        label.appendChild(checkbox1)
+        document.querySelector("#test").innerHTML = '<label id="label">hi \
+            <input type="radio" id="radio"> \
+            <input type="checkbox" id="checkbox"></label>';
+
+        var label = document.getElementById('label'),
+            radio = document.getElementById('radio'),
+            checkbox = document.getElementById('checkbox');
 
         label.click()
         assert_true(radio.checked, "radio should be checked")
-        assert_false(checkbox1.checked, "checkbox should not be checked")
+        assert_false(checkbox.checked, "checkbox should not be checked")
     }, "Check if click on label selects 1st item (radio button)");
 
     test(function() {
-        resetAll()
-        div.appendChild(label);
-        label.appendChild(disabledRadio);
-        label.appendChild(checkbox1);
+        document.querySelector("#test").innerHTML = '<label id="label">hi \
+            <input type="radio" disabled id="disabledRadio"> \
+            <input type="checkbox" id="checkbox"></label>';
+
+        var label = document.getElementById('label'),
+            disabledRadio = document.getElementById('disabledRadio'),
+            checkbox = document.getElementById('checkbox');
 
         label.click();
         assert_false(disabledRadio.checked, "disabled radio should not be checked")
-        assert_false(checkbox1.checked, "checkbox should not be checked")
+        assert_false(checkbox.checked, "checkbox should not be checked")
     }, "If label's 1st child is disabled, click should have no impact");
 
 
     test(function() {
-        resetAll()
-        div.appendChild(label);
-        label.appendChild(submit);
-        label.appendChild(checkbox1);
+        document.querySelector("#test").innerHTML = '<label id="label">hi \
+            <input type="submit" id="submit"> \
+            <input type="checkbox" id="checkbox"></label>';
+
+        var label = document.getElementById('label'),
+            submit = document.getElementById('submit'),
+            checkbox = document.getElementById('checkbox');
+
+        var submitClicked = false;
+        submit.onclick = function() { submitClicked = true };
         
         label.click();
         assert_true(submitClicked, "submit should be selected")
-        assert_false(checkbox1.checked, "checkbox should not be checked")
+        assert_false(checkbox.checked, "checkbox should not be checked")
     }, "Check if click on label selects 1st item (submit)");
 
     test(function() {
-        resetAll()
-        div.appendChild(label);
-        label.appendChild(disabledSubmit);
-        label.appendChild(checkbox1);
+        document.querySelector("#test").innerHTML = '<label id="label">hi \
+            <input type="submit" disabled id="disabledSubmit"> \
+            <input type="checkbox" id="checkbox"></label>';
+
+        var label = document.getElementById('label'),
+            disabledSubmit = document.getElementById('disabledSubmit'),
+            checkbox = document.getElementById('checkbox');
+
+        var submitClicked = false;
+        disabledSubmit.onclick = function() { submitClicked = true };
         
         label.click();
-        assert_false(disabledSubmitClicked, "disabled submit should not have been selected")
-        assert_false(checkbox1.checked, "checkbox should not be checked")
+        assert_false(submitClicked, "disabled submit should not have been selected")
+        assert_false(checkbox.checked, "checkbox should not be checked")
     }, "If label's 1st child is disabled, click should have no impact");
 
     test(function() {
-        resetAll();
-        div.appendChild(label);
-        label.appendChild(checkbox1);
-        label.appendChild(checkbox2);
-        label.htmlFor = "checkbox2";
+        document.querySelector("#test").innerHTML = '<label id="label" for="checkbox2">hi \
+            <input type="checkbox" id="checkbox1"> \
+            <input type="checkbox" id="checkbox2"></label>';
+
+        var label = document.getElementById('label'),
+            checkbox1 = document.getElementById('checkbox1'),
+            checkbox2 = document.getElementById('checkbox2');
 
         label.click();
         assert_false(checkbox1.checked, "checkbox should not be checked");
@@ -167,11 +136,13 @@
     }, "Label 'for' logic should take precedence over nesting logic");
 
     test(function() {
-        resetAll();
-        div.appendChild(label);
-        div.appendChild(checkbox1);
-        div.appendChild(checkbox2);
-        label.htmlFor = "checkbox2";
+        document.querySelector("#test").innerHTML = '<label id="label" for="checkbox2">hi</label> \
+            <input type="checkbox" id="checkbox1"> \
+            <input type="checkbox" id="checkbox2">';
+
+        var label = document.getElementById('label'),
+            checkbox1 = document.getElementById('checkbox1'),
+            checkbox2 = document.getElementById('checkbox2');
 
         label.click();
         assert_false(checkbox1.checked, "checkbox should not be checked");
@@ -182,6 +153,9 @@
     }, "Verify non-nested label 'for' logic");
 
     async_test(function(t) {
+        document.querySelector("#test").innerHTML = '<iframe src=htmllabel-form-activation.html \
+            id="foo" name="foo"></iframe>'
+
         var loaded = false;
         var iframe = document.getElementById('foo');
         iframe.onload = t.step_func(function() {
@@ -193,5 +167,4 @@
             }
         });
     }, "label click should flow down to form");
-
 </script>
