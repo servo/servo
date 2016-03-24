@@ -493,10 +493,18 @@ impl TestBindingMethods for TestBinding {
     fn StringMozPreference(&self, pref_name: DOMString) -> DOMString {
         get_pref(pref_name.as_ref()).as_string().map(|s| DOMString::from(s)).unwrap_or_else(|| DOMString::new())
     }
+    fn PrefControlledAttributeDisabled(&self) -> bool { false }
+    fn PrefControlledAttributeEnabled(&self) -> bool { false }
+    fn PrefControlledMethodDisabled(&self) {}
+    fn PrefControlledMethodEnabled(&self) {}
 }
 
 impl TestBinding {
     pub fn BooleanAttributeStatic(_: GlobalRef) -> bool { false }
     pub fn SetBooleanAttributeStatic(_: GlobalRef, _: bool) {}
     pub fn ReceiveVoidStatic(_: GlobalRef) {}
+    pub fn PrefControlledStaticAttributeDisabled(_: GlobalRef) -> bool { false }
+    pub fn PrefControlledStaticAttributeEnabled(_: GlobalRef) -> bool { false }
+    pub fn PrefControlledStaticMethodDisabled(_: GlobalRef) {}
+    pub fn PrefControlledStaticMethodEnabled(_: GlobalRef) {}
 }

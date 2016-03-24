@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function test_member(name, enabled, target) {
+  var status = enabled ? "Enabled" : "Disabled";
+  var verb = enabled ? "shows" : "hides";
+  test(function() {
+    var interface = target(window.TestBinding);
+    var descriptor = Object.getOwnPropertyDescriptor(interface, name);
+    if (enabled) {
+      assert_not_equals(descriptor, undefined);
+    } else {
+      assert_equals(descriptor, undefined);
+    }
+  }, status + " preference " + verb + " member controlled by that preference: " + name);
+}
+
+var members = [
+  'prefControlledAttribute',
+  'prefControlledMethod'
+];
+var staticMembers = [
+  'prefControlledStaticAttribute',
+  'prefControlledStaticMethod',
+  'prefControlledConst'
+];
+
+for (var i = 0; i < members.length; i++) {
+  var name = members[i];
+  test_member(name + 'Enabled', true, function(o) { return Object.getPrototypeOf(new o()) });
+  test_member(name + 'Disabled', false, function(o) { return Object.getPrototypeOf(new o()) });
+}
+for (var i = 0; i < staticMembers.length; i++) {
+  var name = staticMembers[i];
+  test_member(name + 'Enabled', true, function(o) { return o; });
+  test_member(name + 'Disabled', false, function(o) { return o; });
+}
+</script>
