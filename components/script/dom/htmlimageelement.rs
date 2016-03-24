@@ -154,13 +154,8 @@ impl HTMLImageElement {
     fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
-            //url: DOMRefCell::new(None),
-            //image: DOMRefCell::new(None),
-            //metadata: DOMRefCell::new(None),
             currentrequest: ImageRequest{state: State::CompletelyAvailable,url:DOMRefCell::new(None),image:DOMRefCell::new(None),metadata:DOMRefCell::new(None)},
             pendingrequest: ImageRequest{state: State::Unavailable,url:DOMRefCell::new(None),image:DOMRefCell::new(None),metadata:DOMRefCell::new(None)},
-        //    currentrequest: currreq,
-        //    pendingrequest: currreq,
         }
     }
 
@@ -244,7 +239,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_setter!(SetSrc, "src");
 
-        // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
+    // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
     make_getter!(CrossOrigin, "crossorigin");
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
     make_setter!(SetCrossOrigin, "crossorigin");
@@ -310,6 +305,15 @@ impl HTMLImageElementMethods for HTMLImageElement {
         image.is_some()
     }
 
+    //https://html.spec.whatwg.org/multipage/embedded-content.html#dom-img-currentsrc
+    fn CurrentSrc(&self) -> DOMString {
+        let url = self.currentrequest.url.borrow();
+         match *url{
+            Some(ref url) => DOMString::from(url.serialize()),
+            None => {DOMString::from("")},
+        }
+
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-name
     make_getter!(Name, "name");
