@@ -1201,7 +1201,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     Some((_, new_subpage_id)) => new_subpage_id,
                 },
             };
-            let msg = ConstellationControlMsg::UpdateSubpageId(parent_pipeline_id, subpage_id, new_subpage_id);
+            let msg = ConstellationControlMsg::UpdateSubpageId(parent_pipeline_id,
+                                                               subpage_id,
+                                                               new_subpage_id,
+                                                               next_pipeline_id);
             script_chan.send(msg).unwrap_or_else(|_| self.handle_send_error(parent_pipeline_id));
 
             // If this is an iframe, send a mozbrowser location change event.
