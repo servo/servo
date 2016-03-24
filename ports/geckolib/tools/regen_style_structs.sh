@@ -51,6 +51,7 @@ fi
 #
 # /Applications/Xcode.app/Contents/Developer/usr/bin/lldb --
 # gdb -ex "break rust_panic" -ex run  --args                          \
+# -enable-cxx-namespaces                                            \
 ./rust-bindgen/target/debug/bindgen                                 \
   -o ../gecko_style_structs.rs                                      \
   -x c++ -std=gnu++0x                                               \
@@ -60,42 +61,70 @@ fi
   "-I$1/../nsprpub/pr/include"                                      \
   $PLATFORM_DEPENDENT_DEFINES                                       \
   -ignore-functions                                                 \
-  -enable-cxx-namespaces                                            \
+  -no-bitfield-methods                                              \
   -no-type-renaming                                                 \
   -DMOZILLA_INTERNAL_API                                            \
   -DMOZ_STYLO_BINDINGS=1                                            \
   -DDEBUG=1 -DTRACING=1 -DOS_POSIX=1                                \
   -DIMPL_LIBXUL                                                     \
+  -match "RefCountType.h"                                           \
+  -match "nscore.h"                                                 \
+  -match "nsError.h"                                                \
+  -match "nsID.h"                                                   \
   -match "nsString"                                                 \
   -match "nsAString"                                                \
   -match "nsSubstring"                                              \
   -match "nsTSubstring"                                             \
   -match "nsTString"                                                \
+  -match "nsISupportsBase.h"                                        \
+  -match "nsCOMPtr.h"                                               \
+  -match "nsIAtom.h"                                                \
+  -match "nsIURI.h"                                                 \
+  -match "nsAutoPtr.h"                                              \
   -match "nsColor.h"                                                \
   -match "nsCoord.h"                                                \
   -match "nsPoint.h"                                                \
+  -match "nsRect.h"                                                 \
   -match "nsMargin.h"                                               \
+  -match "nsCSSProperty.h"                                          \
+  -match "CSSVariableValues.h"                                      \
+  -match "nsFont.h"                                                 \
+  -match "nsTHashtable.h"                                           \
+  -match "PLDHashTable.h"                                           \
+  -match "nsColor.h"                                                \
+  -match "nsStyleStruct.h"                                          \
+  -match "nsStyleCoord.h"                                           \
+  -match "RefPtr.h"                                                 \
+  -match "nsISupportsImpl.h"                                        \
+  -match "gfxFontFamilyList.h"                                      \
+  -match "gfxFontFeatures.h"                                        \
+  -match "imgRequestProxy.h"                                        \
+  -match "nsIRequest.h"                                             \
+  -match "imgIRequest.h"                                            \
+  -match "CounterStyleManager.h"                                    \
+  -match "nsStyleConsts.h"                                          \
+  -match "nsCSSValue.h"                                             \
+  -match "SheetType.h"                                              \
+  -match "nsIPrincipal.h"                                           \
+  -match "nsDataHashtable.h"                                        \
+  -match "nsCSSScanner.h"                                           \
+  -blacklist-type "IsDestructibleFallbackImpl"                      \
+  -blacklist-type "IsDestructibleFallback"                          \
   -opaque-type "nsIntMargin"                                        \
-  -opaque-type "nsMargin"                                           \
   -opaque-type "nsIntPoint"                                         \
-  -opaque-type "nsPoint"                                            \
+  -opaque-type "nsIntRect"                                          \
+  -opaque-type "nsTArray"                                           \
+  -opaque-type "nsCOMArray"                                         \
+  -opaque-type "nsDependentString"                                  \
+  -opaque-type "EntryStore"                                         \
+  -opaque-type "gfxFontFeatureValueSet"                             \
+  -opaque-type "imgRequestProxy"                                    \
+  -opaque-type "imgRequestProxyStatic"                              \
+  -opaque-type "CounterStyleManager"                                \
+  -opaque-type "ImageValue"                                         \
+  -opaque-type "URLValue"                                           \
+  -opaque-type "nsIPrincipal"                                       \
+  -opaque-type "nsDataHashtable"                                    \
+  -opaque-type "imgIRequest"                                        \
   -include "$1/mozilla-config.h"                                    \
   "$DIST_INCLUDE/nsStyleStruct.h"
-yes \
-  -match "nsMargin.h"                                               \
-  -match "Rect.h"                                                   \
-  -match "Point.h"                                                  \
-  -match "BaseMargin.h"                                             \
-  -match "nsMargin.h"                                               \
-  -match "nsStyleStruct"                                            \
-  -match "stdint"                                                   \
-  -match "nsColor"                                                  \
-  -match "nsCOMPtr"                                                 \
-  -match "RefPtr"                                                   \
-  -match "nsIURI"                                                   \
-  -match "nsCoord"                                                  \
-  -match "nsStyleCoord"                                             \
-  -match "nsTArray"                                                 \
-  -match "nsString"                                                 \
-  -match "imgIRequest"                                              \
-  "$DIST_INCLUDE/nsString.h"
