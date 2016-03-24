@@ -5598,6 +5598,12 @@
             "url": "/_mozilla/mozilla/MouseEvent.html"
           }
         ],
+        "mozilla/PutForwards.html": [
+          {
+            "path": "mozilla/PutForwards.html",
+            "url": "/_mozilla/mozilla/PutForwards.html"
+          }
+        ],
         "mozilla/bad_cert_detected.html": [
           {
             "path": "mozilla/bad_cert_detected.html",
