@@ -883,8 +883,12 @@ impl ScriptThread {
                                                  event),
             ConstellationControlMsg::UpdateSubpageId(containing_pipeline_id,
                                                      old_subpage_id,
-                                                     new_subpage_id) =>
-                self.handle_update_subpage_id(containing_pipeline_id, old_subpage_id, new_subpage_id),
+                                                     new_subpage_id,
+                                                     new_pipeline_id) =>
+                self.handle_update_subpage_id(containing_pipeline_id,
+                                              old_subpage_id,
+                                              new_subpage_id,
+                                              new_pipeline_id),
             ConstellationControlMsg::FocusIFrame(containing_pipeline_id, subpage_id) =>
                 self.handle_focus_iframe_msg(containing_pipeline_id, subpage_id),
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) =>
@@ -1243,7 +1247,8 @@ impl ScriptThread {
     fn handle_update_subpage_id(&self,
                                 containing_pipeline_id: PipelineId,
                                 old_subpage_id: SubpageId,
-                                new_subpage_id: SubpageId) {
+                                new_subpage_id: SubpageId,
+                                new_pipeline_id: PipelineId) {
         let borrowed_page = self.root_page();
 
         let frame_element = borrowed_page.find(containing_pipeline_id).and_then(|page| {
@@ -1251,7 +1256,7 @@ impl ScriptThread {
             doc.find_iframe(old_subpage_id)
         });
 
-        frame_element.unwrap().update_subpage_id(new_subpage_id);
+        frame_element.unwrap().update_subpage_id(new_subpage_id, new_pipeline_id);
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet

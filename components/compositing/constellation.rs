@@ -1256,7 +1256,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     Some((_, new_subpage_id)) => new_subpage_id,
                 },
             };
-            let msg = ConstellationControlMsg::UpdateSubpageId(parent_pipeline_id, subpage_id, new_subpage_id);
+            let msg = ConstellationControlMsg::UpdateSubpageId(parent_pipeline_id,
+                                                               subpage_id,
+                                                               new_subpage_id,
+                                                               next_pipeline_id);
             let result = match self.pipelines.get(&parent_pipeline_id) {
                 None => return warn!("Pipeline {:?} child navigated after closure.", parent_pipeline_id),
                 Some(pipeline) => pipeline.script_chan.send(msg),
