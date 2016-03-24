@@ -242,7 +242,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_setter!(SetSrc, "src");
 
-        // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
+    // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
     make_getter!(CrossOrigin, "crossorigin");
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
     make_setter!(SetCrossOrigin, "crossorigin");
@@ -307,15 +307,17 @@ impl HTMLImageElementMethods for HTMLImageElement {
         let image = self.currentrequest.image.borrow();
         image.is_some()
     }
-  /*  fn CurrentSrc(&self) -> DOMString {
+
+    //https://html.spec.whatwg.org/multipage/embedded-content.html#dom-img-currentsrc
+    fn CurrentSrc(&self) -> DOMString {
         let url = self.currentrequest.url.borrow();
-        let uri = *url;
-     //   DOMString::from(uri.serialize())
-        match *url {
-          Some(ref url) => DOMString::from(*url.serialize())        
+         match *url{
+            Some(ref url) => DOMString::from(url.serialize()),
+            None => {DOMString::from("")},
         }
+
     }
-  */
+
     // https://html.spec.whatwg.org/multipage/#dom-img-name
     make_getter!(Name, "name");
 
