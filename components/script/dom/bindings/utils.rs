@@ -41,6 +41,7 @@ use std::os::raw::c_void;
 use std::ptr;
 use std::slice;
 use util::non_geckolib::jsstring_to_str;
+use util::prefs;
 
 /// Proxy handler for a WindowProxy.
 pub struct WindowProxyHandler(pub *const libc::c_void);
@@ -558,8 +559,30 @@ pub const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };
 
-#[allow(missing_docs)]
+/// A container around JS member specifications that are conditionally enabled.
 pub struct Prefable<T: 'static> {
+    /// If present, the name of the preference used to conditionally enable these specs.
     pub pref: Option<&'static str>,
-    pub specs: &'static [T]
+    /// The underlying slice of specifications.
+    pub specs: &'static [T],
+    /// Whether the specifications contain special terminating entries that should be
+    /// included or not.
+    pub terminator: bool,
+}
+
+impl<T> Prefable<T> {
+    /// Retrieve the slice represented by this container, unless the condition
+    /// guarding it is false.
+    pub fn specs(&self) -> &'static [T] {
+        if let Some(pref) = self.pref {
+            if !prefs::get_pref(pref).as_boolean().unwrap_or(false) {
+                return if self.terminator {
+                    &self.specs[self.specs.len() - 1..]
+                } else {
+                    &[]
+                };
+            }
+        }
+        self.specs
+    }
 }
