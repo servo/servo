@@ -39,6 +39,15 @@ struct ReconfigureReply {
     from: String
 }
 
+#[derive(Serialize)]
+struct SourcesReply {
+    from: String,
+    sources: Vec<Source>,
+}
+
+#[derive(Serialize)]
+enum Source {}
+
 pub struct ThreadActor {
     name: String,
 }
@@ -85,6 +94,15 @@ impl Actor for ThreadActor {
 
             "reconfigure" => {
                 stream.write_json_packet(&ReconfigureReply { from: self.name() });
+                ActorMessageStatus::Processed
+            }
+
+            "sources" => {
+                let msg = SourcesReply {
+                    from: self.name(),
+                    sources: vec![],
+                };
+                stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             }
 
