@@ -32,6 +32,21 @@ struct ConnectReply {
     traits: PerformanceTraits,
 }
 
+#[derive(Serialize)]
+struct CanCurrentlyRecordReply {
+    from: String,
+    value: SuccessMsg,
+}
+
+#[derive(Serialize)]
+struct SuccessMsg {
+    success: bool,
+    errors: Vec<Error>,
+}
+
+#[derive(Serialize)]
+enum Error {}
+
 impl Actor for PerformanceActor {
     fn name(&self) -> String {
         self.name.clone()
@@ -59,6 +74,17 @@ impl Actor for PerformanceActor {
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
+            "canCurrentlyRecord" => {
+                let msg = CanCurrentlyRecordReply {
+                    from: self.name(),
+                    value: SuccessMsg {
+                        success: true,
+                        errors: vec![],
+                    }
+                };
+                stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            }
             _ => ActorMessageStatus::Ignored,
         })
     }
@@ -75,7 +101,19 @@ impl PerformanceActor {
         ActorDescription {
             category: "actor",
             typeName: "performance",
-            methods: vec![],
+            methods: vec![
+                Method {
+                    name: "canCurrentlyRecord",
+                    request: Value::Object(vec![
+                        ("type".to_owned(), Value::String("canCurrentlyRecord".to_owned())),
+                    ].into_iter().collect()),
+                    response: Value::Object(vec![
+                        ("value".to_owned(), Value::Object(vec![
+                            ("_retval".to_owned(), Value::String("json".to_owned())),
+                        ].into_iter().collect())),
+                    ].into_iter().collect()),
+                },
+            ],
         }
     }
 }
