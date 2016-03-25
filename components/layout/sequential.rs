@@ -50,7 +50,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
             assign_inline_sizes.process(flow);
         }
 
-        for kid in flow::child_iter(flow) {
+        for kid in flow.children_mut() {
             doit(kid, assign_inline_sizes, assign_block_sizes);
         }
 

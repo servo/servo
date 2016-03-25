@@ -1421,7 +1421,7 @@ impl LayoutThread {
         debug!("reflowing all nodes!");
         flow::mut_base(flow).restyle_damage.insert(REFLOW | REPAINT);
 
-        for child in flow::child_iter(flow) {
+        for child in flow.children_mut() {
             LayoutThread::reflow_all_nodes(child);
         }
     }
