@@ -282,6 +282,38 @@ fn test_fetch_response_is_opaque_redirect_filtered() {
     }
 }
 
+#[test]
+fn test_fetch_with_local_urls_only() {
+    // If flag `local_urls_only` is set, fetching a non-local URL must result in network error.
+
+    static MESSAGE: &'static [u8] = b"";
+    let handler = move |_: HyperRequest, response: HyperResponse| {
+        response.send(MESSAGE).unwrap();
+    };
+    let (mut server, server_url) = make_server(handler);
+
+    let do_fetch = |url: Url| {
+        let origin = Origin::Origin(url.origin());
+        let mut request = Request::new(url, Some(origin), false);
+        request.referer = Referer::NoReferer;
+
+        // Set the flag.
+        request.local_urls_only = true;
+
+        let wrapped_request = Rc::new(request);
+        fetch(wrapped_request)
+    };
+
+    let local_url = Url::parse("about:blank").unwrap();
+    let local_response = do_fetch(local_url);
+    let server_response = do_fetch(server_url);
+
+    let _ = server.close();
+
+    assert!(!local_response.is_network_error());
+    assert!(server_response.is_network_error());
+}
+
 fn test_fetch_redirect_count(message: &'static [u8], redirect_cap: u32) -> Response {
 
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
