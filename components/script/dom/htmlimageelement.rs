@@ -32,6 +32,7 @@ use std::sync::Arc;
 use string_cache::Atom;
 use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
+// https://html.spec.whatwg.org/multipage/#the-img-element:img-req-state
 #[derive(JSTraceable, HeapSizeOf)]
 enum State {
     Unavailable,
@@ -49,16 +50,13 @@ struct ImageRequest {
 #[dom_struct]
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
-//    url: DOMRefCell<Option<Url>>,
-//    image: DOMRefCell<Option<Arc<Image>>>,
-//    metadata: DOMRefCell<Option<ImageMetadata>>,
-    currentrequest: ImageRequest,
-    pendingrequest: ImageRequest,
+    current_request: ImageRequest,
+    pending_request: ImageRequest,
 }
 
 impl HTMLImageElement {
     pub fn get_url(&self) -> Option<Url>{
-        self.currentrequest.url.borrow().clone()
+        self.current_request.url.borrow().clone()
     }
 }
 
@@ -78,7 +76,6 @@ impl ImageResponseHandlerRunnable {
     }
 }
 
-
 impl Runnable for ImageResponseHandlerRunnable {
     fn handler(self: Box<Self>) {
         // Update the image field
@@ -93,8 +90,8 @@ impl Runnable for ImageResponseHandlerRunnable {
             }
             ImageResponse::None => (None, None, true)
         };
-        *element_ref.currentrequest.image.borrow_mut() = image;
-        *element_ref.currentrequest.metadata.borrow_mut() = metadata;
+        *element_ref.current_request.image.borrow_mut() = image;
+        *element_ref.current_request.metadata.borrow_mut() = metadata;
 
         // Mark the node dirty
         let document = document_from_node(&*element);
@@ -120,14 +117,14 @@ impl HTMLImageElement {
         let image_cache = window.image_cache_thread();
         match value {
             None => {
-                *self.currentrequest.url.borrow_mut() = None;
-                *self.currentrequest.image.borrow_mut() = None;
+                *self.current_request.url.borrow_mut() = None;
+                *self.current_request.image.borrow_mut() = None;
             }
             Some((src, base_url)) => {
                 let img_url = base_url.join(&src);
                 // FIXME: handle URL parse errors more gracefully.
                 let img_url = img_url.unwrap();
-                *self.currentrequest.url.borrow_mut() = Some(img_url.clone());
+                *self.current_request.url.borrow_mut() = Some(img_url.clone());
 
                 let trusted_node = Trusted::new(self, window.networking_task_source());
                 let (responder_sender, responder_receiver) = ipc::channel().unwrap();
@@ -150,13 +147,22 @@ impl HTMLImageElement {
             }
         }
     }
+
     fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
-            currentrequest: ImageRequest { state: State::CompletelyAvailable,
-                url: DOMRefCell::new(None), image: DOMRefCell::new(None), metadata: DOMRefCell::new(None) },
-            pendingrequest: ImageRequest { state: State::Unavailable,
-                url: DOMRefCell::new(None), image: DOMRefCell::new(None), metadata: DOMRefCell::new(None) },
+            current_request: ImageRequest { 
+                state: State::Unavailable,
+                url: DOMRefCell::new(None), 
+                image: DOMRefCell::new(None), 
+                metadata: DOMRefCell::new(None) 
+            },
+            pending_request: ImageRequest { 
+                state: State::Unavailable,
+                url: DOMRefCell::new(None), 
+                image: DOMRefCell::new(None), 
+                metadata: DOMRefCell::new(None) 
+            },
         }
     }
 
@@ -198,12 +204,12 @@ pub trait LayoutHTMLImageElementHelpers {
 impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
     #[allow(unsafe_code)]
     unsafe fn image(&self) -> Option<Arc<Image>> {
-        (*self.unsafe_get()).currentrequest.image.borrow_for_layout().clone()
+        (*self.unsafe_get()).current_request.image.borrow_for_layout().clone()
     }
 
     #[allow(unsafe_code)]
     unsafe fn image_url(&self) -> Option<Url> {
-        (*self.unsafe_get()).currentrequest.url.borrow_for_layout().clone()
+        (*self.unsafe_get()).current_request.url.borrow_for_layout().clone()
     }
 
     #[allow(unsafe_code)]
@@ -240,16 +246,15 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_setter!(SetSrc, "src");
 
-    // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
-    make_getter!(CrossOrigin, "crossorigin");
-    // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
+    // https://html.spec.whatwg.org/multipage/#dom-img-crossorigin
+    make_enumerated_getter!(CrossOrigin,"crossorigin", "anonymous",("use-credentials"));
+    // https://html.spec.whatwg.org/multipage/#dom-img-crossorigin
     make_setter!(SetCrossOrigin, "crossorigin");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
     make_getter!(UseMap, "usemap");
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
     make_setter!(SetUseMap, "usemap");
-
 
     // https://html.spec.whatwg.org/multipage/#dom-img-ismap
     make_bool_getter!(IsMap, "ismap");
@@ -282,7 +287,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth
     fn NaturalWidth(&self) -> u32 {
-        let metadata = self.currentrequest.metadata.borrow();
+        let metadata = self.current_request.metadata.borrow();
 
         match *metadata {
             Some(ref metadata) => metadata.width,
@@ -292,7 +297,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalheight
     fn NaturalHeight(&self) -> u32 {
-        let metadata = self.currentrequest.metadata.borrow();
+        let metadata = self.current_request.metadata.borrow();
 
         match *metadata {
             Some(ref metadata) => metadata.height,
@@ -302,13 +307,13 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-complete
     fn Complete(&self) -> bool {
-        let image = self.currentrequest.image.borrow();
+        let image = self.current_request.image.borrow();
         image.is_some()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-currentsrc
     fn CurrentSrc(&self) -> DOMString {
-        let url = self.currentrequest.url.borrow();
+        let url = self.current_request.url.borrow();
          match *url {
             Some(ref url) => DOMString::from(url.serialize()),
             None => { DOMString::from("") },
