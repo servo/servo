@@ -34806,6 +34806,12 @@
             "url": "/dom/nodes/insert-adjacent.html"
           }
         ],
+        "dom/nodes/script-javascript404.html": [
+          {
+            "path": "dom/nodes/script-javascript404.html",
+            "url": "/dom/nodes/script-javascript404.html"
+          }
+        ],
         "html/semantics/forms/textfieldselection/selection-after-content-change.html": [
           {
             "path": "html/semantics/forms/textfieldselection/selection-after-content-change.html",
