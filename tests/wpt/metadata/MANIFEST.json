@@ -34800,6 +34800,12 @@
             "url": "/XMLHttpRequest/responseurl.html"
           }
         ],
+        "dom/nodes/Script-javascript404.html": [
+          {
+            "path": "dom/nodes/Script-javascript404.html",
+            "url": "/dom/nodes/Script-javascript404.html"
+          }
+        ],
         "html/semantics/forms/textfieldselection/selection-after-content-change.html": [
           {
             "path": "html/semantics/forms/textfieldselection/selection-after-content-change.html",

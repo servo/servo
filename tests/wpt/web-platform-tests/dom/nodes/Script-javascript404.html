@@ -1,0 +1,12 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>var script_executed = true;</script>
+<script src="http://example.org/urlthat404s" onerror="script_executed = false;"></script>
+<script>
+test(function(){
+    assert_equals(script_executed, false);
+})
+</script>
