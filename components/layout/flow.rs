@@ -417,6 +417,11 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     /// children of this flow.
     fn print_extra_flow_children(&self, _: &mut PrintTree) {
     }
+
+    /// Iterates over the children of this immutable flow.
+    fn imm_child_iter(&self) -> FlowListIterator {
+        base(self).children.iter()
+    }
 }
 
 // Base access
@@ -428,11 +433,6 @@ pub fn base<T: ?Sized + Flow>(this: &T) -> &BaseFlow {
         let obj = mem::transmute::<&&T, &raw::TraitObject>(&this);
         mem::transmute::<*mut (), &BaseFlow>(obj.data)
     }
-}
-
-/// Iterates over the children of this immutable flow.
-pub fn imm_child_iter<'a>(flow: &'a Flow) -> FlowListIterator<'a> {
-    base(flow).children.iter()
 }
 
 #[inline(always)]
@@ -1373,7 +1373,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     fn print_with_tree(self, print_tree: &mut PrintTree) {
         print_tree.new_level(format!("{:?}", self));
         self.print_extra_flow_children(print_tree);
-        for kid in imm_child_iter(self) {
+        for kid in self.imm_child_iter() {
             kid.print_with_tree(print_tree);
         }
         print_tree.end_level();
