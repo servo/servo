@@ -355,7 +355,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 random_pipeline_closure: opts::get().random_pipeline_closure_probability.map(|prob| {
                     let seed = opts::get().random_pipeline_closure_seed.unwrap_or_else(random);
                     let rng = StdRng::from_seed(&[seed]);
-                    debug!("Using seed {} for random pipeline closure.", seed);
+                    warn!("Randomly closing pipelines.");
+                    info!("Using seed {} for random pipeline closure.", seed);
                     (rng, prob)
                 }),
             };
@@ -1604,6 +1605,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 if let Some(pipeline) = self.pipelines.get(pipeline_id) {
                     // Note that we deliberately do not do any of the tidying up
                     // associated with closing a pipeline. The constellation should cope!
+                    info!("Randomly closing pipeline {}.", pipeline_id);
                     pipeline.force_exit();
                 }
             }
