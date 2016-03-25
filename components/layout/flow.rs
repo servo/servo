@@ -422,6 +422,11 @@ pub trait Flow: fmt::Debug + Sync + Send + 'static {
     fn imm_child_iter(&self) -> FlowListIterator {
         base(self).children.iter()
     }
+
+    /// Iterates over the children of this flow.
+    fn child_iter(&mut self) -> MutFlowListIterator {
+        mut_base(self).children.iter_mut()
+    }
 }
 
 // Base access
@@ -442,11 +447,6 @@ pub fn mut_base<T: ?Sized + Flow>(this: &mut T) -> &mut BaseFlow {
         let obj = mem::transmute::<&&mut T, &raw::TraitObject>(&this);
         mem::transmute::<*mut (), &mut BaseFlow>(obj.data)
     }
-}
-
-/// Iterates over the children of this flow.
-pub fn child_iter<'a>(flow: &'a mut Flow) -> MutFlowListIterator<'a> {
-    mut_base(flow).children.iter_mut()
 }
 
 pub trait ImmutableFlowUtils {
@@ -1387,14 +1387,14 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
             traversal.process(self);
         }
 
-        for kid in child_iter(self) {
+        for kid in self.child_iter() {
             kid.traverse_preorder(traversal);
         }
     }
 
     /// Traverses the tree in postorder.
     fn traverse_postorder<T: PostorderFlowTraversal>(self, traversal: &T) {
-        for kid in child_iter(self) {
+        for kid in self.child_iter() {
             kid.traverse_postorder(traversal);
         }
 
