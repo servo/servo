@@ -78,13 +78,20 @@ pub fn create_http_connector() -> Arc<Pool<Connector>> {
 }
 
 pub fn factory(user_agent: String,
-               http_state: Arc<HttpState>,
+               hsts_list: Arc<RwLock<HSTSList>>,
+               cookie_jar: Arc<RwLock<CookieStorage>>,
+               auth_cache: Arc<RwLock<HashMap<Url, AuthCacheEntry>>>,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                connector: Arc<Pool<Connector>>)
                -> Box<FnBox(LoadData,
                             LoadConsumer,
                             Arc<MIMEClassifier>,
                             CancellationListener) + Send> {
+    let http_state = Arc::new(HttpState {
+        hsts_list: hsts_list,
+        cookie_jar: cookie_jar,
+        auth_cache: auth_cache
+    });
     box move |load_data: LoadData, senders, classifier, cancel_listener| {
         spawn_named(format!("http_loader for {}", load_data.url.serialize()), move || {
             load_for_consumer(load_data,
@@ -363,8 +370,8 @@ fn set_default_accept(headers: &mut Headers) {
     }
 }
 
-pub fn set_request_cookies(url: Url, headers: &mut Headers, http_state: Arc<HttpState>) {
-    let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+pub fn set_request_cookies(url: Url, headers: &mut Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
+    let mut cookie_jar = cookie_jar.write().unwrap();
     if let Some(cookie_list) = cookie_jar.cookies_for_url(&url, CookieSource::HTTP) {
         let mut v = Vec::new();
         v.push(cookie_list.into_bytes());
@@ -372,10 +379,10 @@ pub fn set_request_cookies(url: Url, headers: &mut Headers, http_state: Arc<Http
     }
 }
 
-fn set_cookie_for_url(http_state: Arc<HttpState>,
+fn set_cookie_for_url(cookie_jar: &Arc<RwLock<CookieStorage>>,
                       request: Url,
                       cookie_val: String) {
-    let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+    let mut cookie_jar = cookie_jar.write().unwrap();
     let source = CookieSource::HTTP;
     let header = Header::parse_header(&[cookie_val.into_bytes()]);
 
@@ -388,11 +395,11 @@ fn set_cookie_for_url(http_state: Arc<HttpState>,
     }
 }
 
-fn set_cookies_from_response(url: Url, response: &HttpResponse, http_state: Arc<HttpState>) {
+fn set_cookies_from_response(url: Url, response: &HttpResponse, cookie_jar: &Arc<RwLock<CookieStorage>>) {
     if let Some(cookies) = response.headers().get_raw("set-cookie") {
         for cookie in cookies.iter() {
             if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
-                set_cookie_for_url(http_state.clone(),
+                set_cookie_for_url(&cookie_jar,
                                    url.clone(),
                                    cookie_value);
             }
@@ -400,14 +407,14 @@ fn set_cookies_from_response(url: Url, response: &HttpResponse, http_state: Arc<
     }
 }
 
-fn update_sts_list_from_response(url: &Url, response: &HttpResponse, http_state: Arc<HttpState>) {
+fn update_sts_list_from_response(url: &Url, response: &HttpResponse, hsts_list: &Arc<RwLock<HSTSList>>) {
     if url.scheme != "https" {
         return;
     }
 
     if let Some(header) = response.headers().get::<StrictTransportSecurity>() {
         if let Some(host) = url.domain() {
-            let mut hsts_list = http_state.hsts_list.write().unwrap();
+            let mut hsts_list = hsts_list.write().unwrap();
             let include_subdomains = if header.include_subdomains {
                 IncludeSubdomains::Included
             } else {
@@ -517,9 +524,9 @@ fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     }
 }
 
-fn request_must_be_secured(url: &Url, http_state: Arc<HttpState>) -> bool {
+fn request_must_be_secured(url: &Url, hsts_list: &Arc<RwLock<HSTSList>>) -> bool {
     match url.domain() {
-        Some(domain) => http_state.hsts_list.read().unwrap().is_host_secure(domain),
+        Some(domain) => hsts_list.read().unwrap().is_host_secure(domain),
         None => false
     }
 }
@@ -527,7 +534,8 @@ fn request_must_be_secured(url: &Url, http_state: Arc<HttpState>) -> bool {
 pub fn modify_request_headers(headers: &mut Headers,
                               url: &Url,
                               user_agent: &str,
-                              http_state: Arc<HttpState>,
+                              cookie_jar: &Arc<RwLock<CookieStorage>>,
+                              auth_cache: &Arc<RwLock<HashMap<Url, AuthCacheEntry>>>,
                               load_data: &LoadData) {
     // Ensure that the host header is set from the original url
     let host = Host {
@@ -551,22 +559,22 @@ pub fn modify_request_headers(headers: &mut Headers,
 
     // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
     if load_data.credentials_flag {
-        set_request_cookies(url.clone(), headers, http_state.clone());
+        set_request_cookies(url.clone(), headers, cookie_jar);
 
         // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch step 12
-        set_auth_header(headers, url, http_state.clone());
+        set_auth_header(headers, url, auth_cache);
     }
 }
 
 fn set_auth_header(headers: &mut Headers,
-                    url: &Url,
-                    http_state: Arc<HttpState>) {
+                   url: &Url,
+                   auth_cache: &Arc<RwLock<HashMap<Url, AuthCacheEntry>>>) {
 
     if !headers.has::<Authorization<Basic>>() {
         if let Some(auth) = auth_from_url(url) {
             headers.set(auth);
         } else {
-            if let Some(ref auth_entry) = http_state.auth_cache.read().unwrap().get(url) {
+            if let Some(ref auth_entry) = auth_cache.read().unwrap().get(url) {
                 auth_from_entry(&auth_entry, headers);
             }
         }
@@ -594,7 +602,8 @@ fn auth_from_url(doc_url: &Url) -> Option<Authorization<Basic>> {
 
 pub fn process_response_headers(response: &HttpResponse,
                                 url: &Url,
-                                http_state: Arc<HttpState>,
+                                cookie_jar: &Arc<RwLock<CookieStorage>>,
+                                hsts_list: &Arc<RwLock<HSTSList>>,
                                 load_data: &LoadData) {
     info!("got HTTP response {}, headers:", response.status());
     if log_enabled!(log::LogLevel::Info) {
@@ -605,9 +614,9 @@ pub fn process_response_headers(response: &HttpResponse,
 
     // https://fetch.spec.whatwg.org/#concept-http-network-fetch step 9
     if load_data.credentials_flag {
-        set_cookies_from_response(url.clone(), response, http_state.clone());
+        set_cookies_from_response(url.clone(), response, cookie_jar);
     }
-    update_sts_list_from_response(url, response, http_state.clone());
+    update_sts_list_from_response(url, response, hsts_list);
 }
 
 pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
@@ -726,7 +735,7 @@ pub fn load<A>(load_data: LoadData,
     loop {
         iters = iters + 1;
 
-        if &*doc_url.scheme == "http" && request_must_be_secured(&doc_url, http_state.clone()) {
+        if &*doc_url.scheme == "http" && request_must_be_secured(&doc_url, &http_state.hsts_list) {
             info!("{} is in the strict transport security list, requesting secure host", doc_url);
             doc_url = secure_url(&doc_url);
         }
@@ -760,13 +769,14 @@ pub fn load<A>(load_data: LoadData,
         let request_id = uuid::Uuid::new_v4().to_simple_string();
 
         modify_request_headers(&mut request_headers, &doc_url,
-                               &user_agent, http_state.clone(), &load_data);
+                               &user_agent, &http_state.cookie_jar,
+                               &http_state.auth_cache, &load_data);
 
         let response = try!(obtain_response(request_factory, &doc_url, &method, &request_headers,
                                             &cancel_listener, &load_data.data, &load_data.method,
                                             &load_data.pipeline_id, iters, &devtools_chan, &request_id));
 
-        process_response_headers(&response, &doc_url, http_state.clone(), &load_data);
+        process_response_headers(&response, &doc_url, &http_state.cookie_jar, &http_state.hsts_list, &load_data);
 
         // --- Loop if there's a redirect
         if response.status().class() == StatusClass::Redirection {
