@@ -426,7 +426,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             //
             // Yes, that's all there is to it!
             if opts::multiprocess() {
-                self.spawn_multiprocess(unprivileged_pipeline_content);
+                self.spawn_multiprocess(pipeline_id, unprivileged_pipeline_content);
             } else {
                 unprivileged_pipeline_content.start_all::<LTF, STF>(false);
             }
@@ -437,7 +437,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     }
 
     #[cfg(not(target_os = "windows"))]
-    fn spawn_multiprocess(&mut self, unprivileged_pipeline_content: UnprivilegedPipelineContent) {
+    fn spawn_multiprocess(&mut self,
+                          pipeline_id: PipelineId,
+                          unprivileged_pipeline_content: UnprivilegedPipelineContent)
+    {
         let (server, token) =
             IpcOneShotServer::<IpcSender<UnprivilegedPipelineContent>>::new().unwrap();
 
@@ -458,11 +461,12 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
         self.child_processes.push(child_process);
         let (_receiver, sender) = server.accept().unwrap();
-        sender.send(unprivileged_pipeline_content).unwrap();
+        sender.send(unprivileged_pipeline_content)
+            .unwrap_or_else(|_| self.handle_send_error(pipeline_id));
     }
 
     #[cfg(target_os = "windows")]
-    fn spawn_multiprocess(&mut self, _: UnprivilegedPipelineContent) {
+    fn spawn_multiprocess(&mut self, _: PipelineId, _: UnprivilegedPipelineContent) {
         panic!("Multiprocess is not supported on Windows.");
     }
 
@@ -670,16 +674,18 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             }
             Request::Script(FromScriptMsg::ForwardMouseButtonEvent(
                     pipeline_id, event_type, button, point)) => {
-                if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
-                    pipeline.script_chan.send(ConstellationControlMsg::SendEvent(pipeline_id,
-                        CompositorEvent::MouseButtonEvent(event_type, button, point))).unwrap();
-                }
+                let event = CompositorEvent::MouseButtonEvent(event_type, button, point);
+                let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
+                self.pipelines.get(&pipeline_id)
+                    .and_then(|pipeline| pipeline.script_chan.send(msg).ok())
+                    .unwrap_or_else(|| self.handle_send_error(pipeline_id));
             }
             Request::Script(FromScriptMsg::ForwardMouseMoveEvent(pipeline_id, point)) => {
-                if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
-                    pipeline.script_chan.send(ConstellationControlMsg::SendEvent(pipeline_id,
-                        CompositorEvent::MouseMoveEvent(Some(point)))).unwrap();
-                }
+                let event = CompositorEvent::MouseMoveEvent(Some(point));
+                let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
+                self.pipelines.get(&pipeline_id)
+                    .and_then(|pipeline| pipeline.script_chan.send(msg).ok())
+                    .unwrap_or_else(|| self.handle_send_error(pipeline_id));
             }
             Request::Script(FromScriptMsg::GetClipboardContents(sender)) => {
                 let result = self.clipboard_ctx.as_ref().map_or(
@@ -689,7 +695,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                         "".to_owned()
                     })
                 );
-                sender.send(result).unwrap();
+                sender.send(result).unwrap_or_else(|e| debug!("Failed to send clipboard ({})", e))
             }
             Request::Script(FromScriptMsg::SetClipboardContents(s)) => {
                 if let Some(ref mut ctx) = self.clipboard_ctx {
@@ -767,14 +773,25 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             pipeline.exit();
         }
         self.image_cache_thread.exit();
-        self.resource_thread.send(net_traits::ControlMsg::Exit).unwrap();
+        self.resource_thread.send(net_traits::ControlMsg::Exit)
+            .unwrap_or_else(|e| debug!("Exit resource thread failed ({})", e));
         self.devtools_chan.as_ref().map(|chan| {
-            chan.send(DevtoolsControlMsg::FromChrome(
-                    ChromeToDevtoolsControlMsg::ServerExitMsg)).unwrap();
+            chan.send(DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg))
+                .unwrap_or_else(|e| debug!("Exit devtools failed ({})", e));
         });
-        self.storage_thread.send(StorageThreadMsg::Exit).unwrap();
+        self.storage_thread.send(StorageThreadMsg::Exit)
+            .unwrap_or_else(|e| debug!("Exit storage thread failed ({})", e));
         self.font_cache_thread.exit();
         self.compositor_proxy.send(ToCompositorMsg::ShutdownComplete);
+    }
+
+    fn handle_send_error(&mut self, pipeline_id: PipelineId) {
+        let parent_info = match self.pipelines.get(&pipeline_id) {
+            None => return debug!("Pipeline {:?} send error after closure.", pipeline_id),
+            Some(pipeline) => pipeline.parent_info,
+        };
+        // Treat send error the same as receiving a failure message
+        self.handle_failure_msg(pipeline_id, parent_info);
     }
 
     fn handle_failure_msg(&mut self,
@@ -840,21 +857,20 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             visible_viewport: *size,
             initial_viewport: *size * ScaleFactor::new(1.0),
             device_pixel_ratio: self.window_size.device_pixel_ratio,
-        })).unwrap();
+        })).unwrap_or_else(|_| self.handle_send_error(pipeline_id));
     }
 
     fn handle_subframe_loaded(&mut self, pipeline_id: PipelineId) {
-        let subframe_pipeline = self.pipeline(pipeline_id);
-        let subframe_parent = match subframe_pipeline.parent_info {
-            Some(ref parent) => parent,
+        let subframe_parent_id = match self.pipeline(pipeline_id).parent_info {
+            Some(ref parent) => parent.0,
             None => return,
         };
-        let parent_pipeline = self.pipeline(subframe_parent.0);
         let msg = ConstellationControlMsg::DispatchFrameLoadEvent {
             target: pipeline_id,
-            parent: subframe_parent.0,
+            parent: subframe_parent_id,
         };
-        parent_pipeline.script_chan.send(msg).unwrap();
+        self.pipeline(subframe_parent_id).script_chan.send(msg)
+            .unwrap_or_else(|_| self.handle_send_error(subframe_parent_id));
     }
 
     // The script thread associated with pipeline_id has loaded a URL in an iframe via script. This
@@ -934,14 +950,14 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 self.pipeline(pipeline_id)
                     .script_chan
                     .send(ConstellationControlMsg::TickAllAnimations(pipeline_id))
-                    .unwrap();
+                    .unwrap_or_else(|_| self.handle_send_error(pipeline_id));
             }
             AnimationTickType::Layout => {
                 self.pipeline(pipeline_id)
                     .layout_chan
                     .0
                     .send(LayoutControlMsg::TickAnimations)
-                    .unwrap();
+                    .unwrap_or_else(|_| self.handle_send_error(pipeline_id));
             }
         }
     }
@@ -960,11 +976,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 self.handle_load_start_msg(&source_id);
                 // Message the constellation to find the script thread for this iframe
                 // and issue an iframe load through there.
-                let parent_pipeline = self.pipeline(parent_pipeline_id);
-                let script_channel = &parent_pipeline.script_chan;
-                script_channel.send(ConstellationControlMsg::Navigate(parent_pipeline_id,
-                                                                      subpage_id,
-                                                                      load_data)).unwrap();
+                let msg = ConstellationControlMsg::Navigate(parent_pipeline_id, subpage_id, load_data);
+                self.pipeline(parent_pipeline_id).script_chan.send(msg)
+                    .unwrap_or_else(|_| self.handle_send_error(parent_pipeline_id));
                 Some(source_id)
             }
             None => {
@@ -1110,11 +1124,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         // Update the owning iframe to point to the new subpage id.
         // This makes things like contentDocument work correctly.
         if let Some((parent_pipeline_id, subpage_id)) = pipeline_info {
-            let script_chan = &self.pipeline(parent_pipeline_id).script_chan;
             let (_, new_subpage_id) = self.pipeline(next_pipeline_id).parent_info.unwrap();
-            script_chan.send(ConstellationControlMsg::UpdateSubpageId(parent_pipeline_id,
-                                                                      subpage_id,
-                                                                      new_subpage_id)).unwrap();
+            let msg = ConstellationControlMsg::UpdateSubpageId(parent_pipeline_id, subpage_id, new_subpage_id);
+            self.pipeline(parent_pipeline_id).script_chan.send(msg)
+                .unwrap_or_else(|_| self.handle_send_error(parent_pipeline_id));
 
             // If this is an iframe, send a mozbrowser location change event.
             // This is the result of a back/forward navigation.
@@ -1122,7 +1135,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
     }
 
-    fn handle_key_msg(&self, key: Key, state: KeyState, mods: KeyModifiers) {
+    fn handle_key_msg(&mut self, key: Key, state: KeyState, mods: KeyModifiers) {
         // Send to the explicitly focused pipeline (if it exists), or the root
         // frame's current pipeline. If neither exist, fall back to sending to
         // the compositor below.
@@ -1132,10 +1145,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
         match target_pipeline_id {
             Some(target_pipeline_id) => {
-                let pipeline = self.pipeline(target_pipeline_id);
                 let event = CompositorEvent::KeyEvent(key, state, mods);
-                pipeline.script_chan.send(
-                    ConstellationControlMsg::SendEvent(pipeline.id, event)).unwrap();
+                let msg = ConstellationControlMsg::SendEvent(target_pipeline_id, event);
+                self.pipeline(target_pipeline_id).script_chan.send(msg)
+                    .unwrap_or_else(|_| self.handle_send_error(target_pipeline_id));
             }
             None => {
                 let event = ToCompositorMsg::KeyEvent(key, state, mods);
@@ -1145,12 +1158,11 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     }
 
     fn handle_get_pipeline_title_msg(&mut self, pipeline_id: PipelineId) {
-        match self.pipelines.get(&pipeline_id) {
-            None => self.compositor_proxy.send(ToCompositorMsg::ChangePageTitle(pipeline_id, None)),
-            Some(pipeline) => {
-                pipeline.script_chan.send(ConstellationControlMsg::GetTitle(pipeline_id)).unwrap();
-            }
-        }
+        let result = match self.pipelines.get(&pipeline_id) {
+            None => return self.compositor_proxy.send(ToCompositorMsg::ChangePageTitle(pipeline_id, None)),
+            Some(pipeline) => pipeline.script_chan.send(ConstellationControlMsg::GetTitle(pipeline_id)),
+        };
+        result.unwrap_or_else(|_| self.handle_send_error(pipeline_id));
     }
 
     fn handle_mozbrowser_event_msg(&mut self,
@@ -1172,24 +1184,26 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         let pipeline_id = self.pending_frames.iter().rev()
             .find(|x| x.old_pipeline_id == current_pipeline_id)
             .map(|x| x.new_pipeline_id).or(current_pipeline_id);
-        resp_chan.send(pipeline_id).unwrap();
+        resp_chan.send(pipeline_id)
+            .unwrap_or_else(|_| debug!("Failed get_pipeline response."));
     }
 
     fn handle_get_frame(&mut self,
                         pipeline_id: PipelineId,
                         resp_chan: IpcSender<Option<FrameId>>) {
         let frame_id = self.pipeline_to_frame_map.get(&pipeline_id).map(|x| *x);
-        resp_chan.send(frame_id).unwrap();
+        resp_chan.send(frame_id)
+            .unwrap_or_else(|_| debug!("Failed get_pipeline response."));
     }
 
-    fn focus_parent_pipeline(&self, pipeline_id: PipelineId) {
+    fn focus_parent_pipeline(&mut self, pipeline_id: PipelineId) {
         // Send a message to the parent of the provided pipeline (if it exists)
         // telling it to mark the iframe element as focused.
         if let Some((containing_pipeline_id, subpage_id)) = self.pipeline(pipeline_id).parent_info {
-            let pipeline = self.pipeline(containing_pipeline_id);
             let event = ConstellationControlMsg::FocusIFrame(containing_pipeline_id,
                                                                 subpage_id);
-            pipeline.script_chan.send(event).unwrap();
+            self.pipeline(containing_pipeline_id).script_chan.send(event)
+                .unwrap_or_else(|_| self.handle_send_error(containing_pipeline_id));
 
             self.focus_parent_pipeline(containing_pipeline_id);
         }
@@ -1224,7 +1238,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             response_sender: IpcSender<IpcSender<CanvasMsg>>) {
         let webrender_api = self.webrender_api_sender.clone();
         let sender = CanvasPaintThread::start(*size, webrender_api);
-        response_sender.send(sender).unwrap()
+        response_sender.send(sender)
+            .unwrap_or_else(|e| debug!("Create canvas paint thread response failed ({})", e))
     }
 
     fn handle_create_webgl_paint_thread_msg(
@@ -1235,7 +1250,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         let webrender_api = self.webrender_api_sender.clone();
         let sender = WebGLPaintThread::start(*size, attributes, webrender_api);
 
-        response_sender.send(sender).unwrap()
+        response_sender.send(sender)
+            .unwrap_or_else(|e| debug!("Create WebGL paint thread response failed ({})", e))
     }
 
     fn handle_webdriver_msg(&mut self, msg: WebDriverCommandMsg) {
@@ -1253,16 +1269,16 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 self.load_url_for_webdriver(pipeline_id, load_data, reply);
             }
             WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd) => {
-                let pipeline = self.pipeline(pipeline_id);
                 let control_msg = ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, cmd);
-                pipeline.script_chan.send(control_msg).unwrap();
+                self.pipeline(pipeline_id).script_chan.send(control_msg)
+                    .unwrap_or_else(|_| self.handle_send_error(pipeline_id));
             },
             WebDriverCommandMsg::SendKeys(pipeline_id, cmd) => {
-                let pipeline = self.pipeline(pipeline_id);
                 for (key, mods, state) in cmd {
                     let event = CompositorEvent::KeyEvent(key, state, mods);
-                    pipeline.script_chan.send(
-                        ConstellationControlMsg::SendEvent(pipeline.id, event)).unwrap();
+                    let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
+                    self.pipeline(pipeline_id).script_chan.send(msg)
+                        .unwrap_or_else(|_| self.handle_send_error(pipeline_id));
                 }
             },
             WebDriverCommandMsg::TakeScreenshot(pipeline_id, reply) => {
@@ -1271,7 +1287,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 if Some(pipeline_id) == current_pipeline_id {
                     self.compositor_proxy.send(ToCompositorMsg::CreatePng(reply));
                 } else {
-                    reply.send(None).unwrap();
+                    reply.send(None).unwrap_or_else(|e| debug!("Screenshot reply failed ({})", e));
                 }
             },
         }
@@ -1439,6 +1455,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     /// and compares the current layout state to what the compositor has. This is used
     /// to check if the output image is "stable" and can be written as a screenshot
     /// for reftests.
+    /// Since this function is only used in reftests, we do not harden it against panic.
     fn handle_is_ready_to_save_image(&mut self,
                                      pipeline_states: HashMap<PipelineId, Epoch>) -> ReadyToSave {
         // If there is no root frame yet, the initial page has
