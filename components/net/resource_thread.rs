@@ -11,7 +11,7 @@ use data_loader;
 use devtools_traits::{DevtoolsControlMsg};
 use file_loader;
 use hsts::{HSTSList, preload_hsts_domains};
-use http_loader::{self, Connector, create_http_connector};
+use http_loader::{self, Connector, create_http_connector, HttpState};
 use hyper::client::pool::Pool;
 use hyper::header::{ContentType, Header, SetCookie};
 use hyper::mime::{Mime, SubLevel, TopLevel};
@@ -345,10 +345,13 @@ impl ResourceManager {
         let loader = match &*load_data.url.scheme {
             "file" => from_factory(file_loader::factory),
             "http" | "https" | "view-source" => {
+                let http_state = HttpState {
+                    hsts_list: self.hsts_list.clone(),
+                    cookie_jar: self.cookie_jar.clone(),
+                    auth_cache: self.auth_cache.clone()
+                };
                 http_loader::factory(self.user_agent.clone(),
-                                     self.hsts_list.clone(),
-                                     self.cookie_jar.clone(),
-                                     self.auth_cache.clone(),
+                                     http_state,
                                      self.devtools_chan.clone(),
                                      self.connector.clone())
             },

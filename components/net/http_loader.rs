@@ -78,20 +78,13 @@ pub fn create_http_connector() -> Arc<Pool<Connector>> {
 }
 
 pub fn factory(user_agent: String,
-               hsts_list: Arc<RwLock<HSTSList>>,
-               cookie_jar: Arc<RwLock<CookieStorage>>,
-               auth_cache: Arc<RwLock<HashMap<Url, AuthCacheEntry>>>,
+               http_state: HttpState,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                connector: Arc<Pool<Connector>>)
                -> Box<FnBox(LoadData,
                             LoadConsumer,
                             Arc<MIMEClassifier>,
                             CancellationListener) + Send> {
-    let http_state = Arc::new(HttpState {
-        hsts_list: hsts_list,
-        cookie_jar: cookie_jar,
-        auth_cache: auth_cache
-    });
     box move |load_data: LoadData, senders, classifier, cancel_listener| {
         spawn_named(format!("http_loader for {}", load_data.url.serialize()), move || {
             load_for_consumer(load_data,
@@ -149,7 +142,7 @@ fn load_for_consumer(load_data: LoadData,
                      start_chan: LoadConsumer,
                      classifier: Arc<MIMEClassifier>,
                      connector: Arc<Pool<Connector>>,
-                     http_state: Arc<HttpState>,
+                     http_state: HttpState,
                      devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                      cancel_listener: CancellationListener,
                      user_agent: String) {
@@ -158,7 +151,7 @@ fn load_for_consumer(load_data: LoadData,
         connector: connector,
     };
     let context = load_data.context.clone();
-    match load::<WrappedHttpRequest>(load_data, http_state,
+    match load::<WrappedHttpRequest>(load_data, Arc::new(http_state),
                                      devtools_chan, &factory,
                                      user_agent, &cancel_listener) {
         Err(LoadError::UnsupportedScheme(url)) => {
