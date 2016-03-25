@@ -1358,7 +1358,7 @@ pub struct nsAString_internal {
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
-pub enum nsTSubstring_h_unnamed_1 {
+pub enum nsAString_internal_nsTSubstring_h_unnamed_1 {
     F_NONE = 0,
     F_TERMINATED = 1,
     F_VOIDED = 2,
@@ -1389,7 +1389,7 @@ pub struct nsACString_internal {
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
-pub enum nsTSubstring_h_unnamed_2 {
+pub enum nsACString_internal_nsTSubstring_h_unnamed_2 {
     F_NONE = 0,
     F_TERMINATED = 1,
     F_VOIDED = 2,
@@ -1473,7 +1473,7 @@ pub struct nsAutoString {
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
-pub enum nsTString_h_unnamed_3 { kDefaultStorageSize = 64, }
+pub enum nsAutoString_nsTString_h_unnamed_3 { kDefaultStorageSize = 64, }
 #[test]
 fn bindgen_test_layout_nsAutoString() {
     assert_eq!(:: std:: mem:: size_of:: < nsAutoString > (  ) , 160usize);
@@ -1543,7 +1543,7 @@ pub struct nsAutoCString {
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
-pub enum nsTString_h_unnamed_4 { kDefaultStorageSize = 64, }
+pub enum nsAutoCString_nsTString_h_unnamed_4 { kDefaultStorageSize = 64, }
 #[test]
 fn bindgen_test_layout_nsAutoCString() {
     assert_eq!(:: std:: mem:: size_of:: < nsAutoCString > (  ) , 96usize);
@@ -1721,7 +1721,7 @@ pub struct nsCSSScanner {
     pub mTokenLineOffset: u32,
     pub mTokenOffset: u32,
     pub mRecordStartOffset: u32,
-    pub mEOFCharacters: EOFCharacters,
+    pub mEOFCharacters: nsCSSScanner_EOFCharacters,
     pub mReporter: *mut ErrorReporter,
     pub mSVGMode: bool,
     pub mRecording: bool,
@@ -1730,7 +1730,7 @@ pub struct nsCSSScanner {
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
-pub enum EOFCharacters {
+pub enum nsCSSScanner_EOFCharacters {
     eEOFCharacters_None = 0,
     eEOFCharacters_DropBackslash = 1,
     eEOFCharacters_ReplacementChar = 2,
@@ -2019,7 +2019,7 @@ pub struct PLDHashTable {
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
-pub enum SearchReason { ForSearchOrRemove = 0, ForAdd = 1, }
+pub enum PLDHashTable_SearchReason { ForSearchOrRemove = 0, ForAdd = 1, }
 #[test]
 fn bindgen_test_layout_PLDHashTable() {
     assert_eq!(:: std:: mem:: size_of:: < PLDHashTable > (  ) , 48usize);
@@ -2454,7 +2454,7 @@ fn bindgen_test_layout_nsStyleCoord_Calc() {
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
-pub enum CoordConstructorType { CoordConstructor = 0, }
+pub enum nsStyleCoord_CoordConstructorType { CoordConstructor = 0, }
 #[test]
 fn bindgen_test_layout_nsStyleCoord() {
     assert_eq!(:: std:: mem:: size_of:: < nsStyleCoord > (  ) , 16usize);
@@ -2495,7 +2495,7 @@ pub struct nsIRequest {
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
-pub enum nsIRequest_h_unnamed_6 {
+pub enum nsIRequest_nsIRequest_h_unnamed_6 {
     LOAD_REQUESTMASK = 65535,
     LOAD_NORMAL = 0,
     LOAD_BACKGROUND = 1,
@@ -3260,7 +3260,7 @@ pub struct nsCSSValue {
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
-pub enum Serialization { eNormalized = 0, eAuthorSpecified = 1, }
+pub enum nsCSSValue_Serialization { eNormalized = 0, eAuthorSpecified = 1, }
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct nsCSSValue_nsCSSValue_h_unnamed_8 {
@@ -3651,7 +3651,7 @@ pub struct nsStyleImageLayers {
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
-pub enum nsStyleStruct_h_unnamed_12 {
+pub enum nsStyleImageLayers_nsStyleStruct_h_unnamed_12 {
     shorthand = 0,
     color = 1,
     image = 2,
@@ -3695,7 +3695,7 @@ fn bindgen_test_layout_nsStyleImageLayers_Size_Dimension() {
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
-pub enum DimensionType {
+pub enum nsStyleImageLayers_Size_DimensionType {
     eContain = 0,
     eCover = 1,
     eAuto = 2,
@@ -3997,10 +3997,19 @@ pub struct nsStyleImageOrientation {
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
-pub enum Bits { ORIENTATION_MASK = 3, FLIP_MASK = 4, FROM_IMAGE_MASK = 8, }
+pub enum nsStyleImageOrientation_Bits {
+    ORIENTATION_MASK = 3,
+    FLIP_MASK = 4,
+    FROM_IMAGE_MASK = 8,
+}
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
-pub enum Angles { ANGLE_0 = 0, ANGLE_90 = 1, ANGLE_180 = 2, ANGLE_270 = 3, }
+pub enum nsStyleImageOrientation_Angles {
+    ANGLE_0 = 0,
+    ANGLE_90 = 1,
+    ANGLE_180 = 2,
+    ANGLE_270 = 3,
+}
 #[test]
 fn bindgen_test_layout_nsStyleImageOrientation() {
     assert_eq!(:: std:: mem:: size_of:: < nsStyleImageOrientation > (  ) ,
@@ -4022,11 +4031,11 @@ fn bindgen_test_layout_nsStyleVisibility() {
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct nsTimingFunction {
-    pub mType: Type,
+    pub mType: nsTimingFunction_Type,
 }
 #[repr(i32)]
 #[derive(Copy, Clone, Debug)]
-pub enum Type {
+pub enum nsTimingFunction_Type {
     Ease = 0,
     Linear = 1,
     EaseIn = 2,
@@ -4038,7 +4047,7 @@ pub enum Type {
 }
 #[repr(i32)]
 #[derive(Copy, Clone, Debug)]
-pub enum StepSyntax {
+pub enum nsTimingFunction_StepSyntax {
     Keyword = 0,
     FunctionalWithoutKeyword = 1,
     FunctionalWithStartKeyword = 2,
@@ -4046,7 +4055,7 @@ pub enum StepSyntax {
 }
 #[repr(i32)]
 #[derive(Copy, Clone, Debug)]
-pub enum Keyword { Implicit = 0, Explicit = 1, }
+pub enum nsTimingFunction_Keyword { Implicit = 0, Explicit = 1, }
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct nsTimingFunction_nsStyleStruct_h_unnamed_13 {
@@ -4364,23 +4373,23 @@ pub struct nsStyleSVG {
 fn bindgen_test_layout_nsStyleSVG() {
     assert_eq!(:: std:: mem:: size_of:: < nsStyleSVG > (  ) , 128usize);
 }
-#[repr(u32)]
-#[derive(Copy, Clone, Debug)]
-pub enum nsStyleBasicShapeType {
-    eInset = 0,
-    eCircle = 1,
-    eEllipse = 2,
-    ePolygon = 3,
-}
 #[repr(C)]
 pub struct nsStyleBasicShape {
     pub mRefCnt: nsAutoRefCnt,
     pub _mOwningThread: nsAutoOwningThread,
-    pub mType: nsStyleBasicShapeType,
+    pub mType: nsStyleBasicShape_Type,
     pub mFillRule: i32,
     pub mCoordinates: [u8; 8usize],
     pub mPosition: nsStyleImageLayers_Position,
     pub mRadius: nsStyleCorners,
+}
+#[repr(u32)]
+#[derive(Copy, Clone, Debug)]
+pub enum nsStyleBasicShape_Type {
+    eInset = 0,
+    eCircle = 1,
+    eEllipse = 2,
+    ePolygon = 3,
 }
 #[test]
 fn bindgen_test_layout_nsStyleBasicShape() {
