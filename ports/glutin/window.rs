@@ -84,7 +84,7 @@ pub struct Window {
 
     mouse_pos: Cell<Point2D<i32>>,
     key_modifiers: Cell<KeyModifiers>,
-    pub current_url: RefCell<Option<String>>,
+    current_url: RefCell<Option<String>>,
 }
 
 #[cfg(feature = "window")]
