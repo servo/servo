@@ -69,6 +69,7 @@ use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::Range;
 use dom::servohtmlparser::{ParserRoot, ParserRef, MutNullableParserField};
+use dom::stylesheetlist::StyleSheetList;
 use dom::text::Text;
 use dom::touch::Touch;
 use dom::touchevent::TouchEvent;
@@ -114,7 +115,6 @@ use time;
 use url::percent_encoding::percent_decode;
 use url::{Host, Url};
 use util::str::{DOMString, split_html_space_chars, str_join};
-use dom::stylesheetlist::StyleSheetList;
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
 pub enum IsHTMLDocument {
@@ -1603,7 +1603,7 @@ impl Document {
             dom_content_loaded_event_end: Cell::new(Default::default()),
             dom_complete: Cell::new(Default::default()),
             css_errors_store: DOMRefCell::new(vec![]),
-            https_state: Cell::new(HttpsState::None), 
+            https_state: Cell::new(HttpsState::None),
         }
     }
 
@@ -1751,10 +1751,12 @@ impl Element {
 }
 
 impl DocumentMethods for Document {
+    // https://drafts.csswg.org/cssom/#document-css-style-sheets
     fn StyleSheets(&self) -> Root<StyleSheetList> {
         //Some(Root::from_ref(&*(self.list)))
         StyleSheetList::new(&self.window, JS::from_ref(&self))
     }
+
     // https://dom.spec.whatwg.org/#dom-document-implementation
     fn Implementation(&self) -> Root<DOMImplementation> {
         self.implementation.or_init(|| DOMImplementation::new(self))
@@ -2632,7 +2634,7 @@ impl DocumentProgressHandler {
                       ReflowQueryType::NoQuery,
                       ReflowReason::DocumentLoaded);
     }
-    
+
 }
 
 impl Runnable for DocumentProgressHandler {
