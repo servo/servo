@@ -1795,7 +1795,16 @@ pub type nsIID = nsID;
  */
 #[repr(C)]
 #[derive(Copy, Clone)]
-pub struct nsISupports;
+pub struct nsISupports {
+    pub _vftable: *const _vftable_nsISupports,
+}
+#[repr(C)]
+pub struct _vftable_nsISupports {
+}
+#[test]
+fn bindgen_test_layout_nsISupports() {
+    assert_eq!(:: std:: mem:: size_of:: < nsISupports > (  ) , 8usize);
+}
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct nsAutoOwningThread {
@@ -2493,6 +2502,10 @@ pub type nsLoadFlags = u32;
 pub struct nsIRequest {
     pub _base: nsISupports,
 }
+#[repr(C)]
+pub struct _vftable_nsIRequest {
+    pub _base: _vftable_nsISupports,
+}
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
 pub enum nsIRequest_nsIRequest_h_unnamed_6 {
@@ -2526,6 +2539,10 @@ fn bindgen_test_layout_nsIPrincipal() {
 pub struct nsIExpandedPrincipal {
     pub _base: nsISupports,
 }
+#[repr(C)]
+pub struct _vftable_nsIExpandedPrincipal {
+    pub _base: _vftable_nsISupports,
+}
 /**
  * This structure precedes the string buffers "we" allocate.  It may be the
  * case that nsTAString::mData does not point to one of these special
@@ -2556,6 +2573,10 @@ pub struct nsIAtom {
    * nsStringBuffer::FromData() calls above are valid.
    */
     pub mString: *mut ::std::os::raw::c_ushort,
+}
+#[repr(C)]
+pub struct _vftable_nsIAtom {
+    pub _base: _vftable_nsISupports,
 }
 #[test]
 fn bindgen_test_layout_nsIAtom() {
@@ -2628,6 +2649,10 @@ pub struct ArenaRefPtr<T> {
 #[derive(Copy, Clone)]
 pub struct nsIURI {
     pub _base: nsISupports,
+}
+#[repr(C)]
+pub struct _vftable_nsIURI {
+    pub _base: _vftable_nsISupports,
 }
 pub const eCSSProperty_COUNT_DUMMY: nsCSSProperty =
     nsCSSProperty::eCSSProperty__x_text_zoom;
@@ -3509,7 +3534,11 @@ pub enum PadType { }
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct CounterStyle {
+    pub _vftable: *const _vftable_CounterStyle,
     pub mStyle: i32,
+}
+#[repr(C)]
+pub struct _vftable_CounterStyle {
 }
 #[test]
 fn bindgen_test_layout_CounterStyle() {
@@ -3523,6 +3552,10 @@ pub struct AnonymousCounterStyle {
     pub mSingleString: bool,
     pub mSystem: u8,
     pub mSymbols: [u8; 8usize],
+}
+#[repr(C)]
+pub struct _vftable_AnonymousCounterStyle {
+    pub _base: _vftable_CounterStyle,
 }
 #[test]
 fn bindgen_test_layout_AnonymousCounterStyle() {
@@ -3614,6 +3647,7 @@ pub enum nsStyleImageType {
 pub struct nsStyleImage {
     pub mSubImages: [u8; 8usize],
     pub mType: nsStyleImageType,
+    pub nsStyleStruct_h_unnamed_11: nsStyleImage_nsStyleStruct_h_unnamed_11,
     pub mCropRect: nsAutoPtr<nsStyleSides>,
     pub mImageTracked: bool,
 }
@@ -4032,6 +4066,7 @@ fn bindgen_test_layout_nsStyleVisibility() {
 #[derive(Copy, Clone)]
 pub struct nsTimingFunction {
     pub mType: nsTimingFunction_Type,
+    pub nsStyleStruct_h_unnamed_13: nsTimingFunction_nsStyleStruct_h_unnamed_13,
 }
 #[repr(i32)]
 #[derive(Copy, Clone, Debug)]
@@ -4399,6 +4434,7 @@ fn bindgen_test_layout_nsStyleBasicShape() {
 #[repr(C)]
 pub struct nsStyleClipPath {
     pub mType: i32,
+    pub nsStyleStruct_h_unnamed_18: nsStyleClipPath_nsStyleStruct_h_unnamed_18,
     pub mSizingBox: u8,
 }
 #[repr(C)]
@@ -4415,6 +4451,7 @@ fn bindgen_test_layout_nsStyleClipPath() {
 pub struct nsStyleFilter {
     pub mType: i32,
     pub mFilterParameter: nsStyleCoord,
+    pub nsStyleStruct_h_unnamed_19: nsStyleFilter_nsStyleStruct_h_unnamed_19,
 }
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
