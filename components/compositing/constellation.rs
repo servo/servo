@@ -367,9 +367,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
     fn run(&mut self) {
         loop {
-            // Randomly close a pipelne.
+            // Randomly close a pipelne if --random-pipeline-closure-probability is set
             // This is for testing the hardening of the constellation.
-            self.close_random_pipeline();
+            self.maybe_close_random_pipeline();
             if !self.handle_request() {
                 break;
             }
@@ -1589,8 +1589,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
     }
 
-    // Randomly close a pipeline
-    fn close_random_pipeline(&mut self) {
+    // Randomly close a pipeline -if --random-pipeline-closure-probability is set
+    fn maybe_close_random_pipeline(&mut self) {
         match self.random_pipeline_closure {
             Some((ref mut rng, probability)) => if probability <= rng.gen::<f32>() { return },
             _ => return,
