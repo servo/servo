@@ -355,6 +355,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 random_pipeline_closure: opts::get().random_pipeline_closure_probability.map(|prob| {
                     let seed = opts::get().random_pipeline_closure_seed.unwrap_or_else(random);
                     let rng = StdRng::from_seed(&[seed]);
+                    debug!("Using seed {} for random pipeline closure.", seed);
                     (rng, prob)
                 }),
             };
