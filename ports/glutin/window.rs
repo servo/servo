@@ -84,6 +84,7 @@ pub struct Window {
 
     mouse_pos: Cell<Point2D<i32>>,
     key_modifiers: Cell<KeyModifiers>,
+    current_url: RefCell<Option<Url>>,
 }
 
 #[cfg(feature = "window")]
@@ -138,6 +139,7 @@ impl Window {
 
             mouse_pos: Cell::new(Point2D::new(0, 0)),
             key_modifiers: Cell::new(KeyModifiers::empty()),
+            current_url: RefCell::new(None),
         };
 
         gl::clear_color(0.6, 0.6, 0.6, 1.0);
@@ -605,15 +607,22 @@ impl WindowMethods for Window {
     }
 
     fn set_page_title(&self, title: Option<String>) {
+        let fallback_title: String = if let Some(ref current_url) = *self.current_url.borrow() {
+            current_url.to_string()
+        } else {
+            String::from("Untitled")
+        };
+
         let title = match title {
             Some(ref title) if title.len() > 0 => &**title,
-            _ => "untitled",
+            _ => &fallback_title,
         };
         let title = format!("{} - Servo", title);
         self.window.set_title(&title);
     }
 
-    fn set_page_url(&self, _: Url) {
+    fn set_page_url(&self, url: Url) {
+        *self.current_url.borrow_mut() = Some(url);
     }
 
     fn status(&self, _: Option<String>) {
