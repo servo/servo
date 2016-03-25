@@ -2,15 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use cookie_storage::CookieStorage;
-use http_loader;
+use http_loader::{self, HttpState};
 use hyper::header::Host;
 use net_traits::MessageData;
 use net_traits::hosts::replace_hosts;
 use net_traits::unwrap_websocket_protocol;
 use net_traits::{WebSocketCommunicate, WebSocketConnectData, WebSocketDomAction, WebSocketNetworkEvent};
 use std::ascii::AsciiExt;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use util::thread::spawn_named;
 use websocket::client::request::Url;
@@ -28,7 +27,7 @@ use websocket::{Client, Message};
 /// *Establish a WebSocket Connection* as defined in RFC 6455.
 fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, bool),
                                     origin: String, protocols: Vec<String>,
-                                    cookie_jar: Arc<RwLock<CookieStorage>>)
+                                    http_state: Arc<HttpState>)
     -> WebSocketResult<(Headers, Sender<WebSocketStream>, Receiver<WebSocketStream>)> {
 
     let host = Host {
@@ -43,7 +42,7 @@ fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, 
         request.headers.set(WebSocketProtocol(protocols.clone()));
     };
 
-    http_loader::set_request_cookies(resource_url.clone(), &mut request.headers, &cookie_jar);
+    http_loader::set_request_cookies(resource_url.clone(), &mut request.headers, http_state.clone());
 
     let response = try!(request.send());
     try!(response.validate());
@@ -63,7 +62,7 @@ fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, 
 
 }
 
-pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, cookie_jar: Arc<RwLock<CookieStorage>>) {
+pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, http_state: Arc<HttpState>) {
     spawn_named(format!("WebSocket connection to {}", connect_data.resource_url), move || {
         // Step 8: Protocols.
 
@@ -84,7 +83,7 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, c
                                                        net_url,
                                                        connect_data.origin,
                                                        connect_data.protocols.clone(),
-                                                       cookie_jar);
+                                                       http_state.clone());
         let (_, ws_sender, mut receiver) = match channel {
             Ok(channel) => {
                 let _ = connect.event_sender.send(WebSocketNetworkEvent::ConnectionEstablished(channel.0.clone(),
