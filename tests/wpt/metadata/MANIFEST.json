@@ -34744,7 +34744,16 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "testharness": {
+        "html/semantics/scripting-1/the-script-element/script-not-found-not-executed.html": [
+          {
+            "path": "html/semantics/scripting-1/the-script-element/script-not-found-not-executed.html",
+            "url": "/html/semantics/scripting-1/the-script-element/script-not-found-not-executed.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
