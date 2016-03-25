@@ -14,7 +14,6 @@ use js::jsapi::{IsCallable, JSContext, JSObject, JS_WrapObject};
 use js::jsapi::{JSCompartment, JS_EnterCompartment, JS_LeaveCompartment};
 use js::jsapi::{JS_BeginRequest, JS_EndRequest};
 use js::jsapi::{JS_GetProperty, JS_IsExceptionPending, JS_ReportPendingException};
-use js::jsapi::{JS_RestoreFrameChain, JS_SaveFrameChain};
 use js::jsval::{JSVal, UndefinedValue};
 use std::default::Default;
 use std::ffi::CString;
@@ -201,14 +200,8 @@ impl Drop for CallSetup {
         if need_to_deal_with_exception {
             unsafe {
                 let old_global = RootedObject::new(self.cx, self.exception_compartment.ptr);
-                let saved = JS_SaveFrameChain(self.cx);
-                {
-                    let _ac = JSAutoCompartment::new(self.cx, old_global.ptr);
-                    JS_ReportPendingException(self.cx);
-                }
-                if saved {
-                    JS_RestoreFrameChain(self.cx);
-                }
+                let _ac = JSAutoCompartment::new(self.cx, old_global.ptr);
+                JS_ReportPendingException(self.cx);
             }
         }
         unsafe {
