@@ -310,4 +310,5 @@ partial interface CSSStyleDeclaration {
 
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexDirection;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flex-direction;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString order;
 };
