@@ -95,7 +95,7 @@ dependencies = [
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-egl 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-freetype-sys 2.4.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-skia 0.20130412.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -710,7 +710,7 @@ dependencies = [
  "msg 0.0.1",
  "net_traits 0.0.1",
  "script_traits 0.0.1",
- "servo-egl 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-glutin 0.4.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "style_traits 0.0.1",
  "url 0.5.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -954,7 +954,7 @@ dependencies = [
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-egl 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-skia 0.20130412.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "x11 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1729,7 +1729,7 @@ dependencies = [
 
 [[package]]
 name = "servo-egl"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1803,7 +1803,7 @@ dependencies = [
  "glx 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "io-surface 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "servo-egl 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-fontconfig 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-freetype-sys 2.4.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-glutin 0.4.13 (registry+https://github.com/rust-lang/crates.io-index)",
