@@ -733,7 +733,7 @@ impl WindowMethods for Window {
             (NONE, Key::Backspace) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
             }
-            (SHIFT, Key::NavigateForward) => {
+            (NONE, Key::NavigateForward) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
             }
             (NONE, Key::NavigateBackward) => {
