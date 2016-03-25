@@ -78,6 +78,13 @@ test(function () {
   assert_throws( 'SYNTAX_ERR', function () { elem.classList.toggle(''); } );
 }, '.toggle(empty_string) must throw a SYNTAX_ERR');
 test(function () {
+  assert_throws( 'SYNTAX_ERR', function () { elem.classList.replace('', 'foo'); } );
+  assert_throws( 'SYNTAX_ERR', function () { elem.classList.replace('foo', ''); } );
+  assert_throws( 'SYNTAX_ERR', function () { elem.classList.replace('', 'foo bar'); } );
+  assert_throws( 'SYNTAX_ERR', function () { elem.classList.replace('foo bar', ''); } );
+  assert_throws( 'SYNTAX_ERR', function () { elem.classList.replace('', ''); } );
+}, '.replace with empty_string must throw a SYNTAX_ERR');
+test(function () {
   assert_throws( 'INVALID_CHARACTER_ERR', function () { elem.classList.contains('a b'); } );
 }, '.contains(string_with_spaces) must throw an INVALID_CHARACTER_ERR');
 test(function () {
@@ -89,6 +96,20 @@ test(function () {
 test(function () {
   assert_throws( 'INVALID_CHARACTER_ERR', function () { elem.classList.toggle('a b'); } );
 }, '.toggle(string_with_spaces) must throw an INVALID_CHARACTER_ERR');
+test(function () {
+  assert_throws( 'INVALID_CHARACTER_ERR', function () { elem.classList.replace('z', 'a b'); } );
+  assert_throws( 'INVALID_CHARACTER_ERR', function () { elem.classList.replace('a b', 'z'); } );
+  assert_throws( 'INVALID_CHARACTER_ERR', function () { elem.classList.replace('a b', 'b c'); } );
+}, '.replace with string_with_spaces must throw a INVALID_CHARACTER_ERR');
+test(function () {
+  var foo = document.createElement('div');
+  foo.className = 'token1 token2 token3'
+  foo.classList.replace('token1', 'token3');
+  assert_equals( foo.classList.length, 2 );
+  assert_false( foo.classList.contains('token1') );
+  assert_true( foo.classList.contains('token2') );
+  assert_true( foo.classList.contains('token3') );
+}, '.replace with an already existing token')
 elem.className = 'foo';
 test(function () {
   assert_equals( getComputedStyle(elem,null).fontStyle, 'italic', 'critical test; required by the testsuite' );
@@ -225,6 +246,58 @@ test(function () {
   assert_false( elem.classList.contains('FOO') );
 }, 'classList.toggle must be case-sensitive when removing tokens');
 test(function () {
+  secondelem.className = 'foo FOO'
+  secondelem.classList.replace('bar', 'baz');
+  assert_equals( secondelem.classList.length, 2 );
+  assert_equals( secondelem.classList + '', 'foo FOO', 'implicit' );
+  assert_equals( secondelem.classList.toString(), 'foo FOO', 'explicit' );
+}, 'classList.replace replaces arguments passed, if they are present.');
+test(function () {
+  secondelem.classList.replace('foo', 'bar');
+  assert_equals( secondelem.classList.length, 2 );
+  assert_equals( secondelem.classList + '', 'bar FOO', 'implicit' );
+  assert_equals( secondelem.classList.toString(), 'bar FOO', 'explicit' );
+  assert_false( secondelem.classList.contains('foo') );
+  assert_true( secondelem.classList.contains('bar') );
+  assert_true( secondelem.classList.contains('FOO') );
+}, 'classList.replace must replace existing tokens');
+test(function () {
+  assert_not_equals( getComputedStyle(secondelem,null).fontStyle, 'italic' );
+}, 'classList.replace must not break case-sensitive CSS selector matching');
+test(function () {
+  secondelem.className = 'token1 token2 token1'
+  secondelem.classList.replace('token1', 'token3');
+  assert_equals( secondelem.classList.length, 2 );
+  assert_false( secondelem.classList.contains('token1') );
+  assert_true( secondelem.classList.contains('token2') );
+  assert_true( secondelem.classList.contains('token3') );
+}, 'classList.replace must replace duplicated tokens');
+test(function () {
+  secondelem.className = 'token1  token2  token3';
+  secondelem.classList.replace('token2', 'token4');
+  assert_equals( secondelem.classList + '', 'token1 token4 token3', 'implicit' );
+  assert_equals( secondelem.classList.toString(), 'token1 token4 token3', 'explicit' );
+}, 'classList.replace must collapse whitespace around replaced tokens');
+test(function () {
+  secondelem.className = ' token1 token2  ';
+  secondelem.classList.replace('token2', 'token3');
+  assert_equals( secondelem.classList.length, 2 );
+  assert_equals( secondelem.classList + '', 'token1 token3', 'implicit' );
+  assert_equals( secondelem.classList.toString(), 'token1 token3', 'explicit' );
+}, 'classList.replace must collapse whitespaces around each token');
+test(function () {
+  secondelem.className = '  token1  token2  token1  ';
+  secondelem.classList.replace('token2', 'token3');
+  assert_equals( secondelem.classList + '', 'token1 token3', 'implicit' );
+  assert_equals( secondelem.classList.toString(), 'token1 token3', 'explicit' );
+}, 'classList.replace must collapse whitespaces around each token and remove duplicates');
+test(function () {
+  secondelem.className = '  token1  token2  token1  ';
+  secondelem.classList.replace('token1', 'token3');
+  assert_equals( secondelem.classList + '', 'token3 token2', 'implicit' );
+  assert_equals( secondelem.classList.toString(), 'token3 token2', 'explicit' );
+}, 'classList.replace must collapse whitespace when replacing duplicate tokens');
+test(function () {
   assert_not_equals( getComputedStyle(elem,null).fontStyle, 'italic' );
 }, 'CSS class selectors must stop matching when all classes have been removed');
 test(function () {
@@ -245,6 +318,13 @@ test(function () {
   WebIDL creates actual OwnProperties and then [] just acts as a normal property lookup */
   assert_equals( elem.classList[0], undefined );
 }, 'classList[0] must be undefined when all classes have been removed');
+test(function () {
+  var foo = document.createElement('div');
+  foo.classList.add();
+  assert_true( foo.hasAttribute('class') );
+  assert_equals( foo.classList + '', '', 'implicit' );
+  assert_equals( foo.classList.toString(), '', 'explicit' );
+}, 'Invoking add or remove should set the class attribute');
 // The ordered set parser must skip ASCII whitespace (U+0009, U+000A, U+000C, U+000D, and U+0020.)
 test(function () {
   var foo = document.createElement('div');
