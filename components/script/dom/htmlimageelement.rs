@@ -151,18 +151,10 @@ impl HTMLImageElement {
     fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
        HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
-            current_request: ImageRequest { 
-                state: State::Unavailable,
-                url: DOMRefCell::new(None), 
-                image: DOMRefCell::new(None), 
-                metadata: DOMRefCell::new(None) 
-            },
-            pending_request: ImageRequest { 
-                state: State::Unavailable,
-                url: DOMRefCell::new(None), 
-                image: DOMRefCell::new(None), 
-                metadata: DOMRefCell::new(None) 
-            },
+            currentrequest: ImageRequest { state: State::Unavavailable,
+                url: DOMRefCell::new(None), image: DOMRefCell::new(None), metadata: DOMRefCell::new(None) },
+            pendingrequest: ImageRequest { state: State::Unavailable,
+                url: DOMRefCell::new(None), image: DOMRefCell::new(None), metadata: DOMRefCell::new(None) },
         }
     }
 
@@ -247,7 +239,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
     make_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-crossorigin
-    make_enumerated_getter!(CrossOrigin,"crossorigin", "anonymous",("use-credentials"));
+    make_enumerated_getter!(CrossOrigin, "crossorigin", "anonymous", ("use-credentials"));
     // https://html.spec.whatwg.org/multipage/#dom-img-crossorigin
     make_setter!(SetCrossOrigin, "crossorigin");
 
