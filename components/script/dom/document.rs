@@ -1271,6 +1271,7 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
     pub fn request_animation_frame(&self, callback: Box<FnBox(f64)>) -> u32 {
+        println!("dom requesting animation frame");
         let ident = self.animation_frame_ident.get() + 1;
 
         self.animation_frame_ident.set(ident);
