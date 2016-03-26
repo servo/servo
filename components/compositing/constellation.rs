@@ -43,6 +43,7 @@ use offscreen_gl_context::GLContextAttributes;
 use pipeline::{CompositionPipeline, InitialPipelineState, Pipeline, UnprivilegedPipelineContent};
 use profile_traits::mem;
 use profile_traits::time;
+use rand::{random, Rng, SeedableRng, StdRng};
 #[cfg(not(target_os = "windows"))]
 use sandboxing;
 use script_traits::{AnimationState, CompositorEvent, ConstellationControlMsg};
@@ -180,6 +181,10 @@ pub struct Constellation<LTF, STF> {
 
     // Webrender interface, if enabled.
     webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+
+    /// The random number generator and probability for closing pipelines.
+    /// This is for testing the hardening of the constellation.
+    random_pipeline_closure: Option<(StdRng, f32)>,
 }
 
 /// State needed to construct a constellation.
@@ -347,6 +352,13 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 child_processes: Vec::new(),
                 document_states: HashMap::new(),
                 webrender_api_sender: state.webrender_api_sender,
+                random_pipeline_closure: opts::get().random_pipeline_closure_probability.map(|prob| {
+                    let seed = opts::get().random_pipeline_closure_seed.unwrap_or_else(random);
+                    let rng = StdRng::from_seed(&[seed]);
+                    warn!("Randomly closing pipelines.");
+                    info!("Using seed {} for random pipeline closure.", seed);
+                    (rng, prob)
+                }),
             };
             let namespace_id = constellation.next_pipeline_namespace_id();
             PipelineNamespace::install(namespace_id);
@@ -357,6 +369,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
     fn run(&mut self) {
         loop {
+            // Randomly close a pipeline if --random-pipeline-closure-probability is set
+            // This is for testing the hardening of the constellation.
+            self.maybe_close_random_pipeline();
             if !self.handle_request() {
                 break;
             }
@@ -1573,6 +1588,27 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         match exit_mode {
             ExitPipelineMode::Normal => pipeline.exit(),
             ExitPipelineMode::Force => pipeline.force_exit(),
+        }
+    }
+
+    // Randomly close a pipeline -if --random-pipeline-closure-probability is set
+    fn maybe_close_random_pipeline(&mut self) {
+        match self.random_pipeline_closure {
+            Some((ref mut rng, probability)) => if probability <= rng.gen::<f32>() { return },
+            _ => return,
+        };
+        // In order to get repeatability, we sort the pipeline ids.
+        let mut pipeline_ids: Vec<&PipelineId> = self.pipelines.keys().collect();
+        pipeline_ids.sort();
+        if let Some((ref mut rng, _)) = self.random_pipeline_closure {
+            if let Some(pipeline_id) = rng.choose(&*pipeline_ids) {
+                if let Some(pipeline) = self.pipelines.get(pipeline_id) {
+                    // Note that we deliberately do not do any of the tidying up
+                    // associated with closing a pipeline. The constellation should cope!
+                    info!("Randomly closing pipeline {}.", pipeline_id);
+                    pipeline.force_exit();
+                }
+            }
         }
     }
 
