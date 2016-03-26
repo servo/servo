@@ -1168,6 +1168,35 @@ impl Element {
         let node = self.upcast::<Node>();
         node.owner_doc().element_attr_will_change(self);
     }
+
+    // https://dom.spec.whatwg.org/#insert-adjacent
+    pub fn insert_adjacent(&self, where_: DOMString, node: &Node)
+                           -> Fallible<Option<Root<Node>>> {
+        let self_node = self.upcast::<Node>();
+        match &*where_ {
+            "beforebegin" => {
+                if let Some(parent) = self_node.GetParentNode() {
+                    Node::pre_insert(node, &parent, Some(self_node)).map(Some)
+                } else {
+                    Ok(None)
+                }
+            }
+            "afterbegin" => {
+                Node::pre_insert(node, &self_node, self_node.GetFirstChild().r()).map(Some)
+            }
+            "beforeend" => {
+                Node::pre_insert(node, &self_node, None).map(Some)
+            }
+            "afterend" => {
+                if let Some(parent) = self_node.GetParentNode() {
+                    Node::pre_insert(node, &parent, self_node.GetNextSibling().r()).map(Some)
+                } else {
+                    Ok(None)
+                }
+            }
+            _ => Err(Error::Syntax)
+        }
+    }
 }
 
 impl ElementMethods for Element {
@@ -1619,6 +1648,23 @@ impl ElementMethods for Element {
                 Ok(None)
             }
         }
+    }
+
+    // https://dom.spec.whatwg.org/#dom-element-insertadjacentelement
+    fn InsertAdjacentElement(&self, where_: DOMString, element: &Element)
+                             -> Fallible<Option<Root<Element>>> {
+        let inserted_node = try!(self.insert_adjacent(where_, element.upcast()));
+        Ok(inserted_node.map(|node| Root::downcast(node).unwrap()))
+    }
+
+    // https://dom.spec.whatwg.org/#dom-element-insertadjacenttext
+    fn InsertAdjacentText(&self, where_: DOMString, data: DOMString)
+                          -> ErrorResult {
+        // Step 1.
+        let text = Text::new(data, &document_from_node(self));
+
+        // Step 2.
+        self.insert_adjacent(where_, text.upcast()).map(|_| ())
     }
 }
 
