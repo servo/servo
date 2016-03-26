@@ -157,7 +157,7 @@ pub struct Document {
     anchors: MutNullableHeap<JS<HTMLCollection>>,
     applets: MutNullableHeap<JS<HTMLCollection>>,
     /// List of stylesheets associated with nodes in this document. |None| if the list needs to be refreshed.
-    stylesheets: DOMRefCell<Option<Vec<Arc<Stylesheet>>>>,
+    stylesheets: DOMRefCell<Option<Vec<(JS<Node>, Arc<Stylesheet>)>>>,
     /// Whether the list of stylesheets has changed since the last reflow was triggered.
     stylesheets_changed_since_reflow: Cell<bool>,
     ready_state: Cell<DocumentReadyState>,
@@ -1635,11 +1635,11 @@ impl Document {
     }
 
     /// Returns the list of stylesheets associated with nodes in the document.
-    pub fn stylesheets(&self) -> Ref<Vec<Arc<Stylesheet>>> {
+    pub fn stylesheets(&self) -> Vec<Arc<Stylesheet>> {
         {
             let mut stylesheets = self.stylesheets.borrow_mut();
             if stylesheets.is_none() {
-                let new_stylesheets: Vec<Arc<Stylesheet>> = self.upcast::<Node>()
+                *stylesheets = Some(self.upcast::<Node>()
                     .traverse_preorder()
                     .filter_map(|node| {
                         if let Some(node) = node.downcast::<HTMLStyleElement>() {
@@ -1650,13 +1650,14 @@ impl Document {
                             node.get_stylesheet()
                         } else {
                             None
-                        }
+                        }.map(|stylesheet| (JS::from_rooted(&node), stylesheet))
                     })
-                    .collect();
-                *stylesheets = Some(new_stylesheets);
+                    .collect());
             };
         }
-        Ref::map(self.stylesheets.borrow(), |t| t.as_ref().unwrap())
+        self.stylesheets.borrow().as_ref().unwrap().iter()
+                        .map(|&(_, ref stylesheet)| stylesheet.clone())
+                        .collect()
     }
 
     /// https://html.spec.whatwg.org/multipage/#appropriate-template-contents-owner-document
