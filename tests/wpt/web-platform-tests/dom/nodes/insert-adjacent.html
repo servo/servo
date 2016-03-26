@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#element {
+  display: none;
+}
+</style>
+
+<div id="element"></div>
+<div id="log"></div>
+
+<script>
+var possiblePositions = {
+    'beforebegin': 'previousSibling'
+  , 'afterbegin': 'firstChild'
+  , 'beforeend': 'lastChild'
+  , 'afterend': 'nextSibling'
+}
+var texts = {
+   'beforebegin': 'text1'
+  , 'afterbegin': 'text2'
+  , 'beforeend': 'text3'
+  , 'afterend': 'text4'
+}
+
+var el = document.querySelector('#element');
+var div = document.querySelector('#test');
+
+Object.keys(possiblePositions).forEach(function(position) {
+  test(function() {
+    var div = document.createElement('h3');
+    div.id = texts[position];
+    el.insertAdjacentElement(position, div);
+    assert_equals(el[possiblePositions[position]].id, texts[position]);
+  }, 'insertAdjacentElement(' + position + ', ' + div + ' )');
+
+  test(function() {
+    el.insertAdjacentText(position, texts[position]);
+    assert_equals(el[possiblePositions[position]].textContent, texts[position]);
+  }, 'insertAdjacentText(' + position + ', ' + div + ' )');
+});
+</script>
