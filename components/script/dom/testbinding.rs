@@ -27,6 +27,7 @@ use js::jsval::{JSVal, NullValue};
 use std::borrow::ToOwned;
 use std::ptr;
 use std::rc::Rc;
+use util::prefs::{get_pref};
 use util::str::DOMString;
 
 #[dom_struct]
@@ -486,6 +487,9 @@ impl TestBindingMethods for TestBinding {
     fn PassVariadicUnion6(&self, _: Vec<UnsignedLongOrBoolean>) {}
     fn PassVariadicAny(&self, _: *mut JSContext, _: Vec<HandleValue>) {}
     fn PassVariadicObject(&self, _: *mut JSContext, _: Vec<*mut JSObject>) {}
+    fn BooleanMozPreference(&self, pref_name: DOMString) -> bool {
+        get_pref(pref_name.as_ref()).as_boolean().unwrap_or(false)
+    }
 }
 
 impl TestBinding {

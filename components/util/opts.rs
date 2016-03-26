@@ -518,6 +518,7 @@ pub fn default_opts() -> Opts {
     }
 }
 
+#[allow(str_to_string)]
 pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     let (app_name, args) = args.split_first().unwrap();
 
@@ -793,7 +794,14 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     // This must happen after setting the default options, since the prefs rely on
     // on the resource path.
     for pref in opt_match.opt_strs("pref").iter() {
-        prefs::set_pref(pref, PrefValue::Boolean(true));
+        let split: Vec<&str> = pref.splitn(2, '=').collect();
+        let pref_name = split[0];
+        let value = split.get(1);
+        match value {
+            Some(&"false") => prefs::set_pref(pref_name, PrefValue::Boolean(false)),
+            Some(&"true") | None => prefs::set_pref(pref_name, PrefValue::Boolean(true)),
+            _ => prefs::set_pref(pref_name, PrefValue::String(value.unwrap().to_string()))
+        };
     }
 
     ArgumentParsingResult::ChromeProcess
