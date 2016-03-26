@@ -1655,9 +1655,8 @@ impl Document {
                     .collect());
             };
         }
-        self.stylesheets.borrow().clone()
-                        .unwrap().into_iter()
-                        .map(|(_, stylesheet)| stylesheet)
+        self.stylesheets.borrow().as_ref().unwrap().iter()
+                        .map(|&(_, ref stylesheet)| stylesheet.clone())
                         .collect()
     }
 
