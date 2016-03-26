@@ -10,7 +10,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::element::{Element, StylePriority};
-use dom::node::{Node, NodeDamage, window_from_node};
+use dom::node::{Node, window_from_node};
 use dom::window::Window;
 use std::ascii::AsciiExt;
 use string_cache::Atom;
@@ -146,7 +146,8 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
             // Step 2.3
             let list = list.iter().map(|x| &*x).collect::<Vec<_>>();
-            return DOMString::from(shorthand.serialize_shorthand(&list));
+            let serialized_value = shorthand.serialize_shorthand_to_string(&list);
+            return DOMString::from(serialized_value);
         }
 
         // Step 3 & 4
