@@ -6144,6 +6144,12 @@
             "url": "/_mozilla/mozilla/parentnodes.html"
           }
         ],
+        "mozilla/preferences.html": [
+          {
+            "path": "mozilla/preferences.html",
+            "url": "/_mozilla/mozilla/preferences.html"
+          }
+        ],
         "mozilla/preserve_wrapper_callback.html": [
           {
             "path": "mozilla/preserve_wrapper_callback.html",
