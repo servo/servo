@@ -1273,6 +1273,7 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
     pub fn request_animation_frame(&self, callback: Box<FnBox(f64)>) -> u32 {
+        println!("dom requesting animation frame");
         let ident = self.animation_frame_ident.get() + 1;
 
         self.animation_frame_ident.set(ident);
@@ -1300,6 +1301,7 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks
     pub fn run_the_animation_frame_callbacks(&self) {
+        println!("running animation callbacks");
         let animation_frame_list =
             mem::replace(&mut *self.animation_frame_list.borrow_mut(), BTreeMap::new());
         let performance = self.window.Performance();
