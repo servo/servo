@@ -21,7 +21,7 @@ use std::iter::{IntoIterator, Iterator, Peekable};
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_spacing};
 use style::logical_geometry::{LogicalSize, WritingMode};
-use style::properties::{ComputedValues, TComputedValues};
+use style::properties::{ServoComputedValues, TComputedValues};
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, TableLikeFlow};
 use table_row;
 use util::print_tree::PrintTree;
@@ -217,7 +217,7 @@ impl Flow for TableRowGroupFlow {
         self.block_flow.collect_stacking_contexts(parent_id, contexts)
     }
 
-    fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 

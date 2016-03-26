@@ -6,7 +6,7 @@ use app_units::Au;
 use std::sync::Arc;
 use style::custom_properties::ComputedValuesMap;
 use style::logical_geometry::WritingMode;
-use style::properties::{CascadePropertyFn, ComputedValues, TComputedValues};
+use style::properties::{CascadePropertyFn, ServoComputedValues, TComputedValues};
 use style::properties::longhands;
 use style::properties::style_struct_traits::*;
 
@@ -28,8 +28,8 @@ impl TComputedValues for GeckoComputedValues {
 % endfor
 
     // These will go away, and we will never implement them.
-    fn as_servo<'a>(&'a self) -> &'a ComputedValues { unimplemented!() }
-    fn as_servo_mut<'a>(&'a mut self) -> &'a mut ComputedValues { unimplemented!() }
+    fn as_servo<'a>(&'a self) -> &'a ServoComputedValues { unimplemented!() }
+    fn as_servo_mut<'a>(&'a mut self) -> &'a mut ServoComputedValues { unimplemented!() }
 
     fn new(custom_properties: Option<Arc<ComputedValuesMap>>,
            shareable: bool,

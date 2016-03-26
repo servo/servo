@@ -67,7 +67,7 @@ use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display};
 use style::dom::{TDocument, TElement, TNode, UnsafeNode};
 use style::element_state::*;
-use style::properties::{ComputedValues, TComputedValues};
+use style::properties::{ServoComputedValues, TComputedValues};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::{NonTSPseudoClass, PseudoElement, ServoSelectorImpl};
@@ -132,7 +132,7 @@ impl<'ln> ServoLayoutNode<'ln> {
 }
 
 impl<'ln> TNode for ServoLayoutNode<'ln> {
-    type ConcreteComputedValues = ComputedValues;
+    type ConcreteComputedValues = ServoComputedValues;
     type ConcreteElement = ServoLayoutElement<'ln>;
     type ConcreteDocument = ServoLayoutDocument<'ln>;
     type ConcreteRestyleDamage = RestyleDamage;
@@ -751,7 +751,7 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
     ///
     /// Unlike the version on TNode, this handles pseudo-elements.
     #[inline]
-    fn style(&self) -> Ref<Arc<ComputedValues>> {
+    fn style(&self) -> Ref<Arc<ServoComputedValues>> {
         Ref::map(self.borrow_layout_data().unwrap(), |data| {
             let style = match self.get_pseudo_element_type() {
                 PseudoElementType::Before(_) => data.style_data.per_pseudo.get(&PseudoElement::Before),
