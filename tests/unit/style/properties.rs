@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::ToCss;
 use std::sync::Arc;
 use style::computed_values::display::T::inline_block;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue};
@@ -34,10 +35,10 @@ fn property_declaration_block_should_serialize_correctly() {
         important: Arc::new(important)
     };
 
-    let css_string = block.serialize();
+    let css_string = block.to_css_string();
 
     assert_eq!(
         css_string,
-        "width: 70px; min-height: 20px; display: inline-block; height: 20px ! important;"
+        "width: 70px; min-height: 20px; display: inline-block; height: 20px !important;"
     );
 }
