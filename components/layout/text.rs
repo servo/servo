@@ -7,7 +7,8 @@
 #![deny(unsafe_code)]
 
 use app_units::Au;
-use fragment::{Fragment, ScannedTextFragmentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
+use fragment::{Fragment, REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES, ScannedTextFlags};
+use fragment::{ScannedTextFragmentInfo, SELECTED, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use gfx::font::{DISABLE_KERNING_SHAPING_FLAG, FontMetrics, IGNORE_LIGATURES_SHAPING_FLAG};
 use gfx::font::{RTL_FLAG, RunMetrics, ShapingFlags, ShapingOptions};
 use gfx::font_context::FontContext;
@@ -172,17 +173,21 @@ impl TextRunScanner {
             for (fragment_index, in_fragment) in self.clump.iter().enumerate() {
                 let mut mapping = RunMapping::new(&run_info_list[..], &run_info, fragment_index);
                 let text;
-                let insertion_point;
+                let selection;
                 match in_fragment.specific {
                     SpecificFragmentInfo::UnscannedText(ref text_fragment_info) => {
                         text = &text_fragment_info.text;
-                        insertion_point = text_fragment_info.insertion_point;
+                        selection = text_fragment_info.selection;
                     }
                     _ => panic!("Expected an unscanned text fragment!"),
                 };
+                let insertion_point = match selection {
+                    Some(range) if range.is_empty() => Some(range.begin()),
+                    _ => None
+                };
 
                 let (mut start_position, mut end_position) = (0, 0);
-                for character in text.chars() {
+                for (char_index, character) in text.chars().enumerate() {
                     // Search for the first font in this font group that contains a glyph for this
                     // character.
                     let mut font_index = 0;
@@ -213,11 +218,18 @@ impl TextRunScanner {
                         run_info.script = script;
                     }
 
+                    let selected = match selection {
+                        Some(range) => range.contains(CharIndex(char_index as isize)),
+                        None => false
+                    };
+
                     // Now, if necessary, flush the mapping we were building up.
-                    if run_info.font_index != font_index ||
-                       run_info.bidi_level != bidi_level ||
-                       !compatible_script
-                    {
+                    let flush_run = run_info.font_index != font_index ||
+                                    run_info.bidi_level != bidi_level ||
+                                    !compatible_script;
+                    let flush_mapping = flush_run || mapping.selected != selected;
+
+                    if flush_mapping {
                         if end_position > start_position {
                             mapping.flush(&mut mappings,
                                           &mut run_info,
@@ -230,8 +242,10 @@ impl TextRunScanner {
                                           end_position);
                         }
                         if run_info.text.len() > 0 {
-                            run_info_list.push(run_info);
-                            run_info = RunInfo::new();
+                            if flush_run {
+                                run_info_list.push(run_info);
+                                run_info = RunInfo::new();
+                            }
                             mapping = RunMapping::new(&run_info_list[..],
                                                       &run_info,
                                                       fragment_index);
@@ -239,6 +253,7 @@ impl TextRunScanner {
                         run_info.font_index = font_index;
                         run_info.bidi_level = bidi_level;
                         run_info.script = script;
+                        mapping.selected = selected;
                     }
 
                     // Consume this character.
@@ -330,12 +345,20 @@ impl TextRunScanner {
                 }
 
                 let text_size = old_fragment.border_box.size;
+
+                let mut flags = ScannedTextFlags::empty();
+                if mapping.selected {
+                    flags.insert(SELECTED);
+                }
+                if requires_line_break_afterward_if_wrapping_on_newlines {
+                    flags.insert(REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES);
+                }
                 let mut new_text_fragment_info = box ScannedTextFragmentInfo::new(
                     scanned_run.run,
                     mapping.char_range,
                     text_size,
-                    &scanned_run.insertion_point,
-                    requires_line_break_afterward_if_wrapping_on_newlines);
+                    scanned_run.insertion_point,
+                    flags);
 
                 let new_metrics = new_text_fragment_info.run.metrics_for_range(&mapping.char_range);
                 let writing_mode = old_fragment.style.writing_mode;
@@ -408,7 +431,7 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
     let new_fragment = {
         let mut first_fragment = fragments.front_mut().unwrap();
         let string_before;
-        let insertion_point_before;
+        let selection_before;
         {
             if !first_fragment.white_space().preserve_newlines() {
                 return;
@@ -433,21 +456,28 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
             unscanned_text_fragment_info.text =
                 unscanned_text_fragment_info.text[(position + 1)..].to_owned().into_boxed_str();
             let offset = CharIndex(string_before.char_indices().count() as isize);
-            match unscanned_text_fragment_info.insertion_point {
-                Some(insertion_point) if insertion_point >= offset => {
-                    insertion_point_before = None;
-                    unscanned_text_fragment_info.insertion_point = Some(insertion_point - offset);
+            match unscanned_text_fragment_info.selection {
+                Some(ref mut selection) if selection.begin() >= offset => {
+                    // Selection is entirely in the second fragment.
+                    selection_before = None;
+                    selection.shift_by(-offset);
                 }
-                Some(_) | None => {
-                    insertion_point_before = unscanned_text_fragment_info.insertion_point;
-                    unscanned_text_fragment_info.insertion_point = None;
+                Some(ref mut selection) if selection.end() > offset => {
+                    // Selection is split across two fragments.
+                    selection_before = Some(Range::new(selection.begin(), offset));
+                    *selection = Range::new(CharIndex(0), selection.end() - offset);
+                }
+                _ => {
+                    // Selection is entirely in the first fragment.
+                    selection_before = unscanned_text_fragment_info.selection;
+                    unscanned_text_fragment_info.selection = None;
                 }
             };
         }
         first_fragment.transform(first_fragment.border_box.size,
                                  SpecificFragmentInfo::UnscannedText(
                                      UnscannedTextFragmentInfo::new(string_before,
-                                                                    insertion_point_before)))
+                                                                    selection_before)))
     };
 
     fragments.push_front(new_fragment);
@@ -494,6 +524,8 @@ struct RunMapping {
     old_fragment_index: usize,
     /// The index of the text run we're going to create.
     text_run_index: usize,
+    /// Is the text in this fragment selected?
+    selected: bool,
 }
 
 impl RunMapping {
@@ -508,6 +540,7 @@ impl RunMapping {
             byte_range: Range::new(0, 0),
             old_fragment_index: fragment_index,
             text_run_index: run_info_list.len(),
+            selected: false,
         }
     }
 

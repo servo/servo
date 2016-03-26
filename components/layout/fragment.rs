@@ -655,8 +655,6 @@ pub struct ScannedTextFragmentInfo {
     pub content_size: LogicalSize<Au>,
 
     /// The position of the insertion point in characters, if any.
-    ///
-    /// TODO(pcwalton): Make this a range.
     pub insertion_point: Option<CharIndex>,
 
     /// The range within the above text run that this represents.
@@ -667,9 +665,18 @@ pub struct ScannedTextFragmentInfo {
     /// performing incremental reflow.
     pub range_end_including_stripped_whitespace: CharIndex,
 
-    /// Whether a line break is required after this fragment if wrapping on newlines (e.g. if
-    /// `white-space: pre` is in effect).
-    pub requires_line_break_afterward_if_wrapping_on_newlines: bool,
+    pub flags: ScannedTextFlags,
+}
+
+bitflags! {
+    flags ScannedTextFlags: u8 {
+        /// Whether a line break is required after this fragment if wrapping on newlines (e.g. if
+        /// `white-space: pre` is in effect).
+        const REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES = 0x01,
+
+        /// Is this fragment selected?
+        const SELECTED = 0x02,
+    }
 }
 
 impl ScannedTextFragmentInfo {
@@ -677,18 +684,25 @@ impl ScannedTextFragmentInfo {
     pub fn new(run: Arc<TextRun>,
                range: Range<CharIndex>,
                content_size: LogicalSize<Au>,
-               insertion_point: &Option<CharIndex>,
-               requires_line_break_afterward_if_wrapping_on_newlines: bool)
+               insertion_point: Option<CharIndex>,
+               flags: ScannedTextFlags)
                -> ScannedTextFragmentInfo {
         ScannedTextFragmentInfo {
             run: run,
             range: range,
-            insertion_point: *insertion_point,
+            insertion_point: insertion_point,
             content_size: content_size,
             range_end_including_stripped_whitespace: range.end(),
-            requires_line_break_afterward_if_wrapping_on_newlines:
-                requires_line_break_afterward_if_wrapping_on_newlines,
+            flags: flags,
         }
+    }
+
+    pub fn requires_line_break_afterward_if_wrapping_on_newlines(&self) -> bool {
+        self.flags.contains(REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES)
+    }
+
+    pub fn selected(&self) -> bool {
+        self.flags.contains(SELECTED)
     }
 }
 
@@ -737,19 +751,17 @@ pub struct UnscannedTextFragmentInfo {
     /// The text inside the fragment.
     pub text: Box<str>,
 
-    /// The position of the insertion point, if any.
-    ///
-    /// TODO(pcwalton): Make this a range.
-    pub insertion_point: Option<CharIndex>,
+    /// The selected text range.  An empty range represents the insertion point.
+    pub selection: Option<Range<CharIndex>>,
 }
 
 impl UnscannedTextFragmentInfo {
     /// Creates a new instance of `UnscannedTextFragmentInfo` from the given text.
     #[inline]
-    pub fn new(text: String, insertion_point: Option<CharIndex>) -> UnscannedTextFragmentInfo {
+    pub fn new(text: String, selection: Option<Range<CharIndex>>) -> UnscannedTextFragmentInfo {
         UnscannedTextFragmentInfo {
             text: text.into_boxed_str(),
-            insertion_point: insertion_point,
+            selection: selection,
         }
     }
 }
@@ -865,15 +877,17 @@ impl Fragment {
         let size = LogicalSize::new(self.style.writing_mode,
                                     split.inline_size,
                                     self.border_box.size.block);
-        let requires_line_break_afterward_if_wrapping_on_newlines =
-            self.requires_line_break_afterward_if_wrapping_on_newlines();
+        let flags = match self.specific {
+            SpecificFragmentInfo::ScannedText(ref info) => info.flags,
+            _ => ScannedTextFlags::empty()
+        };
         // FIXME(pcwalton): This should modify the insertion point as necessary.
         let info = box ScannedTextFragmentInfo::new(
             text_run,
             split.range,
             size,
-            &None,
-            requires_line_break_afterward_if_wrapping_on_newlines);
+            None,
+            flags);
         self.transform(size, SpecificFragmentInfo::ScannedText(info))
     }
 
@@ -1681,9 +1695,9 @@ impl Fragment {
                 this_info.range.extend_to(other_info.range_end_including_stripped_whitespace);
                 this_info.content_size.inline =
                     this_info.run.metrics_for_range(&this_info.range).advance_width;
-                this_info.requires_line_break_afterward_if_wrapping_on_newlines =
-                    this_info.requires_line_break_afterward_if_wrapping_on_newlines ||
-                    other_info.requires_line_break_afterward_if_wrapping_on_newlines;
+                if other_info.requires_line_break_afterward_if_wrapping_on_newlines() {
+                    this_info.flags.insert(REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES);
+                }
                 self.border_padding.inline_end = next_fragment.border_padding.inline_end;
                 self.border_box.size.inline = this_info.content_size.inline +
                     self.border_padding.inline_start_end();
@@ -2247,7 +2261,7 @@ impl Fragment {
     pub fn requires_line_break_afterward_if_wrapping_on_newlines(&self) -> bool {
         match self.specific {
             SpecificFragmentInfo::ScannedText(ref scanned_text) => {
-                scanned_text.requires_line_break_afterward_if_wrapping_on_newlines
+                scanned_text.requires_line_break_afterward_if_wrapping_on_newlines()
             }
             _ => false,
         }

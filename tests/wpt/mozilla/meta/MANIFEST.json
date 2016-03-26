@@ -2540,6 +2540,30 @@
             "url": "/_mozilla/css/input_placeholder_ref.html"
           }
         ],
+        "css/input_selection_a.html": [
+          {
+            "path": "css/input_selection_a.html",
+            "references": [
+              [
+                "/_mozilla/css/input_selection_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/input_selection_a.html"
+          }
+        ],
+        "css/input_selection_ref.html": [
+          {
+            "path": "css/input_selection_ref.html",
+            "references": [
+              [
+                "/_mozilla/css/input_selection_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/input_selection_ref.html"
+          }
+        ],
         "css/input_whitespace.html": [
           {
             "path": "css/input_whitespace.html",
@@ -8840,6 +8864,30 @@
             ]
           ],
           "url": "/_mozilla/css/input_placeholder_ref.html"
+        }
+      ],
+      "css/input_selection_a.html": [
+        {
+          "path": "css/input_selection_a.html",
+          "references": [
+            [
+              "/_mozilla/css/input_selection_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/input_selection_a.html"
+        }
+      ],
+      "css/input_selection_ref.html": [
+        {
+          "path": "css/input_selection_ref.html",
+          "references": [
+            [
+              "/_mozilla/css/input_selection_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/input_selection_ref.html"
         }
       ],
       "css/input_whitespace.html": [

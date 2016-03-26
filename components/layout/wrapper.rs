@@ -37,6 +37,7 @@ use gfx::text::glyph::CharIndex;
 use incremental::RestyleDamage;
 use msg::constellation_msg::PipelineId;
 use opaque_node::OpaqueNodeMethods;
+use range::{Range, RangeIndex};
 use script::dom::attr::AttrValue;
 use script::dom::bindings::inheritance::{Castable, CharacterDataTypeId, ElementTypeId};
 use script::dom::bindings::inheritance::{HTMLElementTypeId, NodeTypeId};
@@ -826,7 +827,7 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
     fn text_content(&self) -> TextContent;
 
     /// If the insertion point is within this node, returns it. Otherwise, returns `None`.
-    fn insertion_point(&self) -> Option<CharIndex>;
+    fn selection(&self) -> Option<Range<CharIndex>>;
 
     /// If this is an image element, returns its URL. If this is not an image element, fails.
     ///
@@ -1050,21 +1051,24 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         panic!("not text!")
     }
 
-    fn insertion_point(&self) -> Option<CharIndex> {
+    fn selection(&self) -> Option<Range<CharIndex>> {
         let this = unsafe {
             self.get_jsmanaged()
         };
 
         if let Some(area) = this.downcast::<HTMLTextAreaElement>() {
-            if let Some(insertion_point) = unsafe { area.get_absolute_insertion_point_for_layout() } {
+            if let Some(selection) = unsafe { area.get_absolute_selection_for_layout() } {
                 let text = unsafe { area.get_value_for_layout() };
-                return Some(CharIndex(search_index(insertion_point, text.char_indices())));
+                let begin_byte = selection.begin();
+                let begin = search_index(begin_byte, text.char_indices());
+                let length = search_index(selection.length(), text[begin_byte..].char_indices());
+                return Some(Range::new(CharIndex(begin), CharIndex(length)));
             }
         }
         if let Some(input) = this.downcast::<HTMLInputElement>() {
-            let insertion_point_index = unsafe { input.get_insertion_point_index_for_layout() };
-            if let Some(insertion_point_index) = insertion_point_index {
-                return Some(CharIndex(insertion_point_index));
+            if let Some(selection) = unsafe { input.get_selection_for_layout() } {
+                return Some(Range::new(CharIndex(selection.begin()),
+                                       CharIndex(selection.length())));
             }
         }
         None
