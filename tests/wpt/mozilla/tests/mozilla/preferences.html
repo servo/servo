@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+	var testBinding = new TestBinding();
+	assert_equals(typeof testBinding.BooleanMozPreference, "function");
+	assert_equals(testBinding.BooleanMozPreference("dom.testbinding.preference_value.falsy"), false);
+	assert_equals(testBinding.BooleanMozPreference("dom.testbinding.preference_value.truthy"), true);
+}, "prefs");
+</script>
