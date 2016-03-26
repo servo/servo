@@ -607,11 +607,14 @@ impl WindowMethods for Window {
     }
 
     fn set_page_title(&self, title: Option<String>) {
-        let current_url = self.current_url.borrow().clone().unwrap();
+        let fallback_title = match self.current_url.borrow_mut().clone() {
+            Some(title) => title,
+            None => String::from("Untitled")
+        };
 
         let title = match title {
             Some(ref title) if title.len() > 0 => &**title,
-            _ => &current_url,
+            _ => &fallback_title,
         };
         let title = format!("{} - Servo", title);
         self.window.set_title(&title);
