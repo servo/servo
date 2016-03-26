@@ -70,6 +70,10 @@ interface Element : Node {
   HTMLCollection getElementsByTagName(DOMString localName);
   HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);
   HTMLCollection getElementsByClassName(DOMString classNames);
+  [Throws]
+  Element? insertAdjacentElement(DOMString where_, Element element);
+  [Throws]
+  void insertAdjacentText(DOMString where_, DOMString data);
 };
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-element-interface
