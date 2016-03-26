@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Iframe visibibility setter and getter</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe></iframe>
+<script>
+async_test(function(t) {
+  var iframe = document.querySelector('iframe');
+  iframe.onload = function() {
+      iframe.setVisible(true);
+  }
+  iframe.mozbrowser = "true";
+  iframe.src = "about:blank";
+});
+
+</script>
