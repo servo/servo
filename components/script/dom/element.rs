@@ -1168,6 +1168,56 @@ impl Element {
         let node = self.upcast::<Node>();
         node.owner_doc().element_attr_will_change(self);
     }
+
+    pub fn insert_adjacent(&self, where_: DOMString, element: &Node)
+        -> Fallible<Option<Root<Element>>> {
+        match &*where_ {
+            "beforebegin" => {
+                if let Some(parent) = element.GetParentNode() {
+                    let node = try!(Node::pre_insert(element,
+                                                     &parent,
+                                                     Some(self.upcast::<Node>())));
+                    Ok(Root::downcast::<Element>(node))
+                } else {
+                    Ok(None)
+                }
+            }
+            "afterbegin" => {
+                let node = if let Some(first_child) = self.upcast::<Node>().GetFirstChild() {
+                    try!(Node::pre_insert(element,
+                                          &self.upcast::<Node>(),
+                                          Some(first_child.upcast::<Node>())))
+                } else {
+                    try!(Node::pre_insert(element,
+                                          &self.upcast::<Node>(),
+                                          None))
+                };
+                Ok(Root::downcast::<Element>(node))
+            }
+            "beforeend" => {
+                let node = try!(Node::AppendChild(&self.upcast::<Node>(),
+                                                  element));
+                Ok(Root::downcast::<Element>(node))
+            }
+            "afterend" => {
+                if let Some(parent) = element.GetParentNode() {
+                    let node = if let Some(c) = self.GetNextElementSibling() {
+                        try!(Node::pre_insert(element,
+                                              &parent,
+                                              Some(&c.upcast::<Node>())))
+                    } else {
+                        try!(Node::pre_insert(element,
+                                              &parent,
+                                              None))
+                    };
+                    Ok(Root::downcast::<Element>(node))
+                } else {
+                    Ok(None)
+                }
+            }
+            _ => Err(Error::Syntax)
+        }
+    }
 }
 
 impl ElementMethods for Element {
@@ -1619,6 +1669,20 @@ impl ElementMethods for Element {
                 Ok(None)
             }
         }
+    }
+
+    // https://dom.spec.whatwg.org/#dom-element-insertadjacentelement
+    fn InsertAdjacentElement(&self, where_: DOMString, element: &Element)
+        -> Fallible<Option<Root<Element>>> {
+        self.insert_adjacent(where_, element.upcast::<Node>())
+    }
+
+    // https://dom.spec.whatwg.org/#dom-element-insertadjacenttext
+    fn InsertAdjacentText(&self, where_: DOMString, data: DOMString)
+        -> Fallible<Option<Root<Element>>> {
+        self.insert_adjacent(where_,
+                             Text::new(data,
+                                       &document_from_node(self)).upcast::<Node>())
     }
 }
 
