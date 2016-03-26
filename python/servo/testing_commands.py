@@ -257,6 +257,7 @@ class MachCommands(CommandBase):
         __all__ = [basename(f)[:-3] for f in modules if isfile(f)]
         self.test_web_driver(run_file, __all__)
 
+
     @Command('test-content',
              description='Run the content tests',
              category='testing')
