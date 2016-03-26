@@ -64,6 +64,12 @@ impl FlowList {
         }
     }
 
+    /// Provide a forward iterator with FlowRef items
+    #[inline]
+    pub fn iter_flow_ref_mut<'a>(&'a mut self) -> linked_list::IterMut<'a, FlowRef> {
+        self.flows.iter_mut()
+    }
+
     /// O(1)
     #[inline]
     pub fn is_empty(&self) -> bool {
