@@ -7,7 +7,7 @@ use std::fmt;
 use std::sync::Arc;
 use style::computed_values::float;
 use style::dom::TRestyleDamage;
-use style::properties::{ComputedValues, TComputedValues};
+use style::properties::{ServoComputedValues, TComputedValues};
 
 bitflags! {
     #[doc = "Individual layout actions that may be necessary after restyling."]
@@ -53,8 +53,9 @@ bitflags! {
 }
 
 impl TRestyleDamage for RestyleDamage {
-    type ConcreteComputedValues = ComputedValues;
-    fn compute(old: Option<&Arc<ComputedValues>>, new: &ComputedValues) -> RestyleDamage { compute_damage(old, new) }
+    type ConcreteComputedValues = ServoComputedValues;
+    fn compute(old: Option<&Arc<ServoComputedValues>>, new: &ServoComputedValues) ->
+        RestyleDamage { compute_damage(old, new) }
 
     /// Returns a bitmask that represents a flow that needs to be rebuilt and reflowed.
     ///
@@ -153,8 +154,8 @@ macro_rules! add_if_not_equal(
     })
 );
 
-pub fn compute_damage(old: Option<&Arc<ComputedValues>>, new: &ComputedValues) -> RestyleDamage {
-    let old: &ComputedValues = match old {
+pub fn compute_damage(old: Option<&Arc<ServoComputedValues>>, new: &ServoComputedValues) -> RestyleDamage {
+    let old: &ServoComputedValues = match old {
         None => return RestyleDamage::rebuild_and_reflow(),
         Some(cv) => &**cv,
     };
@@ -162,7 +163,7 @@ pub fn compute_damage(old: Option<&Arc<ComputedValues>>, new: &ComputedValues) -
     let mut damage = RestyleDamage::empty();
 
     // This should check every CSS property, as enumerated in the fields of
-    // http://doc.servo.org/style/properties/struct.ComputedValues.html
+    // http://doc.servo.org/style/properties/struct.ServoComputedValues.html
 
     // FIXME: Test somehow that every property is included.
 

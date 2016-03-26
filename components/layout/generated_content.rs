@@ -20,7 +20,7 @@ use std::sync::Arc;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{display, list_style_type};
 use style::dom::TRestyleDamage;
-use style::properties::{ComputedValues, TComputedValues};
+use style::properties::{ServoComputedValues, TComputedValues};
 use text::TextRunScanner;
 use wrapper::PseudoElementType;
 
@@ -297,7 +297,7 @@ impl<'a,'b> ResolveGeneratedContentFragmentMutator<'a,'b> {
         self.incremented = true
     }
 
-    fn quote(&self, style: &ComputedValues, close: bool) -> String {
+    fn quote(&self, style: &ServoComputedValues, close: bool) -> String {
         let quotes = &style.get_list().quotes;
         if quotes.0.is_empty() {
             return String::new()
@@ -367,7 +367,7 @@ impl Counter {
               layout_context: &LayoutContext,
               node: OpaqueNode,
               pseudo: PseudoElementType<()>,
-              style: Arc<ComputedValues>,
+              style: Arc<ServoComputedValues>,
               list_style_type: list_style_type::T,
               mode: RenderingMode)
               -> Option<SpecificFragmentInfo> {
@@ -430,7 +430,7 @@ struct CounterValue {
 fn render_text(layout_context: &LayoutContext,
                node: OpaqueNode,
                pseudo: PseudoElementType<()>,
-               style: Arc<ComputedValues>,
+               style: Arc<ServoComputedValues>,
                string: String)
                -> Option<SpecificFragmentInfo> {
     let mut fragments = LinkedList::new();

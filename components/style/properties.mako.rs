@@ -139,7 +139,7 @@ pub mod longhands {
             use error_reporting::ParseErrorReporter;
             use properties::longhands;
             use properties::property_bit_field::PropertyBitField;
-            use properties::{ComputedValues, PropertyDeclaration, TComputedValues};
+            use properties::{ServoComputedValues, PropertyDeclaration, TComputedValues};
             use properties::style_struct_traits::T${THIS_STYLE_STRUCT.name};
             use properties::style_structs;
             use std::collections::HashMap;
@@ -6240,8 +6240,8 @@ pub trait TComputedValues : Clone + Send + Sync + 'static {
         // yet - panics for non-Servo implementations.
         //
         // Used only for animations. Don't use it in other places.
-        fn as_servo<'a>(&'a self) -> &'a ComputedValues;
-        fn as_servo_mut<'a>(&'a mut self) -> &'a mut ComputedValues;
+        fn as_servo<'a>(&'a self) -> &'a ServoComputedValues;
+        fn as_servo_mut<'a>(&'a mut self) -> &'a mut ServoComputedValues;
 
         fn new(custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
                shareable: bool,
@@ -6270,7 +6270,7 @@ pub trait TComputedValues : Clone + Send + Sync + 'static {
 }
 
 #[derive(Clone, HeapSizeOf)]
-pub struct ComputedValues {
+pub struct ServoComputedValues {
     % for style_struct in STYLE_STRUCTS:
         ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
     % endfor
@@ -6280,13 +6280,13 @@ pub struct ComputedValues {
     pub root_font_size: Au,
 }
 
-impl TComputedValues for ComputedValues {
+impl TComputedValues for ServoComputedValues {
     % for style_struct in STYLE_STRUCTS:
         type Concrete${style_struct.name} = style_structs::${style_struct.name};
     % endfor
 
-        fn as_servo<'a>(&'a self) -> &'a ComputedValues { self }
-        fn as_servo_mut<'a>(&'a mut self) -> &'a mut ComputedValues { self }
+        fn as_servo<'a>(&'a self) -> &'a ServoComputedValues { self }
+        fn as_servo_mut<'a>(&'a mut self) -> &'a mut ServoComputedValues { self }
 
         fn new(custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
                shareable: bool,
@@ -6296,7 +6296,7 @@ impl TComputedValues for ComputedValues {
                ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
             % endfor
         ) -> Self {
-            ComputedValues {
+            ServoComputedValues {
                 custom_properties: custom_properties,
                 shareable: shareable,
                 writing_mode: writing_mode,
@@ -6345,7 +6345,7 @@ impl TComputedValues for ComputedValues {
     }
 }
 
-impl ComputedValues {
+impl ServoComputedValues {
     /// Resolves the currentColor keyword.
     /// Any color value form computed values (except for the 'color' property itself)
     /// should go through this method.
@@ -6565,7 +6565,7 @@ pub fn get_writing_mode<S: style_struct_traits::TInheritedBox>(inheritedbox_styl
 
 /// The initial values for all style structs as defined by the specification.
 lazy_static! {
-    pub static ref INITIAL_SERVO_VALUES: ComputedValues = ComputedValues {
+    pub static ref INITIAL_SERVO_VALUES: ServoComputedValues = ServoComputedValues {
         % for style_struct in STYLE_STRUCTS:
             ${style_struct.ident}: Arc::new(style_structs::${style_struct.name} {
                 % for longhand in style_struct.longhands:
@@ -6702,8 +6702,8 @@ pub type CascadePropertyFn<C: TComputedValues> =
 
 // This is a thread-local rather than a lazy static to avoid atomic operations when cascading
 // properties.
-thread_local!(static CASCADE_PROPERTY: Vec<Option<CascadePropertyFn<ComputedValues>>> = {
-    let mut result: Vec<Option<CascadePropertyFn<ComputedValues>>> = Vec::new();
+thread_local!(static CASCADE_PROPERTY: Vec<Option<CascadePropertyFn<ServoComputedValues>>> = {
+    let mut result: Vec<Option<CascadePropertyFn<ServoComputedValues>>> = Vec::new();
     % for style_struct in STYLE_STRUCTS:
         % for property in style_struct.longhands:
             let discriminant;
@@ -6743,8 +6743,8 @@ pub fn cascade<C: TComputedValues>(
                viewport_size: Size2D<Au>,
                applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclaration>>],
                shareable: bool,
-               parent_style: Option< &C >,
-               cached_style: Option< &C >,
+               parent_style: Option<<&C>,
+               cached_style: Option<<&C>,
                mut error_reporter: Box<ParseErrorReporter + Send>)
                -> (C, bool) {
     use properties::style_struct_traits::{TBorder, TBox, TColor, TFont, TOutline};
@@ -6942,7 +6942,7 @@ pub fn cascade<C: TComputedValues>(
 ///
 /// FIXME(#5625, pcwalton): It would probably be cleaner and faster to do this in the cascade.
 #[inline]
-pub fn modify_style_for_replaced_content(style: &mut Arc<ComputedValues>) {
+pub fn modify_style_for_replaced_content(style: &mut Arc<ServoComputedValues>) {
     // Reset `position` to handle cases like `<div style="position: absolute">foo bar baz</div>`.
     if style.box_.display != longhands::display::computed_value::T::inline {
         let mut style = Arc::make_mut(style);
@@ -6978,10 +6978,10 @@ pub fn modify_style_for_replaced_content(style: &mut Arc<ComputedValues>) {
 /// Specifically, this function sets border widths to zero on the sides for which the fragment is
 /// not outermost.
 #[inline]
-pub fn modify_border_style_for_inline_sides(style: &mut Arc<ComputedValues>,
+pub fn modify_border_style_for_inline_sides(style: &mut Arc<ServoComputedValues>,
                                             is_first_fragment_of_element: bool,
                                             is_last_fragment_of_element: bool) {
-    fn modify_side(style: &mut Arc<ComputedValues>, side: PhysicalSide) {
+    fn modify_side(style: &mut Arc<ServoComputedValues>, side: PhysicalSide) {
         let mut style = Arc::make_mut(style);
         let border = Arc::make_mut(&mut style.border);
         match side {
@@ -7018,7 +7018,7 @@ pub fn modify_border_style_for_inline_sides(style: &mut Arc<ComputedValues>,
 /// Adjusts the display and position properties as appropriate for an anonymous table object.
 #[inline]
 pub fn modify_style_for_anonymous_table_object(
-        style: &mut Arc<ComputedValues>,
+        style: &mut Arc<ServoComputedValues>,
         new_display_value: longhands::display::computed_value::T) {
     let mut style = Arc::make_mut(style);
     let box_style = Arc::make_mut(&mut style.box_);
@@ -7028,7 +7028,7 @@ pub fn modify_style_for_anonymous_table_object(
 
 /// Adjusts the `position` property as necessary for the outer fragment wrapper of an inline-block.
 #[inline]
-pub fn modify_style_for_outer_inline_block_fragment(style: &mut Arc<ComputedValues>) {
+pub fn modify_style_for_outer_inline_block_fragment(style: &mut Arc<ServoComputedValues>) {
     let mut style = Arc::make_mut(style);
     let box_style = Arc::make_mut(&mut style.box_);
     box_style.position = longhands::position::computed_value::T::static_
@@ -7039,7 +7039,7 @@ pub fn modify_style_for_outer_inline_block_fragment(style: &mut Arc<ComputedValu
 /// Text is never directly relatively positioned; it's always contained within an element that is
 /// itself relatively positioned.
 #[inline]
-pub fn modify_style_for_text(style: &mut Arc<ComputedValues>) {
+pub fn modify_style_for_text(style: &mut Arc<ServoComputedValues>) {
     if style.box_.position == longhands::position::computed_value::T::relative {
         // We leave the `position` property set to `relative` so that we'll still establish a
         // containing block if needed. But we reset all position offsets to `auto`.
@@ -7074,7 +7074,7 @@ pub fn modify_style_for_text(style: &mut Arc<ComputedValues>) {
 ///
 /// Margins apply to the `input` element itself, so including them in the text will cause them to
 /// be double-counted.
-pub fn modify_style_for_input_text(style: &mut Arc<ComputedValues>) {
+pub fn modify_style_for_input_text(style: &mut Arc<ServoComputedValues>) {
     let mut style = Arc::make_mut(style);
     let margin_style = Arc::make_mut(&mut style.margin);
     margin_style.margin_top = computed::LengthOrPercentageOrAuto::Length(Au(0));
@@ -7089,7 +7089,7 @@ pub fn modify_style_for_input_text(style: &mut Arc<ComputedValues>) {
 
 /// Adjusts the `clip` property so that an inline absolute hypothetical fragment doesn't clip its
 /// children.
-pub fn modify_style_for_inline_absolute_hypothetical_fragment(style: &mut Arc<ComputedValues>) {
+pub fn modify_style_for_inline_absolute_hypothetical_fragment(style: &mut Arc<ServoComputedValues>) {
     if style.get_effects().clip.0.is_some() {
         let mut style = Arc::make_mut(style);
         let effects_style = Arc::make_mut(&mut style.effects);

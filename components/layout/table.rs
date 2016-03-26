@@ -25,7 +25,7 @@ use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_spacing, table_layout};
 use style::logical_geometry::LogicalSize;
-use style::properties::{ComputedValues, TComputedValues};
+use style::properties::{ServoComputedValues, TComputedValues};
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
 use table_row::{TableRowFlow};
@@ -468,7 +468,7 @@ impl Flow for TableFlow {
         self.block_flow.collect_stacking_contexts(parent_id, contexts)
     }
 
-    fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 

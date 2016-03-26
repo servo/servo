@@ -25,7 +25,7 @@ use style::computed_values::{line_height, text_orientation, text_rendering, text
 use style::computed_values::{white_space};
 use style::logical_geometry::{LogicalSize, WritingMode};
 use style::properties::style_structs::Font as FontStyle;
-use style::properties::{ComputedValues, TComputedValues};
+use style::properties::{ServoComputedValues, TComputedValues};
 use unicode_bidi::{is_rtl, process_text};
 use unicode_script::{get_script, Script};
 use util::linked_list::split_off_head;
@@ -414,7 +414,7 @@ pub fn font_metrics_for_style(font_context: &mut FontContext, font_style: Arc<Fo
 }
 
 /// Returns the line block-size needed by the given computed style and font size.
-pub fn line_height_from_style(style: &ComputedValues, metrics: &FontMetrics) -> Au {
+pub fn line_height_from_style(style: &ServoComputedValues, metrics: &FontMetrics) -> Au {
     let font_size = style.get_font().font_size;
     match style.get_inheritedbox().line_height {
         line_height::T::Normal => metrics.line_gap,

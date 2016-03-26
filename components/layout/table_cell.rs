@@ -21,7 +21,7 @@ use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_top_style};
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
-use style::properties::{ComputedValues, TComputedValues};
+use style::properties::{ServoComputedValues, TComputedValues};
 use table::InternalTable;
 use table_row::{CollapsedBorder, CollapsedBorderProvenance};
 use util::print_tree::PrintTree;
@@ -198,7 +198,7 @@ impl Flow for TableCellFlow {
         self.block_flow.collect_stacking_contexts(parent_id, contexts)
     }
 
-    fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 

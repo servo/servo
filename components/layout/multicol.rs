@@ -21,7 +21,7 @@ use std::fmt;
 use std::sync::Arc;
 use style::context::StyleContext;
 use style::logical_geometry::LogicalSize;
-use style::properties::{ComputedValues, TComputedValues};
+use style::properties::{ServoComputedValues, TComputedValues};
 use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use util::print_tree::PrintTree;
 
@@ -191,7 +191,7 @@ impl Flow for MulticolFlow {
         self.block_flow.collect_stacking_contexts(parent_id, contexts)
     }
 
-    fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 
@@ -276,7 +276,7 @@ impl Flow for MulticolColumnFlow {
         self.block_flow.collect_stacking_contexts(parent_id, contexts)
     }
 
-    fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 
