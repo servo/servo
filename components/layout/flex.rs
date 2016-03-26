@@ -28,7 +28,7 @@ use std::sync::Arc;
 use style::computed_values::flex_direction;
 use style::logical_geometry::LogicalSize;
 use style::properties::style_structs;
-use style::properties::{ComputedValues, TComputedValues};
+use style::properties::{ServoComputedValues, TComputedValues};
 use style::values::computed::LengthOrPercentageOrAuto;
 
 // A mode describes which logical axis a flex axis is parallel with.
@@ -414,7 +414,7 @@ impl Flow for FlexFlow {
         self.block_flow.collect_stacking_contexts(parent_id, contexts)
     }
 
-    fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {
         self.block_flow.repair_style(new_style)
     }
 

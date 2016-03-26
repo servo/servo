@@ -18,7 +18,7 @@ use std::cmp::max;
 use std::fmt;
 use std::sync::Arc;
 use style::logical_geometry::LogicalSize;
-use style::properties::{ComputedValues, TComputedValues};
+use style::properties::{ServoComputedValues, TComputedValues};
 use style::values::computed::LengthOrPercentageOrAuto;
 
 /// A table formatting context.
@@ -101,7 +101,7 @@ impl Flow for TableColGroupFlow {
         parent_id
     }
 
-    fn repair_style(&mut self, _: &Arc<ComputedValues>) {}
+    fn repair_style(&mut self, _: &Arc<ServoComputedValues>) {}
 
     fn compute_overflow(&self) -> Overflow {
         Overflow::new()

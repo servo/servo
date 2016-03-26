@@ -41,7 +41,7 @@ use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use style::computed_values::{border_style, cursor, filter, image_rendering, mix_blend_mode};
 use style::computed_values::{pointer_events};
-use style::properties::{ComputedValues, TComputedValues};
+use style::properties::{ServoComputedValues, TComputedValues};
 use style_traits::cursor::Cursor;
 use text::TextRun;
 use text::glyph::CharIndex;
@@ -927,7 +927,7 @@ impl DisplayItemMetadata {
     /// be `PointerCursor`, but for text display items it may be `TextCursor` or
     /// `VerticalTextCursor`.
     #[inline]
-    pub fn new(node: OpaqueNode, style: &ComputedValues, default_cursor: Cursor)
+    pub fn new(node: OpaqueNode, style: &ServoComputedValues, default_cursor: Cursor)
                -> DisplayItemMetadata {
         DisplayItemMetadata {
             node: node,
@@ -1419,4 +1419,3 @@ impl WebRenderImageInfo {
         }
     }
 }
-
