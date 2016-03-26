@@ -14,6 +14,7 @@ use std::ascii::AsciiExt;
 use std::boxed::Box as StdBox;
 use std::collections::HashSet;
 use std::fmt;
+use std::fmt::Write;
 use std::intrinsics;
 use std::mem;
 use std::sync::Arc;
@@ -259,11 +260,12 @@ pub struct PropertyDeclarationBlock {
     pub normal: Arc<Vec<PropertyDeclaration>>,
 }
 
-impl PropertyDeclarationBlock {
+impl ToCss for PropertyDeclarationBlock {
     // https://drafts.csswg.org/cssom/#serialize-a-css-declaration-block
-    pub fn serialize(&self) -> String {
-        // Step 1
-        let mut result_list = String::new();
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        let mut is_first_serialization = true; // trailing serializations should have a prepended space
+
+        // Step 1 -> dest = result list
 
         // Step 2
         let mut already_serialized = Vec::new();
@@ -319,15 +321,14 @@ impl PropertyDeclarationBlock {
 
                     // TODO: serialize shorthand does not take is_important into account currently
                     // Substep 5
-                    let value = shorthand.serialize_shorthand(&current_longhands[..]);
+                    let was_serialized =
+                        try!(shorthand.serialize_shorthand_to_buffer(dest, &current_longhands[..], &mut is_first_serialization));
+                    // If serialization occured, Substep 7 & 8 will have been completed
 
                     // Substep 6
-                    if value.is_empty() {
+                    if !was_serialized {
                         continue;
                     }
-
-                    // Substep 7 & 8
-                    result_list.push_str(&format!("{}: {}; ", &shorthand.name(), value));
 
                     for current_longhand in current_longhands {
                         // Substep 9
@@ -346,24 +347,62 @@ impl PropertyDeclarationBlock {
                 continue;
             }
 
-            // Step 3.3.5
-            let mut value = declaration.value();
-            if self.important.contains(declaration) {
-                value.push_str(" !important");
-            }
-            // Steps 3.3.6 & 3.3.7
-            result_list.push_str(&format!("{}: {}; ", &property, value));
+            // Steps 3.3.5, 3.3.6 & 3.3.7
+            let append_important = self.important.contains(declaration);
+            try!(append_serialization(dest,
+                                 &property.to_string(),
+                                 AppendableValue::Declaration(declaration),
+                                 append_important,
+                                 &mut is_first_serialization));
 
             // Step 3.3.8
             already_serialized.push(property);
         }
 
-        result_list.pop(); // remove trailling whitespace
         // Step 4
-        result_list
+        Ok(())
     }
 }
 
+enum AppendableValue<'a> {
+    Declaration(&'a PropertyDeclaration),
+    Css(&'a str)
+}
+
+fn append_serialization<W>(dest: &mut W,
+                           property_name: &str,
+                           appendable_value: AppendableValue,
+                           is_important: bool,
+                           is_first_serialization: &mut bool) -> fmt::Result where W: fmt::Write
+
+    // after first serialization(key: value;) add whitespace between the pairs
+    if !*is_first_serialization {
+        try!(write!(dest, " "));
+    }
+    else {
+        *is_first_serialization = false;
+    }
+
+    try!(write!(dest, "{}:", property_name));
+
+    match appendable_value {
+        AppendableValue::Declaration(decl) => {
+            if !decl.value_is_unparsed() {
+                // for normal parsed values, add a space between key: and value
+                try!(write!(dest, " "));
+            }
+
+            try!(decl.to_css(dest));
+         },
+        AppendableValue::Css(css) =>  try!(write!(dest, "{}", css))
+    };
+
+    if is_important {
+        try!(write!(dest, " !important"));
+    }
+
+    write!(dest, ";")
+}
 
 pub fn parse_style_attribute(input: &str, base_url: &Url, error_reporter: StdBox<ParseErrorReporter + Send>)
                              -> PropertyDeclarationBlock {
@@ -501,8 +540,6 @@ pub enum Shorthand {
     % endfor
 }
 
-use util::str::str_join;
-
 impl Shorthand {
     pub fn from_name(name: &str) -> Option<Shorthand> {
         match_ignore_ascii_case! { name,
@@ -536,25 +573,48 @@ impl Shorthand {
         }
     }
 
-    pub fn serialize_shorthand(self, declarations: &[&PropertyDeclaration]) -> String {
+    /// Serializes possible shorthand value to String.
+    pub fn serialize_shorthand_to_string(self, declarations: &[&PropertyDeclaration]) -> String {
+        let mut result = String::new();
+        self.serialize_shorthand_to_buffer(&mut result, declarations, &mut true).unwrap();
+        result
+    }
+
+    /// Serializes possible shorthand value to input buffer given a list of longhand declarations.
+    /// On success, returns true if shorthand value is written and false if no shorthand value is present.
+    pub fn serialize_shorthand_to_buffer<W>(self,
+                                            dest: &mut W,
+                                            declarations: &[&PropertyDeclaration],
+                                            is_first_serialization: &mut bool)
+         -> Result<bool, fmt::Error> where W: Write {
+
+        let property_name = self.name();
+
         // https://drafts.csswg.org/css-variables/#variables-in-shorthands
         if let Some(css) = declarations[0].with_variables_from_shorthand(self) {
             if declarations[1..]
                    .iter()
                    .all(|d| d.with_variables_from_shorthand(self) == Some(css)) {
-                css.to_owned()
+
+                       append_serialization(
+                           dest, property_name, AppendableValue::Css(css), false, is_first_serialization
+                       ).and_then(|_| Ok(true))
             } else {
-                String::new()
+                Ok(false)
             }
         } else {
             if declarations.iter().any(|d| d.with_variables()) {
-                String::new()
+                Ok(false)
             } else {
-                let str_iter = declarations.iter().map(|d| d.value());
+                for declaration in declarations.iter() {
+                    try!(append_serialization(
+                        dest, property_name, AppendableValue::Declaration(declaration), false, is_first_serialization
+                    ));
+                }
                 // FIXME: this needs property-specific code, which probably should be in style/
                 // "as appropriate according to the grammar of shorthand "
                 // https://drafts.csswg.org/cssom/#serialize-a-css-value
-                str_join(str_iter, " ")
+                Ok(true)
             }
         }
     }
@@ -639,6 +699,20 @@ impl fmt::Display for PropertyDeclarationName {
         }
     }
 }
+impl ToCss for PropertyDeclaration {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+        match *self {
+            % for property in LONGHANDS:
+                % if property.derived_from is None:
+                    PropertyDeclaration::${property.camel_case}(ref value) =>
+                        value.to_css(dest),
+                % endif
+            % endfor
+            PropertyDeclaration::Custom(_, ref value) => value.to_css(dest),
+            _ => Err(fmt::Error),
+        }
+    }
+}
 
 impl PropertyDeclaration {
     pub fn name(&self) -> PropertyDeclarationName {
@@ -658,17 +732,12 @@ impl PropertyDeclaration {
     }
 
     pub fn value(&self) -> String {
-        match *self {
-            % for property in data.longhands:
-                PropertyDeclaration::${property.camel_case}
-                % if not property.derived_from:
-                    (ref value) => value.to_css_string(),
-                % else:
-                    (_) => panic!("unsupported property declaration: ${property.name}"),
-                % endif
-            % endfor
-            PropertyDeclaration::Custom(_, ref value) => value.to_css_string(),
+        let mut value = String::new();
+        if let Err(_) = self.to_css(&mut value) {
+            panic!("unsupported property declaration: {}", self.name());
         }
+
+        value
     }
 
     /// If this is a pending-substitution value from the given shorthand, return that value
@@ -704,6 +773,20 @@ impl PropertyDeclaration {
                 _ => false,
             }
         }
+    }
+
+    /// Return whether the value is stored as it was in the CSS source, preserving whitespace
+    /// (as opposed to being parsed into a more abstract data structure).
+    /// This is the case of custom properties and values that contain unsubstituted variables.
+    pub fn value_is_unparsed(&self) -> bool {
+      match *self {
+          % for property in LONGHANDS:
+              PropertyDeclaration::${property.camel_case}(ref value) => {
+                  matches!(*value, DeclaredValue::WithVariables { .. })
+              },
+          % endfor
+          PropertyDeclaration::Custom(..) => true
+      }
     }
 
     pub fn matches(&self, name: &str) -> bool {
