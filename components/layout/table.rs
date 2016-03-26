@@ -12,8 +12,8 @@ use block::{ISizeConstraintInput, ISizeConstraintSolution};
 use context::LayoutContext;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode, DisplayListBuildState};
 use euclid::Point2D;
-use flow::{BaseFlow, IMPACTED_BY_RIGHT_FLOATS, ImmutableFlowUtils, OpaqueFlow};
-use flow::{self, EarlyAbsolutePositionInfo, Flow, FlowClass, IMPACTED_BY_LEFT_FLOATS};
+use flow::{BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow};
+use flow::{self};
 use flow_list::MutFlowListIterator;
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::{StackingContext, StackingContextId};
@@ -391,10 +391,6 @@ impl Flow for TableFlow {
                 // to us.
             }
         }
-
-        // As tables are always wrapped inside a table wrapper, they are never impacted by floats.
-        self.block_flow.base.flags.remove(IMPACTED_BY_LEFT_FLOATS);
-        self.block_flow.base.flags.remove(IMPACTED_BY_RIGHT_FLOATS);
 
         let column_computed_inline_sizes = &self.column_computed_inline_sizes;
         let collapsed_inline_direction_border_widths_for_table =
