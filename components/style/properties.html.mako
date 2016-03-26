@@ -20,48 +20,21 @@
     <section id='main' class="content mod">
       <h1 class='fqn'><span class='in-band'>CSS properties currently supported in <a class='mod' href=''>Servo</a></span></h1>
       <div id='properties' class='docblock'>
-        <em>Loading</em>
+        <table>
+          <tr>
+            <th>Property</th>
+            <th>Flag</th>
+            <th>Shorthand</th>
+          </tr>
+          % for prop in properties:
+            <tr>
+              <td>${prop}</td>
+              <td>${properties[prop]['flag']}</td>
+              <td>${properties[prop]['shorthand']}</td>
+            </tr>
+          % endfor
+        </table>
       </div>
     </section>
-
-    <script src="../jquery.js"></script>
-    <script>
-    (function() {
-      "use strict";
-      //
-      // Renders list of properties into a table.
-      //
-      function updatePropertyList (properties) {
-        var compiledTable = $('<table></table>');
-        
-        var header = $('<tr></tr>');
-        header.append('<th>Property</th>');
-        header.append('<th>Flag</td>');
-        header.append('<th>Shorthand</th>');
-        compiledTable.append(header);
-
-        for (var property in properties) {
-          if (properties.hasOwnProperty(property)) {
-            var tr = $('<tr></tr>');
-            tr.append('<td>' + property + '</td>');
-            if (!properties[property].flag) {
-              tr.append('<td>-</td>');
-            } else {
-              tr.append('<td>' + properties[property].flag + '</td>');
-            }
-            tr.append('<td>' + properties[property].shorthand + '</td>');
-            compiledTable.append(tr);
-          }
-        }
-
-
-        $('#properties').html(compiledTable);
-      }
-
-      $.get('./css-properties.json').success(updatePropertyList).error(function () {
-        $('#properties').html("<p>Unable to load json.</p>");
-      });
-    }());
-    </script>
 </body>
 </html>
