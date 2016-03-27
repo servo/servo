@@ -548,7 +548,7 @@ interface WebGLRenderingContextBase
     void depthFunc(GLenum func);
     void depthMask(GLboolean flag);
     void depthRange(GLclampf zNear, GLclampf zFar);
-    //void detachShader(WebGLProgram? program, WebGLShader? shader);
+    void detachShader(WebGLProgram? program, WebGLShader? shader);
     void disable(GLenum cap);
     //void disableVertexAttribArray(GLuint index);
     void drawArrays(GLenum mode, GLint first, GLsizei count);
