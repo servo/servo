@@ -4,6 +4,7 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use canvas_traits::CanvasMsg;
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLTextureBinding;
 use dom::bindings::global::GlobalRef;
@@ -12,12 +13,18 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
+use std::cmp;
 use webrender_traits::{WebGLCommand, WebGLError, WebGLResult};
 
 pub enum TexParameterValue {
     Float(f32),
     Int(i32),
 }
+
+const MAX_LEVEL_COUNT: usize = 31;
+const MAX_FACE_COUNT: usize = 6;
+
+no_jsmanaged_fields!([ImageInfo; MAX_LEVEL_COUNT * MAX_FACE_COUNT]);
 
 #[dom_struct]
 pub struct WebGLTexture {
@@ -26,6 +33,13 @@ pub struct WebGLTexture {
     /// The target to which this texture was bound the first time
     target: Cell<Option<u32>>,
     is_deleted: Cell<bool>,
+    is_initialized: Cell<bool>,
+    /// Stores information about mipmap levels and cubemap faces.
+    #[ignore_heap_size_of = "Arrays are cumbersome"]
+    image_info_array: DOMRefCell<[ImageInfo; MAX_LEVEL_COUNT * MAX_FACE_COUNT]>,
+    /// Face count can only be 1 or 6
+    face_count: Cell<u8>,
+    base_mipmap_level: u32,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     renderer: IpcSender<CanvasMsg>,
 }
@@ -37,6 +51,10 @@ impl WebGLTexture {
             id: id,
             target: Cell::new(None),
             is_deleted: Cell::new(false),
+            is_initialized: Cell::new(false),
+            face_count: Cell::new(0),
+            base_mipmap_level: 0,
+            image_info_array: DOMRefCell::new([ImageInfo::new(); MAX_LEVEL_COUNT * MAX_FACE_COUNT]),
             renderer: renderer,
         }
     }
@@ -63,17 +81,80 @@ impl WebGLTexture {
 
     // NB: Only valid texture targets come here
     pub fn bind(&self, target: u32) -> WebGLResult<()> {
+        if self.is_deleted.get() {
+            return Err(WebGLError::InvalidOperation);
+        }
+
         if let Some(previous_target) = self.target.get() {
             if target != previous_target {
                 return Err(WebGLError::InvalidOperation);
             }
         } else {
+            // This is the first time binding
+            let face_count = match target {
+                constants::TEXTURE_2D => 1,
+                constants::TEXTURE_CUBE_MAP => 6,
+                _ => return Err(WebGLError::InvalidOperation)
+            };
+            self.face_count.set(face_count);
             self.target.set(Some(target));
         }
 
         self.renderer.send(CanvasMsg::WebGL(WebGLCommand::BindTexture(target, self.id))).unwrap();
 
         Ok(())
+    }
+
+    pub fn initialize(&self, width: u32, height: u32, depth: u32, internal_format: u32, level: u32) -> WebGLResult<()> {
+        let image_info = ImageInfo {
+            width: width,
+            height: height,
+            depth: depth,
+            internal_format: Some(internal_format),
+            is_initialized: true,
+        };
+        self.set_image_infos_at_level(level, image_info);
+
+        self.is_initialized.set(true);
+
+        Ok(())
+    }
+
+    pub fn generate_mipmap(&self) -> WebGLResult<()> {
+        let target = match self.target.get() {
+            Some(target) => target,
+            None => {
+                error!("Cannot generate mipmap on texture that has no target!");
+                return Err(WebGLError::InvalidOperation);
+            }
+        };
+
+        let base_image_info = self.base_image_info().unwrap();
+
+        if !base_image_info.is_initialized() {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        if target == constants::TEXTURE_CUBE_MAP && !self.is_cube_complete() {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        if !base_image_info.is_power_of_two() {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        if base_image_info.is_compressed_format() {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::GenerateMipmap(target))).unwrap();
+
+        if self.base_mipmap_level + base_image_info.get_max_mimap_levels() == 0 {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        let last_level = self.base_mipmap_level + base_image_info.get_max_mimap_levels() - 1;
+        self.populate_mip_chain(self.base_mipmap_level, last_level)
     }
 
     pub fn delete(&self) {
@@ -145,10 +226,135 @@ impl WebGLTexture {
             _ => Err(WebGLError::InvalidEnum),
         }
     }
+
+    pub fn populate_mip_chain(&self, first_level: u32, last_level: u32) -> WebGLResult<()> {
+        let base_image_info = self.image_info_at_face(0, first_level);
+        if !base_image_info.is_initialized() {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        let mut ref_width = base_image_info.width;
+        let mut ref_height = base_image_info.height;
+
+        if ref_width == 0 || ref_height == 0 {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        for level in (first_level + 1)..last_level {
+            if ref_width == 1 && ref_height == 1 {
+                break;
+            }
+
+            ref_width = cmp::max(1, ref_width / 2);
+            ref_height = cmp::max(1, ref_height / 2);
+
+            let image_info = ImageInfo {
+                width: ref_width,
+                height: ref_height,
+                depth: 0,
+                internal_format: base_image_info.internal_format,
+                is_initialized: base_image_info.is_initialized(),
+            };
+
+            self.set_image_infos_at_level(level, image_info);
+        }
+        Ok(())
+    }
+
+    fn is_cube_complete(&self) -> bool {
+        let image_info = self.base_image_info().unwrap();
+        if !image_info.is_defined() {
+            return false;
+        }
+
+        let ref_width = image_info.width;
+        let ref_format = image_info.internal_format;
+
+        for face in 0..self.face_count.get() {
+            let current_image_info = self.image_info_at_face(face, self.base_mipmap_level);
+            if !current_image_info.is_defined() {
+                return false;
+            }
+
+            // Compares height with width to enforce square dimensions
+            if current_image_info.internal_format != ref_format ||
+               current_image_info.width != ref_width ||
+               current_image_info.height != ref_width {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    fn image_info_at_face(&self, face: u8, level: u32) -> ImageInfo {
+        let pos = (level * self.face_count.get() as u32) + face as u32;
+        self.image_info_array.borrow()[pos as usize]
+    }
+
+    fn set_image_infos_at_level(&self, level: u32, image_info: ImageInfo) {
+        for face in 0..self.face_count.get() {
+            let pos = (level * self.face_count.get() as u32) + face as u32;
+            self.image_info_array.borrow_mut()[pos as usize] = image_info;
+        }
+    }
+
+    fn base_image_info(&self) -> Option<ImageInfo> {
+        assert!((self.base_mipmap_level as usize) < MAX_LEVEL_COUNT);
+
+        Some(self.image_info_at_face(0, self.base_mipmap_level))
+    }
 }
 
 impl Drop for WebGLTexture {
     fn drop(&mut self) {
         self.delete();
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Debug, JSTraceable, HeapSizeOf)]
+struct ImageInfo {
+    width: u32,
+    height: u32,
+    depth: u32,
+    internal_format: Option<u32>,
+    is_initialized: bool,
+}
+
+impl ImageInfo {
+    fn new() -> ImageInfo {
+        ImageInfo {
+            width: 0,
+            height: 0,
+            depth: 0,
+            internal_format: None,
+            is_initialized: false,
+        }
+    }
+
+    fn is_power_of_two(&self) -> bool {
+        self.width.is_power_of_two() && self.height.is_power_of_two() && self.depth.is_power_of_two()
+    }
+
+    fn is_initialized(&self) -> bool {
+        self.is_initialized
+    }
+
+    fn is_defined(&self) -> bool {
+        !self.internal_format.is_none()
+    }
+
+    fn get_max_mimap_levels(&self) -> u32 {
+        let largest = cmp::max(cmp::max(self.width, self.height), self.depth);
+        if largest == 0 {
+            return 0;
+        }
+        // FloorLog2(largest) + 1
+        (largest as f64).log2() as u32 + 1
+    }
+
+    fn is_compressed_format(&self) -> bool {
+        // TODO: Once Servo supports compressed formats, check for them here
+        false
     }
 }
