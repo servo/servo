@@ -557,7 +557,7 @@ interface WebGLRenderingContextBase
     void enable(GLenum cap);
     void enableVertexAttribArray(GLuint index);
     //void finish();
-    //void flush();
+    void flush();
     //void framebufferRenderbuffer(GLenum target, GLenum attachment,
     //                             GLenum renderbuffertarget,
     //                             WebGLRenderbuffer? renderbuffer);
@@ -717,4 +717,3 @@ interface WebGLRenderingContext
 {
 };
 WebGLRenderingContext implements WebGLRenderingContextBase;
-

@@ -181,6 +181,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         Root::from_ref(&*self.canvas)
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
+    fn Flush(&self) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Flush()))
+            .unwrap();
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.1
     fn DrawingBufferWidth(&self) -> i32 {
         let (sender, receiver) = ipc::channel().unwrap();
