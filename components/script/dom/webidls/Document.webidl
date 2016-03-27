@@ -192,11 +192,3 @@ partial interface Document {
   [SameObject] readonly attribute StyleSheetList styleSheets;
 };
 
-// https://w3c.github.io/page-visibility/
-enum VisibilityState { "hidden", "visible", "prerender" };
-
-partial interface Document {
-    readonly attribute boolean hidden;
-    readonly attribute VisibilityState visibilityState;
-    attribute EventHandler onvisibilitychange;
-};
