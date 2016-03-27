@@ -639,6 +639,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn CreateShader(&self, shader_type: u32) -> Option<Root<WebGLShader>> {
+        match shader_type {
+            constants::VERTEX_SHADER | constants::FRAGMENT_SHADER => {},
+            _ => {
+                self.webgl_error(InvalidEnum);
+                return None;
+            }
+        }
         WebGLShader::maybe_new(self.global().r(), self.ipc_renderer.clone(), shader_type)
     }
 
