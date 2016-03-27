@@ -697,7 +697,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }
 
             (Msg::PipelineVisibilityChanged(pipeline_id, visible), ShutdownState::NotShuttingDown) => {
-                println!("compositor setting pipeline to: {:?}", visible);
                 self.pipeline_details(pipeline_id).visible = visible;
             }
 
@@ -725,18 +724,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match animation_state {
             AnimationState::AnimationsPresent => {
                 let visible = self.pipeline_details(pipeline_id).visible;
-                println!("animationpresent in composer...");
                 if visible {
-                    println!("...animationpresent sees visible pipeline");
                     self.pipeline_details(pipeline_id).animations_running = true;
                     self.composite_if_necessary(CompositingReason::Animation);
                 }
             }
             AnimationState::AnimationCallbacksPresent => {
                 let visible = self.pipeline_details(pipeline_id).visible;
-                println!("animationcallbackspresent in composer...");
                 if visible {
-                    println!("...animationcallbackpresent sees visible pipeline");
                     if !self.pipeline_details(pipeline_id).animation_callbacks_running {
                         self.pipeline_details(pipeline_id).animation_callbacks_running =
                             true;
@@ -1631,13 +1626,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     /// If there are any animations running, dispatches appropriate messages to the constellation.
     fn process_animations(&mut self) {
-        println!("processing animations..");
         let mut pipeline_ids = vec![];
         for (pipeline_id, pipeline_details) in &self.pipeline_details {
             if (pipeline_details.animations_running ||
                pipeline_details.animation_callbacks_running) && 
                pipeline_details.visible {
-                println!("..adding to tick stack");
                 pipeline_ids.push(*pipeline_id);
             }
         }
@@ -1982,7 +1975,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn composite(&mut self) {
-        println!("compositing");
         let target = self.composite_target;
         let composited = self.composite_specific_target(target);
         if composited.is_ok() &&
@@ -2003,7 +1995,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     /// in the latter case the image is written directly to a file. If CompositeTarget
     /// is WindowAndPng Ok(Some(png::Image)) is returned.
     pub fn composite_specific_target(&mut self, target: CompositeTarget) -> Result<Option<Image>, UnableToComposite> {
-        println!("compositing specific target");
 
         if self.context.is_none() && self.webrender.is_none() {
             return Err(UnableToComposite::NoContext)
