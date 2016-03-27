@@ -321,12 +321,11 @@ pub struct SendableMainThreadScriptChan(pub Sender<CommonScriptMsg>);
 
 impl ScriptChan for SendableMainThreadScriptChan {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let SendableMainThreadScriptChan(ref chan) = *self;
-        chan.send(msg).map_err(|_| ())
+        self.0.send(msg).map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        let SendableMainThreadScriptChan(ref chan) = *self;
+        let ref chan = self.0;
         box SendableMainThreadScriptChan((*chan).clone())
     }
 }
@@ -345,12 +344,11 @@ pub struct MainThreadScriptChan(pub Sender<MainThreadScriptMsg>);
 
 impl ScriptChan for MainThreadScriptChan {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let MainThreadScriptChan(ref chan) = *self;
-        chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
+        self.0.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        let MainThreadScriptChan(ref chan) = *self;
+        let ref chan = self.0;
         box MainThreadScriptChan((*chan).clone())
     }
 }

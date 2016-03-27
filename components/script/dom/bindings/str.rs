@@ -58,8 +58,7 @@ impl Into<Vec<u8>> for ByteString {
 
 impl Hash for ByteString {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let ByteString(ref vec) = *self;
-        vec.hash(state);
+        self.0.hash(state);
     }
 }
 

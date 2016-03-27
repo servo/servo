@@ -10,12 +10,11 @@ pub struct UserInteractionTaskSource(pub Sender<MainThreadScriptMsg>);
 
 impl ScriptChan for UserInteractionTaskSource {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let UserInteractionTaskSource(ref chan) = *self;
-        chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
+        self.0.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        let UserInteractionTaskSource(ref chan) = *self;
+        let ref chan = self.0;
         box UserInteractionTaskSource((*chan).clone())
     }
 }

@@ -33,8 +33,7 @@ impl ProfilerChan {
     ///
     /// Panics if the send fails.
     pub fn send(&self, msg: ProfilerMsg) {
-        let ProfilerChan(ref c) = *self;
-        c.send(msg).unwrap();
+        self.0.send(msg).unwrap();
     }
 
     /// Runs `f()` with memory profiling.
@@ -118,8 +117,7 @@ impl ReportsChan {
     ///
     /// Panics if the send fails.
     pub fn send(&self, report: Vec<Report>) {
-        let ReportsChan(ref c) = *self;
-        c.send(report).unwrap();
+        self.0.send(report).unwrap();
     }
 }
 

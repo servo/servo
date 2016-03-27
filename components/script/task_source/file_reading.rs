@@ -10,12 +10,11 @@ pub struct FileReadingTaskSource(pub Sender<MainThreadScriptMsg>);
 
 impl ScriptChan for FileReadingTaskSource {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let FileReadingTaskSource(ref chan) = *self;
-        chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
+        self.0.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        let FileReadingTaskSource(ref chan) = *self;
+        let ref chan = self.0;
         box FileReadingTaskSource((*chan).clone())
     }
 }

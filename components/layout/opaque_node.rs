@@ -38,7 +38,6 @@ impl OpaqueNodeMethods for OpaqueNode {
     }
 
     fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
-        let OpaqueNode(addr) = *self;
-        UntrustedNodeAddress(addr as *const c_void)
+        UntrustedNodeAddress(self.0 as *const c_void)
     }
 }

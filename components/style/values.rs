@@ -1077,7 +1077,7 @@ pub mod specified {
 
     impl ToCss for BorderRadiusSize {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let BorderRadiusSize(size) = *self;
+            let size = self.0;
             try!(size.width.to_css(dest));
             try!(dest.write_str(" "));
             size.height.to_css(dest)
@@ -1133,8 +1133,7 @@ pub mod specified {
 
     impl ToCss for Angle {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let Angle(value) = *self;
-            write!(dest, "{}rad", value)
+            write!(dest, "{}rad", self.0)
         }
     }
 
@@ -1642,19 +1641,19 @@ pub mod computed {
 
         #[inline]
         fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> BorderRadiusSize {
-            let specified::BorderRadiusSize(s) = *self;
-            let w = s.width.to_computed_value(context);
-            let h = s.height.to_computed_value(context);
+            let size = self.0;
+            let w = size.width.to_computed_value(context);
+            let h = size.height.to_computed_value(context);
             BorderRadiusSize(Size2D::new(w, h))
         }
     }
 
     impl ::cssparser::ToCss for BorderRadiusSize {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            let BorderRadiusSize(s) = *self;
-            try!(s.width.to_css(dest));
+            let size = self.0;
+            try!(size.width.to_css(dest));
             try!(dest.write_str("/"));
-            s.height.to_css(dest)
+            size.height.to_css(dest)
         }
     }
 

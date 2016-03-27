@@ -124,7 +124,7 @@ impl BasicCORSCache {
     fn find_entry_by_header<'a>(&'a mut self, request: &CacheRequestDetails,
                                 header_name: &str) -> Option<&'a mut CORSCacheEntry> {
         self.cleanup();
-        let BasicCORSCache(ref mut buf) = *self;
+        let ref mut buf = self.0;
         buf.iter_mut().find(|e| match_headers(e, request) && e.header_or_method.match_header(header_name))
     }
 
@@ -132,7 +132,7 @@ impl BasicCORSCache {
                                 method: Method) -> Option<&'a mut CORSCacheEntry> {
         // we can take the method from CORSRequest itself
         self.cleanup();
-        let BasicCORSCache(ref mut buf) = *self;
+        let ref mut buf = self.0;
         buf.iter_mut().find(|e| match_headers(e, request) && e.header_or_method.match_method(&method))
     }
 }
@@ -190,8 +190,7 @@ impl CORSCache for BasicCORSCache {
 
     fn insert(&mut self, entry: CORSCacheEntry) {
         self.cleanup();
-        let BasicCORSCache(ref mut buf) = *self;
-        buf.push(entry);
+        self.0.push(entry);
     }
 }
 

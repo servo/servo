@@ -16,12 +16,11 @@ pub struct DOMManipulationTaskSource(pub Sender<MainThreadScriptMsg>);
 
 impl TaskSource<DOMManipulationTask> for DOMManipulationTaskSource {
     fn queue(&self, msg: DOMManipulationTask) -> Result<(), ()> {
-        let DOMManipulationTaskSource(ref chan) = *self;
-        chan.send(MainThreadScriptMsg::DOMManipulation(msg)).map_err(|_| ())
+        self.0.send(MainThreadScriptMsg::DOMManipulation(msg)).map_err(|_| ())
     }
 
     fn clone(&self) -> Box<TaskSource<DOMManipulationTask> + Send> {
-        let DOMManipulationTaskSource(ref chan) = *self;
+        let ref chan = self.0;
         box DOMManipulationTaskSource((*chan).clone())
     }
 }
