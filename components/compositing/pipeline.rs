@@ -277,7 +277,7 @@ impl Pipeline {
             children: vec!(),
             size: size,
             running_animations: false,
-            visible: true, //TODO: jmr0 check this
+            visible: true
         }
     }
 

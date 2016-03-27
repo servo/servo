@@ -215,10 +215,7 @@ pub struct Document {
     /// Vector to store CSS errors
     css_errors_store: DOMRefCell<Vec<CSSError>>,
     /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
-    https_state: Cell<HttpsState>,
-    /// https://w3c.github.io/page-visibility/#dom-document
-    visibility_state: Cell<DocumentBinding::VisibilityState>,
-    hidden: Cell<bool>,
+    https_state: Cell<HttpsState>
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1198,7 +1195,6 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
     pub fn request_animation_frame(&self, callback: Box<FnBox(f64)>) -> u32 {
-        println!("dom requesting animation frame");
         let ident = self.animation_frame_ident.get() + 1;
 
         self.animation_frame_ident.set(ident);
@@ -1226,7 +1222,6 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks
     pub fn run_the_animation_frame_callbacks(&self) {
-        println!("running animation callbacks");
         let animation_frame_list =
             mem::replace(&mut *self.animation_frame_list.borrow_mut(), BTreeMap::new());
         let performance = self.window.Performance();
@@ -1580,9 +1575,7 @@ impl Document {
             dom_content_loaded_event_end: Cell::new(Default::default()),
             dom_complete: Cell::new(Default::default()),
             css_errors_store: DOMRefCell::new(vec![]),
-            https_state: Cell::new(HttpsState::None),
-            hidden: Cell::new(false), //TODO jmr0: likely not necessary to even have this field
-            visibility_state: Cell::new(DocumentBinding::VisibilityState::Hidden), //TODO jmr0: obviously wrong
+            https_state: Cell::new(HttpsState::None)
         }
     }
 
@@ -2113,16 +2106,6 @@ impl DocumentMethods for Document {
         TouchList::new(&self.window, &touches)
     }
 
-    // https://w3c.github.io/page-visibility/#dom-document
-    fn VisibilityState(&self) -> DocumentBinding::VisibilityState {
-        self.visibility_state.get()
-    }
-
-    // https://w3c.github.io/page-visibility/#dom-document
-    fn Hidden(&self) -> bool {
-        self.hidden.get()
-    }
-
     // https://dom.spec.whatwg.org/#dom-document-createtreewalker
     fn CreateTreeWalker(&self,
                         root: &Node,
@@ -2598,9 +2581,6 @@ impl DocumentMethods for Document {
             None => self.GetDocumentElement()
         }
     }
-
-    // https://w3c.github.io/page-visibility/#dom-document
-    event_handler!(visibilitychange, GetOnvisibilitychange, SetOnvisibilitychange);
 
 }
 
