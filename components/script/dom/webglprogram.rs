@@ -93,7 +93,7 @@ impl WebGLProgram {
         let shader_slot = match shader.gl_type() {
             constants::FRAGMENT_SHADER => &self.fragment_shader,
             constants::VERTEX_SHADER => &self.vertex_shader,
-            _ => return Err(WebGLError::InvalidOperation),
+            _ => error!("detachShader: Unexpected shader type"),
         };
 
         // TODO(emilio): Differentiate between same shader already assigned and other previous
@@ -114,7 +114,7 @@ impl WebGLProgram {
         let shader_slot = match shader.gl_type() {
             constants::FRAGMENT_SHADER => &self.fragment_shader,
             constants::VERTEX_SHADER => &self.vertex_shader,
-            _ => return Err(WebGLError::InvalidOperation),
+            _ => error!("detachShader: Unexpected shader type"),
         };
 
         match shader_slot.get() {
