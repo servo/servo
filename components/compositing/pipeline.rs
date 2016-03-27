@@ -393,7 +393,7 @@ impl Pipeline {
         }
 
         self.visible = visible;
-        if visible { 
+        if visible {
             self.script_chan.send(ConstellationControlMsg::SetVisible(containing_id, self.id)).unwrap();
         }
         else {
