@@ -1,17 +1,37 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>Iframe visibibility setter and getter</title>
+<head>
+<title>Iframe visibility setter/getter</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<iframe></iframe>
-<script>
-async_test(function(t) {
-  var iframe = document.querySelector('iframe');
-  iframe.onload = function() {
-      iframe.setVisible(true);
-  }
-  iframe.mozbrowser = "true";
-  iframe.src = "about:blank";
-});
+</head>
+<body>
+    <script>
+    async_test(function(t) {
+        var expectedVisibilities = [false, true];
+        var receivedVisibilities = [];
 
-</script>
+        var iframe = document.createElement("iframe");
+        iframe.mozbrowser = true;
+        iframe.src = "http://web-platform.test:8000";
+
+        //Alternate the iframe's visibility and ensure it's reflected by event/getter
+        iframe.onload = function() {
+            iframe.setVisible(false);
+            iframe.setVisible(true);
+        };
+
+        iframe.addEventListener("mozbrowservisibilitychange", e => {
+            assert_equals(iframe.getVisible(), e.detail.visible);
+            receivedVisibilities.push(e.detail.visible);
+            if (receivedVisibilities.length == expectedVisibilities.length) {
+                assert_array_equals(receivedVisibilities, expectedVisibilities);
+                t.done();
+            }
+        });
+
+        document.body.appendChild(iframe);
+        
+    });
+    </script>
+</body>
