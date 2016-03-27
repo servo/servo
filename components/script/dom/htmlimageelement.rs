@@ -151,9 +151,9 @@ impl HTMLImageElement {
     fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
        HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
-            currentrequest: ImageRequest { state: State::Unavavailable,
+            current_request: ImageRequest { state: State::Unavailable,
                 url: DOMRefCell::new(None), image: DOMRefCell::new(None), metadata: DOMRefCell::new(None) },
-            pendingrequest: ImageRequest { state: State::Unavailable,
+            pending_request: ImageRequest { state: State::Unavailable,
                 url: DOMRefCell::new(None), image: DOMRefCell::new(None), metadata: DOMRefCell::new(None) },
         }
     }
