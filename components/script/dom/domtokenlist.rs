@@ -139,6 +139,32 @@ impl DOMTokenListMethods for DOMTokenList {
         self.element.set_tokenlist_attribute(&self.local_name, value);
     }
 
+    // https://dom.spec.whatwg.org/#dom-domtokenlist-replace
+    fn Replace(&self, token: DOMString, new_token: DOMString) -> ErrorResult {
+        if token.is_empty() || new_token.is_empty() {
+            // Step 1.
+            return Err(Error::Syntax);
+        }
+        if token.contains(HTML_SPACE_CHARACTERS) || new_token.contains(HTML_SPACE_CHARACTERS) {
+            // Step 2.
+            return Err(Error::InvalidCharacter);
+        }
+        // Steps 3-4.
+        let token = Atom::from(token);
+        let new_token = Atom::from(new_token);
+        let mut atoms = self.element.get_tokenlist_attribute(&self.local_name);
+        if let Some(pos) = atoms.iter().position(|atom| *atom == token) {
+            if !atoms.contains(&new_token) {
+                atoms[pos] = new_token;
+            } else {
+                atoms.remove(pos);
+            }
+        }
+        // Step 5.
+        self.element.set_atomic_tokenlist_attribute(&self.local_name, atoms);
+        Ok(())
+    }
+
     // https://dom.spec.whatwg.org/#concept-dtl-serialize
     fn Stringifier(&self) -> DOMString {
         self.element.get_string_attribute(&self.local_name)

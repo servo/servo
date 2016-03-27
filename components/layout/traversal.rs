@@ -4,18 +4,15 @@
 
 //! Traversals over the DOM and flow trees, running the layout computations.
 
-// For thread_local.
-#![allow(unsafe_code)]
-
 use construct::FlowConstructor;
 use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::DisplayListBuildState;
-use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
-use flow::{self, Flow, CAN_BE_FRAGMENTED};
+use flow::{CAN_BE_FRAGMENTED, Flow, ImmutableFlowUtils, PostorderFlowTraversal};
+use flow::{PreorderFlowTraversal, self};
 use gfx::display_list::OpaqueNode;
 use incremental::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RestyleDamage};
 use std::mem;
-use style::context::{StyleContext, ReflowGoal};
+use style::context::StyleContext;
 use style::matching::MatchMethods;
 use style::traversal::{DomTraversalContext, STYLE_BLOOM};
 use style::traversal::{put_thread_local_bloom_filter, recalc_style_at};
@@ -172,21 +169,22 @@ impl<'a> PreorderFlowTraversal for AssignISizes<'a> {
 }
 
 /// The assign-block-sizes-and-store-overflow traversal, the last (and most expensive) part of
-/// layout computation. Determines the final block-sizes for all layout objects, computes
-/// positions, and computes overflow regions. In Gecko this corresponds to `Reflow` and
-/// `FinishAndStoreOverflow`.
+/// layout computation. Determines the final block-sizes for all layout objects and computes
+/// positions. In Gecko this corresponds to `Reflow`.
 #[derive(Copy, Clone)]
-pub struct AssignBSizesAndStoreOverflow<'a> {
+pub struct AssignBSizes<'a> {
     pub layout_context: &'a LayoutContext<'a>,
 }
 
-impl<'a> PostorderFlowTraversal for AssignBSizesAndStoreOverflow<'a> {
+impl<'a> PostorderFlowTraversal for AssignBSizes<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
-        // Can't do anything with flows impacted by floats until we reach their inorder parent.
+        // Can't do anything with anything that floats might flow through until we reach their
+        // inorder parent.
+        //
         // NB: We must return without resetting the restyle bits for these, as we haven't actually
         // reflowed anything!
-        if flow::base(flow).flags.impacted_by_floats() {
+        if flow.floats_might_flow_through() {
             return
         }
 
@@ -211,7 +209,6 @@ impl<'a> PreorderFlowTraversal for ComputeAbsolutePositions<'a> {
     #[inline]
     fn process(&self, flow: &mut Flow) {
         flow.compute_absolute_position(self.layout_context);
-        flow.store_overflow(self.layout_context);
     }
 }
 
@@ -236,6 +233,6 @@ impl<'a> BuildDisplayList<'a> {
 
     #[inline]
     fn should_process(&self) -> bool {
-        self.state.layout_context.shared_context().goal == ReflowGoal::ForDisplay
+        true
     }
 }

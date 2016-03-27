@@ -37,3 +37,24 @@ textarea {
   -servo-overflow-clip-box: content-box;
 }
 
+// https://html.spec.whatwg.org/multipage/rendering.html#the-details-and-summary-elements
+details {
+  display: block;
+}
+details::-servo-details-summary {
+  margin-left: 40px;
+  display: list-item;
+  list-style: disclosure-closed;
+}
+details[open]::-servo-details-summary {
+  list-style: disclosure-open;
+}
+details::-servo-details-content {
+  margin-left: 40px;
+  overflow: hidden;
+  display: none;
+}
+details[open]::-servo-details-content {
+  display: block;
+}
+

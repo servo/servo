@@ -374,7 +374,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn load_end(&self, back: bool, forward: bool) {
+    fn load_end(&self, back: bool, forward: bool, _: bool) {
         // FIXME(pcwalton): The status code 200 is a lie.
         let browser = self.cef_browser.borrow();
         let browser = match *browser {

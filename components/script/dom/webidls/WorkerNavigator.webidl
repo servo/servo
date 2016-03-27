@@ -7,5 +7,5 @@
 //[Exposed=Worker]
 interface WorkerNavigator {};
 WorkerNavigator implements NavigatorID;
-//WorkerNavigator implements NavigatorLanguage;
+WorkerNavigator implements NavigatorLanguage;
 //WorkerNavigator implements NavigatorOnLine;

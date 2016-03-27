@@ -23,7 +23,7 @@ use inline::InlineMetrics;
 use std::sync::Arc;
 use style::computed_values::{list_style_type, position};
 use style::logical_geometry::LogicalSize;
-use style::properties::ComputedValues;
+use style::properties::{ComputedValues, TComputedValues};
 use text;
 
 /// A block with the CSS `display` property equal to `list-item`.

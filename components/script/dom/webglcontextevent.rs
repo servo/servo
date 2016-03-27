@@ -53,7 +53,7 @@ impl WebGLContextEvent {
 
         {
             let parent = event.upcast::<Event>();
-            parent.init_event(type_, bubbles == EventBubbles::Bubbles, cancelable == EventCancelable::Cancelable);
+            parent.init_event(type_, bool::from(bubbles), bool::from(cancelable));
         }
 
         event
@@ -67,17 +67,9 @@ impl WebGLContextEvent {
             None => DOMString::new(),
         };
 
-        let bubbles = if init.parent.bubbles {
-            EventBubbles::Bubbles
-        } else {
-            EventBubbles::DoesNotBubble
-        };
+        let bubbles = EventBubbles::from(init.parent.bubbles);
 
-        let cancelable = if init.parent.cancelable {
-            EventCancelable::Cancelable
-        } else {
-            EventCancelable::NotCancelable
-        };
+        let cancelable = EventCancelable::from(init.parent.cancelable);
 
         Ok(WebGLContextEvent::new(global, Atom::from(type_),
                                   bubbles,

@@ -27,6 +27,7 @@ use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::computed_values;
 use style::logical_geometry::{WritingMode, BlockFlowDirection, InlineBaseDirection};
+use style::properties::TComputedValues;
 use style::properties::longhands::{display, position};
 use style::properties::style_structs;
 use style::selector_impl::PseudoElement;
@@ -536,6 +537,8 @@ pub fn process_resolved_style_request<N: LayoutNode>(
     let layout_node = match pseudo {
         &Some(PseudoElement::Before) => layout_node.get_before_pseudo(),
         &Some(PseudoElement::After) => layout_node.get_after_pseudo(),
+        &Some(PseudoElement::DetailsSummary) => layout_node.get_details_summary_pseudo(),
+        &Some(PseudoElement::DetailsContent) => layout_node.get_details_content_pseudo(),
         _ => Some(layout_node)
     };
 

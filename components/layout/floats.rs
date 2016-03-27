@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use block::FormattingContextType;
+use flow::{self, CLEARS_LEFT, CLEARS_RIGHT, Flow, ImmutableFlowUtils};
 use persistent_list::PersistentList;
 use std::cmp::{max, min};
 use std::fmt;
@@ -56,14 +58,14 @@ struct FloatList {
     /// Information about each of the floats here.
     floats: PersistentList<Float>,
     /// Cached copy of the maximum block-start offset of the float.
-    max_block_start: Au,
+    max_block_start: Option<Au>,
 }
 
 impl FloatList {
     fn new() -> FloatList {
         FloatList {
             floats: PersistentList::new(),
-            max_block_start: Au(0),
+            max_block_start: None,
         }
     }
 
@@ -247,15 +249,15 @@ impl Floats {
 
     /// Adds a new float to the list.
     pub fn add_float(&mut self, info: &PlacementInfo) {
-        let new_info;
-        {
-            new_info = PlacementInfo {
-                size: info.size,
-                ceiling: max(info.ceiling, self.list.max_block_start + self.offset.block),
-                max_inline_size: info.max_inline_size,
-                kind: info.kind
-            }
-        }
+        let new_info = PlacementInfo {
+            size: info.size,
+            ceiling: match self.list.max_block_start {
+                None => info.ceiling,
+                Some(max_block_start) => max(info.ceiling, max_block_start + self.offset.block),
+            },
+            max_inline_size: info.max_inline_size,
+            kind: info.kind
+        };
 
         debug!("add_float: added float with info {:?}", new_info);
 
@@ -269,7 +271,10 @@ impl Floats {
         };
 
         self.list.floats = self.list.floats.prepend_elem(new_float);
-        self.list.max_block_start = max(self.list.max_block_start, new_float.bounds.start.b);
+        self.list.max_block_start = match self.list.max_block_start {
+            None => Some(new_float.bounds.start.b),
+            Some(max_block_start) => Some(max(max_block_start, new_float.bounds.start.b)),
+        }
     }
 
     /// Given the three sides of the bounding rectangle in the block-start direction, finds the
@@ -409,3 +414,111 @@ impl Floats {
         clearance
     }
 }
+
+/// The speculated inline sizes of floats flowing through or around a flow (depending on whether
+/// the flow is a block formatting context). These speculations are always *upper bounds*; the
+/// actual inline sizes might be less. Note that this implies that a speculated value of zero is a
+/// guarantee that there will be no floats on that side.
+///
+/// This is used for two purposes: (a) determining whether we can lay out blocks in parallel; (b)
+/// guessing the inline-sizes of block formatting contexts in an effort to lay them out in
+/// parallel.
+#[derive(Copy, Clone)]
+pub struct SpeculatedFloatPlacement {
+    /// The estimated inline size (an upper bound) of the left floats flowing through this flow.
+    pub left: Au,
+    /// The estimated inline size (an upper bound) of the right floats flowing through this flow.
+    pub right: Au,
+}
+
+impl fmt::Debug for SpeculatedFloatPlacement {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "L {:?} R {:?}", self.left, self.right)
+    }
+}
+
+impl SpeculatedFloatPlacement {
+    /// Returns a `SpeculatedFloatPlacement` objects with both left and right speculated inline
+    /// sizes initialized to zero.
+    pub fn zero() -> SpeculatedFloatPlacement {
+        SpeculatedFloatPlacement {
+            left: Au(0),
+            right: Au(0),
+        }
+    }
+
+    /// Given the speculated inline size of the floats out for the inorder predecessor of this
+    /// flow, computes the speculated inline size of the floats flowing in.
+    pub fn compute_floats_in(&mut self, flow: &mut Flow) {
+        let base_flow = flow::base(flow);
+        if base_flow.flags.contains(CLEARS_LEFT) {
+            self.left = Au(0)
+        }
+        if base_flow.flags.contains(CLEARS_RIGHT) {
+            self.right = Au(0)
+        }
+    }
+
+    /// Given the speculated inline size of the floats in for this flow, computes the speculated
+    /// inline size of the floats out for this flow.
+    pub fn compute_floats_out(&mut self, flow: &mut Flow) {
+        if flow.is_block_like() {
+            let block_flow = flow.as_block();
+            if block_flow.formatting_context_type() != FormattingContextType::None {
+                *self = block_flow.base.speculated_float_placement_in;
+
+                if self.left > Au(0) || self.right > Au(0) {
+                    let speculated_inline_content_edge_offsets =
+                        block_flow.fragment.guess_inline_content_edge_offsets();
+                    if self.left > Au(0) {
+                        self.left = self.left + speculated_inline_content_edge_offsets.start
+                    }
+                    if self.right > Au(0) {
+                        self.right = self.right + speculated_inline_content_edge_offsets.end
+                    }
+                }
+            }
+        }
+
+        let base_flow = flow::base(flow);
+        match base_flow.flags.float_kind() {
+            float::T::none => {}
+            float::T::left => {
+                self.left = self.left + base_flow.intrinsic_inline_sizes.preferred_inline_size
+            }
+            float::T::right => {
+                self.right = self.right + base_flow.intrinsic_inline_sizes.preferred_inline_size
+            }
+        }
+    }
+
+    /// Given a flow, computes the speculated inline size of the floats in of its first child.
+    pub fn compute_floats_in_for_first_child(parent_flow: &mut Flow) -> SpeculatedFloatPlacement {
+        if !parent_flow.is_block_like() {
+            return flow::base(parent_flow).speculated_float_placement_in
+        }
+
+        let parent_block_flow = parent_flow.as_block();
+        if parent_block_flow.formatting_context_type() != FormattingContextType::None {
+            return SpeculatedFloatPlacement::zero()
+        }
+
+        let mut placement = parent_block_flow.base.speculated_float_placement_in;
+        let speculated_inline_content_edge_offsets =
+            parent_block_flow.fragment.guess_inline_content_edge_offsets();
+
+        if placement.left > speculated_inline_content_edge_offsets.start {
+            placement.left = placement.left - speculated_inline_content_edge_offsets.start
+        } else {
+            placement.left = Au(0)
+        };
+        if placement.right > speculated_inline_content_edge_offsets.end {
+            placement.right = placement.right - speculated_inline_content_edge_offsets.end
+        } else {
+            placement.right = Au(0)
+        };
+
+        placement
+    }
+}
+

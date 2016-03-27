@@ -279,15 +279,6 @@ class MachCommands(CommandBase):
         if result != 0:
             return result
 
-    @Command('test-ref',
-             description='Run the reference tests',
-             category='testing')
-    @CommandArgument('params', default=None, nargs=argparse.REMAINDER)
-    def test_ref(self, params=None):
-        print("Ref tests have been replaced by web-platform-tests under "
-              "tests/wpt/mozilla/.")
-        return 0
-
     @Command('test-webdriver',
              description='Run the webdriver tests',
              category='testing')
@@ -296,7 +287,6 @@ class MachCommands(CommandBase):
         modules = glob.glob(dirname(run_file) + "/*.py")
         __all__ = [basename(f)[:-3] for f in modules if isfile(f)]
         self.test_web_driver(run_file, __all__)
-
 
     @Command('test-content',
              description='Run the content tests',
@@ -521,8 +511,7 @@ class MachCommands(CommandBase):
         # Check that a release servo build exists
         bin_path = path.abspath(self.get_binary_path(release, dev))
 
-        return check_call(
-            [run_file, cmd, bin_path, base_dir])
+        return call([run_file, cmd, bin_path, base_dir])
 
     def dromaeo_test_runner(self, tests, release, dev):
         self.ensure_bootstrapped()

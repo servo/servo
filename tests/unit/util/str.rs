@@ -2,25 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
-use util::str::LengthOrPercentageOrAuto;
-use util::str::{parse_length, search_index, split_html_space_chars, str_join};
-
-
-#[test]
-pub fn test_parse_length() {
-    fn check(input: &str, expected: LengthOrPercentageOrAuto) {
-        let parsed = parse_length(input);
-        assert_eq!(parsed, expected);
-    }
-
-    check("0", LengthOrPercentageOrAuto::Length(Au::from_px(0)));
-    check("0.000%", LengthOrPercentageOrAuto::Percentage(0.0));
-    check("+5.82%", LengthOrPercentageOrAuto::Percentage(0.0582));
-    check("5.82", LengthOrPercentageOrAuto::Length(Au::from_f64_px(5.82)));
-    check("invalid", LengthOrPercentageOrAuto::Auto);
-    check("12 followed by invalid", LengthOrPercentageOrAuto::Length(Au::from_px(12)));
-}
+use util::str::{search_index, split_html_space_chars, str_join};
 
 #[test]
 pub fn split_html_space_chars_whitespace() {

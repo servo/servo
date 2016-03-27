@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Selection indices after content change</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(function() {
+    var input = document.createElement("input");
+    input.focus();
+    input.value = "something something something dark side";
+    input.setSelectionRange(4,20);
+    assert_equals(input.selectionStart, 4);
+    assert_equals(input.selectionEnd, 20);
+    input.value = "It's a trap!";
+    assert_equals(input.selectionStart, input.value.length);
+    assert_equals(input.selectionEnd, input.value.length);
+}, "Selection indices after reseting content");
+</script>

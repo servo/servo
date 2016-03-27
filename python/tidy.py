@@ -35,6 +35,7 @@ ignored_files = [
     # Generated and upstream code combined with our own. Could use cleanup
     os.path.join(".", "ports", "gonk", "src", "native_window_glue.cpp"),
     os.path.join(".", "ports", "geckolib", "bindings.rs"),
+    os.path.join(".", "ports", "geckolib", "gecko_style_structs.rs"),
     os.path.join(".", "resources", "hsts_preload.json"),
     os.path.join(".", "tests", "wpt", "metadata", "MANIFEST.json"),
     os.path.join(".", "tests", "wpt", "metadata-css", "MANIFEST.json"),
@@ -60,6 +61,8 @@ ignored_dirs = [
     # Generated and upstream code combined with our own. Could use cleanup
     os.path.join(".", "target"),
     os.path.join(".", "ports", "cef"),
+    # Tooling, generated locally from external repos.
+    os.path.join(".", "ports", "geckolib", "tools"),
     # Hidden directories
     os.path.join(".", "."),
 ]
@@ -204,7 +207,7 @@ def check_lock(file_name, contents):
         raise StopIteration
 
     # package names to be neglected (as named by cargo)
-    exceptions = []
+    exceptions = ["bitflags"]
 
     import toml
     content = toml.loads(contents)
@@ -260,6 +263,7 @@ def check_rust(file_name, lines):
     if not file_name.endswith(".rs") or \
        file_name.endswith("properties.mako.rs") or \
        file_name.endswith(os.path.join("style", "build.rs")) or \
+       file_name.endswith(os.path.join("geckolib", "build.rs")) or \
        file_name.endswith(os.path.join("unit", "style", "stylesheets.rs")):
         raise StopIteration
     comment_depth = 0
@@ -482,6 +486,7 @@ def check_webidl_spec(file_name, contents):
         "//xhr.spec.whatwg.org",
         "//w3c.github.io",
         "//heycam.github.io/webidl",
+        "//webbluetoothcg.github.io/web-bluetooth/",
         # Not a URL
         "// This interface is entirely internal to Servo, and should not be" +
         " accessible to\n// web pages."

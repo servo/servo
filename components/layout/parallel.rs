@@ -17,7 +17,7 @@ use std::sync::atomic::{AtomicIsize, Ordering};
 use style::dom::{TNode, UnsafeNode};
 use style::parallel::{CHUNK_SIZE, WorkQueueData};
 use style::parallel::{run_queue_with_custom_work_data_type};
-use traversal::AssignBSizesAndStoreOverflow;
+use traversal::AssignBSizes;
 use traversal::{AssignISizes, BubbleISizes, PostorderNodeMutTraversal};
 use util::opts;
 use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
@@ -198,7 +198,7 @@ impl<'a> ParallelPreorderFlowTraversal for AssignISizes<'a> {
     }
 }
 
-impl<'a> ParallelPostorderFlowTraversal for AssignBSizesAndStoreOverflow<'a> {}
+impl<'a> ParallelPostorderFlowTraversal for AssignBSizes<'a> {}
 
 fn assign_inline_sizes(unsafe_flows: UnsafeFlowList,
                        proxy: &mut WorkerProxy<SharedLayoutContext, UnsafeFlowList>) {
@@ -214,7 +214,7 @@ fn assign_block_sizes_and_store_overflow(
         unsafe_flow: UnsafeFlow,
         shared_layout_context: &SharedLayoutContext) {
     let layout_context = LayoutContext::new(shared_layout_context);
-    let assign_block_sizes_traversal = AssignBSizesAndStoreOverflow {
+    let assign_block_sizes_traversal = AssignBSizes {
         layout_context: &layout_context,
     };
     assign_block_sizes_traversal.run_parallel(unsafe_flow)

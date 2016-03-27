@@ -1,0 +1,59 @@
+<head>
+<title>Browser API; mozbrowserlocationchange event</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+
+async_test(function(t) {
+
+  var url1 = "data:,1";
+  var url2 = "data:,2";
+  var url3 = "data:,3";
+
+  var received_events = []
+  var expected_events = [
+    url1, false, false,
+    url2, true,  false,
+    url3, true,  false,
+    url2, true,  true,
+    url1, false, true,
+    url2, true,  true,
+    url3, true,  false,
+  ];
+
+  var iframe = document.createElement("iframe");
+  iframe.mozbrowser = "true";
+  iframe.src = url1;
+
+  var actions = [
+    function() {iframe.src = url2},
+    function() {iframe.src = url3},
+    function() {iframe.goBack()},
+    function() {iframe.goBack()},
+    function() {iframe.goForward()},
+    function() {iframe.goForward()},
+  ];
+
+  var action_idx = 0;
+
+  iframe.addEventListener("mozbrowserlocationchange", e => {
+    received_events.push(e.detail.uri);
+    received_events.push(e.detail.canGoBack);
+    received_events.push(e.detail.canGoForward);
+
+    if (action_idx < actions.length) {
+      actions[action_idx++]();
+    } else {
+       assert_array_equals(received_events, expected_events);
+       t.done();
+    }
+  });
+
+  document.body.appendChild(iframe);
+
+});
+
+</script>
+</body>

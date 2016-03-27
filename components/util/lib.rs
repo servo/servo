@@ -7,13 +7,14 @@
 #![feature(core_intrinsics)]
 #![feature(custom_derive)]
 #![cfg_attr(feature = "non-geckolib", feature(decode_utf16))]
-#![feature(fnbox)]
 #![feature(optin_builtin_traits)]
 #![feature(plugin)]
 #![feature(reflect_marker)]
 #![feature(step_by)]
 
 #![plugin(heapsize_plugin, plugins, serde_macros)]
+
+#![deny(unsafe_code)]
 
 extern crate alloc;
 extern crate app_units;
@@ -46,25 +47,33 @@ extern crate uuid;
 use std::sync::Arc;
 
 pub mod cache;
+#[allow(unsafe_code)]
 pub mod debug_utils;
 pub mod geometry;
+#[allow(unsafe_code)]
 pub mod ipc;
 pub mod linked_list;
 #[cfg(feature = "non-geckolib")]
+#[allow(unsafe_code)]
 pub mod non_geckolib;
+#[allow(unsafe_code)]
 pub mod opts;
+#[allow(unsafe_code)]
 pub mod prefs;
 pub mod print_tree;
+#[allow(unsafe_code)]
 pub mod resource_files;
+#[allow(unsafe_code)]
 pub mod str;
 pub mod thread;
 pub mod thread_state;
-pub mod threadpool;
 pub mod tid;
 pub mod time;
 pub mod vec;
+#[allow(unsafe_code)]
 pub mod workqueue;
 
+#[allow(unsafe_code)]
 pub fn breakpoint() {
     unsafe { ::std::intrinsics::breakpoint() };
 }

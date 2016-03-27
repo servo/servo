@@ -1,5 +1,10 @@
 version: 1.0.{build}
 
+environment:
+  PATH: 'C:\msys64\mingw64\bin;C:\msys64\usr\bin\;%PATH%'
+  MSYSTEM: 'MSYS'
+  MSYS: 'winsymlinks=lnk'
+
 branches:
   only:
     - master
@@ -13,9 +18,6 @@ cache:
   - .cargo
 
 install:
-  - set MSYSTEM=MSYS
-  - set MSYS="winsymlinks=lnk"
-  - PATH C:\msys64\mingw64\bin;C:\msys64\usr\bin\;%PATH%
   - bash -lc "echo $MSYSTEM; pacman --needed --noconfirm -Sy pacman-mirrors"
   - bash -lc "pacman --noconfirm -Sy"
   - bash -lc "pacman -Sy --needed --noconfirm git mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch patchutils make python2-setuptools"

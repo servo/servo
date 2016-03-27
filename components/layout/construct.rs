@@ -45,7 +45,7 @@ use std::sync::atomic::Ordering;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{caption_side, display, empty_cells, float, list_style_position};
 use style::computed_values::{position};
-use style::properties::{self, ComputedValues};
+use style::properties::{self, ComputedValues, TComputedValues};
 use table::TableFlow;
 use table_caption::TableCaptionFlow;
 use table_cell::TableCellFlow;
@@ -676,7 +676,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                        HTMLElementTypeId::HTMLInputElement))) ||
            node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                        HTMLElementTypeId::HTMLTextAreaElement)));
-        if node.get_pseudo_element_type() != PseudoElementType::Normal ||
+        if node.get_pseudo_element_type().is_before_or_after() ||
                 node_is_input_or_text_area {
             // A TextArea's text contents are displayed through the input text
             // box, so don't construct them.
@@ -709,13 +709,13 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             return
         }
 
-        let insertion_point = node.insertion_point();
+        let selection = node.selection();
         let mut style = (*style).clone();
         properties::modify_style_for_text(&mut style);
 
         match text_content {
             TextContent::Text(string) => {
-                let info = UnscannedTextFragmentInfo::new(string, insertion_point);
+                let info = UnscannedTextFragmentInfo::new(string, selection);
                 let specific_fragment_info = SpecificFragmentInfo::UnscannedText(info);
                 fragments.fragments.push_back(Fragment::from_opaque_node_and_style(
                         node.opaque(),
@@ -1461,6 +1461,8 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
                     PseudoElementType::Normal => display::T::inline,
                     PseudoElementType::Before(display) => display,
                     PseudoElementType::After(display) => display,
+                    PseudoElementType::DetailsContent(display) => display,
+                    PseudoElementType::DetailsSummary(display) => display,
                 };
                 (display, style.get_box().float, style.get_box().position)
             }
@@ -1646,6 +1648,8 @@ impl<ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNode
         match self.get_pseudo_element_type() {
             PseudoElementType::Before(_) => &mut data.before_flow_construction_result,
             PseudoElementType::After (_) => &mut data.after_flow_construction_result,
+            PseudoElementType::DetailsSummary(_) => &mut data.details_summary_flow_construction_result,
+            PseudoElementType::DetailsContent(_) => &mut data.details_content_flow_construction_result,
             PseudoElementType::Normal    => &mut data.flow_construction_result,
         }
     }

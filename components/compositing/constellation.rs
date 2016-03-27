@@ -43,6 +43,7 @@ use offscreen_gl_context::GLContextAttributes;
 use pipeline::{CompositionPipeline, InitialPipelineState, Pipeline, UnprivilegedPipelineContent};
 use profile_traits::mem;
 use profile_traits::time;
+use rand::{random, Rng, SeedableRng, StdRng};
 #[cfg(not(target_os = "windows"))]
 use sandboxing;
 use script_traits::{AnimationState, CompositorEvent, ConstellationControlMsg};
@@ -170,12 +171,6 @@ pub struct Constellation<LTF, STF> {
     /// Bits of state used to interact with the webdriver implementation
     webdriver: WebDriverData,
 
-    /// A list of in-process senders to `CanvasPaintThread`s.
-    canvas_paint_threads: Vec<Sender<CanvasMsg>>,
-
-    /// A list of in-process senders to `WebGLPaintThread`s.
-    webgl_paint_threads: Vec<Sender<CanvasMsg>>,
-
     scheduler_chan: IpcSender<TimerEventRequest>,
 
     /// A list of child content processes.
@@ -186,6 +181,10 @@ pub struct Constellation<LTF, STF> {
 
     // Webrender interface, if enabled.
     webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+
+    /// The random number generator and probability for closing pipelines.
+    /// This is for testing the hardening of the constellation.
+    random_pipeline_closure: Option<(StdRng, f32)>,
 }
 
 /// State needed to construct a constellation.
@@ -349,12 +348,17 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     None
                 },
                 webdriver: WebDriverData::new(),
-                canvas_paint_threads: Vec::new(),
-                webgl_paint_threads: Vec::new(),
                 scheduler_chan: TimerScheduler::start(),
                 child_processes: Vec::new(),
                 document_states: HashMap::new(),
                 webrender_api_sender: state.webrender_api_sender,
+                random_pipeline_closure: opts::get().random_pipeline_closure_probability.map(|prob| {
+                    let seed = opts::get().random_pipeline_closure_seed.unwrap_or_else(random);
+                    let rng = StdRng::from_seed(&[seed]);
+                    warn!("Randomly closing pipelines.");
+                    info!("Using seed {} for random pipeline closure.", seed);
+                    (rng, prob)
+                }),
             };
             let namespace_id = constellation.next_pipeline_namespace_id();
             PipelineNamespace::install(namespace_id);
@@ -365,6 +369,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
     fn run(&mut self) {
         loop {
+            // Randomly close a pipeline if --random-pipeline-closure-probability is set
+            // This is for testing the hardening of the constellation.
+            self.maybe_close_random_pipeline();
             if !self.handle_request() {
                 break;
             }
@@ -1005,11 +1012,11 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
         let forward = !self.frame(frame_id).next.is_empty();
         let back = !self.frame(frame_id).prev.is_empty();
-        self.compositor_proxy.send(ToCompositorMsg::LoadComplete(back, forward));
+        let root = self.root_frame_id.is_none() || self.root_frame_id == Some(frame_id);
+        self.compositor_proxy.send(ToCompositorMsg::LoadComplete(back, forward, root));
     }
 
-    fn handle_dom_load(&mut self,
-                       pipeline_id: PipelineId) {
+    fn handle_dom_load(&mut self, pipeline_id: PipelineId) {
         let mut webdriver_reset = false;
         if let Some((expected_pipeline_id, ref reply_chan)) = self.webdriver.load_channel {
             debug!("Sending load to WebDriver");
@@ -1206,31 +1213,21 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     fn handle_create_canvas_paint_thread_msg(
             &mut self,
             size: &Size2D<i32>,
-            response_sender: IpcSender<(IpcSender<CanvasMsg>, usize)>) {
-        let id = self.canvas_paint_threads.len();
+            response_sender: IpcSender<IpcSender<CanvasMsg>>) {
         let webrender_api = self.webrender_api_sender.clone();
-        let (out_of_process_sender, in_process_sender) = CanvasPaintThread::start(*size,
-                                                                                  webrender_api);
-        self.canvas_paint_threads.push(in_process_sender);
-        response_sender.send((out_of_process_sender, id)).unwrap()
+        let sender = CanvasPaintThread::start(*size, webrender_api);
+        response_sender.send(sender).unwrap()
     }
 
     fn handle_create_webgl_paint_thread_msg(
             &mut self,
             size: &Size2D<i32>,
             attributes: GLContextAttributes,
-            response_sender: IpcSender<Result<(IpcSender<CanvasMsg>, usize), String>>) {
+            response_sender: IpcSender<Result<IpcSender<CanvasMsg>, String>>) {
         let webrender_api = self.webrender_api_sender.clone();
-        let response = match WebGLPaintThread::start(*size, attributes, webrender_api) {
-            Ok((out_of_process_sender, in_process_sender)) => {
-                let id = self.webgl_paint_threads.len();
-                self.webgl_paint_threads.push(in_process_sender);
-                Ok((out_of_process_sender, id))
-            },
-            Err(msg) => Err(msg),
-        };
+        let sender = WebGLPaintThread::start(*size, attributes, webrender_api);
 
-        response_sender.send(response).unwrap()
+        response_sender.send(sender).unwrap()
     }
 
     fn handle_webdriver_msg(&mut self, msg: WebDriverCommandMsg) {
@@ -1594,6 +1591,27 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
     }
 
+    // Randomly close a pipeline -if --random-pipeline-closure-probability is set
+    fn maybe_close_random_pipeline(&mut self) {
+        match self.random_pipeline_closure {
+            Some((ref mut rng, probability)) => if probability <= rng.gen::<f32>() { return },
+            _ => return,
+        };
+        // In order to get repeatability, we sort the pipeline ids.
+        let mut pipeline_ids: Vec<&PipelineId> = self.pipelines.keys().collect();
+        pipeline_ids.sort();
+        if let Some((ref mut rng, _)) = self.random_pipeline_closure {
+            if let Some(pipeline_id) = rng.choose(&*pipeline_ids) {
+                if let Some(pipeline) = self.pipelines.get(pipeline_id) {
+                    // Note that we deliberately do not do any of the tidying up
+                    // associated with closing a pipeline. The constellation should cope!
+                    info!("Randomly closing pipeline {}.", pipeline_id);
+                    pipeline.force_exit();
+                }
+            }
+        }
+    }
+
     // Convert a frame to a sendable form to pass to the compositor
     fn frame_to_sendable(&self, frame_id: FrameId) -> SendableFrameTree {
         let pipeline = self.pipeline(self.frame(frame_id).current);
@@ -1655,8 +1673,11 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             // If this is an iframe, then send the event with new url
             if let Some((containing_pipeline_id, subpage_id, url)) = event_info {
                 let parent_pipeline = self.pipeline(containing_pipeline_id);
-                parent_pipeline.trigger_mozbrowser_event(subpage_id,
-                                                         MozBrowserEvent::LocationChange(url));
+                let frame_id = *self.pipeline_to_frame_map.get(&pipeline_id).unwrap();
+                let can_go_backward = !self.frame(frame_id).prev.is_empty();
+                let can_go_forward = !self.frame(frame_id).next.is_empty();
+                let event = MozBrowserEvent::LocationChange(url, can_go_backward, can_go_forward);
+                parent_pipeline.trigger_mozbrowser_event(subpage_id, event);
             }
         }
     }

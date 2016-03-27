@@ -58,8 +58,10 @@ extern crate phf;
 #[macro_use]
 extern crate profile_traits;
 extern crate rand;
+extern crate range;
 extern crate ref_filter_map;
 extern crate ref_slice;
+extern crate regex;
 extern crate rustc_serialize;
 extern crate script_traits;
 extern crate selectors;

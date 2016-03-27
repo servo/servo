@@ -30,7 +30,7 @@ use std::{fmt, isize, mem};
 use style::computed_values::{display, overflow_x, position, text_align, text_justify};
 use style::computed_values::{text_overflow, vertical_align, white_space};
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use style::properties::ComputedValues;
+use style::properties::{ComputedValues, TComputedValues};
 use style::values::computed::LengthOrPercentage;
 use text;
 use unicode_bidi;
@@ -354,6 +354,7 @@ impl LineBreaker {
             let need_to_merge = match (&mut result.specific, &candidate.specific) {
                 (&mut SpecificFragmentInfo::ScannedText(ref mut result_info),
                  &SpecificFragmentInfo::ScannedText(ref candidate_info)) => {
+                    result_info.selected() == candidate_info.selected() &&
                     util::arc_ptr_eq(&result_info.run, &candidate_info.run) &&
                         inline_contexts_are_equal(&result.inline_context,
                                                   &candidate.inline_context)

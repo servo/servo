@@ -2,19 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use properties::GeckoComputedValues;
 use selectors::parser::{ParserContext, SelectorImpl};
-use std::process;
 use style;
 use style::element_state::ElementState;
-use style::error_reporting::StdoutErrorReporter;
 use style::selector_impl::SelectorImplExt;
-use style::stylesheets::Origin;
-use url::Url;
 
 pub type Stylist = style::selector_matching::Stylist<GeckoSelectorImpl>;
 pub type Stylesheet = style::stylesheets::Stylesheet<GeckoSelectorImpl>;
 pub type SharedStyleContext = style::context::SharedStyleContext<GeckoSelectorImpl>;
-pub type PrivateStyleData = style::data::PrivateStyleData<GeckoSelectorImpl>;
+pub type PrivateStyleData = style::data::PrivateStyleData<GeckoSelectorImpl, GeckoComputedValues>;
 
 pub struct GeckoSelectorImpl;
 

@@ -59,11 +59,6 @@ def host_triple():
     return "%s-%s" % (cpu_type, os_type)
 
 
-def use_nightly_rust():
-    envvar = os.environ.get("SERVO_USE_NIGHTLY_RUST", "0")
-    return envvar != "0"
-
-
 def call(*args, **kwargs):
     """Wrap `subprocess.call`, printing the command if verbose=True."""
     verbose = kwargs.pop('verbose', False)
@@ -116,6 +111,12 @@ class CommandBase(object):
     def __init__(self, context):
         self.context = context
 
+        def get_env_bool(var, default):
+            # Contents of env vars are strings by default. This returns the
+            # boolean value of the specified environment variable, or the
+            # speciried default if the var doesn't contain True or False
+            return {'True': True, 'False': False}.get(os.environ.get(var), default)
+
         def resolverelative(category, key):
             # Allow ~
             self.config[category][key] = path.expanduser(self.config[category][key])
@@ -156,7 +157,7 @@ class CommandBase(object):
         if not self.config["tools"]["system-cargo"]:
             self.config["tools"]["cargo-root"] = path.join(
                 context.sharedir, "cargo", self.cargo_build_id())
-        self.config["tools"].setdefault("rustc-with-gold", True)
+        self.config["tools"].setdefault("rustc-with-gold", get_env_bool("SERVO_RUSTC_WITH_GOLD", True))
 
         self.config.setdefault("build", {})
         self.config["build"].setdefault("android", False)
@@ -384,7 +385,7 @@ class CommandBase(object):
         # Don't run the gold linker if on Windows https://github.com/servo/servo/issues/9499
         if self.config["tools"]["rustc-with-gold"] and sys.platform not in ("win32", "msys"):
             if subprocess.call(['which', 'ld.gold'], stdout=PIPE, stderr=PIPE) == 0:
-                env['RUSTC'] = path.join(self.context.topdir, 'etc', 'rustc-with-gold')
+                env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C link-args=-fuse-ld=gold"
 
         return env
 

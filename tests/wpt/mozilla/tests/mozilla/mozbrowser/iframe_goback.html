@@ -19,8 +19,8 @@ async_test(function(t) {
   iframe.src = url1;
 
   iframe.addEventListener("mozbrowserlocationchange", e => {
-    locations.push(e.detail);
-    if (e.detail == url2) {
+    locations.push(e.detail.uri);
+    if (e.detail.uri == url2) {
       iframe.goBack();
     }
     if (locations.length == expected_locations.length) {

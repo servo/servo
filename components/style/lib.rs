@@ -14,6 +14,8 @@
 #![plugin(plugins)]
 #![plugin(serde_macros)]
 
+#![deny(unsafe_code)]
+
 #![recursion_limit = "500"]  // For match_ignore_ascii_case in PropertyDeclaration::parse
 
 extern crate app_units;
@@ -48,7 +50,7 @@ pub mod animation;
 pub mod attr;
 pub mod bezier;
 pub mod context;
-mod custom_properties;
+pub mod custom_properties;
 pub mod data;
 pub mod dom;
 pub mod element_state;

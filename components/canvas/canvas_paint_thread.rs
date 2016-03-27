@@ -15,12 +15,11 @@ use gfx_traits::color;
 use ipc_channel::ipc::IpcSharedMemory;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use layers::platform::surface::NativeSurface;
 use num::ToPrimitive;
 use premultiplytable::PREMULTIPLY_TABLE;
 use std::borrow::ToOwned;
 use std::mem;
-use std::sync::mpsc::{Sender, channel};
+use std::sync::mpsc::channel;
 use util::opts;
 use util::thread::spawn_named;
 use util::vec::byte_swap;
@@ -125,12 +124,12 @@ impl<'a> CanvasPaintThread<'a> {
     /// sender for it.
     pub fn start(size: Size2D<i32>,
                  webrender_api_sender: Option<webrender_traits::RenderApiSender>)
-                    -> (IpcSender<CanvasMsg>, Sender<CanvasMsg>) {
+                 -> IpcSender<CanvasMsg> {
         // TODO(pcwalton): Ask the pipeline to create this for us instead of spawning it directly.
         // This will be needed for multiprocess Servo.
         let (out_of_process_chan, out_of_process_port) = ipc::channel::<CanvasMsg>().unwrap();
         let (in_process_chan, in_process_port) = channel();
-        ROUTER.route_ipc_receiver_to_mpsc_sender(out_of_process_port, in_process_chan.clone());
+        ROUTER.route_ipc_receiver_to_mpsc_sender(out_of_process_port, in_process_chan);
         spawn_named("CanvasThread".to_owned(), move || {
             let mut painter = CanvasPaintThread::new(size, webrender_api_sender);
             loop {
@@ -205,19 +204,12 @@ impl<'a> CanvasPaintThread<'a> {
                             }
                         }
                     }
-                    CanvasMsg::FromPaint(message) => {
-                        match message {
-                            FromPaintMsg::SendNativeSurface(chan) => {
-                                painter.send_native_surface(chan)
-                            }
-                        }
-                    }
                     CanvasMsg::WebGL(_) => panic!("Wrong message sent to Canvas2D thread"),
                 }
             }
         });
 
-        (out_of_process_chan, in_process_chan)
+        out_of_process_chan
     }
 
     fn save_context_state(&mut self) {
@@ -548,12 +540,6 @@ impl<'a> CanvasPaintThread<'a> {
             };
             chan.send(CanvasData::Pixels(pixel_data)).unwrap();
         })
-    }
-
-    fn send_native_surface(&self, _chan: Sender<NativeSurface>) {
-        // FIXME(mrobinson): We need a handle on the NativeDisplay to create compatible
-        // NativeSurfaces for the compositor.
-        unimplemented!()
     }
 
     fn image_data(&self,

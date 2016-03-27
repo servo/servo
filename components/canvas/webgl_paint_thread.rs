@@ -2,16 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::{CanvasCommonMsg, CanvasMsg, CanvasPixelData, CanvasData, CanvasWebGLMsg};
-use canvas_traits::{FromLayoutMsg, FromPaintMsg};
+use canvas_traits::{CanvasCommonMsg, CanvasMsg, CanvasPixelData, CanvasData, CanvasWebGLMsg, FromLayoutMsg};
 use euclid::size::Size2D;
 use gleam::gl;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
-use layers::platform::surface::NativeSurface;
 use offscreen_gl_context::{ColorAttachmentType, GLContext, GLContextAttributes, NativeGLContext};
 use std::borrow::ToOwned;
-use std::sync::mpsc::{Sender, channel};
+use std::sync::mpsc::channel;
 use util::thread::spawn_named;
 use util::vec::byte_swap;
 use webrender_traits;
@@ -62,7 +60,7 @@ impl WebGLPaintThread {
     pub fn start(size: Size2D<i32>,
                  attrs: GLContextAttributes,
                  webrender_api_sender: Option<webrender_traits::RenderApiSender>)
-                 -> Result<(IpcSender<CanvasMsg>, Sender<CanvasMsg>), String> {
+                 -> Result<IpcSender<CanvasMsg>, String> {
         let (in_process_chan, in_process_port) = channel();
         let (result_chan, result_port) = channel();
         spawn_named("WebGLThread".to_owned(), move || {
@@ -83,7 +81,7 @@ impl WebGLPaintThread {
                     CanvasMsg::Common(message) => {
                         match message {
                             CanvasCommonMsg::Close => break,
-                            // TODO(ecoal95): handle error nicely
+                            // TODO(emilio): handle error nicely
                             CanvasCommonMsg::Recreate(size) => painter.recreate(size).unwrap(),
                         }
                     },
@@ -93,12 +91,6 @@ impl WebGLPaintThread {
                                 painter.send_data(chan),
                         }
                     }
-                    CanvasMsg::FromPaint(message) => {
-                        match message {
-                            FromPaintMsg::SendNativeSurface(chan) =>
-                                painter.send_native_surface(chan),
-                        }
-                    }
                     CanvasMsg::Canvas2d(_) => panic!("Wrong message sent to WebGLThread"),
                 }
             }
@@ -106,8 +98,8 @@ impl WebGLPaintThread {
 
         result_port.recv().unwrap().map(|_| {
              let (out_of_process_chan, out_of_process_port) = ipc::channel::<CanvasMsg>().unwrap();
-             ROUTER.route_ipc_receiver_to_mpsc_sender(out_of_process_port, in_process_chan.clone());
-             (out_of_process_chan, in_process_chan)
+             ROUTER.route_ipc_receiver_to_mpsc_sender(out_of_process_port, in_process_chan);
+             out_of_process_chan
         })
     }
 
@@ -147,12 +139,7 @@ impl WebGLPaintThread {
         }
     }
 
-    fn send_native_surface(&self, _: Sender<NativeSurface>) {
-        // FIXME(ecoal95): We need to make a clone of the surface in order to
-        // implement this
-        unimplemented!()
-    }
-
+    #[allow(unsafe_code)]
     fn recreate(&mut self, size: Size2D<i32>) -> Result<(), &'static str> {
         match self.data {
             WebGLPaintTaskData::Servo(ref mut context) => {

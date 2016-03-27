@@ -1,0 +1,29 @@
+<!doctype html>
+<html class="reftest-wait">
+  <head>
+    <meta charset="UTF-8">
+    <title>Incremental visibility test</title>
+    <link rel="match" href="incremental_visibility_ref.html">
+    <style>
+      div {
+        background: green;
+        height: 100px;
+        width: 100px;
+        visibility: hidden;
+      }
+      div.show {
+        visibility: visible;
+      }
+    </style>
+  </head>
+  <body>
+    <div></div>
+    <script>
+      window.onload = function() {
+        document.body.offsetWidth; // force layout
+        document.querySelector('div').classList.add('show');
+        document.documentElement.classList.remove('reftest-wait');
+      }
+    </script>
+  </body>
+</html>

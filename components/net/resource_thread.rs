@@ -11,7 +11,7 @@ use data_loader;
 use devtools_traits::{DevtoolsControlMsg};
 use file_loader;
 use hsts::{HSTSList, preload_hsts_domains};
-use http_loader::{self, Connector, create_http_connector};
+use http_loader::{self, Connector, create_http_connector, HttpState};
 use hyper::client::pool::Pool;
 use hyper::header::{ContentType, Header, SetCookie};
 use hyper::mime::{Mime, SubLevel, TopLevel};
@@ -185,7 +185,7 @@ impl ResourceChannelManager {
                 ControlMsg::SetCookiesForUrl(request, cookie_list, source) =>
                     self.resource_manager.set_cookies_for_url(request, cookie_list, source),
                 ControlMsg::GetCookiesForUrl(url, consumer, source) => {
-                    let cookie_jar = &self.resource_manager.cookie_storage;
+                    let cookie_jar = &self.resource_manager.cookie_jar;
                     let mut cookie_jar = cookie_jar.write().unwrap();
                     consumer.send(cookie_jar.cookies_for_url(&url, source)).unwrap();
                 }
@@ -269,9 +269,15 @@ impl Drop for CancellationListener {
     }
 }
 
+pub struct AuthCacheEntry {
+    pub user_name: String,
+    pub password: String,
+}
+
 pub struct ResourceManager {
     user_agent: String,
-    cookie_storage: Arc<RwLock<CookieStorage>>,
+    cookie_jar: Arc<RwLock<CookieStorage>>,
+    auth_cache: Arc<RwLock<HashMap<Url, AuthCacheEntry>>>,
     mime_classifier: Arc<MIMEClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     hsts_list: Arc<RwLock<HSTSList>>,
@@ -286,7 +292,8 @@ impl ResourceManager {
                devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
         ResourceManager {
             user_agent: user_agent,
-            cookie_storage: Arc::new(RwLock::new(CookieStorage::new())),
+            cookie_jar: Arc::new(RwLock::new(CookieStorage::new())),
+            auth_cache: Arc::new(RwLock::new(HashMap::new())),
             mime_classifier: Arc::new(MIMEClassifier::new()),
             devtools_chan: devtools_channel,
             hsts_list: Arc::new(RwLock::new(hsts_list)),
@@ -301,7 +308,7 @@ impl ResourceManager {
         if let Ok(SetCookie(cookies)) = header {
             for bare_cookie in cookies {
                 if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, &request, source) {
-                    let cookie_jar = &self.cookie_storage;
+                    let cookie_jar = &self.cookie_jar;
                     let mut cookie_jar = cookie_jar.write().unwrap();
                     cookie_jar.push(cookie, source);
                 }
@@ -337,12 +344,17 @@ impl ResourceManager {
         let cancel_listener = CancellationListener::new(cancel_resource);
         let loader = match &*load_data.url.scheme {
             "file" => from_factory(file_loader::factory),
-            "http" | "https" | "view-source" =>
+            "http" | "https" | "view-source" => {
+                let http_state = HttpState {
+                    hsts_list: self.hsts_list.clone(),
+                    cookie_jar: self.cookie_jar.clone(),
+                    auth_cache: self.auth_cache.clone()
+                };
                 http_loader::factory(self.user_agent.clone(),
-                                     self.hsts_list.clone(),
-                                     self.cookie_storage.clone(),
+                                     http_state,
                                      self.devtools_chan.clone(),
-                                     self.connector.clone()),
+                                     self.connector.clone())
+            },
             "data" => from_factory(data_loader::factory),
             "about" => from_factory(about_loader::factory),
             _ => {
@@ -362,6 +374,6 @@ impl ResourceManager {
     fn websocket_connect(&self,
                          connect: WebSocketCommunicate,
                          connect_data: WebSocketConnectData) {
-        websocket_loader::init(connect, connect_data, self.cookie_storage.clone());
+        websocket_loader::init(connect, connect_data, self.cookie_jar.clone());
     }
 }

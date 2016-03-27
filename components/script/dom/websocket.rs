@@ -55,8 +55,8 @@ enum WebSocketRequestState {
     Closed = 3,
 }
 
-// list of blacklist ports according to
-// http://mxr.mozilla.org/mozilla-central/source/netwerk/base/nsIOService.cpp#87
+// list of bad ports according to
+// https://fetch.spec.whatwg.org/#port-blocking
 const BLOCKED_PORTS_LIST: &'static [u16] = &[
     1,    // tcpmux
     7,    // echo
@@ -67,7 +67,7 @@ const BLOCKED_PORTS_LIST: &'static [u16] = &[
     17,   // qotd
     19,   // chargen
     20,   // ftp-data
-    21,   // ftp-cntl
+    21,   // ftp
     22,   // ssh
     23,   // telnet
     25,   // smtp
@@ -90,11 +90,11 @@ const BLOCKED_PORTS_LIST: &'static [u16] = &[
     115,  // sftp
     117,  // uucp-path
     119,  // nntp
-    123,  // NTP
+    123,  // ntp
     135,  // loc-srv / epmap
     139,  // netbios
     143,  // imap2
-    179,  // BGP
+    179,  // bgp
     389,  // ldap
     465,  // smtp+ssl
     512,  // print / exec
@@ -103,19 +103,25 @@ const BLOCKED_PORTS_LIST: &'static [u16] = &[
     515,  // printer
     526,  // tempo
     530,  // courier
-    531,  // Chat
+    531,  // chat
     532,  // netnews
     540,  // uucp
     556,  // remotefs
     563,  // nntp+ssl
-    587,  //
-    601,  //
+    587,  // smtp
+    601,  // syslog-conn
     636,  // ldap+ssl
     993,  // imap+ssl
     995,  // pop3+ssl
     2049, // nfs
+    3659, // apple-sasl
     4045, // lockd
     6000, // x11
+    6665, // irc (alternate)
+    6666, // irc (alternate)
+    6667, // irc (default)
+    6668, // irc (alternate)
+    6669, // irc (alternate)
 ];
 
 // Close codes defined in https://tools.ietf.org/html/rfc6455#section-7.4.1
