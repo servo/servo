@@ -471,8 +471,7 @@ impl<'a> PreorderFlowTraversal for AbsoluteAssignBSizesTraversal<'a> {
             return
         }
 
-        let AbsoluteAssignBSizesTraversal(ref layout_context) = *self;
-        block.calculate_absolute_block_size_and_margins(*layout_context);
+        block.calculate_absolute_block_size_and_margins(&self.0);
     }
 }
 

@@ -10,12 +10,10 @@ pub struct HistoryTraversalTaskSource(pub Sender<MainThreadScriptMsg>);
 
 impl ScriptChan for HistoryTraversalTaskSource {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let HistoryTraversalTaskSource(ref chan) = *self;
-        chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
+        self.0.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        let HistoryTraversalTaskSource(ref chan) = *self;
-        box HistoryTraversalTaskSource((*chan).clone())
+        box HistoryTraversalTaskSource((&self.0).clone())
     }
 }

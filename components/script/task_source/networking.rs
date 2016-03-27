@@ -10,12 +10,10 @@ pub struct NetworkingTaskSource(pub Sender<MainThreadScriptMsg>);
 
 impl ScriptChan for NetworkingTaskSource {
     fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        let NetworkingTaskSource(ref chan) = *self;
-        chan.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
+        self.0.send(MainThreadScriptMsg::Common(msg)).map_err(|_| ())
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        let NetworkingTaskSource(ref chan) = *self;
-        box NetworkingTaskSource((*chan).clone())
+        box NetworkingTaskSource((&self.0).clone())
     }
 }

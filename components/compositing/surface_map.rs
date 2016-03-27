@@ -29,8 +29,7 @@ struct SurfaceKey([i32; 2]);
 
 impl Hash for SurfaceKey {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let SurfaceKey(ref bytes) = *self;
-        bytes.hash(state);
+        self.0.hash(state);
     }
 }
 

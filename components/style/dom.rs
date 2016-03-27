@@ -37,8 +37,7 @@ impl OpaqueNode {
     /// Returns the address of this node, for debugging purposes.
     #[inline]
     pub fn id(&self) -> usize {
-        let OpaqueNode(pointer) = *self;
-        pointer
+        self.0
     }
 }
 

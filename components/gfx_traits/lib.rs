@@ -140,8 +140,7 @@ pub struct Epoch(pub u32);
 
 impl Epoch {
     pub fn next(&mut self) {
-        let Epoch(ref mut u) = *self;
-        *u += 1;
+        self.0 += 1;
     }
 }
 
@@ -150,7 +149,6 @@ pub struct FrameTreeId(pub u32);
 
 impl FrameTreeId {
     pub fn next(&mut self) {
-        let FrameTreeId(ref mut u) = *self;
-        *u += 1;
+        self.0 += 1;
     }
 }
