@@ -83,6 +83,7 @@ lazy_static! {
     };
 }
 
+#[derive(HeapSizeOf)]
 pub struct Stylist<Impl: SelectorImplExt> {
     // Device that the stylist is currently evaluating against.
     pub device: Device,
@@ -164,7 +165,6 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         if !stylesheet.is_effective_for_device(device) {
             return;
         }
-
         let mut rules_source_order = self.rules_source_order;
 
         // Take apart the StyleRule into individual Rules and insert
@@ -226,12 +226,13 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         if let Some(ref constraints) = self.viewport_constraints {
             device = Device::new(MediaType::Screen, constraints.size);
         }
-        let is_device_dirty = self.is_device_dirty || stylesheets.iter()
-            .flat_map(|stylesheet| stylesheet.rules().media())
-            .any(|media_rule| media_rule.evaluate(&self.device) != media_rule.evaluate(&device));
+
+        self.is_device_dirty |= stylesheets.iter().any(|stylesheet| {
+                stylesheet.rules().media().any(|media_rule|
+                    media_rule.evaluate(&self.device) != media_rule.evaluate(&device))
+        });
 
         self.device = device;
-        self.is_device_dirty |= is_device_dirty;
     }
 
     pub fn viewport_constraints(&self) -> &Option<ViewportConstraints> {
@@ -265,7 +266,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         let map = match pseudo_element {
             Some(ref pseudo) => match self.pseudos_map.get(pseudo) {
                 Some(map) => map,
-                // TODO(ecoal95): get non eagerly-cascaded pseudo-element rules here.
+                // TODO(emilio): get non eagerly-cascaded pseudo-element rules here.
                 // Actually assume there are no rules applicable.
                 None => return true,
             },
@@ -337,6 +338,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
     }
 }
 
+#[derive(HeapSizeOf)]
 struct PerOriginSelectorMap<Impl: SelectorImpl> {
     normal: SelectorMap<Vec<PropertyDeclaration>, Impl>,
     important: SelectorMap<Vec<PropertyDeclaration>, Impl>,
@@ -352,6 +354,7 @@ impl<Impl: SelectorImpl> PerOriginSelectorMap<Impl> {
     }
 }
 
+#[derive(HeapSizeOf)]
 struct PerPseudoElementSelectorMap<Impl: SelectorImpl> {
     user_agent: PerOriginSelectorMap<Impl>,
     author: PerOriginSelectorMap<Impl>,

@@ -93,13 +93,20 @@ impl Window {
                parent: Option<glutin::WindowID>) -> Rc<Window> {
         let width = window_size.to_untyped().width;
         let height = window_size.to_untyped().height;
+
+        // If there's no chrome, start off with the window invisible. It will be set to visible in
+        // `load_end()`. This avoids an ugly flash of unstyled content (especially important since
+        // unstyled content is white and chrome often has a transparent background). See issue
+        // #9996.
+        let visible = is_foreground && !opts::get().no_native_titlebar;
+
         let mut builder =
             glutin::WindowBuilder::new().with_title("Servo".to_string())
                                         .with_decorations(!opts::get().no_native_titlebar)
                                         .with_transparency(opts::get().no_native_titlebar)
                                         .with_dimensions(width, height)
                                         .with_gl(Window::gl_version())
-                                        .with_visibility(is_foreground)
+                                        .with_visibility(visible)
                                         .with_parent(parent)
                                         .with_multitouch();
 
@@ -491,6 +498,8 @@ impl Window {
             VirtualKeyCode::Tab => Ok(Key::Tab),
             VirtualKeyCode::Subtract => Ok(Key::Minus),
 
+            VirtualKeyCode::NavigateBackward => Ok(Key::NavigateBackward),
+            VirtualKeyCode::NavigateForward => Ok(Key::NavigateForward),
             _ => Err(()),
         }
     }
@@ -613,7 +622,10 @@ impl WindowMethods for Window {
     fn load_start(&self, _: bool, _: bool) {
     }
 
-    fn load_end(&self, _: bool, _: bool) {
+    fn load_end(&self, _: bool, _: bool, root: bool) {
+        if root && opts::get().no_native_titlebar {
+            self.window.show()
+        }
     }
 
     fn load_error(&self, _: NetError, _: String) {
@@ -715,10 +727,10 @@ impl WindowMethods for Window {
                 self.event_queue.borrow_mut().push(WindowEvent::ResetZoom);
             }
 
-            (SHIFT, Key::Backspace) => {
+            (NONE, Key::NavigateForward) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Forward));
             }
-            (NONE, Key::Backspace) => {
+            (NONE, Key::NavigateBackward) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Navigation(WindowNavigateMsg::Back));
             }
 
@@ -869,7 +881,7 @@ impl WindowMethods for Window {
 
     fn load_start(&self, _: bool, _: bool) {
     }
-    fn load_end(&self, _: bool, _: bool) {
+    fn load_end(&self, _: bool, _: bool, _: bool) {
     }
     fn load_error(&self, _: NetError, _: String) {
     }

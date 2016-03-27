@@ -5,6 +5,8 @@
 #![feature(plugin)]
 #![plugin(plugins)]
 
+#![deny(unsafe_code)]
+
 extern crate azure;
 extern crate canvas_traits;
 extern crate core;

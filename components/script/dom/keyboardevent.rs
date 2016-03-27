@@ -148,7 +148,7 @@ impl KeyboardEvent {
 }
 
 
-// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3Events-key.html
+// https://w3c.github.io/uievents-key/#key-value-tables
 pub fn key_value(key: Key, mods: KeyModifiers) -> &'static str {
     let shift = mods.contains(constellation_msg::SHIFT);
     match key {
@@ -319,6 +319,8 @@ pub fn key_value(key: Key, mods: KeyModifiers) -> &'static str {
         Key::RightAlt => "Alt",
         Key::RightSuper => "Super",
         Key::Menu => "ContextMenu",
+        Key::NavigateForward => "BrowserForward",
+        Key::NavigateBackward => "BrowserBack",
     }
 }
 
@@ -489,11 +491,13 @@ fn key_from_string(key_string: &str, location: u32) -> Option<Key> {
         "Alt" if location == KeyboardEventConstants::DOM_KEY_LOCATION_RIGHT => Some(Key::RightAlt),
         "Super" if location == KeyboardEventConstants::DOM_KEY_LOCATION_RIGHT => Some(Key::RightSuper),
         "ContextMenu" => Some(Key::Menu),
+        "BrowserForward" => Some(Key::NavigateForward),
+        "BrowserBack" => Some(Key::NavigateBackward),
         _ => None
     }
 }
 
-// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3Events-code.html
+// https://w3c.github.io/uievents-code/#code-value-tables
 fn code_value(key: Key) -> &'static str {
     match key {
         Key::Space => "Space",
@@ -613,7 +617,10 @@ fn code_value(key: Key) -> &'static str {
         Key::LeftControl | Key::RightControl => "Control",
         Key::LeftAlt | Key::RightAlt => "Alt",
         Key::LeftSuper | Key::RightSuper => "Super",
-        Key::Menu => "Menu",
+        Key::Menu => "ContextMenu",
+
+        Key::NavigateForward => "BrowserForward",
+        Key::NavigateBackward => "BrowserBackward",
     }
 }
 

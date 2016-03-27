@@ -8,10 +8,11 @@ use euclid::num::Zero;
 use num::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::ops::Deref;
+use std::str::FromStr;
 use string_cache::{Atom, Namespace};
 use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto, HTML_SPACE_CHARACTERS, WHITESPACE};
-use util::str::{parse_length, read_numbers, split_html_space_chars, str_join};
+use util::str::{read_numbers, split_html_space_chars, str_join};
 use values::specified::{Length};
 
 // Duplicated from script::dom::values.
@@ -395,6 +396,75 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
                 Ok((upper << 4) | lower)
             }
         }
+    }
+}
+
+/// TODO: this function can be rewritten to return Result<LengthOrPercentage, _>
+/// Parses a dimension value per HTML5 § 2.4.4.4. If unparseable, `Auto` is
+/// returned.
+/// https://html.spec.whatwg.org/multipage/#rules-for-parsing-dimension-values
+pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
+    // Steps 1 & 2 are not relevant
+
+    // Step 3
+    value = value.trim_left_matches(WHITESPACE);
+
+    // Step 4
+    if value.is_empty() {
+        return LengthOrPercentageOrAuto::Auto
+    }
+
+    // Step 5
+    if value.starts_with("+") {
+        value = &value[1..]
+    }
+
+    // Steps 6 & 7
+    match value.chars().nth(0) {
+        Some('0'...'9') => {},
+        _ => return LengthOrPercentageOrAuto::Auto,
+    }
+
+    // Steps 8 to 13
+    // We trim the string length to the minimum of:
+    // 1. the end of the string
+    // 2. the first occurence of a '%' (U+0025 PERCENT SIGN)
+    // 3. the second occurrence of a '.' (U+002E FULL STOP)
+    // 4. the occurrence of a character that is neither a digit nor '%' nor '.'
+    // Note: Step 10 is directly subsumed by FromStr::from_str
+    let mut end_index = value.len();
+    let (mut found_full_stop, mut found_percent) = (false, false);
+    for (i, ch) in value.chars().enumerate() {
+        match ch {
+            '0'...'9' => continue,
+            '%' => {
+                found_percent = true;
+                end_index = i;
+                break
+            }
+            '.' if !found_full_stop => {
+                found_full_stop = true;
+                continue
+            }
+            _ => {
+                end_index = i;
+                break
+            }
+        }
+    }
+    value = &value[..end_index];
+
+    if found_percent {
+        let result: Result<f32, _> = FromStr::from_str(value);
+        match result {
+            Ok(number) => return LengthOrPercentageOrAuto::Percentage((number as f32) / 100.0),
+            Err(_) => return LengthOrPercentageOrAuto::Auto,
+        }
+    }
+
+    match FromStr::from_str(value) {
+        Ok(number) => LengthOrPercentageOrAuto::Length(Au::from_f64_px(number)),
+        Err(_) => LengthOrPercentageOrAuto::Auto,
     }
 }
 

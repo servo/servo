@@ -66,4 +66,9 @@ impl WorkerNavigatorMethods for WorkerNavigator {
     fn AppVersion(&self) -> DOMString {
         navigatorinfo::AppVersion()
     }
+
+    // https://html.spec.whatwg.org/multipage/#navigatorlanguage
+    fn Language(&self) -> DOMString {
+        navigatorinfo::Language()
+    }
 }

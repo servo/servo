@@ -9,6 +9,8 @@
 #![feature(plugin)]
 #![plugin(plugins)]
 
+#![deny(unsafe_code)]
+
 extern crate brotli;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
@@ -23,6 +25,7 @@ extern crate msg;
 extern crate net_traits;
 extern crate openssl;
 extern crate rustc_serialize;
+extern crate threadpool;
 extern crate time;
 extern crate url;
 extern crate util;

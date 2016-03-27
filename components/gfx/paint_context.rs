@@ -17,7 +17,7 @@ use azure::{AzDrawTargetFillGlyphs, struct__AzGlyphBuffer, struct__AzPoint};
 use azure::{AzFloat, struct__AzDrawOptions, struct__AzGlyph};
 use display_list::TextOrientation::{SidewaysLeft, SidewaysRight, Upright};
 use display_list::{BLUR_INFLATION_FACTOR, BorderRadii, BoxShadowClipMode, ClippingRegion};
-use display_list::{TextDisplayItem};
+use display_list::{TextDisplayItem, WebRenderImageInfo};
 use euclid::matrix2d::Matrix2D;
 use euclid::point::Point2D;
 use euclid::rect::{Rect, TypedRect};
@@ -27,10 +27,9 @@ use euclid::size::Size2D;
 use filters;
 use font_context::FontContext;
 use gfx_traits::{color, LayerKind};
-use net_traits::image::base::{Image, PixelFormat};
+use net_traits::image::base::PixelFormat;
 use range::Range;
 use std::default::Default;
-use std::sync::Arc;
 use std::{f32, mem, ptr};
 use style::computed_values::{border_style, filter, image_rendering, mix_blend_mode};
 use text::TextRun;
@@ -181,21 +180,22 @@ impl<'a> PaintContext<'a> {
     pub fn draw_image(&self,
                       bounds: &Rect<Au>,
                       stretch_size: &Size2D<Au>,
-                      image: Arc<Image>,
+                      image_info: &WebRenderImageInfo,
+                      image_data: &[u8],
                       image_rendering: image_rendering::T) {
-        let size = Size2D::new(image.width as i32, image.height as i32);
-        let (pixel_width, source_format) = match image.format {
+        let size = Size2D::new(image_info.width as i32, image_info.height as i32);
+        let (pixel_width, source_format) = match image_info.format {
             PixelFormat::RGBA8 => (4, SurfaceFormat::B8G8R8A8),
             PixelFormat::K8 => (1, SurfaceFormat::A8),
             PixelFormat::RGB8 => panic!("RGB8 color type not supported"),
             PixelFormat::KA8 => panic!("KA8 color type not supported"),
         };
-        let stride = image.width * pixel_width;
+        let stride = image_info.width * pixel_width;
         let scale = self.screen_pixels_per_px();
 
         self.draw_target.make_current();
         let draw_target_ref = &self.draw_target;
-        let azure_surface = match draw_target_ref.create_source_surface_from_data(&image.bytes,
+        let azure_surface = match draw_target_ref.create_source_surface_from_data(image_data,
                                                                                   size,
                                                                                   stride as i32,
                                                                                   source_format) {
@@ -204,7 +204,8 @@ impl<'a> PaintContext<'a> {
         };
 
         let source_rect = Rect::new(Point2D::new(0.0, 0.0),
-                                    Size2D::new(image.width as AzFloat, image.height as AzFloat));
+                                    Size2D::new(image_info.width as AzFloat,
+                                                image_info.height as AzFloat));
         let dest_rect = bounds.to_nearest_azure_rect(scale);
 
         // TODO(pcwalton): According to CSS-IMAGES-3 § 5.3, nearest-neighbor interpolation is a
@@ -1774,6 +1775,7 @@ trait ScaledFontExtensionMethods {
 }
 
 impl ScaledFontExtensionMethods for ScaledFont {
+    #[allow(unsafe_code)]
     fn draw_text(&self,
                  draw_target: &DrawTarget,
                  run: &TextRun,

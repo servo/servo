@@ -8,6 +8,8 @@
 #![feature(plugin)]
 #![plugin(plugins)]
 
+#![deny(unsafe_code)]
+
 #[cfg(not(target_os = "windows"))]
 extern crate alloc_jemalloc;
 extern crate hbs_pow;
@@ -24,6 +26,8 @@ extern crate task_info;
 extern crate time as std_time;
 extern crate util;
 
+#[allow(unsafe_code)]
 mod heartbeats;
+#[allow(unsafe_code)]
 pub mod mem;
 pub mod time;

@@ -68,7 +68,6 @@ bitflags! {
 #[dom_struct]
 pub struct WebGLRenderingContext {
     reflector_: Reflector,
-    renderer_id: usize,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     ipc_renderer: IpcSender<CanvasMsg>,
     canvas: JS<HTMLCanvasElement>,
@@ -95,10 +94,9 @@ impl WebGLRenderingContext {
                           .unwrap();
         let result = receiver.recv().unwrap();
 
-        result.map(|(ipc_renderer, renderer_id)| {
+        result.map(|ipc_renderer| {
             WebGLRenderingContext {
                 reflector_: Reflector::new(),
-                renderer_id: renderer_id,
                 ipc_renderer: ipc_renderer,
                 canvas: JS::from_ref(canvas),
                 last_error: Cell::new(None),
@@ -612,7 +610,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
-    // TODO(ecoal95): Probably in the future we should keep track of the
+    // TODO(emilio): Probably in the future we should keep track of the
     // generated objects, either here or in the webgl thread
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn CreateBuffer(&self) -> Option<Root<WebGLBuffer>> {
@@ -1118,8 +1116,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         if texture.is_none() {
             return self.webgl_error(InvalidOperation);
         }
-        // TODO(ecoal95): Validate more parameters
-
+        // TODO(emilio): Validate more parameters
         let source = match source {
             Some(s) => s,
             None => return,
@@ -1146,7 +1143,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 };
 
                 let size = Size2D::new(img.width as i32, img.height as i32);
-                // TODO(ecoal95): Validate that the format argument is coherent with the image.
+                // TODO(emilio): Validate that the format argument is coherent with the image.
                 // RGB8 should be easy to support too
                 let mut data = match img.format {
                     PixelFormat::RGBA8 => img.bytes.to_vec(),
@@ -1157,7 +1154,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
                 (data, size)
             },
-            // TODO(ecoal95): Getting canvas data is implemented in CanvasRenderingContext2D, but
+            // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D, but
             // we need to refactor it moving it to `HTMLCanvasElement` and supporting WebGLContext
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLCanvasElement(canvas) => {
                 let canvas = canvas.r();
@@ -1172,7 +1169,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 => unimplemented!(),
         };
 
-        // TODO(ecoal95): Invert axis, convert colorspace, premultiply alpha if requested
+        // TODO(emilio): Invert axis, convert colorspace, premultiply alpha if requested
         let msg = CanvasWebGLMsg::TexImage2D(target, level, internal_format as i32,
                                              size.width, size.height,
                                              format, data_type, pixels);
@@ -1195,16 +1192,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
 pub trait LayoutCanvasWebGLRenderingContextHelpers {
     #[allow(unsafe_code)]
-    unsafe fn get_renderer_id(&self) -> usize;
-    #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg>;
 }
 
 impl LayoutCanvasWebGLRenderingContextHelpers for LayoutJS<WebGLRenderingContext> {
-    #[allow(unsafe_code)]
-    unsafe fn get_renderer_id(&self) -> usize {
-        (*self.unsafe_get()).renderer_id
-    }
     #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
         (*self.unsafe_get()).ipc_renderer.clone()

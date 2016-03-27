@@ -20,10 +20,10 @@ euclid = {version = "0.6.4", features = ["plugins"]}
 heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
 lazy_static = "0.1.10"
-log = "0.3"
+log = "0.3.5"
 num = "0.1.24"
 rustc-serialize = "0.3"
 selectors = {version = "0.5", features = ["heap_size"]}
-serde = "0.6"
-serde_macros = "0.6"
+serde = "0.7"
+serde_macros = "0.7"
 url = {version = "0.5.7", features = ["heap_size"]}

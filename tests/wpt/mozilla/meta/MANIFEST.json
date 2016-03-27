@@ -564,6 +564,18 @@
             "url": "/_mozilla/css/block_formatting_context_containing_floats_a.html"
           }
         ],
+        "css/block_formatting_context_float_inorder_interaction_a.html": [
+          {
+            "path": "css/block_formatting_context_float_inorder_interaction_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_formatting_context_float_inorder_interaction_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_formatting_context_float_inorder_interaction_a.html"
+          }
+        ],
         "css/block_formatting_context_float_placement_a.html": [
           {
             "path": "css/block_formatting_context_float_placement_a.html",
@@ -2072,6 +2084,30 @@
             "url": "/_mozilla/css/incremental_text_color_a.html"
           }
         ],
+        "css/incremental_visibility_a.html": [
+          {
+            "path": "css/incremental_visibility_a.html",
+            "references": [
+              [
+                "/_mozilla/css/incremental_visibility_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/incremental_visibility_a.html"
+          }
+        ],
+        "css/incremental_visibility_ref.html": [
+          {
+            "path": "css/incremental_visibility_ref.html",
+            "references": [
+              [
+                "/_mozilla/css/incremental_visibility_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/incremental_visibility_ref.html"
+          }
+        ],
         "css/inline_absolute_hypothetical_clip_a.html": [
           {
             "path": "css/inline_absolute_hypothetical_clip_a.html",
@@ -2502,6 +2538,30 @@
               ]
             ],
             "url": "/_mozilla/css/input_placeholder_ref.html"
+          }
+        ],
+        "css/input_selection_a.html": [
+          {
+            "path": "css/input_selection_a.html",
+            "references": [
+              [
+                "/_mozilla/css/input_selection_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/input_selection_a.html"
+          }
+        ],
+        "css/input_selection_ref.html": [
+          {
+            "path": "css/input_selection_ref.html",
+            "references": [
+              [
+                "/_mozilla/css/input_selection_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/input_selection_ref.html"
           }
         ],
         "css/input_whitespace.html": [
@@ -4572,6 +4632,18 @@
             "url": "/_mozilla/css/text_align_start_end.html"
           }
         ],
+        "css/text_damage_a.html": [
+          {
+            "path": "css/text_damage_a.html",
+            "references": [
+              [
+                "/_mozilla/css/text_damage_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/text_damage_a.html"
+          }
+        ],
         "css/text_decoration_cached.html": [
           {
             "path": "css/text_decoration_cached.html",
@@ -5404,6 +5476,30 @@
             "url": "/_mozilla/mozilla/canvas/drawimage_html_image_9.html"
           }
         ],
+        "mozilla/details_ui_closed.html": [
+          {
+            "path": "mozilla/details_ui_closed.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/details_ui_closed_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/details_ui_closed.html"
+          }
+        ],
+        "mozilla/details_ui_opened.html": [
+          {
+            "path": "mozilla/details_ui_opened.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/details_ui_opened_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/details_ui_opened.html"
+          }
+        ],
         "mozilla/iframe/resize_after_load.html": [
           {
             "path": "mozilla/iframe/resize_after_load.html",
@@ -5988,6 +6084,12 @@
             "url": "/_mozilla/mozilla/mozbrowser/mozbrowsericonchange_event.html"
           }
         ],
+        "mozilla/mozbrowser/mozbrowserlocationchange_event.html": [
+          {
+            "path": "mozilla/mozbrowser/mozbrowserlocationchange_event.html",
+            "url": "/_mozilla/mozilla/mozbrowser/mozbrowserlocationchange_event.html"
+          }
+        ],
         "mozilla/mozbrowser/mozbrowsersecuritychange_event.html": [
           {
             "path": "mozilla/mozbrowser/mozbrowsersecuritychange_event.html",
@@ -6078,6 +6180,12 @@
             "url": "/_mozilla/mozilla/parentnodes.html"
           }
         ],
+        "mozilla/preferences.html": [
+          {
+            "path": "mozilla/preferences.html",
+            "url": "/_mozilla/mozilla/preferences.html"
+          }
+        ],
         "mozilla/preserve_wrapper_callback.html": [
           {
             "path": "mozilla/preserve_wrapper_callback.html",
@@ -6106,6 +6214,18 @@
           {
             "path": "mozilla/script_type.html",
             "url": "/_mozilla/mozilla/script_type.html"
+          }
+        ],
+        "mozilla/send-arraybuffer.htm": [
+          {
+            "path": "mozilla/send-arraybuffer.htm",
+            "url": "/_mozilla/mozilla/send-arraybuffer.htm"
+          }
+        ],
+        "mozilla/send-blob.htm": [
+          {
+            "path": "mozilla/send-blob.htm",
+            "url": "/_mozilla/mozilla/send-blob.htm"
           }
         ],
         "mozilla/sequence-hole.html": [
@@ -6774,6 +6894,18 @@
             ]
           ],
           "url": "/_mozilla/css/block_formatting_context_containing_floats_a.html"
+        }
+      ],
+      "css/block_formatting_context_float_inorder_interaction_a.html": [
+        {
+          "path": "css/block_formatting_context_float_inorder_interaction_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_formatting_context_float_inorder_interaction_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_formatting_context_float_inorder_interaction_a.html"
         }
       ],
       "css/block_formatting_context_float_placement_a.html": [
@@ -8284,6 +8416,30 @@
           "url": "/_mozilla/css/incremental_text_color_a.html"
         }
       ],
+      "css/incremental_visibility_a.html": [
+        {
+          "path": "css/incremental_visibility_a.html",
+          "references": [
+            [
+              "/_mozilla/css/incremental_visibility_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/incremental_visibility_a.html"
+        }
+      ],
+      "css/incremental_visibility_ref.html": [
+        {
+          "path": "css/incremental_visibility_ref.html",
+          "references": [
+            [
+              "/_mozilla/css/incremental_visibility_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/incremental_visibility_ref.html"
+        }
+      ],
       "css/inline_absolute_hypothetical_clip_a.html": [
         {
           "path": "css/inline_absolute_hypothetical_clip_a.html",
@@ -8714,6 +8870,30 @@
             ]
           ],
           "url": "/_mozilla/css/input_placeholder_ref.html"
+        }
+      ],
+      "css/input_selection_a.html": [
+        {
+          "path": "css/input_selection_a.html",
+          "references": [
+            [
+              "/_mozilla/css/input_selection_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/input_selection_a.html"
+        }
+      ],
+      "css/input_selection_ref.html": [
+        {
+          "path": "css/input_selection_ref.html",
+          "references": [
+            [
+              "/_mozilla/css/input_selection_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/input_selection_ref.html"
         }
       ],
       "css/input_whitespace.html": [
@@ -10784,6 +10964,18 @@
           "url": "/_mozilla/css/text_align_start_end.html"
         }
       ],
+      "css/text_damage_a.html": [
+        {
+          "path": "css/text_damage_a.html",
+          "references": [
+            [
+              "/_mozilla/css/text_damage_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/text_damage_a.html"
+        }
+      ],
       "css/text_decoration_cached.html": [
         {
           "path": "css/text_decoration_cached.html",
@@ -11614,6 +11806,30 @@
             ]
           ],
           "url": "/_mozilla/mozilla/canvas/drawimage_html_image_9.html"
+        }
+      ],
+      "mozilla/details_ui_closed.html": [
+        {
+          "path": "mozilla/details_ui_closed.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/details_ui_closed_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/details_ui_closed.html"
+        }
+      ],
+      "mozilla/details_ui_opened.html": [
+        {
+          "path": "mozilla/details_ui_opened.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/details_ui_opened_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/details_ui_opened.html"
         }
       ],
       "mozilla/iframe/resize_after_load.html": [

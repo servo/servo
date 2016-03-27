@@ -41,8 +41,8 @@ impl FocusEvent {
         let event = box FocusEvent::new_inherited();
         let ev = reflect_dom_object(event, GlobalRef::Window(window), FocusEventBinding::Wrap);
         ev.upcast::<UIEvent>().InitUIEvent(type_,
-                                           can_bubble == EventBubbles::Bubbles,
-                                           cancelable == EventCancelable::Cancelable,
+                                           bool::from(can_bubble),
+                                           bool::from(cancelable),
                                            view, detail);
         ev.related_target.set(related_target);
         ev
@@ -51,16 +51,8 @@ impl FocusEvent {
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &FocusEventBinding::FocusEventInit) -> Fallible<Root<FocusEvent>> {
-        let bubbles = if init.parent.parent.bubbles {
-            EventBubbles::Bubbles
-        } else {
-            EventBubbles::DoesNotBubble
-        };
-        let cancelable = if init.parent.parent.cancelable {
-            EventCancelable::Cancelable
-        } else {
-            EventCancelable::NotCancelable
-        };
+        let bubbles = EventBubbles::from(init.parent.parent.bubbles);
+        let cancelable = EventCancelable::from(init.parent.parent.cancelable);
         let event = FocusEvent::new(global.as_window(), type_,
                                     bubbles,
                                     cancelable,

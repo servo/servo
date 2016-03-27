@@ -40,3 +40,10 @@ pub mod glue;
 mod selector_impl;
 mod traversal;
 mod wrapper;
+
+// Generated from the properties.mako.rs template by build.rs
+#[macro_use]
+#[allow(unsafe_code)]
+pub mod properties {
+    include!(concat!(env!("OUT_DIR"), "/properties.rs"));
+}

@@ -25,7 +25,6 @@ use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use dom::node::{document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::ScriptHelpers;
-use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, Encoding, EncodingRef};
 use html5ever::tree_builder::NextParserState;
@@ -71,7 +70,7 @@ pub struct HTMLScriptElement {
 
     #[ignore_heap_size_of = "Defined in rust-encoding"]
     /// https://html.spec.whatwg.org/multipage/#concept-script-encoding
-    block_character_encoding: DOMRefCell<EncodingRef>,
+    block_character_encoding: Cell<Option<EncodingRef>>,
 }
 
 impl HTMLScriptElement {
@@ -86,7 +85,7 @@ impl HTMLScriptElement {
             ready_to_be_parser_executed: Cell::new(false),
             parser_document: JS::from_ref(document),
             load: DOMRefCell::new(None),
-            block_character_encoding: DOMRefCell::new(UTF_8 as EncodingRef),
+            block_character_encoding: Cell::new(None),
         }
     }
 
@@ -248,7 +247,7 @@ impl HTMLScriptElement {
         // Step 13.
         if let Some(ref charset) = element.get_attribute(&ns!(), &atom!("charset")) {
             if let Some(encodingRef) = encoding_from_whatwg_label(&charset.Value()) {
-                *self.block_character_encoding.borrow_mut() = encodingRef;
+                self.block_character_encoding.set(Some(encodingRef));
             }
         }
 
@@ -391,10 +390,16 @@ impl HTMLScriptElement {
 
             // Step 2.b.1.a.
             ScriptOrigin::External(Ok((metadata, bytes))) => {
-                // TODO(#9185): implement encoding determination.
-                (DOMString::from(UTF_8.decode(&*bytes, DecoderTrap::Replace).unwrap()),
-                 true,
-                 metadata.final_url)
+                debug!("loading external script, url = {}", metadata.final_url);
+
+                let encoding = metadata.charset
+                    .and_then(|encoding| encoding_from_whatwg_label(&encoding))
+                    .or_else(|| self.block_character_encoding.get())
+                    .unwrap_or_else(|| self.parser_document.encoding());
+
+                (DOMString::from(encoding.decode(&*bytes, DecoderTrap::Replace).unwrap()),
+                    true,
+                    metadata.final_url)
             },
 
             // Step 2.b.1.c.

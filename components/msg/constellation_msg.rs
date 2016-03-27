@@ -186,6 +186,9 @@ pub enum Key {
     RightAlt,
     RightSuper,
     Menu,
+
+    NavigateBackward,
+    NavigateForward,
 }
 
 bitflags! {
@@ -222,7 +225,7 @@ pub struct ImageMetadata {
     pub height: u32,
 }
 
-#[derive(Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct Image {
     pub width: u32,
     pub height: u32,
@@ -311,13 +314,13 @@ impl PipelineNamespace {
 
 thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = Cell::new(None));
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct PipelineNamespaceId(pub u32);
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct PipelineIndex(pub u32);
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct PipelineId {
     pub namespace_id: PipelineNamespaceId,
     pub index: PipelineIndex

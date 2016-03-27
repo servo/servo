@@ -29,7 +29,7 @@ use gfx::display_list::{GradientDisplayItem};
 use gfx::display_list::{GradientStop, IframeDisplayItem, ImageDisplayItem, WebGLDisplayItem, LayeredItem, LayerInfo};
 use gfx::display_list::{LineDisplayItem, OpaqueNode, SolidColorDisplayItem};
 use gfx::display_list::{StackingContext, StackingContextId, StackingContextType};
-use gfx::display_list::{TextDisplayItem, TextOrientation, DisplayListEntry};
+use gfx::display_list::{TextDisplayItem, TextOrientation, DisplayListEntry, WebRenderImageInfo};
 use gfx::paint_thread::THREAD_TINT_COLORS;
 use gfx::text::glyph::CharIndex;
 use gfx_traits::{color, ScrollPolicy};
@@ -37,7 +37,7 @@ use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use list_item::ListItemFlow;
 use model::{self, MaybeAuto, ToGfxMatrix};
-use net_traits::image::base::{Image, PixelFormat};
+use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_thread::UsePlaceholder;
 use range::Range;
 use std::default::Default;
@@ -51,7 +51,7 @@ use style::computed_values::{border_style, image_rendering, overflow_x, position
 use style::computed_values::{transform, transform_style, visibility};
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::style_structs::Border;
-use style::properties::{self, ComputedValues};
+use style::properties::{self, ComputedValues, TComputedValues};
 use style::values::RGBA;
 use style::values::computed;
 use style::values::computed::{LengthOrNone, LengthOrPercentage, LengthOrPercentageOrAuto, LinearGradient};
@@ -104,6 +104,10 @@ impl<'a> DisplayListBuildState<'a> {
 /// The logical width of an insertion point: at the moment, a one-pixel-wide line.
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(1 * AU_PER_PX);
 
+// Colors for selected text.  TODO (#8077): Use the ::selection pseudo-element to set these.
+const SELECTION_FOREGROUND_COLOR: RGBA = RGBA { red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0 };
+const SELECTION_BACKGROUND_COLOR: RGBA = RGBA { red: 1.0, green: 0.5, blue: 0.0, alpha: 1.0 };
+
 // TODO(gw): The transforms spec says that perspective length must
 // be positive. However, there is some confusion between the spec
 // and browser implementations as to handling the case of 0 for the
@@ -136,7 +140,7 @@ pub trait FragmentDisplayListBuilding {
     fn compute_background_image_size(&self,
                                      style: &ComputedValues,
                                      bounds: &Rect<Au>,
-                                     image: &Image)
+                                     image: &WebRenderImageInfo)
                                      -> Size2D<Au>;
 
     /// Adds the display items necessary to paint the background image of this fragment to the
@@ -404,7 +408,7 @@ impl FragmentDisplayListBuilding for Fragment {
     fn compute_background_image_size(&self,
                                      style: &ComputedValues,
                                      bounds: &Rect<Au>,
-                                     image: &Image)
+                                     image: &WebRenderImageInfo)
                                      -> Size2D<Au> {
         // If `image_aspect_ratio` < `bounds_aspect_ratio`, the image is tall; otherwise, it is
         // wide.
@@ -462,14 +466,17 @@ impl FragmentDisplayListBuilding for Fragment {
                                                clip: &ClippingRegion,
                                                image_url: &Url) {
         let background = style.get_background();
-        let image =
-            state.layout_context.get_or_request_image(image_url.clone(), UsePlaceholder::No);
-        if let Some(image) = image {
+        let fetch_image_data_as_well = !opts::get().use_webrender;
+        let webrender_image =
+            state.layout_context.get_webrender_image_for_url(image_url,
+                                                             UsePlaceholder::No,
+                                                             fetch_image_data_as_well);
+        if let Some((webrender_image, image_data)) = webrender_image {
             debug!("(building display list) building background image");
 
             // Use `background-size` to get the size.
             let mut bounds = *absolute_bounds;
-            let image_size = self.compute_background_image_size(style, &bounds, &*image);
+            let image_size = self.compute_background_image_size(style, &bounds, &webrender_image);
 
             // Clip.
             //
@@ -560,7 +567,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                     style,
                                                                     Cursor::DefaultCursor),
                                            &clip),
-                image: image.clone(),
+                webrender_image: webrender_image,
+                image_data: image_data.map(Arc::new),
                 stretch_size: Size2D::new(image_size.width, image_size.height),
                 image_rendering: style.get_effects().image_rendering.clone(),
             }), display_list_section);
@@ -918,6 +926,23 @@ impl FragmentDisplayListBuilding for Fragment {
             }
             _ => return,
         };
+
+        // Draw a highlighted background if the text is selected.
+        //
+        // TODO: Allow non-text fragments to be selected too.
+        if scanned_text_fragment_info.selected() {
+            state.add_display_item(
+                DisplayItem::SolidColorClass(box SolidColorDisplayItem {
+                    base: BaseDisplayItem::new(stacking_relative_border_box,
+                                               DisplayItemMetadata::new(self.node,
+                                                                        &*self.style,
+                                                                        Cursor::DefaultCursor),
+                                               &clip),
+                    color: SELECTION_BACKGROUND_COLOR.to_gfx_color()
+            }), display_list_section);
+        }
+
+        // Draw a caret at the insertion point.
         let insertion_point_index = match scanned_text_fragment_info.insertion_point {
             Some(insertion_point_index) => insertion_point_index,
             None => return,
@@ -1091,7 +1116,11 @@ impl FragmentDisplayListBuilding for Fragment {
                 //
                 // NB: According to CSS-BACKGROUNDS, text shadows render in *reverse* order (front
                 // to back).
-                let text_color = self.style().get_color().color;
+                let text_color = if text_fragment.selected() {
+                    SELECTION_FOREGROUND_COLOR
+                } else {
+                    self.style().get_color().color
+                };
                 for text_shadow in self.style.get_effects().text_shadow.0.iter().rev() {
                     let offset = &Point2D::new(text_shadow.offset_x, text_shadow.offset_y);
                     let color = self.style().resolve_color(text_shadow.color);
@@ -1173,7 +1202,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                             &*self.style,
                                                                             Cursor::DefaultCursor),
                                                    clip),
-                        image: image.clone(),
+                        webrender_image: WebRenderImageInfo::from_image(image),
+                        image_data: Some(Arc::new(image.bytes.clone())),
                         stretch_size: stacking_relative_content_box.size,
                         image_rendering: self.style.get_effects().image_rendering.clone(),
                     }), DisplayListSection::Content);
@@ -1192,13 +1222,7 @@ impl FragmentDisplayListBuilding for Fragment {
                             let (sender, receiver) = ipc::channel().unwrap();
                             ipc_renderer.send(CanvasMsg::FromLayout(
                                 FromLayoutMsg::SendData(sender))).unwrap();
-                            let data = receiver.recv().unwrap();
-
-                            // Propagate the layer and the renderer to the paint task.
-                            state.layout_context.shared.canvas_layers_sender.lock().unwrap().send(
-                                (layer_id, (*ipc_renderer).clone())).unwrap();
-
-                            data
+                            receiver.recv().unwrap()
                         },
                         None => CanvasData::Pixels(CanvasPixelData {
                             image_data: IpcSharedMemory::from_byte(0xFFu8, width * height * 4),
@@ -1214,13 +1238,13 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                                     &*self.style,
                                                                                     Cursor::DefaultCursor),
                                                            clip),
-                                image: Arc::new(Image {
+                                image_data: Some(Arc::new(canvas_data.image_data)),
+                                webrender_image: WebRenderImageInfo {
                                     width: width as u32,
                                     height: height as u32,
                                     format: PixelFormat::RGBA8,
-                                    bytes: canvas_data.image_data,
-                                    id: canvas_data.image_key,
-                                }),
+                                    key: canvas_data.image_key,
+                                },
                                 stretch_size: stacking_relative_content_box.size,
                                 image_rendering: image_rendering::T::Auto,
                             })

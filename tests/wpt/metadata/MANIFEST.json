@@ -19242,6 +19242,14 @@
         "url": "/html/semantics/scripting-1/the-script-element/script-before-after-events.html"
       },
       {
+        "path": "html/semantics/scripting-1/the-script-element/script-charset-01.html",
+        "url": "/html/semantics/scripting-1/the-script-element/script-charset-01.html"
+      },
+      {
+        "path": "html/semantics/scripting-1/the-script-element/script-charset-02.html",
+        "url": "/html/semantics/scripting-1/the-script-element/script-charset-02.html"
+      },
+      {
         "path": "html/semantics/scripting-1/the-script-element/script-for-event-xhtml.xhtml",
         "url": "/html/semantics/scripting-1/the-script-element/script-for-event-xhtml.xhtml"
       },
@@ -34784,7 +34792,22 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "testharness": {
+        "XMLHttpRequest/responseurl.html": [
+          {
+            "path": "XMLHttpRequest/responseurl.html",
+            "url": "/XMLHttpRequest/responseurl.html"
+          }
+        ],
+        "html/semantics/forms/textfieldselection/selection-after-content-change.html": [
+          {
+            "path": "html/semantics/forms/textfieldselection/selection-after-content-change.html",
+            "url": "/html/semantics/forms/textfieldselection/selection-after-content-change.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {

@@ -8,16 +8,18 @@ use app_units::Au;
 use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::DisplayListBuildState;
 use euclid::point::Point2D;
+use floats::SpeculatedFloatPlacement;
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::{self, Flow, ImmutableFlowUtils, InorderFlowTraversal, MutableFlowUtils};
 use flow_ref::{self, FlowRef};
 use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
 use gfx::display_list::{DisplayListEntry, StackingContext};
+use incremental::{REFLOW, STORE_OVERFLOW};
 use style::dom::TNode;
 use style::traversal::DomTraversalContext;
-use traversal::{AssignBSizesAndStoreOverflow, AssignISizes};
-use traversal::{BubbleISizes, BuildDisplayList, ComputeAbsolutePositions, PostorderNodeMutTraversal};
+use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
+use traversal::{ComputeAbsolutePositions, PostorderNodeMutTraversal};
 use util::opts;
 
 pub use style::sequential::traverse_dom;
@@ -44,7 +46,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
                                    shared_layout_context: &SharedLayoutContext) {
     fn doit(flow: &mut Flow,
             assign_inline_sizes: AssignISizes,
-            assign_block_sizes: AssignBSizesAndStoreOverflow) {
+            assign_block_sizes: AssignBSizes) {
         if assign_inline_sizes.should_process(flow) {
             assign_inline_sizes.process(flow);
         }
@@ -71,7 +73,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
     }
 
     let assign_inline_sizes = AssignISizes                 { layout_context: &layout_context };
-    let assign_block_sizes  = AssignBSizesAndStoreOverflow { layout_context: &layout_context };
+    let assign_block_sizes  = AssignBSizes { layout_context: &layout_context };
 
     doit(root, assign_inline_sizes, assign_block_sizes);
 }
@@ -117,3 +119,37 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut FlowRef,
 
     doit(flow_ref::deref_mut(root), 0, iterator, &Point2D::zero());
 }
+
+pub fn store_overflow(layout_context: &LayoutContext, flow: &mut Flow) {
+    if !flow::base(flow).restyle_damage.contains(STORE_OVERFLOW) {
+        return
+    }
+
+    for mut kid in flow::mut_base(flow).child_iter() {
+        store_overflow(layout_context, kid);
+    }
+
+    flow.store_overflow(layout_context);
+
+    flow::mut_base(flow).restyle_damage.remove(STORE_OVERFLOW);
+}
+
+/// Guesses how much inline size will be taken up by floats on the left and right sides of the
+/// given flow. This is needed to speculatively calculate the inline sizes of block formatting
+/// contexts. The speculation typically succeeds, but if it doesn't we have to lay it out again.
+pub fn guess_float_placement(flow: &mut Flow) {
+    if !flow::base(flow).restyle_damage.intersects(REFLOW) {
+        return
+    }
+
+    let mut floats_in = SpeculatedFloatPlacement::compute_floats_in_for_first_child(flow);
+    for kid in flow::mut_base(flow).child_iter() {
+        floats_in.compute_floats_in(kid);
+        flow::mut_base(kid).speculated_float_placement_in = floats_in;
+        guess_float_placement(kid);
+        floats_in = flow::base(kid).speculated_float_placement_out;
+    }
+    floats_in.compute_floats_out(flow);
+    flow::mut_base(flow).speculated_float_placement_out = floats_in
+}
+

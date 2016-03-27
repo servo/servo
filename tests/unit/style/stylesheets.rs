@@ -29,6 +29,7 @@ fn test_parse_stylesheet() {
     assert_eq!(stylesheet, Stylesheet {
         origin: Origin::UserAgent,
         media: None,
+        dirty_on_viewport_size_change: false,
         rules: vec![
             CSSRule::Namespace(None, ns!(html)),
             CSSRule::Style(StyleRule {
