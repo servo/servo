@@ -6399,6 +6399,12 @@
             "url": "/_mozilla/mozilla/webgl/get_supported_extensions.html"
           }
         ],
+        "mozilla/webgl/invalid_vertex_attributes.html": [
+          {
+            "path": "mozilla/webgl/invalid_vertex_attributes.html",
+            "url": "/_mozilla/mozilla/webgl/invalid_vertex_attributes.html"
+          }
+        ],
         "mozilla/websocket_connection_fail.html": [
           {
             "path": "mozilla/websocket_connection_fail.html",
