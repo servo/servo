@@ -138,6 +138,9 @@ impl WebGLRenderingContext {
     }
 
     pub fn webgl_error(&self, err: WebGLError) {
+        // TODO(emilio): Add useful debug messages to this
+        warn!("WebGL error: {:?}, previous error was {:?}", err, self.last_error.get());
+
         // If an error has been detected no further errors must be
         // recorded until `getError` has been called
         if self.last_error.get().is_none() {
@@ -154,7 +157,7 @@ impl WebGLRenderingContext {
         if let Some(texture) = texture {
             handle_potential_webgl_error!(self, texture.tex_parameter(target, name, value));
         } else {
-            return self.webgl_error(InvalidOperation);
+            self.webgl_error(InvalidOperation)
         }
     }
 
