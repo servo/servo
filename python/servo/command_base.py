@@ -261,6 +261,9 @@ class CommandBase(object):
         if not self.config["tools"]["system-rust"] \
                 or self.config["tools"]["rust-root"]:
             env["RUST_ROOT"] = self.config["tools"]["rust-root"]
+            # Add mingw64 binary path before rust paths to avoid conflict with libstdc++-6.dll
+            if sys.platform == "msys":
+                extra_path += [path.join(os.sep, "mingw64", "bin")]
             # These paths are for when rust-root points to an unpacked installer
             extra_path += [path.join(self.config["tools"]["rust-root"], "rustc", "bin")]
             extra_lib += [path.join(self.config["tools"]["rust-root"], "rustc", "lib")]
