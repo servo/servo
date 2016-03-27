@@ -5635,6 +5635,18 @@
             "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context.html"
           }
         ],
+        "mozilla/webgl/tex_image_2d_mipmap.html": [
+          {
+            "path": "mozilla/webgl/tex_image_2d_mipmap.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/webgl/tex_image_2d_simple_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/webgl/tex_image_2d_mipmap.html"
+          }
+        ],
         "mozilla/webgl/tex_image_2d_simple.html": [
           {
             "path": "mozilla/webgl/tex_image_2d_simple.html",
@@ -12067,6 +12079,18 @@
             ]
           ],
           "url": "/_mozilla/mozilla/webgl/tex_image_2d_canvas_no_context.html"
+        }
+      ],
+      "mozilla/webgl/tex_image_2d_mipmap.html": [
+        {
+          "path": "mozilla/webgl/tex_image_2d_mipmap.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/webgl/tex_image_2d_simple_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/webgl/tex_image_2d_mipmap.html"
         }
       ],
       "mozilla/webgl/tex_image_2d_simple.html": [
