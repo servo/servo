@@ -74,6 +74,10 @@ dictionary BrowserShowModalPromptEventDetail {
   // TODO(simartin) unblock() callback
 };
 
+dictionary BrowserElementVisibilityChangeEventDetail {
+  boolean visible;
+};
+
 BrowserElement implements BrowserElementCommon;
 BrowserElement implements BrowserElementPrivileged;
 

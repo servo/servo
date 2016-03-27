@@ -185,4 +185,3 @@ partial interface Document {
 partial interface Document {
   Element? elementFromPoint(double x, double y);
 };
-

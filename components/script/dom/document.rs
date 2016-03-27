@@ -215,7 +215,7 @@ pub struct Document {
     /// Vector to store CSS errors
     css_errors_store: DOMRefCell<Vec<CSSError>>,
     /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
-    https_state: Cell<HttpsState>
+    https_state: Cell<HttpsState>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1575,7 +1575,7 @@ impl Document {
             dom_content_loaded_event_end: Cell::new(Default::default()),
             dom_complete: Cell::new(Default::default()),
             css_errors_store: DOMRefCell::new(vec![]),
-            https_state: Cell::new(HttpsState::None)
+            https_state: Cell::new(HttpsState::None),
         }
     }
 
@@ -2581,7 +2581,6 @@ impl DocumentMethods for Document {
             None => self.GetDocumentElement()
         }
     }
-
 }
 
 fn is_scheme_host_port_tuple(url: &Url) -> bool {
