@@ -96,6 +96,10 @@ dictionary BrowserElementOpenWindowEventDetail {
   // Element frameElement;
 };
 
+dictionary BrowserElementVisibilityChangeEventDetail {
+  boolean visible;
+};
+
 BrowserElement implements BrowserElementCommon;
 BrowserElement implements BrowserElementPrivileged;
 

@@ -302,7 +302,7 @@ impl PipelineDetails {
             current_epoch: Epoch(0),
             animations_running: false,
             animation_callbacks_running: false,
-            visible: true, //TODO: jmr0: default true?
+            visible: true,
         }
     }
 }
