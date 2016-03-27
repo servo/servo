@@ -117,8 +117,6 @@ impl WebGLProgram {
             _ => return Err(WebGLError::InvalidOperation),
         };
 
-        // TODO(emilio): Differentiate between same shader already assigned and other previous
-        // shader.
         match shader_slot.get() {
             Some(ref attached_shader) if attached_shader.id() != shader.id() =>
                 return Err(WebGLError::InvalidOperation),
