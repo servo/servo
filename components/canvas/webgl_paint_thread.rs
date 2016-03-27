@@ -7,7 +7,7 @@ use euclid::size::Size2D;
 use gleam::gl;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
 use ipc_channel::router::ROUTER;
-use offscreen_gl_context::{ColorAttachmentType, GLContext, GLContextAttributes, NativeGLContext};
+use offscreen_gl_context::{ColorAttachmentType, GLContext, GLLimits, GLContextAttributes, NativeGLContext};
 use std::borrow::ToOwned;
 use std::sync::mpsc::channel;
 use util::thread::spawn_named;
@@ -27,20 +27,23 @@ pub struct WebGLPaintThread {
 impl WebGLPaintThread {
     fn new(size: Size2D<i32>,
            attrs: GLContextAttributes,
-           webrender_api_sender: Option<webrender_traits::RenderApiSender>) -> Result<WebGLPaintThread, String> {
-        let data = if let Some(sender) = webrender_api_sender {
+           webrender_api_sender: Option<webrender_traits::RenderApiSender>) -> Result<(WebGLPaintThread, GLLimits), String> {
+        let (data, limits) = if let Some(sender) = webrender_api_sender {
             let webrender_api = sender.create_api();
-            let id = try!(webrender_api.request_webgl_context(&size, attrs));
-            WebGLPaintTaskData::WebRender(webrender_api, id)
+            let (id, limits) = try!(webrender_api.request_webgl_context(&size, attrs));
+            (WebGLPaintTaskData::WebRender(webrender_api, id), limits)
         } else {
             let context = try!(GLContext::<NativeGLContext>::new(size, attrs, ColorAttachmentType::Texture, None));
-            WebGLPaintTaskData::Servo(context)
+            let limits = context.borrow_limits().clone();
+            (WebGLPaintTaskData::Servo(context), limits)
         };
 
-        Ok(WebGLPaintThread {
+        let painter_object = WebGLPaintThread {
             size: size,
             data: data,
-        })
+        };
+
+        Ok((painter_object, limits))
     }
 
     pub fn handle_webgl_message(&self, message: CanvasWebGLMsg) {
@@ -60,13 +63,13 @@ impl WebGLPaintThread {
     pub fn start(size: Size2D<i32>,
                  attrs: GLContextAttributes,
                  webrender_api_sender: Option<webrender_traits::RenderApiSender>)
-                 -> Result<IpcSender<CanvasMsg>, String> {
+                 -> Result<(IpcSender<CanvasMsg>, GLLimits), String> {
         let (in_process_chan, in_process_port) = channel();
         let (result_chan, result_port) = channel();
         spawn_named("WebGLThread".to_owned(), move || {
             let mut painter = match WebGLPaintThread::new(size, attrs, webrender_api_sender) {
-                Ok(thread) => {
-                    result_chan.send(Ok(())).unwrap();
+                Ok((thread, limits)) => {
+                    result_chan.send(Ok(limits)).unwrap();
                     thread
                 },
                 Err(e) => {
@@ -96,10 +99,10 @@ impl WebGLPaintThread {
             }
         });
 
-        result_port.recv().unwrap().map(|_| {
+        result_port.recv().unwrap().map(|limits| {
              let (out_of_process_chan, out_of_process_port) = ipc::channel::<CanvasMsg>().unwrap();
              ROUTER.route_ipc_receiver_to_mpsc_sender(out_of_process_port, in_process_chan);
-             out_of_process_chan
+             (out_of_process_chan, limits)
         })
     }
 
