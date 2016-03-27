@@ -1273,7 +1273,6 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-requestanimationframe
     pub fn request_animation_frame(&self, callback: Box<FnBox(f64)>) -> u32 {
-        println!("dom requesting animation frame");
         let ident = self.animation_frame_ident.get() + 1;
 
         self.animation_frame_ident.set(ident);
@@ -1301,7 +1300,6 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks
     pub fn run_the_animation_frame_callbacks(&self) {
-        println!("running animation callbacks");
         let animation_frame_list =
             mem::replace(&mut *self.animation_frame_list.borrow_mut(), BTreeMap::new());
         let performance = self.window.Performance();
@@ -2247,16 +2245,6 @@ impl DocumentMethods for Document {
     // https://w3c.github.io/touch-events/#idl-def-document-createtouchlist(touch...)
     fn CreateTouchList(&self, touches: &[&Touch]) -> Root<TouchList> {
         TouchList::new(&self.window, &touches)
-    }
-
-    // https://w3c.github.io/page-visibility/#dom-document
-    fn VisibilityState(&self) -> DocumentBinding::VisibilityState {
-        self.visibility_state.get()
-    }
-
-    // https://w3c.github.io/page-visibility/#dom-document
-    fn Hidden(&self) -> bool {
-        self.hidden.get()
     }
 
     // https://dom.spec.whatwg.org/#dom-document-createtreewalker

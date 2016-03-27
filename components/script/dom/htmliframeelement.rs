@@ -198,7 +198,7 @@ impl HTMLIFrameElement {
             subpage_id: Cell::new(None),
             sandbox: Cell::new(None),
             load_blocker: DOMRefCell::new(None),
-            visibility: Cell::new(true), //TODO: jmr0 should true be the default?
+            visibility: Cell::new(true),
         }
     }
 

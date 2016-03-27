@@ -885,9 +885,9 @@ impl ScriptThread {
             ConstellationControlMsg::Thaw(pipeline_id) =>
                 self.handle_thaw_msg(pipeline_id),
             ConstellationControlMsg::SetVisible(containing_id, pipeline_id) =>
-                self.handle_visible_msg(containing_id, pipeline_id),
+                self.handle_visibility_change_msg(containing_id, pipeline_id, true),
             ConstellationControlMsg::SetNonVisible(containing_id, pipeline_id) =>
-                self.handle_nonvisible_msg(containing_id, pipeline_id),
+                self.handle_visibility_change_msg(containing_id, pipeline_id, false),
             ConstellationControlMsg::MozBrowserEvent(parent_pipeline_id,
                                                      subpage_id,
                                                      event) =>
@@ -1170,52 +1170,33 @@ impl ScriptThread {
         reports_chan.send(reports);
     }
 
-
-    ///Handle make pipeline visible message
-    fn handle_visible_msg(&self, containing_id: PipelineId, id: PipelineId) {
+    ///Handle visibility change message
+    fn handle_visibility_change_msg(&self, containing_id: PipelineId, id: PipelineId, visible: bool) {
         let page = get_page(&self.root_page(), containing_id);
-        let document = page.document();
-        if let Some(iframe) = document.find_iframe_by_pipeline(id) {
-            println!("script set iframe to true");
-            iframe.set_visibility(true);
+        if let Some(iframe) = page.document().find_iframe_by_pipeline(id) {
+            iframe.set_visibility(visible);
         }
 
         if let Some(root_page) = self.page.borrow().as_ref() {
             if let Some(ref inner_page) = root_page.find(id) {
                 let window = inner_page.window();
-                let document = inner_page.document();
-                window.speed_up_timers();
+                if visible {
+                    window.speed_up_timers();
+                }
+                else {
+                    window.slow_down_timers();
+                }
                 return;
             }
         }
 
         let mut loads = self.incomplete_loads.borrow_mut();
         if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-            load.is_hidden = false;
+            load.is_hidden = visible;
             return;
-        }
-        panic!("set as visible message sent to nonexistent pipeline");
-    }
-
-    fn handle_nonvisible_msg(&self, containing_id: PipelineId, id: PipelineId) {
-        let page = get_page(&self.root_page(), containing_id);
-        let document = page.document();
-        if let Some(iframe) = document.find_iframe_by_pipeline(id) {
-            println!("script set iframe to false");
-            iframe.set_visibility(false);
         }
 
-        if let Some(ref inner_page) = self.root_page().find(id) {
-            let window = inner_page.window();
-            window.slow_down_timers();
-            return;
-        }
-        let mut loads = self.incomplete_loads.borrow_mut();
-        if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-            load.is_hidden = true;
-            return;
-        }
-        panic!("set as nonvisible message sent to nonexistent pipeline");
+        panic!("change visibility message sent to nonexistent pipeline");
     }
 
     /// Handles freeze message
