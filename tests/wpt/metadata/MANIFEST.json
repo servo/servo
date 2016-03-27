@@ -34800,6 +34800,12 @@
             "url": "/XMLHttpRequest/responseurl.html"
           }
         ],
+        "dom/nodes/insert-adjacent.html": [
+          {
+            "path": "dom/nodes/insert-adjacent.html",
+            "url": "/dom/nodes/insert-adjacent.html"
+          }
+        ],
         "html/semantics/forms/textfieldselection/selection-after-content-change.html": [
           {
             "path": "html/semantics/forms/textfieldselection/selection-after-content-change.html",
