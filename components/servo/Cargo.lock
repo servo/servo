@@ -72,7 +72,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "angle"
 version = "0.1.0"
-source = "git+https://github.com/emilio/angle?branch=servo#b31e70ef5cb675582de910d09b0c385ea2000a64"
+source = "git+https://github.com/emilio/angle?branch=servo#ebe29683474ac13a448cc03f772d33179c030cc2"
 dependencies = [
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
