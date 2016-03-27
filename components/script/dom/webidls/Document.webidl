@@ -191,4 +191,3 @@ partial interface Document {
 partial interface Document {
   [SameObject] readonly attribute StyleSheetList styleSheets;
 };
-
