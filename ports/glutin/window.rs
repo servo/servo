@@ -607,7 +607,7 @@ impl WindowMethods for Window {
     }
 
     fn set_page_title(&self, title: Option<String>) {
-        let fallback_title: String = if let Some (ref current_url) = self.current_url.borrow().as_ref() {
+        let fallback_title: String = if let Some(ref current_url) = *self.current_url.borrow() {
             current_url.to_string()
         } else {
             String::from("Untitled")
