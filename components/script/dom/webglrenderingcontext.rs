@@ -348,6 +348,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    fn DetachShader(&self, program: Option<&WebGLProgram>, shader: Option<&WebGLShader>) {
+        if let Some(program) = program {
+            if let Some(shader) = shader {
+                handle_potential_webgl_error!(self, program.detach_shader(shader));
+            }
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn BindAttribLocation(&self, program: Option<&WebGLProgram>,
                           index: u32, name: DOMString) {
         if let Some(program) = program {

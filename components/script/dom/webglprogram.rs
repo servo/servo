@@ -109,6 +109,27 @@ impl WebGLProgram {
         Ok(())
     }
 
+    /// glDetachShader
+    pub fn detach_shader(&self, shader: &WebGLShader) -> WebGLResult<()> {
+        let shader_slot = match shader.gl_type() {
+            constants::FRAGMENT_SHADER => &self.fragment_shader,
+            constants::VERTEX_SHADER => &self.vertex_shader,
+            _ => return Err(WebGLError::InvalidOperation),
+        };
+
+        // TODO(emilio): Differentiate between same shader already assigned and other previous
+        // shader.
+        if shader_slot.get().is_none() {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        shader_slot.set(None);
+
+        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DetachShader(self.id, shader.id()))).unwrap();
+
+        Ok(())
+    }
+
     /// glBindAttribLocation
     pub fn bind_attrib_location(&self, index: u32, name: DOMString) -> WebGLResult<()> {
         if name.len() > MAX_UNIFORM_AND_ATTRIBUTE_LEN {
