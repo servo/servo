@@ -99,7 +99,7 @@ impl WebGLShader {
             let validator = ShaderValidator::for_webgl(self.gl_type,
                                                        SHADER_OUTPUT_FORMAT,
                                                        &BuiltInResources::default()).unwrap();
-            match validator.compile_and_translate(&[source.as_bytes()]) {
+            match validator.compile_and_translate(&[source]) {
                 Ok(translated_source) => {
                     // NOTE: At this point we should be pretty sure that the compilation in the paint thread
                     // will succeed.

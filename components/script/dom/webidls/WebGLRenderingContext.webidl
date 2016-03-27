@@ -548,7 +548,7 @@ interface WebGLRenderingContextBase
     void depthFunc(GLenum func);
     void depthMask(GLboolean flag);
     void depthRange(GLclampf zNear, GLclampf zFar);
-    //void detachShader(WebGLProgram? program, WebGLShader? shader);
+    void detachShader(WebGLProgram? program, WebGLShader? shader);
     void disable(GLenum cap);
     //void disableVertexAttribArray(GLuint index);
     void drawArrays(GLenum mode, GLint first, GLsizei count);
@@ -556,8 +556,8 @@ interface WebGLRenderingContextBase
 
     void enable(GLenum cap);
     void enableVertexAttribArray(GLuint index);
-    //void finish();
-    //void flush();
+    void finish();
+    void flush();
     //void framebufferRenderbuffer(GLenum target, GLenum attachment,
     //                             GLenum renderbuffertarget,
     //                             WebGLRenderbuffer? renderbuffer);
@@ -565,7 +565,7 @@ interface WebGLRenderingContextBase
     //                          WebGLTexture? texture, GLint level);
     void frontFace(GLenum mode);
 
-    //void generateMipmap(GLenum target);
+    void generateMipmap(GLenum target);
 
     //WebGLActiveInfo? getActiveAttrib(WebGLProgram? program, GLuint index);
     //WebGLActiveInfo? getActiveUniform(WebGLProgram? program, GLuint index);
@@ -647,7 +647,7 @@ interface WebGLRenderingContextBase
     void uniform1f(WebGLUniformLocation? location, GLfloat x);
     //void uniform1fv(WebGLUniformLocation? location, Float32Array v);
     void uniform1fv(WebGLUniformLocation? location, sequence<GLfloat> v);
-    //void uniform1i(WebGLUniformLocation? location, GLint x);
+    void uniform1i(WebGLUniformLocation? location, GLint x);
     //void uniform1iv(WebGLUniformLocation? location, Int32Array v);
     //void uniform1iv(WebGLUniformLocation? location, sequence<long> v);
     //void uniform2f(WebGLUniformLocation? location, GLfloat x, GLfloat y);
@@ -717,4 +717,3 @@ interface WebGLRenderingContext
 {
 };
 WebGLRenderingContext implements WebGLRenderingContextBase;
-

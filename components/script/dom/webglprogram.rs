@@ -94,7 +94,10 @@ impl WebGLProgram {
         let shader_slot = match shader.gl_type() {
             constants::FRAGMENT_SHADER => &self.fragment_shader,
             constants::VERTEX_SHADER => &self.vertex_shader,
-            _ => return Err(WebGLError::InvalidOperation),
+            _ => {
+                error!("detachShader: Unexpected shader type");
+                return Err(WebGLError::InvalidValue);
+            }
         };
 
         // TODO(emilio): Differentiate between same shader already assigned and other previous
@@ -106,6 +109,32 @@ impl WebGLProgram {
         shader_slot.set(Some(shader));
 
         self.renderer.send(CanvasMsg::WebGL(WebGLCommand::AttachShader(self.id, shader.id()))).unwrap();
+
+        Ok(())
+    }
+
+    /// glDetachShader
+    pub fn detach_shader(&self, shader: &WebGLShader) -> WebGLResult<()> {
+        let shader_slot = match shader.gl_type() {
+            constants::FRAGMENT_SHADER => &self.fragment_shader,
+            constants::VERTEX_SHADER => &self.vertex_shader,
+            _ => {
+                error!("detachShader: Unexpected shader type");
+                return Err(WebGLError::InvalidValue);
+            }
+        };
+
+        match shader_slot.get() {
+            Some(ref attached_shader) if attached_shader.id() != shader.id() =>
+                return Err(WebGLError::InvalidOperation),
+            None =>
+                return Err(WebGLError::InvalidOperation),
+            _ => {}
+        }
+
+        shader_slot.set(None);
+
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::DetachShader(self.id, shader.id()))).unwrap();
 
         Ok(())
     }
