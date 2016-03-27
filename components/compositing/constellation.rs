@@ -1462,7 +1462,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     }
 
     fn handle_set_visible_msg(&mut self, containing_id: PipelineId, pipeline_id: PipelineId, visible: bool) {
-        self.mut_pipeline(pipeline_id).set_visible(containing_id, visible);
+        self.mut_pipeline(pipeline_id).change_visibility(containing_id, visible);
     }
 
     fn handle_create_canvas_paint_thread_msg(

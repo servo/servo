@@ -9,6 +9,7 @@ use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementError
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementIconChangeEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementLocationChangeEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementSecurityChangeDetail;
+use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementVisibilityChangeEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserShowModalPromptEventDetail;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
@@ -226,6 +227,7 @@ impl HTMLIFrameElement {
 
     pub fn set_visibility(&self, visibility: bool) {
         self.visibility.set(visibility);
+        self.dispatch_mozbrowser_event(MozBrowserEvent::VisibilityChange(visibility))
     }
 
     /// https://html.spec.whatwg.org/multipage/#iframe-load-event-steps steps 1-4
@@ -372,6 +374,11 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
                     message: Some(DOMString::from(message)),
                     returnValue: Some(DOMString::from(return_value)),
                 }.to_jsval(cx, rval)
+            }
+            MozBrowserEvent::VisibilityChange(visibility) => {
+                BrowserElementVisibilityChangeEventDetail {
+                    visible: Some(visibility),
+                }.to_jsval(cx, rval);
             }
         }
     }

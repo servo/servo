@@ -461,7 +461,6 @@ impl JsTimers {
     }
 }
 
-
 // see step 7 of https://html.spec.whatwg.org/multipage/#timer-initialisation-steps
 fn clamp_duration(nesting_level: u32, unclamped: MsDuration) -> MsDuration {
     let lower_bound = if nesting_level > 5 {
