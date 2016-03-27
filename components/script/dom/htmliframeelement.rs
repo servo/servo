@@ -495,7 +495,9 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
                 let window = window_from_node(self);
                 let window = window.r();
                 let ConstellationChan(ref chan) = window.constellation_chan();
-                chan.send(ConstellationMsg::SetVisible(self.containing_page_pipeline_id.get().unwrap(), pipeline_id, visible)).unwrap();
+                chan.send(ConstellationMsg::SetVisible(self.containing_page_pipeline_id.get().unwrap(), 
+                                                       pipeline_id, 
+                                                       visible)).unwrap();
             }
             Ok(())
         } else {
