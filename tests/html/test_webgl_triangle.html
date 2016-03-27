@@ -96,6 +96,7 @@
    gl.vertexAttribPointer(program.aVertexPosition, itemSize, gl.FLOAT, false, 0, 0);
 
    program.aColour = gl.getAttribLocation(program, "aColour");
+   console.log("aColour: " + program.aColour);
    gl.enableVertexAttribArray(program.aColour);
    gl.vertexAttribPointer(program.aColour, 4, gl.FLOAT, false, 0, 24);
 
