@@ -743,13 +743,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 }
 
                 if first < 0 || count < 0 {
-                    self.webgl_error(InvalidValue);
-                } else {
-                    self.ipc_renderer
-                        .send(CanvasMsg::WebGL(WebGLCommand::DrawArrays(mode, first, count)))
-                        .unwrap();
-                    self.mark_as_dirty();
+                    return self.webgl_error(InvalidValue);
                 }
+
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(WebGLCommand::DrawArrays(mode, first, count)))
+                    .unwrap();
+                self.mark_as_dirty();
             },
             _ => self.webgl_error(InvalidEnum),
         }
