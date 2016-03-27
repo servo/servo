@@ -635,43 +635,51 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     };
 
     let tile_size: usize = match opt_match.opt_str("s") {
-        Some(tile_size_str) => tile_size_str.parse().expect("Error parsing option: -s"),
+        Some(tile_size_str) => tile_size_str.parse()
+            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -s ({})", err))),
         None => 512,
     };
 
     let device_pixels_per_px = opt_match.opt_str("device-pixel-ratio").map(|dppx_str|
-        dppx_str.parse().expect("Error parsing option: --device-pixel-ratio")
+        dppx_str.parse()
+            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: --device-pixel-ratio ({})", err)))
     );
 
     let mut paint_threads: usize = match opt_match.opt_str("t") {
-        Some(paint_threads_str) => paint_threads_str.parse().expect("Error parsing option: -t"),
+        Some(paint_threads_str) => paint_threads_str.parse()
+            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -t ({})", err))),
         None => cmp::max(num_cpus::get() * 3 / 4, 1),
     };
 
     // If only the flag is present, default to a 5 second period for both profilers.
     let time_profiler_period = opt_match.opt_default("p", "5").map(|period| {
-        period.parse().expect("Error parsing option: -p")
+        period.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: -p ({})", err)))
     });
 
     let mem_profiler_period = opt_match.opt_default("m", "5").map(|period| {
-        period.parse().expect("Error parsing option: -m")
+        period.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: -m ({})", err)))
     });
 
     let gpu_painting = !FORCE_CPU_PAINTING && opt_match.opt_present("g");
 
     let mut layout_threads: usize = match opt_match.opt_str("y") {
-        Some(layout_threads_str) => layout_threads_str.parse().expect("Error parsing option: -y"),
+        Some(layout_threads_str) => layout_threads_str.parse()
+            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -y ({})", err))),
         None => cmp::max(num_cpus::get() * 3 / 4, 1),
     };
 
     let nonincremental_layout = opt_match.opt_present("i");
 
     let random_pipeline_closure_probability = opt_match.opt_str("random-pipeline-closure-probability").map(|prob|
-        prob.parse().expect("Error parsing option: --random-pipeline-closure-probability")
+        prob.parse().unwrap_or_else(|err| {
+            args_fail(&format!("Error parsing option: --random-pipeline-closure-probability ({})", err))
+        })
     );
 
     let random_pipeline_closure_seed = opt_match.opt_str("random-pipeline-closure-seed").map(|seed|
-        seed.parse().expect("Error parsing option: --random-pipeline-closure-seed")
+        seed.parse().unwrap_or_else(|err| {
+            args_fail(&format!("Error parsing option: --random-pipeline-closure-seed ({})", err))
+        })
     );
 
     let mut bubble_inline_sizes_separately = debug_options.bubble_widths;
@@ -682,17 +690,17 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     }
 
     let devtools_port = opt_match.opt_default("devtools", "6000").map(|port| {
-        port.parse().expect("Error parsing option: --devtools")
+        port.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: --devtools ({})", err)))
     });
 
     let webdriver_port = opt_match.opt_default("webdriver", "7000").map(|port| {
-        port.parse().expect("Error parsing option: --webdriver")
+        port.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: --webdriver ({})", err)))
     });
 
     let initial_window_size = match opt_match.opt_str("resolution") {
         Some(res_string) => {
             let res: Vec<u32> = res_string.split('x').map(|r| {
-                r.parse().expect("Error parsing option: --resolution")
+                r.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: --resolution ({})", err)))
             }).collect();
             Size2D::typed(res[0], res[1])
         }
