@@ -30,7 +30,7 @@ use js::jsapi::{JSContext, JSObject, RootedValue};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_thread::ImageResponse;
-use offscreen_gl_context::GLContextAttributes;
+use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
 use util::str::DOMString;
@@ -70,6 +70,8 @@ pub struct WebGLRenderingContext {
     reflector_: Reflector,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     ipc_renderer: IpcSender<CanvasMsg>,
+    #[ignore_heap_size_of = "Defined in offscreen_gl_context"]
+    limits: GLLimits,
     canvas: JS<HTMLCanvasElement>,
     #[ignore_heap_size_of = "Defined in webrender_traits"]
     last_error: Cell<Option<WebGLError>>,
@@ -94,10 +96,11 @@ impl WebGLRenderingContext {
                           .unwrap();
         let result = receiver.recv().unwrap();
 
-        result.map(|ipc_renderer| {
+        result.map(|(ipc_renderer, context_limits)| {
             WebGLRenderingContext {
                 reflector_: Reflector::new(),
                 ipc_renderer: ipc_renderer,
+                limits: context_limits,
                 canvas: JS::from_ref(canvas),
                 last_error: Cell::new(None),
                 texture_unpacking_settings: Cell::new(CONVERT_COLORSPACE),
@@ -166,6 +169,10 @@ impl WebGLRenderingContext {
     }
 
     fn vertex_attrib(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
+        if indx > self.limits.max_vertex_attribs {
+            return self.webgl_error(InvalidValue);
+        }
+
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::VertexAttrib(indx, x, y, z, w)))
             .unwrap();
@@ -799,6 +806,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn EnableVertexAttribArray(&self, attrib_id: u32) {
+        if attrib_id > self.limits.max_vertex_attribs {
+            return self.webgl_error(InvalidValue);
+        }
+
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::EnableVertexAttribArray(attrib_id)))
             .unwrap()
@@ -1084,7 +1095,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         self.vertex_attrib(indx, x, 0f32, 0f32, 1f32)
     }
 
-    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib1fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
         if let Some(data_vec) = array_buffer_view_to_vec_checked::<f32>(data) {
@@ -1102,7 +1112,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         self.vertex_attrib(indx, x, y, 0f32, 1f32)
     }
 
-    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttrib2fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
         if let Some(data_vec) = array_buffer_view_to_vec_checked::<f32>(data) {
@@ -1153,6 +1162,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn VertexAttribPointer(&self, attrib_id: u32, size: i32, data_type: u32,
                            normalized: bool, stride: i32, offset: i64) {
+        if attrib_id > self.limits.max_vertex_attribs {
+            return self.webgl_error(InvalidValue);
+        }
+
         if let constants::FLOAT = data_type {
            let msg = CanvasMsg::WebGL(
                WebGLCommand::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset as u32));

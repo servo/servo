@@ -39,7 +39,7 @@ use msg::webdriver_msg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::{StorageThread, StorageThreadMsg};
 use net_traits::{self, ResourceThread};
-use offscreen_gl_context::GLContextAttributes;
+use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pipeline::{CompositionPipeline, InitialPipelineState, Pipeline, UnprivilegedPipelineContent};
 use profile_traits::mem;
 use profile_traits::time;
@@ -1349,11 +1349,11 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             &mut self,
             size: &Size2D<i32>,
             attributes: GLContextAttributes,
-            response_sender: IpcSender<Result<IpcSender<CanvasMsg>, String>>) {
+            response_sender: IpcSender<Result<(IpcSender<CanvasMsg>, GLLimits), String>>) {
         let webrender_api = self.webrender_api_sender.clone();
-        let sender = WebGLPaintThread::start(*size, attributes, webrender_api);
+        let response = WebGLPaintThread::start(*size, attributes, webrender_api);
 
-        response_sender.send(sender)
+        response_sender.send(response)
             .unwrap_or_else(|e| debug!("Create WebGL paint thread response failed ({})", e))
     }
 
