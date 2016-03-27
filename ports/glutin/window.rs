@@ -84,7 +84,7 @@ pub struct Window {
 
     mouse_pos: Cell<Point2D<i32>>,
     key_modifiers: Cell<KeyModifiers>,
-    current_url: RefCell<Option<String>>,
+    current_url: RefCell<Option<Url>>,
 }
 
 #[cfg(feature = "window")]
@@ -607,9 +607,10 @@ impl WindowMethods for Window {
     }
 
     fn set_page_title(&self, title: Option<String>) {
-        let fallback_title = match self.current_url.borrow_mut().clone() {
-            Some(title) => title,
-            None => String::from("Untitled")
+        let fallback_title: String = if let Some (ref current_url) = self.current_url.borrow().as_ref() {
+            current_url.to_string()
+        } else {
+            String::from("Untitled")
         };
 
         let title = match title {
@@ -621,7 +622,7 @@ impl WindowMethods for Window {
     }
 
     fn set_page_url(&self, url: Url) {
-        *self.current_url.borrow_mut() = Some(url.domain().unwrap().to_string());
+        *self.current_url.borrow_mut() = Some(url);
     }
 
     fn status(&self, _: Option<String>) {
