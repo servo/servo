@@ -14,7 +14,6 @@ impl ScriptChan for FileReadingTaskSource {
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        let ref chan = self.0;
-        box FileReadingTaskSource((*chan).clone())
+        box FileReadingTaskSource((&self.0).clone())
     }
 }

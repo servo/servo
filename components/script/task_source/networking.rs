@@ -14,7 +14,6 @@ impl ScriptChan for NetworkingTaskSource {
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        let ref chan = self.0;
-        box NetworkingTaskSource((*chan).clone())
+        box NetworkingTaskSource((&self.0).clone())
     }
 }

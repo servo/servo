@@ -14,7 +14,6 @@ impl ScriptChan for UserInteractionTaskSource {
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        let ref chan = self.0;
-        box UserInteractionTaskSource((*chan).clone())
+        box UserInteractionTaskSource((&self.0).clone())
     }
 }

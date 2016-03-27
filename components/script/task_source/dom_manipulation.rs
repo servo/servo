@@ -20,8 +20,7 @@ impl TaskSource<DOMManipulationTask> for DOMManipulationTaskSource {
     }
 
     fn clone(&self) -> Box<TaskSource<DOMManipulationTask> + Send> {
-        let ref chan = self.0;
-        box DOMManipulationTaskSource((*chan).clone())
+        box DOMManipulationTaskSource((&self.0).clone())
     }
 }
 

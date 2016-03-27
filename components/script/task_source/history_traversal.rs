@@ -14,7 +14,6 @@ impl ScriptChan for HistoryTraversalTaskSource {
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        let ref chan = self.0;
-        box HistoryTraversalTaskSource((*chan).clone())
+        box HistoryTraversalTaskSource((&self.0).clone())
     }
 }

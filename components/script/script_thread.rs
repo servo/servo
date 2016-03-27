@@ -325,8 +325,7 @@ impl ScriptChan for SendableMainThreadScriptChan {
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        let ref chan = self.0;
-        box SendableMainThreadScriptChan((*chan).clone())
+        box SendableMainThreadScriptChan((&self.0).clone())
     }
 }
 
@@ -348,8 +347,7 @@ impl ScriptChan for MainThreadScriptChan {
     }
 
     fn clone(&self) -> Box<ScriptChan + Send> {
-        let ref chan = self.0;
-        box MainThreadScriptChan((*chan).clone())
+        box MainThreadScriptChan((&self.0).clone())
     }
 }
 

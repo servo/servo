@@ -394,9 +394,8 @@ impl CORSCache {
                                 header_name: &str)
                                 -> Option<&'a mut CORSCacheEntry> {
         self.cleanup();
-        let ref mut buf = self.0;
         // Credentials are not yet implemented here
-        buf.iter_mut().find(|e| {
+        self.0.iter_mut().find(|e| {
             e.origin.scheme == request.origin.scheme && e.origin.host() == request.origin.host() &&
             e.origin.port() == request.origin.port() && e.url == request.destination &&
             e.header_or_method.match_header(header_name)
@@ -421,9 +420,8 @@ impl CORSCache {
                                 -> Option<&'a mut CORSCacheEntry> {
         // we can take the method from CORSRequest itself
         self.cleanup();
-        let ref mut buf = self.0;
         // Credentials are not yet implemented here
-        buf.iter_mut().find(|e| {
+        self.0.iter_mut().find(|e| {
             e.origin.scheme == request.origin.scheme && e.origin.host() == request.origin.host() &&
             e.origin.port() == request.origin.port() && e.url == request.destination &&
             e.header_or_method.match_method(method)
