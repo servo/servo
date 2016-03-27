@@ -415,6 +415,8 @@ pub enum MozBrowserEvent {
     UsernameAndPasswordRequired,
     /// Sent when a link to a search engine is found.
     OpenSearch,
+    /// Sent when visibility state changes.
+    VisibilityChange(bool),
 }
 
 impl MozBrowserEvent {
@@ -435,7 +437,8 @@ impl MozBrowserEvent {
             MozBrowserEvent::ShowModalPrompt(_, _, _, _) => "mozbrowsershowmodalprompt",
             MozBrowserEvent::TitleChange(_) => "mozbrowsertitlechange",
             MozBrowserEvent::UsernameAndPasswordRequired => "mozbrowserusernameandpasswordrequired",
-            MozBrowserEvent::OpenSearch => "mozbrowseropensearch"
+            MozBrowserEvent::OpenSearch => "mozbrowseropensearch",
+            MozBrowserEvent::VisibilityChange(_) => "mozbrowservisibilitychange",
         }
     }
 }
