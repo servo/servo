@@ -388,21 +388,21 @@ impl Pipeline {
         }
     }
 
-    pub fn set_visible(&mut self, containing_id: PipelineId, visible: bool) {
+    pub fn change_visibility(&mut self, containing_id: PipelineId, visible: bool) -> bool {
         if visible == self.visible {
-            return; //No changes
+            return false; //No changes
         }
 
         self.visible = visible;
-        match visible {
-            true => { 
-                self.script_chan.send(ConstellationControlMsg::SetVisible(containing_id, self.id)).unwrap();
-            }
-            false => {
-                self.script_chan.send(ConstellationControlMsg::SetNonVisible(containing_id, self.id)).unwrap();
-            }
+        if visible { 
+            self.script_chan.send(ConstellationControlMsg::SetVisible(containing_id, self.id)).unwrap();
         }
-        self.compositor_proxy.send(CompositorMsg::PipelineVisibilityChanged(self.id, visible))
+        else {
+            self.script_chan.send(ConstellationControlMsg::SetNonVisible(containing_id, self.id)).unwrap();
+        }
+
+        self.compositor_proxy.send(CompositorMsg::PipelineVisibilityChanged(self.id, visible));
+        return true;
     }
 
 }
