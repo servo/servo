@@ -20,9 +20,6 @@ path = "../msg"
 [dependencies.net_traits]
 path = "../net_traits"
 
-[dependencies.offscreen_gl_context]
-git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
-
 [dependencies.plugins]
 path = "../plugins"
 
@@ -51,3 +48,4 @@ serde = "0.7"
 serde_macros = "0.7"
 time = "0.1.12"
 url = {version = "0.5.7", features = ["heap_size"]}
+offscreen_gl_context = {version = "0.1.1", features = ["serde_serialization"]}

@@ -61,9 +61,6 @@ git = "https://github.com/aweinstock314/rust-clipboard"
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 
-[dependencies.offscreen_gl_context]
-git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
-
 [target.arm-linux-androideabi.dependencies.gaol]
 git = "https://github.com/servo/gaol"
 
@@ -100,6 +97,7 @@ serde = "0.7"
 serde_macros = "0.7"
 time = "0.1.17"
 url = {version = "0.5.7", features = ["heap_size"]}
+offscreen_gl_context = {version = "0.1.1", features = ["serde_serialization"]}
 
 [target.x86_64-apple-darwin.dependencies]
 core-graphics = "0.3"
