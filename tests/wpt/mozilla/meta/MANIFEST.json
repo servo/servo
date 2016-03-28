@@ -2084,6 +2084,18 @@
             "url": "/_mozilla/css/incremental_text_color_a.html"
           }
         ],
+        "css/incremental_trailing_whitespace_a.html": [
+          {
+            "path": "css/incremental_trailing_whitespace_a.html",
+            "references": [
+              [
+                "/_mozilla/css/incremental_trailing_whitespace_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/incremental_trailing_whitespace_a.html"
+          }
+        ],
         "css/incremental_visibility_a.html": [
           {
             "path": "css/incremental_visibility_a.html",
@@ -8420,6 +8432,18 @@
             ]
           ],
           "url": "/_mozilla/css/incremental_text_color_a.html"
+        }
+      ],
+      "css/incremental_trailing_whitespace_a.html": [
+        {
+          "path": "css/incremental_trailing_whitespace_a.html",
+          "references": [
+            [
+              "/_mozilla/css/incremental_trailing_whitespace_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/incremental_trailing_whitespace_a.html"
         }
       ],
       "css/incremental_visibility_a.html": [

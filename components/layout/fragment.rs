@@ -1692,21 +1692,38 @@ impl Fragment {
             (&mut SpecificFragmentInfo::ScannedText(ref mut this_info),
              &SpecificFragmentInfo::ScannedText(ref other_info)) => {
                 debug_assert!(util::arc_ptr_eq(&this_info.run, &other_info.run));
-                this_info.range.extend_to(other_info.range_end_including_stripped_whitespace);
-                this_info.content_size.inline =
-                    this_info.run.metrics_for_range(&this_info.range).advance_width;
+                this_info.range_end_including_stripped_whitespace =
+                    other_info.range_end_including_stripped_whitespace;
                 if other_info.requires_line_break_afterward_if_wrapping_on_newlines() {
                     this_info.flags.insert(REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES);
                 }
                 self.border_padding.inline_end = next_fragment.border_padding.inline_end;
-                self.border_box.size.inline = this_info.content_size.inline +
-                    self.border_padding.inline_start_end();
             }
             _ => panic!("Can only merge two scanned-text fragments!"),
         }
-
+        self.reset_text_range_and_inline_size();
         self.meld_with_next_inline_fragment(&next_fragment);
     }
+
+    /// Restore any whitespace that was stripped from a text fragment, and recompute inline metrics
+    /// if necessary.
+    pub fn reset_text_range_and_inline_size(&mut self) {
+        match &mut self.specific {
+            &mut SpecificFragmentInfo::ScannedText(ref mut info) => {
+                // FIXME (mbrubeck): Do we need to restore leading too?
+                let range_end = info.range_end_including_stripped_whitespace;
+                if info.range.end() == range_end {
+                    return
+                }
+                info.range.extend_to(range_end);
+                info.content_size.inline = info.run.metrics_for_range(&info.range).advance_width;
+                self.border_box.size.inline = info.content_size.inline +
+                    self.border_padding.inline_start_end();
+            }
+            _ => {}
+        }
+    }
+
 
     /// Assigns replaced inline-size, padding, and margins for this fragment only if it is replaced
     /// content per CSS 2.1 § 10.3.2.

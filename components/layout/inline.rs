@@ -527,6 +527,9 @@ impl LineBreaker {
                        mut fragment: Fragment,
                        flow: &InlineFlow,
                        layout_context: &LayoutContext) {
+        // Undo any whitespace stripping from previous reflows.
+        fragment.reset_text_range_and_inline_size();
+
         // Determine initial placement for the fragment if we need to.
         //
         // Also, determine whether we can legally break the line before, or inside, this fragment.
