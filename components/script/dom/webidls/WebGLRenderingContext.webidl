@@ -565,7 +565,7 @@ interface WebGLRenderingContextBase
     //                          WebGLTexture? texture, GLint level);
     void frontFace(GLenum mode);
 
-    //void generateMipmap(GLenum target);
+    void generateMipmap(GLenum target);
 
     //WebGLActiveInfo? getActiveAttrib(WebGLProgram? program, GLuint index);
     //WebGLActiveInfo? getActiveUniform(WebGLProgram? program, GLuint index);
