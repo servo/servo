@@ -184,7 +184,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn Flush(&self) {
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Flush))
+            .send(CanvasMsg::WebGL(WebGLCommand::Flush))
             .unwrap();
     }
 
@@ -192,7 +192,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Finish(&self) {
         let (sender, receiver) = ipc::channel().unwrap();
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Finish(sender)))
+            .send(CanvasMsg::WebGL(WebGLCommand::Finish(sender)))
             .unwrap();
         receiver.recv().unwrap()
     }
@@ -436,6 +436,21 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::BindTexture(target, 0)))
                 .unwrap()
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn GenerateMipmap(&self, target: u32) {
+        let slot = match target {
+            constants::TEXTURE_2D => &self.bound_texture_2d,
+            constants::TEXTURE_CUBE_MAP => &self.bound_texture_cube_map,
+
+            _ => return self.webgl_error(InvalidEnum),
+        };
+
+        match slot.get() {
+            Some(texture) => handle_potential_webgl_error!(self, texture.generate_mipmap()),
+            None => self.webgl_error(InvalidEnum)
         }
     }
 
@@ -975,6 +990,25 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform1i(&self,
+                  uniform: Option<&WebGLUniformLocation>,
+                  val: i32) {
+        let uniform = match uniform {
+            Some(uniform) => uniform,
+            None => return,
+        };
+
+        match self.current_program.get() {
+            Some(ref program) if program.id() == uniform.program_id() => {},
+            _ => return self.webgl_error(InvalidOperation),
+        };
+
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::Uniform1i(uniform.id(), val)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform1fv(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   data: Vec<f32>) {
@@ -1132,7 +1166,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   internal_format: u32,
                   format: u32,
                   data_type: u32,
-                  source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement >) {
+                  source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement>) {
         let texture = match target {
             constants::TEXTURE_2D => self.bound_texture_2d.get(),
             constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get(),
