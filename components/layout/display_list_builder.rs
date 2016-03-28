@@ -105,8 +105,8 @@ impl<'a> DisplayListBuildState<'a> {
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(1 * AU_PER_PX);
 
 // Colors for selected text.  TODO (#8077): Use the ::selection pseudo-element to set these.
-const SELECTION_FOREGROUND_COLOR: RGBA = RGBA { red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0 };
-const SELECTION_BACKGROUND_COLOR: RGBA = RGBA { red: 1.0, green: 0.5, blue: 0.0, alpha: 1.0 };
+const SELECTION_FOREGROUND_COLOR: RGBA = RGBA { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 };
+const SELECTION_BACKGROUND_COLOR: RGBA = RGBA { red: 0.69, green: 0.84, blue: 1.0, alpha: 1.0 };
 
 // TODO(gw): The transforms spec says that perspective length must
 // be positive. However, there is some confusion between the spec
