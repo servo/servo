@@ -1,0 +1,116 @@
+<!doctype html>
+<html class="reftest-wait">
+  <link rel="match" href="tex_image_2d_simple_ref.html"></link>
+  <meta charset="utf-8">
+  <title>WebGL texture test</title>
+  <!--
+    This test should show a 256x256 rust logo
+  -->
+  <style>
+    html, body { margin: 0 }
+  </style>
+  <canvas id="c" width="256" height="256"></canvas>
+  <script id="vertex_shader" type="x-shader/x-vertex">
+  precision mediump float;
+  attribute vec2 a_texCoord;
+  attribute vec2 a_position;
+  varying vec2 v_texCoord;
+
+  void main() {
+     gl_Position = vec4(a_position, 0, 1);
+     v_texCoord = a_texCoord;
+  }
+  </script>
+
+  <script id="fragment_shader" type="x-shader/x-fragment">
+  precision mediump float;
+  uniform sampler2D u_image;
+  varying vec2 v_texCoord;
+  void main() {
+     gl_FragColor = texture2D(u_image, v_texCoord);
+  }
+  </script>
+  <script>
+    var gl = document.getElementById('c').getContext('webgl');
+
+    // Clear white
+    gl.clearColor(1, 1, 1, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Create the program
+    var vertex_shader = gl.createShader(gl.VERTEX_SHADER),
+        fragment_shader = gl.createShader(gl.FRAGMENT_SHADER),
+        program = gl.createProgram();
+
+    gl.shaderSource(vertex_shader,
+                    document.getElementById('vertex_shader').textContent);
+    gl.shaderSource(fragment_shader,
+                    document.getElementById('fragment_shader').textContent);
+    gl.compileShader(vertex_shader);
+    gl.compileShader(fragment_shader);
+    gl.attachShader(program, vertex_shader);
+    gl.attachShader(program, fragment_shader);
+    console.log(gl.getShaderInfoLog(vertex_shader));
+    console.log(gl.getShaderInfoLog(fragment_shader));
+    gl.linkProgram(program);
+    gl.useProgram(program);
+
+    // Get the position from the fragment shader
+    var position = gl.getAttribLocation(program, "a_position");
+    var tex_position = gl.getAttribLocation(program, "a_texCoord");
+
+    var texture_coordinates = new Float32Array([
+      0.0,  0.0,
+      1.0,  0.0,
+      0.0,  1.0,
+      0.0,  1.0,
+      1.0,  0.0,
+      1.0,  1.0
+    ]);
+
+    var texture_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, texture_buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, texture_coordinates, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(tex_position);
+    gl.vertexAttribPointer(tex_position, 2, gl.FLOAT, false, 0, 0);
+
+    var square_data = new Float32Array([
+      -1.0,  1.0, // top left
+       1.0,  1.0, // top right
+      -1.0, -1.0, // bottom left
+      -1.0, -1.0, // bottom left
+       1.0,  1.0, // top right
+       1.0, -1.0  // bottom right
+    ]);
+
+    // Create a buffer for the square with the square
+    // vertex data
+    var square_buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, square_buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, square_data, gl.STATIC_DRAW);
+
+    gl.enableVertexAttribArray(position);
+    gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+
+    // Load the texture and draw
+    var image = new Image();
+    image.width = image.height = 256;
+    // Base-64 to allow the reftest to finish
+    image.src = "img/rust-logo-256x256.png";
+
+    image.onload = function () {
+      var tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+
+      console.log(gl.getError() == gl.NO_ERROR);
+
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+      gl.generateMipmap(gl.TEXTURE_2D);
+      
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+      document.documentElement.classList.remove("reftest-wait");
+    }
+  </script>
+</html>
