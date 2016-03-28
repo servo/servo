@@ -166,9 +166,6 @@ features = ["plugins"]
 [dependencies.gleam]
 version = "0.2"
 
-[dependencies.offscreen_gl_context]
-git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
-
 [dependencies.browserhtml]
 git = "https://github.com/browserhtml/browserhtml"
 branch = "gh-pages"
@@ -179,3 +176,4 @@ env_logger = "0.3"
 euclid = {version = "0.6.4", features = ["plugins"]}
 libc = "0.2"
 url = {version = "0.5.7", features = ["heap_size", "serde_serialization", "query_encoding"]}
+offscreen_gl_context = {version = "0.1.1", features = ["serde_serialization"]}
