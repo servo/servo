@@ -62,6 +62,7 @@ use time;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::Url;
 use url::percent_encoding::{utf8_percent_encode, USERNAME_ENCODE_SET, PASSWORD_ENCODE_SET};
+use util::prefs;
 use util::str::DOMString;
 
 pub type SendParam = BlobOrStringOrURLSearchParams;
@@ -866,14 +867,33 @@ impl XMLHttpRequest {
     fn process_headers_available(&self, cors_request: Option<CORSRequest>,
                                  gen_id: GenerationId, metadata: Metadata) -> Result<(), Error> {
 
-        if let Some(ref req) = cors_request {
-            match metadata.headers {
-                Some(ref h) if allow_cross_origin_request(req, h) => {},
-                _ => {
-                    self.process_partial_response(XHRProgress::Errored(gen_id, Error::Network));
-                    return Err(Error::Network);
+        let bypass_cross_origin_check = {
+            // We want to be able to do cross-origin requests in browser.html.
+            // If the XHR happens in a top level window and the mozbrowser
+            // preference is enabled, we allow bypassing the CORS check.
+            // This is a temporary measure until we figure out Servo privilege
+            // story. See https://github.com/servo/servo/issues/9582
+            if let GlobalRoot::Window(win) = self.global() {
+                let is_root_pipeline = win.parent_info().is_none();
+                let is_mozbrowser_enabled = prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false);
+                is_root_pipeline && is_mozbrowser_enabled
+            } else {
+                false
+            }
+        };
+
+        if !bypass_cross_origin_check {
+            if let Some(ref req) = cors_request {
+                match metadata.headers {
+                    Some(ref h) if allow_cross_origin_request(req, h) => {},
+                    _ => {
+                        self.process_partial_response(XHRProgress::Errored(gen_id, Error::Network));
+                        return Err(Error::Network);
+                    }
                 }
             }
+        } else {
+            debug!("Bypassing cross origin check");
         }
 
         *self.response_url.borrow_mut() = metadata.final_url.serialize_no_fragment();
