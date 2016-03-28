@@ -868,7 +868,7 @@ pub fn parse_url_or_filename(cwd: &Path, input: &str) -> Result<Url, ()> {
     match Url::parse(input) {
         Ok(url) => Ok(url),
         Err(url::ParseError::RelativeUrlWithoutBase) => {
-            Ok(Url::from_file_path(&*cwd.join(input)).unwrap())
+            Url::from_file_path(&*cwd.join(input))
         }
         Err(_) => Err(()),
     }

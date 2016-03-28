@@ -5,9 +5,15 @@
 use std::path::Path;
 use util::opts::parse_url_or_filename;
 
+#[cfg(not(target_os = "windows"))]
+const FAKE_CWD: &'static str = "/fake/cwd";
+
+#[cfg(target_os = "windows")]
+const FAKE_CWD: &'static str = "C:/fake/cwd";
+
 #[test]
 fn test_argument_parsing() {
-    let fake_cwd = Path::new("/fake/cwd");
+    let fake_cwd = Path::new(FAKE_CWD);
     assert!(parse_url_or_filename(fake_cwd, "http://example.net:invalid").is_err());
 
     let url = parse_url_or_filename(fake_cwd, "http://example.net").unwrap();
@@ -16,10 +22,33 @@ fn test_argument_parsing() {
     let url = parse_url_or_filename(fake_cwd, "file:///foo/bar.html").unwrap();
     assert_eq!(url.scheme, "file");
     assert_eq!(url.path().unwrap(), ["foo", "bar.html"]);
+}
+
+#[test]
+#[cfg(not(target_os = "windows"))]
+fn test_file_path_parsing() {
+    let fake_cwd = Path::new(FAKE_CWD);
 
     let url = parse_url_or_filename(fake_cwd, "bar.html").unwrap();
     assert_eq!(url.scheme, "file");
     assert_eq!(url.path().unwrap(), ["fake", "cwd", "bar.html"]);
+}
+
+#[test]
+#[cfg(target_os = "windows")]
+fn test_file_path_parsing() {
+    let fake_cwd = Path::new(FAKE_CWD);
+
+    let url = parse_url_or_filename(fake_cwd, "bar.html").unwrap();
+    assert_eq!(url.scheme, "file");
+    assert_eq!(url.path().unwrap(), ["C:", "fake", "cwd", "bar.html"]);
+}
+
+#[test]
+#[cfg(not(target_os = "windows"))]
+// Windows file paths can't contain ?
+fn test_argument_parsing_special() {
+    let fake_cwd = Path::new(FAKE_CWD);
 
     // '?' and '#' have a special meaning in URLs...
     let url = parse_url_or_filename(fake_cwd, "file:///foo/bar?baz#buzz.html").unwrap();
