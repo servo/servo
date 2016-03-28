@@ -439,6 +439,21 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn GenerateMipmap(&self, target: u32) {
+        let slot = match target {
+            constants::TEXTURE_2D => &self.bound_texture_2d,
+            constants::TEXTURE_CUBE_MAP => &self.bound_texture_cube_map,
+
+            _ => return self.webgl_error(InvalidEnum),
+        };
+
+        match slot.get() {
+            Some(texture) => handle_potential_webgl_error!(self, texture.generate_mipmap()),
+            None => self.webgl_error(InvalidEnum)
+        }
+    }
+
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn BufferData(&self, _cx: *mut JSContext, target: u32, data: Option<*mut JSObject>, usage: u32) {
@@ -1132,7 +1147,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   internal_format: u32,
                   format: u32,
                   data_type: u32,
-                  source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement >) {
+                  source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement>) {
         let texture = match target {
             constants::TEXTURE_2D => self.bound_texture_2d.get(),
             constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get(),
