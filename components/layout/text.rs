@@ -368,6 +368,7 @@ impl TextRunScanner {
                 let new_fragment = old_fragment.transform(
                     bounding_box_size,
                     SpecificFragmentInfo::ScannedText(new_text_fragment_info));
+
                 out_fragments.push(new_fragment)
             }
         }

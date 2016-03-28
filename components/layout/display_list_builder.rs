@@ -104,10 +104,6 @@ impl<'a> DisplayListBuildState<'a> {
 /// The logical width of an insertion point: at the moment, a one-pixel-wide line.
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(1 * AU_PER_PX);
 
-// Colors for selected text.  TODO (#8077): Use the ::selection pseudo-element to set these.
-const SELECTION_FOREGROUND_COLOR: RGBA = RGBA { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 };
-const SELECTION_BACKGROUND_COLOR: RGBA = RGBA { red: 0.69, green: 0.84, blue: 1.0, alpha: 1.0 };
-
 // TODO(gw): The transforms spec says that perspective length must
 // be positive. However, there is some confusion between the spec
 // and browser implementations as to handling the case of 0 for the
@@ -931,6 +927,8 @@ impl FragmentDisplayListBuilding for Fragment {
         //
         // TODO: Allow non-text fragments to be selected too.
         if scanned_text_fragment_info.selected() {
+            let style = self.selected_style();
+            let background_color = style.resolve_color(style.get_background().background_color);
             state.add_display_item(
                 DisplayItem::SolidColorClass(box SolidColorDisplayItem {
                     base: BaseDisplayItem::new(stacking_relative_border_box,
@@ -938,7 +936,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                         &*self.style,
                                                                         Cursor::DefaultCursor),
                                                &clip),
-                    color: SELECTION_BACKGROUND_COLOR.to_gfx_color()
+                    color: background_color.to_gfx_color(),
             }), display_list_section);
         }
 
@@ -1116,11 +1114,14 @@ impl FragmentDisplayListBuilding for Fragment {
                 //
                 // NB: According to CSS-BACKGROUNDS, text shadows render in *reverse* order (front
                 // to back).
+
+                // TODO(emilio): Allow changing more properties by ::selection
                 let text_color = if text_fragment.selected() {
-                    SELECTION_FOREGROUND_COLOR
+                    self.selected_style().get_color().color
                 } else {
                     self.style().get_color().color
                 };
+
                 for text_shadow in self.style.get_effects().text_shadow.0.iter().rev() {
                     let offset = &Point2D::new(text_shadow.offset_x, text_shadow.offset_y);
                     let color = self.style().resolve_color(text_shadow.color);
