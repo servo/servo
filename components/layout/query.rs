@@ -534,11 +534,12 @@ pub fn process_resolved_style_request<N: LayoutNode>(
             requested_node: N, pseudo: &Option<PseudoElement>,
             property: &Atom, layout_root: &mut FlowRef) -> Option<String> {
     let layout_node = requested_node.to_threadsafe();
-    let layout_node = match pseudo {
-        &Some(PseudoElement::Before) => layout_node.get_before_pseudo(),
-        &Some(PseudoElement::After) => layout_node.get_after_pseudo(),
-        &Some(PseudoElement::DetailsSummary) => layout_node.get_details_summary_pseudo(),
-        &Some(PseudoElement::DetailsContent) => layout_node.get_details_content_pseudo(),
+    let layout_node = match *pseudo {
+        Some(PseudoElement::Before) => layout_node.get_before_pseudo(),
+        Some(PseudoElement::After) => layout_node.get_after_pseudo(),
+        Some(PseudoElement::DetailsSummary) => layout_node.get_details_summary_pseudo(),
+        Some(PseudoElement::DetailsContent) => layout_node.get_details_content_pseudo(),
+        Some(PseudoElement::Selection) => None,
         _ => Some(layout_node)
     };
 

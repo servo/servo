@@ -1286,6 +1286,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                     node.opaque(),
                     PseudoElementType::Normal,
                     style,
+                    node.selected_style().clone(),
                     node.restyle_damage(),
                     SpecificFragmentInfo::TableRow);
                 Arc::new(TableRowFlow::from_fragment(fragment))
@@ -1298,6 +1299,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                     node.opaque(),
                     PseudoElementType::Normal,
                     style,
+                    node.selected_style().clone(),
                     node.restyle_damage(),
                     SpecificFragmentInfo::TableCell);
                 let hide = node.style().get_inheritedtable().empty_cells == empty_cells::T::hide;
@@ -1308,6 +1310,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                     Fragment::from_opaque_node_and_style(node.opaque(),
                                                          PseudoElementType::Normal,
                                                          style,
+                                                         node.selected_style().clone(),
                                                          node.restyle_damage(),
                                                          SpecificFragmentInfo::Generic);
                 Arc::new(BlockFlow::from_fragment(fragment, None))
