@@ -1,4 +1,4 @@
-input                   { background: white; min-height: 1.0em; padding: 0em; padding-left: 0.25em; padding-right: 0.25em; border: solid lightgrey 1px; color: black; white-space: nowrap; }
+input                   { background: white; min-height: 1.0em; padding: 0em; padding-left: 0.25em; padding-right: 0.25em; border: solid lightgrey 1px; color: black; white-space: nowrap; text-align: left; }
 textarea                { background: white; min-height: 1.0em; padding: 0em; padding-left: 0.25em; padding-right: 0.25em; border: solid lightgrey 1px; color: black; white-space: pre; }
 button,
 input[type="button"],
@@ -7,6 +7,7 @@ input[type="reset"]     { background: lightgrey; border-top: solid 1px #EEEEEE; 
 input[type="hidden"]    { display: none !important }
 input[type="checkbox"],
 input[type="radio"]     { font-family: monospace !important; border: none !important; background: transparent; }
+input[dir="rtl"]        { text-align: right; }
 
 input[type="checkbox"]::before { display: inline-block; border: solid currentcolor 1px; content: ""; padding: 0; width: 1em; height: 1em; text-align: center; }
 input[type="checkbox"]:checked::before { content: "✓"; }
