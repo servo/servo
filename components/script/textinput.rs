@@ -21,7 +21,7 @@ pub enum Selection {
     NotSelected
 }
 
-#[derive(JSTraceable, Copy, Clone, HeapSizeOf)]
+#[derive(JSTraceable, Copy, Clone, HeapSizeOf, PartialEq)]
 pub struct TextPoint {
     /// 0-based line number
     pub line: usize,
@@ -124,7 +124,7 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// Remove a character at the current editing point
     pub fn delete_char(&mut self, dir: Direction) {
-        if self.selection_begin.is_none() {
+        if self.selection_begin.is_none() || self.selection_begin == Some(self.edit_point) {
             self.adjust_horizontal_by_one(dir, Selection::Selected);
         }
         self.replace_selection(DOMString::new());

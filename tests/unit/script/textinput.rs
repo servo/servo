@@ -150,6 +150,13 @@ fn test_textinput_delete_char() {
     textinput.delete_char(Direction::Forward);
     // Not splitting surrogate pairs.
     assert_eq!(textinput.get_content(), "ab");
+
+    let mut textinput = text_input(Lines::Single, "abcdefg");
+    textinput.adjust_horizontal(2, Selection::NotSelected);
+    // Set an empty selection range.
+    textinput.selection_begin = Some(textinput.edit_point);
+    textinput.delete_char(Direction::Backward);
+    assert_eq!(textinput.get_content(), "acdefg");
 }
 
 #[test]
