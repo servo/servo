@@ -8,7 +8,6 @@ use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net_traits::CookieSource;
 
-
 #[test]
 fn test_domain_match() {
     assert!(Cookie::domain_match("foo.com", "foo.com"));
@@ -100,6 +99,20 @@ fn fn_cookie_constructor() {
     assert!(Cookie::new_wrapped(cookie, u, CookieSource::HTTP).is_some());
 }
 
+#[cfg(target_os = "windows")]
+fn delay_to_ensure_different_timestamp() {
+    use std::thread;
+    use std::time::Duration;
+
+    // time::now()'s resolution on some platforms isn't granular enought to ensure
+    // that two back-to-back calls to Cookie::new_wrapped generate different timestamps .
+    thread::sleep(Duration::from_millis(500));
+}
+
+#[cfg(not(target_os = "windows"))]
+fn delay_to_ensure_different_timestamp() {
+}
+
 #[test]
 fn test_sort_order() {
     use std::cmp::Ordering;
@@ -107,6 +120,7 @@ fn test_sort_order() {
     let url = &url!("http://example.com/foo");
     let a_wrapped = cookie_rs::Cookie::parse("baz=bar; Path=/foo/bar/").unwrap();
     let a = Cookie::new_wrapped(a_wrapped.clone(), url, CookieSource::HTTP).unwrap();
+    delay_to_ensure_different_timestamp();
     let a_prime = Cookie::new_wrapped(a_wrapped, url, CookieSource::HTTP).unwrap();
     let b = cookie_rs::Cookie::parse("baz=bar;Path=/foo/bar/baz/").unwrap();
     let b = Cookie::new_wrapped(b, url, CookieSource::HTTP).unwrap();
