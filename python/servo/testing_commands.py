@@ -168,7 +168,7 @@ class MachCommands(CommandBase):
             path.join(self.context.topdir, "components", "style", "list_properties.py")
         ])
 
-        this_file = style = os.path.dirname(__file__)
+        this_file = os.path.dirname(__file__)
         servo_doc_path = os.path.abspath(os.path.join(this_file, '../', '../', 'target', 'doc', 'servo'))
 
         with open(os.path.join(servo_doc_path, 'css-properties.json'), 'r') as property_file:
