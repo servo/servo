@@ -123,7 +123,7 @@ impl HTMLIFrameElement {
         let window = window.r();
         let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id();
         let new_pipeline_id = self.pipeline_id.get().unwrap();
-        let private_iframe = self.PrivateBrowsing();
+        let private_iframe = self.privatebrowsing();
 
         self.containing_page_pipeline_id.set(Some(window.pipeline()));
 
@@ -250,9 +250,10 @@ impl HTMLIFrameElement {
                       ReflowReason::IFrameLoadEvent);
     }
 
-     //set isPrivate attribute if mozprivatebrowsing attribute is present on the iframe element,and it's a mozbrowser iframe too.
-     pub fn PrivateBrowsing(&self) -> bool {
-         /*if mozbrowser_enabled() {
+     //set isPrivate attribute if mozprivatebrowsing attribute is
+     //present on the iframe element,and it's a mozbrowser iframe too.
+     pub fn privatebrowsing(&self) -> bool {
+         /*if self.Mozbrowser() {
              let element = self.upcast::<Element>();
              element.has_attribute(&atom!("mozprivatebrowsing"));
          } else {
@@ -260,7 +261,6 @@ impl HTMLIFrameElement {
          }*/
          true
      }
- 
 }
 
 pub trait HTMLIFrameElementLayoutMethods {
@@ -467,14 +467,15 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
         Ok(())
     }
 
-     /*pub fn SetPrivateBrowsing(&self, value:bool) -> ErrorResult {
-         if(mozbrowser_enabled()){
+    // https://w3c.github.io/webcomponents/explainer/
+    /*pub fn SetPrivateBrowsing(&self, value:bool) -> ErrorResult {
+        if(mozbrowser_enabled()){
              let element = self.upcast::<Element>();
              element.set_bool_attribute(&atom!("mozprivatebrowsing"), value)
-         }
+        }
          Ok(())
      }*/
- 
+
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
     fn GoBack(&self) -> Fallible<()> {

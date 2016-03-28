@@ -58,7 +58,7 @@ pub struct Pipeline {
     /// animations cause composites to be continually scheduled.
     pub running_animations: bool,
     pub children: Vec<FrameId>,
-    pub is_private_pipeline: bool,
+    pub is_private: bool,
 }
 
 /// The subset of the pipeline that is needed for layer composition.
@@ -276,7 +276,7 @@ impl Pipeline {
             children: vec!(),
             size: size,
             running_animations: false,
-            is_private_pipeline: false,
+            is_private: false,
         }
     }
 

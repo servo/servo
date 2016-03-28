@@ -404,4 +404,4 @@ pub struct ResourceId(pub u32);
  pub enum ConstellationMsg {
      /// Indicates whether a pipeline or its ancestors are private
      IsPrivate(PipelineId, Sender<bool>),
- }
+}
