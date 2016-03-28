@@ -507,16 +507,20 @@ impl SpeculatedFloatPlacement {
         let speculated_inline_content_edge_offsets =
             parent_block_flow.fragment.guess_inline_content_edge_offsets();
 
-        if placement.left > speculated_inline_content_edge_offsets.start {
-            placement.left = placement.left - speculated_inline_content_edge_offsets.start
-        } else {
-            placement.left = Au(0)
-        };
-        if placement.right > speculated_inline_content_edge_offsets.end {
-            placement.right = placement.right - speculated_inline_content_edge_offsets.end
-        } else {
-            placement.right = Au(0)
-        };
+        if speculated_inline_content_edge_offsets.start > Au(0) {
+            placement.left = if placement.left > speculated_inline_content_edge_offsets.start {
+                placement.left - speculated_inline_content_edge_offsets.start
+            } else {
+                Au(0)
+            }
+        }
+        if speculated_inline_content_edge_offsets.end > Au(0) {
+            placement.right = if placement.right > speculated_inline_content_edge_offsets.end {
+                placement.right - speculated_inline_content_edge_offsets.end
+            } else {
+                Au(0)
+            }
+        }
 
         placement
     }
