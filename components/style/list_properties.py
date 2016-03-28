@@ -23,7 +23,6 @@ properties = dict(
 )
 
 json_dump = json.dumps(properties, indent=4)
-print(json_dump)
 
 #
 # Resolve path to doc directory and write CSS properties and JSON.
