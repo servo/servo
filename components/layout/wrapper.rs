@@ -702,11 +702,14 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
             })
     }
 
+    // TODO(emilio): Since the ::-details-* pseudos are internal, just affecting one element, and
+    // only changing `display` property when the element `open` attribute changes, this should be
+    // eligible for not being cascaded eagerly, reading the display property from layout instead.
     #[inline]
     fn get_details_summary_pseudo(&self) -> Option<Self> {
         if self.is_element() &&
-                self.as_element().get_local_name() == &atom!("details") &&
-                self.as_element().get_namespace() == &ns!(html) {
+           self.as_element().get_local_name() == &atom!("details") &&
+           self.as_element().get_namespace() == &ns!(html) {
             self.borrow_layout_data().unwrap()
                 .style_data.per_pseudo
                 .get(&PseudoElement::DetailsSummary)
@@ -721,8 +724,8 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
     #[inline]
     fn get_details_content_pseudo(&self) -> Option<Self> {
         if self.is_element() &&
-                self.as_element().get_local_name() == &atom!("details") &&
-                self.as_element().get_namespace() == &ns!(html) {
+           self.as_element().get_local_name() == &atom!("details") &&
+           self.as_element().get_namespace() == &ns!(html) {
             self.borrow_layout_data().unwrap()
                 .style_data.per_pseudo
                 .get(&PseudoElement::DetailsContent)
@@ -761,6 +764,13 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
                 PseudoElementType::Normal => data.style_data.style.as_ref(),
             };
             style.unwrap()
+        })
+    }
+
+    #[inline]
+    fn selected_style(&self) -> Ref<Arc<ServoComputedValues>> {
+        Ref::map(self.borrow_layout_data().unwrap(), |data| {
+            data.style_data.per_pseudo.get(&PseudoElement::Selection).unwrap_or(data.style_data.style.as_ref().unwrap())
         })
     }
 
@@ -1015,7 +1025,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     }
 
     fn text_content(&self) -> TextContent {
-        if self.pseudo != PseudoElementType::Normal {
+        if self.pseudo.is_before_or_after() {
             let data = &self.borrow_layout_data().unwrap().style_data;
 
             let style = if self.pseudo.is_before() {
@@ -1136,7 +1146,6 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
     type Item = ConcreteNode;
     fn next(&mut self) -> Option<ConcreteNode> {
         match self.parent_node.get_pseudo_element_type() {
-
             PseudoElementType::Before(_) | PseudoElementType::After(_) => None,
 
             PseudoElementType::DetailsSummary(_) => {
@@ -1162,8 +1171,8 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
                 let node = self.current_node.clone();
                 let node = node.and_then(|node| {
                     if node.is_element() &&
-                            node.as_element().get_local_name() == &atom!("summary") &&
-                            node.as_element().get_namespace() == &ns!(html) {
+                       node.as_element().get_local_name() == &atom!("summary") &&
+                       node.as_element().get_namespace() == &ns!(html) {
                         unsafe { node.dangerous_next_sibling() }
                     } else {
                         Some(node)
