@@ -565,7 +565,7 @@ interface WebGLRenderingContextBase
     //                          WebGLTexture? texture, GLint level);
     void frontFace(GLenum mode);
 
-    //void generateMipmap(GLenum target);
+    void generateMipmap(GLenum target);
 
     //WebGLActiveInfo? getActiveAttrib(WebGLProgram? program, GLuint index);
     //WebGLActiveInfo? getActiveUniform(WebGLProgram? program, GLuint index);
@@ -647,7 +647,7 @@ interface WebGLRenderingContextBase
     void uniform1f(WebGLUniformLocation? location, GLfloat x);
     //void uniform1fv(WebGLUniformLocation? location, Float32Array v);
     void uniform1fv(WebGLUniformLocation? location, sequence<GLfloat> v);
-    //void uniform1i(WebGLUniformLocation? location, GLint x);
+    void uniform1i(WebGLUniformLocation? location, GLint x);
     //void uniform1iv(WebGLUniformLocation? location, Int32Array v);
     //void uniform1iv(WebGLUniformLocation? location, sequence<long> v);
     //void uniform2f(WebGLUniformLocation? location, GLfloat x, GLfloat y);

@@ -134,7 +134,7 @@ impl WebGLProgram {
 
         shader_slot.set(None);
 
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DetachShader(self.id, shader.id()))).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::DetachShader(self.id, shader.id()))).unwrap();
 
         Ok(())
     }
