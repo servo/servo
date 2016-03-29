@@ -48,11 +48,6 @@ path = "../../tests/compiletest/helper"
 [dev-dependencies.plugin_compiletest]
 path = "../../tests/compiletest/plugin"
 
-[[test]]
-name = "reftest"
-path = "../../tests/reftest.rs"
-harness = false
-
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender_traits"
 

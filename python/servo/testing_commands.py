@@ -56,32 +56,6 @@ class MachCommands(CommandBase):
         if not hasattr(self.context, "built_tests"):
             self.context.built_tests = False
 
-    def ensure_built_tests(self, release=False):
-        if self.context.built_tests:
-            return
-        returncode = Registrar.dispatch(
-            'build-tests', context=self.context, release=release)
-        if returncode:
-            sys.exit(returncode)
-        self.context.built_tests = True
-
-    def find_test(self, prefix, release=False):
-        build_mode = "release" if release else "debug"
-        target_contents = os.listdir(path.join(
-            self.get_target_dir(), build_mode))
-        for filename in target_contents:
-            if filename.startswith(prefix + "-"):
-                filepath = path.join(
-                    self.get_target_dir(), build_mode, filename)
-
-                if path.isfile(filepath) and os.access(filepath, os.X_OK):
-                    return filepath
-
-    def run_test(self, prefix, args=[], release=False):
-        t = self.find_test(prefix, release=release)
-        if t:
-            return call([t] + args, env=self.build_env())
-
     @Command('test',
              description='Run all Servo tests',
              category='testing')
