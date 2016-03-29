@@ -145,7 +145,7 @@ pub enum SpecificFragmentInfo {
     /// content resolution phase (e.g. an ordered list item marker).
     GeneratedContent(Box<GeneratedContentInfo>),
 
-    Iframe(Box<IframeFragmentInfo>),
+    Iframe(IframeFragmentInfo),
     Image(Box<ImageFragmentInfo>),
     Canvas(Box<CanvasFragmentInfo>),
 
