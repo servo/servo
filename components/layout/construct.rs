@@ -586,8 +586,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 properties::modify_style_for_text(&mut whitespace_style);
                 let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                     whitespace_pseudo,
-                                                                    whitespace_style.clone(),
                                                                     whitespace_style,
+                                                                    node.selected_style().clone(),
                                                                     whitespace_damage,
                                                                     fragment_info);
                 inline_fragment_accumulator.fragments.fragments.push_back(fragment);
@@ -874,8 +874,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                     properties::modify_style_for_text(&mut whitespace_style);
                     let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                         whitespace_pseudo,
-                                                                        whitespace_style.clone(),
                                                                         whitespace_style,
+                                                                        node.selected_style().clone(),
                                                                         whitespace_damage,
                                                                         fragment_info);
                     fragment_accumulator.fragments.fragments.push_back(fragment)
