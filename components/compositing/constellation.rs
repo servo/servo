@@ -1505,9 +1505,18 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     #[allow(dead_code)]
     fn check_is_pipeline_private(&self, pipeline_id: PipelineId) -> bool {
         let pipeline = self.pipeline(pipeline_id);
+
         if pipeline.is_private == true {
              return true;
-         }
+         } else {
+
+             while let Some((parent_pipeline_id, _)) = pipeline.parent_info {
+                 let parent_pipeline = self.pipeline(parent_pipeline_id);
+                 if parent_pipeline.is_private == true {
+                     return true;
+                 }
+             }
+        }
         false
      }
 
