@@ -1851,6 +1851,7 @@ impl fmt::Debug for InlineFlow {
 pub struct InlineFragmentNodeInfo {
     pub address: OpaqueNode,
     pub style: Arc<ComputedValues>,
+    pub selected_style: Arc<ComputedValues>,
     pub pseudo: PseudoElementType<()>,
     pub flags: InlineFragmentNodeFlags,
 }
