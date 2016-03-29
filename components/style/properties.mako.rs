@@ -6692,7 +6692,7 @@ fn cascade_with_cached_declarations<C: TComputedValues>(
     context.style
 }
 
-pub type CascadePropertyFn<C: TComputedValues> =
+pub type CascadePropertyFn<C /*: ComputedValues */> =
     extern "Rust" fn(declaration: &PropertyDeclaration,
                      inherited_style: &C,
                      context: &mut computed::Context<C>,
