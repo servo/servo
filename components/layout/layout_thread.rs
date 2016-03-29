@@ -777,9 +777,7 @@ impl LayoutThread {
             traversal.shutdown()
         }
 
-        let (response_chan, response_port) = ipc::channel().unwrap();
-        self.paint_chan.send(LayoutToPaintMsg::Exit(response_chan)).unwrap();
-        response_port.recv().unwrap()
+        self.paint_chan.send(LayoutToPaintMsg::Exit).unwrap();
     }
 
     fn handle_add_stylesheet<'a, 'b>(&self,

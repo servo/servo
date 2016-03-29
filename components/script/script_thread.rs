@@ -548,6 +548,7 @@ impl ScriptThreadFactory for ScriptThread {
             let reporter_name = format!("script-reporter-{}", id);
             mem_profiler_chan.run_with_memory_reporting(|| {
                 script_thread.start();
+                let _ = script_thread.compositor.borrow_mut().send(ScriptToCompositorMsg::Exited);
                 let _ = script_thread.content_process_shutdown_chan.send(());
             }, reporter_name, channel_for_reporter, CommonScriptMsg::CollectReports);
 

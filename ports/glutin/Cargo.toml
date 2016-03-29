@@ -7,10 +7,6 @@ authors = ["The Servo Project Developers"]
 name = "glutin_app"
 path = "lib.rs"
 
-[features]
-window = []
-headless = ["servo-glutin/headless"]
-
 [dependencies]
 bitflags = "0.4"
 url = {version = "0.5.7", features = ["heap_size"]}

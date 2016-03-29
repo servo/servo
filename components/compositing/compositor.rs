@@ -525,6 +525,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::InitializeLayersForPipeline(pipeline_id, epoch, properties),
              ShutdownState::NotShuttingDown) => {
+                debug!("initializing layers for pipeline: {:?}", pipeline_id);
                 self.pipeline_details(pipeline_id).current_epoch = epoch;
 
                 self.collect_old_layers(pipeline_id, &properties);
@@ -542,7 +543,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::GetNativeDisplay(chan),
              ShutdownState::NotShuttingDown) => {
-                chan.send(Some(self.native_display.clone())).unwrap();
+                chan.send(self.native_display.clone()).unwrap();
             }
 
             (Msg::AssignPaintedBuffers(pipeline_id, epoch, replies, frame_tree_id),
@@ -641,7 +642,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 reply.send(img).unwrap();
             }
 
-            (Msg::PaintThreadExited(pipeline_id), ShutdownState::NotShuttingDown) => {
+            (Msg::PaintThreadExited(pipeline_id), _) => {
+                debug!("compositor learned about paint thread exiting: {:?}", pipeline_id);
                 self.remove_pipeline_root_layer(pipeline_id);
             }
 
@@ -690,8 +692,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 reports_chan.send(reports);
             }
 
-            (Msg::PipelineExited(pipeline_id), _) => {
+            (Msg::PipelineExited(pipeline_id, sender), _) => {
+                debug!("Compositor got pipeline exited: {:?}", pipeline_id);
                 self.pending_subpages.remove(&pipeline_id);
+                self.remove_pipeline_root_layer(pipeline_id);
+                sender.send(()).unwrap();
             }
 
             // When we are shutting_down, we need to avoid performing operations
