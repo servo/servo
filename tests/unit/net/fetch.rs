@@ -11,9 +11,9 @@ use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
 use net::fetch::methods::{fetch, fetch_async};
+use net_traits::AsyncFetchListener;
 use net_traits::request::{Origin, RedirectMode, Referer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
-use net_traits::{AsyncFetchListener};
 use std::rc::Rc;
 use std::sync::mpsc::{Sender, channel};
 use std::sync::{Arc, Mutex};
@@ -106,6 +106,32 @@ fn test_fetch_aboutblank() {
     let fetch_response = fetch(wrapped_request);
     assert!(!fetch_response.is_network_error());
     assert!(*fetch_response.body.lock().unwrap() == ResponseBody::Done(vec![]));
+}
+
+#[test]
+fn test_fetch_data() {
+    let url = Url::parse("data:text/html,<p>Servo</p>").unwrap();
+    let origin = Origin::Origin(url.origin());
+    let request = Request::new(url, Some(origin), false);
+    request.same_origin_data.set(true);
+    let wrapped_request = Rc::new(request);
+    let fetch_response = fetch(wrapped_request);
+    let content_type = fetch_response.headers.get_raw("content-type").unwrap();
+    let mime_type = content_type[0].clone();
+
+    let expected_resp_body = "<p>Servo</p>";
+    assert_eq!("text/html", String::from_utf8(mime_type).unwrap());
+    assert!(!fetch_response.is_network_error());
+    let resp_body = fetch_response.body.lock().unwrap();
+    match *resp_body {
+        ResponseBody::Done(ref val) => {
+            assert_eq!(String::from_utf8((*val).clone()).unwrap(), expected_resp_body);
+        }
+        ResponseBody::Receiving(ref val) => {
+            assert_eq!(String::from_utf8((*val).clone()).unwrap(), expected_resp_body);
+        },
+        ResponseBody::Empty => panic!(),
+    }
 }
 
 #[test]
