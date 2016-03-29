@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use properties::TComputedValues;
+use properties::ComputedValues;
 use selectors::parser::SelectorImpl;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::sync::Arc;
 use std::sync::atomic::AtomicIsize;
 
-pub struct PrivateStyleData<Impl: SelectorImpl, ConcreteComputedValues: TComputedValues> {
+pub struct PrivateStyleData<Impl: SelectorImpl, ConcreteComputedValues: ComputedValues> {
     /// The results of CSS styling for this node.
     pub style: Option<Arc<ConcreteComputedValues>>,
 
@@ -22,7 +22,7 @@ pub struct PrivateStyleData<Impl: SelectorImpl, ConcreteComputedValues: TCompute
 }
 
 impl<Impl, ConcreteComputedValues> PrivateStyleData<Impl, ConcreteComputedValues>
-    where Impl: SelectorImpl, ConcreteComputedValues: TComputedValues {
+    where Impl: SelectorImpl, ConcreteComputedValues: ComputedValues {
     pub fn new() -> PrivateStyleData<Impl, ConcreteComputedValues> {
         PrivateStyleData {
             style: None,

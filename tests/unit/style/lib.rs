@@ -25,7 +25,7 @@ extern crate util;
 
 #[cfg(test)] mod writing_modes {
     use style::logical_geometry::WritingMode;
-    use style::properties::{INITIAL_SERVO_VALUES, TComputedValues, get_writing_mode};
+    use style::properties::{INITIAL_SERVO_VALUES, ComputedValues, get_writing_mode};
 
     #[test]
     fn initial_writing_mode_is_empty() {

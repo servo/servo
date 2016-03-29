@@ -6,7 +6,7 @@ use app_units::Au;
 use std::sync::Arc;
 use style::custom_properties::ComputedValuesMap;
 use style::logical_geometry::WritingMode;
-use style::properties::{CascadePropertyFn, ServoComputedValues, TComputedValues};
+use style::properties::{CascadePropertyFn, ServoComputedValues, ComputedValues};
 use style::properties::longhands;
 use style::properties::style_struct_traits::*;
 
@@ -22,7 +22,7 @@ pub struct GeckoComputedValues {
     pub root_font_size: Au,
 }
 
-impl TComputedValues for GeckoComputedValues {
+impl ComputedValues for GeckoComputedValues {
 % for style_struct in STYLE_STRUCTS:
     type Concrete${style_struct.name} = Gecko${style_struct.name};
 % endfor

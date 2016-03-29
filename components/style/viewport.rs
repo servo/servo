@@ -8,7 +8,7 @@ use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser, 
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
 use parser::{ParserContext, log_css_error};
-use properties::{ServoComputedValues, TComputedValues};
+use properties::{ComputedValues, ServoComputedValues};
 use std::ascii::AsciiExt;
 use std::collections::hash_map::{Entry, HashMap};
 use std::fmt;

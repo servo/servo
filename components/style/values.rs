@@ -1436,7 +1436,7 @@ pub mod specified {
 pub mod computed {
     use app_units::Au;
     use euclid::size::Size2D;
-    use properties::TComputedValues;
+    use properties::ComputedValues;
     use properties::style_struct_traits::TFont;
     use std::fmt;
     use super::AuExtensionMethods;
@@ -1447,7 +1447,7 @@ pub mod computed {
     pub use super::specified::{Angle, BorderStyle, Time};
 
     pub trait TContext {
-        type ConcreteComputedValues: TComputedValues;
+        type ConcreteComputedValues: ComputedValues;
         fn is_root_element(&self) -> bool;
         fn viewport_size(&self) -> Size2D<Au>;
         fn inherited_style(&self) -> &Self::ConcreteComputedValues;
@@ -1455,7 +1455,7 @@ pub mod computed {
         fn mutate_style(&mut self) -> &mut Self::ConcreteComputedValues;
     }
 
-    pub struct Context<'a, C: TComputedValues> {
+    pub struct Context<'a, C: ComputedValues> {
         pub is_root_element: bool,
         pub viewport_size: Size2D<Au>,
         pub inherited_style: &'a C,
@@ -1465,7 +1465,7 @@ pub mod computed {
         pub style: C,
     }
 
-    impl<'a, C: TComputedValues> TContext for Context<'a, C> {
+    impl<'a, C: ComputedValues> TContext for Context<'a, C> {
         type ConcreteComputedValues = C;
         fn is_root_element(&self) -> bool { self.is_root_element }
         fn viewport_size(&self) -> Size2D<Au> { self.viewport_size }

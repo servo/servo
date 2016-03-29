@@ -50,7 +50,7 @@ use std::{fmt, mem, raw};
 use style::computed_values::{clear, display, empty_cells, float, position, overflow_x, text_align};
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use style::properties::{self, ServoComputedValues, TComputedValues};
+use style::properties::{self, ComputedValues, ServoComputedValues};
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, TableFlow};
 use table_caption::TableCaptionFlow;

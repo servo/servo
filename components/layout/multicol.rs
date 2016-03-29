@@ -21,7 +21,7 @@ use std::fmt;
 use std::sync::Arc;
 use style::context::StyleContext;
 use style::logical_geometry::LogicalSize;
-use style::properties::{ServoComputedValues, TComputedValues};
+use style::properties::{ComputedValues, ServoComputedValues};
 use style::values::computed::{LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use util::print_tree::PrintTree;
 
