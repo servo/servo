@@ -7,7 +7,7 @@ use std::mem::size_of;
 
 #[test]
 fn test_size_of_fragment() {
-    let expected = 184;
+    let expected = 160;
     let actual = size_of::<Fragment>();
 
     if actual < expected {

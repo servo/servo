@@ -167,7 +167,7 @@ pub enum SpecificFragmentInfo {
     TableWrapper,
     Multicol,
     MulticolColumn,
-    UnscannedText(UnscannedTextFragmentInfo),
+    UnscannedText(Box<UnscannedTextFragmentInfo>),
 }
 
 impl SpecificFragmentInfo {
@@ -896,8 +896,8 @@ impl Fragment {
         let mut unscanned_ellipsis_fragments = LinkedList::new();
         unscanned_ellipsis_fragments.push_back(self.transform(
                 self.border_box.size,
-                SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::new("…".to_owned(),
-                                                                                   None))));
+                SpecificFragmentInfo::UnscannedText(
+                    box UnscannedTextFragmentInfo::new("…".to_owned(), None))));
         let ellipsis_fragments = TextRunScanner::new().scan_for_runs(&mut layout_context.font_context(),
                                                                      unscanned_ellipsis_fragments);
         debug_assert!(ellipsis_fragments.len() == 1);
