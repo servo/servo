@@ -6,7 +6,6 @@ use canvas_traits::{CanvasCommonMsg, CanvasMsg, CanvasPixelData, CanvasData, Can
 use euclid::size::Size2D;
 use gleam::gl;
 use ipc_channel::ipc::{self, IpcSender, IpcSharedMemory};
-use ipc_channel::router::ROUTER;
 use offscreen_gl_context::{ColorAttachmentType, GLContext, GLContextAttributes, NativeGLContext};
 use std::borrow::ToOwned;
 use std::sync::mpsc::channel;
@@ -61,7 +60,7 @@ impl WebGLPaintThread {
                  attrs: GLContextAttributes,
                  webrender_api_sender: Option<webrender_traits::RenderApiSender>)
                  -> Result<IpcSender<CanvasMsg>, String> {
-        let (in_process_chan, in_process_port) = channel();
+        let (sender, receiver) = ipc::channel::<CanvasMsg>().unwrap();
         let (result_chan, result_port) = channel();
         spawn_named("WebGLThread".to_owned(), move || {
             let mut painter = match WebGLPaintThread::new(size, attrs, webrender_api_sender) {
@@ -76,7 +75,7 @@ impl WebGLPaintThread {
             };
             painter.init();
             loop {
-                match in_process_port.recv().unwrap() {
+                match receiver.recv().unwrap() {
                     CanvasMsg::WebGL(message) => painter.handle_webgl_message(message),
                     CanvasMsg::Common(message) => {
                         match message {
@@ -96,11 +95,8 @@ impl WebGLPaintThread {
             }
         });
 
-        result_port.recv().unwrap().map(|_| {
-             let (out_of_process_chan, out_of_process_port) = ipc::channel::<CanvasMsg>().unwrap();
-             ROUTER.route_ipc_receiver_to_mpsc_sender(out_of_process_port, in_process_chan);
-             out_of_process_chan
-        })
+        try!(result_port.recv().unwrap());
+        Ok(sender)
     }
 
     fn send_data(&mut self, chan: IpcSender<CanvasData>) {
