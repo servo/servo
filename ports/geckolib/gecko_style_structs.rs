@@ -311,6 +311,8 @@ pub const NS_STYLE_DISPLAY_RUBY_BASE_CONTAINER: ::std::os::raw::c_uint = 35;
 pub const NS_STYLE_DISPLAY_RUBY_TEXT: ::std::os::raw::c_uint = 36;
 pub const NS_STYLE_DISPLAY_RUBY_TEXT_CONTAINER: ::std::os::raw::c_uint = 37;
 pub const NS_STYLE_DISPLAY_CONTENTS: ::std::os::raw::c_uint = 38;
+pub const NS_STYLE_DISPLAY_WEBKIT_BOX: ::std::os::raw::c_uint = 39;
+pub const NS_STYLE_DISPLAY_WEBKIT_INLINE_BOX: ::std::os::raw::c_uint = 40;
 pub const NS_STYLE_CONTAIN_NONE: ::std::os::raw::c_uint = 0;
 pub const NS_STYLE_CONTAIN_STRICT: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_CONTAIN_LAYOUT: ::std::os::raw::c_uint = 2;
@@ -1835,7 +1837,7 @@ fn bindgen_test_layout_nsAutoRefCnt() {
 }
 #[repr(C)]
 pub struct ThreadSafeAutoRefCnt {
-    pub mValue: [u8; 8usize],
+    pub mValue: u64,
 }
 #[test]
 fn bindgen_test_layout_ThreadSafeAutoRefCnt() {
@@ -2009,8 +2011,8 @@ fn bindgen_test_layout_PLDHashEntryHdr() {
 }
 #[repr(C)]
 pub struct Checker {
-    pub mState: [u8; 4usize],
-    pub mIsWritable: [u8; 4usize],
+    pub mState: u32,
+    pub mIsWritable: u32,
 }
 #[test]
 fn bindgen_test_layout_Checker() {
@@ -2023,7 +2025,7 @@ pub struct PLDHashTable {
     pub mEntrySize: u32,
     pub mEntryCount: u32,
     pub mRemovedCount: u32,
-    pub mEntryStore: [u8; 16usize],
+    pub mEntryStore: [u64; 2usize],
     pub mChecker: Checker,
 }
 #[repr(u32)]
@@ -2144,15 +2146,8 @@ fn bindgen_test_layout_nsDataHashtable() {
 pub enum CSSVariableResolver { }
 #[repr(C)]
 pub struct CSSVariableValues {
-    /**
-   * Map of variable names to IDs.  Variable IDs are indexes into
-   * mVariables.
-   */
-    pub mVariableIDs: [u8; 48usize],
-    /**
-   * Array of variables, indexed by variable ID.
-   */
-    pub mVariables: [u8; 8usize],
+    pub mVariableIDs: [u64; 6usize],
+    pub mVariables: u64,
 }
 #[repr(C)]
 pub struct CSSVariableValues_Variable {
@@ -2198,6 +2193,9 @@ fn bindgen_test_layout_nsIntPoint() {
     assert_eq!(:: std:: mem:: size_of:: < nsIntPoint > (  ) , 8usize);
 }
 /**
+ * These *_Simple types are used to map Gecko types to layout-equivalent but
+ * simpler Rust types, to aid Rust binding generation.
+ *
  * If something in this types or the assertions below needs to change, ask
  * bholley, heycam or emilio before!
  *
@@ -2285,7 +2283,7 @@ fn bindgen_test_layout_FontFamilyName() {
  */
 #[repr(C)]
 pub struct FontFamilyList {
-    pub mFontlist: [u8; 8usize],
+    pub mFontlist: u64,
     pub mDefaultFontType: FontFamilyType,
 }
 #[test]
@@ -2346,9 +2344,9 @@ pub struct nsFont {
     pub synthesis: u8,
     pub size: nscoord,
     pub sizeAdjust: f32,
-    pub alternateValues: [u8; 8usize],
+    pub alternateValues: u64,
     pub featureValueLookup: RefPtr<gfxFontFeatureValueSet>,
-    pub fontFeatureSettings: [u8; 8usize],
+    pub fontFeatureSettings: u64,
     pub languageOverride: nsString,
 }
 #[test]
@@ -2554,7 +2552,7 @@ pub struct _vftable_nsIExpandedPrincipal {
  */
 #[repr(C)]
 pub struct nsStringBuffer {
-    pub mRefCount: [u8; 4usize],
+    pub mRefCount: u32,
     pub mStorageSize: u32,
 }
 #[test]
@@ -2601,7 +2599,7 @@ fn bindgen_test_layout_nsAtomCString() {
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct nsDependentAtomString {
-    pub _base: [u8; 16usize],
+    pub _base: [u64; 2usize],
 }
 /**
  * A class for holding strong references to handle-managed objects.
@@ -3171,8 +3169,8 @@ fn bindgen_test_layout_GridNamedArea() {
 }
 #[repr(C)]
 pub struct GridTemplateAreasValue {
-    pub mNamedAreas: [u8; 8usize],
-    pub mTemplates: [u8; 8usize],
+    pub mNamedAreas: u64,
+    pub mTemplates: u64,
     pub mNColumns: u32,
     pub mRefCnt: nsAutoRefCnt,
     pub _mOwningThread: nsAutoOwningThread,
@@ -3441,7 +3439,7 @@ pub struct nsCSSValueGradient {
     pub mBgPos: nsCSSValuePair,
     pub mAngle: nsCSSValue,
     pub mRadialValues: [nsCSSValue; 2usize],
-    pub mStops: [u8; 8usize],
+    pub mStops: u64,
     pub mRefCnt: nsAutoRefCnt,
     pub _mOwningThread: nsAutoOwningThread,
 }
@@ -3551,7 +3549,7 @@ pub struct AnonymousCounterStyle {
     pub _mOwningThread: nsAutoOwningThread,
     pub mSingleString: bool,
     pub mSystem: u8,
-    pub mSymbols: [u8; 8usize],
+    pub mSymbols: u64,
 }
 #[repr(C)]
 pub struct _vftable_AnonymousCounterStyle {
@@ -3617,7 +3615,7 @@ pub struct nsStyleGradient {
     pub mAngle: nsStyleCoord,
     pub mRadiusX: nsStyleCoord,
     pub mRadiusY: nsStyleCoord,
-    pub mStops: [u8; 8usize],
+    pub mStops: u64,
     pub mRefCnt: nsAutoRefCnt,
     pub _mOwningThread: nsAutoOwningThread,
 }
@@ -3645,7 +3643,7 @@ pub enum nsStyleImageType {
  */
 #[repr(C)]
 pub struct nsStyleImage {
-    pub mSubImages: [u8; 8usize],
+    pub mSubImages: u64,
     pub mType: nsStyleImageType,
     pub nsStyleStruct_h_unnamed_11: nsStyleImage_nsStyleStruct_h_unnamed_11,
     pub mCropRect: nsAutoPtr<nsStyleSides>,
@@ -3681,7 +3679,7 @@ pub struct nsStyleImageLayers {
     pub mMaskModeCount: u32,
     pub mBlendModeCount: u32,
     pub mCompositeCount: u32,
-    pub mLayers: [u8; 128usize],
+    pub mLayers: [u64; 16usize],
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
@@ -3903,11 +3901,11 @@ fn bindgen_test_layout_nsStyleGridLine() {
 }
 #[repr(C)]
 pub struct nsStyleGridTemplate {
-    pub mLineNameLists: [u8; 8usize],
-    pub mMinTrackSizingFunctions: [u8; 8usize],
-    pub mMaxTrackSizingFunctions: [u8; 8usize],
-    pub mRepeatAutoLineNameListBefore: [u8; 8usize],
-    pub mRepeatAutoLineNameListAfter: [u8; 8usize],
+    pub mLineNameLists: u64,
+    pub mMinTrackSizingFunctions: u64,
+    pub mMaxTrackSizingFunctions: u64,
+    pub mRepeatAutoLineNameListBefore: u64,
+    pub mRepeatAutoLineNameListAfter: u64,
     pub mRepeatAutoIndex: i16,
     pub _bitfield_1: u8,
 }
@@ -4154,7 +4152,7 @@ pub struct nsStyleDisplay {
     pub mIsolation: u8,
     pub mTopLayer: u8,
     pub mWillChangeBitField: u8,
-    pub mWillChange: [u8; 32usize],
+    pub mWillChange: [u64; 4usize],
     pub mTouchAction: u8,
     pub mScrollBehavior: u8,
     pub mScrollSnapTypeX: u8,
@@ -4162,7 +4160,7 @@ pub struct nsStyleDisplay {
     pub mScrollSnapPointsX: nsStyleCoord,
     pub mScrollSnapPointsY: nsStyleCoord,
     pub mScrollSnapDestination: nsStyleImageLayers_Position,
-    pub mScrollSnapCoordinate: [u8; 8usize],
+    pub mScrollSnapCoordinate: u64,
     pub mBackfaceVisibility: u8,
     pub mTransformStyle: u8,
     pub mTransformBox: u8,
@@ -4170,12 +4168,12 @@ pub struct nsStyleDisplay {
     pub mTransformOrigin: [nsStyleCoord; 3usize],
     pub mChildPerspective: nsStyleCoord,
     pub mPerspectiveOrigin: [nsStyleCoord; 2usize],
-    pub mTransitions: [u8; 56usize],
+    pub mTransitions: [u64; 7usize],
     pub mTransitionTimingFunctionCount: u32,
     pub mTransitionDurationCount: u32,
     pub mTransitionDelayCount: u32,
     pub mTransitionPropertyCount: u32,
-    pub mAnimations: [u8; 80usize],
+    pub mAnimations: [u64; 10usize],
     pub mAnimationTimingFunctionCount: u32,
     pub mAnimationDurationCount: u32,
     pub mAnimationDelayCount: u32,
@@ -4414,7 +4412,7 @@ pub struct nsStyleBasicShape {
     pub _mOwningThread: nsAutoOwningThread,
     pub mType: nsStyleBasicShape_Type,
     pub mFillRule: i32,
-    pub mCoordinates: [u8; 8usize],
+    pub mCoordinates: u64,
     pub mPosition: nsStyleImageLayers_Position,
     pub mRadius: nsStyleCorners,
 }
@@ -4470,7 +4468,7 @@ pub struct nsTArray_CopyChooser;
 pub struct nsStyleSVGReset {
     pub mMask: nsStyleImageLayers,
     pub mClipPath: nsStyleClipPath,
-    pub mFilters: [u8; 8usize],
+    pub mFilters: u64,
     pub mStopColor: nscolor,
     pub mFloodColor: nscolor,
     pub mLightingColor: nscolor,
