@@ -73,11 +73,12 @@ class Shorthand(object):
         self.internal = internal
 
 class StyleStruct(object):
-    def __init__(self, name, inherited):
+    def __init__(self, name, inherited, gecko_name):
         self.name = name
         self.ident = to_rust_ident(name.lower())
         self.longhands = []
         self.inherited = inherited
+        self.gecko_name = gecko_name
 
 STYLE_STRUCTS = []
 THIS_STYLE_STRUCT = None
@@ -86,10 +87,10 @@ LONGHANDS_BY_NAME = {}
 DERIVED_LONGHANDS = {}
 SHORTHANDS = []
 
-def new_style_struct(name, is_inherited):
+def new_style_struct(name, is_inherited, gecko_name=None):
     global THIS_STYLE_STRUCT
 
-    style_struct = StyleStruct(name, is_inherited)
+    style_struct = StyleStruct(name, is_inherited, gecko_name)
     STYLE_STRUCTS.append(style_struct)
     THIS_STYLE_STRUCT = style_struct
     return ""
@@ -312,14 +313,14 @@ pub mod longhands {
 
     // CSS 2.1, Section 8 - Box model
 
-    ${new_style_struct("Margin", is_inherited=False)}
+    ${new_style_struct("Margin", is_inherited=False, gecko_name="nsStyleMargin")}
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type("margin-" + side, "LengthOrPercentageOrAuto",
                           "computed::LengthOrPercentageOrAuto::Length(Au(0))")}
     % endfor
 
-    ${new_style_struct("Padding", is_inherited=False)}
+    ${new_style_struct("Padding", is_inherited=False, gecko_name="nsStylePadding")}
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type("padding-" + side, "LengthOrPercentage",
@@ -327,7 +328,7 @@ pub mod longhands {
                           "parse_non_negative")}
     % endfor
 
-    ${new_style_struct("Border", is_inherited=False)}
+    ${new_style_struct("Border", is_inherited=False, gecko_name="nsStyleBorder")}
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type("border-%s-color" % side, "CSSColor", "::cssparser::Color::CurrentColor")}
@@ -382,7 +383,7 @@ pub mod longhands {
                           "parse")}
     % endfor
 
-    ${new_style_struct("Outline", is_inherited=False)}
+    ${new_style_struct("Outline", is_inherited=False, gecko_name="nsStyleOutline")}
 
     // TODO(pcwalton): `invert`
     ${predefined_type("outline-color", "CSSColor", "::cssparser::Color::CurrentColor")}
@@ -435,7 +436,7 @@ pub mod longhands {
 
     ${predefined_type("outline-offset", "Length", "Au(0)")}
 
-    ${new_style_struct("PositionOffsets", is_inherited=False)}
+    ${new_style_struct("PositionOffsets", is_inherited=False, gecko_name="nsStylePosition")}
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type(side, "LengthOrPercentageOrAuto",
@@ -444,7 +445,7 @@ pub mod longhands {
 
     // CSS 2.1, Section 9 - Visual formatting model
 
-    ${new_style_struct("Box", is_inherited=False)}
+    ${new_style_struct("Box", is_inherited=False, gecko_name="nsStyleDisplay")}
 
     // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
     <%self:longhand name="display" custom_cascade="True">
@@ -1031,7 +1032,7 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    ${new_style_struct("List", is_inherited=True)}
+    ${new_style_struct("List", is_inherited=True, gecko_name="nsStyleList")}
 
     ${single_keyword("list-style-position", "outside inside")}
 
@@ -1263,7 +1264,7 @@ pub mod longhands {
 
     // CSS 2.1, Section 14 - Colors and Backgrounds
 
-    ${new_style_struct("Background", is_inherited=False)}
+    ${new_style_struct("Background", is_inherited=False, gecko_name="nsStyleBackground")}
     ${predefined_type(
         "background-color", "CSSColor",
         "::cssparser::Color::RGBA(::cssparser::RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}
@@ -1585,7 +1586,7 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    ${new_style_struct("Color", is_inherited=True)}
+    ${new_style_struct("Color", is_inherited=True, gecko_name="nsStyleColor")}
 
     <%self:raw_longhand name="color">
         use cssparser::{Color, RGBA};
@@ -1624,7 +1625,7 @@ pub mod longhands {
 
     // CSS 2.1, Section 15 - Fonts
 
-    ${new_style_struct("Font", is_inherited=True)}
+    ${new_style_struct("Font", is_inherited=True, gecko_name="nsStyleFont")}
 
     <%self:longhand name="font-family">
         use self::computed_value::FontFamily;
@@ -1928,7 +1929,7 @@ pub mod longhands {
 
     // CSS 2.1, Section 16 - Text
 
-    ${new_style_struct("InheritedText", is_inherited=True)}
+    ${new_style_struct("InheritedText", is_inherited=True, gecko_name="nsStyleText")}
 
     <%self:longhand name="text-align">
         pub use self::computed_value::T as SpecifiedValue;
@@ -2120,7 +2121,7 @@ pub mod longhands {
     // TODO(pcwalton): Support `text-justify: distribute`.
     ${single_keyword("text-justify", "auto none inter-word")}
 
-    ${new_style_struct("Text", is_inherited=False)}
+    ${new_style_struct("Text", is_inherited=False, gecko_name="nsStyleTextReset")}
 
     ${single_keyword("unicode-bidi", "normal embed isolate bidi-override isolate-override plaintext")}
 
@@ -2343,7 +2344,7 @@ pub mod longhands {
     ${single_keyword("text-rendering", "auto optimizespeed optimizelegibility geometricprecision")}
 
     // CSS 2.1, Section 17 - Tables
-    ${new_style_struct("Table", is_inherited=False)}
+    ${new_style_struct("Table", is_inherited=False, gecko_name="nsStyleTable")}
 
     ${single_keyword("table-layout", "auto fixed")}
 
@@ -2515,7 +2516,7 @@ pub mod longhands {
     ${single_keyword("pointer-events", "auto none")}
 
 
-    ${new_style_struct("Column", is_inherited=False)}
+    ${new_style_struct("Column", is_inherited=False, gecko_name="nsStyleColumn")}
 
     <%self:longhand name="column-width" experimental="True">
         use cssparser::ToCss;
