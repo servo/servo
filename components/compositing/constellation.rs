@@ -1504,7 +1504,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     /// Checks whether the pipeline or its ancestors are private and sends an appropriate reply
     #[allow(dead_code)]
     fn check_is_pipeline_private(&self, pipeline_id: PipelineId) -> bool {
-        let pipeline = self.pipeline(pipeline_id);
+        let mut pipeline = self.pipeline(pipeline_id);
 
         if pipeline.is_private == true {
              return true;
@@ -1515,6 +1515,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                  if parent_pipeline.is_private == true {
                      return true;
                  }
+                 pipeline = parent_pipeline;
              }
         }
         false
