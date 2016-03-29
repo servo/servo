@@ -441,7 +441,7 @@ impl WindowMethods for Window {
 
     // https://html.spec.whatwg.org/multipage/#dom-location
     fn Location(&self) -> Root<Location> {
-        self.Document().Location()
+        self.Document().GetLocation().unwrap()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
