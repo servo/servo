@@ -217,7 +217,6 @@ impl InlineFragmentsAccumulator {
                 address: node.opaque(),
                 pseudo: node.get_pseudo_element_type().strip(),
                 style: node.style().clone(),
-                selected_style: node.selected_style().clone(),
                 flags: InlineFragmentNodeFlags::empty(),
             }),
             bidi_control_chars: None,
@@ -1868,7 +1867,8 @@ fn control_chars_to_fragment(node: &InlineFragmentNodeInfo,
     Fragment::from_opaque_node_and_style(node.address,
                                          node.pseudo,
                                          style.clone(),
-                                         node.selected_style.clone(),
+                                         // TODO(emilio): Selected style?
+                                         style,
                                          restyle_damage,
                                          info)
 }
