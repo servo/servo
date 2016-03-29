@@ -2338,8 +2338,11 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-location
-    fn Location(&self) -> Root<Location> {
-        self.location.or_init(|| Location::new(&self.window))
+    fn GetLocation(&self) -> Option<Root<Location>> {
+        match self.browsing_context() {
+            Some(browsingcontext) => return Some(self.location.or_init(|| Location::new(&self.window))),
+            None => return None,
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-children
