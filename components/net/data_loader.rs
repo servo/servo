@@ -2,12 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use hyper::header::ContentType;
+use hyper::method::Method;
 use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
+use ipc_channel::ipc;
 use mime_classifier::MIMEClassifier;
-use net_traits::ProgressMsg::{Done, Payload};
-use net_traits::{LoadConsumer, LoadData, Metadata};
+use net_traits::ProgressMsg::{Payload, Done};
+use net_traits::request::Request;
+use net_traits::response::Response;
+use net_traits::{LoadConsumer, LoadContext, ProgressMsg};
+use net_traits::{LoadData, Metadata};
 use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt};
 use rustc_serialize::base64::FromBase64;
+use std::rc::Rc;
 use std::sync::Arc;
 use url::SchemeData;
 use url::percent_encoding::percent_decode;
@@ -95,5 +102,34 @@ pub fn load(load_data: LoadData,
                                                 load_data.context) {
         let _ = chan.send(Payload(bytes));
         let _ = chan.send(Done(Ok(())));
+    }
+}
+
+pub type DecodeData = (ContentType, Vec<u8>);
+
+pub fn decode(request: Rc<Request>) -> Result<DecodeData, Response> {
+    let url = request.current_url();
+    let classifier = Arc::new(MIMEClassifier::new());
+    let (start_chan, start_port) = ipc::channel().unwrap();
+    load(LoadData::new(LoadContext::Browsing, url, None),
+        LoadConsumer::Channel(start_chan),
+        classifier, CancellationListener::new(None));
+    let load_response = start_port.recv().unwrap();
+    let content_type = load_response.metadata.content_type.unwrap();
+    let mut progress_msg = load_response.progress_port.recv().unwrap();
+    let mut payload_vec: Vec<u8> = Vec::new();
+    if *request.method.borrow() == Method::Get {
+                loop {
+                    match progress_msg {
+                    ProgressMsg::Payload(body) => {
+                        payload_vec.extend_from_slice(&body.clone());
+                        progress_msg = load_response.progress_port.recv().unwrap();
+                    },
+                    ProgressMsg::Done(_) => break,
+                    }
+                }
+        return Ok((content_type, payload_vec))
+    } else {
+        Err(Response::network_error())
     }
 }

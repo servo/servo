@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use data_loader;
 use fetch::cors_cache::{BasicCORSCache, CORSCache, CacheRequestDetails};
 use http_loader::{NetworkHttpRequestFactory, create_http_connector, obtain_response};
 use hyper::header::{Accept, CacheControl, IfMatch, IfRange, IfUnmodifiedSince, Location};
@@ -13,11 +14,11 @@ use hyper::header::{QualityItem, q, qitem, Referer as RefererHeader, UserAgent};
 use hyper::method::Method;
 use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
 use hyper::status::StatusCode;
-use net_traits::AsyncFetchListener;
 use net_traits::request::{CacheMode, CredentialsMode, Type, Origin, Window};
 use net_traits::request::{RedirectMode, Referer, Request, RequestMode, ResponseTainting};
 use net_traits::response::{HttpsState, TerminationReason};
 use net_traits::response::{Response, ResponseBody, ResponseType};
+use net_traits::AsyncFetchListener;
 use resource_thread::CancellationListener;
 use std::io::Read;
 use std::rc::Rc;
@@ -305,7 +306,19 @@ fn basic_fetch(request: Rc<Request>) -> Response {
             http_fetch(request.clone(), BasicCORSCache::new(), false, false, false)
         },
 
-        "blob" | "data" | "file" | "ftp" => {
+        "data" => {
+            match data_loader::decode(request.clone()) {
+                Ok((content_type, payload_vec)) => {
+                    let mut response = Response::new();
+                    response.headers.set(content_type);
+                    *response.body.lock().unwrap() = ResponseBody::Done(payload_vec);
+                    response
+                },
+                Err(_) => Response::network_error(),
+            }
+        },
+
+        "blob" | "file" | "ftp" => {
             // XXXManishearth handle these
             panic!("Unimplemented scheme for Fetch")
         },
