@@ -9,6 +9,7 @@
 macro_rules! stub(
     ($name:ident) => (
         #[no_mangle]
+        #[allow(non_snake_case)]
         pub extern "C" fn $name() {
             println!("CEF stub function called: {}", stringify!($name));
             unsafe {
