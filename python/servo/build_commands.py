@@ -353,23 +353,6 @@ class MachCommands(CommandBase):
 
         return ret
 
-    @Command('build-tests',
-             description='Build the Servo test suites',
-             category='build')
-    @CommandArgument('--jobs', '-j',
-                     default=None,
-                     help='Number of jobs to run in parallel')
-    @CommandArgument('--release', default=False, action="store_true",
-                     help="Build tests with release mode")
-    def build_tests(self, jobs=None, verbose=False, release=False):
-        self.ensure_bootstrapped()
-        args = ["cargo", "test", "--no-run"]
-        if release:
-            args += ["--release"]
-        return call(
-            args,
-            env=self.build_env(), cwd=self.servo_crate(), verbose=verbose)
-
     @Command('clean',
              description='Clean the build directory.',
              category='build')
