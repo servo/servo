@@ -137,11 +137,17 @@ impl Debug for ${style_struct.gecko_name} {
 %endif
 </%def>
 
-% for style_struct in STYLE_STRUCTS:
-${declare_style_struct(style_struct)}
-${impl_style_struct(style_struct)}
+<%def name="raw_impl_trait(style_struct, skip_longhands=[], skip_additionals=[])">
 impl T${style_struct.name} for Gecko${style_struct.name} {
-    % for longhand in style_struct.longhands:
+    /*
+     * Manually-Implemented Methods.
+     */
+    ${caller.body().strip()}
+
+    /*
+     * Auto-Generated Methods.
+     */
+    % for longhand in [x for x in style_struct.longhands if not x.name in skip_longhands]:
     fn set_${longhand.ident}(&mut self, _: longhands::${longhand.ident}::computed_value::T) {
         unimplemented!()
     }
@@ -149,9 +155,49 @@ impl T${style_struct.name} for Gecko${style_struct.name} {
         unimplemented!()
     }
     % endfor
-    % for additional in style_struct.additional_methods:
+    % for additional in [x for x in style_struct.additional_methods if not x.name in skip_additionals]:
     ${additional.stub()}
     % endfor
 }
+</%def>
 
+<%! MANUAL_STYLE_STRUCTS = [] %>
+<%def name="impl_trait(style_struct_name, skip_longhands=[], skip_additionals=[])">
+<%self:raw_impl_trait style_struct="${next(x for x in STYLE_STRUCTS if x.name == style_struct_name)}"
+                       skip_longhands="${skip_longhands}" skip_additionals="${skip_additionals}">
+${caller.body()}
+</%self:raw_impl_trait>
+<% MANUAL_STYLE_STRUCTS.append(style_struct_name) %>
+</%def>
+
+// Proof-of-concept for a style struct with some manually-implemented methods. We add
+// the manually-implemented methods to skip_longhands and skip_additionals, and the
+// infrastructure auto-generates everything not in those lists. This allows us to
+// iteratively implement more and more methods.
+<%self:impl_trait style_struct_name="Border"
+                  skip_longhands="${['border-left-color', 'border-left-style']}"
+                  skip_additionals="${['border_bottom_is_none_or_hidden_and_has_nonzero_width']}">
+    fn set_border_left_color(&mut self, _: longhands::border_left_color::computed_value::T) {
+        unimplemented!()
+    }
+    fn copy_border_left_color_from(&mut self, _: &Self) {
+        unimplemented!()
+    }
+    fn set_border_left_style(&mut self, _: longhands::border_left_style::computed_value::T) {
+        unimplemented!()
+    }
+    fn copy_border_left_style_from(&mut self, _: &Self) {
+        unimplemented!()
+    }
+    fn border_bottom_is_none_or_hidden_and_has_nonzero_width(&self) -> bool {
+        unimplemented!()
+    }
+</%self:impl_trait>
+
+% for style_struct in STYLE_STRUCTS:
+${declare_style_struct(style_struct)}
+${impl_style_struct(style_struct)}
+% if not style_struct.name in MANUAL_STYLE_STRUCTS:
+<%self:raw_impl_trait style_struct="${style_struct}"></%self:raw_impl_trait>
+% endif
 % endfor
