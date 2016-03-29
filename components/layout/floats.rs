@@ -459,8 +459,8 @@ impl SpeculatedFloatPlacement {
         }
     }
 
-    /// Given the speculated inline size of the floats in for this flow, computes the speculated
-    /// inline size of the floats out for this flow.
+    /// Given the speculated inline size of the floats out for this flow's last child, computes the
+    /// speculated inline size of the floats out for this flow.
     pub fn compute_floats_out(&mut self, flow: &mut Flow) {
         if flow.is_block_like() {
             let block_flow = flow.as_block();
@@ -470,10 +470,10 @@ impl SpeculatedFloatPlacement {
                 if self.left > Au(0) || self.right > Au(0) {
                     let speculated_inline_content_edge_offsets =
                         block_flow.fragment.guess_inline_content_edge_offsets();
-                    if self.left > Au(0) {
+                    if self.left > Au(0) && speculated_inline_content_edge_offsets.start > Au(0) {
                         self.left = self.left + speculated_inline_content_edge_offsets.start
                     }
-                    if self.right > Au(0) {
+                    if self.right > Au(0) && speculated_inline_content_edge_offsets.end > Au(0) {
                         self.right = self.right + speculated_inline_content_edge_offsets.end
                     }
                 }
@@ -507,16 +507,20 @@ impl SpeculatedFloatPlacement {
         let speculated_inline_content_edge_offsets =
             parent_block_flow.fragment.guess_inline_content_edge_offsets();
 
-        if placement.left > speculated_inline_content_edge_offsets.start {
-            placement.left = placement.left - speculated_inline_content_edge_offsets.start
-        } else {
-            placement.left = Au(0)
-        };
-        if placement.right > speculated_inline_content_edge_offsets.end {
-            placement.right = placement.right - speculated_inline_content_edge_offsets.end
-        } else {
-            placement.right = Au(0)
-        };
+        if speculated_inline_content_edge_offsets.start > Au(0) {
+            placement.left = if placement.left > speculated_inline_content_edge_offsets.start {
+                placement.left - speculated_inline_content_edge_offsets.start
+            } else {
+                Au(0)
+            }
+        }
+        if speculated_inline_content_edge_offsets.end > Au(0) {
+            placement.right = if placement.right > speculated_inline_content_edge_offsets.end {
+                placement.right - speculated_inline_content_edge_offsets.end
+            } else {
+                Au(0)
+            }
+        }
 
         placement
     }
