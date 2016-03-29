@@ -32,7 +32,6 @@ use script_thread::ScriptThreadEventCategory::WorkerEvent;
 use script_thread::{ScriptThread, ScriptChan, ScriptPort, StackRootTLS, CommonScriptMsg};
 use script_traits::{TimerEvent, TimerSource};
 use std::mem::replace;
-use std::rc::Rc;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use url::Url;
 use util::str::DOMString;
@@ -158,7 +157,7 @@ impl DedicatedWorkerGlobalScope {
                      worker_url: Url,
                      id: PipelineId,
                      from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
-                     runtime: Rc<Runtime>,
+                     runtime: Runtime,
                      parent_sender: Box<ScriptChan + Send>,
                      own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
                      receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>,
@@ -185,24 +184,25 @@ impl DedicatedWorkerGlobalScope {
                worker_url: Url,
                id: PipelineId,
                from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
-               runtime: Rc<Runtime>,
+               runtime: Runtime,
                parent_sender: Box<ScriptChan + Send>,
                own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
                receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>,
                timer_event_chan: IpcSender<TimerEvent>,
                timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>)
                -> Root<DedicatedWorkerGlobalScope> {
+        let cx = runtime.cx();
         let scope = box DedicatedWorkerGlobalScope::new_inherited(init,
                                                                   worker_url,
                                                                   id,
                                                                   from_devtools_receiver,
-                                                                  runtime.clone(),
+                                                                  runtime,
                                                                   parent_sender,
                                                                   own_sender,
                                                                   receiver,
                                                                   timer_event_chan,
                                                                   timer_event_port);
-        DedicatedWorkerGlobalScopeBinding::Wrap(runtime.cx(), scope)
+        DedicatedWorkerGlobalScopeBinding::Wrap(cx, scope)
     }
 
     pub fn run_worker_scope(init: WorkerGlobalScopeInit,
@@ -235,7 +235,7 @@ impl DedicatedWorkerGlobalScope {
                 }
             };
 
-            let runtime = Rc::new(ScriptThread::new_rt_and_cx());
+            let runtime = ScriptThread::new_rt_and_cx();
 
             let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
             ROUTER.route_ipc_receiver_to_mpsc_sender(from_devtools_receiver, devtools_mpsc_chan);
@@ -249,7 +249,7 @@ impl DedicatedWorkerGlobalScope {
             });
 
             let global = DedicatedWorkerGlobalScope::new(
-                init, url, id, devtools_mpsc_port, runtime.clone(),
+                init, url, id, devtools_mpsc_port, runtime,
                 parent_sender.clone(), own_sender, receiver,
                 timer_ipc_chan, timer_rx);
             // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
