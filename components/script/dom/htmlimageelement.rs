@@ -316,7 +316,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
         let url = self.current_request.url.borrow();
          match *url {
             Some(ref url) => DOMString::from(url.serialize()),
-            None =>  DOMString::from(""),
+            None => DOMString::from(""),
         }
     }
 
