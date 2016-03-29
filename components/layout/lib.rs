@@ -100,3 +100,6 @@ mod text;
 mod traversal;
 mod webrender_helpers;
 mod wrapper;
+
+// For unit tests:
+pub use fragment::Fragment;

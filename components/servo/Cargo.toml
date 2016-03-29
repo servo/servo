@@ -24,6 +24,9 @@ image = "0.7"
 [dev-dependencies.gfx_tests]
 path = "../../tests/unit/gfx"
 
+[dev-dependencies.layout_tests]
+path = "../../tests/unit/layout"
+
 [dev-dependencies.net_tests]
 path = "../../tests/unit/net"
 
