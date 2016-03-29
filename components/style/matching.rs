@@ -8,7 +8,7 @@ use animation::{self, Animation};
 use context::SharedStyleContext;
 use data::PrivateStyleData;
 use dom::{TElement, TNode, TRestyleDamage};
-use properties::{PropertyDeclaration, TComputedValues, cascade};
+use properties::{ComputedValues, PropertyDeclaration, cascade};
 use selector_impl::{ElementExt, SelectorImplExt};
 use selector_matching::{DeclarationBlock, Stylist};
 use selectors::Element;
@@ -151,11 +151,11 @@ impl<'a> Hash for ApplicableDeclarationsCacheQuery<'a> {
 
 static APPLICABLE_DECLARATIONS_CACHE_SIZE: usize = 32;
 
-pub struct ApplicableDeclarationsCache<C: TComputedValues> {
+pub struct ApplicableDeclarationsCache<C: ComputedValues> {
     cache: SimpleHashCache<ApplicableDeclarationsCacheEntry, Arc<C>>,
 }
 
-impl<C: TComputedValues> ApplicableDeclarationsCache<C> {
+impl<C: ComputedValues> ApplicableDeclarationsCache<C> {
     pub fn new() -> Self {
         ApplicableDeclarationsCache {
             cache: SimpleHashCache::new(APPLICABLE_DECLARATIONS_CACHE_SIZE),
@@ -179,12 +179,12 @@ impl<C: TComputedValues> ApplicableDeclarationsCache<C> {
 }
 
 /// An LRU cache of the last few nodes seen, so that we can aggressively try to reuse their styles.
-pub struct StyleSharingCandidateCache<C: TComputedValues> {
+pub struct StyleSharingCandidateCache<C: ComputedValues> {
     cache: LRUCache<StyleSharingCandidate<C>, ()>,
 }
 
 #[derive(Clone)]
-pub struct StyleSharingCandidate<C: TComputedValues> {
+pub struct StyleSharingCandidate<C: ComputedValues> {
     pub style: Arc<C>,
     pub parent_style: Arc<C>,
     pub local_name: Atom,
@@ -195,7 +195,7 @@ pub struct StyleSharingCandidate<C: TComputedValues> {
     pub link: bool,
 }
 
-impl<C: TComputedValues> PartialEq for StyleSharingCandidate<C> {
+impl<C: ComputedValues> PartialEq for StyleSharingCandidate<C> {
     fn eq(&self, other: &Self) -> bool {
         arc_ptr_eq(&self.style, &other.style) &&
             arc_ptr_eq(&self.parent_style, &other.parent_style) &&
@@ -207,7 +207,7 @@ impl<C: TComputedValues> PartialEq for StyleSharingCandidate<C> {
     }
 }
 
-impl<C: TComputedValues> StyleSharingCandidate<C> {
+impl<C: ComputedValues> StyleSharingCandidate<C> {
     /// Attempts to create a style sharing candidate from this node. Returns
     /// the style sharing candidate or `None` if this node is ineligible for
     /// style sharing.
@@ -332,7 +332,7 @@ impl<C: TComputedValues> StyleSharingCandidate<C> {
 
 static STYLE_SHARING_CANDIDATE_CACHE_SIZE: usize = 40;
 
-impl<C: TComputedValues> StyleSharingCandidateCache<C> {
+impl<C: ComputedValues> StyleSharingCandidateCache<C> {
     pub fn new() -> Self {
         StyleSharingCandidateCache {
             cache: LRUCache::new(STYLE_SHARING_CANDIDATE_CACHE_SIZE),

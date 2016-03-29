@@ -139,7 +139,7 @@ pub mod longhands {
             use error_reporting::ParseErrorReporter;
             use properties::longhands;
             use properties::property_bit_field::PropertyBitField;
-            use properties::{ServoComputedValues, PropertyDeclaration, TComputedValues};
+            use properties::{ComputedValues, ServoComputedValues, PropertyDeclaration};
             use properties::style_struct_traits::T${THIS_STYLE_STRUCT.name};
             use properties::style_structs;
             use std::collections::HashMap;
@@ -149,7 +149,7 @@ pub mod longhands {
             use string_cache::Atom;
             ${caller.body()}
             #[allow(unused_variables)]
-            pub fn cascade_property<C: TComputedValues>(
+            pub fn cascade_property<C: ComputedValues>(
                                     declaration: &PropertyDeclaration,
                                     inherited_style: &C,
                                     context: &mut computed::Context<C>,
@@ -505,7 +505,7 @@ pub mod longhands {
 
         impl ComputedValueAsSpecified for SpecifiedValue {}
 
-        fn cascade_property_custom<C: TComputedValues>(
+        fn cascade_property_custom<C: ComputedValues>(
                                    _declaration: &PropertyDeclaration,
                                    _inherited_style: &C,
                                    context: &mut computed::Context<C>,
@@ -2200,7 +2200,7 @@ pub mod longhands {
             if !empty { Ok(result) } else { Err(()) }
         }
 
-        fn cascade_property_custom<C: TComputedValues>(
+        fn cascade_property_custom<C: ComputedValues>(
                                    _declaration: &PropertyDeclaration,
                                    _inherited_style: &C,
                                    context: &mut computed::Context<C>,
@@ -6231,7 +6231,7 @@ pub mod style_structs {
     % endfor
 }
 
-pub trait TComputedValues : Clone + Send + Sync + 'static {
+pub trait ComputedValues : Clone + Send + Sync + 'static {
     % for style_struct in STYLE_STRUCTS:
         type Concrete${style_struct.name}: style_struct_traits::T${style_struct.name};
     % endfor
@@ -6280,7 +6280,7 @@ pub struct ServoComputedValues {
     pub root_font_size: Au,
 }
 
-impl TComputedValues for ServoComputedValues {
+impl ComputedValues for ServoComputedValues {
     % for style_struct in STYLE_STRUCTS:
         type Concrete${style_struct.name} = style_structs::${style_struct.name};
     % endfor
@@ -6586,7 +6586,7 @@ lazy_static! {
 
 /// Fast path for the function below. Only computes new inherited styles.
 #[allow(unused_mut, unused_imports)]
-fn cascade_with_cached_declarations<C: TComputedValues>(
+fn cascade_with_cached_declarations<C: ComputedValues>(
         viewport_size: Size2D<Au>,
         applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclaration>>],
         shareable: bool,
@@ -6692,7 +6692,7 @@ fn cascade_with_cached_declarations<C: TComputedValues>(
     context.style
 }
 
-pub type CascadePropertyFn<C: TComputedValues> =
+pub type CascadePropertyFn<C: ComputedValues> =
     extern "Rust" fn(declaration: &PropertyDeclaration,
                      inherited_style: &C,
                      context: &mut computed::Context<C>,
@@ -6739,7 +6739,7 @@ thread_local!(static CASCADE_PROPERTY: Vec<Option<CascadePropertyFn<ServoCompute
 ///     this is ignored.
 ///
 /// Returns the computed values and a boolean indicating whether the result is cacheable.
-pub fn cascade<C: TComputedValues>(
+pub fn cascade<C: ComputedValues>(
                viewport_size: Size2D<Au>,
                applicable_declarations: &[DeclarationBlock<Vec<PropertyDeclaration>>],
                shareable: bool,

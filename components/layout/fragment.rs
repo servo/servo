@@ -41,7 +41,7 @@ use style::computed_values::{overflow_x, position, text_decoration, transform_st
 use style::computed_values::{white_space, word_break, z_index};
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
-use style::properties::{ServoComputedValues, TComputedValues};
+use style::properties::{ComputedValues, ServoComputedValues};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
 use text;

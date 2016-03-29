@@ -20,7 +20,7 @@ use std::sync::Arc;
 use style::computed_values::content::ContentItem;
 use style::computed_values::{display, list_style_type};
 use style::dom::TRestyleDamage;
-use style::properties::{ServoComputedValues, TComputedValues};
+use style::properties::{ComputedValues, ServoComputedValues};
 use text::TextRunScanner;
 use wrapper::PseudoElementType;
 

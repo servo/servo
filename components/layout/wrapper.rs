@@ -68,7 +68,7 @@ use style::computed_values::{content, display};
 use style::dom::{TDocument, TElement, TNode, UnsafeNode};
 use style::element_state::*;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
-use style::properties::{ServoComputedValues, TComputedValues};
+use style::properties::{ComputedValues, ServoComputedValues};
 use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::{NonTSPseudoClass, PseudoElement, ServoSelectorImpl};
 use style::servo::PrivateStyleData;

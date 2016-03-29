@@ -25,7 +25,7 @@ use std::iter::{Enumerate, IntoIterator, Peekable};
 use std::sync::Arc;
 use style::computed_values::{border_collapse, border_spacing, border_top_style};
 use style::logical_geometry::{LogicalSize, PhysicalSide, WritingMode};
-use style::properties::{ServoComputedValues, TComputedValues};
+use style::properties::{ComputedValues, ServoComputedValues};
 use style::values::computed::LengthOrPercentageOrAuto;
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, InternalTable, VecExt};
 use table_cell::{CollapsedBordersForCell, TableCellFlow};
