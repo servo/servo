@@ -95,4 +95,4 @@ time = "0.1.12"
 unicase = "1.0"
 url = {version = "0.5.7", features = ["heap_size"]}
 uuid = "0.1.16"
-websocket = "0.15.2"
+websocket = "0.16.1"
