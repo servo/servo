@@ -57,7 +57,7 @@ use style::computed_values::{border_collapse, box_sizing, display, float, overfl
 use style::computed_values::{position, text_align, transform_style};
 use style::context::StyleContext;
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
-use style::properties::{ComputedValues, TComputedValues};
+use style::properties::{ServoComputedValues, TComputedValues};
 use style::values::computed::{LengthOrNone, LengthOrPercentageOrNone};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use util::geometry::MAX_RECT;
@@ -2032,7 +2032,7 @@ impl Flow for BlockFlow {
         self.fragment.restyle_damage.remove(REPAINT);
     }
 
-    fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+    fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {
         self.fragment.repair_style(new_style)
     }
 
@@ -2954,4 +2954,3 @@ pub enum BlockStackingContextType {
     PseudoStackingContext,
     StackingContext,
 }
-

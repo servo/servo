@@ -30,7 +30,7 @@ use std::{fmt, isize, mem};
 use style::computed_values::{display, overflow_x, position, text_align, text_justify};
 use style::computed_values::{text_overflow, vertical_align, white_space};
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
-use style::properties::{ComputedValues, TComputedValues};
+use style::properties::{ServoComputedValues, TComputedValues};
 use style::values::computed::LengthOrPercentage;
 use text;
 use unicode_bidi;
@@ -1179,7 +1179,7 @@ impl InlineFlow {
     /// `style` is the style of the block.
     pub fn compute_minimum_ascent_and_descent(&self,
                                               font_context: &mut FontContext,
-                                              style: &ComputedValues)
+                                              style: &ServoComputedValues)
                                               -> (Au, Au) {
         // As a special case, if this flow contains only hypothetical fragments, then the entire
         // flow is hypothetical and takes up no space. See CSS 2.1 § 10.3.7.
@@ -1764,7 +1764,7 @@ impl Flow for InlineFlow {
         }
     }
 
-    fn repair_style(&mut self, _: &Arc<ComputedValues>) {}
+    fn repair_style(&mut self, _: &Arc<ServoComputedValues>) {}
 
     fn compute_overflow(&self) -> Overflow {
         let mut overflow = Overflow::new();
@@ -1853,7 +1853,7 @@ impl fmt::Debug for InlineFlow {
 #[derive(Clone)]
 pub struct InlineFragmentNodeInfo {
     pub address: OpaqueNode,
-    pub style: Arc<ComputedValues>,
+    pub style: Arc<ServoComputedValues>,
     pub pseudo: PseudoElementType<()>,
     pub flags: InlineFragmentNodeFlags,
 }

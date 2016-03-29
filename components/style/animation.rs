@@ -25,7 +25,7 @@ use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
 use properties::style_struct_traits::TAnimation;
-use properties::{ComputedValues, TComputedValues};
+use properties::{ServoComputedValues, TComputedValues};
 use std::cmp::Ordering;
 use std::iter::repeat;
 use std::sync::mpsc::Sender;
@@ -69,8 +69,8 @@ impl PropertyAnimation {
     /// Any number of animations may be returned, from zero (if the property did not animate) to
     /// one (for a single transition property) to arbitrarily many (for `all`).
     pub fn from_transition(transition_index: usize,
-                           old_style: &ComputedValues,
-                           new_style: &mut ComputedValues)
+                           old_style: &ServoComputedValues,
+                           new_style: &mut ServoComputedValues)
                            -> Vec<PropertyAnimation> {
         let mut result = Vec::new();
         let transition_property =
@@ -102,8 +102,8 @@ impl PropertyAnimation {
 
     fn from_transition_property(transition_property: TransitionProperty,
                                 transition_index: usize,
-                                old_style: &ComputedValues,
-                                new_style: &mut ComputedValues)
+                                old_style: &ServoComputedValues,
+                                new_style: &mut ServoComputedValues)
                                 -> Option<PropertyAnimation> {
         let animation_style = new_style.get_animation();
         macro_rules! match_transition {
@@ -197,7 +197,7 @@ impl PropertyAnimation {
         }
     }
 
-    pub fn update(&self, style: &mut ComputedValues, time: f64) {
+    pub fn update(&self, style: &mut ServoComputedValues, time: f64) {
         let progress = match self.timing_function {
             TransitionTimingFunction::CubicBezier(p1, p2) => {
                 // See `WebCore::AnimationBase::solveEpsilon(double)` in WebKit.

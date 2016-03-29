@@ -13,7 +13,7 @@ use std::cmp::{max, min};
 use std::fmt;
 use style::computed_values::transform::ComputedMatrix;
 use style::logical_geometry::LogicalMargin;
-use style::properties::{ComputedValues, TComputedValues};
+use style::properties::{ServoComputedValues, TComputedValues};
 use style::values::computed::{BorderRadiusSize, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrNone};
 
@@ -440,7 +440,7 @@ pub fn specified_border_radius(radius: BorderRadiusSize, containing_length: Au) 
 }
 
 #[inline]
-pub fn padding_from_style(style: &ComputedValues, containing_block_inline_size: Au)
+pub fn padding_from_style(style: &ServoComputedValues, containing_block_inline_size: Au)
                           -> LogicalMargin<Au> {
     let padding_style = style.get_padding();
     LogicalMargin::from_physical(style.writing_mode, SideOffsets2D::new(
@@ -455,7 +455,7 @@ pub fn padding_from_style(style: &ComputedValues, containing_block_inline_size: 
 ///
 /// This is used when calculating intrinsic inline sizes.
 #[inline]
-pub fn specified_margin_from_style(style: &ComputedValues) -> LogicalMargin<Au> {
+pub fn specified_margin_from_style(style: &ServoComputedValues) -> LogicalMargin<Au> {
     let margin_style = style.get_margin();
     LogicalMargin::from_physical(style.writing_mode, SideOffsets2D::new(
         MaybeAuto::from_style(margin_style.margin_top, Au(0)).specified_or_zero(),
