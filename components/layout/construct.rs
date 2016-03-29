@@ -717,7 +717,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let mut style = (*style).clone();
         properties::modify_style_for_text(&mut style);
 
-        let selected_style = node.selected_style().clone();
+        let selected_style = node.selected_style();
 
         match text_content {
             TextContent::Text(string) => {
@@ -727,7 +727,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                         node.opaque(),
                         node.get_pseudo_element_type().strip(),
                         style,
-                        selected_style,
+                        selected_style.clone(),
                         node.restyle_damage(),
                         specific_fragment_info))
             }
