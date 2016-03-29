@@ -76,8 +76,8 @@ impl XMLDocument {
 
 impl XMLDocumentMethods for XMLDocument {
     // https://html.spec.whatwg.org/multipage/#dom-document-location
-    fn Location(&self) -> Root<Location> {
-        self.document.Location()
+    fn GetLocation(&self) -> Option<Root<Location>> {
+        self.document.GetLocation()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names

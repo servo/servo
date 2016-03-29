@@ -2423,8 +2423,8 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-location
-    fn Location(&self) -> Root<Location> {
-        self.location.or_init(|| Location::new(&self.window))
+    fn GetLocation(&self) -> Option<Root<Location>> {
+        self.browsing_context().map(|_| self.location.or_init(|| Location::new(&self.window)))
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-children
@@ -2777,4 +2777,3 @@ pub enum FocusEventType {
     Focus,      // Element gained focus. Doesn't bubble.
     Blur,       // Element lost focus. Doesn't bubble.
 }
-
