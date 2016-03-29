@@ -6066,7 +6066,7 @@ pub mod style_struct_traits {
     use super::longhands;
 
     % for style_struct in STYLE_STRUCTS:
-        pub trait T${style_struct.name}: Clone + PartialEq {
+        pub trait T${style_struct.name}: Clone {
             % for longhand in style_struct.longhands:
                 #[allow(non_snake_case)]
                 fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T);
