@@ -1,4 +1,4 @@
-/* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+11/* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -81,7 +81,7 @@ enum DocumentReadyState { "loading", "interactive", "complete" };
 partial /*sealed*/ interface Document {
   // resource metadata management
   [/*PutForwards=href, */Unforgeable]
-  readonly attribute Location/*?*/ location;
+  readonly attribute Location? location;
   readonly attribute DOMString domain;
   // readonly attribute DOMString referrer;
   [Throws]
