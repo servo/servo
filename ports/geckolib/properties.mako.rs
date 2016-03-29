@@ -3,6 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+% for style_struct in STYLE_STRUCTS:
+%if style_struct.gecko_name:
+use gecko_style_structs::${style_struct.gecko_name};
+% endif
+% endfor
+use heapsize::HeapSizeOf;
+use std::fmt::{self, Debug};
+use std::mem::zeroed;
 use std::sync::Arc;
 use style::custom_properties::ComputedValuesMap;
 use style::logical_geometry::WritingMode;
@@ -80,9 +88,58 @@ impl ComputedValues for GeckoComputedValues {
     fn is_multicol(&self) -> bool { unimplemented!() }
 }
 
-% for style_struct in STYLE_STRUCTS:
-#[derive(PartialEq, Clone, HeapSizeOf, Debug)]
+<%def name="declare_style_struct(style_struct)">
+#[derive(Clone, HeapSizeOf, Debug)]
+% if style_struct.gecko_name:
+pub struct Gecko${style_struct.name} {
+    gecko: ${style_struct.gecko_name},
+}
+% else:
 pub struct Gecko${style_struct.name};
+% endif
+</%def>
+
+<%def name="impl_style_struct(style_struct)">
+impl Gecko${style_struct.name} {
+    #[allow(dead_code, unused_variables)]
+    fn initial() -> Self {
+% if style_struct.gecko_name:
+        let result = Gecko${style_struct.name} { gecko: unsafe { zeroed() } };
+        panic!("Need to invoke Gecko placement new");
+% else:
+        Gecko${style_struct.name}
+% endif
+    }
+}
+%if style_struct.gecko_name:
+impl Drop for Gecko${style_struct.name} {
+    fn drop(&mut self) {
+        panic!("Need to invoke Gecko destructor");
+    }
+}
+impl Clone for ${style_struct.gecko_name} {
+    fn clone(&self) -> Self {
+        panic!("Need to invoke Gecko copy constructor");
+    }
+}
+unsafe impl Send for ${style_struct.gecko_name} {}
+unsafe impl Sync for ${style_struct.gecko_name} {}
+impl HeapSizeOf for ${style_struct.gecko_name} {
+    // Not entirely accurate, but good enough for now.
+    fn heap_size_of_children(&self) -> usize { 0 }
+}
+impl Debug for ${style_struct.gecko_name} {
+    // FIXME(bholley): Generate this.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "GECKO STYLE STRUCT")
+    }
+}
+%endif
+</%def>
+
+% for style_struct in STYLE_STRUCTS:
+${declare_style_struct(style_struct)}
+${impl_style_struct(style_struct)}
 impl T${style_struct.name} for Gecko${style_struct.name} {
     % for longhand in style_struct.longhands:
     fn set_${longhand.ident}(&mut self, _: longhands::${longhand.ident}::computed_value::T) {

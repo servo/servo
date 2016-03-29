@@ -35,6 +35,8 @@ extern crate util;
 #[allow(dead_code, non_camel_case_types)]
 mod bindings;
 mod data;
+#[allow(dead_code, non_camel_case_types, non_snake_case, non_upper_case_globals)]
+mod gecko_style_structs;
 #[allow(non_snake_case)]
 pub mod glue;
 mod selector_impl;
