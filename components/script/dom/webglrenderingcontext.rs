@@ -449,7 +449,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         };
 
         match slot.get() {
-            Some(texture) => handle_potential_webgl_error!(self, texture.generate_mipmap(target)),
+            Some(texture) => handle_potential_webgl_error!(self, texture.generate_mipmap()),
             None => self.webgl_error(InvalidEnum)
         }
     }

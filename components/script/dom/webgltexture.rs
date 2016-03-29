@@ -4,7 +4,6 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLError, WebGLResult};
-use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLTextureBinding;
 use dom::bindings::global::GlobalRef;
@@ -13,7 +12,7 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
-use std::cmp;
+use std::{cmp, mem, ptr};
 
 pub enum TexParameterValue {
     Float(f32),
@@ -23,46 +22,6 @@ pub enum TexParameterValue {
 const MAX_LEVEL_COUNT: usize = 31;
 const MAX_FACE_COUNT: usize = 6;
 
-#[derive(Clone, Copy, PartialEq, Debug, JSTraceable, HeapSizeOf)]
-struct ImageInfo {
-    width: u32,
-    height: u32,
-    depth: u32,
-    internal_format: u32,
-    is_initialized: bool,
-}
-
-impl ImageInfo {
-    fn new() -> ImageInfo {
-        ImageInfo {
-            width: 0,
-            height: 0,
-            depth: 0,
-            internal_format: 0,
-            is_initialized: false,
-        }
-    }
-
-    fn isPerfectSquare(&self) -> bool {
-        let width = self.width;
-        let width_square = ((width * width) as f64).sqrt() as u32 == self.width;
-
-        let height = self.height;
-        let height_square = ((height * height) as f64).sqrt() as u32 == self.height;
-
-        height_square && width_square
-    }
-
-    fn isInitialized(&self) -> bool {
-        self.is_initialized
-    }
-
-    fn getMaxMimapLevels(&self) -> u32 {
-        let max = cmp::max(cmp::max(self.width, self.height), self.depth);
-        max
-    }
-}
-
 #[dom_struct]
 pub struct WebGLTexture {
     webgl_object: WebGLObject,
@@ -70,8 +29,10 @@ pub struct WebGLTexture {
     /// The target to which this texture was bound the first time
     target: Cell<Option<u32>>,
     is_deleted: Cell<bool>,
+    is_resolved: Cell<bool>,
     #[ignore_heap_size_of = "Arrays are cumbersome"]
-    image_info_array: DOMRefCell<[ImageInfo; MAX_LEVEL_COUNT * MAX_FACE_COUNT]>,
+    image_info_array: [Cell<ImageInfo>; MAX_LEVEL_COUNT * MAX_FACE_COUNT],
+    /// Face count can only be 1 or 6
     face_count: u8,
     base_mipmap_level: u32,
     max_mipmap_level: u32,
@@ -86,12 +47,27 @@ impl WebGLTexture {
             id: id,
             target: Cell::new(None),
             is_deleted: Cell::new(false),
+            is_resolved: Cell::new(false),
             face_count: 0,
             base_mipmap_level: 0,
             max_mipmap_level: 100,
-            image_info_array: DOMRefCell::new([ImageInfo::new(); MAX_LEVEL_COUNT * MAX_FACE_COUNT]),
+            image_info_array: Self::create_image_info_array(),
             renderer: renderer,
         }
+    }
+
+    #[allow(unsafe_code)]
+    fn create_image_info_array() -> [Cell<ImageInfo>; MAX_LEVEL_COUNT * MAX_FACE_COUNT] {
+        // Cell<T> does not implement Copy; therefore, the array must be initialized like this
+        let mut image_info_array = unsafe {
+            mem::uninitialized::<[Cell<ImageInfo>; MAX_LEVEL_COUNT * MAX_FACE_COUNT]>()
+        };
+        for i in 0..(MAX_LEVEL_COUNT * MAX_FACE_COUNT) {
+            unsafe {
+                ptr::write(image_info_array.as_mut_ptr().offset(i as isize), Cell::new(ImageInfo::new()))
+            }
+        }
+        image_info_array
     }
 
     pub fn maybe_new(global: GlobalRef, renderer: IpcSender<CanvasMsg>)
@@ -140,31 +116,62 @@ impl WebGLTexture {
             is_initialized: true,
         };
 
-        let pos = level as u32 * self.face_count as u32;
-        self.image_info_array.borrow_mut()[pos as usize] = image_info;
+        self.base_image_info().unwrap().set(image_info);
     }
 
-    pub fn generate_mipmap(&self, target: u32) -> WebGLResult<()> {
+    pub fn generate_mipmap(&self) -> WebGLResult<()> {
+        if self.target.get().is_none() {
+            error!("Cannot generate mipmap on texture that has no target!");
+            return Err(WebGLError::InvalidOperation);
+        }
         // TODO: Check
-        // GL_INVALID_OPERATION is generated if the texture bound to target is a cube map, but its six faces do not share indentical widths, heights, formats, and types.
+        // GL_INVALID_OPERATION is generated if the texture bound to target is a cube map, but its
+        // six faces do not share indentical widths, heights, formats, and types.
+        //
         // GL_INVALID_OPERATION is generated if the zero level array is stored in a compressed internal format.
-        let base_image_info = self.image_info_array.borrow_mut()[0];
+        let base_image_info = self.base_image_info().unwrap().get();
 
-        if !base_image_info.isInitialized() {
+        if !base_image_info.is_initialized() {
             return Err(WebGLError::InvalidOperation);
         }
 
-        if !base_image_info.isPerfectSquare() {
+        if !base_image_info.is_perfect_square() {
             return Err(WebGLError::InvalidOperation);
         }
 
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GenerateMipmap(target))).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GenerateMipmap(self.target.get().unwrap()))).unwrap();
 
-        let last_level = self.base_mipmap_level + base_image_info.getMaxMimapLevels() - 1;
-        self.populateMipChain(self.base_mipmap_level, last_level)
+        let last_level = self.base_mipmap_level + base_image_info.get_max_mimap_levels() - 1;
+        self.populate_mip_chain(self.base_mipmap_level, last_level)
     }
 
-    pub fn populateMipChain(&self, base_mipmap_level: u32, last_level: u32) -> WebGLResult<()> {
+    pub fn populate_mip_chain(&self, first_level: u32, last_level: u32) -> WebGLResult<()> {
+        let base_image_info = self.image_info_at_face(0, first_level);
+        if !base_image_info.is_initialized() {
+            return Err(WebGLError::InvalidOperation);
+        }
+
+        let ref_width = base_image_info.width;
+        let ref_height = base_image_info.height;
+
+        for level in (first_level + 1)..last_level {
+            if ref_width == 1 && ref_height == 1 {
+                break;
+            }
+
+            ref_width = cmp::max(1, ref_width / 2);
+            ref_height = cmp::max(1, ref_height / 2);
+
+            let image_info = ImageInfo {
+                width: ref_width,
+                height: ref_height,
+                depth: 0,
+                internal_format: base_image_info.internal_format,
+                is_initialized: base_image_info.is_initialized(),
+            };
+
+            self.set_image_infos_at_level(level, image_info);
+        }
         Ok(())
     }
 
@@ -237,10 +244,78 @@ impl WebGLTexture {
             _ => Err(WebGLError::InvalidEnum),
         }
     }
+
+    fn image_info_at_face(&self, face: u8, level: u32) -> &Cell<ImageInfo> {
+        let pos = (level * self.face_count as u32) + face as u32;
+        &self.image_info_array[pos as usize]
+    }
+
+    fn base_image_info(&self) -> Option<&Cell<ImageInfo>> {
+        if self.base_mipmap_level >= MAX_LEVEL_COUNT {
+            return None;
+        }
+        Some(self.image_info_at_face(0, self.base_mipmap_level))
+    }
+
+    fn set_image_infos_at_level(&self, level: u32, image_info: ImageInfo) {
+        for face in 0..self.face_count {
+            self.image_info_at_face(face, level).set(image_info);
+        }
+
+        self.invalidate_resolve_cache();
+    }
+
+    fn invalidate_resolve_cache(&self) {
+        self.is_resolved.set(false);
+    }
 }
 
 impl Drop for WebGLTexture {
     fn drop(&mut self) {
         self.delete();
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Debug, JSTraceable, HeapSizeOf)]
+struct ImageInfo {
+    width: u32,
+    height: u32,
+    depth: u32,
+    internal_format: u32,
+    is_initialized: bool,
+}
+
+impl ImageInfo {
+    fn new() -> ImageInfo {
+        ImageInfo {
+            width: 0,
+            height: 0,
+            depth: 0,
+            internal_format: 0,
+            is_initialized: false,
+        }
+    }
+
+    fn is_perfect_square(&self) -> bool {
+        let width = self.width;
+        let width_square = ((width * width) as f64).sqrt() as u32 == self.width;
+
+        let height = self.height;
+        let height_square = ((height * height) as f64).sqrt() as u32 == self.height;
+
+        height_square && width_square
+    }
+
+    fn is_initialized(&self) -> bool {
+        self.is_initialized
+    }
+
+    fn get_max_mimap_levels(&self) -> u32 {
+        let largest = cmp::max(cmp::max(self.width, self.height), self.depth);
+        if largest == 0 {
+            return 0;
+        }
+        // FloorLog2(largest) + 1
+        (largest as f64).log2() as u32 + 1
     }
 }
