@@ -30,6 +30,7 @@ pub struct WebGLTexture {
     target: Cell<Option<u32>>,
     is_deleted: Cell<bool>,
     is_resolved: Cell<bool>,
+    is_initialized: Cell<bool>,
     #[ignore_heap_size_of = "Arrays are cumbersome"]
     image_info_array: [Cell<ImageInfo>; MAX_LEVEL_COUNT * MAX_FACE_COUNT],
     /// Face count can only be 1 or 6
@@ -48,6 +49,7 @@ impl WebGLTexture {
             target: Cell::new(None),
             is_deleted: Cell::new(false),
             is_resolved: Cell::new(false),
+            is_initialized: Cell::new(false),
             face_count: 0,
             base_mipmap_level: 0,
             max_mipmap_level: 100,
@@ -116,7 +118,11 @@ impl WebGLTexture {
             is_initialized: true,
         };
 
-        self.base_image_info().unwrap().set(image_info);
+        self.image_info_at(level as u32).set(image_info);
+
+        // TODO: ZeroTextureData
+
+        self.is_initialized.set(true);
     }
 
     pub fn generate_mipmap(&self) -> WebGLResult<()> {
@@ -135,7 +141,7 @@ impl WebGLTexture {
             return Err(WebGLError::InvalidOperation);
         }
 
-        if !base_image_info.is_perfect_square() {
+        if !base_image_info.is_power_of_two() {
             return Err(WebGLError::InvalidOperation);
         }
 
@@ -146,13 +152,13 @@ impl WebGLTexture {
     }
 
     pub fn populate_mip_chain(&self, first_level: u32, last_level: u32) -> WebGLResult<()> {
-        let base_image_info = self.image_info_at_face(0, first_level);
+        let base_image_info = self.image_info_at_face(0, first_level).get();
         if !base_image_info.is_initialized() {
             return Err(WebGLError::InvalidOperation);
         }
 
-        let ref_width = base_image_info.width;
-        let ref_height = base_image_info.height;
+        let mut ref_width = base_image_info.width;
+        let mut ref_height = base_image_info.height;
 
         for level in (first_level + 1)..last_level {
             if ref_width == 1 && ref_height == 1 {
@@ -250,11 +256,10 @@ impl WebGLTexture {
         &self.image_info_array[pos as usize]
     }
 
-    fn base_image_info(&self) -> Option<&Cell<ImageInfo>> {
-        if self.base_mipmap_level >= MAX_LEVEL_COUNT {
-            return None;
-        }
-        Some(self.image_info_at_face(0, self.base_mipmap_level))
+    fn image_info_at(&self, level: u32) -> &Cell<ImageInfo> {
+        // TODO: Support Cubic Textures
+        let face = 0;
+        self.image_info_at_face(face, level)
     }
 
     fn set_image_infos_at_level(&self, level: u32, image_info: ImageInfo) {
@@ -263,6 +268,13 @@ impl WebGLTexture {
         }
 
         self.invalidate_resolve_cache();
+    }
+
+    fn base_image_info(&self) -> Option<&Cell<ImageInfo>> {
+        if self.base_mipmap_level >= MAX_LEVEL_COUNT as u32 {
+            return None;
+        }
+        Some(self.image_info_at_face(0, self.base_mipmap_level))
     }
 
     fn invalidate_resolve_cache(&self) {
@@ -296,14 +308,10 @@ impl ImageInfo {
         }
     }
 
-    fn is_perfect_square(&self) -> bool {
-        let width = self.width;
-        let width_square = ((width * width) as f64).sqrt() as u32 == self.width;
-
-        let height = self.height;
-        let height_square = ((height * height) as f64).sqrt() as u32 == self.height;
-
-        height_square && width_square
+    fn is_power_of_two(&self) -> bool {
+        let width_is_power_of_two = ((self.width * self.width) as f64).sqrt() as u32 == self.width;
+        let height_is_power_of_two = ((self.height * self.height) as f64).sqrt() as u32 == self.height;
+        width_is_power_of_two && height_is_power_of_two
     }
 
     fn is_initialized(&self) -> bool {
