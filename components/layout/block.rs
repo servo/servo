@@ -1308,8 +1308,15 @@ impl BlockFlow {
         let opaque_self = OpaqueFlow::from_flow(self);
 
         // Calculate non-auto block size to pass to children.
+        let box_border = match self.fragment.style().get_box().box_sizing {
+            box_sizing::T::border_box => self.fragment.border_padding.block_start_end(),
+            box_sizing::T::content_box => Au(0),
+        };
         let parent_container_size = self.explicit_block_containing_size(layout_context);
-        let explicit_content_size = self.explicit_block_size(parent_container_size);
+        // https://drafts.csswg.org/css-ui-3/#box-sizing
+        let explicit_content_size = self
+                                    .explicit_block_size(parent_container_size)
+                                    .map(|x| if x < box_border { Au(0) } else { x - box_border });
 
         // Calculate containing block inline size.
         let containing_block_size = if flags.contains(IS_ABSOLUTELY_POSITIONED) {
