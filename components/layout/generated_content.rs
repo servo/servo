@@ -434,7 +434,8 @@ fn render_text(layout_context: &LayoutContext,
                string: String)
                -> Option<SpecificFragmentInfo> {
     let mut fragments = LinkedList::new();
-    let info = SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::new(string, None));
+    let info = SpecificFragmentInfo::UnscannedText(
+        box UnscannedTextFragmentInfo::new(string, None));
     fragments.push_back(Fragment::from_opaque_node_and_style(node,
                                                              pseudo,
                                                              style,
