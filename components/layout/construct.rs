@@ -297,7 +297,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let specific_fragment_info = match node.type_id() {
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                         HTMLElementTypeId::HTMLIFrameElement))) => {
-                SpecificFragmentInfo::Iframe(box IframeFragmentInfo::new(node))
+                SpecificFragmentInfo::Iframe(IframeFragmentInfo::new(node))
             }
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                         HTMLElementTypeId::HTMLImageElement))) => {
