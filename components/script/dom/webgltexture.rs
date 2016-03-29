@@ -4,6 +4,7 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLError, WebGLResult};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLTextureBinding;
 use dom::bindings::global::GlobalRef;
@@ -12,7 +13,7 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
-use std::{cmp, mem, ptr};
+use std::cmp;
 
 pub enum TexParameterValue {
     Float(f32),
@@ -32,7 +33,7 @@ pub struct WebGLTexture {
     is_resolved: Cell<bool>,
     is_initialized: Cell<bool>,
     #[ignore_heap_size_of = "Arrays are cumbersome"]
-    image_info_array: [Cell<ImageInfo>; MAX_LEVEL_COUNT * MAX_FACE_COUNT],
+    image_info_array: DOMRefCell<[ImageInfo; MAX_LEVEL_COUNT * MAX_FACE_COUNT]>,
     /// Face count can only be 1 or 6
     face_count: u8,
     base_mipmap_level: u32,
@@ -53,23 +54,9 @@ impl WebGLTexture {
             face_count: 0,
             base_mipmap_level: 0,
             max_mipmap_level: 100,
-            image_info_array: Self::create_image_info_array(),
+            image_info_array: DOMRefCell::new([ImageInfo::new(); MAX_LEVEL_COUNT * MAX_FACE_COUNT]),
             renderer: renderer,
         }
-    }
-
-    #[allow(unsafe_code)]
-    fn create_image_info_array() -> [Cell<ImageInfo>; MAX_LEVEL_COUNT * MAX_FACE_COUNT] {
-        // Cell<T> does not implement Copy; therefore, the array must be initialized like this
-        let mut image_info_array = unsafe {
-            mem::uninitialized::<[Cell<ImageInfo>; MAX_LEVEL_COUNT * MAX_FACE_COUNT]>()
-        };
-        for i in 0..(MAX_LEVEL_COUNT * MAX_FACE_COUNT) {
-            unsafe {
-                ptr::write(image_info_array.as_mut_ptr().offset(i as isize), Cell::new(ImageInfo::new()))
-            }
-        }
-        image_info_array
     }
 
     pub fn maybe_new(global: GlobalRef, renderer: IpcSender<CanvasMsg>)
@@ -109,19 +96,17 @@ impl WebGLTexture {
 
     pub fn initialize(&self, width: u32, height: u32, internal_format: u32, level: i32) {
         // TODO(ConnorGBrewster): Add support for cubic textures
-        // Add depth support
         let image_info = ImageInfo {
             width: width,
             height: height,
+            // TODO: Support depth
             depth: 0,
             internal_format: internal_format,
             is_initialized: true,
         };
-
-        self.image_info_at(level as u32).set(image_info);
+        self.set_image_infos_at_level(level as u32, image_info);
 
         // TODO: ZeroTextureData
-
         self.is_initialized.set(true);
     }
 
@@ -135,7 +120,7 @@ impl WebGLTexture {
         // six faces do not share indentical widths, heights, formats, and types.
         //
         // GL_INVALID_OPERATION is generated if the zero level array is stored in a compressed internal format.
-        let base_image_info = self.base_image_info().unwrap().get();
+        let base_image_info = self.base_image_info().unwrap();
 
         if !base_image_info.is_initialized() {
             return Err(WebGLError::InvalidOperation);
@@ -152,7 +137,7 @@ impl WebGLTexture {
     }
 
     pub fn populate_mip_chain(&self, first_level: u32, last_level: u32) -> WebGLResult<()> {
-        let base_image_info = self.image_info_at_face(0, first_level).get();
+        let base_image_info = self.image_info_at_face(0, first_level);
         if !base_image_info.is_initialized() {
             return Err(WebGLError::InvalidOperation);
         }
@@ -251,12 +236,12 @@ impl WebGLTexture {
         }
     }
 
-    fn image_info_at_face(&self, face: u8, level: u32) -> &Cell<ImageInfo> {
+    fn image_info_at_face(&self, face: u8, level: u32) -> ImageInfo {
         let pos = (level * self.face_count as u32) + face as u32;
-        &self.image_info_array[pos as usize]
+        self.image_info_array.borrow()[pos as usize]
     }
 
-    fn image_info_at(&self, level: u32) -> &Cell<ImageInfo> {
+    fn image_info_at(&self, level: u32) -> ImageInfo {
         // TODO: Support Cubic Textures
         let face = 0;
         self.image_info_at_face(face, level)
@@ -264,13 +249,14 @@ impl WebGLTexture {
 
     fn set_image_infos_at_level(&self, level: u32, image_info: ImageInfo) {
         for face in 0..self.face_count {
-            self.image_info_at_face(face, level).set(image_info);
+            let pos = (level * self.face_count as u32) + face as u32;
+            self.image_info_array.borrow_mut()[pos as usize] = image_info;
         }
 
         self.invalidate_resolve_cache();
     }
 
-    fn base_image_info(&self) -> Option<&Cell<ImageInfo>> {
+    fn base_image_info(&self) -> Option<ImageInfo> {
         if self.base_mipmap_level >= MAX_LEVEL_COUNT as u32 {
             return None;
         }
@@ -309,8 +295,10 @@ impl ImageInfo {
     }
 
     fn is_power_of_two(&self) -> bool {
-        let width_is_power_of_two = ((self.width * self.width) as f64).sqrt() as u32 == self.width;
-        let height_is_power_of_two = ((self.height * self.height) as f64).sqrt() as u32 == self.height;
+        let width = self.width;
+        let height = self.height;
+        let width_is_power_of_two = ((width * width) as f64).sqrt() as u32 == width;
+        let height_is_power_of_two = ((height * height) as f64).sqrt() as u32 == height;
         width_is_power_of_two && height_is_power_of_two
     }
 
