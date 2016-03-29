@@ -1864,10 +1864,11 @@ fn control_chars_to_fragment(node: &InlineFragmentNodeInfo,
         UnscannedTextFragmentInfo::new(String::from(text), None));
     let mut style = node.style.clone();
     properties::modify_style_for_text(&mut style);
+    // NB: There's no need for a selected style to be here, since this is just used for control
+    // chars that get stripped from layout.
     Fragment::from_opaque_node_and_style(node.address,
                                          node.pseudo,
                                          style.clone(),
-                                         // TODO(emilio): Selected style?
                                          style,
                                          restyle_damage,
                                          info)
