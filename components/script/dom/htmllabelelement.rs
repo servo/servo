@@ -65,14 +65,12 @@ impl Activatable for HTMLLabelElement {
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
         if let Some(e) = self.GetControl() {
             let elem = e.upcast::<Element>();
-            if !elem.get_disabled_state() {
-                synthetic_click_activation(elem,
-                                           false,
-                                           false,
-                                           false,
-                                           false,
-                                           ActivationSource::NotFromClick);
-            }
+            synthetic_click_activation(elem,
+                                       false,
+                                       false,
+                                       false,
+                                       false,
+                                       ActivationSource::NotFromClick);
         }
     }
 
