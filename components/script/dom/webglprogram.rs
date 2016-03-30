@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLError, WebGLResult, WebGLParameter};
+use canvas_traits::CanvasMsg;
 use dom::bindings::codegen::Bindings::WebGLProgramBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::global::GlobalRef;
@@ -15,6 +15,7 @@ use dom::webglshader::WebGLShader;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
 use util::str::DOMString;
+use webrender_traits::{WebGLCommand, WebGLError, WebGLParameter, WebGLResult};
 
 #[dom_struct]
 pub struct WebGLProgram {
@@ -42,7 +43,7 @@ impl WebGLProgram {
     pub fn maybe_new(global: GlobalRef, renderer: IpcSender<CanvasMsg>)
                      -> Option<Root<WebGLProgram>> {
         let (sender, receiver) = ipc::channel().unwrap();
-        renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CreateProgram(sender))).unwrap();
+        renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateProgram(sender))).unwrap();
 
         let result = receiver.recv().unwrap();
         result.map(|program_id| WebGLProgram::new(global, renderer, *program_id))
@@ -63,13 +64,13 @@ impl WebGLProgram {
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            let _ = self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteProgram(self.id)));
+            let _ = self.renderer.send(CanvasMsg::WebGL(WebGLCommand::DeleteProgram(self.id)));
         }
     }
 
     /// glLinkProgram
     pub fn link(&self) {
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::LinkProgram(self.id))).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::LinkProgram(self.id))).unwrap();
     }
 
     /// glUseProgram
@@ -84,7 +85,7 @@ impl WebGLProgram {
             _ => return Err(WebGLError::InvalidOperation),
         }
 
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::UseProgram(self.id))).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::UseProgram(self.id))).unwrap();
         Ok(())
     }
 
@@ -104,7 +105,7 @@ impl WebGLProgram {
 
         shader_slot.set(Some(shader));
 
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::AttachShader(self.id, shader.id()))).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::AttachShader(self.id, shader.id()))).unwrap();
 
         Ok(())
     }
@@ -121,7 +122,7 @@ impl WebGLProgram {
         }
 
         self.renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::BindAttribLocation(self.id, index, String::from(name))))
+            .send(CanvasMsg::WebGL(WebGLCommand::BindAttribLocation(self.id, index, String::from(name))))
             .unwrap();
         Ok(())
     }
@@ -139,7 +140,7 @@ impl WebGLProgram {
 
         let (sender, receiver) = ipc::channel().unwrap();
         self.renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::GetAttribLocation(self.id, String::from(name), sender)))
+            .send(CanvasMsg::WebGL(WebGLCommand::GetAttribLocation(self.id, String::from(name), sender)))
             .unwrap();
         Ok(receiver.recv().unwrap())
     }
@@ -157,7 +158,7 @@ impl WebGLProgram {
 
         let (sender, receiver) = ipc::channel().unwrap();
         self.renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::GetUniformLocation(self.id, String::from(name), sender)))
+            .send(CanvasMsg::WebGL(WebGLCommand::GetUniformLocation(self.id, String::from(name), sender)))
             .unwrap();
         Ok(receiver.recv().unwrap())
     }
@@ -165,7 +166,7 @@ impl WebGLProgram {
     /// glGetProgramParameter
     pub fn parameter(&self, param_id: u32) -> WebGLResult<WebGLParameter> {
         let (sender, receiver) = ipc::channel().unwrap();
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetProgramParameter(self.id, param_id, sender))).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::GetProgramParameter(self.id, param_id, sender))).unwrap();
         receiver.recv().unwrap()
     }
 }
