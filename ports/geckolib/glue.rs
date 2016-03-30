@@ -7,7 +7,7 @@
 use app_units::Au;
 use bindings::{RawGeckoDocument, RawGeckoElement};
 use bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues, ServoNodeData};
-use bindings::{nsIAtom, uint8_t, uint32_t};
+use bindings::{nsIAtom};
 use data::PerDocumentStyleData;
 use euclid::Size2D;
 use properties::GeckoComputedValues;
@@ -73,8 +73,8 @@ pub extern "C" fn Servo_DropNodeData(data: *mut ServoNodeData) -> () {
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const uint8_t,
-                                                length: uint32_t) -> *mut RawServoStyleSheet {
+pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8,
+                                                length: u32) -> *mut RawServoStyleSheet {
 
     let input = unsafe { from_utf8_unchecked(slice::from_raw_parts(bytes, length as usize)) };
 
@@ -175,7 +175,8 @@ pub extern "C" fn Servo_GetComputedValues(element: *mut RawGeckoElement)
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(_: *mut nsIAtom)
+pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(_parentStyleOrNull: *mut ServoComputedValues,
+                                                         _pseudoTag: *mut nsIAtom)
      -> *mut ServoComputedValues {
     unimplemented!();
 }
