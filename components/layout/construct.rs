@@ -217,6 +217,7 @@ impl InlineFragmentsAccumulator {
                 address: node.opaque(),
                 pseudo: node.get_pseudo_element_type().strip(),
                 style: node.style().clone(),
+                selected_style: node.selected_style().clone(),
                 flags: InlineFragmentNodeFlags::empty(),
             }),
             bidi_control_chars: None,
@@ -360,6 +361,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             let fragment = Fragment::from_opaque_node_and_style(child_node.opaque(),
                                                                 PseudoElementType::Normal,
                                                                 style,
+                                                                child_node.selected_style().clone(),
                                                                 child_node.restyle_damage(),
                                                                 SpecificFragmentInfo::TableRow);
             let mut new_child: FlowRef = Arc::new(TableRowFlow::from_fragment(fragment));
@@ -373,6 +375,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             let fragment = Fragment::from_opaque_node_and_style(child_node.opaque(),
                                                                 PseudoElementType::Normal,
                                                                 style,
+                                                                child_node.selected_style().clone(),
                                                                 child_node.restyle_damage(),
                                                                 SpecificFragmentInfo::Table);
             let mut new_child: FlowRef = Arc::new(TableFlow::from_fragment(fragment));
@@ -387,6 +390,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 Fragment::from_opaque_node_and_style(child_node.opaque(),
                                                      PseudoElementType::Normal,
                                                      style,
+                                                     child_node.selected_style().clone(),
                                                      child_node.restyle_damage(),
                                                      SpecificFragmentInfo::TableWrapper);
             let mut new_child: FlowRef = Arc::new(TableWrapperFlow::from_fragment(fragment, None));
@@ -584,6 +588,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                     whitespace_pseudo,
                                                                     whitespace_style,
+                                                                    node.selected_style().clone(),
                                                                     whitespace_damage,
                                                                     fragment_info);
                 inline_fragment_accumulator.fragments.fragments.push_back(fragment);
@@ -713,6 +718,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let mut style = (*style).clone();
         properties::modify_style_for_text(&mut style);
 
+        let selected_style = node.selected_style();
+
         match text_content {
             TextContent::Text(string) => {
                 let info = box UnscannedTextFragmentInfo::new(string, selection);
@@ -720,7 +727,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 fragments.fragments.push_back(Fragment::from_opaque_node_and_style(
                         node.opaque(),
                         node.get_pseudo_element_type().strip(),
-                        style.clone(),
+                        style,
+                        selected_style.clone(),
                         node.restyle_damage(),
                         specific_fragment_info))
             }
@@ -740,6 +748,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                             node.opaque(),
                             node.get_pseudo_element_type().strip(),
                             style.clone(),
+                            selected_style.clone(),
                             node.restyle_damage(),
                             specific_fragment_info))
                 }
@@ -823,6 +832,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                         let kid_node = flow.as_block().fragment.node;
                         let kid_pseudo = flow.as_block().fragment.pseudo.clone();
                         let kid_style = flow.as_block().fragment.style.clone();
+                        let kid_selected_style = flow.as_block().fragment.selected_style.clone();
                         let kid_restyle_damage = flow.as_block().fragment.restyle_damage;
                         let fragment_info = SpecificFragmentInfo::InlineAbsolute(
                             InlineAbsoluteFragmentInfo::new(flow));
@@ -830,6 +840,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                                 kid_node,
                                 kid_pseudo,
                                 kid_style,
+                                kid_selected_style,
                                 kid_restyle_damage,
                                 fragment_info));
                         fragment_accumulator.fragments
@@ -865,6 +876,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                     let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
                                                                         whitespace_pseudo,
                                                                         whitespace_style,
+                                                                        node.selected_style().clone(),
                                                                         whitespace_damage,
                                                                         fragment_info);
                     fragment_accumulator.fragments.fragments.push_back(fragment)
@@ -962,6 +974,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
                                                             node.get_pseudo_element_type().strip(),
                                                             modified_style.clone(),
+                                                            node.selected_style().clone(),
                                                             node.restyle_damage(),
                                                             fragment_info);
 
@@ -994,6 +1007,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
                                                             PseudoElementType::Normal,
                                                             style,
+                                                            node.selected_style().clone(),
                                                             node.restyle_damage(),
                                                             fragment_info);
 
@@ -1853,7 +1867,8 @@ fn control_chars_to_fragment(node: &InlineFragmentNodeInfo,
     properties::modify_style_for_text(&mut style);
     Fragment::from_opaque_node_and_style(node.address,
                                          node.pseudo,
-                                         style,
+                                         style.clone(),
+                                         node.selected_style.clone(),
                                          restyle_damage,
                                          info)
 }
