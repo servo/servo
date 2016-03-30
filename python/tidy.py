@@ -635,12 +635,10 @@ def scan(faster=False, progress=True):
     checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
     line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec)
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
-    if not faster:
-        # wpt lint checks
-        wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(faster, progress))
-        # collect errors
-        errors = itertools.chain(errors, wpt_lint_errors)
-
+    # wpt lint checks
+    wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(faster, progress))
+    # collect errors
+    errors = itertools.chain(errors, wpt_lint_errors)
     error = None
     for error in errors:
         print "\r\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
