@@ -116,8 +116,8 @@ use style::restyle_hints::ElementSnapshot;
 use style::servo::Stylesheet;
 use task_source::dom_manipulation::DOMManipulationTask;
 use time;
+use url::Url;
 use url::percent_encoding::percent_decode;
-use url::{Host, Url};
 use util::str::{DOMString, split_html_space_chars, str_join};
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
@@ -221,8 +221,6 @@ pub struct Document {
     https_state: Cell<HttpsState>,
     /// The document's origin.
     origin: Origin,
-    /// The document's effective script origin.
-    effective_script_origin: Origin,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1551,7 +1549,7 @@ impl Document {
         let origin = if browsing_context.is_some() {
             // Served over network, uses a URL scheme with server-based naming authority
             if url_uses_server_based_naming_authority(&url) {
-                Origin::new(&url).alias()
+                Origin::new(&url)
             } else {
                 Origin::opaque_identifier()
             }
@@ -1559,10 +1557,6 @@ impl Document {
             // Default to DOM standard behaviour
             Origin::opaque_identifier()
         };
-        // This is an incomplete simplification, since the only cases we implement
-        // for origins require the effective script origin to alias the document's
-        // origin.
-        let effective_script_origin = origin.alias();
 
         Document {
             node: Node::new_document_node(),
@@ -1627,7 +1621,6 @@ impl Document {
             css_errors_store: DOMRefCell::new(vec![]),
             https_state: Cell::new(HttpsState::None),
             origin: origin,
-            effective_script_origin: effective_script_origin,
         }
     }
 
@@ -1823,9 +1816,16 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
     fn Domain(&self) -> DOMString {
-        if let Some(host) = self.effective_script_origin.host() {
+        // Step 1.
+        if self.browsing_context().is_none() {
+            return DOMString::new();
+        }
+
+        if let Some(host) = self.origin.host() {
+            // Step 4.
             DOMString::from(host.serialize())
         } else {
+            // Step 3.
             DOMString::new()
         }
     }
