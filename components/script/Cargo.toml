@@ -46,9 +46,6 @@ path = "../canvas_traits"
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"
 
-[dependencies.offscreen_gl_context]
-git = "https://github.com/ecoal95/rust-offscreen-rendering-context"
-
 [dependencies.angle]
 git = "https://github.com/emilio/angle"
 branch = "servo"
@@ -79,6 +76,7 @@ image = "0.7"
 libc = "0.2"
 log = "0.3.5"
 num = "0.1.24"
+offscreen_gl_context = "0.1.2"
 rand = "0.3"
 phf = "0.7.13"
 phf_macros = "0.7.13"
