@@ -72,12 +72,34 @@ class Shorthand(object):
         self.sub_properties = [LONGHANDS_BY_NAME[s] for s in sub_properties]
         self.internal = internal
 
+class Method(object):
+    def __init__(self, name, return_type=None, arg_types=None, is_mut=False):
+        self.name = name
+        self.return_type = return_type
+        self.arg_types = arg_types or []
+        self.is_mut = is_mut
+    def arg_list(self):
+        args = ["_: " + x for x in self.arg_types]
+        args = ["&mut self" if self.is_mut else "&self"] + args
+        return ", ".join(args)
+    def signature(self):
+        sig = "fn %s(%s)" % (self.name, self.arg_list())
+        if self.return_type:
+            sig = sig + " -> " + self.return_type
+        return sig
+    def declare(self):
+        return self.signature() + ";"
+    def stub(self):
+        return self.signature() + "{ unimplemented!() }"
+
 class StyleStruct(object):
-    def __init__(self, name, inherited):
+    def __init__(self, name, inherited, gecko_name, additional_methods):
         self.name = name
         self.ident = to_rust_ident(name.lower())
         self.longhands = []
         self.inherited = inherited
+        self.gecko_name = gecko_name
+        self.additional_methods = additional_methods or []
 
 STYLE_STRUCTS = []
 THIS_STYLE_STRUCT = None
@@ -86,10 +108,10 @@ LONGHANDS_BY_NAME = {}
 DERIVED_LONGHANDS = {}
 SHORTHANDS = []
 
-def new_style_struct(name, is_inherited):
+def new_style_struct(name, is_inherited, gecko_name=None, additional_methods=None):
     global THIS_STYLE_STRUCT
 
-    style_struct = StyleStruct(name, is_inherited)
+    style_struct = StyleStruct(name, is_inherited, gecko_name, additional_methods)
     STYLE_STRUCTS.append(style_struct)
     THIS_STYLE_STRUCT = style_struct
     return ""
@@ -312,14 +334,14 @@ pub mod longhands {
 
     // CSS 2.1, Section 8 - Box model
 
-    ${new_style_struct("Margin", is_inherited=False)}
+    ${new_style_struct("Margin", is_inherited=False, gecko_name="nsStyleMargin")}
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type("margin-" + side, "LengthOrPercentageOrAuto",
                           "computed::LengthOrPercentageOrAuto::Length(Au(0))")}
     % endfor
 
-    ${new_style_struct("Padding", is_inherited=False)}
+    ${new_style_struct("Padding", is_inherited=False, gecko_name="nsStylePadding")}
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type("padding-" + side, "LengthOrPercentage",
@@ -327,7 +349,9 @@ pub mod longhands {
                           "parse_non_negative")}
     % endfor
 
-    ${new_style_struct("Border", is_inherited=False)}
+    ${new_style_struct("Border", is_inherited=False, gecko_name="nsStyleBorder",
+                       additional_methods=[Method("border_" + side + "_is_none_or_hidden_and_has_nonzero_width",
+                                                  "bool") for side in ["top", "right", "bottom", "left"]])}
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type("border-%s-color" % side, "CSSColor", "::cssparser::Color::CurrentColor")}
@@ -382,7 +406,8 @@ pub mod longhands {
                           "parse")}
     % endfor
 
-    ${new_style_struct("Outline", is_inherited=False)}
+    ${new_style_struct("Outline", is_inherited=False, gecko_name="nsStyleOutline",
+                       additional_methods=[Method("outline_is_none_or_hidden_and_has_nonzero_width", "bool")])}
 
     // TODO(pcwalton): `invert`
     ${predefined_type("outline-color", "CSSColor", "::cssparser::Color::CurrentColor")}
@@ -435,7 +460,7 @@ pub mod longhands {
 
     ${predefined_type("outline-offset", "Length", "Au(0)")}
 
-    ${new_style_struct("PositionOffsets", is_inherited=False)}
+    ${new_style_struct("PositionOffsets", is_inherited=False, gecko_name="nsStylePosition")}
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type(side, "LengthOrPercentageOrAuto",
@@ -444,7 +469,14 @@ pub mod longhands {
 
     // CSS 2.1, Section 9 - Visual formatting model
 
-    ${new_style_struct("Box", is_inherited=False)}
+    ${new_style_struct("Box", is_inherited=False, gecko_name="nsStyleDisplay",
+                       additional_methods=[Method("clone_display",
+                                                  "longhands::display::computed_value::T"),
+                                           Method("clone_position",
+                                                  "longhands::position::computed_value::T"),
+                                           Method("is_floated", "bool"),
+                                           Method("overflow_x_is_visible", "bool"),
+                                           Method("overflow_y_is_visible", "bool")])}
 
     // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
     <%self:longhand name="display" custom_cascade="True">
@@ -602,7 +634,13 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    ${new_style_struct("InheritedBox", is_inherited=True)}
+    ${new_style_struct("InheritedBox", is_inherited=True,
+                       additional_methods=[Method("clone_direction",
+                                                  "longhands::direction::computed_value::T"),
+                                           Method("clone_writing_mode",
+                                                  "longhands::writing_mode::computed_value::T"),
+                                           Method("clone_text_orientation",
+                                                  "longhands::text_orientation::computed_value::T")])}
 
     ${single_keyword("direction", "ltr rtl")}
 
@@ -1031,7 +1069,7 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    ${new_style_struct("List", is_inherited=True)}
+    ${new_style_struct("List", is_inherited=True, gecko_name="nsStyleList")}
 
     ${single_keyword("list-style-position", "outside inside")}
 
@@ -1263,7 +1301,7 @@ pub mod longhands {
 
     // CSS 2.1, Section 14 - Colors and Backgrounds
 
-    ${new_style_struct("Background", is_inherited=False)}
+    ${new_style_struct("Background", is_inherited=False, gecko_name="nsStyleBackground")}
     ${predefined_type(
         "background-color", "CSSColor",
         "::cssparser::Color::RGBA(::cssparser::RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}
@@ -1585,7 +1623,9 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    ${new_style_struct("Color", is_inherited=True)}
+    ${new_style_struct("Color", is_inherited=True, gecko_name="nsStyleColor",
+                       additional_methods=[Method("clone_color",
+                                                  "longhands::color::computed_value::T")])}
 
     <%self:raw_longhand name="color">
         use cssparser::{Color, RGBA};
@@ -1624,7 +1664,12 @@ pub mod longhands {
 
     // CSS 2.1, Section 15 - Fonts
 
-    ${new_style_struct("Font", is_inherited=True)}
+    ${new_style_struct("Font", is_inherited=True, gecko_name="nsStyleFont",
+                       additional_methods=[Method("clone_font_size",
+                                                  "longhands::font_size::computed_value::T"),
+                                           Method("clone_font_weight",
+                                                  "longhands::font_weight::computed_value::T"),
+                                           Method("compute_font_hash", is_mut=True)])}
 
     <%self:longhand name="font-family">
         use self::computed_value::FontFamily;
@@ -1928,7 +1973,9 @@ pub mod longhands {
 
     // CSS 2.1, Section 16 - Text
 
-    ${new_style_struct("InheritedText", is_inherited=True)}
+    ${new_style_struct("InheritedText", is_inherited=True, gecko_name="nsStyleText",
+                       additional_methods=[Method("clone__servo_text_decorations_in_effect",
+                                                  "longhands::_servo_text_decorations_in_effect::computed_value::T")])}
 
     <%self:longhand name="text-align">
         pub use self::computed_value::T as SpecifiedValue;
@@ -2120,7 +2167,10 @@ pub mod longhands {
     // TODO(pcwalton): Support `text-justify: distribute`.
     ${single_keyword("text-justify", "auto none inter-word")}
 
-    ${new_style_struct("Text", is_inherited=False)}
+    ${new_style_struct("Text", is_inherited=False, gecko_name="nsStyleTextReset",
+                       additional_methods=[Method("has_underline", "bool"),
+                                           Method("has_overline", "bool"),
+                                           Method("has_line_through", "bool")])}
 
     ${single_keyword("unicode-bidi", "normal embed isolate bidi-override isolate-override plaintext")}
 
@@ -2343,7 +2393,7 @@ pub mod longhands {
     ${single_keyword("text-rendering", "auto optimizespeed optimizelegibility geometricprecision")}
 
     // CSS 2.1, Section 17 - Tables
-    ${new_style_struct("Table", is_inherited=False)}
+    ${new_style_struct("Table", is_inherited=False, gecko_name="nsStyleTable")}
 
     ${single_keyword("table-layout", "auto fixed")}
 
@@ -2515,7 +2565,7 @@ pub mod longhands {
     ${single_keyword("pointer-events", "auto none")}
 
 
-    ${new_style_struct("Column", is_inherited=False)}
+    ${new_style_struct("Column", is_inherited=False, gecko_name="nsStyleColumn")}
 
     <%self:longhand name="column-width" experimental="True">
         use cssparser::ToCss;
@@ -4275,7 +4325,8 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    ${new_style_struct("Animation", is_inherited=False)}
+    ${new_style_struct("Animation", is_inherited=False,
+                       additional_methods=[Method("transition_count", return_type="usize")])}
 
     // TODO(pcwalton): Multiple transitions.
     <%self:longhand name="transition-duration">
@@ -6066,46 +6117,17 @@ pub mod style_struct_traits {
     use super::longhands;
 
     % for style_struct in STYLE_STRUCTS:
-        pub trait T${style_struct.name}: Clone + PartialEq {
+        pub trait T${style_struct.name}: Clone {
             % for longhand in style_struct.longhands:
                 #[allow(non_snake_case)]
                 fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T);
                 #[allow(non_snake_case)]
                 fn copy_${longhand.ident}_from(&mut self, other: &Self);
             % endfor
-            % if style_struct.name == "Animation":
-                fn transition_count(&self) -> usize;
-            % elif style_struct.name == "Border":
-                % for side in ["top", "right", "bottom", "left"]:
-                fn border_${side}_is_none_or_hidden_and_has_nonzero_width(&self) -> bool;
-                % endfor
-            % elif style_struct.name == "Box":
-                fn clone_display(&self) -> longhands::display::computed_value::T;
-                fn clone_position(&self) -> longhands::position::computed_value::T;
-                fn is_floated(&self) -> bool;
-                fn overflow_x_is_visible(&self) -> bool;
-                fn overflow_y_is_visible(&self) -> bool;
-            % elif style_struct.name == "Color":
-                fn clone_color(&self) -> longhands::color::computed_value::T;
-            % elif style_struct.name == "Font":
-                fn clone_font_size(&self) -> longhands::font_size::computed_value::T;
-                fn clone_font_weight(&self) -> longhands::font_weight::computed_value::T;
-                fn compute_font_hash(&mut self);
-            % elif style_struct.name == "InheritedBox":
-                fn clone_direction(&self) -> longhands::direction::computed_value::T;
-                fn clone_writing_mode(&self) -> longhands::writing_mode::computed_value::T;
-                fn clone_text_orientation(&self) -> longhands::text_orientation::computed_value::T;
-            % elif style_struct.name == "InheritedText":
+            % for additional in style_struct.additional_methods:
                 #[allow(non_snake_case)]
-                fn clone__servo_text_decorations_in_effect(&self) ->
-                    longhands::_servo_text_decorations_in_effect::computed_value::T;
-            % elif style_struct.name == "Outline":
-                fn outline_is_none_or_hidden_and_has_nonzero_width(&self) -> bool;
-            % elif style_struct.name == "Text":
-                fn has_underline(&self) -> bool;
-                fn has_overline(&self) -> bool;
-                fn has_line_through(&self) -> bool;
-            % endif
+                ${additional.declare()}
+            % endfor
         }
     % endfor
 }
@@ -6692,7 +6714,7 @@ fn cascade_with_cached_declarations<C: ComputedValues>(
     context.style
 }
 
-pub type CascadePropertyFn<C: ComputedValues> =
+pub type CascadePropertyFn<C /*: ComputedValues */> =
     extern "Rust" fn(declaration: &PropertyDeclaration,
                      inherited_style: &C,
                      context: &mut computed::Context<C>,
