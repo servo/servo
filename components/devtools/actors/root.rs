@@ -10,33 +10,34 @@
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use actors::tab::{TabActor, TabActorMsg};
 use protocol::JsonPacketStream;
-use rustc_serialize::json;
+use serde_json::Value;
+use std::collections::BTreeMap;
 use std::net::TcpStream;
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ActorTraits {
     sources: bool,
     highlightable: bool,
     customHighlighters: Vec<String>,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ListAddonsReply {
     from: String,
     addons: Vec<AddonMsg>,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 enum AddonMsg {}
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ListTabsReply {
     from: String,
     selected: u32,
     tabs: Vec<TabActorMsg>,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 pub struct RootActorMsg {
     from: String,
     applicationType: String,
@@ -55,7 +56,7 @@ impl Actor for RootActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      _msg: &json::Object,
+                      _msg: &BTreeMap<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "listAddons" => {

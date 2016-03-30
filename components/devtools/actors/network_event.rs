@@ -16,7 +16,8 @@ use hyper::header::{ContentType, Cookie};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use protocol::JsonPacketStream;
-use rustc_serialize::json;
+use serde_json::Value;
+use std::collections::BTreeMap;
 use std::net::TcpStream;
 use time;
 use time::Tm;
@@ -41,7 +42,7 @@ pub struct NetworkEventActor {
     response: HttpResponse,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 pub struct EventActor {
     pub actor: String,
     pub url: String,
@@ -51,12 +52,12 @@ pub struct EventActor {
     pub private: bool
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 pub struct ResponseCookiesMsg {
     pub cookies: u32,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 pub struct ResponseStartMsg {
     pub httpVersion: String,
     pub remoteAddress: String,
@@ -67,7 +68,7 @@ pub struct ResponseStartMsg {
     pub discardResponseBody: bool,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 pub struct ResponseContentMsg {
     pub mimeType: String,
     pub contentSize: u32,
@@ -76,19 +77,19 @@ pub struct ResponseContentMsg {
 }
 
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 pub struct ResponseHeadersMsg {
     pub headers: u32,
     pub headersSize: u32,
 }
 
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 pub struct RequestCookiesMsg {
     pub cookies: u32,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct GetRequestHeadersReply {
     from: String,
     headers: Vec<String>,
@@ -96,7 +97,7 @@ struct GetRequestHeadersReply {
     rawHeaders: String
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct GetResponseHeadersReply {
     from: String,
     headers: Vec<String>,
@@ -104,33 +105,33 @@ struct GetResponseHeadersReply {
     rawHeaders: String
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct GetResponseContentReply {
     from: String,
     content: Option<Vec<u8>>,
     contentDiscarded: bool,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct GetRequestPostDataReply {
     from: String,
     postData: Option<Vec<u8>>,
     postDataDiscarded: bool
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct GetRequestCookiesReply {
     from: String,
     cookies: Vec<u8>
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct GetResponseCookiesReply {
     from: String,
     cookies: Vec<u8>
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct Timings {
     blocked: u32,
     dns: u32,
@@ -140,14 +141,14 @@ struct Timings {
     receive: u32,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct GetEventTimingsReply {
     from: String,
     timings: Timings,
     totalTime: u32,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct GetSecurityInfoReply {
     from: String,
     seuritInfo: String,
@@ -162,7 +163,7 @@ impl Actor for NetworkEventActor {
     fn handle_message(&self,
                       _registry: &ActorRegistry,
                       msg_type: &str,
-                      _msg: &json::Object,
+                      _msg: &BTreeMap<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getRequestHeaders" => {

@@ -4,7 +4,8 @@
 
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use devtools_traits::WorkerId;
-use rustc_serialize::json;
+use serde_json::Value;
+use std::collections::BTreeMap;
 use std::net::TcpStream;
 
 pub struct WorkerActor {
@@ -20,7 +21,7 @@ impl Actor for WorkerActor {
     fn handle_message(&self,
                       _: &ActorRegistry,
                       _: &str,
-                      _: &json::Object,
+                      _: &BTreeMap<String, Value>,
                       _: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(ActorMessageStatus::Processed)
     }

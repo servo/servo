@@ -4,14 +4,15 @@
 
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use protocol::JsonPacketStream;
-use rustc_serialize::json;
+use serde_json::Value;
+use std::collections::BTreeMap;
 use std::net::TcpStream;
 
 pub struct PerformanceActor {
     name: String,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct PerformanceFeatures {
     withMarkers: bool,
     withMemory: bool,
@@ -20,12 +21,12 @@ struct PerformanceFeatures {
     withJITOptimizations: bool,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct PerformanceTraits {
     features: PerformanceFeatures,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ConnectReply {
     from: String,
     traits: PerformanceTraits,
@@ -39,7 +40,7 @@ impl Actor for PerformanceActor {
     fn handle_message(&self,
                       _registry: &ActorRegistry,
                       msg_type: &str,
-                      _msg: &json::Object,
+                      _msg: &BTreeMap<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "connect" => {
