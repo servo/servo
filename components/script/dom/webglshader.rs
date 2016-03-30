@@ -4,7 +4,7 @@
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use angle::hl::{BuiltInResources, Output, ShaderValidator};
-use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLResult, WebGLParameter};
+use canvas_traits::CanvasMsg;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::WebGLShaderBinding;
 use dom::bindings::global::GlobalRef;
@@ -15,6 +15,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
 use std::sync::{ONCE_INIT, Once};
 use util::str::DOMString;
+use webrender_traits::{WebGLCommand, WebGLParameter, WebGLResult};
 
 #[derive(Clone, Copy, PartialEq, Debug, JSTraceable, HeapSizeOf)]
 pub enum ShaderCompilationStatus {
@@ -63,7 +64,7 @@ impl WebGLShader {
                      renderer: IpcSender<CanvasMsg>,
                      shader_type: u32) -> Option<Root<WebGLShader>> {
         let (sender, receiver) = ipc::channel().unwrap();
-        renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CreateShader(shader_type, sender))).unwrap();
+        renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateShader(shader_type, sender))).unwrap();
 
         let result = receiver.recv().unwrap();
         result.map(|shader_id| WebGLShader::new(global, renderer, *shader_id, shader_type))
@@ -103,7 +104,7 @@ impl WebGLShader {
                     // NOTE: At this point we should be pretty sure that the compilation in the paint thread
                     // will succeed.
                     // It could be interesting to retrieve the info log from the paint thread though
-                    let msg = CanvasWebGLMsg::CompileShader(self.id, translated_source);
+                    let msg = WebGLCommand::CompileShader(self.id, translated_source);
                     self.renderer.send(CanvasMsg::WebGL(msg)).unwrap();
                     self.compilation_status.set(ShaderCompilationStatus::Succeeded);
                 },
@@ -122,7 +123,7 @@ impl WebGLShader {
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            let _ = self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteShader(self.id)));
+            let _ = self.renderer.send(CanvasMsg::WebGL(WebGLCommand::DeleteShader(self.id)));
         }
     }
 
@@ -134,7 +135,7 @@ impl WebGLShader {
     /// glGetParameter
     pub fn parameter(&self, param_id: u32) -> WebGLResult<WebGLParameter> {
         let (sender, receiver) = ipc::channel().unwrap();
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GetShaderParameter(self.id, param_id, sender))).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::GetShaderParameter(self.id, param_id, sender))).unwrap();
         receiver.recv().unwrap()
     }
 

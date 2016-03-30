@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLError, WebGLResult};
+use canvas_traits::CanvasMsg;
 use dom::bindings::codegen::Bindings::WebGLBufferBinding;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -11,6 +11,7 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
+use webrender_traits::{WebGLCommand, WebGLError, WebGLResult};
 
 #[dom_struct]
 pub struct WebGLBuffer {
@@ -39,7 +40,7 @@ impl WebGLBuffer {
     pub fn maybe_new(global: GlobalRef, renderer: IpcSender<CanvasMsg>)
                      -> Option<Root<WebGLBuffer>> {
         let (sender, receiver) = ipc::channel().unwrap();
-        renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CreateBuffer(sender))).unwrap();
+        renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateBuffer(sender))).unwrap();
 
         let result = receiver.recv().unwrap();
         result.map(|buffer_id| WebGLBuffer::new(global, renderer, *buffer_id))
@@ -65,7 +66,7 @@ impl WebGLBuffer {
         } else {
             self.target.set(Some(target));
         }
-        self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::BindBuffer(target, self.id))).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::BindBuffer(target, self.id))).unwrap();
 
         Ok(())
     }
@@ -78,7 +79,7 @@ impl WebGLBuffer {
         }
         self.capacity.set(data.len());
         self.renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::BufferData(target, data.to_vec(), usage)))
+            .send(CanvasMsg::WebGL(WebGLCommand::BufferData(target, data.to_vec(), usage)))
             .unwrap();
 
         Ok(())
@@ -91,7 +92,7 @@ impl WebGLBuffer {
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            let _ = self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteBuffer(self.id)));
+            let _ = self.renderer.send(CanvasMsg::WebGL(WebGLCommand::DeleteBuffer(self.id)));
         }
     }
 }

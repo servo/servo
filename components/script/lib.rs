@@ -78,6 +78,7 @@ extern crate util;
 extern crate uuid;
 extern crate websocket;
 extern crate xml5ever;
+extern crate webrender_traits;
 
 pub mod clipboard_provider;
 pub mod cors;

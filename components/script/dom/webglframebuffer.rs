@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use canvas_traits::{CanvasMsg, CanvasWebGLMsg, WebGLFramebufferBindingRequest};
+use canvas_traits::{CanvasMsg};
 use dom::bindings::codegen::Bindings::WebGLFramebufferBinding;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -11,6 +11,7 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
 use std::cell::Cell;
+use webrender_traits::{WebGLCommand, WebGLFramebufferBindingRequest};
 
 #[dom_struct]
 pub struct WebGLFramebuffer {
@@ -34,7 +35,7 @@ impl WebGLFramebuffer {
     pub fn maybe_new(global: GlobalRef, renderer: IpcSender<CanvasMsg>)
                      -> Option<Root<WebGLFramebuffer>> {
         let (sender, receiver) = ipc::channel().unwrap();
-        renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::CreateFramebuffer(sender))).unwrap();
+        renderer.send(CanvasMsg::WebGL(WebGLCommand::CreateFramebuffer(sender))).unwrap();
 
         let result = receiver.recv().unwrap();
         result.map(|fb_id| WebGLFramebuffer::new(global, renderer, *fb_id))
@@ -53,14 +54,14 @@ impl WebGLFramebuffer {
     }
 
     pub fn bind(&self, target: u32) {
-        let cmd = CanvasWebGLMsg::BindFramebuffer(target, WebGLFramebufferBindingRequest::Explicit(self.id));
+        let cmd = WebGLCommand::BindFramebuffer(target, WebGLFramebufferBindingRequest::Explicit(self.id));
         self.renderer.send(CanvasMsg::WebGL(cmd)).unwrap();
     }
 
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
-            let _ = self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::DeleteFramebuffer(self.id)));
+            let _ = self.renderer.send(CanvasMsg::WebGL(WebGLCommand::DeleteFramebuffer(self.id)));
         }
     }
 }
