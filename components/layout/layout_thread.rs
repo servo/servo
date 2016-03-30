@@ -72,7 +72,7 @@ use style::error_reporting::ParseErrorReporter;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
 use style::parallel::WorkQueueData;
-use style::properties::TComputedValues;
+use style::properties::ComputedValues;
 use style::selector_impl::ServoSelectorImpl;
 use style::selector_matching::USER_OR_USER_AGENT_STYLESHEETS;
 use style::servo::{SharedStyleContext, Stylesheet, Stylist};

@@ -28,7 +28,7 @@ use std::sync::Arc;
 use style::computed_values::flex_direction;
 use style::logical_geometry::LogicalSize;
 use style::properties::style_structs;
-use style::properties::{ServoComputedValues, TComputedValues};
+use style::properties::{ComputedValues, ServoComputedValues};
 use style::values::computed::LengthOrPercentageOrAuto;
 
 // A mode describes which logical axis a flex axis is parallel with.
