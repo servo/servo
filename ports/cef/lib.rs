@@ -4,7 +4,6 @@
 
 #![feature(borrow_state)]
 #![feature(box_syntax)]
-#![feature(convert)]
 #![feature(core_intrinsics)]
 #![feature(filling_drop)]
 #![feature(iter_arith)]

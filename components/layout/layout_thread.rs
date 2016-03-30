@@ -72,7 +72,7 @@ use style::error_reporting::ParseErrorReporter;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
 use style::parallel::WorkQueueData;
-use style::properties::TComputedValues;
+use style::properties::ComputedValues;
 use style::selector_impl::ServoSelectorImpl;
 use style::selector_matching::USER_OR_USER_AGENT_STYLESHEETS;
 use style::servo::{SharedStyleContext, Stylesheet, Stylist};
@@ -777,9 +777,7 @@ impl LayoutThread {
             traversal.shutdown()
         }
 
-        let (response_chan, response_port) = ipc::channel().unwrap();
-        self.paint_chan.send(LayoutToPaintMsg::Exit(response_chan)).unwrap();
-        response_port.recv().unwrap()
+        self.paint_chan.send(LayoutToPaintMsg::Exit).unwrap();
     }
 
     fn handle_add_stylesheet<'a, 'b>(&self,

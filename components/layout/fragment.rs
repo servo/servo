@@ -41,7 +41,7 @@ use style::computed_values::{overflow_x, position, text_decoration, transform_st
 use style::computed_values::{white_space, word_break, z_index};
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
-use style::properties::{ComputedValues, TComputedValues};
+use style::properties::{ComputedValues, ServoComputedValues};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 use style::values::computed::{LengthOrPercentageOrNone};
 use text;
@@ -83,7 +83,7 @@ pub struct Fragment {
     pub node: OpaqueNode,
 
     /// The CSS style of this fragment.
-    pub style: Arc<ComputedValues>,
+    pub style: Arc<ServoComputedValues>,
 
     /// The position of this fragment relative to its owning flow. The size includes padding and
     /// border, but not margin.
@@ -145,7 +145,7 @@ pub enum SpecificFragmentInfo {
     /// content resolution phase (e.g. an ordered list item marker).
     GeneratedContent(Box<GeneratedContentInfo>),
 
-    Iframe(Box<IframeFragmentInfo>),
+    Iframe(IframeFragmentInfo),
     Image(Box<ImageFragmentInfo>),
     Canvas(Box<CanvasFragmentInfo>),
 
@@ -167,7 +167,7 @@ pub enum SpecificFragmentInfo {
     TableWrapper,
     Multicol,
     MulticolColumn,
-    UnscannedText(UnscannedTextFragmentInfo),
+    UnscannedText(Box<UnscannedTextFragmentInfo>),
 }
 
 impl SpecificFragmentInfo {
@@ -485,7 +485,7 @@ impl ReplacedImageFragmentInfo {
     }
 
     pub fn calculate_replaced_inline_size(&mut self,
-                                          style: &ComputedValues,
+                                          style: &ServoComputedValues,
                                           noncontent_inline_size: Au,
                                           container_inline_size: Au,
                                           fragment_inline_size: Au,
@@ -540,7 +540,7 @@ impl ReplacedImageFragmentInfo {
     }
 
     pub fn calculate_replaced_block_size(&mut self,
-                                         style: &ComputedValues,
+                                         style: &ServoComputedValues,
                                          noncontent_block_size: Au,
                                          containing_block_block_size: Option<Au>,
                                          fragment_inline_size: Au,
@@ -596,7 +596,7 @@ impl IframeFragmentInfo {
     }
 
     #[inline]
-    pub fn calculate_replaced_inline_size(&self, style: &ComputedValues, containing_size: Au)
+    pub fn calculate_replaced_inline_size(&self, style: &ServoComputedValues, containing_size: Au)
                                           -> Au {
         // Calculate the replaced inline size (or default) as per CSS 2.1 § 10.3.2
         IframeFragmentInfo::calculate_replaced_size(style.content_inline_size(),
@@ -607,7 +607,7 @@ impl IframeFragmentInfo {
     }
 
     #[inline]
-    pub fn calculate_replaced_block_size(&self, style: &ComputedValues, containing_size: Option<Au>)
+    pub fn calculate_replaced_block_size(&self, style: &ServoComputedValues, containing_size: Option<Au>)
                                          -> Au {
         // Calculate the replaced block size (or default) as per CSS 2.1 § 10.3.2
         IframeFragmentInfo::calculate_replaced_size(style.content_block_size(),
@@ -814,7 +814,7 @@ impl Fragment {
     /// Constructs a new `Fragment` instance from an opaque node.
     pub fn from_opaque_node_and_style(node: OpaqueNode,
                                       pseudo: PseudoElementType<()>,
-                                      style: Arc<ComputedValues>,
+                                      style: Arc<ServoComputedValues>,
                                       mut restyle_damage: RestyleDamage,
                                       specific: SpecificFragmentInfo)
                                       -> Fragment {
@@ -896,8 +896,8 @@ impl Fragment {
         let mut unscanned_ellipsis_fragments = LinkedList::new();
         unscanned_ellipsis_fragments.push_back(self.transform(
                 self.border_box.size,
-                SpecificFragmentInfo::UnscannedText(UnscannedTextFragmentInfo::new("…".to_owned(),
-                                                                                   None))));
+                SpecificFragmentInfo::UnscannedText(
+                    box UnscannedTextFragmentInfo::new("…".to_owned(), None))));
         let ellipsis_fragments = TextRunScanner::new().scan_for_runs(&mut layout_context.font_context(),
                                                                      unscanned_ellipsis_fragments);
         debug_assert!(ellipsis_fragments.len() == 1);
@@ -1229,7 +1229,7 @@ impl Fragment {
 
     // Return offset from original position because of `position: relative`.
     pub fn relative_position(&self, containing_block_size: &LogicalSize<Au>) -> LogicalSize<Au> {
-        fn from_style(style: &ComputedValues, container_size: &LogicalSize<Au>)
+        fn from_style(style: &ServoComputedValues, container_size: &LogicalSize<Au>)
                       -> LogicalSize<Au> {
             let offsets = style.logical_position();
             let offset_i = if offsets.inline_start != LengthOrPercentageOrAuto::Auto {
@@ -1282,7 +1282,7 @@ impl Fragment {
     }
 
     #[inline(always)]
-    pub fn style(&self) -> &ComputedValues {
+    pub fn style(&self) -> &ServoComputedValues {
         &*self.style
     }
 
@@ -1692,21 +1692,38 @@ impl Fragment {
             (&mut SpecificFragmentInfo::ScannedText(ref mut this_info),
              &SpecificFragmentInfo::ScannedText(ref other_info)) => {
                 debug_assert!(util::arc_ptr_eq(&this_info.run, &other_info.run));
-                this_info.range.extend_to(other_info.range_end_including_stripped_whitespace);
-                this_info.content_size.inline =
-                    this_info.run.metrics_for_range(&this_info.range).advance_width;
+                this_info.range_end_including_stripped_whitespace =
+                    other_info.range_end_including_stripped_whitespace;
                 if other_info.requires_line_break_afterward_if_wrapping_on_newlines() {
                     this_info.flags.insert(REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES);
                 }
                 self.border_padding.inline_end = next_fragment.border_padding.inline_end;
-                self.border_box.size.inline = this_info.content_size.inline +
-                    self.border_padding.inline_start_end();
             }
             _ => panic!("Can only merge two scanned-text fragments!"),
         }
-
+        self.reset_text_range_and_inline_size();
         self.meld_with_next_inline_fragment(&next_fragment);
     }
+
+    /// Restore any whitespace that was stripped from a text fragment, and recompute inline metrics
+    /// if necessary.
+    pub fn reset_text_range_and_inline_size(&mut self) {
+        match &mut self.specific {
+            &mut SpecificFragmentInfo::ScannedText(ref mut info) => {
+                // FIXME (mbrubeck): Do we need to restore leading too?
+                let range_end = info.range_end_including_stripped_whitespace;
+                if info.range.end() == range_end {
+                    return
+                }
+                info.range.extend_to(range_end);
+                info.content_size.inline = info.run.metrics_for_range(&info.range).advance_width;
+                self.border_box.size.inline = info.content_size.inline +
+                    self.border_padding.inline_start_end();
+            }
+            _ => {}
+        }
+    }
+
 
     /// Assigns replaced inline-size, padding, and margins for this fragment only if it is replaced
     /// content per CSS 2.1 § 10.3.2.
@@ -2087,7 +2104,7 @@ impl Fragment {
         }
     }
 
-    pub fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
+    pub fn repair_style(&mut self, new_style: &Arc<ServoComputedValues>) {
         self.style = (*new_style).clone()
     }
 
@@ -2576,9 +2593,9 @@ pub struct InlineStyleIterator<'a> {
 }
 
 impl<'a> Iterator for InlineStyleIterator<'a> {
-    type Item = &'a ComputedValues;
+    type Item = &'a ServoComputedValues;
 
-    fn next(&mut self) -> Option<&'a ComputedValues> {
+    fn next(&mut self) -> Option<&'a ServoComputedValues> {
         if !self.primary_style_yielded {
             self.primary_style_yielded = true;
             return Some(&*self.fragment.style)
@@ -2675,4 +2692,3 @@ pub struct SpeculatedInlineContentEdgeOffsets {
     pub start: Au,
     pub end: Au,
 }
-

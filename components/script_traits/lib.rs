@@ -365,6 +365,8 @@ pub enum ScriptToCompositorMsg {
     TouchEventProcessed(EventResult),
     /// Requests that the compositor shut down.
     Exit,
+    /// Allow the compositor to free script-specific resources.
+    Exited,
 }
 
 /// Whether a DOM event was prevented by web content

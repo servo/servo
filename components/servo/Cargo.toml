@@ -24,6 +24,9 @@ image = "0.7"
 [dev-dependencies.gfx_tests]
 path = "../../tests/unit/gfx"
 
+[dev-dependencies.layout_tests]
+path = "../../tests/unit/layout"
+
 [dev-dependencies.net_tests]
 path = "../../tests/unit/net"
 
@@ -48,11 +51,6 @@ path = "../../tests/compiletest/helper"
 [dev-dependencies.plugin_compiletest]
 path = "../../tests/compiletest/plugin"
 
-[[test]]
-name = "reftest"
-path = "../../tests/reftest.rs"
-harness = false
-
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender_traits"
 
@@ -60,9 +58,7 @@ git = "https://github.com/servo/webrender_traits"
 git = "https://github.com/servo/webrender"
 
 [features]
-default = ["glutin_app", "window", "webdriver"]
-window = ["glutin_app/window"]
-headless = ["glutin_app/headless"]
+default = ["glutin_app", "webdriver"]
 webdriver = ["webdriver_server"]
 energy-profiling = ["profile_traits/energy-profiling"]
 

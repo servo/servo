@@ -1078,7 +1078,7 @@ impl Element {
         }
         let url = self.get_string_attribute(local_name);
         let doc = document_from_node(self);
-        let base = doc.url();
+        let base = doc.base_url();
         // https://html.spec.whatwg.org/multipage/#reflect
         // XXXManishearth this doesn't handle `javascript:` urls properly
         match base.join(&url) {

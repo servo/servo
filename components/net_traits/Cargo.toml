@@ -30,4 +30,4 @@ log = "0.3.5"
 serde = "0.7"
 serde_macros = "0.7"
 url = {version = "0.5.7", features = ["heap_size"]}
-websocket = "0.15.2"
+websocket = "0.16.1"

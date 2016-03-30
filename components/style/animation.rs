@@ -25,7 +25,7 @@ use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
 use properties::style_struct_traits::TAnimation;
-use properties::{ComputedValues, TComputedValues};
+use properties::{ComputedValues, ServoComputedValues};
 use std::cmp::Ordering;
 use std::iter::repeat;
 use std::sync::mpsc::Sender;
@@ -69,8 +69,8 @@ impl PropertyAnimation {
     /// Any number of animations may be returned, from zero (if the property did not animate) to
     /// one (for a single transition property) to arbitrarily many (for `all`).
     pub fn from_transition(transition_index: usize,
-                           old_style: &ComputedValues,
-                           new_style: &mut ComputedValues)
+                           old_style: &ServoComputedValues,
+                           new_style: &mut ServoComputedValues)
                            -> Vec<PropertyAnimation> {
         let mut result = Vec::new();
         let transition_property =
@@ -102,8 +102,8 @@ impl PropertyAnimation {
 
     fn from_transition_property(transition_property: TransitionProperty,
                                 transition_index: usize,
-                                old_style: &ComputedValues,
-                                new_style: &mut ComputedValues)
+                                old_style: &ServoComputedValues,
+                                new_style: &mut ServoComputedValues)
                                 -> Option<PropertyAnimation> {
         let animation_style = new_style.get_animation();
         macro_rules! match_transition {
@@ -197,7 +197,7 @@ impl PropertyAnimation {
         }
     }
 
-    pub fn update(&self, style: &mut ComputedValues, time: f64) {
+    pub fn update(&self, style: &mut ServoComputedValues, time: f64) {
         let progress = match self.timing_function {
             TransitionTimingFunction::CubicBezier(p1, p2) => {
                 // See `WebCore::AnimationBase::solveEpsilon(double)` in WebKit.
@@ -930,11 +930,11 @@ impl<T> GetMod for Vec<T> {
 /// Inserts transitions into the queue of running animations as applicable for the given style
 /// difference. This is called from the layout worker threads. Returns true if any animations were
 /// kicked off and false otherwise.
-pub fn start_transitions_if_applicable<C: TComputedValues>(new_animations_sender: &Mutex<Sender<Animation>>,
-                                                           node: OpaqueNode,
-                                                           old_style: &C,
-                                                           new_style: &mut C)
-                                                           -> bool {
+pub fn start_transitions_if_applicable<C: ComputedValues>(new_animations_sender: &Mutex<Sender<Animation>>,
+                                                          node: OpaqueNode,
+                                                          old_style: &C,
+                                                          new_style: &mut C)
+                                                          -> bool {
     let mut had_animations = false;
     for i in 0..new_style.get_animation().transition_count() {
         // Create any property animations, if applicable.
@@ -965,7 +965,7 @@ pub fn start_transitions_if_applicable<C: TComputedValues>(new_animations_sender
 
 /// Updates a single animation and associated style based on the current time. If `damage` is
 /// provided, inserts the appropriate restyle damage.
-pub fn update_style_for_animation<C: TComputedValues,
+pub fn update_style_for_animation<C: ComputedValues,
                                   Damage: TRestyleDamage<ConcreteComputedValues=C>>(animation: &Animation,
                                                                                     style: &mut Arc<C>,
                                                                                     damage: Option<&mut Damage>) {

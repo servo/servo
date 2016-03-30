@@ -8,7 +8,7 @@ use dom::OpaqueNode;
 use error_reporting::ParseErrorReporter;
 use euclid::Size2D;
 use matching::{ApplicableDeclarationsCache, StyleSharingCandidateCache};
-use properties::TComputedValues;
+use properties::ComputedValues;
 use selector_impl::SelectorImplExt;
 use selector_matching::Stylist;
 use std::cell::RefCell;
@@ -55,12 +55,12 @@ pub struct SharedStyleContext<Impl: SelectorImplExt> {
     pub error_reporter: Box<ParseErrorReporter + Sync>,
 }
 
-pub struct LocalStyleContext<C: TComputedValues> {
+pub struct LocalStyleContext<C: ComputedValues> {
     pub applicable_declarations_cache: RefCell<ApplicableDeclarationsCache<C>>,
     pub style_sharing_candidate_cache: RefCell<StyleSharingCandidateCache<C>>,
 }
 
-pub trait StyleContext<'a, Impl: SelectorImplExt, C: TComputedValues> {
+pub trait StyleContext<'a, Impl: SelectorImplExt, C: ComputedValues> {
 
     fn shared_context(&self) -> &'a SharedStyleContext<Impl>;
     fn local_context(&self) -> &LocalStyleContext<C>;

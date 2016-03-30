@@ -56,32 +56,6 @@ class MachCommands(CommandBase):
         if not hasattr(self.context, "built_tests"):
             self.context.built_tests = False
 
-    def ensure_built_tests(self, release=False):
-        if self.context.built_tests:
-            return
-        returncode = Registrar.dispatch(
-            'build-tests', context=self.context, release=release)
-        if returncode:
-            sys.exit(returncode)
-        self.context.built_tests = True
-
-    def find_test(self, prefix, release=False):
-        build_mode = "release" if release else "debug"
-        target_contents = os.listdir(path.join(
-            self.get_target_dir(), build_mode))
-        for filename in target_contents:
-            if filename.startswith(prefix + "-"):
-                filepath = path.join(
-                    self.get_target_dir(), build_mode, filename)
-
-                if path.isfile(filepath) and os.access(filepath, os.X_OK):
-                    return filepath
-
-    def run_test(self, prefix, args=[], release=False):
-        t = self.find_test(prefix, release=release)
-        if t:
-            return call([t] + args, env=self.build_env())
-
     @Command('test',
              description='Run all Servo tests',
              category='testing')
@@ -163,10 +137,17 @@ class MachCommands(CommandBase):
     @CommandArgument('test_name', nargs=argparse.REMAINDER,
                      help="Only run tests that match this pattern or file path")
     def test_unit(self, test_name=None, package=None):
-        properties = json.loads(subprocess.check_output([
+        subprocess.check_output([
             sys.executable,
             path.join(self.context.topdir, "components", "style", "list_properties.py")
-        ]))
+        ])
+
+        this_file = os.path.dirname(__file__)
+        servo_doc_path = os.path.abspath(os.path.join(this_file, '../', '../', 'target', 'doc', 'servo'))
+
+        with open(os.path.join(servo_doc_path, 'css-properties.json'), 'r') as property_file:
+            properties = json.loads(property_file.read())
+
         assert len(properties) >= 100
         assert "margin-top" in properties
         assert "margin" in properties

@@ -862,10 +862,6 @@ impl VirtualMethods for HTMLInputElement {
         }
 
         if event.type_() == atom!("click") && !event.DefaultPrevented() {
-            if let InputType::InputRadio = self.input_type.get() {
-                self.update_checked_state(true, true);
-            }
-
             // TODO: Dispatch events for non activatable inputs
             // https://html.spec.whatwg.org/multipage/#common-input-element-events
 

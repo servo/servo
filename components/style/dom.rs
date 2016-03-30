@@ -6,7 +6,7 @@
 
 use data::PrivateStyleData;
 use element_state::ElementState;
-use properties::{PropertyDeclaration, PropertyDeclarationBlock, TComputedValues};
+use properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use selector_impl::ElementExt;
 use selectors::Element;
@@ -42,7 +42,7 @@ impl OpaqueNode {
 }
 
 pub trait TRestyleDamage : BitOr<Output=Self> + Copy {
-    type ConcreteComputedValues: TComputedValues;
+    type ConcreteComputedValues: ComputedValues;
     fn compute(old: Option<&Arc<Self::ConcreteComputedValues>>, new: &Self::ConcreteComputedValues) -> Self;
     fn rebuild_and_reflow() -> Self;
 }
@@ -51,7 +51,7 @@ pub trait TNode : Sized + Copy + Clone {
     type ConcreteElement: TElement<ConcreteNode = Self, ConcreteDocument = Self::ConcreteDocument>;
     type ConcreteDocument: TDocument<ConcreteNode = Self, ConcreteElement = Self::ConcreteElement>;
     type ConcreteRestyleDamage: TRestyleDamage<ConcreteComputedValues = Self::ConcreteComputedValues>;
-    type ConcreteComputedValues: TComputedValues;
+    type ConcreteComputedValues: ComputedValues;
 
     fn to_unsafe(&self) -> UnsafeNode;
     unsafe fn from_unsafe(n: &UnsafeNode) -> Self;

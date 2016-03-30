@@ -1484,6 +1484,18 @@
             "url": "/_mozilla/css/float_right_intrinsic_width_a.html"
           }
         ],
+        "css/float_speculation_negative_inline_margins_a.html": [
+          {
+            "path": "css/float_speculation_negative_inline_margins_a.html",
+            "references": [
+              [
+                "/_mozilla/css/float_speculation_negative_inline_margins_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/float_speculation_negative_inline_margins_a.html"
+          }
+        ],
         "css/float_table_a.html": [
           {
             "path": "css/float_table_a.html",
@@ -1904,6 +1916,18 @@
             "url": "/_mozilla/css/iframe/stacking_context_position_a.html"
           }
         ],
+        "css/image_percentage_dimen.html": [
+          {
+            "path": "css/image_percentage_dimen.html",
+            "references": [
+              [
+                "/_mozilla/css/image_percentage_dimen_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/image_percentage_dimen.html"
+          }
+        ],
         "css/image_rendering_auto_a.html": [
           {
             "path": "css/image_rendering_auto_a.html",
@@ -2082,6 +2106,30 @@
               ]
             ],
             "url": "/_mozilla/css/incremental_text_color_a.html"
+          }
+        ],
+        "css/incremental_trailing_whitespace_a.html": [
+          {
+            "path": "css/incremental_trailing_whitespace_a.html",
+            "references": [
+              [
+                "/_mozilla/css/incremental_trailing_whitespace_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/incremental_trailing_whitespace_a.html"
+          }
+        ],
+        "css/incremental_trailing_whitespace_ref.html": [
+          {
+            "path": "css/incremental_trailing_whitespace_ref.html",
+            "references": [
+              [
+                "/_mozilla/css/incremental_trailing_whitespace_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/incremental_trailing_whitespace_ref.html"
           }
         ],
         "css/incremental_visibility_a.html": [
@@ -5592,6 +5640,12 @@
             "url": "/_mozilla/css/float_relative_to_position.html"
           }
         ],
+        "css/meta_viewport_resize.html": [
+          {
+            "path": "css/meta_viewport_resize.html",
+            "url": "/_mozilla/css/meta_viewport_resize.html"
+          }
+        ],
         "css/test_variable_legal_values.html": [
           {
             "path": "css/test_variable_legal_values.html",
@@ -5986,6 +6040,12 @@
           {
             "path": "mozilla/htmlfontelement_size_attribute.html",
             "url": "/_mozilla/mozilla/htmlfontelement_size_attribute.html"
+          }
+        ],
+        "mozilla/htmllabel-activation.html": [
+          {
+            "path": "mozilla/htmllabel-activation.html",
+            "url": "/_mozilla/mozilla/htmllabel-activation.html"
           }
         ],
         "mozilla/htmlspacechars.html": [
@@ -7822,6 +7882,18 @@
           "url": "/_mozilla/css/float_right_intrinsic_width_a.html"
         }
       ],
+      "css/float_speculation_negative_inline_margins_a.html": [
+        {
+          "path": "css/float_speculation_negative_inline_margins_a.html",
+          "references": [
+            [
+              "/_mozilla/css/float_speculation_negative_inline_margins_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/float_speculation_negative_inline_margins_a.html"
+        }
+      ],
       "css/float_table_a.html": [
         {
           "path": "css/float_table_a.html",
@@ -8242,6 +8314,18 @@
           "url": "/_mozilla/css/iframe/stacking_context_position_a.html"
         }
       ],
+      "css/image_percentage_dimen.html": [
+        {
+          "path": "css/image_percentage_dimen.html",
+          "references": [
+            [
+              "/_mozilla/css/image_percentage_dimen_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/image_percentage_dimen.html"
+        }
+      ],
       "css/image_rendering_auto_a.html": [
         {
           "path": "css/image_rendering_auto_a.html",
@@ -8420,6 +8504,30 @@
             ]
           ],
           "url": "/_mozilla/css/incremental_text_color_a.html"
+        }
+      ],
+      "css/incremental_trailing_whitespace_a.html": [
+        {
+          "path": "css/incremental_trailing_whitespace_a.html",
+          "references": [
+            [
+              "/_mozilla/css/incremental_trailing_whitespace_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/incremental_trailing_whitespace_a.html"
+        }
+      ],
+      "css/incremental_trailing_whitespace_ref.html": [
+        {
+          "path": "css/incremental_trailing_whitespace_ref.html",
+          "references": [
+            [
+              "/_mozilla/css/incremental_trailing_whitespace_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/incremental_trailing_whitespace_ref.html"
         }
       ],
       "css/incremental_visibility_a.html": [

@@ -14,12 +14,10 @@ use euclid::size::Size2D;
 use gfx_traits::color;
 use ipc_channel::ipc::IpcSharedMemory;
 use ipc_channel::ipc::{self, IpcSender};
-use ipc_channel::router::ROUTER;
 use num::ToPrimitive;
 use premultiplytable::PREMULTIPLY_TABLE;
 use std::borrow::ToOwned;
 use std::mem;
-use std::sync::mpsc::channel;
 use util::opts;
 use util::thread::spawn_named;
 use util::vec::byte_swap;
@@ -127,13 +125,11 @@ impl<'a> CanvasPaintThread<'a> {
                  -> IpcSender<CanvasMsg> {
         // TODO(pcwalton): Ask the pipeline to create this for us instead of spawning it directly.
         // This will be needed for multiprocess Servo.
-        let (out_of_process_chan, out_of_process_port) = ipc::channel::<CanvasMsg>().unwrap();
-        let (in_process_chan, in_process_port) = channel();
-        ROUTER.route_ipc_receiver_to_mpsc_sender(out_of_process_port, in_process_chan);
+        let (sender, receiver) = ipc::channel::<CanvasMsg>().unwrap();
         spawn_named("CanvasThread".to_owned(), move || {
             let mut painter = CanvasPaintThread::new(size, webrender_api_sender);
             loop {
-                let msg = in_process_port.recv();
+                let msg = receiver.recv();
                 match msg.unwrap() {
                     CanvasMsg::Canvas2d(message) => {
                         match message {
@@ -209,7 +205,7 @@ impl<'a> CanvasPaintThread<'a> {
             }
         });
 
-        out_of_process_chan
+        sender
     }
 
     fn save_context_state(&mut self) {

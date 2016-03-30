@@ -63,12 +63,15 @@ impl Activatable for HTMLLabelElement {
 
     // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
-        synthetic_click_activation(self.upcast::<Element>(),
-                                   false,
-                                   false,
-                                   false,
-                                   false,
-                                   ActivationSource::NotFromClick);
+        if let Some(e) = self.GetControl() {
+            let elem = e.upcast::<Element>();
+            synthetic_click_activation(elem,
+                                       false,
+                                       false,
+                                       false,
+                                       false,
+                                       ActivationSource::NotFromClick);
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#implicit-submission
