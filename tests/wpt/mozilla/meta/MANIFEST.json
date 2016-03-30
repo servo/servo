@@ -1916,6 +1916,18 @@
             "url": "/_mozilla/css/iframe/stacking_context_position_a.html"
           }
         ],
+        "css/image_percentage_dimen.html": [
+          {
+            "path": "css/image_percentage_dimen.html",
+            "references": [
+              [
+                "/_mozilla/css/image_percentage_dimen_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/image_percentage_dimen.html"
+          }
+        ],
         "css/image_rendering_auto_a.html": [
           {
             "path": "css/image_rendering_auto_a.html",
@@ -8300,6 +8312,18 @@
             ]
           ],
           "url": "/_mozilla/css/iframe/stacking_context_position_a.html"
+        }
+      ],
+      "css/image_percentage_dimen.html": [
+        {
+          "path": "css/image_percentage_dimen.html",
+          "references": [
+            [
+              "/_mozilla/css/image_percentage_dimen_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/image_percentage_dimen.html"
         }
       ],
       "css/image_rendering_auto_a.html": [
