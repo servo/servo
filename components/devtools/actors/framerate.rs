@@ -7,7 +7,8 @@ use actors::timeline::HighResolutionStamp;
 use devtools_traits::DevtoolScriptControlMsg;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
-use rustc_serialize::json;
+use serde_json::Value;
+use std::collections::BTreeMap;
 use std::mem;
 use std::net::TcpStream;
 use time::precise_time_ns;
@@ -30,7 +31,7 @@ impl Actor for FramerateActor {
     fn handle_message(&self,
                       _registry: &ActorRegistry,
                       _msg_type: &str,
-                      _msg: &json::Object,
+                      _msg: &BTreeMap<String, Value>,
                       _stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(ActorMessageStatus::Ignored)
     }

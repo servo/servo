@@ -12,8 +12,7 @@ use devtools_traits::{ComputedNodeLayout, DevtoolScriptControlMsg, NodeInfo};
 use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::PipelineId;
 use protocol::JsonPacketStream;
-use rustc_serialize::json::{self, Json};
-use serde_json;
+use serde_json::{self, Value};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::net::TcpStream;
@@ -27,13 +26,13 @@ pub struct InspectorActor {
     pub pipeline: PipelineId,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct GetHighlighterReply {
     highligter: HighlighterMsg, // sic.
     from: String,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct HighlighterMsg {
     actor: String,
 }
@@ -48,12 +47,12 @@ pub struct NodeActor {
     pipeline: PipelineId,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ShowBoxModelReply {
     from: String,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct HideBoxModelReply {
     from: String,
 }
@@ -66,7 +65,7 @@ impl Actor for HighlighterActor {
     fn handle_message(&self,
                       _registry: &ActorRegistry,
                       msg_type: &str,
-                      _msg: &json::Object,
+                      _msg: &BTreeMap<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "showBoxModel" => {
@@ -90,7 +89,7 @@ impl Actor for HighlighterActor {
     }
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ModifyAttributeReply {
     from: String,
 }
@@ -103,14 +102,14 @@ impl Actor for NodeActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      msg: &json::Object,
+                      msg: &BTreeMap<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "modifyAttributes" => {
                 let target = msg.get("to").unwrap().as_string().unwrap();
                 let mods = msg.get("modifications").unwrap().as_array().unwrap();
                 let modifications = mods.iter().map(|json_mod| {
-                    json::decode(&json_mod.to_string()).unwrap()
+                    serde_json::from_str(&serde_json::to_string(json_mod).unwrap()).unwrap()
                 }).collect();
 
                 self.script_chan.send(ModifyAttribute(self.pipeline,
@@ -129,26 +128,26 @@ impl Actor for NodeActor {
     }
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct GetWalkerReply {
     from: String,
     walker: WalkerMsg,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct WalkerMsg {
     actor: String,
     root: NodeActorMsg,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct AttrMsg {
     namespace: String,
     name: String,
     value: String,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct NodeActorMsg {
     actor: String,
     baseURI: String,
@@ -245,23 +244,23 @@ struct WalkerActor {
     pipeline: PipelineId,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct QuerySelectorReply {
     from: String,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct DocumentElementReply {
     from: String,
     node: NodeActorMsg,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ClearPseudoclassesReply {
     from: String,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ChildrenReply {
     hasFirst: bool,
     hasLast: bool,
@@ -277,7 +276,7 @@ impl Actor for WalkerActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      msg: &json::Object,
+                      msg: &BTreeMap<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "querySelector" => {
@@ -336,13 +335,13 @@ impl Actor for WalkerActor {
     }
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct GetPageStyleReply {
     from: String,
     pageStyle: PageStyleMsg,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct PageStyleMsg {
     actor: String,
 }
@@ -353,7 +352,7 @@ struct PageStyleActor {
     pipeline: PipelineId,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct GetAppliedReply {
     entries: Vec<AppliedEntry>,
     rules: Vec<AppliedRule>,
@@ -361,24 +360,25 @@ struct GetAppliedReply {
     from: String,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct GetComputedReply {
     computed: Vec<u32>, //XXX all css props
     from: String,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct AppliedEntry {
     rule: String,
-    pseudoElement: Json,
+    pseudoElement: Value,
     isSystem: bool,
     matchedSelectors: Vec<String>,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct AppliedRule {
     actor: String,
-    __type__: u32,
+    #[serde(rename = "type")]
+    type_: String,
     href: String,
     cssText: String,
     line: u32,
@@ -386,7 +386,7 @@ struct AppliedRule {
     parentStyleSheet: String,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct AppliedSheet {
     actor: String,
     href: String,
@@ -451,7 +451,7 @@ impl Actor for PageStyleActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      msg: &json::Object,
+                      msg: &BTreeMap<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getApplied" => {
@@ -493,7 +493,7 @@ impl Actor for PageStyleActor {
                 } = rx.recv().unwrap();
 
                 let auto_margins = msg.get("autoMargins")
-                    .and_then(&Json::as_boolean).unwrap_or(false);
+                    .and_then(&Value::as_boolean).unwrap_or(false);
 
                 // http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/styles.js
                 let msg = GetLayoutReply {
@@ -528,8 +528,8 @@ impl Actor for PageStyleActor {
                     width: width,
                     height: height,
                 };
-                let msg = &serde_json::to_string(&msg).unwrap();
-                let msg = Json::from_str(msg).unwrap();
+                let msg = serde_json::to_string(&msg).unwrap();
+                let msg = serde_json::from_str::<Value>(&msg).unwrap();
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             }
@@ -547,7 +547,7 @@ impl Actor for InspectorActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      _msg: &json::Object,
+                      _msg: &BTreeMap<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getWalker" => {

@@ -21,7 +21,6 @@ extern crate heapsize;
 extern crate hyper;
 extern crate ipc_channel;
 extern crate msg;
-extern crate rustc_serialize;
 extern crate serde;
 extern crate time;
 extern crate url;
@@ -32,7 +31,6 @@ use hyper::http::RawStatus;
 use hyper::method::Method;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
-use rustc_serialize::{Decodable, Decoder};
 use std::net::TcpStream;
 use time::Duration;
 use time::Tm;
@@ -218,24 +216,10 @@ pub enum DevtoolScriptControlMsg {
     RequestAnimationFrame(PipelineId, String),
 }
 
-#[derive(RustcEncodable, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Modification {
     pub attributeName: String,
     pub newValue: Option<String>,
-}
-
-impl Decodable for Modification {
-    fn decode<D: Decoder>(d: &mut D) -> Result<Modification, D::Error> {
-        d.read_struct("Modification", 2, |d|
-            Ok(Modification {
-                attributeName: try!(d.read_struct_field("attributeName", 0, Decodable::decode)),
-                newValue: match d.read_struct_field("newValue", 1, Decodable::decode) {
-                    Ok(opt) => opt,
-                    Err(_) => None
-                }
-            })
-        )
-    }
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -264,9 +248,10 @@ bitflags! {
     }
 }
 
-#[derive(RustcEncodable, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct PageError {
-    pub _type: String,
+    #[serde(rename = "type")]
+    pub type_: String,
     pub errorMessage: String,
     pub sourceName: String,
     pub lineText: String,
@@ -281,9 +266,10 @@ pub struct PageError {
     pub private: bool,
 }
 
-#[derive(RustcEncodable, Deserialize, Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct ConsoleAPI {
-    pub _type: String,
+    #[serde(rename = "type")]
+    pub type_: String,
     pub level: String,
     pub filename: String,
     pub lineNumber: u32,

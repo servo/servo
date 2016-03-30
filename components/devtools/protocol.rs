@@ -6,26 +6,25 @@
 //! [JSON packets]
 //! (https://wiki.mozilla.org/Remote_Debugging_Protocol_Stream_Transport#JSON_Packets).
 
-use rustc_serialize::json::Json;
-use rustc_serialize::json::ParserError::{IoError, SyntaxError};
-use rustc_serialize::{Encodable, json};
+use serde::Serialize;
+use serde_json::{self, Value};
 use std::error::Error;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
 pub trait JsonPacketStream {
-    fn write_json_packet<T: Encodable>(&mut self, obj: &T);
-    fn read_json_packet(&mut self) -> Result<Option<Json>, String>;
+    fn write_json_packet<T: Serialize>(&mut self, obj: &T);
+    fn read_json_packet(&mut self) -> Result<Option<Value>, String>;
 }
 
 impl JsonPacketStream for TcpStream {
-    fn write_json_packet<T: Encodable>(&mut self, obj: &T) {
-        let s = json::encode(obj).unwrap().replace("__type__", "type");
+    fn write_json_packet<T: Serialize>(&mut self, obj: &T) {
+        let s = serde_json::to_string(obj).unwrap();
         println!("<- {}", s);
         write!(self, "{}:{}", s.len(), s).unwrap();
     }
 
-    fn read_json_packet(&mut self) -> Result<Option<Json>, String> {
+    fn read_json_packet(&mut self) -> Result<Option<Value>, String> {
         // https://wiki.mozilla.org/Remote_Debugging_Protocol_Stream_Transport
         // In short, each JSON packet is [ascii length]:[JSON data of given length]
         let mut buffer = vec!();
@@ -50,11 +49,18 @@ impl JsonPacketStream for TcpStream {
                     let mut packet = String::new();
                     self.take(packet_len).read_to_string(&mut packet).unwrap();
                     println!("{}", packet);
-                    return match Json::from_str(&packet) {
+                    return match serde_json::from_str(&packet) {
                         Ok(json) => Ok(Some(json)),
                         Err(err) => match err {
-                            IoError(ioerr) => return Err(ioerr.description().to_owned()),
-                            SyntaxError(_, l, c) => return Err(format!("syntax at {}:{}", l, c)),
+                            serde_json::Error::Io(ioerr) => {
+                                return Err(ioerr.description().to_owned())
+                            },
+                            serde_json::Error::Syntax(_, l, c) => {
+                                return Err(format!("syntax at {}:{}", l, c))
+                            },
+                            serde_json::Error::FromUtf8(e) => {
+                                return Err(e.description().to_owned())
+                            },
                         },
                     };
                 },

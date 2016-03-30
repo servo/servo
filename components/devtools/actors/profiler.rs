@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
-use rustc_serialize::json;
+use serde_json::Value;
+use std::collections::BTreeMap;
 use std::net::TcpStream;
 
 pub struct ProfilerActor {
@@ -18,7 +19,7 @@ impl Actor for ProfilerActor {
     fn handle_message(&self,
                       _registry: &ActorRegistry,
                       _msg_type: &str,
-                      _msg: &json::Object,
+                      _msg: &BTreeMap<String, Value>,
                       _stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(ActorMessageStatus::Ignored)
     }

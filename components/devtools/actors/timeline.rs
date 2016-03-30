@@ -11,8 +11,10 @@ use devtools_traits::{PreciseTime, TimelineMarker, TimelineMarkerType};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
 use protocol::JsonPacketStream;
-use rustc_serialize::{Encodable, Encoder, json};
+use serde::{Serialize, Serializer};
+use serde_json::Value;
 use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -41,25 +43,25 @@ struct Emitter {
     memory_actor: Option<String>,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct IsRecordingReply {
     from: String,
     value: bool
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct StartReply {
     from: String,
     value: HighResolutionStamp,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct StopReply {
     from: String,
     value: HighResolutionStamp,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct TimelineMarkerReply {
     name: String,
     start: HighResolutionStamp,
@@ -68,25 +70,28 @@ struct TimelineMarkerReply {
     endStack: Option<Vec<()>>,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct MarkersEmitterReply {
-    __type__: String,
+    #[serde(rename = "type")]
+    type_: String,
     markers: Vec<TimelineMarkerReply>,
     from: String,
     endTime: HighResolutionStamp,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct MemoryEmitterReply {
-    __type__: String,
+    #[serde(rename = "type")]
+    type_: String,
     from: String,
     delta: HighResolutionStamp,
     measurement: TimelineMemoryReply,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct FramerateEmitterReply {
-    __type__: String,
+    #[serde(rename = "type")]
+    type_: String,
     from: String,
     delta: HighResolutionStamp,
     timestamps: Vec<HighResolutionStamp>,
@@ -110,9 +115,9 @@ impl HighResolutionStamp {
     }
 }
 
-impl Encodable for HighResolutionStamp {
-    fn encode<S: Encoder>(&self, s: &mut S) -> Result<(), S::Error> {
-        self.0.encode(s)
+impl Serialize for HighResolutionStamp {
+    fn serialize<S: Serializer>(&self, s: &mut S) -> Result<(), S::Error> {
+        self.0.serialize(s)
     }
 }
 
@@ -172,7 +177,7 @@ impl Actor for TimelineActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      msg: &json::Object,
+                      msg: &BTreeMap<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "start" => {
@@ -290,7 +295,7 @@ impl Emitter {
     fn send(&mut self, markers: Vec<TimelineMarkerReply>) -> () {
         let end_time = PreciseTime::now();
         let reply = MarkersEmitterReply {
-            __type__: "markers".to_owned(),
+            type_: "markers".to_owned(),
             markers: markers,
             from: self.from.clone(),
             endTime: HighResolutionStamp::new(self.start_stamp, end_time),
@@ -302,7 +307,7 @@ impl Emitter {
             let registry = lock.as_mut().unwrap();
             let framerate_actor = registry.find_mut::<FramerateActor>(actor_name);
             let framerateReply = FramerateEmitterReply {
-                __type__: "framerate".to_owned(),
+                type_: "framerate".to_owned(),
                 from: framerate_actor.name(),
                 delta: HighResolutionStamp::new(self.start_stamp, end_time),
                 timestamps: framerate_actor.take_pending_ticks(),
@@ -314,7 +319,7 @@ impl Emitter {
             let registry = self.registry.lock().unwrap();
             let memory_actor = registry.find::<MemoryActor>(actor_name);
             let memoryReply = MemoryEmitterReply {
-                __type__: "memory".to_owned(),
+                type_: "memory".to_owned(),
                 from: memory_actor.name(),
                 delta: HighResolutionStamp::new(self.start_stamp, end_time),
                 measurement: memory_actor.measure(),
