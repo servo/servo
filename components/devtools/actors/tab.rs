@@ -11,13 +11,14 @@ use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use actors::console::ConsoleActor;
 use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
 use protocol::JsonPacketStream;
-use rustc_serialize::json;
+use serde_json::Value;
+use std::collections::BTreeMap;
 use std::net::TcpStream;
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct TabTraits;
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct TabAttachedReply {
     from: String,
     __type__: String,
@@ -27,24 +28,24 @@ struct TabAttachedReply {
     traits: TabTraits,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct TabDetachedReply {
     from: String,
     __type__: String,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ReconfigureReply {
     from: String
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ListFramesReply {
     from: String,
     frames: Vec<FrameMsg>,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct FrameMsg {
     id: u32,
     url: String,
@@ -52,7 +53,7 @@ struct FrameMsg {
     parentID: u32,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 pub struct TabActorMsg {
     actor: String,
     title: String,
@@ -85,7 +86,7 @@ impl Actor for TabActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      _msg: &json::Object,
+                      _msg: &BTreeMap<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "reconfigure" => {

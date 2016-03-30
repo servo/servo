@@ -4,10 +4,11 @@
 
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use protocol::JsonPacketStream;
-use rustc_serialize::json;
+use serde_json::Value;
+use std::collections::BTreeMap;
 use std::net::TcpStream;
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ThreadAttachedReply {
     from: String,
     __type__: String,
@@ -16,21 +17,21 @@ struct ThreadAttachedReply {
     why: WhyMsg,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 enum PoppedFrameMsg {}
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct WhyMsg {
     __type__: String,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ThreadResumedReply {
     from: String,
     __type__: String,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ReconfigureReply {
     from: String
 }
@@ -55,7 +56,7 @@ impl Actor for ThreadActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      _msg: &json::Object,
+                      _msg: &BTreeMap<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "attach" => {

@@ -11,8 +11,10 @@ use devtools_traits::{PreciseTime, TimelineMarker, TimelineMarkerType};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::PipelineId;
 use protocol::JsonPacketStream;
-use rustc_serialize::{Encodable, Encoder, json};
+use serde::{Serialize, Serializer};
+use serde_json::Value;
 use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -41,25 +43,25 @@ struct Emitter {
     memory_actor: Option<String>,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct IsRecordingReply {
     from: String,
     value: bool
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct StartReply {
     from: String,
     value: HighResolutionStamp,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct StopReply {
     from: String,
     value: HighResolutionStamp,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct TimelineMarkerReply {
     name: String,
     start: HighResolutionStamp,
@@ -68,7 +70,7 @@ struct TimelineMarkerReply {
     endStack: Option<Vec<()>>,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct MarkersEmitterReply {
     __type__: String,
     markers: Vec<TimelineMarkerReply>,
@@ -76,7 +78,7 @@ struct MarkersEmitterReply {
     endTime: HighResolutionStamp,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct MemoryEmitterReply {
     __type__: String,
     from: String,
@@ -84,7 +86,7 @@ struct MemoryEmitterReply {
     measurement: TimelineMemoryReply,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct FramerateEmitterReply {
     __type__: String,
     from: String,
@@ -95,7 +97,7 @@ struct FramerateEmitterReply {
 /// HighResolutionStamp is struct that contains duration in milliseconds
 /// with accuracy to microsecond that shows how much time has passed since
 /// actor registry inited
-/// analog https://w3c.github.io/hr-time/#sec-DOMHighResTimeStamp
+/// analog https://w3c.github.io/hr-time/#[derive(Serialize)]ec-DOMHighResTimeStamp
 pub struct HighResolutionStamp(f64);
 
 impl HighResolutionStamp {
@@ -110,9 +112,9 @@ impl HighResolutionStamp {
     }
 }
 
-impl Encodable for HighResolutionStamp {
-    fn encode<S: Encoder>(&self, s: &mut S) -> Result<(), S::Error> {
-        self.0.encode(s)
+impl Serialize for HighResolutionStamp {
+    fn serialize<S: Serializer>(&self, s: &mut S) -> Result<(), S::Error> {
+        self.0.serialize(s)
     }
 }
 
@@ -172,7 +174,7 @@ impl Actor for TimelineActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      msg: &json::Object,
+                      msg: &BTreeMap<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "start" => {
