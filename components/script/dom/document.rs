@@ -224,8 +224,6 @@ pub struct Document {
     touchpad_pressure_phase: Cell<TouchpadPressurePhase>,
     /// The document's origin.
     origin: Origin,
-    /// The document's effective script origin.
-    effective_script_origin: Origin,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1539,14 +1537,6 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#cookie-averse-document-object
     fn is_cookie_averse(&self) -> bool {
-        /// https://url.spec.whatwg.org/#network-scheme
-        fn url_has_network_scheme(url: &Url) -> bool {
-            match &*url.scheme {
-                "ftp" | "http" | "https" => true,
-                _ => false,
-            }
-        }
-
         self.browsing_context.is_none() || !url_has_network_scheme(&self.url)
     }
 
@@ -1555,10 +1545,6 @@ impl Document {
 
         self.window.layout().nodes_from_point(*page_point)
     }
-}
-
-fn url_uses_server_based_naming_authority(url: &Url) -> bool {
-    url.scheme == "http" || url.scheme == "https"
 }
 
 #[derive(PartialEq, HeapSizeOf)]
@@ -1589,6 +1575,14 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
     }
 }
 
+/// https://url.spec.whatwg.org/#network-scheme
+fn url_has_network_scheme(url: &Url) -> bool {
+    match &*url.scheme {
+        "ftp" | "http" | "https" => true,
+        _ => false,
+    }
+}
+
 impl Document {
     pub fn new_inherited(window: &Window,
                          browsing_context: Option<&BrowsingContext>,
@@ -1609,23 +1603,12 @@ impl Document {
 
         // Incomplete implementation of Document origin specification at
         // https://html.spec.whatwg.org/multipage/#origin:document
-        // using "has a browsing context" as a signifier for "served
-        // over the network".
-        let origin = if browsing_context.is_some() {
-            // Served over network, uses a URL scheme with server-based naming authority
-            if url_uses_server_based_naming_authority(&url) {
-                Origin::new(&url).alias()
-            } else {
-                Origin::opaque_identifier()
-            }
+        let origin = if url_has_network_scheme(&url) {
+            Origin::new(&url)
         } else {
             // Default to DOM standard behaviour
             Origin::opaque_identifier()
         };
-        // This is an incomplete simplification, since the only cases we implement
-        // for origins require the effective script origin to alias the document's
-        // origin.
-        let effective_script_origin = origin.alias();
 
         Document {
             node: Node::new_document_node(),
@@ -1691,7 +1674,6 @@ impl Document {
             https_state: Cell::new(HttpsState::None),
             touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
             origin: origin,
-            effective_script_origin: effective_script_origin,
         }
     }
 
@@ -1887,9 +1869,16 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
     fn Domain(&self) -> DOMString {
-        if let Some(host) = self.effective_script_origin.host() {
+        // Step 1.
+        if self.browsing_context().is_none() {
+            return DOMString::new();
+        }
+
+        if let Some(host) = self.origin.host() {
+            // Step 4.
             DOMString::from(host.serialize())
         } else {
+            // Step 3.
             DOMString::new()
         }
     }
