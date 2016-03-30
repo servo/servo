@@ -479,6 +479,7 @@ def check_webidl_spec(file_name, contents):
         "//dvcs.w3.org/hg",
         "//dom.spec.whatwg.org",
         "//domparsing.spec.whatwg.org",
+        "//drafts.csswg.org/cssom",
         "//drafts.fxtf.org",
         "//encoding.spec.whatwg.org",
         "//html.spec.whatwg.org",
