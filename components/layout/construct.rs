@@ -297,7 +297,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let specific_fragment_info = match node.type_id() {
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                         HTMLElementTypeId::HTMLIFrameElement))) => {
-                SpecificFragmentInfo::Iframe(box IframeFragmentInfo::new(node))
+                SpecificFragmentInfo::Iframe(IframeFragmentInfo::new(node))
             }
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                         HTMLElementTypeId::HTMLImageElement))) => {
@@ -578,7 +578,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 // Add whitespace results. They will be stripped out later on when
                 // between block elements, and retained when between inline elements.
                 let fragment_info = SpecificFragmentInfo::UnscannedText(
-                    UnscannedTextFragmentInfo::new(" ".to_owned(), None));
+                    box UnscannedTextFragmentInfo::new(" ".to_owned(), None));
                 properties::modify_style_for_replaced_content(&mut whitespace_style);
                 properties::modify_style_for_text(&mut whitespace_style);
                 let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
@@ -715,7 +715,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
         match text_content {
             TextContent::Text(string) => {
-                let info = UnscannedTextFragmentInfo::new(string, selection);
+                let info = box UnscannedTextFragmentInfo::new(string, selection);
                 let specific_fragment_info = SpecificFragmentInfo::UnscannedText(info);
                 fragments.fragments.push_back(Fragment::from_opaque_node_and_style(
                         node.opaque(),
@@ -728,7 +728,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 for content_item in content_items.into_iter() {
                     let specific_fragment_info = match content_item {
                         ContentItem::String(string) => {
-                            let info = UnscannedTextFragmentInfo::new(string, None);
+                            let info = box UnscannedTextFragmentInfo::new(string, None);
                             SpecificFragmentInfo::UnscannedText(info)
                         }
                         content_item => {
@@ -859,7 +859,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                         whitespace_damage)) => {
                     // Instantiate the whitespace fragment.
                     let fragment_info = SpecificFragmentInfo::UnscannedText(
-                        UnscannedTextFragmentInfo::new(" ".to_owned(), None));
+                        box UnscannedTextFragmentInfo::new(" ".to_owned(), None));
                     properties::modify_style_for_replaced_content(&mut whitespace_style);
                     properties::modify_style_for_text(&mut whitespace_style);
                     let fragment = Fragment::from_opaque_node_and_style(whitespace_node,
@@ -1241,7 +1241,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                         unscanned_marker_fragments.push_back(Fragment::new(
                             node,
                             SpecificFragmentInfo::UnscannedText(
-                                UnscannedTextFragmentInfo::new(text, None))));
+                                box UnscannedTextFragmentInfo::new(text, None))));
                         let marker_fragments = TextRunScanner::new().scan_for_runs(
                             &mut self.layout_context.font_context(),
                             unscanned_marker_fragments);
@@ -1848,7 +1848,7 @@ fn control_chars_to_fragment(node: &InlineFragmentNodeInfo,
                              restyle_damage: RestyleDamage)
                              -> Fragment {
     let info = SpecificFragmentInfo::UnscannedText(
-        UnscannedTextFragmentInfo::new(String::from(text), None));
+        box UnscannedTextFragmentInfo::new(String::from(text), None));
     let mut style = node.style.clone();
     properties::modify_style_for_text(&mut style);
     Fragment::from_opaque_node_and_style(node.address,

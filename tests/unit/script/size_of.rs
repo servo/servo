@@ -23,14 +23,14 @@ macro_rules! sizeof_checker (
             let old = $known_size;
             if new < old {
                 panic!("Your changes have decreased the stack size of commonly used DOM struct {} from {} to {}. \
-                        Good work! Please update the size in script/tests.rs",
+                        Good work! Please update the size in tests/unit/script/size_of.rs.",
                         stringify!($t), old, new)
             } else if new > old {
                 panic!("Your changes have increased the stack size of commonly used DOM struct {} from {} to {}. \
                         These structs are present in large quantities in the DOM, and increasing the size \
                         may dramatically affect our memory footprint. Please consider choosing a design which \
                         avoids this increase. If you feel that the increase is necessary, \
-                        update to the new size in script/tests.rs.",
+                        update to the new size in tests/unit/script/size_of.rs.",
                         stringify!($t), old, new)
         }
     });
