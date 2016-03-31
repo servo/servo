@@ -9,7 +9,9 @@ interface BluetoothRemoteGATTService {
     readonly attribute BluetoothDevice device;
     readonly attribute DOMString uuid;
     readonly attribute boolean isPrimary;
-    BluetoothRemoteGATTCharacteristic? getCharacteristic(/*DOMString characteristic*/);
+    BluetoothRemoteGATTCharacteristic? getCharacteristic((DOMString or unsigned long) characteristic);
+    sequence<BluetoothRemoteGATTCharacteristic>? getCharacteristics
+        (optional (DOMString or unsigned long) characteristic);
     //Promise<BluetoothRemoteGATTCharacteristic>getCharacteristic(BluetoothCharacteristicUUID characteristic);
     //Promise<sequence<BluetoothRemoteGATTCharacteristic>>
     //getCharacteristics(optional BluetoothCharacteristicUUID characteristic);
