@@ -58,6 +58,9 @@ def create_parser(product_choices=None):
 
     parser.add_argument("--binary", action="store",
                         type=abs_path, help="Binary to run tests against")
+    parser.add_argument('--binary-arg',
+                        default=[], action="append", dest="binary_args",
+                        help="Extra argument for the binary (servo)")
     parser.add_argument("--webdriver-binary", action="store", metavar="BINARY",
                         type=abs_path, help="WebDriver server binary to use")
     parser.add_argument("--processes", action="store", type=int, default=None,
