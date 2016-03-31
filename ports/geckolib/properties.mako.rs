@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+// STYLE_STRUCTS comes from components/style/properties.mako.rs; see build.rs for more details.
+
 use app_units::Au;
 % for style_struct in STYLE_STRUCTS:
 %if style_struct.gecko_name:
@@ -21,7 +23,7 @@ use style::properties::style_struct_traits::*;
 #[derive(Clone)]
 pub struct GeckoComputedValues {
     % for style_struct in STYLE_STRUCTS:
-    ${style_struct.ident}: Arc<Gecko${style_struct.name}>,
+    ${style_struct.ident}: Arc<Gecko${style_struct.trait_name}>,
     % endfor
 
     custom_properties: Option<Arc<ComputedValuesMap>>,
@@ -32,7 +34,7 @@ pub struct GeckoComputedValues {
 
 impl ComputedValues for GeckoComputedValues {
 % for style_struct in STYLE_STRUCTS:
-    type Concrete${style_struct.name} = Gecko${style_struct.name};
+    type Concrete${style_struct.trait_name} = Gecko${style_struct.trait_name};
 % endfor
 
     // These will go away, and we will never implement them.
@@ -44,7 +46,7 @@ impl ComputedValues for GeckoComputedValues {
            writing_mode: WritingMode,
            root_font_size: Au,
             % for style_struct in STYLE_STRUCTS:
-           ${style_struct.ident}: Arc<Gecko${style_struct.name}>,
+           ${style_struct.ident}: Arc<Gecko${style_struct.trait_name}>,
             % endfor
     ) -> Self {
         GeckoComputedValues {
@@ -66,15 +68,15 @@ impl ComputedValues for GeckoComputedValues {
 
     % for style_struct in STYLE_STRUCTS:
     #[inline]
-    fn clone_${style_struct.name.lower()}(&self) -> Arc<Self::Concrete${style_struct.name}> {
+    fn clone_${style_struct.trait_name_lower}(&self) -> Arc<Self::Concrete${style_struct.trait_name}> {
         self.${style_struct.ident}.clone()
     }
     #[inline]
-    fn get_${style_struct.name.lower()}<'a>(&'a self) -> &'a Self::Concrete${style_struct.name} {
+    fn get_${style_struct.trait_name_lower}<'a>(&'a self) -> &'a Self::Concrete${style_struct.trait_name} {
         &self.${style_struct.ident}
     }
     #[inline]
-    fn mutate_${style_struct.name.lower()}<'a>(&'a mut self) -> &'a mut Self::Concrete${style_struct.name} {
+    fn mutate_${style_struct.trait_name_lower}<'a>(&'a mut self) -> &'a mut Self::Concrete${style_struct.trait_name} {
         Arc::make_mut(&mut self.${style_struct.ident})
     }
     % endfor
@@ -91,28 +93,28 @@ impl ComputedValues for GeckoComputedValues {
 <%def name="declare_style_struct(style_struct)">
 #[derive(Clone, HeapSizeOf, Debug)]
 % if style_struct.gecko_name:
-pub struct Gecko${style_struct.name} {
+pub struct Gecko${style_struct.trait_name} {
     gecko: ${style_struct.gecko_name},
 }
 % else:
-pub struct Gecko${style_struct.name};
+pub struct Gecko${style_struct.trait_name};
 % endif
 </%def>
 
 <%def name="impl_style_struct(style_struct)">
-impl Gecko${style_struct.name} {
+impl Gecko${style_struct.trait_name} {
     #[allow(dead_code, unused_variables)]
     fn initial() -> Self {
 % if style_struct.gecko_name:
-        let result = Gecko${style_struct.name} { gecko: unsafe { zeroed() } };
+        let result = Gecko${style_struct.trait_name} { gecko: unsafe { zeroed() } };
         panic!("Need to invoke Gecko placement new");
 % else:
-        Gecko${style_struct.name}
+        Gecko${style_struct.trait_name}
 % endif
     }
 }
 %if style_struct.gecko_name:
-impl Drop for Gecko${style_struct.name} {
+impl Drop for Gecko${style_struct.trait_name} {
     fn drop(&mut self) {
         panic!("Need to invoke Gecko destructor");
     }
@@ -138,7 +140,7 @@ impl Debug for ${style_struct.gecko_name} {
 </%def>
 
 <%def name="raw_impl_trait(style_struct, skip_longhands=None, skip_additionals=None)">
-impl T${style_struct.name} for Gecko${style_struct.name} {
+impl T${style_struct.trait_name} for Gecko${style_struct.trait_name} {
     /*
      * Manually-Implemented Methods.
      */
@@ -167,8 +169,8 @@ impl T${style_struct.name} for Gecko${style_struct.name} {
 
 <%! MANUAL_STYLE_STRUCTS = [] %>
 <%def name="impl_trait(style_struct_name, skip_longhands=None, skip_additionals=None)">
-<%self:raw_impl_trait style_struct="${next(x for x in STYLE_STRUCTS if x.name == style_struct_name)}"
-                       skip_longhands="${skip_longhands}" skip_additionals="${skip_additionals}">
+<%self:raw_impl_trait style_struct="${next(x for x in STYLE_STRUCTS if x.trait_name == style_struct_name)}"
+                      skip_longhands="${skip_longhands}" skip_additionals="${skip_additionals}">
 ${caller.body()}
 </%self:raw_impl_trait>
 <% MANUAL_STYLE_STRUCTS.append(style_struct_name) %>
@@ -201,7 +203,7 @@ ${caller.body()}
 % for style_struct in STYLE_STRUCTS:
 ${declare_style_struct(style_struct)}
 ${impl_style_struct(style_struct)}
-% if not style_struct.name in MANUAL_STYLE_STRUCTS:
+% if not style_struct.trait_name in MANUAL_STYLE_STRUCTS:
 <%self:raw_impl_trait style_struct="${style_struct}"></%self:raw_impl_trait>
 % endif
 % endfor

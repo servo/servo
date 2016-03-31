@@ -51,7 +51,7 @@ pub struct FlexFlow {
     main_mode: Mode,
 }
 
-fn flex_style(fragment: &Fragment) -> &style_structs::Flex {
+fn flex_style(fragment: &Fragment) -> &style_structs::ServoFlex {
     fragment.style.get_flex()
 }
 

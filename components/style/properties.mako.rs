@@ -94,8 +94,10 @@ class Method(object):
 
 class StyleStruct(object):
     def __init__(self, name, inherited, gecko_name, additional_methods):
-        self.name = name
-        self.ident = to_rust_ident(name.lower())
+        self.struct_name = "Servo" + name
+        self.trait_name = name
+        self.trait_name_lower = name.lower()
+        self.ident = to_rust_ident(self.trait_name_lower)
         self.longhands = []
         self.inherited = inherited
         self.gecko_name = gecko_name
@@ -120,10 +122,10 @@ def switch_to_style_struct(name):
     global THIS_STYLE_STRUCT
 
     for style_struct in STYLE_STRUCTS:
-        if style_struct.name == name:
+        if style_struct.trait_name == name:
             THIS_STYLE_STRUCT = style_struct
             return ""
-    fail()
+    raise Exception("Failed to find the struct named " + name)
 %>
 
 pub mod longhands {
@@ -162,7 +164,7 @@ pub mod longhands {
             use properties::longhands;
             use properties::property_bit_field::PropertyBitField;
             use properties::{ComputedValues, ServoComputedValues, PropertyDeclaration};
-            use properties::style_struct_traits::T${THIS_STYLE_STRUCT.name};
+            use properties::style_struct_traits::T${THIS_STYLE_STRUCT.trait_name};
             use properties::style_structs;
             use std::collections::HashMap;
             use std::sync::Arc;
@@ -195,15 +197,16 @@ pub mod longhands {
                             declared_value, &custom_props, |value| match *value {
                                 DeclaredValue::Value(ref specified_value) => {
                                     let computed = specified_value.to_computed_value(context);
-                                    context.mutate_style().mutate_${THIS_STYLE_STRUCT.name.lower()}()
+                                    context.mutate_style().mutate_${THIS_STYLE_STRUCT.trait_name_lower}()
                                                           .set_${property.ident}(computed);
                                 }
                                 DeclaredValue::WithVariables { .. } => unreachable!(),
                                 DeclaredValue::Initial => {
                                     // We assume that it's faster to use copy_*_from rather than
                                     // set_*(get_initial_value());
-                                    let initial_struct = C::initial_values().get_${THIS_STYLE_STRUCT.name.lower()}();
-                                    context.mutate_style().mutate_${THIS_STYLE_STRUCT.name.lower()}()
+                                    let initial_struct = C::initial_values()
+                                                          .get_${THIS_STYLE_STRUCT.trait_name_lower}();
+                                    context.mutate_style().mutate_${THIS_STYLE_STRUCT.trait_name_lower}()
                                                           .copy_${property.ident}_from(initial_struct);
                                 },
                                 DeclaredValue::Inherit => {
@@ -212,8 +215,8 @@ pub mod longhands {
                                     //
                                     // FIXME: is it still?
                                     *cacheable = false;
-                                    let inherited_struct = inherited_style.get_${THIS_STYLE_STRUCT.name.lower()}();
-                                    context.mutate_style().mutate_${THIS_STYLE_STRUCT.name.lower()}()
+                                    let inherited_struct = inherited_style.get_${THIS_STYLE_STRUCT.trait_name_lower}();
+                                    context.mutate_style().mutate_${THIS_STYLE_STRUCT.trait_name_lower}()
                                            .copy_${property.ident}_from(inherited_struct);
                                 }
                             }, error_reporter
@@ -6117,7 +6120,7 @@ pub mod style_struct_traits {
     use super::longhands;
 
     % for style_struct in STYLE_STRUCTS:
-        pub trait T${style_struct.name}: Clone {
+        pub trait T${style_struct.trait_name}: Clone {
             % for longhand in style_struct.longhands:
                 #[allow(non_snake_case)]
                 fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T);
@@ -6138,23 +6141,23 @@ pub mod style_structs {
     use std::hash::{Hash, Hasher};
 
     % for style_struct in STYLE_STRUCTS:
-        % if style_struct.name == "Font":
+        % if style_struct.trait_name == "Font":
         #[derive(Clone, HeapSizeOf, Debug)]
         % else:
         #[derive(PartialEq, Clone, HeapSizeOf)]
         % endif
-        pub struct ${style_struct.name} {
+        pub struct ${style_struct.struct_name} {
             % for longhand in style_struct.longhands:
                 pub ${longhand.ident}: longhands::${longhand.ident}::computed_value::T,
             % endfor
-            % if style_struct.name == "Font":
+            % if style_struct.trait_name == "Font":
                 pub hash: u64,
             % endif
         }
-        % if style_struct.name == "Font":
+        % if style_struct.trait_name == "Font":
 
-        impl PartialEq for ${style_struct.name} {
-            fn eq(&self, other: &${style_struct.name}) -> bool {
+        impl PartialEq for ${style_struct.struct_name} {
+            fn eq(&self, other: &${style_struct.struct_name}) -> bool {
                 self.hash == other.hash
                 % for longhand in style_struct.longhands:
                     && self.${longhand.ident} == other.${longhand.ident}
@@ -6163,7 +6166,7 @@ pub mod style_structs {
         }
         % endif
 
-        impl super::style_struct_traits::T${style_struct.name} for ${style_struct.name} {
+        impl super::style_struct_traits::T${style_struct.trait_name} for ${style_struct.struct_name} {
             % for longhand in style_struct.longhands:
                 fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T) {
                     self.${longhand.ident} = v;
@@ -6172,18 +6175,18 @@ pub mod style_structs {
                     self.${longhand.ident} = other.${longhand.ident}.clone();
                 }
             % endfor
-            % if style_struct.name == "Animation":
+            % if style_struct.trait_name == "Animation":
                 fn transition_count(&self) -> usize {
                     self.transition_property.0.len()
                 }
-            % elif style_struct.name == "Border":
+            % elif style_struct.trait_name == "Border":
                 % for side in ["top", "right", "bottom", "left"]:
                 fn border_${side}_is_none_or_hidden_and_has_nonzero_width(&self) -> bool {
                     self.border_${side}_style.none_or_hidden() &&
                     self.border_${side}_width != ::app_units::Au(0)
                 }
                 % endfor
-            % elif style_struct.name == "Box":
+            % elif style_struct.trait_name == "Box":
                 fn clone_display(&self) -> longhands::display::computed_value::T {
                     self.display.clone()
                 }
@@ -6199,11 +6202,11 @@ pub mod style_structs {
                 fn overflow_y_is_visible(&self) -> bool {
                     self.overflow_y.0 == longhands::overflow_x::computed_value::T::visible
                 }
-            % elif style_struct.name == "Color":
+            % elif style_struct.trait_name == "Color":
                 fn clone_color(&self) -> longhands::color::computed_value::T {
                     self.color.clone()
                 }
-            % elif style_struct.name == "Font":
+            % elif style_struct.trait_name == "Font":
                 fn clone_font_size(&self) -> longhands::font_size::computed_value::T {
                     self.font_size.clone()
                 }
@@ -6218,7 +6221,7 @@ pub mod style_structs {
                     self.font_family.hash(&mut hasher);
                     self.hash = hasher.finish()
                 }
-            % elif style_struct.name == "InheritedBox":
+            % elif style_struct.trait_name == "InheritedBox":
                 fn clone_direction(&self) -> longhands::direction::computed_value::T {
                     self.direction.clone()
                 }
@@ -6228,16 +6231,16 @@ pub mod style_structs {
                 fn clone_text_orientation(&self) -> longhands::text_orientation::computed_value::T {
                     self.text_orientation.clone()
                 }
-            % elif style_struct.name == "InheritedText":
+            % elif style_struct.trait_name == "InheritedText":
                 fn clone__servo_text_decorations_in_effect(&self) ->
                     longhands::_servo_text_decorations_in_effect::computed_value::T {
                     self._servo_text_decorations_in_effect.clone()
                 }
-            % elif style_struct.name == "Outline":
+            % elif style_struct.trait_name == "Outline":
                 fn outline_is_none_or_hidden_and_has_nonzero_width(&self) -> bool {
                     self.outline_style.none_or_hidden() && self.outline_width != ::app_units::Au(0)
                 }
-            % elif style_struct.name == "Text":
+            % elif style_struct.trait_name == "Text":
                 fn has_underline(&self) -> bool {
                     self.text_decoration.underline
                 }
@@ -6255,7 +6258,7 @@ pub mod style_structs {
 
 pub trait ComputedValues : Clone + Send + Sync + 'static {
     % for style_struct in STYLE_STRUCTS:
-        type Concrete${style_struct.name}: style_struct_traits::T${style_struct.name};
+        type Concrete${style_struct.trait_name}: style_struct_traits::T${style_struct.trait_name};
     % endfor
 
         // Temporary bailout case for stuff we haven't made work with the trait
@@ -6270,7 +6273,7 @@ pub trait ComputedValues : Clone + Send + Sync + 'static {
                writing_mode: WritingMode,
                root_font_size: Au,
         % for style_struct in STYLE_STRUCTS:
-               ${style_struct.ident}: Arc<Self::Concrete${style_struct.name}>,
+               ${style_struct.ident}: Arc<Self::Concrete${style_struct.trait_name}>,
         % endfor
         ) -> Self;
 
@@ -6279,9 +6282,12 @@ pub trait ComputedValues : Clone + Send + Sync + 'static {
         fn do_cascade_property<F: FnOnce(&Vec<Option<CascadePropertyFn<Self>>>)>(f: F);
 
     % for style_struct in STYLE_STRUCTS:
-        fn clone_${style_struct.name.lower()}(&self) -> Arc<Self::Concrete${style_struct.name}>;
-        fn get_${style_struct.name.lower()}<'a>(&'a self) -> &'a Self::Concrete${style_struct.name};
-        fn mutate_${style_struct.name.lower()}<'a>(&'a mut self) -> &'a mut Self::Concrete${style_struct.name};
+        fn clone_${style_struct.trait_name_lower}(&self) ->
+            Arc<Self::Concrete${style_struct.trait_name}>;
+        fn get_${style_struct.trait_name_lower}<'a>(&'a self) ->
+            &'a Self::Concrete${style_struct.trait_name};
+        fn mutate_${style_struct.trait_name_lower}<'a>(&'a mut self) ->
+            &'a mut Self::Concrete${style_struct.trait_name};
     % endfor
 
     fn custom_properties(&self) -> Option<Arc<::custom_properties::ComputedValuesMap>>;
@@ -6294,7 +6300,7 @@ pub trait ComputedValues : Clone + Send + Sync + 'static {
 #[derive(Clone, HeapSizeOf)]
 pub struct ServoComputedValues {
     % for style_struct in STYLE_STRUCTS:
-        ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
+        ${style_struct.ident}: Arc<style_structs::${style_struct.struct_name}>,
     % endfor
     custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
     shareable: bool,
@@ -6304,7 +6310,7 @@ pub struct ServoComputedValues {
 
 impl ComputedValues for ServoComputedValues {
     % for style_struct in STYLE_STRUCTS:
-        type Concrete${style_struct.name} = style_structs::${style_struct.name};
+        type Concrete${style_struct.trait_name} = style_structs::${style_struct.struct_name};
     % endfor
 
         fn as_servo<'a>(&'a self) -> &'a ServoComputedValues { self }
@@ -6315,7 +6321,7 @@ impl ComputedValues for ServoComputedValues {
                writing_mode: WritingMode,
                root_font_size: Au,
             % for style_struct in STYLE_STRUCTS:
-               ${style_struct.ident}: Arc<style_structs::${style_struct.name}>,
+               ${style_struct.ident}: Arc<style_structs::${style_struct.struct_name}>,
             % endfor
         ) -> Self {
             ServoComputedValues {
@@ -6337,17 +6343,20 @@ impl ComputedValues for ServoComputedValues {
 
     % for style_struct in STYLE_STRUCTS:
         #[inline]
-        fn clone_${style_struct.name.lower()}(&self) -> Arc<Self::Concrete${style_struct.name}> {
-            self.${style_struct.ident}.clone()
-        }
+        fn clone_${style_struct.trait_name_lower}(&self) ->
+            Arc<Self::Concrete${style_struct.trait_name}> {
+                self.${style_struct.ident}.clone()
+            }
         #[inline]
-        fn get_${style_struct.name.lower()}<'a>(&'a self) -> &'a Self::Concrete${style_struct.name} {
-            &self.${style_struct.ident}
-        }
+        fn get_${style_struct.trait_name_lower}<'a>(&'a self) ->
+            &'a Self::Concrete${style_struct.trait_name} {
+                &self.${style_struct.ident}
+            }
         #[inline]
-        fn mutate_${style_struct.name.lower()}<'a>(&'a mut self) -> &'a mut Self::Concrete${style_struct.name} {
-            Arc::make_mut(&mut self.${style_struct.ident})
-        }
+        fn mutate_${style_struct.trait_name_lower}<'a>(&'a mut self) ->
+            &'a mut Self::Concrete${style_struct.trait_name} {
+                Arc::make_mut(&mut self.${style_struct.ident})
+            }
     % endfor
 
     // Cloning the Arc here is fine because it only happens in the case where we have custom
@@ -6468,7 +6477,7 @@ impl ServoComputedValues {
     }
 
     #[inline]
-    pub fn get_font_arc(&self) -> Arc<style_structs::Font> {
+    pub fn get_font_arc(&self) -> Arc<style_structs::ServoFont> {
         self.font.clone()
     }
 
@@ -6589,11 +6598,11 @@ pub fn get_writing_mode<S: style_struct_traits::TInheritedBox>(inheritedbox_styl
 lazy_static! {
     pub static ref INITIAL_SERVO_VALUES: ServoComputedValues = ServoComputedValues {
         % for style_struct in STYLE_STRUCTS:
-            ${style_struct.ident}: Arc::new(style_structs::${style_struct.name} {
+            ${style_struct.ident}: Arc::new(style_structs::${style_struct.struct_name} {
                 % for longhand in style_struct.longhands:
                     ${longhand.ident}: longhands::${longhand.ident}::get_initial_value(),
                 % endfor
-                % if style_struct.name == "Font":
+                % if style_struct.trait_name == "Font":
                     hash: 0,
                 % endif
             }),
@@ -6632,7 +6641,7 @@ fn cascade_with_cached_declarations<C: ComputedValues>(
                 % else:
                     cached_style
                 % endif
-                    .clone_${style_struct.name.lower()}(),
+                    .clone_${style_struct.trait_name_lower}(),
             % endfor
         ),
     };
@@ -6649,7 +6658,7 @@ fn cascade_with_cached_declarations<C: ComputedValues>(
                             PropertyDeclaration::${property.camel_case}(ref
                                     ${'_' if not style_struct.inherited else ''}declared_value)
                                     => {
-                                    use properties::style_struct_traits::T${style_struct.name};
+                                    use properties::style_struct_traits::T${style_struct.trait_name};
                                 % if style_struct.inherited:
                                     if seen.get_${property.ident}() {
                                         continue
@@ -6662,14 +6671,14 @@ fn cascade_with_cached_declarations<C: ComputedValues>(
                                             DeclaredValue::Value(ref specified_value)
                                             => {
                                                 let computed = specified_value.to_computed_value(&context);
-                                                context.mutate_style().mutate_${style_struct.name.lower()}()
+                                                context.mutate_style().mutate_${style_struct.trait_name_lower}()
                                                        .set_${property.ident}(computed);
                                             },
                                             DeclaredValue::Initial
                                             => {
                                                 // FIXME(bholley): We may want set_X_to_initial_value() here.
                                                 let initial = longhands::${property.ident}::get_initial_value();
-                                                context.mutate_style().mutate_${style_struct.name.lower()}()
+                                                context.mutate_style().mutate_${style_struct.trait_name_lower}()
                                                        .set_${property.ident}(initial);
                                             },
                                             DeclaredValue::Inherit => {
@@ -6678,7 +6687,7 @@ fn cascade_with_cached_declarations<C: ComputedValues>(
                                                 //
                                                 // FIXME: is it still?
                                                 let inherited_struct = parent_style.get_${style_struct.ident}();
-                                                context.mutate_style().mutate_${style_struct.name.lower()}()
+                                                context.mutate_style().mutate_${style_struct.trait_name_lower}()
                                                        .copy_${property.ident}_from(inherited_struct);
                                             }
                                             DeclaredValue::WithVariables { .. } => unreachable!()
@@ -6821,7 +6830,7 @@ pub fn cascade<C: ComputedValues>(
             % else:
             initial_values
             % endif
-                .clone_${style_struct.name.lower()}(),
+                .clone_${style_struct.trait_name_lower}(),
             % endfor
         ),
     };
