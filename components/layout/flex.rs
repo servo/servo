@@ -88,7 +88,7 @@ pub struct FlexFlow {
     available_cross_size: AxisSize
 }
 
-fn flex_style(fragment: &Fragment) -> &style_structs::Flex {
+fn flex_style(fragment: &Fragment) -> &style_structs::ServoFlex {
     fragment.style.get_flex()
 }
 
