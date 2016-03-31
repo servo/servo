@@ -1767,12 +1767,6 @@ impl DocumentMethods for Document {
     fn Domain(&self) -> DOMString {
         // TODO: This should use the effective script origin when it exists
         let origin = self.window.get_url();
-
-        if let Some(&Host::Ipv6(ipv6)) = origin.host() {
-            // Omit square brackets for IPv6 addresses.
-            return DOMString::from(ipv6.to_string());
-        }
-
         DOMString::from(origin.serialize_host().unwrap_or_else(|| "".to_owned()))
     }
 

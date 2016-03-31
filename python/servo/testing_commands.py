@@ -188,7 +188,11 @@ class MachCommands(CommandBase):
         for crate in packages:
             args += ["-p", "%s_tests" % crate]
         args += test_patterns
-        result = call(args, env=self.build_env(), cwd=self.servo_crate())
+
+        env = self.build_env()
+        env["RUST_BACKTRACE"] = "1"
+
+        result = call(args, env=env, cwd=self.servo_crate())
         if result != 0:
             return result
 

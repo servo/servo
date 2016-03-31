@@ -3,6 +3,14 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+% for style_struct in STYLE_STRUCTS:
+%if style_struct.gecko_name:
+use gecko_style_structs::${style_struct.gecko_name};
+% endif
+% endfor
+use heapsize::HeapSizeOf;
+use std::fmt::{self, Debug};
+use std::mem::zeroed;
 use std::sync::Arc;
 use style::custom_properties::ComputedValuesMap;
 use style::logical_geometry::WritingMode;
@@ -80,11 +88,68 @@ impl ComputedValues for GeckoComputedValues {
     fn is_multicol(&self) -> bool { unimplemented!() }
 }
 
-% for style_struct in STYLE_STRUCTS:
-#[derive(PartialEq, Clone, HeapSizeOf, Debug)]
+<%def name="declare_style_struct(style_struct)">
+#[derive(Clone, HeapSizeOf, Debug)]
+% if style_struct.gecko_name:
+pub struct Gecko${style_struct.name} {
+    gecko: ${style_struct.gecko_name},
+}
+% else:
 pub struct Gecko${style_struct.name};
+% endif
+</%def>
+
+<%def name="impl_style_struct(style_struct)">
+impl Gecko${style_struct.name} {
+    #[allow(dead_code, unused_variables)]
+    fn initial() -> Self {
+% if style_struct.gecko_name:
+        let result = Gecko${style_struct.name} { gecko: unsafe { zeroed() } };
+        panic!("Need to invoke Gecko placement new");
+% else:
+        Gecko${style_struct.name}
+% endif
+    }
+}
+%if style_struct.gecko_name:
+impl Drop for Gecko${style_struct.name} {
+    fn drop(&mut self) {
+        panic!("Need to invoke Gecko destructor");
+    }
+}
+impl Clone for ${style_struct.gecko_name} {
+    fn clone(&self) -> Self {
+        panic!("Need to invoke Gecko copy constructor");
+    }
+}
+unsafe impl Send for ${style_struct.gecko_name} {}
+unsafe impl Sync for ${style_struct.gecko_name} {}
+impl HeapSizeOf for ${style_struct.gecko_name} {
+    // Not entirely accurate, but good enough for now.
+    fn heap_size_of_children(&self) -> usize { 0 }
+}
+impl Debug for ${style_struct.gecko_name} {
+    // FIXME(bholley): Generate this.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "GECKO STYLE STRUCT")
+    }
+}
+%endif
+</%def>
+
+<%def name="raw_impl_trait(style_struct, skip_longhands=None, skip_additionals=None)">
 impl T${style_struct.name} for Gecko${style_struct.name} {
-    % for longhand in style_struct.longhands:
+    /*
+     * Manually-Implemented Methods.
+     */
+    ${caller.body().strip()}
+
+    /*
+     * Auto-Generated Methods.
+     */
+    <% longhands = [x for x in style_struct.longhands
+                    if not (skip_longhands and x.name in skip_longhands)] %>
+    % for longhand in longhands:
     fn set_${longhand.ident}(&mut self, _: longhands::${longhand.ident}::computed_value::T) {
         unimplemented!()
     }
@@ -92,77 +157,51 @@ impl T${style_struct.name} for Gecko${style_struct.name} {
         unimplemented!()
     }
     % endfor
-    % if style_struct.name == "Animation":
-    fn transition_count(&self) -> usize {
-        unimplemented!()
-    }
-    % elif style_struct.name == "Border":
-    % for side in ["top", "right", "bottom", "left"]:
-    fn border_${side}_is_none_or_hidden_and_has_nonzero_width(&self) -> bool {
-        unimplemented!()
-    }
+    <% additionals = [x for x in style_struct.additional_methods
+                      if not (skip_additionals and x.name in skip_additionals)] %>
+    % for additional in additionals:
+    ${additional.stub()}
     % endfor
-    % elif style_struct.name == "Box":
-    fn clone_display(&self) -> longhands::display::computed_value::T {
-        unimplemented!()
-    }
-    fn clone_position(&self) -> longhands::position::computed_value::T {
-        unimplemented!()
-    }
-    fn is_floated(&self) -> bool {
-        unimplemented!()
-    }
-    fn overflow_x_is_visible(&self) -> bool {
-        unimplemented!()
-    }
-    fn overflow_y_is_visible(&self) -> bool {
-        unimplemented!()
-    }
-    % elif style_struct.name == "Color":
-    fn clone_color(&self) -> longhands::color::computed_value::T {
-        unimplemented!()
-    }
-    % elif style_struct.name == "Font":
-    fn clone_font_size(&self) -> longhands::font_size::computed_value::T {
-        unimplemented!()
-    }
-    fn clone_font_weight(&self) -> longhands::font_weight::computed_value::T {
-        unimplemented!()
-    }
-    fn compute_font_hash(&mut self) {
-        unimplemented!()
-    }
-    % elif style_struct.name == "InheritedBox":
-    fn clone_direction(&self) -> longhands::direction::computed_value::T {
-        unimplemented!()
-    }
-    fn clone_writing_mode(&self) -> longhands::writing_mode::computed_value::T {
-        unimplemented!()
-    }
-    fn clone_text_orientation(&self) -> longhands::text_orientation::computed_value::T {
-        unimplemented!()
-    }
-    % elif style_struct.name == "InheritedText":
-    fn clone__servo_text_decorations_in_effect(&self) ->
-        longhands::_servo_text_decorations_in_effect::computed_value::T {
-        unimplemented!()
-    }
-    % elif style_struct.name == "Outline":
-    fn outline_is_none_or_hidden_and_has_nonzero_width(&self) -> bool {
-        unimplemented!()
-    }
-    % elif style_struct.name == "Text":
-    fn has_underline(&self) -> bool {
-        unimplemented!()
-    }
-    fn has_overline(&self) -> bool {
-        unimplemented!()
-    }
-    fn has_line_through(&self) -> bool {
-        unimplemented!()
-    }
-    % endif
-
 }
+</%def>
 
+<%! MANUAL_STYLE_STRUCTS = [] %>
+<%def name="impl_trait(style_struct_name, skip_longhands=None, skip_additionals=None)">
+<%self:raw_impl_trait style_struct="${next(x for x in STYLE_STRUCTS if x.name == style_struct_name)}"
+                       skip_longhands="${skip_longhands}" skip_additionals="${skip_additionals}">
+${caller.body()}
+</%self:raw_impl_trait>
+<% MANUAL_STYLE_STRUCTS.append(style_struct_name) %>
+</%def>
+
+// Proof-of-concept for a style struct with some manually-implemented methods. We add
+// the manually-implemented methods to skip_longhands and skip_additionals, and the
+// infrastructure auto-generates everything not in those lists. This allows us to
+// iteratively implement more and more methods.
+<%self:impl_trait style_struct_name="Border"
+                  skip_longhands="${['border-left-color', 'border-left-style']}"
+                  skip_additionals="${['border_bottom_is_none_or_hidden_and_has_nonzero_width']}">
+    fn set_border_left_color(&mut self, _: longhands::border_left_color::computed_value::T) {
+        unimplemented!()
+    }
+    fn copy_border_left_color_from(&mut self, _: &Self) {
+        unimplemented!()
+    }
+    fn set_border_left_style(&mut self, _: longhands::border_left_style::computed_value::T) {
+        unimplemented!()
+    }
+    fn copy_border_left_style_from(&mut self, _: &Self) {
+        unimplemented!()
+    }
+    fn border_bottom_is_none_or_hidden_and_has_nonzero_width(&self) -> bool {
+        unimplemented!()
+    }
+</%self:impl_trait>
+
+% for style_struct in STYLE_STRUCTS:
+${declare_style_struct(style_struct)}
+${impl_style_struct(style_struct)}
+% if not style_struct.name in MANUAL_STYLE_STRUCTS:
+<%self:raw_impl_trait style_struct="${style_struct}"></%self:raw_impl_trait>
+% endif
 % endfor

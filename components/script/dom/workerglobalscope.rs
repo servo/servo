@@ -55,8 +55,8 @@ pub struct WorkerGlobalScope {
     eventtarget: EventTarget,
     worker_id: WorkerId,
     worker_url: Url,
-    #[ignore_heap_size_of = "Defined in std"]
-    runtime: Rc<Runtime>,
+    #[ignore_heap_size_of = "Defined in js"]
+    runtime: Runtime,
     next_worker_id: Cell<WorkerId>,
     #[ignore_heap_size_of = "Defined in std"]
     resource_thread: ResourceThread,
@@ -94,7 +94,7 @@ pub struct WorkerGlobalScope {
 impl WorkerGlobalScope {
     pub fn new_inherited(init: WorkerGlobalScopeInit,
                          worker_url: Url,
-                         runtime: Rc<Runtime>,
+                         runtime: Runtime,
                          from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                          timer_event_chan: IpcSender<TimerEvent>)
                          -> WorkerGlobalScope {
