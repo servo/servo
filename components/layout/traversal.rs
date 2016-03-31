@@ -226,7 +226,7 @@ impl<'a> BuildDisplayList<'a> {
             self.state.pop_stacking_context_id();
         }
 
-        for kid in flow::child_iter(flow) {
+        for kid in flow::child_iter_mut(flow) {
             self.traverse(kid);
         }
     }

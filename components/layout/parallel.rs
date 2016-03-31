@@ -162,7 +162,7 @@ trait ParallelPreorderFlowTraversal : PreorderFlowTraversal {
                 }
 
                 // Possibly enqueue the children.
-                for kid in flow::child_iter(flow) {
+                for kid in flow::child_iter_mut(flow) {
                     had_children = true;
                     discovered_child_flows.push(borrowed_flow_to_unsafe_flow(kid));
                 }

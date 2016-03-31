@@ -100,7 +100,7 @@ impl FlexFlow {
 
         let mut computation = self.block_flow.fragment.compute_intrinsic_inline_sizes();
         if !fixed_width {
-            for kid in self.block_flow.base.child_iter() {
+            for kid in self.block_flow.base.child_iter_mut() {
                 let is_absolutely_positioned =
                     flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
                 if !is_absolutely_positioned {
