@@ -6,7 +6,7 @@
 // https://html.spec.whatwg.org/multipage/#htmlscriptelement
 interface HTMLScriptElement : HTMLElement {
            attribute DOMString src;
-  //         attribute DOMString type;
+          attribute DOMString type;
   //         attribute DOMString charset;
   //         attribute boolean async;
   //         attribute boolean defer;
