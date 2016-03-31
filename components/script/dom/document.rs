@@ -69,6 +69,7 @@ use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::Range;
 use dom::servohtmlparser::{ParserRoot, ParserRef, MutNullableParserField};
+use dom::stylesheetlist::StyleSheetList;
 use dom::text::Text;
 use dom::touch::Touch;
 use dom::touchevent::TouchEvent;
@@ -1724,6 +1725,11 @@ impl Element {
 }
 
 impl DocumentMethods for Document {
+    // https://drafts.csswg.org/cssom/#dom-document-stylesheets
+    fn StyleSheets(&self) -> Root<StyleSheetList> {
+        StyleSheetList::new(&self.window, JS::from_ref(&self))
+    }
+
     // https://dom.spec.whatwg.org/#dom-document-implementation
     fn Implementation(&self) -> Root<DOMImplementation> {
         self.implementation.or_init(|| DOMImplementation::new(self))
