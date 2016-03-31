@@ -333,3 +333,12 @@ impl BluetoothUUID {
         }
     }
 }
+
+impl Clone for StringOrUnsignedLong {
+    fn clone(&self) -> StringOrUnsignedLong {
+        match self {
+            &StringOrUnsignedLong::String(ref s) => StringOrUnsignedLong::String(s.clone()),
+            &StringOrUnsignedLong::UnsignedLong(ul) => StringOrUnsignedLong::UnsignedLong(ul),
+        }
+    }
+}
