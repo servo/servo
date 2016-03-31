@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+<title>A disabled audio track is rendered as silence</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#introduction">
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#mediastreams-as-media-elements">
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your audio stream.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that a disabled audio track in a
+MediaStream is rendered as silence. It relies on the
+<a href="https://dvcs.w3.org/hg/audio/raw-file/tip/webaudio/specification.html">
+Web Audio API</a>.</p>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/vendor-prefix.js" data-prefixed-objects='[{"ancestors":["navigator"], "name":"getUserMedia"}, {"ancestors":["window"], "name":"AudioContext"}]'></script>
+<script>
+var t = async_test("Tests that a disabled audio track in a MediaStream is rendered as silence", {timeout: 200000});
+var aud = document.getElementById("aud");
+t.step(function() {
+  navigator.getUserMedia({audio: true}, t.step_func(function (stream) {
+    var ctx = new AudioContext();
+    var streamSource = ctx.createMediaStreamSource(stream);
+    var silenceDetector = ctx.createScriptProcessor(1024);
+    var count = 10;
+    silenceDetector.onaudioprocess = t.step_func(function (e) {
+       var buffer1 = e.inputBuffer.getChannelData(0);
+       var buffer2 = e.inputBuffer.getChannelData(1);
+       var out = e.outputBuffer.getChannelData(0);
+       out = new Float32Array(buffer1);
+       for (var i = 0; i < buffer1.length; i++) {
+          assert_equals(buffer1[i], 0, "Audio buffer entry #" + i + " in channel 0 is silent");
+       }
+       for (var i = 0; i < buffer2.length; i++) {
+          assert_equals(buffer2[i], 0, "Audio buffer entry #" + i + " in channel 1 is silent");
+       }
+       count--;
+       if (count === 0) {
+         silenceDetector.onaudioprocess = null;
+         t.done();
+        }
+    });
+    stream.getAudioTracks()[0].enabled = false;
+
+    streamSource.connect(silenceDetector);
+    silenceDetector.connect(ctx.destination);
+  }), function(error) {});
+});
+</script>
+</body>
+</html>

@@ -62,6 +62,9 @@ class ManifestItem(object):
     def __hash__(self):
         return hash(self.key() + self.meta_key())
 
+    def __repr__(self):
+        return "<%s.%s id=%s, path=%s>" % (self.__module__, self.__class__.__name__, self.id, self.path)
+
     def to_json(self):
         return {"path": from_os_path(self.path)}
 
@@ -175,18 +178,14 @@ class RefTest(URLManifestItem):
 class ManualTest(URLManifestItem):
     item_type = "manual"
 
+
 class Stub(URLManifestItem):
     item_type = "stub"
 
-class WebdriverSpecTest(ManifestItem):
+
+class WebdriverSpecTest(URLManifestItem):
     item_type = "wdspec"
 
-    @property
-    def id(self):
-        return self.path
-
-    @classmethod
-    def from_json(cls, manifest, tests_root, obj, source_files=None):
-        source_file = get_source_file(source_files, tests_root, manifest,
-                                      to_os_path(obj["path"]))
-        return cls(source_file, manifest=manifest)
+    def __init__(self, source_file, url, url_base="/", timeout=None, manifest=None):
+        URLManifestItem.__init__(self, source_file, url, url_base=url_base, manifest=manifest)
+        self.timeout = timeout

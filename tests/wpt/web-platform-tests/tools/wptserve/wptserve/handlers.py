@@ -140,6 +140,7 @@ class FileHandler(object):
                 ml_extensions = {".html", ".htm", ".xht", ".xhtml", ".xml", ".svg"}
                 escape_type = "html" if os.path.splitext(path)[1] in ml_extensions else "none"
                 pipeline = Pipeline("sub(%s)" % escape_type)
+
             if pipeline is not None:
                 response = pipeline(request, response)
 
@@ -174,10 +175,12 @@ class FileHandler(object):
                     for line in data.splitlines() if line]
 
     def get_data(self, response, path, byte_ranges):
-        with open(path, 'rb') as f:
-            if byte_ranges is None:
-                return f.read()
-            else:
+        """Return either the handle to a file, or a string containing
+        the content of a chunk of the file, if we have a range request."""
+        if byte_ranges is None:
+            return open(path, 'rb')
+        else:
+            with open(path, 'rb') as f:
                 response.status = 206
                 if len(byte_ranges) > 1:
                     parts_content_type, content = self.set_response_multipart(response,

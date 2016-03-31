@@ -23,7 +23,7 @@
         if (method.toUpperCase() !== 'GET') {
           assert_equals(client.status, 0);
           assert_equals(client.responseText, '');
-          assert_equals(client.statusText, 'OK');
+          assert_equals(client.statusText, '');
           test.done();
           return;
         }

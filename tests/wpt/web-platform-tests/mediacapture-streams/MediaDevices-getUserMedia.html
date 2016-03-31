@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+<title>getUserMedia: test that mediaDevices.getUserMedia is present</title>
+<link rel="author" title="Dr Alex Gouaillard" href="mailto:agouaillard@gmail.com"/>
+<link rel="help" href="https://w3c.github.io/mediacapture-main/#mediadevices-interface-extensions">
+<meta name='assert' content='Check that the mediaDevices.getUserMedia() method is present.'/>
+</head>
+<body>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks for the presence of the
+<code>navigator.mediaDevices.getUserMedia</code> method.</p>
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(function () {
+  assert_true(undefined !== navigator.mediaDevices.getUserMedia, "navigator.mediaDevices.getUserMedia exists.");
+  // TODO: do some stuff with it
+  assert_true(undefined !== navigator.mediaDevices.getSupportedConstraints, "navigator.mediaDevices.getSupportedConstraints exists.");
+  var list = navigator.mediaDevices.getSupportedConstraints();
+  // TODO: we are supposed to check that all values returned can be used in a constraint ....
+  // NOTE: the current list of attributes that may or may not be here
+  // ...   FF for example has many no tin that list, should we fail if an attribute is present but not listed in the specs?
+  //   list.width
+  //   list.height
+  //   list.aspectRatio
+  //   list.frameRate
+  //   list.facingMode
+  //   list.volume
+  //   list.sampleRate
+  //   list.sampleSize
+  //   list.echoCancellation
+  //   list.latency
+  //   list.channelCount
+  //   list.deviceId
+  //   list.groupId
+  }, "mediaDevices.getUserMedia() is present on navigator");
+</script>
+</body>
+</html>

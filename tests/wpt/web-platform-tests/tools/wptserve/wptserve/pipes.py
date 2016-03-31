@@ -8,7 +8,7 @@ from cStringIO import StringIO
 
 
 def resolve_content(response):
-    rv = "".join(item for item in response.iter_content())
+    rv = "".join(item for item in response.iter_content(read_file=True))
     if type(rv) == unicode:
         rv = rv.encode(response.encoding)
     return rv
@@ -232,33 +232,26 @@ def trickle(request, response, delays):
     if not delays:
         return response
     content = resolve_content(response)
-    modified_content = []
     offset = [0]
-
-    def sleep(seconds):
-        def inner():
-            time.sleep(seconds)
-            return ""
-        return inner
 
     def add_content(delays, repeat=False):
         for i, (item_type, value) in enumerate(delays):
             if item_type == "bytes":
-                modified_content.append(content[offset[0]:offset[0] + value])
+                yield content[offset[0]:offset[0] + value]
                 offset[0] += value
             elif item_type == "delay":
-                modified_content.append(sleep(value))
+                time.sleep(value)
             elif item_type == "repeat":
-                assert i == len(delays) - 1
+                if i != len(delays) - 1:
+                    continue
                 while offset[0] < len(content):
-                    add_content(delays[-(value + 1):-1], True)
+                    for item in add_content(delays[-(value + 1):-1], True):
+                        yield item
 
         if not repeat and offset[0] < len(content):
             modified_content.append(content[offset[0]:])
 
-    add_content(delays)
-
-    response.content = modified_content
+    response.content = add_content(delays)
     return response
 
 

@@ -6,7 +6,6 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../testcommon.js"></script>
-<link rel="stylesheet" href="/resources/testharness.css">
 <body>
 <div id="log"></div>
 <div id="target"></div>
@@ -54,30 +53,9 @@ var gGetComputedTimingTests = [
   { desc:     "+Infinity",
     input:    Infinity,
     expected: { duration: Infinity } },
-  { desc:     "-Infinity",
-    input:    -Infinity,
-    expected: { duration: 0 } },
-  { desc:     "NaN",
-    input:    NaN,
-    expected: { duration: 0 } },
-  { desc:     "a negative value",
-    input:    -1,
-    expected: { duration: 0 } },
   { desc:     "an Infinity duration",
     input:    { duration: Infinity },
     expected: { duration: Infinity } },
-  { desc:     "a negative Infinity duration",
-    input:    { duration: -Infinity },
-    expected: { duration: 0 } },
-  { desc:     "a NaN duration",
-    input:    { duration: NaN },
-    expected: { duration: 0 } },
-  { desc:     "a negative duration",
-    input:    { duration: -1},
-    expected: { duration: 0 } },
-  { desc:     "a string duration",
-    input:    { duration: "merrychristmas"},
-    expected: { duration: 0 } },
   { desc:     "an auto duration",
     input:    { duration: "auto" },
     expected: { duration: 0 } },
@@ -175,15 +153,9 @@ var gActiveDurationTests = [
   { desc:     "an infinite duration and zero iteration count",
     input:    { duration: Infinity, iterations: 0 },
     expected: 0 },
-  { desc:     "an invalid duration and default iteration count",
-    input:    { duration: "cabbage" },
-    expected: 0 },
   { desc:     "a non-zero duration and invalid iteration count",
     input:    { duration: 1000, iterations: "cabbage" },
-    expected: 1000 },
-  { desc:     "an invalid duration and invalid iteration count",
-    input:    { duration: "cabbage", iterations: "cabbage" },
-    expected: 0 }
+    expected: 1000 }
 ];
 
 gActiveDurationTests.forEach(function(stest) {

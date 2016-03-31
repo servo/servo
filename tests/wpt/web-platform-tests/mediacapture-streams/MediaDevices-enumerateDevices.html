@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+<title>enumerateDevices: test that enumerateDevices is present</title>
+<link rel="author" title="Dr Alex Gouaillard" href="mailto:agouaillard@gmail.com"/>
+<link rel="help" href="https://w3c.github.io/mediacapture-main/#enumerating-devices">
+<meta name='assert' content='Check that the enumerateDevices() method is present.'/>
+</head>
+<body>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks for the presence of the
+<code>navigator.mediaDevices.enumerateDevices()</code> method.</p>
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+"use strict";
+//NOTE ALEX: for completion, a test for ondevicechange event is missing.
+test(function () {
+  assert_true(undefined !== navigator.mediaDevices.enumerateDevices, "navigator.mediaDevices.enumerateDevices exists");
+  var p = navigator.mediaDevices.enumerateDevices()
+  p.then(function(list){
+    for(let mediainfo of list){
+      // TODO check the type of mediainfo
+      assert_true(undefined !== mediainfo.deviceId, "mediaInfo's deviceId should exist.");
+      assert_true(undefined !== mediainfo.kind,     "mediaInfo's kind     should exist.");
+      assert_true(undefined !== mediainfo.label,    "mediaInfo's label    should exist.");
+      assert_true(undefined !== mediainfo.groupId,  "mediaInfo's groupId  should exist.");
+      // TODO the values of some of those fields should be empty string by default if no permission has been requested.
+      if( mediainfo.kind == "audioinput" ||
+          mediainfo.kind == "videoinput") {
+        // NOTE ALEX: looks like nobody has implemented that. How can I make it a separate test,
+        // ...        to have better granularity?
+        // assert_true(undefined !== mediainfo.getCapabilities(), "MediaDeviceInfo.getCapabilities() exists.");
+        // var cap = mediainfo.getcapabilities();
+      } else if ( mediainfo.kind !== "audiooutput" ) {
+        assert_unreached("mediainfo.kind should be one of 'audioinput', 'videoinput', or 'audiooutput'.")
+      }
+    }
+  })
+  p.catch(function(err){
+    assert_unreached("A call to enumerateDevices() should never fail.");
+  });
+}, "mediaDevices.enumerateDevices() is present and working on navigator");
+</script>
+</body>
+</html>
