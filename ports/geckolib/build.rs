@@ -62,8 +62,7 @@ try:
     style_template.render(PRODUCT='gecko')
 
     geckolib_template = Template(filename=os.environ['GECKOLIB_TEMPLATE'], input_encoding='utf8')
-    output = geckolib_template.render(STYLE_STRUCTS = style_template.module.STYLE_STRUCTS,
-                                      LONGHANDS = style_template.module.LONGHANDS)
+    output = geckolib_template.render(STYLE_STRUCTS = style_template.module.STYLE_STRUCTS)
     print(output.encode('utf8'))
 except:
     sys.stderr.write(exceptions.text_error_template().render().encode('utf8'))
