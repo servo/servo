@@ -29,7 +29,7 @@ impl WebGLPaintThread {
            webrender_api_sender: Option<webrender_traits::RenderApiSender>) -> Result<WebGLPaintThread, String> {
         let data = if let Some(sender) = webrender_api_sender {
             let webrender_api = sender.create_api();
-            let id = try!(webrender_api.request_webgl_context(&size, attrs));
+            let (id, _) = try!(webrender_api.request_webgl_context(&size, attrs));
             WebGLPaintTaskData::WebRender(webrender_api, id)
         } else {
             let context = try!(GLContext::<NativeGLContext>::new(size, attrs, ColorAttachmentType::Texture, None));
