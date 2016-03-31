@@ -85,14 +85,23 @@ impl BluetoothManager {
                 BluetoothMethodMsg::GATTServerDisconnect(device_id, sender) => {
                     self.gatt_server_disconnect(device_id, sender)
                 }
-                BluetoothMethodMsg::GetPrimaryService(device_id, sender) => {
-                    self.get_primary_service(device_id, sender)
+                BluetoothMethodMsg::GetPrimaryService(device_id, uuid, sender) => {
+                    self.get_primary_service(device_id, uuid, sender)
                 }
-                BluetoothMethodMsg::GetCharacteristic(service_id, sender) => {
-                    self.get_characteristic(service_id, sender)
+                BluetoothMethodMsg::GetPrimaryServices(device_id, uuid, sender) => {
+                    self.get_primary_services(device_id, uuid, sender)
                 }
-                BluetoothMethodMsg::GetDescriptor(characteristic_id, sender) => {
-                    self.get_descriptor(characteristic_id, sender)
+                BluetoothMethodMsg::GetCharacteristic(service_id, uuid, sender) => {
+                    self.get_characteristic(service_id, uuid, sender)
+                }
+                BluetoothMethodMsg::GetCharacteristics(service_id, uuid, sender) => {
+                    self.get_characteristics(service_id, uuid, sender)
+                }
+                BluetoothMethodMsg::GetDescriptor(characteristic_id, uuid, sender) => {
+                    self.get_descriptor(characteristic_id, uuid, sender)
+                }
+                BluetoothMethodMsg::GetDescriptors(characteristic_id, uuid, sender) => {
+                    self.get_descriptors(characteristic_id, uuid, sender)
                 }
                 BluetoothMethodMsg::ReadValue(id, sender) => {
                     self.read_value(id, sender)
@@ -164,7 +173,6 @@ impl BluetoothManager {
         None
     }
 
-    #[allow(dead_code)]
     fn get_gatt_service_by_uuid(&mut self,
                                 adapter: &mut BluetoothAdapter,
                                 device_id: &str,
@@ -183,6 +191,21 @@ impl BluetoothManager {
             }
         }
         None
+    }
+
+    fn get_gatt_services_by_uuid(&mut self,
+                                 adapter: &mut BluetoothAdapter,
+                                 device_id: &str,
+                                 service_uuid: &str)
+                                 -> Vec<BluetoothGATTService> {
+        let mut services_vec: Vec<BluetoothGATTService> = vec!();
+        let services = self.get_gatt_services(adapter, device_id);
+        for service in services {
+            if service.get_uuid().unwrap_or("".to_owned()) == service_uuid {
+                services_vec.push(service.clone());
+            }
+        }
+        services_vec
     }
 
     // Characteristic
@@ -218,7 +241,6 @@ impl BluetoothManager {
         None
     }
 
-    #[allow(dead_code)]
     fn get_gatt_characteristic_by_uuid(&mut self,
                                        adapter: &mut BluetoothAdapter,
                                        service_id: &str,
@@ -237,6 +259,21 @@ impl BluetoothManager {
             }
         }
         None
+    }
+
+    fn get_gatt_characteristics_by_uuid(&mut self,
+                                       adapter: &mut BluetoothAdapter,
+                                       service_id: &str,
+                                       characteristic_uuid: &str)
+                                       -> Vec<BluetoothGATTCharacteristic> {
+        let mut characteristics_vec: Vec<BluetoothGATTCharacteristic> = vec!();
+        let characteristics = self.get_gatt_characteristics(adapter, service_id);
+        for characteristic in characteristics {
+            if characteristic.get_uuid().unwrap_or("".to_owned()) == characteristic_uuid {
+                characteristics_vec.push(characteristic.clone());
+            }
+        }
+        characteristics_vec
     }
 
     fn get_characteristic_properties(&self, characteristic: &BluetoothGATTCharacteristic) -> [bool; 9] {
@@ -292,7 +329,6 @@ impl BluetoothManager {
         None
     }
 
-    #[allow(dead_code)]
     fn get_gatt_descriptor_by_uuid(&mut self,
                                    adapter: &mut BluetoothAdapter,
                                    characteristic_id: &str,
@@ -311,6 +347,21 @@ impl BluetoothManager {
             }
         }
         None
+    }
+
+    fn get_gatt_descriptors_by_uuid(&mut self,
+                                    adapter: &mut BluetoothAdapter,
+                                    characteristic_id: &str,
+                                    descriptor_uuid: &str)
+                                    -> Vec<BluetoothGATTDescriptor> {
+        let mut descriptors_vec: Vec<BluetoothGATTDescriptor> = vec!();
+        let descriptors = self.get_gatt_descriptors(adapter, characteristic_id);
+        for descriptor in descriptors {
+            if descriptor.get_uuid().unwrap_or("".to_owned()) == descriptor_uuid {
+                descriptors_vec.push(descriptor.clone());
+            }
+        }
+        descriptors_vec
     }
 
     // Methods
@@ -395,44 +446,67 @@ impl BluetoothManager {
         sender.send(message).unwrap();
     }
 
-    pub fn get_primary_service(&mut self, device_id: String, sender: IpcSender<BluetoothObjectMsg>) {
+    pub fn get_primary_service(&mut self, device_id: String, uuid: String, sender: IpcSender<BluetoothObjectMsg>) {
         let mut adapter = match self.get_adapter() {
             Some(a) => a,
             None => send_error!(sender, "No adapter found"),
         };
+        let service = match self.get_gatt_service_by_uuid(&mut adapter, &device_id, &uuid) {
+            Some(s) => s,
+            None => send_error!(sender, "No primary service found")
+        };
+        if !service.is_primary().unwrap_or(false) {
+            send_error!(sender, "No primary service found");
+        }
+        let message = BluetoothObjectMsg::BluetoothService {
+            uuid: service.get_uuid().unwrap_or("".to_owned()),
+            is_primary: true,
+            instance_id: service.get_object_path(),
+        };
+        sender.send(message).unwrap();
+    }
 
-        let services = self.get_gatt_services(&mut adapter, &device_id);
+    pub fn get_primary_services(&mut self,
+                                device_id: String,
+                                uuid: Option<String>,
+                                sender: IpcSender<BluetoothObjectMsg>) {
+        let mut adapter = match self.get_adapter() {
+            Some(a) => a,
+            None => send_error!(sender, "No adapter found"),
+        };
+        let services: Vec<BluetoothGATTService> = match uuid {
+            Some(id) => self.get_gatt_services_by_uuid(&mut adapter, &device_id, &id),
+            None => self.get_gatt_services(&mut adapter, &device_id),
+        };
         if services.is_empty() {
             send_error!(sender, "No service found");
         }
-
+        let mut services_vec: Vec<BluetoothObjectMsg> = vec!();
         for service in services {
             if service.is_primary().unwrap_or(false) {
-                let message = BluetoothObjectMsg::BluetoothService {
+                services_vec.push(BluetoothObjectMsg::BluetoothService {
                     uuid: service.get_uuid().unwrap_or("".to_owned()),
                     is_primary: true,
-                    instance_id: service.get_object_path()
-                };
-                sender.send(message).unwrap();
-                return;
+                    instance_id: service.get_object_path(),
+                });
             }
         }
-
-        send_error!(sender, "No primary service found");
+        if services_vec.is_empty() {
+            send_error!(sender, "No service found");
+        }
+        let message = BluetoothObjectMsg::BluetoothServices { services_vec: services_vec };
+        sender.send(message).unwrap();
     }
 
-    pub fn get_characteristic(&mut self, service_id: String, sender: IpcSender<BluetoothObjectMsg>) {
+    pub fn get_characteristic(&mut self, service_id: String, uuid: String, sender: IpcSender<BluetoothObjectMsg>) {
         let mut adapter = match self.get_adapter() {
             Some(a) => a,
             None => send_error!(sender, "No adapter found"),
         };
-
-        let characteristics = self.get_gatt_characteristics(&mut adapter, &service_id);
-        if characteristics.is_empty() {
-            send_error!(sender, "No characteristic found");
-        }
-
-        let characteristic = &characteristics[0];
+        let characteristic = match self.get_gatt_characteristic_by_uuid(&mut adapter, &service_id, &uuid) {
+            Some(c) => c,
+            None => send_error!(sender, "No characteristic found"),
+        };
         let properties = self.get_characteristic_properties(&characteristic);
         let message = BluetoothObjectMsg::BluetoothCharacteristic {
             uuid: characteristic.get_uuid().unwrap_or("".to_owned()),
@@ -445,27 +519,96 @@ impl BluetoothManager {
             indicate: properties[5],
             authenticated_signed_writes: properties[6],
             reliable_write: properties[7],
-            writable_auxiliaries: properties[8]
+            writable_auxiliaries: properties[8],
         };
         sender.send(message).unwrap();
     }
 
-    pub fn get_descriptor(&mut self, characteristic_id: String, sender: IpcSender<BluetoothObjectMsg>) {
+    pub fn get_characteristics(&mut self,
+                               service_id: String,
+                               uuid: Option<String>,
+                               sender: IpcSender<BluetoothObjectMsg>) {
+        let mut adapter = match self.get_adapter() {
+            Some(a) => a,
+            None => send_error!(sender, "No adapter found"),
+        };
+        let characteristics = match uuid {
+            Some(id) => self.get_gatt_characteristics_by_uuid(&mut adapter, &service_id, &id),
+            None => self.get_gatt_characteristics(&mut adapter, &service_id),
+        };
+        if characteristics.is_empty() {
+            send_error!(sender, "No characteristic found");
+        }
+        let mut characteristics_vec: Vec<BluetoothObjectMsg> = vec!();
+        for characteristic in characteristics {
+            let properties = self.get_characteristic_properties(&characteristic);
+            characteristics_vec.push(BluetoothObjectMsg::BluetoothCharacteristic {
+                uuid: characteristic.get_uuid().unwrap_or("".to_owned()),
+                instance_id: characteristic.get_object_path(),
+                broadcast: properties[0],
+                read: properties[1],
+                write_without_response: properties[2],
+                write: properties[3],
+                notify: properties[4],
+                indicate: properties[5],
+                authenticated_signed_writes: properties[6],
+                reliable_write: properties[7],
+                writable_auxiliaries: properties[8],
+            });
+        }
+        if characteristics_vec.is_empty() {
+            send_error!(sender, "No characteristic found");
+        }
+        let message = BluetoothObjectMsg::BluetoothCharacteristics { characteristics_vec: characteristics_vec };
+        sender.send(message).unwrap();
+    }
+
+    pub fn get_descriptor(&mut self,
+                          characteristic_id: String,
+                          uuid: String,
+                          sender: IpcSender<BluetoothObjectMsg>) {
         let mut adapter = match self.get_adapter() {
             Some(a) => a,
             None => send_error!(sender, "No adapter found"),
         };
 
-        let descriptors = self.get_gatt_descriptors(&mut adapter, &characteristic_id);
-        if descriptors.is_empty() {
-            send_error!(sender, "No descriptor found");
-        }
-
-        let descriptor = &descriptors[0];
+        let descriptor = match self.get_gatt_descriptor_by_uuid(&mut adapter, &characteristic_id, &uuid) {
+            Some(d) => d,
+            None => send_error!(sender, "No descriptor found"),
+        };
         let message = BluetoothObjectMsg::BluetoothDescriptor {
             uuid: descriptor.get_uuid().unwrap_or("".to_owned()),
             instance_id: descriptor.get_object_path(),
         };
+        sender.send(message).unwrap();
+    }
+
+    pub fn get_descriptors(&mut self,
+                           characteristic_id: String,
+                           uuid: Option<String>,
+                           sender: IpcSender<BluetoothObjectMsg>) {
+        let mut adapter = match self.get_adapter() {
+            Some(a) => a,
+            None => send_error!(sender, "No adapter found"),
+        };
+        let descriptors = match uuid {
+            Some(id) => self.get_gatt_descriptors_by_uuid(&mut adapter, &characteristic_id, &id),
+            None => self.get_gatt_descriptors(&mut adapter, &characteristic_id),
+        };
+        if descriptors.is_empty() {
+            send_error!(sender, "No descriptor found");
+        }
+        let mut descriptors_vec: Vec<BluetoothObjectMsg> = vec!();
+        for descriptor in descriptors {
+            descriptors_vec.push(BluetoothObjectMsg::BluetoothDescriptor {
+                uuid: descriptor.get_uuid().unwrap_or("".to_owned()),
+                instance_id: descriptor.get_object_path(),
+            });
+        }
+        if descriptors_vec.is_empty() {
+            send_error!(sender, "No descriptor found");
+        }
+        let message = BluetoothObjectMsg::BluetoothDescriptors { descriptors_vec: descriptors_vec };
         sender.send(message).unwrap();
     }
 
