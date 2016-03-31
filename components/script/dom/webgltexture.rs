@@ -36,7 +36,7 @@ pub struct WebGLTexture {
     #[ignore_heap_size_of = "Arrays are cumbersome"]
     image_info_array: DOMRefCell<[ImageInfo; MAX_LEVEL_COUNT * MAX_FACE_COUNT]>,
     /// Face count can only be 1 or 6
-    face_count: u8,
+    face_count: Cell<u8>,
     base_mipmap_level: u32,
     max_mipmap_level: u32,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
@@ -52,7 +52,7 @@ impl WebGLTexture {
             is_deleted: Cell::new(false),
             is_resolved: Cell::new(false),
             is_initialized: Cell::new(false),
-            face_count: 0,
+            face_count: Cell::new(0),
             base_mipmap_level: 0,
             max_mipmap_level: 100,
             image_info_array: DOMRefCell::new([ImageInfo::new(); MAX_LEVEL_COUNT * MAX_FACE_COUNT]),
@@ -82,11 +82,22 @@ impl WebGLTexture {
 
     // NB: Only valid texture targets come here
     pub fn bind(&self, target: u32) -> WebGLResult<()> {
+        if self.is_deleted.get() {
+            return Err(WebGLError::InvalidOperation);
+        }
+
         if let Some(previous_target) = self.target.get() {
             if target != previous_target {
                 return Err(WebGLError::InvalidOperation);
             }
         } else {
+            // This is the first time binding
+            let face_count = match target {
+                constants::TEXTURE_2D => 1,
+                constants::TEXTURE_CUBE_MAP => 6,
+                _ => return Err(WebGLError::InvalidOperation)
+            };
+            self.face_count.set(face_count);
             self.target.set(Some(target));
         }
 
@@ -119,8 +130,6 @@ impl WebGLTexture {
         // TODO: Check
         // GL_INVALID_OPERATION is generated if the texture bound to target is a cube map, but its
         // six faces do not share indentical widths, heights, formats, and types.
-        //
-        // GL_INVALID_OPERATION is generated if the zero level array is stored in a compressed internal format.
         let base_image_info = self.base_image_info().unwrap();
 
         if !base_image_info.is_initialized() {
@@ -150,7 +159,7 @@ impl WebGLTexture {
         let mut ref_width = base_image_info.width;
         let mut ref_height = base_image_info.height;
 
-        if ref_width == 0 | ref_height == 0 {
+        if ref_width == 0 || ref_height == 0 {
             return Err(WebGLError::InvalidOperation);
         }
 
@@ -246,7 +255,7 @@ impl WebGLTexture {
     }
 
     fn image_info_at_face(&self, face: u8, level: u32) -> Ref<ImageInfo> {
-        let pos = (level * self.face_count as u32) + face as u32;
+        let pos = (level * self.face_count.get() as u32) + face as u32;
         Ref::map(self.image_info_array.borrow(), |t| &t[pos as usize])
     }
 
@@ -257,8 +266,8 @@ impl WebGLTexture {
     }
 
     fn set_image_infos_at_level(&self, level: u32, image_info: ImageInfo) {
-        for face in 0..self.face_count {
-            let pos = (level * self.face_count as u32) + face as u32;
+        for face in 0..self.face_count.get() {
+            let pos = (level * self.face_count.get() as u32) + face as u32;
             self.image_info_array.borrow_mut()[pos as usize] = image_info;
         }
 
@@ -270,6 +279,29 @@ impl WebGLTexture {
             return None;
         }
         Some(self.image_info_at_face(0, self.base_mipmap_level))
+    }
+
+    fn face_for_target(&self, target: u32) -> u8 {
+        match target {
+            constants::TEXTURE_CUBE_MAP_POSITIVE_X |
+            constants::TEXTURE_CUBE_MAP_NEGATIVE_X |
+            constants::TEXTURE_CUBE_MAP_POSITIVE_Y |
+            constants::TEXTURE_CUBE_MAP_NEGATIVE_Y |
+            constants::TEXTURE_CUBE_MAP_POSITIVE_Z |
+            constants::TEXTURE_CUBE_MAP_NEGATIVE_Z => {
+                (target - constants::TEXTURE_CUBE_MAP_POSITIVE_X) as u8
+            }
+            _ => 0,
+        }
+    }
+
+    fn max_effective_mipmap_level(&self) -> u32 {
+        // TODO: Check WebGLSampler for GL_NEAREST or GL_LINEAR. If this is the case
+        // no mipmaps are used. return `base_mipmap_level`
+
+        let image_info = self.base_image_info().unwrap();
+        let max_level = self.max_mipmap_level + image_info.get_max_mimap_levels() - 1;
+        cmp::min(max_level, self.max_mipmap_level)
     }
 
     fn invalidate_resolve_cache(&self) {
