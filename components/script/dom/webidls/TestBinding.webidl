@@ -29,6 +29,7 @@ dictionary TestDictionary {
   any anyValue;
   object objectValue;
   TestDictionaryDefaults dict;
+  sequence<TestDictionaryDefaults> seqDict;
 };
 
 dictionary TestDictionaryDefaults {
