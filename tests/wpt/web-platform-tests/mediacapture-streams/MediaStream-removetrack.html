@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+<title>Removing a track from a MediaStream</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-MediaStreamTrackList-remove-void-MediaStreamTrack-track">
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#event-mediastream-removetrack">
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your audio stream, then your video stream.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that removinging a track from a MediaStream works as expected.</p>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/vendor-prefix.js" data-prefixed-objects='[{"ancestors":["navigator"], "name":"getUserMedia"}]'></script>
+<script>
+var t = async_test("Tests that a removal from a MediaStream works as expected", {timeout:10000});
+t.step(function () {
+  var audio;
+  navigator.getUserMedia({audio:true}, gotAudio, function(error) {});
+  function gotAudio(stream) {
+     audio = stream;
+     navigator.getUserMedia({video:true}, gotVideo, function(error) {});
+  }
+
+  function gotVideo(stream) {
+    var video = stream;
+    video.onremovetrack = function () {
+       assert_unreached("onremovetrack is not triggered when removal of track is triggered by the script itself");
+    };
+    t.step(function () {
+       assert_equals(video.getVideoTracks().length, 1, "video mediastream starts with one video track");
+       video.removeTrack(video.getVideoTracks()[0]);
+       assert_equals(video.getVideoTracks().length, 0, "video mediastream has no video track left");
+       video.removeTrack(audio.getAudioTracks()[0]); // should not throw
+    });
+    t.step(function() {
+       t.done();
+   });
+  }
+});
+</script>
+</body>
+</html>

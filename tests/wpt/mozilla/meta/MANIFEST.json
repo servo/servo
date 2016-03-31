@@ -3,16 +3,7 @@
     "manual": [],
     "reftest": [],
     "stub": [],
-    "testharness": [
-      {
-        "path": "mozilla/prototypes.html",
-        "url": "/_mozilla/mozilla/prototypes.html"
-      },
-      {
-        "path": "mozilla/weakref.html",
-        "url": "/_mozilla/mozilla/weakref.html"
-      }
-    ],
+    "testharness": [],
     "wdspec": []
   },
   "local_changes": {
@@ -6258,6 +6249,12 @@
             "url": "/_mozilla/mozilla/preserve_wrapper_callback.html"
           }
         ],
+        "mozilla/prototypes.html": [
+          {
+            "path": "mozilla/prototypes.html",
+            "url": "/_mozilla/mozilla/prototypes.html"
+          }
+        ],
         "mozilla/proxy_setter.html": [
           {
             "path": "mozilla/proxy_setter.html",
@@ -6346,6 +6343,12 @@
           {
             "path": "mozilla/variadic-interface.html",
             "url": "/_mozilla/mozilla/variadic-interface.html"
+          }
+        ],
+        "mozilla/weakref.html": [
+          {
+            "path": "mozilla/weakref.html",
+            "url": "/_mozilla/mozilla/weakref.html"
           }
         ],
         "mozilla/webgl/bufferData.html": [
@@ -12035,5 +12038,5 @@
   "reftest_nodes": {},
   "rev": null,
   "url_base": "/_mozilla/",
-  "version": 2
+  "version": 3
 }

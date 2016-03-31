@@ -1,6 +1,3 @@
-<!--
-/*
--->
 <!doctype html>
 <title>handling for 404 response</title>
 <script src="/resources/testharness.js"></script>
@@ -19,9 +16,6 @@ async_test(function() {
   // NOTE: this handler will not fire, as runtime scripting errors
   // are not forwarded to SharedWorker objects, but instead reported to the user directly.
   shared.onerror = this.step_func(function(e) { assert_unreached(); }, shared, 'error');
-  setTimeout(this.step_func(function() { this.done(); }), 1000);
+  step_timeout(this.step_func(function() { this.done(); }), 5000);
 }, 'shared');
 </script>
-<!--
-*/
-//-->

@@ -5,22 +5,21 @@
 <div id="log"></div>
 <a href="002-1.html" target="_blank">Link</a>
 <script>
-var t = async_test();
 var a;
-t.step(function() {
+async_test(function(t) {
   a = document.getElementsByTagName("a")[0];
   a.click();
-  //This is a bit hacky; if the test fails there isn't a link back to the parent
-  //window so we have to pass on a timeout. But opening the link could be slow in
-  //some cases, so there is some possibility of false fails
-  setTimeout(t.step_func(function() {
-               assert_unreached("Failed to get callback from opened window");
-             }), 1000);
-});
 
-onmessage = t.step_func(function(e) {
-  assert_equals(e.data, "PASS");
-  t.done()
-}
-);
+  // This is a bit hacky; if the test fails there isn't a link back to the parent
+  // window so we have to pass on a timeout. But opening the link could be slow in
+  // some cases, so there is some possibility of false fails
+  step_timeout(t.step_func(function() {
+                 assert_unreached("Failed to get callback from opened window");
+               }), 5000);
+
+  onmessage = t.step_func(function(e) {
+    assert_equals(e.data, "PASS");
+    t.done()
+  });
+});
 </script>

@@ -282,6 +282,10 @@
         "url": "/html/browsers/history/the-location-interface/non-automated/manual_click_location_replace_during_load-manual.html"
       },
       {
+        "path": "html/browsers/history/the-location-interface/non-automated/manual_click_replace_during_load-manual.html",
+        "url": "/html/browsers/history/the-location-interface/non-automated/manual_click_replace_during_load-manual.html"
+      },
+      {
         "path": "html/browsers/history/the-location-interface/non-automated/manual_form_submit_assign_during_load-manual.html",
         "url": "/html/browsers/history/the-location-interface/non-automated/manual_form_submit_assign_during_load-manual.html"
       },
@@ -734,10 +738,6 @@
         "url": "/html/semantics/embedded-content/the-canvas-element/2d.scaled-manual.html"
       },
       {
-        "path": "html/semantics/embedded-content/the-canvas-element/2d.scaled-manual.png",
-        "url": "/html/semantics/embedded-content/the-canvas-element/2d.scaled-manual.png"
-      },
-      {
         "path": "html/semantics/forms/attributes-common-to-form-controls/dirname-rtl-manual.html",
         "url": "/html/semantics/forms/attributes-common-to-form-controls/dirname-rtl-manual.html"
       },
@@ -814,12 +814,8 @@
         "url": "/html/webappapis/system-state-and-capabilities/the-navigator-object/get-navigatorlanguage-manual.html"
       },
       {
-        "path": "mediacapture-streams/mediastreams-as-media-elements/video-assignment-manual.html",
-        "url": "/mediacapture-streams/mediastreams-as-media-elements/video-assignment-manual.html"
-      },
-      {
-        "path": "mediacapture-streams/stream-api/mediastream/mediastream-id-manual.html",
-        "url": "/mediacapture-streams/stream-api/mediastream/mediastream-id-manual.html"
+        "path": "mediacapture-streams/MediaStream-id-manual.html",
+        "url": "/mediacapture-streams/MediaStream-id-manual.html"
       },
       {
         "path": "notifications/body-basic-manual.html",
@@ -4590,6 +4586,16 @@
         "url": "/html/rendering/non-replaced-elements/flow-content-0/figure.html"
       },
       {
+        "path": "html/rendering/non-replaced-elements/lists/li-type-supported-xhtml.xhtml",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/li-type-supported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/li-type-supported-xhtml.xhtml"
+      },
+      {
         "path": "html/rendering/non-replaced-elements/lists/li-type-supported.html",
         "references": [
           [
@@ -4598,16 +4604,6 @@
           ]
         ],
         "url": "/html/rendering/non-replaced-elements/lists/li-type-supported.html"
-      },
-      {
-        "path": "html/rendering/non-replaced-elements/lists/li-type-supported.xhtml",
-        "references": [
-          [
-            "/html/rendering/non-replaced-elements/lists/li-type-supported-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/html/rendering/non-replaced-elements/lists/li-type-supported.xhtml"
       },
       {
         "path": "html/rendering/non-replaced-elements/lists/li-type-unsupported-lower-alpha.html",
@@ -4650,6 +4646,16 @@
         "url": "/html/rendering/non-replaced-elements/lists/li-type-unsupported-upper-roman.html"
       },
       {
+        "path": "html/rendering/non-replaced-elements/lists/ol-type-supported-xhtml.xhtml",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ol-type-supported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ol-type-supported-xhtml.xhtml"
+      },
+      {
         "path": "html/rendering/non-replaced-elements/lists/ol-type-supported.html",
         "references": [
           [
@@ -4658,16 +4664,6 @@
           ]
         ],
         "url": "/html/rendering/non-replaced-elements/lists/ol-type-supported.html"
-      },
-      {
-        "path": "html/rendering/non-replaced-elements/lists/ol-type-supported.xhtml",
-        "references": [
-          [
-            "/html/rendering/non-replaced-elements/lists/ol-type-supported-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/html/rendering/non-replaced-elements/lists/ol-type-supported.xhtml"
       },
       {
         "path": "html/rendering/non-replaced-elements/lists/ol-type-unsupported-circle.html",
@@ -4770,6 +4766,16 @@
         "url": "/html/rendering/non-replaced-elements/lists/ol-type-unsupported-upper-roman.html"
       },
       {
+        "path": "html/rendering/non-replaced-elements/lists/ul-type-supported-xhtml.xhtml",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ul-type-supported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ul-type-supported-xhtml.xhtml"
+      },
+      {
         "path": "html/rendering/non-replaced-elements/lists/ul-type-supported.html",
         "references": [
           [
@@ -4778,16 +4784,6 @@
           ]
         ],
         "url": "/html/rendering/non-replaced-elements/lists/ul-type-supported.html"
-      },
-      {
-        "path": "html/rendering/non-replaced-elements/lists/ul-type-supported.xhtml",
-        "references": [
-          [
-            "/html/rendering/non-replaced-elements/lists/ul-type-supported-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/html/rendering/non-replaced-elements/lists/ul-type-supported.xhtml"
       },
       {
         "path": "html/rendering/non-replaced-elements/lists/ul-type-unsupported-decimal.html",
@@ -12606,6 +12602,10 @@
         "url": "/XMLHttpRequest/responsetype.html"
       },
       {
+        "path": "XMLHttpRequest/responseurl.html",
+        "url": "/XMLHttpRequest/responseurl.html"
+      },
+      {
         "path": "XMLHttpRequest/responsexml-basic.htm",
         "url": "/XMLHttpRequest/responsexml-basic.htm"
       },
@@ -13946,6 +13946,10 @@
         "url": "/dom/collections/HTMLCollection-empty-name.html"
       },
       {
+        "path": "dom/collections/HTMLCollection-supported-property-indices.html",
+        "url": "/dom/collections/HTMLCollection-supported-property-indices.html"
+      },
+      {
         "path": "dom/collections/HTMLCollection-supported-property-names.html",
         "url": "/dom/collections/HTMLCollection-supported-property-names.html"
       },
@@ -14056,6 +14060,10 @@
       {
         "path": "dom/lists/DOMTokenList-value.html",
         "url": "/dom/lists/DOMTokenList-value.html"
+      },
+      {
+        "path": "dom/nodes/CharacterData-appendChild.html",
+        "url": "/dom/nodes/CharacterData-appendChild.html"
       },
       {
         "path": "dom/nodes/CharacterData-appendData.html",
@@ -14514,24 +14522,24 @@
         "url": "/dom/nodes/Node-constants.html"
       },
       {
-        "path": "dom/nodes/Node-contains.html",
-        "url": "/dom/nodes/Node-contains.html"
+        "path": "dom/nodes/Node-contains-xml.xml",
+        "url": "/dom/nodes/Node-contains-xml.xml"
       },
       {
-        "path": "dom/nodes/Node-contains.xml",
-        "url": "/dom/nodes/Node-contains.xml"
+        "path": "dom/nodes/Node-contains.html",
+        "url": "/dom/nodes/Node-contains.html"
       },
       {
         "path": "dom/nodes/Node-insertBefore.html",
         "url": "/dom/nodes/Node-insertBefore.html"
       },
       {
-        "path": "dom/nodes/Node-isEqualNode.html",
-        "url": "/dom/nodes/Node-isEqualNode.html"
+        "path": "dom/nodes/Node-isEqualNode-xhtml.xhtml",
+        "url": "/dom/nodes/Node-isEqualNode-xhtml.xhtml"
       },
       {
-        "path": "dom/nodes/Node-isEqualNode.xhtml",
-        "url": "/dom/nodes/Node-isEqualNode.xhtml"
+        "path": "dom/nodes/Node-isEqualNode.html",
+        "url": "/dom/nodes/Node-isEqualNode.html"
       },
       {
         "path": "dom/nodes/Node-lookupNamespaceURI.html",
@@ -14750,8 +14758,16 @@
         "url": "/dom/nodes/getElementsByClassName-31.htm"
       },
       {
+        "path": "dom/nodes/insert-adjacent.html",
+        "url": "/dom/nodes/insert-adjacent.html"
+      },
+      {
         "path": "dom/nodes/prepend-on-Document.html",
         "url": "/dom/nodes/prepend-on-Document.html"
+      },
+      {
+        "path": "dom/nodes/rootNode.html",
+        "url": "/dom/nodes/rootNode.html"
       },
       {
         "path": "dom/ranges/Range-commonAncestorContainer-2.html",
@@ -16252,10 +16268,6 @@
       {
         "path": "html/browsers/history/the-location-interface/location_search.html",
         "url": "/html/browsers/history/the-location-interface/location_search.html"
-      },
-      {
-        "path": "html/browsers/history/the-location-interface/non-automated/manual_click_replace_during_load.html",
-        "url": "/html/browsers/history/the-location-interface/non-automated/manual_click_replace_during_load.html"
       },
       {
         "path": "html/browsers/history/the-location-interface/reload_document_open_write.html",
@@ -18814,6 +18826,10 @@
         "url": "/html/semantics/forms/textfieldselection/select-event.html"
       },
       {
+        "path": "html/semantics/forms/textfieldselection/selection-after-content-change.html",
+        "url": "/html/semantics/forms/textfieldselection/selection-after-content-change.html"
+      },
+      {
         "path": "html/semantics/forms/textfieldselection/selection-not-application-textarea.html",
         "url": "/html/semantics/forms/textfieldselection/selection-not-application-textarea.html"
       },
@@ -20178,88 +20194,92 @@
         "url": "/media-source/mediasource-timestamp-offset.html"
       },
       {
-        "path": "mediacapture-streams/obtaining-local-multimedia-content/navigatorusermedia/api-present.html",
-        "url": "/mediacapture-streams/obtaining-local-multimedia-content/navigatorusermedia/api-present.html"
+        "path": "mediacapture-streams/GUM-api.html",
+        "url": "/mediacapture-streams/GUM-api.html"
       },
       {
-        "path": "mediacapture-streams/obtaining-local-multimedia-content/navigatorusermedia/deny.html",
-        "url": "/mediacapture-streams/obtaining-local-multimedia-content/navigatorusermedia/deny.html"
+        "path": "mediacapture-streams/GUM-deny.html",
+        "url": "/mediacapture-streams/GUM-deny.html"
       },
       {
-        "path": "mediacapture-streams/obtaining-local-multimedia-content/navigatorusermedia/empty-option-param.html",
-        "url": "/mediacapture-streams/obtaining-local-multimedia-content/navigatorusermedia/empty-option-param.html"
+        "path": "mediacapture-streams/GUM-empty-option-param.html",
+        "url": "/mediacapture-streams/GUM-empty-option-param.html"
       },
       {
-        "path": "mediacapture-streams/obtaining-local-multimedia-content/navigatorusermedia/getusermedia-impossible-constraint.html",
-        "url": "/mediacapture-streams/obtaining-local-multimedia-content/navigatorusermedia/getusermedia-impossible-constraint.html"
+        "path": "mediacapture-streams/GUM-impossible-constraint.html",
+        "url": "/mediacapture-streams/GUM-impossible-constraint.html"
       },
       {
-        "path": "mediacapture-streams/obtaining-local-multimedia-content/navigatorusermedia/getusermedia-optional-constraint.html",
-        "url": "/mediacapture-streams/obtaining-local-multimedia-content/navigatorusermedia/getusermedia-optional-constraint.html"
+        "path": "mediacapture-streams/GUM-optional-constraint.html",
+        "url": "/mediacapture-streams/GUM-optional-constraint.html"
       },
       {
-        "path": "mediacapture-streams/obtaining-local-multimedia-content/navigatorusermedia/getusermedia-trivial-constraint.html",
-        "url": "/mediacapture-streams/obtaining-local-multimedia-content/navigatorusermedia/getusermedia-trivial-constraint.html"
+        "path": "mediacapture-streams/GUM-trivial-constraint.html",
+        "url": "/mediacapture-streams/GUM-trivial-constraint.html"
       },
       {
-        "path": "mediacapture-streams/obtaining-local-multimedia-content/navigatorusermedia/unknownkey-option-param.html",
-        "url": "/mediacapture-streams/obtaining-local-multimedia-content/navigatorusermedia/unknownkey-option-param.html"
+        "path": "mediacapture-streams/GUM-unknownkey-option-param.html",
+        "url": "/mediacapture-streams/GUM-unknownkey-option-param.html"
       },
       {
-        "path": "mediacapture-streams/stream-api/introduction/disabled-audio-silence.html",
-        "url": "/mediacapture-streams/stream-api/introduction/disabled-audio-silence.html"
+        "path": "mediacapture-streams/MediaDevices-enumerateDevices.html",
+        "url": "/mediacapture-streams/MediaDevices-enumerateDevices.html"
       },
       {
-        "path": "mediacapture-streams/stream-api/introduction/disabled-video-black.html",
-        "url": "/mediacapture-streams/stream-api/introduction/disabled-video-black.html"
+        "path": "mediacapture-streams/MediaDevices-getUserMedia.html",
+        "url": "/mediacapture-streams/MediaDevices-getUserMedia.html"
       },
       {
-        "path": "mediacapture-streams/stream-api/mediastream/audio.html",
-        "url": "/mediacapture-streams/stream-api/mediastream/audio.html"
+        "path": "mediacapture-streams/MediaStream-MediaElement-srcObject.html",
+        "url": "/mediacapture-streams/MediaStream-MediaElement-srcObject.html"
       },
       {
-        "path": "mediacapture-streams/stream-api/mediastream/mediastream-addtrack.html",
-        "url": "/mediacapture-streams/stream-api/mediastream/mediastream-addtrack.html"
+        "path": "mediacapture-streams/MediaStream-add-audio-track.html",
+        "url": "/mediacapture-streams/MediaStream-add-audio-track.html"
       },
       {
-        "path": "mediacapture-streams/stream-api/mediastream/mediastream-finished-add.html",
-        "url": "/mediacapture-streams/stream-api/mediastream/mediastream-finished-add.html"
+        "path": "mediacapture-streams/MediaStream-audio-only.html",
+        "url": "/mediacapture-streams/MediaStream-audio-only.html"
       },
       {
-        "path": "mediacapture-streams/stream-api/mediastream/mediastream-gettrackid.html",
-        "url": "/mediacapture-streams/stream-api/mediastream/mediastream-gettrackid.html"
+        "path": "mediacapture-streams/MediaStream-finished-add.html",
+        "url": "/mediacapture-streams/MediaStream-finished-add.html"
       },
       {
-        "path": "mediacapture-streams/stream-api/mediastream/mediastream-idl.html",
-        "url": "/mediacapture-streams/stream-api/mediastream/mediastream-idl.html"
+        "path": "mediacapture-streams/MediaStream-gettrackid.html",
+        "url": "/mediacapture-streams/MediaStream-gettrackid.html"
       },
       {
-        "path": "mediacapture-streams/stream-api/mediastream/mediastream-removetrack.html",
-        "url": "/mediacapture-streams/stream-api/mediastream/mediastream-removetrack.html"
+        "path": "mediacapture-streams/MediaStream-idl.html",
+        "url": "/mediacapture-streams/MediaStream-idl.html"
       },
       {
-        "path": "mediacapture-streams/stream-api/mediastream/video.html",
-        "url": "/mediacapture-streams/stream-api/mediastream/video.html"
+        "path": "mediacapture-streams/MediaStream-removetrack.html",
+        "url": "/mediacapture-streams/MediaStream-removetrack.html"
       },
       {
-        "path": "mediacapture-streams/stream-api/mediastreamtrack/mediastreamtrack-end.html",
-        "url": "/mediacapture-streams/stream-api/mediastreamtrack/mediastreamtrack-end.html"
+        "path": "mediacapture-streams/MediaStream-video-only.html",
+        "url": "/mediacapture-streams/MediaStream-video-only.html"
       },
       {
-        "path": "mediacapture-streams/stream-api/mediastreamtrack/mediastreamtrack-id.html",
-        "url": "/mediacapture-streams/stream-api/mediastreamtrack/mediastreamtrack-id.html"
+        "path": "mediacapture-streams/MediaStreamTrack-MediaElement-disabled-audio-is-silence.html",
+        "url": "/mediacapture-streams/MediaStreamTrack-MediaElement-disabled-audio-is-silence.html"
       },
       {
-        "path": "mediacapture-streams/stream-api/mediastreamtrack/mediastreamtrack-init.html",
-        "url": "/mediacapture-streams/stream-api/mediastreamtrack/mediastreamtrack-init.html"
+        "path": "mediacapture-streams/MediaStreamTrack-MediaElement-disabled-video-is-black.html",
+        "url": "/mediacapture-streams/MediaStreamTrack-MediaElement-disabled-video-is-black.html"
       },
       {
-        "path": "mediacapture-streams/stream-api/video-and-audio-tracks/audiostreamtrack.html",
-        "url": "/mediacapture-streams/stream-api/video-and-audio-tracks/audiostreamtrack.html"
+        "path": "mediacapture-streams/MediaStreamTrack-end.html",
+        "url": "/mediacapture-streams/MediaStreamTrack-end.html"
       },
       {
-        "path": "mediacapture-streams/stream-api/video-and-audio-tracks/videostreamtrack.html",
-        "url": "/mediacapture-streams/stream-api/video-and-audio-tracks/videostreamtrack.html"
+        "path": "mediacapture-streams/MediaStreamTrack-id.html",
+        "url": "/mediacapture-streams/MediaStreamTrack-id.html"
+      },
+      {
+        "path": "mediacapture-streams/MediaStreamTrack-init.html",
+        "url": "/mediacapture-streams/MediaStreamTrack-init.html"
       },
       {
         "path": "mixed-content/allowed/http-csp/same-host-https/audio-tag/top-level/keep-scheme-redirect/allowed.https.html",
@@ -28394,12 +28414,20 @@
         "url": "/web-animations/animation-effect-timing/duration.html"
       },
       {
+        "path": "web-animations/animation-effect-timing/endDelay.html",
+        "url": "/web-animations/animation-effect-timing/endDelay.html"
+      },
+      {
         "path": "web-animations/animation-effect-timing/getAnimations.html",
         "url": "/web-animations/animation-effect-timing/getAnimations.html"
       },
       {
         "path": "web-animations/animation-effect-timing/getComputedStyle.html",
         "url": "/web-animations/animation-effect-timing/getComputedStyle.html"
+      },
+      {
+        "path": "web-animations/animation-effect-timing/iterationStart.html",
+        "url": "/web-animations/animation-effect-timing/iterationStart.html"
       },
       {
         "path": "web-animations/animation-node/animation-node-after.html",
@@ -28464,6 +28492,10 @@
       {
         "path": "web-animations/keyframe-effect/getComputedTiming.html",
         "url": "/web-animations/keyframe-effect/getComputedTiming.html"
+      },
+      {
+        "path": "web-animations/keyframe-effect/keyframe-handling.html",
+        "url": "/web-animations/keyframe-effect/keyframe-handling.html"
       },
       {
         "path": "webaudio/the-audio-api/the-audiobuffer-interface/idl-test.html",
@@ -33533,6 +33565,11 @@
         "url": "/eventsource/shared-worker/eventsource-constructor-non-same-origin.htm"
       },
       {
+        "path": "fetch/api/request/request-cache.html",
+        "timeout": "long",
+        "url": "/fetch/api/request/request-cache.html"
+      },
+      {
         "path": "html/browsers/browsing-the-web/history-traversal/persisted-user-state-restoration/scroll-restoration-fragment-scrolling-cross-origin.html",
         "timeout": "long",
         "url": "/html/browsers/browsing-the-web/history-traversal/persisted-user-state-restoration/scroll-restoration-fragment-scrolling-cross-origin.html"
@@ -34703,117 +34740,11 @@
         "url": "/webstorage/storage_session_setitem_quotaexceedederr.html"
       }
     ],
-    "wdspec": [
-      {
-        "path": "webdriver/command_contexts/open_and_close_window_test.py"
-      },
-      {
-        "path": "webdriver/command_contexts/window_handle_test.py"
-      },
-      {
-        "path": "webdriver/command_contexts/window_size_test.py"
-      },
-      {
-        "path": "webdriver/cookie/cookie_test.py"
-      },
-      {
-        "path": "webdriver/ecmascript/ecmascript_test.py"
-      },
-      {
-        "path": "webdriver/element_location/element_location_test.py"
-      },
-      {
-        "path": "webdriver/element_state/method_test.py"
-      },
-      {
-        "path": "webdriver/element_state/properties.py"
-      },
-      {
-        "path": "webdriver/element_state/selected_test.py"
-      },
-      {
-        "path": "webdriver/element_state/visibility_test.py"
-      },
-      {
-        "path": "webdriver/javascript/execute_script_test.py"
-      },
-      {
-        "path": "webdriver/modal/alerts_quit_test.py"
-      },
-      {
-        "path": "webdriver/modal/alerts_test.py"
-      },
-      {
-        "path": "webdriver/navigation/auth_tests.py"
-      },
-      {
-        "path": "webdriver/navigation/forward.py"
-      },
-      {
-        "path": "webdriver/navigation/forwardToNothing.py"
-      },
-      {
-        "path": "webdriver/navigation/get_from_http_test.py"
-      },
-      {
-        "path": "webdriver/navigation/invalid_cert_test.py"
-      },
-      {
-        "path": "webdriver/navigation/refresh-page.py"
-      },
-      {
-        "path": "webdriver/navigation/refresh_page.py"
-      },
-      {
-        "path": "webdriver/screenshot/take_screenshot.py"
-      },
-      {
-        "path": "webdriver/timeouts/implicit_waits_tests.py"
-      },
-      {
-        "path": "webdriver/timeouts/page_load_timeouts_tests.py"
-      },
-      {
-        "path": "webdriver/user_input/clear_test.py"
-      },
-      {
-        "path": "webdriver/user_input/click_test.py"
-      },
-      {
-        "path": "webdriver/user_input/sendkeys_test.py"
-      },
-      {
-        "path": "webdriver/windows/tabbing.py"
-      },
-      {
-        "path": "webdriver/windows/window_manipulation.py"
-      }
-    ]
+    "wdspec": []
   },
   "local_changes": {
     "deleted": [],
-    "items": {
-      "testharness": {
-        "XMLHttpRequest/responseurl.html": [
-          {
-            "path": "XMLHttpRequest/responseurl.html",
-            "url": "/XMLHttpRequest/responseurl.html"
-          }
-        ],
-        "dom/nodes/insert-adjacent.html": [
-          {
-            "path": "dom/nodes/insert-adjacent.html",
-            "url": "/dom/nodes/insert-adjacent.html"
-          }
-        ],
-        "html/semantics/forms/textfieldselection/selection-after-content-change.html": [
-          {
-            "path": "html/semantics/forms/textfieldselection/selection-after-content-change.html",
-            "url": "/html/semantics/forms/textfieldselection/selection-after-content-change.html"
-          }
-        ]
-      }
-    },
+    "items": {},
     "reftest_nodes": {}
   },
   "reftest_nodes": {
@@ -36917,6 +36848,18 @@
         "url": "/html/rendering/non-replaced-elements/flow-content-0/figure.html"
       }
     ],
+    "html/rendering/non-replaced-elements/lists/li-type-supported-xhtml.xhtml": [
+      {
+        "path": "html/rendering/non-replaced-elements/lists/li-type-supported-xhtml.xhtml",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/li-type-supported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/li-type-supported-xhtml.xhtml"
+      }
+    ],
     "html/rendering/non-replaced-elements/lists/li-type-supported.html": [
       {
         "path": "html/rendering/non-replaced-elements/lists/li-type-supported.html",
@@ -36927,18 +36870,6 @@
           ]
         ],
         "url": "/html/rendering/non-replaced-elements/lists/li-type-supported.html"
-      }
-    ],
-    "html/rendering/non-replaced-elements/lists/li-type-supported.xhtml": [
-      {
-        "path": "html/rendering/non-replaced-elements/lists/li-type-supported.xhtml",
-        "references": [
-          [
-            "/html/rendering/non-replaced-elements/lists/li-type-supported-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/html/rendering/non-replaced-elements/lists/li-type-supported.xhtml"
       }
     ],
     "html/rendering/non-replaced-elements/lists/li-type-unsupported-lower-alpha.html": [
@@ -36989,6 +36920,18 @@
         "url": "/html/rendering/non-replaced-elements/lists/li-type-unsupported-upper-roman.html"
       }
     ],
+    "html/rendering/non-replaced-elements/lists/ol-type-supported-xhtml.xhtml": [
+      {
+        "path": "html/rendering/non-replaced-elements/lists/ol-type-supported-xhtml.xhtml",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ol-type-supported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ol-type-supported-xhtml.xhtml"
+      }
+    ],
     "html/rendering/non-replaced-elements/lists/ol-type-supported.html": [
       {
         "path": "html/rendering/non-replaced-elements/lists/ol-type-supported.html",
@@ -36999,18 +36942,6 @@
           ]
         ],
         "url": "/html/rendering/non-replaced-elements/lists/ol-type-supported.html"
-      }
-    ],
-    "html/rendering/non-replaced-elements/lists/ol-type-supported.xhtml": [
-      {
-        "path": "html/rendering/non-replaced-elements/lists/ol-type-supported.xhtml",
-        "references": [
-          [
-            "/html/rendering/non-replaced-elements/lists/ol-type-supported-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/html/rendering/non-replaced-elements/lists/ol-type-supported.xhtml"
       }
     ],
     "html/rendering/non-replaced-elements/lists/ol-type-unsupported-circle.html": [
@@ -37133,6 +37064,18 @@
         "url": "/html/rendering/non-replaced-elements/lists/ol-type-unsupported-upper-roman.html"
       }
     ],
+    "html/rendering/non-replaced-elements/lists/ul-type-supported-xhtml.xhtml": [
+      {
+        "path": "html/rendering/non-replaced-elements/lists/ul-type-supported-xhtml.xhtml",
+        "references": [
+          [
+            "/html/rendering/non-replaced-elements/lists/ul-type-supported-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/non-replaced-elements/lists/ul-type-supported-xhtml.xhtml"
+      }
+    ],
     "html/rendering/non-replaced-elements/lists/ul-type-supported.html": [
       {
         "path": "html/rendering/non-replaced-elements/lists/ul-type-supported.html",
@@ -37143,18 +37086,6 @@
           ]
         ],
         "url": "/html/rendering/non-replaced-elements/lists/ul-type-supported.html"
-      }
-    ],
-    "html/rendering/non-replaced-elements/lists/ul-type-supported.xhtml": [
-      {
-        "path": "html/rendering/non-replaced-elements/lists/ul-type-supported.xhtml",
-        "references": [
-          [
-            "/html/rendering/non-replaced-elements/lists/ul-type-supported-ref.html",
-            "=="
-          ]
-        ],
-        "url": "/html/rendering/non-replaced-elements/lists/ul-type-supported.xhtml"
       }
     ],
     "html/rendering/non-replaced-elements/lists/ul-type-unsupported-decimal.html": [
@@ -40962,7 +40893,7 @@
       }
     ]
   },
-  "rev": "66c4613f823c4384c78ada77346eda17bb128947",
+  "rev": "5582e4d2bfcfd1fa9f105406b143170ee2af7db1",
   "url_base": "/",
-  "version": 2
+  "version": 3
 }

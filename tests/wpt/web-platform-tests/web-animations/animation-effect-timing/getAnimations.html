@@ -6,7 +6,6 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../testcommon.js"></script>
-<link rel="stylesheet" href="/resources/testharness.css">
 <body>
 <div id="log"></div>
 <script>
@@ -24,6 +23,56 @@ test(function(t) {
   anim.effect.timing.duration = 'auto';
   assert_equals(div.getAnimations().length, 0, 'set duration \'auto\'');
 }, 'when duration is changed');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+
+  anim.effect.timing.endDelay = -3000;
+  assert_equals(div.getAnimations().length, 0,
+    'set negative endDelay so as endTime is less than currentTime');
+  anim.effect.timing.endDelay = 1000;
+  assert_equals(div.getAnimations()[0], anim,
+    'set positive endDelay so as endTime is more than currentTime');
+
+  anim.effect.timing.duration = 1000;
+  anim.currentTime = 1500;
+  assert_equals(div.getAnimations().length, 0,
+    'set currentTime less than endTime');
+  anim.effect.timing.endDelay = -500;
+  anim.currentTime = 400;
+  assert_equals(div.getAnimations()[0], anim,
+    'set currentTime less than endTime when endDelay is negative value');
+  anim.currentTime = 500;
+  assert_equals(div.getAnimations().length, 0,
+    'set currentTime same as endTime when endDelay is negative value');
+  anim.currentTime = 1000;
+  assert_equals(div.getAnimations().length, 0,
+    'set currentTime same as duration when endDelay is negative value');
+}, 'when endDelay is changed');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] },
+                         { duration: 1000, delay: 500, endDelay: -500 });
+  assert_equals(div.getAnimations()[0], anim, 'when currentTime 0');
+  anim.currentTime = 500;
+  assert_equals(div.getAnimations()[0], anim, 'set currentTime 500');
+  anim.currentTime = 1000;
+  assert_equals(div.getAnimations().length, 0, 'set currentTime 1000');
+}, 'when currentTime changed in duration:1000, delay: 500, endDelay: -500');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] },
+                         { duration: 1000, delay: -500, endDelay: -500 });
+  assert_equals(div.getAnimations().length, 0, 'when currentTime 0');
+  anim.currentTime = 500;
+  assert_equals(div.getAnimations().length, 0, 'set currentTime 500');
+  anim.currentTime = 1000;
+  assert_equals(div.getAnimations().length, 0, 'set currentTime 1000');
+}, 'when currentTime changed in duration:1000, delay: -500, endDelay: -500');
+
 
 </script>
 </body>

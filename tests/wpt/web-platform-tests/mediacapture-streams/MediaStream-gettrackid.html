@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+<title>Retrieving a track from a MediaStream</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-MediaStream-getTrackById-MediaStreamTrack-DOMString-trackId">
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your video stream.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that MediaStream.getTrackById behaves as expected</p>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/vendor-prefix.js" data-prefixed-objects='[{"ancestors":["navigator"], "name":"getUserMedia"}]'></script>
+<script>
+var t = async_test("Tests that MediaStream.getTrackById works as expected", {timeout: 10000});
+t.step(function () {
+  navigator.getUserMedia(
+      {video: true},
+      t.step_func(gotVideo),
+      t.step_func(function (error) {
+        assert_unreached('Unexpected getUserMedia error: ' + error);
+      }));
+  function gotVideo(stream) {
+    var track = stream.getVideoTracks()[0];
+    assert_equals(track, stream.getTrackById(track.id), "getTrackById returns track of given id");
+    assert_equals(stream.getTrackById(track.id + "foo"), null, "getTrackById of inexistant id  returns null");
+    t.done();
+  }
+});
+</script>
+</body>
+</html>
