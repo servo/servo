@@ -5,11 +5,13 @@
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
+use dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
+use dom::bluetoothuuid::BluetoothUUID;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::bluetooth_thread::{BluetoothMethodMsg, BluetoothObjectMsg};
 use std::cell::Cell;
@@ -101,16 +103,23 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservice
-    fn GetPrimaryService(&self) -> Option<Root<BluetoothRemoteGATTService>> {
+    fn GetPrimaryService(&self, service: StringOrUnsignedLong) -> Option<Root<BluetoothRemoteGATTService>> {
+        let uuid: String = match BluetoothUUID::GetService(self.global().r(), service.clone()) {
+            Ok(domstring) => domstring.to_string(),
+            Err(_) => {
+                println!("No UUID provided!");
+                return None;
+            },
+        };
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
-            BluetoothMethodMsg::GetPrimaryService(String::from(self.Device().Id()), sender)).unwrap();
+            BluetoothMethodMsg::GetPrimaryService(String::from(self.Device().Id()), uuid, sender)).unwrap();
         let service = receiver.recv().unwrap();
         match service {
             BluetoothObjectMsg::BluetoothService {
                 uuid,
                 is_primary,
-                instance_id
+                instance_id,
             } => {
                 Some(BluetoothRemoteGATTService::new(self.global().r(),
                                                      &self.device.get(),
@@ -124,7 +133,54 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
                 println!("{}", error);
                 None
             },
-            _ => unreachable!()
+            _ => unreachable!(),
+        }
+    }
+
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservices
+    fn GetPrimaryServices(&self, service: Option<StringOrUnsignedLong>)
+                          -> Option<Vec<Root<BluetoothRemoteGATTService>>> {
+        let uuid: Option<String> = match service {
+            Some(s) => match BluetoothUUID::GetService(self.global().r(), s.clone()) {
+                Ok(domstring) => Some(domstring.to_string()),
+                Err(_) => None,
+            },
+            None => None,
+        };
+        let mut services: Vec<Root<BluetoothRemoteGATTService>> = vec!();
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.get_bluetooth_thread().send(
+            BluetoothMethodMsg::GetPrimaryServices(String::from(self.Device().Id()), uuid, sender)).unwrap();
+        let services_vec = receiver.recv().unwrap();
+        match services_vec {
+            BluetoothObjectMsg::BluetoothServices {
+                services_vec
+            } => {
+                for s in services_vec {
+                    match s {
+                        BluetoothObjectMsg::BluetoothService {
+                            uuid,
+                            is_primary,
+                            instance_id,
+                        } => {
+                            services.push(BluetoothRemoteGATTService::new(self.global().r(),
+                                                                          &self.device.get(),
+                                                                          DOMString::from(uuid),
+                                                                          is_primary,
+                                                                          instance_id))
+                        },
+                        _ => unreachable!(),
+                    }
+                }
+                Some(services)
+            },
+            BluetoothObjectMsg::Error {
+                error
+            } => {
+                println!("{}", error);
+                None
+            },
+            _ => unreachable!(),
         }
     }
 }
