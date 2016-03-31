@@ -56,11 +56,11 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
     executor_kwargs["close_after_done"] = True
     if kwargs["timeout_multiplier"] is None:
         if test_type == "reftest":
-            if run_info_data["debug"]:
+            if run_info_data["debug"] or run_info_data.get("asan"):
                 executor_kwargs["timeout_multiplier"] = 4
             else:
                 executor_kwargs["timeout_multiplier"] = 2
-        elif run_info_data["debug"]:
+        elif run_info_data["debug"] or run_info_data.get("asan"):
             executor_kwargs["timeout_multiplier"] = 3
     return executor_kwargs
 
@@ -82,6 +82,7 @@ def update_properties():
 
 class FirefoxBrowser(Browser):
     used_ports = set()
+    init_timeout = 60
 
     def __init__(self, logger, binary, prefs_root, debug_info=None,
                  symbols_path=None, stackwalk_binary=None, certutil_binary=None,

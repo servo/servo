@@ -102,6 +102,8 @@ def list_disabled(test_paths, product, **kwargs):
 def get_pause_after_test(test_loader, **kwargs):
     total_tests = sum(len(item) for item in test_loader.tests.itervalues())
     if kwargs["pause_after_test"] is None:
+        if kwargs["repeat_until_unexpected"]:
+            return False
         if kwargs["repeat"] == 1 and total_tests == 1:
             return True
         return False
@@ -222,9 +224,9 @@ def run_tests(config, test_paths, product, **kwargs):
 
 def main():
     """Main entry point when calling from the command line"""
-    try:
-        kwargs = wptcommandline.parse_args()
+    kwargs = wptcommandline.parse_args()
 
+    try:
         if kwargs["prefs_root"] is None:
             kwargs["prefs_root"] = os.path.abspath(os.path.join(here, "prefs"))
 
@@ -237,6 +239,9 @@ def main():
         else:
             return not run_tests(**kwargs)
     except Exception:
-        import pdb, traceback
-        print traceback.format_exc()
-        pdb.post_mortem()
+        if kwargs["pdb"]:
+            import pdb, traceback
+            print traceback.format_exc()
+            pdb.post_mortem()
+        else:
+            raise
