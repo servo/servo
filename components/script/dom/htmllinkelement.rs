@@ -89,8 +89,8 @@ fn get_attr(element: &Element, local_name: &Atom) -> Option<String> {
 fn string_is_stylesheet(value: &Option<String>) -> bool {
     match *value {
         Some(ref value) => {
-            value.split(HTML_SPACE_CHARACTERS)
-                .any(|s| s.eq_ignore_ascii_case("stylesheet"))
+            value.split(HTML_SPACE_CHARACTERS).any(|s| s.eq_ignore_ascii_case("stylesheet"))
+            && !value.split(HTML_SPACE_CHARACTERS).any(|s| s.eq_ignore_ascii_case("alternate"))
         },
         None => false,
     }
