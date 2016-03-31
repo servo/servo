@@ -32,6 +32,7 @@ pub struct WebGLTexture {
     is_deleted: Cell<bool>,
     is_resolved: Cell<bool>,
     is_initialized: Cell<bool>,
+    /// Stores information about mipmap levels and cubemap faces.
     #[ignore_heap_size_of = "Arrays are cumbersome"]
     image_info_array: DOMRefCell<[ImageInfo; MAX_LEVEL_COUNT * MAX_FACE_COUNT]>,
     /// Face count can only be 1 or 6
@@ -130,6 +131,10 @@ impl WebGLTexture {
             return Err(WebGLError::InvalidOperation);
         }
 
+        if base_image_info.is_compressed_format() {
+            return Err(WebGLError::InvalidOperation);
+        }
+
         self.renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::GenerateMipmap(self.target.get().unwrap()))).unwrap();
 
         let last_level = self.base_mipmap_level + base_image_info.get_max_mimap_levels() - 1;
@@ -144,6 +149,10 @@ impl WebGLTexture {
 
         let mut ref_width = base_image_info.width;
         let mut ref_height = base_image_info.height;
+
+        if ref_width == 0 | ref_height == 0 {
+            return Err(WebGLError::InvalidOperation);
+        }
 
         for level in (first_level + 1)..last_level {
             if ref_width == 1 && ref_height == 1 {
@@ -313,5 +322,9 @@ impl ImageInfo {
         }
         // FloorLog2(largest) + 1
         (largest as f64).log2() as u32 + 1
+    }
+
+    fn is_compressed_format(&self) -> bool {
+        self.internal_format == constants::COMPRESSED_TEXTURE_FORMATS
     }
 }
