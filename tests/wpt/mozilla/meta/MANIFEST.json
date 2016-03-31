@@ -2528,6 +2528,18 @@
             "url": "/_mozilla/css/inline_whitespace_b.html"
           }
         ],
+        "css/input_alignment_a.html": [
+          {
+            "path": "css/input_alignment_a.html",
+            "references": [
+              [
+                "/_mozilla/css/input_alignment_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/input_alignment_a.html"
+          }
+        ],
         "css/input_button_margins_a.html": [
           {
             "path": "css/input_button_margins_a.html",
@@ -8924,6 +8936,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_whitespace_b.html"
+        }
+      ],
+      "css/input_alignment_a.html": [
+        {
+          "path": "css/input_alignment_a.html",
+          "references": [
+            [
+              "/_mozilla/css/input_alignment_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/input_alignment_a.html"
         }
       ],
       "css/input_button_margins_a.html": [
