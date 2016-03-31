@@ -996,7 +996,7 @@ impl Window {
                 page_clip_rect: self.page_clip_rect.get(),
             },
             document: self.Document().upcast::<Node>().to_trusted_node_address(),
-            document_stylesheets: document.stylesheets().clone(),
+            document_stylesheets: document.stylesheets(),
             stylesheets_changed: stylesheets_changed,
             window_size: window_size,
             script_join_chan: join_chan,
