@@ -712,7 +712,7 @@ impl BlockFlow {
 
         // Shift all kids down (or up, if margins are negative) if necessary.
         if block_start_margin_value != Au(0) {
-            for kid in self.base.child_iter() {
+            for kid in self.base.child_iter_mut() {
                 let kid_base = flow::mut_base(kid);
                 kid_base.position.start.b = kid_base.position.start.b + block_start_margin_value
             }
@@ -809,7 +809,7 @@ impl BlockFlow {
             // At this point, `cur_b` is at the content edge of our box. Now iterate over children.
             let mut floats = self.base.floats.clone();
             let thread_id = self.base.thread_id;
-            for (child_index, kid) in self.base.child_iter().enumerate() {
+            for (child_index, kid) in self.base.child_iter_mut).enumerate() {
                 if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                     // Assume that the *hypothetical box* for an absolute flow starts immediately
                     // after the block-end border edge of the previous flow.
