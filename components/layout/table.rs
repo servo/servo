@@ -230,7 +230,7 @@ impl Flow for TableFlow {
         // part of the table, which we don't want to do—it belongs to the table wrapper instead.
 
         // Get column inline sizes from colgroups
-        for kid in self.block_flow.base.child_iter().filter(|kid| kid.is_table_colgroup()) {
+        for kid in self.block_flow.base.child_iter_mut().filter(|kid| kid.is_table_colgroup()) {
             for specified_inline_size in &kid.as_mut_table_colgroup().inline_sizes {
                 self.column_intrinsic_inline_sizes.push(ColumnIntrinsicInlineSize {
                     minimum_length: match *specified_inline_size {
@@ -704,7 +704,7 @@ impl TableLikeFlow for BlockFlow {
 
             // At this point, `current_block_offset` is at the content edge of our box. Now iterate
             // over children.
-            for kid in self.base.child_iter() {
+            for kid in self.base.child_iter_mut() {
                 // Account for spacing or collapsed borders.
                 if kid.is_table_row() {
                     has_rows = true;
