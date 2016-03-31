@@ -16,30 +16,30 @@ use devtools_traits::{CONSOLE_API, CachedConsoleMessageTypes, DevtoolScriptContr
 use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::PipelineId;
 use protocol::JsonPacketStream;
-use rustc_serialize::json::{self, Json, ToJson};
+use serde_json::{self, Value};
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::net::TcpStream;
 
 trait EncodableConsoleMessage {
-    fn encode(&self) -> json::EncodeResult<String>;
+    fn encode(&self) -> serde_json::Result<String>;
 }
 
 impl EncodableConsoleMessage for CachedConsoleMessage {
-    fn encode(&self) -> json::EncodeResult<String> {
+    fn encode(&self) -> serde_json::Result<String> {
         match *self {
-            CachedConsoleMessage::PageError(ref a) => json::encode(a),
-            CachedConsoleMessage::ConsoleAPI(ref a) => json::encode(a),
+            CachedConsoleMessage::PageError(ref a) => serde_json::to_string(a),
+            CachedConsoleMessage::ConsoleAPI(ref a) => serde_json::to_string(a),
         }
     }
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct StartedListenersTraits {
     customNetworkRequest: bool,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct StartedListenersReply {
     from: String,
     nativeConsoleAPI: bool,
@@ -47,37 +47,37 @@ struct StartedListenersReply {
     traits: StartedListenersTraits,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct GetCachedMessagesReply {
     from: String,
-    messages: Vec<json::Object>,
+    messages: Vec<BTreeMap<String, Value>>,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct StopListenersReply {
     from: String,
     stoppedListeners: Vec<String>,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct AutocompleteReply {
     from: String,
     matches: Vec<String>,
     matchProp: String,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct EvaluateJSReply {
     from: String,
     input: String,
-    result: Json,
+    result: Value,
     timestamp: u64,
-    exception: Json,
+    exception: Value,
     exceptionMessage: String,
-    helperResult: Json,
+    helperResult: Value,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct SetPreferencesReply {
     from: String,
     updated: Vec<String>,
@@ -98,7 +98,7 @@ impl Actor for ConsoleActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      msg: &json::Object,
+                      msg: &BTreeMap<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getCachedMessages" => {
@@ -118,7 +118,7 @@ impl Actor for ConsoleActor {
                     self.pipeline, message_types, chan)).unwrap();
                 let messages = try!(port.recv().map_err(|_| ())).into_iter().map(|message| {
                     let json_string = message.encode().unwrap();
-                    let json = Json::from_str(&json_string).unwrap();
+                    let json = serde_json::from_str::<Value>(&json_string).unwrap();
                     json.as_object().unwrap().to_owned()
                 }).collect();
 
@@ -183,49 +183,49 @@ impl Actor for ConsoleActor {
                 let result = match try!(port.recv().map_err(|_| ())) {
                     VoidValue => {
                         let mut m = BTreeMap::new();
-                        m.insert("type".to_owned(), "undefined".to_owned().to_json());
-                        Json::Object(m)
+                        m.insert("type".to_owned(), serde_json::to_value("undefined"));
+                        Value::Object(m)
                     }
                     NullValue => {
                         let mut m = BTreeMap::new();
-                        m.insert("type".to_owned(), "null".to_owned().to_json());
-                        Json::Object(m)
+                        m.insert("type".to_owned(), serde_json::to_value("null"));
+                        Value::Object(m)
                     }
-                    BooleanValue(val) => val.to_json(),
+                    BooleanValue(val) => Value::Bool(val),
                     NumberValue(val) => {
                         if val.is_nan() {
                             let mut m = BTreeMap::new();
-                            m.insert("type".to_owned(), "NaN".to_owned().to_json());
-                            Json::Object(m)
+                            m.insert("type".to_owned(), serde_json::to_value("NaN"));
+                            Value::Object(m)
                         } else if val.is_infinite() {
                             let mut m = BTreeMap::new();
                             if val < 0. {
-                                m.insert("type".to_owned(), "-Infinity".to_owned().to_json());
+                                m.insert("type".to_owned(), serde_json::to_value("-Infinity"));
                             } else {
-                                m.insert("type".to_owned(), "Infinity".to_owned().to_json());
+                                m.insert("type".to_owned(), serde_json::to_value("Infinity"));
                             }
-                            Json::Object(m)
+                            Value::Object(m)
                         } else if val == 0. && val.is_sign_negative() {
                             let mut m = BTreeMap::new();
-                            m.insert("type".to_owned(), "-0".to_owned().to_json());
-                            Json::Object(m)
+                            m.insert("type".to_owned(), serde_json::to_value("-0"));
+                            Value::Object(m)
                         } else {
-                            val.to_json()
+                            serde_json::to_value(&val)
                         }
                     }
-                    StringValue(s) => s.to_json(),
+                    StringValue(s) => Value::String(s),
                     ActorValue { class, uuid } => {
                         //TODO: make initial ActorValue message include these properties?
                         let mut m = BTreeMap::new();
                         let actor = ObjectActor::new(registry, uuid);
 
-                        m.insert("type".to_owned(), "object".to_owned().to_json());
-                        m.insert("class".to_owned(), class.to_json());
-                        m.insert("actor".to_owned(), actor.to_json());
-                        m.insert("extensible".to_owned(), true.to_json());
-                        m.insert("frozen".to_owned(), false.to_json());
-                        m.insert("sealed".to_owned(), false.to_json());
-                        Json::Object(m)
+                        m.insert("type".to_owned(), serde_json::to_value("object"));
+                        m.insert("class".to_owned(), serde_json::to_value(&class));
+                        m.insert("actor".to_owned(), serde_json::to_value(&actor));
+                        m.insert("extensible".to_owned(), Value::Bool(true));
+                        m.insert("frozen".to_owned(), Value::Bool(false));
+                        m.insert("sealed".to_owned(), Value::Bool(false));
+                        Value::Object(m)
                     }
                 };
 
@@ -235,9 +235,9 @@ impl Actor for ConsoleActor {
                     input: input,
                     result: result,
                     timestamp: 0,
-                    exception: Json::Object(BTreeMap::new()),
+                    exception: Value::Object(BTreeMap::new()),
                     exceptionMessage: "".to_owned(),
-                    helperResult: Json::Object(BTreeMap::new()),
+                    helperResult: Value::Object(BTreeMap::new()),
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed

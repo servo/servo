@@ -11,40 +11,43 @@ use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use actors::console::ConsoleActor;
 use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
 use protocol::JsonPacketStream;
-use rustc_serialize::json;
+use serde_json::Value;
+use std::collections::BTreeMap;
 use std::net::TcpStream;
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct TabTraits;
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct TabAttachedReply {
     from: String,
-    __type__: String,
+    #[serde(rename = "type")]
+    type_: String,
     threadActor: String,
     cacheDisabled: bool,
     javascriptEnabled: bool,
     traits: TabTraits,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct TabDetachedReply {
     from: String,
-    __type__: String,
+    #[serde(rename = "type")]
+    type_: String,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ReconfigureReply {
     from: String
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ListFramesReply {
     from: String,
     frames: Vec<FrameMsg>,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct FrameMsg {
     id: u32,
     url: String,
@@ -52,7 +55,7 @@ struct FrameMsg {
     parentID: u32,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 pub struct TabActorMsg {
     actor: String,
     title: String,
@@ -85,7 +88,7 @@ impl Actor for TabActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      _msg: &json::Object,
+                      _msg: &BTreeMap<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "reconfigure" => {
@@ -98,7 +101,7 @@ impl Actor for TabActor {
             "attach" => {
                 let msg = TabAttachedReply {
                     from: self.name(),
-                    __type__: "tabAttached".to_owned(),
+                    type_: "tabAttached".to_owned(),
                     threadActor: self.thread.clone(),
                     cacheDisabled: false,
                     javascriptEnabled: true,
@@ -117,7 +120,7 @@ impl Actor for TabActor {
             "detach" => {
                 let msg = TabDetachedReply {
                     from: self.name(),
-                    __type__: "detached".to_owned(),
+                    type_: "detached".to_owned(),
                 };
                 let console_actor = registry.find::<ConsoleActor>(&self.console);
                 console_actor.streams.borrow_mut().pop();

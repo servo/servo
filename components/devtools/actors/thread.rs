@@ -4,33 +4,37 @@
 
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
 use protocol::JsonPacketStream;
-use rustc_serialize::json;
+use serde_json::Value;
+use std::collections::BTreeMap;
 use std::net::TcpStream;
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ThreadAttachedReply {
     from: String,
-    __type__: String,
+    #[serde(rename = "type")]
+    type_: String,
     actor: String,
     poppedFrames: Vec<PoppedFrameMsg>,
     why: WhyMsg,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 enum PoppedFrameMsg {}
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct WhyMsg {
-    __type__: String,
+    #[serde(rename = "type")]
+    type_: String,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ThreadResumedReply {
     from: String,
-    __type__: String,
+    #[serde(rename = "type")]
+    type_: String,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ReconfigureReply {
     from: String
 }
@@ -55,16 +59,16 @@ impl Actor for ThreadActor {
     fn handle_message(&self,
                       registry: &ActorRegistry,
                       msg_type: &str,
-                      _msg: &json::Object,
+                      _msg: &BTreeMap<String, Value>,
                       stream: &mut TcpStream) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "attach" => {
                 let msg = ThreadAttachedReply {
                     from: self.name(),
-                    __type__: "paused".to_owned(),
+                    type_: "paused".to_owned(),
                     actor: registry.new_name("pause"),
                     poppedFrames: vec![],
-                    why: WhyMsg { __type__: "attached".to_owned() },
+                    why: WhyMsg { type_: "attached".to_owned() },
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
@@ -73,7 +77,7 @@ impl Actor for ThreadActor {
             "resume" => {
                 let msg = ThreadResumedReply {
                     from: self.name(),
-                    __type__: "resumed".to_owned(),
+                    type_: "resumed".to_owned(),
                 };
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed

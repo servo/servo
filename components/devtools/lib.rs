@@ -26,7 +26,6 @@ extern crate ipc_channel;
 #[macro_use]
 extern crate log;
 extern crate msg;
-extern crate rustc_serialize;
 extern crate serde;
 extern crate serde_json;
 extern crate time;
@@ -80,14 +79,15 @@ mod actors {
 }
 mod protocol;
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ConsoleAPICall {
     from: String,
-    __type__: String,
+    #[serde(rename = "type")]
+    type_: String,
     message: ConsoleMsg,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ConsoleMsg {
     level: String,
     timeStamp: u64,
@@ -97,65 +97,73 @@ struct ConsoleMsg {
     columnNumber: usize,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct NetworkEventMsg {
     from: String,
-    __type__: String,
+    #[serde(rename = "type")]
+    type_: String,
     eventActor: EventActor,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ResponseStartUpdateMsg {
     from: String,
-    __type__: String,
+    #[serde(rename = "type")]
+    type_: String,
     updateType: String,
     response: ResponseStartMsg,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ResponseContentUpdateMsg {
     from: String,
-    __type__: String,
+    #[serde(rename = "type")]
+    type_: String,
     updateType: String,
     responseContent: ResponseContentMsg,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ResponseCookiesUpdateMsg {
     from: String,
-    __type__: String,
+    #[serde(rename = "type")]
+    type_: String,
     updateType: String,
     responseCookies: ResponseCookiesMsg,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct ResponseHeadersUpdateMsg {
     from: String,
-    __type__: String,
+    #[serde(rename = "type")]
+    type_: String,
     updateType: String,
     responseHeaders: ResponseHeadersMsg,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct RequestCookiesUpdateMsg {
     from: String,
-    __type__: String,
+    #[serde(rename = "type")]
+    type_: String,
     updateType: String,
     requestcookies: RequestCookiesMsg,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct EventTimingsUpdateMsg {
     from: String,
-    __type__: String,
+    #[serde(rename = "type")]
+    type_: String,
     updateType: String,
     totalTime: u32,
 }
 
-#[derive(RustcEncodable)]
+#[derive(Serialize)]
 struct SecurityInfoUpdateMsg {
     from: String,
-    __type__: String,
+    #[serde(rename = "type")]
+    type_: String,
     updateType: String,
     securityState: String,
 }
@@ -329,7 +337,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
         let msg = ConsoleAPICall {
             from: console_actor.name.clone(),
-            __type__: "consoleAPICall".to_owned(),
+            type_: "consoleAPICall".to_owned(),
             message: ConsoleMsg {
                 level: match console_message.logLevel {
                     LogLevel::Debug => "debug",
@@ -397,7 +405,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 //Send a networkEvent message to the client
                 let msg = NetworkEventMsg {
                     from: console_actor_name,
-                    __type__: "networkEvent".to_owned(),
+                    type_: "networkEvent".to_owned(),
                     eventActor: actor.event_actor(),
                 };
                 for stream in &mut connections {
@@ -411,7 +419,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
                 let msg7 = RequestCookiesUpdateMsg {
                     from: netevent_actor_name.clone(),
-                    __type__: "networkEventUpdate".to_owned(),
+                    type_: "networkEventUpdate".to_owned(),
                     updateType: "requestCookies".to_owned(),
                     requestcookies: actor.request_cookies(),
                 };
@@ -422,7 +430,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 //Send a networkEventUpdate (responseStart) to the client
                 let msg = ResponseStartUpdateMsg {
                     from: netevent_actor_name.clone(),
-                    __type__: "networkEventUpdate".to_owned(),
+                    type_: "networkEventUpdate".to_owned(),
                     updateType: "responseStart".to_owned(),
                     response: actor.response_start()
                 };
@@ -432,7 +440,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 }
                 let msg2 = EventTimingsUpdateMsg {
                     from: netevent_actor_name.clone(),
-                    __type__: "networkEventUpdate".to_owned(),
+                    type_: "networkEventUpdate".to_owned(),
                     updateType: "eventTimings".to_owned(),
                     totalTime: 0
                 };
@@ -443,7 +451,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
                 let msg3 = SecurityInfoUpdateMsg {
                     from: netevent_actor_name.clone(),
-                    __type__: "networkEventUpdate".to_owned(),
+                    type_: "networkEventUpdate".to_owned(),
                     updateType: "securityInfo".to_owned(),
                     securityState: "".to_owned(),
                 };
@@ -454,7 +462,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
                 let msg4 = ResponseContentUpdateMsg {
                     from: netevent_actor_name.clone(),
-                    __type__: "networkEventUpdate".to_owned(),
+                    type_: "networkEventUpdate".to_owned(),
                     updateType: "responseContent".to_owned(),
                     responseContent: actor.response_content(),
                 };
@@ -465,7 +473,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
                 let msg5 = ResponseCookiesUpdateMsg {
                     from: netevent_actor_name.clone(),
-                    __type__: "networkEventUpdate".to_owned(),
+                    type_: "networkEventUpdate".to_owned(),
                     updateType: "responseCookies".to_owned(),
                     responseCookies: actor.response_cookies(),
                 };
@@ -476,7 +484,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
                 let msg6 = ResponseHeadersUpdateMsg {
                     from: netevent_actor_name.clone(),
-                    __type__: "networkEventUpdate".to_owned(),
+                    type_: "networkEventUpdate".to_owned(),
                     updateType: "responseHeaders".to_owned(),
                     responseHeaders: actor.response_headers(),
                 };
