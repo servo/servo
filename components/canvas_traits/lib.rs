@@ -36,9 +36,7 @@ use gfx_traits::color;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use std::default::Default;
 use std::str::FromStr;
-
-pub use webrender_traits::{WebGLFramebufferBindingRequest, WebGLError, WebGLParameter, WebGLResult, WebGLContextId};
-pub use webrender_traits::WebGLCommand as CanvasWebGLMsg;
+use webrender_traits::{WebGLCommand, WebGLContextId};
 
 #[derive(Clone, Deserialize, Serialize)]
 pub enum FillRule {
@@ -51,7 +49,7 @@ pub enum CanvasMsg {
     Canvas2d(Canvas2dMsg),
     Common(CanvasCommonMsg),
     FromLayout(FromLayoutMsg),
-    WebGL(CanvasWebGLMsg),
+    WebGL(WebGLCommand),
 }
 
 #[derive(Clone, Deserialize, Serialize)]

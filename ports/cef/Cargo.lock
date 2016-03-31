@@ -1613,6 +1613,7 @@ dependencies = [
  "url 0.5.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "uuid 0.1.18 (registry+https://github.com/rust-lang/crates.io-index)",
+ "webrender_traits 0.1.0 (git+https://github.com/servo/webrender_traits)",
  "websocket 0.16.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "xml5ever 0.1.1 (git+https://github.com/Ygg01/xml5ever)",
 ]

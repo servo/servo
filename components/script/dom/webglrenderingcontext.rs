@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas_traits::WebGLError::*;
-use canvas_traits::{CanvasCommonMsg, CanvasMsg, CanvasWebGLMsg, WebGLError};
-use canvas_traits::{WebGLFramebufferBindingRequest, WebGLParameter};
+use canvas_traits::{CanvasCommonMsg, CanvasMsg};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
@@ -37,6 +35,8 @@ use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
 use util::str::DOMString;
 use util::vec::byte_swap;
+use webrender_traits::WebGLError::*;
+use webrender_traits::{WebGLCommand, WebGLError, WebGLFramebufferBindingRequest, WebGLParameter};
 
 pub const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;
 
@@ -164,7 +164,7 @@ impl WebGLRenderingContext {
 
     fn vertex_attrib(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::VertexAttrib(indx, x, y, z, w)))
+            .send(CanvasMsg::WebGL(WebGLCommand::VertexAttrib(indx, x, y, z, w)))
             .unwrap();
     }
 }
@@ -185,7 +185,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn DrawingBufferWidth(&self) -> i32 {
         let (sender, receiver) = ipc::channel().unwrap();
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::DrawingBufferWidth(sender)))
+            .send(CanvasMsg::WebGL(WebGLCommand::DrawingBufferWidth(sender)))
             .unwrap();
         receiver.recv().unwrap()
     }
@@ -194,7 +194,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn DrawingBufferHeight(&self) -> i32 {
         let (sender, receiver) = ipc::channel().unwrap();
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::DrawingBufferHeight(sender)))
+            .send(CanvasMsg::WebGL(WebGLCommand::DrawingBufferHeight(sender)))
             .unwrap();
         receiver.recv().unwrap()
     }
@@ -204,7 +204,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn GetBufferParameter(&self, _cx: *mut JSContext, target: u32, parameter: u32) -> JSVal {
         let (sender, receiver) = ipc::channel().unwrap();
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::GetBufferParameter(target, parameter, sender)))
+            .send(CanvasMsg::WebGL(WebGLCommand::GetBufferParameter(target, parameter, sender)))
             .unwrap();
         match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
             WebGLParameter::Int(val) => Int32Value(val),
@@ -220,7 +220,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn GetParameter(&self, cx: *mut JSContext, parameter: u32) -> JSVal {
         let (sender, receiver) = ipc::channel().unwrap();
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::GetParameter(parameter, sender)))
+            .send(CanvasMsg::WebGL(WebGLCommand::GetParameter(parameter, sender)))
             .unwrap();
         match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
             WebGLParameter::Int(val) => Int32Value(val),
@@ -260,7 +260,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         // If the send does not succeed, assume context lost
         if let Err(_) = self.ipc_renderer
-                            .send(CanvasMsg::WebGL(CanvasWebGLMsg::GetContextAttributes(sender))) {
+                            .send(CanvasMsg::WebGL(WebGLCommand::GetContextAttributes(sender))) {
             return None;
         }
         let attrs = receiver.recv().unwrap();
@@ -289,37 +289,37 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ActiveTexture(&self, texture: u32) {
-        self.ipc_renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::ActiveTexture(texture))).unwrap();
+        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::ActiveTexture(texture))).unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn BlendColor(&self, r: f32, g: f32, b: f32, a: f32) {
-        self.ipc_renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::BlendColor(r, g, b, a))).unwrap();
+        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::BlendColor(r, g, b, a))).unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn BlendEquation(&self, mode: u32) {
-        self.ipc_renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::BlendEquation(mode))).unwrap();
+        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::BlendEquation(mode))).unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn BlendEquationSeparate(&self, mode_rgb: u32, mode_alpha: u32) {
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::BlendEquationSeparate(mode_rgb, mode_alpha)))
+            .send(CanvasMsg::WebGL(WebGLCommand::BlendEquationSeparate(mode_rgb, mode_alpha)))
             .unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn BlendFunc(&self, src_factor: u32, dest_factor: u32) {
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::BlendFunc(src_factor, dest_factor)))
+            .send(CanvasMsg::WebGL(WebGLCommand::BlendFunc(src_factor, dest_factor)))
             .unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn BlendFuncSeparate(&self, src_rgb: u32, dest_rgb: u32, src_alpha: u32, dest_alpha: u32) {
         self.ipc_renderer.send(
-            CanvasMsg::WebGL(CanvasWebGLMsg::BlendFuncSeparate(src_rgb, dest_rgb, src_alpha, dest_alpha))).unwrap();
+            CanvasMsg::WebGL(WebGLCommand::BlendFuncSeparate(src_rgb, dest_rgb, src_alpha, dest_alpha))).unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
@@ -356,7 +356,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         } else {
             // Unbind the current buffer
             self.ipc_renderer
-                .send(CanvasMsg::WebGL(CanvasWebGLMsg::BindBuffer(target, 0)))
+                .send(CanvasMsg::WebGL(WebGLCommand::BindBuffer(target, 0)))
                 .unwrap()
         }
     }
@@ -371,7 +371,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             framebuffer.bind(target)
         } else {
             // Bind the default framebuffer
-            let cmd = CanvasWebGLMsg::BindFramebuffer(target, WebGLFramebufferBindingRequest::Default);
+            let cmd = WebGLCommand::BindFramebuffer(target, WebGLFramebufferBindingRequest::Default);
             self.ipc_renderer.send(CanvasMsg::WebGL(cmd)).unwrap();
         }
     }
@@ -387,7 +387,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         } else {
             // Unbind the currently bound renderbuffer
             self.ipc_renderer
-                .send(CanvasMsg::WebGL(CanvasWebGLMsg::BindRenderbuffer(target, 0)))
+                .send(CanvasMsg::WebGL(WebGLCommand::BindRenderbuffer(target, 0)))
                 .unwrap()
         }
     }
@@ -409,7 +409,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         } else {
             // Unbind the currently bound texture
             self.ipc_renderer
-                .send(CanvasMsg::WebGL(CanvasWebGLMsg::BindTexture(target, 0)))
+                .send(CanvasMsg::WebGL(WebGLCommand::BindTexture(target, 0)))
                 .unwrap()
         }
     }
@@ -470,7 +470,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 return self.webgl_error(InvalidValue);
             }
             self.ipc_renderer
-                .send(CanvasMsg::WebGL(CanvasWebGLMsg::BufferSubData(target, offset as isize, data_vec)))
+                .send(CanvasMsg::WebGL(WebGLCommand::BufferSubData(target, offset as isize, data_vec)))
                 .unwrap()
         } else {
             self.webgl_error(InvalidValue);
@@ -496,35 +496,35 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
     fn Clear(&self, mask: u32) {
-        self.ipc_renderer.send(CanvasMsg::WebGL(CanvasWebGLMsg::Clear(mask))).unwrap();
+        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::Clear(mask))).unwrap();
         self.mark_as_dirty();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ClearColor(&self, red: f32, green: f32, blue: f32, alpha: f32) {
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::ClearColor(red, green, blue, alpha)))
+            .send(CanvasMsg::WebGL(WebGLCommand::ClearColor(red, green, blue, alpha)))
             .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ClearDepth(&self, depth: f32) {
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::ClearDepth(depth as f64)))
+            .send(CanvasMsg::WebGL(WebGLCommand::ClearDepth(depth as f64)))
             .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ClearStencil(&self, stencil: i32) {
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::ClearStencil(stencil)))
+            .send(CanvasMsg::WebGL(WebGLCommand::ClearStencil(stencil)))
             .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn ColorMask(&self, r: bool, g: bool, b: bool, a: bool) {
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::ColorMask(r, g, b, a)))
+            .send(CanvasMsg::WebGL(WebGLCommand::ColorMask(r, g, b, a)))
             .unwrap()
     }
 
@@ -533,7 +533,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         match mode {
             constants::FRONT | constants::BACK | constants::FRONT_AND_BACK =>
                 self.ipc_renderer
-                    .send(CanvasMsg::WebGL(CanvasWebGLMsg::CullFace(mode)))
+                    .send(CanvasMsg::WebGL(WebGLCommand::CullFace(mode)))
                     .unwrap(),
             _ => self.webgl_error(InvalidEnum),
         }
@@ -544,7 +544,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         match mode {
             constants::CW | constants::CCW =>
                 self.ipc_renderer
-                    .send(CanvasMsg::WebGL(CanvasWebGLMsg::FrontFace(mode)))
+                    .send(CanvasMsg::WebGL(WebGLCommand::FrontFace(mode)))
                     .unwrap(),
             _ => self.webgl_error(InvalidEnum),
         }
@@ -557,7 +557,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::GREATER | constants::NOTEQUAL |
             constants::GEQUAL | constants::ALWAYS =>
                 self.ipc_renderer
-                    .send(CanvasMsg::WebGL(CanvasWebGLMsg::DepthFunc(func)))
+                    .send(CanvasMsg::WebGL(WebGLCommand::DepthFunc(func)))
                     .unwrap(),
             _ => self.webgl_error(InvalidEnum),
         }
@@ -566,14 +566,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn DepthMask(&self, flag: bool) {
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::DepthMask(flag)))
+            .send(CanvasMsg::WebGL(WebGLCommand::DepthMask(flag)))
             .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn DepthRange(&self, near: f32, far: f32) {
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::DepthRange(near as f64, far as f64)))
+            .send(CanvasMsg::WebGL(WebGLCommand::DepthRange(near as f64, far as f64)))
             .unwrap()
     }
 
@@ -584,7 +584,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::POLYGON_OFFSET_FILL | constants::SAMPLE_ALPHA_TO_COVERAGE | constants::SAMPLE_COVERAGE |
             constants::SAMPLE_COVERAGE_INVERT | constants::SCISSOR_TEST =>
                 self.ipc_renderer
-                    .send(CanvasMsg::WebGL(CanvasWebGLMsg::Enable(cap)))
+                    .send(CanvasMsg::WebGL(WebGLCommand::Enable(cap)))
                     .unwrap(),
             _ => self.webgl_error(InvalidEnum),
         }
@@ -597,7 +597,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::POLYGON_OFFSET_FILL | constants::SAMPLE_ALPHA_TO_COVERAGE | constants::SAMPLE_COVERAGE |
             constants::SAMPLE_COVERAGE_INVERT | constants::SCISSOR_TEST =>
                 self.ipc_renderer
-                    .send(CanvasMsg::WebGL(CanvasWebGLMsg::Disable(cap)))
+                    .send(CanvasMsg::WebGL(WebGLCommand::Disable(cap)))
                     .unwrap(),
             _ => self.webgl_error(InvalidEnum),
         }
@@ -699,7 +699,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     self.webgl_error(InvalidValue);
                 } else {
                     self.ipc_renderer
-                        .send(CanvasMsg::WebGL(CanvasWebGLMsg::DrawArrays(mode, first, count)))
+                        .send(CanvasMsg::WebGL(WebGLCommand::DrawArrays(mode, first, count)))
                         .unwrap();
                     self.mark_as_dirty();
                 }
@@ -739,7 +739,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::TRIANGLE_STRIP | constants::TRIANGLE_FAN |
             constants::TRIANGLES => {
                 self.ipc_renderer
-                    .send(CanvasMsg::WebGL(CanvasWebGLMsg::DrawElements(mode, count, type_, offset)))
+                    .send(CanvasMsg::WebGL(WebGLCommand::DrawElements(mode, count, type_, offset)))
                     .unwrap();
                 self.mark_as_dirty();
             },
@@ -750,7 +750,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn EnableVertexAttribArray(&self, attrib_id: u32) {
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::EnableVertexAttribArray(attrib_id)))
+            .send(CanvasMsg::WebGL(WebGLCommand::EnableVertexAttribArray(attrib_id)))
             .unwrap()
     }
 
@@ -825,7 +825,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Hint(target, mode)))
+            .send(CanvasMsg::WebGL(WebGLCommand::Hint(target, mode)))
             .unwrap()
     }
 
@@ -836,7 +836,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::LineWidth(width)))
+            .send(CanvasMsg::WebGL(WebGLCommand::LineWidth(width)))
             .unwrap()
     }
 
@@ -889,21 +889,21 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::PixelStorei(param_name, param_value)))
+            .send(CanvasMsg::WebGL(WebGLCommand::PixelStorei(param_name, param_value)))
             .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn PolygonOffset(&self, factor: f32, units: f32) {
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::PolygonOffset(factor, units)))
+            .send(CanvasMsg::WebGL(WebGLCommand::PolygonOffset(factor, units)))
             .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
     fn Scissor(&self, x: i32, y: i32, width: i32, height: i32) {
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Scissor(x, y, width, height)))
+            .send(CanvasMsg::WebGL(WebGLCommand::Scissor(x, y, width, height)))
             .unwrap()
     }
 
@@ -945,7 +945,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         };
 
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform1f(uniform.id(), val)))
+            .send(CanvasMsg::WebGL(WebGLCommand::Uniform1f(uniform.id(), val)))
             .unwrap()
     }
 
@@ -975,7 +975,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         };
 
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Uniform4f(uniform.id(), x, y, z, w)))
+            .send(CanvasMsg::WebGL(WebGLCommand::Uniform4f(uniform.id(), x, y, z, w)))
             .unwrap()
     }
 
@@ -1086,7 +1086,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                            normalized: bool, stride: i32, offset: i64) {
         if let constants::FLOAT = data_type {
            let msg = CanvasMsg::WebGL(
-               CanvasWebGLMsg::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset as u32));
+               WebGLCommand::VertexAttribPointer2f(attrib_id, size, normalized, stride, offset as u32));
             self.ipc_renderer.send(msg).unwrap()
         } else {
             panic!("VertexAttribPointer: Data Type not supported")
@@ -1096,7 +1096,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
     fn Viewport(&self, x: i32, y: i32, width: i32, height: i32) {
         self.ipc_renderer
-            .send(CanvasMsg::WebGL(CanvasWebGLMsg::Viewport(x, y, width, height)))
+            .send(CanvasMsg::WebGL(WebGLCommand::Viewport(x, y, width, height)))
             .unwrap()
     }
 
@@ -1170,7 +1170,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         };
 
         // TODO(emilio): Invert axis, convert colorspace, premultiply alpha if requested
-        let msg = CanvasWebGLMsg::TexImage2D(target, level, internal_format as i32,
+        let msg = WebGLCommand::TexImage2D(target, level, internal_format as i32,
                                              size.width, size.height,
                                              format, data_type, pixels);
 

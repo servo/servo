@@ -29,7 +29,6 @@
 //! The `no_jsmanaged_fields!()` macro adds an empty implementation of `JSTraceable` to
 //! a datatype.
 
-use canvas_traits::WebGLError;
 use canvas_traits::{CanvasGradientStop, LinearGradientStyle, RadialGradientStyle};
 use canvas_traits::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
 use cssparser::RGBA;
@@ -91,7 +90,7 @@ use style::values::specified::Length;
 use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 use uuid::Uuid;
-
+use webrender_traits::WebGLError;
 
 /// A trait to allow tracing (only) DOM objects.
 pub trait JSTraceable {

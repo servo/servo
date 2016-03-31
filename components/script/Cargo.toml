@@ -60,6 +60,9 @@ features = ["unstable"]
 [dependencies.gfx_traits]
 path = "../gfx_traits"
 
+[dependencies.webrender_traits]
+git = "https://github.com/servo/webrender_traits"
+
 [dependencies]
 app_units = {version = "0.2.3", features = ["plugins"]}
 bitflags = "0.3"
