@@ -1,0 +1,18 @@
+<h3><a href="{{ pathto(master_doc) }}">{{ _('Table Of Contents') }}</a></h3>
+
+<ul>
+  <li><a href="{{ pathto('index') }}">Home</a></li>
+  <li><a href="{{ pathto('contents') }}">Contents</a></li>
+  <li><a href="{{ pathto('getting-started') }}">Install</a></li>
+  <li><a href="{{ pathto('example/index') }}">Examples</a></li>
+  <li><a href="{{ pathto('customize') }}">Customize</a></li>
+  <li><a href="{{ pathto('contact') }}">Contact</a></li>
+  <li><a href="{{ pathto('talks') }}">Talks/Posts</a></li>
+  <li><a href="{{ pathto('changelog') }}">Changelog</a></li>
+  <li><a href="{{ pathto('license') }}">License</a></li>
+</ul>
+
+{%- if display_toc %}
+  <hr>
+  {{ toc }}
+{%- endif %}

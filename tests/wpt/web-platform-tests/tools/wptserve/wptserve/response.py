@@ -168,13 +168,25 @@ class Response(object):
         self.set_cookie(name, None, path=path, domain=domain, max_age=0,
                         expires=timedelta(days=-1))
 
-    def iter_content(self):
+    def iter_content(self, read_file=False):
         """Iterator returning chunks of response body content.
 
         If any part of the content is a function, this will be called
-        and the resulting value (if any) returned."""
-        if type(self.content) in types.StringTypes:
+        and the resulting value (if any) returned.
+
+        :param read_file: - boolean controlling the behaviour when content
+        is a file handle. When set to False the handle will be returned directly
+        allowing the file to be passed to the output in small chunks. When set to
+        True, the entire content of the file will be returned as a string facilitating
+        non-streaming operations like template substitution.
+        """
+        if isinstance(self.content, types.StringTypes):
             yield self.content
+        elif hasattr(self.content, "read"):
+            if read_file:
+                yield self.content.read()
+            else:
+                yield self.content
         else:
             for item in self.content:
                 if hasattr(item, "__call__"):
@@ -355,6 +367,7 @@ class ResponseWriter(object):
         self._headers_complete = False
         self.content_written = False
         self.request = response.request
+        self.file_chunk_size = 32 * 1024
 
     def write_status(self, code, message=None):
         """Write out the status line of a response.
@@ -411,7 +424,10 @@ class ResponseWriter(object):
 
     def write_content(self, data):
         """Write the body of the response."""
-        self.write(self.encode(data))
+        if isinstance(data, types.StringTypes):
+            self.write(data)
+        else:
+            self.write_content_file(data)
         if not self._response.explicit_flush:
             self.flush()
 
@@ -424,6 +440,19 @@ class ResponseWriter(object):
         except socket.error:
             # This can happen if the socket got closed by the remote end
             pass
+
+    def write_content_file(self, data):
+        """Write a file-like object directly to the response in chunks.
+        Does not flush."""
+        self.content_written = True
+        while True:
+            buf = data.read(self.file_chunk_size)
+            if not buf:
+                break
+            try:
+                self._wfile.write(buf)
+            except socket.error:
+                break
 
     def encode(self, data):
         """Convert unicode to bytes according to response.encoding."""

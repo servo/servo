@@ -180,6 +180,7 @@ interface Node : EventTarget {
   readonly attribute DOMString? baseURI;
 
   readonly attribute Document? ownerDocument;
+  readonly attribute Node rootNode;
   readonly attribute Node? parentNode;
   readonly attribute Element? parentElement;
   boolean hasChildNodes();
@@ -484,6 +485,7 @@ setup(function() {
   idlArray.add_objects({
     Event: ['document.createEvent("Event")', 'new Event("foo")'],
     CustomEvent: ['new CustomEvent("foo")'],
+    Document: ['new Document()'],
     XMLDocument: ['xmlDoc'],
     DOMImplementation: ['document.implementation'],
     DocumentFragment: ['document.createDocumentFragment()'],

@@ -112,7 +112,7 @@ class SourceFile(object):
         # files.
         rel_dir_tree = self.rel_path.split(os.path.sep)
         return (rel_dir_tree[0] == "webdriver" and
-                len(rel_dir_tree) > 2 and
+                len(rel_dir_tree) > 1 and
                 self.filename != "__init__.py" and
                 fnmatch(self.filename, wd_pattern))
 
@@ -296,7 +296,7 @@ class SourceFile(object):
             rv = [TestharnessTest(self, self.url[:-3])]
 
         elif self.name_is_webdriver:
-            rv = [WebdriverSpecTest(self)]
+            rv = [WebdriverSpecTest(self, self.url)]
 
         elif self.content_is_testharness:
             rv = []

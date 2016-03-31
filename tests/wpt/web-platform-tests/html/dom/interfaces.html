@@ -3202,7 +3202,7 @@ window.onload = function() {
     DOMStringMap: ['document.head.dataset'],
     DOMElementMap: ['document.cssElementMap'],
     Transferable: [],
-    Document: ['iframe.contentDocument'],
+    Document: ['iframe.contentDocument', 'new Document()'],
     XMLDocument: ['document.implementation.createDocument(null, "", null)'],
     HTMLElement: [
       'document.createElement("noscript")',

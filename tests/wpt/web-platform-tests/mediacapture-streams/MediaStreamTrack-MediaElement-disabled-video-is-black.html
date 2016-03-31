@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+<head>
+<title>A disabled video track is rendered as blackness</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#introduction">
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#mediastreams-as-media-elements">
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your video stream.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that a disabled video track in a
+MediaStream is rendered as blackness.</p>
+<video id="vid"></video>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/vendor-prefix.js" data-prefixed-objects='[{"ancestors":["navigator"], "name":"getUserMedia"}]' data-prefixed-prototypes='[{"ancestors":["HTMLMediaElement"],"name":"srcObject"}]'></script>
+<script>
+var vid = document.getElementById("vid");
+var cv = document.createElement("canvas");
+var t = async_test("Tests that a disabled video track in a MediaStream is rendered as blackness", {timeout: 10000});
+t.step(function() {
+  navigator.getUserMedia(
+      {video: true},
+      t.step_func(function (stream) {
+        var testOncePlaying = function() {
+          if (stream.getVideoTracks()[0].enabled) {
+            stream.getVideoTracks()[0].enabled = false;
+            return;
+          }
+
+          vid.removeEventListener("timeupdate", testOncePlaying, false);
+          cv.width = vid.offsetWidth;
+          cv.height = vid.offsetHeight;
+          var ctx = cv.getContext("2d");
+          ctx.drawImage(vid,0,0);
+          var imageData = ctx.getImageData(0, 0, cv.width, cv.height);
+          for (var i = 0; i < imageData.data.length; i+=4) {
+            assert_equals(imageData.data[i], 0, "No red component in pixel #" + i);
+            assert_equals(imageData.data[i + 1], 0, "No green component in pixel #" + i);
+            assert_equals(imageData.data[i + 2], 0, "No blue component in pixel #" + i);
+            assert_equals(imageData.data[i + 3], 255, "No transparency in pixel #" + i);
+          }
+          t.done();
+        }
+        vid.srcObject = stream;
+        vid.play();
+        vid.addEventListener("timeupdate", t.step_func(testOncePlaying), false);
+      }),
+      function(error) {});
+});
+</script>
+</body>
+</html>
