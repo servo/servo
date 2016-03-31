@@ -108,7 +108,7 @@ impl TableRowFlow {
         // cells).
         let mut max_block_size = Au(0);
         let thread_id = self.block_flow.base.thread_id;
-        for kid in self.block_flow.base.child_iter() {
+        for kid in self.block_flow.base.child_iter_mut() {
             kid.place_float_if_applicable(layout_context);
             if !flow::base(kid).flags.is_float() {
                 kid.assign_block_size_for_inorder_child_if_necessary(layout_context, thread_id);
@@ -148,7 +148,7 @@ impl TableRowFlow {
         self.block_flow.base.position.size.block = block_size;
 
         // Assign the block-size of kid fragments, which is the same value as own block-size.
-        for kid in self.block_flow.base.child_iter() {
+        for kid in self.block_flow.base.child_iter_mut() {
             let child_table_cell = kid.as_mut_table_cell();
             {
                 let kid_fragment = child_table_cell.mut_fragment();
@@ -244,7 +244,7 @@ impl Flow for TableRowFlow {
         self.preliminary_collapsed_borders.reset(CollapsedBorder::new());
 
         {
-            let mut iterator = self.block_flow.base.child_iter().enumerate().peekable();
+            let mut iterator = self.block_flow.base.child_iter_mut().enumerate().peekable();
             while let Some((i, kid)) = iterator.next() {
                 assert!(kid.is_table_cell());
 

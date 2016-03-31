@@ -1296,7 +1296,7 @@ impl Flow for InlineFlow {
         let _scope = layout_debug_scope!("inline::bubble_inline_sizes {:x}", self.base.debug_id());
 
         let writing_mode = self.base.writing_mode;
-        for kid in self.base.child_iter() {
+        for kid in self.base.child_iter_mut() {
             flow::mut_base(kid).floats = Floats::new(writing_mode);
         }
 
@@ -1398,7 +1398,7 @@ impl Flow for InlineFlow {
         // If there are any inline-block kids, propagate explicit block and inline
         // sizes down to them.
         let block_container_explicit_block_size = self.base.block_container_explicit_block_size;
-        for kid in self.base.child_iter() {
+        for kid in self.base.child_iter_mut() {
             let kid_base = flow::mut_base(kid);
 
             kid_base.block_container_inline_size = inline_size;
@@ -1568,7 +1568,7 @@ impl Flow for InlineFlow {
 
         // Assign block sizes for any inline-block descendants.
         let thread_id = self.base.thread_id;
-        for kid in self.base.child_iter() {
+        for kid in self.base.child_iter_mut() {
             if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) ||
                     flow::base(kid).flags.is_float() {
                 continue

@@ -431,7 +431,7 @@ pub fn base<T: ?Sized + Flow>(this: &T) -> &BaseFlow {
 }
 
 /// Iterates over the children of this immutable flow.
-pub fn imm_child_iter<'a>(flow: &'a Flow) -> FlowListIterator<'a> {
+pub fn child_iter<'a>(flow: &'a Flow) -> FlowListIterator<'a> {
     base(flow).children.iter()
 }
 
@@ -445,7 +445,7 @@ pub fn mut_base<T: ?Sized + Flow>(this: &mut T) -> &mut BaseFlow {
 }
 
 /// Iterates over the children of this flow.
-pub fn child_iter<'a>(flow: &'a mut Flow) -> MutFlowListIterator<'a> {
+pub fn child_iter_mut<'a>(flow: &'a mut Flow) -> MutFlowListIterator<'a> {
     mut_base(flow).children.iter_mut()
 }
 
@@ -1148,7 +1148,7 @@ impl BaseFlow {
         }
     }
 
-    pub fn child_iter(&mut self) -> MutFlowListIterator {
+    pub fn child_iter_mut(&mut self) -> MutFlowListIterator {
         self.children.iter_mut()
     }
 
@@ -1379,7 +1379,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     fn print_with_tree(self, print_tree: &mut PrintTree) {
         print_tree.new_level(format!("{:?}", self));
         self.print_extra_flow_children(print_tree);
-        for kid in imm_child_iter(self) {
+        for kid in child_iter(self) {
             kid.print_with_tree(print_tree);
         }
         print_tree.end_level();
@@ -1406,14 +1406,14 @@ impl<'a> MutableFlowUtils for &'a mut Flow {
             traversal.process(self);
         }
 
-        for kid in child_iter(self) {
+        for kid in child_iter_mut(self) {
             kid.traverse_preorder(traversal);
         }
     }
 
     /// Traverses the tree in postorder.
     fn traverse_postorder<T: PostorderFlowTraversal>(self, traversal: &T) {
-        for kid in child_iter(self) {
+        for kid in child_iter_mut(self) {
             kid.traverse_postorder(traversal);
         }
 

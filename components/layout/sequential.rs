@@ -51,7 +51,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
             assign_inline_sizes.process(flow);
         }
 
-        for kid in flow::child_iter(flow) {
+        for kid in flow::child_iter_mut(flow) {
             doit(kid, assign_inline_sizes, assign_block_sizes);
         }
 
@@ -103,7 +103,7 @@ pub fn iterate_through_flow_tree_fragment_border_boxes(root: &mut FlowRef,
             stacking_context_position: &Point2D<Au>) {
         flow.iterate_through_fragment_border_boxes(iterator, level, stacking_context_position);
 
-        for kid in flow::mut_base(flow).child_iter() {
+        for kid in flow::mut_base(flow).child_iter_mut() {
             let stacking_context_position =
                 if kid.is_block_flow() && kid.as_block().fragment.establishes_stacking_context() {
                     let margin = Point2D::new(kid.as_block().fragment.margin.inline_start, Au(0));
@@ -125,7 +125,7 @@ pub fn store_overflow(layout_context: &LayoutContext, flow: &mut Flow) {
         return
     }
 
-    for mut kid in flow::mut_base(flow).child_iter() {
+    for mut kid in flow::mut_base(flow).child_iter_mut() {
         store_overflow(layout_context, kid);
     }
 
@@ -143,7 +143,7 @@ pub fn guess_float_placement(flow: &mut Flow) {
     }
 
     let mut floats_in = SpeculatedFloatPlacement::compute_floats_in_for_first_child(flow);
-    for kid in flow::mut_base(flow).child_iter() {
+    for kid in flow::mut_base(flow).child_iter_mut() {
         floats_in.compute_floats_in(kid);
         flow::mut_base(kid).speculated_float_placement_in = floats_in;
         guess_float_placement(kid);

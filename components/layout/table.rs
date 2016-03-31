@@ -230,7 +230,7 @@ impl Flow for TableFlow {
         // part of the table, which we don't want to do—it belongs to the table wrapper instead.
 
         // Get column inline sizes from colgroups
-        for kid in self.block_flow.base.child_iter().filter(|kid| kid.is_table_colgroup()) {
+        for kid in self.block_flow.base.child_iter_mut().filter(|kid| kid.is_table_colgroup()) {
             for specified_inline_size in &kid.as_mut_table_colgroup().inline_sizes {
                 self.column_intrinsic_inline_sizes.push(ColumnIntrinsicInlineSize {
                     minimum_length: match *specified_inline_size {
@@ -704,7 +704,7 @@ impl TableLikeFlow for BlockFlow {
 
             // At this point, `current_block_offset` is at the content edge of our box. Now iterate
             // over children.
-            for kid in self.base.child_iter() {
+            for kid in self.base.child_iter_mut() {
                 // Account for spacing or collapsed borders.
                 if kid.is_table_row() {
                     has_rows = true;
@@ -762,7 +762,7 @@ impl TableLikeFlow for BlockFlow {
 
             // Write in the size of the relative containing block for children. (This information
             // is also needed to handle RTL.)
-            for kid in self.base.child_iter() {
+            for kid in self.base.child_iter_mut() {
                 flow::mut_base(kid).early_absolute_position_info = EarlyAbsolutePositionInfo {
                     relative_containing_block_size: self.fragment.content_box().size,
                     relative_containing_block_mode: self.fragment.style().writing_mode,
@@ -801,7 +801,7 @@ struct TableRowIterator<'a> {
 impl<'a> TableRowIterator<'a> {
     fn new(base: &'a mut BaseFlow) -> Self {
         TableRowIterator {
-            kids: base.child_iter(),
+            kids: base.child_iter_mut(),
             grandkids: None,
         }
     }
@@ -822,7 +822,7 @@ impl<'a> Iterator for TableRowIterator<'a> {
         match self.kids.next() {
             Some(kid) => {
                 if kid.is_table_rowgroup() {
-                    self.grandkids = Some(flow::mut_base(kid).child_iter());
+                    self.grandkids = Some(flow::mut_base(kid).child_iter_mut());
                     self.next()
                 } else if kid.is_table_row() {
                     Some(kid.as_mut_table_row())
