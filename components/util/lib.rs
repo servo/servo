@@ -9,6 +9,7 @@
 #![cfg_attr(feature = "non-geckolib", feature(decode_utf16))]
 #![feature(optin_builtin_traits)]
 #![feature(plugin)]
+#![feature(panic_handler)]
 #![feature(reflect_marker)]
 #![feature(step_by)]
 

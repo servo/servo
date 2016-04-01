@@ -5,16 +5,41 @@
 use ipc_channel::ipc::IpcSender;
 use serde::Serialize;
 use std::borrow::ToOwned;
+use std::io::{Write, stderr};
+use std::panic::{PanicInfo, take_handler, set_handler};
 use std::sync::mpsc::Sender;
 use std::thread;
 use std::thread::Builder;
 use thread_state;
-
+#[allow(unused_must_use)]
 pub fn spawn_named<F>(name: String, f: F)
     where F: FnOnce() + Send + 'static
 {
     let builder = thread::Builder::new().name(name);
-    builder.spawn(f).unwrap();
+
+    let f_with_handler = move || {
+        let hook = take_handler();
+
+        let new_handler = move |info: &PanicInfo| {
+            let payload = info.payload();
+            if let Some(s) = payload.downcast_ref::<String>() {
+                if s.contains("SendError") {
+                    write!(stderr(), "Thread \"{}\" panicked with an unwrap of `SendError` (backtrace skipped)\n",
+                           thread::current().name().unwrap_or("<unknown thread>"));
+                    return;
+                } else if s.contains("RecvError")  {
+                    write!(stderr(), "Thread \"{}\" panicked with an unwrap of `RecvError` (backtrace skipped)\n",
+                           thread::current().name().unwrap_or("<unknown thread>"));
+                    return;
+                }
+            }
+            hook(&info);
+        };
+        set_handler(new_handler);
+        f();
+    };
+
+    builder.spawn(f_with_handler).unwrap();
 }
 
 /// An abstraction over `Sender<T>` and `IpcSender<T>`, for use in
