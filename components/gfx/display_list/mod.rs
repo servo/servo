@@ -32,7 +32,7 @@ use range::Range;
 use serde::de::{self, Deserialize, Deserializer, MapVisitor, Visitor};
 use serde::ser::impls::MapIteratorVisitor;
 use serde::ser::{Serialize, Serializer};
-use std::cmp::Ordering;
+use std::cmp::{self, Ordering};
 use std::collections::HashMap;
 use std::fmt;
 use std::hash::{BuildHasherDefault, Hash};
@@ -887,6 +887,27 @@ impl ClippingRegion {
     /// Intersects this clipping region with the given rounded rectangle.
     #[inline]
     pub fn intersect_with_rounded_rect(&mut self, rect: &Rect<Au>, radii: &BorderRadii<Au>) {
+        let new_complex_region = ComplexClippingRegion {
+            rect: *rect,
+            radii: *radii,
+        };
+
+        // FIXME(pcwalton): This is O(n²) worst case for disjoint clipping regions. Is that OK?
+        // They're slow anyway…
+        //
+        // Possibly relevant if we want to do better:
+        //
+        //     http://www.inrg.csie.ntu.edu.tw/algorithm2014/presentation/D&C%20Lee-84.pdf
+        for existing_complex_region in &mut self.complex {
+            if existing_complex_region.completely_encloses(&new_complex_region) {
+                *existing_complex_region = new_complex_region;
+                return
+            }
+            if new_complex_region.completely_encloses(existing_complex_region) {
+                return
+            }
+        }
+
         self.complex.push(ComplexClippingRegion {
             rect: *rect,
             radii: *radii,
@@ -908,6 +929,21 @@ impl ClippingRegion {
     }
 }
 
+impl ComplexClippingRegion {
+    // TODO(pcwalton): This could be more aggressive by considering points that touch the inside of
+    // the border radius ellipse.
+    fn completely_encloses(&self, other: &ComplexClippingRegion) -> bool {
+        let left = cmp::max(self.radii.top_left.width, self.radii.bottom_left.width);
+        let top = cmp::max(self.radii.top_left.height, self.radii.top_right.height);
+        let right = cmp::max(self.radii.top_right.width, self.radii.bottom_right.width);
+        let bottom = cmp::max(self.radii.bottom_left.height, self.radii.bottom_right.height);
+        let interior = Rect::new(Point2D::new(self.rect.origin.x + left, self.rect.origin.y + top),
+                                 Size2D::new(self.rect.size.width - left - right,
+                                             self.rect.size.height - top - bottom));
+        interior.origin.x <= other.rect.origin.x && interior.origin.y <= other.rect.origin.y &&
+            interior.max_x() >= other.rect.max_x() && interior.max_y() >= other.rect.max_y()
+    }
+}
 
 /// Metadata attached to each display item. This is useful for performing auxiliary threads with
 /// the display list involving hit testing: finding the originating DOM node and determining the
