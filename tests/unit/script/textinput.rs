@@ -245,6 +245,19 @@ fn test_textinput_adjust_vertical() {
 }
 
 #[test]
+fn test_textinput_adjust_vertical_multibyte() {
+    let mut textinput = text_input(Lines::Multiple, "áé\nae");
+
+    textinput.adjust_horizontal_by_one(Direction::Forward, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.line, 0);
+    assert_eq!(textinput.edit_point.index, 2);
+
+    textinput.adjust_vertical(1, Selection::NotSelected);
+    assert_eq!(textinput.edit_point.line, 1);
+    assert_eq!(textinput.edit_point.index, 1);
+}
+
+#[test]
 fn test_textinput_adjust_horizontal() {
     let mut textinput = text_input(Lines::Multiple, "abc\nde\nf");
     textinput.adjust_horizontal(4, Selection::NotSelected);

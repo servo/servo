@@ -301,8 +301,11 @@ impl<T: ClipboardProvider> TextInput<T> {
             return;
         }
 
+
+        let col = self.lines[self.edit_point.line][..self.edit_point.index].chars().count();
+
         self.edit_point.line = target_line as usize;
-        self.edit_point.index = min(self.current_line_length(), self.edit_point.index);
+        self.edit_point.index = len_of_first_n_chars(&self.lines[self.edit_point.line], col);
     }
 
     /// Adjust the editing point position by a given number of bytes. If the adjustment
