@@ -40,7 +40,7 @@ use util::str::DOMString;
 fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String) -> Option<Root<Node>> {
     let page = get_page(&*page, pipeline);
     let document = page.document();
-    document.upcast::<Node>().traverse_preorder().find(|candidate| candidate.get_unique_id() == node_id)
+    document.upcast::<Node>().traverse_preorder().find(|candidate| candidate.unique_id() == node_id)
 }
 
 #[allow(unsafe_code)]
@@ -124,7 +124,7 @@ pub fn handle_find_element_css(page: &Rc<Page>, _pipeline: PipelineId, selector:
                                reply: IpcSender<Result<Option<String>, ()>>) {
     reply.send(match page.document().QuerySelector(DOMString::from(selector)) {
         Ok(node) => {
-            Ok(node.map(|x| x.upcast::<Node>().get_unique_id()))
+            Ok(node.map(|x| x.upcast::<Node>().unique_id()))
         }
         Err(_) => Err(())
     }).unwrap();
@@ -139,7 +139,7 @@ pub fn handle_find_elements_css(page: &Rc<Page>,
             let mut result = Vec::with_capacity(nodes.Length() as usize);
             for i in 0..nodes.Length() {
                 if let Some(ref node) = nodes.Item(i) {
-                    result.push(node.get_unique_id());
+                    result.push(node.unique_id());
                 }
             }
             Ok(result)
@@ -173,7 +173,7 @@ pub fn handle_get_active_element(page: &Rc<Page>,
                                  _pipeline: PipelineId,
                                  reply: IpcSender<Option<String>>) {
     reply.send(page.document().GetActiveElement().map(
-        |elem| elem.upcast::<Node>().get_unique_id())).unwrap();
+        |elem| elem.upcast::<Node>().unique_id())).unwrap();
 }
 
 pub fn handle_get_title(page: &Rc<Page>, _pipeline: PipelineId, reply: IpcSender<String>) {
