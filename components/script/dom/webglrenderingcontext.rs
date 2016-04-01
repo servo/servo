@@ -1233,6 +1233,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                                              size.width, size.height,
                                              format, data_type, pixels);
 
+        handle_potential_webgl_error!(self, texture.unwrap().initialize(size.width, size.height, 1, internal_format, level));
+
         self.ipc_renderer
             .send(CanvasMsg::WebGL(msg))
             .unwrap()

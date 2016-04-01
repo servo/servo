@@ -107,12 +107,15 @@ impl WebGLTexture {
         Ok(())
     }
 
-    pub fn initialize(&self, width: u32, height: u32, internal_format: u32, level: i32) {
+    pub fn initialize(&self, width: i32, height: i32, depth: i32, internal_format: u32, level: i32) -> WebGLResult<()> {
+        if width < 0 || height < 0 || depth < 0 {
+            return Err(WebGLError::InvalidOperation);
+        }
+
         let image_info = ImageInfo {
-            width: width,
-            height: height,
-            // TODO(ConnorGBrewster): Support depth
-            depth: 0,
+            width: width as u32,
+            height: height as u32,
+            depth: depth as u32,
             internal_format: Some(internal_format),
             is_initialized: true,
         };
@@ -120,6 +123,8 @@ impl WebGLTexture {
 
         // TODO(ConnorGBrewster): ZeroTextureData
         self.is_initialized.set(true);
+
+        Ok(())
     }
 
     pub fn generate_mipmap(&self) -> WebGLResult<()> {
@@ -410,9 +415,11 @@ impl ImageInfo {
     fn is_power_of_two(&self) -> bool {
         let width = self.width;
         let height = self.height;
+        let depth = self.depth;
         let width_is_power_of_two = ((width * width) as f64).sqrt() as u32 == width;
         let height_is_power_of_two = ((height * height) as f64).sqrt() as u32 == height;
-        width_is_power_of_two && height_is_power_of_two
+        let depth_is_power_of_two = ((depth * depth) as f64).sqrt() as u32 == depth;
+        width_is_power_of_two && height_is_power_of_two && depth_is_power_of_two
     }
 
     fn is_initialized(&self) -> bool {
