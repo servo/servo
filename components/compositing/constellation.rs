@@ -53,8 +53,8 @@ use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, Scri
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::env;
-use std::io::{self, Write};
 use std::io::Error as IOError;
+use std::io::{self, Write};
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::process;
