@@ -230,17 +230,15 @@ impl TextRunScanner {
                     let flush_mapping = flush_run || mapping.selected != selected;
 
                     if flush_mapping {
-                        if end_position > start_position {
-                            mapping.flush(&mut mappings,
-                                          &mut run_info,
-                                          &**text,
-                                          insertion_point,
-                                          compression,
-                                          text_transform,
-                                          &mut last_whitespace,
-                                          &mut start_position,
-                                          end_position);
-                        }
+                        mapping.flush(&mut mappings,
+                                         &mut run_info,
+                                         &**text,
+                                         insertion_point,
+                                         compression,
+                                         text_transform,
+                                         &mut last_whitespace,
+                                         &mut start_position,
+                                         end_position);
                         if run_info.text.len() > 0 {
                             if flush_run {
                                 run_info_list.push(run_info);
@@ -259,11 +257,6 @@ impl TextRunScanner {
                     // Consume this character.
                     end_position += character.len_utf8();
                     *paragraph_bytes_processed += character.len_utf8();
-                }
-
-                // If the mapping is zero-length, don't flush it.
-                if start_position == end_position {
-                    continue
                 }
 
                 // Flush the last mapping we created for this fragment to the list.
@@ -557,6 +550,9 @@ impl RunMapping {
              last_whitespace: &mut bool,
              start_position: &mut usize,
              end_position: usize) {
+        if *start_position == end_position {
+            return;
+        }
         let old_byte_length = run_info.text.len();
         *last_whitespace = util::transform_text(&text[(*start_position)..end_position],
                                                 compression,
