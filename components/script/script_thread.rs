@@ -58,6 +58,7 @@ use js::jsapi::{GCDescription, GCProgress, JSGCInvocationKind, SetGCSliceCallbac
 use js::jsapi::{JSAutoRequest, JSGCStatus, JS_GetRuntime, JS_SetGCCallback, SetDOMCallbacks};
 use js::jsapi::{JSContext, JSRuntime, JSTracer};
 use js::jsapi::{JSObject, SetPreserveWrapperCallback};
+use js::jsapi::RuntimeOptionsRef;
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_interface::{ReflowQueryType};
@@ -108,6 +109,7 @@ use task_source::user_interaction::UserInteractionTaskSource;
 use time::{Tm, now};
 use url::Url;
 use util::opts;
+use util::prefs::get_pref;
 use util::str::DOMString;
 use util::thread;
 use util::thread_state;
@@ -735,6 +737,14 @@ impl ScriptThread {
             SetPreserveWrapperCallback(runtime.rt(), Some(empty_wrapper_callback));
             // Pre barriers aren't working correctly at the moment
             DisableIncrementalGC(runtime.rt());
+        }
+
+        let enable_baseline = get_pref("js.baseline.enable").as_boolean();
+        let enable_ion = get_pref("js.ion.enable").as_boolean();
+        unsafe {
+            let rt_opts = RuntimeOptionsRef(runtime.rt());
+            enable_baseline.map(|val| (*rt_opts).set_baseline_(val));
+            enable_ion.map(|val| (*rt_opts).set_ion_(val));
         }
 
         runtime
