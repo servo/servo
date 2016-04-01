@@ -827,6 +827,18 @@
             "url": "/_mozilla/css/border_radius_elliptical_a.html"
           }
         ],
+        "css/border_radius_in_border_radius_a.html": [
+          {
+            "path": "css/border_radius_in_border_radius_a.html",
+            "references": [
+              [
+                "/_mozilla/css/border_radius_in_border_radius_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/border_radius_in_border_radius_a.html"
+          }
+        ],
         "css/border_radius_overlapping_a.html": [
           {
             "path": "css/border_radius_overlapping_a.html",
@@ -7247,6 +7259,18 @@
             ]
           ],
           "url": "/_mozilla/css/border_radius_elliptical_a.html"
+        }
+      ],
+      "css/border_radius_in_border_radius_a.html": [
+        {
+          "path": "css/border_radius_in_border_radius_a.html",
+          "references": [
+            [
+              "/_mozilla/css/border_radius_in_border_radius_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/border_radius_in_border_radius_a.html"
         }
       ],
       "css/border_radius_overlapping_a.html": [
