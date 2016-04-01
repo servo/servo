@@ -28,8 +28,8 @@ use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
 use net_traits::{LoadContext, load_whole_resource};
 use rand::random;
-use script_thread::ScriptThreadEventCategory::WorkerEvent;
-use script_thread::{ScriptThread, ScriptChan, ScriptPort, StackRootTLS, CommonScriptMsg};
+use script_runtime::ScriptThreadEventCategory::WorkerEvent;
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
 use script_traits::{TimerEvent, TimerSource};
 use std::mem::replace;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
@@ -236,7 +236,7 @@ impl DedicatedWorkerGlobalScope {
                 }
             };
 
-            let runtime = ScriptThread::new_rt_and_cx();
+            let runtime = new_rt_and_cx();
 
             let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
             ROUTER.route_ipc_receiver_to_mpsc_sender(from_devtools_receiver, devtools_mpsc_chan);
@@ -347,7 +347,7 @@ impl DedicatedWorkerGlobalScope {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let cx = scope.get_cx();
                 let path_seg = format!("url({})", scope.get_url());
-                let reports = ScriptThread::get_reports(cx, path_seg);
+                let reports = get_reports(cx, path_seg);
                 reports_chan.send(reports);
             },
         }

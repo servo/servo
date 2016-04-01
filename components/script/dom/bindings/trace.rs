@@ -63,7 +63,7 @@ use net_traits::response::HttpsState;
 use net_traits::storage_thread::StorageType;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
-use script_thread::ScriptChan;
+use script_runtime::ScriptChan;
 use script_traits::{LayoutMsg, ScriptMsg, TimerEventId, TimerSource, TouchpadPressurePhase, UntrustedNodeAddress};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
