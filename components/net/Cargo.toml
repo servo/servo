@@ -32,6 +32,9 @@ git = "https://github.com/servo/ipc-channel"
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender_traits"
 
+[dependencies.tinyfiledialogs]
+git = "https://github.com/jdm/tinyfiledialogs"
+
 [dependencies]
 cookie = "0.2"
 flate2 = "0.2.0"
