@@ -41,6 +41,7 @@ use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
 use time;
 use time::Tm;
+use tinyfiledialogs;
 use url::Url;
 use util::resource_files::resources_dir_path;
 use util::thread::spawn_named;
@@ -685,7 +686,7 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
     Ok(response)
 }
 
-pub fn load<A>(load_data: LoadData,
+pub fn load<A>(mut load_data: LoadData,
                hsts_list: Arc<RwLock<HSTSList>>,
                cookie_jar: Arc<RwLock<CookieStorage>>,
                auth_cache: Arc<RwLock<HashMap<Url, AuthCacheEntry>>>,
@@ -764,6 +765,36 @@ pub fn load<A>(load_data: LoadData,
 
         process_response_headers(&response, &doc_url, &cookie_jar, &hsts_list, &load_data);
 
+        if response.status() == StatusCode::Unauthorized && iters == 1 {
+
+            let username: String;
+            match tinyfiledialogs::input_box("Enter username", "Username:", "") {
+                Some(name) => username = name,
+                None => username = "null".to_owned(),
+            }
+
+            let password: String;
+            match tinyfiledialogs::input_box("Enter password", "Password:", "") {
+                Some(name) => password = name,
+                None => password = "null".to_owned(),
+            }
+
+            load_data.preserved_headers.set(Authorization(Basic { username: username, password: Some(password) }));
+
+            continue;
+        }
+
+        if let Some(auth_header) = request_headers.get::<Authorization<Basic>>() {
+
+            if response.status().class() == StatusClass::Success {
+                let auth_entry = AuthCacheEntry {
+                                    user_name: auth_header.username.to_owned(),
+                                    password: auth_header.password.to_owned().unwrap(),
+                                 };
+
+                auth_cache.write().unwrap().insert(doc_url.clone(), auth_entry);
+            }
+        }
         // --- Loop if there's a redirect
         if response.status().class() == StatusClass::Redirection {
             if let Some(&Location(ref new_url)) = response.headers().get::<Location>() {
