@@ -249,7 +249,7 @@ def trickle(request, response, delays):
                         yield item
 
         if not repeat and offset[0] < len(content):
-            modified_content.append(content[offset[0]:])
+            yield content[offset[0]:]
 
     response.content = add_content(delays)
     return response
