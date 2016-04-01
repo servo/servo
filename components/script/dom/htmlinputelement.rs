@@ -200,6 +200,7 @@ impl HTMLInputElement {
         text_input.selection_begin = Some(text_input.get_text_point_for_absolute_point(start));
         text_input.edit_point = text_input.get_text_point_for_absolute_point(end);
         self.selection_direction.set(*direction);
+        self.force_relayout();
     }
 
 }
