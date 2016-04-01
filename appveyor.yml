@@ -16,6 +16,7 @@ platform:
 cache:
   - .servo
   - .cargo
+  - c:\msys64\var\cache\pacman\pkg
 
 install:
   - bash -lc "echo $MSYSTEM; pacman --needed --noconfirm -Sy pacman-mirrors"
