@@ -118,6 +118,23 @@ fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_
 }
 
 #[test]
+fn test_single_line_textinput_with_max_length_multibyte() {
+    let mut textinput = TextInput::new(
+        Lines::Single,
+        DOMString::from(""),
+        DummyClipboardContext::new(""),
+        Some(2)
+    );
+
+    textinput.insert_char('á');
+    assert_eq!(textinput.get_content(), "á");
+    textinput.insert_char('é');
+    assert_eq!(textinput.get_content(), "áé");
+    textinput.insert_char('i');
+    assert_eq!(textinput.get_content(), "áé");
+}
+
+#[test]
 fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_after_max_length_is_reached() {
     let mut textinput = TextInput::new(
         Lines::Single,
