@@ -91,7 +91,10 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
     }
 }
 
+// https://html.spec.whatwg.org/multipage/#attr-textarea-cols-value
 static DEFAULT_COLS: u32 = 20;
+
+// https://html.spec.whatwg.org/multipage/#attr-textarea-rows-value
 static DEFAULT_ROWS: u32 = 2;
 
 impl HTMLTextAreaElement {
