@@ -6,7 +6,6 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../testcommon.js"></script>
-<link rel="stylesheet" href="/resources/testharness.css">
 <body>
 <div id="log"></div>
 <div id="target"></div>
@@ -493,30 +492,9 @@ var gKeyframeEffectOptionTests = [
   { desc:     "+Infinity",
     input:    Infinity,
     expected: { duration: Infinity } },
-  { desc:     "-Infinity",
-    input:    -Infinity,
-    expected: { duration: -Infinity } },
-  { desc:     "NaN",
-    input:    NaN,
-    expected: { duration: NaN } },
-  { desc:     "a negative value",
-    input:    -1,
-    expected: { duration: -1 } },
   { desc:     "an Infinity duration",
     input:    { duration: Infinity },
     expected: { duration: Infinity } },
-  { desc:     "a negative Infinity duration",
-    input:    { duration: -Infinity },
-    expected: { duration: -Infinity } },
-  { desc:     "a NaN duration",
-    input:    { duration: NaN },
-    expected: { duration: NaN } },
-  { desc:     "a negative duration",
-    input:    { duration: -1 },
-    expected: { duration: -1 } },
-  { desc:     "a string duration",
-    input:    { duration: "merrychristmas" },
-    expected: { duration: "merrychristmas" } },
   { desc:     "an auto duration",
     input:    { duration: "auto" },
     expected: { duration: "auto" } },
@@ -565,6 +543,40 @@ gKeyframeEffectOptionTests.forEach(function(stest) {
                   "timing direction");
 
   }, "a KeyframeEffectReadOnly constructed by " + stest.desc);
+});
+
+var gInvalidKeyframeEffectOptionTests = [
+  { desc:     "-Infinity",
+    input:    -Infinity,
+    expected: { name: "TypeError" } },
+  { desc:     "NaN",
+    input:    NaN,
+    expected: { name: "TypeError" } },
+  { desc:     "a negative value",
+    input:    -1,
+    expected: { name: "TypeError" } },
+  { desc:     "a negative Infinity duration",
+    input:    { duration: -Infinity },
+    expected: { name: "TypeError" } },
+  { desc:     "a NaN duration",
+    input:    { duration: NaN },
+    expected: { name: "TypeError" } },
+  { desc:     "a negative duration",
+    input:    { duration: -1 },
+    expected: { name: "TypeError" } },
+  { desc:     "a string duration",
+    input:    { duration: "merrychristmas" },
+    expected: { name: "TypeError" } }
+];
+
+gInvalidKeyframeEffectOptionTests.forEach(function(stest) {
+  test(function(t) {
+    assert_throws(stest.expected, function() {
+      new KeyframeEffectReadOnly(target,
+                                 {left: ["10px", "20px"]},
+                                 stest.input);
+    });
+  }, "Invalid KeyframeEffectReadOnly option by " + stest.desc);
 });
 
 test(function(t) {

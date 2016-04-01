@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+<title>Assigning mediastream to a video element</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#navigatorusermedia">
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your video stream.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that the MediaStream object returned by
+the success callback in getUserMedia can be properly assigned to a video element
+via the <code>srcObject</code> attribute.</p>
+
+<video id="vid"></video>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/vendor-prefix.js" data-prefixed-objects='[{"ancestors":["navigator"], "name":"getUserMedia"}]' data-prefixed-prototypes='[{"ancestors":["HTMLMediaElement"],"name":"srcObject"}]'></script>
+<script>
+var vid = document.getElementById("vid");
+var t = async_test("Tests that a MediaStream can be assigned to a video element with srcObject", {timeout: 10000});
+t.step(function() {
+  navigator.getUserMedia({video: true}, t.step_func(function (stream) {
+    var testOncePlaying = function() {
+       assert_equals(vid.played.length, 1, "A MediaStream's timeline always consists of a single range");
+       assert_equals(vid.played.start(0), 0, "A MediaStream's timeline always consists of a single range");
+       assert_equals(vid.played.end(0), vid.currentTime, "A MediaStream's timeline always consists of a single range");
+       assert_equals(vid.readyState, vid.HAVE_ENOUGH_DATA, "Upon selecting a media stream, the UA sets readyState to HAVE_ENOUGH_DATA");
+       var time = vid.currentTime;
+       assert_throws("INVALID_STATE_ERR", function() {
+          vid.currentTime = 0;
+       });
+       assert_equals(vid.currentTime, time, "The UA MUST ignore attempts to set the currentTime attribute");
+       // TODO add test that duration must be set to currentTime
+       // when mediastream is destroyed
+       vid.removeEventListener("timeupdate", testOncePlaying, false);
+       t.done();
+    }
+    vid.addEventListener("timeupdate", t.step_func(testOncePlaying), false);
+    vid.srcObject = stream;
+    vid.play();
+    assert_true(!vid.seeking, "A MediaStream is not seekable");
+    assert_equals(vid.seekable.length, 0, "A MediaStream is not seekable");
+    assert_equals(vid.defaultPlaybackRate, 1, "playback rate is always 1");
+    assert_equals(vid.playbackRate, 1, "playback rate is always 1");
+    assert_equals(vid.buffered.length, 0, "A MediaStream cannot be preloaded.  Therefore, there is no buffered timeranges");
+    assert_equals(vid.duration, Infinity, " A MediaStream does not have a pre-defined duration. ");
+    assert_equals(vid.startDate, NaN, " A MediaStream does not specify a timeline offset");
+  }), function(error) {});
+});
+</script>
+</body>
+</html>

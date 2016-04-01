@@ -1,0 +1,28 @@
+environment:
+  COVERALLS_REPO_TOKEN:
+    secure: 2NJ5Ct55cHJ9WEg3xbSqCuv0rdgzzb6pnzOIG5OkMbTndw3wOBrXntWFoQrXiMFi
+    # this is pytest's token in coveralls.io, encrypted
+    # using pytestbot account as detailed here:
+    # https://www.appveyor.com/docs/build-configuration#secure-variables
+
+install:
+  - echo Installed Pythons
+  - dir c:\Python*
+
+  # install pypy using choco (redirect to a file and write to console in case
+  # choco install returns non-zero, because choco install python.pypy is too
+  # noisy)
+  - choco install python.pypy > pypy-inst.log 2>&1 || (type pypy-inst.log & exit /b 1)
+  - set PATH=C:\tools\pypy\pypy;%PATH% # so tox can find pypy
+  - echo PyPy installed
+  - pypy --version
+
+  - C:\Python35\python -m pip install tox
+
+build: false  # Not a C# project, build stuff at the test step instead.
+
+test_script:
+  - C:\Python35\python -m tox
+  # coveralls is not in tox's envlist, plus for PRs the secure variable
+  # is not defined so we have to check for it
+  - if defined COVERALLS_REPO_TOKEN C:\Python35\python -m tox -e coveralls

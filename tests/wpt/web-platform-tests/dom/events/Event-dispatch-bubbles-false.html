@@ -23,7 +23,7 @@ function targetsForDocumentChain(document) {
     return [
         document,
         document.documentElement,
-        document.body,
+        document.getElementsByTagName("body")[0],
         document.getElementById("table"),
         document.getElementById("table-body"),
         document.getElementById("parent")

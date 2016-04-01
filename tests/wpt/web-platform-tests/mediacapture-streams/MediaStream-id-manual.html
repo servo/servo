@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+<title>getUserMedia() creates a stream with a proper id</title>
+<link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
+<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-MediaStream-id">
+</head>
+<body>
+<p class="instructions">When prompted, accept to share your video stream.</p>
+<h1 class="instructions">Description</h1>
+<p class="instructions">This test checks that the MediaStream object returned by
+the success callback in getUserMedia has a correct id.</p>
+
+<div id='log'></div>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/vendor-prefix.js" data-prefixed-objects='[{"ancestors":["navigator"], "name":"getUserMedia"}]'></script>
+<script>
+var t = async_test("Tests that a MediaStream with a correct id is returned");
+var allowedCharacters = /^[\u0021\u0023-\u0027\u002A-\u002B\u002D-\u002E\u0030-\u0039\u0041-\u005A\u005E-\u007E]*$/;
+if (window.navigator.getUserMedia) {
+  navigator.getUserMedia({video:true}, function (stream) {
+  t.step(function () {
+     assert_true(stream.id.length === 36, "the media stream id has 36 characters");
+     assert_regexp_match(stream.id, allowedCharacters, "the media stream id uses the set of allowed characters");
+  });
+  t.done();
+}, function(error) {});
+}
+</script>
+</body>
+</html>
