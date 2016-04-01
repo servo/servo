@@ -600,6 +600,31 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
     // https://html.spec.whatwg.org/multipage/#dom-script-src
     make_setter!(SetSrc, "src");
 
+    // https://html.spec.whatwg.org/multipage/#dom-script-type
+    make_getter!(Type, "type");
+    // https://html.spec.whatwg.org/multipage/#dom-script-type
+    make_setter!(SetType, "type");
+
+    // https://html.spec.whatwg.org/multipage/#dom-script-charset
+    make_getter!(Charset, "charset");
+    // https://html.spec.whatwg.org/multipage/#dom-script-charset
+    make_setter!(SetCharset, "charset");
+
+    // https://html.spec.whatwg.org/multipage/#dom-script-defer
+    make_bool_getter!(Defer, "defer");
+    // https://html.spec.whatwg.org/multipage/#dom-script-defer
+    make_bool_setter!(SetDefer, "defer");
+
+    // https://html.spec.whatwg.org/multipage/#dom-script-event
+    make_getter!(Event, "event");
+    // https://html.spec.whatwg.org/multipage/#dom-script-event
+    make_setter!(SetEvent, "event");
+
+    // https://html.spec.whatwg.org/multipage/#dom-script-htmlfor
+    make_getter!(HtmlFor, "for");
+    // https://html.spec.whatwg.org/multipage/#dom-script-htmlfor
+    make_setter!(SetHtmlFor, "for");
+
     // https://html.spec.whatwg.org/multipage/#dom-script-text
     fn Text(&self) -> DOMString {
         Node::collect_text_contents(self.upcast::<Node>().children())

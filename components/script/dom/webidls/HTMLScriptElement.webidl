@@ -6,12 +6,12 @@
 // https://html.spec.whatwg.org/multipage/#htmlscriptelement
 interface HTMLScriptElement : HTMLElement {
            attribute DOMString src;
-  //         attribute DOMString type;
-  //         attribute DOMString charset;
+           attribute DOMString type;
+           attribute DOMString charset;
   //         attribute boolean async;
-  //         attribute boolean defer;
+           attribute boolean defer;
   //         attribute DOMString crossOrigin;
-  [Pure]
+           [Pure]
            attribute DOMString text;
 
   // also has obsolete members
@@ -19,6 +19,6 @@ interface HTMLScriptElement : HTMLElement {
 
 // https://html.spec.whatwg.org/multipage/#HTMLScriptElement-partial
 partial interface HTMLScriptElement {
-  //         attribute DOMString event;
-  //         attribute DOMString htmlFor;
+           attribute DOMString event;
+           attribute DOMString htmlFor;
 };
