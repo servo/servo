@@ -23,5 +23,4 @@ extern crate util;
 extern crate webrender_traits;
 
 pub mod canvas_paint_thread;
-mod premultiplytable;
 pub mod webgl_paint_thread;
