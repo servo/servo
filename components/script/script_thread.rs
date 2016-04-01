@@ -57,8 +57,7 @@ use js::jsapi::{DisableIncrementalGC, JS_AddExtraGCRootsTracer, JS_SetWrapObject
 use js::jsapi::{GCDescription, GCProgress, JSGCInvocationKind, SetGCSliceCallback};
 use js::jsapi::{JSAutoRequest, JSGCStatus, JS_GetRuntime, JS_SetGCCallback, SetDOMCallbacks};
 use js::jsapi::{JSContext, JSRuntime, JSTracer};
-use js::jsapi::{JSObject, SetPreserveWrapperCallback};
-use js::jsapi::RuntimeOptionsRef;
+use js::jsapi::{JSObject, RuntimeOptionsRef, SetPreserveWrapperCallback};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_interface::{ReflowQueryType};
@@ -739,12 +738,12 @@ impl ScriptThread {
             DisableIncrementalGC(runtime.rt());
         }
 
-        let enable_baseline = get_pref("js.baseline.enable").as_boolean();
-        let enable_ion = get_pref("js.ion.enable").as_boolean();
+        let is_baseline_enabled = get_pref("js.baseline.enabled").as_boolean();
+        let is_ion_enabled = get_pref("js.ion.enabled").as_boolean();
         unsafe {
             let rt_opts = RuntimeOptionsRef(runtime.rt());
-            enable_baseline.map(|val| (*rt_opts).set_baseline_(val));
-            enable_ion.map(|val| (*rt_opts).set_ion_(val));
+            is_baseline_enabled.map(|val| (*rt_opts).set_baseline_(val));
+            is_ion_enabled.map(|val| (*rt_opts).set_ion_(val));
         }
 
         runtime
