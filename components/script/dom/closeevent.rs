@@ -11,7 +11,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::event::{Event, EventBubbles, EventCancelable};
-use script_thread::ScriptChan;
+use script_runtime::ScriptChan;
 use string_cache::Atom;
 use util::str::DOMString;
 
