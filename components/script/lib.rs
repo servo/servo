@@ -93,6 +93,7 @@ mod network_listener;
 pub mod page;
 pub mod parse;
 pub mod reporter;
+pub mod script_runtime;
 #[allow(unsafe_code)]
 pub mod script_thread;
 mod task_source;
