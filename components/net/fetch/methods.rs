@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use data_loader::decode;
 use fetch::cors_cache::{BasicCORSCache, CORSCache, CacheRequestDetails};
 use http_loader::{NetworkHttpRequestFactory, create_http_connector, obtain_response};
 use hyper::header::{Accept, CacheControl, IfMatch, IfRange, IfUnmodifiedSince, Location};
@@ -305,7 +306,23 @@ fn basic_fetch(request: Rc<Request>) -> Response {
             http_fetch(request.clone(), BasicCORSCache::new(), false, false, false)
         },
 
-        "blob" | "data" | "file" | "ftp" => {
+        "data" => {
+            if *request.method.borrow() == Method::Get {
+                match decode(&url) {
+                    Ok((mime, bytes)) => {
+                        let mut response = Response::new();
+                        *response.body.lock().unwrap() = ResponseBody::Done(bytes);
+                        response.headers.set(ContentType(mime));
+                        response
+                    },
+                    Err(_) => Response::network_error()
+                }
+            } else {
+                Response::network_error()
+            }
+        },
+
+        "blob" | "file" | "ftp" => {
             // XXXManishearth handle these
             panic!("Unimplemented scheme for Fetch")
         },
