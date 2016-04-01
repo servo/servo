@@ -51,7 +51,7 @@ use style::computed_values::{clear, display, empty_cells, float, position, overf
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
 use style::properties::{self, ComputedValues, ServoComputedValues};
-use style::values::computed::LengthOrPercentageOrAuto;
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 use table::{ColumnComputedInlineSize, ColumnIntrinsicInlineSize, TableFlow};
 use table_caption::TableCaptionFlow;
 use table_cell::TableCellFlow;
@@ -1579,6 +1579,70 @@ impl OpaqueFlow {
         unsafe {
             let object = mem::transmute::<&Flow, raw::TraitObject>(flow);
             OpaqueFlow(object.data as usize)
+        }
+    }
+}
+
+// https://drafts.csswg.org/css2/visudet.html#min-max-widths
+// https://drafts.csswg.org/css2/visudet.html#min-max-heights
+/// A min or max constraint
+///
+/// A `max` of `None` is equivalent to no limmit for the size in the given
+/// dimension. The `min` is >= 0, as negative values are illegal and by
+/// default `min` is 0.
+#[derive(Debug)]
+pub struct MinMaxConstraint {
+    min: Au,
+    max: Option<Au>
+}
+
+impl MinMaxConstraint {
+    /// Create a `MinMaxConstraint` for a dimension given the min, max, and content box size for
+    /// an axis
+    pub fn new(content_size: Option<Au>, min: LengthOrPercentage,
+               max: LengthOrPercentageOrNone) -> MinMaxConstraint {
+        let min = match min {
+            LengthOrPercentage::Length(length) => length,
+            LengthOrPercentage::Percentage(percent) => {
+                match content_size {
+                    Some(size) => size.scale_by(percent),
+                    None => Au::new(0),
+                }
+            },
+            LengthOrPercentage::Calc(calc) => {
+                match content_size {
+                    Some(size) => size.scale_by(calc.percentage()),
+                    None => Au::new(0),
+                }
+            }
+        };
+
+        let max = match max {
+            LengthOrPercentageOrNone::Length(length) => Some(length),
+            LengthOrPercentageOrNone::Percentage(percent) => {
+                content_size.map(|size| size.scale_by(percent))
+            },
+            LengthOrPercentageOrNone::Calc(calc) => {
+                content_size.map(|size| size.scale_by(calc.percentage()))
+            }
+            LengthOrPercentageOrNone::None => None,
+        };
+
+        MinMaxConstraint {
+            min: min,
+            max: max
+        }
+    }
+
+    /// Clamp the given size by the given `min` and `max` constraints.
+    pub fn clamp(&self, other: Au) -> Au {
+        if other < self.min {
+            self.min
+        } else {
+            match self.max {
+                Some(max) if max < other => max,
+                _ => other
+            }
         }
     }
 }
