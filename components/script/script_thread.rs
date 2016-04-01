@@ -282,35 +282,37 @@ impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
 /// APIs that need to abstract over multiple kinds of event loops (worker/main thread) with
 /// different Receiver interfaces.
 pub trait ScriptPort {
-    fn recv(&self) -> CommonScriptMsg;
+    fn recv(&self) -> Result<CommonScriptMsg, ()>;
 }
 
 impl ScriptPort for Receiver<CommonScriptMsg> {
-    fn recv(&self) -> CommonScriptMsg {
-        self.recv().unwrap()
+    fn recv(&self) -> Result<CommonScriptMsg, ()> {
+        self.recv().map_err(|_| ())
     }
 }
 
 impl ScriptPort for Receiver<MainThreadScriptMsg> {
-    fn recv(&self) -> CommonScriptMsg {
-        match self.recv().unwrap() {
-            MainThreadScriptMsg::Common(script_msg) => script_msg,
-            _ => panic!("unexpected main thread event message!")
+    fn recv(&self) -> Result<CommonScriptMsg, ()> {
+        match self.recv() {
+            Ok(MainThreadScriptMsg::Common(script_msg)) => Ok(script_msg),
+            Ok(_) => panic!("unexpected main thread event message!"),
+            _ => Err(()),
         }
     }
 }
 
 impl ScriptPort for Receiver<(TrustedWorkerAddress, CommonScriptMsg)> {
-    fn recv(&self) -> CommonScriptMsg {
-        self.recv().unwrap().1
+    fn recv(&self) -> Result<CommonScriptMsg, ()> {
+        self.recv().map(|(_, msg)| msg).map_err(|_| ())
     }
 }
 
 impl ScriptPort for Receiver<(TrustedWorkerAddress, MainThreadScriptMsg)> {
-    fn recv(&self) -> CommonScriptMsg {
-        match self.recv().unwrap().1 {
-            MainThreadScriptMsg::Common(script_msg) => script_msg,
-            _ => panic!("unexpected main thread event message!")
+    fn recv(&self) -> Result<CommonScriptMsg, ()> {
+        match self.recv().map(|(_, msg)| msg) {
+            Ok(MainThreadScriptMsg::Common(script_msg)) => Ok(script_msg),
+            Ok(_) => panic!("unexpected main thread event message!"),
+            _ => Err(()),
         }
     }
 }
