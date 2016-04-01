@@ -817,7 +817,6 @@ pub const NS_STYLE_HAS_CHILD_THAT_USES_RESET_STYLE:
     17179869184;
 pub const NS_STYLE_CONTEXT_TYPE_SHIFT: ::std::os::raw::c_uint = 35;
 pub const NS_RULE_NODE_IS_ANIMATION_RULE: ::std::os::raw::c_uint = 16777216;
-pub const NS_RULE_NODE_GC_MARK: ::std::os::raw::c_uint = 33554432;
 pub const NS_RULE_NODE_USED_DIRECTLY: ::std::os::raw::c_uint = 67108864;
 pub const NS_RULE_NODE_IS_IMPORTANT: ::std::os::raw::c_uint = 134217728;
 pub const NS_RULE_NODE_LEVEL_MASK: ::std::os::raw::c_uint = 4026531840;
@@ -1372,8 +1371,8 @@ pub enum nsAString_internal_nsTSubstring_h_unnamed_1 {
 }
 #[test]
 fn bindgen_test_layout_nsAString_internal() {
-    assert_eq!(:: std:: mem:: size_of:: < nsAString_internal > (  ) ,
-               16usize);
+    assert_eq!(::std::mem::size_of::<nsAString_internal>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsAString_internal>() , 8usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -1403,8 +1402,8 @@ pub enum nsACString_internal_nsTSubstring_h_unnamed_2 {
 }
 #[test]
 fn bindgen_test_layout_nsACString_internal() {
-    assert_eq!(:: std:: mem:: size_of:: < nsACString_internal > (  ) ,
-               16usize);
+    assert_eq!(::std::mem::size_of::<nsACString_internal>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsACString_internal>() , 8usize);
 }
 /**
  * ASCII case-insensitive comparator.  (for Unicode case-insensitive
@@ -1427,7 +1426,8 @@ pub struct nsSubstringTuple {
 }
 #[test]
 fn bindgen_test_layout_nsSubstringTuple() {
-    assert_eq!(:: std:: mem:: size_of:: < nsSubstringTuple > (  ) , 24usize);
+    assert_eq!(::std::mem::size_of::<nsSubstringTuple>() , 24usize);
+    assert_eq!(::std::mem::align_of::<nsSubstringTuple>() , 8usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -1438,7 +1438,8 @@ pub struct nsCSubstringTuple {
 }
 #[test]
 fn bindgen_test_layout_nsCSubstringTuple() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSubstringTuple > (  ) , 24usize);
+    assert_eq!(::std::mem::size_of::<nsCSubstringTuple>() , 24usize);
+    assert_eq!(::std::mem::align_of::<nsCSubstringTuple>() , 8usize);
 }
 #[repr(C)]
 pub struct nsString {
@@ -1452,11 +1453,13 @@ pub struct nsString_Segment {
 }
 #[test]
 fn bindgen_test_layout_nsString_Segment() {
-    assert_eq!(:: std:: mem:: size_of:: < nsString_Segment > (  ) , 8usize);
+    assert_eq!(::std::mem::size_of::<nsString_Segment>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsString_Segment>() , 4usize);
 }
 #[test]
 fn bindgen_test_layout_nsString() {
-    assert_eq!(:: std:: mem:: size_of:: < nsString > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsString>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsString>() , 8usize);
 }
 #[repr(C)]
 pub struct nsFixedString {
@@ -1466,7 +1469,8 @@ pub struct nsFixedString {
 }
 #[test]
 fn bindgen_test_layout_nsFixedString() {
-    assert_eq!(:: std:: mem:: size_of:: < nsFixedString > (  ) , 32usize);
+    assert_eq!(::std::mem::size_of::<nsFixedString>() , 32usize);
+    assert_eq!(::std::mem::align_of::<nsFixedString>() , 8usize);
 }
 #[repr(C)]
 pub struct nsAutoString {
@@ -1478,7 +1482,8 @@ pub struct nsAutoString {
 pub enum nsAutoString_nsTString_h_unnamed_3 { kDefaultStorageSize = 64, }
 #[test]
 fn bindgen_test_layout_nsAutoString() {
-    assert_eq!(:: std:: mem:: size_of:: < nsAutoString > (  ) , 160usize);
+    assert_eq!(::std::mem::size_of::<nsAutoString>() , 160usize);
+    assert_eq!(::std::mem::align_of::<nsAutoString>() , 8usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -1491,7 +1496,8 @@ pub struct nsXPIDLString {
 }
 #[test]
 fn bindgen_test_layout_nsXPIDLString() {
-    assert_eq!(:: std:: mem:: size_of:: < nsXPIDLString > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsXPIDLString>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsXPIDLString>() , 8usize);
 }
 #[repr(C)]
 pub struct nsGetterCopies {
@@ -1500,7 +1506,8 @@ pub struct nsGetterCopies {
 }
 #[test]
 fn bindgen_test_layout_nsGetterCopies() {
-    assert_eq!(:: std:: mem:: size_of:: < nsGetterCopies > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsGetterCopies>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsGetterCopies>() , 8usize);
 }
 #[repr(C)]
 pub struct nsAdoptingString {
@@ -1508,7 +1515,8 @@ pub struct nsAdoptingString {
 }
 #[test]
 fn bindgen_test_layout_nsAdoptingString() {
-    assert_eq!(:: std:: mem:: size_of:: < nsAdoptingString > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsAdoptingString>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsAdoptingString>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCString {
@@ -1522,11 +1530,13 @@ pub struct nsCString_Segment {
 }
 #[test]
 fn bindgen_test_layout_nsCString_Segment() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCString_Segment > (  ) , 8usize);
+    assert_eq!(::std::mem::size_of::<nsCString_Segment>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsCString_Segment>() , 4usize);
 }
 #[test]
 fn bindgen_test_layout_nsCString() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCString > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsCString>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsCString>() , 8usize);
 }
 #[repr(C)]
 pub struct nsFixedCString {
@@ -1536,7 +1546,8 @@ pub struct nsFixedCString {
 }
 #[test]
 fn bindgen_test_layout_nsFixedCString() {
-    assert_eq!(:: std:: mem:: size_of:: < nsFixedCString > (  ) , 32usize);
+    assert_eq!(::std::mem::size_of::<nsFixedCString>() , 32usize);
+    assert_eq!(::std::mem::align_of::<nsFixedCString>() , 8usize);
 }
 #[repr(C)]
 pub struct nsAutoCString {
@@ -1548,7 +1559,8 @@ pub struct nsAutoCString {
 pub enum nsAutoCString_nsTString_h_unnamed_4 { kDefaultStorageSize = 64, }
 #[test]
 fn bindgen_test_layout_nsAutoCString() {
-    assert_eq!(:: std:: mem:: size_of:: < nsAutoCString > (  ) , 96usize);
+    assert_eq!(::std::mem::size_of::<nsAutoCString>() , 96usize);
+    assert_eq!(::std::mem::align_of::<nsAutoCString>() , 8usize);
 }
 #[repr(C)]
 pub struct nsXPIDLCString {
@@ -1556,7 +1568,8 @@ pub struct nsXPIDLCString {
 }
 #[test]
 fn bindgen_test_layout_nsXPIDLCString() {
-    assert_eq!(:: std:: mem:: size_of:: < nsXPIDLCString > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsXPIDLCString>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsXPIDLCString>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCGetterCopies {
@@ -1565,7 +1578,8 @@ pub struct nsCGetterCopies {
 }
 #[test]
 fn bindgen_test_layout_nsCGetterCopies() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCGetterCopies > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsCGetterCopies>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsCGetterCopies>() , 8usize);
 }
 #[repr(C)]
 pub struct nsAdoptingCString {
@@ -1573,7 +1587,8 @@ pub struct nsAdoptingCString {
 }
 #[test]
 fn bindgen_test_layout_nsAdoptingCString() {
-    assert_eq!(:: std:: mem:: size_of:: < nsAdoptingCString > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsAdoptingCString>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsAdoptingCString>() , 8usize);
 }
 /**
  * A helper class that converts a UTF-16 string to ASCII in a lossy manner
@@ -1584,8 +1599,10 @@ pub struct NS_LossyConvertUTF16toASCII {
 }
 #[test]
 fn bindgen_test_layout_NS_LossyConvertUTF16toASCII() {
-    assert_eq!(:: std:: mem:: size_of:: < NS_LossyConvertUTF16toASCII > (  ) ,
+    assert_eq!(::std::mem::size_of::<NS_LossyConvertUTF16toASCII>() ,
                96usize);
+    assert_eq!(::std::mem::align_of::<NS_LossyConvertUTF16toASCII>() ,
+               8usize);
 }
 #[repr(C)]
 pub struct NS_ConvertASCIItoUTF16 {
@@ -1593,8 +1610,8 @@ pub struct NS_ConvertASCIItoUTF16 {
 }
 #[test]
 fn bindgen_test_layout_NS_ConvertASCIItoUTF16() {
-    assert_eq!(:: std:: mem:: size_of:: < NS_ConvertASCIItoUTF16 > (  ) ,
-               160usize);
+    assert_eq!(::std::mem::size_of::<NS_ConvertASCIItoUTF16>() , 160usize);
+    assert_eq!(::std::mem::align_of::<NS_ConvertASCIItoUTF16>() , 8usize);
 }
 /**
  * A helper class that converts a UTF-16 string to UTF-8
@@ -1605,8 +1622,8 @@ pub struct NS_ConvertUTF16toUTF8 {
 }
 #[test]
 fn bindgen_test_layout_NS_ConvertUTF16toUTF8() {
-    assert_eq!(:: std:: mem:: size_of:: < NS_ConvertUTF16toUTF8 > (  ) ,
-               96usize);
+    assert_eq!(::std::mem::size_of::<NS_ConvertUTF16toUTF8>() , 96usize);
+    assert_eq!(::std::mem::align_of::<NS_ConvertUTF16toUTF8>() , 8usize);
 }
 #[repr(C)]
 pub struct NS_ConvertUTF8toUTF16 {
@@ -1614,8 +1631,8 @@ pub struct NS_ConvertUTF8toUTF16 {
 }
 #[test]
 fn bindgen_test_layout_NS_ConvertUTF8toUTF16() {
-    assert_eq!(:: std:: mem:: size_of:: < NS_ConvertUTF8toUTF16 > (  ) ,
-               160usize);
+    assert_eq!(::std::mem::size_of::<NS_ConvertUTF8toUTF16>() , 160usize);
+    assert_eq!(::std::mem::align_of::<NS_ConvertUTF8toUTF16>() , 8usize);
 }
 pub type nsVoidableString = nsAutoString;
 pub enum ErrorReporter { }
@@ -1687,7 +1704,8 @@ pub struct nsCSSToken {
 }
 #[test]
 fn bindgen_test_layout_nsCSSToken() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSToken > (  ) , 184usize);
+    assert_eq!(::std::mem::size_of::<nsCSSToken>() , 184usize);
+    assert_eq!(::std::mem::align_of::<nsCSSToken>() , 8usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -1702,8 +1720,8 @@ pub struct nsCSSScannerPosition {
 }
 #[test]
 fn bindgen_test_layout_nsCSSScannerPosition() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSScannerPosition > (  ) ,
-               28usize);
+    assert_eq!(::std::mem::size_of::<nsCSSScannerPosition>() , 28usize);
+    assert_eq!(::std::mem::align_of::<nsCSSScannerPosition>() , 4usize);
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
@@ -1744,7 +1762,8 @@ pub enum nsCSSScanner_EOFCharacters {
 }
 #[test]
 fn bindgen_test_layout_nsCSSScanner() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSScanner > (  ) , 64usize);
+    assert_eq!(::std::mem::size_of::<nsCSSScanner>() , 64usize);
+    assert_eq!(::std::mem::align_of::<nsCSSScanner>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCSSGridTemplateAreaToken {
@@ -1753,8 +1772,9 @@ pub struct nsCSSGridTemplateAreaToken {
 }
 #[test]
 fn bindgen_test_layout_nsCSSGridTemplateAreaToken() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSGridTemplateAreaToken > (  ) ,
+    assert_eq!(::std::mem::size_of::<nsCSSGridTemplateAreaToken>() ,
                168usize);
+    assert_eq!(::std::mem::align_of::<nsCSSGridTemplateAreaToken>() , 8usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -1765,8 +1785,10 @@ pub struct nsCSSGridTemplateAreaScanner {
 }
 #[test]
 fn bindgen_test_layout_nsCSSGridTemplateAreaScanner() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSGridTemplateAreaScanner > (  )
-               , 16usize);
+    assert_eq!(::std::mem::size_of::<nsCSSGridTemplateAreaScanner>() ,
+               16usize);
+    assert_eq!(::std::mem::align_of::<nsCSSGridTemplateAreaScanner>() ,
+               8usize);
 }
 /**
  * A "unique identifier". This is modeled after OSF DCE UUIDs.
@@ -1781,8 +1803,28 @@ pub struct nsID {
 }
 #[test]
 fn bindgen_test_layout_nsID() {
-    assert_eq!(:: std:: mem:: size_of:: < nsID > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsID>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsID>() , 4usize);
 }
+/**
+ * A stack helper class to convert a nsID to a string.  Useful
+ * for printing nsIDs.  For example:
+ *   nsID aID = ...;
+ *   printf("%s", nsIDToCString(aID).get());
+ */
+/*
+ * Rust chokes on generating Clone for arrays wider than 32. Keep
+ * this commented out until we have a fix in bindgen.
+ * #[repr(C)]
+#[derive(Copy, Clone)]
+pub struct nsIDToCString {
+    pub mStringBytes: [::std::os::raw::c_char; 39usize],
+}
+#[test]
+fn bindgen_test_layout_nsIDToCString() {
+    assert_eq!(::std::mem::size_of::<nsIDToCString>() , 39usize);
+    assert_eq!(::std::mem::align_of::<nsIDToCString>() , 1usize);
+} */
 pub type nsCID = nsID;
 /**
  * An "interface id" which can be used to uniquely identify a given
@@ -1805,7 +1847,8 @@ pub struct _vftable_nsISupports {
 }
 #[test]
 fn bindgen_test_layout_nsISupports() {
-    assert_eq!(:: std:: mem:: size_of:: < nsISupports > (  ) , 8usize);
+    assert_eq!(::std::mem::size_of::<nsISupports>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsISupports>() , 8usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -1814,7 +1857,8 @@ pub struct nsAutoOwningThread {
 }
 #[test]
 fn bindgen_test_layout_nsAutoOwningThread() {
-    assert_eq!(:: std:: mem:: size_of:: < nsAutoOwningThread > (  ) , 8usize);
+    assert_eq!(::std::mem::size_of::<nsAutoOwningThread>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsAutoOwningThread>() , 8usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -1823,7 +1867,8 @@ pub struct nsCycleCollectingAutoRefCnt {
 }
 #[test]
 fn bindgen_test_layout_nsCycleCollectingAutoRefCnt() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCycleCollectingAutoRefCnt > (  ) ,
+    assert_eq!(::std::mem::size_of::<nsCycleCollectingAutoRefCnt>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsCycleCollectingAutoRefCnt>() ,
                8usize);
 }
 #[repr(C)]
@@ -1833,7 +1878,8 @@ pub struct nsAutoRefCnt {
 }
 #[test]
 fn bindgen_test_layout_nsAutoRefCnt() {
-    assert_eq!(:: std:: mem:: size_of:: < nsAutoRefCnt > (  ) , 8usize);
+    assert_eq!(::std::mem::size_of::<nsAutoRefCnt>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsAutoRefCnt>() , 8usize);
 }
 #[repr(C)]
 pub struct ThreadSafeAutoRefCnt {
@@ -1841,8 +1887,8 @@ pub struct ThreadSafeAutoRefCnt {
 }
 #[test]
 fn bindgen_test_layout_ThreadSafeAutoRefCnt() {
-    assert_eq!(:: std:: mem:: size_of:: < ThreadSafeAutoRefCnt > (  ) ,
-               8usize);
+    assert_eq!(::std::mem::size_of::<ThreadSafeAutoRefCnt>() , 8usize);
+    assert_eq!(::std::mem::align_of::<ThreadSafeAutoRefCnt>() , 8usize);
 }
 /**
  * There are two ways of implementing QueryInterface, and we use both:
@@ -1866,7 +1912,8 @@ pub struct QITableEntry {
 }
 #[test]
 fn bindgen_test_layout_QITableEntry() {
-    assert_eq!(:: std:: mem:: size_of:: < QITableEntry > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<QITableEntry>() , 16usize);
+    assert_eq!(::std::mem::align_of::<QITableEntry>() , 8usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -1893,7 +1940,8 @@ pub struct nsQueryInterface {
 }
 #[test]
 fn bindgen_test_layout_nsQueryInterface() {
-    assert_eq!(:: std:: mem:: size_of:: < nsQueryInterface > (  ) , 8usize);
+    assert_eq!(::std::mem::size_of::<nsQueryInterface>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsQueryInterface>() , 8usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -1903,8 +1951,8 @@ pub struct nsQueryInterfaceWithError {
 }
 #[test]
 fn bindgen_test_layout_nsQueryInterfaceWithError() {
-    assert_eq!(:: std:: mem:: size_of:: < nsQueryInterfaceWithError > (  ) ,
-               16usize);
+    assert_eq!(::std::mem::size_of::<nsQueryInterfaceWithError>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsQueryInterfaceWithError>() , 8usize);
 }
 ////////////////////////////////////////////////////////////////////////////
 #[repr(C)]
@@ -1914,7 +1962,8 @@ pub struct nsGetServiceByCID {
 }
 #[test]
 fn bindgen_test_layout_nsGetServiceByCID() {
-    assert_eq!(:: std:: mem:: size_of:: < nsGetServiceByCID > (  ) , 8usize);
+    assert_eq!(::std::mem::size_of::<nsGetServiceByCID>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsGetServiceByCID>() , 8usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -1924,8 +1973,8 @@ pub struct nsGetServiceByCIDWithError {
 }
 #[test]
 fn bindgen_test_layout_nsGetServiceByCIDWithError() {
-    assert_eq!(:: std:: mem:: size_of:: < nsGetServiceByCIDWithError > (  ) ,
-               16usize);
+    assert_eq!(::std::mem::size_of::<nsGetServiceByCIDWithError>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsGetServiceByCIDWithError>() , 8usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -1934,8 +1983,8 @@ pub struct nsGetServiceByContractID {
 }
 #[test]
 fn bindgen_test_layout_nsGetServiceByContractID() {
-    assert_eq!(:: std:: mem:: size_of:: < nsGetServiceByContractID > (  ) ,
-               8usize);
+    assert_eq!(::std::mem::size_of::<nsGetServiceByContractID>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsGetServiceByContractID>() , 8usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -1945,8 +1994,10 @@ pub struct nsGetServiceByContractIDWithError {
 }
 #[test]
 fn bindgen_test_layout_nsGetServiceByContractIDWithError() {
-    assert_eq!(:: std:: mem:: size_of:: < nsGetServiceByContractIDWithError >
-               (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsGetServiceByContractIDWithError>() ,
+               16usize);
+    assert_eq!(::std::mem::align_of::<nsGetServiceByContractIDWithError>() ,
+               8usize);
 }
 /**
  * Factors implementation for all template versions of nsCOMPtr.
@@ -1963,7 +2014,8 @@ pub struct nsCOMPtr_base {
 }
 #[test]
 fn bindgen_test_layout_nsCOMPtr_base() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCOMPtr_base > (  ) , 8usize);
+    assert_eq!(::std::mem::size_of::<nsCOMPtr_base>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsCOMPtr_base>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCOMPtr<T> {
@@ -2007,7 +2059,8 @@ pub struct PLDHashEntryHdr {
 }
 #[test]
 fn bindgen_test_layout_PLDHashEntryHdr() {
-    assert_eq!(:: std:: mem:: size_of:: < PLDHashEntryHdr > (  ) , 4usize);
+    assert_eq!(::std::mem::size_of::<PLDHashEntryHdr>() , 4usize);
+    assert_eq!(::std::mem::align_of::<PLDHashEntryHdr>() , 4usize);
 }
 #[repr(C)]
 pub struct Checker {
@@ -2016,7 +2069,8 @@ pub struct Checker {
 }
 #[test]
 fn bindgen_test_layout_Checker() {
-    assert_eq!(:: std:: mem:: size_of:: < Checker > (  ) , 8usize);
+    assert_eq!(::std::mem::size_of::<Checker>() , 8usize);
+    assert_eq!(::std::mem::align_of::<Checker>() , 4usize);
 }
 #[repr(C)]
 pub struct PLDHashTable {
@@ -2033,7 +2087,8 @@ pub struct PLDHashTable {
 pub enum PLDHashTable_SearchReason { ForSearchOrRemove = 0, ForAdd = 1, }
 #[test]
 fn bindgen_test_layout_PLDHashTable() {
-    assert_eq!(:: std:: mem:: size_of:: < PLDHashTable > (  ) , 48usize);
+    assert_eq!(::std::mem::size_of::<PLDHashTable>() , 48usize);
+    assert_eq!(::std::mem::align_of::<PLDHashTable>() , 8usize);
 }
 pub type PLDHashHashKey =
     ::std::option::Option<unsafe extern "C" fn(aKey:
@@ -2066,7 +2121,8 @@ pub struct PLDHashTableOps {
 }
 #[test]
 fn bindgen_test_layout_PLDHashTableOps() {
-    assert_eq!(:: std:: mem:: size_of:: < PLDHashTableOps > (  ) , 40usize);
+    assert_eq!(::std::mem::size_of::<PLDHashTableOps>() , 40usize);
+    assert_eq!(::std::mem::align_of::<PLDHashTableOps>() , 8usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -2076,7 +2132,8 @@ pub struct PLDHashEntryStub {
 }
 #[test]
 fn bindgen_test_layout_PLDHashEntryStub() {
-    assert_eq!(:: std:: mem:: size_of:: < PLDHashEntryStub > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<PLDHashEntryStub>() , 16usize);
+    assert_eq!(::std::mem::align_of::<PLDHashEntryStub>() , 8usize);
 }
 /**
  * a base class for templated hashtables.
@@ -2134,14 +2191,11 @@ pub struct nsTHashtable<EntryType> {
     pub mTable: PLDHashTable,
     pub _phantom0: ::std::marker::PhantomData<EntryType>,
 }
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
-pub struct nsDataHashtable {
-    _bindgen_opaque_blob: [u64; 0usize],
-}
+pub struct nsDataHashtable;
 #[test]
 fn bindgen_test_layout_nsDataHashtable() {
-    assert_eq!(:: std:: mem:: size_of:: < nsDataHashtable > (  ) , 0usize);
+    assert_eq!(::std::mem::size_of::<nsDataHashtable>() , 0usize);
+    assert_eq!(::std::mem::align_of::<nsDataHashtable>() , 0usize);
 }
 pub enum CSSVariableResolver { }
 #[repr(C)]
@@ -2158,12 +2212,13 @@ pub struct CSSVariableValues_Variable {
 }
 #[test]
 fn bindgen_test_layout_CSSVariableValues_Variable() {
-    assert_eq!(:: std:: mem:: size_of:: < CSSVariableValues_Variable > (  ) ,
-               40usize);
+    assert_eq!(::std::mem::size_of::<CSSVariableValues_Variable>() , 40usize);
+    assert_eq!(::std::mem::align_of::<CSSVariableValues_Variable>() , 8usize);
 }
 #[test]
 fn bindgen_test_layout_CSSVariableValues() {
-    assert_eq!(:: std:: mem:: size_of:: < CSSVariableValues > (  ) , 56usize);
+    assert_eq!(::std::mem::size_of::<CSSVariableValues>() , 56usize);
+    assert_eq!(::std::mem::align_of::<CSSVariableValues>() , 8usize);
 }
 #[repr(i8)]
 #[derive(Copy, Clone, Debug)]
@@ -2183,14 +2238,13 @@ pub enum SheetType {
 }
 pub type nscolor = u32;
 pub type nscoord = i32;
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
 pub struct nsIntPoint {
-    _bindgen_opaque_blob: [u64; 1usize],
+    pub _bindgen_opaque_blob: [u32; 2usize],
 }
 #[test]
 fn bindgen_test_layout_nsIntPoint() {
-    assert_eq!(:: std:: mem:: size_of:: < nsIntPoint > (  ) , 8usize);
+    assert_eq!(::std::mem::size_of::<nsIntPoint>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsIntPoint>() , 4usize);
 }
 /**
  * These *_Simple types are used to map Gecko types to layout-equivalent but
@@ -2209,7 +2263,8 @@ pub struct nsPoint {
 }
 #[test]
 fn bindgen_test_layout_nsPoint() {
-    assert_eq!(:: std:: mem:: size_of:: < nsPoint > (  ) , 8usize);
+    assert_eq!(::std::mem::size_of::<nsPoint>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsPoint>() , 4usize);
 }
 /**
  * <div rustbindgen="true" replaces="nsMargin">
@@ -2224,16 +2279,16 @@ pub struct nsMargin {
 }
 #[test]
 fn bindgen_test_layout_nsMargin() {
-    assert_eq!(:: std:: mem:: size_of:: < nsMargin > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsMargin>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsMargin>() , 4usize);
 }
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
 pub struct nsIntMargin {
-    _bindgen_opaque_blob: [u64; 2usize],
+    pub _bindgen_opaque_blob: [u32; 4usize],
 }
 #[test]
 fn bindgen_test_layout_nsIntMargin() {
-    assert_eq!(:: std:: mem:: size_of:: < nsIntMargin > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsIntMargin>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsIntMargin>() , 4usize);
 }
 pub const eFamily_generic_first: FontFamilyType =
     FontFamilyType::eFamily_serif;
@@ -2274,7 +2329,8 @@ pub struct FontFamilyName {
 }
 #[test]
 fn bindgen_test_layout_FontFamilyName() {
-    assert_eq!(:: std:: mem:: size_of:: < FontFamilyName > (  ) , 24usize);
+    assert_eq!(::std::mem::size_of::<FontFamilyName>() , 24usize);
+    assert_eq!(::std::mem::align_of::<FontFamilyName>() , 8usize);
 }
 /**
  * font family list, array of font families and a default font type.
@@ -2288,7 +2344,8 @@ pub struct FontFamilyList {
 }
 #[test]
 fn bindgen_test_layout_FontFamilyList() {
-    assert_eq!(:: std:: mem:: size_of:: < FontFamilyList > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<FontFamilyList>() , 16usize);
+    assert_eq!(::std::mem::align_of::<FontFamilyList>() , 8usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -2298,7 +2355,8 @@ pub struct gfxFontFeature {
 }
 #[test]
 fn bindgen_test_layout_gfxFontFeature() {
-    assert_eq!(:: std:: mem:: size_of:: < gfxFontFeature > (  ) , 8usize);
+    assert_eq!(::std::mem::size_of::<gfxFontFeature>() , 8usize);
+    assert_eq!(::std::mem::align_of::<gfxFontFeature>() , 4usize);
 }
 #[repr(C)]
 pub struct gfxAlternateValue {
@@ -2307,17 +2365,16 @@ pub struct gfxAlternateValue {
 }
 #[test]
 fn bindgen_test_layout_gfxAlternateValue() {
-    assert_eq!(:: std:: mem:: size_of:: < gfxAlternateValue > (  ) , 24usize);
+    assert_eq!(::std::mem::size_of::<gfxAlternateValue>() , 24usize);
+    assert_eq!(::std::mem::align_of::<gfxAlternateValue>() , 8usize);
 }
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
 pub struct gfxFontFeatureValueSet {
-    _bindgen_opaque_blob: [u64; 8usize],
+    pub _bindgen_opaque_blob: [u64; 8usize],
 }
 #[test]
 fn bindgen_test_layout_gfxFontFeatureValueSet() {
-    assert_eq!(:: std:: mem:: size_of:: < gfxFontFeatureValueSet > (  ) ,
-               64usize);
+    assert_eq!(::std::mem::size_of::<gfxFontFeatureValueSet>() , 64usize);
+    assert_eq!(::std::mem::align_of::<gfxFontFeatureValueSet>() , 8usize);
 }
 pub enum gfxFontStyle { }
 pub type nsFontFamilyEnumFunc =
@@ -2351,16 +2408,16 @@ pub struct nsFont {
 }
 #[test]
 fn bindgen_test_layout_nsFont() {
-    assert_eq!(:: std:: mem:: size_of:: < nsFont > (  ) , 88usize);
+    assert_eq!(::std::mem::size_of::<nsFont>() , 88usize);
+    assert_eq!(::std::mem::align_of::<nsFont>() , 8usize);
 }
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
 pub struct nsIntRect {
-    _bindgen_opaque_blob: [u64; 2usize],
+    pub _bindgen_opaque_blob: [u32; 4usize],
 }
 #[test]
 fn bindgen_test_layout_nsIntRect() {
-    assert_eq!(:: std:: mem:: size_of:: < nsIntRect > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsIntRect>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsIntRect>() , 4usize);
 }
 /**
  * <div rustbindgen="true" replaces="nsRect">
@@ -2375,7 +2432,8 @@ pub struct nsRect {
 }
 #[test]
 fn bindgen_test_layout_nsRect() {
-    assert_eq!(:: std:: mem:: size_of:: < nsRect > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsRect>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsRect>() , 4usize);
 }
 #[repr(i8)]
 #[derive(Copy, Clone, Debug)]
@@ -2446,8 +2504,8 @@ pub struct nsStyleCoord_CalcValue {
 }
 #[test]
 fn bindgen_test_layout_nsStyleCoord_CalcValue() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleCoord_CalcValue > (  ) ,
-               12usize);
+    assert_eq!(::std::mem::size_of::<nsStyleCoord_CalcValue>() , 12usize);
+    assert_eq!(::std::mem::align_of::<nsStyleCoord_CalcValue>() , 4usize);
 }
 #[repr(C)]
 pub struct nsStyleCoord_Calc {
@@ -2457,14 +2515,16 @@ pub struct nsStyleCoord_Calc {
 }
 #[test]
 fn bindgen_test_layout_nsStyleCoord_Calc() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleCoord_Calc > (  ) , 32usize);
+    assert_eq!(::std::mem::size_of::<nsStyleCoord_Calc>() , 32usize);
+    assert_eq!(::std::mem::align_of::<nsStyleCoord_Calc>() , 8usize);
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
 pub enum nsStyleCoord_CoordConstructorType { CoordConstructor = 0, }
 #[test]
 fn bindgen_test_layout_nsStyleCoord() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleCoord > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsStyleCoord>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsStyleCoord>() , 8usize);
 }
 /**
  * Class that represents a set of top/right/bottom/left nsStyleCoords.
@@ -2478,7 +2538,8 @@ pub struct nsStyleSides {
 }
 #[test]
 fn bindgen_test_layout_nsStyleSides() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleSides > (  ) , 40usize);
+    assert_eq!(::std::mem::size_of::<nsStyleSides>() , 40usize);
+    assert_eq!(::std::mem::align_of::<nsStyleSides>() , 8usize);
 }
 /**
  * Class that represents a set of top-left/top-right/bottom-left/bottom-right
@@ -2492,7 +2553,8 @@ pub struct nsStyleCorners {
 }
 #[test]
 fn bindgen_test_layout_nsStyleCorners() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleCorners > (  ) , 72usize);
+    assert_eq!(::std::mem::size_of::<nsStyleCorners>() , 72usize);
+    assert_eq!(::std::mem::align_of::<nsStyleCorners>() , 8usize);
 }
 pub type nsLoadFlags = u32;
 #[repr(C)]
@@ -2523,14 +2585,13 @@ pub enum nsIRequest_nsIRequest_h_unnamed_6 {
 }
 pub enum nsIContentSecurityPolicy { }
 pub enum nsIDOMDocument { }
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
 pub struct nsIPrincipal {
-    _bindgen_opaque_blob: [u64; 1usize],
+    pub _bindgen_opaque_blob: u64,
 }
 #[test]
 fn bindgen_test_layout_nsIPrincipal() {
-    assert_eq!(:: std:: mem:: size_of:: < nsIPrincipal > (  ) , 8usize);
+    assert_eq!(::std::mem::size_of::<nsIPrincipal>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsIPrincipal>() , 8usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -2557,7 +2618,8 @@ pub struct nsStringBuffer {
 }
 #[test]
 fn bindgen_test_layout_nsStringBuffer() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStringBuffer > (  ) , 8usize);
+    assert_eq!(::std::mem::size_of::<nsStringBuffer>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsStringBuffer>() , 4usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -2578,7 +2640,8 @@ pub struct _vftable_nsIAtom {
 }
 #[test]
 fn bindgen_test_layout_nsIAtom() {
-    assert_eq!(:: std:: mem:: size_of:: < nsIAtom > (  ) , 24usize);
+    assert_eq!(::std::mem::size_of::<nsIAtom>() , 24usize);
+    assert_eq!(::std::mem::align_of::<nsIAtom>() , 8usize);
 }
 #[repr(C)]
 pub struct nsAtomString {
@@ -2586,7 +2649,8 @@ pub struct nsAtomString {
 }
 #[test]
 fn bindgen_test_layout_nsAtomString() {
-    assert_eq!(:: std:: mem:: size_of:: < nsAtomString > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsAtomString>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsAtomString>() , 8usize);
 }
 #[repr(C)]
 pub struct nsAtomCString {
@@ -2594,7 +2658,8 @@ pub struct nsAtomCString {
 }
 #[test]
 fn bindgen_test_layout_nsAtomCString() {
-    assert_eq!(:: std:: mem:: size_of:: < nsAtomCString > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsAtomCString>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsAtomCString>() , 8usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -2884,210 +2949,211 @@ pub enum nsCSSProperty {
     eCSSProperty_text_emphasis_color = 213,
     eCSSProperty_text_emphasis_position = 214,
     eCSSProperty_text_emphasis_style = 215,
-    eCSSProperty_text_indent = 216,
-    eCSSProperty_text_orientation = 217,
-    eCSSProperty_text_overflow = 218,
-    eCSSProperty_text_shadow = 219,
-    eCSSProperty_text_size_adjust = 220,
-    eCSSProperty_text_transform = 221,
-    eCSSProperty_transform = 222,
-    eCSSProperty_transform_box = 223,
-    eCSSProperty_transform_origin = 224,
-    eCSSProperty_perspective_origin = 225,
-    eCSSProperty_perspective = 226,
-    eCSSProperty_transform_style = 227,
-    eCSSProperty_backface_visibility = 228,
-    eCSSProperty_top = 229,
-    eCSSProperty__moz_top_layer = 230,
-    eCSSProperty_touch_action = 231,
-    eCSSProperty_transition_delay = 232,
-    eCSSProperty_transition_duration = 233,
-    eCSSProperty_transition_property = 234,
-    eCSSProperty_transition_timing_function = 235,
-    eCSSProperty_unicode_bidi = 236,
-    eCSSProperty_user_focus = 237,
-    eCSSProperty_user_input = 238,
-    eCSSProperty_user_modify = 239,
-    eCSSProperty_user_select = 240,
-    eCSSProperty_vertical_align = 241,
-    eCSSProperty_visibility = 242,
-    eCSSProperty_white_space = 243,
-    eCSSProperty_width = 244,
-    eCSSProperty__moz_window_dragging = 245,
-    eCSSProperty__moz_window_shadow = 246,
-    eCSSProperty_word_break = 247,
-    eCSSProperty_word_spacing = 248,
-    eCSSProperty_word_wrap = 249,
-    eCSSProperty_hyphens = 250,
-    eCSSProperty_writing_mode = 251,
-    eCSSProperty_z_index = 252,
-    eCSSProperty_box_align = 253,
-    eCSSProperty_box_direction = 254,
-    eCSSProperty_box_flex = 255,
-    eCSSProperty_box_orient = 256,
-    eCSSProperty_box_pack = 257,
-    eCSSProperty_box_ordinal_group = 258,
-    eCSSProperty_stack_sizing = 259,
-    eCSSProperty_script_level = 260,
-    eCSSProperty_script_size_multiplier = 261,
-    eCSSProperty_script_min_size = 262,
-    eCSSProperty_math_variant = 263,
-    eCSSProperty_math_display = 264,
-    eCSSProperty_clip_path = 265,
-    eCSSProperty_clip_rule = 266,
-    eCSSProperty_color_interpolation = 267,
-    eCSSProperty_color_interpolation_filters = 268,
-    eCSSProperty_dominant_baseline = 269,
-    eCSSProperty_fill = 270,
-    eCSSProperty_fill_opacity = 271,
-    eCSSProperty_fill_rule = 272,
-    eCSSProperty_filter = 273,
-    eCSSProperty_flood_color = 274,
-    eCSSProperty_flood_opacity = 275,
-    eCSSProperty_image_rendering = 276,
-    eCSSProperty_lighting_color = 277,
-    eCSSProperty_marker_end = 278,
-    eCSSProperty_marker_mid = 279,
-    eCSSProperty_marker_start = 280,
-    eCSSProperty_mask = 281,
-    eCSSProperty_mask_type = 282,
-    eCSSProperty_shape_rendering = 283,
-    eCSSProperty_stop_color = 284,
-    eCSSProperty_stop_opacity = 285,
-    eCSSProperty_stroke = 286,
-    eCSSProperty_stroke_dasharray = 287,
-    eCSSProperty_stroke_dashoffset = 288,
-    eCSSProperty_stroke_linecap = 289,
-    eCSSProperty_stroke_linejoin = 290,
-    eCSSProperty_stroke_miterlimit = 291,
-    eCSSProperty_stroke_opacity = 292,
-    eCSSProperty_stroke_width = 293,
-    eCSSProperty_text_anchor = 294,
-    eCSSProperty_text_rendering = 295,
-    eCSSProperty_vector_effect = 296,
-    eCSSProperty_will_change = 297,
-    eCSSProperty__x_lang = 298,
-    eCSSProperty__x_span = 299,
-    eCSSProperty__x_text_zoom = 300,
-    eCSSProperty_COUNT_no_shorthands = 301,
-    eCSSProperty_all = 302,
-    eCSSProperty_animation = 303,
-    eCSSProperty_background = 304,
-    eCSSProperty_border = 305,
-    eCSSProperty_border_block_end = 306,
-    eCSSProperty_border_block_start = 307,
-    eCSSProperty_border_bottom = 308,
-    eCSSProperty_border_color = 309,
-    eCSSProperty_border_image = 310,
-    eCSSProperty_border_inline_end = 311,
-    eCSSProperty_border_inline_start = 312,
-    eCSSProperty_border_left = 313,
-    eCSSProperty_border_right = 314,
-    eCSSProperty_border_style = 315,
-    eCSSProperty_border_top = 316,
-    eCSSProperty_border_width = 317,
-    eCSSProperty_border_radius = 318,
-    eCSSProperty__moz_columns = 319,
-    eCSSProperty__moz_column_rule = 320,
-    eCSSProperty_flex = 321,
-    eCSSProperty_flex_flow = 322,
-    eCSSProperty_font = 323,
-    eCSSProperty_font_variant = 324,
-    eCSSProperty_grid = 325,
-    eCSSProperty_grid_column = 326,
-    eCSSProperty_grid_row = 327,
-    eCSSProperty_grid_area = 328,
-    eCSSProperty_grid_gap = 329,
-    eCSSProperty_list_style = 330,
-    eCSSProperty_margin = 331,
-    eCSSProperty_outline = 332,
-    eCSSProperty_overflow = 333,
-    eCSSProperty_padding = 334,
-    eCSSProperty_scroll_snap_type = 335,
-    eCSSProperty_text_decoration = 336,
-    eCSSProperty_text_emphasis = 337,
-    eCSSProperty_transition = 338,
-    eCSSProperty_marker = 339,
-    eCSSProperty__moz_transform = 340,
-    eCSSProperty_COUNT = 341,
-    eCSSPropertyAlias_MozPerspectiveOrigin = 342,
-    eCSSPropertyAlias_MozPerspective = 343,
-    eCSSPropertyAlias_MozTransformStyle = 344,
-    eCSSPropertyAlias_MozBackfaceVisibility = 345,
-    eCSSPropertyAlias_MozBorderImage = 346,
-    eCSSPropertyAlias_MozTransition = 347,
-    eCSSPropertyAlias_MozTransitionDelay = 348,
-    eCSSPropertyAlias_MozTransitionDuration = 349,
-    eCSSPropertyAlias_MozTransitionProperty = 350,
-    eCSSPropertyAlias_MozTransitionTimingFunction = 351,
-    eCSSPropertyAlias_MozAnimation = 352,
-    eCSSPropertyAlias_MozAnimationDelay = 353,
-    eCSSPropertyAlias_MozAnimationDirection = 354,
-    eCSSPropertyAlias_MozAnimationDuration = 355,
-    eCSSPropertyAlias_MozAnimationFillMode = 356,
-    eCSSPropertyAlias_MozAnimationIterationCount = 357,
-    eCSSPropertyAlias_MozAnimationName = 358,
-    eCSSPropertyAlias_MozAnimationPlayState = 359,
-    eCSSPropertyAlias_MozAnimationTimingFunction = 360,
-    eCSSPropertyAlias_MozBoxSizing = 361,
-    eCSSPropertyAlias_MozFontFeatureSettings = 362,
-    eCSSPropertyAlias_MozFontLanguageOverride = 363,
-    eCSSPropertyAlias_MozPaddingEnd = 364,
-    eCSSPropertyAlias_MozPaddingStart = 365,
-    eCSSPropertyAlias_MozMarginEnd = 366,
-    eCSSPropertyAlias_MozMarginStart = 367,
-    eCSSPropertyAlias_MozBorderEnd = 368,
-    eCSSPropertyAlias_MozBorderEndColor = 369,
-    eCSSPropertyAlias_MozBorderEndStyle = 370,
-    eCSSPropertyAlias_MozBorderEndWidth = 371,
-    eCSSPropertyAlias_MozBorderStart = 372,
-    eCSSPropertyAlias_MozBorderStartColor = 373,
-    eCSSPropertyAlias_MozBorderStartStyle = 374,
-    eCSSPropertyAlias_MozBorderStartWidth = 375,
-    eCSSPropertyAlias_MozHyphens = 376,
-    eCSSPropertyAlias_WebkitAnimation = 377,
-    eCSSPropertyAlias_WebkitAnimationDelay = 378,
-    eCSSPropertyAlias_WebkitAnimationDirection = 379,
-    eCSSPropertyAlias_WebkitAnimationDuration = 380,
-    eCSSPropertyAlias_WebkitAnimationFillMode = 381,
-    eCSSPropertyAlias_WebkitAnimationIterationCount = 382,
-    eCSSPropertyAlias_WebkitAnimationName = 383,
-    eCSSPropertyAlias_WebkitAnimationPlayState = 384,
-    eCSSPropertyAlias_WebkitAnimationTimingFunction = 385,
-    eCSSPropertyAlias_WebkitFilter = 386,
-    eCSSPropertyAlias_WebkitTextSizeAdjust = 387,
-    eCSSPropertyAlias_WebkitTransform = 388,
-    eCSSPropertyAlias_WebkitTransformOrigin = 389,
-    eCSSPropertyAlias_WebkitTransformStyle = 390,
-    eCSSPropertyAlias_WebkitBackfaceVisibility = 391,
-    eCSSPropertyAlias_WebkitPerspective = 392,
-    eCSSPropertyAlias_WebkitPerspectiveOrigin = 393,
-    eCSSPropertyAlias_WebkitTransition = 394,
-    eCSSPropertyAlias_WebkitTransitionDelay = 395,
-    eCSSPropertyAlias_WebkitTransitionDuration = 396,
-    eCSSPropertyAlias_WebkitTransitionProperty = 397,
-    eCSSPropertyAlias_WebkitTransitionTimingFunction = 398,
-    eCSSPropertyAlias_WebkitBorderRadius = 399,
-    eCSSPropertyAlias_WebkitBorderTopLeftRadius = 400,
-    eCSSPropertyAlias_WebkitBorderTopRightRadius = 401,
-    eCSSPropertyAlias_WebkitBorderBottomLeftRadius = 402,
-    eCSSPropertyAlias_WebkitBorderBottomRightRadius = 403,
-    eCSSPropertyAlias_WebkitBackgroundClip = 404,
-    eCSSPropertyAlias_WebkitBackgroundOrigin = 405,
-    eCSSPropertyAlias_WebkitBackgroundSize = 406,
-    eCSSPropertyAlias_WebkitBorderImage = 407,
-    eCSSPropertyAlias_WebkitBoxShadow = 408,
-    eCSSPropertyAlias_WebkitBoxSizing = 409,
-    eCSSPropertyAlias_WebkitBoxFlex = 410,
-    eCSSPropertyAlias_WebkitBoxOrdinalGroup = 411,
-    eCSSPropertyAlias_WebkitBoxAlign = 412,
-    eCSSPropertyAlias_WebkitBoxPack = 413,
-    eCSSPropertyAlias_WebkitUserSelect = 414,
-    eCSSProperty_COUNT_with_aliases = 415,
-    eCSSPropertyExtra_all_properties = 416,
-    eCSSPropertyExtra_x_none_value = 417,
-    eCSSPropertyExtra_x_auto_value = 418,
-    eCSSPropertyExtra_variable = 419,
+    eCSSProperty__webkit_text_fill_color = 216,
+    eCSSProperty_text_indent = 217,
+    eCSSProperty_text_orientation = 218,
+    eCSSProperty_text_overflow = 219,
+    eCSSProperty_text_shadow = 220,
+    eCSSProperty_text_size_adjust = 221,
+    eCSSProperty_text_transform = 222,
+    eCSSProperty_transform = 223,
+    eCSSProperty_transform_box = 224,
+    eCSSProperty_transform_origin = 225,
+    eCSSProperty_perspective_origin = 226,
+    eCSSProperty_perspective = 227,
+    eCSSProperty_transform_style = 228,
+    eCSSProperty_backface_visibility = 229,
+    eCSSProperty_top = 230,
+    eCSSProperty__moz_top_layer = 231,
+    eCSSProperty_touch_action = 232,
+    eCSSProperty_transition_delay = 233,
+    eCSSProperty_transition_duration = 234,
+    eCSSProperty_transition_property = 235,
+    eCSSProperty_transition_timing_function = 236,
+    eCSSProperty_unicode_bidi = 237,
+    eCSSProperty_user_focus = 238,
+    eCSSProperty_user_input = 239,
+    eCSSProperty_user_modify = 240,
+    eCSSProperty_user_select = 241,
+    eCSSProperty_vertical_align = 242,
+    eCSSProperty_visibility = 243,
+    eCSSProperty_white_space = 244,
+    eCSSProperty_width = 245,
+    eCSSProperty__moz_window_dragging = 246,
+    eCSSProperty__moz_window_shadow = 247,
+    eCSSProperty_word_break = 248,
+    eCSSProperty_word_spacing = 249,
+    eCSSProperty_word_wrap = 250,
+    eCSSProperty_hyphens = 251,
+    eCSSProperty_writing_mode = 252,
+    eCSSProperty_z_index = 253,
+    eCSSProperty_box_align = 254,
+    eCSSProperty_box_direction = 255,
+    eCSSProperty_box_flex = 256,
+    eCSSProperty_box_orient = 257,
+    eCSSProperty_box_pack = 258,
+    eCSSProperty_box_ordinal_group = 259,
+    eCSSProperty_stack_sizing = 260,
+    eCSSProperty_script_level = 261,
+    eCSSProperty_script_size_multiplier = 262,
+    eCSSProperty_script_min_size = 263,
+    eCSSProperty_math_variant = 264,
+    eCSSProperty_math_display = 265,
+    eCSSProperty_clip_path = 266,
+    eCSSProperty_clip_rule = 267,
+    eCSSProperty_color_interpolation = 268,
+    eCSSProperty_color_interpolation_filters = 269,
+    eCSSProperty_dominant_baseline = 270,
+    eCSSProperty_fill = 271,
+    eCSSProperty_fill_opacity = 272,
+    eCSSProperty_fill_rule = 273,
+    eCSSProperty_filter = 274,
+    eCSSProperty_flood_color = 275,
+    eCSSProperty_flood_opacity = 276,
+    eCSSProperty_image_rendering = 277,
+    eCSSProperty_lighting_color = 278,
+    eCSSProperty_marker_end = 279,
+    eCSSProperty_marker_mid = 280,
+    eCSSProperty_marker_start = 281,
+    eCSSProperty_mask = 282,
+    eCSSProperty_mask_type = 283,
+    eCSSProperty_shape_rendering = 284,
+    eCSSProperty_stop_color = 285,
+    eCSSProperty_stop_opacity = 286,
+    eCSSProperty_stroke = 287,
+    eCSSProperty_stroke_dasharray = 288,
+    eCSSProperty_stroke_dashoffset = 289,
+    eCSSProperty_stroke_linecap = 290,
+    eCSSProperty_stroke_linejoin = 291,
+    eCSSProperty_stroke_miterlimit = 292,
+    eCSSProperty_stroke_opacity = 293,
+    eCSSProperty_stroke_width = 294,
+    eCSSProperty_text_anchor = 295,
+    eCSSProperty_text_rendering = 296,
+    eCSSProperty_vector_effect = 297,
+    eCSSProperty_will_change = 298,
+    eCSSProperty__x_lang = 299,
+    eCSSProperty__x_span = 300,
+    eCSSProperty__x_text_zoom = 301,
+    eCSSProperty_COUNT_no_shorthands = 302,
+    eCSSProperty_all = 303,
+    eCSSProperty_animation = 304,
+    eCSSProperty_background = 305,
+    eCSSProperty_border = 306,
+    eCSSProperty_border_block_end = 307,
+    eCSSProperty_border_block_start = 308,
+    eCSSProperty_border_bottom = 309,
+    eCSSProperty_border_color = 310,
+    eCSSProperty_border_image = 311,
+    eCSSProperty_border_inline_end = 312,
+    eCSSProperty_border_inline_start = 313,
+    eCSSProperty_border_left = 314,
+    eCSSProperty_border_right = 315,
+    eCSSProperty_border_style = 316,
+    eCSSProperty_border_top = 317,
+    eCSSProperty_border_width = 318,
+    eCSSProperty_border_radius = 319,
+    eCSSProperty__moz_columns = 320,
+    eCSSProperty__moz_column_rule = 321,
+    eCSSProperty_flex = 322,
+    eCSSProperty_flex_flow = 323,
+    eCSSProperty_font = 324,
+    eCSSProperty_font_variant = 325,
+    eCSSProperty_grid = 326,
+    eCSSProperty_grid_column = 327,
+    eCSSProperty_grid_row = 328,
+    eCSSProperty_grid_area = 329,
+    eCSSProperty_grid_gap = 330,
+    eCSSProperty_list_style = 331,
+    eCSSProperty_margin = 332,
+    eCSSProperty_outline = 333,
+    eCSSProperty_overflow = 334,
+    eCSSProperty_padding = 335,
+    eCSSProperty_scroll_snap_type = 336,
+    eCSSProperty_text_decoration = 337,
+    eCSSProperty_text_emphasis = 338,
+    eCSSProperty_transition = 339,
+    eCSSProperty_marker = 340,
+    eCSSProperty__moz_transform = 341,
+    eCSSProperty_COUNT = 342,
+    eCSSPropertyAlias_MozPerspectiveOrigin = 343,
+    eCSSPropertyAlias_MozPerspective = 344,
+    eCSSPropertyAlias_MozTransformStyle = 345,
+    eCSSPropertyAlias_MozBackfaceVisibility = 346,
+    eCSSPropertyAlias_MozBorderImage = 347,
+    eCSSPropertyAlias_MozTransition = 348,
+    eCSSPropertyAlias_MozTransitionDelay = 349,
+    eCSSPropertyAlias_MozTransitionDuration = 350,
+    eCSSPropertyAlias_MozTransitionProperty = 351,
+    eCSSPropertyAlias_MozTransitionTimingFunction = 352,
+    eCSSPropertyAlias_MozAnimation = 353,
+    eCSSPropertyAlias_MozAnimationDelay = 354,
+    eCSSPropertyAlias_MozAnimationDirection = 355,
+    eCSSPropertyAlias_MozAnimationDuration = 356,
+    eCSSPropertyAlias_MozAnimationFillMode = 357,
+    eCSSPropertyAlias_MozAnimationIterationCount = 358,
+    eCSSPropertyAlias_MozAnimationName = 359,
+    eCSSPropertyAlias_MozAnimationPlayState = 360,
+    eCSSPropertyAlias_MozAnimationTimingFunction = 361,
+    eCSSPropertyAlias_MozBoxSizing = 362,
+    eCSSPropertyAlias_MozFontFeatureSettings = 363,
+    eCSSPropertyAlias_MozFontLanguageOverride = 364,
+    eCSSPropertyAlias_MozPaddingEnd = 365,
+    eCSSPropertyAlias_MozPaddingStart = 366,
+    eCSSPropertyAlias_MozMarginEnd = 367,
+    eCSSPropertyAlias_MozMarginStart = 368,
+    eCSSPropertyAlias_MozBorderEnd = 369,
+    eCSSPropertyAlias_MozBorderEndColor = 370,
+    eCSSPropertyAlias_MozBorderEndStyle = 371,
+    eCSSPropertyAlias_MozBorderEndWidth = 372,
+    eCSSPropertyAlias_MozBorderStart = 373,
+    eCSSPropertyAlias_MozBorderStartColor = 374,
+    eCSSPropertyAlias_MozBorderStartStyle = 375,
+    eCSSPropertyAlias_MozBorderStartWidth = 376,
+    eCSSPropertyAlias_MozHyphens = 377,
+    eCSSPropertyAlias_WebkitAnimation = 378,
+    eCSSPropertyAlias_WebkitAnimationDelay = 379,
+    eCSSPropertyAlias_WebkitAnimationDirection = 380,
+    eCSSPropertyAlias_WebkitAnimationDuration = 381,
+    eCSSPropertyAlias_WebkitAnimationFillMode = 382,
+    eCSSPropertyAlias_WebkitAnimationIterationCount = 383,
+    eCSSPropertyAlias_WebkitAnimationName = 384,
+    eCSSPropertyAlias_WebkitAnimationPlayState = 385,
+    eCSSPropertyAlias_WebkitAnimationTimingFunction = 386,
+    eCSSPropertyAlias_WebkitFilter = 387,
+    eCSSPropertyAlias_WebkitTextSizeAdjust = 388,
+    eCSSPropertyAlias_WebkitTransform = 389,
+    eCSSPropertyAlias_WebkitTransformOrigin = 390,
+    eCSSPropertyAlias_WebkitTransformStyle = 391,
+    eCSSPropertyAlias_WebkitBackfaceVisibility = 392,
+    eCSSPropertyAlias_WebkitPerspective = 393,
+    eCSSPropertyAlias_WebkitPerspectiveOrigin = 394,
+    eCSSPropertyAlias_WebkitTransition = 395,
+    eCSSPropertyAlias_WebkitTransitionDelay = 396,
+    eCSSPropertyAlias_WebkitTransitionDuration = 397,
+    eCSSPropertyAlias_WebkitTransitionProperty = 398,
+    eCSSPropertyAlias_WebkitTransitionTimingFunction = 399,
+    eCSSPropertyAlias_WebkitBorderRadius = 400,
+    eCSSPropertyAlias_WebkitBorderTopLeftRadius = 401,
+    eCSSPropertyAlias_WebkitBorderTopRightRadius = 402,
+    eCSSPropertyAlias_WebkitBorderBottomLeftRadius = 403,
+    eCSSPropertyAlias_WebkitBorderBottomRightRadius = 404,
+    eCSSPropertyAlias_WebkitBackgroundClip = 405,
+    eCSSPropertyAlias_WebkitBackgroundOrigin = 406,
+    eCSSPropertyAlias_WebkitBackgroundSize = 407,
+    eCSSPropertyAlias_WebkitBorderImage = 408,
+    eCSSPropertyAlias_WebkitBoxShadow = 409,
+    eCSSPropertyAlias_WebkitBoxSizing = 410,
+    eCSSPropertyAlias_WebkitBoxFlex = 411,
+    eCSSPropertyAlias_WebkitBoxOrdinalGroup = 412,
+    eCSSPropertyAlias_WebkitBoxAlign = 413,
+    eCSSPropertyAlias_WebkitBoxPack = 414,
+    eCSSPropertyAlias_WebkitUserSelect = 415,
+    eCSSProperty_COUNT_with_aliases = 416,
+    eCSSPropertyExtra_all_properties = 417,
+    eCSSPropertyExtra_x_none_value = 418,
+    eCSSPropertyExtra_x_auto_value = 419,
+    eCSSPropertyExtra_variable = 420,
 }
 #[repr(i32)]
 #[derive(Copy, Clone, Debug)]
@@ -3137,23 +3203,21 @@ pub enum nsCSSPropertyLogicalGroup {
     eCSSPropertyLogicalGroup_COUNT = 10,
 }
 pub enum CSSStyleSheet { }
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
 pub struct URLValue {
-    _bindgen_opaque_blob: [u64; 7usize],
+    pub _bindgen_opaque_blob: [u64; 7usize],
 }
 #[test]
 fn bindgen_test_layout_URLValue() {
-    assert_eq!(:: std:: mem:: size_of:: < URLValue > (  ) , 56usize);
+    assert_eq!(::std::mem::size_of::<URLValue>() , 56usize);
+    assert_eq!(::std::mem::align_of::<URLValue>() , 8usize);
 }
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
 pub struct ImageValue {
-    _bindgen_opaque_blob: [u64; 13usize],
+    pub _bindgen_opaque_blob: [u64; 13usize],
 }
 #[test]
 fn bindgen_test_layout_ImageValue() {
-    assert_eq!(:: std:: mem:: size_of:: < ImageValue > (  ) , 104usize);
+    assert_eq!(::std::mem::size_of::<ImageValue>() , 104usize);
+    assert_eq!(::std::mem::align_of::<ImageValue>() , 8usize);
 }
 #[repr(C)]
 pub struct GridNamedArea {
@@ -3165,7 +3229,8 @@ pub struct GridNamedArea {
 }
 #[test]
 fn bindgen_test_layout_GridNamedArea() {
-    assert_eq!(:: std:: mem:: size_of:: < GridNamedArea > (  ) , 32usize);
+    assert_eq!(::std::mem::size_of::<GridNamedArea>() , 32usize);
+    assert_eq!(::std::mem::align_of::<GridNamedArea>() , 8usize);
 }
 #[repr(C)]
 pub struct GridTemplateAreasValue {
@@ -3177,8 +3242,8 @@ pub struct GridTemplateAreasValue {
 }
 #[test]
 fn bindgen_test_layout_GridTemplateAreasValue() {
-    assert_eq!(:: std:: mem:: size_of:: < GridTemplateAreasValue > (  ) ,
-               40usize);
+    assert_eq!(::std::mem::size_of::<GridTemplateAreasValue>() , 40usize);
+    assert_eq!(::std::mem::align_of::<GridTemplateAreasValue>() , 8usize);
 }
 #[repr(C)]
 pub struct FontFamilyListRefCnt {
@@ -3188,8 +3253,8 @@ pub struct FontFamilyListRefCnt {
 }
 #[test]
 fn bindgen_test_layout_FontFamilyListRefCnt() {
-    assert_eq!(:: std:: mem:: size_of:: < FontFamilyListRefCnt > (  ) ,
-               32usize);
+    assert_eq!(::std::mem::size_of::<FontFamilyListRefCnt>() , 32usize);
+    assert_eq!(::std::mem::align_of::<FontFamilyListRefCnt>() , 8usize);
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
@@ -3292,7 +3357,8 @@ pub struct nsCSSValue_nsCSSValue_h_unnamed_8 {
 impl nsCSSValue_nsCSSValue_h_unnamed_8 { }
 #[test]
 fn bindgen_test_layout_nsCSSValue() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSValue > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsCSSValue>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsCSSValue>() , 8usize);
 }
 #[repr(C)]
 pub struct Array {
@@ -3302,7 +3368,8 @@ pub struct Array {
 }
 #[test]
 fn bindgen_test_layout_Array() {
-    assert_eq!(:: std:: mem:: size_of:: < Array > (  ) , 32usize);
+    assert_eq!(::std::mem::size_of::<Array>() , 32usize);
+    assert_eq!(::std::mem::align_of::<Array>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCSSValueList {
@@ -3311,7 +3378,8 @@ pub struct nsCSSValueList {
 }
 #[test]
 fn bindgen_test_layout_nsCSSValueList() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSValueList > (  ) , 24usize);
+    assert_eq!(::std::mem::size_of::<nsCSSValueList>() , 24usize);
+    assert_eq!(::std::mem::align_of::<nsCSSValueList>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCSSValueList_heap {
@@ -3321,8 +3389,8 @@ pub struct nsCSSValueList_heap {
 }
 #[test]
 fn bindgen_test_layout_nsCSSValueList_heap() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSValueList_heap > (  ) ,
-               40usize);
+    assert_eq!(::std::mem::size_of::<nsCSSValueList_heap>() , 40usize);
+    assert_eq!(::std::mem::align_of::<nsCSSValueList_heap>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCSSValueSharedList {
@@ -3332,8 +3400,8 @@ pub struct nsCSSValueSharedList {
 }
 #[test]
 fn bindgen_test_layout_nsCSSValueSharedList() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSValueSharedList > (  ) ,
-               24usize);
+    assert_eq!(::std::mem::size_of::<nsCSSValueSharedList>() , 24usize);
+    assert_eq!(::std::mem::align_of::<nsCSSValueSharedList>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCSSRect {
@@ -3344,7 +3412,8 @@ pub struct nsCSSRect {
 }
 #[test]
 fn bindgen_test_layout_nsCSSRect() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSRect > (  ) , 64usize);
+    assert_eq!(::std::mem::size_of::<nsCSSRect>() , 64usize);
+    assert_eq!(::std::mem::align_of::<nsCSSRect>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCSSRect_heap {
@@ -3354,7 +3423,8 @@ pub struct nsCSSRect_heap {
 }
 #[test]
 fn bindgen_test_layout_nsCSSRect_heap() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSRect_heap > (  ) , 80usize);
+    assert_eq!(::std::mem::size_of::<nsCSSRect_heap>() , 80usize);
+    assert_eq!(::std::mem::align_of::<nsCSSRect_heap>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCSSValuePair {
@@ -3363,7 +3433,8 @@ pub struct nsCSSValuePair {
 }
 #[test]
 fn bindgen_test_layout_nsCSSValuePair() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSValuePair > (  ) , 32usize);
+    assert_eq!(::std::mem::size_of::<nsCSSValuePair>() , 32usize);
+    assert_eq!(::std::mem::align_of::<nsCSSValuePair>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCSSValuePair_heap {
@@ -3373,8 +3444,8 @@ pub struct nsCSSValuePair_heap {
 }
 #[test]
 fn bindgen_test_layout_nsCSSValuePair_heap() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSValuePair_heap > (  ) ,
-               48usize);
+    assert_eq!(::std::mem::size_of::<nsCSSValuePair_heap>() , 48usize);
+    assert_eq!(::std::mem::align_of::<nsCSSValuePair_heap>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCSSValueTriplet {
@@ -3384,7 +3455,8 @@ pub struct nsCSSValueTriplet {
 }
 #[test]
 fn bindgen_test_layout_nsCSSValueTriplet() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSValueTriplet > (  ) , 48usize);
+    assert_eq!(::std::mem::size_of::<nsCSSValueTriplet>() , 48usize);
+    assert_eq!(::std::mem::align_of::<nsCSSValueTriplet>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCSSValueTriplet_heap {
@@ -3394,8 +3466,8 @@ pub struct nsCSSValueTriplet_heap {
 }
 #[test]
 fn bindgen_test_layout_nsCSSValueTriplet_heap() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSValueTriplet_heap > (  ) ,
-               64usize);
+    assert_eq!(::std::mem::size_of::<nsCSSValueTriplet_heap>() , 64usize);
+    assert_eq!(::std::mem::align_of::<nsCSSValueTriplet_heap>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCSSValuePairList {
@@ -3405,8 +3477,8 @@ pub struct nsCSSValuePairList {
 }
 #[test]
 fn bindgen_test_layout_nsCSSValuePairList() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSValuePairList > (  ) ,
-               40usize);
+    assert_eq!(::std::mem::size_of::<nsCSSValuePairList>() , 40usize);
+    assert_eq!(::std::mem::align_of::<nsCSSValuePairList>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCSSValuePairList_heap {
@@ -3416,8 +3488,8 @@ pub struct nsCSSValuePairList_heap {
 }
 #[test]
 fn bindgen_test_layout_nsCSSValuePairList_heap() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSValuePairList_heap > (  ) ,
-               56usize);
+    assert_eq!(::std::mem::size_of::<nsCSSValuePairList_heap>() , 56usize);
+    assert_eq!(::std::mem::align_of::<nsCSSValuePairList_heap>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCSSValueGradientStop {
@@ -3427,8 +3499,8 @@ pub struct nsCSSValueGradientStop {
 }
 #[test]
 fn bindgen_test_layout_nsCSSValueGradientStop() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSValueGradientStop > (  ) ,
-               40usize);
+    assert_eq!(::std::mem::size_of::<nsCSSValueGradientStop>() , 40usize);
+    assert_eq!(::std::mem::align_of::<nsCSSValueGradientStop>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCSSValueGradient {
@@ -3445,8 +3517,8 @@ pub struct nsCSSValueGradient {
 }
 #[test]
 fn bindgen_test_layout_nsCSSValueGradient() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSValueGradient > (  ) ,
-               112usize);
+    assert_eq!(::std::mem::size_of::<nsCSSValueGradient>() , 112usize);
+    assert_eq!(::std::mem::align_of::<nsCSSValueGradient>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCSSValueTokenStream {
@@ -3464,8 +3536,8 @@ pub struct nsCSSValueTokenStream {
 }
 #[test]
 fn bindgen_test_layout_nsCSSValueTokenStream() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSValueTokenStream > (  ) ,
-               80usize);
+    assert_eq!(::std::mem::size_of::<nsCSSValueTokenStream>() , 80usize);
+    assert_eq!(::std::mem::align_of::<nsCSSValueTokenStream>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCSSValueFloatColor {
@@ -3478,8 +3550,8 @@ pub struct nsCSSValueFloatColor {
 }
 #[test]
 fn bindgen_test_layout_nsCSSValueFloatColor() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSValueFloatColor > (  ) ,
-               32usize);
+    assert_eq!(::std::mem::size_of::<nsCSSValueFloatColor>() , 32usize);
+    assert_eq!(::std::mem::align_of::<nsCSSValueFloatColor>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCSSCornerSizes {
@@ -3490,41 +3562,38 @@ pub struct nsCSSCornerSizes {
 }
 #[test]
 fn bindgen_test_layout_nsCSSCornerSizes() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSCornerSizes > (  ) , 64usize);
+    assert_eq!(::std::mem::size_of::<nsCSSCornerSizes>() , 64usize);
+    assert_eq!(::std::mem::align_of::<nsCSSCornerSizes>() , 8usize);
 }
 pub enum imgIContainer { }
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
 pub struct imgIRequest {
-    _bindgen_opaque_blob: [u64; 1usize],
+    pub _bindgen_opaque_blob: u64,
 }
 #[test]
 fn bindgen_test_layout_imgIRequest() {
-    assert_eq!(:: std:: mem:: size_of:: < imgIRequest > (  ) , 8usize);
+    assert_eq!(::std::mem::size_of::<imgIRequest>() , 8usize);
+    assert_eq!(::std::mem::align_of::<imgIRequest>() , 8usize);
 }
 pub enum imgStatusNotifyRunnable { }
 pub enum ProxyBehaviour { }
 pub enum Image { }
 pub enum ImageURL { }
 pub enum ProgressTracker { }
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
 pub struct imgRequestProxy {
-    _bindgen_opaque_blob: [u64; 15usize],
+    pub _bindgen_opaque_blob: [u64; 15usize],
 }
 #[test]
 fn bindgen_test_layout_imgRequestProxy() {
-    assert_eq!(:: std:: mem:: size_of:: < imgRequestProxy > (  ) , 120usize);
+    assert_eq!(::std::mem::size_of::<imgRequestProxy>() , 120usize);
+    assert_eq!(::std::mem::align_of::<imgRequestProxy>() , 8usize);
 }
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
 pub struct imgRequestProxyStatic {
-    _bindgen_opaque_blob: [u64; 16usize],
+    pub _bindgen_opaque_blob: [u64; 16usize],
 }
 #[test]
 fn bindgen_test_layout_imgRequestProxyStatic() {
-    assert_eq!(:: std:: mem:: size_of:: < imgRequestProxyStatic > (  ) ,
-               128usize);
+    assert_eq!(::std::mem::size_of::<imgRequestProxyStatic>() , 128usize);
+    assert_eq!(::std::mem::align_of::<imgRequestProxyStatic>() , 8usize);
 }
 pub type CounterValue = i32;
 pub enum NegativeType { }
@@ -3540,7 +3609,8 @@ pub struct _vftable_CounterStyle {
 }
 #[test]
 fn bindgen_test_layout_CounterStyle() {
-    assert_eq!(:: std:: mem:: size_of:: < CounterStyle > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<CounterStyle>() , 16usize);
+    assert_eq!(::std::mem::align_of::<CounterStyle>() , 8usize);
 }
 #[repr(C)]
 pub struct AnonymousCounterStyle {
@@ -3557,18 +3627,16 @@ pub struct _vftable_AnonymousCounterStyle {
 }
 #[test]
 fn bindgen_test_layout_AnonymousCounterStyle() {
-    assert_eq!(:: std:: mem:: size_of:: < AnonymousCounterStyle > (  ) ,
-               48usize);
+    assert_eq!(::std::mem::size_of::<AnonymousCounterStyle>() , 48usize);
+    assert_eq!(::std::mem::align_of::<AnonymousCounterStyle>() , 8usize);
 }
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
 pub struct CounterStyleManager {
-    _bindgen_opaque_blob: [u64; 9usize],
+    pub _bindgen_opaque_blob: [u64; 9usize],
 }
 #[test]
 fn bindgen_test_layout_CounterStyleManager() {
-    assert_eq!(:: std:: mem:: size_of:: < CounterStyleManager > (  ) ,
-               72usize);
+    assert_eq!(::std::mem::size_of::<CounterStyleManager>() , 72usize);
+    assert_eq!(::std::mem::align_of::<CounterStyleManager>() , 8usize);
 }
 pub enum nsIFrame { }
 pub enum nsStyleContext { }
@@ -3591,7 +3659,8 @@ pub struct nsStyleFont {
 }
 #[test]
 fn bindgen_test_layout_nsStyleFont() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleFont > (  ) , 120usize);
+    assert_eq!(::std::mem::size_of::<nsStyleFont>() , 120usize);
+    assert_eq!(::std::mem::align_of::<nsStyleFont>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleGradientStop {
@@ -3601,8 +3670,8 @@ pub struct nsStyleGradientStop {
 }
 #[test]
 fn bindgen_test_layout_nsStyleGradientStop() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleGradientStop > (  ) ,
-               24usize);
+    assert_eq!(::std::mem::size_of::<nsStyleGradientStop>() , 24usize);
+    assert_eq!(::std::mem::align_of::<nsStyleGradientStop>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleGradient {
@@ -3621,7 +3690,8 @@ pub struct nsStyleGradient {
 }
 #[test]
 fn bindgen_test_layout_nsStyleGradient() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleGradient > (  ) , 112usize);
+    assert_eq!(::std::mem::size_of::<nsStyleGradient>() , 112usize);
+    assert_eq!(::std::mem::align_of::<nsStyleGradient>() , 8usize);
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
@@ -3657,7 +3727,8 @@ pub struct nsStyleImage_nsStyleStruct_h_unnamed_11 {
 impl nsStyleImage_nsStyleStruct_h_unnamed_11 { }
 #[test]
 fn bindgen_test_layout_nsStyleImage() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleImage > (  ) , 40usize);
+    assert_eq!(::std::mem::size_of::<nsStyleImage>() , 40usize);
+    assert_eq!(::std::mem::align_of::<nsStyleImage>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleColor {
@@ -3665,7 +3736,8 @@ pub struct nsStyleColor {
 }
 #[test]
 fn bindgen_test_layout_nsStyleColor() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleColor > (  ) , 4usize);
+    assert_eq!(::std::mem::size_of::<nsStyleColor>() , 4usize);
+    assert_eq!(::std::mem::align_of::<nsStyleColor>() , 4usize);
 }
 #[repr(C)]
 pub struct nsStyleImageLayers {
@@ -3704,8 +3776,10 @@ pub struct nsStyleImageLayers_Position {
 }
 #[test]
 fn bindgen_test_layout_nsStyleImageLayers_Position() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleImageLayers_Position > (  ) ,
+    assert_eq!(::std::mem::size_of::<nsStyleImageLayers_Position>() ,
                24usize);
+    assert_eq!(::std::mem::align_of::<nsStyleImageLayers_Position>() ,
+               4usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -3722,8 +3796,10 @@ pub struct nsStyleImageLayers_Size_Dimension {
 }
 #[test]
 fn bindgen_test_layout_nsStyleImageLayers_Size_Dimension() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleImageLayers_Size_Dimension >
-               (  ) , 12usize);
+    assert_eq!(::std::mem::size_of::<nsStyleImageLayers_Size_Dimension>() ,
+               12usize);
+    assert_eq!(::std::mem::align_of::<nsStyleImageLayers_Size_Dimension>() ,
+               4usize);
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
@@ -3736,8 +3812,8 @@ pub enum nsStyleImageLayers_Size_DimensionType {
 }
 #[test]
 fn bindgen_test_layout_nsStyleImageLayers_Size() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleImageLayers_Size > (  ) ,
-               28usize);
+    assert_eq!(::std::mem::size_of::<nsStyleImageLayers_Size>() , 28usize);
+    assert_eq!(::std::mem::align_of::<nsStyleImageLayers_Size>() , 4usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -3747,8 +3823,8 @@ pub struct nsStyleImageLayers_Repeat {
 }
 #[test]
 fn bindgen_test_layout_nsStyleImageLayers_Repeat() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleImageLayers_Repeat > (  ) ,
-               2usize);
+    assert_eq!(::std::mem::size_of::<nsStyleImageLayers_Repeat>() , 2usize);
+    assert_eq!(::std::mem::align_of::<nsStyleImageLayers_Repeat>() , 1usize);
 }
 #[repr(C)]
 pub struct nsStyleImageLayers_Layer {
@@ -3766,13 +3842,13 @@ pub struct nsStyleImageLayers_Layer {
 }
 #[test]
 fn bindgen_test_layout_nsStyleImageLayers_Layer() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleImageLayers_Layer > (  ) ,
-               112usize);
+    assert_eq!(::std::mem::size_of::<nsStyleImageLayers_Layer>() , 112usize);
+    assert_eq!(::std::mem::align_of::<nsStyleImageLayers_Layer>() , 8usize);
 }
 #[test]
 fn bindgen_test_layout_nsStyleImageLayers() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleImageLayers > (  ) ,
-               168usize);
+    assert_eq!(::std::mem::size_of::<nsStyleImageLayers>() , 168usize);
+    assert_eq!(::std::mem::align_of::<nsStyleImageLayers>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleBackground {
@@ -3781,8 +3857,8 @@ pub struct nsStyleBackground {
 }
 #[test]
 fn bindgen_test_layout_nsStyleBackground() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleBackground > (  ) ,
-               176usize);
+    assert_eq!(::std::mem::size_of::<nsStyleBackground>() , 176usize);
+    assert_eq!(::std::mem::align_of::<nsStyleBackground>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleMargin {
@@ -3792,7 +3868,8 @@ pub struct nsStyleMargin {
 }
 #[test]
 fn bindgen_test_layout_nsStyleMargin() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleMargin > (  ) , 64usize);
+    assert_eq!(::std::mem::size_of::<nsStyleMargin>() , 64usize);
+    assert_eq!(::std::mem::align_of::<nsStyleMargin>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStylePadding {
@@ -3802,7 +3879,8 @@ pub struct nsStylePadding {
 }
 #[test]
 fn bindgen_test_layout_nsStylePadding() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStylePadding > (  ) , 64usize);
+    assert_eq!(::std::mem::size_of::<nsStylePadding>() , 64usize);
+    assert_eq!(::std::mem::align_of::<nsStylePadding>() , 8usize);
 }
 #[repr(C)]
 pub struct nsBorderColors {
@@ -3811,7 +3889,8 @@ pub struct nsBorderColors {
 }
 #[test]
 fn bindgen_test_layout_nsBorderColors() {
-    assert_eq!(:: std:: mem:: size_of:: < nsBorderColors > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsBorderColors>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsBorderColors>() , 8usize);
 }
 #[repr(C)]
 pub struct nsCSSShadowItem {
@@ -3825,7 +3904,8 @@ pub struct nsCSSShadowItem {
 }
 #[test]
 fn bindgen_test_layout_nsCSSShadowItem() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSShadowItem > (  ) , 24usize);
+    assert_eq!(::std::mem::size_of::<nsCSSShadowItem>() , 24usize);
+    assert_eq!(::std::mem::align_of::<nsCSSShadowItem>() , 4usize);
 }
 #[repr(C)]
 pub struct nsCSSShadowArray {
@@ -3836,7 +3916,8 @@ pub struct nsCSSShadowArray {
 }
 #[test]
 fn bindgen_test_layout_nsCSSShadowArray() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCSSShadowArray > (  ) , 48usize);
+    assert_eq!(::std::mem::size_of::<nsCSSShadowArray>() , 48usize);
+    assert_eq!(::std::mem::align_of::<nsCSSShadowArray>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleBorder {
@@ -3860,7 +3941,8 @@ pub struct nsStyleBorder {
 }
 #[test]
 fn bindgen_test_layout_nsStyleBorder() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleBorder > (  ) , 312usize);
+    assert_eq!(::std::mem::size_of::<nsStyleBorder>() , 312usize);
+    assert_eq!(::std::mem::align_of::<nsStyleBorder>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleOutline {
@@ -3875,7 +3957,8 @@ pub struct nsStyleOutline {
 }
 #[test]
 fn bindgen_test_layout_nsStyleOutline() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleOutline > (  ) , 112usize);
+    assert_eq!(::std::mem::size_of::<nsStyleOutline>() , 112usize);
+    assert_eq!(::std::mem::align_of::<nsStyleOutline>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleList {
@@ -3887,7 +3970,8 @@ pub struct nsStyleList {
 }
 #[test]
 fn bindgen_test_layout_nsStyleList() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleList > (  ) , 56usize);
+    assert_eq!(::std::mem::size_of::<nsStyleList>() , 56usize);
+    assert_eq!(::std::mem::align_of::<nsStyleList>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleGridLine {
@@ -3897,7 +3981,8 @@ pub struct nsStyleGridLine {
 }
 #[test]
 fn bindgen_test_layout_nsStyleGridLine() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleGridLine > (  ) , 24usize);
+    assert_eq!(::std::mem::size_of::<nsStyleGridLine>() , 24usize);
+    assert_eq!(::std::mem::align_of::<nsStyleGridLine>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleGridTemplate {
@@ -3911,8 +3996,8 @@ pub struct nsStyleGridTemplate {
 }
 #[test]
 fn bindgen_test_layout_nsStyleGridTemplate() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleGridTemplate > (  ) ,
-               48usize);
+    assert_eq!(::std::mem::size_of::<nsStyleGridTemplate>() , 48usize);
+    assert_eq!(::std::mem::align_of::<nsStyleGridTemplate>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStylePosition {
@@ -3956,7 +4041,8 @@ pub struct nsStylePosition {
 }
 #[test]
 fn bindgen_test_layout_nsStylePosition() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStylePosition > (  ) , 496usize);
+    assert_eq!(::std::mem::size_of::<nsStylePosition>() , 496usize);
+    assert_eq!(::std::mem::align_of::<nsStylePosition>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleTextOverflowSide {
@@ -3965,8 +4051,8 @@ pub struct nsStyleTextOverflowSide {
 }
 #[test]
 fn bindgen_test_layout_nsStyleTextOverflowSide() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleTextOverflowSide > (  ) ,
-               24usize);
+    assert_eq!(::std::mem::size_of::<nsStyleTextOverflowSide>() , 24usize);
+    assert_eq!(::std::mem::align_of::<nsStyleTextOverflowSide>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleTextOverflow {
@@ -3976,8 +4062,8 @@ pub struct nsStyleTextOverflow {
 }
 #[test]
 fn bindgen_test_layout_nsStyleTextOverflow() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleTextOverflow > (  ) ,
-               56usize);
+    assert_eq!(::std::mem::size_of::<nsStyleTextOverflow>() , 56usize);
+    assert_eq!(::std::mem::align_of::<nsStyleTextOverflow>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleTextReset {
@@ -3990,7 +4076,8 @@ pub struct nsStyleTextReset {
 }
 #[test]
 fn bindgen_test_layout_nsStyleTextReset() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleTextReset > (  ) , 80usize);
+    assert_eq!(::std::mem::size_of::<nsStyleTextReset>() , 80usize);
+    assert_eq!(::std::mem::align_of::<nsStyleTextReset>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleText {
@@ -4011,6 +4098,7 @@ pub struct nsStyleText {
     pub mTextEmphasisStyle: u8,
     pub mTabSize: i32,
     pub mTextEmphasisColor: nscolor,
+    pub mWebkitTextFillColor: nscolor,
     pub mWordSpacing: nsStyleCoord,
     pub mLetterSpacing: nsStyleCoord,
     pub mLineHeight: nsStyleCoord,
@@ -4020,7 +4108,8 @@ pub struct nsStyleText {
 }
 #[test]
 fn bindgen_test_layout_nsStyleText() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleText > (  ) , 112usize);
+    assert_eq!(::std::mem::size_of::<nsStyleText>() , 120usize);
+    assert_eq!(::std::mem::align_of::<nsStyleText>() , 8usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -4044,8 +4133,8 @@ pub enum nsStyleImageOrientation_Angles {
 }
 #[test]
 fn bindgen_test_layout_nsStyleImageOrientation() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleImageOrientation > (  ) ,
-               1usize);
+    assert_eq!(::std::mem::size_of::<nsStyleImageOrientation>() , 1usize);
+    assert_eq!(::std::mem::align_of::<nsStyleImageOrientation>() , 1usize);
 }
 #[repr(C)]
 pub struct nsStyleVisibility {
@@ -4058,7 +4147,8 @@ pub struct nsStyleVisibility {
 }
 #[test]
 fn bindgen_test_layout_nsStyleVisibility() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleVisibility > (  ) , 6usize);
+    assert_eq!(::std::mem::size_of::<nsStyleVisibility>() , 6usize);
+    assert_eq!(::std::mem::align_of::<nsStyleVisibility>() , 1usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -4097,7 +4187,8 @@ pub struct nsTimingFunction_nsStyleStruct_h_unnamed_13 {
 impl nsTimingFunction_nsStyleStruct_h_unnamed_13 { }
 #[test]
 fn bindgen_test_layout_nsTimingFunction() {
-    assert_eq!(:: std:: mem:: size_of:: < nsTimingFunction > (  ) , 20usize);
+    assert_eq!(::std::mem::size_of::<nsTimingFunction>() , 20usize);
+    assert_eq!(::std::mem::align_of::<nsTimingFunction>() , 4usize);
 }
 #[repr(C)]
 pub struct StyleTransition {
@@ -4109,7 +4200,8 @@ pub struct StyleTransition {
 }
 #[test]
 fn bindgen_test_layout_StyleTransition() {
-    assert_eq!(:: std:: mem:: size_of:: < StyleTransition > (  ) , 40usize);
+    assert_eq!(::std::mem::size_of::<StyleTransition>() , 40usize);
+    assert_eq!(::std::mem::align_of::<StyleTransition>() , 8usize);
 }
 #[repr(C)]
 pub struct StyleAnimation {
@@ -4124,7 +4216,8 @@ pub struct StyleAnimation {
 }
 #[test]
 fn bindgen_test_layout_StyleAnimation() {
-    assert_eq!(:: std:: mem:: size_of:: < StyleAnimation > (  ) , 64usize);
+    assert_eq!(::std::mem::size_of::<StyleAnimation>() , 64usize);
+    assert_eq!(::std::mem::align_of::<StyleAnimation>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleDisplay {
@@ -4185,7 +4278,8 @@ pub struct nsStyleDisplay {
 }
 #[test]
 fn bindgen_test_layout_nsStyleDisplay() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleDisplay > (  ) , 456usize);
+    assert_eq!(::std::mem::size_of::<nsStyleDisplay>() , 456usize);
+    assert_eq!(::std::mem::align_of::<nsStyleDisplay>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleTable {
@@ -4194,7 +4288,8 @@ pub struct nsStyleTable {
 }
 #[test]
 fn bindgen_test_layout_nsStyleTable() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleTable > (  ) , 8usize);
+    assert_eq!(::std::mem::size_of::<nsStyleTable>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsStyleTable>() , 4usize);
 }
 #[repr(C)]
 pub struct nsStyleTableBorder {
@@ -4206,8 +4301,8 @@ pub struct nsStyleTableBorder {
 }
 #[test]
 fn bindgen_test_layout_nsStyleTableBorder() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleTableBorder > (  ) ,
-               12usize);
+    assert_eq!(::std::mem::size_of::<nsStyleTableBorder>() , 12usize);
+    assert_eq!(::std::mem::align_of::<nsStyleTableBorder>() , 4usize);
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
@@ -4238,8 +4333,8 @@ pub struct nsStyleContentData_nsStyleStruct_h_unnamed_16 {
 impl nsStyleContentData_nsStyleStruct_h_unnamed_16 { }
 #[test]
 fn bindgen_test_layout_nsStyleContentData() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleContentData > (  ) ,
-               24usize);
+    assert_eq!(::std::mem::size_of::<nsStyleContentData>() , 24usize);
+    assert_eq!(::std::mem::align_of::<nsStyleContentData>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleCounterData {
@@ -4248,8 +4343,8 @@ pub struct nsStyleCounterData {
 }
 #[test]
 fn bindgen_test_layout_nsStyleCounterData() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleCounterData > (  ) ,
-               24usize);
+    assert_eq!(::std::mem::size_of::<nsStyleCounterData>() , 24usize);
+    assert_eq!(::std::mem::align_of::<nsStyleCounterData>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleQuotes {
@@ -4258,7 +4353,8 @@ pub struct nsStyleQuotes {
 }
 #[test]
 fn bindgen_test_layout_nsStyleQuotes() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleQuotes > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsStyleQuotes>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsStyleQuotes>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleContent {
@@ -4272,7 +4368,8 @@ pub struct nsStyleContent {
 }
 #[test]
 fn bindgen_test_layout_nsStyleContent() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleContent > (  ) , 56usize);
+    assert_eq!(::std::mem::size_of::<nsStyleContent>() , 56usize);
+    assert_eq!(::std::mem::align_of::<nsStyleContent>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleUIReset {
@@ -4284,7 +4381,8 @@ pub struct nsStyleUIReset {
 }
 #[test]
 fn bindgen_test_layout_nsStyleUIReset() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleUIReset > (  ) , 5usize);
+    assert_eq!(::std::mem::size_of::<nsStyleUIReset>() , 5usize);
+    assert_eq!(::std::mem::align_of::<nsStyleUIReset>() , 1usize);
 }
 #[repr(C)]
 pub struct nsCursorImage {
@@ -4295,7 +4393,8 @@ pub struct nsCursorImage {
 }
 #[test]
 fn bindgen_test_layout_nsCursorImage() {
-    assert_eq!(:: std:: mem:: size_of:: < nsCursorImage > (  ) , 24usize);
+    assert_eq!(::std::mem::size_of::<nsCursorImage>() , 24usize);
+    assert_eq!(::std::mem::align_of::<nsCursorImage>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleUserInterface {
@@ -4308,8 +4407,8 @@ pub struct nsStyleUserInterface {
 }
 #[test]
 fn bindgen_test_layout_nsStyleUserInterface() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleUserInterface > (  ) ,
-               16usize);
+    assert_eq!(::std::mem::size_of::<nsStyleUserInterface>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsStyleUserInterface>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleXUL {
@@ -4323,7 +4422,8 @@ pub struct nsStyleXUL {
 }
 #[test]
 fn bindgen_test_layout_nsStyleXUL() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleXUL > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsStyleXUL>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsStyleXUL>() , 4usize);
 }
 #[repr(C)]
 pub struct nsStyleColumn {
@@ -4339,7 +4439,8 @@ pub struct nsStyleColumn {
 }
 #[test]
 fn bindgen_test_layout_nsStyleColumn() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleColumn > (  ) , 56usize);
+    assert_eq!(::std::mem::size_of::<nsStyleColumn>() , 56usize);
+    assert_eq!(::std::mem::align_of::<nsStyleColumn>() , 8usize);
 }
 #[repr(u32)]
 #[derive(Copy, Clone, Debug)]
@@ -4371,7 +4472,8 @@ pub struct nsStyleSVGPaint_nsStyleStruct_h_unnamed_17 {
 impl nsStyleSVGPaint_nsStyleStruct_h_unnamed_17 { }
 #[test]
 fn bindgen_test_layout_nsStyleSVGPaint() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleSVGPaint > (  ) , 16usize);
+    assert_eq!(::std::mem::size_of::<nsStyleSVGPaint>() , 16usize);
+    assert_eq!(::std::mem::align_of::<nsStyleSVGPaint>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleSVG {
@@ -4404,7 +4506,8 @@ pub struct nsStyleSVG {
 }
 #[test]
 fn bindgen_test_layout_nsStyleSVG() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleSVG > (  ) , 128usize);
+    assert_eq!(::std::mem::size_of::<nsStyleSVG>() , 128usize);
+    assert_eq!(::std::mem::align_of::<nsStyleSVG>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleBasicShape {
@@ -4426,8 +4529,8 @@ pub enum nsStyleBasicShape_Type {
 }
 #[test]
 fn bindgen_test_layout_nsStyleBasicShape() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleBasicShape > (  ) ,
-               128usize);
+    assert_eq!(::std::mem::size_of::<nsStyleBasicShape>() , 128usize);
+    assert_eq!(::std::mem::align_of::<nsStyleBasicShape>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleClipPath {
@@ -4443,7 +4546,8 @@ pub struct nsStyleClipPath_nsStyleStruct_h_unnamed_18 {
 impl nsStyleClipPath_nsStyleStruct_h_unnamed_18 { }
 #[test]
 fn bindgen_test_layout_nsStyleClipPath() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleClipPath > (  ) , 24usize);
+    assert_eq!(::std::mem::size_of::<nsStyleClipPath>() , 24usize);
+    assert_eq!(::std::mem::align_of::<nsStyleClipPath>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleFilter {
@@ -4459,7 +4563,8 @@ pub struct nsStyleFilter_nsStyleStruct_h_unnamed_19 {
 impl nsStyleFilter_nsStyleStruct_h_unnamed_19 { }
 #[test]
 fn bindgen_test_layout_nsStyleFilter() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleFilter > (  ) , 32usize);
+    assert_eq!(::std::mem::size_of::<nsStyleFilter>() , 32usize);
+    assert_eq!(::std::mem::align_of::<nsStyleFilter>() , 8usize);
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -4480,7 +4585,8 @@ pub struct nsStyleSVGReset {
 }
 #[test]
 fn bindgen_test_layout_nsStyleSVGReset() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleSVGReset > (  ) , 224usize);
+    assert_eq!(::std::mem::size_of::<nsStyleSVGReset>() , 224usize);
+    assert_eq!(::std::mem::align_of::<nsStyleSVGReset>() , 8usize);
 }
 #[repr(C)]
 pub struct nsStyleVariables {
@@ -4488,5 +4594,6 @@ pub struct nsStyleVariables {
 }
 #[test]
 fn bindgen_test_layout_nsStyleVariables() {
-    assert_eq!(:: std:: mem:: size_of:: < nsStyleVariables > (  ) , 56usize);
+    assert_eq!(::std::mem::size_of::<nsStyleVariables>() , 56usize);
+    assert_eq!(::std::mem::align_of::<nsStyleVariables>() , 8usize);
 }

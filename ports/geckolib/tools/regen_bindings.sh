@@ -35,4 +35,6 @@ fi
   -x c++ -std=gnu++0x                              \
   "-I$DIST_INCLUDE"                                \
   -o ../bindings.rs                                \
-  "$DIST_INCLUDE/mozilla/ServoBindings.h"
+  -no-type-renaming                                \
+  "$DIST_INCLUDE/mozilla/ServoBindings.h"          \
+  -match "ServoBindings.h"                         \
