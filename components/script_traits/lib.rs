@@ -400,7 +400,7 @@ pub struct IFrameLoadInfo {
     pub new_pipeline_id: PipelineId,
     /// Sandbox type of this iframe
     pub sandbox: IFrameSandboxState,
-    /// boolean variable to indicate whether session is private or not
+    ///  Whether this iframe should be considered private
     pub is_private: bool,
 }
 

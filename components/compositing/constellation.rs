@@ -1501,22 +1501,16 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         ReadyToSave::Ready
     }
 
-    /// Checks whether the pipeline or its ancestors are private and sends an appropriate reply
-    #[allow(dead_code)]
+    /// Checks whether the pipeline or its ancestors are private
     fn check_is_pipeline_private(&self, pipeline_id: PipelineId) -> bool {
-        let mut pipeline = self.pipeline(pipeline_id);
-
-        if pipeline.is_private == true {
-             return true;
-         } else {
-
-             while let Some((parent_pipeline_id, _)) = pipeline.parent_info {
-                 let parent_pipeline = self.pipeline(parent_pipeline_id);
-                 if parent_pipeline.is_private == true {
-                     return true;
-                 }
-                 pipeline = parent_pipeline;
-             }
+        // Then do the same for all its ancestors until you find if it is private
+        // return using the Sender<bool>. Check the type of Sender and figure it out
+        let mut pipeline_id = Some(pipeline_id);
+        while let Some(pipeline) = pipeline_id.map(|id| self.pipeline(id)) {
+            if pipeline.is_private {
+                return true;
+            }
+            pipeline_id = pipeline.parent_info.map(|(parent_pipeline_id, _)| parent_pipeline_id);
         }
         false
      }

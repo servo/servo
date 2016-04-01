@@ -250,17 +250,16 @@ impl HTMLIFrameElement {
                       ReflowReason::IFrameLoadEvent);
     }
 
-     //set isPrivate attribute if mozprivatebrowsing attribute is
-     //present on the iframe element,and it's a mozbrowser iframe too.
-     pub fn privatebrowsing(&self) -> bool {
-         /*if self.Mozbrowser() {
-             let element = self.upcast::<Element>();
-             element.has_attribute(&atom!("mozprivatebrowsing"));
-         } else {
-             false
-         }*/
-         true
-     }
+    /// Check whether the iframe has the mozprivatebrowsing attribute set
+    pub fn privatebrowsing(&self) -> bool {
+        if self.Mozbrowser() {
+            let element = self.upcast::<Element>();
+            element.has_attribute(&Atom::from("mozprivatebrowsing"))
+        } else {
+            false
+        }
+    }
+
 }
 
 pub trait HTMLIFrameElementLayoutMethods {
@@ -466,16 +465,6 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
         }
         Ok(())
     }
-
-    // https://w3c.github.io/webcomponents/explainer/
-    /*pub fn SetPrivateBrowsing(&self, value:bool) -> ErrorResult {
-        if(mozbrowser_enabled()){
-             let element = self.upcast::<Element>();
-             element.set_bool_attribute(&atom!("mozprivatebrowsing"), value)
-        }
-         Ok(())
-     }*/
-
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
     fn GoBack(&self) -> Fallible<()> {

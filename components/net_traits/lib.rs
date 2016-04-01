@@ -11,8 +11,6 @@
 #![feature(custom_attribute)]
 #![plugin(heapsize_plugin, serde_macros)]
 
-#![deny(unsafe_code)]
-
 extern crate heapsize;
 extern crate hyper;
 extern crate image as piston_image;
@@ -400,8 +398,7 @@ pub fn unwrap_websocket_protocol(wsp: Option<&header::WebSocketProtocol>) -> Opt
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct ResourceId(pub u32);
 
-
- pub enum ConstellationMsg {
-     /// Indicates whether a pipeline or its ancestors are private
-     IsPrivate(PipelineId, Sender<bool>),
+pub enum ConstellationMsg {
+    /// Queries whether a pipeline or its ancestors are private
+    IsPrivate(PipelineId, Sender<bool>),
 }
