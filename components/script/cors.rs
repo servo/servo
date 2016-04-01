@@ -20,7 +20,7 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusClass::Success;
 use net_traits::{AsyncResponseListener, Metadata, ResponseAction};
 use network_listener::{NetworkListener, PreInvoke};
-use script_thread::ScriptChan;
+use script_runtime::ScriptChan;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::sync::{Arc, Mutex};

@@ -29,9 +29,9 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootCollection, trace_roots};
 use dom::bindings::js::{RootCollectionPtr, RootedReference};
-use dom::bindings::refcounted::{LiveDOMReferences, Trusted, TrustedReference, trace_refcounted_objects};
+use dom::bindings::refcounted::{LiveDOMReferences, Trusted};
 use dom::bindings::trace::{JSTraceable, trace_traceables};
-use dom::bindings::utils::{DOM_CALLBACKS, WRAP_CALLBACKS};
+use dom::bindings::utils::WRAP_CALLBACKS;
 use dom::browsingcontext::BrowsingContext;
 use dom::document::{Document, DocumentProgressHandler, DocumentSource, FocusType, IsHTMLDocument};
 use dom::element::Element;
@@ -51,13 +51,10 @@ use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use js::glue::CollectServoSizes;
 use js::jsapi::{DOMProxyShadowsResult, HandleId, HandleObject, RootedValue};
-use js::jsapi::{DisableIncrementalGC, JS_AddExtraGCRootsTracer, JS_SetWrapObjectCallbacks};
-use js::jsapi::{GCDescription, GCProgress, JSGCInvocationKind, SetGCSliceCallback};
-use js::jsapi::{JSAutoRequest, JSGCStatus, JS_GetRuntime, JS_SetGCCallback, SetDOMCallbacks};
-use js::jsapi::{JSContext, JSRuntime, JSTracer};
-use js::jsapi::{JSObject, SetPreserveWrapperCallback};
+use js::jsapi::{GCDescription, GCProgress, JSGCInvocationKind};
+use js::jsapi::{JSAutoRequest, JSGCStatus};
+use js::jsapi::{JSContext, JSRuntime, JS_SetWrapObjectCallbacks, JSTracer};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_interface::{ReflowQueryType};
@@ -78,6 +75,7 @@ use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory, ScriptPort, new_rt_and_cx, get_reports};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent};
 use script_traits::{CompositorEvent, ConstellationControlMsg, EventResult};
@@ -92,7 +90,6 @@ use std::collections::HashSet;
 use std::io::{Write, stdout};
 use std::marker::PhantomData;
 use std::option::Option;
-use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
 use std::sync::atomic::{Ordering, AtomicBool};
@@ -116,7 +113,7 @@ use webdriver_handlers;
 thread_local!(pub static STACK_ROOTS: Cell<Option<RootCollectionPtr>> = Cell::new(None));
 thread_local!(static SCRIPT_THREAD_ROOT: RefCell<Option<*const ScriptThread>> = RefCell::new(None));
 
-unsafe extern fn trace_rust_roots(tr: *mut JSTracer, _data: *mut libc::c_void) {
+pub unsafe extern fn trace_rust_roots(tr: *mut JSTracer, _data: *mut libc::c_void) {
     SCRIPT_THREAD_ROOT.with(|root| {
         if let Some(script_thread) = *root.borrow() {
             (*script_thread).trace(tr);
@@ -215,39 +212,6 @@ enum MixedMessage {
     FromScheduler(TimerEvent),
 }
 
-/// Common messages used to control the event loops in both the script and the worker
-pub enum CommonScriptMsg {
-    /// Requests that the script thread measure its memory usage. The results are sent back via the
-    /// supplied channel.
-    CollectReports(ReportsChan),
-    /// A DOM object's last pinned reference was removed (dispatched to all threads).
-    RefcountCleanup(TrustedReference),
-    /// Generic message that encapsulates event handling.
-    RunnableMsg(ScriptThreadEventCategory, Box<Runnable + Send>),
-}
-
-#[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
-pub enum ScriptThreadEventCategory {
-    AttachLayout,
-    ConstellationMsg,
-    DevtoolsMsg,
-    DocumentEvent,
-    DomEvent,
-    FileRead,
-    FormPlannedNavigation,
-    ImageCacheMsg,
-    InputEvent,
-    NetworkEvent,
-    Resize,
-    ScriptEvent,
-    SetViewport,
-    StylesheetLoad,
-    TimerEvent,
-    UpdateReplacedElement,
-    WebSocketEvent,
-    WorkerEvent,
-}
-
 /// Messages used to control the script event loop
 pub enum MainThreadScriptMsg {
     /// Common variants associated with the script messages
@@ -264,25 +228,10 @@ pub enum MainThreadScriptMsg {
     DOMManipulation(DOMManipulationTask),
 }
 
-/// A cloneable interface for communicating with an event loop.
-pub trait ScriptChan {
-    /// Send a message to the associated event loop.
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()>;
-    /// Clone this handle.
-    fn clone(&self) -> Box<ScriptChan + Send>;
-}
-
 impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
     fn send(&self, msg: CommonScriptMsg) {
         ScriptChan::send(&**self, msg).unwrap();
     }
-}
-
-/// An interface for receiving ScriptMsg values in an event loop. Used for synchronous DOM
-/// APIs that need to abstract over multiple kinds of event loops (worker/main thread) with
-/// different Receiver interfaces.
-pub trait ScriptPort {
-    fn recv(&self) -> CommonScriptMsg;
 }
 
 impl ScriptPort for Receiver<CommonScriptMsg> {
@@ -561,7 +510,7 @@ impl ScriptThreadFactory for ScriptThread {
 thread_local!(static GC_CYCLE_START: Cell<Option<Tm>> = Cell::new(None));
 thread_local!(static GC_SLICE_START: Cell<Option<Tm>> = Cell::new(None));
 
-unsafe extern "C" fn gc_slice_callback(_rt: *mut JSRuntime, progress: GCProgress, desc: *const GCDescription) {
+pub unsafe extern "C" fn gc_slice_callback(_rt: *mut JSRuntime, progress: GCProgress, desc: *const GCDescription) {
     match progress {
         GCProgress::GC_CYCLE_BEGIN => {
             GC_CYCLE_START.with(|start| {
@@ -601,7 +550,7 @@ unsafe extern "C" fn gc_slice_callback(_rt: *mut JSRuntime, progress: GCProgress
     let _ = stdout().flush();
 }
 
-unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus, _data: *mut libc::c_void) {
+pub unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus, _data: *mut libc::c_void) {
     match status {
         JSGCStatus::JSGC_BEGIN => thread_state::enter(thread_state::IN_GC),
         JSGCStatus::JSGC_END   => thread_state::exit(thread_state::IN_GC),
@@ -644,7 +593,7 @@ impl ScriptThread {
                port: Receiver<MainThreadScriptMsg>,
                chan: Sender<MainThreadScriptMsg>)
                -> ScriptThread {
-        let runtime = ScriptThread::new_rt_and_cx();
+        let runtime = new_rt_and_cx();
 
         unsafe {
             JS_SetWrapObjectCallbacks(runtime.rt(),
@@ -706,38 +655,6 @@ impl ScriptThread {
 
             content_process_shutdown_chan: state.content_process_shutdown_chan,
         }
-    }
-
-    pub fn new_rt_and_cx() -> Runtime {
-        LiveDOMReferences::initialize();
-        let runtime = Runtime::new();
-
-        unsafe {
-            JS_AddExtraGCRootsTracer(runtime.rt(), Some(trace_rust_roots), ptr::null_mut());
-            JS_AddExtraGCRootsTracer(runtime.rt(), Some(trace_refcounted_objects), ptr::null_mut());
-        }
-
-        // Needed for debug assertions about whether GC is running.
-        if cfg!(debug_assertions) {
-            unsafe {
-                JS_SetGCCallback(runtime.rt(), Some(debug_gc_callback), ptr::null_mut());
-            }
-        }
-        if opts::get().gc_profile {
-            unsafe {
-                SetGCSliceCallback(runtime.rt(), Some(gc_slice_callback));
-            }
-        }
-
-        unsafe {
-            unsafe extern "C" fn empty_wrapper_callback(_: *mut JSContext, _: *mut JSObject) -> bool { true }
-            SetDOMCallbacks(runtime.rt(), &DOM_CALLBACKS);
-            SetPreserveWrapperCallback(runtime.rt(), Some(empty_wrapper_callback));
-            // Pre barriers aren't working correctly at the moment
-            DisableIncrementalGC(runtime.rt());
-        }
-
-        runtime
     }
 
     // Return the root page in the frame tree. Panics if it doesn't exist.
@@ -1280,56 +1197,6 @@ impl ScriptThread {
         chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();
     }
 
-    pub fn get_reports(cx: *mut JSContext, path_seg: String) -> Vec<Report> {
-        let mut reports = vec![];
-
-        unsafe {
-            let rt = JS_GetRuntime(cx);
-            let mut stats = ::std::mem::zeroed();
-            if CollectServoSizes(rt, &mut stats) {
-                let mut report = |mut path_suffix, kind, size| {
-                    let mut path = path![path_seg, "js"];
-                    path.append(&mut path_suffix);
-                    reports.push(Report {
-                        path: path,
-                        kind: kind,
-                        size: size as usize,
-                    })
-                };
-
-                // A note about possibly confusing terminology: the JS GC "heap" is allocated via
-                // mmap/VirtualAlloc, which means it's not on the malloc "heap", so we use
-                // `ExplicitNonHeapSize` as its kind.
-
-                report(path!["gc-heap", "used"],
-                       ReportKind::ExplicitNonHeapSize,
-                       stats.gcHeapUsed);
-
-                report(path!["gc-heap", "unused"],
-                       ReportKind::ExplicitNonHeapSize,
-                       stats.gcHeapUnused);
-
-                report(path!["gc-heap", "admin"],
-                       ReportKind::ExplicitNonHeapSize,
-                       stats.gcHeapAdmin);
-
-                report(path!["gc-heap", "decommitted"],
-                       ReportKind::ExplicitNonHeapSize,
-                       stats.gcHeapDecommitted);
-
-                // SpiderMonkey uses the system heap, not jemalloc.
-                report(path!["malloc-heap"],
-                       ReportKind::ExplicitSystemHeapSize,
-                       stats.mallocHeap);
-
-                report(path!["non-heap"],
-                       ReportKind::ExplicitNonHeapSize,
-                       stats.nonHeap);
-            }
-        }
-        reports
-    }
-
     fn collect_reports(&self, reports_chan: ReportsChan) {
         let mut urls = vec![];
         let mut dom_tree_size = 0;
@@ -1354,7 +1221,7 @@ impl ScriptThread {
             }
         }
         let path_seg = format!("url({})", urls.join(", "));
-        reports.extend(ScriptThread::get_reports(self.get_cx(), path_seg));
+        reports.extend(get_reports(self.get_cx(), path_seg));
         reports_chan.send(reports);
     }
 

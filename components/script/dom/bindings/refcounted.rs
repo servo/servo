@@ -28,7 +28,7 @@ use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::trace::trace_reflector;
 use js::jsapi::JSTracer;
 use libc;
-use script_thread::{CommonScriptMsg, ScriptChan};
+use script_runtime::{CommonScriptMsg, ScriptChan};
 use std::cell::RefCell;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::hash_map::HashMap;

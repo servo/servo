@@ -24,7 +24,8 @@ use ipc_channel::ipc;
 use js::jsapi::{HandleValue, JSContext, RootedValue};
 use js::jsapi::{JSAutoCompartment, JSAutoRequest};
 use js::jsval::UndefinedValue;
-use script_thread::{Runnable, ScriptChan};
+use script_runtime::ScriptChan;
+use script_thread::Runnable;
 use std::sync::mpsc::{Sender, channel};
 use util::str::DOMString;
 

@@ -50,7 +50,7 @@ use net_traits::{LoadConsumer, LoadContext, LoadData, ResourceCORSData, Resource
 use network_listener::{NetworkListener, PreInvoke};
 use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
-use script_thread::{ScriptChan, ScriptPort};
+use script_runtime::{ScriptChan, ScriptPort};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};

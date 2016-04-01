@@ -23,7 +23,7 @@ use js::rust::Runtime;
 use msg::constellation_msg::{ConstellationChan, PipelineId};
 use net_traits::{LoadContext, ResourceThread, load_whole_resource};
 use profile_traits::mem;
-use script_thread::{CommonScriptMsg, ScriptChan, ScriptPort};
+use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_traits::ScriptMsg as ConstellationMsg;
 use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use std::cell::Cell;
