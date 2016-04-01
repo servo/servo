@@ -1199,6 +1199,7 @@ dependencies = [
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "threadpool 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tinyfiledialogs 0.1.0 (git+https://github.com/jdm/tinyfiledialogs)",
  "unicase 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
@@ -1974,6 +1975,14 @@ dependencies = [
  "kernel32-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "tinyfiledialogs"
+version = "0.1.0"
+source = "git+https://github.com/jdm/tinyfiledialogs#2d2285985db1168da4d516000f24842aba46fd94"
+dependencies = [
+ "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

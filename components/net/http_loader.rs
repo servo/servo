@@ -41,6 +41,7 @@ use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
 use time;
 use time::Tm;
+use tinyfiledialogs;
 use url::Url;
 use util::resource_files::resources_dir_path;
 use util::thread::spawn_named;
@@ -150,8 +151,10 @@ fn load_for_consumer(load_data: LoadData,
     let factory = NetworkHttpRequestFactory {
         connector: connector,
     };
+
+    let ui_provider = TFDProvider;
     let context = load_data.context.clone();
-    match load::<WrappedHttpRequest>(load_data, &http_state,
+    match load::<WrappedHttpRequest, TFDProvider>(load_data, &ui_provider, &http_state,
                                      devtools_chan, &factory,
                                      user_agent, &cancel_listener) {
         Err(LoadError::UnsupportedScheme(url)) => {
@@ -694,13 +697,27 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
     Ok(response)
 }
 
-pub fn load<A>(load_data: LoadData,
+pub trait UIProvider {
+    fn input_username_and_password(&self) -> (Option<String>, Option<String>);
+}
+
+impl UIProvider for TFDProvider {
+    fn input_username_and_password(&self) -> (Option<String>, Option<String>) {
+        (tinyfiledialogs::input_box("Enter username", "Username:", ""),
+        tinyfiledialogs::input_box("Enter password", "Password:", ""))
+    }
+}
+
+struct TFDProvider;
+
+pub fn load<A, B>(load_data: LoadData,
+               ui_provider: &B,
                http_state: &HttpState,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                request_factory: &HttpRequestFactory<R=A>,
                user_agent: String,
                cancel_listener: &CancellationListener)
-               -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static {
+               -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static, B: UIProvider {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -710,6 +727,8 @@ pub fn load<A>(load_data: LoadData,
     let mut doc_url = load_data.url.clone();
     let mut redirected_to = HashSet::new();
     let mut method = load_data.method.clone();
+
+    let mut new_auth_header: Option<Authorization<Basic>> = None;
 
     if cancel_listener.is_cancelled() {
         return Err(LoadError::Cancelled(doc_url, "load cancelled".to_owned()));
@@ -765,11 +784,42 @@ pub fn load<A>(load_data: LoadData,
                                &user_agent, &http_state.cookie_jar,
                                &http_state.auth_cache, &load_data);
 
+        //if there is a new auth header then set the request headers with it
+        if let Some(ref auth_header) = new_auth_header {
+            request_headers.set(auth_header.clone());
+        }
+
         let response = try!(obtain_response(request_factory, &doc_url, &method, &request_headers,
                                             &cancel_listener, &load_data.data, &load_data.method,
                                             &load_data.pipeline_id, iters, &devtools_chan, &request_id));
 
         process_response_headers(&response, &doc_url, &http_state.cookie_jar, &http_state.hsts_list, &load_data);
+
+        //if response status is unauthorized then prompt user for username and password
+        if response.status() == StatusCode::Unauthorized {
+            let (username_option, password_option) = ui_provider.input_username_and_password();
+
+            match username_option {
+                Some(name) => {
+                    new_auth_header =  Some(Authorization(Basic { username: name, password: password_option }));
+                    continue;
+                },
+                None => {},
+            }
+        }
+
+        new_auth_header = None;
+
+        if let Some(auth_header) = request_headers.get::<Authorization<Basic>>() {
+            if response.status().class() == StatusClass::Success {
+                let auth_entry = AuthCacheEntry {
+                    user_name: auth_header.username.to_owned(),
+                    password: auth_header.password.to_owned().unwrap(),
+                };
+
+                http_state.auth_cache.write().unwrap().insert(doc_url.clone(), auth_entry);
+            }
+        }
 
         // --- Loop if there's a redirect
         if response.status().class() == StatusClass::Redirection {
