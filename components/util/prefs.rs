@@ -8,7 +8,7 @@ use rustc_serialize::json::{Json, ToJson};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::Read;
+use std::io::{Read, Write, stderr};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -156,7 +156,8 @@ pub fn add_user_prefs() {
                 extend_prefs(prefs);
             }
         } else {
-            println!("Error opening prefs.json from profile_dir");
+            writeln!(&mut stderr(), "Error opening prefs.json from profile_dir")
+                .expect("failed printing to stderr");
         }
     }
 }
@@ -166,7 +167,8 @@ fn read_prefs() -> Result<HashMap<String, Pref>, ()> {
     path.push("prefs.json");
 
     let file = try!(File::open(path).or_else(|e| {
-        println!("Error opening preferences: {:?}.", e);
+        writeln!(&mut stderr(), "Error opening preferences: {:?}.", e)
+            .expect("failed printing to stderr");
         Err(())
     }));
 
