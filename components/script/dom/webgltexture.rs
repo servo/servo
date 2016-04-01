@@ -13,7 +13,7 @@ use dom::bindings::reflector::reflect_dom_object;
 use dom::webglobject::WebGLObject;
 use ipc_channel::ipc::{self, IpcSender};
 use webrender_traits::{WebGLCommand, WebGLError, WebGLResult};
-use std::cell::{Cell, Ref};
+use std::cell::Cell;
 use std::cmp;
 
 pub enum TexParameterValue {
@@ -351,9 +351,9 @@ impl WebGLTexture {
         true
     }
 
-    fn image_info_at_face(&self, face: u8, level: u32) -> Ref<ImageInfo> {
+    fn image_info_at_face(&self, face: u8, level: u32) -> ImageInfo {
         let pos = (level * self.face_count.get() as u32) + face as u32;
-        Ref::map(self.image_info_array.borrow(), |t| &t[pos as usize])
+        self.image_info_array.borrow()[pos as usize]
     }
 
     fn set_image_infos_at_level(&self, level: u32, image_info: ImageInfo) {
@@ -365,7 +365,7 @@ impl WebGLTexture {
         self.invalidate_resolve_cache();
     }
 
-    fn base_image_info(&self) -> Option<Ref<ImageInfo>> {
+    fn base_image_info(&self) -> Option<ImageInfo> {
         if self.base_mipmap_level >= MAX_LEVEL_COUNT as u32 {
             return None;
         }
