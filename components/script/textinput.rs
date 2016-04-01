@@ -165,6 +165,9 @@ impl<T: ClipboardProvider> TextInput<T> {
         })
     }
 
+    /// Return the selection range as UTF-8 byte offsets from the start of the content.
+    ///
+    /// If there is no selection, returns an empty range at the insertion point.
     pub fn get_absolute_selection_range(&self) -> Range<usize> {
         match self.get_sorted_selection() {
             Some((begin, _end)) =>
@@ -302,7 +305,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.edit_point.index = min(self.current_line_length(), self.edit_point.index);
     }
 
-    /// Adjust the editing point position by a given number of columns. If the adjustment
+    /// Adjust the editing point position by a given number of bytes. If the adjustment
     /// requested is larger than is available in the current line, the editing point is
     /// adjusted vertically and the process repeats with the remaining adjustment requested.
     pub fn adjust_horizontal(&mut self, adjust: isize, select: Selection) {
@@ -339,7 +342,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.perform_horizontal_adjustment(adjust, select);
     }
 
-    // Return whether to cancel the caret move
+    /// Return whether to cancel the caret move
     fn adjust_selection_for_horizontal_change(&mut self, adjust: Direction, select: Selection)
                                               -> bool {
         if select == Selection::Selected {
@@ -489,6 +492,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
     }
 
+    /// The length of the content in bytes.
     pub fn len(&self) -> usize {
         self.lines.iter().fold(0, |m, l| {
             m + l.len() + 1
@@ -520,10 +524,12 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.selection_begin = None;
     }
 
+    /// Get the insertion point as a byte offset from the start of the content.
     pub fn get_absolute_insertion_point(&self) -> usize {
         self.get_absolute_point_for_text_point(&self.edit_point)
     }
 
+    /// Convert a TextPoint into a byte offset from the start of the content.
     pub fn get_absolute_point_for_text_point(&self, text_point: &TextPoint) -> usize {
         self.lines.iter().enumerate().fold(0, |acc, (i, val)| {
             if i < text_point.line {
@@ -534,6 +540,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         }) + text_point.index
     }
 
+    /// Convert a byte offset from the start of the content into a TextPoint.
     pub fn get_text_point_for_absolute_point(&self, abs_point: usize) -> TextPoint {
         let mut index = abs_point;
         let mut line = 0;
