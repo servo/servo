@@ -732,7 +732,13 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         (contents, url)
     }).collect();
 
-    let use_webrender = opt_match.opt_present("w") && !opt_match.opt_present("z");
+    let do_not_use_native_titlebar =
+        opt_match.opt_present("b") ||
+        !prefs::get_pref("shell.native-titlebar.enabled").as_boolean().unwrap();
+
+    let use_webrender =
+        (prefs::get_pref("gfx.webrender.enabled").as_boolean().unwrap() || opt_match.opt_present("w")) &&
+        !opt_match.opt_present("z");
 
     let render_api = match opt_match.opt_str("G") {
         Some(ref ga) if ga == "gl" => RenderApi::GL,
@@ -789,7 +795,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         disable_share_style_cache: debug_options.disable_share_style_cache,
         convert_mouse_to_touch: debug_options.convert_mouse_to_touch,
         exit_after_load: opt_match.opt_present("x"),
-        no_native_titlebar: opt_match.opt_present("b"),
+        no_native_titlebar: do_not_use_native_titlebar,
         enable_vsync: !debug_options.disable_vsync,
         use_webrender: use_webrender,
         webrender_stats: debug_options.webrender_stats,
