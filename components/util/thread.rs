@@ -11,7 +11,7 @@ use std::sync::mpsc::Sender;
 use std::thread;
 use std::thread::Builder;
 use thread_state;
-#[allow(unused_must_use)]
+
 pub fn spawn_named<F>(name: String, f: F)
     where F: FnOnce() + Send + 'static
 {
@@ -24,11 +24,15 @@ pub fn spawn_named<F>(name: String, f: F)
             let payload = info.payload();
             if let Some(s) = payload.downcast_ref::<String>() {
                 if s.contains("SendError") {
-                    write!(stderr(), "Thread \"{}\" panicked with an unwrap of `SendError` (backtrace skipped)\n",
+                    let err = stderr();
+                    let _ = write!(err.lock(), "Thread \"{}\" panicked with an unwrap of \
+                                                `SendError` (backtrace skipped)\n",
                            thread::current().name().unwrap_or("<unknown thread>"));
                     return;
                 } else if s.contains("RecvError")  {
-                    write!(stderr(), "Thread \"{}\" panicked with an unwrap of `RecvError` (backtrace skipped)\n",
+                    let err = stderr();
+                    let _ = write!(err.lock(), "Thread \"{}\" panicked with an unwrap of \
+                                                `RecvError` (backtrace skipped)\n",
                            thread::current().name().unwrap_or("<unknown thread>"));
                     return;
                 }
