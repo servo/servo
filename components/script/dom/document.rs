@@ -1467,6 +1467,19 @@ impl Document {
         let target = node.upcast();
         event.fire(target);
     }
+
+    /// https://html.spec.whatwg.org/multipage/#cookie-averse-document-object
+    fn is_cookie_averse(&self) -> bool {
+        /// https://url.spec.whatwg.org/#network-scheme
+        fn url_has_network_scheme(url: &Url) -> bool {
+            match &*url.scheme {
+                "ftp" | "http" | "https" => true,
+                _ => false,
+            }
+        }
+
+        self.browsing_context.is_none() || !url_has_network_scheme(&self.url)
+    }
 }
 
 #[derive(PartialEq, HeapSizeOf)]
@@ -2397,7 +2410,10 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-cookie
     fn GetCookie(&self) -> Fallible<DOMString> {
-        // TODO: return empty string for cookie-averse Document
+        if self.is_cookie_averse() {
+            return Ok(DOMString::new());
+        }
+
         let url = self.url();
         if !is_scheme_host_port_tuple(&url) {
             return Err(Error::Security);
@@ -2410,7 +2426,10 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-cookie
     fn SetCookie(&self, cookie: DOMString) -> ErrorResult {
-        // TODO: ignore for cookie-averse Document
+        if self.is_cookie_averse() {
+            return Ok(());
+        }
+
         let url = self.url();
         if !is_scheme_host_port_tuple(url) {
             return Err(Error::Security);
