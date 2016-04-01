@@ -15,21 +15,54 @@ use floats::FloatKind;
 use flow;
 use flow::INLINE_POSITION_IS_STATIC;
 use flow::IS_ABSOLUTELY_POSITIONED;
-use flow::ImmutableFlowUtils;
-use flow::{Flow, FlowClass, OpaqueFlow};
+use flow::{Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::{StackingContext, StackingContextId};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
-use model::MaybeAuto;
-use model::{IntrinsicISizes};
+use model::{IntrinsicISizes, MaybeAuto, MinMaxConstraint};
 use std::cmp::max;
 use std::sync::Arc;
 use style::computed_values::flex_direction;
 use style::logical_geometry::LogicalSize;
 use style::properties::style_structs;
 use style::properties::{ComputedValues, ServoComputedValues};
-use style::values::computed::LengthOrPercentageOrAuto;
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+
+/// The size of an axis. May be a specified size, a min/max
+/// constraint, or an unlimited size
+#[derive(Debug)]
+enum AxisSize {
+    Definite(Au),
+    MinMax(MinMaxConstraint),
+    Infinite,
+}
+
+impl AxisSize {
+    /// Generate a new available cross or main axis size from the specified size of the container,
+    /// containing block size, min constraint, and max constraint
+    pub fn new(size: LengthOrPercentageOrAuto, content_size: Option<Au>, min: LengthOrPercentage,
+               max: LengthOrPercentageOrNone) -> AxisSize {
+        match size {
+            LengthOrPercentageOrAuto::Length(length) => AxisSize::Definite(length),
+            LengthOrPercentageOrAuto::Percentage(percent) => {
+                match content_size {
+                    Some(size) => AxisSize::Definite(size.scale_by(percent)),
+                    None => AxisSize::Infinite
+                }
+            },
+            LengthOrPercentageOrAuto::Calc(calc) => {
+                match content_size {
+                    Some(size) => AxisSize::Definite(size.scale_by(calc.percentage())),
+                    None => AxisSize::Infinite
+                }
+            },
+            LengthOrPercentageOrAuto::Auto => {
+                AxisSize::MinMax(MinMaxConstraint::new(content_size, min, max))
+            }
+        }
+    }
+}
 
 // A mode describes which logical axis a flex axis is parallel with.
 // The logical axises are inline and block, the flex axises are main and cross.
@@ -49,6 +82,10 @@ pub struct FlexFlow {
     /// The logical axis which the main axis will be parallel with.
     /// The cross axis will be parallel with the opposite logical axis.
     main_mode: Mode,
+    /// The available main axis size
+    available_main_size: AxisSize,
+    /// The available cross axis size
+    available_cross_size: AxisSize
 }
 
 fn flex_style(fragment: &Fragment) -> &style_structs::Flex {
@@ -77,15 +114,15 @@ impl FlexFlow {
                          -> FlexFlow {
 
         let main_mode = match flex_style(&fragment).flex_direction {
-            flex_direction::T::row_reverse    => Mode::Inline,
-            flex_direction::T::row            => Mode::Inline,
-            flex_direction::T::column_reverse => Mode::Block,
-            flex_direction::T::column         => Mode::Block
+            flex_direction::T::row_reverse | flex_direction::T::row => Mode::Inline,
+            flex_direction::T::column_reverse | flex_direction::T::column => Mode::Block
         };
 
         FlexFlow {
             block_flow: BlockFlow::from_fragment(fragment, flotation),
-            main_mode: main_mode
+            main_mode: main_mode,
+            available_main_size: AxisSize::Infinite,
+            available_cross_size: AxisSize::Infinite
         }
     }
 
@@ -151,20 +188,6 @@ impl FlexFlow {
         let _scope = layout_debug_scope!("flex::block_mode_assign_inline_sizes");
         debug!("block_mode_assign_inline_sizes");
 
-        // Calculate non-auto block size to pass to children.
-        let content_block_size = self.block_flow.fragment.style().content_block_size();
-
-        let explicit_content_size =
-            match (content_block_size, self.block_flow.base.block_container_explicit_block_size) {
-            (LengthOrPercentageOrAuto::Percentage(percent), Some(container_size)) => {
-                Some(container_size.scale_by(percent))
-            }
-            (LengthOrPercentageOrAuto::Percentage(_), None) |
-            (LengthOrPercentageOrAuto::Auto, _) => None,
-            (LengthOrPercentageOrAuto::Calc(_), _) => None,
-            (LengthOrPercentageOrAuto::Length(length), _) => Some(length),
-        };
-
         // FIXME (mbrubeck): Get correct mode for absolute containing block
         let containing_block_mode = self.block_flow.base.writing_mode;
 
@@ -172,7 +195,10 @@ impl FlexFlow {
         while let Some((_, kid)) = iterator.next() {
             {
                 let kid_base = flow::mut_base(kid);
-                kid_base.block_container_explicit_block_size = explicit_content_size;
+                kid_base.block_container_explicit_block_size = match self.available_main_size {
+                    AxisSize::Definite(length) => Some(length),
+                    _ => None
+                }
             }
 
             // The inline-start margin edge of the child flow is at our inline-start content edge,
@@ -189,7 +215,11 @@ impl FlexFlow {
                             inline_end_content_edge
                         };
                 }
-                kid_base.block_container_inline_size = content_inline_size;
+                kid_base.block_container_inline_size = match self.available_main_size {
+                    AxisSize::Definite(length) => length,
+                    AxisSize::MinMax(ref constraint) => constraint.clamp(content_inline_size),
+                    AxisSize::Infinite => content_inline_size,
+                };
                 kid_base.block_container_writing_mode = containing_block_mode;
             }
         }
@@ -214,7 +244,13 @@ impl FlexFlow {
             return;
         }
 
-        let even_content_inline_size = content_inline_size / child_count;
+        let inline_size = match self.available_main_size {
+            AxisSize::Definite(length) => length,
+            AxisSize::MinMax(ref constraint) => constraint.clamp(content_inline_size),
+            AxisSize::Infinite => content_inline_size,
+        };
+
+        let even_content_inline_size = inline_size / child_count;
 
         let inline_size = self.block_flow.base.block_container_inline_size;
         let container_mode = self.block_flow.base.block_container_writing_mode;
@@ -345,6 +381,26 @@ impl Flow for FlexFlow {
             self.block_flow.float.as_mut().unwrap().containing_inline_size = containing_block_inline_size
         }
 
+        let (available_block_size, available_inline_size) = {
+            let style = &self.block_flow.fragment.style;
+            let (specified_block_size, specified_inline_size) = if style.writing_mode.is_vertical() {
+                (style.get_box().width, style.get_box().height)
+            } else {
+                (style.get_box().height, style.get_box().width)
+            };
+
+            let available_inline_size = AxisSize::new(specified_inline_size,
+                                                      Some(self.block_flow.base.block_container_inline_size),
+                                                      style.min_inline_size(),
+                                                      style.max_inline_size());
+
+            let available_block_size = AxisSize::new(specified_block_size,
+                                                     self.block_flow.base.block_container_explicit_block_size,
+                                                     style.min_block_size(),
+                                                     style.max_block_size());
+            (available_block_size, available_inline_size)
+        };
+
         // Move in from the inline-start border edge.
         let inline_start_content_edge = self.block_flow.fragment.border_box.start.i +
             self.block_flow.fragment.border_padding.inline_start;
@@ -364,16 +420,22 @@ impl Flow for FlexFlow {
         let content_inline_size = self.block_flow.fragment.border_box.size.inline - padding_and_borders;
 
         match self.main_mode {
-            Mode::Inline =>
+            Mode::Inline => {
+                self.available_main_size = available_inline_size;
+                self.available_cross_size = available_block_size;
                 self.inline_mode_assign_inline_sizes(layout_context,
                                                      inline_start_content_edge,
                                                      inline_end_content_edge,
-                                                     content_inline_size),
-            Mode::Block  =>
+                                                     content_inline_size)
+            },
+            Mode::Block  => {
+                self.available_main_size = available_block_size;
+                self.available_cross_size = available_inline_size;
                 self.block_mode_assign_inline_sizes(layout_context,
                                                     inline_start_content_edge,
                                                     inline_end_content_edge,
                                                     content_inline_size)
+            }
         }
     }
 
