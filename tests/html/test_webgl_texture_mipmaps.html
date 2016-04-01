@@ -6,7 +6,7 @@
 </head>
 <body>
 <div style="text-align: center">
-   <canvas id="canvas" width="512" height="512"></canvas>
+   <canvas id="canvas" width="128" height="128"></canvas>
 </div>
 <script id="vertexshader" type="x-shader">
    attribute vec2 aVertexPosition;
@@ -87,10 +87,10 @@
 
    // Setup Geometry
    var vertices = new Float32Array([
-       -0.5, -0.5,
-       -0.5,  0.5,
-        0.5, -0.5,
-        0.5,  0.5  // Square-Coordinates
+       -1.0, -1.0,
+       -1.0,  1.0,
+        1.0, -1.0,
+        1.0,  1.0  // Square-Coordinates
    ]);
 
    var textureCoords = new Float32Array([
