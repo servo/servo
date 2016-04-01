@@ -230,18 +230,15 @@ impl TextRunScanner {
                     let flush_mapping = flush_run || mapping.selected != selected;
 
                     if flush_mapping {
-                        if end_position > start_position {
-                            mapping.flush(&mut mappings,
-                                          &mut run_info,
-                                          &**text,
-                                          insertion_point,
-                                          compression,
-                                          text_transform,
-                                          &mut last_whitespace,
-                                          &mut start_position,
-                                          end_position);
-                        }
-                        if run_info.text.len() > 0 {
+                        if mapping.flush(&mut mappings,
+                                         &mut run_info,
+                                         &**text,
+                                         insertion_point,
+                                         compression,
+                                         text_transform,
+                                         &mut last_whitespace,
+                                         &mut start_position,
+                                         end_position) {
                             if flush_run {
                                 run_info_list.push(run_info);
                                 run_info = RunInfo::new();
@@ -259,11 +256,6 @@ impl TextRunScanner {
                     // Consume this character.
                     end_position += character.len_utf8();
                     *paragraph_bytes_processed += character.len_utf8();
-                }
-
-                // If the mapping is zero-length, don't flush it.
-                if start_position == end_position {
-                    continue
                 }
 
                 // Flush the last mapping we created for this fragment to the list.
@@ -547,6 +539,8 @@ impl RunMapping {
 
     /// Flushes this run mapping to the list. `run_info` describes the text run that we're
     /// currently working on. `text` refers to the text of this fragment.
+    ///
+    /// Returns true if the mapping was flushed and a new one is needed; false otherwise.
     fn flush(mut self,
              mappings: &mut Vec<RunMapping>,
              run_info: &mut RunInfo,
@@ -556,7 +550,10 @@ impl RunMapping {
              text_transform: text_transform::T,
              last_whitespace: &mut bool,
              start_position: &mut usize,
-             end_position: usize) {
+             end_position: usize) -> bool {
+        if *start_position == end_position {
+            return false;
+        }
         let old_byte_length = run_info.text.len();
         *last_whitespace = util::transform_text(&text[(*start_position)..end_position],
                                                 compression,
@@ -583,13 +580,14 @@ impl RunMapping {
 
         // Don't flush empty mappings.
         if character_count == 0 {
-            return
+            return false
         }
 
         let new_byte_length = run_info.text.len();
         self.byte_range = Range::new(old_byte_length, new_byte_length - old_byte_length);
         self.char_range.extend_by(CharIndex(character_count as isize));
-        mappings.push(self)
+        mappings.push(self);
+        true
     }
 }
 
