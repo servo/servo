@@ -4,12 +4,14 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::URLBinding::{self, URLMethods};
+use dom::bindings::codegen::UnionTypes::USVStringOrURLSearchParams;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::Root;
+use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::USVString;
 use dom::urlhelper::UrlHelper;
+use dom::urlsearchparams::URLSearchParams;
 use std::borrow::ToOwned;
 use url::{Host, ParseResult, Url, UrlParser};
 use util::str::DOMString;
@@ -24,19 +26,24 @@ pub struct URL {
 
     // https://url.spec.whatwg.org/#concept-urlutils-get-the-base
     base: Option<Url>,
+
+    // https://url.spec.whatwg.org/#dom-url-searchparams
+    query: JS<URLSearchParams>,
 }
 
 impl URL {
-    fn new_inherited(url: Url, base: Option<Url>) -> URL {
+    fn new_inherited(url: Url, base: Option<Url>, query: Root<URLSearchParams>) -> URL {
         URL {
             reflector_: Reflector::new(),
             url: DOMRefCell::new(url),
             base: base,
+            query: JS::from_rooted(&query),
         }
     }
 
-    pub fn new(global: GlobalRef, url: Url, base: Option<Url>) -> Root<URL> {
-        reflect_dom_object(box URL::new_inherited(url, base),
+    pub fn new(global: GlobalRef, url: Url, base: Option<Url>, query: Root<URLSearchParams>)
+               -> Root<URL> {
+        reflect_dom_object(box URL::new_inherited(url, base, query),
                            global, URLBinding::Wrap)
     }
 }
@@ -69,8 +76,12 @@ impl URL {
                 return Err(Error::Type(format!("could not parse URL: {}", error)));
             }
         };
-        // Steps 5-8.
-        Ok(URL::new(global, parsed_url, parsed_base))
+        // Step 5.
+        let query_string = parsed_url.query.clone().unwrap_or(String::new());
+        let query_init = USVStringOrURLSearchParams::USVString(USVString(query_string));
+        let query = try!(URLSearchParams::Constructor(global, Some(query_init)));
+        // Steps 6-8.
+        Ok(URL::new(global, parsed_url, parsed_base, query))
     }
 
     // https://url.spec.whatwg.org/#dom-url-domaintoasciidomain
@@ -189,6 +200,11 @@ impl URLMethods for URL {
     // https://url.spec.whatwg.org/#dom-url-search
     fn SetSearch(&self, value: USVString) {
         UrlHelper::SetSearch(&mut self.url.borrow_mut(), value);
+    }
+
+    // https://url.spec.whatwg.org/#dom-url-searchparams
+    fn SearchParams(&self) -> Root<URLSearchParams> {
+        Root::from_ref(&*self.query)
     }
 
     // https://url.spec.whatwg.org/#dom-url-href
