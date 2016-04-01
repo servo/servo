@@ -192,7 +192,7 @@ impl BluetoothManager {
                                 service_id: &str)
                                 -> Vec<BluetoothGATTCharacteristic> {
         let characteristics = match self.get_gatt_service(adapter, service_id) {
-            Some(s) => s.get_characteristics().unwrap_or(vec!()),
+            Some(s) => s.get_gatt_characteristics().unwrap_or(vec!()),
             None => vec!(),
         };
 
@@ -266,7 +266,7 @@ impl BluetoothManager {
                             characteristic_id: &str)
                             -> Vec<BluetoothGATTDescriptor> {
         let descriptors = match self.get_gatt_characteristic(adapter, characteristic_id) {
-            Some(c) => c.get_descriptors().unwrap_or(vec!()),
+            Some(c) => c.get_gatt_descriptors().unwrap_or(vec!()),
             None => vec!(),
         };
 

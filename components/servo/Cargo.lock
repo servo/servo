@@ -144,7 +144,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "blurz"
-version = "0.1.3"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "dbus 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -422,9 +422,9 @@ dependencies = [
 [[package]]
 name = "device"
 version = "0.0.1"
-source = "git+https://github.com/dati91/devices?branch=device-api#e172b42fe8a8cc9f1966d44d8595c1997cde457b"
+source = "git+https://github.com/dati91/devices?branch=device-api#dccc5111e46124cef596cef10ce9056362892e59"
 dependencies = [
- "blurz 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "blurz 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
