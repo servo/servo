@@ -18,6 +18,11 @@ cache:
   - .cargo
 
 install:
+    # Check if commit in auto branch exists in master, if exists build will be canceled.
+  - cmd: >-
+      for /f %%i in ('git branch -r origin/master --contain %APPVEYOR_REPO_COMMIT%') do set git_status=%%i
+
+      IF %APPVEYOR_REPO_BRANCH%==auto (IF [%git_status%]==[origin/master] EXIT -1)
   - bash -lc "echo $MSYSTEM; pacman --needed --noconfirm -Sy pacman-mirrors"
   - bash -lc "pacman --noconfirm -Sy"
   - bash -lc "pacman -Sy --needed --noconfirm git mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch patchutils make python2-setuptools"
@@ -35,8 +40,6 @@ install:
 build_script:
   - cmd: >-
       set MSYSTEM=MINGW64
-
-      PATH C:\msys64\mingw64\bin;C:\msys64\usr\bin\;%PATH%
 
       bash -lc "cd $APPVEYOR_BUILD_FOLDER; ./mach build -d -v && ./mach test-unit"
 
