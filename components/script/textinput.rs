@@ -107,6 +107,16 @@ fn is_printable_key(key: Key) -> bool {
     }
 }
 
+/// The length in bytes of the first n characters in a UTF-8 string.
+///
+/// If the string has fewer than n characters, returns the length of the whole string.
+fn len_of_first_n_chars(text: &str, n: usize) -> usize {
+    match text.char_indices().take(n).last() {
+        Some((index, ch)) => index + ch.len_utf8(),
+        None => 0
+    }
+}
+
 impl<T: ClipboardProvider> TextInput<T> {
     /// Instantiate a new text input control
     pub fn new(lines: Lines, initial: DOMString, clipboard_provider: T, max_length: Option<usize>) -> TextInput<T> {
@@ -213,8 +223,8 @@ impl<T: ClipboardProvider> TextInput<T> {
                 usize::MAX
             };
 
-            let last_char_to_insert = min(allowed_to_insert_count, insert.chars().count());
-            let chars_to_insert = (&insert[0 .. last_char_to_insert]).to_owned();
+            let last_char_index = len_of_first_n_chars(&*insert, allowed_to_insert_count);
+            let chars_to_insert = &insert[..last_char_index];
 
             self.clear_selection();
 
@@ -225,7 +235,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                 let lines_suffix = &self.lines[end.line + 1..];
 
                 let mut insert_lines = if self.multiline {
-                    chars_to_insert.split('\n').map(|s| DOMString::from(s.to_owned())).collect()
+                    chars_to_insert.split('\n').map(|s| DOMString::from(s)).collect()
                 } else {
                     vec!(DOMString::from(chars_to_insert))
                 };

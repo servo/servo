@@ -207,6 +207,15 @@ fn test_textinput_replace_selection() {
 }
 
 #[test]
+fn test_textinput_replace_selection_multibyte_char() {
+    let mut textinput = text_input(Lines::Single, "é");
+    textinput.adjust_horizontal_by_one(Direction::Forward, Selection::Selected);
+
+    textinput.replace_selection(DOMString::from("e"));
+    assert_eq!(textinput.get_content(), "e");
+}
+
+#[test]
 fn test_textinput_current_line_length() {
     let mut textinput = text_input(Lines::Multiple, "abc\nde\nf");
     assert_eq!(textinput.current_line_length(), 3);
