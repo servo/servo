@@ -132,6 +132,7 @@ class PostBuildCommands(CommandBase):
                 return 1
             args = args + ['-w', '-b', '--pref', 'dom.mozbrowser.enabled',
                            path.join(browserhtml_path, 'out', 'index.html')]
+            args = args + params
         else:
             args = args + params
 
