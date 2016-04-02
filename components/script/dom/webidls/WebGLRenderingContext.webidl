@@ -669,9 +669,11 @@ interface WebGLRenderingContextBase
     // in the meantime
     void uniform4fv(WebGLUniformLocation? location, optional object v);
     //void uniform4fv(WebGLUniformLocation? location, sequence<GLfloat> v);
-    //void uniform4i(WebGLUniformLocation? location, GLint x, GLint y, GLint z, GLint w);
+    void uniform4i(WebGLUniformLocation? location, GLint x, GLint y, GLint z, GLint w);
     //void uniform4iv(WebGLUniformLocation? location, Int32Array v);
     //void uniform4iv(WebGLUniformLocation? location, sequence<long> v);
+    // See FIXME above
+    void uniform4iv(WebGLUniformLocation? location, optional object v);
 
     //void uniformMatrix2fv(WebGLUniformLocation? location, GLboolean transpose,
     //                      Float32Array value);
