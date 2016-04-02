@@ -24,6 +24,7 @@ use dom::node::{document_from_node, window_from_node};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::servohtmlparser;
 use dom::servohtmlparser::{FragmentContext, ServoHTMLParser};
+use dom::servoxmlparser::ServoXMLParser;
 use dom::text::Text;
 use html5ever::Attribute;
 use html5ever::serialize::TraversalScope;
@@ -255,13 +256,20 @@ pub fn parse_html(document: &Document,
                   input: DOMString,
                   url: Url,
                   context: ParseContext) {
-    let parser = match context {
-        ParseContext::Owner(owner) =>
-            ServoHTMLParser::new(Some(url), document, owner),
-        ParseContext::Fragment(fc) =>
-            ServoHTMLParser::new_for_fragment(Some(url), document, fc),
-    };
-    parser.parse_chunk(String::from(input));
+    if document.is_html_document() {
+        let parser = match context {
+            ParseContext::Owner(owner) =>
+                ServoHTMLParser::new(Some(url), document, owner),
+            ParseContext::Fragment(fc) =>
+                ServoHTMLParser::new_for_fragment(Some(url), document, fc),
+        };
+        parser.parse_chunk(String::from(input));
+    } else if let ParseContext::Owner(owner) = context {
+        let parser = ServoXMLParser::new(Some(url), document, owner);
+        parser.parse_chunk(String::from(input));
+    } else {
+        panic!("Can't handle xml fragments yet")
+    }
 }
 
 // https://html.spec.whatwg.org/multipage/#parsing-html-fragments
