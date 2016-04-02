@@ -25,7 +25,7 @@ On OS X (MacPorts):
 sudo port install python27 py27-virtualenv cmake
 ```
 
-On OS X 10.11, you also have to install openssl:
+On OS X 10.11 (El Capitan), you also have to install openssl:
 
 ``` sh
 brew install openssl
