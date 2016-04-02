@@ -9,5 +9,12 @@ test(function() {
 	assert_equals(typeof testBinding.BooleanMozPreference, "function");
 	assert_equals(testBinding.BooleanMozPreference("dom.testbinding.preference_value.falsy"), false);
 	assert_equals(testBinding.BooleanMozPreference("dom.testbinding.preference_value.truthy"), true);
+	assert_equals(testBinding.BooleanMozPreference("dom.testbinding.preference_value.string_test"), false);
+	assert_equals(testBinding.BooleanMozPreference("dom.testbinding.preference_value.string_empty"), false);
+	assert_equals(typeof testBinding.StringMozPreference, "function");
+	assert_equals(testBinding.StringMozPreference("dom.testbinding.preference_value.string_test"), "test");
+	assert_equals(testBinding.StringMozPreference("dom.testbinding.preference_value.string_empty"), "");
+	assert_equals(testBinding.StringMozPreference("dom.testbinding.preference_value.falsy"), "");
+	assert_equals(testBinding.StringMozPreference("dom.testbinding.preference_value.truthy"), "");
 }, "prefs");
 </script>

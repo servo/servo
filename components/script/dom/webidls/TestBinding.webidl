@@ -400,4 +400,5 @@ interface TestBinding {
   static attribute boolean booleanAttributeStatic;
   static void receiveVoidStatic();
   boolean BooleanMozPreference(DOMString pref_name);
+  DOMString StringMozPreference(DOMString pref_name);
 };
