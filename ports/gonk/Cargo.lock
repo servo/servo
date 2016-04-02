@@ -2158,7 +2158,7 @@ dependencies = [
 [[package]]
 name = "webrender_traits"
 version = "0.1.0"
-source = "git+https://github.com/servo/webrender_traits#a588d3190bfc7a58a694c5541f763f88b02531c2"
+source = "git+https://github.com/servo/webrender_traits#7806f9b80ea6c78c0b90442850ac4b96deb74c2a"
 dependencies = [
  "app_units 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2253,4 +2253,4 @@ dependencies = [
  "tendril 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
-
+ 
