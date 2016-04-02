@@ -1709,6 +1709,9 @@ impl Fragment {
                 if other_info.requires_line_break_afterward_if_wrapping_on_newlines() {
                     this_info.flags.insert(REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES);
                 }
+                if other_info.insertion_point.is_some() {
+                    this_info.insertion_point = other_info.insertion_point;
+                }
                 self.border_padding.inline_end = next_fragment.border_padding.inline_end;
             }
             _ => panic!("Can only merge two scanned-text fragments!"),

@@ -1014,13 +1014,9 @@ impl FragmentDisplayListBuilding for Fragment {
         // display list items.
         let mut clip = (*clip).clone();
         self.adjust_clip_for_style(&mut clip, &stacking_relative_border_box);
-        if !clip.might_intersect_rect(&stacking_relative_border_box) {
-            return;
-        }
+        let empty_rect = !clip.might_intersect_rect(&stacking_relative_border_box);
 
-        debug!("Fragment::build_display_list: intersected. Adding display item...");
-
-        if self.is_primary_fragment() {
+        if self.is_primary_fragment() && !empty_rect {
             // Add shadows, background, borders, and outlines, if applicable.
             if let Some(ref inline_context) = self.inline_context {
                 for node in inline_context.nodes.iter().rev() {
@@ -1080,13 +1076,22 @@ impl FragmentDisplayListBuilding for Fragment {
                                                                   &stacking_relative_border_box,
                                                                   &clip);
             }
+        }
 
-            // Paint the selection point if necessary.
+        if self.is_primary_fragment() {
+            // Paint the selection point if necessary.  Even an empty text fragment may have an
+            // insertion point, so we do this even if `empty_rect` is true.
             self.build_display_items_for_selection_if_necessary(state,
                                                                 &stacking_relative_border_box,
                                                                 display_list_section,
                                                                 &clip);
         }
+
+        if empty_rect {
+            return;
+        }
+
+        debug!("Fragment::build_display_list: intersected. Adding display item...");
 
         // Create special per-fragment-type display items.
         self.build_fragment_type_specific_display_items(state,
