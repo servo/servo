@@ -2276,6 +2276,7 @@ pub struct nsTHashtable<EntryType> {
     pub mTable: PLDHashTable,
     pub _phantom0: ::std::marker::PhantomData<EntryType>,
 }
+#[repr(C)]
 pub struct nsDataHashtable;
 #[test]
 fn bindgen_test_layout_nsDataHashtable() {
@@ -2323,6 +2324,7 @@ pub enum SheetType {
 }
 pub type nscolor = u32;
 pub type nscoord = i32;
+#[repr(C)]
 pub struct nsIntPoint {
     pub _bindgen_opaque_blob: [u32; 2usize],
 }
@@ -2373,6 +2375,7 @@ fn bindgen_test_layout_nsMargin() {
     assert_eq!(::std::mem::size_of::<nsMargin>() , 16usize);
     assert_eq!(::std::mem::align_of::<nsMargin>() , 4usize);
 }
+#[repr(C)]
 pub struct nsIntMargin {
     pub _bindgen_opaque_blob: [u32; 4usize],
 }
@@ -2462,6 +2465,7 @@ fn bindgen_test_layout_gfxAlternateValue() {
     assert_eq!(::std::mem::size_of::<gfxAlternateValue>() , 24usize);
     assert_eq!(::std::mem::align_of::<gfxAlternateValue>() , 8usize);
 }
+#[repr(C)]
 pub struct gfxFontFeatureValueSet {
     pub _bindgen_opaque_blob: [u64; 8usize],
 }
@@ -2505,6 +2509,7 @@ fn bindgen_test_layout_nsFont() {
     assert_eq!(::std::mem::size_of::<nsFont>() , 88usize);
     assert_eq!(::std::mem::align_of::<nsFont>() , 8usize);
 }
+#[repr(C)]
 pub struct nsIntRect {
     pub _bindgen_opaque_blob: [u32; 4usize],
 }
@@ -2691,6 +2696,7 @@ impl ::std::clone::Clone for nsIRequest {
 }
 pub enum nsIContentSecurityPolicy { }
 pub enum nsIDOMDocument { }
+#[repr(C)]
 pub struct nsIPrincipal {
     pub _bindgen_opaque_blob: u64,
 }
@@ -3321,6 +3327,7 @@ pub enum nsCSSPropertyLogicalGroup {
     eCSSPropertyLogicalGroup_COUNT = 10,
 }
 pub enum CSSStyleSheet { }
+#[repr(C)]
 pub struct URLValue {
     pub _bindgen_opaque_blob: [u64; 7usize],
 }
@@ -3329,6 +3336,7 @@ fn bindgen_test_layout_URLValue() {
     assert_eq!(::std::mem::size_of::<URLValue>() , 56usize);
     assert_eq!(::std::mem::align_of::<URLValue>() , 8usize);
 }
+#[repr(C)]
 pub struct ImageValue {
     pub _bindgen_opaque_blob: [u64; 13usize],
 }
@@ -3687,6 +3695,7 @@ fn bindgen_test_layout_nsCSSCornerSizes() {
     assert_eq!(::std::mem::align_of::<nsCSSCornerSizes>() , 8usize);
 }
 pub enum imgIContainer { }
+#[repr(C)]
 pub struct imgIRequest {
     pub _bindgen_opaque_blob: u64,
 }
@@ -3700,6 +3709,7 @@ pub enum ProxyBehaviour { }
 pub enum Image { }
 pub enum ImageURL { }
 pub enum ProgressTracker { }
+#[repr(C)]
 pub struct imgRequestProxy {
     pub _bindgen_opaque_blob: [u64; 15usize],
 }
@@ -3708,6 +3718,7 @@ fn bindgen_test_layout_imgRequestProxy() {
     assert_eq!(::std::mem::size_of::<imgRequestProxy>() , 120usize);
     assert_eq!(::std::mem::align_of::<imgRequestProxy>() , 8usize);
 }
+#[repr(C)]
 pub struct imgRequestProxyStatic {
     pub _bindgen_opaque_blob: [u64; 16usize],
 }
@@ -3754,6 +3765,7 @@ fn bindgen_test_layout_AnonymousCounterStyle() {
     assert_eq!(::std::mem::size_of::<AnonymousCounterStyle>() , 48usize);
     assert_eq!(::std::mem::align_of::<AnonymousCounterStyle>() , 8usize);
 }
+#[repr(C)]
 pub struct CounterStyleManager {
     pub _bindgen_opaque_blob: [u64; 9usize],
 }
