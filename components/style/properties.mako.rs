@@ -6722,10 +6722,8 @@ pub type CascadePropertyFn<C /*: ComputedValues */> =
                      cacheable: &mut bool,
                      error_reporter: &mut Box<ParseErrorReporter + Send>);
 
-// This is a thread-local rather than a lazy static to avoid atomic operations when cascading
-// properties.
-thread_local!(static CASCADE_PROPERTY: Vec<Option<CascadePropertyFn<ServoComputedValues>>> = {
-    let mut result: Vec<Option<CascadePropertyFn<ServoComputedValues>>> = Vec::new();
+pub fn make_cascade_vec<C: ComputedValues>() -> Vec<Option<CascadePropertyFn<C>>> {
+    let mut result: Vec<Option<CascadePropertyFn<C>>> = Vec::new();
     % for style_struct in STYLE_STRUCTS:
         % for property in style_struct.longhands:
             let discriminant;
@@ -6741,6 +6739,12 @@ thread_local!(static CASCADE_PROPERTY: Vec<Option<CascadePropertyFn<ServoCompute
         % endfor
     % endfor
     result
+}
+
+// This is a thread-local rather than a lazy static to avoid atomic operations when cascading
+// properties.
+thread_local!(static CASCADE_PROPERTY: Vec<Option<CascadePropertyFn<ServoComputedValues>>> = {
+    make_cascade_vec::<ServoComputedValues>()
 });
 
 /// Performs the CSS cascade, computing new styles for an element from its parent style and
