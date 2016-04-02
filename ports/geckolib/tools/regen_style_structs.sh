@@ -128,3 +128,13 @@ fi
   -opaque-type "imgIRequest"                                        \
   -include "$1/mozilla-config.h"                                    \
   "$DIST_INCLUDE/nsStyleStruct.h"
+
+if [ $? -ne 0 ]; then
+  echo -e "\e[91warning:\e[0m bindgen exited with nonzero exit status"
+else
+  echo -e "\e[34minfo:\e[0m bindgen exited successfully, running tests"
+  TESTS_FILE=$(mktemp)
+  rustc ../gecko_style_structs.rs --test -o $TESTS_FILE
+  $TESTS_FILE
+  rm $TESTS_FILE
+fi
