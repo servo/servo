@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::IpcSender;
+use opts;
 use serde::Serialize;
 use std::borrow::ToOwned;
 use std::io::{Write, stderr};
@@ -16,6 +17,11 @@ pub fn spawn_named<F>(name: String, f: F)
     where F: FnOnce() + Send + 'static
 {
     let builder = thread::Builder::new().name(name);
+
+    if opts::get().full_backtraces {
+        builder.spawn(f).unwrap();
+        return;
+    }
 
     let f_with_handler = move || {
         let hook = take_handler();
