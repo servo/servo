@@ -4672,9 +4672,8 @@ pub struct nsStyleSVG {
     pub mStrokeLinejoin: u8,
     pub mTextAnchor: u8,
     pub mTextRendering: u8,
-    pub _bitfield_1: nsStyleSVGOpacitySource,
-    pub _bitfield_2: nsStyleSVGOpacitySource,
-    pub _bitfield_3: u8,
+    pub _bitfield_1: u8,
+    pub _bitfield_2: u8,
 }
 #[test]
 fn bindgen_test_layout_nsStyleSVG() {
