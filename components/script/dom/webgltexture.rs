@@ -24,6 +24,8 @@ pub enum TexParameterValue {
 const MAX_LEVEL_COUNT: usize = 31;
 const MAX_FACE_COUNT: usize = 6;
 
+no_jsmanaged_fields!([ImageInfo; MAX_LEVEL_COUNT * MAX_FACE_COUNT]);
+
 #[dom_struct]
 pub struct WebGLTexture {
     webgl_object: WebGLObject,
@@ -31,7 +33,6 @@ pub struct WebGLTexture {
     /// The target to which this texture was bound the first time
     target: Cell<Option<u32>>,
     is_deleted: Cell<bool>,
-    is_resolved: Cell<bool>,
     is_initialized: Cell<bool>,
     /// Stores information about mipmap levels and cubemap faces.
     #[ignore_heap_size_of = "Arrays are cumbersome"]
@@ -51,7 +52,6 @@ impl WebGLTexture {
             id: id,
             target: Cell::new(None),
             is_deleted: Cell::new(false),
-            is_resolved: Cell::new(false),
             is_initialized: Cell::new(false),
             face_count: Cell::new(0),
             base_mipmap_level: 0,
@@ -127,17 +127,21 @@ impl WebGLTexture {
     }
 
     pub fn generate_mipmap(&self) -> WebGLResult<()> {
-        if self.target.get().is_none() {
-            error!("Cannot generate mipmap on texture that has no target!");
-            return Err(WebGLError::InvalidOperation);
-        }
+        let target = match self.target.get() {
+            Some(target) => target,
+            None => {
+                error!("Cannot generate mipmap on texture that has no target!");
+                return Err(WebGLError::InvalidOperation);
+            }
+        };
+
         let base_image_info = self.base_image_info().unwrap();
 
         if !base_image_info.is_initialized() {
             return Err(WebGLError::InvalidOperation);
         }
 
-        if self.target.get().unwrap() == constants::TEXTURE_CUBE_MAP && !self.is_cube_complete() {
+        if target == constants::TEXTURE_CUBE_MAP && !self.is_cube_complete() {
             return Err(WebGLError::InvalidOperation);
         }
 
@@ -149,7 +153,7 @@ impl WebGLTexture {
             return Err(WebGLError::InvalidOperation);
         }
 
-        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::GenerateMipmap(self.target.get().unwrap()))).unwrap();
+        self.renderer.send(CanvasMsg::WebGL(WebGLCommand::GenerateMipmap(target))).unwrap();
 
         let last_level = self.base_mipmap_level + base_image_info.get_max_mimap_levels() - 1;
         self.populate_mip_chain(self.base_mipmap_level, last_level)
@@ -295,8 +299,6 @@ impl WebGLTexture {
             let pos = (level * self.face_count.get() as u32) + face as u32;
             self.image_info_array.borrow_mut()[pos as usize] = image_info;
         }
-
-        self.invalidate_resolve_cache();
     }
 
     fn base_image_info(&self) -> Option<ImageInfo> {
@@ -304,10 +306,6 @@ impl WebGLTexture {
             return None;
         }
         Some(self.image_info_at_face(0, self.base_mipmap_level))
-    }
-
-    fn invalidate_resolve_cache(&self) {
-        self.is_resolved.set(false);
     }
 }
 
@@ -365,9 +363,7 @@ impl ImageInfo {
     }
 
     fn is_compressed_format(&self) -> bool {
-        match self.internal_format {
-            Some(format) if format == constants::COMPRESSED_TEXTURE_FORMATS => true,
-            _ => false
-        }
+        // TODO: Once Servo supports compressed formats, check for them here
+        false
     }
 }

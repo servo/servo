@@ -33,8 +33,7 @@
    uniform sampler2D uSampler;
 
    void main() {
-      gl_FragColor = texture2D(uSampler, vec2(vTextureCoord.s, vTextureCoord.t));
-      // gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0);
+      gl_FragColor = texture2D(uSampler, vTextureCoord);
    }
 </script>
 <script type="text/javascript">
@@ -59,7 +58,7 @@
    gl.compileShader(vs);
 
    if (!gl.getShaderParameter(vs, gl.COMPILE_STATUS)) {
-      alert(gl.getShaderInfoLog(vs));
+       console.log(gl.getShaderInfoLog(vs));
    }
 
    var fs = gl.createShader(gl.FRAGMENT_SHADER);
@@ -67,7 +66,7 @@
    gl.compileShader(fs);
 
    if (!gl.getShaderParameter(fs, gl.COMPILE_STATUS)) {
-       alert(gl.getShaderInfoLog(fs));
+       console.log(gl.getShaderInfoLog(fs));
    }
 
    program = gl.createProgram();
@@ -75,8 +74,9 @@
    gl.attachShader(program, fs);
    gl.linkProgram(program);
 
-   //  if (!gl.getProgramParameter(program, gl.LINK_STATUS))
-   //      alert(gl.getProgramInfoLog(program));
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+       console.log(gl.getProgramInfoLog(program));
+    }
 
    gl.useProgram(program);
 
