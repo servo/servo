@@ -536,6 +536,17 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             Paint(FromPaintMsg)
         }
 
+        // Get one incoming request.
+        // This is one of the few places where the compositor is
+        // allowed to panic. If one of the receiver.recv() calls
+        // fails, it is because the matching sender has been
+        // reclaimed, but this can't happen in normal execution
+        // because the constellation keeps a pointer to the sender,
+        // so it should never be reclaimed. A possible scenario in
+        // which receiver.recv() fails is if some unsafe code
+        // produces undefined behaviour, resulting in the destructor
+        // being called. If this happens, there's not much we can do
+        // other than panic.
         let request = {
             let receiver_from_script = &self.script_receiver;
             let receiver_from_compositor = &self.compositor_receiver;
@@ -543,16 +554,17 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             let receiver_from_paint = &self.painter_receiver;
             select! {
                 msg = receiver_from_script.recv() =>
-                    Request::Script(msg.unwrap()),
+                    Request::Script(msg.expect("Unexpected script failure in constellation")),
                 msg = receiver_from_compositor.recv() =>
-                    Request::Compositor(msg.unwrap()),
+                    Request::Compositor(msg.expect("Unexpected compositor failure in constellation")),
                 msg = receiver_from_layout.recv() =>
-                    Request::Layout(msg.unwrap()),
+                    Request::Layout(msg.expect("Unexpected layout failure in constellation")),
                 msg = receiver_from_paint.recv() =>
-                    Request::Paint(msg.unwrap())
+                    Request::Paint(msg.expect("Unexpected paint failure in constellation"))
             }
         };
 
+        // Process the request.
         match request {
             // Messages from compositor
 
