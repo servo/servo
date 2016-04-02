@@ -239,6 +239,7 @@ impl TextRunScanner {
                         mapping.flush(&mut mappings,
                                          &mut run_info,
                                          &**text,
+                                         insertion_point,
                                          compression,
                                          text_transform,
                                          &mut last_whitespace,
@@ -268,6 +269,7 @@ impl TextRunScanner {
                 mapping.flush(&mut mappings,
                               &mut run_info,
                               &**text,
+                              insertion_point,
                               compression,
                               text_transform,
                               &mut last_whitespace,
@@ -336,6 +338,7 @@ impl TextRunScanner {
                 let scanned_run = runs[mapping.text_run_index].clone();
 
                 let requires_line_break_afterward_if_wrapping_on_newlines =
+                    !mapping.byte_range.is_empty() &&
                     scanned_run.run.text.char_at_reverse(mapping.byte_range.end()) == '\n';
                 if requires_line_break_afterward_if_wrapping_on_newlines {
                     mapping.char_range.extend_by(CharIndex(-1));
@@ -575,12 +578,13 @@ impl RunMapping {
              mappings: &mut Vec<RunMapping>,
              run_info: &mut RunInfo,
              text: &str,
+             insertion_point: Option<CharIndex>,
              compression: CompressionMode,
              text_transform: text_transform::T,
              last_whitespace: &mut bool,
              start_position: &mut usize,
              end_position: usize) {
-        if *start_position == end_position {
+        if *start_position == end_position && insertion_point.is_none() {
             return;
         }
         let old_byte_length = run_info.text.len();
@@ -601,9 +605,9 @@ impl RunMapping {
         run_info.character_length = run_info.character_length + character_count;
         *start_position = end_position;
 
-        // Don't flush empty mappings.
-        if character_count == 0 {
-            return
+        // Don't flush mappings that contain no characters and no insertion_point.
+        if character_count == 0 && !self.contains_insertion_point(insertion_point) {
+            return;
         }
 
         let new_byte_length = run_info.text.len();
