@@ -201,6 +201,9 @@ pub struct Opts {
 
     // Which rendering API to use.
     pub render_api: RenderApi,
+
+    // don't skip any backtraces on panic
+    pub full_backtraces: bool,
 }
 
 fn print_usage(app: &str, opts: &Options) {
@@ -291,6 +294,9 @@ pub struct DebugOptions {
     /// Use multisample antialiasing in WebRender.
     pub use_msaa: bool,
 
+    // don't skip any backtraces on panic
+    pub full_backtraces: bool,
+
 }
 
 
@@ -326,6 +332,7 @@ impl DebugOptions {
                 "disable-vsync" => debug_options.disable_vsync = true,
                 "wr-stats" => debug_options.webrender_stats = true,
                 "msaa" => debug_options.use_msaa = true,
+                "full-backtraces" => debug_options.full_backtraces = true,
                 "" => {},
                 _ => return Err(option)
             };
@@ -373,6 +380,7 @@ pub fn print_debug_usage(app: &str) -> ! {
                  "Disable vsync mode in the compositor to allow profiling at more than monitor refresh rate");
     print_option("wr-stats", "Show WebRender profiler on screen.");
     print_option("msaa", "Use multisample antialiasing in WebRender.");
+    print_option("full-backtraces", "Print full backtraces for all errors");
 
     println!("");
 
@@ -515,6 +523,7 @@ pub fn default_opts() -> Opts {
         use_msaa: false,
         render_api: DEFAULT_RENDER_API,
         profile_dir: None,
+        full_backtraces: false,
     }
 }
 
@@ -795,6 +804,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         webrender_stats: debug_options.webrender_stats,
         use_msaa: debug_options.use_msaa,
         profile_dir: opt_match.opt_str("profile-dir"),
+        full_backtraces: debug_options.full_backtraces,
     };
 
     set_defaults(opts);

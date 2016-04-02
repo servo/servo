@@ -11,11 +11,17 @@ use std::sync::mpsc::Sender;
 use std::thread;
 use std::thread::Builder;
 use thread_state;
+use opts;
 
 pub fn spawn_named<F>(name: String, f: F)
     where F: FnOnce() + Send + 'static
 {
     let builder = thread::Builder::new().name(name);
+
+    if opts::get().full_backtraces {
+        builder.spawn(f).unwrap();
+        return;
+    }
 
     let f_with_handler = move || {
         let hook = take_handler();
