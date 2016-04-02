@@ -40,7 +40,7 @@ impl StyleSheetListMethods for StyleSheetList {
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheetlist-item
-    fn Item(&self, index: u32) -> Option<Root<StyleSheet>> {
+    fn Item(&self, _index: u32) -> Option<Root<StyleSheet>> {
         None
         //TODO Create a new StyleSheet object and return it
     }
