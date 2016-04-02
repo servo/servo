@@ -38,3 +38,4 @@ fi
   -no-type-renaming                                \
   "$DIST_INCLUDE/mozilla/ServoBindings.h"          \
   -match "ServoBindings.h"                         \
+  -match "nsStyleStructList.h"                     \
