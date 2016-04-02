@@ -18,10 +18,10 @@
 
    void main() {
       vTextureCoord = aTextureCoord;
-      mat4 rotMat = mat4(cos(uTime), -sin(uTime), 0.0, 0.0,
-                       sin(uTime), cos(uTime), 0.0, 0.0,
-                       0.0, 0.0, 1.0, 0.0,
-                       0.0, 0.0, 0.0, 1.0);
+      mat4 rotMat = mat4(sin(uTime), 0.0, 0.0, 0.0,
+                         0.0, sin(uTime), 0.0, 0.0,
+                         0.0, 0.0, 1.0, 0.0,
+                         0.0, 0.0, 0.0, 1.0);
 
       gl_Position = rotMat * vec4(aVertexPosition, 0.0, 1.0);
    }
@@ -121,7 +121,6 @@
    // Viewport
    gl.viewport(0, 0, canvas.width, canvas.height);
 
-   program.sampler = gl.getUniformLocation(program, "uSampler");
    program.time = gl.getUniformLocation(program, "uTime");
 
    var start_time = new Date().getTime() / 1000;
@@ -139,7 +138,6 @@
 
      gl.activeTexture(gl.TEXTURE0);
      gl.bindTexture(gl.TEXTURE_2D, rustTexture);
-     gl.uniform1i(program.sampler, 0);
      var dt = new Date().getTime() / 1000 - start_time;
      gl.uniform1f(program.time, dt);
 
