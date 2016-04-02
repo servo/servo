@@ -490,6 +490,9 @@ impl TestBindingMethods for TestBinding {
     fn BooleanMozPreference(&self, pref_name: DOMString) -> bool {
         get_pref(pref_name.as_ref()).as_boolean().unwrap_or(false)
     }
+    fn StringMozPreference(&self, pref_name: DOMString) -> DOMString {
+        get_pref(pref_name.as_ref()).as_string().map(|s| DOMString::from(s)).unwrap_or_else(|| DOMString::new())
+    }
 }
 
 impl TestBinding {
