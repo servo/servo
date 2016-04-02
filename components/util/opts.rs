@@ -805,8 +805,12 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     set_defaults(opts);
 
-    // This must happen after setting the default options, since the prefs rely on
+    // These must happen after setting the default options, since the prefs rely on
     // on the resource path.
+    // Note that command line preferences have the highest precedence
+    if get().profile_dir.is_some() {
+        prefs::add_user_prefs();
+    }
     for pref in opt_match.opt_strs("pref").iter() {
         let split: Vec<&str> = pref.splitn(2, '=').collect();
         let pref_name = split[0];

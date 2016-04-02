@@ -2,11 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use opts;
 use resource_files::resources_dir_path;
 use rustc_serialize::json::{Json, ToJson};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::fs::File;
+use std::io::{Read, Write, stderr};
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 lazy_static! {
@@ -66,7 +69,8 @@ impl ToJson for PrefValue {
     }
 }
 
-enum Pref {
+#[derive(Debug)]
+pub enum Pref {
     NoDefault(Arc<PrefValue>),
     WithDefault(Arc<PrefValue>, Option<Arc<PrefValue>>)
 }
@@ -118,14 +122,8 @@ impl ToJson for Pref {
     }
 }
 
-fn read_prefs() -> Result<HashMap<String, Pref>, ()> {
-    let mut path = resources_dir_path();
-    path.push("prefs.json");
-
-    let mut file = try!(File::open(path).or_else(|e| {
-        println!("Error opening preferences: {:?}.", e);
-        Err(())
-    }));
+pub fn read_prefs_from_file<T>(mut file: T)
+    -> Result<HashMap<String, Pref>, ()> where T: Read {
     let json = try!(Json::from_reader(&mut file).or_else(|e| {
         println!("Ignoring invalid JSON in preferences: {:?}.", e);
         Err(())
@@ -143,6 +141,38 @@ fn read_prefs() -> Result<HashMap<String, Pref>, ()> {
         }
     }
     Ok(prefs)
+}
+
+pub fn extend_prefs(extension: HashMap<String, Pref>) {
+    PREFS.lock().unwrap().extend(extension);
+}
+
+pub fn add_user_prefs() {
+    if let Some(ref dir) = opts::get().profile_dir {
+        let mut path = PathBuf::from(dir);
+        path.push("prefs.json");
+        if let Ok(file) = File::open(path) {
+            if let Ok(prefs) = read_prefs_from_file(file) {
+                extend_prefs(prefs);
+            }
+        } else {
+            writeln!(&mut stderr(), "Error opening prefs.json from profile_dir")
+                .expect("failed printing to stderr");
+        }
+    }
+}
+
+fn read_prefs() -> Result<HashMap<String, Pref>, ()> {
+    let mut path = resources_dir_path();
+    path.push("prefs.json");
+
+    let file = try!(File::open(path).or_else(|e| {
+        writeln!(&mut stderr(), "Error opening preferences: {:?}.", e)
+            .expect("failed printing to stderr");
+        Err(())
+    }));
+
+    read_prefs_from_file(file)
 }
 
 pub fn get_pref(name: &str) -> Arc<PrefValue> {
