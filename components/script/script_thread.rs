@@ -1843,7 +1843,7 @@ impl ScriptThread {
         // Really what needs to happen is that this needs to go through layout to ask which
         // layer the element belongs to, and have it send the scroll message to the
         // compositor.
-        let rect = element.upcast::<Node>().get_bounding_content_box();
+        let rect = element.upcast::<Node>().bounding_content_box();
 
         // In order to align with element edges, we snap to unscaled pixel boundaries, since the
         // paint thread currently does the same for drawing elements. This is important for pages

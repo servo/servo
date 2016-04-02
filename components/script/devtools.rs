@@ -91,7 +91,7 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
     let node = document.upcast::<Node>();
 
     for candidate in node.traverse_preorder() {
-        if candidate.get_unique_id() == node_id {
+        if candidate.unique_id() == node_id {
             return candidate;
         }
     }

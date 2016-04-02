@@ -72,7 +72,7 @@ impl HTMLCollection {
             root: JS::from_ref(root),
             filter: filter,
             // Default values for the cache
-            cached_version: Cell::new(root.get_inclusive_descendants_version()),
+            cached_version: Cell::new(root.inclusive_descendants_version()),
             cached_cursor_element: MutNullableHeap::new(None),
             cached_cursor_index: Cell::new(OptionU32::none()),
             cached_length: Cell::new(OptionU32::none()),
@@ -93,7 +93,7 @@ impl HTMLCollection {
     fn validate_cache(&self) {
         // Clear the cache if the root version is different from our cached version
         let cached_version = self.cached_version.get();
-        let curr_version = self.root.get_inclusive_descendants_version();
+        let curr_version = self.root.inclusive_descendants_version();
         if curr_version != cached_version {
             // Default values for the cache
             self.cached_version.set(curr_version);

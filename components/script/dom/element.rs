@@ -1431,7 +1431,7 @@ impl ElementMethods for Element {
     // https://drafts.csswg.org/cssom-view/#dom-element-getclientrects
     fn GetClientRects(&self) -> Root<DOMRectList> {
         let win = window_from_node(self);
-        let raw_rects = self.upcast::<Node>().get_content_boxes();
+        let raw_rects = self.upcast::<Node>().content_boxes();
         let rects = raw_rects.iter().map(|rect| {
             DOMRect::new(GlobalRef::Window(win.r()),
                          rect.origin.x.to_f64_px(),
@@ -1445,7 +1445,7 @@ impl ElementMethods for Element {
     // https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect
     fn GetBoundingClientRect(&self) -> Root<DOMRect> {
         let win = window_from_node(self);
-        let rect = self.upcast::<Node>().get_bounding_content_box();
+        let rect = self.upcast::<Node>().bounding_content_box();
         DOMRect::new(GlobalRef::Window(win.r()),
                      rect.origin.x.to_f64_px(),
                      rect.origin.y.to_f64_px(),
@@ -1455,32 +1455,32 @@ impl ElementMethods for Element {
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth
     fn ScrollWidth(&self) -> i32 {
-        self.upcast::<Node>().get_scroll_area().size.width
+        self.upcast::<Node>().scroll_area().size.width
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollheight
     fn ScrollHeight(&self) -> i32 {
-        self.upcast::<Node>().get_scroll_area().size.height
+        self.upcast::<Node>().scroll_area().size.height
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clienttop
     fn ClientTop(&self) -> i32 {
-        self.upcast::<Node>().get_client_rect().origin.y
+        self.upcast::<Node>().client_rect().origin.y
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientleft
     fn ClientLeft(&self) -> i32 {
-        self.upcast::<Node>().get_client_rect().origin.x
+        self.upcast::<Node>().client_rect().origin.x
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientwidth
     fn ClientWidth(&self) -> i32 {
-        self.upcast::<Node>().get_client_rect().size.width
+        self.upcast::<Node>().client_rect().size.width
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-clientheight
     fn ClientHeight(&self) -> i32 {
-        self.upcast::<Node>().get_client_rect().size.height
+        self.upcast::<Node>().client_rect().size.height
     }
 
     /// https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML

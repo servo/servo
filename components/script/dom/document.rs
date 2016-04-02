@@ -356,7 +356,7 @@ impl Document {
         // that workable.
         match self.GetDocumentElement() {
             Some(root) => {
-                root.upcast::<Node>().get_has_dirty_descendants() ||
+                root.upcast::<Node>().has_dirty_descendants() ||
                 !self.modified_elements.borrow().is_empty()
             }
             None => false,
