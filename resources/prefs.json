@@ -1,6 +1,7 @@
 {
   "dom.mouseevent.which.enabled": false,
   "dom.mozbrowser.enabled": false,
+  "gfx.webrender.enabled": false,
   "layout.columns.enabled": false,
   "layout.column-width.enabled": false,
   "layout.column-count.enabled": false,
@@ -11,5 +12,6 @@
   "layout.viewport.enabled": false,
   "layout.writing-mode.enabled": false,
   "net.mime.sniff": false,
+  "shell.native-titlebar.enabled": true,
   "shell.homepage": "http://servo.org"
 }
