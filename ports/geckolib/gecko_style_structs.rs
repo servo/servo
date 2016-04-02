@@ -2541,8 +2541,12 @@ fn bindgen_test_layout_nsRect() {
 #[repr(i8)]
 #[derive(Debug, Copy, Clone)]
 pub enum StyleBoxSizing { Content = 0, Padding = 1, Border = 2, }
-pub enum PlaybackDirection { }
-pub enum FillMode { }
+#[repr(i32)]
+#[derive(Debug, Copy, Clone)]
+pub enum PlaybackDirection { _BindgenOpaqueEnum = 0, }
+#[repr(i32)]
+#[derive(Debug, Copy, Clone)]
+pub enum FillMode { _BindgenOpaqueEnum = 0, }
 pub enum WritingMode { }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone)]
