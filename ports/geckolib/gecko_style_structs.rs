@@ -1884,6 +1884,7 @@ pub struct nsISupports {
 }
 #[repr(C)]
 pub struct _vftable_nsISupports {
+    pub _bindgen_empty_ctype_warning_fix: u64,
 }
 impl ::std::clone::Clone for nsISupports {
     fn clone(&self) -> Self { *self }
@@ -3738,6 +3739,7 @@ pub struct CounterStyle {
 }
 #[repr(C)]
 pub struct _vftable_CounterStyle {
+    pub _bindgen_empty_ctype_warning_fix: u64,
 }
 impl ::std::clone::Clone for CounterStyle {
     fn clone(&self) -> Self { *self }
