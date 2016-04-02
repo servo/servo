@@ -138,6 +138,11 @@ impl AttrMethods for Attr {
         DOMString::from(&*self.identifier.name)
     }
 
+    // https://dom.spec.whatwg.org/#dom-attr-nodename
+    fn NodeName(&self) -> DOMString {
+        self.Name()
+    }
+
     // https://dom.spec.whatwg.org/#dom-attr-namespaceuri
     fn GetNamespaceURI(&self) -> Option<DOMString> {
         let Namespace(ref atom) = self.identifier.namespace;
