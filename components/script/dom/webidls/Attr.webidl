@@ -17,12 +17,14 @@ interface Attr {
   readonly attribute DOMString localName;
   [Constant]
   readonly attribute DOMString name;
+  [Constant]
+  readonly attribute DOMString nodeName; // historical alias of .name
   [Pure]
            attribute DOMString value;
   [Pure]
-           attribute DOMString textContent; // alias of .value
+           attribute DOMString textContent; // historical alias of .value
   [Pure]
-           attribute DOMString nodeValue; // alias of .value
+           attribute DOMString nodeValue; // historical alias of .value
 
   [Pure]
   readonly attribute Element? ownerElement;
