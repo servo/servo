@@ -76,6 +76,7 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
             args += ["--user-stylesheet", stylesheet]
         for pref, value in test.environment.get('prefs', {}).iteritems():
             args += ["--pref", "%s=%s" % (pref, value)]
+        args += self.browser.binary_args
         debug_args, command = browser_command(self.binary, args, self.debug_info)
 
         self.command = command
