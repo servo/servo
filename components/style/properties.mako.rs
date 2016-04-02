@@ -5692,9 +5692,10 @@ mod property_bit_field {
     % endif
 % endfor
 
-/// Declarations are stored in reverse order.
-/// Overridden declarations are skipped.
 
+use std::iter::{Iterator, Chain, Zip, Rev, Repeat, repeat};
+use std::slice;
+/// Overridden declarations are skipped.
 
 // FIXME (https://github.com/servo/servo/issues/3426)
 #[derive(Debug, PartialEq, HeapSizeOf)]
@@ -5703,6 +5704,19 @@ pub struct PropertyDeclarationBlock {
     pub important: Arc<Vec<PropertyDeclaration>>,
     #[ignore_heap_size_of = "#7038"]
     pub normal: Arc<Vec<PropertyDeclaration>>,
+}
+
+impl PropertyDeclarationBlock {
+    /// Provides an iterator of all declarations, with indication of !important value
+    pub fn declarations(&self) -> Chain<
+        Zip<Rev<slice::Iter<PropertyDeclaration>>, Repeat<bool>>,
+        Zip<Rev<slice::Iter<PropertyDeclaration>>, Repeat<bool>>
+    > {
+        // Declarations are stored in reverse order.
+        let normal = self.normal.iter().rev().zip(repeat(false));
+        let important = self.important.iter().rev().zip(repeat(true));
+        normal.chain(important)
+    }
 }
 
 impl ToCss for PropertyDeclarationBlock {
@@ -5716,8 +5730,7 @@ impl ToCss for PropertyDeclarationBlock {
         let mut already_serialized = Vec::new();
 
         // Step 3
-        // restore order of declarations since PropertyDeclarationBlock is stored in reverse order
-        for declaration in self.important.iter().chain(self.normal.iter()).rev() {
+        for (declaration, important) in self.declarations() {
             // Step 3.1
             let property = declaration.name();
 
@@ -5731,8 +5744,8 @@ impl ToCss for PropertyDeclarationBlock {
             if !shorthands.is_empty() {
 
                 // Step 3.3.1
-                let mut longhands = self.important.iter().chain(self.normal.iter()).rev()
-                    .filter(|d| !already_serialized.contains(&d.name()))
+                let mut longhands = self.declarations()
+                    .filter(|d| !already_serialized.contains(&d.0.name()))
                     .collect::<Vec<_>>();
 
                 // Step 3.3.2
@@ -5741,24 +5754,27 @@ impl ToCss for PropertyDeclarationBlock {
 
                     // Substep 2 & 3
                     let mut current_longhands = Vec::new();
+                    let mut important_count = 0;
 
                     for longhand in longhands.iter() {
-                        let longhand_name = longhand.name();
+                        let longhand_name = longhand.0.name();
                         if properties.iter().any(|p| &longhand_name == *p) {
-                            current_longhands.push(*longhand);
+                            current_longhands.push(longhand.0);
+                            if longhand.1 == true {
+                                important_count += 1;
+                            }
                         }
                     }
 
                     // Substep 1
+                    /* Assuming that the PropertyDeclarationBlock contains no duplicate entries,
+                    if the current_longhands length is equal to the properties length, it means
+                    that the properties that map to shorthand are present in longhands */
                     if current_longhands.is_empty() || current_longhands.len() != properties.len() {
                         continue;
                     }
 
                     // Substep 4
-                    let important_count = current_longhands.iter()
-                        .filter(|l| self.important.contains(l))
-                        .count();
-
                     let is_important = important_count > 0;
                     if is_important && important_count != current_longhands.len() {
                         continue;
@@ -5778,7 +5794,7 @@ impl ToCss for PropertyDeclarationBlock {
                     for current_longhand in current_longhands {
                         // Substep 9
                         already_serialized.push(current_longhand.name());
-                        let index_to_remove = longhands.iter().position(|l| l == &current_longhand);
+                        let index_to_remove = longhands.iter().position(|l| l.0 == current_longhand);
                         if let Some(index) = index_to_remove {
                             // Substep 10
                             longhands.remove(index);
@@ -5793,11 +5809,10 @@ impl ToCss for PropertyDeclarationBlock {
             }
 
             // Steps 3.3.5, 3.3.6 & 3.3.7
-            let append_important = self.important.contains(declaration);
             try!(append_serialization(dest,
                                  &property.to_string(),
                                  AppendableValue::Declaration(declaration),
-                                 append_important,
+                                 important,
                                  &mut is_first_serialization));
 
             // Step 3.3.8
@@ -5818,7 +5833,7 @@ fn append_serialization<W>(dest: &mut W,
                            property_name: &str,
                            appendable_value: AppendableValue,
                            is_important: bool,
-                           is_first_serialization: &mut bool) -> fmt::Result where W: fmt::Write
+                           is_first_serialization: &mut bool) -> fmt::Result where W: fmt::Write {
 
     // after first serialization(key: value;) add whitespace between the pairs
     if !*is_first_serialization {
