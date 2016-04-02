@@ -209,7 +209,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
         self.textinput.borrow_mut().set_content(value);
         self.value_changed.set(true);
 
-        self.force_relayout();
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
@@ -232,13 +232,6 @@ impl HTMLTextAreaElement {
     }
 }
 
-
-impl HTMLTextAreaElement {
-    fn force_relayout(&self) {
-        let doc = document_from_node(self);
-        doc.content_changed(self.upcast(), NodeDamage::OtherNodeDamage)
-    }
-}
 
 impl VirtualMethods for HTMLTextAreaElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
@@ -324,11 +317,11 @@ impl VirtualMethods for HTMLTextAreaElement {
                             ChangeEventRunnable::send(self.upcast::<Node>());
                         }
 
-                        self.force_relayout();
+                        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                         event.PreventDefault();
                     }
                     KeyReaction::RedrawSelection => {
-                        self.force_relayout();
+                        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                         event.PreventDefault();
                     }
                     KeyReaction::Nothing => (),

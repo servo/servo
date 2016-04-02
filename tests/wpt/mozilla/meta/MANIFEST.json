@@ -2615,6 +2615,18 @@
             "url": "/_mozilla/css/input_selection_a.html"
           }
         ],
+        "css/input_selection_incremental_a.html": [
+          {
+            "path": "css/input_selection_incremental_a.html",
+            "references": [
+              [
+                "/_mozilla/css/input_selection_incremental_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/input_selection_incremental_a.html"
+          }
+        ],
         "css/input_selection_ref.html": [
           {
             "path": "css/input_selection_ref.html",
@@ -9047,6 +9059,18 @@
             ]
           ],
           "url": "/_mozilla/css/input_selection_a.html"
+        }
+      ],
+      "css/input_selection_incremental_a.html": [
+        {
+          "path": "css/input_selection_incremental_a.html",
+          "references": [
+            [
+              "/_mozilla/css/input_selection_incremental_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/input_selection_incremental_a.html"
         }
       ],
       "css/input_selection_ref.html": [

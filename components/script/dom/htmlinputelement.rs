@@ -200,6 +200,7 @@ impl HTMLInputElement {
         text_input.selection_begin = Some(text_input.get_text_point_for_absolute_point(start));
         text_input.edit_point = text_input.get_text_point_for_absolute_point(end);
         self.selection_direction.set(*direction);
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
 }
@@ -401,7 +402,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
         }
 
         self.value_changed.set(true);
-        self.force_relayout();
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         Ok(())
     }
 
@@ -586,11 +587,6 @@ fn in_same_group(other: &HTMLInputElement, owner: Option<&HTMLFormElement>,
 }
 
 impl HTMLInputElement {
-    fn force_relayout(&self) {
-        let doc = document_from_node(self);
-        doc.content_changed(self.upcast(), NodeDamage::OtherNodeDamage)
-    }
-
     fn radio_group_updated(&self, group: Option<&Atom>) {
         if self.Checked() {
             broadcast_radio_checked(self, group);
@@ -654,7 +650,7 @@ impl HTMLInputElement {
                                     self.get_radio_group_name().as_ref());
         }
 
-        self.force_relayout();
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         //TODO: dispatch change event
     }
 
@@ -684,7 +680,7 @@ impl HTMLInputElement {
             .expect("Failed to reset input value to default.");
         self.value_dirty.set(false);
         self.value_changed.set(false);
-        self.force_relayout();
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
 
@@ -889,11 +885,11 @@ impl VirtualMethods for HTMLInputElement {
                                 ChangeEventRunnable::send(self.upcast::<Node>());
                             }
 
-                            self.force_relayout();
+                            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                             event.PreventDefault();
                         }
                         RedrawSelection => {
-                            self.force_relayout();
+                            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
                             event.PreventDefault();
                         }
                         Nothing => (),
