@@ -106,6 +106,8 @@ pub trait LayoutRPC {
     fn node_geometry(&self) -> NodeGeometryResponse;
     /// Requests the scroll geometry of this node. Used by APIs such as `scrollTop`.
     fn node_scroll_area(&self) -> NodeGeometryResponse;
+    /// Requests the layer id of this node. Used by APIs such as `scrollTop`
+    fn node_layer_id(&self) -> NodeLayerIdResponse;
     /// Requests the node containing the point of interest
     fn hit_test(&self) -> HitTestResponse;
     /// Query layout for the resolved value of a given CSS property
@@ -144,6 +146,11 @@ pub struct HitTestResponse {
 pub struct NodeGeometryResponse {
     pub client_rect: Rect<i32>,
 }
+
+pub struct NodeLayerIdResponse {
+    pub layer_id : LayerId,
+}
+
 pub struct ResolvedStyleResponse(pub Option<String>);
 
 #[derive(Clone)]
@@ -169,6 +176,7 @@ pub enum ReflowQueryType {
     ContentBoxesQuery(TrustedNodeAddress),
     HitTestQuery(Point2D<f32>, bool),
     NodeGeometryQuery(TrustedNodeAddress),
+    NodeLayerIdQuery(TrustedNodeAddress),
     NodeScrollGeometryQuery(TrustedNodeAddress),
     ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, Atom),
     OffsetParentQuery(TrustedNodeAddress),

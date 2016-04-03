@@ -46,7 +46,7 @@ use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use profile_traits::time::{self, TimerMetadata, profile};
 use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request};
 use query::{process_node_geometry_request, process_node_scroll_area_request, process_offset_parent_query};
-use query::{process_resolved_style_request, process_margin_style_query};
+use query::{process_node_layer_id_request, process_resolved_style_request, process_margin_style_query};
 use script::dom::node::OpaqueStyleAndLayoutData;
 use script::layout_interface::{LayoutRPC, OffsetParentResponse, MarginStyleResponse};
 use script::layout_interface::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType};
@@ -116,6 +116,8 @@ pub struct LayoutThreadData {
 
     /// A queued response for the client {top, left, width, height} of a node in pixels.
     pub client_rect_response: Rect<i32>,
+
+    pub layer_id_response: Option<LayerId>,
 
     /// A queued response for the node at a given point
     pub hit_test_response: (Option<DisplayItemMetadata>, bool),
@@ -463,6 +465,7 @@ impl LayoutThread {
                     content_box_response: Rect::zero(),
                     content_boxes_response: Vec::new(),
                     client_rect_response: Rect::zero(),
+                    layer_id_response: None,
                     hit_test_response: (None, false),
                     scroll_area_response: Rect::zero(),
                     resolved_style_response: None,
@@ -1015,6 +1018,9 @@ impl LayoutThread {
                     ReflowQueryType::NodeGeometryQuery(_) => {
                         rw_data.client_rect_response = Rect::zero();
                     },
+                    ReflowQueryType::NodeLayerIdQuery(_) => {
+                        rw_data.layer_id_response = None;
+                    },
                     ReflowQueryType::NodeScrollGeometryQuery(_) => {
                         rw_data.scroll_area_response = Rect::zero();
                     },
@@ -1176,6 +1182,10 @@ impl LayoutThread {
                 ReflowQueryType::NodeScrollGeometryQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.scroll_area_response = process_node_scroll_area_request(node, &mut root_flow);
+                },
+                ReflowQueryType::NodeLayerIdQuery(node) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.layer_id_response = process_node_layer_id_request(node, &mut root_flow);
                 },
                 ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };

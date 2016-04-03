@@ -1453,6 +1453,28 @@ impl ElementMethods for Element {
                      rect.size.height.to_f64_px())
     }
 
+    // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
+    fn ScrollTop(&self) -> f64 {
+        let point = self.upcast::<Node>().scroll_offset();
+        return -point.y as f64;
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
+    fn SetScrollTop(&self, scroll_top: f64) {
+        unimplemented!()
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scrollleft
+    fn ScrollLeft(&self) -> f64 {
+        let point = self.upcast::<Node>().scroll_offset();
+        return -point.x as f64;
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scrollleft
+    fn SetScrollLeft(&self, scroll_left: f64) {
+        unimplemented!()
+    }
+
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth
     fn ScrollWidth(&self) -> i32 {
         self.upcast::<Node>().scroll_area().size.width
@@ -2233,4 +2255,3 @@ impl AtomicElementFlags {
         self.0.fetch_or(flags.bits() as usize, Ordering::Relaxed);
     }
 }
-

@@ -13,11 +13,12 @@ use flow;
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use gfx::display_list::OpaqueNode;
+use gfx_traits::{LayerId};
 use layout_thread::LayoutThreadData;
 use msg::constellation_msg::ConstellationChan;
 use opaque_node::OpaqueNodeMethods;
 use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse, NodeGeometryResponse};
-use script::layout_interface::{HitTestResponse, LayoutRPC, OffsetParentResponse};
+use script::layout_interface::{HitTestResponse, LayoutRPC, OffsetParentResponse, NodeLayerIdResponse};
 use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan, MarginStyleResponse};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
@@ -115,6 +116,12 @@ impl LayoutRPC for LayoutRPCImpl {
     fn node_scroll_area(&self) -> NodeGeometryResponse {
         NodeGeometryResponse {
             client_rect: self.0.lock().unwrap().scroll_area_response
+        }
+    }
+
+    fn node_layer_id(&self) -> NodeLayerIdResponse {
+        NodeLayerIdResponse {
+            layer_id: self.0.lock().unwrap().layer_id_response.unwrap()
         }
     }
 
@@ -345,6 +352,7 @@ struct UnioningFragmentScrollAreaIterator {
     origin_rect: Rect<i32>,
     level: Option<i32>,
     is_child: bool,
+    layer_id: Option<LayerId>,
     overflow_direction: OverflowDirection
 }
 
@@ -356,6 +364,7 @@ impl UnioningFragmentScrollAreaIterator {
             origin_rect: Rect::zero(),
             level: None,
             is_child: false,
+            layer_id: None,
             overflow_direction: OverflowDirection::RightAndDown
         }
     }
@@ -425,6 +434,12 @@ impl FragmentBorderBoxIterator for UnioningFragmentScrollAreaIterator {
         let bottom_padding = (border_box.size.height - bottom_border - top_border).to_px();
         let top_padding = top_border.to_px();
         let left_padding = left_border.to_px();
+
+        // FIXME: A Hack ... The first layer_id as iterated seems to be the "correct" one
+        if self.layer_id == None {
+            self.layer_id = Some(fragment.layer_id());
+        }
+
         match self.level {
             Some(start_level) if level <= start_level => { self.is_child = false; }
             Some(_) => {
@@ -515,6 +530,12 @@ pub fn process_node_geometry_request<N: LayoutNode>(requested_node: N, layout_ro
     let mut iterator = FragmentLocatingFragmentIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
     iterator.client_rect
+}
+
+pub fn process_node_layer_id_request<N: LayoutNode>(requested_node: N, layout_root: &mut FlowRef) -> Option<LayerId> {
+    let mut iterator = UnioningFragmentScrollAreaIterator::new(requested_node.opaque());
+    sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
+    iterator.layer_id
 }
 
 pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layout_root: &mut FlowRef)

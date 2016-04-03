@@ -1121,6 +1121,18 @@ impl Window {
         self.layout_rpc.node_scroll_area().client_rect
     }
 
+    pub fn scroll_offset_query(&self, node: TrustedNodeAddress) -> Point2D<f32> {
+        self.reflow(ReflowGoal::ForScriptQuery,
+                    ReflowQueryType::NodeLayerIdQuery(node),
+                    ReflowReason::Query);
+        let layer_id = self.layout_rpc.node_layer_id().layer_id;
+        let pipeline_id = self.id;
+
+        let (send, recv) = ipc::channel::<Point2D<f32>>().unwrap();
+        self.compositor.send(ScriptToCompositorMsg::GetScrollOffset(pipeline_id, layer_id, send)).unwrap();
+        recv.recv().unwrap_or(Point2D::zero())
+    }
+
     pub fn resolved_style_query(&self,
                             element: TrustedNodeAddress,
                             pseudo: Option<PseudoElement>,
@@ -1474,6 +1486,7 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
         ReflowQueryType::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
         ReflowQueryType::HitTestQuery(_n, _o) => "\tHitTestQuery",
         ReflowQueryType::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
+        ReflowQueryType::NodeLayerIdQuery(_n) => "\tNodeLayerIdQuery",
         ReflowQueryType::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",
         ReflowQueryType::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
         ReflowQueryType::OffsetParentQuery(_n) => "\tOffsetParentQuery",

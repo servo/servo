@@ -50,6 +50,7 @@ use dom::window::Window;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
+use gfx_traits::{LayerId};
 use heapsize::{HeapSizeOf, heap_size_of};
 use html5ever::tree_builder::QuirksMode;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
@@ -616,6 +617,12 @@ impl Node {
             // Step 9
             _ => scroll_area
         }
+    }
+
+    pub fn scroll_offset(&self) -> Point2D<f32> {
+        let document = self.owner_doc();
+        let window = document.window();
+        window.scroll_offset_query(self.to_trusted_node_address())
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-before
