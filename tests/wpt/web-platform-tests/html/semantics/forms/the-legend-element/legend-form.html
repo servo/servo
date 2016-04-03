@@ -24,6 +24,7 @@
 test(function () {
   var legendEle = document.getElementById("legendWithFieldSet");
   assert_not_equals(legendEle.form, null);
+  assert_equals(legendEle.form, document.getElementById("testformWithFieldSet"));
 }, "Check if legend.form returns its parent when it's inside a fieldset");
 test(function () {
   var legendEle = document.getElementById("testlegend");
