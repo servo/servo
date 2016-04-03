@@ -77,7 +77,7 @@ impl URL {
             }
         };
         // Step 5.
-        let query_string = parsed_url.query.clone().unwrap_or(String::new());
+        let query_string = parsed_url.query.clone().unwrap_or_else(|| String::new());
         let query_init = USVStringOrURLSearchParams::USVString(USVString(query_string));
         let query = try!(URLSearchParams::Constructor(global, Some(query_init)));
         // Steps 6-8.
@@ -200,6 +200,7 @@ impl URLMethods for URL {
     // https://url.spec.whatwg.org/#dom-url-search
     fn SetSearch(&self, value: USVString) {
         UrlHelper::SetSearch(&mut self.url.borrow_mut(), value);
+        self.query.update_from(&*self.url.borrow());
     }
 
     // https://url.spec.whatwg.org/#dom-url-searchparams

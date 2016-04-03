@@ -12,6 +12,7 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::USVString;
 use encoding::types::EncodingRef;
+use url::Url;
 use url::form_urlencoded::{parse, serialize_with_encoding};
 use util::str::DOMString;
 
@@ -54,6 +55,10 @@ impl URLSearchParams {
         }
         // Step 4.
         Ok(query)
+    }
+
+    pub fn update_from(&self, url: &Url) {
+        *self.list.borrow_mut() = url.query_pairs().unwrap_or_else(|| vec![]);
     }
 }
 
