@@ -5,7 +5,7 @@
 
 // https://html.spec.whatwg.org/multipage/#htmllegendelement
 interface HTMLLegendElement : HTMLElement {
-  //readonly attribute HTMLFormElement? form;
+  readonly attribute HTMLFormElement? form;
 
   // also has obsolete members
 };
