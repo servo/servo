@@ -567,7 +567,7 @@ interface WebGLRenderingContextBase
 
     void generateMipmap(GLenum target);
 
-    //WebGLActiveInfo? getActiveAttrib(WebGLProgram? program, GLuint index);
+    WebGLActiveInfo? getActiveAttrib(WebGLProgram? program, GLuint index);
     WebGLActiveInfo? getActiveUniform(WebGLProgram? program, GLuint index);
     //sequence<WebGLShader>? getAttachedShaders(WebGLProgram? program);
 
