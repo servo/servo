@@ -20,6 +20,7 @@ use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse, NodeGeo
 use script::layout_interface::{HitTestResponse, LayoutRPC, OffsetParentResponse};
 use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan, MarginStyleResponse};
 use script_traits::LayoutMsg as ConstellationMsg;
+use script_traits::UntrustedNodeAddress;
 use sequential;
 use std::cmp::{min, max};
 use std::ops::Deref;
@@ -83,6 +84,24 @@ impl LayoutRPC for LayoutRPCImpl {
         HitTestResponse {
             node_address: result.map(|dim| dim.node.to_untrusted_node_address()),
         }
+    }
+
+    fn nodes_from_point(&self, point: Point2D<f32>) -> Vec<UntrustedNodeAddress> {
+        let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
+        let nodes_from_point_list = {
+            let &LayoutRPCImpl(ref rw_data) = self;
+            let rw_data = rw_data.lock().unwrap();
+            let result = match rw_data.display_list {
+                None => panic!("Tried to hit test without a DisplayList"),
+                Some(ref display_list) => display_list.hit_test(point),
+            };
+
+            result
+        };
+
+        nodes_from_point_list.iter()
+           .map(|metadata| metadata.node.to_untrusted_node_address())
+           .collect()
     }
 
     fn node_geometry(&self) -> NodeGeometryResponse {
