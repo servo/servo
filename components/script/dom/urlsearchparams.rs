@@ -14,7 +14,6 @@ use dom::bindings::str::USVString;
 use dom::bindings::weakref::MutableWeakRef;
 use dom::url::URL;
 use encoding::types::EncodingRef;
-use url::Url;
 use url::form_urlencoded::{parse, serialize_with_encoding};
 use util::str::DOMString;
 
@@ -29,16 +28,16 @@ pub struct URLSearchParams {
 }
 
 impl URLSearchParams {
-    fn new_inherited() -> URLSearchParams {
+    fn new_inherited(url: Option<&URL>) -> URLSearchParams {
         URLSearchParams {
             reflector_: Reflector::new(),
             list: DOMRefCell::new(vec![]),
-            url: MutableWeakRef::new(None),
+            url: MutableWeakRef::new(url),
         }
     }
 
-    pub fn new(global: GlobalRef) -> Root<URLSearchParams> {
-        reflect_dom_object(box URLSearchParams::new_inherited(), global,
+    pub fn new(global: GlobalRef, url: Option<&URL>) -> Root<URLSearchParams> {
+        reflect_dom_object(box URLSearchParams::new_inherited(url), global,
                            URLSearchParamsBinding::Wrap)
     }
 
@@ -46,7 +45,7 @@ impl URLSearchParams {
     pub fn Constructor(global: GlobalRef, init: Option<USVStringOrURLSearchParams>) ->
                        Fallible<Root<URLSearchParams>> {
         // Step 1.
-        let query = URLSearchParams::new(global);
+        let query = URLSearchParams::new(global, None);
         match init {
             Some(USVStringOrURLSearchParams::USVString(init)) => {
                 // Step 2.
@@ -64,10 +63,6 @@ impl URLSearchParams {
 
     pub fn set_list(&self, list: Vec<(String, String)>) {
         *self.list.borrow_mut() = list;
-    }
-
-    pub fn set_url(&self, url: &URL) {
-        self.url.set(Some(url));
     }
 }
 

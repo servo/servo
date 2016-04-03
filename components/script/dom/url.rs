@@ -211,11 +211,7 @@ impl URLMethods for URL {
 
     // https://url.spec.whatwg.org/#dom-url-searchparams
     fn SearchParams(&self) -> Root<URLSearchParams> {
-        self.search_params.or_init(|| {
-            let search_params = URLSearchParams::new(self.global().r());
-            search_params.set_url(self);
-            search_params
-        })
+        self.search_params.or_init(|| URLSearchParams::new(self.global().r(), Some(self)))
     }
 
     // https://url.spec.whatwg.org/#dom-url-href
