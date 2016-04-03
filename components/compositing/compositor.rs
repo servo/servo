@@ -714,6 +714,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let _ = sender.send(());
             }
 
+            (Msg::GetScrollOffset(pipeline_id, layer_id, sender), ShutdownState::NotShuttingDown) => {
+                match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
+                    Some(ref layer) => {
+                        let typed = layer.extra_data.borrow().scroll_offset;
+                        let _ = sender.send(Point2D::new(typed.x.get(), typed.y.get()));
+                    },
+                    None => {},
+                }
+            }
+
             // When we are shutting_down, we need to avoid performing operations
             // such as Paint that may crash because we have begun tearing down
             // the rest of our resources.
