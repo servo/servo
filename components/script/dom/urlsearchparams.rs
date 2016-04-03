@@ -11,6 +11,8 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::USVString;
+use dom::bindings::weakref::MutableWeakRef;
+use dom::url::URL;
 use encoding::types::EncodingRef;
 use url::Url;
 use url::form_urlencoded::{parse, serialize_with_encoding};
@@ -22,6 +24,8 @@ pub struct URLSearchParams {
     reflector_: Reflector,
     // https://url.spec.whatwg.org/#concept-urlsearchparams-list
     list: DOMRefCell<Vec<(String, String)>>,
+    // https://url.spec.whatwg.org/#concept-urlsearchparams-url-object
+    url: MutableWeakRef<URL>,
 }
 
 impl URLSearchParams {
@@ -29,6 +33,7 @@ impl URLSearchParams {
         URLSearchParams {
             reflector_: Reflector::new(),
             list: DOMRefCell::new(vec![]),
+            url: MutableWeakRef::new(None),
         }
     }
 
@@ -57,8 +62,12 @@ impl URLSearchParams {
         Ok(query)
     }
 
-    pub fn update_from(&self, url: &Url) {
-        *self.list.borrow_mut() = url.query_pairs().unwrap_or_else(|| vec![]);
+    pub fn set_list(&self, list: Vec<(String, String)>) {
+        *self.list.borrow_mut() = list;
+    }
+
+    pub fn set_url(&self, url: &URL) {
+        self.url.set(Some(url));
     }
 }
 
@@ -106,6 +115,7 @@ impl URLSearchParamsMethods for URLSearchParams {
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-set
     fn Set(&self, name: USVString, value: USVString) {
+        // Step 1.
         let mut list = self.list.borrow_mut();
         let mut index = None;
         let mut i = 0;
@@ -123,8 +133,9 @@ impl URLSearchParamsMethods for URLSearchParams {
         });
         match index {
             Some(index) => list[index].1 = value.0,
-            None => list.push((name.0, value.0)),
+            None => list.push((name.0, value.0)), // Step 2.
         };
+        // Step 3.
         self.update_steps();
     }
 
@@ -145,8 +156,10 @@ impl URLSearchParams {
 
 
 impl URLSearchParams {
-    // https://url.spec.whatwg.org/#concept-uq-update
+    // https://url.spec.whatwg.org/#concept-urlsearchparams-update
     fn update_steps(&self) {
-        // XXXManishearth Implement this when the URL interface is implemented
+        if let Some(url) = self.url.root() {
+            url.set_query(self.serialize(None));
+        }
     }
 }
