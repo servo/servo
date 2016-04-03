@@ -1020,6 +1020,47 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform4i(&self,
+                  uniform: Option<&WebGLUniformLocation>,
+                  x: i32, y: i32, z: i32, w: i32) {
+        let uniform = match uniform {
+            Some(uniform) => uniform,
+            None => return,
+        };
+
+        match self.current_program.get() {
+            Some(ref program) if program.id() == uniform.program_id() => {},
+            _ => return self.webgl_error(InvalidOperation),
+        };
+
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::Uniform4i(uniform.id(), x, y, z, w)))
+            .unwrap()
+    }
+
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform4iv(&self,
+                  _cx: *mut JSContext,
+                  uniform: Option<&WebGLUniformLocation>,
+                  data: Option<*mut JSObject>) {
+        let data = match data {
+            Some(data) => data,
+            None => return self.webgl_error(InvalidValue),
+        };
+
+        if let Some(data) = array_buffer_view_to_vec_checked::<i32>(data) {
+            if data.len() < 4 {
+                return self.webgl_error(InvalidOperation);
+            }
+
+            self.Uniform4i(uniform, data[0], data[1], data[2], data[3]);
+        } else {
+            self.webgl_error(InvalidValue);
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform4f(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: f32, y: f32, z: f32, w: f32) {
