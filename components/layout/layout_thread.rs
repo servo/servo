@@ -45,10 +45,11 @@ use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use profile_traits::time::{self, TimerMetadata, profile};
 use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request};
-use query::{process_node_geometry_request, process_node_scroll_area_request, process_offset_parent_query};
-use query::{process_resolved_style_request, process_margin_style_query};
+use query::{process_node_geometry_request, process_node_layer_id_request, process_node_scroll_area_request};
+use query::{process_node_overflow_request, process_resolved_style_request, process_margin_style_query};
+use query::{process_offset_parent_query};
 use script::dom::node::OpaqueStyleAndLayoutData;
-use script::layout_interface::{LayoutRPC, OffsetParentResponse, MarginStyleResponse};
+use script::layout_interface::{LayoutRPC, OffsetParentResponse, NodeOverflowResponse, MarginStyleResponse};
 use script::layout_interface::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType};
 use script::layout_interface::{ScriptLayoutChan, ScriptReflow};
 use script::reporter::CSSErrorReporter;
@@ -117,8 +118,13 @@ pub struct LayoutThreadData {
     /// A queued response for the client {top, left, width, height} of a node in pixels.
     pub client_rect_response: Rect<i32>,
 
+    pub layer_id_response: Option<LayerId>,
+
     /// A queued response for the node at a given point
     pub hit_test_response: (Option<DisplayItemMetadata>, bool),
+
+    /// A pair of overflow property in x and y
+    pub overflow_response: NodeOverflowResponse,
 
     /// A queued response for the scroll {top, left, width, height} of a node in pixels.
     pub scroll_area_response: Rect<i32>,
@@ -463,8 +469,10 @@ impl LayoutThread {
                     content_box_response: Rect::zero(),
                     content_boxes_response: Vec::new(),
                     client_rect_response: Rect::zero(),
+                    layer_id_response: None,
                     hit_test_response: (None, false),
                     scroll_area_response: Rect::zero(),
+                    overflow_response: NodeOverflowResponse(None),
                     resolved_style_response: None,
                     offset_parent_response: OffsetParentResponse::empty(),
                     margin_style_response: MarginStyleResponse::empty(),
@@ -1015,8 +1023,14 @@ impl LayoutThread {
                     ReflowQueryType::NodeGeometryQuery(_) => {
                         rw_data.client_rect_response = Rect::zero();
                     },
+                    ReflowQueryType::NodeLayerIdQuery(_) => {
+                        rw_data.layer_id_response = None;
+                    },
                     ReflowQueryType::NodeScrollGeometryQuery(_) => {
                         rw_data.scroll_area_response = Rect::zero();
+                    },
+                    ReflowQueryType::NodeOverflowQuery(_) => {
+                        rw_data.overflow_response = NodeOverflowResponse(None);
                     },
                     ReflowQueryType::ResolvedStyleQuery(_, _, _) => {
                         rw_data.resolved_style_response = None;
@@ -1176,6 +1190,14 @@ impl LayoutThread {
                 ReflowQueryType::NodeScrollGeometryQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.scroll_area_response = process_node_scroll_area_request(node, &mut root_flow);
+                },
+                ReflowQueryType::NodeOverflowQuery(node) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.overflow_response = process_node_overflow_request(node);
+                },
+                ReflowQueryType::NodeLayerIdQuery(node) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.layer_id_response = Some(process_node_layer_id_request(node));
                 },
                 ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
