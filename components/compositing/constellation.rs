@@ -1505,7 +1505,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     #[allow(dead_code)]
     fn check_is_pipeline_private(&self, pipeline_id: PipelineId) -> bool {
         let mut pipeline_id = Some(pipeline_id);
-        while let Some(pipeline) = pipeline_id.map(|id| self.pipeline(id)) {
+        while let Some(pipeline) = pipeline_id.and_then(self.pipelines.get(&id)) {
             if pipeline.is_private {
                 return true;
             }
