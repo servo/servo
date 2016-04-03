@@ -81,6 +81,8 @@ partial interface Element {
   DOMRectList getClientRects();
   DOMRect getBoundingClientRect();
 
+  attribute unrestricted double scrollTop;
+  attribute unrestricted double scrollLeft;
   readonly attribute long scrollWidth;
   readonly attribute long scrollHeight;
 
