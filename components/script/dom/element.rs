@@ -699,10 +699,11 @@ impl Element {
     }
 
     fn sync_property_with_attrs_style(&self) {
-        let mut style_str = String::new();
-        if let &Some(ref declarations) = &*self.style_attribute().borrow() {
-            declarations.to_css(&mut style_str).unwrap();
-        }
+        let style_str = if let &Some(ref declarations) = &*self.style_attribute().borrow() {
+            declarations.to_css_string()
+        } else {
+            String::new()
+        };
 
         let new_style = AttrValue::String(style_str);
 
