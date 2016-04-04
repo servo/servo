@@ -2249,6 +2249,7 @@ dependencies = [
  "serde_macros 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xdg 2.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2457,6 +2458,11 @@ dependencies = [
  "dylib 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "xdg"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "xi-unicode"
