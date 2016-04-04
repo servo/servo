@@ -291,6 +291,10 @@ impl Event {
         self.trusted.set(trusted);
     }
 
+    pub fn trusted(&self) -> bool {
+        self.trusted.get()
+    }
+
     // https://html.spec.whatwg.org/multipage/#fire-a-simple-event
     pub fn fire(&self, target: &EventTarget) -> bool {
         self.set_trusted(true);
