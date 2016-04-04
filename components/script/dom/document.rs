@@ -400,10 +400,6 @@ impl Document {
         self.encoding.set(encoding);
     }
 
-    pub fn content_changed(&self, node: &Node, damage: NodeDamage) {
-        node.dirty(damage);
-    }
-
     pub fn content_and_heritage_changed(&self, node: &Node, damage: NodeDamage) {
         node.force_dirty_ancestors(damage);
     }

@@ -1690,7 +1690,7 @@ impl VirtualMethods for Element {
                         parse_style_attribute(&value, &doc.base_url(), win.css_error_reporter())
                     });
                 if node.is_in_doc() {
-                    doc.content_changed(node, NodeDamage::NodeStyleDamaged);
+                    node.dirty(NodeDamage::NodeStyleDamaged);
                 }
             },
             &atom!("id") => {
@@ -1728,7 +1728,7 @@ impl VirtualMethods for Element {
                    common_style_affecting_attributes().iter().any(|a| &a.atom == attr.local_name()) ||
                    rare_style_affecting_attributes().iter().any(|a| a == attr.local_name())
                 {
-                    doc.content_changed(node, NodeDamage::OtherNodeDamage);
+                    node.dirty(NodeDamage::OtherNodeDamage);
                 }
             },
             _ => {},
@@ -2111,8 +2111,7 @@ impl Element {
 
     pub fn set_focus_state(&self, value: bool) {
         self.set_state(IN_FOCUS_STATE, value);
-        let doc = document_from_node(self);
-        doc.content_changed(self.upcast(), NodeDamage::OtherNodeDamage);
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     pub fn get_hover_state(&self) -> bool {
