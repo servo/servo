@@ -167,7 +167,7 @@ git = "https://github.com/browserhtml/browserhtml"
 branch = "gh-pages"
 
 [dependencies]
-bitflags = "0.3"
+bitflags = "0.5"
 env_logger = "0.3"
 euclid = {version = "0.6.4", features = ["plugins"]}
 libc = "0.2"

@@ -33,7 +33,7 @@ use util::opts::{self, RenderApi};
 static mut g_nested_event_loop_listener: Option<*mut (NestedEventLoopListener + 'static)> = None;
 
 bitflags! {
-    flags KeyModifiers: u8 {
+    pub flags KeyModifiers: u8 {
         const LEFT_CONTROL = 1,
         const RIGHT_CONTROL = 2,
         const LEFT_SHIFT = 4,

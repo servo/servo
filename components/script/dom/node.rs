@@ -131,7 +131,7 @@ pub struct Node {
 bitflags! {
     #[doc = "Flags for node items."]
     #[derive(JSTraceable, HeapSizeOf)]
-    flags NodeFlags: u8 {
+    pub flags NodeFlags: u8 {
         #[doc = "Specifies whether this node is in a document."]
         const IS_IN_DOC = 0x01,
         #[doc = "Specifies whether this node _must_ be reflowed regardless of style differences."]

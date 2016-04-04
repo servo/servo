@@ -672,7 +672,7 @@ pub struct ScannedTextFragmentInfo {
 }
 
 bitflags! {
-    flags ScannedTextFlags: u8 {
+    pub flags ScannedTextFlags: u8 {
         /// Whether a line break is required after this fragment if wrapping on newlines (e.g. if
         /// `white-space: pre` is in effect).
         const REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES = 0x01,
@@ -2558,7 +2558,7 @@ impl fmt::Debug for Fragment {
 }
 
 bitflags! {
-    flags QuantitiesIncludedInIntrinsicInlineSizes: u8 {
+    pub flags QuantitiesIncludedInIntrinsicInlineSizes: u8 {
         const INTRINSIC_INLINE_SIZE_INCLUDES_MARGINS = 0x01,
         const INTRINSIC_INLINE_SIZE_INCLUDES_PADDING = 0x02,
         const INTRINSIC_INLINE_SIZE_INCLUDES_BORDER = 0x04,
@@ -2569,7 +2569,7 @@ bitflags! {
 bitflags! {
     // Various flags we can use when splitting fragments. See
     // `calculate_split_position_using_breaking_strategy()`.
-    flags SplitOptions: u8 {
+    pub flags SplitOptions: u8 {
         #[doc = "True if this is the first fragment on the line."]
         const STARTS_LINE = 0x01,
         #[doc = "True if we should attempt to split at character boundaries if this split fails. \
@@ -2690,7 +2690,7 @@ impl Overflow {
 }
 
 bitflags! {
-    flags FragmentFlags: u8 {
+    pub flags FragmentFlags: u8 {
         /// Whether this fragment has a layer.
         const HAS_LAYER = 0x01,
     }
