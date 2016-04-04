@@ -197,17 +197,17 @@ impl ResourceChannelManager {
                     let _ = sender.send(());
                 }
                 ControlMsg::Exit => {
-                    if let Some(ref profile_dir) = opts::get().profile_dir {
+                    if let Some(ref config_dir) = opts::get().config_dir {
                         match self.resource_manager.auth_cache.read() {
-                            Ok(auth_cache) => write_json_to_file(&*auth_cache, profile_dir, "auth_cache.json"),
+                            Ok(auth_cache) => write_json_to_file(&*auth_cache, config_dir, "auth_cache.json"),
                             Err(_) => warn!("Error writing auth cache to disk"),
                         }
                         match self.resource_manager.cookie_jar.read() {
-                            Ok(jar) => write_json_to_file(&*jar, profile_dir, "cookie_jar.json"),
+                            Ok(jar) => write_json_to_file(&*jar, config_dir, "cookie_jar.json"),
                             Err(_) => warn!("Error writing cookie jar to disk"),
                         }
                         match self.resource_manager.hsts_list.read() {
-                            Ok(hsts) => write_json_to_file(&*hsts, profile_dir, "hsts_list.json"),
+                            Ok(hsts) => write_json_to_file(&*hsts, config_dir, "hsts_list.json"),
                             Err(_) => warn!("Error writing hsts list to disk"),
                         }
                     }
@@ -219,13 +219,13 @@ impl ResourceChannelManager {
     }
 }
 
-pub fn write_json_to_file<T: Encodable>(data: &T, profile_dir: &str, filename: &str) {
+pub fn write_json_to_file<T: Encodable>(data: &T, config_dir: &str, filename: &str) {
     let json_encoded: String;
     match json::encode(&data) {
         Ok(d) => json_encoded = d,
         Err(_) => return,
     }
-    let path = Path::new(profile_dir).join(filename);
+    let path = Path::new(config_dir).join(filename);
     let display = path.display();
 
     let mut file = match File::create(&path) {
