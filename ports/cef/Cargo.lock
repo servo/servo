@@ -2209,7 +2209,11 @@ dependencies = [
 [[package]]
 name = "webrender_traits"
 version = "0.1.0"
+<<<<<<< HEAD
 source = "git+https://github.com/servo/webrender_traits#c578452dc34d5a0bf431b8e4e50438d359ade75a"
+=======
+source = "git+https://github.com/servo/webrender_traits#7806f9b80ea6c78c0b90442850ac4b96deb74c2a"
+>>>>>>> 2c78765... Add Uniform2f
 dependencies = [
  "app_units 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2304,4 +2308,4 @@ dependencies = [
  "tendril 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
-
+ 
