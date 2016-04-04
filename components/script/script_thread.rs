@@ -2117,8 +2117,7 @@ impl ScriptThread {
         // Kick off the initial reflow of the page.
         debug!("kicking off initial reflow of {:?}", final_url);
         document.disarm_reflow_timeout();
-        document.content_changed(document.upcast(),
-                                 NodeDamage::OtherNodeDamage);
+        document.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         let window = window_from_node(document.r());
         window.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
 

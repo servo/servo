@@ -115,7 +115,7 @@ use style::servo::Stylesheet;
 use task_source::dom_manipulation::DOMManipulationTask;
 use time;
 use url::percent_encoding::percent_decode;
-use url::{Host, Url};
+use url::Url;
 use util::str::{DOMString, split_html_space_chars, str_join};
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
@@ -397,10 +397,6 @@ impl Document {
 
     pub fn set_encoding(&self, encoding: EncodingRef) {
         self.encoding.set(encoding);
-    }
-
-    pub fn content_changed(&self, node: &Node, damage: NodeDamage) {
-        node.dirty(damage);
     }
 
     pub fn content_and_heritage_changed(&self, node: &Node, damage: NodeDamage) {
