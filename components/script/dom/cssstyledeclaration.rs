@@ -9,7 +9,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::element::{Element, StylePriority};
-use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
+use dom::node::{Node, NodeDamage, window_from_node};
 use dom::window::Window;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -257,9 +257,8 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             element.update_inline_style(decl, priority);
         }
 
-        let document = document_from_node(element);
-        let node = element.upcast();
-        document.content_changed(node, NodeDamage::NodeStyleDamaged);
+        let node = element.upcast::<Node>();
+        node.dirty(NodeDamage::NodeStyleDamaged);
         Ok(())
     }
 
@@ -292,9 +291,8 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             None => element.set_inline_style_property_priority(&[&*property], priority),
         }
 
-        let document = document_from_node(element);
-        let node = element.upcast();
-        document.content_changed(node, NodeDamage::NodeStyleDamaged);
+        let node = element.upcast::<Node>();
+        node.dirty(NodeDamage::NodeStyleDamaged);
         Ok(())
     }
 
@@ -329,9 +327,8 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             None => elem.remove_inline_style_property(&property),
         }
 
-        let document = document_from_node(elem);
-        let node = elem.upcast();
-        document.content_changed(node, NodeDamage::NodeStyleDamaged);
+        let node = elem.upcast::<Node>();
+        node.dirty(NodeDamage::NodeStyleDamaged);
 
         // Step 6
         Ok(value)
