@@ -704,7 +704,7 @@ impl TableLikeFlow for BlockFlow {
 
             // At this point, `current_block_offset` is at the content edge of our box. Now iterate
             // over children.
-            for kid in self.base.child_iter_mut() {
+            for kid in self.base.child_iter() {
                 // Account for spacing or collapsed borders.
                 if kid.is_table_row() {
                     has_rows = true;
