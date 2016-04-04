@@ -2541,8 +2541,12 @@ fn bindgen_test_layout_nsRect() {
 #[repr(i8)]
 #[derive(Debug, Copy, Clone)]
 pub enum StyleBoxSizing { Content = 0, Padding = 1, Border = 2, }
-pub enum PlaybackDirection { }
-pub enum FillMode { }
+#[repr(i32)]
+#[derive(Debug, Copy, Clone)]
+pub enum PlaybackDirection { _BindgenOpaqueEnum = 0, }
+#[repr(i32)]
+#[derive(Debug, Copy, Clone)]
+pub enum FillMode { _BindgenOpaqueEnum = 0, }
 pub enum WritingMode { }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone)]
@@ -4668,9 +4672,8 @@ pub struct nsStyleSVG {
     pub mStrokeLinejoin: u8,
     pub mTextAnchor: u8,
     pub mTextRendering: u8,
-    pub _bitfield_1: nsStyleSVGOpacitySource,
-    pub _bitfield_2: nsStyleSVGOpacitySource,
-    pub _bitfield_3: u8,
+    pub _bitfield_1: u8,
+    pub _bitfield_2: u8,
 }
 #[test]
 fn bindgen_test_layout_nsStyleSVG() {

@@ -65,6 +65,7 @@ fi
   -no-type-renaming                                                 \
   -DMOZILLA_INTERNAL_API                                            \
   -DMOZ_STYLO_BINDINGS=1                                            \
+  -DJS_DEBUG=1                                                      \
   -DDEBUG=1 -DTRACING=1 -DOS_POSIX=1                                \
   -DIMPL_LIBXUL                                                     \
   -match "RefCountType.h"                                           \
@@ -130,7 +131,7 @@ fi
   "$DIST_INCLUDE/nsStyleStruct.h"
 
 if [ $? -ne 0 ]; then
-  echo -e "\e[91warning:\e[0m bindgen exited with nonzero exit status"
+  echo -e "\e[91mwarning:\e[0m bindgen exited with nonzero exit status"
 else
   echo -e "\e[34minfo:\e[0m bindgen exited successfully, running tests"
   TESTS_FILE=$(mktemp)
