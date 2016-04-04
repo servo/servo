@@ -709,11 +709,15 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 let event = CompositorEvent::MouseMoveEvent(Some(point));
                 let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
                let result = match self.pipelines.get(&pipeline_id) {
-                    None => { debug!("Pipeline {:?} got mouse move event after closure.", pipeline_id); return true; }
-                    Some(pipeline) => pipeline.script_chan.send(msg),
-                };
-                if let Err(e) = result {
-                    self.handle_send_error(pipeline_id, e);
+                   Some(pipeline) => {
+                       if let Err(e) = pipeline.script_chan.send(msg) {
+                           self.handle_send_error(pipeline_id, e);
+                       }
+                   },
+                   None => {
+                       debug!("Pipeline {:?} got mouse move event after closure.", pipeline_id);
+                       return true;
+                   }
                 }
             }
             Request::Script(FromScriptMsg::GetClipboardContents(sender)) => {
@@ -1009,22 +1013,20 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     }
 
     fn handle_tick_animation(&mut self, pipeline_id: PipelineId, tick_type: AnimationTickType) {
+        let pipeline = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => pipeline,
+            None => return debug!("Pipeline {:?} got script tick after closure.", pipeline_id),
+        };
+
         let result = match tick_type {
             AnimationTickType::Script => {
-                let msg = ConstellationControlMsg::TickAllAnimations(pipeline_id);
-                match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.script_chan.send(msg),
-                    None => return debug!("Pipeline {:?} got script tick after closure.", pipeline_id),
-                }
-            }
+                pipeline.script_chan.0.send(ConstellationControlMsg::TickAllAnimations(pipeline_id))
+            },
             AnimationTickType::Layout => {
-                let msg = LayoutControlMsg::TickAnimations;
-                match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.layout_chan.0.send(msg),
-                    None => return debug!("Pipeline {:?} got script tick after closure.", pipeline_id),
-                }
+                pipeline.layout_chan.0.send(LayoutControlMsg::TickAnimations)
             }
         };
+
         if let Err(e) = result {
             self.handle_send_error(pipeline_id, e);
         }
@@ -1039,7 +1041,11 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         // in a separate script thread than the framed document that initiated
         // the new load. The framing element must be notified about the
         // requested change so it can update its internal state.
-        let parent_info = self.pipelines.get(&source_id).and_then(|source| source.parent_info);
+        let (parent_info, window_size) =
+            self.pipelines.get(&source_id)
+            .map(|source| (source.parent_info, source.size))
+            .unwrap_or((None, None));
+
         match parent_info {
             Some((parent_pipeline_id, subpage_id)) => {
                 self.handle_load_start_msg(&source_id);
@@ -1080,7 +1086,6 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 // changes would be overridden by changing the subframe associated with source_id.
 
                 // Create the new pipeline
-                let window_size = self.pipelines.get(&source_id).and_then(|source| source.size);
                 let new_pipeline_id = PipelineId::new();
                 self.new_pipeline(new_pipeline_id, None, window_size, None, load_data);
                 self.push_pending_frame(new_pipeline_id, Some(source_id));
