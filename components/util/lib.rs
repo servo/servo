@@ -17,6 +17,7 @@
 #![deny(unsafe_code)]
 
 extern crate app_units;
+pub mod basedir;
 #[macro_use]
 extern crate bitflags;
 extern crate deque;
@@ -38,6 +39,8 @@ extern crate serde;
 extern crate smallvec;
 extern crate string_cache;
 extern crate url;
+extern crate uuid;
+extern crate xdg;
 
 use std::sync::Arc;
 

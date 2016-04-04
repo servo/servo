@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use basedir::default_config_dir;
 use opts;
 use resource_files::resources_dir_path;
 use rustc_serialize::json::{Json, ToJson};
@@ -144,6 +145,7 @@ pub fn read_prefs_from_file<T>(mut file: T)
 }
 
 pub fn extend_prefs(extension: HashMap<String, Pref>) {
+    print!("Received prefs {:?}", extension);
     PREFS.lock().unwrap().extend(extension);
 }
 
@@ -158,6 +160,19 @@ pub fn add_user_prefs() {
         } else {
             writeln!(&mut stderr(), "Error opening prefs.json from profile_dir")
                 .expect("failed printing to stderr");
+        }
+    } else if default_config_dir().unwrap().exists() {
+        if let Some(ref config_path) = opts::get().config_dir {
+            let mut path = PathBuf::from(config_path);
+            path.push("prefs.json");
+            if let Ok(file) = File::open(path) {
+                if let Ok(prefs) = read_prefs_from_file(file) {
+                    extend_prefs(prefs);
+                }
+            } else {
+            writeln!(&mut stderr(), "Error opening prefs.json from config dir")
+                .expect("failed printing to stderr");
+            }
         }
     }
 }

@@ -5,6 +5,7 @@
 //! Configuration options for a single run of the servo application. Created
 //! from command line arguments.
 
+use basedir::{default_config_dir, bootstrap_default_dirs};
 use euclid::size::{Size2D, TypedSize2D};
 use geometry::ScreenPx;
 use getopts::Options;
@@ -21,6 +22,7 @@ use std::path::Path;
 use std::process;
 use std::sync::atomic::{AtomicBool, ATOMIC_BOOL_INIT, Ordering};
 use url::{self, Url};
+
 
 /// Global flags for Servo, currently set on the command line.
 #[derive(Clone, Deserialize, Serialize)]
@@ -195,6 +197,9 @@ pub struct Opts {
 
     /// Directory path for persistent session
     pub profile_dir: Option<String>,
+
+    /// Directory for a default config directory
+    pub config_dir: Option<String>,
 
     // Which rendering API to use.
     pub render_api: RenderApi,
@@ -461,6 +466,9 @@ const DEFAULT_USER_AGENT: UserAgent = UserAgent::Gonk;
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;
 
 pub fn default_opts() -> Opts {
+
+    let config_dir = Some(default_config_dir().unwrap().to_str().unwrap().to_owned());
+
     Opts {
         is_running_problem_test: false,
         url: Some(url!("about:blank")),
@@ -514,12 +522,14 @@ pub fn default_opts() -> Opts {
         use_msaa: false,
         render_api: DEFAULT_RENDER_API,
         profile_dir: None,
+        config_dir: config_dir,
         full_backtraces: false,
     }
 }
 
 pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     let (app_name, args) = args.split_first().unwrap();
+    bootstrap_default_dirs();
 
     let mut opts = Options::new();
     opts.optflag("c", "cpu", "CPU painting (default)");
@@ -568,6 +578,9 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optopt("G", "graphics", "Select graphics backend (gl or es2)", "gl");
     opts.optopt("", "profile-dir",
                     "optional directory path for user sessions", "");
+    opts.optopt("", "config-dir",
+                    "config directory following xdg spec on linux platform", "");
+
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -800,6 +813,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         webrender_stats: debug_options.webrender_stats,
         use_msaa: debug_options.use_msaa,
         profile_dir: opt_match.opt_str("profile-dir"),
+        config_dir: opt_match.opt_str("config-dir"),
         full_backtraces: debug_options.full_backtraces,
     };
 
@@ -808,9 +822,9 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     // These must happen after setting the default options, since the prefs rely on
     // on the resource path.
     // Note that command line preferences have the highest precedence
-    if get().profile_dir.is_some() {
-        prefs::add_user_prefs();
-    }
+
+    prefs::add_user_prefs();
+
     for pref in opt_match.opt_strs("pref").iter() {
         let split: Vec<&str> = pref.splitn(2, '=').collect();
         let pref_name = split[0];
