@@ -42,9 +42,11 @@ extern crate serde;
 extern crate smallvec;
 extern crate string_cache;
 extern crate url;
+extern crate xdg;
 
 use std::sync::Arc;
 
+pub mod basedir;
 pub mod cache;
 #[allow(unsafe_code)]
 pub mod debug_utils;
