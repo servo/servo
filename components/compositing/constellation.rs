@@ -698,8 +698,11 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 let event = CompositorEvent::MouseButtonEvent(event_type, button, point);
                 let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
                 let result = match self.pipelines.get(&pipeline_id) {
-                    None => { debug!("Pipeline {:?} got mouse button event after closure.", pipeline_id); return true; }
                     Some(pipeline) => pipeline.script_chan.send(msg),
+                    None => {
+                        debug!("Pipeline {:?} got mouse button event after closure.", pipeline_id);
+                        return true;
+                    }
                 };
                 if let Err(e) = result {
                     self.handle_send_error(pipeline_id, e);
@@ -708,16 +711,15 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             Request::Script(FromScriptMsg::ForwardMouseMoveEvent(pipeline_id, point)) => {
                 let event = CompositorEvent::MouseMoveEvent(Some(point));
                 let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
-                match self.pipelines.get(&pipeline_id) {
-                   Some(pipeline) => {
-                       if let Err(e) = pipeline.script_chan.send(msg) {
-                           self.handle_send_error(pipeline_id, e);
-                       }
-                   },
-                   None => {
-                       debug!("Pipeline {:?} got mouse move event after closure.", pipeline_id);
-                       return true;
-                   },
+                let result = match self.pipelines.get(&pipeline_id) {
+                    Some(pipeline) => pipeline.script_chan.send(msg),
+                    None => {
+                        debug!("Pipeline {:?} got mouse move event after closure.", pipeline_id);
+                        return true;
+                    },
+                };
+                if let Err(e) = result {
+                    self.handle_send_error(pipeline_id, e);
                 }
             }
             Request::Script(FromScriptMsg::GetClipboardContents(sender)) => {
