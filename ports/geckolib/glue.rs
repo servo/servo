@@ -22,6 +22,7 @@ use style::context::{ReflowGoal, StylistWrapper};
 use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::parallel;
+use style::properties::ComputedValues;
 use style::stylesheets::Origin;
 use traversal::RecalcStyleOnly;
 use url::Url;
@@ -44,6 +45,11 @@ pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *m
         None => return,
     };
     let data = unsafe { &mut *(raw_data as *mut PerDocumentStyleData) };
+
+    // Force the creation of our lazily-constructed initial computed values on
+    // the main thread, since it's not safe to call elsewhere. This should move
+    // into a runtime-wide init hook at some point.
+    GeckoComputedValues::initial_values();
 
     let _needs_dirtying = data.stylist.update(&data.stylesheets, data.stylesheets_changed);
     data.stylesheets_changed = false;

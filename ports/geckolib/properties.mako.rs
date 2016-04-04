@@ -6,6 +6,9 @@ use app_units::Au;
 % for style_struct in STYLE_STRUCTS:
 %if style_struct.gecko_name:
 use gecko_style_structs::${style_struct.gecko_name};
+use bindings::Gecko_Construct_${style_struct.gecko_name};
+use bindings::Gecko_CopyConstruct_${style_struct.gecko_name};
+use bindings::Gecko_Destroy_${style_struct.gecko_name};
 % endif
 % endfor
 use heapsize::HeapSizeOf;
@@ -16,6 +19,7 @@ use style::custom_properties::ComputedValuesMap;
 use style::logical_geometry::WritingMode;
 use style::properties::{CascadePropertyFn, ServoComputedValues, ComputedValues};
 use style::properties::longhands;
+use style::properties::make_cascade_vec;
 use style::properties::style_struct_traits::*;
 
 #[derive(Clone)]
@@ -58,10 +62,10 @@ impl ComputedValues for GeckoComputedValues {
         }
     }
 
-    fn initial_values() -> &'static Self { unimplemented!() }
+    fn initial_values() -> &'static Self { &*INITIAL_GECKO_VALUES }
 
-    fn do_cascade_property<F: FnOnce(&Vec<Option<CascadePropertyFn<Self>>>)>(_: F) {
-        unimplemented!()
+    fn do_cascade_property<F: FnOnce(&Vec<Option<CascadePropertyFn<Self>>>)>(f: F) {
+        CASCADE_PROPERTY.with(|x| f(x));
     }
 
     % for style_struct in STYLE_STRUCTS:
@@ -104,8 +108,11 @@ impl Gecko${style_struct.name} {
     #[allow(dead_code, unused_variables)]
     fn initial() -> Self {
 % if style_struct.gecko_name:
-        let result = Gecko${style_struct.name} { gecko: unsafe { zeroed() } };
-        panic!("Need to invoke Gecko placement new");
+        let mut result = Gecko${style_struct.name} { gecko: unsafe { zeroed() } };
+        unsafe {
+            Gecko_Construct_${style_struct.gecko_name}(&mut result.gecko);
+        }
+        result
 % else:
         Gecko${style_struct.name}
 % endif
@@ -114,12 +121,18 @@ impl Gecko${style_struct.name} {
 %if style_struct.gecko_name:
 impl Drop for Gecko${style_struct.name} {
     fn drop(&mut self) {
-        panic!("Need to invoke Gecko destructor");
+        unsafe {
+            Gecko_Destroy_${style_struct.gecko_name}(&mut self.gecko);
+        }
     }
 }
 impl Clone for ${style_struct.gecko_name} {
     fn clone(&self) -> Self {
-        panic!("Need to invoke Gecko copy constructor");
+        unsafe {
+            let mut result: Self = zeroed();
+            Gecko_CopyConstruct_${style_struct.gecko_name}(&mut result, self);
+            result
+        }
     }
 }
 unsafe impl Send for ${style_struct.gecko_name} {}
@@ -205,3 +218,21 @@ ${impl_style_struct(style_struct)}
 <%self:raw_impl_trait style_struct="${style_struct}"></%self:raw_impl_trait>
 % endif
 % endfor
+
+lazy_static! {
+    pub static ref INITIAL_GECKO_VALUES: GeckoComputedValues = GeckoComputedValues {
+        % for style_struct in STYLE_STRUCTS:
+           ${style_struct.ident}: Arc::new(Gecko${style_struct.name}::initial()),
+        % endfor
+        custom_properties: None,
+        shareable: true,
+        writing_mode: WritingMode::empty(),
+        root_font_size: longhands::font_size::get_initial_value(),
+    };
+}
+
+// This is a thread-local rather than a lazy static to avoid atomic operations when cascading
+// properties.
+thread_local!(static CASCADE_PROPERTY: Vec<Option<CascadePropertyFn<GeckoComputedValues>>> = {
+    make_cascade_vec::<GeckoComputedValues>()
+});
