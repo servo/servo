@@ -126,7 +126,7 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, c
                     },
                     Type::Pong => continue,
                     Type::Close => {
-                        if client_initiated_close_incoming.load(Ordering::SeqCst) == false { 
+                        if !client_initiated_close_incoming.load(Ordering::SeqCst) {
                             ws_sender_incoming.lock().unwrap().send_message(&message).unwrap();
                         }
                         let code = message.cd_status_code;
