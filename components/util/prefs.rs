@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use basedir::default_config_dir;
 use opts;
 use resource_files::resources_dir_path;
 use rustc_serialize::json::{Json, ToJson};
@@ -166,16 +167,28 @@ pub fn extend_prefs(extension: HashMap<String, Pref>) {
 }
 
 pub fn add_user_prefs() {
-    if let Some(ref dir) = opts::get().profile_dir {
-        let mut path = PathBuf::from(dir);
+    if let Some(ref config_path) = opts::get().config_dir {
+        let mut path = PathBuf::from(config_path);
         path.push("prefs.json");
         if let Ok(file) = File::open(path) {
             if let Ok(prefs) = read_prefs_from_file(file) {
                 extend_prefs(prefs);
             }
         } else {
-            writeln!(&mut stderr(), "Error opening prefs.json from profile_dir")
-                .expect("failed printing to stderr");
+        writeln!(&mut stderr(), "Error opening prefs.json from given config directory")
+            .expect("failed printing to stderr");
+        }
+    } else {
+        let config_path = default_config_dir().unwrap();
+        let mut path = PathBuf::from(config_path);
+        path.push("prefs.json");
+        if let Ok(file) = File::open(path) {
+            if let Ok(prefs) = read_prefs_from_file(file) {
+                extend_prefs(prefs);
+            }
+        } else {
+        writeln!(&mut stderr(), "Error opening prefs.json from default config directory")
+            .expect("failed printing to stderr");
         }
     }
 }
