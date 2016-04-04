@@ -311,11 +311,11 @@ impl ToCss for PropertyDeclarationBlock {
                     let mut current_longhands = Vec::new();
                     let mut important_count = 0;
 
-                    for longhand in longhands.iter() {
-                        let longhand_name = longhand.0.name();
+                    for &(longhand, longhand_important) in longhands.iter() {
+                        let longhand_name = longhand.name();
                         if properties.iter().any(|p| &longhand_name == *p) {
-                            current_longhands.push(longhand.0);
-                            if longhand.1 == true {
+                            current_longhands.push(longhand);
+                            if longhand_important {
                                 important_count += 1;
                             }
                         }
@@ -341,7 +341,7 @@ impl ToCss for PropertyDeclarationBlock {
                         try!(
                             shorthand.serialize_shorthand_to_buffer(
                                 dest,
-                                &mut current_longhands.iter().cloned(),
+                                current_longhands.iter().cloned(),
                                 &mut is_first_serialization
                             )
                         );
@@ -369,12 +369,20 @@ impl ToCss for PropertyDeclarationBlock {
                 continue;
             }
 
+            use std::iter::Cloned;
+            use std::slice;
+
             // Steps 3.3.5, 3.3.6 & 3.3.7
-            try!(append_serialization(dest,
-                                      &property.to_string(),
-                                      AppendableValue::Declaration(declaration),
-                                      important,
-                                      &mut is_first_serialization));
+            // Need to specify an iterator type here even though it’s unused to work around
+            // "error: unable to infer enough type information about `_`;
+            //  type annotations or generic parameter binding required [E0282]"
+            // Use the same type as earlier call to reuse generated code.
+            try!(append_serialization::<W, Cloned<slice::Iter< &PropertyDeclaration>>>(
+                dest,
+                &property.to_string(),
+                AppendableValue::Declaration(declaration),
+                important,
+                &mut is_first_serialization));
 
             // Step 3.3.8
             already_serialized.push(property);
@@ -385,17 +393,20 @@ impl ToCss for PropertyDeclarationBlock {
     }
 }
 
-enum AppendableValue<'a> {
+enum AppendableValue<'a, I>
+where I: Iterator<Item=&'a PropertyDeclaration> {
     Declaration(&'a PropertyDeclaration),
-    DeclarationsForShorthand(&'a mut Iterator<Item=&'a PropertyDeclaration>),
+    DeclarationsForShorthand(I),
     Css(&'a str)
 }
 
-fn append_serialization<W>(dest: &mut W,
-                           property_name: &str,
-                           appendable_value: AppendableValue,
-                           is_important: bool,
-                           is_first_serialization: &mut bool) -> fmt::Result where W: fmt::Write {
+fn append_serialization<'a, W, I>(dest: &mut W,
+                                  property_name: &str,
+                                  appendable_value: AppendableValue<'a, I>,
+                                  is_important: bool,
+                                  is_first_serialization: &mut bool)
+                                  -> fmt::Result
+                                  where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
 
     // after first serialization(key: value;) add whitespace between the pairs
     if !*is_first_serialization {
@@ -602,7 +613,8 @@ impl Shorthand {
     }
 
     /// Serializes possible shorthand value to String.
-    pub fn serialize_shorthand_to_string(self, declarations: &mut Iterator<Item=&PropertyDeclaration>) -> String {
+    pub fn serialize_shorthand_to_string<'a, I>(self, declarations: I) -> String
+    where I: Iterator<Item=&'a PropertyDeclaration> + Clone {
         let mut result = String::new();
         self.serialize_shorthand_to_buffer(&mut result, declarations, &mut true).unwrap();
         result
@@ -611,28 +623,28 @@ impl Shorthand {
 
     /// Serializes possible shorthand value to input buffer given a list of longhand declarations.
     /// On success, returns true if shorthand value is written and false if no shorthand value is present.
-    pub fn serialize_shorthand_to_buffer<W>(self,
-                                            dest: &mut W,
-                                            declarations: &mut Iterator<Item=&PropertyDeclaration>,
-                                            is_first_serialization: &mut bool)
-         -> Result<bool, fmt::Error> where W: Write {
+    pub fn serialize_shorthand_to_buffer<'a, W, I>(self,
+                                                   dest: &mut W,
+                                                   declarations: I,
+                                                   is_first_serialization: &mut bool)
+                                                   -> Result<bool, fmt::Error>
+    where W: Write, I: Iterator<Item=&'a PropertyDeclaration> + Clone {
 
-        // FIXME: I know that creating this list here is wrong, but I couldn't get it to compile otherwise
-        // using plain iterators, need advice!
-        let declaration_list: Vec<_> = declarations.cloned().collect();
-        let mut declarations = declaration_list.iter();
+        // Only cloning iterators (a few pointers each) not declarations.
+        let mut declarations2 = declarations.clone();
+        let mut declarations3 = declarations.clone();
 
-        let first_declaration = match declarations.next() {
+        let first_declaration = match declarations2.next() {
             Some(declaration) => declaration,
             None => return Ok(false)
         };
 
-        let property_name = &self.name();
+        let property_name = self.name();
 
         // https://drafts.csswg.org/css-variables/#variables-in-shorthands
         if let Some(css) = first_declaration.with_variables_from_shorthand(self) {
-            if declarations.all(|d| d.with_variables_from_shorthand(self) == Some(css)) {
-               return append_serialization(
+            if declarations2.all(|d| d.with_variables_from_shorthand(self) == Some(css)) {
+               return append_serialization::<W, I>(
                    dest, property_name, AppendableValue::Css(css), false, is_first_serialization
                ).and_then(|_| Ok(true));
            }
@@ -641,12 +653,12 @@ impl Shorthand {
            }
         }
 
-        if !declaration_list.iter().any(|d| d.with_variables()) {
+        if !declarations3.any(|d| d.with_variables()) {
             try!(
                 append_serialization(
                     dest,
                     property_name,
-                    AppendableValue::DeclarationsForShorthand(&mut declaration_list.iter()),
+                    AppendableValue::DeclarationsForShorthand(declarations),
                     false,
                     is_first_serialization
                 )
