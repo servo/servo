@@ -94,6 +94,7 @@ use net_traits::response::HttpsState;
 use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num::ToPrimitive;
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, ScriptChan};
+use script_traits::UntrustedNodeAddress;
 use script_traits::{AnimationState, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{ScriptMsg as ConstellationMsg, ScriptToCompositorMsg};
 use script_traits::{TouchEventType, TouchId};
@@ -1480,6 +1481,12 @@ impl Document {
 
         self.browsing_context.is_none() || !url_has_network_scheme(&self.url)
     }
+
+    pub fn nodes_from_point(&self, page_point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
+        assert!(self.GetDocumentElement().is_some());
+
+        self.window.layout().nodes_from_point(*page_point)
+    }
 }
 
 #[derive(PartialEq, HeapSizeOf)]
@@ -2601,6 +2608,40 @@ impl DocumentMethods for Document {
             None => self.GetDocumentElement()
         }
     }
+
+    #[allow(unsafe_code)]
+    // https://drafts.csswg.org/cssom-view/#dom-document-elementsfrompoint
+    fn ElementsFromPoint(&self, x: Finite<f64>, y: Finite<f64>) -> Vec<Root<Element>> {
+        let x = *x as f32;
+        let y = *y as f32;
+        let point = &Point2D { x: x, y: y };
+        let window = window_from_node(self);
+        let viewport = window.window_size().unwrap().visible_viewport;
+
+        // Step 2
+        if x < 0.0 || y < 0.0 || x > viewport.width.get() || y > viewport.height.get() {
+            return vec!();
+        }
+
+        let js_runtime = unsafe { JS_GetRuntime(window.get_cx()) };
+
+        // Step 1 and Step 3
+        let mut elements: Vec<Root<Element>> = self.nodes_from_point(point).iter()
+            .flat_map(|&untrusted_node_address| {
+                let node = node::from_untrusted_node_address(js_runtime, untrusted_node_address);
+                Root::downcast::<Element>(node)
+        }).collect();
+
+        // Step 4
+        if let Some(root_element) = self.GetDocumentElement() {
+            if elements.last() != Some(&root_element) {
+                elements.push(root_element);
+            }
+        }
+
+        // Step 5
+        elements
+    }
 }
 
 fn is_scheme_host_port_tuple(url: &Url) -> bool {
@@ -2672,3 +2713,4 @@ pub enum FocusEventType {
     Focus,      // Element gained focus. Doesn't bubble.
     Blur,       // Element lost focus. Doesn't bubble.
 }
+
