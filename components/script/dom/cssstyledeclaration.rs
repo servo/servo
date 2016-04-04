@@ -12,9 +12,11 @@ use dom::element::{Element, StylePriority};
 use dom::node::{Node, window_from_node};
 use dom::window::Window;
 use std::ascii::AsciiExt;
+use std::cell::Ref;
+use std::slice;
 use string_cache::Atom;
 use style::error_reporting::ParseErrorReporter;
-use style::properties::Shorthand;
+use style::properties::{Shorthand, PropertyDeclaration};
 use style::properties::{is_supported_property, parse_one_declaration};
 use style::selector_impl::PseudoElement;
 use util::str::DOMString;
@@ -140,14 +142,22 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
                 // Step 2.2.2 & 2.2.3
                 match declaration {
-                    Some(declaration) => list.push(declaration.clone()),
+                    Some(declaration) => list.push(declaration),
                     None => return DOMString::new(),
                 }
             }
 
             // Step 2.3
-            let mut list = list.iter().map(|x| &*x);
-            let serialized_value = shorthand.serialize_shorthand_to_string(&mut list);
+            // Work around closures not being Clone
+            #[derive(Clone)]
+            struct Map<'a, 'b: 'a>(slice::Iter<'a, Ref<'b, PropertyDeclaration>>);
+            impl<'a, 'b> Iterator for Map<'a, 'b> {
+                type Item = &'a PropertyDeclaration;
+                fn next(&mut self) -> Option<Self::Item> {
+                    self.0.next().map(|r| &**r)
+                }
+            }
+            let serialized_value = shorthand.serialize_shorthand_to_string(Map(list.iter()));
             return DOMString::from(serialized_value);
         }
 
