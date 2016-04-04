@@ -115,8 +115,8 @@ use style::restyle_hints::ElementSnapshot;
 use style::servo::Stylesheet;
 use task_source::dom_manipulation::DOMManipulationTask;
 use time;
+use url::Url;
 use url::percent_encoding::percent_decode;
-use url::{Host, Url};
 use util::str::{DOMString, split_html_space_chars, str_join};
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
