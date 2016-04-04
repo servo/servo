@@ -708,7 +708,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             Request::Script(FromScriptMsg::ForwardMouseMoveEvent(pipeline_id, point)) => {
                 let event = CompositorEvent::MouseMoveEvent(Some(point));
                 let msg = ConstellationControlMsg::SendEvent(pipeline_id, event);
-               let result = match self.pipelines.get(&pipeline_id) {
+                match self.pipelines.get(&pipeline_id) {
                    Some(pipeline) => {
                        if let Err(e) = pipeline.script_chan.send(msg) {
                            self.handle_send_error(pipeline_id, e);
@@ -717,7 +717,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                    None => {
                        debug!("Pipeline {:?} got mouse move event after closure.", pipeline_id);
                        return true;
-                   }
+                   },
                 }
             }
             Request::Script(FromScriptMsg::GetClipboardContents(sender)) => {
@@ -1013,17 +1013,20 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     }
 
     fn handle_tick_animation(&mut self, pipeline_id: PipelineId, tick_type: AnimationTickType) {
-        let pipeline = match self.pipelines.get(&pipeline_id) {
-            Some(pipeline) => pipeline,
-            None => return debug!("Pipeline {:?} got script tick after closure.", pipeline_id),
-        };
-
         let result = match tick_type {
             AnimationTickType::Script => {
-                pipeline.script_chan.0.send(ConstellationControlMsg::TickAllAnimations(pipeline_id))
-            },
+                let msg = ConstellationControlMsg::TickAllAnimations(pipeline_id);
+                match self.pipelines.get(&pipeline_id) {
+                    Some(pipeline) => pipeline.script_chan.send(msg),
+                    None => return debug!("Pipeline {:?} got script tick after closure.", pipeline_id),
+                }
+            }
             AnimationTickType::Layout => {
-                pipeline.layout_chan.0.send(LayoutControlMsg::TickAnimations)
+                let msg = LayoutControlMsg::TickAnimations;
+                match self.pipelines.get(&pipeline_id) {
+                    Some(pipeline) => pipeline.layout_chan.0.send(msg),
+                    None => return debug!("Pipeline {:?} got script tick after closure.", pipeline_id),
+                }
             }
         };
 
