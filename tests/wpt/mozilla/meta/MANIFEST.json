@@ -5587,6 +5587,18 @@
             "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
           }
         ],
+        "mozilla/non-inline-block-resets-underline-property.html": [
+          {
+            "path": "mozilla/non-inline-block-resets-underline-property.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/non-inline-block-resets-underline-property-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/non-inline-block-resets-underline-property.html"
+          }
+        ],
         "mozilla/webgl/clearcolor.html": [
           {
             "path": "mozilla/webgl/clearcolor.html",
@@ -12043,6 +12055,18 @@
             ]
           ],
           "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
+        }
+      ],
+      "mozilla/non-inline-block-resets-underline-property.html": [
+        {
+          "path": "mozilla/non-inline-block-resets-underline-property.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/non-inline-block-resets-underline-property-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/non-inline-block-resets-underline-property.html"
         }
       ],
       "mozilla/webgl/clearcolor.html": [
