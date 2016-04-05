@@ -92,7 +92,7 @@ use msg::constellation_msg::{PipelineId, SubpageId};
 use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::response::HttpsState;
-use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
+use net_traits::{AsyncResponseTarget, PendingAsyncLoad, ReferrerPolicy};
 use num::ToPrimitive;
 use origin::Origin;
 use script_runtime::ScriptChan;
@@ -226,6 +226,8 @@ pub struct Document {
     touchpad_pressure_phase: Cell<TouchpadPressurePhase>,
     /// The document's origin.
     origin: Origin,
+    /// https://w3c.github.io/webappsec-referrer-policy/
+    referrer_policy: Option<ReferrerPolicy>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1684,6 +1686,7 @@ impl Document {
             https_state: Cell::new(HttpsState::None),
             touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
             origin: origin,
+            referrer_policy: None,
         }
     }
 
@@ -1812,6 +1815,8 @@ impl Document {
             snapshot.attrs = Some(attrs);
         }
     }
+
+    //pub fn get_referrer_policy
 }
 
 
