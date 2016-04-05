@@ -96,7 +96,7 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
                 BluetoothMethodMsg::ReadValue(self.get_instance_id(), sender)).unwrap();
             let result = receiver.recv().unwrap();
             let value = match result {
-                BluetoothObjectMsg::BluetoothValue {
+                BluetoothObjectMsg::BluetoothReadValue {
                     value
                 } => {
                     Some(ByteString::new(value))
@@ -112,5 +112,22 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
             *self.value.borrow_mut() = value;
             Ok(self.GetValue().unwrap())
         }
+    }
+
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-writevalue
+    fn WriteValue(&self, value: Vec<u8>) {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.get_bluetooth_thread().send(
+            BluetoothMethodMsg::WriteValue(self.get_instance_id(), value, sender)).unwrap();
+        let result = receiver.recv().unwrap();
+        match result {
+            BluetoothObjectMsg::BluetoothWriteValue => (),
+            BluetoothObjectMsg::Error {
+                error
+            } => {
+                println!("{}", error);
+            },
+            _ => unreachable!()
+        };
     }
 }

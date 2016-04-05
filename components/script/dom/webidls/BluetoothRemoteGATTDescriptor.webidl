@@ -12,5 +12,6 @@ interface BluetoothRemoteGATTDescriptor {
   [Throws]
   ByteString readValue();
   //Promise<DataView> readValue();
+  void writeValue(sequence<octet> value);
   //Promise<void> writeValue(BufferSource value);
 };

@@ -486,14 +486,37 @@ impl BluetoothManager {
         }
 
         let message = match value {
-            Some(v) => BluetoothObjectMsg::BluetoothValue { value: v },
+            Some(v) => BluetoothObjectMsg::BluetoothReadValue { value: v },
             None => send_error!(sender, "No characteristic or descriptor found with that id"),
         };
 
         sender.send(message).unwrap();
     }
 
-    pub fn write_value(&self, _id: String, _value: Vec<u8>, _sender: IpcSender<BluetoothObjectMsg>) {
-        unimplemented!()
+    pub fn write_value(&mut self, id: String, value: Vec<u8>, sender: IpcSender<BluetoothObjectMsg>) {
+        let mut adapter = match self.get_adapter() {
+            Some(a) => a,
+            None => send_error!(sender, "No adapter found"),
+        };
+        let mut result = match self.get_gatt_characteristic(&mut adapter, &id) {
+            Some(c) => Some(c.write_value(value.clone())),
+            None => None,
+        };
+        if result.is_none() {
+            result = match self.get_gatt_descriptor(&mut adapter, &id) {
+                Some(d) => Some(d.write_value(value.clone())),
+                None => None,
+            };
+        }
+
+        let message = match result {
+            Some(v) => match v {
+                Ok(_) => BluetoothObjectMsg::BluetoothWriteValue,
+                Err(e) => send_error!(sender, e.to_string()),
+            },
+            None => send_error!(sender, "No characteristic or descriptor found with that id"),
+        };
+
+        sender.send(message).unwrap();
     }
 }

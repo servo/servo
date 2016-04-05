@@ -59,9 +59,10 @@ pub enum BluetoothObjectMsg {
         uuid: String,
         instance_id: String
     },
-    BluetoothValue {
+    BluetoothReadValue {
         value: Vec<u8>
     },
+    BluetoothWriteValue,
     Error {
         error: String
     },
