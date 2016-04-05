@@ -2162,8 +2162,6 @@ pub mod longhands {
     // TODO(pcwalton): Support `word-break: keep-all` once we have better CJK support.
     ${single_keyword("word-break", "normal break-all")}
 
-    ${single_keyword("text-overflow", "clip ellipsis")}
-
     // TODO(pcwalton): Support `text-justify: distribute`.
     ${single_keyword("text-justify", "auto none inter-word")}
 
@@ -2171,6 +2169,8 @@ pub mod longhands {
                        additional_methods=[Method("has_underline", "bool"),
                                            Method("has_overline", "bool"),
                                            Method("has_line_through", "bool")])}
+
+    ${single_keyword("text-overflow", "clip ellipsis")}
 
     ${single_keyword("unicode-bidi", "normal embed isolate bidi-override isolate-override plaintext")}
 
