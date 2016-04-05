@@ -674,7 +674,9 @@ pub mod longhands {
                       "computed::LengthOrPercentageOrNone::None",
                       "parse_non_negative")}
 
-    ${switch_to_style_struct("InheritedBox")}
+    ${new_style_struct("InheritedText", is_inherited=True, gecko_name="nsStyleText",
+                       additional_methods=[Method("clone__servo_text_decorations_in_effect",
+                                                  "longhands::_servo_text_decorations_in_effect::computed_value::T")])}
 
     <%self:longhand name="line-height">
         use cssparser::ToCss;
@@ -1977,9 +1979,7 @@ pub mod longhands {
 
     // CSS 2.1, Section 16 - Text
 
-    ${new_style_struct("InheritedText", is_inherited=True, gecko_name="nsStyleText",
-                       additional_methods=[Method("clone__servo_text_decorations_in_effect",
-                                                  "longhands::_servo_text_decorations_in_effect::computed_value::T")])}
+    ${switch_to_style_struct("InheritedText")}
 
     <%self:longhand name="text-align">
         pub use self::computed_value::T as SpecifiedValue;

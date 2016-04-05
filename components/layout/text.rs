@@ -417,7 +417,7 @@ pub fn font_metrics_for_style(font_context: &mut FontContext, font_style: Arc<Fo
 /// Returns the line block-size needed by the given computed style and font size.
 pub fn line_height_from_style(style: &ServoComputedValues, metrics: &FontMetrics) -> Au {
     let font_size = style.get_font().font_size;
-    match style.get_inheritedbox().line_height {
+    match style.get_inheritedtext().line_height {
         line_height::T::Normal => metrics.line_gap,
         line_height::T::Number(l) => font_size.scale_by(l),
         line_height::T::Length(l) => l
