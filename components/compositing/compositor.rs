@@ -37,7 +37,7 @@ use profile_traits::mem::{self, ReportKind, Reporter, ReporterRequest};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::CompositorEvent::{MouseMoveEvent, MouseButtonEvent, TouchEvent};
 use script_traits::{AnimationState, ConstellationControlMsg, LayoutControlMsg};
-use script_traits::{MouseButton, MouseEventType, TouchEventType, TouchId};
+use script_traits::{MouseButton, MouseEventType, TouchpadPressurePhase, TouchEventType, TouchId};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -50,8 +50,8 @@ use time::{precise_time_ns, precise_time_s};
 use touch::{TouchHandler, TouchAction};
 use url::Url;
 use util::geometry::{PagePx, ScreenPx, ViewportPx};
-use util::opts;
 use util::print_tree::PrintTree;
+use util::{opts, prefs};
 use webrender;
 use webrender_traits::{self, ScrollEventPhase};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
@@ -1225,6 +1225,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.on_navigation_window_event(direction);
             }
 
+            WindowEvent::TouchpadPressure(cursor, pressure, stage) => {
+                self.on_touchpad_pressure_event(cursor, pressure, stage);
+            }
+
             WindowEvent::KeyEvent(key, state, modifiers) => {
                 self.on_key_event(key, state, modifiers);
             }
@@ -1699,6 +1703,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             windowing::WindowNavigateMsg::Back => NavigationDirection::Back,
         };
         self.constellation_chan.send(ConstellationMsg::Navigate(None, direction)).unwrap()
+    }
+
+    fn on_touchpad_pressure_event(&self, cursor: TypedPoint2D<DevicePixel, f32>, pressure: f32,
+                                  phase: TouchpadPressurePhase) {
+        if prefs::get_pref("dom.forcetouch.enabled").as_boolean().unwrap() {
+            match self.find_topmost_layer_at_point(cursor / self.scene.scale) {
+                Some(result) => result.layer.send_touchpad_pressure_event(self, result.point, pressure, phase),
+                None => {},
+            }
+        }
     }
 
     fn on_key_event(&self, key: Key, state: KeyState, modifiers: KeyModifiers) {

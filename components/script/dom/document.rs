@@ -41,6 +41,7 @@ use dom::element::{Element, ElementCreator};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::focusevent::FocusEvent;
+use dom::forcetouchevent::ForceTouchEvent;
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlappletelement::HTMLAppletElement;
 use dom::htmlareaelement::HTMLAreaElement;
@@ -97,7 +98,7 @@ use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, ScriptC
 use script_traits::UntrustedNodeAddress;
 use script_traits::{AnimationState, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{ScriptMsg as ConstellationMsg, ScriptToCompositorMsg};
-use script_traits::{TouchEventType, TouchId};
+use script_traits::{TouchpadPressurePhase, TouchEventType, TouchId};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
@@ -218,6 +219,7 @@ pub struct Document {
     css_errors_store: DOMRefCell<Vec<CSSError>>,
     /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
     https_state: Cell<HttpsState>,
+    touchpad_pressure_phase: Cell<TouchpadPressurePhase>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -730,6 +732,70 @@ impl Document {
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
                            ReflowReason::MouseEvent);
+    }
+
+    pub fn handle_touchpad_pressure_event(&self,
+                                          js_runtime: *mut JSRuntime,
+                                          client_point: Point2D<f32>,
+                                          pressure: f32,
+                                          phase_now: TouchpadPressurePhase) {
+
+        let phase_before = self.touchpad_pressure_phase.get();
+        self.touchpad_pressure_phase.set(phase_now);
+
+        if phase_before == TouchpadPressurePhase::BeforeClick &&
+           phase_now == TouchpadPressurePhase::BeforeClick {
+            return;
+        }
+
+        let page_point = Point2D::new(client_point.x + self.window.PageXOffset() as f32,
+                                      client_point.y + self.window.PageYOffset() as f32);
+        let node = match self.window.hit_test_query(page_point, false) {
+            Some(node_address) => node::from_untrusted_node_address(js_runtime, node_address),
+            None => return
+        };
+
+        let el = match node.downcast::<Element>() {
+            Some(el) => Root::from_ref(el),
+            None => {
+                let parent = node.GetParentNode();
+                match parent.and_then(Root::downcast::<Element>) {
+                    Some(parent) => parent,
+                    None => return
+                }
+            },
+        };
+
+        let node = el.upcast::<Node>();
+        let target = node.upcast();
+
+        let force = match phase_now {
+            TouchpadPressurePhase::BeforeClick => pressure,
+            TouchpadPressurePhase::AfterFirstClick => 1. + pressure,
+            TouchpadPressurePhase::AfterSecondClick => 2. + pressure,
+        };
+
+        if phase_now != TouchpadPressurePhase::BeforeClick {
+            self.fire_forcetouch_event("servomouseforcechanged".to_owned(), target, force);
+        }
+
+        if phase_before != TouchpadPressurePhase::AfterSecondClick &&
+           phase_now == TouchpadPressurePhase::AfterSecondClick {
+            self.fire_forcetouch_event("servomouseforcedown".to_owned(), target, force);
+        }
+
+        if phase_before == TouchpadPressurePhase::AfterSecondClick &&
+           phase_now != TouchpadPressurePhase::AfterSecondClick {
+            self.fire_forcetouch_event("servomouseforceup".to_owned(), target, force);
+        }
+    }
+
+    fn fire_forcetouch_event(&self, event_name: String, target: &EventTarget, force: f32) {
+        let force_event = ForceTouchEvent::new(&self.window,
+                                               DOMString::from(event_name),
+                                               force);
+        let event = force_event.upcast::<Event>();
+        event.fire(target);
     }
 
     pub fn fire_mouse_event(&self, client_point: Point2D<f32>, target: &EventTarget, event_name: String) {
@@ -1593,6 +1659,7 @@ impl Document {
             dom_complete: Cell::new(Default::default()),
             css_errors_store: DOMRefCell::new(vec![]),
             https_state: Cell::new(HttpsState::None),
+            touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
         }
     }
 

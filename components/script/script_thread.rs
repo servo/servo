@@ -79,7 +79,7 @@ use parse::xml::{self, parse_xml};
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
-use script_traits::CompositorEvent::{TouchEvent};
+use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::{CompositorEvent, ConstellationControlMsg, EventResult};
 use script_traits::{InitialScriptState, MouseButton, MouseEventType, MozBrowserEvent, NewLayoutInfo};
 use script_traits::{LayoutMsg, OpaqueScriptLayoutChannel, ScriptMsg as ConstellationMsg};
@@ -1967,6 +1967,12 @@ impl ScriptThread {
                         // TODO: Calling preventDefault on a touchup event should prevent clicks.
                     }
                 }
+            }
+
+            TouchpadPressureEvent(point, pressure, phase) => {
+                let page = get_page(&self.root_page(), pipeline_id);
+                let document = page.document();
+                document.r().handle_touchpad_pressure_event(self.js_runtime.rt(), point, pressure, phase);
             }
 
             KeyEvent(key, state, modifiers) => {
