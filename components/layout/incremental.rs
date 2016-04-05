@@ -211,8 +211,8 @@ pub fn compute_damage(old: Option<&Arc<ServoComputedValues>>, new: &ServoCompute
         get_flex.flex_direction
     ]) || add_if_not_equal!(old, new, damage,
                             [ REPAINT, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW ], [
-        get_positionoffsets.top, get_positionoffsets.left,
-        get_positionoffsets.right, get_positionoffsets.bottom
+        get_position.top, get_position.left,
+        get_position.right, get_position.bottom
     ]) || add_if_not_equal!(old, new, damage,
                             [ REPAINT ], [
         get_color.color, get_background.background_color,

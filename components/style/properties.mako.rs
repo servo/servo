@@ -460,7 +460,7 @@ pub mod longhands {
 
     ${predefined_type("outline-offset", "Length", "Au(0)")}
 
-    ${new_style_struct("PositionOffsets", is_inherited=False, gecko_name="nsStylePosition")}
+    ${new_style_struct("Position", is_inherited=False, gecko_name="nsStylePosition")}
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type(side, "LengthOrPercentageOrAuto",
@@ -6462,7 +6462,7 @@ impl ServoComputedValues {
     #[inline]
     pub fn logical_position(&self) -> LogicalMargin<computed::LengthOrPercentageOrAuto> {
         // FIXME(SimonSapin): should be the writing mode of the containing block, maybe?
-        let position_style = self.get_positionoffsets();
+        let position_style = self.get_position();
         LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
             position_style.top,
             position_style.right,
@@ -7074,11 +7074,11 @@ pub fn modify_style_for_text(style: &mut Arc<ServoComputedValues>) {
         // We leave the `position` property set to `relative` so that we'll still establish a
         // containing block if needed. But we reset all position offsets to `auto`.
         let mut style = Arc::make_mut(style);
-        let mut position_offsets = Arc::make_mut(&mut style.positionoffsets);
-        position_offsets.top = computed::LengthOrPercentageOrAuto::Auto;
-        position_offsets.right = computed::LengthOrPercentageOrAuto::Auto;
-        position_offsets.bottom = computed::LengthOrPercentageOrAuto::Auto;
-        position_offsets.left = computed::LengthOrPercentageOrAuto::Auto;
+        let mut position = Arc::make_mut(&mut style.position);
+        position.top = computed::LengthOrPercentageOrAuto::Auto;
+        position.right = computed::LengthOrPercentageOrAuto::Auto;
+        position.bottom = computed::LengthOrPercentageOrAuto::Auto;
+        position.left = computed::LengthOrPercentageOrAuto::Auto;
     }
 
     if style.padding.padding_top != computed::LengthOrPercentage::Length(Au(0)) ||
