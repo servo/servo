@@ -887,7 +887,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                           parent_info,
                           window_size,
                           None,
-                          LoadData::new(Url::parse("about:failure").expect("infallible")));
+                          LoadData::new(Url::parse("about:failure").expect("infallible"), None, None));
 
         self.push_pending_frame(new_pipeline_id, Some(pipeline_id));
 
@@ -897,7 +897,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         let window_size = self.window_size.visible_viewport;
         let root_pipeline_id = PipelineId::new();
         debug_assert!(PipelineId::fake_root_pipeline_id() == root_pipeline_id);
-        self.new_pipeline(root_pipeline_id, None, Some(window_size), None, LoadData::new(url.clone()));
+        self.new_pipeline(root_pipeline_id, None, Some(window_size), None, LoadData::new(url.clone(), None, None));
         self.handle_load_start_msg(&root_pipeline_id);
         self.push_pending_frame(root_pipeline_id, None);
         self.compositor_proxy.send(ToCompositorMsg::ChangePageUrl(root_pipeline_id, url));
@@ -1009,11 +1009,12 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         };
 
         // Create the new pipeline, attached to the parent and push to pending frames
+        // TODO - loaddata here should have referrer info (not None, None)
         self.new_pipeline(load_info.new_pipeline_id,
                           Some((load_info.containing_pipeline_id, load_info.new_subpage_id)),
                           window_size,
                           script_chan,
-                          LoadData::new(new_url));
+                          LoadData::new(new_url, None, None));
 
         self.subpage_map.insert((load_info.containing_pipeline_id, load_info.new_subpage_id),
                                 load_info.new_pipeline_id);
@@ -1419,7 +1420,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             },
             WebDriverCommandMsg::Refresh(pipeline_id, reply) => {
                 let load_data = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => LoadData::new(pipeline.url.clone()),
+                    Some(pipeline) => LoadData::new(pipeline.url.clone(), None, None),
                     None => return warn!("Pipeline {:?} Refresh after closure.", pipeline_id),
                 };
                 self.load_url_for_webdriver(pipeline_id, load_data, reply);
