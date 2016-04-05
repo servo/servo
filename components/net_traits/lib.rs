@@ -398,3 +398,14 @@ pub fn unwrap_websocket_protocol(wsp: Option<&header::WebSocketProtocol>) -> Opt
 /// An unique identifier to keep track of each load message in the resource handler
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct ResourceId(pub u32);
+
+/// Referrer policy set for the environment
+#[derive(HeapSizeOf)]
+pub enum ReferrerPolicy {
+    NoReferrer,
+    NoRefWhenDowngrade,
+    OriginOnly,
+    OriginWhenCrossOrigin,
+    UnsafeUrl,
+}
+

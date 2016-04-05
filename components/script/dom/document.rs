@@ -91,7 +91,7 @@ use msg::constellation_msg::{PipelineId, SubpageId};
 use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::response::HttpsState;
-use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
+use net_traits::{AsyncResponseTarget, PendingAsyncLoad, ReferrerPolicy};
 use num::ToPrimitive;
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable, ScriptChan};
 use script_traits::{AnimationState, MouseButton, MouseEventType, MozBrowserEvent};
@@ -217,6 +217,8 @@ pub struct Document {
     css_errors_store: DOMRefCell<Vec<CSSError>>,
     /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
     https_state: Cell<HttpsState>,
+    /// https://w3c.github.io/webappsec-referrer-policy/
+    referrer_policy: Option<ReferrerPolicy>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1577,6 +1579,7 @@ impl Document {
             dom_complete: Cell::new(Default::default()),
             css_errors_store: DOMRefCell::new(vec![]),
             https_state: Cell::new(HttpsState::None),
+            referrer_policy: None,
         }
     }
 
@@ -1705,6 +1708,8 @@ impl Document {
             snapshot.attrs = Some(attrs);
         }
     }
+
+    //pub fn get_referrer_policy
 }
 
 
