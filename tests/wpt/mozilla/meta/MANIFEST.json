@@ -3299,6 +3299,18 @@
             "url": "/_mozilla/css/no_image_background_a.html"
           }
         ],
+        "css/non-inline-block-resets-underline-property.html": [
+          {
+            "path": "css/non-inline-block-resets-underline-property.html",
+            "references": [
+              [
+                "/_mozilla/css/non-inline-block-resets-underline-property-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/non-inline-block-resets-underline-property.html"
+          }
+        ],
         "css/noscript.html": [
           {
             "path": "css/noscript.html",
@@ -9755,6 +9767,30 @@
             ]
           ],
           "url": "/_mozilla/css/no_image_background_a.html"
+        }
+      ],
+      "css/non-inline-block-resets-underline-property-ref.html": [
+        {
+          "path": "css/non-inline-block-resets-underline-property-ref.html",
+          "references": [
+            [
+              "/_mozilla/css/non-inline-block-resets-underline-property-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/non-inline-block-resets-underline-property-ref.html"
+        }
+      ],
+      "css/non-inline-block-resets-underline-property.html": [
+        {
+          "path": "css/non-inline-block-resets-underline-property.html",
+          "references": [
+            [
+              "/_mozilla/css/non-inline-block-resets-underline-property-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/non-inline-block-resets-underline-property.html"
         }
       ],
       "css/noscript.html": [
