@@ -4270,6 +4270,8 @@ pub mod longhands {
                         color-burn hard-light soft-light difference exclusion hue
                         saturation color luminosity""")}
 
+    ${switch_to_style_struct("InheritedBox")}
+
     <%self:longhand name="image-rendering">
 
         pub mod computed_value {
