@@ -7,34 +7,12 @@
 <iframe id="nonquirksframe"></iframe>
 <div id="log"></div>
 <script>
-
-var quirksFrame;
-var nonQuirksFrame;
-
-function loadTestFrames(callback) {
-  quirksFrame = document.getElementById("quirksframe");
-  quirksFrame.onload = function() {
-    nonQuirksFrame = document.getElementById("nonquirksframe");
-    nonQuirksFrame.onload = callback;
-    nonQuirksFrame.src =
-      URL.createObjectURL(new Blob(["<!doctype html>"], { type: "text/html" }));
-  }
-  quirksFrame.src =
-    URL.createObjectURL(new Blob([""], { type: "text/html" }));
-}
-
-var test = async_test("Tests for scrollingElement");
-loadTestFrames(function() {
-  test.step(function() {
+async_test(function() {
+  var quirksFrame = document.getElementById("quirksframe");
+  quirksFrame.onload = this.step_func(function() {
     var quirksDoc = quirksFrame.contentDocument;
-    var nonQuirksDoc = nonQuirksFrame.contentDocument;
-
-    // Initial checks that we have the expected kinds of documents.
     assert_equals(quirksDoc.compatMode, "BackCompat", "Should be in quirks mode.");
-    assert_equals(nonQuirksDoc.compatMode, "CSS1Compat", "Should be in standards mode.");
-
     assert_not_equals(quirksDoc.body, null, "Should have a body element");
-    assert_not_equals(nonQuirksDoc.body, null, "Should have a body element");
 
     // Tests for quirks mode document.
     assert_equals(quirksDoc.scrollingElement, quirksDoc.body,
@@ -78,8 +56,18 @@ loadTestFrames(function() {
     quirksDoc.removeChild(quirksDoc.documentElement);
     quirksDoc.appendChild(quirksDoc.createElement("body"));
     assert_equals(quirksDoc.scrollingElement, null);
+  });
+  quirksFrame.src =
+    URL.createObjectURL(new Blob([""], { type: "text/html" }));
+}, "scrollingElement in quirks mode");
 
-    // Tests for standards mode document.
+async_test(function() {
+  var nonQuirksFrame = document.getElementById("nonquirksframe");
+  nonQuirksFrame.onload = this.step_func_done(function() {
+    var nonQuirksDoc = nonQuirksFrame.contentDocument;
+    assert_equals(nonQuirksDoc.compatMode, "CSS1Compat", "Should be in standards mode.");
+    assert_not_equals(nonQuirksDoc.body, null, "Should have a body element");
+
     assert_equals(nonQuirksDoc.scrollingElement, nonQuirksDoc.documentElement,
       "scrollingElement in standards mode should be the document element.");
     nonQuirksDoc.documentElement.style.overflow = "scroll";
@@ -90,8 +78,8 @@ loadTestFrames(function() {
     assert_equals(nonQuirksDoc.scrollingElement, null);
     nonQuirksDoc.appendChild(nonQuirksDoc.createElement("foobar"));
     assert_equals(nonQuirksDoc.scrollingElement.localName, "foobar");
-
   });
-  test.done();
-});
+  nonQuirksFrame.src =
+    URL.createObjectURL(new Blob(["<!doctype html>"], { type: "text/html" }));
+}, "scrollingElement in no-quirks mode");
 </script>
