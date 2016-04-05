@@ -88,11 +88,11 @@ use js::jsapi::{JSContext, JSObject, JSRuntime};
 use layout_interface::{LayoutChan, Msg, ReflowQueryType};
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{ConstellationChan, Key, KeyModifiers, KeyState};
-use msg::constellation_msg::{PipelineId, SubpageId};
+use msg::constellation_msg::{PipelineId, ReferrerPolicy, SubpageId};
 use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::response::HttpsState;
-use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
+use net_traits::{AsyncResponseTarget, PendingAsyncLoad, ReferrerPolicy};
 use num_traits::ToPrimitive;
 use origin::Origin;
 use script_runtime::ScriptChan;
@@ -226,6 +226,8 @@ pub struct Document {
     touchpad_pressure_phase: Cell<TouchpadPressurePhase>,
     /// The document's origin.
     origin: Origin,
+    /// https://w3c.github.io/webappsec-referrer-policy/
+    referrer_policy: Option<ReferrerPolicy>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1326,12 +1328,12 @@ impl Document {
 
     pub fn prepare_async_load(&self, load: LoadType) -> PendingAsyncLoad {
         let mut loader = self.loader.borrow_mut();
-        loader.prepare_async_load(load)
+        loader.prepare_async_load(load, self)
     }
 
     pub fn load_async(&self, load: LoadType, listener: AsyncResponseTarget) {
         let mut loader = self.loader.borrow_mut();
-        loader.load_async(load, listener)
+        loader.load_async(load, listener, self)
     }
 
     pub fn finish_load(&self, load: LoadType) {
@@ -1684,6 +1686,7 @@ impl Document {
             https_state: Cell::new(HttpsState::None),
             touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
             origin: origin,
+            referrer_policy: None,
         }
     }
 
@@ -1811,6 +1814,11 @@ impl Document {
                           .collect();
             snapshot.attrs = Some(attrs);
         }
+    }
+
+    //TODO - for now, setting no-referrer for all until reading in the value
+    pub fn get_referrer_policy(&self) -> Option<ReferrerPolicy> {
+        Some(ReferrerPolicy::NoReferrer)
     }
 }
 

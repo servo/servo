@@ -56,12 +56,12 @@ use js::rust::Runtime;
 use layout_interface::{LayoutChan, LayoutRPC};
 use libc;
 use msg::constellation_msg::ConstellationChan;
-use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData};
+use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData, ReferrerPolicy};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::response::HttpsState;
 use net_traits::storage_thread::StorageType;
-use net_traits::{Metadata, NetworkError};
+use net_traits::{Metadata, NetworkError, ReferrerPolicy};
 use offscreen_gl_context::GLLimits;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
@@ -325,6 +325,7 @@ no_jsmanaged_fields!(ElementSnapshot);
 no_jsmanaged_fields!(HttpsState);
 no_jsmanaged_fields!(SharedRt);
 no_jsmanaged_fields!(TouchpadPressurePhase);
+no_jsmanaged_fields!(ReferrerPolicy);
 
 impl JSTraceable for ConstellationChan<ScriptMsg> {
     #[inline]

@@ -84,7 +84,7 @@ pub fn factory(load_data: LoadData,
                 // http://doc.rust-lang.org/std/fs/struct.OpenOptions.html#method.open
                 // but, we'll go for a "file not found!"
                 let url = Url::parse("about:not-found").unwrap();
-                let load_data_404 = LoadData::new(load_data.context, url, None);
+                let load_data_404 = LoadData::new(load_data.context, url, None, None, None);
                 about_loader::factory(load_data_404, senders, classifier, cancel_listener);
                 return;
             }

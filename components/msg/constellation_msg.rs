@@ -240,6 +240,8 @@ pub struct LoadData {
     pub method: Method,
     pub headers: Headers,
     pub data: Option<Vec<u8>>,
+    pub referrer_policy: Option<ReferrerPolicy>,
+    pub referrer_url: Option<Url>,
 }
 
 impl LoadData {
@@ -249,6 +251,18 @@ impl LoadData {
             method: Method::Get,
             headers: Headers::new(),
             data: None,
+            referrer_policy: None,
+            referrer_url: None,
+        }
+    }
+    pub fn new_with_referrer(url: Url, referrer_policy: Option<ReferrerPolicy>, referrer_url: Url) -> LoadData {
+        LoadData {
+            url: url,
+            method: Method::Get,
+            headers: Headers::new(),
+            data: None,
+            referrer_policy: referrer_policy,
+            referrer_url: Some(referrer_url),
         }
     }
 }
@@ -379,3 +393,14 @@ impl ConvertPipelineIdFromWebRender for webrender_traits::PipelineId {
         }
     }
 }
+
+/// Referrer policy set for the environment
+#[derive(HeapSizeOf, Clone, Deserialize, Serialize)]
+pub enum ReferrerPolicy {
+    NoReferrer,
+    NoRefWhenDowngrade,
+    OriginOnly,
+    OriginWhenCrossOrigin,
+    UnsafeUrl,
+}
+
