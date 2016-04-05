@@ -128,8 +128,8 @@ impl PropertyAnimation {
                                                             new_style.get_inheritedtext().letter_spacing.0)
                         }
                         TransitionProperty::TextShadow => {
-                            AnimatedProperty::TextShadow(old_style.get_effects().text_shadow.clone(),
-                                                         new_style.get_effects().text_shadow.clone())
+                            AnimatedProperty::TextShadow(old_style.get_inheritedtext().text_shadow.clone(),
+                                                         new_style.get_inheritedtext().text_shadow.clone())
                         }
                         TransitionProperty::Transform => {
                             AnimatedProperty::Transform(old_style.get_effects().transform.clone(),
@@ -276,7 +276,7 @@ impl PropertyAnimation {
             [PaddingTop; mutate_padding; padding_top],
             [Right; mutate_positionoffsets; right],
             [TextIndent; mutate_inheritedtext; text_indent],
-            [TextShadow; mutate_effects; text_shadow],
+            [TextShadow; mutate_inheritedtext; text_shadow],
             [Top; mutate_positionoffsets; top],
             [Transform; mutate_effects; transform],
             [VerticalAlign; mutate_box; vertical_align],

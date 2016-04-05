@@ -229,7 +229,7 @@ pub fn compute_damage(old: Option<&Arc<ServoComputedValues>>, new: &ServoCompute
         get_box.z_index, get_box._servo_overflow_clip_box,
         get_inheritedtext._servo_text_decorations_in_effect,
         get_pointing.cursor, get_pointing.pointer_events,
-        get_effects.box_shadow, get_effects.clip, get_effects.text_shadow, get_effects.filter,
+        get_effects.box_shadow, get_effects.clip, get_inheritedtext.text_shadow, get_effects.filter,
         get_effects.transform, get_effects.backface_visibility, get_effects.transform_style,
         get_effects.transform_origin, get_effects.perspective, get_effects.perspective_origin,
         get_effects.mix_blend_mode, get_effects.image_rendering,

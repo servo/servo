@@ -1122,7 +1122,7 @@ impl FragmentDisplayListBuilding for Fragment {
                     self.style().get_color().color
                 };
 
-                for text_shadow in self.style.get_effects().text_shadow.0.iter().rev() {
+                for text_shadow in self.style.get_inheritedtext().text_shadow.0.iter().rev() {
                     let offset = &Point2D::new(text_shadow.offset_x, text_shadow.offset_y);
                     let color = self.style().resolve_color(text_shadow.color);
                     self.build_display_list_for_text_fragment(state,

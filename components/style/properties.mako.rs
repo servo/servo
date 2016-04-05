@@ -3161,6 +3161,8 @@ pub mod longhands {
         }
     </%self:longhand>
 
+    ${switch_to_style_struct("InheritedText")}
+
     <%self:longhand name="text-shadow">
         use cssparser::{self, ToCss};
         use std::fmt;
@@ -3338,6 +3340,8 @@ pub mod longhands {
             }
         }
     </%self:longhand>
+
+    ${switch_to_style_struct("Effects")}
 
     <%self:longhand name="filter">
         //pub use self::computed_value::T as SpecifiedValue;
