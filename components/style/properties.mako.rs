@@ -476,7 +476,8 @@ pub mod longhands {
                                                   "longhands::position::computed_value::T"),
                                            Method("is_floated", "bool"),
                                            Method("overflow_x_is_visible", "bool"),
-                                           Method("overflow_y_is_visible", "bool")])}
+                                           Method("overflow_y_is_visible", "bool"),
+                                           Method("transition_count", "usize")])}
 
     // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
     <%self:longhand name="display" custom_cascade="True">
@@ -4333,8 +4334,7 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    ${new_style_struct("Animation", is_inherited=False,
-                       additional_methods=[Method("transition_count", return_type="usize")])}
+    ${switch_to_style_struct("Box")}
 
     // TODO(pcwalton): Multiple transitions.
     <%self:longhand name="transition-duration">
@@ -6180,11 +6180,7 @@ pub mod style_structs {
                     self.${longhand.ident} = other.${longhand.ident}.clone();
                 }
             % endfor
-            % if style_struct.name == "Animation":
-                fn transition_count(&self) -> usize {
-                    self.transition_property.0.len()
-                }
-            % elif style_struct.name == "Border":
+            % if style_struct.name == "Border":
                 % for side in ["top", "right", "bottom", "left"]:
                 fn border_${side}_is_none_or_hidden_and_has_nonzero_width(&self) -> bool {
                     self.border_${side}_style.none_or_hidden() &&
@@ -6206,6 +6202,9 @@ pub mod style_structs {
                 }
                 fn overflow_y_is_visible(&self) -> bool {
                     self.overflow_y.0 == longhands::overflow_x::computed_value::T::visible
+                }
+                fn transition_count(&self) -> usize {
+                    self.transition_property.0.len()
                 }
             % elif style_struct.name == "Color":
                 fn clone_color(&self) -> longhands::color::computed_value::T {

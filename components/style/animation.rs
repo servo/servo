@@ -24,7 +24,7 @@ use properties::longhands::transition_timing_function::computed_value::{Transiti
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
-use properties::style_struct_traits::TAnimation;
+use properties::style_struct_traits::TBox;
 use properties::{ComputedValues, ServoComputedValues};
 use std::cmp::Ordering;
 use std::iter::repeat;
@@ -74,7 +74,7 @@ impl PropertyAnimation {
                            -> Vec<PropertyAnimation> {
         let mut result = Vec::new();
         let transition_property =
-            new_style.as_servo().get_animation().transition_property.0[transition_index];
+            new_style.as_servo().get_box().transition_property.0[transition_index];
         if transition_property != TransitionProperty::All {
             if let Some(property_animation) =
                     PropertyAnimation::from_transition_property(transition_property,
@@ -105,7 +105,7 @@ impl PropertyAnimation {
                                 old_style: &ServoComputedValues,
                                 new_style: &mut ServoComputedValues)
                                 -> Option<PropertyAnimation> {
-        let animation_style = new_style.get_animation();
+        let box_style = new_style.get_box();
         macro_rules! match_transition {
                 ( $( [$name:ident; $structname:ident; $field:ident] ),* ) => {
                     match transition_property {
@@ -187,8 +187,8 @@ impl PropertyAnimation {
         let property_animation = PropertyAnimation {
             property: animated_property,
             timing_function:
-                *animation_style.transition_timing_function.0.get_mod(transition_index),
-            duration: *animation_style.transition_duration.0.get_mod(transition_index),
+                *box_style.transition_timing_function.0.get_mod(transition_index),
+            duration: *box_style.transition_duration.0.get_mod(transition_index),
         };
         if property_animation.does_not_animate() {
             None
@@ -936,7 +936,7 @@ pub fn start_transitions_if_applicable<C: ComputedValues>(new_animations_sender:
                                                           new_style: &mut C)
                                                           -> bool {
     let mut had_animations = false;
-    for i in 0..new_style.get_animation().transition_count() {
+    for i in 0..new_style.get_box().transition_count() {
         // Create any property animations, if applicable.
         let property_animations = PropertyAnimation::from_transition(i, old_style.as_servo(), new_style.as_servo_mut());
         for property_animation in property_animations {
@@ -945,15 +945,15 @@ pub fn start_transitions_if_applicable<C: ComputedValues>(new_animations_sender:
 
             // Kick off the animation.
             let now = time::precise_time_s();
-            let animation_style = new_style.as_servo().get_animation();
+            let box_style = new_style.as_servo().get_box();
             let start_time =
-                now + (animation_style.transition_delay.0.get_mod(i).seconds() as f64);
+                now + (box_style.transition_delay.0.get_mod(i).seconds() as f64);
             new_animations_sender.lock().unwrap().send(Animation {
                 node: node,
                 property_animation: property_animation,
                 start_time: start_time,
                 end_time: start_time +
-                    (animation_style.transition_duration.0.get_mod(i).seconds() as f64),
+                    (box_style.transition_duration.0.get_mod(i).seconds() as f64),
             }).unwrap();
 
             had_animations = true
