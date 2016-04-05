@@ -362,8 +362,10 @@ impl webrender_traits::RenderNotifier for RenderNotifier {
         let pipeline_id = pipeline_id.from_webrender();
 
         if let Some(size) = size {
-            self.constellation_chan.send(ConstellationMsg::FrameSize(pipeline_id,
-                                                                     size)).unwrap();
+            let msg = ConstellationMsg::FrameSize(pipeline_id, size);
+            if let Err(e) = self.constellation_chan.send(msg) {
+                warn!("Compositor resize to constellation failed ({}).", e);
+            }
         }
     }
 }
@@ -372,12 +374,17 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn new(window: Rc<Window>, state: InitialCompositorState)
            -> IOCompositor<Window> {
         // Register this thread as a memory reporter, via its own channel.
-        let (reporter_sender, reporter_receiver) = ipc::channel().unwrap();
+        let (reporter_sender, reporter_receiver) = ipc::channel()
+            .expect("Compositor reporter chan");
         let compositor_proxy_for_memory_reporter = state.sender.clone_compositor_proxy();
         ROUTER.add_route(reporter_receiver.to_opaque(), box move |reporter_request| {
-            let reporter_request: ReporterRequest = reporter_request.to().unwrap();
-            compositor_proxy_for_memory_reporter.send(Msg::CollectMemoryReports(
-                    reporter_request.reports_channel));
+            match reporter_request.to::<ReporterRequest>() {
+                Err(e) => error!("Cast to ReporterRequest failed ({}).", e),
+                Ok(reporter_request) => {
+                    let msg = Msg::CollectMemoryReports(reporter_request.reports_channel);
+                    compositor_proxy_for_memory_reporter.send(msg);
+                },
+            }
         });
         let reporter = Reporter(reporter_sender);
         state.mem_profiler_chan.send(
@@ -461,7 +468,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     pub fn start_shutting_down(&mut self) {
         debug!("Compositor sending Exit message to Constellation");
-        self.constellation_chan.send(ConstellationMsg::Exit).unwrap();
+        if let Err(e) = self.constellation_chan.send(ConstellationMsg::Exit) {
+            warn!("Sending exit message to constellation failed ({}).", e);
+        }
 
         self.mem_profiler_chan.send(mem::ProfilerMsg::UnregisterReporter(reporter_name()));
 
@@ -495,7 +504,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::Exit(channel), _) => {
                 self.start_shutting_down();
-                channel.send(()).unwrap();
+                let _ = channel.send(());
             }
 
             (Msg::ShutdownComplete, _) => {
@@ -543,7 +552,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::GetNativeDisplay(chan),
              ShutdownState::NotShuttingDown) => {
-                chan.send(self.native_display.clone()).unwrap();
+                if let Err(e) = chan.send(self.native_display.clone()) {
+                    warn!("Sending response to get native display failed ({}).", e);
+                }
             }
 
             (Msg::AssignPaintedBuffers(pipeline_id, epoch, replies, frame_tree_id),
@@ -582,7 +593,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             (Msg::GetClientWindow(send),
              ShutdownState::NotShuttingDown) => {
                 let rect = self.window.client_window();
-                send.send(rect).unwrap();
+                if let Err(e) = send.send(rect) {
+                    warn!("Sending response to get client window failed ({}).", e);
+                }
             }
 
             (Msg::Status(message), ShutdownState::NotShuttingDown) => {
@@ -639,7 +652,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             (Msg::CreatePng(reply), ShutdownState::NotShuttingDown) => {
                 let res = self.composite_specific_target(CompositeTarget::WindowAndPng);
                 let img = res.unwrap_or(None);
-                reply.send(img).unwrap();
+                if let Err(e) = reply.send(img) {
+                    warn!("Sending reply to create png failed ({}).", e);
+                }
             }
 
             (Msg::PaintThreadExited(pipeline_id), _) => {
@@ -696,7 +711,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 debug!("Compositor got pipeline exited: {:?}", pipeline_id);
                 self.pending_subpages.remove(&pipeline_id);
                 self.remove_pipeline_root_layer(pipeline_id);
-                sender.send(()).unwrap();
+                let _ = sender.send(());
             }
 
             // When we are shutting_down, we need to avoid performing operations
@@ -767,7 +782,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                       frame_tree: &SendableFrameTree,
                       response_chan: IpcSender<()>,
                       new_constellation_chan: Sender<ConstellationMsg>) {
-        response_chan.send(()).unwrap();
+        if let Err(e) = response_chan.send(()) {
+            warn!("Sending reponse to set frame tree failed ({}).", e);
+        }
 
         // There are now no more pending iframes.
         self.pending_subpages.clear();
@@ -960,7 +977,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn create_descendant_layer(&mut self,
                                pipeline_id: PipelineId,
                                layer_properties: LayerProperties) {
-        let parent_id = layer_properties.parent_id.unwrap();
+        let parent_id = match layer_properties.parent_id {
+            None => return error!("Creating descendent layer without a parent id."),
+            Some(parent_id) => parent_id,
+        };
         if let Some(parent_layer) = self.find_layer_with_pipeline_and_layer_id(pipeline_id,
                                                                                parent_id) {
             let wants_scroll_events = if layer_properties.scrolls_overflow_area {
@@ -1034,12 +1054,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let dppx = self.page_zoom * self.device_pixels_per_screen_px();
         let initial_viewport = self.window_size.as_f32() / dppx;
         let visible_viewport = initial_viewport / self.viewport_zoom;
-
-        self.constellation_chan.send(ConstellationMsg::ResizedWindow(WindowSizeData {
+        let msg = ConstellationMsg::ResizedWindow(WindowSizeData {
             device_pixel_ratio: dppx,
             initial_viewport: initial_viewport,
             visible_viewport: visible_viewport,
-        })).unwrap()
+        });
+
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Sending window resize to constellation failed ({}).", e);
+        }
     }
 
     /// Sends the size of the given subpage up to the constellation. This will often trigger a
@@ -1050,9 +1073,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             None => return,
         };
 
-        self.constellation_chan.send(ConstellationMsg::FrameSize(
-            *subpage_pipeline_id,
-            layer_properties.rect.size)).unwrap();
+        let msg = ConstellationMsg::FrameSize(*subpage_pipeline_id, layer_properties.rect.size);
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Sending subpage resize to constellation failed ({}).", e);
+        }
     }
 
     pub fn move_layer(&self,
@@ -1265,14 +1289,19 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_load_url_window_event(&mut self, url_string: String) {
         debug!("osmain: loading URL `{}`", url_string);
         self.got_load_complete_message = false;
-        let url = Url::parse(&url_string).unwrap();
-        self.window.set_page_url(url.clone());
-        let msg = match self.scene.root {
-            Some(ref layer) => ConstellationMsg::LoadUrl(layer.pipeline_id(), LoadData::new(url)),
-            None => ConstellationMsg::InitLoadUrl(url)
-        };
-
-        self.constellation_chan.send(msg).unwrap()
+        match Url::parse(&url_string) {
+            Ok(url) => {
+                self.window.set_page_url(url.clone());
+                let msg = match self.scene.root {
+                    Some(ref layer) => ConstellationMsg::LoadUrl(layer.pipeline_id(), LoadData::new(url)),
+                    None => ConstellationMsg::InitLoadUrl(url)
+                };
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending load url to constellation failed ({}).", e);
+                }
+            },
+            Err(e) => error!("Parsing URL {} failed ({}).", url_string, e),
+        }
     }
 
     fn on_mouse_window_event_class(&mut self, mouse_window_event: MouseWindowEvent) {
@@ -1314,10 +1343,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     MouseButtonEvent(MouseEventType::MouseUp, button, translated_point)
                 }
             };
-            root_pipeline.script_chan
-                         .send(ConstellationControlMsg::SendEvent(root_pipeline_id,
-                                                                  event_to_send))
-                         .unwrap();
+            let msg = ConstellationControlMsg::SendEvent(root_pipeline_id, event_to_send);
+            if let Err(e) = root_pipeline.script_chan.send(msg) {
+                warn!("Sending control event to root script failed ({}).", e);
+            }
             return
         }
 
@@ -1346,10 +1375,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             let translated_point =
                 webrender_api.translate_point_to_layer_space(&cursor.to_untyped());
             let event_to_send = MouseMoveEvent(Some(translated_point));
-            root_pipeline.script_chan
-                         .send(ConstellationControlMsg::SendEvent(root_pipeline_id,
-                                                                  event_to_send))
-                         .unwrap();
+            let msg = ConstellationControlMsg::SendEvent(root_pipeline_id, event_to_send);
+            if let Err(e) = root_pipeline.script_chan.send(msg) {
+                warn!("Sending mouse control event to root script failed ({}).", e);
+            }
             return
         }
 
@@ -1386,7 +1415,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_touch_move(&mut self, identifier: TouchId, point: TypedPoint2D<DevicePixel, f32>) {
         match self.touch_handler.on_touch_move(identifier, point) {
             TouchAction::Scroll(delta) => {
-                self.on_scroll_window_event(delta, point.cast().unwrap());
+                match point.cast() {
+                    Some(point) => self.on_scroll_window_event(delta, point),
+                    None => error!("Point cast failed."),
+                }
             }
             TouchAction::Zoom(magnification, scroll_delta) => {
                 let cursor = Point2D::typed(-1, -1);  // Make sure this hits the base layer.
@@ -1572,9 +1604,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             if !new_display_ports.contains_key(&extra_layer_data.pipeline_id) {
                 new_display_ports.insert(extra_layer_data.pipeline_id, Vec::new());
             }
-            new_display_ports.get_mut(&extra_layer_data.pipeline_id)
-                             .unwrap()
-                             .push((extra_layer_data.id, visible_rect));
+            if let Some(new_display_port) = new_display_ports.get_mut(&extra_layer_data.pipeline_id) {
+                new_display_port.push((extra_layer_data.id, visible_rect));
+            }
 
             for kid in &*layer.children.borrow() {
                 process_layer(&*kid, window_size, new_display_ports)
@@ -1592,8 +1624,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             if let Some(pipeline_details) = self.pipeline_details.get(&pipeline_id) {
                 if let Some(ref pipeline) = pipeline_details.pipeline {
                     let LayoutControlChan(ref sender) = pipeline.layout_chan;
-                    sender.send(LayoutControlMsg::SetVisibleRects((*new_visible_rects).clone()))
-                          .unwrap()
+                    let msg = LayoutControlMsg::SetVisibleRects((*new_visible_rects).clone());
+                    if let Err(e) = sender.send(msg) {
+                        warn!("Sending layout control message failed ({}).", e);
+                    }
                 }
             }
         }
@@ -1632,7 +1666,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         } else {
             AnimationTickType::Layout
         };
-        self.constellation_chan.send(ConstellationMsg::TickAnimation(pipeline_id, animation_type)).unwrap()
+        let msg = ConstellationMsg::TickAnimation(pipeline_id, animation_type);
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Sending tick to constellation failed ({}).", e);
+        }
     }
 
     fn constrain_viewport(&mut self, pipeline_id: PipelineId, constraints: ViewportConstraints) {
@@ -1702,12 +1739,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             windowing::WindowNavigateMsg::Forward => NavigationDirection::Forward,
             windowing::WindowNavigateMsg::Back => NavigationDirection::Back,
         };
-        self.constellation_chan.send(ConstellationMsg::Navigate(None, direction)).unwrap()
+        let msg = ConstellationMsg::Navigate(None, direction);
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Sending navigation to constellation failed ({}).", e);
+        }
     }
 
     fn on_touchpad_pressure_event(&self, cursor: TypedPoint2D<DevicePixel, f32>, pressure: f32,
                                   phase: TouchpadPressurePhase) {
-        if prefs::get_pref("dom.forcetouch.enabled").as_boolean().unwrap() {
+        if let Some(true) = prefs::get_pref("dom.forcetouch.enabled").as_boolean() {
             match self.find_topmost_layer_at_point(cursor / self.scene.scale) {
                 Some(result) => result.layer.send_touchpad_pressure_event(self, result.point, pressure, phase),
                 None => {},
@@ -1716,7 +1756,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn on_key_event(&self, key: Key, state: KeyState, modifiers: KeyModifiers) {
-        self.constellation_chan.send(ConstellationMsg::KeyEvent(key, state, modifiers)).unwrap()
+        let msg = ConstellationMsg::KeyEvent(key, state, modifiers);
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Sending key event to constellation failed ({}).", e);
+        }
     }
 
     fn fill_paint_request_with_cached_layer_buffers(&mut self, paint_request: &mut PaintRequest) {
@@ -1785,8 +1828,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             let layer_rect = Rect::new(-layer.extra_data.borrow().scroll_offset.to_untyped(),
                                        layer.bounds.borrow().size.to_untyped());
             if let Some(pipeline) = self.pipeline(layer.pipeline_id()) {
-                pipeline.script_chan.send(ConstellationControlMsg::Viewport(pipeline.id.clone(),
-                                                                            layer_rect)).unwrap();
+                let msg = ConstellationControlMsg::Viewport(pipeline.id.clone(), layer_rect);
+                if let Err(e) = pipeline.script_chan.send(msg) {
+                    warn!("Send viewport to script failed ({})", e);
+                }
             }
         }
 
@@ -1833,7 +1878,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         for (pipeline_id, requests) in pipeline_requests {
             let msg = ChromeToPaintMsg::Paint(requests, self.frame_tree_id);
             if let Some(pipeline) = self.pipeline(pipeline_id) {
-                pipeline.chrome_to_paint_chan.send(msg).unwrap();
+                if let Err(e) = pipeline.chrome_to_paint_chan.send(msg) {
+                    warn!("Sending paint message failed ({}).", e);
+                }
             }
         }
 
@@ -1935,7 +1982,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
                 // Pass the pipeline/epoch states to the constellation and check
                 // if it's safe to output the image.
-                self.constellation_chan.send(ConstellationMsg::IsReadyToSaveImage(pipeline_epochs)).unwrap();
+                let msg = ConstellationMsg::IsReadyToSaveImage(pipeline_epochs);
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending ready to save to constellation failed ({}).", e);
+                }
                 self.ready_to_save_state = ReadyState::WaitingForConstellationReply;
                 Err(NotReadyToPaint::JustNotifiedConstellation)
             }
@@ -1961,16 +2011,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn composite(&mut self) {
         let target = self.composite_target;
-        let composited = self.composite_specific_target(target);
-        if composited.is_ok() &&
-            (opts::get().output_file.is_some() || opts::get().exit_after_load) {
-            println!("Shutting down the Constellation after generating an output file or exit flag specified");
-            self.start_shutting_down();
-        } else if composited.is_err() &&
-            opts::get().is_running_problem_test &&
-            composited.as_ref().err().unwrap() != &UnableToComposite::NotReadyToPaintImage(
-                NotReadyToPaint::WaitingOnConstellation) {
-            println!("not ready to composite: {:?}", composited.err().unwrap());
+        match self.composite_specific_target(target) {
+            Ok(_) => if opts::get().output_file.is_some() || opts::get().exit_after_load {
+                println!("Shutting down the Constellation after generating an output file or exit flag specified");
+                self.start_shutting_down();
+            },
+            Err(e) => if opts::get().is_running_problem_test {
+                if e != UnableToComposite::NotReadyToPaintImage(NotReadyToPaint::WaitingOnConstellation) {
+                    println!("not ready to composite: {:?}", e);
+                }
+            },
         }
     }
 
@@ -2087,9 +2137,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let img = self.draw_img(render_target_info,
                                         width,
                                         height);
-                let path = opts::get().output_file.as_ref().unwrap();
-                let mut file = File::create(path).unwrap();
-                DynamicImage::ImageRgb8(img).save(&mut file, ImageFormat::PNG).unwrap();
+                match opts::get().output_file.as_ref() {
+                    Some(path) => match File::create(path) {
+                        Ok(mut file) => match DynamicImage::ImageRgb8(img).save(&mut file, ImageFormat::PNG) {
+                            Ok(()) => (),
+                            Err(e) => error!("Failed to save {} ({}).", path, e),
+                        },
+                        Err(e) => error!("Failed to create {} ({}).", path, e),
+                    },
+                    None => error!("No file specified."),
+                }
                 None
             }
         };
@@ -2431,7 +2488,10 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
             None => return,
             Some(ref root_pipeline) => root_pipeline.id,
         };
-        self.constellation_chan.send(ConstellationMsg::GetPipelineTitle(root_pipeline_id)).unwrap();
+        let msg = ConstellationMsg::GetPipelineTitle(root_pipeline_id);
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Failed to send pipeline title ({}).", e);
+        }
     }
 }
 
