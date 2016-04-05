@@ -179,7 +179,7 @@ fn load_for_consumer(load_data: LoadData,
 
             let mut image = resources_dir_path();
             image.push("badcert.html");
-            let load_data = LoadData::new(load_data.context, Url::from_file_path(&*image).unwrap(), None);
+            let load_data = LoadData::new(load_data.context, Url::from_file_path(&*image).unwrap(), None, None, None);
 
             file_loader::factory(load_data, start_chan, classifier, cancel_listener)
         }
