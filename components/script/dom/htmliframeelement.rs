@@ -124,6 +124,7 @@ impl HTMLIFrameElement {
         let window = window.r();
         let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id();
         let new_pipeline_id = self.pipeline_id.get().unwrap();
+        let private_iframe = self.privatebrowsing();
 
         self.containing_page_pipeline_id.set(Some(window.pipeline()));
 
@@ -135,6 +136,7 @@ impl HTMLIFrameElement {
             old_subpage_id: old_subpage_id,
             new_pipeline_id: new_pipeline_id,
             sandbox: sandboxed,
+            is_private: private_iframe,
         };
         chan.send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info)).unwrap();
 
@@ -248,6 +250,17 @@ impl HTMLIFrameElement {
                       ReflowQueryType::NoQuery,
                       ReflowReason::IFrameLoadEvent);
     }
+
+    /// Check whether the iframe has the mozprivatebrowsing attribute set
+    pub fn privatebrowsing(&self) -> bool {
+        if self.Mozbrowser() {
+            let element = self.upcast::<Element>();
+            element.has_attribute(&Atom::from("mozprivatebrowsing"))
+        } else {
+            false
+        }
+    }
+
 }
 
 pub trait HTMLIFrameElementLayoutMethods {

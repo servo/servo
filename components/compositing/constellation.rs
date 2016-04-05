@@ -1675,6 +1675,19 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         ReadyToSave::Ready
     }
 
+    /// Checks whether the pipeline or its ancestors are private
+    #[allow(dead_code)]
+    fn check_is_pipeline_private(&self, pipeline_id: PipelineId) -> bool {
+        let mut pipeline_id = Some(pipeline_id);
+        while let Some(pipeline) = pipeline_id.and_then(|id| self.pipelines.get(&id)) {
+            if pipeline.is_private {
+                return true;
+            }
+            pipeline_id = pipeline.parent_info.map(|(parent_pipeline_id, _)| parent_pipeline_id);
+        }
+        false
+    }
+
     // Close a frame (and all children)
     fn close_frame(&mut self, frame_id: FrameId, exit_mode: ExitPipelineMode) {
         // Store information about the pipelines to be closed. Then close the

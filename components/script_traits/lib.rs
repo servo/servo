@@ -402,6 +402,8 @@ pub struct IFrameLoadInfo {
     pub new_pipeline_id: PipelineId,
     /// Sandbox type of this iframe
     pub sandbox: IFrameSandboxState,
+    ///  Whether this iframe should be considered private
+    pub is_private: bool,
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events
