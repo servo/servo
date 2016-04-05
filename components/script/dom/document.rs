@@ -1259,12 +1259,12 @@ impl Document {
 
     pub fn prepare_async_load(&self, load: LoadType) -> PendingAsyncLoad {
         let mut loader = self.loader.borrow_mut();
-        loader.prepare_async_load(load)
+        loader.prepare_async_load(load, self)
     }
 
     pub fn load_async(&self, load: LoadType, listener: AsyncResponseTarget) {
         let mut loader = self.loader.borrow_mut();
-        loader.load_async(load, listener)
+        loader.load_async(load, listener, self)
     }
 
     pub fn finish_load(&self, load: LoadType) {
@@ -1709,7 +1709,10 @@ impl Document {
         }
     }
 
-    //pub fn get_referrer_policy
+    pub fn get_referrer_policy(&self) -> Option<ReferrerPolicy> {
+        //add logic in here (or elsewhere) to actually set this field
+        self.referrer_policy.clone()
+    }
 }
 
 
