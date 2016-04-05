@@ -267,7 +267,8 @@ class MachCommands(CommandBase):
              description='Run the source code tidiness check',
              category='testing')
     @CommandArgument('--faster', default=False, action="store_true",
-                     help="Only check changed files and skip the WPT lint in tidy")
+                     help="Only check changed files and skip the WPT lint in tidy, "
+                          "if there are no changes in the WPT files")
     @CommandArgument('--no-progress', default=False, action="store_true",
                      help="Don't show progress for tidy")
     def test_tidy(self, faster, no_progress):
