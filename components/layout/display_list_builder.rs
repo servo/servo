@@ -566,7 +566,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 webrender_image: webrender_image,
                 image_data: image_data.map(Arc::new),
                 stretch_size: Size2D::new(image_size.width, image_size.height),
-                image_rendering: style.get_effects().image_rendering.clone(),
+                image_rendering: style.get_inheritedbox().image_rendering.clone(),
             }), display_list_section);
         }
     }
@@ -1206,7 +1206,7 @@ impl FragmentDisplayListBuilding for Fragment {
                         webrender_image: WebRenderImageInfo::from_image(image),
                         image_data: Some(Arc::new(image.bytes.clone())),
                         stretch_size: stacking_relative_content_box.size,
-                        image_rendering: self.style.get_effects().image_rendering.clone(),
+                        image_rendering: self.style.get_inheritedbox().image_rendering.clone(),
                     }), DisplayListSection::Content);
                 }
             }
