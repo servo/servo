@@ -12,7 +12,7 @@ use flate2::read::{DeflateDecoder, GzDecoder};
 use hsts::{HstsEntry, HstsList, secure_url};
 use hyper::Error as HttpError;
 use hyper::client::{Pool, Request, Response};
-use hyper::header::{Accept, AcceptEncoding, ContentLength, ContentType, Host};
+use hyper::header::{Accept, AcceptEncoding, ContentLength, ContentType, Host, Referer};
 use hyper::header::{Authorization, Basic};
 use hyper::header::{ContentEncoding, Encoding, Header, Headers, Quality, QualityItem};
 use hyper::header::{Location, SetCookie, StrictTransportSecurity, UserAgent, qitem};
@@ -23,7 +23,7 @@ use hyper::net::{Fresh, HttpsConnector, Openssl};
 use hyper::status::{StatusClass, StatusCode};
 use log;
 use mime_classifier::MIMEClassifier;
-use msg::constellation_msg::{PipelineId};
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::response::HttpsState;
@@ -356,6 +356,49 @@ fn set_default_accept(headers: &mut Headers) {
     }
 }
 
+/// https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-state-no-referrer-when-downgrade
+fn no_ref_when_downgrade_header(referrer_url: Url, url: Url) -> Option<Url> {
+    if referrer_url.scheme() == "https" && url.scheme() != "https" {
+        return None;
+    }
+    return strip_url(referrer_url, false);
+}
+
+/// https://w3c.github.io/webappsec-referrer-policy/#strip-url
+fn strip_url(mut referrer_url: Url, origin_only: bool) -> Option<Url> {
+    if referrer_url.scheme() == "https" || referrer_url.scheme() == "http" {
+        referrer_url.set_username("").unwrap();
+        referrer_url.set_password(None).unwrap();
+        referrer_url.set_fragment(None);
+        if origin_only {
+            referrer_url.set_path("");
+            referrer_url.set_query(None);
+        }
+        return Some(referrer_url);
+    }
+    return None;
+}
+
+/// https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer
+fn determine_request_referrer(headers: &mut Headers,
+                              referrer_policy: Option<ReferrerPolicy>,
+                              referrer_url: Option<Url>,
+                              url: Url) -> Option<Url> {
+    //TODO - algorithm step 2 not addressed
+    assert!(!headers.has::<Referer>());
+    if let Some(ref_url) = referrer_url {
+        let cross_origin = ref_url.origin() != url.origin();
+        return match referrer_policy {
+            Some(ReferrerPolicy::NoReferrer) => None,
+            Some(ReferrerPolicy::OriginOnly) => strip_url(ref_url, true),
+            Some(ReferrerPolicy::UnsafeUrl) => strip_url(ref_url, false),
+            Some(ReferrerPolicy::OriginWhenCrossOrigin) => strip_url(ref_url, cross_origin),
+            Some(ReferrerPolicy::NoRefWhenDowngrade) | None => no_ref_when_downgrade_header(ref_url, url),
+        };
+    }
+    return None;
+}
+
 pub fn set_request_cookies(url: Url, headers: &mut Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
     let mut cookie_jar = cookie_jar.write().unwrap();
     if let Some(cookie_list) = cookie_jar.cookies_for_url(&url, CookieSource::HTTP) {
@@ -538,6 +581,13 @@ pub fn modify_request_headers(headers: &mut Headers,
 
     set_default_accept(headers);
     set_default_accept_encoding(headers);
+
+    if let Some(referer_val) = determine_request_referrer(headers,
+                                                          load_data.referrer_policy.clone(),
+                                                          load_data.referrer_url.clone(),
+                                                          url.clone()) {
+        headers.set(Referer(referer_val.into_string()));
+    }
 
     // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
     if load_data.credentials_flag {

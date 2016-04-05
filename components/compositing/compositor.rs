@@ -1305,7 +1305,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             Ok(url) => {
                 self.window.set_page_url(url.clone());
                 let msg = match self.scene.root {
-                    Some(ref layer) => ConstellationMsg::LoadUrl(layer.pipeline_id(), LoadData::new(url)),
+                    Some(ref layer) => ConstellationMsg::LoadUrl(layer.pipeline_id(), LoadData::new(url, None, None)),
                     None => ConstellationMsg::InitLoadUrl(url)
                 };
                 if let Err(e) = self.constellation_chan.send(msg) {

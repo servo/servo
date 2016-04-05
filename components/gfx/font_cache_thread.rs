@@ -170,6 +170,8 @@ impl FontCache {
                             let load = PendingAsyncLoad::new(LoadContext::Font,
                                                              self.resource_thread.clone(),
                                                              url.clone(),
+                                                             None,
+                                                             None,
                                                              None);
                             let (data_sender, data_receiver) = ipc::channel().unwrap();
                             let data_target = AsyncResponseTarget {

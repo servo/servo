@@ -246,15 +246,19 @@ pub struct LoadData {
     pub method: Method,
     pub headers: Headers,
     pub data: Option<Vec<u8>>,
+    pub referrer_policy: Option<ReferrerPolicy>,
+    pub referrer_url: Option<Url>,
 }
 
 impl LoadData {
-    pub fn new(url: Url) -> LoadData {
+    pub fn new(url: Url, referrer_policy: Option<ReferrerPolicy>, referrer_url: Option<Url>) -> LoadData {
         LoadData {
             url: url,
             method: Method::Get,
             headers: Headers::new(),
             data: None,
+            referrer_policy: referrer_policy,
+            referrer_url: referrer_url,
         }
     }
 }
@@ -385,3 +389,15 @@ impl ConvertPipelineIdFromWebRender for webrender_traits::PipelineId {
         }
     }
 }
+
+/// [Policies](https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states)
+/// for providing a referrer header for a request
+#[derive(HeapSizeOf, Clone, Deserialize, Serialize)]
+pub enum ReferrerPolicy {
+    NoReferrer,
+    NoRefWhenDowngrade,
+    OriginOnly,
+    OriginWhenCrossOrigin,
+    UnsafeUrl,
+}
+

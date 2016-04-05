@@ -576,10 +576,13 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         // Step 5
         let global = self.global();
         let pipeline_id = global.r().pipeline();
+        //TODO - set referrer_policy/referrer_url in load_data
         let mut load_data =
             LoadData::new(LoadContext::Browsing,
                           self.request_url.borrow().clone().unwrap(),
-                          Some(pipeline_id));
+                          Some(pipeline_id),
+                          None,
+                          None);
         if load_data.url.origin().ne(&global.r().get_url().origin()) {
             load_data.credentials_flag = self.WithCredentials();
         }

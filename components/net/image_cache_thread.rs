@@ -517,7 +517,7 @@ impl ImageCache {
                     CacheResult::Miss => {
                         // A new load request! Request the load from
                         // the resource thread.
-                        let load_data = LoadData::new(LoadContext::Image, (*ref_url).clone(), None);
+                        let load_data = LoadData::new(LoadContext::Image, (*ref_url).clone(), None, None, None);
                         let (action_sender, action_receiver) = ipc::channel().unwrap();
                         let response_target = AsyncResponseTarget {
                             sender: action_sender,

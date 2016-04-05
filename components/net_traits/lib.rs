@@ -33,7 +33,7 @@ use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Attr, Mime};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use msg::constellation_msg::{PipelineId};
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use serde::{Deserializer, Serializer};
 use std::sync::mpsc::Sender;
 use std::thread;
@@ -88,10 +88,18 @@ pub struct LoadData {
     // https://fetch.spec.whatwg.org/#concept-http-fetch step 4.3
     pub credentials_flag: bool,
     pub context: LoadContext,
+    /// The policy and referring URL for the originator of this request
+    pub referrer_policy: Option<ReferrerPolicy>,
+    pub referrer_url: Option<Url>,
+
 }
 
 impl LoadData {
-    pub fn new(context: LoadContext, url: Url, id: Option<PipelineId>) -> LoadData {
+    pub fn new(context: LoadContext,
+               url: Url,
+               id: Option<PipelineId>,
+               referrer_policy: Option<ReferrerPolicy>,
+               referrer_url: Option<Url>) -> LoadData {
         LoadData {
             url: url,
             method: Method::Get,
@@ -101,7 +109,9 @@ impl LoadData {
             cors: None,
             pipeline_id: id,
             credentials_flag: true,
-            context: context
+            context: context,
+            referrer_policy: referrer_policy,
+            referrer_url: referrer_url
         }
     }
 }
@@ -235,6 +245,8 @@ pub struct PendingAsyncLoad {
     pipeline: Option<PipelineId>,
     guard: PendingLoadGuard,
     context: LoadContext,
+    referrer_policy: Option<ReferrerPolicy>,
+    referrer_url: Option<Url>,
 }
 
 struct PendingLoadGuard {
@@ -256,21 +268,28 @@ impl Drop for PendingLoadGuard {
 }
 
 impl PendingAsyncLoad {
-    pub fn new(context: LoadContext, resource_thread: ResourceThread, url: Url, pipeline: Option<PipelineId>)
+    pub fn new(context: LoadContext,
+               resource_thread: ResourceThread,
+               url: Url,
+               pipeline: Option<PipelineId>,
+               referrer_policy: Option<ReferrerPolicy>,
+               referrer_url: Option<Url>)
                -> PendingAsyncLoad {
         PendingAsyncLoad {
             resource_thread: resource_thread,
             url: url,
             pipeline: pipeline,
             guard: PendingLoadGuard { loaded: false, },
-            context: context
+            context: context,
+            referrer_policy: referrer_policy,
+            referrer_url: referrer_url
         }
     }
 
     /// Initiate the network request associated with this pending load, using the provided target.
     pub fn load_async(mut self, listener: AsyncResponseTarget) {
         self.guard.neuter();
-        let load_data = LoadData::new(self.context, self.url, self.pipeline);
+        let load_data = LoadData::new(self.context, self.url, self.pipeline, self.referrer_policy, self.referrer_url);
         let consumer = LoadConsumer::Listener(listener);
         self.resource_thread.send(ControlMsg::Load(load_data, consumer, None)).unwrap();
     }
@@ -387,7 +406,7 @@ pub fn load_whole_resource(context: LoadContext,
                            pipeline_id: Option<PipelineId>)
         -> Result<(Metadata, Vec<u8>), NetworkError> {
     let (start_chan, start_port) = ipc::channel().unwrap();
-    resource_thread.send(ControlMsg::Load(LoadData::new(context, url, pipeline_id),
+    resource_thread.send(ControlMsg::Load(LoadData::new(context, url, pipeline_id, None, None),
                        LoadConsumer::Channel(start_chan), None)).unwrap();
     let response = start_port.recv().unwrap();
 
