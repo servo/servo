@@ -602,7 +602,7 @@ impl Handler {
             "page load" => self.load_timeout = value,
             "script" => self.script_timeout = value,
             x => return Err(WebDriverError::new(ErrorStatus::InvalidSelector,
-                                                &format!("Unknown timeout type {}", x)))
+                                                format!("Unknown timeout type {}", x)))
         }
         Ok(WebDriverResponse::Void)
     }
