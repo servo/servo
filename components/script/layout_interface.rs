@@ -23,7 +23,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use string_cache::Atom;
 use style::context::ReflowGoal;
-use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left};
+use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left, overflow_x};
 use style::selector_impl::PseudoElement;
 use style::servo::Stylesheet;
 use url::Url;
@@ -104,6 +104,8 @@ pub trait LayoutRPC {
     fn content_boxes(&self) -> ContentBoxesResponse;
     /// Requests the geometry of this node. Used by APIs such as `clientTop`.
     fn node_geometry(&self) -> NodeGeometryResponse;
+    /// Requests the overflow-x and overflow-y of this node. Used by `scrollTop` etc.
+    fn node_overflow(&self) -> NodeOverflowResponse;
     /// Requests the scroll geometry of this node. Used by APIs such as `scrollTop`.
     fn node_scroll_area(&self) -> NodeGeometryResponse;
     /// Requests the layer id of this node. Used by APIs such as `scrollTop`
@@ -138,6 +140,11 @@ impl MarginStyleResponse {
     }
 }
 
+pub struct NodeOverflowResponse(pub Option<(
+    overflow_x::computed_value::T,
+    overflow_x::computed_value::T
+)>);
+
 pub struct ContentBoxResponse(pub Rect<Au>);
 pub struct ContentBoxesResponse(pub Vec<Rect<Au>>);
 pub struct HitTestResponse {
@@ -148,7 +155,7 @@ pub struct NodeGeometryResponse {
 }
 
 pub struct NodeLayerIdResponse {
-    pub layer_id : LayerId,
+    pub layer_id: LayerId,
 }
 
 pub struct ResolvedStyleResponse(pub Option<String>);
@@ -174,6 +181,7 @@ pub enum ReflowQueryType {
     NoQuery,
     ContentBoxQuery(TrustedNodeAddress),
     ContentBoxesQuery(TrustedNodeAddress),
+    NodeOverflowQuery(TrustedNodeAddress),
     HitTestQuery(Point2D<f32>, bool),
     NodeGeometryQuery(TrustedNodeAddress),
     NodeLayerIdQuery(TrustedNodeAddress),

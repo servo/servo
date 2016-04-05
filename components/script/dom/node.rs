@@ -50,7 +50,6 @@ use dom::window::Window;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
-use gfx_traits::{LayerId};
 use heapsize::{HeapSizeOf, heap_size_of};
 use html5ever::tree_builder::QuirksMode;
 use js::jsapi::{JSContext, JSObject, JSRuntime};

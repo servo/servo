@@ -19,6 +19,7 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
@@ -39,6 +40,7 @@ use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementLayoutHelpers};
 use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlcollection::HTMLCollection;
+use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlfontelement::{HTMLFontElement, HTMLFontElementLayoutHelpers};
 use dom::htmlhrelement::{HTMLHRElement, HTMLHRLayoutHelpers};
@@ -86,7 +88,7 @@ use string_cache::{Atom, Namespace, QualName};
 use style::element_state::*;
 use style::error_reporting::ParseErrorReporter;
 use style::properties::DeclaredValue;
-use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size};
+use style::properties::longhands::{self, background_image, border_spacing, font_family, overflow_x, font_size};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
 use style::values::CSSFloat;
@@ -163,6 +165,34 @@ impl Element {
             box Element::new_inherited(local_name, namespace, prefix, document),
             document,
             ElementBinding::Wrap)
+    }
+
+    // https://drafts.csswg.org/cssom-view/#css-layout-box
+    // Elements that have a computed value of the display property
+    // that is table-column or table-column-group
+    // FIXME: Currently, it is assumed to be true always
+    fn has_css_layout_box(&self) -> bool {
+        true
+    }
+
+    // https://drafts.csswg.org/cssom-view/#potentially-scrollable
+    // NOTE: After some simplication
+    fn potentially_scrollable(&self) -> bool {
+        // let node = self.upcast::<Node>();
+        // let doc = node.owner_doc();
+        self.has_css_layout_box() &&
+        // (doc.GetBody().r() != self.downcast::<HTMLElement>() ||
+        //  (doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+        //   doc.GetDocumentElement().r().map_or(false, |v| v.overflow_not_visible()))) &&
+        self.overflow_not_visible()
+    }
+
+    // used value of overflow-x or overflow-y is not visible
+    fn overflow_not_visible(&self) -> bool {
+        let window = window_from_node(self);
+        let overflow_pair = window.overflow_query(self.upcast::<Node>().to_trusted_node_address());
+        overflow_pair.0 != overflow_x::computed_value::T::visible ||
+        overflow_pair.1 != overflow_x::computed_value::T::visible
     }
 }
 
@@ -1455,12 +1485,52 @@ impl ElementMethods for Element {
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
     fn ScrollTop(&self) -> f64 {
-        let point = self.upcast::<Node>().scroll_offset();
-        return -point.y as f64;
+        let node = self.upcast::<Node>();
+
+        // 1. Let document be the element’s node document.
+        let doc = node.owner_doc();
+
+        // 2. If the document is not the active document, return zero and terminate these steps.
+        if !doc.is_fully_active() {
+            return 0.0;
+        } else {
+            // 3. Let window be the value of document’s defaultView attribute.
+            let win = doc.DefaultView();
+
+            // 5. If the element is the root element and document is in quirks mode,
+            //    return zero and terminate these steps.
+            if *self.get_root_element() == *self {
+                if doc.quirks_mode() == Quirks {
+                    return 0.0;
+                }
+
+                // 6. If the element is the root element return the value of scrollY on window.
+                return (*win).ScrollY() as f64;
+            }
+
+            // 7. If the element is the HTML body element, document is in quirks mode,
+            //    and the element is not potentially scrollable, return the value of scrollY on window.
+            if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+               doc.quirks_mode() == Quirks &&
+               !self.potentially_scrollable() {
+                   return (*win).ScrollY() as f64;
+            }
+
+
+            // 8. If the element does not have any associated CSS layout box, return zero and terminate these steps.
+            if !self.has_css_layout_box() {
+                return 0.0;
+            }
+
+            // 9. Return the y-coordinate of the scrolling area at the alignment point
+            //    with the top of the padding edge of the element.
+            let point = node.scroll_offset();
+            return -point.y as f64;
+        }
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
-    fn SetScrollTop(&self, scroll_top: f64) {
+    fn SetScrollTop(&self, _scroll_top: f64) {
         unimplemented!()
     }
 
@@ -1471,7 +1541,7 @@ impl ElementMethods for Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollleft
-    fn SetScrollLeft(&self, scroll_left: f64) {
+    fn SetScrollLeft(&self, _scroll_left: f64) {
         unimplemented!()
     }
 
