@@ -1020,6 +1020,25 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform2f(&self,
+                  uniform: Option<&WebGLUniformLocation>,
+                  x: f32, y: f32) {
+        let uniform = match uniform {
+            Some(uniform) => uniform,
+            None => return,
+        };
+
+        match self.current_program.get() {
+            Some(ref program) if program.id() == uniform.program_id() => {},
+            _ => return self.webgl_error(InvalidOperation),
+        };
+
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::Uniform2f(uniform.id(), x, y)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform4i(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: i32, y: i32, z: i32, w: i32) {
