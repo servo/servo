@@ -25,7 +25,6 @@ use std::cmp::max;
 use std::sync::Arc;
 use style::computed_values::flex_direction;
 use style::logical_geometry::LogicalSize;
-use style::properties::style_structs;
 use style::properties::{ComputedValues, ServoComputedValues};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 
@@ -88,10 +87,6 @@ pub struct FlexFlow {
     available_cross_size: AxisSize
 }
 
-fn flex_style(fragment: &Fragment) -> &style_structs::Flex {
-    fragment.style.get_flex()
-}
-
 // TODO(zentner): This function should use flex-basis.
 fn flex_item_inline_sizes(flow: &mut Flow) -> IntrinsicISizes {
     let _scope = layout_debug_scope!("flex::flex_item_inline_sizes");
@@ -113,7 +108,7 @@ impl FlexFlow {
                          flotation: Option<FloatKind>)
                          -> FlexFlow {
 
-        let main_mode = match flex_style(&fragment).flex_direction {
+        let main_mode = match fragment.style.get_position().flex_direction {
             flex_direction::T::row_reverse | flex_direction::T::row => Mode::Inline,
             flex_direction::T::column_reverse | flex_direction::T::column => Mode::Block
         };

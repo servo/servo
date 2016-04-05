@@ -4860,7 +4860,7 @@ pub mod longhands {
     // CSS Flexible Box Layout Module Level 1
     // http://www.w3.org/TR/css3-flexbox/
 
-    ${new_style_struct("Flex", is_inherited=False)}
+    ${switch_to_style_struct("Position")}
 
     // Flex container properties
     ${single_keyword("flex-direction", "row row-reverse column column-reverse", experimental=True)}
