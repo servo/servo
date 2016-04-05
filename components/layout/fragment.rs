@@ -2192,7 +2192,7 @@ impl Fragment {
         // FIXME(pcwalton): Don't unconditionally form stacking contexts for `overflow_x: scroll`
         // and `overflow_y: scroll`. This needs multiple layers per stacking context.
         match (self.style().get_box().position,
-               self.style().get_box().z_index,
+               self.style().get_position().z_index,
                self.style().get_box().overflow_x,
                self.style().get_box().overflow_y.0) {
             (position::T::absolute,
@@ -2224,15 +2224,15 @@ impl Fragment {
     pub fn effective_z_index(&self) -> i32 {
         match self.style().get_box().position {
             position::T::static_ => {},
-            _ => return self.style().get_box().z_index.number_or_zero(),
+            _ => return self.style().get_position().z_index.number_or_zero(),
         }
 
         if self.style().get_effects().transform.0.is_some() {
-            return self.style().get_box().z_index.number_or_zero();
+            return self.style().get_position().z_index.number_or_zero();
         }
 
         match self.style().get_box().display {
-            display::T::flex => self.style().get_box().z_index.number_or_zero(),
+            display::T::flex => self.style().get_position().z_index.number_or_zero(),
             _ => 0,
         }
     }

@@ -165,10 +165,10 @@ impl PropertyAnimation {
             [MarginLeft; get_margin; margin_left],
             [MarginRight; get_margin; margin_right],
             [MarginTop; get_margin; margin_top],
-            [MaxHeight; get_box; max_height],
-            [MaxWidth; get_box; max_width],
-            [MinHeight; get_box; min_height],
-            [MinWidth; get_box; min_width],
+            [MaxHeight; get_position; max_height],
+            [MaxWidth; get_position; max_width],
+            [MinHeight; get_position; min_height],
+            [MinWidth; get_position; min_width],
             [Opacity; get_effects; opacity],
             [OutlineColor; get_outline; outline_color],
             [OutlineWidth; get_outline; outline_width],
@@ -182,7 +182,7 @@ impl PropertyAnimation {
             [VerticalAlign; get_box; vertical_align],
             [Visibility; get_inheritedbox; visibility],
             [Width; get_box; width],
-            [ZIndex; get_box; z_index]);
+            [ZIndex; get_position; z_index]);
 
         let property_animation = PropertyAnimation {
             property: animated_property,
@@ -263,10 +263,10 @@ impl PropertyAnimation {
             [MarginLeft; mutate_margin; margin_left],
             [MarginRight; mutate_margin; margin_right],
             [MarginTop; mutate_margin; margin_top],
-            [MaxHeight; mutate_box; max_height],
-            [MaxWidth; mutate_box; max_width],
-            [MinHeight; mutate_box; min_height],
-            [MinWidth; mutate_box; min_width],
+            [MaxHeight; mutate_position; max_height],
+            [MaxWidth; mutate_position; max_width],
+            [MinHeight; mutate_position; min_height],
+            [MinWidth; mutate_position; min_width],
             [Opacity; mutate_effects; opacity],
             [OutlineColor; mutate_outline; outline_color],
             [OutlineWidth; mutate_outline; outline_width],
@@ -282,7 +282,7 @@ impl PropertyAnimation {
             [VerticalAlign; mutate_box; vertical_align],
             [Visibility; mutate_inheritedbox; visibility],
             [Width; mutate_box; width],
-            [ZIndex; mutate_box; z_index]);
+            [ZIndex; mutate_position; z_index]);
     }
 
     #[inline]

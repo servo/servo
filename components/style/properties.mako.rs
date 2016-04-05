@@ -588,6 +588,8 @@ pub mod longhands {
 
     </%self:longhand>
 
+    ${switch_to_style_struct("Position")}
+
     <%self:longhand name="z-index">
         use values::computed::ComputedValueAsSpecified;
 
@@ -655,6 +657,8 @@ pub mod longhands {
     ${predefined_type("height", "LengthOrPercentageOrAuto",
                       "computed::LengthOrPercentageOrAuto::Auto",
                       "parse_non_negative")}
+
+    ${switch_to_style_struct("Position")}
 
     ${predefined_type("min-width", "LengthOrPercentage",
                       "computed::LengthOrPercentage::Length(Au(0))",
@@ -2509,7 +2513,7 @@ pub mod longhands {
 
     // CSS Basic User Interface Module Level 3
     // http://dev.w3.org/csswg/css-ui/
-    ${switch_to_style_struct("Box")}
+    ${switch_to_style_struct("Position")}
 
     ${single_keyword("box-sizing", "content-box border-box")}
 
@@ -6404,26 +6408,26 @@ impl ServoComputedValues {
 
     #[inline]
     pub fn min_inline_size(&self) -> computed::LengthOrPercentage {
-        let box_style = self.get_box();
-        if self.writing_mode.is_vertical() { box_style.min_height } else { box_style.min_width }
+        let position_style = self.get_position();
+        if self.writing_mode.is_vertical() { position_style.min_height } else { position_style.min_width }
     }
 
     #[inline]
     pub fn min_block_size(&self) -> computed::LengthOrPercentage {
-        let box_style = self.get_box();
-        if self.writing_mode.is_vertical() { box_style.min_width } else { box_style.min_height }
+        let position_style = self.get_position();
+        if self.writing_mode.is_vertical() { position_style.min_width } else { position_style.min_height }
     }
 
     #[inline]
     pub fn max_inline_size(&self) -> computed::LengthOrPercentageOrNone {
-        let box_style = self.get_box();
-        if self.writing_mode.is_vertical() { box_style.max_height } else { box_style.max_width }
+        let position_style = self.get_position();
+        if self.writing_mode.is_vertical() { position_style.max_height } else { position_style.max_width }
     }
 
     #[inline]
     pub fn max_block_size(&self) -> computed::LengthOrPercentageOrNone {
-        let box_style = self.get_box();
-        if self.writing_mode.is_vertical() { box_style.max_width } else { box_style.max_height }
+        let position_style = self.get_position();
+        if self.writing_mode.is_vertical() { position_style.max_width } else { position_style.max_height }
     }
 
     #[inline]
