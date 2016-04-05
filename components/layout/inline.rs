@@ -1874,6 +1874,8 @@ impl fmt::Debug for InlineFragmentNodeInfo {
 
 #[derive(Clone)]
 pub struct InlineFragmentContext {
+    /// The list of nodes that this fragment will be inheriting styles from,
+    /// from the most deeply-nested node out.
     pub nodes: Vec<InlineFragmentNodeInfo>,
 }
 

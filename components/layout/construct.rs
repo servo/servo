@@ -1782,20 +1782,20 @@ pub fn strip_ignorable_whitespace_from_start(this: &mut LinkedList<Fragment>) {
                             remaining_fragment.inline_context {
                         if let Some(ref inline_context_of_removed_fragment) =
                                 removed_fragment.inline_context {
-                            for (i, inline_context_node_from_removed_fragment) in
-                                    inline_context_of_removed_fragment.nodes.iter().enumerate() {
-                                if i >= inline_context_of_remaining_fragment.nodes.len() {
-                                    break
-                                }
+                            for (inline_context_node_from_removed_fragment,
+                                 inline_context_node_from_remaining_fragment) in
+                                    inline_context_of_removed_fragment.nodes.iter().rev().zip(
+                                        inline_context_of_remaining_fragment.nodes.iter_mut().rev()
+                                    ) {
                                 if !inline_context_node_from_removed_fragment.flags.contains(
                                         FIRST_FRAGMENT_OF_ELEMENT) {
                                     continue
                                 }
                                 if inline_context_node_from_removed_fragment.address !=
-                                        inline_context_of_remaining_fragment.nodes[i].address {
+                                        inline_context_node_from_remaining_fragment.address {
                                     continue
                                 }
-                                inline_context_of_remaining_fragment.nodes[i].flags.insert(
+                                inline_context_node_from_remaining_fragment.flags.insert(
                                     FIRST_FRAGMENT_OF_ELEMENT);
                             }
                         }
