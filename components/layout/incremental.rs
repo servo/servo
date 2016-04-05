@@ -176,7 +176,7 @@ pub fn compute_damage(old: Option<&Arc<ServoComputedValues>>, new: &ServoCompute
                           REFLOW,
                           RECONSTRUCT_FLOW
                       ], [
-        get_box.float, get_box.display, get_box.position, get_box.content,
+        get_box.float, get_box.display, get_box.position, get_counters.content,
         get_counters.counter_reset, get_counters.counter_increment,
         get_list.quotes, get_list.list_style_type,
 

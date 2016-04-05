@@ -904,7 +904,7 @@ pub mod longhands {
 
     // CSS 2.1, Section 12 - Generated content, automatic numbering, and lists
 
-    ${switch_to_style_struct("Box")}
+    ${new_style_struct("Counters", is_inherited=False)}
 
     <%self:longhand name="content">
         use cssparser::Token;
@@ -1217,7 +1217,7 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    ${new_style_struct("Counters", is_inherited=False)}
+    ${switch_to_style_struct("Counters")}
 
     <%self:longhand name="counter-increment">
         use std::fmt;
