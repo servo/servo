@@ -1,11 +1,12 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+use bluetooth_scanfilter::RequestDeviceoptions;
 use ipc_channel::ipc::IpcSender;
 
 #[derive(Deserialize, Serialize)]
 pub enum BluetoothMethodMsg {
-    RequestDevice(IpcSender<BluetoothObjectMsg>),
+    RequestDevice(RequestDeviceoptions, IpcSender<BluetoothObjectMsg>),
     GATTServerConnect(String, IpcSender<BluetoothObjectMsg>),
     GATTServerDisconnect(String, IpcSender<BluetoothObjectMsg>),
     GetPrimaryService(String, String, IpcSender<BluetoothObjectMsg>),

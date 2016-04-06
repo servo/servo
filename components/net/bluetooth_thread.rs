@@ -8,6 +8,7 @@ use device::bluetooth::BluetoothGATTCharacteristic;
 use device::bluetooth::BluetoothGATTDescriptor;
 use device::bluetooth::BluetoothGATTService;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use net_traits::bluetooth_scanfilter::{RequestDeviceoptions, matches_filters};
 use net_traits::bluetooth_thread::{BluetoothMethodMsg, BluetoothObjectMsg};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
@@ -76,8 +77,8 @@ impl BluetoothManager {
     fn start(&mut self) {
         loop {
             match self.receiver.recv().unwrap() {
-                BluetoothMethodMsg::RequestDevice(sender) => {
-                    self.request_device(sender)
+                BluetoothMethodMsg::RequestDevice(options, sender) => {
+                    self.request_device(options, sender)
                 }
                 BluetoothMethodMsg::GATTServerConnect(device_id, sender) => {
                     self.gatt_server_connect(device_id, sender)
@@ -366,7 +367,9 @@ impl BluetoothManager {
 
     // Methods
 
-    fn request_device(&mut self, sender: IpcSender<BluetoothObjectMsg>) {
+    fn request_device(&mut self,
+                      options: RequestDeviceoptions,
+                      sender: IpcSender<BluetoothObjectMsg>) {
         let mut adapter = match self.get_adapter() {
             Some(a) => a,
             None => send_error!(sender, "No adapter found"),
@@ -376,28 +379,30 @@ impl BluetoothManager {
             send_error!(sender, "No device found");
         }
 
-        //TODO select the proper device
-        let device = &devices[0];
-
-        let message = BluetoothObjectMsg::BluetoothDevice {
-            id: device.get_address().unwrap_or("".to_owned()),
-            name: device.get_name().ok(),
-            device_class: device.get_class().ok(),
-            vendor_id_source: device.get_vendor_id_source().ok(),
-            vendor_id: device.get_vendor_id().ok(),
-            product_id: device.get_product_id().ok(),
-            product_version: device.get_device_id().ok(),
-            appearance: device.get_appearance().ok(),
-            tx_power: match device.get_tx_power() {
-                Ok(p) => Some(p as i8),
-                Err(_) => None,
-            },
-            rssi: match device.get_rssi() {
-                Ok(p) => Some(p as i8),
-                Err(_) => None,
-            }
-        };
-        sender.send(message).unwrap();
+        match devices.into_iter().find(|ref d| matches_filters(d, options.get_filters())) {
+            Some(device) => {
+                let message = BluetoothObjectMsg::BluetoothDevice {
+                    id: device.get_address().unwrap_or("".to_owned()),
+                    name: device.get_name().ok(),
+                    device_class: device.get_class().ok(),
+                    vendor_id_source: device.get_vendor_id_source().ok(),
+                    vendor_id: device.get_vendor_id().ok(),
+                    product_id: device.get_product_id().ok(),
+                    product_version: device.get_device_id().ok(),
+                    appearance: device.get_appearance().ok(),
+                    tx_power: match device.get_tx_power() {
+                        Ok(p) => Some(p as i8),
+                        Err(_) => None,
+                    },
+                    rssi: match device.get_rssi() {
+                        Ok(p) => Some(p as i8),
+                        Err(_) => None,
+                    },
+                };
+                sender.send(message).unwrap();
+           },
+           None => send_error!(sender, "No device found, that matches the given options"),
+        }
     }
 
     pub fn gatt_server_connect(&mut self, device_id: String, sender: IpcSender<BluetoothObjectMsg>) {
