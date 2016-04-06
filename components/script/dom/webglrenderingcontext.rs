@@ -8,7 +8,8 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
-use dom::bindings::conversions::{ToJSValConvertible, array_buffer_view_to_vec_checked, array_buffer_view_to_vec};
+use dom::bindings::conversions::{ToJSValConvertible, array_buffer_view_data_checked};
+use dom::bindings::conversions::{array_buffer_view_to_vec_checked, array_buffer_view_to_vec};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
@@ -271,6 +272,183 @@ impl WebGLRenderingContext {
 
         return true;
     }
+
+    fn validate_tex_image_parameters(&self,
+                                     target: u32,
+                                     level: i32,
+                                     internal_format: u32,
+                                     width: i32,
+                                     height: i32,
+                                     border: i32,
+                                     format: u32,
+                                     data_type: u32) -> bool {
+        // GL_INVALID_ENUM is generated if target is not GL_TEXTURE_2D,
+        // GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+        // GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+        // GL_TEXTURE_CUBE_MAP_POSITIVE_Z, or GL_TEXTURE_CUBE_MAP_NEGATIVE_Z.
+        let texture = match target {
+            constants::TEXTURE_2D
+                => self.bound_texture_2d.get(),
+            constants::TEXTURE_CUBE_MAP_POSITIVE_X |
+            constants::TEXTURE_CUBE_MAP_NEGATIVE_X |
+            constants::TEXTURE_CUBE_MAP_POSITIVE_Y |
+            constants::TEXTURE_CUBE_MAP_NEGATIVE_Y |
+            constants::TEXTURE_CUBE_MAP_POSITIVE_Z |
+            constants::TEXTURE_CUBE_MAP_NEGATIVE_Z
+                => self.bound_texture_cube_map.get(),
+            _ => {
+                self.webgl_error(InvalidEnum);
+                return false;
+            },
+        };
+
+        //  If an attempt is made to call this function with no
+        //  WebGLTexture bound, an INVALID_OPERATION error is generated.
+        if texture.is_none() {
+            self.webgl_error(InvalidOperation);
+            return false;
+        }
+
+        // GL_INVALID_ENUM is generated type is not an accepted value.
+        match data_type {
+            constants::UNSIGNED_BYTE |
+            constants::UNSIGNED_SHORT_4_4_4_4 |
+            constants::UNSIGNED_SHORT_5_5_5_1 |
+            constants::UNSIGNED_SHORT_5_6_5 => {},
+            _ => {
+                self.webgl_error(InvalidEnum);
+                return false;
+            },
+        }
+
+
+        // TODO(emilio): GL_INVALID_VALUE may be generated if
+        // level is greater than log_2(max), where max is
+        // the returned value of GL_MAX_TEXTURE_SIZE when
+        // target is GL_TEXTURE_2D or GL_MAX_CUBE_MAP_TEXTURE_SIZE
+        // when target is not GL_TEXTURE_2D.
+        let is_cubic = target != constants::TEXTURE_2D;
+
+        // GL_INVALID_VALUE is generated if target is one of the
+        // six cube map 2D image targets and the width and height
+        // parameters are not equal.
+        if is_cubic && width != height {
+            self.webgl_error(InvalidValue);
+            return false;
+        }
+
+        // GL_INVALID_VALUE is generated if internalformat is not an
+        // accepted format.
+        match internal_format {
+            constants::DEPTH_COMPONENT |
+            constants::ALPHA |
+            constants::RGB |
+            constants::RGBA |
+            constants::LUMINANCE |
+            constants::LUMINANCE_ALPHA => {},
+
+            _ => {
+                self.webgl_error(InvalidValue);
+                return false;
+            },
+        }
+
+        // GL_INVALID_OPERATION is generated if format does not
+        // match internalformat.
+        if format != internal_format {
+            self.webgl_error(InvalidOperation);
+            return false;
+        }
+
+        // GL_INVALID_VALUE is generated if level is less than 0.
+        //
+        // GL_INVALID_VALUE is generated if width or height is less than 0
+        // or greater than GL_MAX_TEXTURE_SIZE when target is GL_TEXTURE_2D or
+        // GL_MAX_CUBE_MAP_TEXTURE_SIZE when target is not GL_TEXTURE_2D.
+        //
+        // TODO(emilio): Check limits
+        if width < 0 || height < 0 || level < 0 {
+            self.webgl_error(InvalidValue);
+            return false;
+        }
+
+        // GL_INVALID_VALUE is generated if border is not 0.
+        if border != 0 {
+            self.webgl_error(InvalidValue);
+            return false;
+        }
+
+        // GL_INVALID_OPERATION is generated if type is GL_UNSIGNED_SHORT_4_4_4_4 or
+        // GL_UNSIGNED_SHORT_5_5_5_1 and format is not GL_RGBA.
+        //
+        // GL_INVALID_OPERATION is generated if type is
+        // GL_UNSIGNED_SHORT_5_6_5 and format is not GL_RGB.
+        match data_type {
+            constants::UNSIGNED_SHORT_4_4_4_4 |
+            constants::UNSIGNED_SHORT_5_5_5_1
+                if format != constants::RGBA => {
+                    self.webgl_error(InvalidOperation);
+                    return false;
+            },
+            constants::UNSIGNED_SHORT_5_6_5
+                if format != constants::RGB => {
+                    self.webgl_error(InvalidOperation);
+                    return false;
+            },
+            _ => {},
+        }
+
+        true
+    }
+
+    fn tex_image_2d(&self,
+                    target: u32,
+                    level: i32,
+                    internal_format: u32,
+                    width: i32,
+                    height: i32,
+                    border: i32,
+                    format: u32,
+                    data_type: u32,
+                    pixels: Vec<u8>) { // NB: pixels should NOT be premultipied
+        // This should be validated before reaching this function
+        debug_assert!(self.validate_tex_image_parameters(target, level,
+                                                         internal_format,
+                                                         width, height,
+                                                         border, format,
+                                                         data_type));
+
+        let slot = match target {
+            constants::TEXTURE_2D
+                => self.bound_texture_2d.get(),
+            _   => self.bound_texture_cube_map.get(),
+        };
+
+        let texture = slot.as_ref().expect("No bound texture found after validation");
+
+        if format == constants::RGBA &&
+           data_type == constants::UNSIGNED_BYTE &&
+           self.texture_unpacking_settings.get().contains(PREMULTIPLY_ALPHA) {
+            // TODO(emilio): premultiply here.
+        }
+
+        // TODO(emilio): Flip Y axis if necessary here
+
+        // TexImage2D depth is always equal to 1
+        handle_potential_webgl_error!(self, texture.initialize(width as u32,
+                                                               height as u32, 1,
+                                                               internal_format,
+                                                               level as u32));
+
+
+        // TODO(emilio): Invert axis, convert colorspace, premultiply alpha if requested
+        let msg = WebGLCommand::TexImage2D(target, level, internal_format as i32,
+                                           width, height, format, data_type, pixels);
+
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(msg))
+            .unwrap()
+    }
 }
 
 impl Drop for WebGLRenderingContext {
@@ -526,7 +704,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let slot = match target {
             constants::TEXTURE_2D => &self.bound_texture_2d,
             constants::TEXTURE_CUBE_MAP => &self.bound_texture_cube_map,
-
             _ => return self.webgl_error(InvalidEnum),
         };
 
@@ -1402,28 +1579,111 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             .unwrap()
     }
 
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn TexImage2D(&self,
+                  _cx: *mut JSContext,
                   target: u32,
                   level: i32,
                   internal_format: u32,
+                  width: i32,
+                  height: i32,
+                  border: i32,
                   format: u32,
                   data_type: u32,
-                  source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement>) {
-        let texture = match target {
-            constants::TEXTURE_2D => self.bound_texture_2d.get(),
-            constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get(),
-            _ => return self.webgl_error(InvalidEnum),
+                  data: Option<*mut JSObject>) {
+        if !self.validate_tex_image_parameters(target,
+                                               level,
+                                               internal_format,
+                                               width, height,
+                                               border,
+                                               format,
+                                               data_type) {
+            return; // Error handled in validate()
+        }
+
+        let (element_size, components_per_element) = match data_type {
+            constants::UNSIGNED_BYTE => (1, 1),
+            constants::UNSIGNED_SHORT_5_6_5 => (2, 3),
+            constants::UNSIGNED_SHORT_5_5_5_1 |
+            constants::UNSIGNED_SHORT_4_4_4_4 => (2, 4),
+            _ => unreachable!(), // previously validated
         };
-        if texture.is_none() {
+
+        let components = match format {
+            constants::DEPTH_COMPONENT => 1,
+            constants::ALPHA => 1,
+            constants::LUMINANCE => 1,
+            constants::LUMINANCE_ALPHA => 2,
+            constants::RGB => 3,
+            constants::RGBA => 4,
+            _ => unreachable!(), // previously validated
+        };
+
+        // If pixels is non-null, the type of pixels must match the type of the
+        // data to be read.
+        // If it is UNSIGNED_BYTE, a Uint8Array must be supplied;
+        // if it is UNSIGNED_SHORT_5_6_5, UNSIGNED_SHORT_4_4_4_4,
+        // or UNSIGNED_SHORT_5_5_5_1, a Uint16Array must be supplied.
+        // If the types do not match, an INVALID_OPERATION error is generated.
+        let received_size = if let Some(data) = data {
+            if unsafe { array_buffer_view_data_checked::<u16>(data).is_some() } {
+                2
+            } else if unsafe { array_buffer_view_data_checked::<u8>(data).is_some() } {
+                1
+            } else {
+                return self.webgl_error(InvalidOperation);
+            }
+        } else {
+            element_size
+        };
+
+        if received_size != element_size {
             return self.webgl_error(InvalidOperation);
         }
-        // TODO(emilio): Validate more parameters
+
+        // NOTE: width and height are positive or zero due to validate()
+        let expected_byte_length = width * height * element_size * components / components_per_element;
+
+
+        // If pixels is null, a buffer of sufficient size
+        // initialized to 0 is passed.
+        let buff = if let Some(data) = data {
+            array_buffer_view_to_vec::<u8>(data)
+                .expect("Can't reach here without being an ArrayBufferView!")
+        } else {
+            vec![0u8; expected_byte_length as usize]
+        };
+
+        if buff.len() != expected_byte_length as usize {
+            return self.webgl_error(InvalidOperation);
+        }
+
+        self.tex_image_2d(target, level,
+                          internal_format,
+                          width, height, border,
+                          format, data_type, buff)
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn TexImage2D_(&self,
+                   target: u32,
+                   level: i32,
+                   internal_format: u32,
+                   format: u32,
+                   data_type: u32,
+                   source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement>) {
         let source = match source {
             Some(s) => s,
             None => return,
         };
 
+
+        // NOTE: Getting the pixels probably can be short-circuited if some
+        // parameter is invalid.
+        //
+        // Nontheless, since it's the error case, I'm not totally sure the
+        // complexity is worth it.
         let (pixels, size) = match source {
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::ImageData(image_data) => {
                 let global = self.global();
@@ -1445,7 +1705,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 };
 
                 let size = Size2D::new(img.width as i32, img.height as i32);
-                // TODO(emilio): Validate that the format argument is coherent with the image.
+
+                // TODO(emilio): Validate that the format argument
+                // is coherent with the image.
+                //
                 // RGB8 should be easy to support too
                 let mut data = match img.format {
                     PixelFormat::RGBA8 => img.bytes.to_vec(),
@@ -1456,8 +1719,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
                 (data, size)
             },
-            // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D, but
-            // we need to refactor it moving it to `HTMLCanvasElement` and supporting WebGLContext
+            // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D,
+            // but we need to refactor it moving it to `HTMLCanvasElement` and support
+            // WebGLContext (probably via GetPixels()).
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLCanvasElement(canvas) => {
                 let canvas = canvas.r();
                 if let Some((mut data, size)) = canvas.fetch_all_data() {
@@ -1471,25 +1735,17 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 => unimplemented!(),
         };
 
-        if size.width < 0 || size.height < 0 || level < 0 {
-            self.webgl_error(WebGLError::InvalidOperation);
+        // NB: Border must be zero
+        if !self.validate_tex_image_parameters(target, level, internal_format,
+                                               size.width, size.height, 0,
+                                               format, data_type) {
+            return; // Error handled in validate()
         }
 
-        // TODO(emilio): Invert axis, convert colorspace, premultiply alpha if requested
-        let msg = WebGLCommand::TexImage2D(target, level, internal_format as i32,
-                                             size.width, size.height,
-                                             format, data_type, pixels);
-
-        // depth is always 1 when coming from html elements
-        handle_potential_webgl_error!(self, texture.unwrap().initialize(size.width as u32,
-                                                                        size.height as u32,
-                                                                        1,
-                                                                        internal_format,
-                                                                        level as u32));
-
-        self.ipc_renderer
-            .send(CanvasMsg::WebGL(msg))
-            .unwrap()
+        self.tex_image_2d(target, level,
+                          internal_format,
+                          size.width, size.height, 0,
+                          format, data_type, pixels)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
