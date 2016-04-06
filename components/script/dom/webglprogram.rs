@@ -8,7 +8,8 @@ use dom::bindings::codegen::Bindings::WebGLProgramBinding;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::reflector::{Reflectable, reflect_dom_object};
+use dom::webglactiveinfo::WebGLActiveInfo;
 use dom::webglobject::WebGLObject;
 use dom::webglrenderingcontext::MAX_UNIFORM_AND_ATTRIBUTE_LEN;
 use dom::webglshader::WebGLShader;
@@ -154,6 +155,16 @@ impl WebGLProgram {
             .send(CanvasMsg::WebGL(WebGLCommand::BindAttribLocation(self.id, index, String::from(name))))
             .unwrap();
         Ok(())
+    }
+
+    pub fn get_active_uniform(&self, index: u32) -> WebGLResult<Root<WebGLActiveInfo>> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::GetActiveUniform(self.id, index, sender)))
+            .unwrap();
+
+        receiver.recv().unwrap().map(|(size, ty, name)|
+            WebGLActiveInfo::new(self.global().r(), size, ty, DOMString::from(name)))
     }
 
     /// glGetAttribLocation
