@@ -1092,6 +1092,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform2i(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: i32, y: i32) {
