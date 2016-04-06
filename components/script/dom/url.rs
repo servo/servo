@@ -13,7 +13,7 @@ use dom::urlhelper::UrlHelper;
 use dom::urlsearchparams::URLSearchParams;
 use std::borrow::ToOwned;
 use std::default::Default;
-use url::{Host, ParseResult, Url, UrlParser};
+use url::{Host, Url, UrlParser};
 use util::str::DOMString;
 
 // https://url.spec.whatwg.org/#url
@@ -21,28 +21,24 @@ use util::str::DOMString;
 pub struct URL {
     reflector_: Reflector,
 
-    // https://url.spec.whatwg.org/#concept-urlutils-url
+    // https://url.spec.whatwg.org/#concept-url-url
     url: DOMRefCell<Url>,
-
-    // https://url.spec.whatwg.org/#concept-urlutils-get-the-base
-    base: Option<Url>,
 
     // https://url.spec.whatwg.org/#dom-url-searchparams
     search_params: MutNullableHeap<JS<URLSearchParams>>,
 }
 
 impl URL {
-    fn new_inherited(url: Url, base: Option<Url>) -> URL {
+    fn new_inherited(url: Url) -> URL {
         URL {
             reflector_: Reflector::new(),
             url: DOMRefCell::new(url),
-            base: base,
             search_params: Default::default(),
         }
     }
 
-    pub fn new(global: GlobalRef, url: Url, base: Option<Url>) -> Root<URL> {
-        reflect_dom_object(box URL::new_inherited(url, base),
+    pub fn new(global: GlobalRef, url: Url) -> Root<URL> {
+        reflect_dom_object(box URL::new_inherited(url),
                            global, URLBinding::Wrap)
     }
 
@@ -72,16 +68,22 @@ impl URL {
                 }
         };
         // Step 3.
-        let parsed_url = match parse_with_base(url, parsed_base.as_ref()) {
-            Ok(url) => url,
-            Err(error) => {
-                // Step 4.
-                return Err(Error::Type(format!("could not parse URL: {}", error)));
+        let parsed_url = {
+            let mut parser = UrlParser::new();
+            if let Some(parsed_base) = parsed_base.as_ref() {
+                parser.base_url(parsed_base);
+            }
+            match parser.parse(&url.0) {
+                Ok(url) => url,
+                Err(error) => {
+                    // Step 4.
+                    return Err(Error::Type(format!("could not parse URL: {}", error)));
+                }
             }
         };
         // Step 5: Skip (see step 8 below).
         // Steps 6-7.
-        let result = URL::new(global, parsed_url, parsed_base);
+        let result = URL::new(global, parsed_url);
         // Step 8: Instead of construcing a new `URLSearchParams` object here, construct it
         //         on-demand inside `URL::SearchParams`.
         // Step 9.
@@ -140,7 +142,7 @@ impl URLMethods for URL {
 
     // https://url.spec.whatwg.org/#dom-url-href
     fn SetHref(&self, value: USVString) -> ErrorResult {
-        match parse_with_base(value, self.base.as_ref()) {
+        match Url::parse(&value.0) {
             Ok(url) => {
                 *self.url.borrow_mut() = url;
                 Ok(())
@@ -228,12 +230,4 @@ impl URLMethods for URL {
     fn SetUsername(&self, value: USVString) {
         UrlHelper::SetUsername(&mut self.url.borrow_mut(), value);
     }
-}
-
-fn parse_with_base(input: USVString, base: Option<&Url>) -> ParseResult<Url> {
-    let mut parser = UrlParser::new();
-    if let Some(base) = base {
-        parser.base_url(base);
-    }
-    parser.parse(&input.0)
 }
