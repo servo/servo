@@ -646,7 +646,8 @@ interface WebGLRenderingContextBase
 
     void uniform1f(WebGLUniformLocation? location, GLfloat x);
     //void uniform1fv(WebGLUniformLocation? location, Float32Array v);
-    void uniform1fv(WebGLUniformLocation? location, sequence<GLfloat> v);
+    //void uniform1fv(WebGLUniformLocation? location, sequence<GLfloat> v);
+    void uniform1fv(WebGLUniformLocation? location, optional object v);
     void uniform1i(WebGLUniformLocation? location, GLint x);
     //void uniform1iv(WebGLUniformLocation? location, Int32Array v);
     //void uniform1iv(WebGLUniformLocation? location, sequence<long> v);
@@ -656,14 +657,18 @@ interface WebGLRenderingContextBase
     //void uniform2fv(WebGLUniformLocation? location, sequence<GLfloat> v);
     void uniform2fv(WebGLUniformLocation? location, optional object v);
     //void uniform2i(WebGLUniformLocation? location, GLint x, GLint y);
+    void uniform2i(WebGLUniformLocation? location, GLint x, GLint y);
     //void uniform2iv(WebGLUniformLocation? location, Int32Array v);
     //void uniform2iv(WebGLUniformLocation? location, sequence<long> v);
-    //void uniform3f(WebGLUniformLocation? location, GLfloat x, GLfloat y, GLfloat z);
+    void uniform2iv(WebGLUniformLocation? location, optional object v);
+    void uniform3f(WebGLUniformLocation? location, GLfloat x, GLfloat y, GLfloat z);
+    void uniform3fv(WebGLUniformLocation? location, optional object v);
     //void uniform3fv(WebGLUniformLocation? location, Float32Array v);
     //void uniform3fv(WebGLUniformLocation? location, sequence<GLfloat> v);
-    //void uniform3i(WebGLUniformLocation? location, GLint x, GLint y, GLint z);
+    void uniform3i(WebGLUniformLocation? location, GLint x, GLint y, GLint z);
     //void uniform3iv(WebGLUniformLocation? location, Int32Array v);
     //void uniform3iv(WebGLUniformLocation? location, sequence<long> v);
+    void uniform3iv(WebGLUniformLocation? location, optional object v);
     void uniform4f(WebGLUniformLocation? location, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
     // FIXME(dmarcos) The function below is the original function in the webIdl:
     //void uniform4fv(WebGLUniformLocation? location, Float32Array v);
