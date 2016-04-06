@@ -662,7 +662,7 @@ interface WebGLRenderingContextBase
     void uniform3fv(WebGLUniformLocation? location, optional object v);
     //void uniform3fv(WebGLUniformLocation? location, Float32Array v);
     //void uniform3fv(WebGLUniformLocation? location, sequence<GLfloat> v);
-    //void uniform3i(WebGLUniformLocation? location, GLint x, GLint y, GLint z);
+    void uniform3i(WebGLUniformLocation? location, GLint x, GLint y, GLint z);
     //void uniform3iv(WebGLUniformLocation? location, Int32Array v);
     //void uniform3iv(WebGLUniformLocation? location, sequence<long> v);
     void uniform4f(WebGLUniformLocation? location, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
