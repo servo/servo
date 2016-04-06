@@ -21,28 +21,24 @@ use util::str::DOMString;
 pub struct URL {
     reflector_: Reflector,
 
-    // https://url.spec.whatwg.org/#concept-urlutils-url
+    // https://url.spec.whatwg.org/#concept-url-url
     url: DOMRefCell<Url>,
-
-    // https://url.spec.whatwg.org/#concept-urlutils-get-the-base
-    base: Option<Url>,
 
     // https://url.spec.whatwg.org/#dom-url-searchparams
     search_params: MutNullableHeap<JS<URLSearchParams>>,
 }
 
 impl URL {
-    fn new_inherited(url: Url, base: Option<Url>) -> URL {
+    fn new_inherited(url: Url) -> URL {
         URL {
             reflector_: Reflector::new(),
             url: DOMRefCell::new(url),
-            base: base,
             search_params: Default::default(),
         }
     }
 
-    pub fn new(global: GlobalRef, url: Url, base: Option<Url>) -> Root<URL> {
-        reflect_dom_object(box URL::new_inherited(url, base),
+    pub fn new(global: GlobalRef, url: Url) -> Root<URL> {
+        reflect_dom_object(box URL::new_inherited(url),
                            global, URLBinding::Wrap)
     }
 
@@ -81,7 +77,7 @@ impl URL {
         };
         // Step 5: Skip (see step 8 below).
         // Steps 6-7.
-        let result = URL::new(global, parsed_url, parsed_base);
+        let result = URL::new(global, parsed_url);
         // Step 8: Instead of construcing a new `URLSearchParams` object here, construct it
         //         on-demand inside `URL::SearchParams`.
         // Step 9.
@@ -140,7 +136,7 @@ impl URLMethods for URL {
 
     // https://url.spec.whatwg.org/#dom-url-href
     fn SetHref(&self, value: USVString) -> ErrorResult {
-        match parse_with_base(value, self.base.as_ref()) {
+        match parse_with_base(value, None) {
             Ok(url) => {
                 *self.url.borrow_mut() = url;
                 Ok(())
