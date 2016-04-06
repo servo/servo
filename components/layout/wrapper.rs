@@ -1034,7 +1034,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
                 data.per_pseudo.get(&PseudoElement::After).unwrap()
             };
 
-            return match style.as_ref().get_box().content {
+            return match style.as_ref().get_counters().content {
                 content::T::Content(ref value) if !value.is_empty() => {
                     TextContent::GeneratedContent((*value).clone())
                 }

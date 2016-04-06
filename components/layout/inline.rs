@@ -671,7 +671,7 @@ impl LineBreaker {
         let mut need_ellipsis = false;
         let available_inline_size = self.pending_line.green_zone.inline -
             self.pending_line.bounds.size.inline - indentation;
-        match (fragment.style().get_inheritedtext().text_overflow,
+        match (fragment.style().get_text().text_overflow,
                fragment.style().get_box().overflow_x) {
             (text_overflow::T::clip, _) | (_, overflow_x::T::visible) => {}
             (text_overflow::T::ellipsis, _) => {

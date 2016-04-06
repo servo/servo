@@ -176,7 +176,7 @@ pub fn compute_damage(old: Option<&Arc<ServoComputedValues>>, new: &ServoCompute
                           REFLOW,
                           RECONSTRUCT_FLOW
                       ], [
-        get_box.float, get_box.display, get_box.position, get_box.content,
+        get_box.float, get_box.display, get_box.position, get_counters.content,
         get_counters.counter_reset, get_counters.counter_increment,
         get_list.quotes, get_list.list_style_type,
 
@@ -185,7 +185,7 @@ pub fn compute_damage(old: Option<&Arc<ServoComputedValues>>, new: &ServoCompute
         get_inheritedtext.letter_spacing, get_inheritedtext.text_rendering,
         get_inheritedtext.text_transform, get_inheritedtext.word_spacing,
         get_inheritedtext.overflow_wrap, get_inheritedtext.text_justify,
-        get_inheritedtext.white_space, get_inheritedtext.word_break, get_inheritedtext.text_overflow,
+        get_inheritedtext.white_space, get_inheritedtext.word_break, get_text.text_overflow,
         get_font.font_family, get_font.font_style, get_font.font_variant, get_font.font_weight,
         get_font.font_size, get_font.font_stretch,
         get_inheritedbox.direction, get_inheritedbox.writing_mode,
@@ -202,17 +202,17 @@ pub fn compute_damage(old: Option<&Arc<ServoComputedValues>>, new: &ServoCompute
         get_padding.padding_top, get_padding.padding_right,
         get_padding.padding_bottom, get_padding.padding_left,
         get_box.width, get_box.height,
-        get_inheritedbox.line_height,
+        get_inheritedtext.line_height,
         get_inheritedtext.text_align, get_inheritedtext.text_indent,
         get_table.table_layout,
         get_inheritedtable.border_collapse,
         get_inheritedtable.border_spacing,
         get_column.column_gap,
-        get_flex.flex_direction
+        get_position.flex_direction
     ]) || add_if_not_equal!(old, new, damage,
                             [ REPAINT, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW ], [
-        get_positionoffsets.top, get_positionoffsets.left,
-        get_positionoffsets.right, get_positionoffsets.bottom
+        get_position.top, get_position.left,
+        get_position.right, get_position.bottom
     ]) || add_if_not_equal!(old, new, damage,
                             [ REPAINT ], [
         get_color.color, get_background.background_color,
@@ -226,10 +226,10 @@ pub fn compute_damage(old: Option<&Arc<ServoComputedValues>>, new: &ServoCompute
         get_border.border_bottom_style, get_border.border_left_style,
         get_border.border_top_left_radius, get_border.border_top_right_radius,
         get_border.border_bottom_left_radius, get_border.border_bottom_right_radius,
-        get_box.z_index, get_box._servo_overflow_clip_box,
+        get_position.z_index, get_box._servo_overflow_clip_box,
         get_inheritedtext._servo_text_decorations_in_effect,
         get_pointing.cursor, get_pointing.pointer_events,
-        get_effects.box_shadow, get_effects.clip, get_effects.text_shadow, get_effects.filter,
+        get_effects.box_shadow, get_effects.clip, get_inheritedtext.text_shadow, get_effects.filter,
         get_effects.transform, get_effects.backface_visibility, get_effects.transform_style,
         get_effects.transform_origin, get_effects.perspective, get_effects.perspective_origin,
         get_effects.mix_blend_mode, get_inheritedbox.image_rendering,

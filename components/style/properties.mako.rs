@@ -460,7 +460,7 @@ pub mod longhands {
 
     ${predefined_type("outline-offset", "Length", "Au(0)")}
 
-    ${new_style_struct("PositionOffsets", is_inherited=False, gecko_name="nsStylePosition")}
+    ${new_style_struct("Position", is_inherited=False, gecko_name="nsStylePosition")}
 
     % for side in ["top", "right", "bottom", "left"]:
         ${predefined_type(side, "LengthOrPercentageOrAuto",
@@ -476,7 +476,8 @@ pub mod longhands {
                                                   "longhands::position::computed_value::T"),
                                            Method("is_floated", "bool"),
                                            Method("overflow_x_is_visible", "bool"),
-                                           Method("overflow_y_is_visible", "bool")])}
+                                           Method("overflow_y_is_visible", "bool"),
+                                           Method("transition_count", "usize")])}
 
     // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
     <%self:longhand name="display" custom_cascade="True">
@@ -588,6 +589,8 @@ pub mod longhands {
 
     </%self:longhand>
 
+    ${switch_to_style_struct("Position")}
+
     <%self:longhand name="z-index">
         use values::computed::ComputedValueAsSpecified;
 
@@ -656,6 +659,8 @@ pub mod longhands {
                       "computed::LengthOrPercentageOrAuto::Auto",
                       "parse_non_negative")}
 
+    ${switch_to_style_struct("Position")}
+
     ${predefined_type("min-width", "LengthOrPercentage",
                       "computed::LengthOrPercentage::Length(Au(0))",
                       "parse_non_negative")}
@@ -670,7 +675,9 @@ pub mod longhands {
                       "computed::LengthOrPercentageOrNone::None",
                       "parse_non_negative")}
 
-    ${switch_to_style_struct("InheritedBox")}
+    ${new_style_struct("InheritedText", is_inherited=True, gecko_name="nsStyleText",
+                       additional_methods=[Method("clone__servo_text_decorations_in_effect",
+                                                  "longhands::_servo_text_decorations_in_effect::computed_value::T")])}
 
     <%self:longhand name="line-height">
         use cssparser::ToCss;
@@ -904,7 +911,7 @@ pub mod longhands {
 
     // CSS 2.1, Section 12 - Generated content, automatic numbering, and lists
 
-    ${switch_to_style_struct("Box")}
+    ${new_style_struct("Counters", is_inherited=False)}
 
     <%self:longhand name="content">
         use cssparser::Token;
@@ -1217,7 +1224,7 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    ${new_style_struct("Counters", is_inherited=False)}
+    ${switch_to_style_struct("Counters")}
 
     <%self:longhand name="counter-increment">
         use std::fmt;
@@ -1973,9 +1980,7 @@ pub mod longhands {
 
     // CSS 2.1, Section 16 - Text
 
-    ${new_style_struct("InheritedText", is_inherited=True, gecko_name="nsStyleText",
-                       additional_methods=[Method("clone__servo_text_decorations_in_effect",
-                                                  "longhands::_servo_text_decorations_in_effect::computed_value::T")])}
+    ${switch_to_style_struct("InheritedText")}
 
     <%self:longhand name="text-align">
         pub use self::computed_value::T as SpecifiedValue;
@@ -2162,8 +2167,6 @@ pub mod longhands {
     // TODO(pcwalton): Support `word-break: keep-all` once we have better CJK support.
     ${single_keyword("word-break", "normal break-all")}
 
-    ${single_keyword("text-overflow", "clip ellipsis")}
-
     // TODO(pcwalton): Support `text-justify: distribute`.
     ${single_keyword("text-justify", "auto none inter-word")}
 
@@ -2171,6 +2174,8 @@ pub mod longhands {
                        additional_methods=[Method("has_underline", "bool"),
                                            Method("has_overline", "bool"),
                                            Method("has_line_through", "bool")])}
+
+    ${single_keyword("text-overflow", "clip ellipsis")}
 
     ${single_keyword("unicode-bidi", "normal embed isolate bidi-override isolate-override plaintext")}
 
@@ -2509,7 +2514,7 @@ pub mod longhands {
 
     // CSS Basic User Interface Module Level 3
     // http://dev.w3.org/csswg/css-ui/
-    ${switch_to_style_struct("Box")}
+    ${switch_to_style_struct("Position")}
 
     ${single_keyword("box-sizing", "content-box border-box")}
 
@@ -3161,6 +3166,8 @@ pub mod longhands {
         }
     </%self:longhand>
 
+    ${switch_to_style_struct("InheritedText")}
+
     <%self:longhand name="text-shadow">
         use cssparser::{self, ToCss};
         use std::fmt;
@@ -3338,6 +3345,8 @@ pub mod longhands {
             }
         }
     </%self:longhand>
+
+    ${switch_to_style_struct("Effects")}
 
     <%self:longhand name="filter">
         //pub use self::computed_value::T as SpecifiedValue;
@@ -4327,8 +4336,7 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    ${new_style_struct("Animation", is_inherited=False,
-                       additional_methods=[Method("transition_count", return_type="usize")])}
+    ${switch_to_style_struct("Box")}
 
     // TODO(pcwalton): Multiple transitions.
     <%self:longhand name="transition-duration">
@@ -4854,7 +4862,7 @@ pub mod longhands {
     // CSS Flexible Box Layout Module Level 1
     // http://www.w3.org/TR/css3-flexbox/
 
-    ${new_style_struct("Flex", is_inherited=False)}
+    ${switch_to_style_struct("Position")}
 
     // Flex container properties
     ${single_keyword("flex-direction", "row row-reverse column column-reverse", experimental=True)}
@@ -6174,11 +6182,7 @@ pub mod style_structs {
                     self.${longhand.ident} = other.${longhand.ident}.clone();
                 }
             % endfor
-            % if style_struct.name == "Animation":
-                fn transition_count(&self) -> usize {
-                    self.transition_property.0.len()
-                }
-            % elif style_struct.name == "Border":
+            % if style_struct.name == "Border":
                 % for side in ["top", "right", "bottom", "left"]:
                 fn border_${side}_is_none_or_hidden_and_has_nonzero_width(&self) -> bool {
                     self.border_${side}_style.none_or_hidden() &&
@@ -6200,6 +6204,9 @@ pub mod style_structs {
                 }
                 fn overflow_y_is_visible(&self) -> bool {
                     self.overflow_y.0 == longhands::overflow_x::computed_value::T::visible
+                }
+                fn transition_count(&self) -> usize {
+                    self.transition_property.0.len()
                 }
             % elif style_struct.name == "Color":
                 fn clone_color(&self) -> longhands::color::computed_value::T {
@@ -6402,26 +6409,26 @@ impl ServoComputedValues {
 
     #[inline]
     pub fn min_inline_size(&self) -> computed::LengthOrPercentage {
-        let box_style = self.get_box();
-        if self.writing_mode.is_vertical() { box_style.min_height } else { box_style.min_width }
+        let position_style = self.get_position();
+        if self.writing_mode.is_vertical() { position_style.min_height } else { position_style.min_width }
     }
 
     #[inline]
     pub fn min_block_size(&self) -> computed::LengthOrPercentage {
-        let box_style = self.get_box();
-        if self.writing_mode.is_vertical() { box_style.min_width } else { box_style.min_height }
+        let position_style = self.get_position();
+        if self.writing_mode.is_vertical() { position_style.min_width } else { position_style.min_height }
     }
 
     #[inline]
     pub fn max_inline_size(&self) -> computed::LengthOrPercentageOrNone {
-        let box_style = self.get_box();
-        if self.writing_mode.is_vertical() { box_style.max_height } else { box_style.max_width }
+        let position_style = self.get_position();
+        if self.writing_mode.is_vertical() { position_style.max_height } else { position_style.max_width }
     }
 
     #[inline]
     pub fn max_block_size(&self) -> computed::LengthOrPercentageOrNone {
-        let box_style = self.get_box();
-        if self.writing_mode.is_vertical() { box_style.max_width } else { box_style.max_height }
+        let position_style = self.get_position();
+        if self.writing_mode.is_vertical() { position_style.max_width } else { position_style.max_height }
     }
 
     #[inline]
@@ -6460,7 +6467,7 @@ impl ServoComputedValues {
     #[inline]
     pub fn logical_position(&self) -> LogicalMargin<computed::LengthOrPercentageOrAuto> {
         // FIXME(SimonSapin): should be the writing mode of the containing block, maybe?
-        let position_style = self.get_positionoffsets();
+        let position_style = self.get_position();
         LogicalMargin::from_physical(self.writing_mode, SideOffsets2D::new(
             position_style.top,
             position_style.right,
@@ -7072,11 +7079,11 @@ pub fn modify_style_for_text(style: &mut Arc<ServoComputedValues>) {
         // We leave the `position` property set to `relative` so that we'll still establish a
         // containing block if needed. But we reset all position offsets to `auto`.
         let mut style = Arc::make_mut(style);
-        let mut position_offsets = Arc::make_mut(&mut style.positionoffsets);
-        position_offsets.top = computed::LengthOrPercentageOrAuto::Auto;
-        position_offsets.right = computed::LengthOrPercentageOrAuto::Auto;
-        position_offsets.bottom = computed::LengthOrPercentageOrAuto::Auto;
-        position_offsets.left = computed::LengthOrPercentageOrAuto::Auto;
+        let mut position = Arc::make_mut(&mut style.position);
+        position.top = computed::LengthOrPercentageOrAuto::Auto;
+        position.right = computed::LengthOrPercentageOrAuto::Auto;
+        position.bottom = computed::LengthOrPercentageOrAuto::Auto;
+        position.left = computed::LengthOrPercentageOrAuto::Auto;
     }
 
     if style.padding.padding_top != computed::LengthOrPercentage::Length(Au(0)) ||

@@ -24,7 +24,7 @@ use properties::longhands::transition_timing_function::computed_value::{Transiti
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
-use properties::style_struct_traits::TAnimation;
+use properties::style_struct_traits::TBox;
 use properties::{ComputedValues, ServoComputedValues};
 use std::cmp::Ordering;
 use std::iter::repeat;
@@ -74,7 +74,7 @@ impl PropertyAnimation {
                            -> Vec<PropertyAnimation> {
         let mut result = Vec::new();
         let transition_property =
-            new_style.as_servo().get_animation().transition_property.0[transition_index];
+            new_style.as_servo().get_box().transition_property.0[transition_index];
         if transition_property != TransitionProperty::All {
             if let Some(property_animation) =
                     PropertyAnimation::from_transition_property(transition_property,
@@ -105,7 +105,7 @@ impl PropertyAnimation {
                                 old_style: &ServoComputedValues,
                                 new_style: &mut ServoComputedValues)
                                 -> Option<PropertyAnimation> {
-        let animation_style = new_style.get_animation();
+        let box_style = new_style.get_box();
         macro_rules! match_transition {
                 ( $( [$name:ident; $structname:ident; $field:ident] ),* ) => {
                     match transition_property {
@@ -128,8 +128,8 @@ impl PropertyAnimation {
                                                             new_style.get_inheritedtext().letter_spacing.0)
                         }
                         TransitionProperty::TextShadow => {
-                            AnimatedProperty::TextShadow(old_style.get_effects().text_shadow.clone(),
-                                                         new_style.get_effects().text_shadow.clone())
+                            AnimatedProperty::TextShadow(old_style.get_inheritedtext().text_shadow.clone(),
+                                                         new_style.get_inheritedtext().text_shadow.clone())
                         }
                         TransitionProperty::Transform => {
                             AnimatedProperty::Transform(old_style.get_effects().transform.clone(),
@@ -154,21 +154,21 @@ impl PropertyAnimation {
             [BorderSpacing; get_inheritedtable; border_spacing],
             [BorderTopColor; get_border; border_top_color],
             [BorderTopWidth; get_border; border_top_width],
-            [Bottom; get_positionoffsets; bottom],
+            [Bottom; get_position; bottom],
             [Color; get_color; color],
             [FontSize; get_font; font_size],
             [FontWeight; get_font; font_weight],
             [Height; get_box; height],
-            [Left; get_positionoffsets; left],
-            [LineHeight; get_inheritedbox; line_height],
+            [Left; get_position; left],
+            [LineHeight; get_inheritedtext; line_height],
             [MarginBottom; get_margin; margin_bottom],
             [MarginLeft; get_margin; margin_left],
             [MarginRight; get_margin; margin_right],
             [MarginTop; get_margin; margin_top],
-            [MaxHeight; get_box; max_height],
-            [MaxWidth; get_box; max_width],
-            [MinHeight; get_box; min_height],
-            [MinWidth; get_box; min_width],
+            [MaxHeight; get_position; max_height],
+            [MaxWidth; get_position; max_width],
+            [MinHeight; get_position; min_height],
+            [MinWidth; get_position; min_width],
             [Opacity; get_effects; opacity],
             [OutlineColor; get_outline; outline_color],
             [OutlineWidth; get_outline; outline_width],
@@ -176,19 +176,19 @@ impl PropertyAnimation {
             [PaddingLeft; get_padding; padding_left],
             [PaddingRight; get_padding; padding_right],
             [PaddingTop; get_padding; padding_top],
-            [Right; get_positionoffsets; right],
+            [Right; get_position; right],
             [TextIndent; get_inheritedtext; text_indent],
-            [Top; get_positionoffsets; top],
+            [Top; get_position; top],
             [VerticalAlign; get_box; vertical_align],
             [Visibility; get_inheritedbox; visibility],
             [Width; get_box; width],
-            [ZIndex; get_box; z_index]);
+            [ZIndex; get_position; z_index]);
 
         let property_animation = PropertyAnimation {
             property: animated_property,
             timing_function:
-                *animation_style.transition_timing_function.0.get_mod(transition_index),
-            duration: *animation_style.transition_duration.0.get_mod(transition_index),
+                *box_style.transition_timing_function.0.get_mod(transition_index),
+            duration: *box_style.transition_duration.0.get_mod(transition_index),
         };
         if property_animation.does_not_animate() {
             None
@@ -252,21 +252,21 @@ impl PropertyAnimation {
             [BorderSpacing; mutate_inheritedtable; border_spacing],
             [BorderTopColor; mutate_border; border_top_color],
             [BorderTopWidth; mutate_border; border_top_width],
-            [Bottom; mutate_positionoffsets; bottom],
+            [Bottom; mutate_position; bottom],
             [Color; mutate_color; color],
             [FontSize; mutate_font; font_size],
             [FontWeight; mutate_font; font_weight],
             [Height; mutate_box; height],
-            [Left; mutate_positionoffsets; left],
-            [LineHeight; mutate_inheritedbox; line_height],
+            [Left; mutate_position; left],
+            [LineHeight; mutate_inheritedtext; line_height],
             [MarginBottom; mutate_margin; margin_bottom],
             [MarginLeft; mutate_margin; margin_left],
             [MarginRight; mutate_margin; margin_right],
             [MarginTop; mutate_margin; margin_top],
-            [MaxHeight; mutate_box; max_height],
-            [MaxWidth; mutate_box; max_width],
-            [MinHeight; mutate_box; min_height],
-            [MinWidth; mutate_box; min_width],
+            [MaxHeight; mutate_position; max_height],
+            [MaxWidth; mutate_position; max_width],
+            [MinHeight; mutate_position; min_height],
+            [MinWidth; mutate_position; min_width],
             [Opacity; mutate_effects; opacity],
             [OutlineColor; mutate_outline; outline_color],
             [OutlineWidth; mutate_outline; outline_width],
@@ -274,15 +274,15 @@ impl PropertyAnimation {
             [PaddingLeft; mutate_padding; padding_left],
             [PaddingRight; mutate_padding; padding_right],
             [PaddingTop; mutate_padding; padding_top],
-            [Right; mutate_positionoffsets; right],
+            [Right; mutate_position; right],
             [TextIndent; mutate_inheritedtext; text_indent],
-            [TextShadow; mutate_effects; text_shadow],
-            [Top; mutate_positionoffsets; top],
+            [TextShadow; mutate_inheritedtext; text_shadow],
+            [Top; mutate_position; top],
             [Transform; mutate_effects; transform],
             [VerticalAlign; mutate_box; vertical_align],
             [Visibility; mutate_inheritedbox; visibility],
             [Width; mutate_box; width],
-            [ZIndex; mutate_box; z_index]);
+            [ZIndex; mutate_position; z_index]);
     }
 
     #[inline]
@@ -936,7 +936,7 @@ pub fn start_transitions_if_applicable<C: ComputedValues>(new_animations_sender:
                                                           new_style: &mut C)
                                                           -> bool {
     let mut had_animations = false;
-    for i in 0..new_style.get_animation().transition_count() {
+    for i in 0..new_style.get_box().transition_count() {
         // Create any property animations, if applicable.
         let property_animations = PropertyAnimation::from_transition(i, old_style.as_servo(), new_style.as_servo_mut());
         for property_animation in property_animations {
@@ -945,15 +945,15 @@ pub fn start_transitions_if_applicable<C: ComputedValues>(new_animations_sender:
 
             // Kick off the animation.
             let now = time::precise_time_s();
-            let animation_style = new_style.as_servo().get_animation();
+            let box_style = new_style.as_servo().get_box();
             let start_time =
-                now + (animation_style.transition_delay.0.get_mod(i).seconds() as f64);
+                now + (box_style.transition_delay.0.get_mod(i).seconds() as f64);
             new_animations_sender.lock().unwrap().send(Animation {
                 node: node,
                 property_animation: property_animation,
                 start_time: start_time,
                 end_time: start_time +
-                    (animation_style.transition_duration.0.get_mod(i).seconds() as f64),
+                    (box_style.transition_duration.0.get_mod(i).seconds() as f64),
             }).unwrap();
 
             had_animations = true
