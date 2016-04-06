@@ -1074,6 +1074,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                 load_info.new_pipeline_id);
 
         self.push_pending_frame(load_info.new_pipeline_id, old_pipeline_id);
+
+        // Inherit the visibility of the containing pipeline
+        let parent_visibility = self.pipeline(load_info.containing_pipeline_id).visible;
+        self.mut_pipeline(load_info.new_pipeline_id).change_visibility(load_info.containing_pipeline_id, parent_visibility);
     }
 
     fn handle_set_cursor_msg(&mut self, cursor: Cursor) {
