@@ -31,6 +31,10 @@ from wptrunner import wptcommandline
 from update import updatecommandline
 import tidy
 
+import site
+site.addsitedir(os.path.abspath(os.path.join(os.path.dirname(__file__), '../tidy_self_test/')))
+import tidy_self_test
+
 SCRIPT_PATH = os.path.split(__file__)[0]
 PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "web-platform-tests")
@@ -71,9 +75,12 @@ class MachCommands(CommandBase):
                      help="Only check changed files and skip the WPT lint in tidy")
     @CommandArgument('--no-progress', default=False, action="store_true",
                      help="Don't show progress for tidy")
-    def test(self, params, render_mode=DEFAULT_RENDER_MODE, release=False, faster=False, no_progress=False):
+    @CommandArgument('--self-test', default=False, action="store_true",
+                     help="Run unit tests for tidy")
+    def test(self, params, render_mode=DEFAULT_RENDER_MODE, release=False, faster=False, no_progress=False,
+             self_test=False):
         suites = OrderedDict([
-            ("tidy", {"kwargs": {"faster": faster, "no_progress": no_progress},
+            ("tidy", {"kwargs": {"faster": faster, "no_progress": no_progress, "self_test": self_test},
                       "include_arg": "include"}),
             ("wpt", {"kwargs": {"release": release},
                      "paths": [path.abspath(path.join("tests", "wpt", "web-platform-tests")),
@@ -271,8 +278,13 @@ class MachCommands(CommandBase):
                           "if there are no changes in the WPT files")
     @CommandArgument('--no-progress', default=False, action="store_true",
                      help="Don't show progress for tidy")
-    def test_tidy(self, faster, no_progress):
-        return tidy.scan(faster, not no_progress)
+    @CommandArgument('--self-test', default=False, action="store_true",
+                     help="Run unit tests for tidy")
+    def test_tidy(self, faster, no_progress, self_test):
+        if self_test:
+            return tidy_self_test.doTests()
+        else:
+            return tidy.scan(faster, not no_progress)
 
     @Command('test-webidl',
              description='Run the WebIDL parser tests',
