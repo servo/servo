@@ -379,13 +379,12 @@ impl Pipeline {
         self.visible = visible;
         if visible {
             self.script_chan.send(ConstellationControlMsg::SetVisible(containing_id, self.id)).unwrap();
-        }
-        else {
+        } else {
             self.script_chan.send(ConstellationControlMsg::SetNonVisible(containing_id, self.id)).unwrap();
         }
 
         self.compositor_proxy.send(CompositorMsg::PipelineVisibilityChanged(self.id, visible));
-        return true;
+        true
     }
 
 }
