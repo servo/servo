@@ -5323,6 +5323,18 @@
             "url": "/_mozilla/css/white_space_intrinsic_sizes_a.html"
           }
         ],
+        "css/whitespace_no_affect_border.html": [
+          {
+            "path": "css/whitespace_no_affect_border.html",
+            "references": [
+              [
+                "/_mozilla/css/whitespace_no_affect_border_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/whitespace_no_affect_border.html"
+          }
+        ],
         "css/whitespace_nowrap_a.html": [
           {
             "path": "css/whitespace_nowrap_a.html",
@@ -11779,6 +11791,18 @@
             ]
           ],
           "url": "/_mozilla/css/white_space_intrinsic_sizes_a.html"
+        }
+      ],
+      "css/whitespace_no_affect_border.html": [
+        {
+          "path": "css/whitespace_no_affect_border.html",
+          "references": [
+            [
+              "/_mozilla/css/whitespace_no_affect_border_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/whitespace_no_affect_border.html"
         }
       ],
       "css/whitespace_nowrap_a.html": [
