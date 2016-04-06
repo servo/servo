@@ -1056,7 +1056,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
         // Inherit the visibility of the containing pipeline
         let parent_visibility = self.pipeline(load_info.containing_pipeline_id).visible;
-        self.mut_pipeline(load_info.new_pipeline_id).change_visibility(load_info.containing_pipeline_id, parent_visibility);
+        self.mut_pipeline(load_info.new_pipeline_id).change_visibility(load_info.containing_pipeline_id,
+                                                                       parent_visibility);
     }
 
     fn handle_set_cursor_msg(&mut self, cursor: Cursor) {
