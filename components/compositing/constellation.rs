@@ -1055,9 +1055,14 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         self.push_pending_frame(load_info.new_pipeline_id, old_pipeline_id);
 
         // Inherit the visibility of the containing pipeline
-        let parent_visibility = self.pipeline(load_info.containing_pipeline_id).visible;
-        self.mut_pipeline(load_info.new_pipeline_id).change_visibility(load_info.containing_pipeline_id,
-                                                                       parent_visibility);
+        let parent_visibility = self.pipelines.get(&load_info.containing_pipeline_id)
+                                    .map(|pipeline| pipeline.visible);
+
+        if let Some(visibility) = parent_visibility {
+            self.pipelines.get_mut(&load_info.new_pipeline_id)
+                          .map(|pipeline| pipeline.change_visibility(load_info.containing_pipeline_id,
+                                                                     visibility));
+        }
     }
 
     fn handle_set_cursor_msg(&mut self, cursor: Cursor) {
@@ -1467,7 +1472,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     }
 
     fn handle_set_visible_msg(&mut self, containing_id: PipelineId, pipeline_id: PipelineId, visible: bool) {
-        self.mut_pipeline(pipeline_id).change_visibility(containing_id, visible);
+        self.pipelines.get_mut(&pipeline_id).map(|pipeline| pipeline.change_visibility(containing_id, visible));
     }
 
     fn handle_create_canvas_paint_thread_msg(
