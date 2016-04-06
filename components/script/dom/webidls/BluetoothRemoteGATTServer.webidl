@@ -7,10 +7,14 @@
 interface BluetoothRemoteGATTServer {
   readonly attribute BluetoothDevice device;
   readonly attribute boolean connected;
+  [Throws]
   BluetoothRemoteGATTServer connect();
+  [Throws]
   void disconnect();
-  BluetoothRemoteGATTService? getPrimaryService((DOMString or unsigned long) service);
-  sequence<BluetoothRemoteGATTService>? getPrimaryServices(optional (DOMString or unsigned long) service);
+  [Throws]
+  BluetoothRemoteGATTService getPrimaryService((DOMString or unsigned long) service);
+  [Throws]
+  sequence<BluetoothRemoteGATTService> getPrimaryServices(optional (DOMString or unsigned long) service);
   //Promise<BluetoothRemoteGATTService> getPrimaryService(BluetoothServiceUUID service);
   //Promise<sequence<BluetoothRemoteGATTService>>getPrimaryServices(optional BluetoothServiceUUID service);
   //Promise<BluetoothRemoteGATTServer> connect();
