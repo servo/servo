@@ -10,6 +10,9 @@ build = "build.rs"
 name = "style"
 path = "lib.rs"
 
+[features]
+gecko = []
+
 [dependencies.plugins]
 path = "../plugins"
 

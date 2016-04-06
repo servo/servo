@@ -37,3 +37,4 @@ path = "../../components/util"
 
 [dependencies.style]
 path = "../../components/style"
+features = ["gecko"]
