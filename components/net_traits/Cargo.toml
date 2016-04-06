@@ -20,6 +20,9 @@ git = "https://github.com/servo/ipc-channel"
 [dependencies.plugins]
 path = "../plugins"
 
+[dependencies.device]
+git = "https://github.com/servo/devices"
+
 [dependencies]
 heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
