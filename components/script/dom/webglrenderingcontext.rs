@@ -1110,6 +1110,26 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             .unwrap()
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn Uniform2iv(&self,
+                  _cx: *mut JSContext,
+                  uniform: Option<&WebGLUniformLocation>,
+                  data: Option<*mut JSObject>) {
+        let data = match data {
+            Some(data) => data,
+            None => return self.webgl_error(InvalidValue),
+        };
+
+        if let Some(data) = array_buffer_view_to_vec_checked::<i32>(data) {
+            if data.len() < 2 {
+                return self.webgl_error(InvalidOperation);
+            }
+
+            self.Uniform2i(uniform, data[0], data[1]);
+        } else {
+            self.webgl_error(InvalidValue);
+        }
+    }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform4i(&self,
