@@ -442,7 +442,7 @@ impl FragmentBorderBoxIterator for UnioningFragmentScrollAreaIterator {
                 self.level = Some(level);
                 self.is_child = true;
                 self.overflow_direction = overflow_direction(&fragment.style.writing_mode);
-                self.origin_rect = Rect::new(Point2D::new(top_padding, left_padding),
+                self.origin_rect = Rect::new(Point2D::new(left_padding, top_padding),
                                              Size2D::new(right_padding, bottom_padding));
             },
         };
