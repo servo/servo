@@ -266,7 +266,14 @@ impl Window {
     }
 
     /// Helper function to send a scroll event.
-    fn scroll_window(&self, dx: f32, dy: f32, phase: TouchEventType) {
+    fn scroll_window(&self, mut dx: f32, mut dy: f32, phase: TouchEventType) {
+        // Scroll events snap to the major axis of movement, with vertical
+        // preferred over horizontal.
+        if dy.abs() >= dx.abs() {
+            dx = 0.0;
+        } else {
+            dy = 0.0;
+        }
         let mouse_pos = self.mouse_pos.get();
         let event = WindowEvent::Scroll(Point2D::typed(dx as f32, dy as f32),
                                         Point2D::typed(mouse_pos.x as i32, mouse_pos.y as i32),
