@@ -23,6 +23,7 @@ lazy_static! {
 pub enum PrefValue {
     Boolean(bool),
     String(String),
+    Number(f64),
     Missing
 }
 
@@ -31,6 +32,9 @@ impl PrefValue {
         let value = match data {
             Json::Boolean(x) => PrefValue::Boolean(x),
             Json::String(x) => PrefValue::String(x),
+            Json::F64(x) => PrefValue::Number(x),
+            Json::I64(x) => PrefValue::Number(x as f64),
+            Json::U64(x) => PrefValue::Number(x as f64),
             _ => return Err(())
         };
         Ok(value)
@@ -53,6 +57,13 @@ impl PrefValue {
             _ => None
         }
     }
+
+    pub fn as_i64(&self) -> Option<i64> {
+        match *self {
+            PrefValue::Number(x) => Some(x as i64),
+            _ => None,
+        }
+    }
 }
 
 impl ToJson for PrefValue {
@@ -63,7 +74,10 @@ impl ToJson for PrefValue {
             },
             PrefValue::String(ref x) => {
                 Json::String(x.clone())
-            }
+            },
+            PrefValue::Number(x) => {
+                Json::F64(x)
+            },
             PrefValue::Missing => Json::Null
         }
     }
@@ -136,7 +150,7 @@ pub fn read_prefs_from_file<T>(mut file: T)
                 Ok(x) => {
                     prefs.insert(name, x);
                 },
-                Err(_) => println!("Ignoring non-boolean/string preference value for {:?}", name)
+                Err(_) => println!("Ignoring non-boolean/string/i64 preference value for {:?}", name),
             }
         }
     }
