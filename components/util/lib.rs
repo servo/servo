@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(alloc)]
 #![feature(box_syntax)]
 #![feature(core_intrinsics)]
 #![feature(custom_derive)]
@@ -17,12 +16,9 @@
 
 #![deny(unsafe_code)]
 
-extern crate alloc;
 extern crate app_units;
 #[macro_use]
 extern crate bitflags;
-#[macro_use]
-extern crate cssparser;
 extern crate deque;
 extern crate euclid;
 extern crate getopts;
@@ -38,12 +34,10 @@ extern crate log;
 extern crate num_cpus;
 extern crate rand;
 extern crate rustc_serialize;
-extern crate selectors;
 extern crate serde;
 extern crate smallvec;
 extern crate string_cache;
 extern crate url;
-extern crate uuid;
 
 use std::sync::Arc;
 
