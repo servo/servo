@@ -9,6 +9,7 @@ branches:
   only:
     - master
     - auto
+    - try
 
 platform:
   - x64
