@@ -524,7 +524,7 @@ pub struct BlockFlow {
 }
 
 bitflags! {
-    flags BlockFlowFlags: u8 {
+    pub flags BlockFlowFlags: u8 {
         #[doc = "If this is set, then this block flow is the root flow."]
         const IS_ROOT = 0x01,
     }

@@ -105,7 +105,7 @@ pub struct Font {
 }
 
 bitflags! {
-    flags ShapingFlags: u8 {
+    pub flags ShapingFlags: u8 {
         #[doc = "Set if the text is entirely whitespace."]
         const IS_WHITESPACE_SHAPING_FLAG = 0x01,
         #[doc = "Set if we are to ignore ligatures."]
@@ -266,4 +266,3 @@ pub fn get_and_reset_text_shaping_performance_counter() -> usize {
     TEXT_SHAPING_PERFORMANCE_COUNTER.store(0, Ordering::SeqCst);
     value
 }
-

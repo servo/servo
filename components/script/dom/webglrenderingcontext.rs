@@ -58,7 +58,7 @@ macro_rules! handle_potential_webgl_error {
 /// Set of bitflags for texture unpacking (texImage2d, etc...)
 bitflags! {
     #[derive(HeapSizeOf, JSTraceable)]
-    flags TextureUnpacking: u8 {
+    pub flags TextureUnpacking: u8 {
         const FLIP_Y_AXIS = 0x01,
         const PREMULTIPLY_ALPHA = 0x02,
         const CONVERT_COLORSPACE = 0x04,

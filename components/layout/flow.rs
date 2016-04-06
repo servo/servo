@@ -629,7 +629,7 @@ pub trait InorderFlowTraversal {
 
 bitflags! {
     #[doc = "Flags used in flows."]
-    flags FlowFlags: u32 {
+    pub flags FlowFlags: u32 {
         // text align flags
         #[doc = "Whether this flow must have its own layer. Even if this flag is not set, it might"]
         #[doc = "get its own layer if it's deemed to be likely to overlap flows with their own"]
