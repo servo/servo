@@ -8,10 +8,10 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::cssrulelist::CSSRuleList;
+use dom::stylesheet::StyleSheet;
 use dom::window::Window;
 use std::sync::Arc;
 use style::servo::Stylesheet;
-use dom::stylesheet::StyleSheet;
 use util::str::DOMString;
 
 #[dom_struct]
