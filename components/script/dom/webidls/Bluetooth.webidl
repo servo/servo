@@ -4,9 +4,21 @@
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetooth
 
+dictionary BluetoothScanFilter {
+  sequence<BluetoothServiceUUID> services;
+  DOMString name;
+  DOMString namePrefix;
+};
+
+dictionary RequestDeviceOptions {
+  required sequence<BluetoothScanFilter> filters;
+  sequence<BluetoothServiceUUID> optionalServices /*= []*/;
+};
+
 interface Bluetooth {
     // Promise<BluetoothDevice> requestDevice(RequestDeviceOptions options);
-    BluetoothDevice? requestDevice(/*RequestDeviceOptions options*/);
+    [Throws]
+    BluetoothDevice requestDevice(RequestDeviceOptions options);
 };
 
 // Bluetooth implements EventTarget;
