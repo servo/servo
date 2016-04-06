@@ -1536,7 +1536,7 @@ dependencies = [
 name = "plugins"
 version = "0.0.1"
 dependencies = [
- "tenacious 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tenacious 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.5.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -2067,7 +2067,7 @@ dependencies = [
 
 [[package]]
 name = "tenacious"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
