@@ -20,7 +20,7 @@ interface URL {
            attribute USVString port;
            attribute USVString pathname;
            attribute USVString search;
-  // readonly attribute URLSearchParams searchParams;
+  readonly attribute URLSearchParams searchParams;
            attribute USVString hash;
 
   // This is only doing as well as gecko right now.
