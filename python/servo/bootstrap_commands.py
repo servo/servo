@@ -29,18 +29,23 @@ from mach.decorators import (
 from servo.command_base import CommandBase, host_triple, BIN_SUFFIX
 
 
-def download(desc, src, writer):
-    print("Downloading %s..." % desc)
+def download(desc, src, writer, start_at=0):
+    if start_at:
+        print("Resuming download of: %s..." % desc)
+    else:
+        print("Downloading %s..." % desc)
     dumb = (os.environ.get("TERM") == "dumb") or (not sys.stdout.isatty())
 
     try:
+        if start_at:
+            src = urllib2.Request(src, headers={'Range': 'bytes={}-'.format(start_at)})
         resp = urllib2.urlopen(src)
 
         fsize = None
         if resp.info().getheader('Content-Length'):
-            fsize = int(resp.info().getheader('Content-Length').strip())
+            fsize = int(resp.info().getheader('Content-Length').strip()) + start_at
 
-        recved = 0
+        recved = start_at
         chunk_size = 8192
 
         while True:
@@ -61,11 +66,21 @@ def download(desc, src, writer):
     except urllib2.HTTPError, e:
         print("Download failed (%d): %s - %s" % (e.code, e.reason, src))
         sys.exit(1)
+    except KeyboardInterrupt:
+        writer.flush()
+        raise
 
 
 def download_file(desc, src, dst):
-    with open(dst, 'wb') as fd:
-        download(desc, src, fd)
+    tmp_path = dst + ".part"
+    try:
+        start_at = os.path.getsize(tmp_path)
+        with open(tmp_path, 'ab') as fd:
+            download(desc, src, fd, start_at=start_at)
+    except os.error, e:
+        with open(tmp_path, 'wb') as fd:
+            download(desc, src, fd)
+    os.rename(tmp_path, dst)
 
 
 def download_bytes(desc, src):
@@ -133,6 +148,7 @@ class MachCommands(CommandBase):
             tgz_file = rust_dir + '-rustc.tar.gz'
 
             download_file("Rust compiler", rustc_url, tgz_file)
+            foobar
 
             print("Extracting Rust compiler...")
             extract(tgz_file, install_dir)
@@ -180,7 +196,7 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Force download even if docs already exist')
     def bootstrap_rustc_docs(self, force=False):
-        self.ensure_bootstrapped()
+        #self.ensure_bootstrapped()
         rust_root = self.config["tools"]["rust-root"]
         docs_dir = path.join(rust_root, "doc")
         if not force and path.exists(docs_dir):
