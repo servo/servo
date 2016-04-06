@@ -220,7 +220,7 @@ impl Window {
                         self.handle_mouse(mouse_button, element_state, mouse_pos.x, mouse_pos.y);
                    }
             }
-            Event::MouseMoved((x, y)) => {
+            Event::MouseMoved(x, y) => {
                 self.mouse_pos.set(Point2D::new(x, y));
                 self.event_queue.borrow_mut().push(
                     WindowEvent::MouseWindowMoveEventClass(Point2D::typed(x as f32, y as f32)));
