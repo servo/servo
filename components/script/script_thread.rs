@@ -1179,29 +1179,45 @@ impl ScriptThread {
         reports_chan.send(reports);
     }
 
-    ///Handle visibility change message
-    fn handle_visibility_change_msg(&self, containing_id: PipelineId, id: PipelineId, visible: bool) {
-        let page = get_page(&self.root_page(), containing_id);
-        if let Some(iframe) = page.document().find_iframe_by_pipeline(id) {
-            iframe.set_visibility(visible);
-        }
-
+    /// Changes visibility of descendant iframes and slows down timers. Returns true if successful.
+    fn change_loaded_page_visibility(&self, id: PipelineId, visible: bool) -> bool {
         if let Some(root_page) = self.page.borrow().as_ref() {
             if let Some(ref inner_page) = root_page.find(id) {
                 let window = inner_page.window();
                 if visible {
                     window.speed_up_timers();
-                }
-                else {
+                } else {
                     window.slow_down_timers();
                 }
-                return;
+                let document = inner_page.document();
+                for iframe in &document.collect_descendant_iframes() {
+                    iframe.set_visible(visible);
+                }
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Handle visibility change message
+    fn handle_visibility_change_msg(&self, containing_id: PipelineId, id: PipelineId, visible: bool) {
+        if let Some(root_page) = self.page.borrow().as_ref() {
+            if let Some(ref page) = root_page.find(containing_id) {
+                if let Some(iframe) = page.document().find_iframe_by_pipeline(id) {
+                    iframe.change_visibility_status(visible);
+                }
             }
         }
 
-        let mut loads = self.incomplete_loads.borrow_mut();
-        if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-            load.is_hidden = visible;
+        let changed_loaded_page_visibility = self.change_loaded_page_visibility(id, visible);
+
+        if !changed_loaded_page_visibility {
+            let mut loads = self.incomplete_loads.borrow_mut();
+            if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
+                load.is_hidden = !visible;
+                return;
+            }
+        } else {
             return;
         }
 
@@ -1678,7 +1694,7 @@ impl ScriptThread {
         }
 
         if incomplete.is_hidden {
-            window.slow_down_timers();
+            self.change_loaded_page_visibility(page.pipeline(), false);
         }
 
         context_remover.neuter();

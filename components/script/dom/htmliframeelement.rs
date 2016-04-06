@@ -220,9 +220,26 @@ impl HTMLIFrameElement {
         self.pipeline_id.get()
     }
 
-    pub fn set_visibility(&self, visibility: bool) {
-        self.visibility.set(visibility);
-        self.dispatch_mozbrowser_event(MozBrowserEvent::VisibilityChange(visibility))
+    pub fn change_visibility_status(&self, visibility: bool) {
+        if self.visibility.get() != visibility {
+            self.visibility.set(visibility);
+
+            // Visibility changes are only exposed to Mozbrowser iframes
+            if self.Mozbrowser() {
+                self.dispatch_mozbrowser_event(MozBrowserEvent::VisibilityChange(visibility));
+            }
+        }
+    }
+
+    pub fn set_visible(&self, visible: bool) {
+        if let Some(pipeline_id) = self.pipeline_id.get() {
+            let window = window_from_node(self);
+            let window = window.r();
+            let ConstellationChan(ref chan) = window.constellation_chan();
+            chan.send(ConstellationMsg::SetVisible(self.containing_page_pipeline_id.get().unwrap(),
+                                                   pipeline_id,
+                                                   visible)).unwrap();
+        }
     }
 
     /// https://html.spec.whatwg.org/multipage/#iframe-load-event-steps steps 1-4
@@ -491,14 +508,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/setVisible
     fn SetVisible(&self, visible: bool) -> Fallible<()> {
         if self.Mozbrowser() {
-            if let Some(pipeline_id) = self.pipeline_id.get() {
-                let window = window_from_node(self);
-                let window = window.r();
-                let ConstellationChan(ref chan) = window.constellation_chan();
-                chan.send(ConstellationMsg::SetVisible(self.containing_page_pipeline_id.get().unwrap(),
-                                                       pipeline_id,
-                                                       visible)).unwrap();
-            }
+            self.set_visible(visible);
             Ok(())
         } else {
             debug!("this frame is not mozbrowser: mozbrowser attribute missing, or not a top

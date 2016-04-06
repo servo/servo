@@ -1513,6 +1513,14 @@ impl Document {
             .find(|node| node.pipeline() == Some(pipeline))
     }
 
+    /// Finds all descendant iframe elements in the document.
+    pub fn collect_descendant_iframes(&self) -> Vec<Root<HTMLIFrameElement>> {
+        self.upcast::<Node>()
+            .traverse_preorder()
+            .filter_map(Root::downcast::<HTMLIFrameElement>)
+            .collect()
+    }
+
     pub fn get_dom_loading(&self) -> u64 {
         self.dom_loading.get()
     }
