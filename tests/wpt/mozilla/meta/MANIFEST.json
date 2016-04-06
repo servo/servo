@@ -5803,6 +5803,18 @@
             "url": "/_mozilla/mozilla/webgl/draw_arrays_simple.html"
           }
         ],
+        "mozilla/webgl/tex_image_2d_abv.html": [
+          {
+            "path": "mozilla/webgl/tex_image_2d_abv.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/webgl/tex_image_2d_abv_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/webgl/tex_image_2d_abv.html"
+          }
+        ],
         "mozilla/webgl/tex_image_2d_canvas.html": [
           {
             "path": "mozilla/webgl/tex_image_2d_canvas.html",
@@ -12463,6 +12475,18 @@
             ]
           ],
           "url": "/_mozilla/mozilla/webgl/draw_arrays_simple.html"
+        }
+      ],
+      "mozilla/webgl/tex_image_2d_abv.html": [
+        {
+          "path": "mozilla/webgl/tex_image_2d_abv.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/webgl/tex_image_2d_abv_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/webgl/tex_image_2d_abv.html"
         }
       ],
       "mozilla/webgl/tex_image_2d_canvas.html": [
