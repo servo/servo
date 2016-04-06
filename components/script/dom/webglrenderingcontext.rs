@@ -16,6 +16,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlcanvaselement::HTMLCanvasElement;
 use dom::htmlcanvaselement::utils as canvas_utils;
 use dom::node::{Node, NodeDamage, window_from_node};
+use dom::webglactiveinfo::WebGLActiveInfo;
 use dom::webglbuffer::WebGLBuffer;
 use dom::webglcontextevent::WebGLContextEvent;
 use dom::webglframebuffer::WebGLFramebuffer;
@@ -792,6 +793,17 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::EnableVertexAttribArray(attrib_id)))
             .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn GetActiveUniform(&self, program: Option<&WebGLProgram>, index: u32) -> Option<Root<WebGLActiveInfo>> {
+        program.and_then(|p| match p.get_active_uniform(index) {
+            Ok(ret) => Some(ret),
+            Err(error) => {
+                self.webgl_error(error);
+                None
+            },
+        })
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
