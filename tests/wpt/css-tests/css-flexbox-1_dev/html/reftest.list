@@ -60,6 +60,12 @@ flex-002.htm == reference/justify-content-001-ref.htm
 flex-003.htm == reference/justify-content-001-ref.htm
 flex-004.htm == reference/justify-content-001-ref.htm
 flex-align-items-center.htm == reference/flex-align-items-center-ref.htm
+flex-aspect-ratio-img-column-001.htm == reference/ref-filled-green-100px-square.htm
+flex-aspect-ratio-img-column-002.htm == reference/ref-filled-green-100px-square.htm
+flex-aspect-ratio-img-column-003.htm == reference/ref-filled-green-100px-square.htm
+flex-aspect-ratio-img-row-001.htm == reference/ref-filled-green-100px-square.htm
+flex-aspect-ratio-img-row-002.htm == reference/ref-filled-green-100px-square.htm
+flex-aspect-ratio-img-row-003.htm == reference/ref-filled-green-100px-square.htm
 flex-basis-001.htm == reference/ref-filled-green-100px-square.htm
 flex-basis-002.htm == reference/ref-filled-green-100px-square.htm
 flex-basis-003.htm == reference/ref-filled-green-100px-square.htm
@@ -261,8 +267,7 @@ flexbox-sizing-horiz-001.htm == reference/flexbox-sizing-horiz-001-ref.htm
 flexbox-sizing-horiz-002.htm == reference/flexbox-sizing-horiz-002-ref.htm
 flexbox-sizing-vert-001.htm == reference/flexbox-sizing-vert-001-ref.htm
 flexbox-sizing-vert-002.htm == reference/flexbox-sizing-vert-002-ref.htm
-flexbox-table-fixup-001a.htm == reference/flexbox-table-fixup-001-ref.htm
-flexbox-table-fixup-001b.htm == reference/flexbox-table-fixup-001-ref.htm
+flexbox-table-fixup-001.htm == reference/flexbox-table-fixup-001-ref.htm
 flexbox-whitespace-handling-001a.htm == reference/flexbox-whitespace-handling-001-ref.htm
 flexbox-whitespace-handling-001b.htm == reference/flexbox-whitespace-handling-001-ref.htm
 flexbox-whitespace-handling-002.htm == reference/flexbox-whitespace-handling-002-ref.htm
