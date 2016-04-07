@@ -60,6 +60,12 @@ flex-002.xht == reference/justify-content-001-ref.xht
 flex-003.xht == reference/justify-content-001-ref.xht
 flex-004.xht == reference/justify-content-001-ref.xht
 flex-align-items-center.xht == reference/flex-align-items-center-ref.xht
+flex-aspect-ratio-img-column-001.xht == reference/ref-filled-green-100px-square.xht
+flex-aspect-ratio-img-column-002.xht == reference/ref-filled-green-100px-square.xht
+flex-aspect-ratio-img-column-003.xht == reference/ref-filled-green-100px-square.xht
+flex-aspect-ratio-img-row-001.xht == reference/ref-filled-green-100px-square.xht
+flex-aspect-ratio-img-row-002.xht == reference/ref-filled-green-100px-square.xht
+flex-aspect-ratio-img-row-003.xht == reference/ref-filled-green-100px-square.xht
 flex-basis-001.xht == reference/ref-filled-green-100px-square.xht
 flex-basis-002.xht == reference/ref-filled-green-100px-square.xht
 flex-basis-003.xht == reference/ref-filled-green-100px-square.xht
@@ -261,8 +267,7 @@ flexbox-sizing-horiz-001.xht == reference/flexbox-sizing-horiz-001-ref.xht
 flexbox-sizing-horiz-002.xht == reference/flexbox-sizing-horiz-002-ref.xht
 flexbox-sizing-vert-001.xht == reference/flexbox-sizing-vert-001-ref.xht
 flexbox-sizing-vert-002.xht == reference/flexbox-sizing-vert-002-ref.xht
-flexbox-table-fixup-001a.xht == reference/flexbox-table-fixup-001-ref.xht
-flexbox-table-fixup-001b.xht == reference/flexbox-table-fixup-001-ref.xht
+flexbox-table-fixup-001.xht == reference/flexbox-table-fixup-001-ref.xht
 flexbox-whitespace-handling-001a.xht == reference/flexbox-whitespace-handling-001-ref.xht
 flexbox-whitespace-handling-001b.xht == reference/flexbox-whitespace-handling-001-ref.xht
 flexbox-whitespace-handling-002.xht == reference/flexbox-whitespace-handling-002-ref.xht

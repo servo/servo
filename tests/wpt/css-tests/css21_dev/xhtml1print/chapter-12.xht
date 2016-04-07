@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS 2.1 Conformance Test Suite</h1>
-  <h2>Generated content, automatic numbering, and lists (637 tests)</h2>
+  <h2>Generated content, automatic numbering, and lists (640 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -43,7 +43,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s12.1">+</a>
         <a href="https://www.w3.org/TR/CSS21/generate.html#before-after-content">12.1 The :before and :after pseudo-elements</a></th></tr>
-      <!-- 58 tests -->
+      <!-- 61 tests -->
       <tr id="after-content-display-001-12.1" class="">
         <td>
             <a href="after-content-display-001.xht">after-content-display-001</a></td>
@@ -319,6 +319,39 @@
         <td><a href="reference/before-after-positioned-001-ref.xht">=</a> </td>
         <td></td>
         <td>generated content
+        </td>
+      </tr>
+      <tr id="before-after-positioned-002-12.1" class="">
+        <td>
+            <a href="before-after-positioned-002.xht">before-after-positioned-002</a></td>
+        <td><a href="reference/before-after-positioned-002-ref.xht">=</a> </td>
+        <td></td>
+        <td>:before/:after pseudo-elements - 'position:fixed'
+          <ul class="assert">
+            <li>Since the restriction on assigning positioning schemes to the :before and :after pseudo elements was lifted in CSS 2.1, this tests whether 'position:fixed' can be correctly applied to both pseudo elements.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="before-after-positioned-003-12.1" class="">
+        <td>
+            <a href="before-after-positioned-003.xht">before-after-positioned-003</a></td>
+        <td><a href="reference/before-after-positioned-002-ref.xht">=</a> </td>
+        <td></td>
+        <td>:before/:after pseudo-elements - 'position:absolute'
+          <ul class="assert">
+            <li>Since the restriction on assigning positioning schemes to the :before and :after pseudo elements was lifted in CSS 2.1, this tests whether 'position:absolute' can be correctly applied to both pseudo elements.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="before-after-positioned-004-12.1" class="">
+        <td>
+            <a href="before-after-positioned-004.xht">before-after-positioned-004</a></td>
+        <td><a href="reference/before-after-positioned-004-ref.xht">=</a> </td>
+        <td></td>
+        <td>:before/:after pseudo-elements - 'position:relative'
+          <ul class="assert">
+            <li>Since the restriction on assigning positioning schemes to the :before and :after pseudo elements was lifted in CSS 2.1, this tests whether 'position:relative' can be correctly applied to both pseudo elements.</li>
+          </ul>
         </td>
       </tr>
       <tr id="before-after-table-parts-001-12.1" class="">
@@ -1360,6 +1393,17 @@
           </ul>
         </td>
       </tr>
+      <tr id="content-066-12.2" class="">
+        <td>
+            <a href="content-066.xht">content-066</a></td>
+        <td></td>
+        <td></td>
+        <td>Content with a 'attr()' function as a value selecting 'compact'
+          <ul class="assert">
+            <li>The 'content' property correctly handles the 'attr()' function when calling the attribute 'compact'.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="content-067-12.2" class="">
         <td>
             <a href="content-067.xht">content-067</a></td>
@@ -1470,6 +1514,17 @@
           </ul>
         </td>
       </tr>
+      <tr id="content-081-12.2" class="">
+        <td>
+            <a href="content-081.xht">content-081</a></td>
+        <td></td>
+        <td></td>
+        <td>Content with a 'attr()' function as a value selecting 'height'
+          <ul class="assert">
+            <li>The 'content' property properly handles the 'attr()' function when calling the attribute 'height'.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="content-082-12.2" class="">
         <td>
             <a href="content-082.xht">content-082</a></td>
@@ -1522,6 +1577,28 @@
         <td>Content with a 'attr()' function as a value selecting 'lang'
           <ul class="assert">
             <li>The 'content' property properly handles the 'attr()' function when calling the attribute 'lang'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="content-090-12.2" class="">
+        <td>
+            <a href="content-090.xht">content-090</a></td>
+        <td></td>
+        <td></td>
+        <td>Content with a 'attr()' function as a value selecting 'language'
+          <ul class="assert">
+            <li>The 'content' property properly handles the 'attr()' function when calling the attribute 'language'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="content-091-12.2" class="">
+        <td>
+            <a href="content-091.xht">content-091</a></td>
+        <td></td>
+        <td></td>
+        <td>Content with a 'attr()' function as a value selecting 'link'
+          <ul class="assert">
+            <li>The 'content' property properly handles the 'attr()' function when calling the attribute 'link'.</li>
           </ul>
         </td>
       </tr>
@@ -1954,6 +2031,17 @@
           </ul>
         </td>
       </tr>
+      <tr id="content-149-12.2" class="">
+        <td>
+            <a href="content-149.xht">content-149</a></td>
+        <td></td>
+        <td></td>
+        <td>Content with a 'attr()' function as a value selecting 'valign'
+          <ul class="assert">
+            <li>The 'content' property properly handles the 'attr()' function when calling the attribute 'valign'.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="content-150-12.2" class="">
         <td>
             <a href="content-150.xht">content-150</a></td>
@@ -1984,6 +2072,17 @@
         <td>Content with a 'attr()' function as a value selecting 'version'
           <ul class="assert">
             <li>The 'content' property properly handles the 'attr()' function when calling the attribute 'version'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="content-153-12.2" class="">
+        <td>
+            <a href="content-153.xht">content-153</a></td>
+        <td></td>
+        <td></td>
+        <td>Content with a 'attr()' function as a value selecting 'vlink'
+          <ul class="assert">
+            <li>The 'content' property properly handles the 'attr()' function when calling the attribute 'vlink'.</li>
           </ul>
         </td>
       </tr>
@@ -3115,6 +3214,17 @@
           </ul>
         </td>
       </tr>
+      <tr id="content-066-12.2.#propdef-content" class="">
+        <td>
+            <a href="content-066.xht">content-066</a></td>
+        <td></td>
+        <td></td>
+        <td>Content with a 'attr()' function as a value selecting 'compact'
+          <ul class="assert">
+            <li>The 'content' property correctly handles the 'attr()' function when calling the attribute 'compact'.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="content-067-12.2.#propdef-content" class="">
         <td>
             <a href="content-067.xht">content-067</a></td>
@@ -3225,6 +3335,17 @@
           </ul>
         </td>
       </tr>
+      <tr id="content-081-12.2.#propdef-content" class="">
+        <td>
+            <a href="content-081.xht">content-081</a></td>
+        <td></td>
+        <td></td>
+        <td>Content with a 'attr()' function as a value selecting 'height'
+          <ul class="assert">
+            <li>The 'content' property properly handles the 'attr()' function when calling the attribute 'height'.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="content-082-12.2.#propdef-content" class="">
         <td>
             <a href="content-082.xht">content-082</a></td>
@@ -3277,6 +3398,28 @@
         <td>Content with a 'attr()' function as a value selecting 'lang'
           <ul class="assert">
             <li>The 'content' property properly handles the 'attr()' function when calling the attribute 'lang'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="content-090-12.2.#propdef-content" class="">
+        <td>
+            <a href="content-090.xht">content-090</a></td>
+        <td></td>
+        <td></td>
+        <td>Content with a 'attr()' function as a value selecting 'language'
+          <ul class="assert">
+            <li>The 'content' property properly handles the 'attr()' function when calling the attribute 'language'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="content-091-12.2.#propdef-content" class="">
+        <td>
+            <a href="content-091.xht">content-091</a></td>
+        <td></td>
+        <td></td>
+        <td>Content with a 'attr()' function as a value selecting 'link'
+          <ul class="assert">
+            <li>The 'content' property properly handles the 'attr()' function when calling the attribute 'link'.</li>
           </ul>
         </td>
       </tr>
@@ -3709,6 +3852,17 @@
           </ul>
         </td>
       </tr>
+      <tr id="content-149-12.2.#propdef-content" class="">
+        <td>
+            <a href="content-149.xht">content-149</a></td>
+        <td></td>
+        <td></td>
+        <td>Content with a 'attr()' function as a value selecting 'valign'
+          <ul class="assert">
+            <li>The 'content' property properly handles the 'attr()' function when calling the attribute 'valign'.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="content-150-12.2.#propdef-content" class="">
         <td>
             <a href="content-150.xht">content-150</a></td>
@@ -3739,6 +3893,17 @@
         <td>Content with a 'attr()' function as a value selecting 'version'
           <ul class="assert">
             <li>The 'content' property properly handles the 'attr()' function when calling the attribute 'version'.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="content-153-12.2.#propdef-content" class="">
+        <td>
+            <a href="content-153.xht">content-153</a></td>
+        <td></td>
+        <td></td>
+        <td>Content with a 'attr()' function as a value selecting 'vlink'
+          <ul class="assert">
+            <li>The 'content' property properly handles the 'attr()' function when calling the attribute 'vlink'.</li>
           </ul>
         </td>
       </tr>

@@ -3,7 +3,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
-  <title>Extensions to the Element Interface - CSSOM View Module Level 1 Test Suite</title>
+  <title>Extensions to the HTMLElement Interface - CSSOM View Module Level 1 Test Suite</title>
   <style type="text/css">
     @import "http://www.w3.org/StyleSheets/TR/base.css";
     @import "../indices.css";
@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSSOM View Module Level 1 Test Suite</h1>
-  <h2>Extensions to the Element Interface (7 tests)</h2>
+  <h2>Extensions to the HTMLElement Interface (2 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -30,140 +30,172 @@
     <tbody id="s7">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7">+</a>
-        <a href="https://www.w3.org/TR/cssom-view/#extensions-to-the-element-interface">7 Extensions to the Element Interface</a></th></tr>
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s7.#dom-element-clientheight">
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s7.#dom-element-clientleft">
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s7.#dom-element-clienttop">
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s7.#dom-element-clientwidth">
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s7.#dom-element-getboundingclientrect">
-      <!-- 2 tests -->
-      <tr id="cssom-getboundingclientrect-001-7.#dom-element-getboundingclientrect" class="dom script">
-        <td>
-            <a href="cssom-getBoundingClientRect-001.xht">cssom-getboundingclientrect-001</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>CSSOM View - 6.1 - getBoundingClientRect tests
-        </td>
-      </tr>
-      <tr id="cssom-getboundingclientrect-002-7.#dom-element-getboundingclientrect" class="dom script">
-        <td>
-            <a href="cssom-getBoundingClientRect-002.xht">cssom-getboundingclientrect-002</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>getBoundingClientRect of element outside DOM
-          <ul class="assert">
-            <li>Calling getBoundingClientRect on an element that is outside of the DOM (and therefore does not have an associated layout box) should result in an all-zeroes DOMRect and should definitely not throw an error.</li>
-          </ul>
-        </td>
-      </tr>
-    </tbody>
-    <tbody id="s7.#dom-element-getclientrects">
-      <!-- 3 tests -->
-      <tr id="cssom-getboundingclientrect-002-7.#dom-element-getclientrects" class="dom script">
-        <td>
-            <a href="cssom-getBoundingClientRect-002.xht">cssom-getboundingclientrect-002</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>getBoundingClientRect of element outside DOM
-          <ul class="assert">
-            <li>Calling getBoundingClientRect on an element that is outside of the DOM (and therefore does not have an associated layout box) should result in an all-zeroes DOMRect and should definitely not throw an error.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="cssom-getclientrects-7.#dom-element-getclientrects" class="dom script">
-        <td>
-            <a href="cssom-getClientRects.xht">cssom-getclientrects</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>getClientRects of element outside DOM
-          <ul class="assert">
-            <li>Calling getClientRects on an element that is outside of the DOM (and therefore does not have an associated layout box) should result in an empty DOMRectList and should definitely not throw an error.</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="ttwf-js-cssomview-getclientrects-length-7.#dom-element-getclientrects" class="primary dom script">
-        <td><strong>
-            <a href="ttwf-js-cssomview-getclientrects-length.xht">ttwf-js-cssomview-getclientrects-length</a></strong></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>the length of getClientRects
-          <ul class="assert">
-            <li>getClientRects will return rects of the correct number</li>
-          </ul>
-        </td>
-      </tr>
-    </tbody>
-    <tbody id="s7.#dom-element-scrollheight">
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s7.#dom-element-scrollintoview">
+        <a href="https://www.w3.org/TR/cssom-view/#extensions-to-the-htmlelement-interface">7 Extensions to the HTMLElement Interface</a></th></tr>
       <!-- 1 tests -->
-      <tr id="ttwf-scrollintoview-7.#dom-element-scrollintoview" class="dom script">
+      <tr id="offsetparent_element_test-7" class="script">
         <td>
-            <a href="ttwf-scrollintoview.xht">ttwf-scrollintoview</a></td>
+            <a href="offsetParent_element_test.xht">offsetparent_element_test</a></td>
         <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>CSSOM View - 6 - scrollIntoView tests
+        <td><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>CSSOM View &amp;#8212;&amp;#8212; offsetParent element test
         </td>
       </tr>
     </tbody>
-    <tbody id="s7.#dom-element-scrollleft">
+    <tbody id="s7.#dom-htmlelement-offsetheight">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s7.#dom-element-scrolltop">
+    <tbody id="s7.#dom-htmlelement-offsetleft">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s7.#dom-element-scrollwidth">
-      <!-- 2 tests -->
-      <tr id="scrollwidthheight-7.#dom-element-scrollwidth" class="dom script">
+    <tbody id="s7.#dom-htmlelement-offsetparent">
+      <!-- 1 tests -->
+      <tr id="offsetparent_element_test-7.#dom-htmlelement-offsetparent" class="script">
         <td>
-            <a href="scrollWidthHeight.xht">scrollwidthheight</a></td>
+            <a href="offsetParent_element_test.xht">offsetparent_element_test</a></td>
         <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>CSSOM View scrollWidth and scrollHeight
-        </td>
-      </tr>
-      <tr id="scrollwidthheightwhennotscrollable-7.#dom-element-scrollwidth" class="dom script">
-        <td>
-            <a href="scrollWidthHeightWhenNotScrollable.xht">scrollwidthheightwhennotscrollable</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>CSSOM View scrollWidth/scrollHeight (for nonscrollable elements)
+        <td><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>CSSOM View &amp;#8212;&amp;#8212; offsetParent element test
         </td>
       </tr>
     </tbody>
-    <tbody id="s7.#scrolloptionshorizontal">
+    <tbody id="s7.#dom-htmlelement-offsettop">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s7.#scrolloptionsvertical">
+    <tbody id="s7.#dom-htmlelement-offsetwidth">
+      <!-- 1 tests -->
+      <tr id="htmlelement-offset-width-001-7.#dom-htmlelement-offsetwidth" class="primary dom script">
+        <td><strong>
+            <a href="htmlelement-offset-width-001.xht">htmlelement-offset-width-001</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>CSSOM View - 7 - element.offsetWidth detatches correctly
+          <ul class="assert">
+            <li>element.offsetWidth returns 0 when there is no documentElement.</li>
+          </ul>
+        </td>
+      </tr>
+    </tbody>
+    <tbody id="s7.#ref-for-border-edge-10">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s7.1">
-      <tr><th colspan="4" scope="rowgroup">
-        <a href="#s7.1">+</a>
-        <a href="https://www.w3.org/TR/cssom-view/#the-getclientrects()-and-getboundingclientrect()-methods">7.1 The getClientRects() and getBoundingClientRect() methods</a></th></tr>
+    <tbody id="s7.#ref-for-border-edge-5">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s7.2">
-      <tr><th colspan="4" scope="rowgroup">
-        <a href="#s7.2">+</a>
-        <a href="https://www.w3.org/TR/cssom-view/#element-scrolling-members">7.2 Element Scrolling Members</a></th></tr>
+    <tbody id="s7.#ref-for-border-edge-6">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s7.2.#scroll-an-element">
+    <tbody id="s7.#ref-for-border-edge-7">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s7.2.#scroll-an-element-into-view">
+    <tbody id="s7.#ref-for-border-edge-8">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-border-edge-9">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-css-layout-box-20">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-css-layout-box-21">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-css-layout-box-22">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-css-layout-box-23">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-css-layout-box-24">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-css-layout-box-25">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-css-layout-box-26">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-css-layout-box-27">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-css-layout-box-28">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-css-layout-box-29">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-css-layout-box-30">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-css-layout-box-31">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-css-layout-box-32">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-css-layout-box-33">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-dom-htmlelement-offsetheight-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-dom-htmlelement-offsetleft-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-dom-htmlelement-offsetparent-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-dom-htmlelement-offsetparent-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-dom-htmlelement-offsetparent-3">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-dom-htmlelement-offsetparent-4">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-dom-htmlelement-offsetparent-5">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-dom-htmlelement-offsettop-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-dom-htmlelement-offsetwidth-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-padding-edge-29">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-padding-edge-30">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-the-html-body-element-15">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-the-html-body-element-16">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-the-html-body-element-17">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-the-html-body-element-18">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-transforms-13">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-transforms-14">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-transforms-15">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-transforms-16">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-transforms-17">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s7.#ref-for-transforms-18">
       <!-- 0 tests -->
     </tbody>
   </table>

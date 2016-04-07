@@ -3,7 +3,7 @@
   <title>CSS Test: CSSOM Media Query List Serialization</title>
   <link href="mailto:ben@codeforamerica.org" rel="author" title="Ben Sheldon" />
   <link href="mailto:chapman.shoop@gmail.com" rel="author" title="Chapman Shoop" />
-  <link href="http://www.w3.org/TR/cssom/#the-medialist-interface" rel="help" />
+  <link href="http://www.w3.org/TR/cssom-1/#the-medialist-interface" rel="help" />
   <meta content="dom" name="flags" />
   <meta content="MediaLists are serialized according to the specification" name="assert" />
   <script src="/resources/testharness.js" type="text/javascript"></script>
@@ -11,23 +11,23 @@
   <script id="metadata_cache">/*
   {
     "mediatest_medialist_serialize_element": {
-      "help": ["http://www.w3.org/TR/cssom/#the-medialist-interface",
-               "http://www.w3.org/TR/cssom/#serializing-media-queries"],
+      "help": ["http://www.w3.org/TR/cssom-1/#the-medialist-interface",
+               "http://www.w3.org/TR/cssom-1/#serializing-media-queries"],
       "assert": ["MediaList.mediaText equals the 'media' value of the initial 'style' element."]
     },
     "mediatest_medialist_serialize_comma": {
-      "help": ["http://www.w3.org/TR/cssom/#the-medialist-interface",
-               "http://www.w3.org/TR/cssom/#serializing-media-queries"],
+      "help": ["http://www.w3.org/TR/cssom-1/#the-medialist-interface",
+               "http://www.w3.org/TR/cssom-1/#serializing-media-queries"],
       "assert": ["To serialize a comma-separated list concatenate all items of the list in list order while separating them by \",\" (U+002C), followed by a space (U+0020)."]
     },
     "mediatest_medialist_serialize_empty": {
-      "help": ["http://www.w3.org/TR/cssom/#the-medialist-interface",
-               "http://www.w3.org/TR/cssom/#serializing-media-queries"],
+      "help": ["http://www.w3.org/TR/cssom-1/#the-medialist-interface",
+               "http://www.w3.org/TR/cssom-1/#serializing-media-queries"],
       "assert": ["If the media query list is empty return the empty string."]
     },
     "mediatest_medialist_serialize_lexicographical": {
-      "help": ["http://www.w3.org/TR/cssom/#the-medialist-interface",
-               "http://www.w3.org/TR/cssom/#serializing-media-queries"],
+      "help": ["http://www.w3.org/TR/cssom-1/#the-medialist-interface",
+               "http://www.w3.org/TR/cssom-1/#serializing-media-queries"],
       "assert": ["Each media query in the list of media queries should be sorted in lexicographical order."]
     }
   }
@@ -70,7 +70,7 @@
         assert_equals(mediaList.mediaText, "all");
 
     }, "mediatest_medialist_serialize_element",
-    { help: ["http://www.w3.org/TR/cssom/#the-medialist-interface", "http://www.w3.org/TR/cssom/#serializing-media-queries"],
+    { help: ["http://www.w3.org/TR/cssom-1/#the-medialist-interface", "http://www.w3.org/TR/cssom-1/#serializing-media-queries"],
       assert: ["MediaList.mediaText equals the 'media' value of the initial 'style' element."] });
 
     test(function() {
@@ -80,7 +80,7 @@
       assert_equals(mediaList.mediaText, "all, screen");
 
     }, "mediatest_medialist_serialize_comma",
-    { help: ["http://www.w3.org/TR/cssom/#the-medialist-interface", "http://www.w3.org/TR/cssom/#serializing-media-queries"],
+    { help: ["http://www.w3.org/TR/cssom-1/#the-medialist-interface", "http://www.w3.org/TR/cssom-1/#serializing-media-queries"],
       assert: ["To serialize a comma-separated list concatenate all items of the list in list order while separating them by \",\" (U+002C), followed by a space (U+0020)."] });
 
     test(function() {
@@ -90,7 +90,7 @@
       assert_equals(mediaList.mediaText, "");
 
     }, "mediatest_medialist_serialize_empty",
-    { help: ["http://www.w3.org/TR/cssom/#the-medialist-interface", "http://www.w3.org/TR/cssom/#serializing-media-queries"],
+    { help: ["http://www.w3.org/TR/cssom-1/#the-medialist-interface", "http://www.w3.org/TR/cssom-1/#serializing-media-queries"],
       assert: ["If the media query list is empty return the empty string."] });
 
     test(function() {
@@ -101,7 +101,7 @@
       assert_equals(mediaList.mediaText, "all, print, screen");
 
     }, "mediatest_medialist_serialize_lexicographical",
-    { help: ["http://www.w3.org/TR/cssom/#the-medialist-interface", "http://www.w3.org/TR/cssom/#serializing-media-queries"],
+    { help: ["http://www.w3.org/TR/cssom-1/#the-medialist-interface", "http://www.w3.org/TR/cssom-1/#serializing-media-queries"],
       assert: ["Each media query in the list of media queries should be sorted in lexicographical order."] });
 
   </script>

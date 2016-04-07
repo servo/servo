@@ -3,7 +3,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
  <head>
-  <title>Extensions to the Window Interface - CSSOM View Module Level 1 Test Suite</title>
+  <title>Extensions to the Document Interface - CSSOM View Module Level 1 Test Suite</title>
   <style type="text/css">
     @import "http://www.w3.org/StyleSheets/TR/base.css";
     @import "../indices.css";
@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSSOM View Module Level 1 Test Suite</h1>
-  <h2>Extensions to the Window Interface (13 tests)</h2>
+  <h2>Extensions to the Document Interface (3 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -30,301 +30,283 @@
     <tbody id="s5">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s5">+</a>
-        <a href="https://www.w3.org/TR/cssom-view/#extensions-to-the-window-interface">5 Extensions to the Window Interface</a></th></tr>
-      <!-- 2 tests -->
-      <tr id="media-query-list-interface-5" class="dom script">
-        <td>
-            <a href="media-query-list-interface.xht">media-query-list-interface</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>Properties and Functions
-          <ul class="assert">
-            <li>All properties exist and are readonly. All functions exist and are instances of Function</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="window-interface-5" class="dom script">
-        <td>
-            <a href="window-interface.xht">window-interface</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>Properties and Functions
-          <ul class="assert">
-            <li>All properties exist and are readonly. All functions exist and are instances of Function</li>
-          </ul>
-        </td>
-      </tr>
-    </tbody>
-    <tbody id="s5.#allowed-to-resize-and-move">
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s5.#dom-window-devicepixelratio">
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s5.#dom-window-innerheight">
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s5.#dom-window-innerwidth">
-      <!-- 0 tests -->
-    </tbody>
-    <tbody id="s5.#dom-window-matchmedia">
+        <a href="https://www.w3.org/TR/cssom-view/#extensions-to-the-document-interface">5 Extensions to the Document Interface</a></th></tr>
       <!-- 1 tests -->
-      <tr id="matchmedia-5.#dom-window-matchmedia" class="dom script">
+      <tr id="elementfrompoint-001-5" class="dom script">
         <td>
-            <a href="matchMedia.xht">matchmedia</a></td>
+            <a href="elementFromPoint-001.xht">elementfrompoint-001</a></td>
         <td></td>
         <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>CSSOM View matchMedia and MediaQueryList
+        <td>CSSOM View - 5 - extensions to the Document interface
+          <ul class="assert">
+            <li>elementFromPoint returns correct element</li>
+          </ul>
         </td>
       </tr>
     </tbody>
-    <tbody id="s5.#dom-window-moveby">
+    <tbody id="s5.#dom-document-caretpositionfrompoint">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.#dom-window-moveto">
+    <tbody id="s5.#dom-document-caretpositionfrompoint-x-y-x">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.#dom-window-outerheight">
+    <tbody id="s5.#dom-document-caretpositionfrompoint-x-y-y">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.#dom-window-outerwidth">
+    <tbody id="s5.#dom-document-elementfrompoint">
+      <!-- 2 tests -->
+      <tr id="caretposition-001-5.#dom-document-elementfrompoint" class="primary script">
+        <td><strong>
+            <a href="CaretPosition-001.xht">caretposition-001</a></strong></td>
+        <td></td>
+        <td><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>CaretPosition
+        </td>
+      </tr>
+      <tr id="elementfromposition-5.#dom-document-elementfrompoint" class="primary dom script">
+        <td><strong>
+            <a href="elementFromPosition.xht">elementfromposition</a></strong></td>
+        <td></td>
+        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
+        <td>CSSOM View elementFromPoint
+        </td>
+      </tr>
+    </tbody>
+    <tbody id="s5.#dom-document-elementfrompoint-x-y-x">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.#dom-window-pagexoffset">
+    <tbody id="s5.#dom-document-elementfrompoint-x-y-y">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.#dom-window-pageyoffset">
+    <tbody id="s5.#dom-document-elementsfrompoint">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.#dom-window-resizeby">
+    <tbody id="s5.#dom-document-elementsfrompoint-x-y-x">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.#dom-window-resizeto">
+    <tbody id="s5.#dom-document-elementsfrompoint-x-y-y">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.#dom-window-screen">
+    <tbody id="s5.#dom-document-scrollingelement">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.#dom-window-screenx">
+    <tbody id="s5.#ref-for-caret-node-1">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.#dom-window-screeny">
+    <tbody id="s5.#ref-for-caret-node-2">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.#dom-window-scroll">
+    <tbody id="s5.#ref-for-caret-offset-1">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.#dom-window-scrollby">
+    <tbody id="s5.#ref-for-caret-offset-2">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.#dom-window-scrollto">
+    <tbody id="s5.#ref-for-caret-position-1">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.#dom-window-scrollx">
+    <tbody id="s5.#ref-for-caret-position-2">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.#dom-window-scrolly">
+    <tbody id="s5.#ref-for-caret-range-1">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.#scrollbehavior">
+    <tbody id="s5.#ref-for-caret-range-2">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.#scrolloptions">
+    <tbody id="s5.#ref-for-caret-range-3">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-caret-range-4">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-caretposition-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-dom-document-caretpositionfrompoint-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-dom-document-caretpositionfrompoint-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-dom-document-elementfrompoint-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-dom-document-elementfrompoint-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-dom-document-elementfrompoint-3">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-dom-document-elementsfrompoint-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-dom-document-scrollingelement-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-dom-document-scrollingelement-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-dom-element-scrollleft-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-dom-element-scrolltop-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-layout-box-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-layout-box-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-potentially-scrollable-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-the-html-body-element-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-the-html-body-element-3">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-the-html-body-element-4">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-the-html-body-element-5">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-transforms-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-transforms-2">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-transforms-3">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-transforms-4">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-transforms-5">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-viewport-47">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-viewport-48">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-viewport-49">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-viewport-50">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-viewport-51">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-viewport-52">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-viewport-53">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-viewport-54">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-viewport-55">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-viewport-56">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-viewport-57">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-viewport-58">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-viewport-59">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-viewport-60">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-viewport-61">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-viewport-62">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-viewport-63">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.#ref-for-viewport-64">
       <!-- 0 tests -->
     </tbody>
     <tbody id="s5.1">
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s5.1">+</a>
-        <a href="https://www.w3.org/TR/cssom-view/#the-features-argument-to-the-open()-method">5.1 The features argument to the open() method</a></th></tr>
+        <a href="https://www.w3.org/TR/cssom-view/#the-caretposition-interface">5.1 The CaretPosition Interface</a></th></tr>
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.1.#dom-open-features-height">
+    <tbody id="s5.1.#caret-node">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.1.#dom-open-features-left">
+    <tbody id="s5.1.#caret-offset">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.1.#dom-open-features-top">
+    <tbody id="s5.1.#caret-position">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.1.#dom-open-features-width">
+    <tbody id="s5.1.#caret-range">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.1.#supported-open()-feature-name">
+    <tbody id="s5.1.#caretposition">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.2">
-      <tr><th colspan="4" scope="rowgroup">
-        <a href="#s5.2">+</a>
-        <a href="https://www.w3.org/TR/cssom-view/#the-mediaquerylist-interface">5.2 The MediaQueryList Interface</a></th></tr>
-      <!-- 4 tests -->
-      <tr id="matchmedia-5.2" class="dom script">
-        <td>
-            <a href="matchMedia.xht">matchmedia</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>CSSOM View matchMedia and MediaQueryList
-        </td>
-      </tr>
-      <tr id="matchmediaaddlistener-5.2" class="dom script">
-        <td>
-            <a href="matchMediaAddListener.xht">matchmediaaddlistener</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>CSSOM View matchMedia addListener
-        </td>
-      </tr>
-      <tr id="media-query-list-interface-5.2" class="dom script">
-        <td>
-            <a href="media-query-list-interface.xht">media-query-list-interface</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>Properties and Functions
-          <ul class="assert">
-            <li>All properties exist and are readonly. All functions exist and are instances of Function</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="mediaquerylist-001-5.2" class="script">
-        <td>
-            <a href="MediaQueryList-001.xht">mediaquerylist-001</a></td>
-        <td></td>
-        <td><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>MediaQueryList
-        </td>
-      </tr>
-    </tbody>
-    <tbody id="s5.2.#dom-mediaquerylist-addlistener">
+    <tbody id="s5.1.#dom-caretposition-getclientrect">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.2.#dom-mediaquerylist-matches">
+    <tbody id="s5.1.#dom-caretposition-offset">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.2.#dom-mediaquerylist-media">
+    <tbody id="s5.1.#dom-caretposition-offsetnode">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.2.#dom-mediaquerylist-removelistener">
+    <tbody id="s5.1.#ref-for-caret-node-3">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.2.#list-of-media-query-list-listeners">
+    <tbody id="s5.1.#ref-for-caret-node-4">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.2.#mediaquerylist">
+    <tbody id="s5.1.#ref-for-caret-offset-3">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.2.#mediaquerylistlistener">
+    <tbody id="s5.1.#ref-for-caret-offset-4">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.3">
-      <tr><th colspan="4" scope="rowgroup">
-        <a href="#s5.3">+</a>
-        <a href="https://www.w3.org/TR/cssom-view/#the-screen-interface">5.3 The Screen Interface</a></th></tr>
-      <!-- 8 tests -->
-      <tr id="cssom-view-window-screen-interface-5.3" class="dom script">
-        <td>
-            <a href="cssom-view-window-screen-interface.xht">cssom-view-window-screen-interface</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>cssom view window screen attribute
-          <ul class="assert">
-            <li>window screen interface</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="screen-pixeldepth-screen-colordepth001-5.3" class="script">
-        <td>
-            <a href="Screen-pixelDepth-Screen-colorDepth001.xht">screen-pixeldepth-screen-colordepth001</a></td>
-        <td></td>
-        <td><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>Screen-pixelDepth,Screen-colorDepth
-        </td>
-      </tr>
-      <tr id="window-screen-height-5.3" class="dom script">
-        <td>
-            <a href="window-screen-height.xht">window-screen-height</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>CSSOM View - 4.2 - screen.height range tests
-          <ul class="assert">
-            <li>window.screen.height has sensible values</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="window-screen-height-immutable-5.3" class="dom script">
-        <td>
-            <a href="window-screen-height-immutable.xht">window-screen-height-immutable</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>CSSOM View - 4.2 - screen.height immutability
-          <ul class="assert">
-            <li>screen.height is immutable</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="window-screen-height-mutation-throws-5.3" class="dom script">
-        <td>
-            <a href="window-screen-height-mutation-throws.xht">window-screen-height-mutation-throws</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>CSSOM View - 4.2 - screen.height mutation throws exception
-          <ul class="assert">
-            <li>screen.height mutation throws exception</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="window-screen-width-5.3" class="dom script">
-        <td>
-            <a href="window-screen-width.xht">window-screen-width</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>CSSOM View - 4.2 - screen.width range tests
-          <ul class="assert">
-            <li>window.screen.width has sensible values</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="window-screen-width-immutable-5.3" class="dom script">
-        <td>
-            <a href="window-screen-width-immutable.xht">window-screen-width-immutable</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>CSSOM View - 4.2 - screen.width immutability
-          <ul class="assert">
-            <li>screen.width is immutable</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="window-screen-width-mutation-throws-5.3" class="dom script">
-        <td>
-            <a href="window-screen-width-mutation-throws.xht">window-screen-width-mutation-throws</a></td>
-        <td></td>
-        <td><abbr class="dom" title="Requires Document Object Model support">DOM/JS</abbr><abbr class="script" title="Executes tests in script">Script</abbr></td>
-        <td>CSSOM View - 4.2 - screen.width mutation throws exception
-          <ul class="assert">
-            <li>screen.width mutation throws exception</li>
-          </ul>
-        </td>
-      </tr>
-    </tbody>
-    <tbody id="s5.3.#dom-screen-availheight">
+    <tbody id="s5.1.#ref-for-caret-range-5">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.3.#dom-screen-availwidth">
+    <tbody id="s5.1.#ref-for-caretposition-2">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.3.#dom-screen-colordepth">
+    <tbody id="s5.1.#ref-for-caretposition-3">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.3.#dom-screen-height">
+    <tbody id="s5.1.#ref-for-dom-caretposition-getclientrect-1">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.3.#dom-screen-pixeldepth">
+    <tbody id="s5.1.#ref-for-dom-caretposition-offset-1">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.3.#dom-screen-width">
+    <tbody id="s5.1.#ref-for-dom-caretposition-offsetnode-1">
       <!-- 0 tests -->
     </tbody>
-    <tbody id="s5.3.#screen">
+    <tbody id="s5.1.#ref-for-dom-range-getclientrects-1">
+      <!-- 0 tests -->
+    </tbody>
+    <tbody id="s5.1.#ref-for-transforms-6">
       <!-- 0 tests -->
     </tbody>
   </table>
