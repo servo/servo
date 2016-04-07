@@ -2,7 +2,6 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::HTMLLegendElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLegendElementBinding::HTMLLegendElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -13,7 +12,7 @@ use dom::element::Element;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{HTMLFormElement, FormControl};
-use dom::node::{ChildrenMutation, Node, NodeDamage, UnbindContext};
+use dom::node::{Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
 use util::str::DOMString;
