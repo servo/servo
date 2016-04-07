@@ -973,7 +973,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 block_flow));
         let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
                                                             node.get_pseudo_element_type().strip(),
-                                                            modified_style.clone(),
+                                                            modified_style,
                                                             node.selected_style().clone(),
                                                             node.restyle_damage(),
                                                             fragment_info);

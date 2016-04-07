@@ -7017,6 +7017,18 @@ pub fn modify_border_style_for_inline_sides(style: &mut Arc<ServoComputedValues>
                                             is_first_fragment_of_element: bool,
                                             is_last_fragment_of_element: bool) {
     fn modify_side(style: &mut Arc<ServoComputedValues>, side: PhysicalSide) {
+        {
+            let border = &style.border;
+            let current_style = match side {
+                PhysicalSide::Left =>   (border.border_left_width,   border.border_left_style),
+                PhysicalSide::Right =>  (border.border_right_width,  border.border_right_style),
+                PhysicalSide::Top =>    (border.border_top_width,    border.border_top_style),
+                PhysicalSide::Bottom => (border.border_bottom_width, border.border_bottom_style),
+            };
+            if current_style == (Au(0), BorderStyle::none) {
+                return;
+            }
+        }
         let mut style = Arc::make_mut(style);
         let border = Arc::make_mut(&mut style.border);
         match side {
