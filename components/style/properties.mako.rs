@@ -2314,30 +2314,24 @@ pub mod longhands {
         }
 
         fn derive<Cx: TContext>(context: &Cx) -> computed_value::T {
-            // Start with no declarations if this is a block; otherwise, start with the
-            // declarations in effect and add in the text decorations that this inline specifies.
+            // Start with no declarations if this is an atomic inline-level box; otherwise, start with the
+            // declarations in effect and add in the text decorations that this block specifies.
             let mut result = match context.style().get_box().clone_display() {
-                super::display::computed_value::T::inline => {
-                    context.inherited_style().get_inheritedtext().clone__servo_text_decorations_in_effect()
-                }
-                _ => {
-                    SpecifiedValue {
-                        underline: None,
-                        overline: None,
-                        line_through: None,
-                    }
-                }
+                super::display::computed_value::T::inline_block |
+                super::display::computed_value::T::inline_table => SpecifiedValue {
+                    underline: None,
+                    overline: None,
+                    line_through: None,
+                },
+                _ => context.inherited_style().get_inheritedtext().clone__servo_text_decorations_in_effect()
             };
 
-            if result.underline.is_none() {
-                result.underline = maybe(context.style().get_text().has_underline(), context)
-            }
-            if result.overline.is_none() {
-                result.overline = maybe(context.style().get_text().has_overline(), context)
-            }
-            if result.line_through.is_none() {
-                result.line_through = maybe(context.style().get_text().has_line_through(), context)
-            }
+            result.underline = maybe(context.style().get_text().has_underline()
+                                     || result.underline.is_some(), context);
+            result.overline = maybe(context.style().get_text().has_overline()
+                                    || result.overline.is_some(), context);
+            result.line_through = maybe(context.style().get_text().has_line_through()
+                                        || result.line_through.is_some(), context);
 
             result
         }
