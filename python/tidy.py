@@ -56,6 +56,7 @@ ignored_dirs = [
     os.path.join(".", "tests", "wpt", "sync"),
     os.path.join(".", "tests", "wpt", "sync_css"),
     os.path.join(".", "python", "mach"),
+    os.path.join(".", "python", "tidy_self_test"),
     os.path.join(".", "components", "script", "dom", "bindings", "codegen", "parser"),
     os.path.join(".", "components", "script", "dom", "bindings", "codegen", "ply"),
     os.path.join(".", "python", "_virtualenv"),
