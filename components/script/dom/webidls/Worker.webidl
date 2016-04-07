@@ -12,7 +12,7 @@ interface AbstractWorker {
 // https://html.spec.whatwg.org/multipage/#worker
 [Constructor(DOMString scriptURL)/*, Exposed=Window,Worker*/]
 interface Worker : EventTarget {
-  //void terminate();
+  void terminate();
 
 [Throws]
 void postMessage(any message/*, optional sequence<Transferable> transfer*/);

@@ -18,7 +18,7 @@ use dom::window::{base64_atob, base64_btoa};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{HandleValue, JSAutoRequest, JSContext};
+use js::jsapi::{HandleValue, JSAutoRequest, JSContext, JSRuntime};
 use js::rust::Runtime;
 use msg::constellation_msg::{ConstellationChan, PipelineId};
 use net_traits::{LoadContext, ResourceThread, load_whole_resource};
@@ -29,6 +29,8 @@ use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, Tim
 use std::cell::Cell;
 use std::default::Default;
 use std::rc::Rc;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback};
 use url::Url;
@@ -47,6 +49,7 @@ pub struct WorkerGlobalScopeInit {
     pub constellation_chan: ConstellationChan<ConstellationMsg>,
     pub scheduler_chan: IpcSender<TimerEventRequest>,
     pub worker_id: WorkerId,
+    pub closing: Arc<AtomicBool>,
 }
 
 // https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface
@@ -55,6 +58,7 @@ pub struct WorkerGlobalScope {
     eventtarget: EventTarget,
     worker_id: WorkerId,
     worker_url: Url,
+    closing: Arc<AtomicBool>,
     #[ignore_heap_size_of = "Defined in js"]
     runtime: Runtime,
     next_worker_id: Cell<WorkerId>,
@@ -104,6 +108,7 @@ impl WorkerGlobalScope {
             next_worker_id: Cell::new(WorkerId(0)),
             worker_id: init.worker_id,
             worker_url: worker_url,
+            closing: init.closing,
             runtime: runtime,
             resource_thread: init.resource_thread,
             location: Default::default(),
@@ -155,8 +160,16 @@ impl WorkerGlobalScope {
         self.timers.unschedule_callback(handle);
     }
 
+    pub fn runtime(&self) -> *mut JSRuntime {
+        self.runtime.rt()
+    }
+
     pub fn get_cx(&self) -> *mut JSContext {
         self.runtime.cx()
+    }
+
+    pub fn is_closing(&self) -> bool {
+        self.closing.load(Ordering::SeqCst)
     }
 
     pub fn resource_thread(&self) -> &ResourceThread {
@@ -307,11 +320,15 @@ impl WorkerGlobalScope {
             self.reflector().get_jsobject(), String::from(source), self.worker_url.serialize(), 1) {
             Ok(_) => (),
             Err(_) => {
-                // TODO: An error needs to be dispatched to the parent.
-                // https://github.com/servo/servo/issues/6422
-                println!("evaluate_script failed");
-                let _ar = JSAutoRequest::new(self.runtime.cx());
-                report_pending_exception(self.runtime.cx(), self.reflector().get_jsobject().get());
+                if self.is_closing() {
+                    println!("evaluate_script failed (terminated)");
+                } else {
+                    // TODO: An error needs to be dispatched to the parent.
+                    // https://github.com/servo/servo/issues/6422
+                    println!("evaluate_script failed");
+                    let _ar = JSAutoRequest::new(self.runtime.cx());
+                    report_pending_exception(self.runtime.cx(), self.reflector().get_jsobject().get());
+                }
             }
         }
     }

@@ -15,7 +15,7 @@ use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::window::{self, ScriptHelpers};
 use dom::workerglobalscope::WorkerGlobalScope;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::GetGlobalForObjectCrossCompartment;
+use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use msg::constellation_msg::{ConstellationChan, PipelineId};
@@ -147,9 +147,8 @@ impl<'a> GlobalRef<'a> {
     /// thread.
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
         match *self {
-            GlobalRef::Window(ref window) => {
-                MainThreadScriptChan(window.main_thread_script_chan().clone()).clone()
-            }
+            GlobalRef::Window(ref window) =>
+                MainThreadScriptChan(window.main_thread_script_chan().clone()).clone(),
             GlobalRef::Worker(ref worker) => worker.script_chan(),
         }
     }
@@ -280,11 +279,10 @@ pub fn global_root_from_reflector<T: Reflectable>(reflector: &T) -> GlobalRoot {
     global_root_from_object(*reflector.reflector().get_jsobject())
 }
 
-/// Returns the global object of the realm that the given JS object was created in.
+/// Returns the Rust global object from a JS global object.
 #[allow(unrooted_must_root)]
-pub fn global_root_from_object(obj: *mut JSObject) -> GlobalRoot {
+pub fn global_root_from_global(global: *mut JSObject) -> GlobalRoot {
     unsafe {
-        let global = GetGlobalForObjectCrossCompartment(obj);
         let clasp = JS_GetClass(global);
         assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
         match root_from_object(global) {
@@ -298,5 +296,24 @@ pub fn global_root_from_object(obj: *mut JSObject) -> GlobalRoot {
         }
 
         panic!("found DOM global that doesn't unwrap to Window or WorkerGlobalScope")
+    }
+}
+
+/// Returns the global object of the realm that the given JS object was created in.
+#[allow(unrooted_must_root)]
+pub fn global_root_from_object(obj: *mut JSObject) -> GlobalRoot {
+    unsafe {
+        let global = GetGlobalForObjectCrossCompartment(obj);
+        global_root_from_global(global)
+    }
+}
+
+/// Returns the global object for the given JSContext
+#[allow(unrooted_must_root)]
+pub fn global_root_from_context(cx: *mut JSContext) -> GlobalRoot {
+    unsafe {
+        let global = CurrentGlobalOrNull(cx);
+        assert!(!global.is_null());
+        global_root_from_global(global)
     }
 }
