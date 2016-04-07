@@ -541,6 +541,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
                   "A user stylesheet to be added to every document", "file.css");
     opts.optflag("z", "headless", "Headless mode");
     opts.optflag("f", "hard-fail", "Exit on thread failure instead of displaying about:failure");
+    opts.optflag("F", "soft-fail", "Display about:failure on thread failure instead of exiting");
     opts.optflagopt("", "devtools", "Start remote devtools server on port", "6000");
     opts.optflagopt("", "webdriver", "Start remote WebDriver server on port", "7000");
     opts.optopt("", "resolution", "Set window resolution.", "800x600");
@@ -765,7 +766,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         gc_profile: debug_options.gc_profile,
         load_webfonts_synchronously: debug_options.load_webfonts_synchronously,
         headless: opt_match.opt_present("z"),
-        hard_fail: opt_match.opt_present("f"),
+        hard_fail: opt_match.opt_present("f") && !opt_match.opt_present("F"),
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
         profile_script_events: debug_options.profile_script_events,
         profile_heartbeats: debug_options.profile_heartbeats,
