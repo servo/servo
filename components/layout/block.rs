@@ -1563,10 +1563,6 @@ impl BlockFlow {
     }
 
     pub fn has_scrolling_overflow(&self) -> bool {
-        if !self.base.flags.contains(IS_ABSOLUTELY_POSITIONED) {
-            return false;
-        }
-
         match (self.fragment.style().get_box().overflow_x,
                self.fragment.style().get_box().overflow_y.0) {
             (overflow_x::T::auto, _) | (overflow_x::T::scroll, _) |
