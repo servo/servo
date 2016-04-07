@@ -725,8 +725,15 @@ impl fmt::Debug for StackingContext {
             "Pseudo-StackingContext"
         };
 
-        write!(f, "{} at {:?} with overflow {:?}: {:?}",
+        let scrollable_string = if self.scrolls_overflow_area {
+            " (scrolls overflow area)"
+        } else {
+            ""
+        };
+
+        write!(f, "{}{} at {:?} with overflow {:?}: {:?}",
                type_string,
+               scrollable_string,
                self.bounds,
                self.overflow,
                self.id)
