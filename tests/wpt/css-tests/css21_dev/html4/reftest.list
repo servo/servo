@@ -1063,6 +1063,9 @@ before-after-dynamic-restyle-001.htm == reference/before-after-dynamic-restyle-0
 before-after-floated-001.htm == reference/before-after-floated-001-ref.htm
 before-after-images-001.htm == reference/before-after-images-001-ref.htm
 before-after-positioned-001.htm == reference/before-after-positioned-001-ref.htm
+before-after-positioned-002.htm == reference/before-after-positioned-002-ref.htm
+before-after-positioned-003.htm == reference/before-after-positioned-002-ref.htm
+before-after-positioned-004.htm == reference/before-after-positioned-004-ref.htm
 before-after-selector-001.htm == reference/before-after-selector-001-ref.htm
 before-after-table-parts-001.htm == reference/before-after-table-parts-001-ref.htm
 before-after-table-whitespace-001.htm == reference/before-after-table-whitespace-001-ref.htm

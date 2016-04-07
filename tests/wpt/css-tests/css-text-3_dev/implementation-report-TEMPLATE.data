@@ -1449,6 +1449,8 @@ html/text-transform-fullwidth-001.htm	3ce14e96ac5b083ef463997c3b6d1da292b3e449	?
 xhtml1/text-transform-fullwidth-001.xht	3ce14e96ac5b083ef463997c3b6d1da292b3e449	?
 html/text-transform-lowercase-001.htm	b99d33435f651a9ba6d835eaa2fd51ad6684ae48	?
 xhtml1/text-transform-lowercase-001.xht	b99d33435f651a9ba6d835eaa2fd51ad6684ae48	?
+html/text-transform-lowercase-002.htm	9eb47a5bb06a75d36467296c30f98c18d51a549c	?
+xhtml1/text-transform-lowercase-002.xht	9eb47a5bb06a75d36467296c30f98c18d51a549c	?
 html/text-transform-none-001.htm	3f76372dde584e0852e7cd297d3e68a30ecc4ec6	?
 xhtml1/text-transform-none-001.xht	3f76372dde584e0852e7cd297d3e68a30ecc4ec6	?
 html/text-transform-tailoring-001.htm	99b773a03069b7cb2ce00960100aa9bac0715338	?
@@ -1475,8 +1477,8 @@ html/text-transform-upperlower-004.htm	39d47022c2793a63433bbdee87de7e4d42dd2524	
 xhtml1/text-transform-upperlower-004.xht	39d47022c2793a63433bbdee87de7e4d42dd2524	?
 html/text-transform-upperlower-005.htm	8aa34e79e3bf8ffe3c4ea5bf673c463d9232dcf8	?
 xhtml1/text-transform-upperlower-005.xht	8aa34e79e3bf8ffe3c4ea5bf673c463d9232dcf8	?
-html/text-transform-upperlower-006.htm	011c001f19b9c6f6130e56b88879f46da3b55724	?
-xhtml1/text-transform-upperlower-006.xht	011c001f19b9c6f6130e56b88879f46da3b55724	?
+html/text-transform-upperlower-006.htm	40c576e4e83ff76045f9d5471112814fb5226a75	?
+xhtml1/text-transform-upperlower-006.xht	40c576e4e83ff76045f9d5471112814fb5226a75	?
 html/text-transform-upperlower-007.htm	93638de713822904c8f999bec14e70ddd4104f80	?
 xhtml1/text-transform-upperlower-007.xht	93638de713822904c8f999bec14e70ddd4104f80	?
 html/text-transform-upperlower-008.htm	833a17ae2b4f7c6750fc1046c231f34784530ba3	?

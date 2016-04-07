@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Backgrounds and Borders Module Level 3 CR Test Suite</h1>
-  <h2>Backgrounds (381 tests)</h2>
+  <h2>Backgrounds (393 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -1168,9 +1168,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="border-box-3.7" class="image">
+      <tr id="clip-border-box-3.7" class="image">
         <td>
-            <a href="border-box.xht">border-box</a></td>
+            <a href="clip-border-box.xht">clip-border-box</a></td>
         <td></td>
         <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
         <td>background-clip:border-box
@@ -1179,9 +1179,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="border-box_with_position-3.7" class="image">
+      <tr id="clip-border-box_with_position-3.7" class="image">
         <td>
-            <a href="border-box_with_position.xht">border-box_with_position</a></td>
+            <a href="clip-border-box_with_position.xht">clip-border-box_with_position</a></td>
         <td></td>
         <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
         <td>background-clip:border-box &amp; background-position
@@ -1190,9 +1190,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="border-box_with_radius-3.7" class="image">
+      <tr id="clip-border-box_with_radius-3.7" class="image">
         <td>
-            <a href="border-box_with_radius.xht">border-box_with_radius</a></td>
+            <a href="clip-border-box_with_radius.xht">clip-border-box_with_radius</a></td>
         <td></td>
         <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
         <td>background-clip:border-box &amp; border-radius
@@ -1201,9 +1201,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="border-box_with_size-3.7" class="image">
+      <tr id="clip-border-box_with_size-3.7" class="image">
         <td>
-            <a href="border-box_with_size.xht">border-box_with_size</a></td>
+            <a href="clip-border-box_with_size.xht">clip-border-box_with_size</a></td>
         <td></td>
         <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
         <td>background-clip:border-box &amp; background-size
@@ -1212,9 +1212,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="content-box-3.7" class="image">
+      <tr id="clip-content-box-3.7" class="image">
         <td>
-            <a href="content-box.xht">content-box</a></td>
+            <a href="clip-content-box.xht">clip-content-box</a></td>
         <td></td>
         <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
         <td>background-clip:content-box
@@ -1223,9 +1223,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="content-box_with_position-3.7" class="image">
+      <tr id="clip-content-box_with_position-3.7" class="image">
         <td>
-            <a href="content-box_with_position.xht">content-box_with_position</a></td>
+            <a href="clip-content-box_with_position.xht">clip-content-box_with_position</a></td>
         <td></td>
         <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
         <td>background-clip:content-box &amp; background-position
@@ -1234,9 +1234,9 @@
           </ul>
         </td>
       </tr>
-      <tr id="content-box_with_radius-3.7" class="image">
+      <tr id="clip-content-box_with_radius-3.7" class="image">
         <td>
-            <a href="content-box_with_radius.xht">content-box_with_radius</a></td>
+            <a href="clip-content-box_with_radius.xht">clip-content-box_with_radius</a></td>
         <td></td>
         <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
         <td>background-clip:content-box &amp; border-radius
@@ -1245,14 +1245,58 @@
           </ul>
         </td>
       </tr>
-      <tr id="content-box_with_size-3.7" class="image">
+      <tr id="clip-content-box_with_size-3.7" class="image">
         <td>
-            <a href="content-box_with_size.xht">content-box_with_size</a></td>
+            <a href="clip-content-box_with_size.xht">clip-content-box_with_size</a></td>
         <td></td>
         <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
         <td>background-clip:content-box &amp; background-size
           <ul class="assert">
             <li>content-box : The background is painted within (clipped to) the content box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="clip-padding-box-3.7" class="image">
+        <td>
+            <a href="clip-padding-box.xht">clip-padding-box</a></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>background-clip:padding-box
+          <ul class="assert">
+            <li>padding-box : The background is painted within (clipped to) the padding box</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="clip-padding-box_with_position-3.7" class="image">
+        <td>
+            <a href="clip-padding-box_with_position.xht">clip-padding-box_with_position</a></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>background-clip:padding-box &amp; background-position
+          <ul class="assert">
+            <li>padding-box : The background is painted within (clipped to) the padding box</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="clip-padding-box_with_radius-3.7" class="image">
+        <td>
+            <a href="clip-padding-box_with_radius.xht">clip-padding-box_with_radius</a></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>background-clip:padding-box &amp; border-radius
+          <ul class="assert">
+            <li>padding-box : The background is painted within (clipped to) the padding box</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="clip-padding-box_with_size-3.7" class="image">
+        <td>
+            <a href="clip-padding-box_with_size.xht">clip-padding-box_with_size</a></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>background-clip:padding-box &amp; background-size
+          <ul class="assert">
+            <li>padding-box : The background is painted within (clipped to) the padding box</li>
           </ul>
         </td>
       </tr>
@@ -1280,50 +1324,6 @@
         <td>background clip property with value padding-box
         </td>
       </tr>
-      <tr id="padding-box-3.7" class="image">
-        <td>
-            <a href="padding-box.xht">padding-box</a></td>
-        <td></td>
-        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
-        <td>background-clip:padding-box
-          <ul class="assert">
-            <li>padding-box : The background is painted within (clipped to) the padding box</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="padding-box_with_position-3.7" class="image">
-        <td>
-            <a href="padding-box_with_position.xht">padding-box_with_position</a></td>
-        <td></td>
-        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
-        <td>background-clip:padding-box &amp; background-position
-          <ul class="assert">
-            <li>padding-box : The background is painted within (clipped to) the padding box</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="padding-box_with_radius-3.7" class="image">
-        <td>
-            <a href="padding-box_with_radius.xht">padding-box_with_radius</a></td>
-        <td></td>
-        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
-        <td>background-clip:padding-box &amp; border-radius
-          <ul class="assert">
-            <li>padding-box : The background is painted within (clipped to) the padding box</li>
-          </ul>
-        </td>
-      </tr>
-      <tr id="padding-box_with_size-3.7" class="image">
-        <td>
-            <a href="padding-box_with_size.xht">padding-box_with_size</a></td>
-        <td></td>
-        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
-        <td>background-clip:padding-box &amp; background-size
-          <ul class="assert">
-            <li>padding-box : The background is painted within (clipped to) the padding box</li>
-          </ul>
-        </td>
-      </tr>
     </tbody>
     <tbody id="s3.7.#background-clip">
       <!-- 0 tests -->
@@ -1347,7 +1347,7 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s3.8">+</a>
         <a href="https://www.w3.org/TR/css3-background/#the-background-origin">3.8 Positioning Area: the &#8216;background-origin&#8217; property</a></th></tr>
-      <!-- 13 tests -->
+      <!-- 25 tests -->
       <tr id="background-origin-001-3.8" class="dom script">
         <td>
             <a href="background-origin-001.xht">background-origin-001</a></td>
@@ -1480,6 +1480,138 @@
         <td><a href="reference/css3-background-origin-content-box-ref.xht">=</a> </td>
         <td></td>
         <td>background origin property with value content-box
+        </td>
+      </tr>
+      <tr id="origin-border-box-3.8" class="image">
+        <td>
+            <a href="origin-border-box.xht">origin-border-box</a></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>background-origin:border-box
+          <ul class="assert">
+            <li>border-box : The position is relative to the border box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="origin-border-box_with_position-3.8" class="image">
+        <td>
+            <a href="origin-border-box_with_position.xht">origin-border-box_with_position</a></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>background-origin:border-box &amp; background-position
+          <ul class="assert">
+            <li>border-box : The position is relative to the border box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="origin-border-box_with_radius-3.8" class="image">
+        <td>
+            <a href="origin-border-box_with_radius.xht">origin-border-box_with_radius</a></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>background-origin:border-box &amp; border-radius
+          <ul class="assert">
+            <li>border-box : The position is relative to the border box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="origin-border-box_with_size-3.8" class="image">
+        <td>
+            <a href="origin-border-box_with_size.xht">origin-border-box_with_size</a></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>background-origin:border-box &amp; background-size
+          <ul class="assert">
+            <li>border-box : The position is relative to the border box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="origin-content-box-3.8" class="image">
+        <td>
+            <a href="origin-content-box.xht">origin-content-box</a></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>background-origin:content-box
+          <ul class="assert">
+            <li>content-box : The position is relative to the content box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="origin-content-box_with_position-3.8" class="image">
+        <td>
+            <a href="origin-content-box_with_position.xht">origin-content-box_with_position</a></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>background-origin:content-box &amp; background-position
+          <ul class="assert">
+            <li>content-box : The position is relative to the content box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="origin-content-box_with_radius-3.8" class="image">
+        <td>
+            <a href="origin-content-box_with_radius.xht">origin-content-box_with_radius</a></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>background-origin:content-box &amp; border-radius
+          <ul class="assert">
+            <li>content-box : The position is relative to the content box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="origin-content-box_with_size-3.8" class="image">
+        <td>
+            <a href="origin-content-box_with_size.xht">origin-content-box_with_size</a></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>background-origin:content-box &amp; background-size
+          <ul class="assert">
+            <li>content-box : The position is relative to the content box.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="origin-padding-box-3.8" class="image">
+        <td>
+            <a href="origin-padding-box.xht">origin-padding-box</a></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>background-origin:padding-box
+          <ul class="assert">
+            <li>padding-box : The position is relative to the padding box. (For single boxes &amp;#8216;0 0&amp;#8217; is the upper left corner of the padding edge, &amp;#8216;100% 100%&amp;#8217; is the lower right corner.)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="origin-padding-box_with_position-3.8" class="image">
+        <td>
+            <a href="origin-padding-box_with_position.xht">origin-padding-box_with_position</a></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>background-origin:padding-box &amp; background-position
+          <ul class="assert">
+            <li>padding-box : The position is relative to the padding box. (For single boxes &amp;acirc;&amp;#8364;&amp;#732;0 0&amp;acirc;&amp;#8364;&amp;#8482; is the upper left corner of the padding edge, &amp;acirc;&amp;#8364;&amp;#732;100% 100%&amp;acirc;&amp;#8364;&amp;#8482; is the lower right corner.)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="origin-padding-box_with_radius-3.8" class="image">
+        <td>
+            <a href="origin-padding-box_with_radius.xht">origin-padding-box_with_radius</a></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>background-origin:padding-box &amp; border-radius
+          <ul class="assert">
+            <li>padding-box : The position is relative to the padding box. (For single boxes &amp;acirc;&amp;#8364;&amp;#732;0 0&amp;acirc;&amp;#8364;&amp;#8482; is the upper left corner of the padding edge, &amp;acirc;&amp;#8364;&amp;#732;100% 100%&amp;acirc;&amp;#8364;&amp;#8482; is the lower right corner.)</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="origin-padding-box_with_size-3.8" class="image">
+        <td>
+            <a href="origin-padding-box_with_size.xht">origin-padding-box_with_size</a></td>
+        <td></td>
+        <td><abbr class="image" title="Requires bitmap graphic support">Bitmaps</abbr></td>
+        <td>background-origin:padding-box &amp; background-size
+          <ul class="assert">
+            <li>padding-box : The position is relative to the padding box. (For single boxes &amp;acirc;&amp;#8364;&amp;#732;0 0&amp;acirc;&amp;#8364;&amp;#8482; is the upper left corner of the padding edge, &amp;acirc;&amp;#8364;&amp;#732;100% 100%&amp;acirc;&amp;#8364;&amp;#8482; is the lower right corner.)</li>
+          </ul>
         </td>
       </tr>
     </tbody>

@@ -1,8 +1,8 @@
 <!--
      Any copyright is dedicated to the Public Domain.
      http://creativecommons.org/publicdomain/zero/1.0/
---><!-- Reference case for table-fixup on table parts inside of a
-     flex container. --><html xmlns="http://www.w3.org/1999/xhtml">
+--><!-- Reference case for ensuring table-fixup does not happen to adjacent
+     table parts directly inside of a flex container. --><html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <title>CSS Reftest Reference</title>
   <style type="text/css">
@@ -18,14 +18,9 @@
     <style>
       div.flexbox {
         border: 1px dashed blue;
-      }
-
-      <!-- NOTE: table-fixup pads each td element by 1px on each side. We
-           override that for top & bottom, for simplicity. So the td makes us
-           generate a box that's 2px wider than its contents. -->
-      td {
-        padding-top: 0px;
-        padding-bottom: 0px;
+        width: 200px;
+        display: flex;
+        justify-content: space-around;
       }
 
       .a {
@@ -45,14 +40,11 @@
     </style>
   </head>
   <body>
-    <!-- Just 2 adjacent table cells (they end up in the same table) -->
-    <div class="flexbox" style="padding-left: 50px; width: 150px"><td class="a">cell1</td><td class="b">cell2</td></div>
+    <!-- In each example here, we simply use blocks instead of table parts -->
+    <div class="flexbox"><div class="a">cell1</div><div class="b">cell2</div></div>
 
-    <!-- Table cell followed by tbody (they end up in the same table) -->
-    <div class="flexbox" style="padding-left: 75px; width: 125px"><td class="a">cell1</td><tbody class="b">t</tbody></div>
+    <div class="flexbox"><div class="a">cell1</div><div class="b">t</div></div>
 
-    <!-- Empty table cell (ends up occupying 2px of width), followed by div,
-         followed by nonempty table cell. (3 flex items). -->
-    <div class="flexbox" style="padding-left: 52px; width: 148px"><div style="display: inline-block;" class="c">div</div><div style="display: inline-table; margin-left: 50px"><td class="b">cell1</td></div></div>
+    <div class="flexbox"><div/><div class="b">cell1</div></div>
   </body>
 </html>
