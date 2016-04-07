@@ -29,18 +29,23 @@ from mach.decorators import (
 from servo.command_base import CommandBase, host_triple, BIN_SUFFIX
 
 
-def download(desc, src, writer):
-    print("Downloading %s..." % desc)
+def download(desc, src, writer, start_byte=0):
+    if start_byte:
+        print("Resuming download of %s..." % desc)
+    else:
+        print("Downloading %s..." % desc)
     dumb = (os.environ.get("TERM") == "dumb") or (not sys.stdout.isatty())
 
     try:
+        if start_byte:
+            src = urllib2.Request(src, headers={'Range': 'bytes={}-'.format(start_byte)})
         resp = urllib2.urlopen(src)
 
         fsize = None
         if resp.info().getheader('Content-Length'):
-            fsize = int(resp.info().getheader('Content-Length').strip())
+            fsize = int(resp.info().getheader('Content-Length').strip()) + start_byte
 
-        recved = 0
+        recved = start_byte
         chunk_size = 8192
 
         while True:
@@ -61,11 +66,21 @@ def download(desc, src, writer):
     except urllib2.HTTPError, e:
         print("Download failed (%d): %s - %s" % (e.code, e.reason, src))
         sys.exit(1)
+    except KeyboardInterrupt:
+        writer.flush()
+        raise
 
 
 def download_file(desc, src, dst):
-    with open(dst, 'wb') as fd:
-        download(desc, src, fd)
+    tmp_path = dst + ".part"
+    try:
+        start_byte = os.path.getsize(tmp_path)
+        with open(tmp_path, 'ab') as fd:
+            download(desc, src, fd, start_byte=start_byte)
+    except os.error:
+        with open(tmp_path, 'wb') as fd:
+            download(desc, src, fd)
+    os.rename(tmp_path, dst)
 
 
 def download_bytes(desc, src):
