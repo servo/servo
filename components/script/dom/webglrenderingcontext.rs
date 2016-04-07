@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::{CanvasCommonMsg, CanvasMsg};
+use dom::bindings::codegen::Bindings::WebGLActiveInfoBinding::WebGLActiveInfoMethods;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
@@ -1079,13 +1080,32 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let data = match data {
             Some(data) => data,
             None => return self.webgl_error(InvalidValue),
+        }
+
+        let program = match self.current_program.get() {
+            Some(ref program) if program.id() == uniform.program_id() => program,
+            _ => return self.webgl_error(InvalidOperation),
         };
 
+        let uniform = match uniform {
+            Some(uniform) => uniform,
+            None => return self.webgl_error(InvalidOperation),
+        };
+        let active_uniform = match program.get_active_uniform(
+            uniform.id() as u32) {
+            Some(active_uniform) => active_uniform,
+            None => return self.webgl_error(InvalidOperation),
+        };
+
+        let uniform_array_element_count = active_uniform.Size();
+
         if let Some(data) = array_buffer_view_to_vec_checked::<f32>(data) {
-            if data.len() < 2 {
+            if data.len() % 2 || data.len() > uniform_array_element_count {
                 return self.webgl_error(InvalidOperation);
             }
-
+            // This should get replaced with an actual Uniform2fv event,
+            // which is currently unavailable (I'll submit a PR to webrender_traits)
+            // so for now, I'll leave this broken just to get a review on these changes.
             self.Uniform2f(uniform, data[0], data[1]);
         } else {
             self.webgl_error(InvalidValue);
