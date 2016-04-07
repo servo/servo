@@ -13,7 +13,7 @@ use js::glue::CollectServoSizes;
 use js::jsapi::{DisableIncrementalGC, GCDescription, GCProgress};
 use js::jsapi::{JSContext, JS_GetRuntime, JSRuntime, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
 use js::jsapi::{JSGCInvocationKind, JSGCStatus, JS_AddExtraGCRootsTracer, JS_SetGCCallback};
-use js::jsapi::{JSObject, SetPreserveWrapperCallback};
+use js::jsapi::{JSObject, RuntimeOptionsRef, SetPreserveWrapperCallback};
 use js::rust::Runtime;
 use libc;
 use profile_traits::mem::{Report, ReportKind, ReportsChan};
@@ -24,6 +24,7 @@ use std::marker::PhantomData;
 use std::ptr;
 use time::{Tm, now};
 use util::opts;
+use util::prefs::get_pref;
 use util::thread_state;
 
 /// Common messages used to control the event loops in both the script and the worker
@@ -119,6 +120,15 @@ pub fn new_rt_and_cx() -> Runtime {
         SetPreserveWrapperCallback(runtime.rt(), Some(empty_wrapper_callback));
         // Pre barriers aren't working correctly at the moment
         DisableIncrementalGC(runtime.rt());
+    }
+
+    // Enable or disable the JITs.
+    let rt_opts = unsafe { &mut *RuntimeOptionsRef(runtime.rt()) };
+    if let Some(val) = get_pref("js.baseline.enabled").as_boolean() {
+        rt_opts.set_baseline_(val);
+    }
+    if let Some(val) = get_pref("js.ion.enabled").as_boolean() {
+        rt_opts.set_ion_(val);
     }
 
     runtime
