@@ -1740,7 +1740,7 @@ impl Flow for BlockFlow {
                 self.base.position.size.block = self.fragment.border_box.size.block;
             }
             None
-        } else if self.is_root() || self.base.flags.is_float() || self.is_inline_block() {
+        } else if self.is_root() || self.formatting_context_type() != FormattingContextType::None {
             // Root element margins should never be collapsed according to CSS § 8.3.1.
             debug!("assign_block_size: assigning block_size for root flow {:?}",
                    flow::base(self).debug_id());
