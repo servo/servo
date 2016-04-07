@@ -1682,8 +1682,7 @@ impl Flow for InlineFlow {
                 fragment.stacking_relative_content_box(&stacking_relative_border_box);
             let mut clip = self.base.clip.clone();
             fragment.adjust_clipping_region_for_children(&mut clip,
-                                                         &stacking_relative_border_box,
-                                                         false);
+                                                         &stacking_relative_border_box);
             let is_positioned = fragment.is_positioned();
             match fragment.specific {
                 SpecificFragmentInfo::InlineBlock(ref mut info) => {

@@ -1921,8 +1921,7 @@ impl Flow for BlockFlow {
                                               CoordinateSystem::Own);
         self.fragment.adjust_clipping_region_for_children(
             &mut clip,
-            &stacking_relative_border_box,
-            self.base.flags.contains(IS_ABSOLUTELY_POSITIONED));
+            &stacking_relative_border_box);
 
         // Process children.
         for kid in self.base.child_iter() {
