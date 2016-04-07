@@ -95,5 +95,5 @@ string_cache = {version = "0.2.11", features = ["heap_size", "unstable"]}
 time = "0.1.12"
 unicase = "1.0"
 url = {version = "0.5.7", features = ["heap_size"]}
-uuid = "0.1.16"
+uuid = { version = "0.2", features = ["v4"] }
 websocket = "0.16.1"

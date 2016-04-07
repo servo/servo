@@ -30,5 +30,5 @@ hyper = "0.8"
 rustc-serialize = "0.3.4"
 regex = "0.1.55"
 url = {version = "0.5.7", features = ["heap_size"]}
-uuid = "0.1"
+uuid = { version = "0.2", features = ["v4"] }
 webdriver = "0.8"

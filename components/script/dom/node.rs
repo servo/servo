@@ -799,7 +799,7 @@ impl Node {
     }
 
     pub fn unique_id(&self) -> String {
-        self.unique_id.borrow().to_simple_string()
+        self.unique_id.borrow().simple().to_string()
     }
 
     pub fn summarize(&self) -> NodeInfo {
