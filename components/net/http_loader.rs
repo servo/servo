@@ -759,7 +759,7 @@ pub fn load<A>(load_data: LoadData,
             load_data.preserved_headers.clone()
         };
 
-        let request_id = uuid::Uuid::new_v4().to_simple_string();
+        let request_id = uuid::Uuid::new_v4().simple().to_string();
 
         modify_request_headers(&mut request_headers, &doc_url,
                                &user_agent, &http_state.cookie_jar,
