@@ -579,6 +579,18 @@
             "url": "/_mozilla/css/block_formatting_context_float_placement_a.html"
           }
         ],
+        "css/block_formatting_context_margin_collapse_a.html": [
+          {
+            "path": "css/block_formatting_context_margin_collapse_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_formatting_context_margin_collapse_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_formatting_context_margin_collapse_a.html"
+          }
+        ],
         "css/block_formatting_context_max_width_a.html": [
           {
             "path": "css/block_formatting_context_max_width_a.html",
@@ -7095,6 +7107,18 @@
             ]
           ],
           "url": "/_mozilla/css/block_formatting_context_float_placement_a.html"
+        }
+      ],
+      "css/block_formatting_context_margin_collapse_a.html": [
+        {
+          "path": "css/block_formatting_context_margin_collapse_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_formatting_context_margin_collapse_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_formatting_context_margin_collapse_a.html"
         }
       ],
       "css/block_formatting_context_max_width_a.html": [
