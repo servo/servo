@@ -1,0 +1,5 @@
+[package]
+name = "test"
+version = "*"
+authors = ["The Servo Project Developers"]
+publish = false
