@@ -45,6 +45,7 @@ path = "../canvas_traits"
 
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"
+branch = "smup"
 
 [dependencies.angle]
 git = "https://github.com/emilio/angle"
