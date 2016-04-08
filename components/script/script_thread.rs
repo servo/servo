@@ -101,7 +101,6 @@ use task_source::user_interaction::UserInteractionTaskSource;
 use time::Tm;
 use url::Url;
 use util::opts;
-use util::prefs::get_pref;
 use util::str::DOMString;
 use util::thread;
 use util::thread_state;
