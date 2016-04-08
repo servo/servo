@@ -18,7 +18,8 @@ use dom::window::{base64_atob, base64_btoa};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{HandleValue, JSAutoRequest, JSContext, JSRuntime};
+use js::jsapi::{HandleValue, JSAutoRequest, JSContext, JSRuntime, RootedValue};
+use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::{ConstellationChan, PipelineId};
 use net_traits::{LoadContext, ResourceThread, load_whole_resource};
@@ -216,6 +217,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
             };
         }
 
+        let mut rval = RootedValue::new(self.runtime.cx(), UndefinedValue());
         for url in urls {
             let (url, source) = match load_whole_resource(LoadContext::Script, &self.resource_thread, url, None) {
                 Err(_) => return Err(Error::Network),
@@ -225,7 +227,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
             };
 
             match self.runtime.evaluate_script(
-                self.reflector().get_jsobject(), source, url.to_string(), 1) {
+                self.reflector().get_jsobject(), &source, url.as_str(), 1, rval.handle_mut()) {
                 Ok(_) => (),
                 Err(_) => {
                     println!("evaluate_script failed");
@@ -316,8 +318,9 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
 impl WorkerGlobalScope {
     pub fn execute_script(&self, source: DOMString) {
+        let mut rval = RootedValue::new(self.runtime.cx(), UndefinedValue());
         match self.runtime.evaluate_script(
-            self.reflector().get_jsobject(), String::from(source), self.worker_url.to_string(), 1) {
+            self.reflector().get_jsobject(), &source, self.worker_url.as_str(), 1, rval.handle_mut()) {
             Ok(_) => (),
             Err(_) => {
                 if self.is_closing() {
