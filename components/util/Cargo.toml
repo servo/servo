@@ -19,7 +19,7 @@ non-geckolib = ["js"]
 
 [dependencies]
 plugins = {path = "../plugins"}
-js = {git = "https://github.com/servo/rust-mozjs", optional = true}
+js = {git = "https://github.com/servo/rust-mozjs", branch = "smup", optional = true}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 app_units = {version = "0.2.3", features = ["plugins"]}
 backtrace = "0.2.1"
