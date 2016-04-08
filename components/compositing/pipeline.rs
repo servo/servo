@@ -124,13 +124,19 @@ impl Pipeline {
     /// Returns the channels wrapped in a struct.
     pub fn create<LTF, STF>(state: InitialPipelineState)
                             -> (Pipeline, UnprivilegedPipelineContent, PrivilegedPipelineContent)
-                            where LTF: LayoutThreadFactory, STF: ScriptThreadFactory {
+        where LTF: LayoutThreadFactory, STF: ScriptThreadFactory {
+        // Note: we allow channel creation to panic, since recovering from this
+        // probably requires a general low-memory strategy.
         let (layout_to_paint_chan, layout_to_paint_port) = util::ipc::optional_ipc_channel();
         let (chrome_to_paint_chan, chrome_to_paint_port) = channel();
-        let (paint_shutdown_chan, paint_shutdown_port) = ipc::channel().unwrap();
-        let (layout_shutdown_chan, layout_shutdown_port) = ipc::channel().unwrap();
-        let (pipeline_chan, pipeline_port) = ipc::channel().unwrap();
-        let (script_to_compositor_chan, script_to_compositor_port) = ipc::channel().unwrap();
+        let (paint_shutdown_chan, paint_shutdown_port) = ipc::channel()
+            .expect("Pipeline paint shutdown chan");
+        let (layout_shutdown_chan, layout_shutdown_port) = ipc::channel()
+            .expect("Pipeline layout shutdown chan");
+        let (pipeline_chan, pipeline_port) = ipc::channel()
+            .expect("Pipeline main chan");;
+        let (script_to_compositor_chan, script_to_compositor_port) = ipc::channel()
+            .expect("Pipeline script to compositor chan");
         let mut pipeline_port = Some(pipeline_port);
 
         let failure = Failure {
@@ -148,17 +154,22 @@ impl Pipeline {
 
         // Route messages coming from content to devtools as appropriate.
         let script_to_devtools_chan = state.devtools_chan.as_ref().map(|devtools_chan| {
-            let (script_to_devtools_chan, script_to_devtools_port) = ipc::channel().unwrap();
+            let (script_to_devtools_chan, script_to_devtools_port) = ipc::channel()
+                .expect("Pipeline script to devtools chan");
             let devtools_chan = (*devtools_chan).clone();
             ROUTER.add_route(script_to_devtools_port.to_opaque(), box move |message| {
-                let message: ScriptToDevtoolsControlMsg = message.to().unwrap();
-                devtools_chan.send(DevtoolsControlMsg::FromScript(message)).unwrap()
+                match message.to::<ScriptToDevtoolsControlMsg>() {
+                    Err(e) => error!("Cast to ScriptToDevtoolsControlMsg failed ({}).", e),
+                    Ok(message) => if let Err(e) = devtools_chan.send(DevtoolsControlMsg::FromScript(message)) {
+                        warn!("Sending to devtools failed ({})", e)
+                    },
+                }
             });
             script_to_devtools_chan
         });
 
         let (layout_content_process_shutdown_chan, layout_content_process_shutdown_port) =
-            ipc::channel().unwrap();
+            ipc::channel().expect("Pipeline layout content shutdown chan");
 
         let (script_chan, script_port) = match state.script_chan {
             Some(script_chan) => {
@@ -171,23 +182,25 @@ impl Pipeline {
                     load_data: state.load_data.clone(),
                     paint_chan: layout_to_paint_chan.clone().to_opaque(),
                     failure: failure,
-                    pipeline_port: mem::replace(&mut pipeline_port, None).unwrap(),
+                    pipeline_port: mem::replace(&mut pipeline_port, None)
+                        .expect("script_pipeline != None but pipeline_port == None"),
                     layout_shutdown_chan: layout_shutdown_chan.clone(),
                     content_process_shutdown_chan: layout_content_process_shutdown_chan.clone(),
                 };
 
-                script_chan.send(ConstellationControlMsg::AttachLayout(new_layout_info))
-                           .unwrap();
+                if let Err(e) = script_chan.send(ConstellationControlMsg::AttachLayout(new_layout_info)) {
+                    warn!("Sending to script during pipeline creation failed ({})", e);
+                }
                 (script_chan, None)
             }
             None => {
-                let (script_chan, script_port) = ipc::channel().unwrap();
+                let (script_chan, script_port) = ipc::channel().expect("Pipeline script chan");
                 (script_chan, Some(script_port))
             }
         };
 
         let (script_content_process_shutdown_chan, script_content_process_shutdown_port) =
-            ipc::channel().unwrap();
+            ipc::channel().expect("Pipeline script content process shutdown chan");
 
         let pipeline = Pipeline::new(state.id,
                                      state.parent_info,
@@ -295,9 +308,12 @@ impl Pipeline {
         // The compositor wants to know when pipelines shut down too.
         // It may still have messages to process from these other threads
         // before they can be safely shut down.
-        let (sender, receiver) = ipc::channel().unwrap();
-        self.compositor_proxy.send(CompositorMsg::PipelineExited(self.id, sender));
-        receiver.recv().unwrap();
+        if let Ok((sender, receiver)) = ipc::channel() {
+            self.compositor_proxy.send(CompositorMsg::PipelineExited(self.id, sender));
+            if let Err(e) = receiver.recv() {
+                warn!("Sending exit message failed ({}).", e);
+            }
+        }
 
         // Script thread handles shutting down layout, and layout handles shutting down the painter.
         // For now, if the script thread has failed, we give up on clean shutdown.
@@ -312,18 +328,28 @@ impl Pipeline {
     }
 
     pub fn freeze(&self) {
-        let _ = self.script_chan.send(ConstellationControlMsg::Freeze(self.id)).unwrap();
+        if let Err(e) = self.script_chan.send(ConstellationControlMsg::Freeze(self.id)) {
+            warn!("Sending freeze message failed ({}).", e);
+        }
     }
 
     pub fn thaw(&self) {
-        let _ = self.script_chan.send(ConstellationControlMsg::Thaw(self.id)).unwrap();
+        if let Err(e) = self.script_chan.send(ConstellationControlMsg::Thaw(self.id)) {
+            warn!("Sending freeze message failed ({}).", e);
+        }
     }
 
     pub fn force_exit(&self) {
-        let _ = self.script_chan.send(ConstellationControlMsg::ExitPipeline(self.id)).unwrap();
-        let _ = self.chrome_to_paint_chan.send(ChromeToPaintMsg::Exit);
+        if let Err(e) = self.script_chan.send(ConstellationControlMsg::ExitPipeline(self.id)) {
+            warn!("Sending script exit message failed ({}).", e);
+        }
+        if let Err(e) = self.chrome_to_paint_chan.send(ChromeToPaintMsg::Exit) {
+            warn!("Sending paint exit message failed ({}).", e);
+        }
         let LayoutControlChan(ref layout_channel) = self.layout_chan;
-        let _ = layout_channel.send(LayoutControlMsg::ExitNow).unwrap();
+        if let Err(e) = layout_channel.send(LayoutControlMsg::ExitNow) {
+            warn!("Sending layout exit message failed ({}).", e);
+        }
     }
 
     pub fn to_sendable(&self) -> CompositionPipeline {
@@ -340,8 +366,10 @@ impl Pipeline {
     }
 
     pub fn remove_child(&mut self, frame_id: FrameId) {
-        let index = self.children.iter().position(|id| *id == frame_id).unwrap();
-        self.children.remove(index);
+        match self.children.iter().position(|id| *id == frame_id) {
+            None => return warn!("Pipeline remove child already removed ({:?}).", frame_id),
+            Some(index) => self.children.remove(index),
+        };
     }
 
     pub fn trigger_mozbrowser_event(&self,
@@ -352,7 +380,9 @@ impl Pipeline {
         let event = ConstellationControlMsg::MozBrowserEvent(self.id,
                                                              subpage_id,
                                                              event);
-        self.script_chan.send(event).unwrap();
+        if let Err(e) = self.script_chan.send(event) {
+            warn!("Sending mozbrowser event to script failed ({}).", e);
+        }
     }
 }
 
@@ -399,7 +429,7 @@ impl UnprivilegedPipelineContent {
             parent_info: self.parent_info,
             compositor: self.script_to_compositor_chan,
             control_chan: self.script_chan.clone(),
-            control_port: mem::replace(&mut self.script_port, None).unwrap(),
+            control_port: mem::replace(&mut self.script_port, None).expect("No script port."),
             constellation_chan: self.constellation_chan.clone(),
             layout_to_constellation_chan: self.layout_to_constellation_chan.clone(),
             scheduler_chan: self.scheduler_chan.clone(),
@@ -420,7 +450,7 @@ impl UnprivilegedPipelineContent {
                                   self.load_data.url.clone(),
                                   self.parent_info.is_some(),
                                   layout_pair,
-                                  self.pipeline_port.unwrap(),
+                                  self.pipeline_port.expect("No pipeline port."),
                                   self.layout_to_constellation_chan,
                                   self.failure,
                                   self.script_chan.clone(),
@@ -434,8 +464,8 @@ impl UnprivilegedPipelineContent {
                                   self.webrender_api_sender);
 
         if wait_for_completion {
-            self.script_content_process_shutdown_port.recv().unwrap();
-            self.layout_content_process_shutdown_port.recv().unwrap();
+            let _ = self.script_content_process_shutdown_port.recv();
+            let _ = self.layout_content_process_shutdown_port.recv();
         }
     }
 
