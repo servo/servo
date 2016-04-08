@@ -1,0 +1,62 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+use dom::bindings::codegen::Bindings::MimeTypeArrayBinding;
+use dom::bindings::codegen::Bindings::MimeTypeArrayBinding::MimeTypeArrayMethods;
+use dom::bindings::global::GlobalRef;
+use dom::bindings::js::Root;
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::mimetype::MimeType;
+use util::str::DOMString;
+
+#[dom_struct]
+pub struct MimeTypeArray {
+    reflector_: Reflector,
+}
+
+impl MimeTypeArray {
+    pub fn new_inherited() -> MimeTypeArray {
+        MimeTypeArray {
+            reflector_: Reflector::new()
+        }
+    }
+
+    pub fn new(global: GlobalRef) -> Root<MimeTypeArray> {
+        reflect_dom_object(box MimeTypeArray::new_inherited(),
+                           global,
+                           MimeTypeArrayBinding::Wrap)
+    }
+}
+
+impl MimeTypeArrayMethods for MimeTypeArray {
+    // https://html.spec.whatwg.org/multipage/#dom-mimetypearray-length
+    fn Length(&self) -> u32 {
+        0
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-mimetypearray-item
+    fn Item(&self, _index: u32) -> Option<Root<MimeType>> {
+        None
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-mimetypearray-nameditem
+    fn NamedItem(&self, _name: DOMString) -> Option<Root<MimeType>> {
+        None
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-mimetypearray-item
+    fn IndexedGetter(&self, _index: u32, _found: &mut bool) -> Option<Root<MimeType>> {
+        None
+    }
+
+    // check-tidy: no specs after this line
+    fn NamedGetter(&self, _name: DOMString, _found: &mut bool) -> Option<Root<MimeType>> {
+        None
+    }
+
+    // https://heycam.github.io/webidl/#dfn-supported-property-names
+    fn SupportedPropertyNames(&self) -> Vec<DOMString> {
+        vec![]
+    }
+}

@@ -8,7 +8,9 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflector, Reflectable, reflect_dom_object};
 use dom::bluetooth::Bluetooth;
+use dom::mimetypearray::MimeTypeArray;
 use dom::navigatorinfo;
+use dom::pluginarray::PluginArray;
 use dom::window::Window;
 use util::str::DOMString;
 
@@ -16,6 +18,8 @@ use util::str::DOMString;
 pub struct Navigator {
     reflector_: Reflector,
     bluetooth: MutNullableHeap<JS<Bluetooth>>,
+    plugins: MutNullableHeap<JS<PluginArray>>,
+    mime_types: MutNullableHeap<JS<MimeTypeArray>>,
 }
 
 impl Navigator {
@@ -23,6 +27,8 @@ impl Navigator {
         Navigator {
             reflector_: Reflector::new(),
             bluetooth: Default::default(),
+            plugins: Default::default(),
+            mime_types: Default::default(),
         }
     }
 
@@ -77,5 +83,20 @@ impl NavigatorMethods for Navigator {
     // https://html.spec.whatwg.org/multipage/#navigatorlanguage
     fn Language(&self) -> DOMString {
         navigatorinfo::Language()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-plugins
+    fn Plugins(&self) -> Root<PluginArray> {
+        self.plugins.or_init(|| PluginArray::new(self.global().r()))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-mimetypes
+    fn MimeTypes(&self) -> Root<MimeTypeArray> {
+        self.mime_types.or_init(|| MimeTypeArray::new(self.global().r()))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-javaenabled
+    fn JavaEnabled(&self) -> bool {
+        false
     }
 }
