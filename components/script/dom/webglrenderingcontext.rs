@@ -1106,9 +1106,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 (data.len() > uniform_array_element_count as usize) {
                 return self.webgl_error(InvalidOperation);
             }
-            // This should fire an actual Uniform2fv event,
-            // which is currently unavailable (I'll submit a PR to webrender_traits)
-            // so for now, I'll leave this broken just to get a review on these changes.
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::Uniform2fv(uniform.id(), data)))
+                .unwrap()
         } else {
             self.webgl_error(InvalidValue);
         }
