@@ -59,7 +59,7 @@ from mako.template import Template
 from mako import exceptions
 try:
     style_template = Template(filename=os.environ['STYLE_TEMPLATE'], input_encoding='utf8')
-    style_template.render()
+    style_template.render(PRODUCT='gecko')
 
     geckolib_template = Template(filename=os.environ['GECKOLIB_TEMPLATE'], input_encoding='utf8')
     output = geckolib_template.render(STYLE_STRUCTS = style_template.module.STYLE_STRUCTS,

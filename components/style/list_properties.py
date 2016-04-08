@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.join(style, "Mako-0.9.1.zip"))
 from mako.template import Template
 
 template = Template(filename=os.path.join(style, "properties.mako.rs"), input_encoding='utf8')
-template.render()
+template.render(PRODUCT='servo')
 properties = dict(
     (p.name, {
         "flag": p.experimental,

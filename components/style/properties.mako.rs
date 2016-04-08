@@ -47,10 +47,29 @@ def to_rust_ident(name):
 def to_camel_case(ident):
     return re.sub("_([a-z])", lambda m: m.group(1).upper(), ident.strip("_").capitalize())
 
-class Longhand(object):
-    def __init__(self, name, derived_from=None, custom_cascade=False, experimental=False,
-                 internal=False):
+class Keyword(object):
+    def __init__(self, name, values, extra_gecko_values=None, extra_servo_values=None):
         self.name = name
+        self.values = values
+        self.extra_gecko_values = extra_gecko_values or []
+        self.extra_servo_values = extra_servo_values or []
+    def gecko_values(self):
+        return self.values + self.extra_gecko_values
+    def servo_values(self):
+        return self.values + self.extra_servo_values
+    def values_for(self, product):
+        if product == "gecko":
+            return self.gecko_values()
+        elif product == "servo":
+            return self.servo_values()
+        else:
+            raise Exception("Bad product: " + product)
+
+class Longhand(object):
+    def __init__(self, name, derived_from=None, keyword=None,
+                 custom_cascade=False, experimental=False, internal=False):
+        self.name = name
+        self.keyword = keyword
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
         self.style_struct = THIS_STYLE_STRUCT
@@ -107,6 +126,11 @@ LONGHANDS = []
 LONGHANDS_BY_NAME = {}
 DERIVED_LONGHANDS = {}
 SHORTHANDS = []
+CONFIG = {}
+
+def set_product(p):
+    global CONFIG
+    CONFIG['product'] = p
 
 def new_style_struct(name, is_inherited, gecko_name=None, additional_methods=None):
     global THIS_STYLE_STRUCT
@@ -126,19 +150,32 @@ def switch_to_style_struct(name):
     fail()
 %>
 
+// Work around Mako's really annoying namespacing setup.
+//
+// The above code runs when the template is loaded, rather than when it's
+// rendered, so it can create global variables, doesn't have access to
+// arguments passed to render(). On the flip side, there are various situations,
+// such as code in the body of a def-used-as-tag, where our python code has
+// access to global variables but not to render() arguments. Hack around this
+// by stashing render arguments in a global.
+<% CONFIG['product'] = PRODUCT %>
+
 pub mod longhands {
     use cssparser::Parser;
     use parser::ParserContext;
     use values::specified;
 
-    <%def name="raw_longhand(name, derived_from=None, custom_cascade=False, experimental=False,
-                             internal=False)">
+    <%def name="raw_longhand(name, keyword=None, derived_from=None, products='gecko,servo',
+                             custom_cascade=False, experimental=False, internal=False)">
     <%
+        if not CONFIG['product'] in products:
+            return ""
         if derived_from is not None:
             derived_from = derived_from.split()
 
         property = Longhand(name,
                             derived_from=derived_from,
+                            keyword=keyword,
                             custom_cascade=custom_cascade,
                             experimental=experimental,
                             internal=internal)
@@ -267,11 +304,11 @@ pub mod longhands {
         }
     </%def>
 
-    <%def name="longhand(name, derived_from=None, custom_cascade=False, experimental=False,
-                         internal=False)">
-        <%self:raw_longhand name="${name}" derived_from="${derived_from}"
-                custom_cascade="${custom_cascade}" experimental="${experimental}"
-                internal="${internal}">
+    <%def name="longhand(name, derived_from=None, keyword=None, products='gecko,servo',
+                         custom_cascade=False, experimental=False, internal=False)">
+        <%self:raw_longhand name="${name}" derived_from="${derived_from}" keyword="${keyword}"
+                products="${products}" custom_cascade="${custom_cascade}"
+                experimental="${experimental}" internal="${internal}">
             ${caller.body()}
             % if derived_from is None:
                 pub fn parse_specified(context: &ParserContext, input: &mut Parser)
@@ -282,15 +319,19 @@ pub mod longhands {
         </%self:raw_longhand>
     </%def>
 
-    <%def name="single_keyword_computed(name, values, custom_cascade=False, experimental=False,
-                                        internal=False)">
-        <%self:longhand name="${name}" custom_cascade="${custom_cascade}"
-            experimental="${experimental}" internal="${internal}">
+    <%def name="single_keyword_computed(name, values, products='gecko,servo',
+                                        extra_gecko_values=None, extra_servo_values=None,
+                                        custom_cascade=False, experimental=False, internal=False)">
+        <%self:longhand name="${name}" keyword="${Keyword(name, values.split(),
+                                                          extra_gecko_values,
+                                                          extra_servo_values)}"
+                        products="${products}" custom_cascade="${custom_cascade}"
+                        experimental="${experimental}" internal="${internal}">
             pub use self::computed_value::T as SpecifiedValue;
             ${caller.body()}
             pub mod computed_value {
                 define_css_keyword_enum! { T:
-                    % for value in values.split():
+                    % for value in LONGHANDS_BY_NAME[name].keyword.values_for(CONFIG['product']):
                         "${value}" => ${to_rust_ident(value)},
                     % endfor
                 }
@@ -305,9 +346,10 @@ pub mod longhands {
         </%self:longhand>
     </%def>
 
-    <%def name="single_keyword(name, values, experimental=False, internal=False)">
+    <%def name="single_keyword(name, values, products='gecko,servo', experimental=False, internal=False)">
         <%self:single_keyword_computed name="${name}"
                                        values="${values}"
+                                       products="${products}"
                                        experimental="${experimental}"
                                        internal="${internal}">
             use values::computed::ComputedValueAsSpecified;
@@ -315,8 +357,8 @@ pub mod longhands {
         </%self:single_keyword_computed>
     </%def>
 
-    <%def name="predefined_type(name, type, initial_value, parse_method='parse')">
-        <%self:longhand name="${name}">
+    <%def name="predefined_type(name, type, initial_value, parse_method='parse', products='gecko,servo')">
+        <%self:longhand name="${name}" products="${products}">
             #[allow(unused_imports)]
             use app_units::Au;
             pub type SpecifiedValue = specified::${type};
