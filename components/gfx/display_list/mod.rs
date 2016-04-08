@@ -1388,7 +1388,7 @@ impl DisplayItem {
 
 impl fmt::Debug for DisplayItem {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} @ {:?}",
+        write!(f, "{} @ {:?} {:?}",
             match *self {
                 DisplayItem::SolidColorClass(ref solid_color) =>
                     format!("SolidColor rgba({}, {}, {}, {})",
@@ -1408,6 +1408,7 @@ impl fmt::Debug for DisplayItem {
                 DisplayItem::IframeClass(_) => "Iframe".to_owned(),
             },
             self.bounds(),
+            self.base().clip
         )
     }
 }
