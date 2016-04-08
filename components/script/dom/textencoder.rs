@@ -77,7 +77,7 @@ impl TextEncoderMethods for TextEncoder {
             let length = encoded.len() as u32;
             let js_object: *mut JSObject = JS_NewUint8Array(cx, length);
 
-            let js_object_data: *mut uint8_t = JS_GetUint8ArrayData(js_object, ptr::null());
+            let js_object_data: *mut uint8_t = JS_GetUint8ArrayData(js_object, &mut false, ptr::null());
             ptr::copy_nonoverlapping(encoded.as_ptr(), js_object_data, length as usize);
             js_object
         }
