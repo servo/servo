@@ -115,8 +115,7 @@ impl LayoutRPC for LayoutRPCImpl {
 
     fn node_overflow(&self) -> NodeOverflowResponse {
         match self.0.lock().unwrap().overflow_response {
-            NodeOverflowResponse(Some(x)) => NodeOverflowResponse(Some(x)),
-            NodeOverflowResponse(None)    => NodeOverflowResponse(None),
+            NodeOverflowResponse(x) => NodeOverflowResponse(x)
         }
     }
 
@@ -128,7 +127,8 @@ impl LayoutRPC for LayoutRPCImpl {
 
     fn node_layer_id(&self) -> NodeLayerIdResponse {
         NodeLayerIdResponse {
-            layer_id: self.0.lock().unwrap().layer_id_response.unwrap()
+            layer_id: self.0.lock().unwrap().layer_id_response
+                          .expect("layer_id is not correctly fetched, see PR #9968")
         }
     }
 
@@ -359,7 +359,6 @@ struct UnioningFragmentScrollAreaIterator {
     origin_rect: Rect<i32>,
     level: Option<i32>,
     is_child: bool,
-    layer_id: Option<LayerId>,
     overflow_direction: OverflowDirection
 }
 
@@ -371,7 +370,6 @@ impl UnioningFragmentScrollAreaIterator {
             origin_rect: Rect::zero(),
             level: None,
             is_child: false,
-            layer_id: None,
             overflow_direction: OverflowDirection::RightAndDown
         }
     }
@@ -441,11 +439,6 @@ impl FragmentBorderBoxIterator for UnioningFragmentScrollAreaIterator {
         let bottom_padding = (border_box.size.height - bottom_border - top_border).to_px();
         let top_padding = top_border.to_px();
         let left_padding = left_border.to_px();
-
-        // FIXME: A Hack ... The first layer_id as iterated seems to be the "correct" one
-        if self.layer_id == None {
-            self.layer_id = Some(fragment.layer_id());
-        }
 
         match self.level {
             Some(start_level) if level <= start_level => { self.is_child = false; }
@@ -539,10 +532,9 @@ pub fn process_node_geometry_request<N: LayoutNode>(requested_node: N, layout_ro
     iterator.client_rect
 }
 
-pub fn process_node_layer_id_request<N: LayoutNode>(requested_node: N, layout_root: &mut FlowRef) -> Option<LayerId> {
-    let mut iterator = UnioningFragmentScrollAreaIterator::new(requested_node.opaque());
-    sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
-    iterator.layer_id
+pub fn process_node_layer_id_request<N: LayoutNode>(requested_node: N) -> LayerId {
+    let layout_node = requested_node.to_threadsafe();
+    layout_node.layer_id()
 }
 
 pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layout_root: &mut FlowRef)
@@ -724,7 +716,7 @@ pub fn process_node_overflow_request<N: LayoutNode>(requested_node: N) -> NodeOv
     let style = &*layout_node.style();
     let style_box = style.get_box();
 
-    NodeOverflowResponse(Some((style_box.overflow_x, style_box.overflow_y.0)))
+    NodeOverflowResponse(Some((Point2D::new(style_box.overflow_x, style_box.overflow_y.0))))
 }
 
 pub fn process_margin_style_query<N: LayoutNode>(requested_node: N)

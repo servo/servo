@@ -140,10 +140,7 @@ impl MarginStyleResponse {
     }
 }
 
-pub struct NodeOverflowResponse(pub Option<(
-    overflow_x::computed_value::T,
-    overflow_x::computed_value::T
-)>);
+pub struct NodeOverflowResponse(pub Option<Point2D<overflow_x::computed_value::T>>);
 
 pub struct ContentBoxResponse(pub Rect<Au>);
 pub struct ContentBoxesResponse(pub Vec<Rect<Au>>);
