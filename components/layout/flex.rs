@@ -132,7 +132,7 @@ impl FlexFlow {
 
         let mut computation = self.block_flow.fragment.compute_intrinsic_inline_sizes();
         if !fixed_width {
-            for kid in self.block_flow.base.child_iter() {
+            for kid in self.block_flow.base.child_iter_mut() {
                 let is_absolutely_positioned =
                     flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
                 if !is_absolutely_positioned {
@@ -154,7 +154,7 @@ impl FlexFlow {
 
         let mut computation = self.block_flow.fragment.compute_intrinsic_inline_sizes();
         if !fixed_width {
-            for kid in self.block_flow.base.child_iter() {
+            for kid in self.block_flow.base.child_iter_mut() {
                 let is_absolutely_positioned =
                     flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
                 let child_base = flow::mut_base(kid);
@@ -186,7 +186,7 @@ impl FlexFlow {
         // FIXME (mbrubeck): Get correct mode for absolute containing block
         let containing_block_mode = self.block_flow.base.writing_mode;
 
-        let mut iterator = self.block_flow.base.child_iter().enumerate().peekable();
+        let mut iterator = self.block_flow.base.child_iter_mut().enumerate().peekable();
         while let Some((_, kid)) = iterator.next() {
             {
                 let kid_base = flow::mut_base(kid);
@@ -253,7 +253,7 @@ impl FlexFlow {
 
         let block_container_explicit_block_size = self.block_flow.base.block_container_explicit_block_size;
         let mut inline_child_start = inline_start_content_edge;
-        for kid in self.block_flow.base.child_iter() {
+        for kid in self.block_flow.base.child_iter_mut() {
             let kid_base = flow::mut_base(kid);
 
             kid_base.block_container_inline_size = even_content_inline_size;
@@ -277,7 +277,7 @@ impl FlexFlow {
 
         let mut max_block_size = Au(0);
         let thread_id = self.block_flow.base.thread_id;
-        for kid in self.block_flow.base.child_iter() {
+        for kid in self.block_flow.base.child_iter_mut() {
             kid.assign_block_size_for_inorder_child_if_necessary(layout_context, thread_id);
 
             {
@@ -315,7 +315,7 @@ impl FlexFlow {
         self.block_flow.base.position.size.block = block_size;
 
         // Assign the block-size of kid fragments, which is the same value as own block-size.
-        for kid in self.block_flow.base.child_iter() {
+        for kid in self.block_flow.base.child_iter_mut() {
             {
                 let kid_fragment = &mut kid.as_mut_block().fragment;
                 let mut position = kid_fragment.border_box;

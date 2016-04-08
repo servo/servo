@@ -712,7 +712,7 @@ impl BlockFlow {
 
         // Shift all kids down (or up, if margins are negative) if necessary.
         if block_start_margin_value != Au(0) {
-            for kid in self.base.child_iter() {
+            for kid in self.base.child_iter_mut() {
                 let kid_base = flow::mut_base(kid);
                 kid_base.position.start.b = kid_base.position.start.b + block_start_margin_value
             }
@@ -809,7 +809,7 @@ impl BlockFlow {
             // At this point, `cur_b` is at the content edge of our box. Now iterate over children.
             let mut floats = self.base.floats.clone();
             let thread_id = self.base.thread_id;
-            for (child_index, kid) in self.base.child_iter().enumerate() {
+            for (child_index, kid) in self.base.child_iter_mut().enumerate() {
                 if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                     // Assume that the *hypothetical box* for an absolute flow starts immediately
                     // after the block-end border edge of the previous flow.
@@ -967,7 +967,7 @@ impl BlockFlow {
 
             // Write in the size of the relative containing block for children. (This information
             // is also needed to handle RTL.)
-            for kid in self.base.child_iter() {
+            for kid in self.base.child_iter_mut() {
                 flow::mut_base(kid).early_absolute_position_info = EarlyAbsolutePositionInfo {
                     relative_containing_block_size: self.fragment.content_box().size,
                     relative_containing_block_mode: self.fragment.style().writing_mode,
@@ -1017,7 +1017,7 @@ impl BlockFlow {
             // We don't need to reflow, but we still need to perform in-order traversals if
             // necessary.
             let thread_id = self.base.thread_id;
-            for kid in self.base.child_iter() {
+            for kid in self.base.child_iter_mut() {
                 kid.assign_block_size_for_inorder_child_if_necessary(layout_context, thread_id);
             }
         }
@@ -1330,7 +1330,7 @@ impl BlockFlow {
         let mut inline_start_margin_edge = inline_start_content_edge;
         let mut inline_end_margin_edge = inline_end_content_edge;
 
-        let mut iterator = self.base.child_iter().enumerate().peekable();
+        let mut iterator = self.base.child_iter_mut().enumerate().peekable();
         while let Some((i, kid)) = iterator.next() {
             flow::mut_base(kid).block_container_explicit_block_size = explicit_content_size;
 
@@ -1468,7 +1468,7 @@ impl BlockFlow {
         let mut computation = self.fragment.compute_intrinsic_inline_sizes();
         let (mut left_float_width, mut right_float_width) = (Au(0), Au(0));
         let (mut left_float_width_accumulator, mut right_float_width_accumulator) = (Au(0), Au(0));
-        for kid in self.base.child_iter() {
+        for kid in self.base.child_iter_mut() {
             let is_absolutely_positioned =
                 flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
             let child_base = flow::mut_base(kid);
@@ -1924,7 +1924,7 @@ impl Flow for BlockFlow {
             &stacking_relative_border_box);
 
         // Process children.
-        for kid in self.base.child_iter() {
+        for kid in self.base.child_iter_mut() {
             // If this layer preserves the 3d context of children,
             // then children will need a render layer.
             // TODO(gw): This isn't always correct. In some cases
