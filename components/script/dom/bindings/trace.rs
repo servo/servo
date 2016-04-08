@@ -49,8 +49,8 @@ use hyper::header::Headers;
 use hyper::method::Method;
 use hyper::mime::Mime;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use js::jsapi::JS_CallUnbarrieredObjectTracer;
-use js::jsapi::{GCTraceKindToAscii, Heap, JSGCTraceKind, JSObject, JSTracer, JS_CallObjectTracer, JS_CallValueTracer};
+use js::glue::{CallObjectTracer, CallUnbarrieredObjectTracer, CallValueTracer};
+use js::jsapi::{GCTraceKindToAscii, Heap, TraceKind, JSObject, JSTracer};
 use js::jsval::JSVal;
 use js::rust::Runtime;
 use layout_interface::{LayoutChan, LayoutRPC};
@@ -72,7 +72,6 @@ use smallvec::SmallVec;
 use std::boxed::FnBox;
 use std::cell::{Cell, UnsafeCell};
 use std::collections::{BTreeMap, HashMap, HashSet};
-use std::ffi::CString;
 use std::hash::{BuildHasher, Hash};
 use std::intrinsics::return_address;
 use std::iter::{FromIterator, IntoIterator};
@@ -114,14 +113,10 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) 
             return;
         }
 
-        let name = CString::new(description).unwrap();
-        (*tracer).debugPrinter_ = None;
-        (*tracer).debugPrintIndex_ = !0;
-        (*tracer).debugPrintArg_ = name.as_ptr() as *const libc::c_void;
         debug!("tracing value {}", description);
-        JS_CallValueTracer(tracer,
-                           val.ptr.get() as *mut _,
-                           GCTraceKindToAscii(val.get().trace_kind()));
+        CallValueTracer(tracer,
+                        val.ptr.get() as *mut _,
+                        GCTraceKindToAscii(val.get().trace_kind()));
     }
 }
 
@@ -129,28 +124,20 @@ pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) 
 #[allow(unrooted_must_root)]
 pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
     unsafe {
-        let name = CString::new(description).unwrap();
-        (*tracer).debugPrinter_ = None;
-        (*tracer).debugPrintIndex_ = !0;
-        (*tracer).debugPrintArg_ = name.as_ptr() as *const libc::c_void;
         debug!("tracing reflector {}", description);
-        JS_CallUnbarrieredObjectTracer(tracer,
-                                       reflector.rootable(),
-                                       GCTraceKindToAscii(JSGCTraceKind::JSTRACE_OBJECT));
+        CallUnbarrieredObjectTracer(tracer,
+                                    reflector.rootable(),
+                                    GCTraceKindToAscii(TraceKind::Object));
     }
 }
 
 /// Trace a `JSObject`.
 pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JSObject>) {
     unsafe {
-        let name = CString::new(description).unwrap();
-        (*tracer).debugPrinter_ = None;
-        (*tracer).debugPrintIndex_ = !0;
-        (*tracer).debugPrintArg_ = name.as_ptr() as *const libc::c_void;
         debug!("tracing {}", description);
-        JS_CallObjectTracer(tracer,
-                            obj.ptr.get() as *mut _,
-                            GCTraceKindToAscii(JSGCTraceKind::JSTRACE_OBJECT));
+        CallObjectTracer(tracer,
+                         obj.ptr.get() as *mut _,
+                         GCTraceKindToAscii(TraceKind::Object));
     }
 }
 

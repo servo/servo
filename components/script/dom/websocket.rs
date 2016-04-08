@@ -604,7 +604,9 @@ impl Runnable for MessageReceivedTask {
                         BinaryType::Arraybuffer => {
                             let len = data.len() as uint32_t;
                             let buf = JS_NewArrayBuffer(cx, len);
-                            let buf_data: *mut uint8_t = JS_GetArrayBufferData(buf, ptr::null());
+                            let mut is_shared = false;
+                            let buf_data: *mut uint8_t = JS_GetArrayBufferData(buf, &mut is_shared, ptr::null());
+                            assert!(!is_shared);
                             ptr::copy_nonoverlapping(data.as_ptr(), buf_data, len as usize);
                             buf.to_jsval(cx, message.handle_mut());
                         }
