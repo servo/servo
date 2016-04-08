@@ -153,7 +153,7 @@ impl Debug for ${style_struct.gecko_ffi_name} {
 </%def>
 
 <%def name="raw_impl_trait(style_struct, skip_longhands=None, skip_additionals=None)">
-impl T${style_struct.trait_name} for ${style_struct.gecko_struct_name} {
+impl ${style_struct.trait_name} for ${style_struct.gecko_struct_name} {
     /*
      * Manually-Implemented Methods.
      */
