@@ -70,5 +70,4 @@ fn register_clippy(reg: &mut Registry) {
 }
 #[cfg(not(feature = "clippy"))]
 fn register_clippy(reg: &mut Registry) {
-    reg.register_late_lint_pass(box lints::str_to_string::StrToStringPass);
 }

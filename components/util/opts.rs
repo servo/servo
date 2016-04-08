@@ -518,7 +518,6 @@ pub fn default_opts() -> Opts {
     }
 }
 
-#[allow(str_to_string)]
 pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     let (app_name, args) = args.split_first().unwrap();
 
