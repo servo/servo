@@ -22,6 +22,7 @@ path = "../plugins"
 
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"
+branch = "smup"
 optional = true
 
 [dependencies.ipc-channel]
