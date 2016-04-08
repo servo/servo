@@ -7,9 +7,8 @@
 
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
-use js::glue::JS_STRUCTURED_CLONE_VERSION;
 use js::jsapi::{HandleValue, MutableHandleValue};
-use js::jsapi::{JSContext, JS_ReadStructuredClone};
+use js::jsapi::{JSContext, JS_ReadStructuredClone, JS_STRUCTURED_CLONE_VERSION};
 use js::jsapi::{JS_ClearPendingException, JS_WriteStructuredClone};
 use libc::size_t;
 use std::ptr;

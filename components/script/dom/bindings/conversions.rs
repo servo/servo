@@ -281,7 +281,7 @@ pub unsafe fn private_from_proto_check<F>(mut obj: *mut JSObject,
     let dom_class = try!(get_dom_class(obj).or_else(|_| {
         if IsWrapper(obj) {
             debug!("found wrapper");
-            obj = UnwrapObject(obj, /* stopAtOuter = */ 0);
+            obj = UnwrapObject(obj, /* stopAtWindowProxy = */ 0);
             if obj.is_null() {
                 debug!("unwrapping security wrapper failed");
                 Err(())
@@ -424,7 +424,9 @@ unsafe impl ArrayBufferViewContents for f64 {
 pub unsafe fn array_buffer_view_data<'a, T: ArrayBufferViewContents>(abv: *mut JSObject) -> Option<&'a mut [T]> {
     let mut byte_length = 0;
     let mut ptr = ptr::null_mut();
-    let ret = JS_GetObjectAsArrayBufferView(abv, &mut byte_length, &mut ptr);
+    let mut is_shared = false;
+    let ret = JS_GetObjectAsArrayBufferView(abv, &mut byte_length, &mut is_shared, &mut ptr);
+    assert!(!is_shared);
     if ret.is_null() {
         return None;
     }
@@ -463,5 +465,7 @@ pub fn array_buffer_view_to_vec_checked<T: ArrayBufferViewContents>(abv: *mut JS
 /// Note: Currently only Arrays are supported.
 /// TODO: Expand this to support sequences and other array-like objects
 pub unsafe fn is_array_like(cx: *mut JSContext, value: HandleValue) -> bool {
-    JS_IsArrayObject(cx, value)
+    let mut result = false;
+    assert!(JS_IsArrayObject(cx, value, &mut result));
+    result
 }

@@ -39,7 +39,9 @@ impl ImageData {
             let js_object: *mut JSObject = JS_NewUint8ClampedArray(cx, width * height * 4);
 
             if let Some(vec) = data {
-                let js_object_data: *mut uint8_t = JS_GetUint8ClampedArrayData(js_object, ptr::null());
+                let mut is_shared = false;
+                let js_object_data: *mut uint8_t = JS_GetUint8ClampedArrayData(js_object, &mut is_shared, ptr::null());
+                assert!(!is_shared);
                 ptr::copy_nonoverlapping(vec.as_ptr(), js_object_data, vec.len())
             }
             (*imagedata).data.set(js_object);
@@ -53,7 +55,10 @@ impl ImageData {
     pub fn get_data_array(&self, global: &GlobalRef) -> Vec<u8> {
         unsafe {
             let cx = global.get_cx();
-            let data: *const uint8_t = JS_GetUint8ClampedArrayData(self.Data(cx), ptr::null()) as *const uint8_t;
+            let mut is_shared = false;
+            let data: *const uint8_t =
+                JS_GetUint8ClampedArrayData(self.Data(cx), &mut is_shared, ptr::null()) as *const uint8_t;
+            assert!(!is_shared);
             let len = self.Width() * self.Height() * 4;
             slice::from_raw_parts(data, len as usize).to_vec()
         }
