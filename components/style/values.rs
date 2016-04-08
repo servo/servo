@@ -1437,7 +1437,7 @@ pub mod computed {
     use app_units::Au;
     use euclid::size::Size2D;
     use properties::ComputedValues;
-    use properties::style_struct_traits::TFont;
+    use properties::style_struct_traits::Font;
     use std::fmt;
     use super::AuExtensionMethods;
     use super::specified::AngleOrCorner;
