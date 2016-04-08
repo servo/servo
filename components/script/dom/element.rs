@@ -176,23 +176,23 @@ impl Element {
     }
 
     // https://drafts.csswg.org/cssom-view/#potentially-scrollable
-    // NOTE: After some simplication
     fn potentially_scrollable(&self) -> bool {
-        // let node = self.upcast::<Node>();
-        // let doc = node.owner_doc();
         self.has_css_layout_box() &&
-        // (doc.GetBody().r() != self.downcast::<HTMLElement>() ||
-        //  (doc.GetBody().r() == self.downcast::<HTMLElement>() &&
-        //   doc.GetDocumentElement().r().map_or(false, |v| v.overflow_not_visible()))) &&
-        self.overflow_not_visible()
+        !(self.overflow_x_is_visible() || self.overflow_y_is_visible())
     }
 
-    // used value of overflow-x or overflow-y is not visible
-    fn overflow_not_visible(&self) -> bool {
+    // used value of overflow-x is "visible"
+    fn overflow_x_is_visible(&self) -> bool {
         let window = window_from_node(self);
         let overflow_pair = window.overflow_query(self.upcast::<Node>().to_trusted_node_address());
-        overflow_pair.0 != overflow_x::computed_value::T::visible ||
-        overflow_pair.1 != overflow_x::computed_value::T::visible
+        overflow_pair.x == overflow_x::computed_value::T::visible
+    }
+
+    // used value of overflow-y is "visible"
+    fn overflow_y_is_visible(&self) -> bool {
+        let window = window_from_node(self);
+        let overflow_pair = window.overflow_query(self.upcast::<Node>().to_trusted_node_address());
+        overflow_pair.y != overflow_x::computed_value::T::visible
     }
 }
 

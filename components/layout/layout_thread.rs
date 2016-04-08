@@ -1197,7 +1197,7 @@ impl LayoutThread {
                 },
                 ReflowQueryType::NodeLayerIdQuery(node) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
-                    rw_data.layer_id_response = process_node_layer_id_request(node, &mut root_flow);
+                    rw_data.layer_id_response = process_node_layer_id_request(node);
                 },
                 ReflowQueryType::ResolvedStyleQuery(node, ref pseudo, ref property) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };

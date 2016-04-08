@@ -1122,10 +1122,7 @@ impl Window {
         self.layout_rpc.node_scroll_area().client_rect
     }
 
-    pub fn overflow_query(&self, node: TrustedNodeAddress) -> (
-        overflow_x::computed_value::T,
-        overflow_x::computed_value::T
-    ) {
+    pub fn overflow_query(&self, node: TrustedNodeAddress) -> Point2D<overflow_x::computed_value::T> {
         self.reflow(ReflowGoal::ForScriptQuery,
                     ReflowQueryType::NodeOverflowQuery(node),
                     ReflowReason::Query);
