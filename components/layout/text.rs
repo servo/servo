@@ -170,6 +170,8 @@ impl TextRunScanner {
 
             // First, transform/compress text of all the nodes.
             let (mut run_info_list, mut run_info) = (Vec::new(), RunInfo::new());
+            let mut insertion_point = None;
+
             for (fragment_index, in_fragment) in self.clump.iter().enumerate() {
                 let mut mapping = RunMapping::new(&run_info_list[..], &run_info, fragment_index);
                 let text;
@@ -181,8 +183,12 @@ impl TextRunScanner {
                     }
                     _ => panic!("Expected an unscanned text fragment!"),
                 };
-                let insertion_point = match selection {
-                    Some(range) if range.is_empty() => Some(range.begin()),
+                insertion_point = match selection {
+                    Some(range) if range.is_empty() => {
+                        // `range` is the range within the current fragment. To get the range
+                        // within the text run, offset it by the length of the preceding fragments.
+                        Some(range.begin() + CharIndex(run_info.character_length as isize))
+                    }
                     _ => None
                 };
 
@@ -230,20 +236,18 @@ impl TextRunScanner {
                     let flush_mapping = flush_run || mapping.selected != selected;
 
                     if flush_mapping {
-                        if end_position > start_position {
-                            mapping.flush(&mut mappings,
-                                          &mut run_info,
-                                          &**text,
-                                          insertion_point,
-                                          compression,
-                                          text_transform,
-                                          &mut last_whitespace,
-                                          &mut start_position,
-                                          end_position);
-                        }
+                        mapping.flush(&mut mappings,
+                                         &mut run_info,
+                                         &**text,
+                                         insertion_point,
+                                         compression,
+                                         text_transform,
+                                         &mut last_whitespace,
+                                         &mut start_position,
+                                         end_position);
                         if run_info.text.len() > 0 {
                             if flush_run {
-                                run_info_list.push(run_info);
+                                run_info.flush(&mut run_info_list, &mut insertion_point);
                                 run_info = RunInfo::new();
                             }
                             mapping = RunMapping::new(&run_info_list[..],
@@ -261,11 +265,6 @@ impl TextRunScanner {
                     *paragraph_bytes_processed += character.len_utf8();
                 }
 
-                // If the mapping is zero-length, don't flush it.
-                if start_position == end_position {
-                    continue
-                }
-
                 // Flush the last mapping we created for this fragment to the list.
                 mapping.flush(&mut mappings,
                               &mut run_info,
@@ -279,7 +278,7 @@ impl TextRunScanner {
             }
 
             // Push the final run info.
-            run_info_list.push(run_info);
+            run_info.flush(&mut run_info_list, &mut insertion_point);
 
             // Per CSS 2.1 § 16.4, "when the resultant space between two characters is not the same
             // as the default space, user agents should not use ligatures." This ensures that, for
@@ -339,6 +338,7 @@ impl TextRunScanner {
                 let scanned_run = runs[mapping.text_run_index].clone();
 
                 let requires_line_break_afterward_if_wrapping_on_newlines =
+                    !mapping.byte_range.is_empty() &&
                     scanned_run.run.text.char_at_reverse(mapping.byte_range.end()) == '\n';
                 if requires_line_break_afterward_if_wrapping_on_newlines {
                     mapping.char_range.extend_by(CharIndex(-1));
@@ -353,11 +353,18 @@ impl TextRunScanner {
                 if requires_line_break_afterward_if_wrapping_on_newlines {
                     flags.insert(REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES);
                 }
+
+                let insertion_point = if mapping.contains_insertion_point(scanned_run.insertion_point) {
+                    scanned_run.insertion_point
+                } else {
+                    None
+                };
+
                 let mut new_text_fragment_info = box ScannedTextFragmentInfo::new(
                     scanned_run.run,
                     mapping.char_range,
                     text_size,
-                    scanned_run.insertion_point,
+                    insertion_point,
                     flags);
 
                 let new_metrics = new_text_fragment_info.run.metrics_for_range(&mapping.char_range);
@@ -511,6 +518,26 @@ impl RunInfo {
             script: Script::Common,
         }
     }
+
+    /// Finish processing this RunInfo and add it to the "done" list.
+    ///
+    /// * `insertion_point`: The position of the insertion point, in characters relative to the start
+    ///   of this text run.
+    fn flush(mut self,
+             list: &mut Vec<RunInfo>,
+             insertion_point: &mut Option<CharIndex>) {
+        if let Some(idx) = *insertion_point {
+            let char_len = CharIndex(self.character_length as isize);
+            if idx <= char_len {
+                // The insertion point is in this text run.
+                self.insertion_point = insertion_point.take()
+            } else {
+                // Continue looking for the insertion point in the next text run.
+                *insertion_point = Some(idx - char_len)
+            }
+        }
+        list.push(self);
+    }
 }
 
 /// A mapping from a portion of an unscanned text fragment to the text run we're going to create
@@ -557,6 +584,9 @@ impl RunMapping {
              last_whitespace: &mut bool,
              start_position: &mut usize,
              end_position: usize) {
+        if *start_position == end_position && insertion_point.is_none() {
+            return;
+        }
         let old_byte_length = run_info.text.len();
         *last_whitespace = util::transform_text(&text[(*start_position)..end_position],
                                                 compression,
@@ -572,24 +602,30 @@ impl RunMapping {
                                                                  *last_whitespace,
                                                                  is_first_run);
 
-        // Record the position of the insertion point if necessary.
-        if let Some(insertion_point) = insertion_point {
-            run_info.insertion_point =
-                Some(CharIndex(run_info.character_length as isize + insertion_point.0))
-        }
-
         run_info.character_length = run_info.character_length + character_count;
         *start_position = end_position;
 
-        // Don't flush empty mappings.
-        if character_count == 0 {
-            return
+        // Don't flush mappings that contain no characters and no insertion_point.
+        if character_count == 0 && !self.contains_insertion_point(insertion_point) {
+            return;
         }
 
         let new_byte_length = run_info.text.len();
         self.byte_range = Range::new(old_byte_length, new_byte_length - old_byte_length);
         self.char_range.extend_by(CharIndex(character_count as isize));
         mappings.push(self)
+    }
+
+    /// Is the insertion point for this text run within this mapping?
+    ///
+    /// NOTE: We treat the range as inclusive at both ends, since the insertion point can lie
+    /// before the first character *or* after the last character, and should be drawn even if the
+    /// text is empty.
+    fn contains_insertion_point(&self, insertion_point: Option<CharIndex>) -> bool {
+        match insertion_point {
+            None => false,
+            Some(idx) => self.char_range.begin() <= idx && idx <= self.char_range.end()
+        }
     }
 }
 
