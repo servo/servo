@@ -7,13 +7,11 @@
 use dom::bindings::codegen::InterfaceObjectMap;
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::{MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE_LENGTH};
-use dom::bindings::conversions::{DOM_OBJECT_SLOT, is_dom_class};
-use dom::bindings::conversions::{private_from_proto_check, root_from_handleobject};
+use dom::bindings::conversions::{DOM_OBJECT_SLOT, is_dom_class, private_from_proto_check};
 use dom::bindings::error::throw_invalid_this;
 use dom::bindings::inheritance::TopTypeId;
 use dom::bindings::trace::trace_object;
 use dom::browsingcontext;
-use dom::window;
 use heapsize::HeapSizeOf;
 use js;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
@@ -23,15 +21,14 @@ use js::glue::{RUST_JSID_TO_INT, RUST_JSID_TO_STRING, UnwrapObject};
 use js::jsapi::{CallArgs, CompartmentOptions, DOMCallbacks, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{HandleId, HandleObject, HandleValue, Heap, JSAutoCompartment, JSClass, JSContext};
 use js::jsapi::{JSJitInfo, JSObject, JSTraceOp, JSTracer, JSVersion, JSWrapObjectCallbacks};
-use js::jsapi::{JS_DeletePropertyById1, JS_EnumerateStandardClasses, JS_FireOnNewGlobalObject};
+use js::jsapi::{JS_DeletePropertyById, JS_EnumerateStandardClasses, JS_FireOnNewGlobalObject};
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_GetClass, JS_GetLatin1StringCharsAndLength};
 use js::jsapi::{JS_GetProperty, JS_GetPrototype, JS_GetReservedSlot, JS_HasProperty};
 use js::jsapi::{JS_HasPropertyById, JS_IsExceptionPending, JS_IsGlobalObject, JS_NewGlobalObject};
-use js::jsapi::{JS_ObjectToOuterObject, JS_ResolveStandardClass, JS_SetProperty};
+use js::jsapi::{JS_ResolveStandardClass, JS_SetProperty, ToWindowProxyIfWindow};
 use js::jsapi::{JS_SetReservedSlot, JS_StringHasLatin1Chars, MutableHandleValue, ObjectOpResult};
-use js::jsapi::{OnNewGlobalHookOption, RootedObject};
-use js::jsval::{JSVal};
-use js::jsval::{PrivateValue, UndefinedValue};
+use js::jsapi::{OnNewGlobalHookOption, RootedObject, RootedValue};
+use js::jsval::{JSVal, ObjectValue, PrivateValue, UndefinedValue};
 use js::rust::{GCMethods, ToString};
 use js::{JS_CALLEE};
 use libc;
@@ -152,7 +149,8 @@ pub fn get_property_on_prototype(cx: *mut JSContext,
             return true;
         }
 
-        JS_ForwardGetPropertyTo(cx, proto.handle(), id, proxy, vp)
+        let receiver = RootedValue::new(cx, ObjectValue(&**proxy.ptr));
+        JS_ForwardGetPropertyTo(cx, proto.handle(), id, receiver.handle(), vp)
     }
 }
 
@@ -208,7 +206,7 @@ pub fn is_platform_object(obj: *mut JSObject) -> bool {
         }
         // Now for simplicity check for security wrappers before anything else
         if IsWrapper(obj) {
-            let unwrapped_obj = UnwrapObject(obj, /* stopAtOuter = */ 0);
+            let unwrapped_obj = UnwrapObject(obj, /* stopAtWindowProxy = */ 0);
             if unwrapped_obj.is_null() {
                 return false;
             }
@@ -302,8 +300,9 @@ pub fn create_dom_global(cx: *mut JSContext,
                          -> *mut JSObject {
     unsafe {
         let mut options = CompartmentOptions::default();
-        options.version_ = JSVersion::JSVERSION_ECMA_5;
-        options.traceGlobal_ = trace;
+        options.behaviors_.version_ = JSVersion::JSVERSION_ECMA_5;
+        options.creationOptions_.traceGlobal_ = trace;
+        options.creationOptions_.sharedMemoryAndAtomics_ = true;
 
         let obj =
             RootedObject::new(cx,
@@ -338,9 +337,7 @@ pub unsafe fn finalize_global(obj: *mut JSObject) {
     for idx in 0..PROTO_OR_IFACE_LENGTH as isize {
         let entry = list.offset(idx);
         let value = *entry;
-        if <*mut JSObject>::needs_post_barrier(value) {
-            <*mut JSObject>::relocate(entry);
-        }
+        <*mut JSObject>::post_barrier(entry, value, ptr::null_mut());
     }
     let _: Box<ProtoOrIfaceArray> = Box::from_raw(protolist);
 }
@@ -422,7 +419,9 @@ unsafe extern "C" fn pre_wrap(cx: *mut JSContext,
                               _object_passed_to_wrap: HandleObject)
                               -> *mut JSObject {
     let _ac = JSAutoCompartment::new(cx, obj.get());
-    JS_ObjectToOuterObject(cx, obj)
+    let obj = ToWindowProxyIfWindow(obj.get());
+    assert!(!obj.is_null());
+    obj
 }
 
 /// Callback table for use with JS_SetWrapObjectCallbacks
@@ -431,21 +430,13 @@ pub static WRAP_CALLBACKS: JSWrapObjectCallbacks = JSWrapObjectCallbacks {
     preWrap: Some(pre_wrap),
 };
 
-/// Callback to outerize windows.
-pub unsafe extern "C" fn outerize_global(_cx: *mut JSContext, obj: HandleObject) -> *mut JSObject {
-    debug!("outerizing");
-    let win = root_from_handleobject::<window::Window>(obj).unwrap();
-    let context = win.browsing_context();
-    context.window_proxy()
-}
-
 /// Deletes the property `id` from `object`.
 pub unsafe fn delete_property_by_id(cx: *mut JSContext,
                                     object: HandleObject,
                                     id: HandleId,
                                     bp: *mut ObjectOpResult)
                                     -> bool {
-    JS_DeletePropertyById1(cx, object, id, bp)
+    JS_DeletePropertyById(cx, object, id, bp)
 }
 
 unsafe fn generic_call(cx: *mut JSContext,

@@ -12,15 +12,15 @@ use dom::bindings::utils::get_array_index_from_id;
 use dom::document::Document;
 use dom::element::Element;
 use dom::window::Window;
+use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
 use js::glue::{GetProxyPrivate, SetProxyExtra};
-use js::jsapi::{Handle, HandleId, HandleObject, JSAutoCompartment, JSAutoRequest, JSContext};
-use js::jsapi::{JSErrNum, JSObject, JSPropertyDescriptor, JS_DefinePropertyById6};
+use js::jsapi::{Handle, HandleId, HandleObject, HandleValue, JSAutoCompartment, JSAutoRequest};
+use js::jsapi::{JSContext, JSPROP_READONLY, JSErrNum, JSObject, PropertyDescriptor, JS_DefinePropertyById};
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass};
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHandle};
 use js::jsapi::{MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
-use js::jsval::{ObjectValue, UndefinedValue, PrivateValue};
-use js::{JSCLASS_IS_GLOBAL, JSPROP_READONLY};
+use js::jsval::{UndefinedValue, PrivateValue};
 
 #[dom_struct]
 pub struct BrowsingContext {
@@ -59,7 +59,7 @@ impl BrowsingContext {
             let object = box BrowsingContext::new_inherited(frame_element);
 
             let raw = Box::into_raw(object);
-            SetProxyExtra(window_proxy.ptr, 0, PrivateValue(raw as *const _));
+            SetProxyExtra(window_proxy.ptr, 0, &PrivateValue(raw as *const _));
 
             (*raw).init_reflector(window_proxy.ptr);
 
@@ -131,7 +131,7 @@ unsafe fn GetSubframeWindow(cx: *mut JSContext,
 unsafe extern "C" fn getOwnPropertyDescriptor(cx: *mut JSContext,
                                               proxy: HandleObject,
                                               id: HandleId,
-                                              desc: MutableHandle<JSPropertyDescriptor>)
+                                              desc: MutableHandle<PropertyDescriptor>)
                                               -> bool {
     let window = GetSubframeWindow(cx, proxy, id);
     if let Some(window) = window {
@@ -159,7 +159,7 @@ unsafe extern "C" fn getOwnPropertyDescriptor(cx: *mut JSContext,
 unsafe extern "C" fn defineProperty(cx: *mut JSContext,
                                     proxy: HandleObject,
                                     id: HandleId,
-                                    desc: Handle<JSPropertyDescriptor>,
+                                    desc: Handle<PropertyDescriptor>,
                                     res: *mut ObjectOpResult)
                                     -> bool {
     if get_array_index_from_id(cx, id).is_some() {
@@ -172,7 +172,7 @@ unsafe extern "C" fn defineProperty(cx: *mut JSContext,
     }
 
     let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
-    JS_DefinePropertyById6(cx, target.handle(), id, desc, res)
+    JS_DefinePropertyById(cx, target.handle(), id, desc, res)
 }
 
 #[allow(unsafe_code)]
@@ -200,7 +200,7 @@ unsafe extern "C" fn has(cx: *mut JSContext,
 #[allow(unsafe_code)]
 unsafe extern "C" fn get(cx: *mut JSContext,
                          proxy: HandleObject,
-                         receiver: HandleObject,
+                         receiver: HandleValue,
                          id: HandleId,
                          vp: MutableHandleValue)
                          -> bool {
@@ -217,9 +217,9 @@ unsafe extern "C" fn get(cx: *mut JSContext,
 #[allow(unsafe_code)]
 unsafe extern "C" fn set(cx: *mut JSContext,
                          proxy: HandleObject,
-                         receiver: HandleObject,
                          id: HandleId,
-                         vp: MutableHandleValue,
+                         v: HandleValue,
+                         receiver: HandleValue,
                          res: *mut ObjectOpResult)
                          -> bool {
     if get_array_index_from_id(cx, id).is_some() {
@@ -229,12 +229,11 @@ unsafe extern "C" fn set(cx: *mut JSContext,
     }
 
     let target = RootedObject::new(cx, GetProxyPrivate(*proxy.ptr).to_object());
-    let receiver = RootedValue::new(cx, ObjectValue(&**receiver.ptr));
     JS_ForwardSetPropertyTo(cx,
                             target.handle(),
                             id,
-                            vp.to_handle(),
-                            receiver.handle(),
+                            v,
+                            receiver,
                             res)
 }
 

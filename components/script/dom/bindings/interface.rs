@@ -11,15 +11,15 @@ use js::error::throw_type_error;
 use js::glue::UncheckedUnwrapObject;
 use js::jsapi::{Class, ClassExtension, ClassSpec, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{HandleObject, HandleValue, JSClass, JSContext, JSFunctionSpec};
-use js::jsapi::{JSNative, JSPropertySpec, JSString, JS_DefineProperty1, JS_DefineProperty2};
-use js::jsapi::{JS_DefineProperty4, JS_GetClass, JS_GetFunctionObject, JS_GetPrototype};
-use js::jsapi::{JS_InternString, JS_LinkConstructorAndPrototype, JS_NewFunction, JS_NewObject};
+use js::jsapi::{JSNative, JSFUN_CONSTRUCTOR, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY};
+use js::jsapi::{JSPropertySpec, JSString, JS_DefineProperty1, JS_DefineProperty2};
+use js::jsapi::{JS_AtomizeAndPinString, JS_DefineProperty4, JS_GetClass, JS_GetFunctionObject};
+use js::jsapi::{JS_GetPrototype, JS_LinkConstructorAndPrototype, JS_NewFunction, JS_NewObject};
 use js::jsapi::{JS_NewObjectWithUniqueType, JS_NewStringCopyZ, JS_DefineProperty};
 use js::jsapi::{MutableHandleObject, MutableHandleValue, ObjectOps, RootedObject, RootedString};
 use js::jsapi::{RootedValue, Value};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
 use js::rust::{define_methods, define_properties};
-use js::{JSPROP_ENUMERATE, JSFUN_CONSTRUCTOR, JSPROP_PERMANENT, JSPROP_READONLY};
 use libc;
 use std::ptr;
 
@@ -127,25 +127,23 @@ impl NonCallbackInterfaceObjectClass {
                 setProperty: None,
                 enumerate: None,
                 resolve: None,
-                convert: None,
+                mayResolve: None,
                 finalize: None,
                 call: constructor_behavior.call,
                 construct: constructor_behavior.construct,
                 hasInstance: Some(has_instance_hook),
                 trace: None,
                 spec: ClassSpec {
-                    createConstructor: None,
-                    createPrototype: None,
-                    constructorFunctions: ptr::null(),
-                    constructorProperties: ptr::null(),
-                    prototypeFunctions: ptr::null(),
-                    prototypeProperties: ptr::null(),
-                    finishInit: None,
+                    createConstructor_: None,
+                    createPrototype_: None,
+                    constructorFunctions_: ptr::null(),
+                    constructorProperties_: ptr::null(),
+                    prototypeFunctions_: ptr::null(),
+                    prototypeProperties_: ptr::null(),
+                    finishInit_: None,
                     flags: 0,
                 },
                 ext: ClassExtension {
-                    outerObject: None,
-                    innerObject: None,
                     isWrappedNative: false,
                     weakmapKeyDelegateOp: None,
                     objectMovedOp: None,
@@ -162,7 +160,6 @@ impl NonCallbackInterfaceObjectClass {
                     unwatch: None,
                     getElements: None,
                     enumerate: None,
-                    thisObject: None,
                     funToString: Some(fun_to_string_hook),
                 }
             },
@@ -323,7 +320,7 @@ unsafe fn has_instance(
     let js_class = JS_GetClass(interface_object.get());
     let object_class = &*(js_class as *const NonCallbackInterfaceObjectClass);
 
-    if let Ok(dom_class) = get_dom_class(UncheckedUnwrapObject(value.ptr, /* stopAtOuter = */ 0)) {
+    if let Ok(dom_class) = get_dom_class(UncheckedUnwrapObject(value.ptr, /* stopAtWindowProxy = */ 0)) {
         if dom_class.interface_chain[object_class.proto_depth as usize] == object_class.proto_id {
             // Step 4.
             return Ok(true);
@@ -372,8 +369,8 @@ unsafe fn create_object(
 
 unsafe fn define_name(cx: *mut JSContext, obj: HandleObject, name: &'static [u8]) {
     assert!(*name.last().unwrap() == b'\0');
-    let name =
-        RootedString::new(cx, JS_InternString(cx, name.as_ptr() as *const libc::c_char));
+    let name = RootedString::new(
+        cx, JS_AtomizeAndPinString(cx, name.as_ptr() as *const libc::c_char));
     assert!(!name.ptr.is_null());
     assert!(JS_DefineProperty2(cx,
                                obj,
