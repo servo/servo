@@ -7,7 +7,7 @@ use opts;
 use serde::Serialize;
 use std::borrow::ToOwned;
 use std::io::{Write, stderr};
-use std::panic::{PanicInfo, take_handler, set_handler};
+use std::panic::{PanicInfo, take_hook, set_hook};
 use std::sync::mpsc::Sender;
 use std::thread;
 use std::thread::Builder;
@@ -23,10 +23,10 @@ pub fn spawn_named<F>(name: String, f: F)
         return;
     }
 
-    let f_with_handler = move || {
-        let hook = take_handler();
+    let f_with_hook = move || {
+        let hook = take_hook();
 
-        let new_handler = move |info: &PanicInfo| {
+        let new_hook = move |info: &PanicInfo| {
             let payload = info.payload();
             if let Some(s) = payload.downcast_ref::<String>() {
                 if s.contains("SendError") {
@@ -45,11 +45,11 @@ pub fn spawn_named<F>(name: String, f: F)
             }
             hook(&info);
         };
-        set_handler(new_handler);
+        set_hook(Box::new(new_hook));
         f();
     };
 
-    builder.spawn(f_with_handler).unwrap();
+    builder.spawn(f_with_hook).unwrap();
 }
 
 /// An abstraction over `Sender<T>` and `IpcSender<T>`, for use in
@@ -98,4 +98,3 @@ pub fn spawn_named_with_send_on_failure<F, T, S>(name: String,
         }
     }).unwrap();
 }
-
