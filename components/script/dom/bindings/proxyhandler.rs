@@ -8,16 +8,15 @@
 
 use dom::bindings::conversions::is_dom_proxy;
 use dom::bindings::utils::delete_property_by_id;
-use js::JSPROP_GETTER;
 use js::glue::GetProxyExtra;
 use js::glue::InvokeGetOwnPropertyDescriptor;
 use js::glue::{GetProxyHandler, SetProxyExtra};
 use js::jsapi::GetObjectProto;
 use js::jsapi::JS_GetPropertyDescriptorById;
 use js::jsapi::{Handle, HandleId, HandleObject, MutableHandle, ObjectOpResult, RootedObject};
-use js::jsapi::{JSContext, JSObject, JSPropertyDescriptor};
+use js::jsapi::{JSContext, JSObject, JSPROP_GETTER, PropertyDescriptor};
 use js::jsapi::{JSErrNum, JS_StrictPropertyStub};
-use js::jsapi::{JS_DefinePropertyById6, JS_NewObjectWithGivenProto};
+use js::jsapi::{JS_DefinePropertyById, JS_NewObjectWithGivenProto};
 use js::jsval::ObjectValue;
 use libc;
 use std::{mem, ptr};
@@ -31,7 +30,7 @@ static JSPROXYSLOT_EXPANDO: u32 = 0;
 pub unsafe extern "C" fn get_property_descriptor(cx: *mut JSContext,
                                                  proxy: HandleObject,
                                                  id: HandleId,
-                                                 desc: MutableHandle<JSPropertyDescriptor>)
+                                                 desc: MutableHandle<PropertyDescriptor>)
                                                  -> bool {
     let handler = GetProxyHandler(proxy.get());
     if !InvokeGetOwnPropertyDescriptor(handler, cx, proxy, id, desc) {
@@ -54,7 +53,7 @@ pub unsafe extern "C" fn get_property_descriptor(cx: *mut JSContext,
 pub unsafe extern "C" fn define_property(cx: *mut JSContext,
                                          proxy: HandleObject,
                                          id: HandleId,
-                                         desc: Handle<JSPropertyDescriptor>,
+                                         desc: Handle<PropertyDescriptor>,
                                          result: *mut ObjectOpResult)
                                          -> bool {
     // FIXME: Workaround for https://github.com/rust-lang/rfcs/issues/718
@@ -67,7 +66,7 @@ pub unsafe extern "C" fn define_property(cx: *mut JSContext,
     }
 
     let expando = RootedObject::new(cx, ensure_expando_object(cx, proxy));
-    JS_DefinePropertyById6(cx, expando.handle(), id, desc, result)
+    JS_DefinePropertyById(cx, expando.handle(), id, desc, result)
 }
 
 /// Deletes an expando off the given `proxy`.
@@ -126,7 +125,7 @@ pub fn ensure_expando_object(cx: *mut JSContext, obj: HandleObject) -> *mut JSOb
             expando = JS_NewObjectWithGivenProto(cx, ptr::null_mut(), HandleObject::null());
             assert!(!expando.is_null());
 
-            SetProxyExtra(obj.get(), JSPROXYSLOT_EXPANDO, ObjectValue(&*expando));
+            SetProxyExtra(obj.get(), JSPROXYSLOT_EXPANDO, &ObjectValue(&*expando));
         }
         expando
     }
@@ -134,7 +133,7 @@ pub fn ensure_expando_object(cx: *mut JSContext, obj: HandleObject) -> *mut JSOb
 
 /// Set the property descriptor's object to `obj` and set it to enumerable,
 /// and writable if `readonly` is true.
-pub fn fill_property_descriptor(desc: &mut JSPropertyDescriptor,
+pub fn fill_property_descriptor(desc: &mut PropertyDescriptor,
                                 obj: *mut JSObject,
                                 attrs: u32) {
     desc.obj = obj;

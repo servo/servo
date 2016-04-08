@@ -51,9 +51,9 @@ use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
+use js::glue::GetWindowProxyClass;
 use js::jsapi::{DOMProxyShadowsResult, HandleId, HandleObject, RootedValue};
-use js::jsapi::{JSAutoRequest, JS_SetWrapObjectCallbacks};
-use js::jsapi::{JSContext, JSTracer};
+use js::jsapi::{JSAutoRequest, JSContext, JS_SetWrapObjectCallbacks, JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_interface::{ReflowQueryType};
@@ -515,6 +515,7 @@ impl ScriptThread {
         unsafe {
             JS_SetWrapObjectCallbacks(runtime.rt(),
                                       &WRAP_CALLBACKS);
+            SetWindowProxyClass(runtime.rt(), GetWindowProxyClass());
         }
 
         // Ask the router to proxy IPC messages from the devtools to us.
