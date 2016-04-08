@@ -2347,7 +2347,10 @@ impl Fragment {
                         modified = true;
                         continue
                     }
-                    new_text_string.push_str(&unscanned_text_fragment_info.text[i..]);
+                    // Finished processing leading control chars and whitespace.
+                    if modified {
+                        new_text_string.push_str(&unscanned_text_fragment_info.text[i..]);
+                    }
                     break
                 }
                 if modified {
