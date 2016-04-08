@@ -688,7 +688,7 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    ${new_style_struct("InheritedBox", is_inherited=True,
+    ${new_style_struct("InheritedBox", is_inherited=True, gecko_name="nsStyleVisibility",
                        additional_methods=[Method("clone_direction",
                                                   "longhands::direction::computed_value::T"),
                                            Method("clone_writing_mode",
@@ -976,7 +976,7 @@ pub mod longhands {
 
     // CSS 2.1, Section 12 - Generated content, automatic numbering, and lists
 
-    ${new_style_struct("Counters", is_inherited=False)}
+    ${new_style_struct("Counters", is_inherited=False, gecko_name="nsStyleContent")}
 
     <%self:longhand name="content">
         use cssparser::Token;
@@ -2242,7 +2242,7 @@ pub mod longhands {
     ${single_keyword("word-break", "normal break-all")}
 
     // TODO(pcwalton): Support `text-justify: distribute`.
-    ${single_keyword("text-justify", "auto none inter-word")}
+    ${single_keyword("text-justify", "auto none inter-word", products="servo")}
 
     ${new_style_struct("Text", is_inherited=False, gecko_name="nsStyleTextReset",
                        additional_methods=[Method("has_underline", "bool"),
@@ -2482,7 +2482,7 @@ pub mod longhands {
 
     ${single_keyword("table-layout", "auto fixed")}
 
-    ${new_style_struct("InheritedTable", is_inherited=True)}
+    ${new_style_struct("InheritedTable", is_inherited=True, gecko_name="nsStyleTableBorder")}
 
     ${single_keyword("border-collapse", "separate collapse")}
 
@@ -2609,7 +2609,7 @@ pub mod longhands {
 
     ${single_keyword("box-sizing", "content-box border-box")}
 
-    ${new_style_struct("Pointing", is_inherited=True)}
+    ${new_style_struct("Pointing", is_inherited=True, gecko_name="nsStyleUserInterface")}
 
     <%self:longhand name="cursor">
         pub use self::computed_value::T as SpecifiedValue;
@@ -2853,7 +2853,7 @@ pub mod longhands {
     </%self:longhand>
 
     // Box-shadow, etc.
-    ${new_style_struct("Effects", is_inherited=False)}
+    ${new_style_struct("Effects", is_inherited=False, gecko_name="nsStyleEffects")}
 
     <%self:longhand name="opacity">
         use cssparser::ToCss;
