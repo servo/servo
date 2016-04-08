@@ -59,28 +59,28 @@ pub fn fetch(request: Rc<Request>) -> Response {
 
             // Substep 2
             _ if request.is_navigation_request() =>
-                vec![qitem(Mime(TopLevel::Text, SubLevel::Html, vec![])),
+                vec![qitem(mime!(Text / Html)),
                      // FIXME: This should properly generate a MimeType that has a
                      // SubLevel of xhtml+xml (https://github.com/hyperium/mime.rs/issues/22)
-                     qitem(Mime(TopLevel::Application, SubLevel::Ext("xhtml+xml".to_owned()), vec![])),
-                     QualityItem::new(Mime(TopLevel::Application, SubLevel::Xml, vec![]), q(0.9)),
-                     QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.8))],
+                     qitem(mime!(Application / ("xhtml+xml") )),
+                     QualityItem::new(mime!(Application / Xml), q(0.9)),
+                     QualityItem::new(mime!(_ / _), q(0.8))],
 
             // Substep 3
             Type::Image =>
-                vec![qitem(Mime(TopLevel::Image, SubLevel::Png, vec![])),
+                vec![qitem(mime!(Image / Png)),
                      // FIXME: This should properly generate a MimeType that has a
                      // SubLevel of svg+xml (https://github.com/hyperium/mime.rs/issues/22)
-                     qitem(Mime(TopLevel::Image, SubLevel::Ext("svg+xml".to_owned()), vec![])),
-                     QualityItem::new(Mime(TopLevel::Image, SubLevel::Star, vec![]), q(0.8)),
-                     QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.5))],
+                     qitem(mime!(Image / ("svg+xml") )),
+                     QualityItem::new(mime!(Image / _), q(0.8)),
+                     QualityItem::new(mime!(_ / _), q(0.5))],
 
             // Substep 3
             Type::Style =>
-                vec![qitem(Mime(TopLevel::Text, SubLevel::Css, vec![])),
-                     QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), q(0.1))],
+                vec![qitem(mime!(Text / Css)),
+                     QualityItem::new(mime!(_ / _), q(0.1))],
             // Substep 1
-            _ => vec![qitem(Mime(TopLevel::Star, SubLevel::Star, vec![]))]
+            _ => vec![qitem(mime!(_ / _))]
         };
 
         // Substep 4
@@ -292,9 +292,7 @@ fn basic_fetch(request: Rc<Request>) -> Response {
             match url.non_relative_scheme_data() {
                 Some(s) if &*s == "blank" => {
                     let mut response = Response::new();
-                    response.headers.set(ContentType(Mime(
-                        TopLevel::Text, SubLevel::Html,
-                        vec![(Attr::Charset, Value::Utf8)])));
+                    response.headers.set(ContentType(mime!(Text / Html; Charset = Utf8)));
                     *response.body.lock().unwrap() = ResponseBody::Done(vec![]);
                     response
                 },
