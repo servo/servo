@@ -5709,6 +5709,12 @@
         ]
       },
       "testharness": {
+        "css/flex-item-assign-inline-size.html": [
+          {
+            "path": "css/flex-item-assign-inline-size.html",
+            "url": "/_mozilla/css/flex-item-assign-inline-size.html"
+          }
+        ],
         "css/float_relative_to_position.html": [
           {
             "path": "css/float_relative_to_position.html",
