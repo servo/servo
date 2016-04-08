@@ -1286,6 +1286,7 @@ dependencies = [
  "immeta 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.1 (git+https://github.com/servo/ipc-channel)",
  "log 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "mime 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime_guess 1.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net_traits 0.0.1",
