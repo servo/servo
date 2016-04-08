@@ -69,7 +69,8 @@ class Keyword(object):
 
 class Longhand(object):
     def __init__(self, name, derived_from=None, keyword=None,
-                 custom_cascade=False, experimental=False, internal=False):
+                 custom_cascade=False, experimental=False, internal=False,
+                 gecko_ffi_name=None):
         self.name = name
         self.keyword = keyword
         self.ident = to_rust_ident(name)
@@ -78,6 +79,7 @@ class Longhand(object):
         self.experimental = ("layout.%s.enabled" % name) if experimental else None
         self.custom_cascade = custom_cascade
         self.internal = internal
+        self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
         if derived_from is None:
             self.derived_from = None
         else:
@@ -174,7 +176,8 @@ pub mod longhands {
     use values::specified;
 
     <%def name="raw_longhand(name, keyword=None, derived_from=None, products='gecko,servo',
-                             custom_cascade=False, experimental=False, internal=False)">
+                             custom_cascade=False, experimental=False, internal=False,
+                             gecko_ffi_name=None)">
     <%
         if not CONFIG['product'] in products:
             return ""
@@ -186,7 +189,8 @@ pub mod longhands {
                             keyword=keyword,
                             custom_cascade=custom_cascade,
                             experimental=experimental,
-                            internal=internal)
+                            internal=internal,
+                            gecko_ffi_name=gecko_ffi_name)
         property.style_struct = THIS_STYLE_STRUCT
         THIS_STYLE_STRUCT.longhands.append(property)
         LONGHANDS.append(property)
@@ -315,10 +319,12 @@ pub mod longhands {
     </%def>
 
     <%def name="longhand(name, derived_from=None, keyword=None, products='gecko,servo',
-                         custom_cascade=False, experimental=False, internal=False)">
+                         custom_cascade=False, experimental=False, internal=False,
+                         gecko_ffi_name=None)">
         <%self:raw_longhand name="${name}" derived_from="${derived_from}" keyword="${keyword}"
                 products="${products}" custom_cascade="${custom_cascade}"
-                experimental="${experimental}" internal="${internal}">
+                experimental="${experimental}" internal="${internal}"
+                gecko_ffi_name="${gecko_ffi_name}">
             ${caller.body()}
             % if derived_from is None:
                 pub fn parse_specified(context: &ParserContext, input: &mut Parser)
@@ -331,12 +337,14 @@ pub mod longhands {
 
     <%def name="single_keyword_computed(name, values, products='gecko,servo',
                                         extra_gecko_values=None, extra_servo_values=None,
-                                        custom_cascade=False, experimental=False, internal=False)">
+                                        custom_cascade=False, experimental=False, internal=False,
+                                        gecko_ffi_name=None)">
         <%self:longhand name="${name}" keyword="${Keyword(name, values.split(),
                                                           extra_gecko_values,
                                                           extra_servo_values)}"
                         products="${products}" custom_cascade="${custom_cascade}"
-                        experimental="${experimental}" internal="${internal}">
+                        experimental="${experimental}" internal="${internal}",
+                        gecko_ffi_name="${gecko_ffi_name}">
             pub use self::computed_value::T as SpecifiedValue;
             ${caller.body()}
             pub mod computed_value {
@@ -356,12 +364,14 @@ pub mod longhands {
         </%self:longhand>
     </%def>
 
-    <%def name="single_keyword(name, values, products='gecko,servo', experimental=False, internal=False)">
+    <%def name="single_keyword(name, values, products='gecko,servo',
+                               experimental=False, internal=False, gecko_ffi_name=None)">
         <%self:single_keyword_computed name="${name}"
                                        values="${values}"
                                        products="${products}"
                                        experimental="${experimental}"
-                                       internal="${internal}">
+                                       internal="${internal}",
+                                       gecko_ffi_name="${gecko_ffi_name}">
             use values::computed::ComputedValueAsSpecified;
             impl ComputedValueAsSpecified for SpecifiedValue {}
         </%self:single_keyword_computed>
@@ -603,7 +613,7 @@ pub mod longhands {
 
     ${single_keyword("position", "static absolute relative fixed")}
 
-    <%self:single_keyword_computed name="float" values="none left right">
+    <%self:single_keyword_computed name="float" values="none left right" gecko_ffi_name="mFloats">
         impl ToComputedValue for SpecifiedValue {
             type ComputedValue = computed_value::T;
 
@@ -622,7 +632,7 @@ pub mod longhands {
 
     </%self:single_keyword_computed>
 
-    ${single_keyword("clear", "none left right both")}
+    ${single_keyword("clear", "none left right both", gecko_ffi_name="mBreakType")}
 
     <%self:longhand name="-servo-display-for-hypothetical-box" derived_from="display">
         pub use super::display::{SpecifiedValue, get_initial_value};
@@ -972,7 +982,7 @@ pub mod longhands {
     ${switch_to_style_struct("InheritedBox")}
 
     // TODO: collapse. Well, do tables first.
-    ${single_keyword("visibility", "visible hidden")}
+    ${single_keyword("visibility", "visible hidden", gecko_ffi_name="mVisible")}
 
     // CSS 2.1, Section 12 - Generated content, automatic numbering, and lists
 
@@ -2236,7 +2246,7 @@ pub mod longhands {
 
     // Also known as "word-wrap" (which is more popular because of IE), but this is the preferred
     // name per CSS-TEXT 6.2.
-    ${single_keyword("overflow-wrap", "normal break-word")}
+    ${single_keyword("overflow-wrap", "normal break-word", gecko_ffi_name="mWordWrap")}
 
     // TODO(pcwalton): Support `word-break: keep-all` once we have better CJK support.
     ${single_keyword("word-break", "normal break-all")}
@@ -2480,7 +2490,7 @@ pub mod longhands {
     // CSS 2.1, Section 17 - Tables
     ${new_style_struct("Table", is_inherited=False, gecko_name="nsStyleTable")}
 
-    ${single_keyword("table-layout", "auto fixed")}
+    ${single_keyword("table-layout", "auto fixed", gecko_ffi_name="mLayoutStrategy")}
 
     ${new_style_struct("InheritedTable", is_inherited=True, gecko_name="nsStyleTableBorder")}
 
