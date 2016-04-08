@@ -71,6 +71,7 @@ features = ["plugins"]
 
 [dependencies.js]
 git = "https://github.com/servo/rust-mozjs"
+branch = "smup"
 
 [dependencies.layers]
 git = "https://github.com/servo/rust-layers"
