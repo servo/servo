@@ -19,7 +19,7 @@ lazy_static! {
     };
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug, Deserialize, Serialize)]
 pub enum PrefValue {
     Boolean(bool),
     String(String),
@@ -69,7 +69,7 @@ impl ToJson for PrefValue {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum Pref {
     NoDefault(Arc<PrefValue>),
     WithDefault(Arc<PrefValue>, Option<Arc<PrefValue>>)
@@ -141,6 +141,10 @@ pub fn read_prefs_from_file<T>(mut file: T)
         }
     }
     Ok(prefs)
+}
+
+pub fn get_cloned() -> HashMap<String, Pref> {
+    PREFS.lock().unwrap().clone()
 }
 
 pub fn extend_prefs(extension: HashMap<String, Pref>) {
