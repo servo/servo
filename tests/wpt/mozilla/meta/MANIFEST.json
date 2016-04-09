@@ -1211,6 +1211,18 @@
             "url": "/_mozilla/css/clear_generated_content_table_a.html"
           }
         ],
+        "css/clearance_margin_collapse_a.html": [
+          {
+            "path": "css/clearance_margin_collapse_a.html",
+            "references": [
+              [
+                "/_mozilla/css/clearance_margin_collapse_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/clearance_margin_collapse_a.html"
+          }
+        ],
         "css/clip_a.html": [
           {
             "path": "css/clip_a.html",
@@ -2421,6 +2433,18 @@
               ]
             ],
             "url": "/_mozilla/css/inline_element_border_a.html"
+          }
+        ],
+        "css/inline_font_size_zero_a.html": [
+          {
+            "path": "css/inline_font_size_zero_a.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_font_size_zero_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_font_size_zero_a.html"
           }
         ],
         "css/inline_hypothetical_box_a.html": [
@@ -7705,6 +7729,18 @@
           "url": "/_mozilla/css/clear_generated_content_table_a.html"
         }
       ],
+      "css/clearance_margin_collapse_a.html": [
+        {
+          "path": "css/clearance_margin_collapse_a.html",
+          "references": [
+            [
+              "/_mozilla/css/clearance_margin_collapse_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/clearance_margin_collapse_a.html"
+        }
+      ],
       "css/clip_a.html": [
         {
           "path": "css/clip_a.html",
@@ -8915,6 +8951,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_element_border_a.html"
+        }
+      ],
+      "css/inline_font_size_zero_a.html": [
+        {
+          "path": "css/inline_font_size_zero_a.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_font_size_zero_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_font_size_zero_a.html"
         }
       ],
       "css/inline_hypothetical_box_a.html": [
