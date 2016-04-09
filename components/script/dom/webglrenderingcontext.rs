@@ -1031,12 +1031,33 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             None => return self.webgl_error(InvalidValue),
         };
 
+        let uniform = match uniform {
+            Some(uniform) => uniform,
+            None => return self.webgl_error(InvalidOperation),
+        };
+
+        let program = self.current_program.get();
+        let program = match program {
+            Some(ref program) if program.id() == uniform.program_id() => program,
+            _ => return self.webgl_error(InvalidOperation),
+        };
+
+        let active_uniform = match program.get_active_uniform(
+            uniform.id() as u32) {
+            Ok(active_uniform) => active_uniform,
+            Err(_) => return self.webgl_error(InvalidOperation),
+        };
+
+        let uniform_array_element_count = active_uniform.Size();
+
         if let Some(data) = array_buffer_view_to_vec_checked::<i32>(data) {
-            if data.len() < 1 {
+            if data.len() % 1 != 0 ||
+                (data.len() > uniform_array_element_count as usize) {
                 return self.webgl_error(InvalidOperation);
             }
-
-            self.Uniform1i(uniform, data[0]);
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::Uniform1iv(uniform.id(), data)))
+                .unwrap()
         } else {
             self.webgl_error(InvalidValue);
         }
@@ -1044,13 +1065,44 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform1fv(&self,
+                  _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,
-                  data: Vec<f32>) {
-        if data.is_empty() {
-            return self.webgl_error(InvalidValue);
-        }
+                  data: Option<*mut JSObject>) {
+        let data = match data {
+            Some(data) => data,
+            None => return self.webgl_error(InvalidValue),
+        };
 
-        self.Uniform1f(uniform, data[0]);
+        let uniform = match uniform {
+            Some(uniform) => uniform,
+            None => return self.webgl_error(InvalidOperation),
+        };
+
+        let program = self.current_program.get();
+        let program = match program {
+            Some(ref program) if program.id() == uniform.program_id() => program,
+            _ => return self.webgl_error(InvalidOperation),
+        };
+
+        let active_uniform = match program.get_active_uniform(
+            uniform.id() as u32) {
+            Ok(active_uniform) => active_uniform,
+            Err(_) => return self.webgl_error(InvalidOperation),
+        };
+
+        let uniform_array_element_count = active_uniform.Size();
+
+        if let Some(data) = array_buffer_view_to_vec_checked::<f32>(data) {
+            if data.len() % 1 != 0 ||
+                (data.len() > uniform_array_element_count as usize) {
+                return self.webgl_error(InvalidOperation);
+            }
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::Uniform1fv(uniform.id(), data)))
+                .unwrap()
+        } else {
+            self.webgl_error(InvalidValue);
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -1143,12 +1195,33 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             None => return self.webgl_error(InvalidValue),
         };
 
+        let uniform = match uniform {
+            Some(uniform) => uniform,
+            None => return self.webgl_error(InvalidOperation),
+        };
+
+        let program = self.current_program.get();
+        let program = match program {
+            Some(ref program) if program.id() == uniform.program_id() => program,
+            _ => return self.webgl_error(InvalidOperation),
+        };
+
+        let active_uniform = match program.get_active_uniform(
+            uniform.id() as u32) {
+            Ok(active_uniform) => active_uniform,
+            Err(_) => return self.webgl_error(InvalidOperation),
+        };
+
+        let uniform_array_element_count = active_uniform.Size();
+
         if let Some(data) = array_buffer_view_to_vec_checked::<i32>(data) {
-            if data.len() < 2 {
+            if data.len() % 2 != 0 ||
+                (data.len() > uniform_array_element_count as usize) {
                 return self.webgl_error(InvalidOperation);
             }
-
-            self.Uniform2i(uniform, data[0], data[1]);
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::Uniform2iv(uniform.id(), data)))
+                .unwrap()
         } else {
             self.webgl_error(InvalidValue);
         }
@@ -1183,12 +1256,33 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             None => return self.webgl_error(InvalidValue),
         };
 
+        let uniform = match uniform {
+            Some(uniform) => uniform,
+            None => return self.webgl_error(InvalidOperation),
+        };
+
+        let program = self.current_program.get();
+        let program = match program {
+            Some(ref program) if program.id() == uniform.program_id() => program,
+            _ => return self.webgl_error(InvalidOperation),
+        };
+
+        let active_uniform = match program.get_active_uniform(
+            uniform.id() as u32) {
+            Ok(active_uniform) => active_uniform,
+            Err(_) => return self.webgl_error(InvalidOperation),
+        };
+
+        let uniform_array_element_count = active_uniform.Size();
+
         if let Some(data) = array_buffer_view_to_vec_checked::<f32>(data) {
-            if data.len() < 3 {
+            if data.len() % 3 != 0 ||
+                (data.len() > uniform_array_element_count as usize) {
                 return self.webgl_error(InvalidOperation);
             }
-
-            self.Uniform3f(uniform, data[0], data[1], data[2]);
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::Uniform3fv(uniform.id(), data)))
+                .unwrap()
         } else {
             self.webgl_error(InvalidValue);
         }
@@ -1223,12 +1317,33 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             None => return self.webgl_error(InvalidValue),
         };
 
+        let uniform = match uniform {
+            Some(uniform) => uniform,
+            None => return self.webgl_error(InvalidOperation),
+        };
+
+        let program = self.current_program.get();
+        let program = match program {
+            Some(ref program) if program.id() == uniform.program_id() => program,
+            _ => return self.webgl_error(InvalidOperation),
+        };
+
+        let active_uniform = match program.get_active_uniform(
+            uniform.id() as u32) {
+            Ok(active_uniform) => active_uniform,
+            Err(_) => return self.webgl_error(InvalidOperation),
+        };
+
+        let uniform_array_element_count = active_uniform.Size();
+
         if let Some(data) = array_buffer_view_to_vec_checked::<i32>(data) {
-            if data.len() < 3 {
+            if data.len() % 3 != 0 ||
+                (data.len() > uniform_array_element_count as usize) {
                 return self.webgl_error(InvalidOperation);
             }
-
-            self.Uniform3i(uniform, data[0], data[1], data[2]);
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::Uniform3iv(uniform.id(), data)))
+                .unwrap()
         } else {
             self.webgl_error(InvalidValue);
         }
@@ -1264,12 +1379,33 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             None => return self.webgl_error(InvalidValue),
         };
 
+        let uniform = match uniform {
+            Some(uniform) => uniform,
+            None => return self.webgl_error(InvalidOperation),
+        };
+
+        let program = self.current_program.get();
+        let program = match program {
+            Some(ref program) if program.id() == uniform.program_id() => program,
+            _ => return self.webgl_error(InvalidOperation),
+        };
+
+        let active_uniform = match program.get_active_uniform(
+            uniform.id() as u32) {
+            Ok(active_uniform) => active_uniform,
+            Err(_) => return self.webgl_error(InvalidOperation),
+        };
+
+        let uniform_array_element_count = active_uniform.Size();
+
         if let Some(data) = array_buffer_view_to_vec_checked::<i32>(data) {
-            if data.len() < 4 {
+            if data.len() % 4 != 0 ||
+                (data.len() > uniform_array_element_count as usize) {
                 return self.webgl_error(InvalidOperation);
             }
-
-            self.Uniform4i(uniform, data[0], data[1], data[2], data[3]);
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::Uniform4iv(uniform.id(), data)))
+                .unwrap()
         } else {
             self.webgl_error(InvalidValue);
         }
@@ -1304,12 +1440,33 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             None => return self.webgl_error(InvalidValue),
         };
 
+        let uniform = match uniform {
+            Some(uniform) => uniform,
+            None => return self.webgl_error(InvalidOperation),
+        };
+
+        let program = self.current_program.get();
+        let program = match program {
+            Some(ref program) if program.id() == uniform.program_id() => program,
+            _ => return self.webgl_error(InvalidOperation),
+        };
+
+        let active_uniform = match program.get_active_uniform(
+            uniform.id() as u32) {
+            Ok(active_uniform) => active_uniform,
+            Err(_) => return self.webgl_error(InvalidOperation),
+        };
+
+        let uniform_array_element_count = active_uniform.Size();
+
         if let Some(data) = array_buffer_view_to_vec_checked::<f32>(data) {
-            if data.len() < 4 {
+            if data.len() % 4 != 0 ||
+                (data.len() > uniform_array_element_count as usize) {
                 return self.webgl_error(InvalidOperation);
             }
-
-            self.Uniform4f(uniform, data[0], data[1], data[2], data[3]);
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::Uniform4fv(uniform.id(), data)))
+                .unwrap()
         } else {
             self.webgl_error(InvalidValue);
         }
