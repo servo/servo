@@ -12,7 +12,7 @@ use hyper::header::{Authorization, Basic, CacheDirective, ContentEncoding, Encod
 use hyper::header::{ContentType, Headers, IfModifiedSince, IfNoneMatch};
 use hyper::header::{QualityItem, q, qitem, Referer as RefererHeader, UserAgent};
 use hyper::method::Method;
-use hyper::mime::{Attr, Mime, SubLevel, TopLevel, Value};
+use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
 use net_traits::AsyncFetchListener;
 use net_traits::request::{CacheMode, CredentialsMode, Type, Origin, Window};
