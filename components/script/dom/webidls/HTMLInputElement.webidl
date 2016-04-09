@@ -5,13 +5,13 @@
 
 // https://html.spec.whatwg.org/multipage/#htmlinputelement
 interface HTMLInputElement : HTMLElement {
-  //         attribute DOMString accept;
-  //         attribute DOMString alt;
+           attribute DOMString accept;
+           attribute DOMString alt;
   //         attribute DOMString autocomplete;
   //         attribute boolean autofocus;
            attribute boolean defaultChecked;
            attribute boolean checked;
-  //         attribute DOMString dirName;
+           attribute DOMString dirName;
            attribute boolean disabled;
   readonly attribute HTMLFormElement? form;
   //readonly attribute FileList? files;
@@ -24,21 +24,21 @@ interface HTMLInputElement : HTMLElement {
              attribute boolean indeterminate;
   //         attribute DOMString inputMode;
   //readonly attribute HTMLElement? list;
-  //         attribute DOMString max;
+           attribute DOMString max;
           [SetterThrows]
           attribute long maxLength;
-  //         attribute DOMString min;
+           attribute DOMString min;
   //         attribute long minLength;
-  //         attribute boolean multiple;
+           attribute boolean multiple;
            attribute DOMString name;
-  //         attribute DOMString pattern;
+           attribute DOMString pattern;
            attribute DOMString placeholder;
            attribute boolean readOnly;
-  //         attribute boolean required;
+           attribute boolean required;
              [SetterThrows]
              attribute unsigned long size;
-  //         attribute DOMString src;
-  //         attribute DOMString step;
+           attribute DOMString src;
+           attribute DOMString step;
            attribute DOMString type;
            attribute DOMString defaultValue;
 [TreatNullAs=EmptyString, SetterThrows]

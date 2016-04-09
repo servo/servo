@@ -28,5 +28,5 @@ app_units = {version = "0.2.3", features = ["plugins"]}
 cssparser = {version = "0.5.4", features = ["heap_size"]}
 euclid = {version = "0.6.4", features = ["plugins"]}
 selectors = {version = "0.5", features = ["heap_size"]}
-string_cache = {version = "0.2.11", features = ["heap_size"]}
+string_cache = {version = "0.2.12", features = ["heap_size"]}
 url = {version = "0.5.7", features = ["heap_size"]}

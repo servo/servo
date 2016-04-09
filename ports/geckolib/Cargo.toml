@@ -22,7 +22,7 @@ libc = "0.2"
 num_cpus = "0.2.2"
 selectors = {version = "0.5", features = ["heap_size", "unstable"]}
 smallvec = "0.1"
-string_cache = {version = "0.2.11", features = ["heap_size", "unstable"]}
+string_cache = {version = "0.2.12", features = ["heap_size", "unstable"]}
 url = {version = "0.5.7", features = ["heap_size", "query_encoding", "serde_serialization"]}
 
 [dependencies.log]
