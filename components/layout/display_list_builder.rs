@@ -1308,7 +1308,9 @@ impl FragmentDisplayListBuilding for Fragment {
             }
         };
         let overflow = match mode {
-            StackingContextCreationMode::InnerScrollWrapper |
+            StackingContextCreationMode::InnerScrollWrapper => {
+                Rect::new(Point2D::zero(), base_flow.overflow.paint.size)
+            }
             StackingContextCreationMode::OuterScrollWrapper => {
                 Rect::new(Point2D::zero(), border_box.size)
             }
