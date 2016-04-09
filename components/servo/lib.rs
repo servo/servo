@@ -275,7 +275,8 @@ pub unsafe extern fn __errno_location() -> *mut i32 {
 
 #[cfg(not(target_os = "windows"))]
 fn create_sandbox() {
-    ChildSandbox::new(sandboxing::content_process_sandbox_profile()).activate().unwrap();
+    ChildSandbox::new(sandboxing::content_process_sandbox_profile()).activate()
+        .expect("Failed to activate sandbox!");
 }
 
 #[cfg(target_os = "windows")]

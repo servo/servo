@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::env;
 use std::fs::File;
 use std::io::{self, Read};
 use std::path::PathBuf;
@@ -25,35 +26,35 @@ pub fn resources_dir_path() -> PathBuf {
 
 #[cfg(not(target_os = "android"))]
 pub fn resources_dir_path() -> PathBuf {
-    use std::env;
+    let mut dir = CMD_RESOURCE_DIR.lock().unwrap();
 
-    match *CMD_RESOURCE_DIR.lock().unwrap() {
-        Some(ref path) => PathBuf::from(path),
-        None => {
-            // FIXME: Find a way to not rely on the executable being
-            // under `<servo source>[/$target_triple]/target/debug`
-            // or `<servo source>[/$target_triple]/target/release`.
-            let mut path = env::current_exe().expect("can't get exe path");
-            // Follow symlink
-            path = path.canonicalize().expect("path does not exist");
+    if let Some(ref path) = *dir {
+        return PathBuf::from(path);
+    }
+
+    // FIXME: Find a way to not rely on the executable being
+    // under `<servo source>[/$target_triple]/target/debug`
+    // or `<servo source>[/$target_triple]/target/release`.
+    let mut path = env::current_exe().expect("can't get exe path");
+    // Follow symlink
+    path = path.canonicalize().expect("path does not exist");
+    path.pop();
+    path.push("resources");
+    if !path.is_dir() {   // resources dir not in same dir as exe?
+        // exe is probably in target/{debug,release} so we need to go back to topdir
+        path.pop();
+        path.pop();
+        path.pop();
+        path.push("resources");
+        if !path.is_dir() {
+            // exe is probably in target/$target_triple/{debug,release} so go back one more
+            path.pop();
             path.pop();
             path.push("resources");
-            if !path.is_dir() {   // resources dir not in same dir as exe?
-                // exe is probably in target/{debug,release} so we need to go back to topdir
-                path.pop();
-                path.pop();
-                path.pop();
-                path.push("resources");
-                if !path.is_dir() {
-                    // exe is probably in target/$target_triple/{debug,release} so go back one more
-                    path.pop();
-                    path.pop();
-                    path.push("resources");
-                }
-            }
-            path
         }
     }
+    *dir = Some(path.to_str().unwrap().to_owned());
+    path
 }
 
 pub fn read_resource_file(relative_path_components: &[&str]) -> io::Result<Vec<u8>> {
