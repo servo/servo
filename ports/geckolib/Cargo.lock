@@ -14,8 +14,8 @@ dependencies = [
  "num_cpus 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "selectors 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "smallvec 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.2.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
@@ -331,8 +331,8 @@ dependencies = [
  "heapsize_plugin 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "quickersort 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "smallvec 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.2.12 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -360,12 +360,12 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "0.1.7"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "string_cache"
-version = "0.2.11"
+version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "debug_unreachable 0.0.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -398,8 +398,8 @@ dependencies = [
  "selectors 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "smallvec 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.2.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "style_traits 0.0.1",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -500,8 +500,8 @@ dependencies = [
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "smallvec 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "string_cache 0.2.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
