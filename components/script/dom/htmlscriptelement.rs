@@ -28,6 +28,7 @@ use dom::window::ScriptHelpers;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, Encoding, EncodingRef};
 use html5ever::tree_builder::NextParserState;
+use hyper::http::RawStatus;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::RootedValue;
@@ -136,20 +137,35 @@ struct ScriptContext {
     metadata: Option<Metadata>,
     /// The initial URL requested.
     url: Url,
+    /// Indicates whether the request failed, and why
+    status: Result<(), String>
 }
 
 impl AsyncResponseListener for ScriptContext {
     fn headers_available(&mut self, metadata: Metadata) {
+        let status_code = match metadata.status {
+            Some(RawStatus(c, _)) => c,
+            _ => 0
+        };
+
+        self.status = match status_code {
+            0 => Err("No http status code received".to_owned()),
+            200...299 => Ok(()), // HTTP ok status codes
+            _ => Err(format!("HTTP error code {}", status_code))
+        };
+
         self.metadata = Some(metadata);
     }
 
     fn data_available(&mut self, payload: Vec<u8>) {
-        let mut payload = payload;
-        self.data.append(&mut payload);
+        if self.status.is_ok() {
+            let mut payload = payload;
+            self.data.append(&mut payload);
+        }
     }
 
     fn response_complete(&mut self, status: Result<(), String>) {
-        let load = status.map(|_| {
+        let load = status.and(self.status.clone()).map(|_| {
             let data = mem::replace(&mut self.data, vec!());
             let metadata = self.metadata.take().unwrap();
             (metadata, data)
@@ -292,6 +308,7 @@ impl HTMLScriptElement {
                     data: vec!(),
                     metadata: None,
                     url: url.clone(),
+                    status: Ok(())
                 }));
 
                 let (action_sender, action_receiver) = ipc::channel().unwrap();

@@ -40150,6 +40150,14 @@
             "url": "/webvtt/rendering/cues-with-video/processing-model/too_many_cues_wrapped.html"
           }
         ]
+      },
+      "testharness": {
+        "html/semantics/scripting-1/the-script-element/script-not-found-not-executed.html": [
+          {
+            "path": "html/semantics/scripting-1/the-script-element/script-not-found-not-executed.html",
+            "url": "/html/semantics/scripting-1/the-script-element/script-not-found-not-executed.html"
+          }
+        ]
       }
     },
     "reftest_nodes": {
