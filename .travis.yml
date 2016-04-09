@@ -16,7 +16,6 @@ matrix:
          - ./mach test-compiletest
          - bash etc/ci/lockfile_changed.sh
          - bash etc/ci/manifest_changed.sh
-         - bash etc/ci/check_no_unwrap.sh
       cache:
         directories:
           - .cargo
