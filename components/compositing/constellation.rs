@@ -468,6 +468,11 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         let child_process = if opts::get().sandbox {
             let mut command = sandbox::Command::me().expect("Failed to get current sandbox.");
             command.arg("--content-process").arg(token);
+
+            if let Ok(value) = env::var("RUST_BACKTRACE") {
+                command.env("RUST_BACKTRACE", value);
+            }
+
             let profile = sandboxing::content_process_sandbox_profile();
             ChildProcess::Sandboxed(Sandbox::new(profile).start(&mut command)
                                     .expect("Failed to start sandboxed child process!"))
@@ -477,6 +482,11 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             let mut child_process = process::Command::new(path_to_self);
             child_process.arg("--content-process");
             child_process.arg(token);
+
+            if let Ok(value) = env::var("RUST_BACKTRACE") {
+                child_process.env("RUST_BACKTRACE", value);
+            }
+
             ChildProcess::Unsandboxed(child_process.spawn()
                                       .expect("Failed to start unsandboxed child process!"))
         };
