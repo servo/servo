@@ -13,7 +13,7 @@ use flate2::read::{DeflateDecoder, GzDecoder};
 use hsts::{HstsEntry, HstsList, secure_url};
 use hyper::Error as HttpError;
 use hyper::client::{Pool, Request, Response};
-use hyper::header::{Accept, AcceptEncoding, ContentLength, ContentType, Host};
+use hyper::header::{Accept, AcceptEncoding, ContentLength, ContentType, Host, Referer};
 use hyper::header::{Authorization, Basic};
 use hyper::header::{ContentEncoding, Encoding, Header, Headers, Quality, QualityItem};
 use hyper::header::{Location, SetCookie, StrictTransportSecurity, UserAgent, qitem};
@@ -28,7 +28,7 @@ use msg::constellation_msg::{PipelineId};
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::response::HttpsState;
-use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, LoadData, Metadata};
+use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, LoadData, Metadata, ReferrerPolicy};
 use openssl::ssl::error::{SslError, OpensslError};
 use openssl::ssl::{SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER, SslContext, SslMethod};
 use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt, AuthCacheEntry};
@@ -364,6 +364,57 @@ fn set_default_accept(headers: &mut Headers) {
     }
 }
 
+/// https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-state-no-referrer-when-downgrade
+fn no_ref_when_downgrade_header(referrer_url: Url, url: Url, referrer_url_str: String) -> Option<String> {
+    //TODO - is this general enough for 'secure'?
+    if referrer_url.scheme == "https" && url.scheme != "https" {
+        return None;
+    }
+    return Some(referrer_url_str);
+}
+
+fn generate_origin_referer_url(referrer_url: Url) -> Option<String> {
+    let scheme = referrer_url.scheme.clone();
+    if scheme == "https" || scheme == "http" {
+        if let Some(domain) = referrer_url.domain() {
+            if let Some(port) = referrer_url.port() {
+                return Some(scheme + "://" + domain + ":" + &port.to_string() + "/");
+            }
+            return Some(scheme + "://" + domain + "/");
+        }
+    }
+    return None;
+}
+
+/// https://w3c.github.io/webappsec-referrer-policy/#strip-url
+fn generate_nonorigin_referer_url(referrer_url: Url) -> String {
+    //TODO - need to also strip out username/password
+    return referrer_url.serialize_no_fragment();
+}
+
+
+fn set_referer(headers: &mut Headers, referrer_policy: Option<ReferrerPolicy>, referrer_url: Url, url: Url) {
+    //should I even be checking? Is there a chance of this getting set 2x?
+    if !headers.has::<Referer>() {
+        //step 3.3.1, 5
+        if let Some(referrer_origin) = generate_origin_referer_url(referrer_url.clone()) {
+            //step 4
+            let referrer_url_str = generate_nonorigin_referer_url(referrer_url.clone());
+            //step 6
+            let referer = match referrer_policy {
+                Some(ReferrerPolicy::NoReferrer) => None,
+                Some(ReferrerPolicy::OriginOnly) => Some(referrer_origin),
+                Some(ReferrerPolicy::UnsafeUrl) => Some(referrer_url_str),
+                Some(ReferrerPolicy::OriginWhenCrossOrigin) => None,
+                _ => no_ref_when_downgrade_header(referrer_url, url, referrer_url_str),
+            };
+            if let Some(referer_val) = referer {
+                headers.set(Referer(referer_val));            
+            }
+        }
+    } 
+}
+
 pub fn set_request_cookies(url: Url, headers: &mut Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
     let mut cookie_jar = cookie_jar.write().unwrap();
     if let Some(cookie_list) = cookie_jar.cookies_for_url(&url, CookieSource::HTTP) {
@@ -551,6 +602,14 @@ pub fn modify_request_headers(headers: &mut Headers,
     set_default_accept(headers);
     set_default_accept_encoding(headers);
 
+    if let Some(ref_url) = load_data.referrer_url.clone() {
+        set_referer(headers, load_data.referrer_policy.clone(), ref_url, url.clone());
+    } 
+    else {
+        //TODO - remove this branch. for testing
+        headers.set(Referer("NO REF SENT??".to_owned())); 
+    }
+    
     // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
     if load_data.credentials_flag {
         set_request_cookies(url.clone(), headers, cookie_jar);
