@@ -44,7 +44,7 @@ rustc-serialize = "0.3"
 serde = "0.7"
 serde_macros = "0.7"
 smallvec = "0.1"
-string_cache = {version = "0.2.11", features = ["heap_size"]}
+string_cache = {version = "0.2.12", features = ["heap_size"]}
 url = {version = "0.5.7", features = ["heap_size", "serde_serialization"]}
 
 [target.x86_64-pc-windows-gnu.dependencies]
