@@ -5,7 +5,7 @@
 
 // https://html.spec.whatwg.org/multipage/#htmltablerowelement
 interface HTMLTableRowElement : HTMLElement {
-  //readonly attribute long rowIndex;
+  readonly attribute long rowIndex;
   //readonly attribute long sectionRowIndex;
   readonly attribute HTMLCollection cells;
   [Throws]
