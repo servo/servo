@@ -1,0 +1,44 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>HTMLTableElement.createTHead</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+function assert_thead(tbody) {
+  assert_equals(tbody.localName, "thead");
+  assert_equals(tbody.namespaceURI, "http://www.w3.org/1999/xhtml");
+  assert_equals(tbody.prefix, null);
+}
+
+test(function() {
+  var table = document.createElement("table");
+  var thead = table.createTHead();
+  assert_equals(table.firstChild, thead);
+  assert_thead(thead);
+}, "No child nodes");
+
+test(function() {
+  var table = document.createElement("table");
+  var before1 = table.appendChild(document.createElement("thead"));
+  var before2 = table.appendChild(document.createElement("thead"));
+  assert_array_equals(table.childNodes, [before1, before2]);
+
+  var thead = table.createTHead();
+  assert_array_equals(table.childNodes, [before1, before2]);
+  assert_equals(thead, before1);
+  assert_thead(thead);
+}, "Two thead child nodes");
+
+test(function() {
+  var table = document.createElement("table");
+  var before1 = table.appendChild(document.createElement("caption"));
+  var before2 = table.appendChild(document.createElement("colgroup"));
+  var before3 = table.appendChild(document.createElement("div"));
+  assert_array_equals(table.childNodes, [before1, before2, before3]);
+
+  var thead = table.createTHead();
+  assert_array_equals(table.childNodes, [before1, before2, thead, before3]);
+  assert_thead(thead);
+}, "caption, colgroup, and div child nodes");
+</script>

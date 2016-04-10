@@ -40157,6 +40157,12 @@
             "path": "html/semantics/scripting-1/the-script-element/script-not-found-not-executed.html",
             "url": "/html/semantics/scripting-1/the-script-element/script-not-found-not-executed.html"
           }
+        ],
+        "html/semantics/tabular-data/the-table-element/createTHead.html": [
+          {
+            "path": "html/semantics/tabular-data/the-table-element/createTHead.html",
+            "url": "/html/semantics/tabular-data/the-table-element/createTHead.html"
+          }
         ]
       }
     },
