@@ -317,8 +317,9 @@ impl HTMLTableElementMethods for HTMLTableElement {
             let last_row = rows.Item(number_of_row_elements)
                                .expect("InsertRow failed to find last row in table.");
 
-            let last_row_parent = last_row.upcast::<Node>().GetParentNode()
-                                                           .expect("InsertRow failed to find parent of last row in table.");
+            let last_row_parent =
+                last_row.upcast::<Node>().GetParentNode()
+                        .expect("InsertRow failed to find parent of last row in table.");
 
             last_row_parent.upcast::<Node>().AppendChild(new_row.upcast::<Node>())
                                             .expect("InsertRow failed to append last row.");
