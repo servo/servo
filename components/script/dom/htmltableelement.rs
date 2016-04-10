@@ -4,10 +4,11 @@
 
 use cssparser::RGBA;
 use dom::attr::{Attr, AttrValue};
+use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
-use dom::bindings::error::{Error, ErrorResult};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root, RootedReference};
 use dom::document::Document;
@@ -166,8 +167,8 @@ impl HTMLTableElementMethods for HTMLTableElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createcaption
-    fn CreateCaption(&self) -> Root<HTMLElement> {
-        let caption = match self.GetCaption() {
+    fn CreateCaption(&self) -> Root<HTMLTableCaptionElement> {
+        match self.GetCaption() {
             Some(caption) => caption,
             None => {
                 let caption = HTMLTableCaptionElement::new(atom!("caption"),
@@ -176,8 +177,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
                 self.SetCaption(Some(caption.r()));
                 caption
             }
-        };
-        Root::upcast(caption)
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-deletecaption
@@ -280,6 +280,61 @@ impl HTMLTableElementMethods for HTMLTableElement {
         node.InsertBefore(tbody.upcast(), reference_element.r())
             .expect("Insertion failed");
         tbody
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-insertrow
+    fn InsertRow(&self, index: i32) -> Fallible<Root<HTMLTableRowElement>> {
+        let rows = self.Rows();
+        let number_of_row_elements = rows.Length();
+
+        if index < -1 || index > number_of_row_elements as i32 {
+            return Err(Error::IndexSize);
+        }
+
+        let new_row = HTMLTableRowElement::new(atom!("tr"),
+                                               None,
+                                               document_from_node(self).r());
+        let node = self.upcast::<Node>();
+
+        if number_of_row_elements == 0 {
+            // append new row to last or new tbody in table
+            if let Some(last_tbody) = node.rev_children()
+                .filter_map(Root::downcast::<Element>)
+                .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &atom!("tbody")) {
+                    last_tbody.upcast::<Node>().AppendChild(new_row.upcast::<Node>())
+                                               .expect("InsertRow failed to append first row.");
+                } else {
+                    let tbody = self.CreateTBody();
+                    node.AppendChild(tbody.upcast())
+                        .expect("InsertRow failed to append new tbody.");
+
+                    tbody.upcast::<Node>().AppendChild(new_row.upcast::<Node>())
+                                          .expect("InsertRow failed to append first row.");
+                }
+        } else if index == number_of_row_elements as i32 || index == -1 {
+            // append new row to parent of last row in table
+            let last_row = rows.Item(number_of_row_elements - 1)
+                               .expect("InsertRow failed to find last row in table.");
+
+            let last_row_parent =
+                last_row.upcast::<Node>().GetParentNode()
+                        .expect("InsertRow failed to find parent of last row in table.");
+
+            last_row_parent.upcast::<Node>().AppendChild(new_row.upcast::<Node>())
+                                            .expect("InsertRow failed to append last row.");
+        } else {
+            // insert new row before the index-th row in rows using the same parent
+            let ith_row = rows.Item(index as u32)
+                              .expect("InsertRow failed to find a row in table.");
+
+            let ith_row_parent = ith_row.upcast::<Node>().GetParentNode()
+                                        .expect("InsertRow failed to find parent of a row in table.");
+
+            ith_row_parent.upcast::<Node>().InsertBefore(new_row.upcast::<Node>(), Some(ith_row.upcast::<Node>()))
+                                           .expect("InsertRow failed to append row");
+        }
+
+        Ok(new_row)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-bgcolor
