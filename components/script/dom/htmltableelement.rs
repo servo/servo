@@ -324,15 +324,15 @@ impl HTMLTableElementMethods for HTMLTableElement {
             last_row_parent.upcast::<Node>().AppendChild(new_row.upcast::<Node>())
                                             .expect("InsertRow failed to append last row.");
         } else {
-            // append new row to parent of index-th row in table
+            // insert new row before the index-th row in rows using the same parent
             let ith_row = rows.Item(number_of_row_elements)
                               .expect("InsertRow failed to find a row in table.");
 
             let ith_row_parent = ith_row.upcast::<Node>().GetParentNode()
                                         .expect("InsertRow failed to find parent of a row in table.");
 
-            ith_row_parent.upcast::<Node>().AppendChild(new_row.upcast::<Node>())
-                          .expect("InsertRow failed to append row");
+            ith_row_parent.upcast::<Node>().InsertBefore(new_row.upcast::<Node>(), Some(ith_row.upcast::<Node>()))
+                                           .expect("InsertRow failed to append row");
         }
 
         Ok(new_row)
