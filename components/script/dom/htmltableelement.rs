@@ -302,37 +302,35 @@ impl HTMLTableElementMethods for HTMLTableElement {
             if let Some(last_tbody) = node.rev_children()
                 .filter_map(Root::downcast::<Element>)
                 .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == &atom!("tbody")) {
-                    last_tbody.upcast::<Node>().AppendChild(new_row.upcast::<Node>())
-                                               .expect("InsertRow failed to append first row.");
+                    try!(last_tbody.upcast::<Node>()
+                                   .AppendChild(new_row.upcast::<Node>()));
                 } else {
                     let tbody = self.CreateTBody();
-                    node.AppendChild(tbody.upcast())
-                        .expect("InsertRow failed to append new tbody.");
+                    try!(node.AppendChild(tbody.upcast()));
 
-                    tbody.upcast::<Node>().AppendChild(new_row.upcast::<Node>())
-                                          .expect("InsertRow failed to append first row.");
+                    try!(tbody.upcast::<Node>()
+                              .AppendChild(new_row.upcast::<Node>()));
                 }
         } else if index == number_of_row_elements as i32 || index == -1 {
             // append new row to parent of last row in table
-            let last_row = rows.Item(number_of_row_elements)
-                               .expect("InsertRow failed to find last row in table.");
+            let last_row = try!(rows.Item(number_of_row_elements)
+                                    .ok_or(Error::Unknown));
+            let last_row_parent = try!(last_row.upcast::<Node>()
+                                               .GetParentNode()
+                                               .ok_or(Error::Unknown));
 
-            let last_row_parent =
-                last_row.upcast::<Node>().GetParentNode()
-                        .expect("InsertRow failed to find parent of last row in table.");
-
-            last_row_parent.upcast::<Node>().AppendChild(new_row.upcast::<Node>())
-                                            .expect("InsertRow failed to append last row.");
+            try!(last_row_parent.upcast::<Node>()
+                                .AppendChild(new_row.upcast::<Node>()));
         } else {
             // insert new row before the index-th row in rows using the same parent
-            let ith_row = rows.Item(number_of_row_elements)
-                              .expect("InsertRow failed to find a row in table.");
+            let ith_row = try!(rows.Item(number_of_row_elements)
+                                   .ok_or(Error::Unknown));
+            let ith_row_parent = try!(ith_row.upcast::<Node>()
+                                             .GetParentNode()
+                                             .ok_or(Error::Unknown));
 
-            let ith_row_parent = ith_row.upcast::<Node>().GetParentNode()
-                                        .expect("InsertRow failed to find parent of a row in table.");
-
-            ith_row_parent.upcast::<Node>().InsertBefore(new_row.upcast::<Node>(), Some(ith_row.upcast::<Node>()))
-                                           .expect("InsertRow failed to append row");
+            try!(ith_row_parent.upcast::<Node>()
+                               .InsertBefore(new_row.upcast::<Node>(), Some(ith_row.upcast::<Node>())));
         }
 
         Ok(new_row)
