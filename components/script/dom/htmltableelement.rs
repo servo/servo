@@ -117,6 +117,12 @@ impl HTMLTableElement {
         if let Some(thead) = self.get_first_section_of_type(atom) {
             thead.upcast::<Node>().remove_self();
         }
+
+    /// Determine the row index for the given `HTMLTableRowElement`.
+    pub fn row_index(&self, row_elem: &HTMLTableRowElement) -> Option<usize> {
+        self.Rows()
+            .elements_iter()
+            .position(|elem| (&elem as &Element) == row_elem.upcast::<Element>())
     }
 }
 
