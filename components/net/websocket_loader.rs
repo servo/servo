@@ -100,10 +100,10 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, c
 
         };
 
-        let client_initiated_close = Arc::new(AtomicBool::new(false));
+        let initiated_close = Arc::new(AtomicBool::new(false));
         let ws_sender = Arc::new(Mutex::new(ws_sender));
 
-        let client_initiated_close_incoming = client_initiated_close.clone();
+        let initiated_close_incoming = initiated_close.clone();
         let ws_sender_incoming = ws_sender.clone();
         let resource_event_sender = connect.event_sender;
         thread::spawn(move || {
@@ -126,7 +126,7 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, c
                     },
                     Type::Pong => continue,
                     Type::Close => {
-                        if !client_initiated_close_incoming.load(Ordering::SeqCst) {
+                        if !initiated_close_incoming.fetch_or(true, Ordering::SeqCst) {
                             ws_sender_incoming.lock().unwrap().send_message(&message).unwrap();
                         }
                         let code = message.cd_status_code;
@@ -139,7 +139,7 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, c
             }
         });
 
-        let client_initiated_close_outgoing = client_initiated_close.clone();
+        let initiated_close_outgoing = initiated_close.clone();
         let ws_sender_outgoing = ws_sender.clone();
         let resource_action_receiver = connect.action_receiver;
         thread::spawn(move || {
@@ -152,12 +152,13 @@ pub fn init(connect: WebSocketCommunicate, connect_data: WebSocketConnectData, c
                         ws_sender_outgoing.lock().unwrap().send_message(&Message::binary(data)).unwrap();
                     },
                     WebSocketDomAction::Close(code, reason) => {
-                        client_initiated_close_outgoing.store(true, Ordering::SeqCst);
-                        let message = match code {
-                            Some(code) => Message::close_because(code, reason.unwrap_or("".to_owned())),
-                            None => Message::close()
-                        };
-                        ws_sender_outgoing.lock().unwrap().send_message(&message).unwrap();
+                        if !initiated_close_outgoing.fetch_or(true, Ordering::SeqCst) {
+                            let message = match code {
+                                Some(code) => Message::close_because(code, reason.unwrap_or("".to_owned())),
+                                None => Message::close()
+                            };
+                            ws_sender_outgoing.lock().unwrap().send_message(&message).unwrap();
+                        }
                     },
                 }
             }
