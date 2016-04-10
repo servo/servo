@@ -14,6 +14,7 @@ use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
+use dom::htmltablecolelement::HTMLTableColElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::node::{Node, document_from_node, window_from_node};
@@ -117,6 +118,28 @@ impl HTMLTableElementMethods for HTMLTableElement {
         if let Some(caption) = self.GetCaption() {
             caption.upcast::<Node>().remove_self();
         }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-createthead
+    fn CreateTHead(&self) -> Root<HTMLElement> {
+        let mut first_viable = None;
+        for child in self.upcast::<Node>().child_elements() {
+            if child.is::<HTMLTableSectionElement>() && child.local_name() == &atom!("thead") {
+                return Root::downcast::<HTMLElement>(child).unwrap();
+            }
+            if first_viable.is_none() && !child.is::<HTMLTableCaptionElement>() && !child.is::<HTMLTableColElement>() {
+                first_viable = Some(child);
+            }
+        }
+        let thead = HTMLTableSectionElement::new(atom!("thead"),
+                                                 None,
+                                                 document_from_node(self).r());
+        if let Some(node) = first_viable {
+            self.upcast::<Node>().InsertBefore(thead.upcast(), Some(node.upcast::<Node>())).unwrap();
+        } else {
+            self.upcast::<Node>().AppendChild(thead.upcast()).unwrap();
+        }
+        Root::upcast::<HTMLElement>(thead)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createtbody

@@ -9,7 +9,7 @@ interface HTMLTableElement : HTMLElement {
   HTMLElement createCaption();
   void deleteCaption();
   //         attribute HTMLTableSectionElement? tHead;
-  //HTMLElement createTHead();
+  HTMLElement createTHead();
   //void deleteTHead();
   //         attribute HTMLTableSectionElement? tFoot;
   //HTMLElement createTFoot();
