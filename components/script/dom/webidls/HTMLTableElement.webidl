@@ -6,7 +6,7 @@
 // https://html.spec.whatwg.org/multipage/#htmltableelement
 interface HTMLTableElement : HTMLElement {
            attribute HTMLTableCaptionElement? caption;
-  HTMLElement createCaption();
+  HTMLTableCaptionElement createCaption();
   void deleteCaption();
   [SetterThrows]
            attribute HTMLTableSectionElement? tHead;
@@ -19,10 +19,8 @@ interface HTMLTableElement : HTMLElement {
   readonly attribute HTMLCollection tBodies;
   HTMLTableSectionElement createTBody();
   readonly attribute HTMLCollection rows;
-  //HTMLElement insertRow(optional long index = -1);
+  [Throws] HTMLTableRowElement insertRow(optional long index = -1);
   //void deleteRow(long index);
-  //         attribute boolean sortable;
-  //void stopSorting();
 
   // also has obsolete members
 };
