@@ -21,19 +21,21 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::VirtualMethods;
-use heapsize::{HeapSizeOf};
+use heapsize::HeapSizeOf;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageResponder, ImageResponse};
-use script_thread::ScriptThreadEventCategory::UpdateReplacedElement;
-use script_thread::{CommonScriptMsg, Runnable, ScriptChan};
+use script_runtime::ScriptThreadEventCategory::UpdateReplacedElement;
+use script_runtime::{CommonScriptMsg, ScriptChan};
+use script_thread::Runnable;
 use std::sync::Arc;
 use string_cache::Atom;
 use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
-// https://html.spec.whatwg.org/multipage/#the-img-element:img-req-state
+
 #[derive(JSTraceable, HeapSizeOf)]
+#[allow(dead_code)]
 enum State {
     Unavailable,
     PartiallyAvailable,
@@ -43,20 +45,23 @@ enum State {
 #[derive(JSTraceable, HeapSizeOf)]
 struct ImageRequest {
     state: State,
-    url: DOMRefCell<Option<Url>>,
-    image: DOMRefCell<Option<Arc<Image>>>,
-    metadata: DOMRefCell<Option<ImageMetadata>>,
+    url: Option<Url>,
+    image: Option<Arc<Image>>,
+    metadata: Option<ImageMetadata>,
 }
 #[dom_struct]
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
-    current_request: ImageRequest,
-    pending_request: ImageRequest,
+//    url: DOMRefCell<Option<Url>>,
+//    image: DOMRefCell<Option<Arc<Image>>>,
+//    metadata: DOMRefCell<Option<ImageMetadata>>,
+    currentrequest: DOMRefCell<ImageRequest>,
+    pendingrequest: DOMRefCell<ImageRequest>,
 }
 
 impl HTMLImageElement {
     pub fn get_url(&self) -> Option<Url>{
-        self.current_request.url.borrow().clone()
+        self.currentrequest.borrow().url.clone()
     }
 }
 
@@ -76,6 +81,7 @@ impl ImageResponseHandlerRunnable {
     }
 }
 
+
 impl Runnable for ImageResponseHandlerRunnable {
     fn handler(self: Box<Self>) {
         // Update the image field
@@ -90,12 +96,12 @@ impl Runnable for ImageResponseHandlerRunnable {
             }
             ImageResponse::None => (None, None, true)
         };
-        *element_ref.current_request.image.borrow_mut() = image;
-        *element_ref.current_request.metadata.borrow_mut() = metadata;
+        element_ref.currentrequest.borrow_mut().image = image;
+        element_ref.currentrequest.borrow_mut().metadata = metadata;
 
         // Mark the node dirty
         let document = document_from_node(&*element);
-        document.content_changed(element.upcast(), NodeDamage::OtherNodeDamage);
+        element.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
 
         // Fire image.onload
         if trigger_image_load {
@@ -117,14 +123,14 @@ impl HTMLImageElement {
         let image_cache = window.image_cache_thread();
         match value {
             None => {
-                *self.current_request.url.borrow_mut() = None;
-                *self.current_request.image.borrow_mut() = None;
+                self.currentrequest.borrow_mut().url = None;
+                self.currentrequest.borrow_mut().image = None;
             }
             Some((src, base_url)) => {
                 let img_url = base_url.join(&src);
                 // FIXME: handle URL parse errors more gracefully.
                 let img_url = img_url.unwrap();
-                *self.current_request.url.borrow_mut() = Some(img_url.clone());
+                self.currentrequest.borrow_mut().url = Some(img_url.clone());
 
                 let trusted_node = Trusted::new(self, window.networking_task_source());
                 let (responder_sender, responder_receiver) = ipc::channel().unwrap();
@@ -147,22 +153,20 @@ impl HTMLImageElement {
             }
         }
     }
-
     fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
-       HTMLImageElement {
+        HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
-                current_request: ImageRequest {
-                state: State::Unavailable,
-                url: DOMRefCell::new(None),
-                image: DOMRefCell::new(None),
-                metadata: DOMRefCell::new(None)
-            },
-            pending_request: ImageRequest {
-                state: State::Unavailable,
-                url: DOMRefCell::new(None),
-                image: DOMRefCell::new(None),
-                metadata: DOMRefCell::new(None)
-            },
+            //url: DOMRefCell::new(None),
+            //image: DOMRefCell::new(None),
+            //metadata: DOMRefCell::new(None),
+            currentrequest: DOMRefCell::new(ImageRequest { state: State::CompletelyAvailable,
+                                         url: None,
+                                         image: None,
+                                         metadata: None }),
+            pendingrequest: DOMRefCell::new(ImageRequest { state: State::Unavailable,
+                                         url: None,
+                                         image: None,
+                                         metadata: None }),
         }
     }
 
@@ -204,12 +208,12 @@ pub trait LayoutHTMLImageElementHelpers {
 impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
     #[allow(unsafe_code)]
     unsafe fn image(&self) -> Option<Arc<Image>> {
-        (*self.unsafe_get()).current_request.image.borrow_for_layout().clone()
+        (*self.unsafe_get()).currentrequest.borrow_for_layout().image.clone()
     }
 
     #[allow(unsafe_code)]
     unsafe fn image_url(&self) -> Option<Url> {
-        (*self.unsafe_get()).current_request.url.borrow_for_layout().clone()
+        (*self.unsafe_get()).currentrequest.borrow_for_layout().url.clone()
     }
 
     #[allow(unsafe_code)]
@@ -246,15 +250,16 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_setter!(SetSrc, "src");
 
-    // https://html.spec.whatwg.org/multipage/#dom-img-crossorigin
-    make_enumerated_getter!(CrossOrigin, "crossorigin", "anonymous", ("use-credentials"));
-    // https://html.spec.whatwg.org/multipage/#dom-img-crossorigin
+        // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
+    make_getter!(CrossOrigin, "crossorigin");
+    // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
     make_setter!(SetCrossOrigin, "crossorigin");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
     make_getter!(UseMap, "usemap");
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
     make_setter!(SetUseMap, "usemap");
+
 
     // https://html.spec.whatwg.org/multipage/#dom-img-ismap
     make_bool_getter!(IsMap, "ismap");
@@ -264,7 +269,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-width
     fn Width(&self) -> u32 {
         let node = self.upcast::<Node>();
-        let rect = node.get_bounding_content_box();
+        let rect = node.bounding_content_box();
         rect.size.width.to_px() as u32
     }
 
@@ -276,7 +281,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-height
     fn Height(&self) -> u32 {
         let node = self.upcast::<Node>();
-        let rect = node.get_bounding_content_box();
+        let rect = node.bounding_content_box();
         rect.size.height.to_px() as u32
     }
 
@@ -287,7 +292,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth
     fn NaturalWidth(&self) -> u32 {
-        let metadata = self.current_request.metadata.borrow();
+        let ref metadata = self.currentrequest.borrow().metadata;
 
         match *metadata {
             Some(ref metadata) => metadata.width,
@@ -297,7 +302,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalheight
     fn NaturalHeight(&self) -> u32 {
-        let metadata = self.current_request.metadata.borrow();
+        let ref metadata = self.currentrequest.borrow().metadata;
 
         match *metadata {
             Some(ref metadata) => metadata.height,
@@ -307,19 +312,20 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-complete
     fn Complete(&self) -> bool {
-        let image = self.current_request.image.borrow();
+        let ref image = self.currentrequest.borrow().image;
         image.is_some()
     }
-
+    /*
     // https://html.spec.whatwg.org/multipage/#dom-img-currentsrc
     fn CurrentSrc(&self) -> DOMString {
-        let url = self.current_request.url.borrow();
-         match *url {
-            Some(ref url) => DOMString::from(url.serialize()),
-            None => DOMString::from(""),
+        let url = self.currentrequest.url.borrow();
+        let uri = *url;
+     //   DOMString::from(uri.serialize())
+        match *url {
+            Some(ref url) => DOMString::from(*url.serialize())
         }
     }
-
+    */
     // https://html.spec.whatwg.org/multipage/#dom-img-name
     make_getter!(Name, "name");
 
@@ -397,3 +403,4 @@ fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
     let value = AttrValue::Dimension(DOMString::from(value.to_string()), dim);
     element.set_attribute(&attr, value);
 }
+    
