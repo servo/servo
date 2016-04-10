@@ -50,6 +50,13 @@ impl HTMLTableElement {
     pub fn get_border(&self) -> Option<u32> {
         self.border.get()
     }
+
+    /// Determine the row index for the given `HTMLTableRowElement`.
+    pub fn row_index(&self, row_elem: &HTMLTableRowElement) -> Option<usize> {
+        self.Rows()
+            .elements_iter()
+            .position(|elem| (&elem as &Element) == row_elem.upcast::<Element>())
+    }
 }
 
 impl HTMLTableElementMethods for HTMLTableElement {
