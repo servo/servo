@@ -169,6 +169,59 @@ impl WebGLRenderingContext {
             .send(CanvasMsg::WebGL(WebGLCommand::VertexAttrib(indx, x, y, z, w)))
             .unwrap();
     }
+
+    fn validate_uniform(&self, uniform: Option<&WebGLUniformLocation>) -> bool {
+        if uniform.is_none() {
+            return false;
+        }
+        let program = self.current_program.get();
+        match program {
+            Some(ref program) if program.id() == uniform.unwrap().program_id() => program,
+            _ => {
+                self.webgl_error(InvalidOperation);
+                return false;
+            },
+        };
+        true
+    }
+
+    fn validate_uniform_vector_parameters<T>(&self,
+                                      uniform: Option<&WebGLUniformLocation>,
+                                      expected_size: usize,
+                                      data: Option<&[T]>) -> bool {
+        if !self.validate_uniform(uniform) {
+            return false;
+        }
+
+        let uniform = uniform.unwrap();
+        let program = self.current_program.get().unwrap();
+
+        let data = match data {
+            Some(data) => data,
+            None => {
+                self.webgl_error(InvalidOperation);
+                return false;
+            },
+        };
+
+        let active_uniform = match program.get_active_uniform(
+            uniform.id() as u32) {
+            Ok(active_uniform) => active_uniform,
+            Err(_) => {
+                self.webgl_error(InvalidOperation);
+                return false;
+            },
+        };
+
+        let uniform_array_element_count = active_uniform.Size();
+
+        if data.len() % expected_size != 0 ||
+            (data.len() > uniform_array_element_count as usize) {
+                self.webgl_error(InvalidOperation);
+                return false;
+        }
+        true
+    }
 }
 
 impl Drop for WebGLRenderingContext {
@@ -987,38 +1040,22 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform1f(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   val: f32) {
-        let uniform = match uniform {
-            Some(uniform) => uniform,
-            None => return,
-        };
-
-        match self.current_program.get() {
-            Some(ref program) if program.id() == uniform.program_id() => {},
-            _ => return self.webgl_error(InvalidOperation),
-        };
-
-        self.ipc_renderer
-            .send(CanvasMsg::WebGL(WebGLCommand::Uniform1f(uniform.id(), val)))
-            .unwrap()
+        if self.validate_uniform(uniform) {
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::Uniform1f(uniform.unwrap().id(), val)))
+                .unwrap()
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform1i(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   val: i32) {
-        let uniform = match uniform {
-            Some(uniform) => uniform,
-            None => return,
-        };
-
-        match self.current_program.get() {
-            Some(ref program) if program.id() == uniform.program_id() => {},
-            _ => return self.webgl_error(InvalidOperation),
-        };
-
-        self.ipc_renderer
-            .send(CanvasMsg::WebGL(WebGLCommand::Uniform1i(uniform.id(), val)))
-            .unwrap()
+        if self.validate_uniform(uniform) {
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::Uniform1i(uniform.unwrap().id(), val)))
+                .unwrap()
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -1026,41 +1063,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
-        let data = match data {
-            Some(data) => data,
-            None => return self.webgl_error(InvalidValue),
-        };
-
-        let uniform = match uniform {
-            Some(uniform) => uniform,
-            None => return self.webgl_error(InvalidOperation),
-        };
-
-        let program = self.current_program.get();
-        let program = match program {
-            Some(ref program) if program.id() == uniform.program_id() => program,
-            _ => return self.webgl_error(InvalidOperation),
-        };
-
-        let active_uniform = match program.get_active_uniform(
-            uniform.id() as u32) {
-            Ok(active_uniform) => active_uniform,
-            Err(_) => return self.webgl_error(InvalidOperation),
-        };
-
-        let uniform_array_element_count = active_uniform.Size();
-
-        if let Some(data) = array_buffer_view_to_vec_checked::<i32>(data) {
-            if data.len() % 1 != 0 ||
-                (data.len() > uniform_array_element_count as usize) {
-                return self.webgl_error(InvalidOperation);
-            }
-            self.ipc_renderer
-                .send(CanvasMsg::WebGL(WebGLCommand::Uniform1iv(uniform.id(), data)))
-                .unwrap()
-        } else {
-            self.webgl_error(InvalidValue);
+        let data_slice = data.and_then(|d| array_buffer_view_to_vec::<i32>(d));
+        if !self.validate_uniform_vector_parameters(uniform, 1, data_slice.as_ref().map(Vec::as_slice)) {
+            return;
         }
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::Uniform1iv(uniform.unwrap().id(), data_slice.unwrap())))
+            .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -1068,60 +1077,24 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
-        let data = match data {
-            Some(data) => data,
-            None => return self.webgl_error(InvalidValue),
-        };
-
-        let uniform = match uniform {
-            Some(uniform) => uniform,
-            None => return self.webgl_error(InvalidOperation),
-        };
-
-        let program = self.current_program.get();
-        let program = match program {
-            Some(ref program) if program.id() == uniform.program_id() => program,
-            _ => return self.webgl_error(InvalidOperation),
-        };
-
-        let active_uniform = match program.get_active_uniform(
-            uniform.id() as u32) {
-            Ok(active_uniform) => active_uniform,
-            Err(_) => return self.webgl_error(InvalidOperation),
-        };
-
-        let uniform_array_element_count = active_uniform.Size();
-
-        if let Some(data) = array_buffer_view_to_vec_checked::<f32>(data) {
-            if data.len() % 1 != 0 ||
-                (data.len() > uniform_array_element_count as usize) {
-                return self.webgl_error(InvalidOperation);
-            }
-            self.ipc_renderer
-                .send(CanvasMsg::WebGL(WebGLCommand::Uniform1fv(uniform.id(), data)))
-                .unwrap()
-        } else {
-            self.webgl_error(InvalidValue);
+        let data_slice = data.and_then(|d| array_buffer_view_to_vec::<f32>(d));
+        if !self.validate_uniform_vector_parameters(uniform, 1, data_slice.as_ref().map(Vec::as_slice)) {
+            return;
         }
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::Uniform1fv(uniform.unwrap().id(), data_slice.unwrap())))
+            .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform2f(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: f32, y: f32) {
-        let uniform = match uniform {
-            Some(uniform) => uniform,
-            None => return,
-        };
-
-        match self.current_program.get() {
-            Some(ref program) if program.id() == uniform.program_id() => {},
-            _ => return self.webgl_error(InvalidOperation),
-        };
-
-        self.ipc_renderer
-            .send(CanvasMsg::WebGL(WebGLCommand::Uniform2f(uniform.id(), x, y)))
-            .unwrap()
+        if self.validate_uniform(uniform) {
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::Uniform2f(uniform.unwrap().id(), x, y)))
+                .unwrap()
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -1129,60 +1102,24 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
-        let data = match data {
-            Some(data) => data,
-            None => return self.webgl_error(InvalidValue),
-        };
-
-        let uniform = match uniform {
-            Some(uniform) => uniform,
-            None => return self.webgl_error(InvalidOperation),
-        };
-
-        let program = self.current_program.get();
-        let program = match program {
-            Some(ref program) if program.id() == uniform.program_id() => program,
-            _ => return self.webgl_error(InvalidOperation),
-        };
-
-        let active_uniform = match program.get_active_uniform(
-            uniform.id() as u32) {
-            Ok(active_uniform) => active_uniform,
-            Err(_) => return self.webgl_error(InvalidOperation),
-        };
-
-        let uniform_array_element_count = active_uniform.Size();
-
-        if let Some(data) = array_buffer_view_to_vec_checked::<f32>(data) {
-            if data.len() % 2 != 0 ||
-                (data.len() > uniform_array_element_count as usize) {
-                return self.webgl_error(InvalidOperation);
-            }
-            self.ipc_renderer
-                .send(CanvasMsg::WebGL(WebGLCommand::Uniform2fv(uniform.id(), data)))
-                .unwrap()
-        } else {
-            self.webgl_error(InvalidValue);
+        let data_slice = data.and_then(|d| array_buffer_view_to_vec::<f32>(d));
+        if !self.validate_uniform_vector_parameters(uniform, 1, data_slice.as_ref().map(Vec::as_slice)) {
+            return;
         }
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::Uniform2fv(uniform.unwrap().id(), data_slice.unwrap())))
+            .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform2i(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: i32, y: i32) {
-        let uniform = match uniform {
-            Some(uniform) => uniform,
-            None => return,
-        };
-
-        match self.current_program.get() {
-            Some(ref program) if program.id() == uniform.program_id() => {},
-            _ => return self.webgl_error(InvalidOperation),
-        };
-
-        self.ipc_renderer
-            .send(CanvasMsg::WebGL(WebGLCommand::Uniform2i(uniform.id(), x, y)))
-            .unwrap()
+        if self.validate_uniform(uniform) {
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::Uniform2i(uniform.unwrap().id(), x, y)))
+                .unwrap()
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -1190,60 +1127,24 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
-        let data = match data {
-            Some(data) => data,
-            None => return self.webgl_error(InvalidValue),
-        };
-
-        let uniform = match uniform {
-            Some(uniform) => uniform,
-            None => return self.webgl_error(InvalidOperation),
-        };
-
-        let program = self.current_program.get();
-        let program = match program {
-            Some(ref program) if program.id() == uniform.program_id() => program,
-            _ => return self.webgl_error(InvalidOperation),
-        };
-
-        let active_uniform = match program.get_active_uniform(
-            uniform.id() as u32) {
-            Ok(active_uniform) => active_uniform,
-            Err(_) => return self.webgl_error(InvalidOperation),
-        };
-
-        let uniform_array_element_count = active_uniform.Size();
-
-        if let Some(data) = array_buffer_view_to_vec_checked::<i32>(data) {
-            if data.len() % 2 != 0 ||
-                (data.len() > uniform_array_element_count as usize) {
-                return self.webgl_error(InvalidOperation);
-            }
-            self.ipc_renderer
-                .send(CanvasMsg::WebGL(WebGLCommand::Uniform2iv(uniform.id(), data)))
-                .unwrap()
-        } else {
-            self.webgl_error(InvalidValue);
+        let data_slice = data.and_then(|d| array_buffer_view_to_vec::<i32>(d));
+        if !self.validate_uniform_vector_parameters(uniform, 1, data_slice.as_ref().map(Vec::as_slice)) {
+            return;
         }
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::Uniform2iv(uniform.unwrap().id(), data_slice.unwrap())))
+            .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform3f(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: f32, y: f32, z: f32) {
-        let uniform = match uniform {
-            Some(uniform) => uniform,
-            None => return,
-        };
-
-        match self.current_program.get() {
-            Some(ref program) if program.id() == uniform.program_id() => {},
-            _ => return self.webgl_error(InvalidOperation),
-        };
-
-        self.ipc_renderer
-            .send(CanvasMsg::WebGL(WebGLCommand::Uniform3f(uniform.id(), x, y, z)))
-            .unwrap()
+        if self.validate_uniform(uniform) {
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::Uniform3f(uniform.unwrap().id(), x, y, z)))
+                .unwrap()
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -1251,60 +1152,24 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
-        let data = match data {
-            Some(data) => data,
-            None => return self.webgl_error(InvalidValue),
-        };
-
-        let uniform = match uniform {
-            Some(uniform) => uniform,
-            None => return self.webgl_error(InvalidOperation),
-        };
-
-        let program = self.current_program.get();
-        let program = match program {
-            Some(ref program) if program.id() == uniform.program_id() => program,
-            _ => return self.webgl_error(InvalidOperation),
-        };
-
-        let active_uniform = match program.get_active_uniform(
-            uniform.id() as u32) {
-            Ok(active_uniform) => active_uniform,
-            Err(_) => return self.webgl_error(InvalidOperation),
-        };
-
-        let uniform_array_element_count = active_uniform.Size();
-
-        if let Some(data) = array_buffer_view_to_vec_checked::<f32>(data) {
-            if data.len() % 3 != 0 ||
-                (data.len() > uniform_array_element_count as usize) {
-                return self.webgl_error(InvalidOperation);
-            }
-            self.ipc_renderer
-                .send(CanvasMsg::WebGL(WebGLCommand::Uniform3fv(uniform.id(), data)))
-                .unwrap()
-        } else {
-            self.webgl_error(InvalidValue);
+        let data_slice = data.and_then(|d| array_buffer_view_to_vec::<f32>(d));
+        if !self.validate_uniform_vector_parameters(uniform, 1, data_slice.as_ref().map(Vec::as_slice)) {
+            return;
         }
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::Uniform3fv(uniform.unwrap().id(), data_slice.unwrap())))
+            .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform3i(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: i32, y: i32, z: i32) {
-        let uniform = match uniform {
-            Some(uniform) => uniform,
-            None => return,
-        };
-
-        match self.current_program.get() {
-            Some(ref program) if program.id() == uniform.program_id() => {},
-            _ => return self.webgl_error(InvalidOperation),
-        };
-
-        self.ipc_renderer
-            .send(CanvasMsg::WebGL(WebGLCommand::Uniform3i(uniform.id(), x, y, z)))
-            .unwrap()
+        if self.validate_uniform(uniform) {
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::Uniform3i(uniform.unwrap().id(), x, y, z)))
+                .unwrap()
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -1312,60 +1177,24 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
-        let data = match data {
-            Some(data) => data,
-            None => return self.webgl_error(InvalidValue),
-        };
-
-        let uniform = match uniform {
-            Some(uniform) => uniform,
-            None => return self.webgl_error(InvalidOperation),
-        };
-
-        let program = self.current_program.get();
-        let program = match program {
-            Some(ref program) if program.id() == uniform.program_id() => program,
-            _ => return self.webgl_error(InvalidOperation),
-        };
-
-        let active_uniform = match program.get_active_uniform(
-            uniform.id() as u32) {
-            Ok(active_uniform) => active_uniform,
-            Err(_) => return self.webgl_error(InvalidOperation),
-        };
-
-        let uniform_array_element_count = active_uniform.Size();
-
-        if let Some(data) = array_buffer_view_to_vec_checked::<i32>(data) {
-            if data.len() % 3 != 0 ||
-                (data.len() > uniform_array_element_count as usize) {
-                return self.webgl_error(InvalidOperation);
-            }
-            self.ipc_renderer
-                .send(CanvasMsg::WebGL(WebGLCommand::Uniform3iv(uniform.id(), data)))
-                .unwrap()
-        } else {
-            self.webgl_error(InvalidValue);
+        let data_slice = data.and_then(|d| array_buffer_view_to_vec::<i32>(d));
+        if !self.validate_uniform_vector_parameters(uniform, 1, data_slice.as_ref().map(Vec::as_slice)) {
+            return;
         }
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::Uniform3iv(uniform.unwrap().id(), data_slice.unwrap())))
+            .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform4i(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: i32, y: i32, z: i32, w: i32) {
-        let uniform = match uniform {
-            Some(uniform) => uniform,
-            None => return,
-        };
-
-        match self.current_program.get() {
-            Some(ref program) if program.id() == uniform.program_id() => {},
-            _ => return self.webgl_error(InvalidOperation),
-        };
-
-        self.ipc_renderer
-            .send(CanvasMsg::WebGL(WebGLCommand::Uniform4i(uniform.id(), x, y, z, w)))
-            .unwrap()
+        if self.validate_uniform(uniform) {
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::Uniform4i(uniform.unwrap().id(), x, y, z, w)))
+                .unwrap()
+        }
     }
 
 
@@ -1374,60 +1203,24 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
-        let data = match data {
-            Some(data) => data,
-            None => return self.webgl_error(InvalidValue),
-        };
-
-        let uniform = match uniform {
-            Some(uniform) => uniform,
-            None => return self.webgl_error(InvalidOperation),
-        };
-
-        let program = self.current_program.get();
-        let program = match program {
-            Some(ref program) if program.id() == uniform.program_id() => program,
-            _ => return self.webgl_error(InvalidOperation),
-        };
-
-        let active_uniform = match program.get_active_uniform(
-            uniform.id() as u32) {
-            Ok(active_uniform) => active_uniform,
-            Err(_) => return self.webgl_error(InvalidOperation),
-        };
-
-        let uniform_array_element_count = active_uniform.Size();
-
-        if let Some(data) = array_buffer_view_to_vec_checked::<i32>(data) {
-            if data.len() % 4 != 0 ||
-                (data.len() > uniform_array_element_count as usize) {
-                return self.webgl_error(InvalidOperation);
-            }
-            self.ipc_renderer
-                .send(CanvasMsg::WebGL(WebGLCommand::Uniform4iv(uniform.id(), data)))
-                .unwrap()
-        } else {
-            self.webgl_error(InvalidValue);
+        let data_slice = data.and_then(|d| array_buffer_view_to_vec::<i32>(d));
+        if !self.validate_uniform_vector_parameters(uniform, 1, data_slice.as_ref().map(Vec::as_slice)) {
+            return;
         }
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::Uniform4iv(uniform.unwrap().id(), data_slice.unwrap())))
+            .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn Uniform4f(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: f32, y: f32, z: f32, w: f32) {
-        let uniform = match uniform {
-            Some(uniform) => uniform,
-            None => return,
-        };
-
-        match self.current_program.get() {
-            Some(ref program) if program.id() == uniform.program_id() => {},
-            _ => return self.webgl_error(InvalidOperation),
-        };
-
-        self.ipc_renderer
-            .send(CanvasMsg::WebGL(WebGLCommand::Uniform4f(uniform.id(), x, y, z, w)))
-            .unwrap()
+        if self.validate_uniform(uniform) {
+            self.ipc_renderer
+                .send(CanvasMsg::WebGL(WebGLCommand::Uniform4f(uniform.unwrap().id(), x, y, z, w)))
+                .unwrap()
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -1435,41 +1228,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
-        let data = match data {
-            Some(data) => data,
-            None => return self.webgl_error(InvalidValue),
-        };
-
-        let uniform = match uniform {
-            Some(uniform) => uniform,
-            None => return self.webgl_error(InvalidOperation),
-        };
-
-        let program = self.current_program.get();
-        let program = match program {
-            Some(ref program) if program.id() == uniform.program_id() => program,
-            _ => return self.webgl_error(InvalidOperation),
-        };
-
-        let active_uniform = match program.get_active_uniform(
-            uniform.id() as u32) {
-            Ok(active_uniform) => active_uniform,
-            Err(_) => return self.webgl_error(InvalidOperation),
-        };
-
-        let uniform_array_element_count = active_uniform.Size();
-
-        if let Some(data) = array_buffer_view_to_vec_checked::<f32>(data) {
-            if data.len() % 4 != 0 ||
-                (data.len() > uniform_array_element_count as usize) {
-                return self.webgl_error(InvalidOperation);
-            }
-            self.ipc_renderer
-                .send(CanvasMsg::WebGL(WebGLCommand::Uniform4fv(uniform.id(), data)))
-                .unwrap()
-        } else {
-            self.webgl_error(InvalidValue);
+        let data_slice = data.and_then(|d| array_buffer_view_to_vec::<f32>(d));
+        if !self.validate_uniform_vector_parameters(uniform, 1, data_slice.as_ref().map(Vec::as_slice)) {
+            return;
         }
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::Uniform4fv(uniform.unwrap().id(), data_slice.unwrap())))
+            .unwrap()
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
