@@ -9,23 +9,25 @@
    <canvas id="canvas" width="512" height="512"></canvas>
 </div>
 <script id="vertexshader" type="x-shader">
-   attribute vec2 aVertexPosition;
-   attribute vec4 aColour;
-   varying vec4 aVertexColor;
+precision mediump float;
 
-   void main() {
-      aVertexColor = aColour;
-      gl_Position = vec4(aVertexPosition, 0.0, 1.0);
-   }
+attribute vec2 aVertexPosition;
+attribute vec4 aColour;
+varying vec4 aVertexColor;
+
+void main() {
+  aVertexColor = aColour;
+  gl_Position = vec4(aVertexPosition, 0.0, 1.0);
+}
 </script>
 <script id="fragmentshader" type="x-shader">
-   precision mediump float;
+precision mediump float;
 
-   varying vec4 aVertexColor;
+varying vec4 aVertexColor;
 
-   void main() {
-      gl_FragColor = aVertexColor;
-   }
+void main() {
+  gl_FragColor = aVertexColor;
+}
 </script>
 <script type="text/javascript">
 
@@ -43,6 +45,9 @@
    // Setup Shaders:
    var v = document.getElementById("vertexshader").firstChild.nodeValue;
    var f = document.getElementById("fragmentshader").firstChild.nodeValue;
+
+   console.log("vertex source: ", v);
+   console.log("fragment source: ", f);
 
    var vs = gl.createShader(gl.VERTEX_SHADER);
    gl.shaderSource(vs, v);
@@ -96,6 +101,7 @@
    gl.vertexAttribPointer(program.aVertexPosition, itemSize, gl.FLOAT, false, 0, 0);
 
    program.aColour = gl.getAttribLocation(program, "aColour");
+   console.log("aColour: " + program.aColour);
    gl.enableVertexAttribArray(program.aColour);
    gl.vertexAttribPointer(program.aColour, 4, gl.FLOAT, false, 0, 24);
 
