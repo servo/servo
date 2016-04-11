@@ -15,8 +15,8 @@ platform:
   - x64
 
 cache:
-  - .servo
-  - .cargo
+  - .servo -> rust-nightly-date, cargo-nightly-build
+  - .cargo -> rust-nightly-date, cargo-nightly-build
 
 install:
     # Check if commit in auto branch exists in master, if exists build will be canceled.
