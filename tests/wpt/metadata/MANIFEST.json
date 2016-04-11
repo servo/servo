@@ -36766,6 +36766,18 @@
             "url": "/html/rendering/non-replaced-elements/the-fieldset-element-0/min-width-not-important.html"
           }
         ],
+        "html/rendering/non-replaced-elements/the-hr-element-0/align.html": [
+          {
+            "path": "html/rendering/non-replaced-elements/the-hr-element-0/align.html",
+            "references": [
+              [
+                "/html/rendering/non-replaced-elements/the-hr-element-0/align-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/html/rendering/non-replaced-elements/the-hr-element-0/align.html"
+          }
+        ],
         "html/rendering/non-replaced-elements/the-hr-element-0/color.html": [
           {
             "path": "html/rendering/non-replaced-elements/the-hr-element-0/color.html",
@@ -40161,6 +40173,18 @@
       }
     },
     "reftest_nodes": {
+      "html/rendering/non-replaced-elements/the-hr-element-0/align.html": [
+        {
+          "path": "html/rendering/non-replaced-elements/the-hr-element-0/align.html",
+          "references": [
+            [
+              "/html/rendering/non-replaced-elements/the-hr-element-0/align-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/html/rendering/non-replaced-elements/the-hr-element-0/align.html"
+        }
+      ],
       "html/semantics/links/linktypes/alternate-css-ref.html": [
         {
           "path": "html/semantics/links/linktypes/alternate-css-ref.html",
