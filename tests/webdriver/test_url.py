@@ -25,6 +25,7 @@ class ServoProcess(object):
     def __exit__(self, *args, **kwargs):
         self.proc.kill()
 
+
 class TestStringMethods(unittest.TestCase):
     def test_get(self):
         with ServoProcess():
