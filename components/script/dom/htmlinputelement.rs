@@ -208,15 +208,15 @@ impl HTMLInputElement {
 
 pub trait LayoutHTMLInputElementHelpers {
     #[allow(unsafe_code)]
-    unsafe fn get_value_for_layout(self) -> String;
+    unsafe fn value_for_layout(self) -> String;
     #[allow(unsafe_code)]
-    unsafe fn get_size_for_layout(self) -> u32;
+    unsafe fn size_for_layout(self) -> u32;
     #[allow(unsafe_code)]
-    unsafe fn get_selection_for_layout(self) -> Option<Range<isize>>;
+    unsafe fn selection_for_layout(self) -> Option<Range<isize>>;
     #[allow(unsafe_code)]
-    unsafe fn get_checked_state_for_layout(self) -> bool;
+    unsafe fn checked_state_for_layout(self) -> bool;
     #[allow(unsafe_code)]
-    unsafe fn get_indeterminate_state_for_layout(self) -> bool;
+    unsafe fn indeterminate_state_for_layout(self) -> bool;
 }
 
 #[allow(unsafe_code)]
@@ -226,7 +226,7 @@ unsafe fn get_raw_textinput_value(input: LayoutJS<HTMLInputElement>) -> DOMStrin
 
 impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
     #[allow(unsafe_code)]
-    unsafe fn get_value_for_layout(self) -> String {
+    unsafe fn value_for_layout(self) -> String {
         #[allow(unsafe_code)]
         unsafe fn get_raw_attr_value(input: LayoutJS<HTMLInputElement>, default: &str) -> String {
             let elem = input.upcast::<Element>();
@@ -245,7 +245,7 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
             InputType::InputPassword => {
                 let text = get_raw_textinput_value(self);
                 if !text.is_empty() {
-                    // The implementation of get_selection_for_layout expects a 1:1 mapping of chars.
+                    // The implementation of selection_for_layout expects a 1:1 mapping of chars.
                     text.chars().map(|_| '●').collect()
                 } else {
                     String::from((*self.unsafe_get()).placeholder.borrow_for_layout().clone())
@@ -254,7 +254,7 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
             _ => {
                 let text = get_raw_textinput_value(self);
                 if !text.is_empty() {
-                    // The implementation of get_selection_for_layout expects a 1:1 mapping of chars.
+                    // The implementation of selection_for_layout expects a 1:1 mapping of chars.
                     String::from(text)
                 } else {
                     String::from((*self.unsafe_get()).placeholder.borrow_for_layout().clone())
@@ -265,19 +265,19 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_size_for_layout(self) -> u32 {
+    unsafe fn size_for_layout(self) -> u32 {
         (*self.unsafe_get()).size.get()
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_selection_for_layout(self) -> Option<Range<isize>> {
+    unsafe fn selection_for_layout(self) -> Option<Range<isize>> {
         if !(*self.unsafe_get()).upcast::<Element>().focus_state() {
             return None;
         }
 
         // Use the raw textinput to get the index as long as we use a 1:1 char mapping
-        // in get_value_for_layout.
+        // in value_for_layout.
         let raw = match (*self.unsafe_get()).input_type.get() {
             InputType::InputText |
             InputType::InputPassword => get_raw_textinput_value(self),
@@ -293,13 +293,13 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_checked_state_for_layout(self) -> bool {
+    unsafe fn checked_state_for_layout(self) -> bool {
         self.upcast::<Element>().get_state_for_layout().contains(IN_CHECKED_STATE)
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_indeterminate_state_for_layout(self) -> bool {
+    unsafe fn indeterminate_state_for_layout(self) -> bool {
         self.upcast::<Element>().get_state_for_layout().contains(IN_INDETERMINATE_STATE)
     }
 }

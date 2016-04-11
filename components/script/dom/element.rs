@@ -377,7 +377,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
                 },
                 // Others
                 _ => {
-                    match this.get_size_for_layout() {
+                    match this.size_for_layout() {
                         0 => None,
                         s => Some(s as i32),
                     }
@@ -571,7 +571,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         // TODO option and menuitem can also have a checked state.
         match self.downcast::<HTMLInputElement>() {
             Some(input) => unsafe {
-                input.get_checked_state_for_layout()
+                input.checked_state_for_layout()
             },
             None => false,
         }
@@ -583,7 +583,7 @@ impl LayoutElementHelpers for LayoutJS<Element> {
         // TODO progress elements can also be matched with :indeterminate
         match self.downcast::<HTMLInputElement>() {
             Some(input) => unsafe {
-                input.get_indeterminate_state_for_layout()
+                input.indeterminate_state_for_layout()
             },
             None => false,
         }
