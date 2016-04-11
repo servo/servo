@@ -994,16 +994,12 @@ impl Activatable for HTMLInputElement {
             InputType::InputRadio => {
                 // We want to restore state only if the element had been changed in the first place
                 if cache.was_mutable {
-                    let name = self.radio_group_name();
                     match cache.checked_radio.r() {
                         Some(o) => {
                             // Avoiding iterating through the whole tree here, instead
                             // we can check if the conditions for radio group siblings apply
-                            if name == o.radio_group_name() && // TODO should be compatibility caseless
-                               self.form_owner() == o.form_owner() &&
-                               // TODO Both a and b are in the same home subtree
-                               o.input_type.get() == InputType::InputRadio {
-                                    o.SetChecked(true);
+                            if in_same_group(&o, self.form_owner().r(), self.radio_group_name().as_ref()) {
+                                o.SetChecked(true);
                             } else {
                                 self.SetChecked(false);
                             }
