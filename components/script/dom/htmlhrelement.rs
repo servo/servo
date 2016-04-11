@@ -37,6 +37,12 @@ impl HTMLHRElement {
 }
 
 impl HTMLHRElementMethods for HTMLHRElement {
+    // https://html.spec.whatwg.org/multipage/#dom-hr-align
+    make_getter!(Align, "align");
+
+    // https://html.spec.whatwg.org/multipage/#dom-hr-align
+    make_atomic_setter!(SetAlign, "align");
+
     // https://html.spec.whatwg.org/multipage/#dom-hr-color
     make_getter!(Color, "color");
 
@@ -86,6 +92,7 @@ impl VirtualMethods for HTMLHRElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
+            &atom!("align") => AttrValue::from_dimension(value),
             &atom!("color") => AttrValue::from_legacy_color(value),
             &atom!("width") => AttrValue::from_dimension(value),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
