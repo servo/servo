@@ -16,7 +16,9 @@ pub fn content_process_sandbox_profile() -> Profile {
         Operation::FileReadAll(PathPattern::Subpath(PathBuf::from("/Library/Fonts"))),
         Operation::FileReadAll(PathPattern::Subpath(PathBuf::from("/System/Library/Fonts"))),
         Operation::FileReadAll(PathPattern::Subpath(PathBuf::from(
-                    "/System/Library/Frameworks/ApplicationServices.framework/"))),
+                    "/System/Library/Frameworks/ApplicationServices.framework"))),
+        Operation::FileReadAll(PathPattern::Subpath(PathBuf::from(
+                    "/System/Library/Frameworks/CoreGraphics.framework"))),
         Operation::FileReadMetadata(PathPattern::Literal(PathBuf::from("/"))),
         Operation::FileReadMetadata(PathPattern::Literal(PathBuf::from("/Library"))),
         Operation::FileReadMetadata(PathPattern::Literal(PathBuf::from("/System"))),
