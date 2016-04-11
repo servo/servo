@@ -143,6 +143,17 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
+    /// Get the [base url](https://html.spec.whatwg.org/multipage/#api-base-url)
+    /// for this global scope.
+    pub fn api_base_url(&self) -> Url {
+        match *self {
+            // https://html.spec.whatwg.org/multipage/#script-settings-for-browsing-contexts:api-base-url
+            GlobalRef::Window(ref window) => window.Document().base_url(),
+            // https://html.spec.whatwg.org/multipage/#script-settings-for-workers:api-base-url
+            GlobalRef::Worker(ref worker) => worker.get_url().clone(),
+        }
+    }
+
     /// `ScriptChan` used to send messages to the event loop of this global's
     /// thread.
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
