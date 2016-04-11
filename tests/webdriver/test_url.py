@@ -14,7 +14,7 @@ import webdriver
 import subprocess
 class ServoProcess(object):
     def __init__(self):
-         self.path = "Users/krunal/Git/servo"
+         self.path = "path/to/servo"
          self.proc = None
 
     def __enter__(self):
