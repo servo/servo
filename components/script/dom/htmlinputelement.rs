@@ -581,7 +581,7 @@ fn in_same_group(other: &HTMLInputElement, owner: Option<&HTMLFormElement>,
     other.input_type.get() == InputType::InputRadio &&
     // TODO Both a and b are in the same home subtree.
     other.form_owner().r() == owner &&
-    match (other.get_radio_group_name(), group) {
+    match (other.radio_group_name(), group) {
         (Some(ref s1), Some(s2)) => compatibility_caseless_match_str(s1, s2) && s2 != &atom!(""),
         _ => false
     }
@@ -632,7 +632,7 @@ impl HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#radio-button-group
-    fn get_radio_group_name(&self) -> Option<Atom> {
+    fn radio_group_name(&self) -> Option<Atom> {
         //TODO: determine form owner
         self.upcast::<Element>()
             .get_attribute(&ns!(), &atom!("name"))
@@ -648,7 +648,7 @@ impl HTMLInputElement {
 
         if self.input_type.get() == InputType::InputRadio && checked {
             broadcast_radio_checked(self,
-                                    self.get_radio_group_name().as_ref());
+                                    self.radio_group_name().as_ref());
         }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -770,7 +770,7 @@ impl VirtualMethods for HTMLInputElement {
                         // Step 5
                         if new_type == InputType::InputRadio {
                             self.radio_group_updated(
-                                self.get_radio_group_name().as_ref());
+                                self.radio_group_name().as_ref());
                         }
 
                         // TODO: Step 6 - value sanitization
@@ -779,7 +779,7 @@ impl VirtualMethods for HTMLInputElement {
                         if self.input_type.get() == InputType::InputRadio {
                             broadcast_radio_checked(
                                 self,
-                                self.get_radio_group_name().as_ref());
+                                self.radio_group_name().as_ref());
                         }
                         self.input_type.set(InputType::InputText);
                     }
@@ -948,7 +948,7 @@ impl Activatable for HTMLInputElement {
                     let owner = self.form_owner();
                     let doc = document_from_node(self);
                     let doc_node = doc.upcast::<Node>();
-                    let group = self.get_radio_group_name();;
+                    let group = self.radio_group_name();;
 
                     // Safe since we only manipulate the DOM tree after finding an element
                     let checked_member = doc_node.query_selector_iter(DOMString::from("input[type=radio]"))
@@ -994,12 +994,12 @@ impl Activatable for HTMLInputElement {
             InputType::InputRadio => {
                 // We want to restore state only if the element had been changed in the first place
                 if cache.was_mutable {
-                    let name = self.get_radio_group_name();
+                    let name = self.radio_group_name();
                     match cache.checked_radio.r() {
                         Some(o) => {
                             // Avoiding iterating through the whole tree here, instead
                             // we can check if the conditions for radio group siblings apply
-                            if name == o.get_radio_group_name() && // TODO should be compatibility caseless
+                            if name == o.radio_group_name() && // TODO should be compatibility caseless
                                self.form_owner() == o.form_owner() &&
                                // TODO Both a and b are in the same home subtree
                                o.input_type.get() == InputType::InputRadio {
