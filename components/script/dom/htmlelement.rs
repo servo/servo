@@ -233,7 +233,7 @@ impl HTMLElementMethods for HTMLElement {
         document.commit_focus_transaction(FocusType::Element);
     }
 
-    // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
+    // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetparent
     fn GetOffsetParent(&self) -> Option<Root<Element>> {
         if self.is::<HTMLBodyElement>() || self.is::<HTMLHtmlElement>() {
             return None;
@@ -246,7 +246,7 @@ impl HTMLElementMethods for HTMLElement {
         element
     }
 
-    // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
+    // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsettop
     fn OffsetTop(&self) -> i32 {
         if self.is::<HTMLBodyElement>() {
             return 0;
@@ -259,7 +259,7 @@ impl HTMLElementMethods for HTMLElement {
         rect.origin.y.to_nearest_px()
     }
 
-    // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
+    // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetleft
     fn OffsetLeft(&self) -> i32 {
         if self.is::<HTMLBodyElement>() {
             return 0;
@@ -272,7 +272,7 @@ impl HTMLElementMethods for HTMLElement {
         rect.origin.x.to_nearest_px()
     }
 
-    // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
+    // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetwidth
     fn OffsetWidth(&self) -> i32 {
         let node = self.upcast::<Node>();
         let window = window_from_node(self);
@@ -281,7 +281,7 @@ impl HTMLElementMethods for HTMLElement {
         rect.size.width.to_nearest_px()
     }
 
-    // https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlelement-interface
+    // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetheight
     fn OffsetHeight(&self) -> i32 {
         let node = self.upcast::<Node>();
         let window = window_from_node(self);
