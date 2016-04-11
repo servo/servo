@@ -13,7 +13,7 @@ Navigator implements NavigatorLanguage;
 //Navigator implements NavigatorOnLine;
 //Navigator implements NavigatorContentUtils;
 //Navigator implements NavigatorStorageUtils;
-//Navigator implements NavigatorPlugins;
+Navigator implements NavigatorPlugins;
 
 // https://html.spec.whatwg.org/multipage/#navigatorid
 [NoInterfaceObject/*, Exposed=Window,Worker*/]
@@ -38,4 +38,12 @@ interface NavigatorLanguage {
   readonly attribute DOMString language;
   // https://github.com/servo/servo/issues/10073
   //readonly attribute DOMString[] languages;
+};
+
+// https://html.spec.whatwg.org/multipage/#navigatorplugins
+[NoInterfaceObject]
+interface NavigatorPlugins {
+  [SameObject] readonly attribute PluginArray plugins;
+  [SameObject] readonly attribute MimeTypeArray mimeTypes;
+  boolean javaEnabled();
 };
