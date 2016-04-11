@@ -24,11 +24,11 @@ use hyper::net::{Fresh, HttpsConnector, Openssl};
 use hyper::status::{StatusClass, StatusCode};
 use log;
 use mime_classifier::MIMEClassifier;
-use msg::constellation_msg::{PipelineId};
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::response::HttpsState;
-use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, LoadData, Metadata, ReferrerPolicy};
+use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, LoadData, Metadata};
 use openssl::ssl::error::{SslError, OpensslError};
 use openssl::ssl::{SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER, SslContext, SslMethod};
 use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt, AuthCacheEntry};
@@ -602,11 +602,14 @@ pub fn modify_request_headers(headers: &mut Headers,
     set_default_accept(headers);
     set_default_accept_encoding(headers);
 
+    //println!("URL {:?}", url.serialize());
     if let Some(ref_url) = load_data.referrer_url.clone() {
+        //println!("REFERRER: {:?}", ref_url.serialize());
         set_referer(headers, load_data.referrer_policy.clone(), ref_url, url.clone());
     } 
     else {
         //TODO - remove this branch. for testing
+        //println!("REFERRER UNKNOWN");
         headers.set(Referer("NO REF SENT??".to_owned())); 
     }
     
