@@ -47,6 +47,16 @@ impl HTMLBodyElement {
         let element = HTMLBodyElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLBodyElementBinding::Wrap)
     }
+
+    /// https://drafts.csswg.org/cssom-view/#the-html-body-element
+    pub fn is_the_html_body_element(&self) -> bool {
+        let self_node = self.upcast::<Node>();
+        let root_elem = self.upcast::<Element>().root_element();
+        let root_node = root_elem.upcast::<Node>();
+        root_node.is_parent_of(self_node) &&
+            self_node.preceding_siblings().all(|n| !n.is::<HTMLBodyElement>())
+    }
+
 }
 
 impl HTMLBodyElementMethods for HTMLBodyElement {
