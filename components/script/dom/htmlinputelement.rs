@@ -655,10 +655,6 @@ impl HTMLInputElement {
         //TODO: dispatch change event
     }
 
-    pub fn get_indeterminate_state(&self) -> bool {
-        self.Indeterminate()
-    }
-
     // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
     fn mutable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-input-element:concept-fe-mutable
