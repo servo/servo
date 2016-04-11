@@ -606,6 +606,12 @@ impl<T: Reflectable> PartialEq for Root<T> {
     }
 }
 
+impl<T: Reflectable> Clone for Root<T> {
+    fn clone(&self) -> Root<T> {
+        Root::from_ref(&*self)
+    }
+}
+
 impl<T: Reflectable> Drop for Root<T> {
     fn drop(&mut self) {
         unsafe {

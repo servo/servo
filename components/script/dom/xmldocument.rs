@@ -4,7 +4,6 @@
 
 use document_loader::DocumentLoader;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::XMLDocumentBinding::{self, XMLDocumentMethods};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
@@ -77,16 +76,16 @@ impl XMLDocument {
 impl XMLDocumentMethods for XMLDocument {
     // https://html.spec.whatwg.org/multipage/#dom-document-location
     fn GetLocation(&self) -> Option<Root<Location>> {
-        self.document.GetLocation()
+        self.upcast::<Document>().GetLocation()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        self.document.SupportedPropertyNames()
+        self.upcast::<Document>().SupportedPropertyNames()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
     fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString, found: &mut bool) -> *mut JSObject {
-        self.document.NamedGetter(_cx, name, found)
+        self.upcast::<Document>().NamedGetter(_cx, name, found)
     }
 }
