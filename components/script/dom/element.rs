@@ -2232,4 +2232,3 @@ impl AtomicElementFlags {
         self.0.fetch_or(flags.bits() as usize, Ordering::Relaxed);
     }
 }
-
