@@ -4906,6 +4906,28 @@ pub mod longhands {
 
     // Flex container properties
     ${single_keyword("flex-direction", "row row-reverse column column-reverse", experimental=True)}
+
+    // https://drafts.csswg.org/css-flexbox/#propdef-order
+    <%self:longhand name="order">
+        use values::computed::ComputedValueAsSpecified;
+
+        impl ComputedValueAsSpecified for SpecifiedValue {}
+
+        pub type SpecifiedValue = computed_value::T;
+
+        pub mod computed_value {
+            pub type T = i32;
+        }
+
+        #[inline]
+        pub fn get_initial_value() -> computed_value::T {
+            0
+        }
+
+        fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+            specified::parse_integer(input)
+        }
+    </%self:longhand>
 }
 
 

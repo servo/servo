@@ -13,9 +13,9 @@ use display_list_builder::{DisplayListBuildState, FlexFlowDisplayListBuilding};
 use euclid::Point2D;
 use floats::FloatKind;
 use flow;
-use flow::INLINE_POSITION_IS_STATIC;
-use flow::IS_ABSOLUTELY_POSITIONED;
 use flow::{Flow, FlowClass, ImmutableFlowUtils, OpaqueFlow};
+use flow::{INLINE_POSITION_IS_STATIC, IS_ABSOLUTELY_POSITIONED};
+use flow_ref::{self, FlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::{StackingContext, StackingContextId};
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
@@ -73,6 +73,19 @@ enum Mode {
     Block
 }
 
+#[derive(Debug)]
+struct FlexItem {
+    pub flow: FlowRef,
+}
+
+impl FlexItem {
+    fn new(flow: FlowRef) -> FlexItem {
+        FlexItem {
+            flow: flow
+        }
+    }
+}
+
 /// A block with the CSS `display` property equal to `flex`.
 #[derive(Debug)]
 pub struct FlexFlow {
@@ -84,23 +97,9 @@ pub struct FlexFlow {
     /// The available main axis size
     available_main_size: AxisSize,
     /// The available cross axis size
-    available_cross_size: AxisSize
-}
-
-// TODO(zentner): This function should use flex-basis.
-fn flex_item_inline_sizes(flow: &mut Flow) -> IntrinsicISizes {
-    let _scope = layout_debug_scope!("flex::flex_item_inline_sizes");
-    debug!("flex_item_inline_sizes");
-    let base = flow::mut_base(flow);
-
-    debug!("FlexItem intrinsic inline sizes: {:?}, {:?}",
-           base.intrinsic_inline_sizes.minimum_inline_size,
-           base.intrinsic_inline_sizes.preferred_inline_size);
-
-    IntrinsicISizes {
-        minimum_inline_size: base.intrinsic_inline_sizes.minimum_inline_size,
-        preferred_inline_size: base.intrinsic_inline_sizes.preferred_inline_size,
-    }
+    available_cross_size: AxisSize,
+    /// List of flex-items that belong to this flex-container
+    items: Vec<FlexItem>
 }
 
 impl FlexFlow {
@@ -117,7 +116,8 @@ impl FlexFlow {
             block_flow: BlockFlow::from_fragment(fragment, flotation),
             main_mode: main_mode,
             available_main_size: AxisSize::Infinite,
-            available_cross_size: AxisSize::Infinite
+            available_cross_size: AxisSize::Infinite,
+            items: Vec::new()
         }
     }
 
@@ -132,11 +132,15 @@ impl FlexFlow {
 
         let mut computation = self.block_flow.fragment.compute_intrinsic_inline_sizes();
         if !fixed_width {
-            for kid in self.block_flow.base.child_iter_mut() {
-                let is_absolutely_positioned =
-                    flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
+            for kid in &mut self.items {
+                let base = flow::mut_base(flow_ref::deref_mut(&mut kid.flow));
+                let is_absolutely_positioned = base.flags.contains(IS_ABSOLUTELY_POSITIONED);
                 if !is_absolutely_positioned {
-                    computation.union_nonbreaking_inline(&flex_item_inline_sizes(kid));
+                    let flex_item_inline_sizes = IntrinsicISizes {
+                        minimum_inline_size: base.intrinsic_inline_sizes.minimum_inline_size,
+                        preferred_inline_size: base.intrinsic_inline_sizes.preferred_inline_size,
+                    };
+                    computation.union_nonbreaking_inline(&flex_item_inline_sizes);
                 }
             }
         }
@@ -154,18 +158,17 @@ impl FlexFlow {
 
         let mut computation = self.block_flow.fragment.compute_intrinsic_inline_sizes();
         if !fixed_width {
-            for kid in self.block_flow.base.child_iter_mut() {
-                let is_absolutely_positioned =
-                    flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
-                let child_base = flow::mut_base(kid);
+            for kid in &mut self.items {
+                let base = flow::mut_base(flow_ref::deref_mut(&mut kid.flow));
+                let is_absolutely_positioned = base.flags.contains(IS_ABSOLUTELY_POSITIONED);
                 if !is_absolutely_positioned {
                     computation.content_intrinsic_sizes.minimum_inline_size =
                         max(computation.content_intrinsic_sizes.minimum_inline_size,
-                            child_base.intrinsic_inline_sizes.minimum_inline_size);
+                            base.intrinsic_inline_sizes.minimum_inline_size);
 
                     computation.content_intrinsic_sizes.preferred_inline_size =
                         max(computation.content_intrinsic_sizes.preferred_inline_size,
-                            child_base.intrinsic_inline_sizes.preferred_inline_size);
+                            base.intrinsic_inline_sizes.preferred_inline_size);
                 }
             }
         }
@@ -195,21 +198,15 @@ impl FlexFlow {
             AxisSize::MinMax(ref constraint) => constraint.clamp(content_inline_size),
             AxisSize::Infinite => content_inline_size
         };
-        let mut iterator = self.block_flow.base.child_iter_mut().enumerate().peekable();
-        while let Some((_, kid)) = iterator.next() {
+        for kid in &mut self.items {
             {
-                let kid_base = flow::mut_base(kid);
+                let kid_base = flow::mut_base(flow_ref::deref_mut(&mut kid.flow));
                 kid_base.block_container_explicit_block_size = container_block_size;
-            }
-
-            // The inline-start margin edge of the child flow is at our inline-start content edge,
-            // and its inline-size is our content inline-size.
-            let kid_mode = flow::base(kid).writing_mode;
-            {
-                let kid_base = flow::mut_base(kid);
                 if kid_base.flags.contains(INLINE_POSITION_IS_STATIC) {
+                    // The inline-start margin edge of the child flow is at our inline-start content edge,
+                    // and its inline-size is our content inline-size.
                     kid_base.position.start.i =
-                        if kid_mode.is_bidi_ltr() == containing_block_mode.is_bidi_ltr() {
+                        if kid_base.writing_mode.is_bidi_ltr() == containing_block_mode.is_bidi_ltr() {
                             inline_start_content_edge
                         } else {
                             // The kid's inline 'start' is at the parent's 'end'
@@ -218,6 +215,7 @@ impl FlexFlow {
                 }
                 kid_base.block_container_inline_size = container_inline_size;
                 kid_base.block_container_writing_mode = containing_block_mode;
+                kid_base.position.start.i = inline_start_content_edge;
             }
         }
     }
@@ -254,19 +252,25 @@ impl FlexFlow {
 
         let block_container_explicit_block_size = self.block_flow.base.block_container_explicit_block_size;
         let mut inline_child_start = inline_start_content_edge;
-        for kid in self.block_flow.base.child_iter_mut() {
-            let kid_base = flow::mut_base(kid);
+        for kid in &mut self.items {
+            let base = flow::mut_base(flow_ref::deref_mut(&mut kid.flow));
 
-            kid_base.block_container_inline_size = even_content_inline_size;
-            kid_base.block_container_writing_mode = container_mode;
-            kid_base.block_container_explicit_block_size = block_container_explicit_block_size;
-            kid_base.position.start.i = inline_child_start;
+            base.block_container_inline_size = even_content_inline_size;
+            base.block_container_writing_mode = container_mode;
+            base.block_container_explicit_block_size = block_container_explicit_block_size;
+            base.position.start.i = inline_child_start;
             inline_child_start = inline_child_start + even_content_inline_size;
         }
     }
 
     // TODO(zentner): This function should actually flex elements!
     fn block_mode_assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
+        let mut cur_b = self.block_flow.fragment.border_padding.block_start;
+        for kid in &mut self.items {
+            let base = flow::mut_base(flow_ref::deref_mut(&mut kid.flow));
+            base.position.start.b = cur_b;
+            cur_b = cur_b + base.position.size.block;
+        }
         self.block_flow.assign_block_size(layout_context)
     }
 
@@ -335,6 +339,10 @@ impl Flow for FlexFlow {
         FlowClass::Flex
     }
 
+    fn as_block(&self) -> &BlockFlow {
+        &self.block_flow
+    }
+
     fn as_mut_block(&mut self) -> &mut BlockFlow {
         &mut self.block_flow
     }
@@ -352,8 +360,18 @@ impl Flow for FlexFlow {
 
         // Flexbox Section 9.1: Re-order the flex items (and any absolutely positioned flex
         // container children) according to their order.
-        // TODO(zentner): We need to re-order the items at some point. However, all the operations
-        // here ignore order, so we can afford to do it later, if necessary.
+
+        let mut items = self.block_flow.base.children.iter_flow_ref_mut().map(|flow| {
+            FlexItem::new(flow.clone())
+        }).collect::<Vec<FlexItem>>();
+
+        items.sort_by(|item1, item2| {
+            item1.flow.as_block().fragment.style.get_position().order.cmp(
+                &item2.flow.as_block().fragment.style.get_position().order
+                )
+        });
+
+        self.items = items;
 
         match self.main_mode {
             Mode::Inline => self.inline_mode_bubble_inline_sizes(),
