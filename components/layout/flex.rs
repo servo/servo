@@ -186,14 +186,20 @@ impl FlexFlow {
         // FIXME (mbrubeck): Get correct mode for absolute containing block
         let containing_block_mode = self.block_flow.base.writing_mode;
 
+        let container_block_size = match self.available_main_size {
+            AxisSize::Definite(length) => Some(length),
+            _ => None
+        };
+        let container_inline_size = match self.available_cross_size {
+            AxisSize::Definite(length) => length,
+            AxisSize::MinMax(ref constraint) => constraint.clamp(content_inline_size),
+            AxisSize::Infinite => content_inline_size
+        };
         let mut iterator = self.block_flow.base.child_iter_mut().enumerate().peekable();
         while let Some((_, kid)) = iterator.next() {
             {
                 let kid_base = flow::mut_base(kid);
-                kid_base.block_container_explicit_block_size = match self.available_main_size {
-                    AxisSize::Definite(length) => Some(length),
-                    _ => None
-                }
+                kid_base.block_container_explicit_block_size = container_block_size;
             }
 
             // The inline-start margin edge of the child flow is at our inline-start content edge,
@@ -210,11 +216,7 @@ impl FlexFlow {
                             inline_end_content_edge
                         };
                 }
-                kid_base.block_container_inline_size = match self.available_main_size {
-                    AxisSize::Definite(length) => length,
-                    AxisSize::MinMax(ref constraint) => constraint.clamp(content_inline_size),
-                    AxisSize::Infinite => content_inline_size,
-                };
+                kid_base.block_container_inline_size = container_inline_size;
                 kid_base.block_container_writing_mode = containing_block_mode;
             }
         }
@@ -247,7 +249,6 @@ impl FlexFlow {
 
         let even_content_inline_size = inline_size / child_count;
 
-        let inline_size = self.block_flow.base.block_container_inline_size;
         let container_mode = self.block_flow.base.block_container_writing_mode;
         self.block_flow.base.position.size.inline = inline_size;
 
