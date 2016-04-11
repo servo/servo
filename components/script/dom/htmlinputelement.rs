@@ -1016,8 +1016,8 @@ impl Activatable for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
         let ty = self.input_type.get();
-        if self.activation_state.borrow().old_type != ty {
-            // Type changed, abandon ship
+        if self.activation_state.borrow().old_type != ty || !self.is_mutable() {
+            // Type changed or input is immutable, abandon ship
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27414
             return;
         }
@@ -1025,34 +1025,31 @@ impl Activatable for HTMLInputElement {
             InputType::InputSubmit => {
                 // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
-                if self.is_mutable() /* and document owner is fully active */ {
-                    self.form_owner().map(|o| {
-                        o.submit(SubmittedFrom::NotFromFormSubmitMethod,
-                                 FormSubmitter::InputElement(self.clone()))
-                    });
-                }
+                // Check if document owner is fully active
+                self.form_owner().map(|o| {
+                    o.submit(SubmittedFrom::NotFromFormSubmitMethod,
+                             FormSubmitter::InputElement(self.clone()))
+                });
             },
             InputType::InputReset => {
                 // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
-                if self.is_mutable() /* and document owner is fully active */ {
-                    self.form_owner().map(|o| {
-                        o.reset(ResetFrom::NotFromFormResetMethod)
-                    });
-                }
+                // Check if document owner is fully active
+                self.form_owner().map(|o| {
+                    o.reset(ResetFrom::NotFromFormResetMethod)
+                });
             },
             InputType::InputCheckbox | InputType::InputRadio => {
                 // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):activation-behavior
                 // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):activation-behavior
-                if self.is_mutable() {
-                    let target = self.upcast::<EventTarget>();
-                    target.fire_event("input",
-                                      EventBubbles::Bubbles,
-                                      EventCancelable::NotCancelable);
-                    target.fire_event("change",
-                                      EventBubbles::Bubbles,
-                                      EventCancelable::NotCancelable);
-                }
+                // Check if document owner is fully active
+                let target = self.upcast::<EventTarget>();
+                target.fire_event("input",
+                                  EventBubbles::Bubbles,
+                                  EventCancelable::NotCancelable);
+                target.fire_event("change",
+                                  EventBubbles::Bubbles,
+                                  EventCancelable::NotCancelable);
             },
             _ => ()
         }
