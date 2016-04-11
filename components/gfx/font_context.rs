@@ -38,7 +38,7 @@ fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFo
 
 #[cfg(target_os = "macos")]
 fn create_scaled_font(template: &Arc<FontTemplateData>, pt_size: Au) -> ScaledFont {
-    let cgfont = template.ctfont().as_ref().unwrap().copy_to_CGFont();
+    let cgfont = template.ctfont(pt_size.to_f64_px()).as_ref().unwrap().copy_to_CGFont();
     ScaledFont::new(BackendType::Skia, &cgfont, pt_size.to_f32_px())
 }
 
