@@ -594,12 +594,8 @@ impl Node {
 
         let html_element = document.GetDocumentElement();
 
-        let is_body_element = html_element.r().and_then(|root| {
-            let node = root.upcast::<Node>();
-            node.children().find(|child| { child.is::<HTMLBodyElement>() }).map(|node| {
-                *node.r() == *self
-            })
-        }).unwrap_or(false);
+        let is_body_element = self.downcast::<HTMLBodyElement>()
+                                  .map_or(false, |e| e.is_the_html_body_element());
 
         let scroll_area = window.scroll_area_query(self.to_trusted_node_address());
 
