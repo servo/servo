@@ -295,7 +295,7 @@ pub fn handle_is_enabled(page: &Rc<Page>,
     reply.send(match find_node_by_unique_id(page, pipeline, element_id) {
         Some(ref node) => {
             match node.downcast::<Element>() {
-                Some(elem) => Ok(elem.get_enabled_state()),
+                Some(elem) => Ok(elem.enabled_state()),
                 None => Err(())
             }
         },

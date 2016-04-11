@@ -272,7 +272,7 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn get_selection_for_layout(self) -> Option<Range<isize>> {
-        if !(*self.unsafe_get()).upcast::<Element>().get_focus_state() {
+        if !(*self.unsafe_get()).upcast::<Element>().focus_state() {
             return None;
         }
 
@@ -324,7 +324,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
     fn Checked(&self) -> bool {
-        self.upcast::<Element>().get_state().contains(IN_CHECKED_STATE)
+        self.upcast::<Element>().state().contains(IN_CHECKED_STATE)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-checked
@@ -466,7 +466,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn Indeterminate(&self) -> bool {
-        self.upcast::<Element>().get_state().contains(IN_INDETERMINATE_STATE)
+        self.upcast::<Element>().state().contains(IN_INDETERMINATE_STATE)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
@@ -663,7 +663,7 @@ impl HTMLInputElement {
     fn mutable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-input-element:concept-fe-mutable
         // https://html.spec.whatwg.org/multipage/#the-readonly-attribute:concept-fe-mutable
-        !(self.upcast::<Element>().get_disabled_state() || self.ReadOnly())
+        !(self.upcast::<Element>().disabled_state() || self.ReadOnly())
     }
 
     // https://html.spec.whatwg.org/multipage/#the-input-element:concept-form-reset-control
