@@ -12,10 +12,12 @@ import unittest
 sys.path.insert(0, '/servo/tests/wpt/harness/wptrunner/executors')
 import webdriver
 import subprocess
+
+
 class ServoProcess(object):
     def __init__(self):
-         self.path = "path/to/servo"
-         self.proc = None
+        self.path = "path/to/servo"
+        self.proc = None
 
     def __enter__(self):
         self.proc = subprocess.Popen(["./mach run --webdriver 7000 tests/html/about-mozilla.html"], shell=True)
