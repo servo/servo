@@ -32,7 +32,7 @@ use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Attr, Mime};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use msg::constellation_msg::{PipelineId};
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use serde::{Deserializer, Serializer};
 use std::thread;
 use url::Url;
@@ -417,14 +417,3 @@ pub fn unwrap_websocket_protocol(wsp: Option<&header::WebSocketProtocol>) -> Opt
 /// An unique identifier to keep track of each load message in the resource handler
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct ResourceId(pub u32);
-
-/// Referrer policy set for the environment
-#[derive(HeapSizeOf, Clone, Deserialize, Serialize)]
-pub enum ReferrerPolicy {
-    NoReferrer,
-    NoRefWhenDowngrade,
-    OriginOnly,
-    OriginWhenCrossOrigin,
-    UnsafeUrl,
-}
-
