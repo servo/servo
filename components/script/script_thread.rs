@@ -1894,8 +1894,8 @@ impl ScriptThread {
             cors: None,
             pipeline_id: Some(id),
             credentials_flag: true,
-            referrer_policy: None,
-            referrer_url: None,
+            referrer_policy: load_data.referrer_policy,
+            referrer_url: load_data.referrer_url,
         }, LoadConsumer::Listener(response_target), None)).unwrap();
 
         self.incomplete_loads.borrow_mut().push(incomplete);
