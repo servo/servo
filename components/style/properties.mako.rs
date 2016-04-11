@@ -145,6 +145,9 @@ def new_style_struct(name, is_inherited, gecko_name=None, additional_methods=Non
     THIS_STYLE_STRUCT = style_struct
     return ""
 
+def active_style_structs():
+    return filter(lambda s: s.additional_methods or s.longhands, STYLE_STRUCTS)
+
 def switch_to_style_struct(name):
     global THIS_STYLE_STRUCT
 
@@ -909,7 +912,11 @@ pub mod longhands {
     // CSS 2.1, Section 11 - Visual effects
 
     // Non-standard, see https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box#Specifications
-    ${single_keyword("-servo-overflow-clip-box", "padding-box content-box", internal=True)}
+    ${single_keyword("-servo-overflow-clip-box", "padding-box content-box", products="servo",
+                     internal=True)}
+
+    ${single_keyword("overflow-clip-box", "padding-box content-box", products="gecko",
+                     internal=True)}
 
     // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
     ${single_keyword("overflow-x", "visible hidden scroll auto")}
@@ -951,6 +958,16 @@ pub mod longhands {
             overflow_x::parse(context, input).map(SpecifiedValue)
         }
     </%self:longhand>
+
+    // CSSOM View Module
+    // https://www.w3.org/TR/cssom-view-1/
+    ${single_keyword("scroll-behavior", "auto smooth", products="gecko")}
+
+    // Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-x
+    ${single_keyword("scroll-snap-type-x", "none mandatory proximity", products="gecko")}
+
+    // Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-y
+    ${single_keyword("scroll-snap-type-y", "none mandatory proximity", products="gecko")}
 
     ${switch_to_style_struct("InheritedBox")}
 
@@ -1353,6 +1370,12 @@ pub mod longhands {
     </%self:longhand>
 
     // CSS 2.1, Section 13 - Paged media
+
+    ${switch_to_style_struct("Box")}
+
+    ${single_keyword("page-break-after", "auto always avoid left right", products="gecko")}
+    ${single_keyword("page-break-before", "auto always avoid left right", products="gecko")}
+    ${single_keyword("page-break-inside", "auto avoid", products="gecko")}
 
     // CSS 2.1, Section 14 - Colors and Backgrounds
 
@@ -2027,6 +2050,8 @@ pub mod longhands {
                      "normal ultra-condensed extra-condensed condensed semi-condensed semi-expanded \
                      expanded extra-expanded ultra-expanded")}
 
+    ${single_keyword("font-kerning", "auto none normal", products="gecko")}
+
     // CSS 2.1, Section 16 - Text
 
     ${switch_to_style_struct("InheritedText")}
@@ -2314,6 +2339,9 @@ pub mod longhands {
         }
     </%self:longhand>
 
+    ${single_keyword("text-decoration-style", "-moz-none solid double dotted dashed wavy",
+                     products="gecko")}
+
     ${switch_to_style_struct("InheritedText")}
 
     <%self:longhand name="-servo-text-decorations-in-effect"
@@ -2439,6 +2467,16 @@ pub mod longhands {
 
     ${single_keyword("text-rendering", "auto optimizespeed optimizelegibility geometricprecision")}
 
+    // CSS Text Module Level 3
+    // https://www.w3.org/TR/css-text-3/
+    ${single_keyword("hyphens", "none manual auto", products="gecko")}
+
+    // CSS Ruby Layout Module Level 1
+    // https://www.w3.org/TR/css-ruby-1/
+    ${single_keyword("ruby-align", "start center space-between space-around", products="gecko")}
+
+    ${single_keyword("ruby-position", "over under", products="gecko")}
+
     // CSS 2.1, Section 17 - Tables
     ${new_style_struct("Table", is_inherited=False, gecko_name="nsStyleTable")}
 
@@ -2541,8 +2579,11 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    // CSS 2.1, Section 18 - User interface
+    // CSS Fragmentation Module Level 3
+    // https://www.w3.org/TR/css-break-3/
+    ${switch_to_style_struct("Border")}
 
+    ${single_keyword("box-decoration-break", "slice clone", products="gecko")}
 
     // CSS Writing Modes Level 3
     // http://dev.w3.org/csswg/css-writing-modes/
@@ -2554,8 +2595,16 @@ pub mod longhands {
     // FIXME(SimonSapin): initial (first) value should be 'mixed', when that's implemented
     ${single_keyword("text-orientation", "sideways sideways-left sideways-right", experimental=True)}
 
+    // CSS Color Module Level 4
+    // https://drafts.csswg.org/css-color/
+    ${single_keyword("color-adjust", "economy exact", products="gecko")}
+
     // CSS Basic User Interface Module Level 3
     // http://dev.w3.org/csswg/css-ui/
+    ${switch_to_style_struct("Box")}
+
+    ${single_keyword("resize", "none both horizontal vertical", products="gecko")}
+
     ${switch_to_style_struct("Position")}
 
     ${single_keyword("box-sizing", "content-box border-box")}
@@ -4162,6 +4211,8 @@ pub mod longhands {
 
     ${single_keyword("backface-visibility", "visible hidden")}
 
+    ${single_keyword("transform-box", "border-box fill-box view-box", products="gecko")}
+
     ${single_keyword("transform-style", "auto flat preserve-3d")}
 
     <%self:longhand name="transform-origin">
@@ -4316,10 +4367,25 @@ pub mod longhands {
         }
     </%self:longhand>
 
+    // Compositing and Blending Level 1
+    // http://www.w3.org/TR/compositing-1/
+    ${single_keyword("isolation", "auto isolate", products="gecko")}
+
     ${single_keyword("mix-blend-mode",
                      """normal multiply screen overlay darken lighten color-dodge
                         color-burn hard-light soft-light difference exclusion hue
                         saturation color luminosity""")}
+
+    // CSS Masking Module Level 1
+    // https://www.w3.org/TR/css-masking-1/
+    ${single_keyword("mask-type", "luminance alpha", products="gecko")}
+
+    // CSS Image Values and Replaced Content Module Level 3
+    // https://drafts.csswg.org/css-images-3/
+
+    ${switch_to_style_struct("Position")}
+
+    ${single_keyword("object-fit", "fill contain cover none scale-down", products="gecko")}
 
     ${switch_to_style_struct("InheritedBox")}
 
@@ -4930,6 +4996,43 @@ pub mod longhands {
             specified::parse_integer(input)
         }
     </%self:longhand>
+
+    ${single_keyword("flex-wrap", "nowrap wrap wrap-reverse", products="gecko")}
+
+    // SVG 1.1 (Second Edition)
+    // https://www.w3.org/TR/SVG/
+    ${new_style_struct("SVG", is_inherited=True)}
+
+    // Section 10 - Text
+    ${single_keyword("dominant-baseline",
+                     """auto use-script no-change reset-size ideographic alphabetic hanging
+                        mathematical central middle text-after-edge text-before-edge""",
+                     products="gecko")}
+
+    ${single_keyword("text-anchor", "start middle end", products="gecko")}
+
+    // Section 11 - Painting: Filling, Stroking and Marker Symbols
+    ${single_keyword("color-interpolation", "auto sRGB linearRGB", products="gecko")}
+
+    ${single_keyword("color-interpolation-filters", "auto sRGB linearRGB", products="gecko")}
+
+    ${single_keyword("fill-rule", "nonzero evenodd", products="gecko")}
+
+    ${single_keyword("shape-rendering", "auto optimizeSpeed crispEdges geometricPrecision",
+                     products="gecko")}
+
+    ${single_keyword("stroke-linecap", "butt round square", products="gecko")}
+
+    ${single_keyword("stroke-linejoin", "miter round bevel", products="gecko")}
+
+    ${switch_to_style_struct("Effects")}
+
+    ${single_keyword("vector-effect", "none non-scaling-stroke", products="gecko")}
+
+    ${switch_to_style_struct("SVG")}
+
+    // Section 14 - Clipping, Masking and Compositing
+    ${single_keyword("clip-rule", "nonzero evenodd", products="gecko")}
 }
 
 
@@ -6190,7 +6293,7 @@ impl PropertyDeclaration {
 pub mod style_struct_traits {
     use super::longhands;
 
-    % for style_struct in STYLE_STRUCTS:
+    % for style_struct in active_style_structs():
         pub trait ${style_struct.trait_name}: Clone {
             % for longhand in style_struct.longhands:
                 #[allow(non_snake_case)]
@@ -6211,7 +6314,7 @@ pub mod style_structs {
     use super::longhands;
     use std::hash::{Hash, Hasher};
 
-    % for style_struct in STYLE_STRUCTS:
+    % for style_struct in active_style_structs():
         % if style_struct.trait_name == "Font":
         #[derive(Clone, HeapSizeOf, Debug)]
         % else:
@@ -6327,7 +6430,7 @@ pub mod style_structs {
 }
 
 pub trait ComputedValues : Clone + Send + Sync + 'static {
-    % for style_struct in STYLE_STRUCTS:
+    % for style_struct in active_style_structs():
         type Concrete${style_struct.trait_name}: style_struct_traits::${style_struct.trait_name};
     % endfor
 
@@ -6342,7 +6445,7 @@ pub trait ComputedValues : Clone + Send + Sync + 'static {
                shareable: bool,
                writing_mode: WritingMode,
                root_font_size: Au,
-        % for style_struct in STYLE_STRUCTS:
+        % for style_struct in active_style_structs():
                ${style_struct.ident}: Arc<Self::Concrete${style_struct.trait_name}>,
         % endfor
         ) -> Self;
@@ -6351,7 +6454,7 @@ pub trait ComputedValues : Clone + Send + Sync + 'static {
 
         fn do_cascade_property<F: FnOnce(&Vec<Option<CascadePropertyFn<Self>>>)>(f: F);
 
-    % for style_struct in STYLE_STRUCTS:
+    % for style_struct in active_style_structs():
         fn clone_${style_struct.trait_name_lower}(&self) ->
             Arc<Self::Concrete${style_struct.trait_name}>;
         fn get_${style_struct.trait_name_lower}<'a>(&'a self) ->
@@ -6369,7 +6472,7 @@ pub trait ComputedValues : Clone + Send + Sync + 'static {
 
 #[derive(Clone, HeapSizeOf)]
 pub struct ServoComputedValues {
-    % for style_struct in STYLE_STRUCTS:
+    % for style_struct in active_style_structs():
         ${style_struct.ident}: Arc<style_structs::${style_struct.servo_struct_name}>,
     % endfor
     custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
@@ -6379,7 +6482,7 @@ pub struct ServoComputedValues {
 }
 
 impl ComputedValues for ServoComputedValues {
-    % for style_struct in STYLE_STRUCTS:
+    % for style_struct in active_style_structs():
         type Concrete${style_struct.trait_name} = style_structs::${style_struct.servo_struct_name};
     % endfor
 
@@ -6390,7 +6493,7 @@ impl ComputedValues for ServoComputedValues {
                shareable: bool,
                writing_mode: WritingMode,
                root_font_size: Au,
-            % for style_struct in STYLE_STRUCTS:
+            % for style_struct in active_style_structs():
                ${style_struct.ident}: Arc<style_structs::${style_struct.servo_struct_name}>,
             % endfor
         ) -> Self {
@@ -6399,7 +6502,7 @@ impl ComputedValues for ServoComputedValues {
                 shareable: shareable,
                 writing_mode: writing_mode,
                 root_font_size: root_font_size,
-            % for style_struct in STYLE_STRUCTS:
+            % for style_struct in active_style_structs():
                 ${style_struct.ident}: ${style_struct.ident},
             % endfor
             }
@@ -6411,7 +6514,7 @@ impl ComputedValues for ServoComputedValues {
             CASCADE_PROPERTY.with(|x| f(x));
         }
 
-    % for style_struct in STYLE_STRUCTS:
+    % for style_struct in active_style_structs():
         #[inline]
         fn clone_${style_struct.trait_name_lower}(&self) ->
             Arc<Self::Concrete${style_struct.trait_name}> {
@@ -6613,7 +6716,7 @@ impl ServoComputedValues {
 
     pub fn computed_value_to_string(&self, name: &str) -> Result<String, ()> {
         match name {
-            % for style_struct in STYLE_STRUCTS:
+            % for style_struct in active_style_structs():
                 % for longhand in style_struct.longhands:
                 "${longhand.name}" => Ok(self.${style_struct.ident}.${longhand.ident}.to_css_string()),
                 % endfor
@@ -6667,7 +6770,7 @@ pub fn get_writing_mode<S: style_struct_traits::InheritedBox>(inheritedbox_style
 /// The initial values for all style structs as defined by the specification.
 lazy_static! {
     pub static ref INITIAL_SERVO_VALUES: ServoComputedValues = ServoComputedValues {
-        % for style_struct in STYLE_STRUCTS:
+        % for style_struct in active_style_structs():
             ${style_struct.ident}: Arc::new(style_structs::${style_struct.servo_struct_name} {
                 % for longhand in style_struct.longhands:
                     ${longhand.ident}: longhands::${longhand.ident}::get_initial_value(),
@@ -6705,7 +6808,7 @@ fn cascade_with_cached_declarations<C: ComputedValues>(
             shareable,
             WritingMode::empty(),
             parent_style.root_font_size(),
-            % for style_struct in STYLE_STRUCTS:
+            % for style_struct in active_style_structs():
                 % if style_struct.inherited:
                     parent_style
                 % else:
@@ -6722,7 +6825,7 @@ fn cascade_with_cached_declarations<C: ComputedValues>(
         // Declarations are already stored in reverse order.
         for declaration in sub_list.declarations.iter() {
             match *declaration {
-                % for style_struct in STYLE_STRUCTS:
+                % for style_struct in active_style_structs():
                     % for property in style_struct.longhands:
                         % if property.derived_from is None:
                             PropertyDeclaration::${property.camel_case}(ref
@@ -6803,7 +6906,7 @@ pub type CascadePropertyFn<C /*: ComputedValues */> =
 
 pub fn make_cascade_vec<C: ComputedValues>() -> Vec<Option<CascadePropertyFn<C>>> {
     let mut result: Vec<Option<CascadePropertyFn<C>>> = Vec::new();
-    % for style_struct in STYLE_STRUCTS:
+    % for style_struct in active_style_structs():
         % for property in style_struct.longhands:
             let discriminant;
             unsafe {
@@ -6898,7 +7001,7 @@ pub fn cascade<C: ComputedValues>(
             shareable,
             WritingMode::empty(),
             inherited_style.root_font_size(),
-            % for style_struct in STYLE_STRUCTS:
+            % for style_struct in active_style_structs():
             % if style_struct.inherited:
             inherited_style
             % else:
