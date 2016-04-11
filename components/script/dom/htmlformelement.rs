@@ -414,7 +414,7 @@ impl HTMLFormElement {
                     HTMLElementTypeId::HTMLInputElement => {
                         let input = child.downcast::<HTMLInputElement>().unwrap();
                         // Step 3.2-3.7
-                        if let Some(datum) = input.get_form_datum(submitter) {
+                        if let Some(datum) = input.form_datum(submitter) {
                             data_set.push(datum);
                         }
                     }
