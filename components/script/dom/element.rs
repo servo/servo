@@ -791,7 +791,6 @@ impl Element {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#root-element
     pub fn get_root_element(&self) -> Root<Element> {
         if self.node.is_in_doc() {
             self.upcast::<Node>()
