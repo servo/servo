@@ -1113,6 +1113,11 @@ dependencies = [
 [[package]]
 name = "lazy_static"
 version = "0.1.15"
+source = "git+https://github.com/emilio/lazy-static.rs?rev=patch-1#a0926a268306bbc1a2316b462f0224dd3e530d9f"
+
+[[package]]
+name = "lazy_static"
+version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -1980,7 +1985,7 @@ dependencies = [
  "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 0.1.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.1.15 (git+https://github.com/emilio/lazy-static.rs?rev=patch-1)",
  "log 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "num 0.1.31 (registry+https://github.com/rust-lang/crates.io-index)",
