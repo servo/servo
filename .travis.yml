@@ -14,6 +14,7 @@ matrix:
          - ./mach build -d --verbose
          - ./mach test-unit
          - ./mach test-compiletest
+         - bash etc/ci/check_no_unwrap.sh
          - bash etc/ci/lockfile_changed.sh
          - bash etc/ci/manifest_changed.sh
       cache:
