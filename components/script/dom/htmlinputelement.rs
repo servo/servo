@@ -164,7 +164,7 @@ impl HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#input-type-attr-summary
-    fn get_value_mode(&self) -> ValueMode {
+    fn value_mode(&self) -> ValueMode {
         match self.input_type.get() {
             InputType::InputSubmit |
             InputType::InputReset |
@@ -361,7 +361,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn Value(&self) -> DOMString {
-        match self.get_value_mode() {
+        match self.value_mode() {
             ValueMode::Value => self.textinput.borrow().get_content(),
             ValueMode::Default => {
                 self.upcast::<Element>()
@@ -384,7 +384,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn SetValue(&self, value: DOMString) -> ErrorResult {
-        match self.get_value_mode() {
+        match self.value_mode() {
             ValueMode::Value => {
                 self.textinput.borrow_mut().set_content(value);
                 self.value_dirty.set(true);
@@ -740,9 +740,9 @@ impl VirtualMethods for HTMLInputElement {
                         };
 
                         // https://html.spec.whatwg.org/multipage/#input-type-change
-                        let (old_value_mode, old_idl_value) = (self.get_value_mode(), self.Value());
+                        let (old_value_mode, old_idl_value) = (self.value_mode(), self.Value());
                         self.input_type.set(new_type);
-                        let new_value_mode = self.get_value_mode();
+                        let new_value_mode = self.value_mode();
 
                         match (&old_value_mode, old_idl_value.is_empty(), new_value_mode) {
 
