@@ -213,7 +213,7 @@ impl Activatable for HTMLButtonElement {
 
     fn is_instance_activatable(&self) -> bool {
         //https://html.spec.whatwg.org/multipage/#the-button-element
-        !self.upcast::<Element>().get_disabled_state()
+        !self.upcast::<Element>().disabled_state()
     }
 
     // https://html.spec.whatwg.org/multipage/#run-pre-click-activation-steps

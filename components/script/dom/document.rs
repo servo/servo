@@ -903,7 +903,7 @@ impl Document {
             for element in new_target.upcast::<Node>()
                                      .inclusive_ancestors()
                                      .filter_map(Root::downcast::<Element>) {
-                if element.get_hover_state() {
+                if element.hover_state() {
                     break;
                 }
 
@@ -1774,7 +1774,7 @@ impl Document {
         let mut map = self.modified_elements.borrow_mut();
         let snapshot = map.entry(JS::from_ref(el)).or_insert(ElementSnapshot::new());
         if snapshot.state.is_none() {
-            snapshot.state = Some(el.get_state());
+            snapshot.state = Some(el.state());
         }
     }
 
@@ -1802,7 +1802,7 @@ impl Element {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement))
-                if self.get_disabled_state() => true,
+                if self.disabled_state() => true,
             _ => false,
         }
     }

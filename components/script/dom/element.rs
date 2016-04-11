@@ -791,8 +791,7 @@ impl Element {
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/#root-element
-    pub fn get_root_element(&self) -> Root<Element> {
+    pub fn root_element(&self) -> Root<Element> {
         if self.node.is_in_doc() {
             self.upcast::<Node>()
                 .owner_doc()
@@ -865,7 +864,7 @@ impl Element {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) |
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLOptionElement)) => {
-                self.get_disabled_state()
+                self.disabled_state()
             }
             // TODO:
             // an optgroup element that has a disabled attribute
@@ -1875,7 +1874,7 @@ impl<'a> ::selectors::Element for Root<Element> {
             NonTSPseudoClass::Disabled |
             NonTSPseudoClass::Checked |
             NonTSPseudoClass::Indeterminate =>
-                Element::get_state(self).contains(pseudo_class.state_flag()),
+                Element::state(self).contains(pseudo_class.state_flag()),
         }
     }
 
@@ -2078,7 +2077,7 @@ impl Element {
         self.set_click_in_progress(false);
     }
 
-    pub fn get_state(&self) -> ElementState {
+    pub fn state(&self) -> ElementState {
         self.state.get()
     }
 
@@ -2097,7 +2096,7 @@ impl Element {
         self.state.set(state);
     }
 
-    pub fn get_active_state(&self) -> bool {
+    pub fn active_state(&self) -> bool {
         self.state.get().contains(IN_ACTIVE_STATE)
     }
 
@@ -2105,7 +2104,7 @@ impl Element {
         self.set_state(IN_ACTIVE_STATE, value)
     }
 
-    pub fn get_focus_state(&self) -> bool {
+    pub fn focus_state(&self) -> bool {
         self.state.get().contains(IN_FOCUS_STATE)
     }
 
@@ -2114,7 +2113,7 @@ impl Element {
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
-    pub fn get_hover_state(&self) -> bool {
+    pub fn hover_state(&self) -> bool {
         self.state.get().contains(IN_HOVER_STATE)
     }
 
@@ -2122,7 +2121,7 @@ impl Element {
         self.set_state(IN_HOVER_STATE, value)
     }
 
-    pub fn get_enabled_state(&self) -> bool {
+    pub fn enabled_state(&self) -> bool {
         self.state.get().contains(IN_ENABLED_STATE)
     }
 
@@ -2130,7 +2129,7 @@ impl Element {
         self.set_state(IN_ENABLED_STATE, value)
     }
 
-    pub fn get_disabled_state(&self) -> bool {
+    pub fn disabled_state(&self) -> bool {
         self.state.get().contains(IN_DISABLED_STATE)
     }
 
@@ -2142,7 +2141,7 @@ impl Element {
 impl Element {
     pub fn check_ancestors_disabled_state_for_form_control(&self) {
         let node = self.upcast::<Node>();
-        if self.get_disabled_state() {
+        if self.disabled_state() {
             return;
         }
         for ancestor in node.ancestors() {
@@ -2151,7 +2150,7 @@ impl Element {
             if !ancestor.is::<HTMLFieldSetElement>() {
                 continue;
             }
-            if !ancestor.downcast::<Element>().unwrap().get_disabled_state() {
+            if !ancestor.downcast::<Element>().unwrap().disabled_state() {
                 continue;
             }
             if ancestor.is_parent_of(node) {
@@ -2176,13 +2175,13 @@ impl Element {
     }
 
     pub fn check_parent_disabled_state_for_option(&self) {
-        if self.get_disabled_state() {
+        if self.disabled_state() {
             return;
         }
         let node = self.upcast::<Node>();
         if let Some(ref parent) = node.GetParentNode() {
             if parent.is::<HTMLOptGroupElement>() &&
-               parent.downcast::<Element>().unwrap().get_disabled_state() {
+               parent.downcast::<Element>().unwrap().disabled_state() {
                 self.set_disabled_state(true);
                 self.set_enabled_state(false);
             }
@@ -2233,4 +2232,3 @@ impl AtomicElementFlags {
         self.0.fetch_or(flags.bits() as usize, Ordering::Relaxed);
     }
 }
-

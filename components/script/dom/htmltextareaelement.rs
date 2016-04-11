@@ -64,7 +64,7 @@ impl LayoutHTMLTextAreaElementHelpers for LayoutJS<HTMLTextAreaElement> {
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
     unsafe fn get_absolute_selection_for_layout(self) -> Option<Range<usize>> {
-        if (*self.unsafe_get()).upcast::<Element>().get_focus_state() {
+        if (*self.unsafe_get()).upcast::<Element>().focus_state() {
             Some((*self.unsafe_get()).textinput.borrow_for_layout()
                                       .get_absolute_selection_range())
         } else {

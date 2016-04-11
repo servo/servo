@@ -67,7 +67,7 @@ impl HTMLSelectElement {
                 last_selected = Some(Root::from_ref(opt.r()));
             }
             let element = opt.upcast::<Element>();
-            if first_enabled.is_none() && !element.get_disabled_state() {
+            if first_enabled.is_none() && !element.disabled_state() {
                 first_enabled = Some(Root::from_ref(opt.r()));
             }
         }
@@ -90,7 +90,7 @@ impl HTMLSelectElement {
         }
         for opt in node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>) {
             let element = opt.upcast::<Element>();
-            if opt.Selected() && element.get_enabled_state() {
+            if opt.Selected() && element.enabled_state() {
                 data_set.push(FormDatum {
                     ty: self.Type(),
                     name: self.Name(),

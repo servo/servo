@@ -200,7 +200,7 @@ impl HTMLElementMethods for HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-click
     fn Click(&self) {
-        if !self.upcast::<Element>().get_disabled_state() {
+        if !self.upcast::<Element>().disabled_state() {
             synthetic_click_activation(self.upcast::<Element>(),
                                        false,
                                        false,
@@ -223,7 +223,7 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#dom-blur
     fn Blur(&self) {
         // TODO: Run the unfocusing steps.
-        if !self.upcast::<Element>().get_focus_state() {
+        if !self.upcast::<Element>().focus_state() {
             return;
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
@@ -449,7 +449,7 @@ impl HTMLElement {
         };
 
         // Traverse entire tree for <label> elements with `for` attribute matching `id`
-        let root_element = element.get_root_element();
+        let root_element = element.root_element();
         let root_node = root_element.upcast::<Node>();
         let children = root_node.traverse_preorder()
                                 .filter_map(Root::downcast::<Element>)

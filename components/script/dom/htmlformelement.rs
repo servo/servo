@@ -400,7 +400,7 @@ impl HTMLFormElement {
         for child in node.traverse_preorder() {
             // Step 3.1: The field element is disabled.
             match child.downcast::<Element>() {
-                Some(el) if !el.get_disabled_state() => (),
+                Some(el) if !el.disabled_state() => (),
                 _ => continue,
             }
 
