@@ -656,7 +656,7 @@ impl HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
-    fn mutable(&self) -> bool {
+    fn is_mutable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-input-element:concept-fe-mutable
         // https://html.spec.whatwg.org/multipage/#the-readonly-attribute:concept-fe-mutable
         !(self.upcast::<Element>().disabled_state() || self.ReadOnly())
@@ -912,7 +912,7 @@ impl Activatable for HTMLInputElement {
             // https://html.spec.whatwg.org/multipage/#checkbox-state-%28type=checkbox%29:activation-behaviour-2
             // https://html.spec.whatwg.org/multipage/#radio-button-state-%28type=radio%29:activation-behaviour-2
             InputType::InputSubmit | InputType::InputReset
-            | InputType::InputCheckbox | InputType::InputRadio => self.mutable(),
+            | InputType::InputCheckbox | InputType::InputRadio => self.is_mutable(),
             _ => false
         }
     }
@@ -923,7 +923,7 @@ impl Activatable for HTMLInputElement {
         let mut cache = self.activation_state.borrow_mut();
         let ty = self.input_type.get();
         cache.old_type = ty;
-        cache.was_mutable = self.mutable();
+        cache.was_mutable = self.is_mutable();
         if cache.was_mutable {
             match ty {
                 // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):activation-behavior
@@ -1025,7 +1025,7 @@ impl Activatable for HTMLInputElement {
             InputType::InputSubmit => {
                 // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
-                if self.mutable() /* and document owner is fully active */ {
+                if self.is_mutable() /* and document owner is fully active */ {
                     self.form_owner().map(|o| {
                         o.submit(SubmittedFrom::NotFromFormSubmitMethod,
                                  FormSubmitter::InputElement(self.clone()))
@@ -1035,7 +1035,7 @@ impl Activatable for HTMLInputElement {
             InputType::InputReset => {
                 // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
-                if self.mutable() /* and document owner is fully active */ {
+                if self.is_mutable() /* and document owner is fully active */ {
                     self.form_owner().map(|o| {
                         o.reset(ResetFrom::NotFromFormResetMethod)
                     });
@@ -1044,7 +1044,7 @@ impl Activatable for HTMLInputElement {
             InputType::InputCheckbox | InputType::InputRadio => {
                 // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):activation-behavior
                 // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):activation-behavior
-                if self.mutable() {
+                if self.is_mutable() {
                     let target = self.upcast::<EventTarget>();
                     target.fire_event("input",
                                       EventBubbles::Bubbles,
