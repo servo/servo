@@ -27,6 +27,6 @@ interface PerformanceTiming {
   readonly attribute unsigned long long domContentLoadedEventStart;
   readonly attribute unsigned long long domContentLoadedEventEnd;
   readonly attribute unsigned long long domComplete;
-  /* readonly attribute unsigned long long loadEventStart;
-  readonly attribute unsigned long long loadEventEnd; */
+  readonly attribute unsigned long long loadEventStart;
+  readonly attribute unsigned long long loadEventEnd;
 };

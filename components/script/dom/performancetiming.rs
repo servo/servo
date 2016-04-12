@@ -76,6 +76,16 @@ impl PerformanceTimingMethods for PerformanceTiming {
     fn DomComplete(&self) -> u64 {
         self.document.get_dom_complete()
     }
+
+    // https://w3c.github.io/navigation-timing/#widl-PerformanceTiming-loadEventStart
+    fn LoadEventStart(&self) -> u64 {
+        self.document.get_load_event_start()
+    }
+
+    // https://w3c.github.io/navigation-timing/#widl-PerformanceTiming-loadEventEnd
+    fn LoadEventEnd(&self) -> u64 {
+        self.document.get_load_event_end()
+    }
 }
 
 
