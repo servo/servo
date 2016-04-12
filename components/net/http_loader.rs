@@ -141,11 +141,14 @@ fn load_for_consumer(load_data: LoadData,
     let factory = NetworkHttpRequestFactory {
         connector: connector,
     };
+
+    let ui_provider = TFDProvider {};
     let context = load_data.context.clone();
-    match load::<WrappedHttpRequest>(load_data, hsts_list,
-                                     cookie_jar, auth_cache,
-                                     devtools_chan, &factory,
-                                     user_agent, &cancel_listener) {
+    match load::<WrappedHttpRequest, TFDProvider>(load_data, &ui_provider, hsts_list,
+
+                                                  cookie_jar, auth_cache,
+                                                  devtools_chan, &factory,
+                                                  user_agent, &cancel_listener) {
         Err(LoadError::UnsupportedScheme(url)) => {
             let s = format!("{} request, but we don't support that scheme", &*url.scheme);
             send_error(url, s, start_chan)
@@ -686,7 +689,39 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
     Ok(response)
 }
 
-pub fn load<A>(mut load_data: LoadData,
+pub trait UIProvider {
+    fn input_username(&self) -> Option<String>;
+    fn input_password(&self) -> Option<String>;
+}
+
+impl UIProvider for TFDProvider {
+    fn input_username(&self) -> Option<String> {
+        tinyfiledialogs::input_box("Enter username", "Username:", "")
+     }
+    fn input_password(&self) -> Option<String> {
+        tinyfiledialogs::input_box("Enter password", "Password:", "")
+    }
+}
+
+impl UIProvider for TestProvider {
+    fn input_username(&self) -> Option<String> {
+        Some("test".to_owned())
+     }
+    fn input_password(&self) -> Option<String> {
+        Some("test".to_owned())
+    }
+}
+
+pub struct TestProvider {
+
+}
+
+struct TFDProvider {
+
+}
+
+pub fn load<A, B>(load_data: LoadData,
+               ui_provider: &B,
                hsts_list: Arc<RwLock<HSTSList>>,
                cookie_jar: Arc<RwLock<CookieStorage>>,
                auth_cache: Arc<RwLock<HashMap<Url, AuthCacheEntry>>>,
@@ -694,7 +729,7 @@ pub fn load<A>(mut load_data: LoadData,
                request_factory: &HttpRequestFactory<R=A>,
                user_agent: String,
                cancel_listener: &CancellationListener)
-               -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static {
+               -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static, B: UIProvider {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -704,6 +739,8 @@ pub fn load<A>(mut load_data: LoadData,
     let mut doc_url = load_data.url.clone();
     let mut redirected_to = HashSet::new();
     let mut method = load_data.method.clone();
+
+    let mut new_auth_header: Option<Authorization<Basic>> = None;
 
     if cancel_listener.is_cancelled() {
         return Err(LoadError::Cancelled(doc_url, "load cancelled".to_owned()));
@@ -759,42 +796,47 @@ pub fn load<A>(mut load_data: LoadData,
                                &user_agent, &cookie_jar,
                                &auth_cache, &load_data);
 
+        //if there is a new auth header then set the request headers with it
+        if new_auth_header.is_some() {
+            request_headers.set(new_auth_header.clone().unwrap());
+        }
         let response = try!(obtain_response(request_factory, &doc_url, &method, &request_headers,
                                             &cancel_listener, &load_data.data, &load_data.method,
                                             &load_data.pipeline_id, iters, &devtools_chan, &request_id));
 
         process_response_headers(&response, &doc_url, &cookie_jar, &hsts_list, &load_data);
 
-        if response.status() == StatusCode::Unauthorized && iters == 1 {
+        //if response status is unauthorized then prompt user for username and password
+        if response.status() == StatusCode::Unauthorized {
 
             let username: String;
-            match tinyfiledialogs::input_box("Enter username", "Username:", "") {
+            match ui_provider.input_username() {
                 Some(name) => username = name,
-                None => username = "null".to_owned(),
+                None => continue,
             }
 
-            let password: String;
-            match tinyfiledialogs::input_box("Enter password", "Password:", "") {
-                Some(name) => password = name,
-                None => password = "null".to_owned(),
-            }
-
-            load_data.preserved_headers.set(Authorization(Basic { username: username, password: Some(password) }));
+            let password = ui_provider.input_password();
+            new_auth_header =  Some(Authorization(
+                Basic {
+                    username: username,
+                    password: password,
+                }
+            ));
 
             continue;
         }
 
         if let Some(auth_header) = request_headers.get::<Authorization<Basic>>() {
-
             if response.status().class() == StatusClass::Success {
                 let auth_entry = AuthCacheEntry {
-                                    user_name: auth_header.username.to_owned(),
-                                    password: auth_header.password.to_owned().unwrap(),
-                                 };
+                    user_name: auth_header.username.to_owned(),
+                    password: auth_header.password.to_owned().unwrap(),
+                };
 
                 auth_cache.write().unwrap().insert(doc_url.clone(), auth_entry);
             }
         }
+
         // --- Loop if there's a redirect
         if response.status().class() == StatusClass::Redirection {
             if let Some(&Location(ref new_url)) = response.headers().get::<Location>() {

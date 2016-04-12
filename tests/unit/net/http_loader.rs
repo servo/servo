@@ -20,7 +20,7 @@ use msg::constellation_msg::PipelineId;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net::hsts::{HSTSList, HSTSEntry};
-use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpResponse};
+use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpResponse, TestProvider};
 use net::resource_thread::{AuthCacheEntry, CancellationListener};
 use net_traits::{LoadData, CookieSource, LoadContext, IncludeSubdomains};
 use std::borrow::Cow;
@@ -97,6 +97,18 @@ fn redirect_to(host: String) -> MockResponse {
     )
 }
 
+fn basic_auth(host: String) -> MockResponse {
+    let mut headers = Headers::new();
+    headers.set(Location(host.to_owned()));
+
+    MockResponse::new(
+        headers,
+        StatusCode::Unauthorized,
+        RawStatus(401, Cow::Borrowed("Unauthorized")),
+        b"".to_vec()
+    )
+}
+
 fn redirect_with_headers(host: String, mut headers: Headers) -> MockResponse {
     headers.set(Location(host.to_string()));
 
@@ -110,6 +122,7 @@ fn redirect_with_headers(host: String, mut headers: Headers) -> MockResponse {
 
 enum ResponseType {
     Redirect(String),
+    BasicAuth(String),
     RedirectWithHeaders(String, Headers),
     Text(Vec<u8>),
     WithHeaders(Vec<u8>, Headers)
@@ -130,6 +143,9 @@ fn response_for_request_type(t: ResponseType) -> Result<MockResponse, LoadError>
     match t {
         ResponseType::Redirect(location) => {
             Ok(redirect_to(location))
+        },
+        ResponseType::BasicAuth(location) => {
+            Ok(basic_auth(location))
         },
         ResponseType::RedirectWithHeaders(location, headers) => {
             Ok(redirect_with_headers(location, headers))
@@ -378,6 +394,7 @@ fn test_check_default_headers_loaded_in_every_request() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
     let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.data = None;
@@ -398,7 +415,7 @@ fn test_check_default_headers_loaded_in_every_request() {
     headers.set(UserAgent(DEFAULT_USER_AGENT.to_owned()));
 
     // Testing for method.GET
-    let _ = load::<AssertRequestMustHaveHeaders>(load_data.clone(), hsts_list.clone(),
+    let _ = load::<AssertRequestMustHaveHeaders, TestProvider>(load_data.clone(), &ui_provider, hsts_list.clone(),
                                                  cookie_jar.clone(), auth_cache.clone(), None,
                                                 &AssertMustHaveHeadersRequestFactory {
                                                     expected_headers: headers.clone(),
@@ -410,7 +427,8 @@ fn test_check_default_headers_loaded_in_every_request() {
 
     headers.set(ContentLength(0 as u64));
 
-    let _ = load::<AssertRequestMustHaveHeaders>(load_data.clone(), hsts_list, cookie_jar, auth_cache.clone(), None,
+    let _ = load::<AssertRequestMustHaveHeaders, TestProvider>(load_data.clone(), &ui_provider, hsts_list,
+                                                 cookie_jar, auth_cache.clone(), None,
                                                 &AssertMustHaveHeadersRequestFactory {
                                                     expected_headers: headers,
                                                     body: <[_]>::to_vec(&[])
@@ -424,6 +442,7 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
     let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.data = None;
@@ -432,8 +451,8 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
     let mut content_length = Headers::new();
     content_length.set(ContentLength(0));
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(
-        load_data.clone(), hsts_list, cookie_jar, auth_cache,
+    let _ = load::<AssertRequestMustIncludeHeaders, TestProvider>(
+        load_data.clone(), &ui_provider, hsts_list, cookie_jar, auth_cache,
         None, &AssertMustIncludeHeadersRequestFactory {
             expected_headers: content_length,
             body: <[_]>::to_vec(&[])
@@ -459,6 +478,7 @@ fn test_request_and_response_data_with_network_messages() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
     let url = url!("https://mozilla.com");
     let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
@@ -468,7 +488,8 @@ fn test_request_and_response_data_with_network_messages() {
     let mut request_headers = Headers::new();
     request_headers.set(Host { hostname: "bar.foo".to_owned(), port: None });
     load_data.headers = request_headers.clone();
-    let _ = load::<MockRequest>(load_data, hsts_list, cookie_jar, auth_cache, Some(devtools_chan), &Factory,
+    let _ = load::<MockRequest, TestProvider>(load_data, &ui_provider, hsts_list, cookie_jar,
+                                              auth_cache, Some(devtools_chan), &Factory,
                                 DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
 
     // notification received from devtools
@@ -535,11 +556,13 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
     let url = url!("https://mozilla.com");
     let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
-    let _ = load::<MockRequest>(load_data, hsts_list, cookie_jar, auth_cache, Some(devtools_chan), &Factory,
+    let _ = load::<MockRequest, TestProvider>(load_data, &ui_provider, hsts_list, cookie_jar,
+                                              auth_cache, Some(devtools_chan), &Factory,
                                 DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
 
     // notification received from devtools
@@ -573,8 +596,10 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
-    let _ = load::<MockRequest>(load_data, hsts_list, cookie_jar, auth_cache, None, &Factory,
+    let _ = load::<MockRequest, TestProvider>(load_data, &ui_provider, hsts_list,
+                                              cookie_jar, auth_cache, None, &Factory,
                                 DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
 }
 
@@ -602,9 +627,10 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
-    let mut response = load::<MockRequest>(
-        load_data, hsts_list, cookie_jar, auth_cache, None,
+    let mut response = load::<MockRequest, TestProvider>(
+        load_data, &ui_provider, hsts_list, cookie_jar, auth_cache, None,
         &Factory,
         DEFAULT_USER_AGENT.to_owned(),
         &CancellationListener::new(None))
@@ -636,9 +662,10 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
-    let mut response = load::<MockRequest>(
-        load_data,
+    let mut response = load::<MockRequest, TestProvider>(
+        load_data, &ui_provider,
         hsts_list,
         cookie_jar,
         auth_cache,
@@ -683,9 +710,10 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
-    let _ = load::<AssertMustHaveBodyRequest>(
-        load_data, hsts_list, cookie_jar,
+    let _ = load::<AssertMustHaveBodyRequest, TestProvider>(
+        load_data, &ui_provider, hsts_list, cookie_jar,
         auth_cache,
         None,
         &Factory,
@@ -715,8 +743,9 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
-    let _ = load::<MockRequest>(load_data,
+    let _ = load::<MockRequest, TestProvider>(load_data, &ui_provider,
                                 hsts_list.clone(),
                                 cookie_jar,
                                 auth_cache,
@@ -750,8 +779,9 @@ fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
-    let _ = load::<MockRequest>(load_data,
+    let _ = load::<MockRequest, TestProvider>(load_data, &ui_provider,
                                 hsts_list.clone(),
                                 cookie_jar,
                                 auth_cache,
@@ -783,12 +813,13 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
     assert_cookie_for_domain(cookie_jar.clone(), "http://mozilla.com", "");
 
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
 
-    let _ = load::<MockRequest>(load_data,
+    let _ = load::<MockRequest, TestProvider>(load_data, &ui_provider,
                                 hsts_list,
                                 cookie_jar.clone(),
                                 auth_cache.clone(),
@@ -810,6 +841,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
     {
         let mut cookie_jar = cookie_jar.write().unwrap();
@@ -825,7 +857,8 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
     let mut cookie = Headers::new();
     cookie.set(CookieHeader(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())]));
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), hsts_list, cookie_jar, auth_cache, None,
+    let _ = load::<AssertRequestMustIncludeHeaders, TestProvider>(load_data.clone(), &ui_provider, hsts_list,
+                                                                  cookie_jar, auth_cache, None,
                                                     &AssertMustIncludeHeadersRequestFactory {
                                                         expected_headers: cookie,
                                                         body: <[_]>::to_vec(&*load_data.data.unwrap())
@@ -841,6 +874,7 @@ fn test_load_sends_secure_cookie_if_http_changed_to_https_due_to_entry_in_hsts_s
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
     {
         let mut hsts_list = hsts_list.write().unwrap();
@@ -870,8 +904,8 @@ fn test_load_sends_secure_cookie_if_http_changed_to_https_due_to_entry_in_hsts_s
     let mut headers = Headers::new();
     headers.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(
-        load_data.clone(), hsts_list, cookie_jar, auth_cache, None,
+    let _ = load::<AssertRequestMustIncludeHeaders, TestProvider>(
+        load_data.clone(), &ui_provider, hsts_list, cookie_jar, auth_cache, None,
         &AssertMustIncludeHeadersRequestFactory {
             expected_headers: headers,
             body: <[_]>::to_vec(&*load_data.data.unwrap())
@@ -885,6 +919,7 @@ fn test_load_sends_cookie_if_nonhttp() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
     {
         let mut cookie_jar = cookie_jar.write().unwrap();
@@ -903,8 +938,8 @@ fn test_load_sends_cookie_if_nonhttp() {
     let mut headers = Headers::new();
     headers.set_raw("Cookie".to_owned(), vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(
-        load_data.clone(), hsts_list, cookie_jar, auth_cache, None,
+    let _ = load::<AssertRequestMustIncludeHeaders, TestProvider>(
+        load_data.clone(), &ui_provider, hsts_list, cookie_jar, auth_cache, None,
         &AssertMustIncludeHeadersRequestFactory {
             expected_headers: headers,
             body: <[_]>::to_vec(&*load_data.data.unwrap())
@@ -931,9 +966,10 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
-    let _ = load::<MockRequest>(load_data, hsts_list,
+    let _ = load::<MockRequest, TestProvider>(load_data, &ui_provider, hsts_list,
                                 cookie_jar.clone(),
                                 auth_cache,
                                 None,
@@ -963,9 +999,10 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
     let load_data = LoadData::new(LoadContext::Browsing, url!("http://mozilla.com"), None);
-    let _ = load::<MockRequest>(load_data, hsts_list,
+    let _ = load::<MockRequest, TestProvider>(load_data, &ui_provider, hsts_list,
                                 cookie_jar.clone(),
                                 auth_cache.clone(),
                                 None,
@@ -985,6 +1022,7 @@ fn test_when_cookie_set_marked_httpsonly_secure_isnt_sent_on_http_request() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
     {
         let mut cookie_jar = cookie_jar.write().unwrap();
@@ -1002,8 +1040,8 @@ fn test_when_cookie_set_marked_httpsonly_secure_isnt_sent_on_http_request() {
 
     assert_cookie_for_domain(cookie_jar.clone(), "https://mozilla.com", "mozillaIs=theBest");
 
-    let _ = load::<AssertRequestMustNotIncludeHeaders>(
-        load_data.clone(), hsts_list, cookie_jar, auth_cache, None,
+    let _ = load::<AssertRequestMustNotIncludeHeaders, TestProvider>(
+        load_data.clone(), &ui_provider, hsts_list, cookie_jar, auth_cache, None,
         &AssertMustNotIncludeHeadersRequestFactory {
             headers_not_expected: vec!["Cookie".to_owned()],
             body: <[_]>::to_vec(&*load_data.data.unwrap())
@@ -1024,13 +1062,15 @@ fn test_load_sets_content_length_to_length_of_request_body() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), hsts_list, cookie_jar, auth_cache,
-                                                    None, &AssertMustIncludeHeadersRequestFactory {
-                                                            expected_headers: content_len_headers,
-                                                            body: <[_]>::to_vec(&*load_data.data.unwrap())
-                                                        }, DEFAULT_USER_AGENT.to_owned(),
-                                                        &CancellationListener::new(None));
+    let _ = load::<AssertRequestMustIncludeHeaders, TestProvider>(load_data.clone(), &ui_provider, hsts_list,
+                                                                  cookie_jar, auth_cache, None,
+                                                                  &AssertMustIncludeHeadersRequestFactory {
+                                                                      expected_headers: content_len_headers,
+                                                                      body: <[_]>::to_vec(&*load_data.data.unwrap())
+                                                                  }, DEFAULT_USER_AGENT.to_owned(),
+                                                                  &CancellationListener::new(None));
 }
 
 #[test]
@@ -1048,8 +1088,9 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(load_data,
+    let _ = load::<AssertRequestMustIncludeHeaders, TestProvider>(load_data, &ui_provider,
                                                     hsts_list,
                                                     cookie_jar,
                                                     auth_cache,
@@ -1078,8 +1119,9 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(load_data,
+    let _ = load::<AssertRequestMustIncludeHeaders, TestProvider>(load_data, &ui_provider,
                                                     hsts_list,
                                                     cookie_jar,
                                                     auth_cache,
@@ -1104,8 +1146,9 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(load_data,
+    let _ = load::<AssertRequestMustIncludeHeaders, TestProvider>(load_data, &ui_provider,
                                                     hsts_list,
                                                     cookie_jar,
                                                     auth_cache,
@@ -1131,8 +1174,9 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(load_data,
+    let _ = load::<AssertRequestMustIncludeHeaders, TestProvider>(load_data, &ui_provider,
                                                     hsts_list,
                                                     cookie_jar,
                                                     auth_cache,
@@ -1168,8 +1212,9 @@ fn test_load_errors_when_there_a_redirect_loop() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
-    match load::<MockRequest>(load_data, hsts_list, cookie_jar, auth_cache, None, &Factory,
+    match load::<MockRequest, TestProvider>(load_data, &ui_provider, hsts_list, cookie_jar, auth_cache, None, &Factory,
                               DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None)) {
         Err(LoadError::InvalidRedirect(_, msg)) => {
             assert_eq!(msg, "redirect loop");
@@ -1200,8 +1245,9 @@ fn test_load_errors_when_there_is_too_many_redirects() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
-    match load::<MockRequest>(load_data, hsts_list, cookie_jar, auth_cache, None, &Factory,
+    match load::<MockRequest, TestProvider>(load_data, &ui_provider, hsts_list, cookie_jar, auth_cache, None, &Factory,
                               DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None)) {
         Err(LoadError::MaxRedirects(url)) => {
             assert_eq!(url.domain().unwrap(), "mozilla.com")
@@ -1240,8 +1286,9 @@ fn test_load_follows_a_redirect() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
-    match load::<MockRequest>(load_data, hsts_list, cookie_jar, auth_cache, None, &Factory,
+    match load::<MockRequest, TestProvider>(load_data, &ui_provider, hsts_list, cookie_jar, auth_cache, None, &Factory,
                               DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None)) {
         Err(e) => panic!("expected to follow a redirect {:?}", e),
         Ok(mut lr) => {
@@ -1269,8 +1316,9 @@ fn test_load_errors_when_scheme_is_not_http_or_https() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
-    match load::<MockRequest>(load_data,
+    match load::<MockRequest, TestProvider>(load_data, &ui_provider,
                               hsts_list,
                               cookie_jar,
                               auth_cache,
@@ -1291,8 +1339,9 @@ fn test_load_errors_when_viewing_source_and_inner_url_scheme_is_not_http_or_http
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
-    match load::<MockRequest>(load_data,
+    match load::<MockRequest, TestProvider>(load_data, &ui_provider,
                               hsts_list,
                               cookie_jar,
                               auth_cache,
@@ -1336,8 +1385,9 @@ fn test_load_errors_when_cancelled() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
-    match load::<MockRequest>(load_data,
+    match load::<MockRequest, TestProvider>(load_data, &ui_provider,
                               hsts_list,
                               cookie_jar,
                               auth_cache,
@@ -1387,6 +1437,7 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
     {
         let mut cookie_jar = cookie_jar.write().unwrap();
@@ -1408,7 +1459,7 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         cookie_jar.push(cookie_y, CookieSource::HTTP);
     }
 
-    match load::<AssertRequestMustIncludeHeaders>(load_data,
+    match load::<AssertRequestMustIncludeHeaders, TestProvider>(load_data, &ui_provider,
                               hsts_list,
                               cookie_jar,
                               auth_cache,
@@ -1458,8 +1509,9 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
-    match load::<AssertRequestMustIncludeHeaders>(load_data,
+    match load::<AssertRequestMustIncludeHeaders, TestProvider>(load_data, &ui_provider,
                               hsts_list,
                               cookie_jar,
                               auth_cache,
@@ -1482,6 +1534,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
     let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
     let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
     let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
 
     let auth_entry = AuthCacheEntry {
                         user_name: "username".to_owned(),
@@ -1504,10 +1557,63 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
        )
     );
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(
-        load_data.clone(), hsts_list, cookie_jar, auth_cache,
+    let _ = load::<AssertRequestMustIncludeHeaders, TestProvider>(
+        load_data.clone(), &ui_provider, hsts_list, cookie_jar, auth_cache,
         None, &AssertMustIncludeHeadersRequestFactory {
             expected_headers: auth_header,
             body: <[_]>::to_vec(&[])
         }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+}
+
+#[test]
+fn test_auth_ui_sets_header_on_401() {
+    struct Factory;
+
+    impl HttpRequestFactory for Factory {
+        type R = MockRequest;
+
+        fn create(&self, url: Url, _: Method) -> Result<MockRequest, LoadError> {
+            Ok(MockRequest::new(ResponseType::BasicAuth("http://mozilla.com".to_owned())))
+        }
+    }
+
+    let url = url!("http://mozilla.com/initial");
+    let hsts_list = Arc::new(RwLock::new(HSTSList::new()));
+    let cookie_jar = Arc::new(RwLock::new(CookieStorage::new()));
+    let auth_cache = Arc::new(RwLock::new(HashMap::new()));
+    let ui_provider = TestProvider {};
+
+    let mut auth_header = Headers::new();
+
+    auth_header.set(
+       Authorization(
+           Basic {
+               username: "username".to_owned(),
+               password: Some("test".to_owned())
+           }
+       )
+    );
+
+    let load_data = LoadData::new(LoadContext::Browsing, url, None);
+
+    let response = load::<MockRequest, TestProvider>(load_data, &ui_provider,
+                              hsts_list,
+                              cookie_jar,
+                              auth_cache,
+                              None,
+                              &Factory,
+                              DEFAULT_USER_AGENT.to_owned(),
+                              &CancellationListener::new(None));
+
+    match response {
+        Ok(r) => {
+               if r.metadata.headers.unwrap().has::<Authorization<Basic>>() {
+                   return;
+               } else {
+                   panic!("Auth header not set");
+               }
+        },
+        //Err(LoadError::MaxRedirects(url)) => panic!("Auth header not set {}", url),
+        _ => {},
+    }
 }
