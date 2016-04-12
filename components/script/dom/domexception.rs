@@ -35,7 +35,6 @@ pub enum DOMErrorName {
     TimeoutError = DOMExceptionConstants::TIMEOUT_ERR,
     InvalidNodeTypeError = DOMExceptionConstants::INVALID_NODE_TYPE_ERR,
     DataCloneError = DOMExceptionConstants::DATA_CLONE_ERR,
-    UnknownError,
     EncodingError,
 }
 
@@ -101,8 +100,7 @@ impl DOMExceptionMethods for DOMException {
             DOMErrorName::InvalidNodeTypeError =>
                 "The supplied node is incorrect or has an incorrect ancestor for this operation.",
             DOMErrorName::DataCloneError => "The object can not be cloned.",
-            DOMErrorName::EncodingError => "The encoding operation (either encoded or decoding) failed.",
-            DOMErrorName::UnknownError => "The operation failed for an unknown transient reason (e.g. out of memory)."
+            DOMErrorName::EncodingError => "The encoding operation (either encoded or decoding) failed."
         };
 
         DOMString::from(message)
