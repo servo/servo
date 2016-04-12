@@ -18,7 +18,6 @@ use gecko_style_structs::nsStyleColor;
 use gecko_style_structs::nsStyleList;
 use gecko_style_structs::nsStyleText;
 use gecko_style_structs::nsStyleVisibility;
-use gecko_style_structs::nsStyleQuotes;
 use gecko_style_structs::nsStyleUserInterface;
 use gecko_style_structs::nsStyleTableBorder;
 use gecko_style_structs::nsStyleSVG;
@@ -37,6 +36,7 @@ use gecko_style_structs::nsStyleOutline;
 use gecko_style_structs::nsStyleXUL;
 use gecko_style_structs::nsStyleSVGReset;
 use gecko_style_structs::nsStyleColumn;
+use gecko_style_structs::nsStyleEffects;
 
 extern "C" {
     pub fn Gecko_ChildrenCount(node: *mut RawGeckoNode) -> u32;
@@ -121,10 +121,6 @@ extern "C" {
                                                  other:
                                                      *const nsStyleVisibility);
     pub fn Gecko_Destroy_nsStyleVisibility(ptr: *mut nsStyleVisibility);
-    pub fn Gecko_Construct_nsStyleQuotes(ptr: *mut nsStyleQuotes);
-    pub fn Gecko_CopyConstruct_nsStyleQuotes(ptr: *mut nsStyleQuotes,
-                                             other: *const nsStyleQuotes);
-    pub fn Gecko_Destroy_nsStyleQuotes(ptr: *mut nsStyleQuotes);
     pub fn Gecko_Construct_nsStyleUserInterface(ptr:
                                                     *mut nsStyleUserInterface);
     pub fn Gecko_CopyConstruct_nsStyleUserInterface(ptr:
@@ -205,4 +201,8 @@ extern "C" {
     pub fn Gecko_CopyConstruct_nsStyleColumn(ptr: *mut nsStyleColumn,
                                              other: *const nsStyleColumn);
     pub fn Gecko_Destroy_nsStyleColumn(ptr: *mut nsStyleColumn);
+    pub fn Gecko_Construct_nsStyleEffects(ptr: *mut nsStyleEffects);
+    pub fn Gecko_CopyConstruct_nsStyleEffects(ptr: *mut nsStyleEffects,
+                                              other: *const nsStyleEffects);
+    pub fn Gecko_Destroy_nsStyleEffects(ptr: *mut nsStyleEffects);
 }
