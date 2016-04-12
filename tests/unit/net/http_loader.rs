@@ -152,49 +152,6 @@ impl HttpRequest for MockRequest {
     }
 }
 
-struct AssertRequestMustIncludeHeaders {
-    expected_headers: Headers,
-    request_headers: Headers,
-    t: ResponseType
-}
-
-impl AssertRequestMustIncludeHeaders {
-    fn new(t: ResponseType, expected_headers_op: Option<Headers>) -> Self {
-        match expected_headers_op {
-            Some(expected_headers) => {
-                assert!(expected_headers.len() != 0);
-                AssertRequestMustIncludeHeaders {
-                    expected_headers: expected_headers,
-                    request_headers: Headers::new(),
-                    t: t
-                }
-            }
-            None => AssertRequestMustIncludeHeaders {
-                expected_headers: Headers::new(),
-                request_headers: Headers::new(),
-                t: t
-            }
-        }
-    }
-}
-
-impl HttpRequest for AssertRequestMustIncludeHeaders {
-    type R = MockResponse;
-
-    fn headers_mut(&mut self) -> &mut Headers { &mut self.request_headers }
-
-    fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
-        for header in self.expected_headers.iter() {
-            assert!(self.request_headers.get_raw(header.name()).is_some());
-            assert_eq!(
-                self.request_headers.get_raw(header.name()).unwrap(),
-                self.expected_headers.get_raw(header.name()).unwrap()
-            )
-        }
-        response_for_request_type(self.t)
-    }
-}
-
 struct AssertMustHaveHeadersRequestFactory {
     expected_headers: Headers,
     body: Vec<u8>
@@ -209,6 +166,14 @@ impl HttpRequestFactory for AssertMustHaveHeadersRequestFactory {
     }
 }
 
+fn assert_headers_included(expected: &Headers, request: &Headers) {
+    assert!(expected.len() != 0);
+    for header in expected.iter() {
+        assert!(request.get_raw(header.name()).is_some());
+        assert_eq!(request.get_raw(header.name()).unwrap(),
+                   expected.get_raw(header.name()).unwrap())
+    }
+}
 
 struct AssertMustIncludeHeadersRequestFactory {
     expected_headers: Headers,
@@ -216,15 +181,11 @@ struct AssertMustIncludeHeadersRequestFactory {
 }
 
 impl HttpRequestFactory for AssertMustIncludeHeadersRequestFactory {
-    type R = AssertRequestMustIncludeHeaders;
+    type R = MockRequest;
 
-    fn create(&self, _: Url, _: Method) -> Result<AssertRequestMustIncludeHeaders, LoadError> {
-        Ok(
-            AssertRequestMustIncludeHeaders::new(
-                ResponseType::Text(self.body.clone()),
-                Some(self.expected_headers.clone())
-            )
-        )
+    fn create_with_headers(&self, _: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
+        assert_headers_included(&self.expected_headers, &headers);
+        Ok(MockRequest::new(ResponseType::Text(self.body.clone())))
     }
 }
 
@@ -1247,24 +1208,26 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
     struct Factory;
 
     impl HttpRequestFactory for Factory {
-        type R = AssertRequestMustIncludeHeaders;
+        type R = MockRequest;
 
-        fn create(&self, url: Url, _: Method) -> Result<AssertRequestMustIncludeHeaders, LoadError> {
+        fn create_with_headers(&self, url: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
                 let mut expected_headers_x = Headers::new();
                 expected_headers_x.set_raw("Cookie".to_owned(),
                     vec![<[_]>::to_vec("mozillaIsNot=dotCom".as_bytes())]);
+                assert_headers_included(&expected_headers_x, &headers);
 
-                Ok(AssertRequestMustIncludeHeaders::new(
-                    ResponseType::Redirect("http://mozilla.org".to_owned()), Some(expected_headers_x)))
+                Ok(MockRequest::new(
+                    ResponseType::Redirect("http://mozilla.org".to_owned())))
             } else if url.domain().unwrap() == "mozilla.org" {
                 let mut expected_headers_y = Headers::new();
                 expected_headers_y.set_raw(
                     "Cookie".to_owned(),
                     vec![<[_]>::to_vec("mozillaIs=theBest".as_bytes())]);
+                assert_headers_included(&expected_headers_y, &headers);
 
-                Ok(AssertRequestMustIncludeHeaders::new(
-                    ResponseType::Text(<[_]>::to_vec("Yay!".as_bytes())), Some(expected_headers_y)))
+                Ok(MockRequest::new(
+                    ResponseType::Text(<[_]>::to_vec("Yay!".as_bytes()))))
             } else {
                 panic!("unexpected host {:?}", url)
             }
@@ -1316,22 +1279,20 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
     struct Factory;
 
     impl HttpRequestFactory for Factory {
-        type R = AssertRequestMustIncludeHeaders;
+        type R = MockRequest;
 
-        fn create(&self, url: Url, _: Method) -> Result<AssertRequestMustIncludeHeaders, LoadError> {
+        fn create_with_headers(&self, url: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
             if url.path().unwrap()[0] == "initial" {
                 let mut initial_answer_headers = Headers::new();
                 initial_answer_headers.set_raw("set-cookie", vec![b"mozillaIs=theBest; path=/;".to_vec()]);
-                Ok(AssertRequestMustIncludeHeaders::new(
+                Ok(MockRequest::new(
                     ResponseType::RedirectWithHeaders("http://mozilla.org/subsequent/".to_owned(),
-                        initial_answer_headers),
-                    None))
+                        initial_answer_headers)))
             } else if url.path().unwrap()[0] == "subsequent" {
                 let mut expected_subsequent_headers = Headers::new();
                 expected_subsequent_headers.set_raw("Cookie", vec![b"mozillaIs=theBest".to_vec()]);
-                Ok(AssertRequestMustIncludeHeaders::new(
-                    ResponseType::Text(b"Yay!".to_vec()),
-                    Some(expected_subsequent_headers)))
+                assert_headers_included(&expected_subsequent_headers, &headers);
+                Ok(MockRequest::new(ResponseType::Text(b"Yay!".to_vec())))
             } else {
                 panic!("unexpected host {:?}", url)
             }
