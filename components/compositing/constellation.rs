@@ -851,6 +851,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
         let window_size = self.pipelines.get(&failure.pipeline_id).and_then(|pipeline| pipeline.size);
 
+        // Notify the browser chrome that the pipeline has failed
+        self.trigger_mozbrowsererror(failure.pipeline_id);
+
         self.close_pipeline(failure.pipeline_id, ExitPipelineMode::Force);
 
         while let Some(pending_pipeline_id) = self.pending_frames.iter().find(|pending| {
@@ -1870,6 +1873,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserlocationchange
+    // Note that this is a no-op if the pipeline is not an immediate child iframe of the root
     fn trigger_mozbrowserlocationchange(&self, pipeline_id: PipelineId) {
         if prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) {
             let event_info = self.pipelines.get(&pipeline_id).and_then(|pipeline| {
@@ -1894,6 +1898,29 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
     }
 
+    // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsererror
+    // Note that this does not require the pipeline to be an immediate child of the root
+    // TODO: propagate more error information, e.g. a backtrace
+    fn trigger_mozbrowsererror(&self, pipeline_id: PipelineId) {
+        if prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) {
+            if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+                if let Some(mut ancestor_info) = pipeline.parent_info {
+                    if let Some(mut ancestor) = self.pipelines.get(&ancestor_info.0) {
+                        while let Some(next_info) = ancestor.parent_info {
+                            ancestor_info = next_info;
+                            ancestor = match self.pipelines.get(&ancestor_info.0) {
+                                Some(ancestor) => ancestor,
+                                None => return warn!("Mozbrowsererror via closed pipeline {:?}.", ancestor_info.0),
+                            };
+                        }
+                        let event = MozBrowserEvent::Error;
+                        ancestor.trigger_mozbrowser_event(ancestor_info.1, event);
+                    }
+                }
+            }
+        }
+    }
+
     fn focused_pipeline_in_tree(&self, frame_id: FrameId) -> bool {
         self.focus_pipeline_id.map_or(false, |pipeline_id| {
             self.pipeline_exists_in_tree(pipeline_id, Some(frame_id))
@@ -1910,4 +1937,5 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         self.current_frame_tree_iter(root_frame_id)
             .any(|current_frame| current_frame.current == pipeline_id)
     }
+
 }
