@@ -164,7 +164,7 @@ impl HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#input-type-attr-summary
-    fn get_value_mode(&self) -> ValueMode {
+    fn value_mode(&self) -> ValueMode {
         match self.input_type.get() {
             InputType::InputSubmit |
             InputType::InputReset |
@@ -208,15 +208,15 @@ impl HTMLInputElement {
 
 pub trait LayoutHTMLInputElementHelpers {
     #[allow(unsafe_code)]
-    unsafe fn get_value_for_layout(self) -> String;
+    unsafe fn value_for_layout(self) -> String;
     #[allow(unsafe_code)]
-    unsafe fn get_size_for_layout(self) -> u32;
+    unsafe fn size_for_layout(self) -> u32;
     #[allow(unsafe_code)]
-    unsafe fn get_selection_for_layout(self) -> Option<Range<isize>>;
+    unsafe fn selection_for_layout(self) -> Option<Range<isize>>;
     #[allow(unsafe_code)]
-    unsafe fn get_checked_state_for_layout(self) -> bool;
+    unsafe fn checked_state_for_layout(self) -> bool;
     #[allow(unsafe_code)]
-    unsafe fn get_indeterminate_state_for_layout(self) -> bool;
+    unsafe fn indeterminate_state_for_layout(self) -> bool;
 }
 
 #[allow(unsafe_code)]
@@ -226,7 +226,7 @@ unsafe fn get_raw_textinput_value(input: LayoutJS<HTMLInputElement>) -> DOMStrin
 
 impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
     #[allow(unsafe_code)]
-    unsafe fn get_value_for_layout(self) -> String {
+    unsafe fn value_for_layout(self) -> String {
         #[allow(unsafe_code)]
         unsafe fn get_raw_attr_value(input: LayoutJS<HTMLInputElement>, default: &str) -> String {
             let elem = input.upcast::<Element>();
@@ -245,7 +245,7 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
             InputType::InputPassword => {
                 let text = get_raw_textinput_value(self);
                 if !text.is_empty() {
-                    // The implementation of get_selection_for_layout expects a 1:1 mapping of chars.
+                    // The implementation of selection_for_layout expects a 1:1 mapping of chars.
                     text.chars().map(|_| '●').collect()
                 } else {
                     String::from((*self.unsafe_get()).placeholder.borrow_for_layout().clone())
@@ -254,7 +254,7 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
             _ => {
                 let text = get_raw_textinput_value(self);
                 if !text.is_empty() {
-                    // The implementation of get_selection_for_layout expects a 1:1 mapping of chars.
+                    // The implementation of selection_for_layout expects a 1:1 mapping of chars.
                     String::from(text)
                 } else {
                     String::from((*self.unsafe_get()).placeholder.borrow_for_layout().clone())
@@ -265,19 +265,19 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_size_for_layout(self) -> u32 {
+    unsafe fn size_for_layout(self) -> u32 {
         (*self.unsafe_get()).size.get()
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_selection_for_layout(self) -> Option<Range<isize>> {
+    unsafe fn selection_for_layout(self) -> Option<Range<isize>> {
         if !(*self.unsafe_get()).upcast::<Element>().focus_state() {
             return None;
         }
 
         // Use the raw textinput to get the index as long as we use a 1:1 char mapping
-        // in get_value_for_layout.
+        // in value_for_layout.
         let raw = match (*self.unsafe_get()).input_type.get() {
             InputType::InputText |
             InputType::InputPassword => get_raw_textinput_value(self),
@@ -293,13 +293,13 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_checked_state_for_layout(self) -> bool {
+    unsafe fn checked_state_for_layout(self) -> bool {
         self.upcast::<Element>().get_state_for_layout().contains(IN_CHECKED_STATE)
     }
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn get_indeterminate_state_for_layout(self) -> bool {
+    unsafe fn indeterminate_state_for_layout(self) -> bool {
         self.upcast::<Element>().get_state_for_layout().contains(IN_INDETERMINATE_STATE)
     }
 }
@@ -380,7 +380,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn Value(&self) -> DOMString {
-        match self.get_value_mode() {
+        match self.value_mode() {
             ValueMode::Value => self.textinput.borrow().get_content(),
             ValueMode::Default => {
                 self.upcast::<Element>()
@@ -403,7 +403,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-value
     fn SetValue(&self, value: DOMString) -> ErrorResult {
-        match self.get_value_mode() {
+        match self.value_mode() {
             ValueMode::Value => {
                 self.textinput.borrow_mut().set_content(value);
                 self.value_dirty.set(true);
@@ -642,7 +642,7 @@ fn in_same_group(other: &HTMLInputElement, owner: Option<&HTMLFormElement>,
     other.input_type.get() == InputType::InputRadio &&
     // TODO Both a and b are in the same home subtree.
     other.form_owner().r() == owner &&
-    match (other.get_radio_group_name(), group) {
+    match (other.radio_group_name(), group) {
         (Some(ref s1), Some(s2)) => compatibility_caseless_match_str(s1, s2) && s2 != &atom!(""),
         _ => false
     }
@@ -657,7 +657,7 @@ impl HTMLInputElement {
 
     /// https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
     /// Steps range from 3.1 to 3.7 which related to the HTMLInputElement
-    pub fn get_form_datum(&self, submitter: Option<FormSubmitter>) -> Option<FormDatum> {
+    pub fn form_datum(&self, submitter: Option<FormSubmitter>) -> Option<FormDatum> {
         // Step 3.2
         let ty = self.type_();
         // Step 3.4
@@ -693,7 +693,7 @@ impl HTMLInputElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#radio-button-group
-    fn get_radio_group_name(&self) -> Option<Atom> {
+    fn radio_group_name(&self) -> Option<Atom> {
         //TODO: determine form owner
         self.upcast::<Element>()
             .get_attribute(&ns!(), &atom!("name"))
@@ -709,19 +709,15 @@ impl HTMLInputElement {
 
         if self.input_type.get() == InputType::InputRadio && checked {
             broadcast_radio_checked(self,
-                                    self.get_radio_group_name().as_ref());
+                                    self.radio_group_name().as_ref());
         }
 
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
         //TODO: dispatch change event
     }
 
-    pub fn get_indeterminate_state(&self) -> bool {
-        self.Indeterminate()
-    }
-
     // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
-    fn mutable(&self) -> bool {
+    fn is_mutable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-input-element:concept-fe-mutable
         // https://html.spec.whatwg.org/multipage/#the-readonly-attribute:concept-fe-mutable
         !(self.upcast::<Element>().disabled_state() || self.ReadOnly())
@@ -801,9 +797,9 @@ impl VirtualMethods for HTMLInputElement {
                         };
 
                         // https://html.spec.whatwg.org/multipage/#input-type-change
-                        let (old_value_mode, old_idl_value) = (self.get_value_mode(), self.Value());
+                        let (old_value_mode, old_idl_value) = (self.value_mode(), self.Value());
                         self.input_type.set(new_type);
-                        let new_value_mode = self.get_value_mode();
+                        let new_value_mode = self.value_mode();
 
                         match (&old_value_mode, old_idl_value.is_empty(), new_value_mode) {
 
@@ -835,7 +831,7 @@ impl VirtualMethods for HTMLInputElement {
                         // Step 5
                         if new_type == InputType::InputRadio {
                             self.radio_group_updated(
-                                self.get_radio_group_name().as_ref());
+                                self.radio_group_name().as_ref());
                         }
 
                         // TODO: Step 6 - value sanitization
@@ -844,7 +840,7 @@ impl VirtualMethods for HTMLInputElement {
                         if self.input_type.get() == InputType::InputRadio {
                             broadcast_radio_checked(
                                 self,
-                                self.get_radio_group_name().as_ref());
+                                self.radio_group_name().as_ref());
                         }
                         self.input_type.set(InputType::InputText);
                     }
@@ -977,7 +973,7 @@ impl Activatable for HTMLInputElement {
             // https://html.spec.whatwg.org/multipage/#checkbox-state-%28type=checkbox%29:activation-behaviour-2
             // https://html.spec.whatwg.org/multipage/#radio-button-state-%28type=radio%29:activation-behaviour-2
             InputType::InputSubmit | InputType::InputReset
-            | InputType::InputCheckbox | InputType::InputRadio => self.mutable(),
+            | InputType::InputCheckbox | InputType::InputRadio => self.is_mutable(),
             _ => false
         }
     }
@@ -988,7 +984,7 @@ impl Activatable for HTMLInputElement {
         let mut cache = self.activation_state.borrow_mut();
         let ty = self.input_type.get();
         cache.old_type = ty;
-        cache.was_mutable = self.mutable();
+        cache.was_mutable = self.is_mutable();
         if cache.was_mutable {
             match ty {
                 // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):activation-behavior
@@ -1013,7 +1009,7 @@ impl Activatable for HTMLInputElement {
                     let owner = self.form_owner();
                     let doc = document_from_node(self);
                     let doc_node = doc.upcast::<Node>();
-                    let group = self.get_radio_group_name();;
+                    let group = self.radio_group_name();;
 
                     // Safe since we only manipulate the DOM tree after finding an element
                     let checked_member = doc_node.query_selector_iter(DOMString::from("input[type=radio]"))
@@ -1059,16 +1055,12 @@ impl Activatable for HTMLInputElement {
             InputType::InputRadio => {
                 // We want to restore state only if the element had been changed in the first place
                 if cache.was_mutable {
-                    let name = self.get_radio_group_name();
                     match cache.checked_radio.r() {
                         Some(o) => {
                             // Avoiding iterating through the whole tree here, instead
                             // we can check if the conditions for radio group siblings apply
-                            if name == o.get_radio_group_name() && // TODO should be compatibility caseless
-                               self.form_owner() == o.form_owner() &&
-                               // TODO Both a and b are in the same home subtree
-                               o.input_type.get() == InputType::InputRadio {
-                                    o.SetChecked(true);
+                            if in_same_group(&o, self.form_owner().r(), self.radio_group_name().as_ref()) {
+                                o.SetChecked(true);
                             } else {
                                 self.SetChecked(false);
                             }
@@ -1085,8 +1077,8 @@ impl Activatable for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#run-post-click-activation-steps
     fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
         let ty = self.input_type.get();
-        if self.activation_state.borrow().old_type != ty {
-            // Type changed, abandon ship
+        if self.activation_state.borrow().old_type != ty || !self.is_mutable() {
+            // Type changed or input is immutable, abandon ship
             // https://www.w3.org/Bugs/Public/show_bug.cgi?id=27414
             return;
         }
@@ -1094,34 +1086,31 @@ impl Activatable for HTMLInputElement {
             InputType::InputSubmit => {
                 // https://html.spec.whatwg.org/multipage/#submit-button-state-(type=submit):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
-                if self.mutable() /* and document owner is fully active */ {
-                    self.form_owner().map(|o| {
-                        o.submit(SubmittedFrom::NotFromFormSubmitMethod,
-                                 FormSubmitter::InputElement(self.clone()))
-                    });
-                }
+                // Check if document owner is fully active
+                self.form_owner().map(|o| {
+                    o.submit(SubmittedFrom::NotFromFormSubmitMethod,
+                             FormSubmitter::InputElement(self.clone()))
+                });
             },
             InputType::InputReset => {
                 // https://html.spec.whatwg.org/multipage/#reset-button-state-(type=reset):activation-behavior
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
-                if self.mutable() /* and document owner is fully active */ {
-                    self.form_owner().map(|o| {
-                        o.reset(ResetFrom::NotFromFormResetMethod)
-                    });
-                }
+                // Check if document owner is fully active
+                self.form_owner().map(|o| {
+                    o.reset(ResetFrom::NotFromFormResetMethod)
+                });
             },
             InputType::InputCheckbox | InputType::InputRadio => {
                 // https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):activation-behavior
                 // https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):activation-behavior
-                if self.mutable() {
-                    let target = self.upcast::<EventTarget>();
-                    target.fire_event("input",
-                                      EventBubbles::Bubbles,
-                                      EventCancelable::NotCancelable);
-                    target.fire_event("change",
-                                      EventBubbles::Bubbles,
-                                      EventCancelable::NotCancelable);
-                }
+                // Check if document owner is fully active
+                let target = self.upcast::<EventTarget>();
+                target.fire_event("input",
+                                  EventBubbles::Bubbles,
+                                  EventCancelable::NotCancelable);
+                target.fire_event("change",
+                                  EventBubbles::Bubbles,
+                                  EventCancelable::NotCancelable);
             },
             _ => ()
         }

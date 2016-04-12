@@ -1050,7 +1050,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
             return TextContent::Text(data);
         }
         if let Some(input) = this.downcast::<HTMLInputElement>() {
-            let data = unsafe { input.get_value_for_layout() };
+            let data = unsafe { input.value_for_layout() };
             return TextContent::Text(data);
         }
         if let Some(area) = this.downcast::<HTMLTextAreaElement>() {
@@ -1076,7 +1076,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
             }
         }
         if let Some(input) = this.downcast::<HTMLInputElement>() {
-            if let Some(selection) = unsafe { input.get_selection_for_layout() } {
+            if let Some(selection) = unsafe { input.selection_for_layout() } {
                 return Some(Range::new(CharIndex(selection.begin()),
                                        CharIndex(selection.length())));
             }
