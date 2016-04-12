@@ -1383,6 +1383,7 @@ impl Window {
             pipelineid: id,
             script_chan: Arc::new(Mutex::new(control_chan)),
         };
+        let current_time = time::get_time();
         let win = box Window {
             eventtarget: EventTarget::new_inherited(),
             script_chan: script_chan,
@@ -1402,7 +1403,7 @@ impl Window {
             devtools_chan: devtools_chan,
             browsing_context: Default::default(),
             performance: Default::default(),
-            navigation_start: time::get_time().sec as u64,
+            navigation_start: (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64,
             navigation_start_precise: time::precise_time_ns() as f64,
             screen: Default::default(),
             session_storage: Default::default(),
