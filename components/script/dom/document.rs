@@ -209,13 +209,15 @@ pub struct Document {
     modified_elements: DOMRefCell<HashMap<JS<Element>, ElementSnapshot>>,
     /// http://w3c.github.io/touch-events/#dfn-active-touch-point
     active_touch_points: DOMRefCell<Vec<JS<Touch>>>,
-    /// DOM-Related Navigation Timing properties:
-    /// http://w3c.github.io/navigation-timing/#widl-PerformanceTiming-domLoading
+    /// Navigation Timing properties:
+    /// https://w3c.github.io/navigation-timing/#sec-PerformanceNavigationTiming
     dom_loading: Cell<u64>,
     dom_interactive: Cell<u64>,
     dom_content_loaded_event_start: Cell<u64>,
     dom_content_loaded_event_end: Cell<u64>,
     dom_complete: Cell<u64>,
+    load_event_start: Cell<u64>,
+    load_event_end: Cell<u64>,
     /// Vector to store CSS errors
     css_errors_store: DOMRefCell<Vec<CSSError>>,
     /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
@@ -544,14 +546,14 @@ impl Document {
             DocumentReadyState::Loading => {
                 // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserconnected
                 self.trigger_mozbrowser_event(MozBrowserEvent::Connected);
-                update_with_current_time(&self.dom_loading);
+                update_with_current_time_ms(&self.dom_loading);
             },
             DocumentReadyState::Complete => {
                 // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadend
                 self.trigger_mozbrowser_event(MozBrowserEvent::LoadEnd);
-                update_with_current_time(&self.dom_complete);
+                update_with_current_time_ms(&self.dom_complete);
             },
-            DocumentReadyState::Interactive => update_with_current_time(&self.dom_interactive),
+            DocumentReadyState::Interactive => update_with_current_time_ms(&self.dom_interactive),
         };
 
         self.ready_state.set(state);
@@ -1447,7 +1449,7 @@ impl Document {
         }
         self.domcontentloaded_dispatched.set(true);
 
-        update_with_current_time(&self.dom_content_loaded_event_start);
+        update_with_current_time_ms(&self.dom_content_loaded_event_start);
 
         let chan = MainThreadScriptChan(self.window().main_thread_script_chan().clone()).clone();
         let doctarget = Trusted::new(self.upcast::<EventTarget>(), chan);
@@ -1458,7 +1460,7 @@ impl Document {
                              ReflowQueryType::NoQuery,
                              ReflowReason::DOMContentLoaded);
 
-        update_with_current_time(&self.dom_content_loaded_event_end);
+        update_with_current_time_ms(&self.dom_content_loaded_event_end);
     }
 
     pub fn notify_constellation_load(&self) {
@@ -1511,6 +1513,14 @@ impl Document {
 
     pub fn get_dom_complete(&self) -> u64 {
         self.dom_complete.get()
+    }
+
+    pub fn get_load_event_start(&self) -> u64 {
+        self.load_event_start.get()
+    }
+
+    pub fn get_load_event_end(&self) -> u64 {
+        self.load_event_end.get()
     }
 
     // https://html.spec.whatwg.org/multipage/#fire-a-focus-event
@@ -1658,6 +1668,8 @@ impl Document {
             dom_content_loaded_event_start: Cell::new(Default::default()),
             dom_content_loaded_event_end: Cell::new(Default::default()),
             dom_complete: Cell::new(Default::default()),
+            load_event_start: Cell::new(Default::default()),
+            load_event_end: Cell::new(Default::default()),
             css_errors_store: DOMRefCell::new(vec![]),
             https_state: Cell::new(HttpsState::None),
             touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
@@ -2712,9 +2724,10 @@ fn is_scheme_host_port_tuple(url: &Url) -> bool {
     url.host().is_some() && url.port_or_default().is_some()
 }
 
-fn update_with_current_time(marker: &Cell<u64>) {
+fn update_with_current_time_ms(marker: &Cell<u64>) {
     if marker.get() == Default::default() {
-        let current_time_ms = time::get_time().sec * 1000;
+        let time = time::get_time();
+        let current_time_ms = time.sec * 1000 + time.nsec as i64 / 1000000;
         marker.set(current_time_ms as u64);
     }
 }
@@ -2744,7 +2757,14 @@ impl DocumentProgressHandler {
                                EventCancelable::NotCancelable);
         let wintarget = window.upcast::<EventTarget>();
         event.set_trusted(true);
+
+        // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventStart
+        update_with_current_time_ms(&document.load_event_start);
+
         let _ = wintarget.dispatch_event_with_target(document.upcast(), &event);
+
+        // http://w3c.github.io/navigation-timing/#widl-PerformanceNavigationTiming-loadEventEnd
+        update_with_current_time_ms(&document.load_event_end);
 
         document.notify_constellation_load();
 
