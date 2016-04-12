@@ -21,6 +21,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::VirtualMethods;
+use heapsize::HeapSizeOf;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::image::base::{Image, ImageMetadata};
@@ -33,17 +34,31 @@ use string_cache::Atom;
 use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
+#[derive(JSTraceable, HeapSizeOf)]
+#[allow(dead_code)]
+enum State {
+    Unavailable,
+    PartiallyAvailable,
+    CompletelyAvailable,
+    Broken,
+}
+#[derive(JSTraceable, HeapSizeOf)]
+struct ImageRequest {
+    state: State,
+    url: Option<Url>,
+    image: Option<Arc<Image>>,
+    metadata: Option<ImageMetadata>,
+}
 #[dom_struct]
 pub struct HTMLImageElement {
     htmlelement: HTMLElement,
-    url: DOMRefCell<Option<Url>>,
-    image: DOMRefCell<Option<Arc<Image>>>,
-    metadata: DOMRefCell<Option<ImageMetadata>>,
+    current_request: DOMRefCell<ImageRequest>,
+    pending_request: DOMRefCell<ImageRequest>,
 }
 
 impl HTMLImageElement {
     pub fn get_url(&self) -> Option<Url>{
-        self.url.borrow().clone()
+        self.current_request.borrow().url.clone()
     }
 }
 
@@ -77,8 +92,8 @@ impl Runnable for ImageResponseHandlerRunnable {
             }
             ImageResponse::None => (None, None, true)
         };
-        *element_ref.image.borrow_mut() = image;
-        *element_ref.metadata.borrow_mut() = metadata;
+        element_ref.current_request.borrow_mut().image = image;
+        element_ref.current_request.borrow_mut().metadata = metadata;
 
         // Mark the node dirty
         let document = document_from_node(&*element);
@@ -104,14 +119,14 @@ impl HTMLImageElement {
         let image_cache = window.image_cache_thread();
         match value {
             None => {
-                *self.url.borrow_mut() = None;
-                *self.image.borrow_mut() = None;
+                self.current_request.borrow_mut().url = None;
+                self.current_request.borrow_mut().image = None;
             }
             Some((src, base_url)) => {
                 let img_url = base_url.join(&src);
                 // FIXME: handle URL parse errors more gracefully.
                 let img_url = img_url.unwrap();
-                *self.url.borrow_mut() = Some(img_url.clone());
+                self.current_request.borrow_mut().url = Some(img_url.clone());
 
                 let trusted_node = Trusted::new(self, window.networking_task_source());
                 let (responder_sender, responder_receiver) = ipc::channel().unwrap();
@@ -134,13 +149,21 @@ impl HTMLImageElement {
             }
         }
     }
-
     fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
-            url: DOMRefCell::new(None),
-            image: DOMRefCell::new(None),
-            metadata: DOMRefCell::new(None),
+            current_request: DOMRefCell::new(ImageRequest {
+                state: State::Unavailable,
+                url: None,
+                image: None,
+                metadata: None
+            }),
+            pending_request: DOMRefCell::new(ImageRequest {
+                state: State::Unavailable,
+                url: None,
+                image: None,
+                metadata: None
+            }),
         }
     }
 
@@ -182,12 +205,12 @@ pub trait LayoutHTMLImageElementHelpers {
 impl LayoutHTMLImageElementHelpers for LayoutJS<HTMLImageElement> {
     #[allow(unsafe_code)]
     unsafe fn image(&self) -> Option<Arc<Image>> {
-        (*self.unsafe_get()).image.borrow_for_layout().clone()
+        (*self.unsafe_get()).current_request.borrow_for_layout().image.clone()
     }
 
     #[allow(unsafe_code)]
     unsafe fn image_url(&self) -> Option<Url> {
-        (*self.unsafe_get()).url.borrow_for_layout().clone()
+        (*self.unsafe_get()).current_request.borrow_for_layout().url.clone()
     }
 
     #[allow(unsafe_code)]
@@ -223,6 +246,11 @@ impl HTMLImageElementMethods for HTMLImageElement {
     make_url_getter!(Src, "src");
     // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_setter!(SetSrc, "src");
+
+    // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
+    make_enumerated_getter!(CrossOrigin, "crossorigin", "anonymous", ("use-credentials"));
+    // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
+    make_setter!(SetCrossOrigin, "crossorigin");
 
     // https://html.spec.whatwg.org/multipage/#dom-img-usemap
     make_getter!(UseMap, "usemap");
@@ -260,7 +288,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth
     fn NaturalWidth(&self) -> u32 {
-        let metadata = self.metadata.borrow();
+        let ref metadata = self.current_request.borrow().metadata;
 
         match *metadata {
             Some(ref metadata) => metadata.width,
@@ -270,7 +298,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-naturalheight
     fn NaturalHeight(&self) -> u32 {
-        let metadata = self.metadata.borrow();
+        let ref metadata = self.current_request.borrow().metadata;
 
         match *metadata {
             Some(ref metadata) => metadata.height,
@@ -280,8 +308,17 @@ impl HTMLImageElementMethods for HTMLImageElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-img-complete
     fn Complete(&self) -> bool {
-        let image = self.image.borrow();
+        let ref image = self.current_request.borrow().image;
         image.is_some()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-img-currentsrc
+    fn CurrentSrc(&self) -> DOMString {
+        let ref url = self.current_request.borrow().url;
+        match *url {
+            Some(ref url) => DOMString::from(url.serialize()),
+            None => DOMString::from(""),
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-img-name
