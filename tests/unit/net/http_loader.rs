@@ -152,29 +152,6 @@ impl HttpRequest for MockRequest {
     }
 }
 
-struct AssertRequestMustHaveHeaders {
-    expected_headers: Headers,
-    request_headers: Headers,
-    t: ResponseType
-}
-
-impl AssertRequestMustHaveHeaders {
-    fn new(t: ResponseType, expected_headers: Headers) -> Self {
-        AssertRequestMustHaveHeaders { expected_headers: expected_headers, request_headers: Headers::new(), t: t }
-    }
-}
-
-impl HttpRequest for AssertRequestMustHaveHeaders {
-    type R = MockResponse;
-
-    fn headers_mut(&mut self) -> &mut Headers { &mut self.request_headers }
-
-    fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
-        assert_eq!(self.request_headers, self.expected_headers);
-        response_for_request_type(self.t)
-    }
-}
-
 struct AssertRequestMustIncludeHeaders {
     expected_headers: Headers,
     request_headers: Headers,
@@ -224,15 +201,11 @@ struct AssertMustHaveHeadersRequestFactory {
 }
 
 impl HttpRequestFactory for AssertMustHaveHeadersRequestFactory {
-    type R = AssertRequestMustHaveHeaders;
+    type R = MockRequest;
 
-    fn create(&self, _: Url, _: Method) -> Result<AssertRequestMustHaveHeaders, LoadError> {
-        Ok(
-            AssertRequestMustHaveHeaders::new(
-                ResponseType::Text(self.body.clone()),
-                self.expected_headers.clone()
-            )
-        )
+    fn create_with_headers(&self, _: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
+        assert_eq!(headers, self.expected_headers);
+        Ok(MockRequest::new(ResponseType::Text(self.body.clone())))
     }
 }
 
