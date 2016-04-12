@@ -4,6 +4,7 @@
 
 use app_units::Au;
 use libc::c_char;
+use num::ToPrimitive;
 use std::borrow::ToOwned;
 use std::convert::AsRef;
 use std::ffi::CStr;
@@ -158,22 +159,72 @@ fn is_ascii_digit(c: &char) -> bool {
     }
 }
 
+fn is_decimal_point(c: char) -> bool {
+    c == '.'
+}
 
-pub fn read_numbers<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> Option<i64> {
+fn is_exponent_char(c: char) -> bool {
+    match c {
+        'e' | 'E' => true,
+        _ => false,
+    }
+}
+
+pub fn read_numbers<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> (Option<i64>, usize) {
     match iter.peek() {
         Some(c) if is_ascii_digit(c) => (),
-        _ => return None,
+        _ => return (None, 0),
     }
 
     iter.take_while(is_ascii_digit).map(|d| {
         d as i64 - '0' as i64
-    }).fold(Some(0i64), |accumulator, d| {
-        accumulator.and_then(|accumulator| {
+    }).fold((Some(0i64), 0), |accumulator, d| {
+        let digits = accumulator.0.and_then(|accumulator| {
             accumulator.checked_mul(10)
         }).and_then(|accumulator| {
             accumulator.checked_add(d)
-        })
+        });
+        (digits, accumulator.1 + 1)
     })
+}
+
+pub fn read_fraction<I: Iterator<Item=char>>(mut iter: Peekable<I>,
+                                             mut divisor: f64,
+                                             value: f64) -> (f64, usize) {
+    match iter.peek() {
+        Some(c) if is_decimal_point(*c) => (),
+        _ => return (value, 0),
+    }
+    iter.next();
+
+    iter.take_while(is_ascii_digit).map(|d|
+        d as i64 - '0' as i64
+    ).fold((value, 1), |accumulator, d| {
+        divisor *= 10f64;
+        (accumulator.0 + d as f64 / divisor,
+            accumulator.1 + 1)
+    })
+}
+
+pub fn read_exponent<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> Option<i32> {
+    match iter.peek() {
+        Some(c) if is_exponent_char(*c) => (),
+        _ => return None,
+    }
+    iter.next();
+
+    match iter.peek() {
+        None => None,
+        Some(&'-') => {
+            iter.next();
+            read_numbers(iter).0.map(|exp| -exp.to_i32().unwrap_or(0))
+        }
+        Some(&'+') => {
+            iter.next();
+            read_numbers(iter).0.map(|exp| exp.to_i32().unwrap_or(0))
+        }
+        Some(_) => read_numbers(iter).0.map(|exp| exp.to_i32().unwrap_or(0))
+    }
 }
 
 #[derive(Clone, Copy, Debug, HeapSizeOf, PartialEq)]
