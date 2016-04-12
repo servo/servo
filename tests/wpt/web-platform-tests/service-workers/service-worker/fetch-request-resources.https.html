@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<title>Service Worker: FetchEvent for resources</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/get-host-info.sub.js"></script>
+<script src="resources/test-helpers.sub.js?pipe=sub"></script>
+<script>
+var url_count = 0;
+var expected_results = {};
+
+function image_test(frame, url, cross_origin, expexted_mode,
+                    expected_credentials) {
+  var actual_url = url + (++url_count);
+  expected_results[actual_url] = {
+      cross_origin: cross_origin,
+      mode: expexted_mode,
+      credentials: expected_credentials,
+      message: 'Image load (url:' +
+               actual_url + ' cross_origin:' + cross_origin + ')'
+    };
+  return frame.contentWindow.load_image(actual_url, cross_origin);
+}
+
+function script_test(frame, url, cross_origin, expexted_mode,
+                     expected_credentials) {
+  var actual_url = url + (++url_count);
+  expected_results[actual_url] = {
+      cross_origin: cross_origin,
+      mode: expexted_mode,
+      credentials: expected_credentials,
+      message: 'Script load (url:' +
+               actual_url + ' cross_origin:' + cross_origin + ')'
+    };
+  return frame.contentWindow.load_script(actual_url, cross_origin);
+}
+
+function css_test(frame, url, cross_origin, expexted_mode,
+                  expected_credentials) {
+  var actual_url = url + (++url_count);
+  expected_results[actual_url] = {
+      cross_origin: cross_origin,
+      mode: expexted_mode,
+      credentials: expected_credentials,
+      message: 'CSS load (url:' +
+               actual_url + ' cross_origin:' + cross_origin + ')'
+    };
+  return frame.contentWindow.load_css(actual_url, cross_origin);
+}
+
+function font_face_test(frame, url, expexted_mode, expected_credentials) {
+  var actual_url = url + (++url_count);
+  expected_results[actual_url] = {
+      url: actual_url,
+      mode: expexted_mode,
+      credentials: expected_credentials,
+      message: 'FontFace load (url:' + actual_url + ')'
+    };
+  return frame.contentWindow.load_font(actual_url);
+}
+
+async_test(function(t) {
+    var SCOPE = 'resources/fetch-request-resources-iframe.https.html';
+    var SCRIPT = 'resources/fetch-request-resources-worker.js';
+    var host_info = get_host_info();
+    var LOCAL_URL =
+      host_info['HTTPS_ORIGIN'] + base_path() + 'resources/dummy?test';
+    var REMOTE_URL =
+      host_info['HTTPS_REMOTE_ORIGIN'] + base_path() + 'resources/dummy?test';
+    var worker;
+    var frame;
+    service_worker_unregister_and_register(t, SCRIPT, SCOPE)
+      .then(function(registration) {
+          worker = registration.installing;
+          return wait_for_state(t, worker, 'activated');
+        })
+      .then(function() {
+          return new Promise(function(resolve) {
+              var channel = new MessageChannel();
+              channel.port1.onmessage = t.step_func(function(msg) {
+                if (msg.data.ready) {
+                  resolve();
+                  return;
+                }
+                var result = msg.data;
+                var expected = expected_results[result.url];
+                if (!expected) {
+                  return;
+                }
+                assert_equals(
+                    result.mode, expected.mode,
+                    'mode of ' + expected.message +  ' must be ' +
+                    expected.mode + '.');
+                assert_equals(
+                    result.credentials, expected.credentials,
+                    'credentials of ' + expected.message +  ' must be ' +
+                    expected.credentials + '.');
+                --url_count;
+                delete expected_results[result.url];
+                if (url_count == 0) {
+                  frame.remove();
+                  service_worker_unregister_and_done(t, SCOPE);
+                }
+              });
+              worker.postMessage(
+                {port: channel.port2}, [channel.port2]);
+            });
+        })
+      .then(function() { return with_iframe(SCOPE); })
+      .then(function(f) {
+        frame = f;
+
+        // TODO: Disable 'no-cors' tests for image until
+        //       AsyncOpen2 and cookie policy is supported.
+        // image_test(f, LOCAL_URL, '', 'no-cors', 'include');
+        // image_test(f, REMOTE_URL, '', 'no-cors', 'include');
+        css_test(f, LOCAL_URL, '', 'no-cors', 'include');
+        css_test(f, REMOTE_URL, '', 'no-cors', 'include');
+
+        image_test(f, LOCAL_URL, 'anonymous', 'cors', 'same-origin');
+        image_test(f, LOCAL_URL, 'use-credentials', 'cors', 'include');
+        image_test(f, REMOTE_URL, 'anonymous', 'cors', 'omit');
+        image_test(f, REMOTE_URL, 'use-credentials', 'cors', 'include');
+
+        script_test(f, LOCAL_URL, '', 'no-cors', 'include');
+        script_test(f, LOCAL_URL, 'anonymous', 'cors', 'same-origin');
+        script_test(f, LOCAL_URL, 'use-credentials', 'cors', 'include');
+        script_test(f, REMOTE_URL, '', 'no-cors', 'include');
+        script_test(f, REMOTE_URL, 'anonymous', 'cors', 'same-origin');
+        script_test(f, REMOTE_URL, 'use-credentials', 'cors', 'include');
+
+        css_test(f, LOCAL_URL, 'anonymous', 'cors', 'same-origin');
+        css_test(f, LOCAL_URL, 'use-credentials', 'cors', 'include');
+        css_test(f, REMOTE_URL, 'anonymous', 'cors', 'same-origin');
+        css_test(f, REMOTE_URL, 'use-credentials', 'cors', 'include');
+
+        font_face_test(f, LOCAL_URL, 'cors', 'same-origin');
+        font_face_test(f, REMOTE_URL, 'cors', 'same-origin');
+
+      })
+      .catch(unreached_rejection(t));
+  }, 'Verify FetchEvent for resources.');
+</script>

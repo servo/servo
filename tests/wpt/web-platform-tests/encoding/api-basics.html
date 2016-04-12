@@ -15,13 +15,11 @@ test(function() {
 }, 'Default inputs');
 
 
-function testEncodeDecodeSample(encoding, string, bytes) {
+function testDecodeSample(encoding, string, bytes) {
   test(function() {
-    var encoded = new TextEncoder(encoding).encode(string);
-    assert_array_equals([].slice.call(encoded), bytes);
     assert_equals(new TextDecoder(encoding).decode(new Uint8Array(bytes)), string);
     assert_equals(new TextDecoder(encoding).decode(new Uint8Array(bytes).buffer), string);
-  }, 'Encode/decode round trip: ' + encoding);
+  }, 'Decode sample: ' + encoding);
 }
 
 // z (ASCII U+007A), cent (Latin-1 U+00A2), CJK water (BMP U+6C34),
@@ -29,25 +27,29 @@ function testEncodeDecodeSample(encoding, string, bytes) {
 // byte-swapped BOM (non-character U+FFFE)
 var sample = 'z\xA2\u6C34\uD834\uDD1E\uF8FF\uDBFF\uDFFD\uFFFE';
 
-testEncodeDecodeSample(
-  'utf-8',
-  sample,
-  [0x7A, 0xC2, 0xA2, 0xE6, 0xB0, 0xB4, 0xF0, 0x9D, 0x84, 0x9E, 0xEF, 0xA3, 0xBF, 0xF4, 0x8F, 0xBF, 0xBD, 0xEF, 0xBF, 0xBE]
-);
+test(function() {
+  var encoding = 'utf-8';
+  var string = sample;
+  var bytes = [0x7A, 0xC2, 0xA2, 0xE6, 0xB0, 0xB4, 0xF0, 0x9D, 0x84, 0x9E, 0xEF, 0xA3, 0xBF, 0xF4, 0x8F, 0xBF, 0xBD, 0xEF, 0xBF, 0xBE];
+  var encoded = new TextEncoder().encode(string);
+  assert_array_equals([].slice.call(encoded), bytes);
+  assert_equals(new TextDecoder(encoding).decode(new Uint8Array(bytes)), string);
+  assert_equals(new TextDecoder(encoding).decode(new Uint8Array(bytes).buffer), string);
+}, 'Encode/decode round trip: utf-8');
 
-testEncodeDecodeSample(
+testDecodeSample(
   'utf-16le',
   sample,
   [0x7A, 0x00, 0xA2, 0x00, 0x34, 0x6C, 0x34, 0xD8, 0x1E, 0xDD, 0xFF, 0xF8, 0xFF, 0xDB, 0xFD, 0xDF, 0xFE, 0xFF]
 );
 
-testEncodeDecodeSample(
+testDecodeSample(
   'utf-16be',
   sample,
   [0x00, 0x7A, 0x00, 0xA2, 0x6C, 0x34, 0xD8, 0x34, 0xDD, 0x1E, 0xF8, 0xFF, 0xDB, 0xFF, 0xDF, 0xFD, 0xFF, 0xFE]
 );
 
-testEncodeDecodeSample(
+testDecodeSample(
   'utf-16',
   sample,
   [0x7A, 0x00, 0xA2, 0x00, 0x34, 0x6C, 0x34, 0xD8, 0x1E, 0xDD, 0xFF, 0xF8, 0xFF, 0xDB, 0xFD, 0xDF, 0xFE, 0xFF]

@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Make sure browsers throw when getting .length on some random object whose proto is an HTMLCollection</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(function() {
+  var obj = Object.create(document.getElementsByTagName("script"));
+  assert_throws(new TypeError(), function() {
+    obj.length;
+  });
+}, "HTMLcollection as a prototype should not allow getting .length on the base object")
+</script>

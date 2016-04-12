@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>ServiceWorker: navigator.serviceWorker.installing</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<body>
+<script>
+// "installing" is set
+async_test(function(t) {
+    var step = t.step_func.bind(t);
+    var url = 'resources/empty-worker.js';
+    var scope = 'resources/blank.html';
+    var frame;
+
+    service_worker_unregister(t, scope)
+    .then(step(function() { return with_iframe(scope); }))
+    .then(step(function(f) {
+        frame = f;
+        return navigator.serviceWorker.register(url, {scope: scope});
+    }))
+    .then(step(function(registration) {
+        var container = frame.contentWindow.navigator.serviceWorker;
+        assert_equals(container.controller, null);
+        assert_equals(registration.active, null);
+        assert_equals(registration.waiting, null);
+        assert_equals(registration.installing.scriptURL, normalizeURL(url));
+
+        // FIXME: Add a test for a frame created after installation.
+        // Should the existing frame ("frame") block activation?
+    }))
+    .then(step(function() {
+        frame.remove();
+        return service_worker_unregister_and_done(t, scope);
+    }))
+    .catch(unreached_rejection(t));
+}, 'installing is set');
+</script>

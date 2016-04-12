@@ -16,7 +16,7 @@ policies and contribution forms [3].
 <meta name="assert" content="HTML Elements in shadow trees: base element must behave as inert, or not part of the document tree">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../testcommon.js"></script>
+<script src="../../../../html/resources/common.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -24,20 +24,20 @@ policies and contribution forms [3].
 var A_08_01_01_T01 = async_test('A_08_01_01_T01', { timeout: 5000 });
 
 A_08_01_01_T01.checkIframeContent = A_08_01_01_T01.step_func(function () {
-	//remember value to check before cleaning the context (it'll destroy the iframe)
-	var valueToCheck = A_08_01_01_T01.iframe.contentWindow;
-	cleanContext(A_08_01_01_T01.ctx);
+    //remember value to check before cleaning the context (it'll destroy the iframe)
+    var valueToCheck = A_08_01_01_T01.iframe.contentWindow;
+    cleanContext(A_08_01_01_T01.ctx);
 
-	assert_equals(valueToCheck, null,
-		'base html element ih a shadow tree must beahve like inert one');
+    assert_equals(valueToCheck, null,
+        'base html element ih a shadow tree must beahve like inert one');
 
-	A_08_01_01_T01.done();
+    A_08_01_01_T01.done();
 });
 
 
 A_08_01_01_T01.step(function () {
 
-	A_08_01_01_T01.ctx = newContext();
+    A_08_01_01_T01.ctx = newContext();
     var d = newRenderedHTMLDocument(A_08_01_01_T01.ctx);
 
     //create iframe

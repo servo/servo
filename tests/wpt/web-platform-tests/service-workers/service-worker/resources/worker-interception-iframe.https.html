@@ -1,0 +1,39 @@
+<script src="../resources/get-host-info.sub.js"></script>
+<script src="test-helpers.sub.js?pipe=sub"></script>
+<script>
+var host_info = get_host_info();
+
+function boilerplate_test(msg) {
+    return new Promise(function(resolve, reject) {
+          var worker = new Worker("load_worker.js");
+          worker.onmessage = function(e) { resolve(e.data) };
+          worker.onerror = function(e) { reject(e) };
+          worker.postMessage(msg);
+        })
+      .then(function(data) {
+          window.parent.postMessage({results: data}, host_info['HTTPS_ORIGIN']);
+        });
+}
+
+function xhr_test() {
+    return boilerplate_test("xhr");
+}
+
+function fetch_test() {
+    return boilerplate_test("fetch");
+}
+
+function importScripts_test() {
+    return boilerplate_test("importScripts");
+}
+
+window.addEventListener('message', function(evt) {
+    var port = evt.ports[0];
+    xhr_test()
+      .then(fetch_test)
+      .then(importScripts_test)
+      .then(function() { port.postMessage({results: 'finish'}); })
+      .catch(function(e) { port.postMessage({results: 'failure:' + e}); });
+  });
+
+</script>

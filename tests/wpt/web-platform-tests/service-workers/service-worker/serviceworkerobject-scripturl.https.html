@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>ServiceWorker object: scriptURL property</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script>
+
+function url_test(name, url) {
+  var scope = 'resources/scope/' + name;
+  async_test(function(t) {
+    var expectedURL = (new URL(url, window.location)).toString();
+    service_worker_unregister_and_register(t, url, scope)
+      .then(function(registration) {
+          var worker = registration.installing;
+          assert_equals(worker.scriptURL, expectedURL,
+                        'Returned ServiceWorker object should have scriptURL');
+          service_worker_unregister_and_done(t, scope);
+        })
+      .catch(unreached_rejection(t));
+  }, 'Verify the scriptURL property: ' + name);
+}
+
+url_test('relative', 'resources/empty-worker.js');
+url_test('absolute', (new URL('./resources/empty-worker.js', window.location)).href);
+
+</script>

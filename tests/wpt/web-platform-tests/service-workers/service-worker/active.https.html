@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<title>ServiceWorker: navigator.serviceWorker.active</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<body>
+<script>
+// "active" is set
+async_test(function(t) {
+    var step = t.step_func.bind(t);
+    var url = 'resources/empty-worker.js';
+    var scope = 'resources/blank.html';
+    var frame;
+    var registration;
+
+    service_worker_unregister(t, scope)
+      .then(step(function() { return with_iframe(scope); }))
+      .then(step(function(f) {
+          frame = f;
+          return navigator.serviceWorker.register(url, {scope: scope});
+        }))
+      .then(step(function(r) {
+          registration = r;
+          return wait_for_state(t, r.installing, 'activating');
+        }))
+      .then(step(function() {
+          var container = frame.contentWindow.navigator.serviceWorker;
+          assert_equals(
+            container.controller,
+            null,
+            'On activating state a document should not have a controller');
+          assert_equals(
+            registration.active.scriptURL,
+            normalizeURL(url),
+            'On activating state a document should have an active worker ');
+          assert_equals(
+            registration.waiting,
+            null,
+            'On activating state a document should not have a waiting worker');
+          assert_equals(
+            registration.installing,
+            null,
+            'On activating state a document should not have an installing ' +
+                'worker');
+
+          // FIXME: Add a test for a frame created after installation.
+          // Should the existing frame ("frame") block activation?
+        }))
+      .then(step(function() {
+          frame.remove();
+          return service_worker_unregister_and_done(t, scope);
+        }))
+      .catch(unreached_rejection(t));
+  }, 'active is set');
+</script>

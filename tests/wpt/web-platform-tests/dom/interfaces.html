@@ -310,6 +310,9 @@ interface Element : Node {
   HTMLCollection getElementsByTagName(DOMString localName);
   HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);
   HTMLCollection getElementsByClassName(DOMString classNames);
+
+  Element? insertAdjacentElement(DOMString where, Element element); // historical
+  void insertAdjacentText(DOMString where, DOMString data); // historical
 };
 
 interface NamedNodeMap {

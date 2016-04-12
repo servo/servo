@@ -1,0 +1,20 @@
+<script>
+window.addEventListener('message', function(evt) {
+  var port = evt.ports[0];
+  var data = evt.data;
+  fetch(new Request(data.url, data.request_init)).then(function(response) {
+    if (data.request_init.mode === 'no-cors' && data.redirect_dest != 'same-origin') {
+      if (response.type === 'opaque') {
+        return {result: 'success', detail: ''};
+      } else {
+        return {result: 'failure', detail: 'expected opaque response'};
+      }
+    }
+    return response.json();
+  }).then(function(body) {
+    port.postMessage({result: body.result, detail: body.detail});
+  }).catch(function(e) {
+    port.postMessage({result: 'reject', detail: e.toString()});
+  });
+});
+</script>

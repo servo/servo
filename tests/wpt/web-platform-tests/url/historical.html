@@ -18,4 +18,12 @@ objects.forEach(function(o) {
                  o[1] + " should not have a searchParams attribute");
   }, "searchParams on " + o[1]);
 });
+
+test(function() {
+  var url = new URL("./foo", "http://www.example.org");
+  assert_equals(url.href, "http://www.example.org/foo");
+  assert_throws(new TypeError(), function() {
+    url.href = "./bar";
+  });
+}, "Setting URL's href attribute and base URLs");
 </script>

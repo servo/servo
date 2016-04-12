@@ -17,18 +17,19 @@ policies and contribution forms [3].
 <meta name="assert" content="ShadowRoot Object: confirm activeElement return null">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../../testcommon.js"></script>
+<script src="../../../../../html/resources/common.js"></script>
+<script src="../../../../resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
 <script>
 test(unit(function (ctx) {
 
-	var d = newRenderedHTMLDocument(ctx);
+    var d = newRenderedHTMLDocument(ctx);
 
-	var host = d.createElement('div');
-	d.body.appendChild(host);
-	var s = host.createShadowRoot();
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+    var s = host.createShadowRoot();
 
     assert_equals(s.activeElement, null, 'activeElement attribute of the ShadowRoot must return null if there\'s no focused element');
 
@@ -37,16 +38,16 @@ test(unit(function (ctx) {
 
 test(unit(function (ctx) {
 
-	var d = newRenderedHTMLDocument(ctx);
+    var d = newRenderedHTMLDocument(ctx);
 
-	var host = d.createElement('div');
-	d.body.appendChild(host);
-	var s = host.createShadowRoot();
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+    var s = host.createShadowRoot();
 
-	var inp = d.createElement('input');
-	d.body.appendChild(inp);
+    var inp = d.createElement('input');
+    d.body.appendChild(inp);
 
-	inp.focus();
+    inp.focus();
 
     assert_equals(s.activeElement, null, 'activeElement attribute of the ShadowRoot must return null if there\'s no focused element in the shadow tree');
 
@@ -55,19 +56,19 @@ test(unit(function (ctx) {
 
 test(unit(function (ctx) {
 
-	var d = newRenderedHTMLDocument(ctx);
+    var d = newRenderedHTMLDocument(ctx);
 
-	var host = d.createElement('div');
-	d.body.appendChild(host);
-	var s = host.createShadowRoot();
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+    var s = host.createShadowRoot();
 
-	var inp = d.createElement('input');
-	d.body.appendChild(inp);
+    var inp = d.createElement('input');
+    d.body.appendChild(inp);
 
-	var inp2 = d.createElement('input');
-	s.appendChild(inp2);
+    var inp2 = d.createElement('input');
+    s.appendChild(inp2);
 
-	inp.focus();
+    inp.focus();
 
     assert_equals(s.activeElement, null, 'activeElement attribute of the ShadowRoot must return null if there\'s no focused element in the shadow tree');
 

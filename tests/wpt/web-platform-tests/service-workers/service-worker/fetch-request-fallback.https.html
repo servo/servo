@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<title>Service Worker: the fallback behavior of FetchEvent</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/get-host-info.sub.js"></script>
+<script src="resources/test-helpers.sub.js?pipe=sub"></script>
+<script>
+var expected_urls = [];
+
+function xhr_fail_test(frame, url) {
+  expected_urls.push(url);
+  return new Promise(function(resolve, reject) {
+      frame.contentWindow.xhr(url)
+        .then(function(){
+            reject(url + ' should fail.');
+          })
+        .catch(function(){
+            resolve();
+          });
+    });
+}
+
+function xhr_succeed_test(frame, url) {
+  expected_urls.push(url);
+  return new Promise(function(resolve, reject) {
+      frame.contentWindow.xhr(url)
+        .then(function(){
+            resolve();
+          })
+        .catch(function(){
+            reject(url + ' should succeed.');
+          });
+    });
+}
+
+async_test(function(t) {
+    var path = new URL(".", window.location).pathname;
+    var SCOPE = 'resources/fetch-request-fallback-iframe.html';
+    var SCRIPT = 'resources/fetch-request-fallback-worker.js';
+    var host_info = get_host_info();
+    var BASE_URL = host_info['HTTPS_ORIGIN'] +
+                   path + 'resources/fetch-access-control.py?';
+    var OTHER_BASE_URL = host_info['HTTPS_REMOTE_ORIGIN'] +
+                         path + 'resources/fetch-access-control.py?';
+    var REDIRECT_URL = host_info['HTTPS_ORIGIN'] +
+                       path + 'resources/redirect.py?Redirect=';
+    var frame;
+    var worker;
+    service_worker_unregister_and_register(t, SCRIPT, SCOPE)
+      .then(function(registration) {
+          worker = registration.installing;
+          return wait_for_state(t, worker, 'activated');
+        })
+      .then(function() { return with_iframe(SCOPE); })
+      .then(function(f) {
+          frame = f;
+          return xhr_succeed_test(frame, BASE_URL);
+        })
+      .then(function(f) {
+          return xhr_fail_test(frame, OTHER_BASE_URL);
+        })
+      .then(function(f) {
+          return xhr_succeed_test(frame, OTHER_BASE_URL + 'ACAOrigin=*');
+        })
+      .then(function(f) {
+          return xhr_succeed_test(frame,
+                                  REDIRECT_URL + encodeURIComponent(BASE_URL));
+        })
+      .then(function() {
+          return xhr_fail_test(
+              frame,
+              REDIRECT_URL + encodeURIComponent(OTHER_BASE_URL));
+        })
+      .then(function() {
+          return xhr_succeed_test(
+              frame,
+              REDIRECT_URL +
+              encodeURIComponent(OTHER_BASE_URL + 'ACAOrigin=*'));
+        })
+      .then(function() {
+          return new Promise(function(resolve) {
+              var channel = new MessageChannel();
+              channel.port1.onmessage = t.step_func(function(msg) {
+                  frame.remove();
+                  resolve(msg);
+                });
+              worker.postMessage({port: channel.port2}, [channel.port2]);
+            });
+        })
+      .then(function(msg) {
+          var requests = msg.data.requests;
+          assert_equals(requests.length, expected_urls.length + 1,
+                        'The count of the requests which are passed to the ' +
+                        'ServiceWorker must be correct.');
+          assert_equals(requests[0].url, new URL(SCOPE, location).toString(),
+                        'The first request to the SW must be the request for ' +
+                        'the page.');
+          assert_equals(requests[0].mode, 'navigate',
+                        'The mode of the first request to the SW must be ' +
+                        'navigate');
+          for (var i = 0; i < expected_urls.length; ++i) {
+            assert_equals(requests[i + 1].url, expected_urls[i],
+                          'The URL of the request which was passed from XHR ' +
+                          'to the ServiceWorker must be correct.');
+            assert_equals(requests[i + 1].mode, 'cors',
+                          'The mode of the request which was passed from XHR ' +
+                          'to the ServiceWorker must be cors.');
+          }
+          service_worker_unregister_and_done(t, SCOPE);
+        })
+      .catch(unreached_rejection(t));
+  }, 'Verify the fallback behavior of FetchEvent');
+</script>

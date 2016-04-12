@@ -127,17 +127,19 @@ function test_getElementsByTagName(context, element) {
   test(function() {
     var t = element.appendChild(document.createElementNS("test", "te:st"))
     this.add_cleanup(function() {element.removeChild(t)})
-    assert_array_equals(context.getElementsByTagName("st"), [t])
+    assert_array_equals(context.getElementsByTagName("st"), [])
     assert_array_equals(context.getElementsByTagName("ST"), [])
+    assert_array_equals(context.getElementsByTagName("te:st"), [t])
+    assert_array_equals(context.getElementsByTagName("te:ST"), [])
   }, "Element in non-HTML namespace, prefix, lowercase name")
 
   test(function() {
     var t = element.appendChild(document.createElementNS("test", "te:ST"))
     this.add_cleanup(function() {element.removeChild(t)})
-    assert_array_equals(context.getElementsByTagName("ST"), [t])
     assert_array_equals(context.getElementsByTagName("st"), [])
+    assert_array_equals(context.getElementsByTagName("ST"), [])
     assert_array_equals(context.getElementsByTagName("te:st"), [])
-    assert_array_equals(context.getElementsByTagName("te:ST"), [])
+    assert_array_equals(context.getElementsByTagName("te:ST"), [t])
   }, "Element in non-HTML namespace, prefix, uppercase name")
 
   test(function() {

@@ -62,15 +62,6 @@ var gGetComputedTimingTests = [
   { desc:     "an Infinity iterations",
     input:    { iterations: Infinity },
     expected: { iterations: Infinity } },
-  { desc:     "a negative Infinity iterations",
-    input:    { iterations: -Infinity},
-    expected: { iterations: 1 } },
-  { desc:     "a NaN iterations",
-    input:    { iterations: NaN },
-    expected: { iterations: 1 } },
-  { desc:     "a negative iterations",
-    input:    { iterations: -1 },
-    expected: { iterations: 1 } },
   { desc:     "an auto fill",
     input:    { fill: "auto" },
     expected: { fill: "none" } },
@@ -152,10 +143,7 @@ var gActiveDurationTests = [
     expected: Infinity },
   { desc:     "an infinite duration and zero iteration count",
     input:    { duration: Infinity, iterations: 0 },
-    expected: 0 },
-  { desc:     "a non-zero duration and invalid iteration count",
-    input:    { duration: 1000, iterations: "cabbage" },
-    expected: 1000 }
+    expected: 0 }
 ];
 
 gActiveDurationTests.forEach(function(stest) {

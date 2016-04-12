@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script>
+var worker_url = 'resources/empty-worker.js';
+
+async_test(function(t) {
+    var scope = 'resources/scope/unregister-then-register-new-script-that-exists';
+    var new_worker_url = worker_url + '?new';
+    var iframe;
+    var registration;
+    var new_registration;
+
+    service_worker_unregister_and_register(t, worker_url, scope)
+      .then(function(r) {
+          registration = r;
+          return wait_for_state(t, r.installing, 'activated');
+        })
+      .then(function() {
+          return with_iframe(scope);
+        })
+      .then(function(frame) {
+          iframe = frame;
+          return registration.unregister();
+        })
+      .then(function() {
+          return navigator.serviceWorker.register(new_worker_url,
+                                                  { scope: scope });
+        })
+      .then(function(r) {
+          new_registration = r;
+          assert_equals(registration.installing.scriptURL,
+                        normalizeURL(new_worker_url),
+                        'before activated registration.installing');
+          assert_equals(registration.waiting, null,
+                        'before activated registration.waiting');
+          assert_equals(registration.active.scriptURL, normalizeURL(worker_url),
+                        'before activated registration.active');
+          assert_equals(new_registration.installing.scriptURL,
+                        normalizeURL(new_worker_url),
+                        'before activated new_registration.installing');
+          assert_equals(new_registration.waiting, null,
+                        'before activated new_registration.waiting');
+          assert_equals(new_registration.active.scriptURL,
+                        normalizeURL(worker_url),
+                        'before activated new_registration.active');
+          iframe.remove();
+          return wait_for_state(t, registration.installing, 'activated');
+        })
+      .then(function() {
+          assert_equals(new_registration.installing, null,
+                        'after activated new_registration.installing');
+          assert_equals(new_registration.waiting, null,
+                        'after activated new_registration.waiting');
+          assert_equals(new_registration.active.scriptURL,
+                        normalizeURL(new_worker_url),
+                        'after activated new_registration.active');
+          return with_iframe(scope);
+        })
+      .then(function(frame) {
+          assert_equals(
+              frame.contentWindow.navigator.serviceWorker.controller.scriptURL,
+              normalizeURL(new_worker_url),
+              'the new worker should control a new document');
+          frame.remove();
+          return registration.unregister();
+        })
+      .then(function() {
+          t.done();
+        })
+      .catch(unreached_rejection(t));
+}, 'Registering a new script URL while an unregistered registration is in use');
+
+async_test(function(t) {
+    var scope = 'resources/scope/unregister-then-register-new-script-that-404s';
+    var iframe;
+    var registration;
+
+    service_worker_unregister_and_register(t, worker_url, scope)
+      .then(function(r) {
+          registration = r;
+          return wait_for_state(t, r.installing, 'activated');
+        })
+      .then(function() {
+          return with_iframe(scope);
+        })
+      .then(function(frame) {
+          iframe = frame;
+          return registration.unregister();
+        })
+      .then(function() {
+          var promise = navigator.serviceWorker.register('this-will-404',
+                                                         { scope: scope });
+          iframe.remove();
+          return promise;
+        })
+      .then(
+        function() {
+          assert_unreached('register should reject the promise');
+        },
+        function() {
+          return with_iframe(scope);
+        })
+      .then(function(frame) {
+          assert_equals(frame.contentWindow.navigator.serviceWorker.controller,
+                        null,
+                        'document should not load with a controller');
+          frame.remove();
+          t.done();
+        })
+      .catch(unreached_rejection(t));
+}, 'Registering a new script URL that 404s does not resurrect an ' +
+       'unregistered registration');
+
+async_test(function(t) {
+    var scope = 'resources/scope/unregister-then-register-reject-install-worker';
+    var iframe;
+    var registration;
+
+    service_worker_unregister_and_register(t, worker_url, scope)
+      .then(function(r) {
+          registration = r;
+          return wait_for_state(t, r.installing, 'activated');
+        })
+      .then(function() {
+          return with_iframe(scope);
+        })
+      .then(function(frame) {
+          iframe = frame;
+          return registration.unregister();
+        })
+      .then(function() {
+          var promise = navigator.serviceWorker.register(
+              'resources/reject-install-worker.js', { scope: scope });
+          iframe.remove();
+          return promise;
+        })
+      .then(function(r) {
+          registration = r;
+          return wait_for_state(t, r.installing, 'redundant');
+        })
+      .then(function() {
+          return with_iframe(scope);
+        })
+      .then(function(frame) {
+          assert_equals(frame.contentWindow.navigator.serviceWorker.controller,
+                        null,
+                        'document should not load with a controller');
+          frame.remove();
+          return registration.unregister();
+        })
+      .then(function() {
+          t.done();
+        })
+      .catch(unreached_rejection(t));
+  }, 'Registering a new script URL that fails to install does not resurrect ' +
+       'an unregistered registration');
+</script>

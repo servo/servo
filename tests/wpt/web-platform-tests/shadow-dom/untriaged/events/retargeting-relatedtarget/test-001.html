@@ -16,7 +16,8 @@ policies and contribution forms [3].
 <meta name="assert" content="Retargeting relatedTarget:Event retargeting is a process of computing relative targets for each ancestor of the node at which the event is dispatched. A relative target is a DOM node that most accurately represents the target of a dispatched event at a given ancestor while maintaining the upper boundary encapsulation.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../testcommon.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -46,11 +47,11 @@ A_05_02_01_T01.step(unit(function (ctx) {
     s.appendChild(div2);
 
     s.addEventListener('mouseover', A_05_02_01_T01.step_func(function(event) {
-    	assert_equals(event.relatedTarget.getAttribute('id'), 'div1', 'Wrong relatedTarget');
+        assert_equals(event.relatedTarget.getAttribute('id'), 'div1', 'Wrong relatedTarget');
     }), false);
 
     d.body.addEventListener('mouseover', A_05_02_01_T01.step_func(function(event) {
-    	assert_true(false, 'Event must be stopped at Shadow boundary');
+        assert_true(false, 'Event must be stopped at Shadow boundary');
     }), false);
 
 

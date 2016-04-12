@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Service Worker: Registration for iframe</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script>
+// Set script url and scope url relative to the calling frame's document's url.
+// Assert the implementation parses the urls against the calling frame's
+// document's url.
+async_test(function(t) {
+  var url = 'resources/blank.html';
+  var scope = 'resources/registration-for-iframe-from-calling-frame';
+  var parsed_scope = normalizeURL(scope);
+  var script = 'resources/empty-worker.js';
+  var parsed_script = normalizeURL(script);
+  var frame;
+  var registration;
+
+  service_worker_unregister(t, scope)
+    .then(function() { return with_iframe(url); })
+    .then(function(f) {
+        frame = f;
+        return frame.contentWindow.navigator.serviceWorker.register(
+            script,
+            { scope: scope });
+      })
+    .then(function(r) {
+        registration = r;
+        return wait_for_state(t, r.installing, 'activated');
+      })
+    .then(function() {
+        assert_equals(
+          registration.scope, parsed_scope,
+          'registration\'s scope must be the scope parsed against calling ' +
+          'document\'s url');
+        assert_equals(
+          registration.active.scriptURL, parsed_script,
+          'worker\'s script must be the url parsed against calling ' +
+          'document\'s url');
+        frame.remove();
+        return service_worker_unregister_and_done(t, scope);
+      })
+    .catch(unreached_rejection(t));
+  }, 'Subframe\'s container\'s register method should use calling frame\'s ' +
+     'document\'s url as a base url for parsing its script url and scope url ' +
+     '- normal case');
+
+// Set script url and scope url relative to the iframe's document's url.
+// Assert the implementation throws a NetworkError exception.
+async_test(function(t) {
+  var url = 'resources/blank.html';
+  var scope = 'registration-for-iframe-from-calling-frame';
+  var script = 'empty-worker.js';
+  var frame;
+  var registration;
+
+  service_worker_unregister(t, scope)
+    .then(function() { return with_iframe(url); })
+    .then(function(f) {
+        frame = f;
+        return frame.contentWindow.navigator.serviceWorker.register(
+            script,
+            { scope: scope });
+      })
+    .then(
+      function() {
+        assert_unreached('register() should reject');
+      },
+      function(e) {
+        assert_equals(e.name, 'TypeError');
+        frame.remove();
+        return service_worker_unregister_and_done(t, scope);
+      })
+    .catch(unreached_rejection(t));
+  }, 'Subframe\'s container\'s register method should use calling frame\'s ' +
+     'document\'s url as a base url for parsing its script url and scope url ' +
+     '- error case');
+
+// Set the scope url to a non-subdirectory of the script url.
+// Assert the implementation throws a SecurityError exception.
+async_test(function(t) {
+  var url = 'resources/blank.html';
+  var scope = 'registration-for-iframe-from-calling-frame';
+  var script = 'resources/empty-worker.js';
+  var frame;
+  var registration;
+
+  service_worker_unregister(t, scope)
+    .then(function() { return with_iframe(url); })
+    .then(function(f) {
+        frame = f;
+        return frame.contentWindow.navigator.serviceWorker.register(
+            script,
+            { scope: scope });
+      })
+    .then(
+      function() {
+        assert_unreached('register() should reject');
+      },
+      function(e) {
+        assert_equals(e.name, 'SecurityError');
+        frame.remove();
+        return service_worker_unregister_and_done(t, scope);
+      })
+    .catch(unreached_rejection(t));
+  }, 'A scope url should start with the given script url');
+</script>

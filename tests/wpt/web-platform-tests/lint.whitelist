@@ -105,6 +105,9 @@ W3C-TEST.ORG:subresource-integrity/refresh-header.js.headers
 
 # semi-legitimate use of console.*
 CONSOLE:streams/resources/test-utils.js
+CONSOLE:service-workers/service-worker/resources/navigation-redirect-other-origin.html
+CONSOLE:service-workers/service-worker/navigation-redirect.https.html
+CONSOLE:service-workers/service-worker/resources/clients-get-other-origin.html
 
 # Lint doesn't know about sub.svg I guess
 PARSE-FAILED:content-security-policy/svg/including.sub.svg

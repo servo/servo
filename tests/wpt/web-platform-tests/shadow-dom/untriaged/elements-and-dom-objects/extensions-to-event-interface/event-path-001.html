@@ -13,15 +13,16 @@ policies and contribution forms [3].
 <title>Shadow DOM Test - event path</title>
 <link rel="author" title="Kazuhito Hokamura" href="mailto:k.hokamura@gmail.com">
 <link rel="help" href="https://dvcs.w3.org/hg/webcomponents/raw-file/tip/spec/shadow/index.html#extensions-to-event">
-<meta name="assert" content="Extensions to Event Interface: event.path cross the shadow boundary">
+<meta name="assert" content="Extensions to Event Interface: event.deepPath() cross the shadow boundary">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../testcommon.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
 <script>
-var t = async_test('event.path cross the shadow boundary');
+var t = async_test('event.deepPath() cross the shadow boundary');
 
 t.step(unit(function(ctx) {
     var doc = newRenderedHTMLDocument(ctx);
@@ -34,14 +35,14 @@ t.step(unit(function(ctx) {
     shadowRoot.appendChild(child);
 
     child.addEventListener('click', t.step_func(function(e) {
-        assert_equals(e.path.length, 7, 'path.length');
-        assert_equals(e.path[0], child, 'path[0] should be child');
-        assert_equals(e.path[1], shadowRoot, 'path[1] should be shadowRoot');
-        assert_equals(e.path[2], host, 'path[2] should be host');
-        assert_equals(e.path[3], doc.body, 'path[3] should be body');
-        assert_equals(e.path[4], doc.documentElement, 'path[4] should be html');
-        assert_equals(e.path[5], doc, 'path[5] should be document');
-        assert_equals(e.path[6], ctx.iframes[0].contentWindow, 'path[6] should be window');
+        assert_equals(e.deepPath().length, 7, 'deepPath().length');
+        assert_equals(e.deepPath()[0], child, 'deepPath()[0] should be child');
+        assert_equals(e.deepPath()[1], shadowRoot, 'deepPath()[1] should be shadowRoot');
+        assert_equals(e.deepPath()[2], host, 'deepPath()[2] should be host');
+        assert_equals(e.deepPath()[3], doc.body, 'deepPath()[3] should be body');
+        assert_equals(e.deepPath()[4], doc.documentElement, 'deepPath()[4] should be html');
+        assert_equals(e.deepPath()[5], doc, 'deepPath()[5] should be document');
+        assert_equals(e.deepPath()[6], ctx.iframes[0].contentWindow, 'deepPath()[6] should be window');
 
         t.done();
     }));

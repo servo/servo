@@ -1,0 +1,13 @@
+<html> <!-- Intentionally does NOT include a manifest attribute -->
+<body>
+<!-- This should FALLBACK to ordering.is_appcached.js as specified in manifest
+     when the appcache is present -->
+<script src="appcache-ordering.is-appcached404.js"></script>
+<script>
+
+// If the script of the fallback resource loaded, is_appcached will be defined.
+window.parent.notify_is_appcached(typeof is_appcached != 'undefined');
+
+</script>
+</body>
+</html>

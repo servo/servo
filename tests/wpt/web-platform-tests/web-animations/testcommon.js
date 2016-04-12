@@ -9,29 +9,7 @@ policies and contribution forms [3].
  */
 
 "use strict";
-
-var ANIMATION_END_TIME = 1000;
-var ANIMATION_TOP_DEFAULT = 300;
-var ANIMATION_TOP_0 = 10;
-var ANIMATION_TOP_0_5 = 100;
-var ANIMATION_TOP_1 = 200;
-
-var KEYFRAMES = [ {
-  top : ANIMATION_TOP_0 + 'px',
-  offset : 0
-}, {
-  top : ANIMATION_TOP_0_5 + 'px',
-  offset : 1 / 2
-}, {
-  top : ANIMATION_TOP_1 + 'px',
-  offset : 1
-} ];
-
-// creates new animation for given target
-function newAnimation(animationTarget) {
-  animationTarget.style.top = ANIMATION_TOP_DEFAULT + 'px';
-  return new Animation(animationTarget, KEYFRAMES, ANIMATION_END_TIME);
-}
+var MS_PER_SEC = 1000;
 
 // creates div element, appends it to the document body and
 // removes the created element during test cleanup
@@ -89,11 +67,6 @@ function createPseudo(test, type) {
   assert_equals(anim.effect.target.type, '::' + type);
   anim.cancel();
   return anim.effect.target;
-}
-
-// Returns the type name of given object
-function type(object) {
-  return Object.prototype.toString.call(object).slice(8, -1);
 }
 
 // Convert px unit value to a Number

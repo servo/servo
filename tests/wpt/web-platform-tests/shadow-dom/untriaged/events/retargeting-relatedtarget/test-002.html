@@ -16,7 +16,8 @@ policies and contribution forms [3].
 <meta name="assert" content="Retargeting relatedTarget:For a given node, the relatedTarget must be changed to its ancestor (or self) that is in the same shadow tree as the node">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../testcommon.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -46,7 +47,7 @@ A_05_02_02_T01.step(unit(function (ctx) {
     d.body.appendChild(div2);
 
     d.body.addEventListener('mouseover', A_05_02_02_T01.step_func(function(event) {
-    	assert_equals(event.relatedTarget.getAttribute('id'), 'host', 'Wrong related target');
+        assert_equals(event.relatedTarget.getAttribute('id'), 'host', 'Wrong related target');
     }), false);
 
 

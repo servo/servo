@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>ServiceWorker: navigator.serviceWorker.waiting</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<body>
+<script>
+// "waiting" is set
+async_test(function(t) {
+    var step = t.step_func.bind(t);
+    var url = 'resources/empty-worker.js';
+    var scope = 'resources/blank.html';
+    var frame;
+    var registration;
+
+    service_worker_unregister(t, scope)
+    .then(function() { return with_iframe(scope); })
+    .then(function(f) {
+        frame = f;
+        return navigator.serviceWorker.register(url, {scope: scope});
+      })
+    .then(function(r) {
+        registration = r;
+        return wait_for_state(t, r.installing, 'installed');
+      }, unreached_rejection(t, 'Registration should not fail'))
+    .then(function() {
+        var controller = frame.contentWindow.navigator.serviceWorker.controller;
+        assert_equals(controller, null);
+        // Nothing in the spec prohibits a worker from going to active
+        // immediately.
+        // Step 26 of the [[Install]] algorithm
+        // "If registration's waiting worker waitingWorker is not null and
+        // waitingWorker's skip waiting flag is not set, invoke Activate
+        // algorithm, or its equivalent, with registration as its argument."
+        var w = registration.waiting || registration.active;
+        assert_equals(w.scriptURL, normalizeURL(url));
+        assert_equals(registration.installing, null);
+      })
+    .then(function() {
+        frame.remove();
+        return service_worker_unregister_and_done(t, scope);
+      });
+}, 'waiting or active is set');
+</script>

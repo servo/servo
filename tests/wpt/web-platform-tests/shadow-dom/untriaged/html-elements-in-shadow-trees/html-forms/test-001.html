@@ -16,14 +16,14 @@ policies and contribution forms [3].
 <meta name="assert" content="HTML Elements in shadow trees: Form elements and form-associated elements in shadow tree are not accessible using document DOM object's tree accessors">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../testcommon.js"></script>
+<script src="../../../../html/resources/common.js"></script>
 </head>
 <body>
 <div id="log"></div>
 <script>
 //test form-associated elements
 test(function () {
-	var d = newHTMLDocument();
+    var d = newHTMLDocument();
 
     var form = d.createElement('form');
     form.setAttribute('id', 'form_id');
@@ -42,14 +42,14 @@ test(function () {
         s.appendChild(el);
 
         assert_equals(d.querySelector('#' + tagName + '_id'), null, 'Form-associated element ' + tagName +
-        	' in shadow tree must not be accessible using owner\'s document tree accessors');
+            ' in shadow tree must not be accessible using owner\'s document tree accessors');
     });
 }, 'A_08_02_01_T01');
 
 
 //test form elements
 test(function () {
-	var d = newHTMLDocument();
+    var d = newHTMLDocument();
 
     var form = d.createElement('form');
     d.body.appendChild(form);
@@ -65,7 +65,7 @@ test(function () {
         s.appendChild(el);
 
         assert_equals(d.querySelector('#' + tagName + '_id'), null, 'Form element ' + tagName +
-        	' in shadow tree must not be accessible using owner\'s document tree accessors');
+            ' in shadow tree must not be accessible using owner\'s document tree accessors');
     });
 }, 'A_08_02_01_T02');
 </script>

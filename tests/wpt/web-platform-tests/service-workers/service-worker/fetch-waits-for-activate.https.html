@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<title>Service Worker: Fetch Event Waits for Activate Event</title>
+<meta name=timeout content=long>
+<script src="/resources/testharness.js"></script>
+<script src="resources/testharness-helpers.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/get-host-info.sub.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<body>
+<script>
+
+var worker = 'resources/fetch-waits-for-activate-worker.js';
+var expected_url = normalizeURL(worker);
+var scope = 'resources/fetch-waits-for-activate/';
+
+async_test(function(t) {
+  var registration;
+  var frameLoadPromise;
+  var frame;
+  service_worker_unregister_and_register(t, worker, scope).then(function(reg) {
+    registration = reg;
+    return wait_for_state(t, reg.installing, 'activating');
+  }).then(function() {
+    assert_equals(registration.active.scriptURL, expected_url,
+                  'active worker should be present');
+    assert_equals(registration.active.state, 'activating',
+                  'active worker should be in activating state');
+
+    // This should block until we message the worker to tell it to complete
+    // the activate event.
+    frameLoadPromise = with_iframe(scope).then(function(f) {
+      frame = f;
+    });
+
+    // Wait some time to allow frame loading to proceed.  It should not,
+    // however, if the fetch event is blocked on the activate.  I don't
+    // see any way to force this race without a timeout, unfortunately.
+    return new Promise(function(resolve) {
+      setTimeout(resolve, 1000);
+    });
+  }).then(function() {
+    assert_equals(frame, undefined, 'frame should not be loaded');
+    assert_equals(registration.active.scriptURL, expected_url,
+                  'active worker should be present');
+    assert_equals(registration.active.state, 'activating',
+                  'active worker should be in activating state');
+
+    // This signals the activate event to complete.  The frame should now
+    // load.
+    registration.active.postMessage('GO');
+    return frameLoadPromise;
+  }).then(function() {
+    assert_equals(frame.contentWindow.navigator.serviceWorker.controller.scriptURL,
+                  expected_url, 'frame should now be loaded and controlled');
+    assert_equals(registration.active.state, 'activated',
+                  'active worker should be in activated state');
+    frame.remove();
+    return service_worker_unregister_and_done(t, scope);
+  }).catch(unreached_rejection(t));
+}, 'Fetch events should wait for the activate event to complete.');
+
+</script>
+</body>

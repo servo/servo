@@ -16,7 +16,8 @@ policies and contribution forms [3].
 <meta name="assert" content="Event Dispatch: At the time of event dispatch:The Event target and currentTarget attributes must return the relative target for the node on which event listeners are invoked">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../testcommon.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -36,13 +37,13 @@ A_05_05_01_T01.step(unit(function (ctx) {
 
     //For #volume-slider-thumb relative target #volume-slider-thumb
     roots.volumeShadowRoot.querySelector('#volume-slider-thumb').addEventListener('click',
-	    A_05_05_01_T01.step_func(function(event) {
-	    	invoked = true;
-	    	assert_equals(event.target.getAttribute('id'), 'volume-slider-thumb',
-	    			'Point 1: Wrong target');
-	    	assert_equals(event.currentTarget.getAttribute('id'), 'volume-slider-thumb',
-	    			'Point 1: Wrong currentTarget');
-	    }), false);
+        A_05_05_01_T01.step_func(function(event) {
+            invoked = true;
+            assert_equals(event.target.getAttribute('id'), 'volume-slider-thumb',
+                    'Point 1: Wrong target');
+            assert_equals(event.currentTarget.getAttribute('id'), 'volume-slider-thumb',
+                    'Point 1: Wrong currentTarget');
+        }), false);
 
     var event = d.createEvent('HTMLEvents');
     event.initEvent ('click', true, false);
@@ -69,13 +70,13 @@ A_05_05_01_T02.step(unit(function (ctx) {
 
     //For #volume-shadow-root relative target #volume-slider-thumb
     roots.volumeShadowRoot.addEventListener('click',
-    		A_05_05_01_T02.step_func(function(event) {
-    			invoked = true;
-		    	assert_equals(event.target.getAttribute('id'), 'volume-slider-thumb',
-		    			'Wrong target');
-		    	assert_true(event.currentTarget == roots.volumeShadowRoot,
-		    			'Wrong currentTarget');
-	    }), false);
+            A_05_05_01_T02.step_func(function(event) {
+                invoked = true;
+                assert_equals(event.target.getAttribute('id'), 'volume-slider-thumb',
+                        'Wrong target');
+                assert_true(event.currentTarget == roots.volumeShadowRoot,
+                        'Wrong currentTarget');
+        }), false);
 
     var event = d.createEvent('HTMLEvents');
     event.initEvent ('click', true, false);
@@ -102,19 +103,19 @@ A_05_05_01_T03.step(unit(function (ctx) {
 
     //For #volume-slider relative target #volume-shadow-host
     roots.playerShadowRoot.querySelector('#volume-slider').addEventListener('click',
-    		A_05_05_01_T03.step_func(function(event) {
-    			invoked = true;
-		    	assert_equals(event.target.getAttribute('id'), 'volume-shadow-host',
-		    			'Wrong target');
-		    	assert_equals(event.currentTarget.getAttribute('id'), 'volume-slider',
-		    			'Wrong currentTarget');
-	    }), false);
+            A_05_05_01_T03.step_func(function(event) {
+                invoked = true;
+                assert_equals(event.target.getAttribute('id'), 'volume-shadow-host',
+                        'Wrong target');
+                assert_equals(event.currentTarget.getAttribute('id'), 'volume-slider',
+                        'Wrong currentTarget');
+        }), false);
 
     var event = d.createEvent('HTMLEvents');
     event.initEvent ('click', true, false);
     roots.volumeShadowRoot.querySelector('#volume-slider-thumb').dispatchEvent(event);
 
-   	assert_true(invoked, 'Event listener was not invoked');
+    assert_true(invoked, 'Event listener was not invoked');
 
     A_05_05_01_T03.done();
 }));
@@ -136,21 +137,21 @@ A_05_05_01_T04.step(unit(function (ctx) {
 
     //For #volume-slider-container relative target #volume-shadow-host
     roots.playerShadowRoot.querySelector('#volume-slider-container').addEventListener('click',
-    		A_05_05_01_T04.step_func(function(event) {
-    			invoked = true;
-		    	assert_equals(event.target.getAttribute('id'), 'volume-shadow-host',
-		    			'Wrong target');
-		    	assert_equals(event.currentTarget.getAttribute('id'), 'volume-slider-container',
-		    			'Wrong currentTarget');
-	    }), false);
+            A_05_05_01_T04.step_func(function(event) {
+                invoked = true;
+                assert_equals(event.target.getAttribute('id'), 'volume-shadow-host',
+                        'Wrong target');
+                assert_equals(event.currentTarget.getAttribute('id'), 'volume-slider-container',
+                        'Wrong currentTarget');
+        }), false);
 
     var event = d.createEvent('HTMLEvents');
     event.initEvent ('click', true, false);
     roots.volumeShadowRoot.querySelector('#volume-slider-thumb').dispatchEvent(event);
 
-   	assert_true(invoked, 'Event listener was not invoked');
+    assert_true(invoked, 'Event listener was not invoked');
 
-   	A_05_05_01_T04.done();
+    A_05_05_01_T04.done();
 }));
 
 
@@ -169,21 +170,21 @@ A_05_05_01_T05.step(unit(function (ctx) {
 
     //For #controls relative target #volume-shadow-host
     roots.playerShadowRoot.querySelector('#controls').addEventListener('click',
-    		A_05_05_01_T05.step_func(function(event) {
-    			invoked = true;
-		    	assert_equals(event.target.getAttribute('id'), 'volume-shadow-host',
-		    			'Wrong target');
-		    	assert_equals(event.currentTarget.getAttribute('id'), 'controls',
-		    			'Wrong currentTarget');
-	    }), false);
+            A_05_05_01_T05.step_func(function(event) {
+                invoked = true;
+                assert_equals(event.target.getAttribute('id'), 'volume-shadow-host',
+                        'Wrong target');
+                assert_equals(event.currentTarget.getAttribute('id'), 'controls',
+                        'Wrong currentTarget');
+        }), false);
 
     var event = d.createEvent('HTMLEvents');
     event.initEvent ('click', true, false);
     roots.volumeShadowRoot.querySelector('#volume-slider-thumb').dispatchEvent(event);
 
-   	assert_true(invoked, 'Event listener was not invoked');
+    assert_true(invoked, 'Event listener was not invoked');
 
-   	A_05_05_01_T05.done();
+    A_05_05_01_T05.done();
 }));
 
 
@@ -202,21 +203,21 @@ A_05_05_01_T06.step(unit(function (ctx) {
 
     //For #player-shadow-host relative target #player-shadow-host
     d.querySelector('#player-shadow-host').addEventListener('click',
-    		A_05_05_01_T06.step_func(function(event) {
-    			invoked = true;
-		    	assert_equals(event.target.getAttribute('id'), 'player-shadow-host',
-		    			'Wrong target');
-		    	assert_equals(event.currentTarget.getAttribute('id'), 'player-shadow-host',
-		    			'Wrong currentTarget');
-	    }), false);
+            A_05_05_01_T06.step_func(function(event) {
+                invoked = true;
+                assert_equals(event.target.getAttribute('id'), 'player-shadow-host',
+                        'Wrong target');
+                assert_equals(event.currentTarget.getAttribute('id'), 'player-shadow-host',
+                        'Wrong currentTarget');
+        }), false);
 
     var event = d.createEvent('HTMLEvents');
     event.initEvent ('click', true, false);
     roots.volumeShadowRoot.querySelector('#volume-slider-thumb').dispatchEvent(event);
 
-   	assert_true(invoked, 'Event listener was not invoked');
+    assert_true(invoked, 'Event listener was not invoked');
 
-   	A_05_05_01_T06.done();
+    A_05_05_01_T06.done();
 }));
 
 
@@ -236,21 +237,21 @@ A_05_05_01_T07.step(unit(function (ctx) {
 
     //For #player relative target #player-shadow-host
     d.querySelector('#player').addEventListener('click',
-    		A_05_05_01_T07.step_func(function(event) {
-    			invoked = true;
-		    	assert_equals(event.target.getAttribute('id'), 'player-shadow-host',
-		    			'Wrong target');
-		    	assert_equals(event.currentTarget.getAttribute('id'), 'player',
-		    			'Wrong currentTarget');
-	    }), false);
+            A_05_05_01_T07.step_func(function(event) {
+                invoked = true;
+                assert_equals(event.target.getAttribute('id'), 'player-shadow-host',
+                        'Wrong target');
+                assert_equals(event.currentTarget.getAttribute('id'), 'player',
+                        'Wrong currentTarget');
+        }), false);
 
     var event = d.createEvent('HTMLEvents');
     event.initEvent ('click', true, false);
     roots.volumeShadowRoot.querySelector('#volume-slider-thumb').dispatchEvent(event);
 
-   	assert_true(invoked, 'Event listener was not invoked');
+    assert_true(invoked, 'Event listener was not invoked');
 
-   	A_05_05_01_T07.done();
+    A_05_05_01_T07.done();
 }));
 </script>
 </body>

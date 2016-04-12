@@ -16,7 +16,8 @@ policies and contribution forms [3].
 <meta name="assert" content="Event Dispatch: The MouseEvent relatedTarget attribute must return the adjusted related target">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../testcommon.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -36,11 +37,11 @@ A_05_05_02_T01.step(unit(function (ctx) {
 
     //For #volume-shadow-root adjusted related target #volume-shadow-root
     roots.volumeShadowRoot.addEventListener('mouseover',
-    		A_05_05_02_T01.step_func(function(event) {
-	    	invoked = true;
-	    	assert_true(event.relatedTarget === roots.volumeShadowRoot,
-	    			'Wrong relatedTarget');
-	    }), false);
+            A_05_05_02_T01.step_func(function(event) {
+            invoked = true;
+            assert_true(event.relatedTarget === roots.volumeShadowRoot,
+                    'Wrong relatedTarget');
+        }), false);
 
 
 

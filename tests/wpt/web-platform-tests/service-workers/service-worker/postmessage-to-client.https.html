@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>Service Worker: postMessage to Client</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/get-host-info.sub.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script>
+var frame;
+var t = async_test('postMessage from ServiceWorker to Client');
+t.step(function() {
+    var scope = 'resources/blank.html';
+    var host_info = get_host_info();
+    var sw;
+    service_worker_unregister_and_register(
+        t, 'resources/postmessage-to-client-worker.js', scope)
+      .then(function(registration) {
+          return wait_for_state(t, registration.installing, 'activated');
+        })
+      .then(function() { return with_iframe(scope); })
+      .then(function(f) {
+          frame = f;
+          sw = frame.contentWindow.navigator.serviceWorker;
+          sw.onmessage = t.step_func(onMessage);
+          sw.controller.postMessage('ping');
+        })
+      .catch(unreached_rejection(t));
+
+    var result = [];
+    var expected = ['Sending message via clients'];
+
+    function onMessage(e) {
+      assert_equals(e.bubbles, false, 'message events should not bubble.');
+      assert_equals(e.cancelable, false, 'message events should not be cancelable.');
+      assert_equals(e.origin, host_info['HTTPS_ORIGIN'], 'message event\'s origin should be set correctly.');
+// XXXkhuey fixme!
+//      assert_equals(e.source, sw.controller, 'source should be ServiceWorker.');
+
+      var message = e.data;
+      if (message === 'quit') {
+        assert_array_equals(result, expected,
+                            'Worker should post back expected messages.');
+        frame.remove();
+        service_worker_unregister_and_done(t, scope);
+      } else {
+        result.push(message);
+      }
+    }
+  });
+</script>

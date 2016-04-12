@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<title>Service Worker: FetchEvent for resources</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/get-host-info.sub.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script>
+
+function assert_resolves(promise, description) {
+  return promise.catch(function(reason) {
+      throw new Error(description + ' - ' + reason.message);
+  });
+}
+
+function assert_rejects(promise, description) {
+  return promise.then(
+      function() { throw new Error(description); },
+      function() {});
+}
+
+function iframe_test(url, timeout_enabled) {
+  return new Promise(function(resolve, reject) {
+      var frame = document.createElement('iframe');
+      frame.src = url;
+      if (timeout_enabled) {
+        // We can't catch the network error on iframe. So we use the timer for
+        // failure detection.
+        var timer = setTimeout(function() {
+            reject(new Error('iframe load timeout'));
+            frame.remove();
+          }, 10000);
+      }
+      frame.onload = function() {
+        if (timeout_enabled)
+          clearTimeout(timer);
+        if (frame.contentDocument.body.textContent == 'Hello world\n')
+          resolve();
+        else
+          reject(new Error('content mismatch'));
+        frame.remove();
+      };
+      document.body.appendChild(frame);
+    });
+}
+
+promise_test(function(t) {
+    var SCOPE = 'resources/fetch-request-redirect-iframe.html';
+    var SCRIPT = 'resources/fetch-rewrite-worker.js';
+    var REDIRECT_URL = base_path() + 'resources/redirect.py?Redirect=';
+    var IMAGE_URL = base_path() + 'resources/square.png';
+    var AUDIO_URL = base_path() + 'resources/silence.oga';
+    var XHR_URL = base_path() + 'resources/simple.txt';
+    var HTML_URL = base_path() + 'resources/dummy.html';
+
+    var REDIRECT_TO_IMAGE_URL = REDIRECT_URL + encodeURIComponent(IMAGE_URL);
+    var REDIRECT_TO_AUDIO_URL = REDIRECT_URL + encodeURIComponent(AUDIO_URL);
+    var REDIRECT_TO_XHR_URL = REDIRECT_URL + encodeURIComponent(XHR_URL);
+    var REDIRECT_TO_HTML_URL = REDIRECT_URL + encodeURIComponent(HTML_URL);
+
+    var worker;
+    var frame;
+    return service_worker_unregister_and_register(t, SCRIPT, SCOPE)
+      .then(function(registration) {
+          worker = registration.installing;
+          return wait_for_state(t, worker, 'activated');
+        })
+      .then(function() { return with_iframe(SCOPE); })
+      .then(function(f) {
+          frame = f;
+          return Promise.all([
+            // XMLHttpRequest tests.
+            assert_resolves(frame.contentWindow.xhr(XHR_URL),
+                            'Normal XHR should succeed.'),
+            assert_resolves(frame.contentWindow.xhr(REDIRECT_TO_XHR_URL),
+                            'Redirected XHR should succeed.'),
+            assert_resolves(
+                frame.contentWindow.xhr(
+                    './?url=' + encodeURIComponent(REDIRECT_TO_XHR_URL) +
+                    '&redirect-mode=follow'),
+                'Redirected XHR with Request.redirect=follow should succeed.'),
+            assert_rejects(
+                frame.contentWindow.xhr(
+                    './?url=' + encodeURIComponent(REDIRECT_TO_XHR_URL) +
+                    '&redirect-mode=error'),
+                'Redirected XHR with Request.redirect=error should fail.'),
+            assert_rejects(
+                frame.contentWindow.xhr(
+                    './?url=' + encodeURIComponent(REDIRECT_TO_XHR_URL) +
+                    '&redirect-mode=manual'),
+                'Redirected XHR with Request.redirect=manual should fail.'),
+
+            // Image loading tests.
+            assert_resolves(frame.contentWindow.load_image(IMAGE_URL),
+                            'Normal image resource should be loaded.'),
+            assert_resolves(
+                frame.contentWindow.load_image(REDIRECT_TO_IMAGE_URL),
+                'Redirected image resource should be loaded.'),
+            assert_resolves(
+                frame.contentWindow.load_image(
+                    './?url=' + encodeURIComponent(REDIRECT_TO_IMAGE_URL) +
+                    '&redirect-mode=follow'),
+                'Loading redirected image with Request.redirect=follow should' +
+                ' succeed.'),
+            assert_rejects(
+                frame.contentWindow.load_image(
+                    './?url=' + encodeURIComponent(REDIRECT_TO_IMAGE_URL) +
+                    '&redirect-mode=error'),
+                'Loading redirected image with Request.redirect=error should ' +
+                'fail.'),
+            assert_rejects(
+                frame.contentWindow.load_image(
+                    './?url=' + encodeURIComponent(REDIRECT_TO_IMAGE_URL) +
+                    '&redirect-mode=manual'),
+                'Loading redirected image with Request.redirect=manual should' +
+                ' fail.'),
+
+            // Audio loading tests.
+            assert_resolves(frame.contentWindow.load_audio(AUDIO_URL),
+                            'Normal audio resource should be loaded.'),
+            assert_resolves(
+                frame.contentWindow.load_audio(REDIRECT_TO_AUDIO_URL),
+                'Redirected audio resource should be loaded.'),
+            assert_resolves(
+                frame.contentWindow.load_audio(
+                    './?url=' + encodeURIComponent(REDIRECT_TO_AUDIO_URL) +
+                    '&redirect-mode=follow'),
+                'Loading redirected audio with Request.redirect=follow should' +
+                ' succeed.'),
+            assert_rejects(
+                frame.contentWindow.load_audio(
+                    './?url=' + encodeURIComponent(REDIRECT_TO_AUDIO_URL) +
+                    '&redirect-mode=error'),
+                'Loading redirected audio with Request.redirect=error should ' +
+                'fail.'),
+            assert_rejects(
+                frame.contentWindow.load_audio(
+                    './?url=' + encodeURIComponent(REDIRECT_TO_AUDIO_URL) +
+                    '&redirect-mode=manual'),
+                'Loading redirected audio with Request.redirect=manual should' +
+                ' fail.'),
+
+            // Iframe tests.
+            assert_resolves(iframe_test(HTML_URL),
+                            'Normal iframe loading should succeed.'),
+            assert_resolves(
+                iframe_test(REDIRECT_TO_HTML_URL),
+                'Normal redirected iframe loading should succeed.'),
+            assert_resolves(
+                iframe_test(SCOPE + '?url=' +
+                            encodeURIComponent(REDIRECT_TO_HTML_URL) +
+                            '&redirect-mode=follow'),
+                'Redirected iframe loading with Request.redirect=follow should'+
+                ' succeed.'),
+            assert_rejects(
+                iframe_test(SCOPE + '?url=' +
+                            encodeURIComponent(REDIRECT_TO_HTML_URL) +
+                            '&redirect-mode=error',
+                            true /* timeout_enabled */),
+                'Redirected iframe loading with Request.redirect=error should '+
+                'fail.'),
+            assert_resolves(
+                iframe_test(SCOPE + '?url=' +
+                            encodeURIComponent(REDIRECT_TO_HTML_URL) +
+                            '&redirect-mode=manual',
+                            true /* timeout_enabled */),
+                'Redirected iframe loading with Request.redirect=manual should'+
+                ' succeed.'),
+          ]);
+        })
+      .then(function() {
+          frame.remove();
+          service_worker_unregister_and_done(t, SCOPE);
+        });
+  }, 'Verify redirect mode of Fetch API and ServiceWorker FetchEvent.');
+</script>

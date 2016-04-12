@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<title>Service Worker: intercepting Worker script loads</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<body>
+<script>
+promise_test(function(t) {
+    var worker_url = 'resources/dummy-synthesized-worker.js';
+    var service_worker = 'resources/dummy-worker-interceptor.js';
+    var scope = worker_url;
+
+    return service_worker_unregister_and_register(t, service_worker, scope)
+      .then(function(r) {
+          return wait_for_state(t, r.installing, 'activated');
+        })
+      .then(function() {
+          return new Promise(function(resolve, reject) {
+              var w = new Worker(worker_url);
+              w.onmessage = function(e) {
+                resolve(e.data);
+              }
+
+              w.onerror = function(e) {
+                reject(e.message);
+              }
+            });
+        })
+      .then(function(data) {
+          assert_equals(data, 'worker loading intercepted by service worker');
+          service_worker_unregister_and_done(t, scope);
+        });
+  }, 'Verify worker script from uncontrolled document is intercepted by Service Worker');
+
+promise_test(function(t) {
+    var worker_url = 'resources/dummy-same-origin-worker.js';
+    var service_worker = 'resources/dummy-worker-interceptor.js';
+    var scope = worker_url;
+
+    return service_worker_unregister_and_register(t, service_worker, scope)
+      .then(function(r) {
+          return wait_for_state(t, r.installing, 'activated');
+        })
+      .then(function() {
+          return new Promise(function(resolve, reject) {
+              var w = new Worker(worker_url);
+              w.onmessage = function(e) {
+                resolve(e.data);
+              }
+
+              w.onerror = function(e) {
+                reject(e.message);
+              }
+            });
+        })
+      .then(function(data) {
+          assert_equals(data, 'dummy-worker-script loaded');
+          service_worker_unregister_and_done(t, scope);
+        });
+  }, 'Verify worker script intercepted by same-origin response succeeds');
+
+promise_test(function(t) {
+    var worker_url = 'resources/dummy-cors-worker.js';
+    var service_worker = 'resources/dummy-worker-interceptor.js';
+    var scope = worker_url;
+
+    return service_worker_unregister_and_register(t, service_worker, scope)
+      .then(function(r) {
+          return wait_for_state(t, r.installing, 'activated');
+        })
+      .then(function() {
+          return new Promise(function(resolve, reject) {
+              var w = new Worker(worker_url);
+              w.onmessage = function(e) {
+                resolve(e.data);
+              }
+
+              w.onerror = function(e) {
+                reject(e.message);
+              }
+            });
+        })
+      .then(function(data) {
+          assert_equals(data, 'dummy-worker-script loaded');
+          service_worker_unregister_and_done(t, scope);
+        });
+  }, 'Verify worker script intercepted by cors response succeeds');
+
+promise_test(function(t) {
+    var worker_url = 'resources/dummy-no-cors-worker.js';
+    var service_worker = 'resources/dummy-worker-interceptor.js';
+    var scope = worker_url;
+
+    return service_worker_unregister_and_register(t, service_worker, scope)
+      .then(function(r) {
+          return wait_for_state(t, r.installing, 'activated');
+        })
+      .then(function() {
+          return new Promise(function(resolve, reject) {
+              var w = new Worker(worker_url);
+              w.onmessage = function(e) {
+                resolve(e.data);
+              }
+
+              w.onerror = function(e) {
+                reject(e);
+                return true;
+              }
+            });
+        })
+      .then(function(data) {
+          assert_unreached('intercepted no-cors worker load should fail');
+          service_worker_unregister_and_done(t, scope);
+        })
+      .catch(function(e) {
+          assert_true(true, 'intercepted no-cors worker load should fail');
+          service_worker_unregister_and_done(t, scope);
+       });
+  }, 'Verify worker script intercepted by no-cors cross-origin response fails');
+
+promise_test(function(t) {
+    var subdoc_url = 'resources/worker-interception-iframe.https.html?bypass';
+    var service_worker = 'resources/worker-load-interceptor.js';
+    var scope = 'resources/';
+
+    window.addEventListener('message', t.step_func(on_message), false);
+    function on_message(e) {
+      assert_equals(e.data.results, "This load was successfully intercepted.");
+      t.done();
+    }
+
+    return service_worker_unregister_and_register(t, service_worker, scope)
+      .then(function(r) {
+          return wait_for_state(t, r.installing, 'activated');
+        })
+      .then(function() { return with_iframe(subdoc_url); })
+      .then(function(frame) {
+          return new Promise(function(resolve, reject) {
+              var channel = new MessageChannel();
+              channel.port1.onmessage = function(e) {
+                frame.remove();
+                resolve(e.data);
+              }
+
+              frame.contentWindow.postMessage("GO", "*", [channel.port2]);
+            });
+        })
+      .then(function(data) {
+          assert_equals(data.results, 'finish');
+          service_worker_unregister_and_done(t, scope);
+        });
+  }, 'Verify worker loads from controlled document are intercepted by Service Worker');
+
+</script>
+</body>

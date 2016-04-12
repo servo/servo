@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<title>Service Worker: Clients.matchAll with various clientTypes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script>
+var scope = 'resources/clients-matchall-client-types';
+var iframe_url = scope + '-iframe.html';
+var shared_worker_url = scope + '-shared-worker.js';
+
+/* visibilityState, focused, url, frameType */
+var expected_without_type = [
+    ['visible', true, new URL(iframe_url, location).href, 'nested']
+];
+var expected_with_window = [
+    ['visible', true, new URL(iframe_url, location).href, 'nested']
+];
+var expected_with_shared_worker = [
+    [,,new URL(shared_worker_url, location).href, 'none']
+];
+var expected_with_all = [
+    ['visible', true, new URL(iframe_url, location).href, 'nested'],
+    [,,new URL(shared_worker_url, location).href, 'none']
+];
+
+function test_matchall(frame, expected, query_options) {
+  // Make sure the frame gets focus.
+  frame.focus();
+  expected.sort(function(a, b) { return a[2] > b[2] ? 1 : -1; });
+  return new Promise(function(resolve, reject) {
+    var channel = new MessageChannel();
+    channel.port1.onmessage = function(e) {
+      assert_equals(e.data.length, expected.length);
+      for (var i = 0; i < e.data.length; i++)
+        assert_array_equals(e.data[i], expected[i]);
+      resolve();
+    };
+    frame.contentWindow.navigator.serviceWorker.controller.postMessage(
+        {port:channel.port2, options:query_options},
+        [channel.port2]);
+  });
+}
+
+promise_test(function(t) {
+    var frame;
+    return service_worker_unregister_and_register(
+        t, 'resources/clients-matchall-worker.js', scope)
+      .then(function(registration) {
+          return wait_for_state(t, registration.installing, 'activated');
+        })
+      .then(function() { return with_iframe(iframe_url); })
+      .then(function(f) {
+          frame = f;
+          return new Promise(function(resolve, reject) {
+              var w = new SharedWorker(shared_worker_url);
+              w.port.onmessage = resolve;
+            });
+        })
+      .then(function() {
+          return test_matchall(frame, expected_without_type, {});
+        })
+      .then(function() {
+          return test_matchall(frame, expected_with_window, {type:'window'});
+        })
+      //.then(function() {
+      //    return test_matchall(frame, expected_with_shared_worker,
+      //                         {type:'sharedworker'});
+      //  })
+      //.then(function() {
+      //    return test_matchall(frame, expected_with_all, {type:'all'});
+      //  })
+      .then(function() {
+          frame.remove();
+          return service_worker_unregister_and_done(t, scope);
+        });
+  }, 'Verify matchAll() with various client types');
+
+</script>

@@ -19,7 +19,7 @@ policies and contribution forms [3].
 <meta name="assert" content="Upper-boundary encapsulation: The shadow nodes and named shadow elements are not accessible using shadow host's document DOM tree accessors.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../testcommon.js"></script>
+<script src="../../../../html/resources/common.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -66,7 +66,6 @@ var HTML_CONTENT = [
     '<embed></embed>',
     '<form></form>',
     '<script><' + '/script>',
-    '<applet></applet>',
     '</body>'
 ].join('\n');
 
@@ -91,7 +90,7 @@ function populateTestContentToShadowRoot(shadowRoot) {
 function createDocumentForTesting() {
     var doc = document.implementation.createHTMLDocument('');
     populateTestContentToHostDocument(doc);
-    var shadowRoot = doc.documentElement.createShadowRoot();
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
     populateTestContentToShadowRoot(shadowRoot);
     return doc;
 }
@@ -121,13 +120,17 @@ test(function () {
 test(function () {
     var doc = document.implementation.createHTMLDocument('');
     populateTestContentToHostDocument(doc);
-    var shadowRoot = doc.documentElement.createShadowRoot();
+
+    // Note: this test is originally written to replace document.documentElement
+    // with shadow contents, but among Shadow DOM V1 allowed elements body is the
+    // most approximate to it, though some test may make lesser sense.
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
     populateTestContentToShadowRoot(shadowRoot);
 
     // Replace the content of <title> to distinguish elements in a host
     // document and a shadow tree.
     doc.getElementsByTagName('title')[0].textContent = 'Title of host document';
-    shadowRoot.getElementsByTagName('title')[0].textContent =
+    shadowRoot.querySelector('title').textContent =
         'Title of shadow tree';
 
     assert_equals(doc.title, 'Title of host document');
@@ -165,7 +168,7 @@ test(function () {
 
 generate_tests(
     testHTMLCollection,
-    ['anchors', 'applets', 'all'].map(
+    ['anchors', 'all'].map(
         function (accessor) {
             return [
                 'Elements in a shadow tree should not be accessible from ' +
@@ -213,7 +216,7 @@ test(function () {
     var shadowRoot = doc.documentElement.createShadowRoot();
     populateTestContentToShadowRoot(shadowRoot);
 
-    shadowRoot.getElementsByTagName('p')[0].id = 'test-id';
+    shadowRoot.querySelectorAll('p')[0].id = 'test-id';
     assert_equals(doc.getElementById('test-id'), null);
 },
     'Elements in a shadow tree should not be accessible from owner ' +
