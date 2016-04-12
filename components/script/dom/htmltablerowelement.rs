@@ -14,7 +14,9 @@ use dom::element::{Element, RawLayoutElementHelpers};
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
 use dom::htmltabledatacellelement::HTMLTableDataCellElement;
+use dom::htmltableelement::HTMLTableElement;
 use dom::htmltableheadercellelement::HTMLTableHeaderCellElement;
+use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
@@ -86,6 +88,27 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
             index,
             || self.Cells(),
             |n| n.is::<HTMLTableDataCellElement>())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tr-rowindex
+    fn RowIndex(&self) -> i32 {
+        let parent = match self.upcast::<Node>().GetParentNode() {
+            Some(parent) => parent,
+            None => return -1,
+        };
+        if let Some(table) = parent.downcast::<HTMLTableElement>() {
+            return table.row_index(self).map_or(-1, |i| i as i32);
+        }
+        if !parent.is::<HTMLTableSectionElement>() {
+            return -1;
+        }
+        let grandparent = match parent.upcast::<Node>().GetParentNode() {
+            Some(parent) => parent,
+            None => return -1,
+        };
+        grandparent.downcast::<HTMLTableElement>()
+                   .and_then(|table| table.row_index(self))
+                   .map_or(-1, |i| i as i32)
     }
 }
 
