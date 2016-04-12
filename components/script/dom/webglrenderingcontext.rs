@@ -828,6 +828,17 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
+    fn GetActiveAttrib(&self, program: Option<&WebGLProgram>, index: u32) -> Option<Root<WebGLActiveInfo>> {
+        program.and_then(|p| match p.get_active_attrib(index) {
+            Ok(ret) => Some(ret),
+            Err(error) => {
+                self.webgl_error(error);
+                None
+            },
+        })
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     fn GetAttribLocation(&self, program: Option<&WebGLProgram>, name: DOMString) -> i32 {
         if let Some(program) = program {
             handle_potential_webgl_error!(self, program.get_attrib_location(name), None).unwrap_or(-1)

@@ -167,6 +167,17 @@ impl WebGLProgram {
             WebGLActiveInfo::new(self.global().r(), size, ty, DOMString::from(name)))
     }
 
+    /// glGetActiveAttrib
+    pub fn get_active_attrib(&self, index: u32) -> WebGLResult<Root<WebGLActiveInfo>> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::GetActiveAttrib(self.id, index, sender)))
+            .unwrap();
+
+        receiver.recv().unwrap().map(|(size, ty, name)|
+            WebGLActiveInfo::new(self.global().r(), size, ty, DOMString::from(name)))
+    }
+
     /// glGetAttribLocation
     pub fn get_attrib_location(&self, name: DOMString) -> WebGLResult<Option<i32>> {
         if name.len() > MAX_UNIFORM_AND_ATTRIBUTE_LEN {
