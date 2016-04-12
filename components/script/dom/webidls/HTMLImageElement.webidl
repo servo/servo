@@ -32,3 +32,9 @@ partial interface HTMLImageElement {
 
   [TreatNullAs=EmptyString] attribute DOMString border;
 };
+
+// https://drafts.csswg.org/cssom-view/#extensions-to-the-htmlimageelement-interface
+partial interface HTMLImageElement {
+  // readonly attribute long x;
+  // readonly attribute long y;
+};
