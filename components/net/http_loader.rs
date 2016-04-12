@@ -249,7 +249,16 @@ impl HttpResponse for WrappedHttpResponse {
 pub trait HttpRequestFactory {
     type R: HttpRequest;
 
-    fn create(&self, url: Url, method: Method) -> Result<Self::R, LoadError>;
+    fn create(&self, _url: Url, _method: Method) -> Result<Self::R, LoadError> {
+        panic!()
+    }
+    fn create_with_headers(&self, url: Url, method: Method, headers: Headers) -> Result<Self::R, LoadError> {
+        let mut result = self.create(url, method);
+        if let Ok(ref mut req) = result {
+            *req.headers_mut() = headers;
+        }
+        result
+    }
 }
 
 pub struct NetworkHttpRequestFactory {
@@ -636,8 +645,8 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
     // a ConnectionAborted error. this loop tries again with a new
     // connection.
     loop {
-        let mut req = try!(request_factory.create(connection_url.clone(), method.clone()));
-        *req.headers_mut() = request_headers.clone();
+        let mut req = try!(request_factory.create_with_headers(connection_url.clone(), method.clone(),
+                                                               request_headers.clone()));
 
         if cancel_listener.is_cancelled() {
             return Err(LoadError::Cancelled(connection_url.clone(), "load cancelled".to_owned()));
