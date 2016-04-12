@@ -151,9 +151,9 @@ fn load_for_consumer(load_data: LoadData,
         connector: connector,
     };
     let context = load_data.context.clone();
-    match load::<WrappedHttpRequest>(load_data, &http_state,
-                                     devtools_chan, &factory,
-                                     user_agent, &cancel_listener) {
+    match load(load_data, &http_state,
+               devtools_chan, &factory,
+               user_agent, &cancel_listener) {
         Err(LoadError::UnsupportedScheme(url)) => {
             let s = format!("{} request, but we don't support that scheme", &*url.scheme);
             send_error(url, s, start_chan)
