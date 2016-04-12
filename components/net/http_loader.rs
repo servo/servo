@@ -246,7 +246,7 @@ impl HttpResponse for WrappedHttpResponse {
 pub trait HttpRequestFactory {
     type R: HttpRequest;
 
-    fn create_with_headers(&self, url: Url, method: Method, headers: Headers) -> Result<Self::R, LoadError>;
+    fn create(&self, url: Url, method: Method, headers: Headers) -> Result<Self::R, LoadError>;
 }
 
 pub struct NetworkHttpRequestFactory {
@@ -256,8 +256,8 @@ pub struct NetworkHttpRequestFactory {
 impl HttpRequestFactory for NetworkHttpRequestFactory {
     type R = WrappedHttpRequest;
 
-    fn create_with_headers(&self, url: Url, method: Method, headers: Headers)
-                           -> Result<WrappedHttpRequest, LoadError> {
+    fn create(&self, url: Url, method: Method, headers: Headers)
+              -> Result<WrappedHttpRequest, LoadError> {
         let connection = Request::with_connector(method, url.clone(), &*self.connector);
 
         if let Err(HttpError::Ssl(ref error)) = connection {
@@ -662,8 +662,8 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
             info!("{:?}", data);
         }
 
-        let req = try!(request_factory.create_with_headers(connection_url.clone(), method.clone(),
-                                                           headers.clone()));
+        let req = try!(request_factory.create(connection_url.clone(), method.clone(),
+                                              headers.clone()));
 
         if cancel_listener.is_cancelled() {
             return Err(LoadError::Cancelled(connection_url.clone(), "load cancelled".to_owned()));
