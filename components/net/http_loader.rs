@@ -154,9 +154,9 @@ fn load_for_consumer(load_data: LoadData,
 
     let ui_provider = TFDProvider;
     let context = load_data.context.clone();
-    match load::<WrappedHttpRequest, TFDProvider>(load_data, &ui_provider, &http_state,
-                                     devtools_chan, &factory,
-                                     user_agent, &cancel_listener) {
+    match load(load_data, &ui_provider, &http_state,
+               devtools_chan, &factory,
+               user_agent, &cancel_listener) {
         Err(LoadError::UnsupportedScheme(url)) => {
             let s = format!("{} request, but we don't support that scheme", &*url.scheme);
             send_error(url, s, start_chan)
