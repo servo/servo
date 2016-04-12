@@ -41,6 +41,10 @@ pub fn split_html_space_chars<'a>(s: &'a str) ->
     s.split(HTML_SPACE_CHARACTERS).filter(not_empty as fn(&&str) -> bool)
 }
 
+pub fn split_commas<'a>(s: &'a str) -> Filter<Split<'a, char>, fn(&&str) -> bool> {
+    fn not_empty(&split: &&str) -> bool { !split.is_empty() }
+    s.split(',').filter(not_empty as fn(&&str) -> bool)
+}
 
 fn is_ascii_digit(c: &char) -> bool {
     match *c {
