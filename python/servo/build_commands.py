@@ -227,7 +227,7 @@ class MachCommands(CommandBase):
             env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
             env['OPENSSL_STATIC'] = 'TRUE'
 
-        if release
+        if release:
             env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -Z force-overflow-checks=true"
 
         if not (self.config["build"]["ccache"] == ""):
