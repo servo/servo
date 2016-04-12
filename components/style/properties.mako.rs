@@ -50,9 +50,11 @@ def to_camel_case(ident):
     return re.sub("_([a-z])", lambda m: m.group(1).upper(), ident.strip("_").capitalize())
 
 class Keyword(object):
-    def __init__(self, name, values, extra_gecko_values=None, extra_servo_values=None):
+    def __init__(self, name, values, gecko_constant_prefix=None,
+                 extra_gecko_values=None, extra_servo_values=None):
         self.name = name
         self.values = values
+        self.gecko_constant_prefix = gecko_constant_prefix or "NS_STYLE_" + self.name.upper().replace("-", "_")
         self.extra_gecko_values = extra_gecko_values or []
         self.extra_servo_values = extra_servo_values or []
     def gecko_values(self):
@@ -66,6 +68,8 @@ class Keyword(object):
             return self.servo_values()
         else:
             raise Exception("Bad product: " + product)
+    def gecko_constant(self, value):
+        return self.gecko_constant_prefix + "_" + value.upper().replace("-", "_")
 
 class Longhand(object):
     def __init__(self, name, derived_from=None, keyword=None,
@@ -338,10 +342,11 @@ pub mod longhands {
     <%def name="single_keyword_computed(name, values, products='gecko,servo',
                                         extra_gecko_values=None, extra_servo_values=None,
                                         custom_cascade=False, experimental=False, internal=False,
-                                        gecko_ffi_name=None)">
+                                        gecko_constant_prefix=None, gecko_ffi_name=None)">
         <%self:longhand name="${name}" keyword="${Keyword(name, values.split(),
-                                                          extra_gecko_values,
-                                                          extra_servo_values)}"
+                                                          gecko_constant_prefix=gecko_constant_prefix,
+                                                          extra_gecko_values=extra_gecko_values,
+                                                          extra_servo_values=extra_servo_values)}"
                         products="${products}" custom_cascade="${custom_cascade}"
                         experimental="${experimental}" internal="${internal}",
                         gecko_ffi_name="${gecko_ffi_name}">
@@ -365,12 +370,14 @@ pub mod longhands {
     </%def>
 
     <%def name="single_keyword(name, values, products='gecko,servo',
-                               experimental=False, internal=False, gecko_ffi_name=None)">
+                               experimental=False, internal=False,
+                               gecko_constant_prefix=None, gecko_ffi_name=None)">
         <%self:single_keyword_computed name="${name}"
                                        values="${values}"
                                        products="${products}"
                                        experimental="${experimental}"
                                        internal="${internal}",
+                                       gecko_constant_prefix="${gecko_constant_prefix}"
                                        gecko_ffi_name="${gecko_ffi_name}">
             use values::computed::ComputedValueAsSpecified;
             impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -929,7 +936,7 @@ pub mod longhands {
                      internal=True)}
 
     // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-    ${single_keyword("overflow-x", "visible hidden scroll auto")}
+    ${single_keyword("overflow-x", "visible hidden scroll auto", gecko_constant_prefix="NS_STYLE_OVERFLOW")}
 
     // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
     <%self:longhand name="overflow-y">
@@ -2246,10 +2253,11 @@ pub mod longhands {
 
     // Also known as "word-wrap" (which is more popular because of IE), but this is the preferred
     // name per CSS-TEXT 6.2.
-    ${single_keyword("overflow-wrap", "normal break-word", gecko_ffi_name="mWordWrap")}
+    ${single_keyword("overflow-wrap", "normal break-word", gecko_ffi_name="mWordWrap",
+                                                           gecko_constant_prefix="NS_STYLE_WORDWRAP")}
 
     // TODO(pcwalton): Support `word-break: keep-all` once we have better CJK support.
-    ${single_keyword("word-break", "normal break-all")}
+    ${single_keyword("word-break", "normal break-all", gecko_constant_prefix="NS_STYLE_WORDBREAK")}
 
     // TODO(pcwalton): Support `text-justify: distribute`.
     ${single_keyword("text-justify", "auto none inter-word", products="servo")}
@@ -2435,7 +2443,8 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    <%self:single_keyword_computed name="white-space" values="normal pre nowrap pre-wrap pre-line">
+    <%self:single_keyword_computed name="white-space" values="normal pre nowrap pre-wrap pre-line",
+                                   gecko_constant_prefix="NS_STYLE_WHITESPACE">
         use values::computed::ComputedValueAsSpecified;
         impl ComputedValueAsSpecified for SpecifiedValue {}
 
@@ -2494,9 +2503,9 @@ pub mod longhands {
 
     ${new_style_struct("InheritedTable", is_inherited=True, gecko_name="nsStyleTableBorder")}
 
-    ${single_keyword("border-collapse", "separate collapse")}
+    ${single_keyword("border-collapse", "separate collapse", gecko_constant_prefix="NS_STYLE_BORDER")}
 
-    ${single_keyword("empty-cells", "show hide")}
+    ${single_keyword("empty-cells", "show hide", gecko_constant_prefix="NS_STYLE_TABLE_EMPTY_CELLS")}
 
     ${single_keyword("caption-side", "top bottom")}
 
@@ -4384,7 +4393,7 @@ pub mod longhands {
     ${single_keyword("mix-blend-mode",
                      """normal multiply screen overlay darken lighten color-dodge
                         color-burn hard-light soft-light difference exclusion hue
-                        saturation color luminosity""")}
+                        saturation color luminosity""", gecko_constant_prefix="NS_STYLE_BLEND")}
 
     // CSS Masking Module Level 1
     // https://www.w3.org/TR/css-masking-1/
