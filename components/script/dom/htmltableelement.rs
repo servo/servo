@@ -7,13 +7,15 @@ use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
+use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root, RootedReference};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
 use dom::htmltablecaptionelement::HTMLTableCaptionElement;
+use dom::htmltablecolelement::HTMLTableColElement;
 use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::node::{Node, document_from_node, window_from_node};
@@ -28,6 +30,7 @@ pub struct HTMLTableElement {
     htmlelement: HTMLElement,
     border: Cell<Option<u32>>,
     cellspacing: Cell<Option<u32>>,
+    tbodies: MutNullableHeap<JS<HTMLCollection>>,
 }
 
 impl HTMLTableElement {
@@ -37,6 +40,7 @@ impl HTMLTableElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             border: Cell::new(None),
             cellspacing: Cell::new(None),
+            tbodies: Default::default(),
         }
     }
 
@@ -49,6 +53,70 @@ impl HTMLTableElement {
 
     pub fn get_border(&self) -> Option<u32> {
         self.border.get()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-thead
+    // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
+    fn get_first_section_of_type(&self, atom: &Atom) -> Option<Root<HTMLTableSectionElement>> {
+        self.upcast::<Node>()
+            .child_elements()
+            .find(|n| n.is::<HTMLTableSectionElement>() && n.local_name() == atom)
+            .and_then(|n| n.downcast().map(Root::from_ref))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-thead
+    // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
+    fn set_first_section_of_type<P>(&self,
+                                    atom: &Atom,
+                                    section: Option<&HTMLTableSectionElement>,
+                                    reference_predicate: P)
+                                    -> ErrorResult
+                                    where P: FnMut(&Root<Element>) -> bool {
+        if let Some(e) = section {
+            if e.upcast::<Element>().local_name() != atom {
+                return Err(Error::HierarchyRequest)
+            }
+        }
+
+        self.delete_first_section_of_type(atom);
+
+        let node = self.upcast::<Node>();
+
+        if let Some(section) = section {
+            let reference_element = node.child_elements().find(reference_predicate);
+            let reference_node = reference_element.r().map(|e| e.upcast());
+
+            try!(node.InsertBefore(section.upcast(), reference_node));
+        }
+
+        Ok(())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-createthead
+    // https://html.spec.whatwg.org/multipage/#dom-table-createtfoot
+    fn create_section_of_type(&self, atom: &Atom) -> Root<HTMLTableSectionElement> {
+        if let Some(section) = self.get_first_section_of_type(atom) {
+            return section
+        }
+
+        let section = HTMLTableSectionElement::new(atom.clone(),
+                                                   None,
+                                                   document_from_node(self).r());
+        match atom {
+            &atom!("thead") => self.SetTHead(Some(&section)),
+            &atom!("tfoot") => self.SetTFoot(Some(&section)),
+            _ => unreachable!("unexpected section type")
+        }.expect("unexpected section type");
+
+        section
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-deletethead
+    // https://html.spec.whatwg.org/multipage/#dom-table-deletetfoot
+    fn delete_first_section_of_type(&self, atom: &Atom) {
+        if let Some(thead) = self.get_first_section_of_type(atom) {
+            thead.upcast::<Node>().remove_self();
+        }
     }
 }
 
@@ -118,6 +186,83 @@ impl HTMLTableElementMethods for HTMLTableElement {
             caption.upcast::<Node>().remove_self();
         }
     }
+
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-thead
+    fn GetTHead(&self) -> Option<Root<HTMLTableSectionElement>> {
+        self.get_first_section_of_type(&atom!("thead"))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-thead
+    fn SetTHead(&self, thead: Option<&HTMLTableSectionElement>) -> ErrorResult {
+        self.set_first_section_of_type(&atom!("thead"), thead, |n| {
+            !n.is::<HTMLTableCaptionElement>() && !n.is::<HTMLTableColElement>()
+        })
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-createthead
+    fn CreateTHead(&self) -> Root<HTMLTableSectionElement> {
+        self.create_section_of_type(&atom!("thead"))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-deletethead
+    fn DeleteTHead(&self) {
+        self.delete_first_section_of_type(&atom!("thead"))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
+    fn GetTFoot(&self) -> Option<Root<HTMLTableSectionElement>> {
+        self.get_first_section_of_type(&atom!("tfoot"))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-tfoot
+    fn SetTFoot(&self, tfoot: Option<&HTMLTableSectionElement>) -> ErrorResult {
+        self.set_first_section_of_type(&atom!("tfoot"), tfoot, |n| {
+            if n.is::<HTMLTableCaptionElement>() || n.is::<HTMLTableColElement>() {
+                return false;
+            }
+
+            if n.is::<HTMLTableSectionElement>() {
+                let name = n.local_name();
+                if name == &atom!("thead") || name == &atom!("tbody") {
+                    return false;
+                }
+
+            }
+
+            true
+        })
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-createtfoot
+    fn CreateTFoot(&self) -> Root<HTMLTableSectionElement> {
+        self.create_section_of_type(&atom!("tfoot"))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-deletetfoot
+    fn DeleteTFoot(&self) {
+        self.delete_first_section_of_type(&atom!("tfoot"))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-table-tbodies
+    fn TBodies(&self) -> Root<HTMLCollection> {
+        #[derive(JSTraceable)]
+        struct TBodiesFilter;
+        impl CollectionFilter for TBodiesFilter {
+            fn filter(&self, elem: &Element, root: &Node) -> bool {
+                elem.is::<HTMLTableSectionElement>()
+                    && elem.local_name() == &atom!("tbody")
+                    && elem.upcast::<Node>().GetParentNode().r() == Some(root)
+            }
+        }
+
+        self.tbodies.or_init(|| {
+            let window = window_from_node(self);
+            let filter = box TBodiesFilter;
+            HTMLCollection::create(window.r(), self.upcast(), filter)
+        })
+    }
+
 
     // https://html.spec.whatwg.org/multipage/#dom-table-createtbody
     fn CreateTBody(&self) -> Root<HTMLTableSectionElement> {

@@ -35059,7 +35059,22 @@
   },
   "local_changes": {
     "deleted": [],
-    "items": {},
+    "items": {
+      "testharness": {
+        "html/semantics/tabular-data/the-table-element/tFoot.html": [
+          {
+            "path": "html/semantics/tabular-data/the-table-element/tFoot.html",
+            "url": "/html/semantics/tabular-data/the-table-element/tFoot.html"
+          }
+        ],
+        "html/semantics/tabular-data/the-table-element/tHead.html": [
+          {
+            "path": "html/semantics/tabular-data/the-table-element/tHead.html",
+            "url": "/html/semantics/tabular-data/the-table-element/tHead.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
