@@ -246,7 +246,7 @@ impl HttpResponse for WrappedHttpResponse {
 pub trait HttpRequestFactory {
     type R: HttpRequest;
 
-    fn create(&self, url: Url, method: Method) -> Result<Self::R, LoadError> {
+    fn create(&self, _url: Url, _method: Method) -> Result<Self::R, LoadError> {
         panic!()
     }
     fn create_with_headers(&self, url: Url, method: Method, headers: Headers) -> Result<Self::R, LoadError> {
@@ -265,7 +265,8 @@ pub struct NetworkHttpRequestFactory {
 impl HttpRequestFactory for NetworkHttpRequestFactory {
     type R = WrappedHttpRequest;
 
-    fn create(&self, url: Url, method: Method) -> Result<WrappedHttpRequest, LoadError> {
+    fn create_with_headers(&self, url: Url, method: Method, headers: Headers)
+                           -> Result<WrappedHttpRequest, LoadError> {
         let connection = Request::with_connector(method, url.clone(), &*self.connector);
 
         if let Err(HttpError::Ssl(ref error)) = connection {
@@ -280,13 +281,14 @@ impl HttpRequestFactory for NetworkHttpRequestFactory {
             }
         }
 
-        let request = match connection {
+        let mut request = match connection {
             Ok(req) => req,
 
             Err(e) => {
                  return Err(LoadError::Connection(url, e.description().to_owned()))
             }
         };
+        *request.headers_mut() = headers;
 
         Ok(WrappedHttpRequest { request: request })
     }
