@@ -9,6 +9,7 @@
 // can be escaped. In the above example, Vec<<&Foo> achieves the desired result of Vec<&Foo>.
 
 use std::ascii::AsciiExt;
+use std::boxed::Box as StdBox;
 use std::collections::HashSet;
 use std::fmt;
 use std::intrinsics;
@@ -16,7 +17,8 @@ use std::mem;
 use std::sync::Arc;
 
 use app_units::Au;
-use cssparser::{Parser, Color, RGBA, AtRuleParser, DeclarationParser, Delimiter,
+use cssparser::Color as CSSParserColor;
+use cssparser::{Parser, RGBA, AtRuleParser, DeclarationParser, Delimiter,
                 DeclarationListParser, parse_important, ToCss, TokenSerializationType};
 use error_reporting::ParseErrorReporter;
 use url::Url;
@@ -202,8 +204,9 @@ pub mod longhands {
             use properties::longhands;
             use properties::property_bit_field::PropertyBitField;
             use properties::{ComputedValues, ServoComputedValues, PropertyDeclaration};
-            use properties::style_struct_traits::T${THIS_STYLE_STRUCT.trait_name};
+            use properties::style_struct_traits::${THIS_STYLE_STRUCT.trait_name};
             use properties::style_structs;
+            use std::boxed::Box as StdBox;
             use std::collections::HashMap;
             use std::sync::Arc;
             use values::computed::{TContext, ToComputedValue};
@@ -217,7 +220,7 @@ pub mod longhands {
                                     context: &mut computed::Context<C>,
                                     seen: &mut PropertyBitField,
                                     cacheable: &mut bool,
-                                    error_reporter: &mut Box<ParseErrorReporter + Send>) {
+                                    error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
                 let declared_value = match *declaration {
                     PropertyDeclaration::${property.camel_case}(ref declared_value) => {
                         declared_value
@@ -538,7 +541,6 @@ pub mod longhands {
         %>
         pub use self::computed_value::T as SpecifiedValue;
         use values::computed::{Context, ComputedValueAsSpecified};
-        use properties::style_struct_traits::TInheritedText;
 
         pub mod computed_value {
             #[allow(non_camel_case_types)]
@@ -590,7 +592,7 @@ pub mod longhands {
                                    context: &mut computed::Context<C>,
                                    _seen: &mut PropertyBitField,
                                    _cacheable: &mut bool,
-                                   _error_reporter: &mut Box<ParseErrorReporter + Send>) {
+                                   _error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
             longhands::_servo_display_for_hypothetical_box::derive_from_display(context);
             longhands::_servo_text_decorations_in_effect::derive_from_display(context);
         }
@@ -1681,7 +1683,8 @@ pub mod longhands {
                                                   "longhands::color::computed_value::T")])}
 
     <%self:raw_longhand name="color">
-        use cssparser::{Color, RGBA};
+        use cssparser::Color as CSSParserColor;
+        use cssparser::RGBA;
         use values::specified::{CSSColor, CSSRGBA};
 
         impl ToComputedValue for SpecifiedValue {
@@ -1705,8 +1708,8 @@ pub mod longhands {
                                -> Result<DeclaredValue<SpecifiedValue>, ()> {
             let value = try!(CSSColor::parse(input));
             let rgba = match value.parsed {
-                Color::RGBA(rgba) => rgba,
-                Color::CurrentColor => return Ok(DeclaredValue::Inherit)
+                CSSParserColor::RGBA(rgba) => rgba,
+                CSSParserColor::CurrentColor => return Ok(DeclaredValue::Inherit)
             };
             Ok(DeclaredValue::Value(CSSRGBA {
                 parsed: rgba,
@@ -2229,7 +2232,6 @@ pub mod longhands {
         use cssparser::ToCss;
         use std::fmt;
         use values::computed::ComputedValueAsSpecified;
-        use properties::style_struct_traits::TInheritedText;
 
         impl ComputedValueAsSpecified for SpecifiedValue {}
 
@@ -2307,7 +2309,7 @@ pub mod longhands {
                                    context: &mut computed::Context<C>,
                                    _seen: &mut PropertyBitField,
                                    _cacheable: &mut bool,
-                                   _error_reporter: &mut Box<ParseErrorReporter + Send>) {
+                                   _error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
             longhands::_servo_text_decorations_in_effect::derive_from_text_decoration(context);
         }
     </%self:longhand>
@@ -2320,7 +2322,7 @@ pub mod longhands {
         use std::fmt;
 
         use values::computed::ComputedValueAsSpecified;
-        use properties::style_struct_traits::{TBox, TColor, TText};
+        use properties::style_struct_traits::{Box, Color, Text};
 
         impl ComputedValueAsSpecified for SpecifiedValue {}
 
@@ -5692,7 +5694,7 @@ mod property_bit_field {
             value: &DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
             custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
             f: F,
-            error_reporter: &mut Box<ParseErrorReporter + Send>)
+            error_reporter: &mut StdBox<ParseErrorReporter + Send>)
             where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>)
         {
             if let DeclaredValue::WithVariables {
@@ -5719,7 +5721,7 @@ mod property_bit_field {
                 from_shorthand: Option<Shorthand>,
                 custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
                 f: F,
-                error_reporter: &mut Box<ParseErrorReporter + Send>)
+                error_reporter: &mut StdBox<ParseErrorReporter + Send>)
                 where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>) {
             f(&
                 ::custom_properties::substitute(css, first_token_type, custom_properties)
@@ -5769,13 +5771,13 @@ pub struct PropertyDeclarationBlock {
     pub normal: Arc<Vec<PropertyDeclaration>>,
 }
 
-pub fn parse_style_attribute(input: &str, base_url: &Url, error_reporter: Box<ParseErrorReporter + Send>)
+pub fn parse_style_attribute(input: &str, base_url: &Url, error_reporter: StdBox<ParseErrorReporter + Send>)
                              -> PropertyDeclarationBlock {
     let context = ParserContext::new(Origin::Author, base_url, error_reporter);
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }
 
-pub fn parse_one_declaration(name: &str, input: &str, base_url: &Url, error_reporter: Box<ParseErrorReporter + Send>)
+pub fn parse_one_declaration(name: &str, input: &str, base_url: &Url, error_reporter: StdBox<ParseErrorReporter + Send>)
                              -> Result<Vec<PropertyDeclaration>, ()> {
     let context = ParserContext::new(Origin::Author, base_url, error_reporter);
     let mut results = vec![];
@@ -6189,7 +6191,7 @@ pub mod style_struct_traits {
     use super::longhands;
 
     % for style_struct in STYLE_STRUCTS:
-        pub trait T${style_struct.trait_name}: Clone {
+        pub trait ${style_struct.trait_name}: Clone {
             % for longhand in style_struct.longhands:
                 #[allow(non_snake_case)]
                 fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T);
@@ -6235,7 +6237,7 @@ pub mod style_structs {
         }
         % endif
 
-        impl super::style_struct_traits::T${style_struct.trait_name} for ${style_struct.servo_struct_name} {
+        impl super::style_struct_traits::${style_struct.trait_name} for ${style_struct.servo_struct_name} {
             % for longhand in style_struct.longhands:
                 fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T) {
                     self.${longhand.ident} = v;
@@ -6326,7 +6328,7 @@ pub mod style_structs {
 
 pub trait ComputedValues : Clone + Send + Sync + 'static {
     % for style_struct in STYLE_STRUCTS:
-        type Concrete${style_struct.trait_name}: style_struct_traits::T${style_struct.trait_name};
+        type Concrete${style_struct.trait_name}: style_struct_traits::${style_struct.trait_name};
     % endfor
 
         // Temporary bailout case for stuff we haven't made work with the trait
@@ -6452,10 +6454,10 @@ impl ServoComputedValues {
     /// Usage example:
     /// let top_color = style.resolve_color(style.Border.border_top_color);
     #[inline]
-    pub fn resolve_color(&self, color: Color) -> RGBA {
+    pub fn resolve_color(&self, color: CSSParserColor) -> RGBA {
         match color {
-            Color::RGBA(rgba) => rgba,
-            Color::CurrentColor => self.get_color().color,
+            CSSParserColor::RGBA(rgba) => rgba,
+            CSSParserColor::CurrentColor => self.get_color().color,
         }
     }
 
@@ -6628,7 +6630,7 @@ impl ServoComputedValues {
 
 
 /// Return a WritingMode bitflags from the relevant CSS properties.
-pub fn get_writing_mode<S: style_struct_traits::TInheritedBox>(inheritedbox_style: &S) -> WritingMode {
+pub fn get_writing_mode<S: style_struct_traits::InheritedBox>(inheritedbox_style: &S) -> WritingMode {
     use logical_geometry;
     let mut flags = WritingMode::empty();
     match inheritedbox_style.clone_direction() {
@@ -6692,7 +6694,7 @@ fn cascade_with_cached_declarations<C: ComputedValues>(
         parent_style: &C,
         cached_style: &C,
         custom_properties: Option<Arc<::custom_properties::ComputedValuesMap>>,
-        mut error_reporter: Box<ParseErrorReporter + Send>)
+        mut error_reporter: StdBox<ParseErrorReporter + Send>)
         -> C {
     let mut context = computed::Context {
         is_root_element: false,
@@ -6726,7 +6728,7 @@ fn cascade_with_cached_declarations<C: ComputedValues>(
                             PropertyDeclaration::${property.camel_case}(ref
                                     ${'_' if not style_struct.inherited else ''}declared_value)
                                     => {
-                                    use properties::style_struct_traits::T${style_struct.trait_name};
+                                    use properties::style_struct_traits::${style_struct.trait_name};
                                 % if style_struct.inherited:
                                     if seen.get_${property.ident}() {
                                         continue
@@ -6784,7 +6786,7 @@ fn cascade_with_cached_declarations<C: ComputedValues>(
 
     if seen.get_font_style() || seen.get_font_weight() || seen.get_font_stretch() ||
             seen.get_font_family() {
-        use properties::style_struct_traits::TFont;
+        use properties::style_struct_traits::Font;
         context.mutate_style().mutate_font().compute_font_hash();
     }
 
@@ -6797,7 +6799,7 @@ pub type CascadePropertyFn<C /*: ComputedValues */> =
                      context: &mut computed::Context<C>,
                      seen: &mut PropertyBitField,
                      cacheable: &mut bool,
-                     error_reporter: &mut Box<ParseErrorReporter + Send>);
+                     error_reporter: &mut StdBox<ParseErrorReporter + Send>);
 
 pub fn make_cascade_vec<C: ComputedValues>() -> Vec<Option<CascadePropertyFn<C>>> {
     let mut result: Vec<Option<CascadePropertyFn<C>>> = Vec::new();
@@ -6848,9 +6850,9 @@ pub fn cascade<C: ComputedValues>(
                shareable: bool,
                parent_style: Option<<&C>,
                cached_style: Option<<&C>,
-               mut error_reporter: Box<ParseErrorReporter + Send>)
+               mut error_reporter: StdBox<ParseErrorReporter + Send>)
                -> (C, bool) {
-    use properties::style_struct_traits::{TBorder, TBox, TColor, TFont, TOutline};
+    use properties::style_struct_traits::{Border, Box, Color, Font, Outline};
     let initial_values = C::initial_values();
     let (is_root_element, inherited_style) = match parent_style {
         Some(parent_style) => (false, parent_style),
@@ -7029,7 +7031,7 @@ pub fn cascade<C: ComputedValues>(
 
     if seen.get_font_style() || seen.get_font_weight() || seen.get_font_stretch() ||
             seen.get_font_family() {
-        use properties::style_struct_traits::TFont;
+        use properties::style_struct_traits::Font;
         style.mutate_font().compute_font_hash();
     }
 
