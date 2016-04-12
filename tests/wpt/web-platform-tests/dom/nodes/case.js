@@ -73,6 +73,13 @@ function ascii_lowercase(input) {
                        });
 }
 
+function get_qualified_name(el) {
+  if (el.prefix) {
+    return el.prefix + ":" + el.localName;
+  }
+  return el.localName;
+}
+
 function test_create_element(name) {
   var node = document.createElement(name);
   assert_equals(node.localName, expected_case(name));
@@ -133,9 +140,9 @@ function test_get_elements_tag_name(elements_to_create, search_string) {
   var expected = Array.prototype.filter.call(container.childNodes,
                                             function(node) {
                                               if (is_html && node.namespaceURI === "http://www.w3.org/1999/xhtml") {
-                                                return node.localName === expected_case(search_string);
+                                                return get_qualified_name(node) === expected_case(search_string);
                                               } else {
-                                                return node.localName === search_string;
+                                                return get_qualified_name(node) === search_string;
                                               }
                                             });
   document.documentElement.appendChild(container);

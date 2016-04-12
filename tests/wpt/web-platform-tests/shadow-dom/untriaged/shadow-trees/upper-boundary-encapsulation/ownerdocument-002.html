@@ -19,7 +19,8 @@ policies and contribution forms [3].
 <meta name="assert" content="Upper-boundary encapsulation: The ownerDocument property of all nodes in shadow tree refers to the document of the shadow host.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../testcommon.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -28,8 +29,8 @@ function testElement(elementName) {
     var doc = document.implementation.createHTMLDocument('Test');
     var element = doc.createElement(elementName);
     doc.body.appendChild(element);
-    var shadowRoot = element.createShadowRoot();
-    HTML5_ELEMENT_NAMES.forEach(function (name) {
+    var shadowRoot = element.attachShadow({mode: 'open'});
+    ATTACHSHADOW_SAFELISTED_ELEMENTS.forEach(function (name) {
         shadowRoot.appendChild(doc.createElement(name));
     });
 
@@ -40,7 +41,7 @@ function testElement(elementName) {
     }
 }
 
-var testParameters = HTML5_ELEMENT_NAMES.map(function (name) {
+var testParameters = ATTACHSHADOW_SAFELISTED_ELEMENTS.map(function (name) {
     return [
         'ownerDocument property of any elements in a shadow tree should ' +
         'match the document of the shadow host, when the host is a "' +

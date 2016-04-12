@@ -1,0 +1,63 @@
+
+pylib 1.0.0 released: testing-with-python innovations continue
+--------------------------------------------------------------------
+
+Took a few betas but finally i uploaded a `1.0.0 py lib release`_,
+featuring the mature and powerful py.test tool and "execnet-style"
+*elastic* distributed programming.  With the new release, there are
+many new advanced automated testing features - here is a quick summary:
+
+* funcargs_ - pythonic zero-boilerplate fixtures for Python test functions :
+
+  - totally separates test code, test configuration and test setup
+  - ideal for integration and functional tests
+  - allows for flexible and natural test parametrization schemes
+
+* new `plugin architecture`_, allowing easy-to-write project-specific and cross-project single-file plugins.   The most notable new external plugin is `oejskit`_ which naturally enables **running and reporting of javascript-unittests in real-life browsers**.
+
+* many new features done in easy-to-improve `default plugins`_, highlights:
+
+  * xfail: mark tests as "expected to fail" and report separately.
+  * pastebin: automatically send tracebacks to pocoo paste service
+  * capture: flexibly capture stdout/stderr of subprocesses, per-test ...
+  * monkeypatch: safely monkeypatch modules/classes from within tests
+  * unittest: run and integrate traditional unittest.py tests
+  * figleaf: generate html coverage reports with the figleaf module
+  * resultlog: generate buildbot-friendly reporting output
+  * ...
+
+* `distributed testing`_ and `elastic distributed execution`_:
+
+  - new unified "TX" URL scheme for specifying remote processes
+  - new distribution modes "--dist=each" and "--dist=load"
+  - new sync/async ways to handle 1:N communication
+  - improved documentation
+
+The py lib continues to offer most of the functionality used by
+the testing tool in `independent namespaces`_.
+
+Some non-test related code, notably greenlets/co-routines and
+api-generation now live as their own projects which simplifies the
+installation procedure because no C-Extensions are required anymore.
+
+The whole package should work well with Linux, Win32 and OSX, on Python
+2.3, 2.4, 2.5 and 2.6.  (Expect Python3 compatibility soon!)
+
+For more info, see the py.test and py lib documentation:
+
+    http://pytest.org
+
+    http://pylib.org
+
+have fun,
+holger
+
+.. _`independent namespaces`: http://pylib.org
+.. _`funcargs`: http://codespeak.net/py/dist/test/funcargs.html
+.. _`plugin architecture`: http://codespeak.net/py/dist/test/extend.html
+.. _`default plugins`: http://codespeak.net/py/dist/test/plugin/index.html
+.. _`distributed testing`: http://codespeak.net/py/dist/test/dist.html
+.. _`elastic distributed execution`: http://codespeak.net/py/dist/execnet.html
+.. _`1.0.0 py lib release`: http://pypi.python.org/pypi/py
+.. _`oejskit`: http://codespeak.net/py/dist/test/plugin/oejskit.html
+

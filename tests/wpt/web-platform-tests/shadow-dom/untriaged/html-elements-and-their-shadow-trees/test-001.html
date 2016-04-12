@@ -16,7 +16,8 @@ policies and contribution forms [3].
 <meta name="assert" content="HTML Elements and Their Shadow Trees: If the element can have fallback content, UA should allow the shadow tree to contain at least one insertion point.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../testcommon.js"></script>
+<script src="../../../html/resources/common.js"></script>
+<script src="../../resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -24,15 +25,15 @@ policies and contribution forms [3].
 //test iframe
 test(unit(function (ctx) {
 
-	var d = newRenderedHTMLDocument(ctx);
+    var d = newRenderedHTMLDocument(ctx);
 
-	// create element
+    // create element
     var el = d.createElement('iframe');
     d.body.appendChild(el);
 
     el.innerHTML = '' +
-    	'<span id="shadow">This is a node that should be distributed</span>' +
-    	'<span id="flbk">This is a fallback content</span>';
+        '<span id="shadow">This is a node that should be distributed</span>' +
+        '<span id="flbk">This is a fallback content</span>';
 
     var s = el.createShadowRoot();
     s.innerHTML = '<content select="#shadow"></content>';
@@ -46,15 +47,15 @@ test(unit(function (ctx) {
 //test object
 test(unit(function (ctx) {
 
-	var d = newRenderedHTMLDocument(ctx);
+    var d = newRenderedHTMLDocument(ctx);
 
-	// create element
+    // create element
     var el = d.createElement('object');
     d.body.appendChild(el);
 
     el.innerHTML = '' +
-    	'<span id="shadow">This is a node that should be distributed</span>' +
-    	'<span id="flbk">This is a fallback content</span>';
+        '<span id="shadow">This is a node that should be distributed</span>' +
+        '<span id="flbk">This is a fallback content</span>';
 
     var s = el.createShadowRoot();
     s.innerHTML = '<content select="#shadow"></content>';
@@ -68,15 +69,15 @@ test(unit(function (ctx) {
 //test video
 test(unit(function (ctx) {
 
-	var d = newRenderedHTMLDocument(ctx);
+    var d = newRenderedHTMLDocument(ctx);
 
-	// create element
+    // create element
     var el = d.createElement('video');
     d.body.appendChild(el);
 
     el.innerHTML = '' +
-    	'<span id="shadow">This is a node that should be distributed</span>' +
-    	'<span id="flbk">This is a fallback content</span>';
+        '<span id="shadow">This is a node that should be distributed</span>' +
+        '<span id="flbk">This is a fallback content</span>';
 
     var s = el.createShadowRoot();
     s.innerHTML = '<content select="#shadow"></content>';
@@ -90,15 +91,15 @@ test(unit(function (ctx) {
 //test audio
 test(unit(function (ctx) {
 
-	var d = newRenderedHTMLDocument(ctx);
+    var d = newRenderedHTMLDocument(ctx);
 
-	// create element
+    // create element
     var el = d.createElement('audio');
     d.body.appendChild(el);
 
     el.innerHTML = '' +
-    	'<span id="shadow">This is a node that should be distributed</span>' +
-    	'<span id="flbk">This is a fallback content</span>';
+        '<span id="shadow">This is a node that should be distributed</span>' +
+        '<span id="flbk">This is a fallback content</span>';
 
     var s = el.createShadowRoot();
     s.innerHTML = '<content select="#shadow"></content>';
@@ -112,15 +113,15 @@ test(unit(function (ctx) {
 //test canvas
 test(unit(function (ctx) {
 
-	var d = newRenderedHTMLDocument(ctx);
+    var d = newRenderedHTMLDocument(ctx);
 
-	// create element
+    // create element
     var el = d.createElement('canvas');
     d.body.appendChild(el);
 
     el.innerHTML = '' +
-    	'<span id="shadow">This is a node that should be distributed</span>' +
-    	'<span id="flbk">This is a fallback content</span>';
+        '<span id="shadow">This is a node that should be distributed</span>' +
+        '<span id="flbk">This is a fallback content</span>';
 
     var s = el.createShadowRoot();
     s.innerHTML = '<content select="#shadow"></content>';
@@ -134,7 +135,7 @@ test(unit(function (ctx) {
 //test map
 test(unit(function (ctx) {
 
-	var d = newRenderedHTMLDocument(ctx);
+    var d = newRenderedHTMLDocument(ctx);
 
     var img = d.createElement('img');
     img.setAttribute('usemap', '#theMap');
@@ -143,14 +144,14 @@ test(unit(function (ctx) {
     d.body.appendChild(img);
 
 
-	// create element
+    // create element
     var el = d.createElement('map');
     el.setAttribute('name', 'theMap');
     d.body.appendChild(el);
 
     el.innerHTML = '' +
-		'<span id="shadow">This is a node that should be distributed</span>' +
-		'<span id="flbk">This is a fallback content</span>';
+        '<span id="shadow">This is a node that should be distributed</span>' +
+        '<span id="flbk">This is a fallback content</span>';
 
 
     var s = el.createShadowRoot();
@@ -165,15 +166,15 @@ test(unit(function (ctx) {
 //test textarea
 test(unit(function (ctx) {
 
-	var d = newRenderedHTMLDocument(ctx);
+    var d = newRenderedHTMLDocument(ctx);
 
-	// create element
+    // create element
     var el = d.createElement('textarea');
     d.body.appendChild(el);
 
     el.innerHTML = '' +
-    	'<span id="shadow">This is a node that should be distributed</span>' +
-    	'<span id="flbk">This is a fallback content</span>';
+        '<span id="shadow">This is a node that should be distributed</span>' +
+        '<span id="flbk">This is a fallback content</span>';
 
     var s = el.createShadowRoot();
     s.innerHTML = '<content select="#shadow"></content>';
@@ -187,15 +188,15 @@ test(unit(function (ctx) {
 //test progress
 test(unit(function (ctx) {
 
-	var d = newRenderedHTMLDocument(ctx);
+    var d = newRenderedHTMLDocument(ctx);
 
-	// create element
+    // create element
     var el = d.createElement('progress');
     d.body.appendChild(el);
 
     el.innerHTML = '' +
-    	'<span id="shadow">This is a node that should be distributed</span>' +
-    	'<span id="flbk">This is a fallback content</span>';
+        '<span id="shadow">This is a node that should be distributed</span>' +
+        '<span id="flbk">This is a fallback content</span>';
 
     var s = el.createShadowRoot();
     s.innerHTML = '<content select="#shadow"></content>';
@@ -209,15 +210,15 @@ test(unit(function (ctx) {
 //test meter
 test(unit(function (ctx) {
 
-	var d = newRenderedHTMLDocument(ctx);
+    var d = newRenderedHTMLDocument(ctx);
 
-	// create element
+    // create element
     var el = d.createElement('meter');
     d.body.appendChild(el);
 
     el.innerHTML = '' +
-    	'<span id="shadow">This is a node that should be distributed</span>' +
-    	'<span id="flbk">This is a fallback content</span>';
+        '<span id="shadow">This is a node that should be distributed</span>' +
+        '<span id="flbk">This is a fallback content</span>';
 
     var s = el.createShadowRoot();
     s.innerHTML = '<content select="#shadow"></content>';

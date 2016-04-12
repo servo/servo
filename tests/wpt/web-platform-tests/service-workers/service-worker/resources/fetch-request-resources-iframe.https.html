@@ -1,0 +1,51 @@
+<script src="test-helpers.sub.js?pipe=sub"></script>
+<body>
+<script>
+
+function load_image(url, cross_origin) {
+  var img = document.createElement('img');
+  if (cross_origin != '') {
+    img.crossOrigin = cross_origin;
+  }
+  img.src = url;
+}
+
+function load_script(url, cross_origin) {
+  var script = document.createElement('script');
+  script.src = url;
+  if (cross_origin != '') {
+    script.crossOrigin = cross_origin;
+  }
+  document.body.appendChild(script);
+}
+
+function load_css(url, cross_origin) {
+  var link = document.createElement('link');
+  link.rel = 'stylesheet'
+  link.href = url;
+  link.type = 'text/css';
+  if (cross_origin != '') {
+    link.crossOrigin = cross_origin;
+  }
+  document.body.appendChild(link);
+}
+
+function load_font(url) {
+  var fontFace = new FontFace('test', 'url(' + url + ')');
+  fontFace.load();
+}
+
+function load_css_image(url, type) {
+  var div = document.createElement('div');
+  document.body.appendChild(div);
+  div.style[type] = 'url(' + url + ')';
+}
+
+function load_css_image_set(url, type) {
+  var div = document.createElement('div');
+  document.body.appendChild(div);
+  div.style[type] = '-webkit-image-set(url(' + url + ') 1x)';
+}
+
+</script>
+</body>

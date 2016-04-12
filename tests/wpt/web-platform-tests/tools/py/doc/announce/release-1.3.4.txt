@@ -1,0 +1,22 @@
+py.test/pylib 1.3.4: fixes and new native traceback option
+===========================================================================
+
+pylib/py.test 1.3.4 is a minor maintenance release mostly containing bug fixes
+and a new "--tb=native" traceback option to show "normal" Python standard
+tracebacks instead of the py.test enhanced tracebacks.  See below for more
+change info and http://pytest.org for more general information on features
+and configuration of the testing tool.
+
+Thanks to the issue reporters and generally to Ronny Pfannschmidt for help.
+
+cheers,
+holger krekel
+
+Changes between 1.3.3 and 1.3.4
+==================================================
+
+- fix issue111: improve install documentation for windows
+- fix issue119: fix custom collectability of __init__.py as a module
+- fix issue116: --doctestmodules work with __init__.py files as well
+- fix issue115: unify internal exception passthrough/catching/GeneratorExit
+- fix issue118: new --tb=native for presenting cpython-standard exceptions

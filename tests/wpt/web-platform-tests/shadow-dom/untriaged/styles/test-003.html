@@ -16,7 +16,8 @@ policies and contribution forms [3].
 <meta name="assert" content="Styles: Each shadow root has an associated list of zero or more style sheets, named shadow root style sheets">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../testcommon.js"></script>
+<script src="../../../html/resources/common.js"></script>
+<script src="../../resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -42,7 +43,7 @@ test(unit(function (ctx) {
     //Shadow root to play with
     var s = host.createShadowRoot();
 
-	assert_equals(s.styleSheets.length, 0, 'There should be no style sheets');
+    assert_equals(s.styleSheets.length, 0, 'There should be no style sheets');
 }), 'A_06_00_03_T02');
 
 //TODO Now this tests produces an error on Chromium because styleSheets.length

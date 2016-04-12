@@ -16,7 +16,8 @@ policies and contribution forms [3].
 <meta name="assert" content="Retargeting focus events:The focus event must be treated in the same way as events with a relatedTarget, where the corresponding node that is losing focus as a result of target gaining focus or the node that is gaining focus">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../testcommon.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -40,11 +41,11 @@ A_05_03_03_T01.step(unit(function (ctx) {
 
     //For #volume-slider relative target is #volume-slider
     roots.playerShadowRoot.querySelector('.volume-slider').addEventListener('focus',
-    		A_05_03_03_T01.step_func(function(event) {
-    			invoked = true;
-		    	assert_equals(event.target.getAttribute('id'), 'volume-slider',
-		    			'Wrong target');
-	    }), false);
+            A_05_03_03_T01.step_func(function(event) {
+                invoked = true;
+                assert_equals(event.target.getAttribute('id'), 'volume-slider',
+                        'Wrong target');
+        }), false);
 
     roots.playerShadowRoot.querySelector('.volume-slider').focus();
 

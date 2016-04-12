@@ -1,0 +1,64 @@
+<!doctype html>
+<title>ServiceWorker: worker objects have synced state</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script>
+// Tests that ServiceWorker objects representing the same Service Worker
+// entity have the same state. JS object equality is not tested, since the spec
+// does not require it.
+promise_test(function(t) {
+    var scope = 'resources/synced-state';
+    var script = 'resources/empty-worker.js';
+    return service_worker_unregister_and_register(t, script, scope)
+      .then(function(registration) {
+          return new Promise(function(resolve) {
+              var step = 0;
+              registration.installing.addEventListener('statechange',
+                                                       function(e) {
+                  step++;
+                  if (step == 1) {
+                    assert_equals(e.currentTarget.state, 'installed',
+                                  'original SW should be installed');
+                    assert_equals(registration.installing, null,
+                                  'in installed, .installing should be null');
+                    // The Activate algorithm may have cleared the waiting worker
+                    // by now.
+                    if (registration.waiting) {
+                      assert_equals(registration.waiting.state, 'installed',
+                                    'in installed, .waiting should be installed');
+                      assert_equals(registration.active, null,
+                                    'in installed, .active should be null');
+                    } else {
+                      assert_equals(registration.active.state, 'activating',
+                                    'in installed, .active should be activating');
+                    }
+                  } else if (step == 2) {
+                    assert_equals(e.currentTarget.state, 'activating',
+                                  'original SW should be activating');
+                    assert_equals(registration.installing, null,
+                                  'in activating, .installing should be null');
+                    assert_equals(registration.waiting, null,
+                                  'in activating, .waiting should be null');
+                    assert_equals(
+                        registration.active.state, 'activating',
+                        'in activating, .active should be activating');
+                  } else if (step == 3) {
+                    assert_equals(e.currentTarget.state, 'activated',
+                                  'original SW should be activated');
+                    assert_equals(registration.installing, null,
+                                  'in activated, .installing should be null');
+                    assert_equals(registration.waiting, null,
+                                  'in activated, .waiting should be null');
+                    assert_equals(registration.active.state, 'activated',
+                                  'in activated .active should be activated');
+                    resolve();
+                  }
+                })
+            })
+        })
+      .then(function() {
+          return service_worker_unregister_and_done(t, scope);
+        });
+  }, 'worker objects for the same entity have the same state');
+</script>

@@ -61,13 +61,8 @@ test(function(t) {
 
 // [specified easing value, expected easing value]
 var gEasingValueTests = [
-  ["unrecognised", "linear"],
   ["linear", "linear"],
   ["ease-in-out", "ease-in-out"],
-  ["initial", "linear"],
-  ["inherit", "linear"],
-  ["var(--x)", "linear"],
-  ["ease-in-out, ease-out", "linear"],
   ["Ease\\2d in-out", "ease-in-out"],
   ["ease /**/", "ease"],
 ];
@@ -113,56 +108,57 @@ test(function(t) {
 }, "easing values are parsed correctly when passed to the " +
    "KeyframeEffectReadOnly constructor in KeyframeTimingOptions");
 
-var gGoodCompositeValueTests = [
+var gGoodKeyframeCompositeValueTests = [
+  "replace", "add", "accumulate", undefined
+];
+
+var gGoodOptionsCompositeValueTests = [
   "replace", "add", "accumulate"
 ];
 
 var gBadCompositeValueTests = [
-  "unrecognised", "replace ", "Replace"
+  "unrecognised", "replace ", "Replace", null
 ];
 
 test(function(t) {
-  gGoodCompositeValueTests.forEach(function(composite) {
-    var effect = new KeyframeEffectReadOnly(target, {
-      left: ["10px", "20px"],
-      composite: composite
-    });
+  var getFrame = function(composite) {
+    return { left: [ "10px", "20px" ], composite: composite };
+  };
+  gGoodKeyframeCompositeValueTests.forEach(function(composite) {
+    var effect = new KeyframeEffectReadOnly(target, getFrame(composite));
     assert_equals(effect.getFrames()[0].composite, composite,
                   "resulting composite for '" + composite + "'");
   });
   gBadCompositeValueTests.forEach(function(composite) {
     assert_throws(new TypeError, function() {
-                    new KeyframeEffectReadOnly(target, {
-                      left: ["10px", "20px"],
-                      composite: composite
-                    });
+                    new KeyframeEffectReadOnly(target, getFrame(composite));
                   });
   });
 }, "composite values are parsed correctly when passed to the " +
    "KeyframeEffectReadOnly constructor in PropertyIndexedKeyframes");
 
 test(function(t) {
-  gGoodCompositeValueTests.forEach(function(composite) {
-    var effect = new KeyframeEffectReadOnly(target, [
+  var getFrames = function(composite) {
+    return [
       { offset: 0, left: "10px", composite: composite },
       { offset: 1, left: "20px" }
-    ]);
+    ];
+  };
+  gGoodKeyframeCompositeValueTests.forEach(function(composite) {
+    var effect = new KeyframeEffectReadOnly(target, getFrames(composite));
     assert_equals(effect.getFrames()[0].composite, composite,
                   "resulting composite for '" + composite + "'");
   });
   gBadCompositeValueTests.forEach(function(composite) {
     assert_throws(new TypeError, function() {
-                    new KeyframeEffectReadOnly(target, [
-                      { offset: 0, left: "10px", composite: composite },
-                      { offset: 1, left: "20px" }
-                    ]);
+                    new KeyframeEffectReadOnly(target, getFrames(composite));
                   });
   });
 }, "composite values are parsed correctly when passed to the " +
    "KeyframeEffectReadOnly constructor in Keyframe");
 
 test(function(t) {
-  gGoodCompositeValueTests.forEach(function(composite) {
+  gGoodOptionsCompositeValueTests.forEach(function(composite) {
     var effect = new KeyframeEffectReadOnly(target, {
       left: ["10px", "20px"]
     }, { composite: composite });
@@ -182,77 +178,77 @@ test(function(t) {
 var gPropertyIndexedKeyframesTests = [
   { desc:   "a one property two value PropertyIndexedKeyframes specification",
     input:  { left: ["10px", "20px"] },
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "10px" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "20px" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", left: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear", left: "20px" }] },
   { desc:   "a one shorthand property two value PropertyIndexedKeyframes specification",
     input:  { margin: ["10px", "10px 20px 30px 40px"] },
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", marginTop: "10px", marginRight: "10px", marginBottom: "10px", marginLeft: "10px" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", marginTop: "10px", marginRight: "20px", marginBottom: "30px", marginLeft: "40px" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", marginTop: "10px", marginRight: "10px", marginBottom: "10px", marginLeft: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear", marginTop: "10px", marginRight: "20px", marginBottom: "30px", marginLeft: "40px" }] },
   { desc:   "a two property (one shorthand and one of its longhand components) two value PropertyIndexedKeyframes specification",
     input:  { marginTop: ["50px", "60px"],
               margin: ["10px", "10px 20px 30px 40px"] },
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", marginTop: "50px", marginRight: "10px", marginBottom: "10px", marginLeft: "10px" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", marginTop: "60px", marginRight: "20px", marginBottom: "30px", marginLeft: "40px" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", marginTop: "50px", marginRight: "10px", marginBottom: "10px", marginLeft: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear", marginTop: "60px", marginRight: "20px", marginBottom: "30px", marginLeft: "40px" }] },
   { desc:   "a two property two value PropertyIndexedKeyframes specification",
     input:  { left: ["10px", "20px"],
               top: ["30px", "40px"] },
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "10px", top: "30px" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "20px", top: "40px" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", left: "10px", top: "30px" },
+             { offset: 1, computedOffset: 1, easing: "linear", left: "20px", top: "40px" }] },
   { desc:   "a two property PropertyIndexedKeyframes specification with different numbers of values",
     input:  { left: ["10px", "20px", "30px"],
               top: ["40px", "50px"] },
-    output: [{ offset: 0.0, computedOffset: 0.0, easing: "linear", composite: "replace", left: "10px", top: "40px" },
-             { offset: 0.5, computedOffset: 0.5, easing: "linear", composite: "replace", left: "20px" },
-             { offset: 1.0, computedOffset: 1.0, easing: "linear", composite: "replace", left: "30px", top: "50px" }] },
+    output: [{ offset: 0.0, computedOffset: 0.0, easing: "linear", left: "10px", top: "40px" },
+             { offset: 0.5, computedOffset: 0.5, easing: "linear", left: "20px" },
+             { offset: 1.0, computedOffset: 1.0, easing: "linear", left: "30px", top: "50px" }] },
   { desc:   "a PropertyIndexedKeyframes specification with an invalid value",
     input:  { left: ["10px", "20px", "30px", "40px", "50px"],
               top:  ["15px", "25px", "invalid", "45px", "55px"] },
-    output: [{ offset: 0.00, computedOffset: 0.00, easing: "linear", composite: "replace", left: "10px", top: "15px" },
-             { offset: 0.25, computedOffset: 0.25, easing: "linear", composite: "replace", left: "20px", top: "25px" },
-             { offset: 0.50, computedOffset: 0.50, easing: "linear", composite: "replace", left: "30px" },
-             { offset: 0.75, computedOffset: 0.75, easing: "linear", composite: "replace", left: "40px", top: "45px" },
-             { offset: 1.00, computedOffset: 1.00, easing: "linear", composite: "replace", left: "50px", top: "55px" }] },
+    output: [{ offset: 0.00, computedOffset: 0.00, easing: "linear", left: "10px", top: "15px" },
+             { offset: 0.25, computedOffset: 0.25, easing: "linear", left: "20px", top: "25px" },
+             { offset: 0.50, computedOffset: 0.50, easing: "linear", left: "30px" },
+             { offset: 0.75, computedOffset: 0.75, easing: "linear", left: "40px", top: "45px" },
+             { offset: 1.00, computedOffset: 1.00, easing: "linear", left: "50px", top: "55px" }] },
   { desc:   "a one property two value PropertyIndexedKeyframes specification that needs to stringify its values",
     input:  { opacity: [0, 1] },
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", opacity: "0" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", opacity: "1" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", opacity: "0" },
+             { offset: 1, computedOffset: 1, easing: "linear", opacity: "1" }] },
   { desc:   "a one property one value PropertyIndexedKeyframes specification",
     input:  { left: ["10px"] },
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "10px" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear" },
+             { offset: 1, computedOffset: 1, easing: "linear", left: "10px" }] },
   { desc:   "a one property one non-array value PropertyIndexedKeyframes specification",
     input:  { left: "10px" },
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "10px" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear" },
+             { offset: 1, computedOffset: 1, easing: "linear", left: "10px" }] },
   { desc:   "a one property two value PropertyIndexedKeyframes specification where the first value is invalid",
     input:  { left: ["invalid", "10px"] },
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "10px" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear" },
+             { offset: 1, computedOffset: 1, easing: "linear", left: "10px" }] },
   { desc:   "a one property two value PropertyIndexedKeyframes specification where the second value is invalid",
     input:  { left: ["10px", "invalid"] },
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "10px" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", left: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear" }] },
   { desc:   "a two property PropertyIndexedKeyframes specification where one property is missing from the first Keyframe",
     input:  [{ offset: 0, left: "10px" },
              { offset: 1, left: "20px", top: "30px" }],
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "10px" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "20px", top: "30px" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", left: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear", left: "20px", top: "30px" }] },
   { desc:   "a two property PropertyIndexedKeyframes specification where one property is missing from the last Keyframe",
     input:  [{ offset: 0, left: "10px", top: "20px" },
              { offset: 1, left: "30px" }],
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "10px" , top: "20px" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "30px" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", left: "10px" , top: "20px" },
+             { offset: 1, computedOffset: 1, easing: "linear", left: "30px" }] },
   { desc:   "a PropertyIndexedKeyframes specification with repeated values at offset 0 with different easings",
     input:  [{ offset: 0.0, left: "100px", easing: "ease" },
              { offset: 0.0, left: "200px", easing: "ease" },
              { offset: 0.5, left: "300px", easing: "linear" },
              { offset: 1.0, left: "400px", easing: "ease-out" },
              { offset: 1.0, left: "500px", easing: "step-end" }],
-    output: [{ offset: 0.0, computedOffset: 0.0, easing: "ease",     composite: "replace", left: "100px" },
-             { offset: 0.0, computedOffset: 0.0, easing: "ease",     composite: "replace", left: "200px" },
-             { offset: 0.5, computedOffset: 0.5, easing: "linear",   composite: "replace", left: "300px" },
-             { offset: 1.0, computedOffset: 1.0, easing: "ease-out", composite: "replace", left: "400px" },
-             { offset: 1.0, computedOffset: 1.0, easing: "linear",   composite: "replace", left: "500px" }] },
+    output: [{ offset: 0.0, computedOffset: 0.0, easing: "ease",     left: "100px" },
+             { offset: 0.0, computedOffset: 0.0, easing: "ease",     left: "200px" },
+             { offset: 0.5, computedOffset: 0.5, easing: "linear",   left: "300px" },
+             { offset: 1.0, computedOffset: 1.0, easing: "ease-out", left: "400px" },
+             { offset: 1.0, computedOffset: 1.0, easing: "linear",   left: "500px" }] },
 ];
 
 gPropertyIndexedKeyframesTests.forEach(function(subtest) {
@@ -278,7 +274,7 @@ test(function(t) {
    { p: "left",       v: "20px" },
    { p: "offset",     v: "0" },
    { p: "easing",     v: "linear" },
-   { p: "composite",  v: null }].forEach(function(e) {
+   { p: "composite",  v: "replace" }].forEach(function(e) {
     Object.defineProperty(kf1, e.p, {
       enumerable: true,
       get: function() { actualOrder.push(e.p); return e.v; }
@@ -293,33 +289,33 @@ var gKeyframeSequenceTests = [
   { desc:   "a one property two Keyframe sequence",
     input:  [{ offset: 0, left: "10px" },
              { offset: 1, left: "20px" }],
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "10px" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "20px" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", left: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear", left: "20px" }] },
   { desc:   "a two property two Keyframe sequence",
     input:  [{ offset: 0, left: "10px", top: "30px" },
              { offset: 1, left: "20px", top: "40px" }],
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "10px", top: "30px" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "20px", top: "40px" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", left: "10px", top: "30px" },
+             { offset: 1, computedOffset: 1, easing: "linear", left: "20px", top: "40px" }] },
   { desc:   "a one shorthand property two Keyframe sequence",
     input:  [{ offset: 0, margin: "10px" },
              { offset: 1, margin: "20px 30px 40px 50px" }],
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", marginTop: "10px", marginRight: "10px", marginBottom: "10px", marginLeft: "10px" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", marginTop: "20px", marginRight: "30px", marginBottom: "40px", marginLeft: "50px" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", marginTop: "10px", marginRight: "10px", marginBottom: "10px", marginLeft: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear", marginTop: "20px", marginRight: "30px", marginBottom: "40px", marginLeft: "50px" }] },
   { desc:   "a two property (a shorthand and one of its component longhands) two Keyframe sequence",
     input:  [{ offset: 0, margin: "10px", marginTop: "20px" },
              { offset: 1, marginTop: "70px", margin: "30px 40px 50px 60px" }],
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", marginTop: "20px", marginRight: "10px", marginBottom: "10px", marginLeft: "10px" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", marginTop: "70px", marginRight: "40px", marginBottom: "50px", marginLeft: "60px" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", marginTop: "20px", marginRight: "10px", marginBottom: "10px", marginLeft: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear", marginTop: "70px", marginRight: "40px", marginBottom: "50px", marginLeft: "60px" }] },
   { desc:   "a Keyframe sequence with duplicate values for a given interior offset",
     input:  [{ offset: 0.0, left: "10px" },
              { offset: 0.5, left: "20px" },
              { offset: 0.5, left: "30px" },
              { offset: 0.5, left: "40px" },
              { offset: 1.0, left: "50px" }],
-    output: [{ offset: 0.0, computedOffset: 0.0, easing: "linear", composite: "replace", left: "10px" },
-             { offset: 0.5, computedOffset: 0.5, easing: "linear", composite: "replace", left: "20px" },
-             { offset: 0.5, computedOffset: 0.5, easing: "linear", composite: "replace", left: "40px" },
-             { offset: 1.0, computedOffset: 1.0, easing: "linear", composite: "replace", left: "50px" }] },
+    output: [{ offset: 0.0, computedOffset: 0.0, easing: "linear", left: "10px" },
+             { offset: 0.5, computedOffset: 0.5, easing: "linear", left: "20px" },
+             { offset: 0.5, computedOffset: 0.5, easing: "linear", left: "40px" },
+             { offset: 1.0, computedOffset: 1.0, easing: "linear", left: "50px" }] },
   { desc:   "a Keyframe sequence with duplicate values for offsets 0 and 1",
     input:  [{ offset: 0, left: "10px" },
              { offset: 0, left: "20px" },
@@ -327,50 +323,50 @@ var gKeyframeSequenceTests = [
              { offset: 1, left: "40px" },
              { offset: 1, left: "50px" },
              { offset: 1, left: "60px" }],
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "10px" },
-             { offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "30px" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "40px" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "60px" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", left: "10px" },
+             { offset: 0, computedOffset: 0, easing: "linear", left: "30px" },
+             { offset: 1, computedOffset: 1, easing: "linear", left: "40px" },
+             { offset: 1, computedOffset: 1, easing: "linear", left: "60px" }] },
   { desc:   "a two property four Keyframe sequence",
     input:  [{ offset: 0, left: "10px" },
              { offset: 0, top: "20px" },
              { offset: 1, top: "30px" },
              { offset: 1, left: "40px" }],
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", left: "10px", top: "20px" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", left: "40px", top: "30px" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", left: "10px", top: "20px" },
+             { offset: 1, computedOffset: 1, easing: "linear", left: "40px", top: "30px" }] },
   { desc:   "a one property Keyframe sequence with some omitted offsets",
     input:  [{ offset: 0.00, left: "10px" },
              { offset: 0.25, left: "20px" },
              { left: "30px" },
              { left: "40px" },
              { offset: 1.00, left: "50px" }],
-    output: [{ offset: 0.00, computedOffset: 0.00, easing: "linear", composite: "replace", left: "10px" },
-             { offset: 0.25, computedOffset: 0.25, easing: "linear", composite: "replace", left: "20px" },
-             { offset: 0.50, computedOffset: 0.50, easing: "linear", composite: "replace", left: "30px" },
-             { offset: 0.75, computedOffset: 0.75, easing: "linear", composite: "replace", left: "40px" },
-             { offset: 1.00, computedOffset: 1.00, easing: "linear", composite: "replace", left: "50px" }] },
+    output: [{ offset: 0.00, computedOffset: 0.00, easing: "linear", left: "10px" },
+             { offset: 0.25, computedOffset: 0.25, easing: "linear", left: "20px" },
+             { offset: 0.50, computedOffset: 0.50, easing: "linear", left: "30px" },
+             { offset: 0.75, computedOffset: 0.75, easing: "linear", left: "40px" },
+             { offset: 1.00, computedOffset: 1.00, easing: "linear", left: "50px" }] },
   { desc:   "a two property Keyframe sequence with some omitted offsets",
     input:  [{ offset: 0.00, left: "10px", top: "20px" },
              { offset: 0.25, left: "30px" },
              { left: "40px" },
              { left: "50px", top: "60px" },
              { offset: 1.00, left: "70px", top: "80px" }],
-    output: [{ offset: 0.00, computedOffset: 0.00, easing: "linear", composite: "replace", left: "10px", top: "20px" },
-             { offset: 0.25, computedOffset: 0.25, easing: "linear", composite: "replace", left: "30px" },
-             { offset: 0.50, computedOffset: 0.50, easing: "linear", composite: "replace", left: "40px" },
-             { offset: 0.75, computedOffset: 0.75, easing: "linear", composite: "replace", left: "50px", top: "60px" },
-             { offset: 1.00, computedOffset: 1.00, easing: "linear", composite: "replace", left: "70px", top: "80px" }] },
+    output: [{ offset: 0.00, computedOffset: 0.00, easing: "linear", left: "10px", top: "20px" },
+             { offset: 0.25, computedOffset: 0.25, easing: "linear", left: "30px" },
+             { offset: 0.50, computedOffset: 0.50, easing: "linear", left: "40px" },
+             { offset: 0.75, computedOffset: 0.75, easing: "linear", left: "50px", top: "60px" },
+             { offset: 1.00, computedOffset: 1.00, easing: "linear", left: "70px", top: "80px" }] },
   { desc:   "a one property Keyframe sequence with all omitted offsets",
     input:  [{ left: "10px" },
              { left: "20px" },
              { left: "30px" },
              { left: "40px" },
              { left: "50px" }],
-    output: [{ offset: 0.00, computedOffset: 0.00, easing: "linear", composite: "replace", left: "10px" },
-             { offset: 0.25, computedOffset: 0.25, easing: "linear", composite: "replace", left: "20px" },
-             { offset: 0.50, computedOffset: 0.50, easing: "linear", composite: "replace", left: "30px" },
-             { offset: 0.75, computedOffset: 0.75, easing: "linear", composite: "replace", left: "40px" },
-             { offset: 1.00, computedOffset: 1.00, easing: "linear", composite: "replace", left: "50px" }] },
+    output: [{ offset: 0.00, computedOffset: 0.00, easing: "linear", left: "10px" },
+             { offset: 0.25, computedOffset: 0.25, easing: "linear", left: "20px" },
+             { offset: 0.50, computedOffset: 0.50, easing: "linear", left: "30px" },
+             { offset: 0.75, computedOffset: 0.75, easing: "linear", left: "40px" },
+             { offset: 1.00, computedOffset: 1.00, easing: "linear", left: "50px" }] },
   { desc:   "a Keyframe sequence with different easing values, but the same easing value for a given offset",
     input:  [{ offset: 0.0, easing: "ease",     left: "10px"},
              { offset: 0.0, easing: "ease",     top: "20px"},
@@ -378,9 +374,12 @@ var gKeyframeSequenceTests = [
              { offset: 0.5, easing: "linear",   top: "40px" },
              { offset: 1.0, easing: "step-end", left: "50px" },
              { offset: 1.0, easing: "step-end", top: "60px" }],
-    output: [{ offset: 0.0, computedOffset: 0.0, easing: "ease",         composite: "replace", left: "10px", top: "20px" },
-             { offset: 0.5, computedOffset: 0.5, easing: "linear", composite: "replace", left: "30px", top: "40px" },
-             { offset: 1.0, computedOffset: 1.0, easing: "linear", composite: "replace", left: "50px", top: "60px" }] },
+    output: [{ offset: 0.0, computedOffset: 0.0, easing: "ease",
+               left: "10px", top: "20px" },
+             { offset: 0.5, computedOffset: 0.5, easing: "linear",
+               left: "30px", top: "40px" },
+             { offset: 1.0, computedOffset: 1.0, easing: "linear",
+               left: "50px", top: "60px" }] },
   { desc:   "a Keyframe sequence with different composite values, but the same composite value for a given offset",
     input:  [{ offset: 0.0, composite: "replace", left: "10px" },
              { offset: 0.0, composite: "replace", top: "20px" },
@@ -394,27 +393,27 @@ var gKeyframeSequenceTests = [
   { desc:   "a one property two Keyframe sequence that needs to stringify its values",
     input:  [{ offset: 0, opacity: 0 },
              { offset: 1, opacity: 1 }],
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", opacity: "0" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", opacity: "1" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", opacity: "0" },
+             { offset: 1, computedOffset: 1, easing: "linear", opacity: "1" }] },
   { desc:   "a Keyframe sequence where shorthand precedes longhand",
     input:  [{ offset: 0, margin: "10px", marginRight: "20px" },
              { offset: 1, margin: "30px" }],
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", marginBottom: "10px", marginLeft: "10px", marginRight: "20px", marginTop: "10px" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", marginBottom: "30px", marginLeft: "30px", marginRight: "30px", marginTop: "30px" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", marginBottom: "10px", marginLeft: "10px", marginRight: "20px", marginTop: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear", marginBottom: "30px", marginLeft: "30px", marginRight: "30px", marginTop: "30px" }] },
   { desc:   "a Keyframe sequence where longhand precedes shorthand",
     input:  [{ offset: 0, marginRight: "20px", margin: "10px" },
              { offset: 1, margin: "30px" }],
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace", marginBottom: "10px", marginLeft: "10px", marginRight: "20px", marginTop: "10px" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace", marginBottom: "30px", marginLeft: "30px", marginRight: "30px", marginTop: "30px" }] },
+    output: [{ offset: 0, computedOffset: 0, easing: "linear", marginBottom: "10px", marginLeft: "10px", marginRight: "20px", marginTop: "10px" },
+             { offset: 1, computedOffset: 1, easing: "linear", marginBottom: "30px", marginLeft: "30px", marginRight: "30px", marginTop: "30px" }] },
   { desc:   "a Keyframe sequence where lesser shorthand precedes greater shorthand",
     input:  [{ offset: 0, borderLeft: "1px solid rgb(1, 2, 3)", border: "2px dotted rgb(4, 5, 6)" },
              { offset: 1, border: "3px dashed rgb(7, 8, 9)" }],
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace",
+    output: [{ offset: 0, computedOffset: 0, easing: "linear",
                  borderBottomColor: "rgb(4, 5, 6)", borderBottomWidth: "2px",
                  borderLeftColor:   "rgb(1, 2, 3)", borderLeftWidth:   "1px",
                  borderRightColor:  "rgb(4, 5, 6)", borderRightWidth:  "2px",
                  borderTopColor:    "rgb(4, 5, 6)", borderTopWidth:    "2px" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace",
+             { offset: 1, computedOffset: 1, easing: "linear",
                  borderBottomColor: "rgb(7, 8, 9)", borderBottomWidth: "3px",
                  borderLeftColor:   "rgb(7, 8, 9)", borderLeftWidth:   "3px",
                  borderRightColor:  "rgb(7, 8, 9)", borderRightWidth:  "3px",
@@ -422,12 +421,12 @@ var gKeyframeSequenceTests = [
   { desc:   "a Keyframe sequence where greater shorthand precedes lesser shorthand",
     input:  [{ offset: 0, border: "2px dotted rgb(4, 5, 6)", borderLeft: "1px solid rgb(1, 2, 3)" },
              { offset: 1, border: "3px dashed rgb(7, 8, 9)" }],
-    output: [{ offset: 0, computedOffset: 0, easing: "linear", composite: "replace",
+    output: [{ offset: 0, computedOffset: 0, easing: "linear",
                  borderBottomColor: "rgb(4, 5, 6)", borderBottomWidth: "2px",
                  borderLeftColor:   "rgb(1, 2, 3)", borderLeftWidth:   "1px",
                  borderRightColor:  "rgb(4, 5, 6)", borderRightWidth:  "2px",
                  borderTopColor:    "rgb(4, 5, 6)", borderTopWidth:    "2px" },
-             { offset: 1, computedOffset: 1, easing: "linear", composite: "replace",
+             { offset: 1, computedOffset: 1, easing: "linear",
                  borderBottomColor: "rgb(7, 8, 9)", borderBottomWidth: "3px",
                  borderLeftColor:   "rgb(7, 8, 9)", borderLeftWidth:   "3px",
                  borderRightColor:  "rgb(7, 8, 9)", borderRightWidth:  "3px",
@@ -448,6 +447,29 @@ gKeyframeSequenceTests.forEach(function(subtest) {
      " roundtrips");
 });
 
+var gInvalidEasingInKeyframeSequenceTests = [
+  { desc:   "a blank easing",
+    input:  [{ easing: "" }] },
+  { desc:   "an unrecognized easing",
+    input:  [{ easing: "unrecognized" }] },
+  { desc:   "an 'initial' easing",
+    input:  [{ easing: "initial" }] },
+  { desc:   "an 'inherit' easing",
+    input:  [{ easing: "inherit" }] },
+  { desc:   "a variable easing",
+    input:  [{ easing: "var(--x)" }] },
+  { desc:   "a multi-value easing",
+    input:  [{ easing: "ease-in-out, ease-out" }] }
+];
+
+gInvalidEasingInKeyframeSequenceTests.forEach(function(subtest) {
+  test(function(t) {
+    assert_throws(new TypeError, function() {
+      new KeyframeEffectReadOnly(target, subtest.input);
+    });
+  }, "Invalid easing [" + subtest.desc + "] in KeyframeSequence " +
+     "should be thrown");
+});
 
 test(function(t) {
   var effect = new KeyframeEffectReadOnly(target,
@@ -501,15 +523,6 @@ var gKeyframeEffectOptionTests = [
   { desc:     "an Infinity iterations",
     input:    { iterations: Infinity },
     expected: { iterations: Infinity } },
-  { desc:     "a negative Infinity iterations",
-    input:    { iterations: -Infinity },
-    expected: { iterations: -Infinity } },
-  { desc:     "a NaN iterations",
-    input:    { iterations: NaN },
-    expected: { iterations: NaN } },
-  { desc:     "a negative iterations",
-    input:    { iterations: -1 },
-    expected: { iterations: -1 } },
   { desc:     "an auto fill",
     input:    { fill: "auto" },
     expected: { fill: "auto" } },
@@ -566,6 +579,33 @@ var gInvalidKeyframeEffectOptionTests = [
     expected: { name: "TypeError" } },
   { desc:     "a string duration",
     input:    { duration: "merrychristmas" },
+    expected: { name: "TypeError" } },
+  { desc:     "a negative Infinity iterations",
+    input:    { iterations: -Infinity},
+    expected: { name: "TypeError" } },
+  { desc:     "a NaN iterations",
+    input:    { iterations: NaN },
+    expected: { name: "TypeError" } },
+  { desc:     "a negative iterations",
+    input:    { iterations: -1 },
+    expected: { name: "TypeError" } },
+  { desc:     "a blank easing",
+    input:    { easing: "" },
+    expected: { name: "TypeError" } },
+  { desc:     "an unrecognized easing",
+    input:    { easing: "unrecognised" },
+    expected: { name: "TypeError" } },
+  { desc:     "an 'initial' easing",
+    input:    { easing: "initial" },
+    expected: { name: "TypeError" } },
+  { desc:     "an 'inherit' easing",
+    input:    { easing: "inherit" },
+    expected: { name: "TypeError" } },
+  { desc:     "a variable easing",
+    input:    { easing: "var(--x)" },
+    expected: { name: "TypeError" } },
+  { desc:     "a multi-value easing",
+    input:    { easing: "ease-in-out, ease-out" },
     expected: { name: "TypeError" } }
 ];
 
@@ -573,7 +613,7 @@ gInvalidKeyframeEffectOptionTests.forEach(function(stest) {
   test(function(t) {
     assert_throws(stest.expected, function() {
       new KeyframeEffectReadOnly(target,
-                                 {left: ["10px", "20px"]},
+                                 { left: ["10px", "20px"] },
                                  stest.input);
     });
   }, "Invalid KeyframeEffectReadOnly option by " + stest.desc);

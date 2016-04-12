@@ -37,17 +37,19 @@ test(function() {
 test(function() {
   var t = document.body.appendChild(document.createElementNS("test", "te:st"))
   this.add_cleanup(function() {document.body.removeChild(t)})
-  assert_array_equals(document.getElementsByTagName("st"), [t])
+  assert_array_equals(document.getElementsByTagName("st"), [])
   assert_array_equals(document.getElementsByTagName("ST"), [])
+  assert_array_equals(document.getElementsByTagName("te:st"), [t])
+  assert_array_equals(document.getElementsByTagName("te:ST"), [])
 }, "Element in non-HTML namespace, prefix, lowercase name")
 
 test(function() {
   var t = document.body.appendChild(document.createElementNS("test", "te:ST"))
   this.add_cleanup(function() {document.body.removeChild(t)})
-  assert_array_equals(document.getElementsByTagName("ST"), [t])
+  assert_array_equals(document.getElementsByTagName("ST"), [])
   assert_array_equals(document.getElementsByTagName("st"), [])
   assert_array_equals(document.getElementsByTagName("te:st"), [])
-  assert_array_equals(document.getElementsByTagName("te:ST"), [])
+  assert_array_equals(document.getElementsByTagName("te:ST"), [t])
 }, "Element in non-HTML namespace, prefix, uppercase name")
 
 test(function() {

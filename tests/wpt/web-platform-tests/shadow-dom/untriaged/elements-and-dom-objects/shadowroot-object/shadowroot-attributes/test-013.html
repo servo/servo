@@ -16,21 +16,22 @@ policies and contribution forms [3].
 <meta name="assert" content="ShadowRoot Object: The nodeName attribute of a ShadowRoot instance must return "#document-fragment".">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../../testcommon.js"></script>
+<script src="../../../../../html/resources/common.js"></script>
+<script src="../../../../resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
 <script>
 test(unit(function (ctx) {
 
-	var d = newRenderedHTMLDocument(ctx);
+    var d = newRenderedHTMLDocument(ctx);
 
-	var host = d.createElement('div');
-	d.body.appendChild(host);
-	var s = host.createShadowRoot();
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+    var s = host.createShadowRoot();
 
     assert_equals(s.nodeName, '#document-fragment', 'The nodeName attribute of a ShadowRoot instance ' +
-    		'must return "#document-fragment".');
+            'must return "#document-fragment".');
 
 }), 'A_10_01_01_07_T01');
 </script>

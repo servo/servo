@@ -16,7 +16,7 @@ policies and contribution forms [3].
 <meta name="assert" content="Events:The mutation event types must never be dispatched in a shadow DOM subtree.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../testcommon.js"></script>
+<script src="../../../html/resources/common.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -31,34 +31,34 @@ A_05_00_01_T1.step(function () {
     iframe.onload = A_05_00_01_T1.step_func(function () {
 
     try {
-    	var d = iframe.contentDocument;
+        var d = iframe.contentDocument;
 
-    	var div = d.createElement('div');
-    	d.body.appendChild(div);
+        var div = d.createElement('div');
+        d.body.appendChild(div);
 
-    	var s = div.createShadowRoot();
+        var s = div.createShadowRoot();
 
-    	var div2 = d.createElement('div');
-    	s.appendChild(div2);
+        var div2 = d.createElement('div');
+        s.appendChild(div2);
 
-    	var inp = d.createElement('input');
-    	inp.setAttribute('type', 'text');
-    	inp.setAttribute('id', 'inpid');
-    	div2.appendChild(inp);
+        var inp = d.createElement('input');
+        inp.setAttribute('type', 'text');
+        inp.setAttribute('id', 'inpid');
+        div2.appendChild(inp);
 
-    	div2.addEventListener('DOMAttrModified', A_05_00_01_T1.step_func(function (event) {
+        div2.addEventListener('DOMAttrModified', A_05_00_01_T1.step_func(function (event) {
             assert_true(false, 'The mutation event types must never be dispatched in a shadow DOM subtree');
         }), false);
-    	/*
-		var attr = inp.getAttributeNode ("value");
+        /*
+        var attr = inp.getAttributeNode ("value");
         var event = d.createEvent('MutationEvent');
         event.initMutationEvent ("DOMAttrModified", true, true, attr, null, 'new value', "value", MutationEvent.MODIFICATION);
         inp.dispatchEvent(event);
-        	*/
-    	inp.value = 'new value';
-    	inp.setAttribute ("newAttr" , "firstValue");
-    	inp.setAttribute ("newAttr" , "secondValue");
-    	inp.removeAttribute ("newAttr");
+            */
+        inp.value = 'new value';
+        inp.setAttribute ("newAttr" , "firstValue");
+        inp.setAttribute ("newAttr" , "secondValue");
+        inp.removeAttribute ("newAttr");
     } finally {
         iframe.parentNode.removeChild(iframe);
     }

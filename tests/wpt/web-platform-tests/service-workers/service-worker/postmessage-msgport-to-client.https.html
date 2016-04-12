@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>Service Worker: postMessage to Client</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script>
+var frame;
+var t = async_test('postMessage MessagePorts from ServiceWorker to Client');
+t.step(function() {
+    var scope = 'resources/blank.html'
+    service_worker_unregister_and_register(
+        t, 'resources/postmessage-msgport-to-client-worker.js', scope)
+      .then(function(registration) {
+          return wait_for_state(t, registration.installing, 'activated');
+        })
+      .then(function() { return with_iframe(scope); })
+      .then(function(f) {
+          frame = f;
+          var w = frame.contentWindow;
+          w.navigator.serviceWorker.onmessage = t.step_func(onMessage);
+          w.navigator.serviceWorker.controller.postMessage('ping');
+        })
+      .catch(unreached_rejection(t));
+
+    var result = [];
+    var expected = [
+        'Acking value: 1',
+        'Acking value: 2',
+    ];
+
+    function onMessage(e) {
+      var message = e.data;
+      if ('port' in message) {
+        var port = message.port;
+        port.postMessage({value: 1});
+        port.postMessage({value: 2});
+        port.postMessage({done: true});
+      } else if ('ack' in message) {
+        result.push(message.ack);
+      } else if ('done' in message) {
+        assert_array_equals(
+            result, expected,
+            'Worker should post back expected values via MessagePort.');
+        frame.remove();
+        service_worker_unregister_and_done(t, scope);
+      } else {
+        assert_unreached('Got unexpected message from ServiceWorker');
+      }
+    }
+  });
+</script>

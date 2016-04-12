@@ -16,7 +16,8 @@ policies and contribution forms [3].
 <meta name="assert" content="Styles: CSS rules declared in an enclosing tree must not apply in a shadow tree if apply-author-styles flag is set to false for this tree">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../testcommon.js"></script>
+<script src="../../../html/resources/common.js"></script>
+<script src="../../resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -27,25 +28,25 @@ test(unit(function (ctx) {
     var d = newRenderedHTMLDocument(ctx);
 
     d.head.innerHTML = '<style>' +
-		'.invis {' +
-		'display:none;' +
-		'}' +
-		'</style>';
+        '.invis {' +
+        'display:none;' +
+        '}' +
+        '</style>';
 
     var host = d.createElement('div');
     d.body.appendChild(host);
 
-	//Shadow root to play with
-	var s = host.createShadowRoot();
+    //Shadow root to play with
+    var s = host.createShadowRoot();
 
-	var div1 = d.createElement('div');
-	div1.innerHTML ='<span id="shd" class="invis">This is the shadow tree</span>';
-	s.appendChild(div1);
+    var div1 = d.createElement('div');
+    div1.innerHTML ='<span id="shd" class="invis">This is the shadow tree</span>';
+    s.appendChild(div1);
 
-	//apply-author-styles flag is false by default. Invisible style shouldn't be applied
-	assert_true(s.querySelector('#shd').offsetTop > 0,
-    	'CSS styles declared in enclosing tree must not be applied in a shadow tree ' +
-    	'if the apply-author-styles flag is set to false');
+    //apply-author-styles flag is false by default. Invisible style shouldn't be applied
+    assert_true(s.querySelector('#shd').offsetTop > 0,
+        'CSS styles declared in enclosing tree must not be applied in a shadow tree ' +
+        'if the apply-author-styles flag is set to false');
 
 
 }), 'A_06_00_01_T01');
@@ -57,115 +58,28 @@ test(unit(function (ctx) {
     var d = newRenderedHTMLDocument(ctx);
 
     d.head.innerHTML = '<style>' +
-		'.invis {' +
-		'display:none;' +
-		'}' +
-		'</style>';
+        '.invis {' +
+        'display:none;' +
+        '}' +
+        '</style>';
 
     var host = d.createElement('div');
     d.body.appendChild(host);
 
-	//Shadow root to play with
-	var s = host.createShadowRoot();
+    //Shadow root to play with
+    var s = host.createShadowRoot();
 
-	var div1 = d.createElement('div');
-	div1.innerHTML ='<span id="shd" class="invis">This is the shadow tree</span>';
-	s.appendChild(div1);
+    var div1 = d.createElement('div');
+    div1.innerHTML ='<span id="shd" class="invis">This is the shadow tree</span>';
+    s.appendChild(div1);
 
-	//apply-author-styles flag is set to false. Invisible style shouldn't be applied
-	assert_true(s.querySelector('#shd').offsetTop > 0,
-    	'CSS styles declared in enclosing tree must not be applied in a shadow tree ' +
-    	'if the apply-author-styles flag is set to false');
+    //apply-author-styles flag is set to false. Invisible style shouldn't be applied
+    assert_true(s.querySelector('#shd').offsetTop > 0,
+        'CSS styles declared in enclosing tree must not be applied in a shadow tree ' +
+        'if the apply-author-styles flag is set to false');
 
 
 }), 'A_06_00_01_T02');
-
-//test apply-author-styles flag in a nested tree (default value)
-test(unit(function (ctx) {
-
-    var d = newRenderedHTMLDocument(ctx);
-
-    d.head.innerHTML = '<style>' +
-		'.invis {' +
-		'display:none;' +
-		'}' +
-		'</style>';
-
-    var host = d.createElement('div');
-    d.body.appendChild(host);
-
-	//Shadow root to play with
-	var s1 = host.createShadowRoot();
-
-	var div1 = d.createElement('div');
-	div1.innerHTML = '<span id="shd1" class="invis">This is an old shadow tree</span>';
-	s1.appendChild(div1);
-
-	//younger tree
-	var s2 = host.createShadowRoot();
-	var div1 = d.createElement('div');
-	div1.innerHTML = '<span id="shd2" class="invis">This is a young shadow tree</span>' +
-		'<shadow><span id="shd3" class="invis">This is the shadow tree fallback content</span></shadow>';
-	s2.appendChild(div1);
-
-
-	//apply-author-styles flag is false by default. Invisible style shouldn't be applied
-	//shd1 and shd2 should be visible. sh3 not because the tree should be active
-	assert_true(s1.querySelector('#shd1').offsetTop > 0,
-    	'Point 1: CSS styles declared in enclosing tree must not be applied in a shadow tree ' +
-    	'if the apply-author-styles flag is set to false');
-	assert_true(s2.querySelector('#shd2').offsetTop > 0,
-	    'Point 2: CSS styles declared in enclosing tree must not be applied in a shadow tree ' +
-	    'if the apply-author-styles flag is set to false');
-	assert_equals(s2.querySelector('#shd3').offsetTop, 0,
-		'Fallback content shouldn\'t be rendered for active tree');
-
-
-}), 'A_06_00_01_T03');
-
-
-//test apply-author-styles flag in a nested tree (set it)
-test(unit(function (ctx) {
-
-    var d = newRenderedHTMLDocument(ctx);
-
-    d.head.innerHTML = '<style>' +
-		'.invis {' +
-		'display:none;' +
-		'}' +
-		'</style>';
-
-    var host = d.createElement('div');
-    d.body.appendChild(host);
-
-	//Shadow root to play with
-	var s1 = host.createShadowRoot();
-
-	var div1 = d.createElement('div');
-	div1.innerHTML = '<span id="shd1" class="invis">This is an old shadow tree</span>';
-	s1.appendChild(div1);
-
-	//younger tree
-	var s2 = host.createShadowRoot();
-	var div1 = d.createElement('div');
-	div1.innerHTML = '<span id="shd2" class="invis">This is a young shadow tree</span>' +
-		'<shadow><span id="shd3" class="invis">This is the shadow tree fallback content</span></shadow>';
-	s2.appendChild(div1);
-
-
-	//apply-author-styles flag is set to false. Invisible style shouldn't be applied
-	//shd1 and shd2 should be visible. sh3 not because the tree should be active
-	assert_true(s1.querySelector('#shd1').offsetTop > 0,
-    	'Point 1: CSS styles declared in enclosing tree must not be applied in a shadow tree ' +
-    	'if the apply-author-styles flag is set to false');
-	assert_true(s2.querySelector('#shd2').offsetTop > 0,
-    	'Point 2: CSS styles declared in enclosing tree must not be applied in a shadow tree ' +
-    	'if the apply-author-styles flag is set to false');
-	assert_equals(s2.querySelector('#shd3').offsetTop, 0,
-		'Fallback content shouldn\'t be rendered for active tree');
-
-
-}), 'A_06_00_01_T04');
 </script>
 </body>
 </html>

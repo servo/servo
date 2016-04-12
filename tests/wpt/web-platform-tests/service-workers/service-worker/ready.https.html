@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<title>Service Worker: navigator.serviceWorker.ready</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<body>
+<script>
+test(function() {
+    var promise = navigator.serviceWorker.ready;
+    assert_equals(promise, navigator.serviceWorker.ready,
+                  'repeated access to ready without intervening ' +
+                  'registrations should return the same Promise object');
+  }, 'ready returns the same Promise object');
+
+async_test(function(t) {
+    with_iframe('resources/blank.html?uncontrolled')
+      .then(t.step_func(function(frame) {
+          var promise = frame.contentWindow.navigator.serviceWorker.ready;
+          assert_equals(Object.getPrototypeOf(promise),
+                        frame.contentWindow.Promise.prototype,
+                        'the Promise should be in the context of the ' +
+                        'related document');
+          frame.remove();
+          t.done();
+        }));
+  }, 'ready returns a Promise object in the context of the related document');
+
+async_test(function(t) {
+    var url = 'resources/empty-worker.js';
+    var scope = 'resources/blank.html?ready-controlled';
+    var expected_url = normalizeURL(url);
+    var frame;
+
+    service_worker_unregister_and_register(t, url, scope)
+      .then(function(registration) {
+          return wait_for_state(t, registration.installing, 'activated');
+        })
+      .then(function() { return with_iframe(scope); })
+      .then(function(f) {
+          frame = f;
+          return frame.contentWindow.navigator.serviceWorker.ready;
+        })
+      .then(function(registration) {
+          assert_equals(registration.installing, null,
+                        'installing should be null');
+          assert_equals(registration.waiting, null,
+                        'waiting should be null');
+          assert_equals(registration.active.scriptURL, expected_url,
+                        'active after ready should not be null');
+          assert_equals(
+              frame.contentWindow.navigator.serviceWorker.controller.scriptURL,
+              expected_url,
+              'controlled document should have a controller');
+
+          frame.remove();
+          service_worker_unregister_and_done(t, scope);
+        })
+      .catch(unreached_rejection(t));
+  }, 'ready on a controlled document');
+
+async_test(function(t) {
+    var url = 'resources/empty-worker.js';
+    var scope = 'resources/blank.html?ready-potential-controlled';
+    var expected_url = normalizeURL(url);
+    var frame;
+
+    with_iframe(scope)
+      .then(function(f) {
+          frame = f;
+          return navigator.serviceWorker.register(url, {scope:scope});
+        })
+      .then(function() {
+          return frame.contentWindow.navigator.serviceWorker.ready;
+        })
+      .then(function(registration) {
+          assert_equals(registration.installing, null,
+                        'installing should be null');
+          assert_equals(registration.waiting, null,
+                        'waiting should be null.')
+          assert_equals(registration.active.scriptURL, expected_url,
+                        'active after ready should not be null');
+          assert_equals(frame.contentWindow.navigator.serviceWorker.controller,
+                        null,
+                        'uncontrolled document should not have a controller');
+
+          frame.remove();
+          service_worker_unregister_and_done(t, scope);
+        })
+      .catch(unreached_rejection(t));
+  }, 'ready on a potential controlled document');
+
+async_test(function(t) {
+    var url = 'resources/empty-worker.js';
+    var matched_scope = 'resources/blank.html?ready-after-match';
+    var longer_matched_scope = 'resources/blank.html?ready-after-match-longer';
+    var frame, registration;
+
+    Promise.all([service_worker_unregister(t, matched_scope),
+                 service_worker_unregister(t, longer_matched_scope)])
+      .then(function() {
+          return with_iframe(longer_matched_scope);
+        })
+      .then(function(f) {
+          frame = f;
+          return navigator.serviceWorker.register(url, {scope: matched_scope});
+        })
+      .then(function(r) {
+          registration = r;
+          return wait_for_state(t, r.installing, 'activated');
+        })
+      .then(function() {
+          return navigator.serviceWorker.register(
+              url, {scope: longer_matched_scope});
+        })
+      .then(function() {
+          return frame.contentWindow.navigator.serviceWorker.ready;
+        })
+      .then(function(r) {
+          assert_equals(r.scope, normalizeURL(longer_matched_scope),
+                        'longer matched registration should be returned');
+          assert_equals(frame.contentWindow.navigator.serviceWorker.controller,
+                        null, 'controller should be null');
+          return registration.unregister();
+        })
+      .then(function() {
+          frame.remove();
+          return service_worker_unregister_and_done(t, longer_matched_scope);
+        })
+      .catch(unreached_rejection(t));
+  }, 'ready after a longer matched registration registered');
+
+async_test(function(t) {
+    var url = 'resources/empty-worker.js';
+    var matched_scope = 'resources/blank.html?ready-after-resolve';
+    var longer_matched_scope =
+        'resources/blank.html?ready-after-resolve-longer';
+    var frame, registration;
+
+    service_worker_unregister_and_register(t, url, matched_scope)
+      .then(function(r) {
+          registration = r;
+          return wait_for_state(t, r.installing, 'activated');
+        })
+      .then(function() {
+          return with_iframe(longer_matched_scope);
+        })
+      .then(function(f) {
+          frame = f;
+          return f.contentWindow.navigator.serviceWorker.ready;
+        })
+      .then(function(r) {
+          assert_equals(r.scope, normalizeURL(matched_scope),
+                        'matched registration should be returned');
+          return navigator.serviceWorker.register(
+              url, {scope: longer_matched_scope});
+        })
+      .then(function() {
+          return frame.contentWindow.navigator.serviceWorker.ready;
+        })
+      .then(function(r) {
+          assert_equals(r.scope, normalizeURL(matched_scope),
+                        'ready should only be resolved once');
+          return registration.unregister();
+        })
+      .then(function() {
+          frame.remove();
+          return service_worker_unregister_and_done(t, longer_matched_scope);
+        })
+      .catch(unreached_rejection(t));
+  }, 'access ready after it has been resolved');
+
+</script>

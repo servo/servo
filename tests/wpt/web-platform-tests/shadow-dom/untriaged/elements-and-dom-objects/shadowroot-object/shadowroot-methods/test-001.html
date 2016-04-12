@@ -16,14 +16,14 @@ policies and contribution forms [3].
 <meta name="assert" content="ShadowRoot Object: HTMLElement getElementById(DOMString elementId) method">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../../testcommon.js"></script>
+<script src="../../../../../html/resources/common.js"></script>
 </head>
 <body>
 <div id="log"></div>
 <script>
 test(function () {
 
-	var d = newHTMLDocument();
+    var d = newHTMLDocument();
 
     var el = d.createElement('div');
     d.body.appendChild(el);
@@ -35,9 +35,9 @@ test(function () {
     s.appendChild(child);
 
     assert_true(s.getElementById('span_id') != null, 'Point 1: ShadowRoot getElementById() ' +
-    		'method should return child element');
+            'method should return child element');
     assert_equals(s.getElementById('span_id').getAttribute('id'), 'span_id', 'Point 2: ' +
-    		'ShadowRoot getElementById() method should return child element');
+            'ShadowRoot getElementById() method should return child element');
 
 }, 'A_10_01_02_01_T01');
 
@@ -45,7 +45,7 @@ test(function () {
 
 test(function () {
 
-	var d = newHTMLDocument();
+    var d = newHTMLDocument();
 
     var el = d.createElement('div');
     d.body.appendChild(el);
@@ -53,7 +53,7 @@ test(function () {
     var s = el.createShadowRoot();
 
     assert_true(s.getElementById('span_id') == null, ' ShadowRoot getElementById() ' +
-    		'method should return null if matching element not found');
+            'method should return null if matching element not found');
 
 }, 'A_10_01_02_01_T02');
 </script>

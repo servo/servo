@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset=utf-8>
+<title></title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id="testDiv" onclick="result1 = remove; result2 = this.remove;"></div>
+<script>
+var remove = "Hello there";
+var result1;
+var result2;
+test(function() {
+  assert_true(Element.prototype[Symbol.unscopables].remove);
+  var div = document.querySelector("#testDiv");
+  div.dispatchEvent(new Event("click"));
+  assert_equals(typeof result1, "string");
+  assert_equals(typeof result2, "function");
+}, "remove() should be unscopable")
+</script>

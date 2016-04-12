@@ -1,21 +1,36 @@
---- resources/js-test-pre.js	2015-06-18 23:26:41.217622000 +0200
-+++ ../conformance-1.0.3/resources/js-test-pre.js	2015-12-30 19:20:27.852467185 +0100
-@@ -71,9 +71,14 @@
+--- js-test-pre.orig.js	2016-04-08 22:35:15.629226767 +0200
++++ js-test-pre.js	2016-04-08 22:43:11.906092062 +0200
+@@ -71,11 +71,25 @@
    }
  }
  
-+var WPT_TEST_ID = 0;
- function reportTestResultsToHarness(success, msg) {
+-function reportTestResultsToHarness(success, msg) {
+-  if (window.parent.webglTestHarness) {
+-    window.parent.webglTestHarness.reportResults(window.location.pathname, success, msg);
++(function() {
++  var WPT_TEST_ID = 0;
++
++  // Store the current WPT test harness `test` function
++  // if found, since it's overriden by some tests.
++  var wpt_test = window.test;
++  var wpt_assert_true = window.assert_true;
++
++
++  window.reportTestResultsToHarness = function reportTestResultsToHarness(success, msg) {
++    if (window.parent.webglTestHarness) {
++      window.parent.webglTestHarness.reportResults(window.location.pathname, success, msg);
++    } else if (wpt_test) { // WPT test harness
++      wpt_test(function () {
++        wpt_assert_true(success, msg);
++      }, "WebGL test #" + (WPT_TEST_ID++) + ": " + msg);
++    }
+   }
+-}
++}())
+ 
+ function notifyFinishedToHarness() {
    if (window.parent.webglTestHarness) {
-     window.parent.webglTestHarness.reportResults(window.location.pathname, success, msg);
-+  } else if (window.test) { // WPT test harness
-+    test(function () {
-+      assert_true(success, msg);
-+    }, "WebGL test #" + (WPT_TEST_ID++) + ": " + msg);
-   }
- }
- 
-@@ -92,7 +97,7 @@
+@@ -92,7 +106,7 @@
        window.console.log(msg);
  }
  
@@ -24,7 +39,7 @@
  
  function enableJSTestPreVerboseLogging()
  {
-@@ -105,31 +110,18 @@
+@@ -105,31 +119,18 @@
      if (msg === undefined) {
        msg = document.title;
      }
@@ -58,7 +73,7 @@
      }
  }
  
-@@ -143,7 +135,7 @@
+@@ -143,7 +144,7 @@
      reportTestResultsToHarness(true, msg);
      _addSpan('<span><span class="pass">PASS</span> ' + escapeHTML(msg) + '</span>');
      if (_jsTestPreVerboseLogging) {

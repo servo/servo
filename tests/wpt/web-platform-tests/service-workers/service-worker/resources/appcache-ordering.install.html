@@ -1,0 +1,26 @@
+<html manifest="appcache-ordering.manifest">
+<script>
+var handled = false;
+
+function installComplete() {
+  if (handled)
+    return;
+  handled = true;
+  window.parent.notify_appcache_installed(true);
+}
+
+function installFailed() {
+  if (handled)
+    return;
+  handled = true;
+  window.parent.notify_appcache_installed(false);
+}
+
+applicationCache.oncached = installComplete;
+applicationCache.onnoupdate = installComplete;
+applicationCache.onupdateready = installFailed;
+applicationCache.onerror = installFailed;
+applicationCache.onobsolete = installFailed;
+
+</script>
+</html>

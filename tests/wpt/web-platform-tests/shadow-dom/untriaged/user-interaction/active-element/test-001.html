@@ -16,30 +16,31 @@ policies and contribution forms [3].
 <meta name="assert" content="User Interaction: each shadow root must also have an activeElement property to store the value of the focused element in the shadow tree.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../testcommon.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
 <script>
 test(unit(function (ctx) {
-	var d = newRenderedHTMLDocument(ctx);
+    var d = newRenderedHTMLDocument(ctx);
 
-	var host = d.createElement('div');
-	d.body.appendChild(host);
-	var s = host.createShadowRoot();
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+    var s = host.createShadowRoot();
 
-	var inp = d.createElement('input');
-	inp.setAttribute('type', 'text');
-	inp.setAttribute('id', 'inpId');
-	inp.setAttribute('value', 'Some text');
-	s.appendChild(inp);
+    var inp = d.createElement('input');
+    inp.setAttribute('type', 'text');
+    inp.setAttribute('id', 'inpId');
+    inp.setAttribute('value', 'Some text');
+    s.appendChild(inp);
 
-	inp.focus();
+    inp.focus();
 
     assert_equals(s.activeElement.tagName, 'INPUT', 'Point 1:activeElement property of shadow root ' +
-    		'must return the value of the focused element in the shadow tree');
+            'must return the value of the focused element in the shadow tree');
     assert_equals(s.activeElement.getAttribute('id'), 'inpId', 'Point 2:activeElement property of shadow root ' +
-    	'must return the value of the focused element in the shadow tree');
+        'must return the value of the focused element in the shadow tree');
 
 }), 'A_07_03_01_T01');
 </script>

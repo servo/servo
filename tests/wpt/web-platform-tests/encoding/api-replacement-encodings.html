@@ -6,7 +6,6 @@
 <script>
 
 test(function() {
-    assert_throws(new RangeError(), function() { new TextEncoder('replacement'); });
     assert_throws(new RangeError(), function() { new TextDecoder('replacement'); });
 }, 'The "replacement" label should not be a known encoding.');
 
@@ -16,7 +15,6 @@ encodings_table.forEach(function(section) {
     }).forEach(function(encoding) {
         encoding.labels.forEach(function(label) {
             test(function() {
-                assert_throws(new RangeError(), function() { new TextEncoder(label); });
                 assert_throws(new RangeError(), function() { new TextDecoder(label); });
             }, 'Label for "replacement" should be rejected by API: ' + label);
         });

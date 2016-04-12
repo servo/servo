@@ -66,8 +66,8 @@ test(function () {
   assert_equals( elem.classList.toString(), ' ', 'explicit' );
 }, 'classList should contain initial markup whitespace');
 test(function () {
-  assert_throws( 'SYNTAX_ERR', function () { elem.classList.contains(''); } );
-}, '.contains(empty_string) must throw a SYNTAX_ERR');
+  assert_false( elem.classList.contains('') );
+}, '.contains(empty_string) must return false');
 test(function () {
   assert_throws( 'SYNTAX_ERR', function () { elem.classList.add(''); } );
 }, '.add(empty_string) must throw a SYNTAX_ERR');
@@ -85,8 +85,8 @@ test(function () {
   assert_throws( 'SYNTAX_ERR', function () { elem.classList.replace('', ''); } );
 }, '.replace with empty_string must throw a SYNTAX_ERR');
 test(function () {
-  assert_throws( 'INVALID_CHARACTER_ERR', function () { elem.classList.contains('a b'); } );
-}, '.contains(string_with_spaces) must throw an INVALID_CHARACTER_ERR');
+  assert_false( elem.classList.contains('a b') );
+}, '.contains(string_with_spaces) must return false');
 test(function () {
   assert_throws( 'INVALID_CHARACTER_ERR', function () { elem.classList.add('a b'); } );
 }, '.add(string_with_spaces) must throw an INVALID_CHARACTER_ERR');

@@ -71,16 +71,25 @@ function nonKhronosFrameworkNotifyDone() {
   }
 }
 
-var WPT_TEST_ID = 0;
-function reportTestResultsToHarness(success, msg) {
-  if (window.parent.webglTestHarness) {
-    window.parent.webglTestHarness.reportResults(window.location.pathname, success, msg);
-  } else if (window.test) { // WPT test harness
-    test(function () {
-      assert_true(success, msg);
-    }, "WebGL test #" + (WPT_TEST_ID++) + ": " + msg);
+(function() {
+  var WPT_TEST_ID = 0;
+
+  // Store the current WPT test harness `test` function
+  // if found, since it's overriden by some tests.
+  var wpt_test = window.test;
+  var wpt_assert_true = window.assert_true;
+
+
+  window.reportTestResultsToHarness = function reportTestResultsToHarness(success, msg) {
+    if (window.parent.webglTestHarness) {
+      window.parent.webglTestHarness.reportResults(window.location.pathname, success, msg);
+    } else if (wpt_test) { // WPT test harness
+      wpt_test(function () {
+        wpt_assert_true(success, msg);
+      }, "WebGL test #" + (WPT_TEST_ID++) + ": " + msg);
+    }
   }
-}
+}())
 
 function notifyFinishedToHarness() {
   if (window.parent.webglTestHarness) {

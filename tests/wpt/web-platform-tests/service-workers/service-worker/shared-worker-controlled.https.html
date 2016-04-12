@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<title>Service Worker: controlling a SharedWorker</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<body>
+<script>
+promise_test(function(t) {
+    var shared_worker = 'resources/shared-worker-controlled.js';
+    var service_worker = 'resources/simple-intercept-worker.js';
+    var scope = shared_worker;
+
+    return service_worker_unregister_and_register(t, service_worker, scope)
+      .then(function(r) {
+          return wait_for_state(t, r.installing, 'activated');
+        })
+      .then(function() {
+          return new Promise(function(resolve, reject) {
+              var w = new SharedWorker(shared_worker);
+              w.port.onmessage = function(e) {
+                resolve(e.data);
+              }
+            });
+        })
+      .then(function(data) {
+          assert_equals(data, 'intercepted by service worker');
+          service_worker_unregister_and_done(t, scope);
+        });
+  }, 'Verify subresource loads in SharedWorker are controlled by a Service Worker');
+
+promise_test(function(t) {
+    var shared_worker = 'resources/dummy-shared-worker.js';
+    var service_worker = 'resources/dummy-shared-worker-interceptor.js';
+    var scope = shared_worker;
+
+    return service_worker_unregister_and_register(t, service_worker, scope)
+      .then(function(r) {
+          return wait_for_state(t, r.installing, 'activated');
+        })
+      .then(function() {
+          return new Promise(function(resolve, reject) {
+              var w = new SharedWorker(shared_worker);
+              w.port.onmessage = function(e) {
+                resolve(e.data);
+              }
+            });
+        })
+      .then(function(data) {
+          assert_equals(data, 'worker loading intercepted by service worker');
+          service_worker_unregister_and_done(t, scope);
+        });
+  }, 'Verify SharedWorker construction is controlled by a Service Worker');
+
+promise_test(function(t) {
+    var shared_worker = 'resources/shared-worker-import.js';
+    var service_worker = 'resources/dummy-shared-worker-interceptor.js';
+    var scope = shared_worker;
+
+    return service_worker_unregister_and_register(t, service_worker, scope)
+      .then(function(r) {
+          return wait_for_state(t, r.installing, 'activated');
+        })
+      .then(function() {
+          return new Promise(function(resolve, reject) {
+              var w = new SharedWorker(shared_worker);
+              w.port.onmessage = function(e) {
+                resolve(e.data);
+              }
+            });
+        })
+      .then(function(data) {
+          assert_equals(data, 'worker loading intercepted by service worker');
+          service_worker_unregister_and_done(t, scope);
+        });
+  }, 'Verify importScripts from SharedWorker is controlled by a Service Worker');
+</script>
+</body>

@@ -16,7 +16,7 @@ policies and contribution forms [3].
 <meta name="assert" content="HTML Elements in shadow trees: form should submit elements in shadow tree">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../testcommon.js"></script>
+<script src="../../../../html/resources/common.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -24,24 +24,24 @@ policies and contribution forms [3].
 var A_08_02_03_T01 = async_test('A_08_02_03_T01', { timeout: 5000 });
 
 A_08_02_03_T01.checkIframeContent = A_08_02_03_T01.step_func(function () {
-	//remember value to check before cleaning the context (it'll destroy the iframe)
-	var valueToCheck = A_08_02_03_T01.iframe.contentWindow.document.URL;
-	cleanContext(A_08_02_03_T01.ctx);
+    //remember value to check before cleaning the context (it'll destroy the iframe)
+    var valueToCheck = A_08_02_03_T01.iframe.contentWindow.document.URL;
+    cleanContext(A_08_02_03_T01.ctx);
 
-	assert_true(valueToCheck.indexOf('inp1=value1') > 0,
-		'html form should submit all of its fields');
+    assert_true(valueToCheck.indexOf('inp1=value1') > 0,
+        'html form should submit all of its fields');
 
-	// Expected behavior is not quite clear. See https://www.w3.org/Bugs/Public/show_bug.cgi?id=20320
-	assert_true(valueToCheck.indexOf('inp2=value2') > 0,
-		'html form should submit all of its fields including the shadow ones');
+    // Expected behavior is not quite clear. See https://www.w3.org/Bugs/Public/show_bug.cgi?id=20320
+    assert_true(valueToCheck.indexOf('inp2=value2') > 0,
+        'html form should submit all of its fields including the shadow ones');
 
-	A_08_02_03_T01.done();
+    A_08_02_03_T01.done();
 });
 
 
 A_08_02_03_T01.step(function () {
 
-	A_08_02_03_T01.ctx = newContext();
+    A_08_02_03_T01.ctx = newContext();
     var d = newRenderedHTMLDocument(A_08_02_03_T01.ctx);
 
     //create iframe

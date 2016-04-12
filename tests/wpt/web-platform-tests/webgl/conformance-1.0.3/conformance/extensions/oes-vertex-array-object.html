@@ -534,8 +534,10 @@ function runDeleteTests() {
     for (var ii = 0; ii < colorBuffers.length; ++ii) {
       gl.deleteBuffer(colorBuffers[ii]);
       gl.deleteBuffer(elementBuffers[ii]);
+      ext.bindVertexArrayOES(vaos[ii]);
+      var boundBuffer = gl.getVertexAttrib(1, gl.VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
       // The buffers should still be valid at this point, since it was attached to the VAO
-      if(!gl.isBuffer(colorBuffers[ii])) {
+      if(boundBuffer != colorBuffers[ii]) {
         testFailed("buffer removed even though it is still attached to a VAO");
       }
     }

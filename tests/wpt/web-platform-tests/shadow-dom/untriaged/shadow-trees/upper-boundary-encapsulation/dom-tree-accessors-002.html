@@ -18,7 +18,7 @@ policies and contribution forms [3].
 <meta name="assert" content="Upper-boundary encapsulation: The nodes are accessible using shadow root's DOM tree accessor methods.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../testcommon.js"></script>
+<script src="../../../../html/resources/common.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -30,53 +30,33 @@ function assert_singleton_node_list(nodeList, expectedNode) {
 
 test(function () {
     var doc = document.implementation.createHTMLDocument('Test');
-    var shadowRoot = doc.body.createShadowRoot();
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
     var image = doc.createElement('img');
     shadowRoot.appendChild(image);
 
-    assert_singleton_node_list(shadowRoot.getElementsByTagName('img'), image);
+    assert_singleton_node_list(shadowRoot.querySelectorAll('img'), image);
 },
     'Elements in a shadow tree should be accessible via shadow root\'s ' +
-    'getElementsByTagName() DOM tree accessor.'
-);
-
-test(function () {
-    var namespace = 'http://www.w3.org/1999/xhtml';
-    var doc = document.implementation.createDocument(namespace, 'html');
-    doc.documentElement.appendChild(doc.createElementNS(namespace, 'head'));
-    var body = doc.createElementNS(namespace, 'body');
-    var imageHost = doc.createElementNS(namespace, 'img');
-    body.appendChild(imageHost);
-    doc.documentElement.appendChild(body);
-
-    var shadowRoot = body.createShadowRoot();
-    var imageShadow = doc.createElementNS(namespace, 'img');
-    shadowRoot.appendChild(imageShadow);
-
-    assert_singleton_node_list(
-        shadowRoot.getElementsByTagNameNS(namespace, 'img'), imageShadow);
-},
-    'Elements in a shadow tree should be accessible via shadow root\'s ' +
-    'getElementsByTagNameNS() DOM tree accessor.'
+    'querySelectorAll() DOM tree accessor.'
 );
 
 test(function () {
     var doc = document.implementation.createHTMLDocument('Test');
-    var shadowRoot = doc.body.createShadowRoot();
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
     var div = doc.createElement('div');
     div.className = 'div-class';
     shadowRoot.appendChild(div);
 
     assert_singleton_node_list(
-        shadowRoot.getElementsByClassName('div-class'), div);
+        shadowRoot.querySelectorAll('.div-class'), div);
 },
-    'Elements in a shadow tree should be accessible via shadow root\'s ' +
-    'getElementsByClassName() DOM tree accessor.'
+    'Elements with a specific class in a shadow tree should be accessible via' +
+    'shadow root\'s querySelectorAll() DOM tree accessor.'
 );
 
 test(function () {
     var doc = document.implementation.createHTMLDocument('Test');
-    var shadowRoot = doc.body.createShadowRoot();
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
     var div = doc.createElement('div');
     div.id = 'div-id';
     shadowRoot.appendChild(div);

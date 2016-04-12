@@ -16,7 +16,8 @@ policies and contribution forms [3].
 <meta name="assert" content="Event Retargeting:Retargeting algorithm">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../testcommon.js"></script>
+<script src="../../../../html/resources/common.js"></script>
+<script src="../../../resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -24,18 +25,18 @@ policies and contribution forms [3].
 var A_05_01_04_T01 = async_test('A_05_01_04_T01');
 
 A_05_01_04_T01.step(unit(function (ctx) {
-	var d = newRenderedHTMLDocument(ctx);
-	var invoked = false;
+    var d = newRenderedHTMLDocument(ctx);
+    var invoked = false;
     roots = createTestMediaPlayer(d);
 
     //expected result of what relative target should be see
     //see at http://www.w3.org/TR/shadow-dom/#event-retargeting-example
     //For #volume-slider-thumb relative target is #volume-slider-thumb
     roots.volumeShadowRoot.querySelector('#volume-slider-thumb').addEventListener('click',
-    	A_05_01_04_T01.step_func(function (event) {
-    		invoked = true;
-	        assert_equals(event.target.getAttribute('id'), 'volume-slider-thumb',
-        		'Wrong related target');
+        A_05_01_04_T01.step_func(function (event) {
+            invoked = true;
+            assert_equals(event.target.getAttribute('id'), 'volume-slider-thumb',
+                'Wrong related target');
     }), false);
 
     var event = d.createEvent('HTMLEvents');
@@ -44,7 +45,7 @@ A_05_01_04_T01.step(unit(function (ctx) {
 
     assert_true(invoked, 'Event listener was not invoked');
 
-	A_05_01_04_T01.done();
+    A_05_01_04_T01.done();
 }));
 
 
@@ -52,8 +53,8 @@ A_05_01_04_T01.step(unit(function (ctx) {
 var A_05_01_04_T02 = async_test('A_05_01_04_T02');
 
 A_05_01_04_T02.step(unit(function (ctx) {
-	var d = newRenderedHTMLDocument(ctx);
-	var invoked = false;
+    var d = newRenderedHTMLDocument(ctx);
+    var invoked = false;
     roots = createTestMediaPlayer(d);
 
     //expected result of what relative target should be see
@@ -61,10 +62,10 @@ A_05_01_04_T02.step(unit(function (ctx) {
 
     //For #volume-shadow-host relative target is #volume-shadow-host
     roots.playerShadowRoot.querySelector('#volume-shadow-host').addEventListener('click',
-    	A_05_01_04_T02.step_func(function (event) {
-    		invoked = true;
-	        assert_equals(event.target.getAttribute('id'), 'volume-shadow-host',
-        		'Wrong related target');
+        A_05_01_04_T02.step_func(function (event) {
+            invoked = true;
+            assert_equals(event.target.getAttribute('id'), 'volume-shadow-host',
+                'Wrong related target');
     }), false);
 
     var event = d.createEvent('HTMLEvents');
@@ -82,8 +83,8 @@ A_05_01_04_T02.step(unit(function (ctx) {
 var A_05_01_04_T03 = async_test('A_05_01_04_T03');
 
 A_05_01_04_T03.step(unit(function (ctx) {
-	var d = newRenderedHTMLDocument(ctx);
-	var invoked = false;
+    var d = newRenderedHTMLDocument(ctx);
+    var invoked = false;
     roots = createTestMediaPlayer(d);
 
     //expected result of what relative target should be see
@@ -91,10 +92,10 @@ A_05_01_04_T03.step(unit(function (ctx) {
 
     //For #volume-slider relative target is #volume-shadow-host
     roots.playerShadowRoot.querySelector('#volume-slider').addEventListener('click',
-    		A_05_01_04_T03.step_func(function (event) {
-    			invoked = true;
-	        assert_equals(event.target.getAttribute('id'), 'volume-shadow-host',
-        		'Wrong related target');
+            A_05_01_04_T03.step_func(function (event) {
+                invoked = true;
+            assert_equals(event.target.getAttribute('id'), 'volume-shadow-host',
+                'Wrong related target');
     }), false);
 
     var event = d.createEvent('HTMLEvents');
@@ -110,8 +111,8 @@ A_05_01_04_T03.step(unit(function (ctx) {
 var A_05_01_04_T04 = async_test('A_05_01_04_T04');
 
 A_05_01_04_T04.step(unit(function (ctx) {
-	var d = newRenderedHTMLDocument(ctx);
-	var invoked = false;
+    var d = newRenderedHTMLDocument(ctx);
+    var invoked = false;
     roots = createTestMediaPlayer(d);
 
     //expected result of what relative target should be see
@@ -119,10 +120,10 @@ A_05_01_04_T04.step(unit(function (ctx) {
 
     //For #volume-slider-container relative target is #volume-shadow-host
     roots.playerShadowRoot.querySelector('#volume-slider-container').addEventListener('click',
-    		A_05_01_04_T04.step_func(function (event) {
-    			invoked = true;
-		        assert_equals(event.target.getAttribute('id'), 'volume-shadow-host',
-	        		'Wrong related target');
+            A_05_01_04_T04.step_func(function (event) {
+                invoked = true;
+                assert_equals(event.target.getAttribute('id'), 'volume-shadow-host',
+                    'Wrong related target');
     }), false);
 
     var event = d.createEvent('HTMLEvents');
@@ -138,8 +139,8 @@ A_05_01_04_T04.step(unit(function (ctx) {
 var A_05_01_04_T05 = async_test('A_05_01_04_T05');
 
 A_05_01_04_T05.step(unit(function (ctx) {
-	var d = newRenderedHTMLDocument(ctx);
-	var invoked = false;
+    var d = newRenderedHTMLDocument(ctx);
+    var invoked = false;
     roots = createTestMediaPlayer(d);
 
     //expected result of what relative target should be see
@@ -147,10 +148,10 @@ A_05_01_04_T05.step(unit(function (ctx) {
 
     //For #controls relative target is #volume-shadow-host
     roots.playerShadowRoot.querySelector('#controls').addEventListener('click',
-    		A_05_01_04_T05.step_func(function (event) {
-    			invoked = true;
-		        assert_equals(event.target.getAttribute('id'), 'volume-shadow-host',
-	        		'Wrong related target');
+            A_05_01_04_T05.step_func(function (event) {
+                invoked = true;
+                assert_equals(event.target.getAttribute('id'), 'volume-shadow-host',
+                    'Wrong related target');
     }), false);
 
     var event = d.createEvent('HTMLEvents');
@@ -166,8 +167,8 @@ A_05_01_04_T05.step(unit(function (ctx) {
 var A_05_01_04_T06 = async_test('A_05_01_04_T06');
 
 A_05_01_04_T06.step(unit(function (ctx) {
-	var d = newRenderedHTMLDocument(ctx);
-	var invoked = false;
+    var d = newRenderedHTMLDocument(ctx);
+    var invoked = false;
     roots = createTestMediaPlayer(d);
 
     //expected result of what relative target should be see
@@ -175,10 +176,10 @@ A_05_01_04_T06.step(unit(function (ctx) {
 
     //For #player-shadow-host relative target is #player-shadow-host
     roots.playerShadowRoot.addEventListener('click',
-    		A_05_01_04_T06.step_func(function (event) {
-    			invoked = true;
-		        assert_equals(event.target.getAttribute('id'), 'volume-shadow-host',
-	        		'Wrong related target');
+            A_05_01_04_T06.step_func(function (event) {
+                invoked = true;
+                assert_equals(event.target.getAttribute('id'), 'volume-shadow-host',
+                    'Wrong related target');
     }), false);
 
     var event = d.createEvent('HTMLEvents');
@@ -195,8 +196,8 @@ A_05_01_04_T06.step(unit(function (ctx) {
 var A_05_01_04_T07 = async_test('A_05_01_04_T07');
 
 A_05_01_04_T07.step(unit(function (ctx) {
-	var d = newRenderedHTMLDocument(ctx);
-	var invoked = false;
+    var d = newRenderedHTMLDocument(ctx);
+    var invoked = false;
     roots = createTestMediaPlayer(d);
 
     //expected result of what relative target should be see
@@ -204,10 +205,10 @@ A_05_01_04_T07.step(unit(function (ctx) {
 
     //For #player relative target is #player-shadow-host
     d.querySelector('#player').addEventListener('click',
-    		A_05_01_04_T07.step_func(function (event) {
-    			invoked = true;
-		        assert_equals(event.target.getAttribute('id'), 'player-shadow-host',
-	        		'Wrong related target');
+            A_05_01_04_T07.step_func(function (event) {
+                invoked = true;
+                assert_equals(event.target.getAttribute('id'), 'player-shadow-host',
+                    'Wrong related target');
     }), false);
 
     var event = d.createEvent('HTMLEvents');
@@ -223,8 +224,8 @@ A_05_01_04_T07.step(unit(function (ctx) {
 var A_05_01_04_T08 = async_test('A_05_01_04_T08');
 
 A_05_01_04_T08.step(unit(function (ctx) {
-	var d = newRenderedHTMLDocument(ctx);
-	var invoked = false;
+    var d = newRenderedHTMLDocument(ctx);
+    var invoked = false;
     roots = createTestMediaPlayer(d);
 
     //expected result of what relative target should be see
@@ -232,10 +233,10 @@ A_05_01_04_T08.step(unit(function (ctx) {
 
     //For #volume-slider relative target is #volume-slider
     roots.playerShadowRoot.querySelector('#volume-slider').addEventListener('click',
-    		A_05_01_04_T08.step_func(function (event) {
-    			invoked = true;
-	        assert_equals(event.target.getAttribute('id'), 'volume-slider',
-        		'Wrong related target');
+            A_05_01_04_T08.step_func(function (event) {
+                invoked = true;
+            assert_equals(event.target.getAttribute('id'), 'volume-slider',
+                'Wrong related target');
     }), false);
 
     var event = d.createEvent('HTMLEvents');
@@ -251,8 +252,8 @@ A_05_01_04_T08.step(unit(function (ctx) {
 var A_05_01_04_T09 = async_test('A_05_01_04_T09');
 
 A_05_01_04_T09.step(unit(function (ctx) {
-	var d = newRenderedHTMLDocument(ctx);
-	var invoked = false;
+    var d = newRenderedHTMLDocument(ctx);
+    var invoked = false;
     roots = createTestMediaPlayer(d);
 
     //expected result of what relative target should be see
@@ -260,10 +261,10 @@ A_05_01_04_T09.step(unit(function (ctx) {
 
     //For #volume-slider-container relative target is #volume-slider
     roots.playerShadowRoot.querySelector('#volume-slider-container').addEventListener('click',
-    		A_05_01_04_T09.step_func(function (event) {
-    			invoked = true;
-		        assert_equals(event.target.getAttribute('id'), 'volume-slider',
-	        		'Wrong related target');
+            A_05_01_04_T09.step_func(function (event) {
+                invoked = true;
+                assert_equals(event.target.getAttribute('id'), 'volume-slider',
+                    'Wrong related target');
     }), false);
 
     var event = d.createEvent('HTMLEvents');
@@ -279,8 +280,8 @@ A_05_01_04_T09.step(unit(function (ctx) {
 var A_05_01_04_T10 = async_test('A_05_01_04_T10');
 
 A_05_01_04_T10.step(unit(function (ctx) {
-	var d = newRenderedHTMLDocument(ctx);
-	var invoked = false;
+    var d = newRenderedHTMLDocument(ctx);
+    var invoked = false;
     roots = createTestMediaPlayer(d);
 
     //expected result of what relative target should be see
@@ -288,10 +289,10 @@ A_05_01_04_T10.step(unit(function (ctx) {
 
     //For #controls relative target is #volume-slider
     roots.playerShadowRoot.querySelector('#controls').addEventListener('click',
-    		A_05_01_04_T10.step_func(function (event) {
-    			invoked = true;
-		        assert_equals(event.target.getAttribute('id'), 'volume-slider',
-	        		'Wrong related target');
+            A_05_01_04_T10.step_func(function (event) {
+                invoked = true;
+                assert_equals(event.target.getAttribute('id'), 'volume-slider',
+                    'Wrong related target');
     }), false);
 
     var event = d.createEvent('HTMLEvents');
@@ -307,8 +308,8 @@ A_05_01_04_T10.step(unit(function (ctx) {
 var A_05_01_04_T11 = async_test('A_05_01_04_T11');
 
 A_05_01_04_T11.step(unit(function (ctx) {
-	var d = newRenderedHTMLDocument(ctx);
-	var invoked = false;
+    var d = newRenderedHTMLDocument(ctx);
+    var invoked = false;
     roots = createTestMediaPlayer(d);
 
     //expected result of what relative target should be see
@@ -316,10 +317,10 @@ A_05_01_04_T11.step(unit(function (ctx) {
 
     //For #player-shadow-root relative target is #volume-slider
     roots.playerShadowRoot.addEventListener('click',
-    		A_05_01_04_T11.step_func(function (event) {
-    			invoked = true;
-		        assert_equals(event.target.getAttribute('id'), 'volume-slider',
-	        		'Wrong related target');
+            A_05_01_04_T11.step_func(function (event) {
+                invoked = true;
+                assert_equals(event.target.getAttribute('id'), 'volume-slider',
+                    'Wrong related target');
     }), false);
 
     var event = d.createEvent('HTMLEvents');
@@ -336,8 +337,8 @@ A_05_01_04_T11.step(unit(function (ctx) {
 var A_05_01_04_T12 = async_test('A_05_01_04_T12');
 
 A_05_01_04_T12.step(unit(function (ctx) {
-	var d = newRenderedHTMLDocument(ctx);
-	var invoked = false;
+    var d = newRenderedHTMLDocument(ctx);
+    var invoked = false;
     roots = createTestMediaPlayer(d);
 
     //expected result of what relative target should be see
@@ -345,10 +346,10 @@ A_05_01_04_T12.step(unit(function (ctx) {
 
     //For #player relative target is #player-shadow-host
     d.querySelector('#player').addEventListener('click',
-    		A_05_01_04_T12.step_func(function (event) {
-    			invoked = true;
-		        assert_equals(event.target.getAttribute('id'), 'player-shadow-host',
-	        		'Wrong related target');
+            A_05_01_04_T12.step_func(function (event) {
+                invoked = true;
+                assert_equals(event.target.getAttribute('id'), 'player-shadow-host',
+                    'Wrong related target');
     }), false);
 
     var event = d.createEvent('HTMLEvents');

@@ -4224,5 +4224,38 @@
     "pathname": "/path",
     "search": "?query",
     "hash": "#frag"
+  },
+  "# Stringification of URL.searchParams",
+  {
+    "input": "?a=b&c=d",
+    "base": "http://example.org/foo/bar",
+    "href": "http://example.org/foo/bar?a=b&c=d",
+    "origin": "http://example.org",
+    "protocol": "http:",
+    "username": "",
+    "password": "",
+    "host": "example.org",
+    "hostname": "example.org",
+    "port": "",
+    "pathname": "/foo/bar",
+    "search": "?a=b&c=d",
+    "searchParams": "a=b&c=d",
+    "hash": ""
+  },
+  {
+    "input": "??a=b&c=d",
+    "base": "http://example.org/foo/bar",
+    "href": "http://example.org/foo/bar??a=b&c=d",
+    "origin": "http://example.org",
+    "protocol": "http:",
+    "username": "",
+    "password": "",
+    "host": "example.org",
+    "hostname": "example.org",
+    "port": "",
+    "pathname": "/foo/bar",
+    "search": "??a=b&c=d",
+    "searchParams": "%3Fa=b&c=d",
+    "hash": ""
   }
 ]

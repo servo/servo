@@ -16,25 +16,26 @@ policies and contribution forms [3].
 <meta name="assert" content="ShadowRoot Object: innerHTML of type DOMString; Test getter">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../../testcommon.js"></script>
+<script src="../../../../../html/resources/common.js"></script>
+<script src="../../../../resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
 <script>
 test(unit(function (ctx) {
 
-	var d = newRenderedHTMLDocument(ctx);
+    var d = newRenderedHTMLDocument(ctx);
 
-	var host = d.createElement('div');
-	d.body.appendChild(host);
-	var s = host.createShadowRoot();
+    var host = d.createElement('div');
+    d.body.appendChild(host);
+    var s = host.createShadowRoot();
 
-	var span = d.createElement('span');
-	span.innerHTML = 'Some text';
-	s.appendChild(span);
+    var span = d.createElement('span');
+    span.innerHTML = 'Some text';
+    s.appendChild(span);
 
     assert_equals(s.innerHTML.toLowerCase(), '<span>some text</span>',
-    		'Wrong value of ShadowRoot innerHTML attribute');
+            'Wrong value of ShadowRoot innerHTML attribute');
 
 }), 'A_10_01_01_04_01_T01');
 </script>

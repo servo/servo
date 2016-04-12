@@ -18,7 +18,7 @@ policies and contribution forms [3].
 <meta name="assert" content="Upper-boundary encapsulation: The nodes and named elements are not accessible from Window object named properties.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../testcommon.js"></script>
+<script src="../../../../html/resources/common.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -42,49 +42,6 @@ test(function () {
     'An iframe element in a shadow tree should not be accessible from ' +
     'window\'s named properties with its "name" attribute value.'
 );
-
-var frameTest = async_test(
-    'A frame element in a shadow tree should not be accessible from ' +
-    'window\'s named properties with its "name" attribute value.');
-
-frameTest.step(function () {
-    // To test a document with frames, an iframe containing frames is created.
-    var srcdoc = [
-        '<!DOCTYPE html>',
-        '<html>',
-        '<head>',
-        '<title>Frames Test</title>',
-        '<script src="../../testcommon.js"><' + '/script>',
-        '</head>',
-        '<frameset id="host" cols="50%,*">',
-        '<frame src="about:blank" name="host-frame1">',
-        '<frame src="about:blank" name="host-frame2">',
-        '</frameset>',
-        '</html>'
-    ].join('\n');
-    var iframe = document.createElement('iframe');
-    iframe.srcdoc = srcdoc;
-    iframe.style.display = 'none';
-
-    iframe.addEventListener('load', frameTest.step_func(function (event) {
-        try {
-            var doc = iframe.contentDocument;
-            var win = iframe.contentWindow;
-            var shadowRoot = doc.getElementById('host').createShadowRoot();
-            shadowRoot.innerHTML =
-                '<frame src="about:blank" name="shadow-frame1">\n' +
-                '<frame src="about:blank" name="shadow-frame2">';
-            assert_false('shadow-frame1' in win);
-            assert_false('shadow-frame2' in win);
-            frameTest.done();
-        } finally {
-            if (iframe.parentNode)
-                iframe.parentNode.removeChild(iframe);
-        }
-    }));
-
-    document.body.appendChild(iframe);
-});
 </script>
 </body>
 </html>
