@@ -267,22 +267,22 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
 
 impl HTMLInputElementMethods for HTMLInputElement {
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-accept
+    // https://html.spec.whatwg.org/multipage/#dom-input-accept
     make_getter!(Accept, "accept");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-accept
+    // https://html.spec.whatwg.org/multipage/#dom-input-accept
     make_setter!(SetAccept, "accept");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-alt
+    // https://html.spec.whatwg.org/multipage/#dom-input-alt
     make_getter!(Alt, "alt");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-alt
+    // https://html.spec.whatwg.org/multipage/#dom-input-alt
     make_setter!(SetAlt, "alt");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-dirName
+    // https://html.spec.whatwg.org/multipage/#dom-input-dirName
     make_getter!(DirName, "dirname");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-dirName
+    // https://html.spec.whatwg.org/multipage/#dom-input-dirName
     make_setter!(SetDirName, "dirname");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
@@ -399,10 +399,10 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#attr-fe-name
     make_atomic_setter!(SetName, "name");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-placeholder
+    // https://html.spec.whatwg.org/multipage/#dom-input-placeholder
     make_getter!(Placeholder, "placeholder");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-placeholder
+    // https://html.spec.whatwg.org/multipage/#dom-input-placeholder
     make_setter!(SetPlaceholder, "placeholder");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formaction
@@ -438,10 +438,10 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#attr-fs-formnovalidate
     make_bool_setter!(SetFormNoValidate, "formnovalidate");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-max
+    // https://html.spec.whatwg.org/multipage/#dom-input-max
     make_getter!(Max, "max");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-max
+    // https://html.spec.whatwg.org/multipage/#dom-input-max
     make_setter!(SetMax, "max");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-maxlength
@@ -450,40 +450,40 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-maxlength
     make_limited_int_setter!(SetMaxLength, "maxlength", DEFAULT_MAX_LENGTH);
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-min
+    // https://html.spec.whatwg.org/multipage/#dom-input-min
     make_getter!(Min, "min");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-min
+    // https://html.spec.whatwg.org/multipage/#dom-input-min
     make_setter!(SetMin, "min");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-multiple
+    // https://html.spec.whatwg.org/multipage/#dom-input-multiple
     make_bool_getter!(Multiple, "multiple");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-multiple
+    // https://html.spec.whatwg.org/multipage/#dom-input-multiple
     make_bool_setter!(SetMultiple, "multiple");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-pattern
+    // https://html.spec.whatwg.org/multipage/#dom-input-pattern
     make_getter!(Pattern, "pattern");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-pattern
+    // https://html.spec.whatwg.org/multipage/#dom-input-pattern
     make_setter!(SetPattern, "pattern");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-required
+    // https://html.spec.whatwg.org/multipage/#dom-input-required
     make_bool_getter!(Required, "required");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-required
+    // https://html.spec.whatwg.org/multipage/#dom-input-required
     make_bool_setter!(SetRequired, "required");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-src
+    // https://html.spec.whatwg.org/multipage/#dom-input-src
     make_getter!(Src, "src");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-src
+    // https://html.spec.whatwg.org/multipage/#dom-input-src
     make_setter!(SetSrc, "src");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-step
+    // https://html.spec.whatwg.org/multipage/#dom-input-step
     make_getter!(Step, "step");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-step
+    // https://html.spec.whatwg.org/multipage/#dom-input-step
     make_setter!(SetStep, "step");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
