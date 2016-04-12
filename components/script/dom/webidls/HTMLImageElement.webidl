@@ -9,7 +9,7 @@ interface HTMLImageElement : HTMLElement {
            attribute DOMString alt;
            attribute DOMString src;
   //         attribute DOMString srcset;
-  //         attribute DOMString crossOrigin;
+           attribute DOMString crossOrigin;
            attribute DOMString useMap;
            attribute boolean isMap;
            attribute unsigned long width;
@@ -17,7 +17,7 @@ interface HTMLImageElement : HTMLElement {
   readonly attribute unsigned long naturalWidth;
   readonly attribute unsigned long naturalHeight;
   readonly attribute boolean complete;
-
+  readonly attribute DOMString currentSrc;
   // also has obsolete members
 };
 
