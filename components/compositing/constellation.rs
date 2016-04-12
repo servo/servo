@@ -461,25 +461,28 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         // avoiding this panic would require a mechanism for dealing
         // with low-resource scenarios.
         let (server, token) =
-            IpcOneShotServer::<IpcSender<UnprivilegedPipelineContent>>::new().unwrap();
+            IpcOneShotServer::<IpcSender<UnprivilegedPipelineContent>>::new()
+            .expect("Failed to create IPC one-shot server.");
 
         // If there is a sandbox, use the `gaol` API to create the child process.
         let child_process = if opts::get().sandbox {
-            let mut command = sandbox::Command::me().unwrap();
+            let mut command = sandbox::Command::me().expect("Failed to get current sandbox.");
             command.arg("--content-process").arg(token);
             let profile = sandboxing::content_process_sandbox_profile();
-            ChildProcess::Sandboxed(Sandbox::new(profile).start(&mut command).expect(
-                "Failed to start sandboxed child process!"))
+            ChildProcess::Sandboxed(Sandbox::new(profile).start(&mut command)
+                                    .expect("Failed to start sandboxed child process!"))
         } else {
-            let path_to_self = env::current_exe().unwrap();
+            let path_to_self = env::current_exe()
+                .expect("Failed to get current executor.");
             let mut child_process = process::Command::new(path_to_self);
             child_process.arg("--content-process");
             child_process.arg(token);
-            ChildProcess::Unsandboxed(child_process.spawn().unwrap())
+            ChildProcess::Unsandboxed(child_process.spawn()
+                                      .expect("Failed to start unsandboxed child process!"))
         };
 
         self.child_processes.push(child_process);
-        let (_receiver, sender) = server.accept().unwrap();
+        let (_receiver, sender) = server.accept().expect("Server failed to accept.");
         sender.send(unprivileged_pipeline_content)
             .unwrap_or_else(|_| self.handle_send_error(pipeline_id));
     }
@@ -832,7 +835,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             // It's quite difficult to make Servo exit cleanly if some threads have failed.
             // Hard fail exists for test runners so we crash and that's good enough.
             let mut stderr = io::stderr();
-            stderr.write_all("Pipeline failed in hard-fail mode.  Crashing!\n".as_bytes()).unwrap();
+            stderr.write_all("Pipeline failed in hard-fail mode.  Crashing!\n".as_bytes())
+                .expect("Failed to write to stderr!");
             process::exit(1);
         }
 
@@ -1618,7 +1622,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             // before we check whether the document is ready; otherwise,
             // there's a race condition where a webfont has finished loading,
             // but hasn't yet notified the document.
-            let (sender, receiver) = ipc::channel().unwrap();
+            let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
             let msg = LayoutControlMsg::GetWebFontLoadState(sender);
             pipeline.layout_chan.0.send(msg)
                 .unwrap_or_else(|e| debug!("Get web font failed ({})", e));
@@ -1654,12 +1658,16 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                         // epoch matches what the compositor has drawn. If they match
                         // (and script is idle) then this pipeline won't change again
                         // and can be considered stable.
-                        let (sender, receiver) = ipc::channel().unwrap();
+                        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
                         let LayoutControlChan(ref layout_chan) = pipeline.layout_chan;
-                        layout_chan.send(LayoutControlMsg::GetCurrentEpoch(sender)).unwrap();
-                        let layout_thread_epoch = receiver.recv().unwrap();
-                        if layout_thread_epoch != *compositor_epoch {
-                            return ReadyToSave::EpochMismatch;
+                        if let Err(e) = layout_chan.send(LayoutControlMsg::GetCurrentEpoch(sender)) {
+                            warn!("Failed to send GetCurrentEpoch ({}).", e);
+                        }
+                        match receiver.recv() {
+                            Err(e) => warn!("Failed to receive current epoch ({}).", e),
+                            Ok(layout_thread_epoch) => if layout_thread_epoch != *compositor_epoch {
+                                return ReadyToSave::EpochMismatch;
+                            },
                         }
                     }
                     None => {
@@ -1835,7 +1843,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         if let Some(root_frame_id) = self.root_frame_id {
             if let Some(frame_tree) = self.frame_to_sendable(root_frame_id) {
 
-                let (chan, port) = ipc::channel().unwrap();
+                let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
                 self.compositor_proxy.send(ToCompositorMsg::SetFrameTree(frame_tree,
                                                                          chan,
                                                                          self.compositor_sender.clone()));

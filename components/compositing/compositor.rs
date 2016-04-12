@@ -755,7 +755,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if !self.pipeline_details.contains_key(&pipeline_id) {
             self.pipeline_details.insert(pipeline_id, PipelineDetails::new());
         }
-        self.pipeline_details.get_mut(&pipeline_id).unwrap()
+        self.pipeline_details.get_mut(&pipeline_id).expect("Insert then get failed!")
     }
 
     pub fn pipeline(&self, pipeline_id: PipelineId) -> Option<&CompositionPipeline> {
@@ -2191,7 +2191,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             let src_slice = &orig_pixels[src_start .. src_start + stride];
             (&mut pixels[dst_start .. dst_start + stride]).clone_from_slice(&src_slice[..stride]);
         }
-        RgbImage::from_raw(width as u32, height as u32, pixels).unwrap()
+        RgbImage::from_raw(width as u32, height as u32, pixels).expect("Flipping image failed!")
     }
 
     fn composite_if_necessary(&mut self, reason: CompositingReason) {
