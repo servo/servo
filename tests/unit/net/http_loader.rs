@@ -187,7 +187,7 @@ struct AssertMustHaveHeadersRequestFactory {
 impl HttpRequestFactory for AssertMustHaveHeadersRequestFactory {
     type R = MockRequest;
 
-    fn create_with_headers(&self, _: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
+    fn create(&self, _: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
         assert_eq!(headers, self.expected_headers);
         Ok(MockRequest::new(ResponseType::Text(self.body.clone())))
     }
@@ -201,7 +201,7 @@ struct AssertAuthHeaderRequestFactory {
 impl HttpRequestFactory for AssertAuthHeaderRequestFactory {
     type R = MockRequest;
 
-    fn create_with_headers(&self, _: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
+    fn create(&self, _: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
         let request = if headers.has::<Authorization<Basic>>() {
             assert_headers_included(&self.expected_headers, &headers);
             MockRequest::new(ResponseType::Text(self.body.clone()))
@@ -230,7 +230,7 @@ struct AssertMustIncludeHeadersRequestFactory {
 impl HttpRequestFactory for AssertMustIncludeHeadersRequestFactory {
     type R = MockRequest;
 
-    fn create_with_headers(&self, _: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
+    fn create(&self, _: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
         assert_headers_included(&self.expected_headers, &headers);
         Ok(MockRequest::new(ResponseType::Text(self.body.clone())))
     }
@@ -256,7 +256,7 @@ struct AssertMustNotIncludeHeadersRequestFactory {
 impl HttpRequestFactory for AssertMustNotIncludeHeadersRequestFactory {
     type R = MockRequest;
 
-    fn create_with_headers(&self, _: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
+    fn create(&self, _: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
         assert!(self.headers_not_expected.len() != 0);
         for header in &self.headers_not_expected {
             assert!(headers.get_raw(header).is_none());
@@ -392,7 +392,7 @@ fn test_request_and_response_data_with_network_messages() {
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create_with_headers(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
             let mut headers = Headers::new();
             headers.set(Host { hostname: "foo.bar".to_owned(), port: None });
             Ok(MockRequest::new(
@@ -467,7 +467,7 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create_with_headers(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
             let mut headers = Headers::new();
             headers.set(Host { hostname: "foo.bar".to_owned(), port: None });
             Ok(MockRequest::new(
@@ -498,7 +498,7 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create_with_headers(&self, url: Url, method: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, url: Url, method: Method, _: Headers) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
                 assert_eq!(Method::Post, method);
                 Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.org".to_owned())))
@@ -527,7 +527,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create_with_headers(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
             let mut e = DeflateEncoder::new(Vec::new(), Compression::Default);
             e.write(b"Yay!").unwrap();
             let encoded_content = e.finish().unwrap();
@@ -561,7 +561,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create_with_headers(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
             let mut e = GzEncoder::new(Vec::new(), Compression::Default);
             e.write(b"Yay!").unwrap();
             let encoded_content = e.finish().unwrap();
@@ -595,7 +595,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
     impl HttpRequestFactory for Factory {
         type R = AssertMustHaveBodyRequest;
 
-        fn create_with_headers(&self, url: Url, _: Method, _: Headers) -> Result<AssertMustHaveBodyRequest, LoadError> {
+        fn create(&self, url: Url, _: Method, _: Headers) -> Result<AssertMustHaveBodyRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
                 Ok(
                     AssertMustHaveBodyRequest::new(
@@ -636,7 +636,7 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create_with_headers(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
             let content = <[_]>::to_vec("Yay!".as_bytes());
             let mut headers = Headers::new();
             headers.set(StrictTransportSecurity::excluding_subdomains(31536000));
@@ -668,7 +668,7 @@ fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create_with_headers(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
             let content = <[_]>::to_vec("Yay!".as_bytes());
             let mut headers = Headers::new();
             headers.set(StrictTransportSecurity::excluding_subdomains(31536000));
@@ -700,7 +700,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create_with_headers(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
             let content = <[_]>::to_vec("Yay!".as_bytes());
             let mut headers = Headers::new();
             headers.set(SetCookie(vec![CookiePair::new("mozillaIs".to_owned(), "theBest".to_owned())]));
@@ -840,7 +840,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create_with_headers(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
             let content = <[_]>::to_vec("Yay!".as_bytes());
             let mut headers = Headers::new();
             headers.set_raw("set-cookie", vec![b"mozillaIs=theBest; HttpOnly;".to_vec()]);
@@ -872,7 +872,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create_with_headers(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
             let content = <[_]>::to_vec("Yay!".as_bytes());
             let mut headers = Headers::new();
             headers.set_raw("set-cookie", vec![b"mozillaIs=theBest; Secure;".to_vec()]);
@@ -1055,7 +1055,7 @@ fn test_load_errors_when_there_a_redirect_loop() {
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create_with_headers(&self, url: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, url: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
                 Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.org".to_owned())))
             } else if url.domain().unwrap() == "mozilla.org" {
@@ -1088,7 +1088,7 @@ fn test_load_errors_when_there_is_too_many_redirects() {
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create_with_headers(&self, url: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, url: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
                 Ok(MockRequest::new(ResponseType::Redirect(format!("{}/1", url.serialize()))))
             } else {
@@ -1119,7 +1119,7 @@ fn test_load_follows_a_redirect() {
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create_with_headers(&self, url: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, url: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
                 Ok(MockRequest::new(ResponseType::Redirect("http://mozilla.org".to_owned())))
             } else if url.domain().unwrap() == "mozilla.org" {
@@ -1157,7 +1157,7 @@ struct DontConnectFactory;
 impl HttpRequestFactory for DontConnectFactory {
     type R = MockRequest;
 
-    fn create_with_headers(&self, url: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+    fn create(&self, url: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
         Err(LoadError::Connection(url, "should not have connected".to_owned()))
     }
 }
@@ -1211,7 +1211,7 @@ fn test_load_errors_when_cancelled() {
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create_with_headers(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
             let mut headers = Headers::new();
             headers.set(Host { hostname: "Kaboom!".to_owned(), port: None });
             Ok(MockRequest::new(
@@ -1252,7 +1252,7 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create_with_headers(&self, url: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, url: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
             if url.domain().unwrap() == "mozilla.com" {
                 let mut expected_headers_x = Headers::new();
                 expected_headers_x.set_raw("Cookie".to_owned(),
@@ -1324,7 +1324,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
     impl HttpRequestFactory for Factory {
         type R = MockRequest;
 
-        fn create_with_headers(&self, url: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
+        fn create(&self, url: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
             if url.path().unwrap()[0] == "initial" {
                 let mut initial_answer_headers = Headers::new();
                 initial_answer_headers.set_raw("set-cookie", vec![b"mozillaIs=theBest; path=/;".to_vec()]);
