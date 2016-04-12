@@ -228,7 +228,7 @@ class MachCommands(CommandBase):
             env['OPENSSL_STATIC'] = 'TRUE'
 
         if release:
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -Z force-overflow-checks=true"
+            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -Z force-overflow-checks=y"
 
         if not (self.config["build"]["ccache"] == ""):
             env['CCACHE'] = self.config["build"]["ccache"]
