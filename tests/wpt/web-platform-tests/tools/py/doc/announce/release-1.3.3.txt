@@ -1,0 +1,26 @@
+py.test/pylib 1.3.3: windows and other fixes
+===========================================================================
+
+pylib/py.test 1.3.3 is a minor bugfix release featuring some improvements
+and fixes. See changelog_ for full history.
+
+have fun,
+holger krekel
+
+.. _changelog: ../changelog.html
+
+Changes between 1.3.2 and 1.3.3
+==================================================
+
+- fix issue113: assertion representation problem with triple-quoted strings
+  (and possibly other cases)
+- make conftest loading detect that a conftest file with the same
+  content was already loaded, avoids surprises in nested directory structures
+  which can be produced e.g. by Hudson. It probably removes the need to use
+  --confcutdir in most cases.
+- fix terminal coloring for win32
+  (thanks Michael Foord for reporting)
+- fix weirdness: make terminal width detection work on stdout instead of stdin
+  (thanks Armin Ronacher for reporting)
+- remove trailing whitespace in all py/text distribution files
+

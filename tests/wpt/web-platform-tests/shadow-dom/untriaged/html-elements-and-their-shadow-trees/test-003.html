@@ -16,7 +16,8 @@ policies and contribution forms [3].
 <meta name="assert" content="HTML Elements and Their Shadow Trees: Check that fieldset can contain at least two insertion points with matching criteria 'legend:first-of-type' and 'universal selector'">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../testcommon.js"></script>
+<script src="../../../html/resources/common.js"></script>
+<script src="../../resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -24,15 +25,15 @@ policies and contribution forms [3].
 //test universal selector
 test(unit(function (ctx) {
 
-	var d = newRenderedHTMLDocument(ctx);
+    var d = newRenderedHTMLDocument(ctx);
 
-	// create element
+    // create element
     var el = d.createElement('fieldset');
     d.body.appendChild(el);
 
     el.innerHTML = '' +
-    	'<span id="shadow">This is a node that should be distributed</span>' +
-    	'<span id="flbk">This is a fallback content</span>';
+        '<span id="shadow">This is a node that should be distributed</span>' +
+        '<span id="flbk">This is a fallback content</span>';
 
     var s = el.createShadowRoot();
     s.innerHTML = '<content select="#shadow"></content>';
@@ -47,23 +48,23 @@ test(unit(function (ctx) {
 //test legend:first-of-type
 test(unit(function (ctx) {
 
-	var d = newRenderedHTMLDocument(ctx);
+    var d = newRenderedHTMLDocument(ctx);
 
-	// create element
+    // create element
     var el = d.createElement('fieldset');
     d.body.appendChild(el);
 
     el.innerHTML = '' +
-    	'<legend>'
-    	'<span id="shadow">This is a node that should be distributed</span>' +
-    	'</legend>' +
-    	'<span id="flbk">Unlucky content</span>';
+        '<legend>'
+        '<span id="shadow">This is a node that should be distributed</span>' +
+        '</legend>' +
+        '<span id="flbk">Unlucky content</span>';
 
     var s = el.createShadowRoot();
     s.innerHTML = '<content select="legend:first-of-type"></content>';
 
     assert_true(d.querySelector('#shadow').offsetTop > 0, 'fieldset should allow insertion point ' +
-    		'with legend:first-of-type matching criteria');
+            'with legend:first-of-type matching criteria');
     assert_equals(d.querySelector('#flbk').offsetTop, 0, 'Fallback content shouldn\'t be rendered');
 
 }), 'A_09_00_03_T02');

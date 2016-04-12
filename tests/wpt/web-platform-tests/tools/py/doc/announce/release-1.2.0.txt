@@ -1,0 +1,116 @@
+py.test/pylib 1.2.0: junitxml, standalone test scripts, pluginization
+--------------------------------------------------------------------------------
+
+py.test is an advanced automated testing tool working with
+Python2, Python3 and Jython versions on all major operating
+systems.  It has a simple plugin architecture and can run many
+existing common Python test suites without modification.  It offers
+some unique features not found in other testing tools.
+See http://pytest.org for more info.
+
+py.test 1.2.0 brings many bug fixes and interesting new abilities:
+
+* --junitxml=path will create an XML file for use with CI processing
+* --genscript=path creates a standalone py.test-equivalent test-script
+* --ignore=path prevents collection of anything below that path
+* --confcutdir=path only lookup conftest.py test configs below that path
+* a 'pytest_report_header' hook to add info to the terminal report header
+* a 'pytestconfig' function argument gives direct access to option values
+* 'pytest_generate_tests' can now be put into a class as well
+* on CPython py.test additionally installs as "py.test-VERSION", on
+  Jython as py.test-jython and on PyPy as py.test-pypy-XYZ
+
+Apart from many bug fixes 1.2.0 also has better pluginization:
+Distributed testing and looponfailing testing now live in the
+separately installable 'pytest-xdist' plugin.  The same is true for
+'pytest-figleaf' for doing coverage reporting.  Those two plugins
+can serve well now as blue prints for doing your own.
+
+thanks to all who helped and gave feedback,
+have fun,
+
+holger krekel, January 2010
+
+Changes between 1.2.0 and 1.1.1
+=====================================
+
+- moved dist/looponfailing from py.test core into a new
+  separately released pytest-xdist plugin.
+
+- new junitxml plugin: --junitxml=path will generate a junit style xml file
+  which is processable e.g. by the Hudson CI system.
+
+- new option: --genscript=path will generate a standalone py.test script
+  which will not need any libraries installed.  thanks to Ralf Schmitt.
+
+- new option: --ignore will prevent specified path from collection.
+  Can be specified multiple times.
+
+- new option: --confcutdir=dir will make py.test only consider conftest
+  files that are relative to the specified dir.
+
+- new funcarg: "pytestconfig" is the pytest config object for access
+  to command line args and can now be easily used in a test.
+
+- install 'py.test' and `py.which` with a ``-$VERSION`` suffix to
+  disambiguate between Python3, python2.X, Jython and PyPy installed versions.
+
+- new "pytestconfig" funcarg allows access to test config object
+
+- new "pytest_report_header" hook can return additional lines
+  to be displayed at the header of a test run.
+
+- (experimental) allow "py.test path::name1::name2::..." for pointing
+  to a test within a test collection directly.  This might eventually
+  evolve as a full substitute to "-k" specifications.
+
+- streamlined plugin loading: order is now as documented in
+  customize.html: setuptools, ENV, commandline, conftest.
+  also setuptools entry point names are turned to canonical namees ("pytest_*")
+
+- automatically skip tests that need 'capfd' but have no os.dup
+
+- allow pytest_generate_tests to be defined in classes as well
+
+- deprecate usage of 'disabled' attribute in favour of pytestmark
+- deprecate definition of Directory, Module, Class and Function nodes
+  in conftest.py files.  Use pytest collect hooks instead.
+
+- collection/item node specific runtest/collect hooks are only called exactly
+  on matching conftest.py files, i.e. ones which are exactly below
+  the filesystem path of an item
+
+- change: the first pytest_collect_directory hook to return something
+  will now prevent further hooks to be called.
+
+- change: figleaf plugin now requires --figleaf to run.  Also
+  change its long command line options to be a bit shorter (see py.test -h).
+
+- change: pytest doctest plugin is now enabled by default and has a
+  new option --doctest-glob to set a pattern for file matches.
+
+- change: remove internal py._* helper vars, only keep py._pydir
+
+- robustify capturing to survive if custom pytest_runtest_setup
+  code failed and prevented the capturing setup code from running.
+
+- make py.test.* helpers provided by default plugins visible early -
+  works transparently both for pydoc and for interactive sessions
+  which will regularly see e.g. py.test.mark and py.test.importorskip.
+
+- simplify internal plugin manager machinery
+- simplify internal collection tree by introducing a RootCollector node
+
+- fix assert reinterpreation that sees a call containing "keyword=..."
+
+- fix issue66: invoke pytest_sessionstart and pytest_sessionfinish
+  hooks on slaves during dist-testing, report module/session teardown
+  hooks correctly.
+
+- fix issue65: properly handle dist-testing if no
+  execnet/py lib installed remotely.
+
+- skip some install-tests if no execnet is available
+
+- fix docs, fix internal bin/ script generation
+

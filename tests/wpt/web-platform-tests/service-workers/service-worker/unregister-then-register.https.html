@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script>
+var worker_url = 'resources/empty-worker.js';
+
+async_test(function(t) {
+    var scope = 'resources/scope/re-register-resolves-to-new-value';
+    var registration;
+
+    service_worker_unregister_and_register(t, worker_url, scope)
+      .then(function(r) {
+          registration = r;
+          return wait_for_state(t, r.installing, 'activated');
+        })
+      .then(function() {
+          return registration.unregister();
+        })
+      .then(function() {
+          return navigator.serviceWorker.register(worker_url, { scope: scope });
+        })
+      .then(function(new_registration) {
+          assert_not_equals(registration, new_registration,
+                            'register should resolve to a new value');
+          service_worker_unregister_and_done(t, scope);
+        })
+      .catch(unreached_rejection(t));
+  }, 'Unregister then register resolves to a new value');
+
+async_test(function(t) {
+    var scope = 'resources/scope/re-register-while-old-registration-in-use';
+    var registration;
+
+    service_worker_unregister_and_register(t, worker_url, scope)
+      .then(function(r) {
+          registration = r;
+          return wait_for_state(t, r.installing, 'activated');
+        })
+      .then(function() {
+          return with_iframe(scope);
+        })
+      .then(function(frame) {
+          return registration.unregister();
+        })
+      .then(function() {
+          return navigator.serviceWorker.register(worker_url, { scope: scope });
+        })
+      .then(function(new_registration) {
+          assert_equals(registration, new_registration,
+                        'new registration should resolve to the same registration');
+          service_worker_unregister_and_done(t, scope);
+        })
+      .catch(unreached_rejection(t));
+  }, 'Unregister then register resolves to the original value if the ' +
+         'registration is in use.');
+
+async_test(function(t) {
+    var scope = 'resources/scope/re-register-does-not-affect-existing-controllee';
+    var iframe;
+    var registration;
+    var controller;
+
+    service_worker_unregister_and_register(t, worker_url, scope)
+      .then(function(r) {
+          registration = r;
+          return wait_for_state(t, r.installing, 'activated');
+        })
+      .then(function() {
+          return with_iframe(scope);
+        })
+      .then(function(frame) {
+          iframe = frame;
+          controller = iframe.contentWindow.navigator.serviceWorker.controller;
+          return registration.unregister();
+        })
+      .then(function() {
+          return navigator.serviceWorker.register(worker_url, { scope: scope });
+        })
+      .then(function(registration) {
+          assert_equals(registration.installing, null,
+                        'installing version is null');
+          assert_equals(registration.waiting, null, 'waiting version is null');
+          assert_equals(
+              iframe.contentWindow.navigator.serviceWorker.controller,
+              controller,
+              'the worker from the first registration is the controller');
+          iframe.remove();
+          service_worker_unregister_and_done(t, scope);
+        })
+      .catch(unreached_rejection(t));
+  }, 'Unregister then register does not affect existing controllee');
+
+async_test(function(t) {
+    var scope = 'resources/scope/resurrection';
+    var iframe;
+    var registration;
+
+    service_worker_unregister_and_register(t, worker_url, scope)
+      .then(function(r) {
+          registration = r;
+          return wait_for_state(t, r.installing, 'activated');
+        })
+      .then(function() {
+          return with_iframe(scope);
+        })
+      .then(function(frame) {
+          iframe = frame;
+          return registration.unregister();
+        })
+      .then(function() {
+          return navigator.serviceWorker.register(worker_url, { scope: scope });
+        })
+      .then(function() {
+          iframe.remove();
+          return with_iframe(scope);
+        })
+      .then(function(frame) {
+          // FIXME: When crbug.com/400602 is fixed, assert that controller
+          // equals the original worker.
+          assert_not_equals(
+              frame.contentWindow.navigator.serviceWorker.controller, null,
+              'document should have a controller');
+          frame.remove();
+          service_worker_unregister_and_done(t, scope);
+        })
+      .catch(unreached_rejection(t));
+  }, 'Unregister then register resurrects the registration');
+</script>

@@ -8,7 +8,7 @@ function handleStorageEvent(e) {
     window.parent.storageEventList.push(e);
 }
 
-document.body.setAttribute("onstorage", "handleStorageEvent(window.event);");
+document.body.setAttribute("onstorage", "handleStorageEvent(event);");
 
 </script>
 </body>

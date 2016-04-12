@@ -26,6 +26,19 @@ test(function(t) {
 
 test(function(t) {
   var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 100000);
+  anim.finish();
+  assert_equals(getComputedStyle(div).opacity, '1', 'animation finished');
+  anim.effect.timing.iterations = 2;
+  assert_equals(getComputedStyle(div).opacity, '0', 'set 2 iterations');
+  anim.effect.timing.iterations = 0;
+  assert_equals(getComputedStyle(div).opacity, '1', 'set iterations 0');
+  anim.effect.timing.iterations = Infinity;
+  assert_equals(getComputedStyle(div).opacity, '0', 'set iterations Infinity');
+}, 'changed iterations immediately updates its computed styles');
+
+test(function(t) {
+  var div = createDiv(t);
   var anim = div.animate({ opacity: [ 1, 0 ] },
                          { duration: 10000, endDelay: 1000, fill: 'none' });
 
@@ -102,6 +115,62 @@ test(function(t) {
   assert_equals(getComputedStyle(div).opacity, '0',
                 'set currentTime after endTime');
 }, 'change currentTime when fill forwards and endDelay is negative');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] },
+                         { duration: 10000,
+                           direction: 'normal' });
+
+  anim.currentTime = 7000;
+  anim.effect.timing.direction = 'reverse';
+
+  assert_equals(getComputedStyle(div).opacity, '0.3',
+                'change direction from "normal" to "reverse"');
+}, 'change direction from "normal" to "reverse"');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] },
+                         { iterations: 2,
+                           duration: 10000,
+                           direction: 'normal' });
+
+  anim.currentTime = 17000;
+  anim.effect.timing.direction = 'alternate';
+
+  assert_equals(getComputedStyle(div).opacity, '0.3',
+                'change direction from "normal" to "alternate"');
+  }, 'change direction from "normal" to "alternate"');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] },
+                         { iterations: 2,
+                           duration: 10000,
+                           direction: 'normal' });
+
+  anim.currentTime = 17000;
+  anim.effect.timing.direction = 'alternate-reverse';
+
+  assert_equals(getComputedStyle(div).opacity, '0.7',
+                'change direction from "normal" to "alternate-reverse"');
+}, 'change direction from "normal" to "alternate-reverse"');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] },
+                         { fill: 'backwards',
+                           duration: 10000,
+                           direction: 'normal' });
+
+  // test for a flip of value at the currentTime = 0
+  anim.effect.timing.direction = 'reverse';
+
+  assert_equals(getComputedStyle(div).opacity, '1',
+                'change direction from "normal" to "reverse" ' +
+                'at the starting point');
+}, 'change direction from "normal" to "reverse"');
 
 </script>
 </body>

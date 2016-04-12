@@ -157,10 +157,6 @@ function assert_nodelist_contents_equal_noorder(actual, expected, message) {
     }
 }
 
-function isVisible(el) {
-    return el.offsetTop != 0;
-}
-
 function isVoidElement(elementName) {
     return HTML5_VOID_ELEMENTS.indexOf(elementName) >= 0;
 }

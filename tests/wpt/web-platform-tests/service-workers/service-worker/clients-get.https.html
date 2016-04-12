@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<title>Service Worker: Clients.get</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/get-host-info.sub.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script>
+var host_info = get_host_info();
+
+var scope = 'resources/clients-get-frame.html';
+var t = async_test('Test Clients.get()');
+var clientIds = [];
+var frame;
+t.step(function() {
+    service_worker_unregister_and_register(
+        t, 'resources/clients-get-worker.js', scope)
+      .then(function(registration) {
+          return wait_for_state(t, registration.installing, 'activated');
+        })
+      .then(function() {
+          return with_iframe(scope + '#1');
+        })
+      .then(function(frame1) {
+          frame1.focus();
+          return wait_for_clientId();
+        })
+      .then(function(clientId) {
+          clientIds.push(clientId);
+          return with_iframe(scope + '#2');
+        })
+      .then(function(frame2) {
+          frame = frame2;
+          return wait_for_clientId();
+        })
+      .then(function(clientId) {
+          clientIds.push(clientId);
+          var channel = new MessageChannel();
+          channel.port1.onmessage = t.step_func(on_message);
+          frame.contentWindow.navigator.serviceWorker.controller.postMessage(
+              {port:channel.port2, clientIds:clientIds,
+               message: 'get_client_ids'}, [channel.port2]);
+        })
+      .catch(unreached_rejection(t));
+  });
+
+function wait_for_clientId() {
+  return new Promise(function(resolve, reject) {
+      function get_client_id(e) {
+        window.removeEventListener("message", get_client_id);
+        resolve(e.data.clientId);
+      }
+      window.addEventListener("message", get_client_id, false);
+    });
+}
+
+var expected = [
+    /* visibilityState, focused, url, frameType */
+    ['visible', true, new URL(scope + '#1', location).toString(), 'nested'],
+    ['visible', false, new URL(scope + '#2', location).toString(), 'nested'],
+    undefined
+];
+
+function on_message(e) {
+  assert_equals(e.data.length, 3);
+  assert_array_equals(e.data[0], expected[0]);
+  assert_array_equals(e.data[1], expected[1]);
+  assert_equals(e.data[2], expected[2]);
+  service_worker_unregister_and_done(t, scope);
+}
+</script>

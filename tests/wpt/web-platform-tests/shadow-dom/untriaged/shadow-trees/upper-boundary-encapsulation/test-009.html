@@ -18,7 +18,7 @@ policies and contribution forms [3].
 <meta name="assert" content="Upper-boundary encapsulation: no nodes other than shadow root descendants are accessible with shadow root DOM tree accessor methods">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../../testcommon.js"></script>
+<script src="../../../../html/resources/common.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -53,10 +53,10 @@ A_04_01_09.setup = function () {
     ctx.d = newHTMLDocument();
     A_04_01_09.setupBlock(ctx, 'd', ctx.d.body);
 
-    ctx.s1 = ctx.d_p1.createShadowRoot();
+    ctx.s1 = ctx.d_p1.attachShadow({mode: 'open'});
     A_04_01_09.setupBlock(ctx, 's1', ctx.s1);
 
-    ctx.s2 = ctx.s1_p1.createShadowRoot();
+    ctx.s2 = ctx.s1_p1.attachShadow({mode: 'open'});
     A_04_01_09.setupBlock(ctx, 's2', ctx.s2);
 
     assert_true(ctx.d_div1 != null, 'setup:d_div1');
@@ -69,77 +69,37 @@ A_04_01_09.setup = function () {
     return ctx;
 };
 
-//check getElementsByTagName
+//check querySelectorAll
 test(function () {
     var ctx = A_04_01_09.setup();
 
     assert_nodelist_contents_equal_noorder(
-        ctx.s1.getElementsByTagName('div'), [ctx.s1_div1, ctx.s1_div2],
+        ctx.s1.querySelectorAll('div'), [ctx.s1_div1, ctx.s1_div2],
         'nodes, other than shadow root descendants, should not be accessible with ' +
             'ShadowRoot.getElementsByTagName (s1)');
 
     assert_nodelist_contents_equal_noorder(
-        ctx.s2.getElementsByTagName('div'), [ctx.s2_div1, ctx.s2_div2],
+        ctx.s2.querySelectorAll('div'), [ctx.s2_div1, ctx.s2_div2],
         'nodes, other than shadow root descendants, should not be accessible with ' +
             'ShadowRoot.getElementsByTagName (s2)');
 
 }, 'A_04_01_09_T01');
 
-// getElementsByTagNameNS
+//check querySelectorAll for class
 test(function () {
     var ctx = A_04_01_09.setup();
 
     assert_nodelist_contents_equal_noorder(
-        ctx.s1.getElementsByTagNameNS('*', 'div'), [ctx.s1_div1, ctx.s1_div2],
-        'nodes, other than shadow root descendants, should not be accessible with ' +
-            'ShadowRoot.getElementsByTagNameNS (s1)');
-
-    assert_nodelist_contents_equal_noorder(
-        ctx.s2.getElementsByTagNameNS('*', 'div'), [ctx.s2_div1, ctx.s2_div2],
-        'nodes, other than shadow root descendants, should not be accessible with ' +
-            'ShadowRoot.getElementsByTagNameNS (s2)');
-
-}, 'A_04_01_09_T02');
-
-//check getElementsByClassName
-test(function () {
-    var ctx = A_04_01_09.setup();
-
-    assert_nodelist_contents_equal_noorder(
-        ctx.s1.getElementsByClassName('cls'), [ctx.s1_div1, ctx.s1_p1, ctx.s1_div2],
+        ctx.s1.querySelectorAll('.cls'), [ctx.s1_div1, ctx.s1_p1, ctx.s1_div2],
         'nodes, other than shadow root descendants, should not be accessible with ' +
             'ShadowRoot.getElementsByClassName (s1)');
 
     assert_nodelist_contents_equal_noorder(
-        ctx.s2.getElementsByClassName('cls'), [ctx.s2_div1, ctx.s2_p1, ctx.s2_div2],
+        ctx.s2.querySelectorAll('.cls'), [ctx.s2_div1, ctx.s2_p1, ctx.s2_div2],
         'nodes, other than shadow root descendants, should not be accessible with ' +
             'ShadowRoot.getElementsByClassName (s2)');
 
 }, 'A_04_01_09_T03');
-
-// check getElementById
-test(function () {
-    var ctx = A_04_01_09.setup();
-
-    assert_equals(ctx.s1.getElementById('d_id1'), null, 'Expected no access to d_div1 from s1.getElementById()');
-    assert_equals(ctx.s1.getElementById('d_id2'), null, 'Expected no access to d_div2 from s1.getElementById()');
-    assert_equals(ctx.s2.getElementById('d_id1'), null, 'Expected no access to d_div1 from s2.getElementById()');
-    assert_equals(ctx.s2.getElementById('d_id2'), null, 'Expected no access to d_div1 from s2.getElementById()');
-
-
-    assert_equals(ctx.s1.getElementById('s1_id1'), ctx.s1_div1, 'Expected access to s1_div1 form s1.getElementById()');
-    assert_equals(ctx.s1.getElementById('s1_id2'), ctx.s1_div2, 'Expected access to s1_div2 form s1.getElementById()');
-    assert_equals(ctx.s2.getElementById('s2_id1'), ctx.s2_div1, 'Expected access to s2_div1 form s2.getElementById()');
-    assert_equals(ctx.s2.getElementById('s2_id2'), ctx.s2_div2, 'Expected access to s2_div2 form s2.getElementById()');
-
-
-    assert_equals(ctx.s1.getElementById('s2_id1'), null, 'Expected no access to s2_div1 form s1.getElementById()');
-    assert_equals(ctx.s1.getElementById('s2_id2'), null, 'Expected no access to s2_div2 form s1.getElementById()');
-    assert_equals(ctx.s2.getElementById('s1_id1'), null, 'Expected no access to s1_div1 form s2.getElementById()');
-    assert_equals(ctx.s2.getElementById('s1_id2'), null, 'Expected no access to s1_div2 form s2.getElementById()');
-
-}, 'A_04_01_09_T04');
-
 
 // check querySelector for id
 test(function () {

@@ -6,20 +6,16 @@
 <script>
 
 encodings_table.forEach(function(section) {
-    section.encodings.filter(function(encoding) {
-        return encoding.name !== 'replacement';
-    }).forEach(function(encoding) {
-        if (utf_encodings.indexOf(encoding.name) !== -1) {
+    section.encodings.forEach(function(encoding) {
+        if (encoding.name !== 'replacement') {
             test(function() {
                 assert_equals(new TextDecoder(encoding.name).encoding, encoding.name);
-                assert_equals(new TextEncoder(encoding.name).encoding, encoding.name);
-            }, 'UTF encodings are supported for encode and decode: ' + encoding.name);
-        } else {
-            test(function() {
-                assert_equals(new TextDecoder(encoding.name).encoding, encoding.name);
-                assert_throws(new RangeError(), function() { new TextEncoder(encoding.name); });
-            }, 'Non-UTF encodings supported only for decode, not encode: ' + encoding.name);
+            }, 'Encoding argument supported for decode: ' + encoding.name);
         }
+
+        test(function() {
+            assert_equals(new TextEncoder(encoding.name).encoding, 'utf-8');
+        }, 'Encoding argument not considered for encode: ' + encoding.name);
     });
 });
 

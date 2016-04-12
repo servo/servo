@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<title>Service Worker: getRegistrations()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script src="resources/get-host-info.sub.js"></script>
+<script src="../fetch/resources/fetch-test-helpers.sub.js"></script>
+<script>
+// Purge the existing registrations for the origin.
+// getRegistrations() is used in order to avoid adding additional complexity
+// e.g. adding an internal function.
+promise_test(function(t) {
+    return navigator.serviceWorker.getRegistrations()
+      .then(function(registrations) {
+          return registrations.reduce(function(sequence, registration) {
+              return sequence.then(function() {
+                  return registration.unregister();
+                });
+            }, Promise.resolve());
+        });
+  }, 'Purge the existing registrations.');
+
+promise_test(function(t) {
+    return navigator.serviceWorker.getRegistrations()
+      .then(function(value) {
+          assert_array_equals(
+            value,
+            [],
+            'getRegistrations should resolve with an empty array.');
+        });
+  }, 'getRegistrations');
+
+promise_test(function(t) {
+    var scope = 'resources/scope/getregistrations/normal';
+    var script = 'resources/empty-worker.js';
+    var registrations = [];
+    return service_worker_unregister_and_register(t, script, scope)
+      .then(function(r) {
+          registrations.push(r);
+          return navigator.serviceWorker.getRegistrations();
+        })
+      .then(function(value) {
+          assert_array_equals(
+            value,
+            registrations,
+            'getRegistrations should resolve with array of registrations.');
+          return service_worker_unregister(t, scope);
+        });
+  }, 'Register then getRegistrations');
+
+promise_test(function(t) {
+    var scope1 = 'resources/scope/getregistrations/scope1';
+    var scope2 = 'resources/scope/getregistrations/scope2';
+    var script = 'resources/empty-worker.js';
+    var registrations = [];
+    return service_worker_unregister_and_register(t, script, scope1)
+      .then(function(r) {
+          registrations.push(r);
+          return service_worker_unregister_and_register(t, script, scope2);
+        })
+      .then(function(r) {
+          registrations.push(r);
+          return navigator.serviceWorker.getRegistrations();
+        })
+      .then(function(value) {
+          assert_array_equals(
+            value,
+            registrations,
+            'getRegistrations should resolve with array of registrations.');
+          return service_worker_unregister(t, scope1);
+        })
+      .then(function() {
+          return service_worker_unregister(t, scope2);
+        });
+  }, 'Register multiple times then getRegistrations');
+
+promise_test(function(t) {
+    var scope = 'resources/scope/getregistrations/register-unregister';
+    var script = 'resources/empty-worker.js';
+    return service_worker_unregister_and_register(t, script, scope)
+      .then(function(registration) {
+          return registration.unregister();
+        })
+      .then(function() {
+          return navigator.serviceWorker.getRegistrations();
+        })
+      .then(function(value) {
+          assert_array_equals(
+            value,
+            [],
+            'getRegistrations should resolve with an empty array.');
+        });
+  }, 'Register then Unregister then getRegistrations');
+
+promise_test(function(t) {
+    var host_info = get_host_info();
+    // Rewrite the url to point to remote origin.
+    var frame_same_origin_url = new URL("resources/frame-for-getregistrations.html", window.location);
+    var frame_url = host_info['HTTPS_REMOTE_ORIGIN'] + frame_same_origin_url.pathname;
+    var scope = 'resources/scope-for-getregistrations';
+    var script = 'resources/empty-worker.js';
+    var frame;
+    var registrations = [];
+
+    // Loads an iframe and waits for 'ready' message from it to resolve promise.
+    // Caller is responsible for removing frame.
+    function with_iframe_ready(url) {
+        return new Promise(function(resolve) {
+            var frame = document.createElement('iframe');
+            frame.src = url;
+            window.addEventListener('message', function onMessage(e) {
+              window.removeEventListener('message', onMessage);
+              if (e.data == 'ready') {
+                resolve(frame);
+              }
+            });
+            document.body.appendChild(frame);
+        });
+    }
+
+    // We need this special frame loading function because the frame is going
+    // to register it's own service worker and there is the possibility that that
+    // register() finishes after the register() for the same domain later in the
+    // test. So we have to wait until the cross origin register() is done, and not
+    // just until the frame loads.
+    return with_iframe_ready(frame_url)
+      .then(function(f) {
+          frame = f;
+          return service_worker_unregister_and_register(t, script, scope);
+        })
+      .then(function(r) {
+          registrations.push(r);
+          return navigator.serviceWorker.getRegistrations();
+        })
+      .then(function(value) {
+          assert_array_equals(
+            value,
+            registrations,
+            'getRegistrations should only return same origin registrations.');
+
+          var channel = new MessageChannel();
+          var resolve;
+          var p = new Promise(function(r) { resolve = r; });
+
+          channel.port1.onmessage = function(e) {
+            if (e.data == 'unregistered')
+              resolve();
+          };
+          frame.contentWindow.postMessage('unregister', '*', [channel.port2]);
+          return p;
+        })
+      .then(function() {
+          frame.remove();
+          return service_worker_unregister(t, scope);
+        });
+  }, 'getRegistrations promise resolves only with same origin registrations.');
+
+done();
+</script>

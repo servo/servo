@@ -16,7 +16,8 @@ policies and contribution forms [3].
 <meta name="assert" content="HTML Elements and Their Shadow Trees: Check that details can contain at least two insertion points with matching criteria 'summary:first-of-type' and 'universal selector'">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../testcommon.js"></script>
+<script src="../../../html/resources/common.js"></script>
+<script src="../../resources/shadow-dom-utils.js"></script>
 </head>
 <body>
 <div id="log"></div>
@@ -24,16 +25,16 @@ policies and contribution forms [3].
 //test universal selector
 test(unit(function (ctx) {
 
-	var d = newRenderedHTMLDocument(ctx);
+    var d = newRenderedHTMLDocument(ctx);
 
-	// create element
+    // create element
     var el = d.createElement('details');
     el.setAttribute('open', 'open');
     d.body.appendChild(el);
 
     el.innerHTML = '' +
-    	'<span id="shadow">This is a node that should be distributed</span>' +
-    	'<span id="flbk">This is a fallback content</span>';
+        '<span id="shadow">This is a node that should be distributed</span>' +
+        '<span id="flbk">This is a fallback content</span>';
 
     var s = el.createShadowRoot();
     s.innerHTML = '<content select="#shadow"></content>';

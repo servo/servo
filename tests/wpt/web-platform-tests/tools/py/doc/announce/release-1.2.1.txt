@@ -1,0 +1,66 @@
+py.test/pylib 1.2.1: little fixes and improvements
+--------------------------------------------------------------------------------
+
+py.test is an advanced automated testing tool working with
+Python2, Python3 and Jython versions on all major operating
+systems.  It has a simple plugin architecture and can run many
+existing common Python test suites without modification.  It offers
+some unique features not found in other testing tools.
+See http://pytest.org for more info.
+
+py.test 1.2.1 brings bug fixes and some new options and abilities triggered
+by user feedback:
+
+* --funcargs [testpath]  will show available builtin- and project funcargs.
+* display a short and concise traceback if funcarg lookup fails.
+* early-load "conftest.py" files in non-dot first-level sub directories.
+* --tb=line will print a single line for each failing test (issue67)
+* py.cleanup has a number of new options, cleanups up setup.py related files
+* fix issue78: always call python-level teardown functions even if the
+  according setup failed.
+
+For more detailed information see the changelog below.
+
+cheers and have fun,
+
+holger
+
+
+Changes between 1.2.1 and 1.2.0
+=====================================
+
+- refined usage and options for "py.cleanup"::
+
+    py.cleanup     # remove "*.pyc" and "*$py.class" (jython) files
+    py.cleanup -e .swp -e .cache # also remove files with these extensions
+    py.cleanup -s  # remove "build" and "dist" directory next to setup.py files
+    py.cleanup -d  # also remove empty directories
+    py.cleanup -a  # synonym for "-s -d -e 'pip-log.txt'"
+    py.cleanup -n  # dry run, only show what would be removed
+
+- add a new option "py.test --funcargs" which shows available funcargs
+  and their help strings (docstrings on their respective factory function)
+  for a given test path
+
+- display a short and concise traceback if a funcarg lookup fails
+
+- early-load "conftest.py" files in non-dot first-level sub directories.
+  allows to conveniently keep and access test-related options in a ``test``
+  subdir and still add command line options.
+
+- fix issue67: new super-short traceback-printing option: "--tb=line" will print a single line for each failing (python) test indicating its filename, lineno and the failure value
+
+- fix issue78: always call python-level teardown functions even if the
+  according setup failed.  This includes refinements for calling setup_module/class functions
+  which will now only be called once instead of the previous behaviour where they'd be called
+  multiple times if they raise an exception (including a Skipped exception).  Any exception
+  will be re-corded and associated with all tests in the according module/class scope.
+
+- fix issue63: assume <40 columns to be a bogus terminal width, default to 80
+
+- fix pdb debugging to be in the correct frame on raises-related errors
+
+- update apipkg.py to fix an issue where recursive imports might
+  unnecessarily break importing
+
+- fix plugin links

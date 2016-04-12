@@ -53,6 +53,19 @@ test(function(t) {
 
 test(function(t) {
   var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  anim.finish();
+  assert_equals(div.getAnimations().length, 0, 'animation finished');
+  anim.effect.timing.iterations = 10;
+  assert_equals(div.getAnimations()[0], anim, 'set iterations 10');
+  anim.effect.timing.iterations = 0;
+  assert_equals(div.getAnimations().length, 0, 'set iterations 0');
+  anim.effect.timing.iterations = Infinity;
+  assert_equals(div.getAnimations().length, 1, 'set iterations Infinity');
+}, 'when iterations is changed');
+
+test(function(t) {
+  var div = createDiv(t);
   var anim = div.animate({ opacity: [ 0, 1 ] },
                          { duration: 1000, delay: 500, endDelay: -500 });
   assert_equals(div.getAnimations()[0], anim, 'when currentTime 0');

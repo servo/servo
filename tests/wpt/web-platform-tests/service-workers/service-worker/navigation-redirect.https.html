@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<title>Service Worker: Navigation redirection</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/get-host-info.sub.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<body>
+<script>
+var host_info = get_host_info();
+
+// This test registers three Service Workers at SCOPE1, SCOPE2 and
+// OTHER_ORIGIN_SCOPE. And checks the redirected page's URL and the requests
+// which are intercepted by Service Worker while loading redirect page.
+var BASE_URL = host_info['HTTPS_ORIGIN'] + base_path();
+var OTHER_BASE_URL = host_info['HTTPS_REMOTE_ORIGIN'] + base_path();
+
+var SCOPE1 = BASE_URL + 'resources/navigation-redirect-scope1.py?';
+var SCOPE2 = BASE_URL + 'resources/navigation-redirect-scope2.py?';
+var OUT_SCOPE = BASE_URL + 'resources/navigation-redirect-out-scope.py?';
+var SCRIPT = 'resources/navigation-redirect-worker.js';
+
+var OTHER_ORIGIN_IFRAME_URL =
+    OTHER_BASE_URL + 'resources/navigation-redirect-other-origin.html';
+var OTHER_ORIGIN_SCOPE =
+    OTHER_BASE_URL + 'resources/navigation-redirect-scope1.py?';
+var OTHER_ORIGIN_OUT_SCOPE =
+    OTHER_BASE_URL + 'resources/navigation-redirect-out-scope.py?';
+
+var workers;
+var other_origin_frame;
+var setup_environment_promise;
+var message_resolvers = {};
+var next_message_id = 0;
+
+function setup_environment(t) {
+  if (setup_environment_promise)
+    return setup_environment_promise;
+  setup_environment_promise =
+      with_iframe(OTHER_ORIGIN_IFRAME_URL)
+        .then(function(f) {
+            // In this frame we register a Service Worker at OTHER_ORIGIN_SCOPE.
+            // And will use this frame to communicate with the worker.
+            other_origin_frame = f;
+            return Promise.all(
+                [service_worker_unregister_and_register(t, SCRIPT, SCOPE1),
+                 service_worker_unregister_and_register(t, SCRIPT, SCOPE2)]);
+          })
+        .then(function(registrations) {
+            add_completion_callback(function() {
+                registrations[0].unregister();
+                registrations[1].unregister();
+                send_to_iframe(other_origin_frame, 'unregister')
+                  .then(function() { other_origin_frame.remove(); });
+              });
+            workers = registrations.map(get_effective_worker);
+            return Promise.all([
+                wait_for_state(t, workers[0], 'activated'),
+                wait_for_state(t, workers[1], 'activated'),
+                // This promise will resolve when |wait_for_worker_promise|
+                // in OTHER_ORIGIN_IFRAME_URL resolves.
+                send_to_iframe(other_origin_frame, 'wait_for_worker')]);
+          });
+  return setup_environment_promise;
+}
+
+function get_effective_worker(registration) {
+  if (registration.active)
+    return registration.active;
+  if (registration.waiting)
+    return registration.waiting;
+  if (registration.installing)
+    return registration.installing;
+}
+
+function check_all_intercepted_urls(expected_urls) {
+  var urls = [];
+  return get_intercepted_urls(workers[0])
+    .then(function(url) {
+      urls.push(url);
+      return get_intercepted_urls(workers[1]);
+    }).then(function(url) {
+      urls.push(url);
+      // Gets the request URLs which are intercepted by OTHER_ORIGIN_SCOPE's
+      // SW. This promise will resolve when get_intercepted_urls() in
+      // OTHER_ORIGIN_IFRAME_URL resolves.
+      return send_to_iframe(other_origin_frame, 'get_intercepted_urls');
+    }).then(function(url) {
+      urls.push(url);
+      return urls;
+    }).then(function(urls) {
+        assert_object_equals(
+            urls, expected_urls,
+            'Intercepted URLs should match.');
+      });
+}
+
+function test_redirect(url, expected_last_url,
+                       expected_intercepted_urls) {
+  var message_promise = new Promise(function(resolve) {
+      // A message which ID is 'last_url' will be sent from the iframe.
+      message_resolvers['last_url'] = resolve;
+    });
+  return with_iframe(url)
+    .then(function(f) {
+        f.remove();
+        return check_all_intercepted_urls(expected_intercepted_urls);
+      })
+    .then(function() { return message_promise; })
+    .then(function(last_url) {
+        assert_equals(
+            last_url, expected_last_url,
+            'Last URL should match.');
+      });
+}
+
+window.addEventListener('message', on_message, false);
+
+function on_message(e) {
+  if (e.origin != host_info['HTTPS_REMOTE_ORIGIN'] &&
+      e.origin != host_info['HTTPS_ORIGIN'] ) {
+    console.error('invalid origin: ' + e.origin);
+    return;
+  }
+  var resolve = message_resolvers[e.data.id];
+  delete message_resolvers[e.data.id];
+  resolve(e.data.result);
+}
+
+function send_to_iframe(frame, message) {
+  var message_id = next_message_id++;
+  return new Promise(function(resolve) {
+      message_resolvers[message_id] = resolve;
+      frame.contentWindow.postMessage(
+          {id: message_id, message: message},
+          host_info['HTTPS_REMOTE_ORIGIN']);
+    });
+}
+
+function get_intercepted_urls(worker) {
+  return new Promise(function(resolve) {
+      var channel = new MessageChannel();
+      channel.port1.onmessage = function(msg) { resolve(msg.data.urls); };
+      worker.postMessage({port: channel.port2}, [channel.port2]);
+    });
+}
+
+// Normal redirect.
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            OUT_SCOPE + 'url=' + encodeURIComponent(SCOPE1),
+            SCOPE1,
+            [[SCOPE1], [], []]);
+      });
+  }, 'Normal redirect to same-origin scope.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            OUT_SCOPE + 'url=' + encodeURIComponent(OTHER_ORIGIN_SCOPE),
+            OTHER_ORIGIN_SCOPE,
+            [[], [], [OTHER_ORIGIN_SCOPE]]);
+      });
+  }, 'Normal redirect to other-origin scope.');
+
+// SW fallbacked redirect. SW doesn't handle the fetch request.
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'url=' + encodeURIComponent(OUT_SCOPE),
+            OUT_SCOPE,
+            [[SCOPE1 + 'url=' + encodeURIComponent(OUT_SCOPE)], [], []]);
+      });
+  }, 'SW-fallbacked redirect to same-origin out-scope.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'url=' + encodeURIComponent(SCOPE1),
+            SCOPE1,
+            [[SCOPE1 + 'url=' + encodeURIComponent(SCOPE1)], [], []]);
+      });
+  }, 'SW-fallbacked redirect to same-origin same-scope.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'url=' + encodeURIComponent(SCOPE2),
+            SCOPE2,
+            [[SCOPE1 + 'url=' + encodeURIComponent(SCOPE2)], [], []]);
+      });
+  }, 'SW-fallbacked redirect to same-origin other-scope.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'url=' + encodeURIComponent(OTHER_ORIGIN_OUT_SCOPE),
+            OTHER_ORIGIN_OUT_SCOPE,
+            [[SCOPE1 + 'url=' + encodeURIComponent(OTHER_ORIGIN_OUT_SCOPE)],
+             [],
+             []]);
+      });
+  }, 'SW-fallbacked redirect to other-origin out-scope.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'url=' + encodeURIComponent(OTHER_ORIGIN_SCOPE),
+            OTHER_ORIGIN_SCOPE,
+            [[SCOPE1 + 'url=' + encodeURIComponent(OTHER_ORIGIN_SCOPE)],
+             [],
+             []]);
+      });
+  }, 'SW-fallbacked redirect to other-origin in-scope.');
+
+// SW generated redirect.
+// SW: event.respondWith(Response.redirect(params['url']));
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=gen&url=' + encodeURIComponent(OUT_SCOPE),
+            OUT_SCOPE,
+            [[SCOPE1 + 'sw=gen&url=' + encodeURIComponent(OUT_SCOPE)], [], []]);
+      });
+  }, 'SW-generated redirect to same-origin out-scope.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=gen&url=' + encodeURIComponent(SCOPE1),
+            SCOPE1,
+            [[SCOPE1 + 'sw=gen&url=' + encodeURIComponent(SCOPE1), SCOPE1],
+             [],
+             []]);
+      });
+  }, 'SW-generated redirect to same-origin same-scope.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=gen&url=' + encodeURIComponent(SCOPE2),
+            SCOPE2,
+            [[SCOPE1 + 'sw=gen&url=' + encodeURIComponent(SCOPE2)],
+             [SCOPE2],
+             []]);
+      });
+  }, 'SW-generated redirect to same-origin other-scope.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=gen&url=' + encodeURIComponent(OTHER_ORIGIN_OUT_SCOPE),
+            OTHER_ORIGIN_OUT_SCOPE,
+            [[SCOPE1 + 'sw=gen&url=' +
+              encodeURIComponent(OTHER_ORIGIN_OUT_SCOPE)],
+             [],
+             []]);
+      });
+  }, 'SW-generated redirect to other-origin out-scope.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=gen&url=' + encodeURIComponent(OTHER_ORIGIN_SCOPE),
+            OTHER_ORIGIN_SCOPE,
+            [[SCOPE1 + 'sw=gen&url=' + encodeURIComponent(OTHER_ORIGIN_SCOPE)],
+             [],
+             [OTHER_ORIGIN_SCOPE]]);
+      });
+  }, 'SW-generated redirect to other-origin in-scope.');
+
+// SW fetched redirect.
+// SW: event.respondWith(fetch(event.request));
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=fetch&url=' + encodeURIComponent(OUT_SCOPE),
+            OUT_SCOPE,
+            [[SCOPE1 + 'sw=fetch&url=' + encodeURIComponent(OUT_SCOPE)],
+             [],
+             []]);
+      });
+  }, 'SW-fetched redirect to same-origin out-scope.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=fetch&url=' + encodeURIComponent(SCOPE1),
+            SCOPE1,
+            [[SCOPE1 + 'sw=fetch&url=' + encodeURIComponent(SCOPE1), SCOPE1],
+             [],
+             []]);
+      });
+  }, 'SW-fetched redirect to same-origin same-scope.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=fetch&url=' + encodeURIComponent(SCOPE2),
+            SCOPE2,
+            [[SCOPE1 + 'sw=fetch&url=' + encodeURIComponent(SCOPE2)],
+             [SCOPE2],
+             []]);
+      });
+  }, 'SW-fetched redirect to same-origin other-scope.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=fetch&url=' +
+            encodeURIComponent(OTHER_ORIGIN_OUT_SCOPE),
+            OTHER_ORIGIN_OUT_SCOPE,
+            [[SCOPE1 + 'sw=fetch&url=' +
+              encodeURIComponent(OTHER_ORIGIN_OUT_SCOPE)],
+             [],
+             []]);
+      });
+  }, 'SW-fetched redirect to other-origin out-scope.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=fetch&url=' + encodeURIComponent(OTHER_ORIGIN_SCOPE),
+            OTHER_ORIGIN_SCOPE,
+            [[SCOPE1 + 'sw=fetch&url=' +
+              encodeURIComponent(OTHER_ORIGIN_SCOPE)],
+             [],
+             [OTHER_ORIGIN_SCOPE]]);
+      });
+  }, 'SW-fetched redirect to other-origin in-scope.');
+
+// Opaque redirect.
+// SW: event.respondWith(fetch(
+//         new Request(event.request.url, {redirect: 'manual'})));
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=opaque&url=' + encodeURIComponent(OUT_SCOPE),
+            OUT_SCOPE,
+            [[SCOPE1 + 'sw=opaque&url=' + encodeURIComponent(OUT_SCOPE)],
+             [],
+             []]);
+      });
+  }, 'Redirect to same-origin out-scope with opaque redirect response.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=opaque&url=' + encodeURIComponent(SCOPE1),
+            SCOPE1,
+            [[SCOPE1 + 'sw=opaque&url=' + encodeURIComponent(SCOPE1), SCOPE1],
+             [],
+             []]);
+      });
+  }, 'Redirect to same-origin same-scope with opaque redirect response.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=opaque&url=' + encodeURIComponent(SCOPE2),
+            SCOPE2,
+            [[SCOPE1 + 'sw=opaque&url=' + encodeURIComponent(SCOPE2)],
+             [SCOPE2],
+             []]);
+      });
+  }, 'Redirect to same-origin other-scope with opaque redirect response.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=opaque&url=' +
+            encodeURIComponent(OTHER_ORIGIN_OUT_SCOPE),
+            OTHER_ORIGIN_OUT_SCOPE,
+            [[SCOPE1 + 'sw=opaque&url=' +
+              encodeURIComponent(OTHER_ORIGIN_OUT_SCOPE)],
+             [],
+             []]);
+      });
+  }, 'Redirect to other-origin out-scope with opaque redirect response.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=opaque&url=' + encodeURIComponent(OTHER_ORIGIN_SCOPE),
+            OTHER_ORIGIN_SCOPE,
+            [[SCOPE1 + 'sw=opaque&url=' +
+              encodeURIComponent(OTHER_ORIGIN_SCOPE)],
+             [],
+             [OTHER_ORIGIN_SCOPE]]);
+      });
+  }, 'Redirect to other-origin in-scope with opaque redirect response.');
+
+// Opaque redirect passed through Cache.
+// SW responds with an opaque redirectresponse from the Cache API.
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=opaqueThroughCache&url=' +
+            encodeURIComponent(OUT_SCOPE),
+            OUT_SCOPE,
+            [[SCOPE1 + 'sw=opaqueThroughCache&url=' +
+              encodeURIComponent(OUT_SCOPE)],
+             [],
+             []]);
+      });
+  },
+  'Redirect to same-origin out-scope with opaque redirect response which ' +
+  'is passed through Cache.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=opaqueThroughCache&url=' +
+            encodeURIComponent(SCOPE1),
+            SCOPE1,
+            [[SCOPE1 + 'sw=opaqueThroughCache&url=' +
+              encodeURIComponent(SCOPE1), SCOPE1],
+             [],
+             []]);
+      });
+  },
+  'Redirect to same-origin same-scope with opaque redirect response which ' +
+  'is passed through Cache.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=opaqueThroughCache&url=' +
+            encodeURIComponent(SCOPE2),
+            SCOPE2,
+            [[SCOPE1 + 'sw=opaqueThroughCache&url=' +
+              encodeURIComponent(SCOPE2)],
+             [SCOPE2],
+             []]);
+      });
+  },
+  'Redirect to same-origin other-scope with opaque redirect response which ' +
+  'is passed through Cache.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=opaqueThroughCache&url=' +
+            encodeURIComponent(OTHER_ORIGIN_OUT_SCOPE),
+            OTHER_ORIGIN_OUT_SCOPE,
+            [[SCOPE1 + 'sw=opaqueThroughCache&url=' +
+              encodeURIComponent(OTHER_ORIGIN_OUT_SCOPE)],
+             [],
+             []]);
+      });
+  },
+  'Redirect to other-origin out-scope with opaque redirect response which ' +
+  'is passed through Cache.');
+promise_test(function(t) {
+    return setup_environment(t).then(function() {
+        return test_redirect(
+            SCOPE1 + 'sw=opaqueThroughCache&url=' +
+            encodeURIComponent(OTHER_ORIGIN_SCOPE),
+            OTHER_ORIGIN_SCOPE,
+            [[SCOPE1 + 'sw=opaqueThroughCache&url=' +
+              encodeURIComponent(OTHER_ORIGIN_SCOPE)],
+             [],
+             [OTHER_ORIGIN_SCOPE]]);
+      });
+  },
+  'Redirect to other-origin in-scope with opaque redirect response which ' +
+  'is passed through Cache.');
+</script>
+</body>

@@ -29,8 +29,8 @@ if (window.location.search) {
 }
 
 var testContainer = document.querySelector('#testContainer');
-var outerWidth = testContainer.getBoundingClientRect().width;
-var outerHeight = testContainer.getBoundingClientRect().height;
+var testContainerWidth = testContainer.getBoundingClientRect().width;
+var testContainerHeight = testContainer.getBoundingClientRect().height;
 
 SVGSizing.doCombinationTest(
     [["placeholder", [ null ]],
@@ -45,7 +45,8 @@ SVGSizing.doCombinationTest(
         var testData = new SVGSizing.TestData(config);
 
         var expectedRect =
-                testData.computeInlineReplacedSize(outerWidth, outerHeight);
+                testData.computeInlineReplacedSize(testContainerWidth,
+                                                   testContainerHeight);
         var svgElement = testData.buildSVGOrPlaceholder();
         var container =
                 testData.buildContainer(svgElement);

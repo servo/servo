@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>Service Worker: Indexed DB</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-helpers.sub.js"></script>
+<script>
+async_test(function(t) {
+    var scope = 'resources/blank.html';
+    service_worker_unregister_and_register(
+      t, 'resources/indexeddb-worker.js', scope)
+    .then(function(registration) {
+        var sw = registration.installing;
+        var messageChannel = new MessageChannel();
+        messageChannel.port1.onmessage = t.step_func(onMessage);
+        sw.postMessage({port: messageChannel.port2}, [messageChannel.port2]);
+      })
+    .catch(unreached_rejection(t));
+
+    function onMessage() {
+      var openRequest = indexedDB.open('db');
+      openRequest.onsuccess = t.step_func(function() {
+          var db = openRequest.result;
+          var tx = db.transaction('store');
+          var store = tx.objectStore('store');
+          var getRequest = store.get('key');
+          getRequest.onsuccess = t.step_func(function() {
+              assert_equals(
+                getRequest.result, 'value',
+                'The get() result should match what the worker put().');
+              service_worker_unregister_and_done(t, scope);
+            });
+        });
+    }
+  }, 'Verify Indexed DB operation in a Service Worker');
+</script>
