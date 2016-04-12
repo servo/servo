@@ -142,13 +142,12 @@ enum ResponseType {
 }
 
 struct MockRequest {
-    headers: Headers,
     t: ResponseType
 }
 
 impl MockRequest {
     fn new(t: ResponseType) -> MockRequest {
-        MockRequest { headers: Headers::new(), t: t }
+        MockRequest { t: t }
     }
 }
 
@@ -174,8 +173,6 @@ fn response_for_request_type(t: ResponseType) -> Result<MockResponse, LoadError>
 
 impl HttpRequest for MockRequest {
     type R = MockResponse;
-
-    fn headers_mut(&mut self) -> &mut Headers { &mut self.headers }
 
     fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
         response_for_request_type(self.t)
@@ -271,20 +268,17 @@ impl HttpRequestFactory for AssertMustNotIncludeHeadersRequestFactory {
 
 struct AssertMustHaveBodyRequest {
     expected_body: Option<Vec<u8>>,
-    headers: Headers,
     t: ResponseType
 }
 
 impl AssertMustHaveBodyRequest {
     fn new(t: ResponseType, expected_body: Option<Vec<u8>>) -> Self {
-        AssertMustHaveBodyRequest { expected_body: expected_body, headers: Headers::new(), t: t }
+        AssertMustHaveBodyRequest { expected_body: expected_body, t: t }
     }
 }
 
 impl HttpRequest for AssertMustHaveBodyRequest {
     type R = MockResponse;
-
-    fn headers_mut(&mut self) -> &mut Headers { &mut self.headers }
 
     fn send(self, body: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
         assert_eq!(self.expected_body, *body);
