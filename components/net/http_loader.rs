@@ -636,6 +636,7 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
                           request_id: &str)
                           -> Result<A::R, LoadError> where A: HttpRequest + 'static  {
 
+    let null_data = None;
     let response;
     let connection_url = replace_hosts(&url);
 
@@ -644,20 +645,7 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
     // a ConnectionAborted error. this loop tries again with a new
     // connection.
     loop {
-        let mut req = try!(request_factory.create_with_headers(connection_url.clone(), method.clone(),
-                                                               request_headers.clone()));
-
-        if cancel_listener.is_cancelled() {
-            return Err(LoadError::Cancelled(connection_url.clone(), "load cancelled".to_owned()));
-        }
-
-        if log_enabled!(log::LogLevel::Info) {
-            info!("{}", method);
-            for header in req.headers_mut().iter() {
-                info!(" - {}", header);
-            }
-            info!("{:?}", data);
-        }
+        let mut headers = request_headers.clone();
 
         // Avoid automatically sending request body if a redirect has occurred.
         //
@@ -666,26 +654,42 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
         //
         // https://tools.ietf.org/html/rfc7231#section-6.4
         let is_redirected_request = iters != 1;
-        let cloned_data;
-        let maybe_response = match data {
+        let request_body;
+        match data {
             &Some(ref d) if !is_redirected_request => {
-                req.headers_mut().set(ContentLength(d.len() as u64));
-                cloned_data = data.clone();
-                req.send(data)
-            },
+                headers.set(ContentLength(d.len() as u64));
+                request_body = data;
+            }
             _ => {
                 if *load_data_method != Method::Get && *load_data_method != Method::Head {
-                    req.headers_mut().set(ContentLength(0))
+                    headers.set(ContentLength(0))
                 }
-                cloned_data = None;
-                req.send(&None)
+                request_body = &null_data;
             }
-        };
+        }
+
+        if log_enabled!(log::LogLevel::Info) {
+            info!("{}", method);
+            for header in headers.iter() {
+                info!(" - {}", header);
+            }
+            info!("{:?}", data);
+        }
+
+        let req = try!(request_factory.create_with_headers(connection_url.clone(), method.clone(),
+                                                           headers.clone()));
+
+        if cancel_listener.is_cancelled() {
+            return Err(LoadError::Cancelled(connection_url.clone(), "load cancelled".to_owned()));
+        }
+
+        let maybe_response = req.send(request_body);
+
         if let Some(pipeline_id) = *pipeline_id {
             send_request_to_devtools(
                 devtools_chan.clone(), request_id.clone().into(),
-                url.clone(), method.clone(), request_headers.clone(),
-                cloned_data, pipeline_id, time::now()
+                url.clone(), method.clone(), headers,
+                request_body.clone(), pipeline_id, time::now()
             );
         }
 
