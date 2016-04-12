@@ -1571,6 +1571,30 @@
             "url": "/_mozilla/css/floated_table_with_margin_a.html"
           }
         ],
+        "css/floats_margin_collapse_a.html": [
+          {
+            "path": "css/floats_margin_collapse_a.html",
+            "references": [
+              [
+                "/_mozilla/css/floats_margin_collapse_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/floats_margin_collapse_a.html"
+          }
+        ],
+        "css/floats_margin_collapse_with_clearance_a.html": [
+          {
+            "path": "css/floats_margin_collapse_with_clearance_a.html",
+            "references": [
+              [
+                "/_mozilla/css/floats_margin_collapse_with_clearance_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/floats_margin_collapse_with_clearance_a.html"
+          }
+        ],
         "css/focus_selector.html": [
           {
             "path": "css/focus_selector.html",
@@ -8159,6 +8183,30 @@
             ]
           ],
           "url": "/_mozilla/css/floated_table_with_margin_a.html"
+        }
+      ],
+      "css/floats_margin_collapse_a.html": [
+        {
+          "path": "css/floats_margin_collapse_a.html",
+          "references": [
+            [
+              "/_mozilla/css/floats_margin_collapse_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/floats_margin_collapse_a.html"
+        }
+      ],
+      "css/floats_margin_collapse_with_clearance_a.html": [
+        {
+          "path": "css/floats_margin_collapse_with_clearance_a.html",
+          "references": [
+            [
+              "/_mozilla/css/floats_margin_collapse_with_clearance_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/floats_margin_collapse_with_clearance_a.html"
         }
       ],
       "css/focus_selector.html": [

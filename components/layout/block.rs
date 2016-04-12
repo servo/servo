@@ -809,7 +809,7 @@ impl BlockFlow {
             // At this point, `cur_b` is at the content edge of our box. Now iterate over children.
             let mut floats = self.base.floats.clone();
             let thread_id = self.base.thread_id;
-            let mut had_float_children = false;
+            let (mut had_floated_children, mut had_children_with_clearance) = (false, false);
             for (child_index, kid) in self.base.child_iter_mut().enumerate() {
                 if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
                     // Assume that the *hypothetical box* for an absolute flow starts immediately
@@ -845,12 +845,12 @@ impl BlockFlow {
                 // before.
                 flow::mut_base(kid).floats = floats.clone();
                 if flow::base(kid).flags.is_float() {
-                    had_float_children = true;
+                    had_floated_children = true;
                     flow::mut_base(kid).position.start.b = cur_b;
                     {
                         let kid_block = kid.as_mut_block();
-                        kid_block.float.as_mut().unwrap().float_ceiling =
-                            margin_collapse_info.current_float_ceiling();
+                        let float_ceiling = margin_collapse_info.current_float_ceiling();
+                        kid_block.float.as_mut().unwrap().float_ceiling = float_ceiling
                     }
                     kid.place_float_if_applicable(layout_context);
 
@@ -875,9 +875,17 @@ impl BlockFlow {
                     kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
                                                                          thread_id);
 
+                if !had_children_with_clearance &&
+                        floats.is_present() &&
+                        (flow::base(kid).flags.contains(CLEARS_LEFT) ||
+                         flow::base(kid).flags.contains(CLEARS_RIGHT)) {
+                    had_children_with_clearance = true
+                }
+
                 // Handle any (possibly collapsed) top margin.
                 let delta = margin_collapse_info.advance_block_start_margin(
-                    &flow::base(kid).collapsible_margins);
+                    &flow::base(kid).collapsible_margins,
+                    !had_children_with_clearance);
                 translate_including_floats(&mut cur_b, delta, &mut floats);
 
                 // Clear past the floats that came in, if necessary.
@@ -935,7 +943,7 @@ impl BlockFlow {
                 &self.fragment,
                 self.base.block_container_explicit_block_size,
                 can_collapse_block_end_margin_with_kids,
-                !had_float_children);
+                !had_floated_children);
             self.base.collapsible_margins = collapsible_margins;
             translate_including_floats(&mut cur_b, delta, &mut floats);
 
