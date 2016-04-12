@@ -251,50 +251,21 @@ fn assert_cookie_for_domain(cookie_jar: Arc<RwLock<CookieStorage>>, domain: &str
     }
 }
 
-struct AssertRequestMustNotIncludeHeaders {
-    headers_not_expected: Vec<String>,
-    request_headers: Headers,
-    t: ResponseType
-}
-
-impl AssertRequestMustNotIncludeHeaders {
-    fn new(t: ResponseType, headers_not_expected: Vec<String>) -> Self {
-        assert!(headers_not_expected.len() != 0);
-        AssertRequestMustNotIncludeHeaders {
-            headers_not_expected: headers_not_expected,
-            request_headers: Headers::new(), t: t }
-    }
-}
-
-impl HttpRequest for AssertRequestMustNotIncludeHeaders {
-    type R = MockResponse;
-
-    fn headers_mut(&mut self) -> &mut Headers { &mut self.request_headers }
-
-    fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
-        for header in &self.headers_not_expected {
-            assert!(self.request_headers.get_raw(header).is_none());
-        }
-
-        response_for_request_type(self.t)
-    }
-}
-
 struct AssertMustNotIncludeHeadersRequestFactory {
     headers_not_expected: Vec<String>,
     body: Vec<u8>
 }
 
 impl HttpRequestFactory for AssertMustNotIncludeHeadersRequestFactory {
-    type R = AssertRequestMustNotIncludeHeaders;
+    type R = MockRequest;
 
-    fn create(&self, _: Url, _: Method) -> Result<AssertRequestMustNotIncludeHeaders, LoadError> {
-        Ok(
-            AssertRequestMustNotIncludeHeaders::new(
-                ResponseType::Text(self.body.clone()),
-                self.headers_not_expected.clone()
-            )
-        )
+    fn create_with_headers(&self, _: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
+        assert!(self.headers_not_expected.len() != 0);
+        for header in &self.headers_not_expected {
+            assert!(headers.get_raw(header).is_none());
+        }
+
+        Ok(MockRequest::new(ResponseType::Text(self.body.clone())))
     }
 }
 
