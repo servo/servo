@@ -246,16 +246,7 @@ impl HttpResponse for WrappedHttpResponse {
 pub trait HttpRequestFactory {
     type R: HttpRequest;
 
-    fn create(&self, _url: Url, _method: Method) -> Result<Self::R, LoadError> {
-        panic!()
-    }
-    fn create_with_headers(&self, url: Url, method: Method, headers: Headers) -> Result<Self::R, LoadError> {
-        let mut result = self.create(url, method);
-        if let Ok(ref mut req) = result {
-            *req.headers_mut() = headers;
-        }
-        result
-    }
+    fn create_with_headers(&self, url: Url, method: Method, headers: Headers) -> Result<Self::R, LoadError>;
 }
 
 pub struct NetworkHttpRequestFactory {
@@ -297,7 +288,6 @@ impl HttpRequestFactory for NetworkHttpRequestFactory {
 pub trait HttpRequest {
     type R: HttpResponse + 'static;
 
-    fn headers_mut(&mut self) -> &mut Headers;
     fn send(self, body: &Option<Vec<u8>>) -> Result<Self::R, LoadError>;
 }
 
@@ -307,10 +297,6 @@ pub struct WrappedHttpRequest {
 
 impl HttpRequest for WrappedHttpRequest {
     type R = WrappedHttpResponse;
-
-    fn headers_mut(&mut self) -> &mut Headers {
-        self.request.headers_mut()
-    }
 
     fn send(self, body: &Option<Vec<u8>>) -> Result<WrappedHttpResponse, LoadError> {
         let url = self.request.url.clone();
