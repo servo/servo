@@ -11,7 +11,7 @@ use std::str::FromStr;
 use string_cache::{Atom, Namespace};
 use url::Url;
 use util::str::{LengthOrPercentageOrAuto, HTML_SPACE_CHARACTERS};
-use util::str::{read_exponent, read_fraction, read_numbers, split_html_space_chars};
+use util::str::{read_exponent, read_fraction, read_numbers, split_commas, split_html_space_chars};
 use values::specified::{Length};
 
 // Duplicated from script::dom::values.
@@ -121,6 +121,15 @@ impl AttrValue {
                 if !acc.contains(&atom) { acc.push(atom) }
                 acc
             });
+        AttrValue::TokenList(tokens, atoms)
+    }
+
+    pub fn from_comma_separated_tokenlist(tokens: String) -> AttrValue {
+        let atoms = split_commas(&tokens).map(Atom::from)
+                                         .fold(vec![], |mut acc, atom| {
+                                            if !acc.contains(&atom) { acc.push(atom) }
+                                            acc
+                                         });
         AttrValue::TokenList(tokens, atoms)
     }
 

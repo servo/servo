@@ -881,6 +881,7 @@ impl VirtualMethods for HTMLInputElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
+            &atom!("accept") => AttrValue::from_comma_separated_tokenlist(value.into()),
             &atom!("name") => AttrValue::from_atomic(value.into()),
             &atom!("size") => AttrValue::from_limited_u32(value.into(), DEFAULT_INPUT_SIZE),
             &atom!("type") => AttrValue::from_atomic(value.into()),
