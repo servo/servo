@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title></title>
+<link rel="match" href="floats_margin_collapse_with_clearance_ref.html">
+<!--
+From https://github.com/servo/servo/pull/10458:
+
+https://drafts.csswg.org/css2/visuren.html#float-rules
+
+    A floating box's outer top may not be higher than the top of its containing block. When the float occurs between two collapsing margins, the float is positioned as if it had an otherwise empty anonymous block parent taking part in the flow. The position of such a parent is defined by the rules in the section on margin collapsing.
+
+#a is not "in the flow" since it’s a float, which makes #b the first in-flow child of <body>, which makes the top margins of <body> and #b "adjoining" (even if the former is zero) which makes them collapse.
+
+So the quoted rule applies and there’s an hypothetical block around #a. Since that blocks has no in-flow content, margins collapse through it.
+
+Then I believe this rule applies:
+
+https://drafts.csswg.org/css2/box.html#collapsed-through
+
+    If the element's margins are collapsed with its parent's top margin, the top border edge of the box is defined to be the same as the parent's.
+
+The top border edge of <body> is below its top margin, which is collapsed with that of #b.
+-->
+<style>
+html, body {
+    margin: 0;
+}
+div {
+    width: 32px;
+    height: 32px;
+}
+#a {
+    float: left;
+    background: green;
+}
+#b {
+    background: blue;
+    margin-top: 32px;
+    clear: left;
+}
+</style>
+<div id=a></div>
+<div id=b></div>
+
+

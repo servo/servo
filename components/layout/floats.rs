@@ -413,6 +413,10 @@ impl Floats {
         }
         clearance
     }
+
+    pub fn is_present(&self) -> bool {
+        self.list.is_present()
+    }
 }
 
 /// The speculated inline sizes of floats flowing through or around a flow (depending on whether
