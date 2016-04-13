@@ -955,7 +955,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
             // Compare the pipeline's url to the new url. If the origin is the same,
             // then reuse the script thread in creating the new pipeline
-            let source_url = source_pipeline.url.clone();
+            let source_url = &source_pipeline.url;
 
             let same_script = source_url.host() == new_url.host() &&
                               source_url.port() == new_url.port() &&
