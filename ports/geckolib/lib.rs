@@ -5,6 +5,7 @@
 #![feature(as_unsafe_cell)]
 #![feature(box_syntax)]
 #![feature(ptr_as_ref)]
+#![feature(custom_attribute)]
 #![feature(custom_derive)]
 #![feature(plugin)]
 
