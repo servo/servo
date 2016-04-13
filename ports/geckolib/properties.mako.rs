@@ -111,7 +111,6 @@ pub struct ${style_struct.gecko_struct_name};
 impl ${style_struct.gecko_struct_name} {
     #[allow(dead_code, unused_variables)]
     fn initial() -> Arc<Self> {
-% if style_struct.gecko_ffi_name:
         // Some Gecko style structs have AutoTArray members, which have internal pointers and are
         // thus MOZ_NON_MEMMOVABLE. Since Rust is generally a very move-happy language, we need to
         // be very careful that nsStyle* structs are never moved after they are constructed.
@@ -128,9 +127,6 @@ impl ${style_struct.gecko_struct_name} {
             Gecko_Construct_${style_struct.gecko_ffi_name}(&mut Arc::make_mut(&mut result).gecko);
         }
         result
-% else:
-        Arc::new(${style_struct.gecko_struct_name})
-% endif
     }
 }
 %if style_struct.gecko_ffi_name:
