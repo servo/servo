@@ -96,6 +96,7 @@ impl ComputedValues for GeckoComputedValues {
 
 <%def name="declare_style_struct(style_struct)">
 #[derive(Clone, HeapSizeOf, Debug)]
+#[no_move]
 % if style_struct.gecko_ffi_name:
 pub struct ${style_struct.gecko_struct_name} {
     gecko: ${style_struct.gecko_ffi_name},
@@ -108,15 +109,26 @@ pub struct ${style_struct.gecko_struct_name};
 <%def name="impl_style_struct(style_struct)">
 impl ${style_struct.gecko_struct_name} {
     #[allow(dead_code, unused_variables)]
-    fn initial() -> Self {
+    fn initial() -> Arc<Self> {
 % if style_struct.gecko_ffi_name:
-        let mut result = ${style_struct.gecko_struct_name} { gecko: unsafe { zeroed() } };
+        // Some Gecko style structs have AutoTArray members, which have internal pointers and are
+        // thus MOZ_NON_MEMMOVABLE. Since Rust is generally a very move-happy language, we need to
+        // be very careful that nsStyle* structs are never moved after they are constructed.
+        //
+        // By annotating the structs [no_move], we can get the |rust-tenacious| linter to trigger
+        // an error on any semantic moves. But we don't have a great way of telling LLVM to
+        // allocate our new object directly on the heap without using a temporary. So to do that
+        // (and also please tenacious), we pass zeroed memory into the Arc constructor, and _then_
+        // use make_mut to get a reference to pass to the Gecko constructor. Since the refcount is
+        // guaranteed to be 1, make_mut will always pass us a direct reference instead of taking
+        // the copy-on-write path.
+        let mut result = Arc::new(${style_struct.gecko_struct_name} { gecko: unsafe { zeroed() } });
         unsafe {
-            Gecko_Construct_${style_struct.gecko_ffi_name}(&mut result.gecko);
+            Gecko_Construct_${style_struct.gecko_ffi_name}(&mut Arc::make_mut(&mut result).gecko);
         }
         result
 % else:
-        ${style_struct.gecko_struct_name}
+        Arc::new(${style_struct.gecko_struct_name})
 % endif
     }
 }
@@ -224,7 +236,7 @@ ${impl_style_struct(style_struct)}
 lazy_static! {
     pub static ref INITIAL_GECKO_VALUES: GeckoComputedValues = GeckoComputedValues {
         % for style_struct in STYLE_STRUCTS:
-           ${style_struct.ident}: Arc::new(${style_struct.gecko_struct_name}::initial()),
+           ${style_struct.ident}: ${style_struct.gecko_struct_name}::initial(),
         % endfor
         custom_properties: None,
         shareable: true,
