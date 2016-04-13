@@ -3179,6 +3179,54 @@
             "url": "/_mozilla/css/marker_block_direction_placement_a.html"
           }
         ],
+        "css/max_inline_block_size.html": [
+          {
+            "path": "css/max_inline_block_size.html",
+            "references": [
+              [
+                "/_mozilla/css/max_inline_block_size_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/max_inline_block_size.html"
+          }
+        ],
+        "css/max_inline_block_size_canvas.html": [
+          {
+            "path": "css/max_inline_block_size_canvas.html",
+            "references": [
+              [
+                "/_mozilla/css/max_inline_block_size_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/max_inline_block_size_canvas.html"
+          }
+        ],
+        "css/max_inline_block_size_image.html": [
+          {
+            "path": "css/max_inline_block_size_image.html",
+            "references": [
+              [
+                "/_mozilla/css/max_inline_block_size_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/max_inline_block_size_image.html"
+          }
+        ],
+        "css/max_inline_block_size_ref.html": [
+          {
+            "path": "css/max_inline_block_size_ref.html",
+            "references": [
+              [
+                "/_mozilla/css/max_inline_block_size_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/max_inline_block_size_ref.html"
+          }
+        ],
         "css/max_width_float_simple_a.html": [
           {
             "path": "css/max_width_float_simple_a.html",
@@ -9707,6 +9755,54 @@
             ]
           ],
           "url": "/_mozilla/css/marker_block_direction_placement_a.html"
+        }
+      ],
+      "css/max_inline_block_size.html": [
+        {
+          "path": "css/max_inline_block_size.html",
+          "references": [
+            [
+              "/_mozilla/css/max_inline_block_size_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/max_inline_block_size.html"
+        }
+      ],
+      "css/max_inline_block_size_canvas.html": [
+        {
+          "path": "css/max_inline_block_size_canvas.html",
+          "references": [
+            [
+              "/_mozilla/css/max_inline_block_size_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/max_inline_block_size_canvas.html"
+        }
+      ],
+      "css/max_inline_block_size_image.html": [
+        {
+          "path": "css/max_inline_block_size_image.html",
+          "references": [
+            [
+              "/_mozilla/css/max_inline_block_size_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/max_inline_block_size_image.html"
+        }
+      ],
+      "css/max_inline_block_size_ref.html": [
+        {
+          "path": "css/max_inline_block_size_ref.html",
+          "references": [
+            [
+              "/_mozilla/css/max_inline_block_size_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/max_inline_block_size_ref.html"
         }
       ],
       "css/max_width_float_simple_a.html": [
