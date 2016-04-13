@@ -81,6 +81,9 @@ use dom::window::{ReflowReason, Window};
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use euclid::point::Point2D;
+use html5ever::serialize;
+use html5ever::serialize::SerializeOpts;
+use html5ever::serialize::TraversalScope::ChildrenOnly;
 use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JS_GetRuntime;
@@ -1812,6 +1815,19 @@ impl Document {
                           .map(|attr| (attr.identifier().clone(), attr.value().clone()))
                           .collect();
             snapshot.attrs = Some(attrs);
+        }
+    }
+
+    pub fn serialize(&self) -> Fallible<DOMString> {
+        let mut writer = vec![];
+        match serialize(&mut writer,
+                        &self.upcast::<Node>(),
+                        SerializeOpts {
+                            traversal_scope: ChildrenOnly,
+                            ..Default::default()
+                        }) {
+            Ok(()) => Ok(DOMString::from(String::from_utf8(writer).unwrap())),
+            Err(_) => panic!("Cannot serialize document"),
         }
     }
 }

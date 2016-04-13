@@ -39,6 +39,7 @@ use hyper::header::{Accept, ContentLength, ContentType, qitem};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{self, Mime};
+use html5ever::serialize::Serializable;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JS_ClearPendingException;
@@ -1424,6 +1425,17 @@ impl Extractable for DocumentOrBlobOrStringOrURLSearchParams {
                 };
                 (data.get_bytes().to_vec(), content_type)
             },
+            DocumentOrBlobOrStringOrURLSearchParams::Document(ref d) => {
+                let data = d.serialize();
+                let mut content_type = String::new();
+                if d.is_html_document() {
+                    content_type.push_str("text/html");
+                } else {
+                    content_type.push_str("application/xml");
+                }
+                content_type.push_str(";charset=UTF-8");
+                (data.unwrap().into(), Some(DOMString::from(content_type.clone())))
+            }
         }
     }
 }
