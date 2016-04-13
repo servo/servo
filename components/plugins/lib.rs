@@ -21,7 +21,6 @@
 extern crate clippy;
 #[macro_use]
 extern crate rustc;
-extern crate rustc_front;
 extern crate rustc_plugin;
 #[macro_use]
 extern crate syntax;

@@ -6,7 +6,7 @@ use rustc::front::map as ast_map;
 use rustc::lint::{LateContext, LintContext};
 use rustc::middle::def;
 use rustc::middle::def_id::DefId;
-use rustc_front::hir;
+use rustc::hir;
 use syntax::ast;
 use syntax::attr::mark_used;
 use syntax::codemap::{ExpnFormat, Span};
