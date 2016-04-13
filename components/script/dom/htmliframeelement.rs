@@ -367,7 +367,7 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
     }
 }
 
-pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> Fallible<()> {
+pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> ErrorResult {
     if iframe.Mozbrowser() {
         if iframe.upcast::<Node>().is_in_doc() {
             let window = window_from_node(iframe);
@@ -468,17 +468,17 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
-    fn GoBack(&self) -> Fallible<()> {
+    fn GoBack(&self) -> ErrorResult {
         Navigate(self, NavigationDirection::Back)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goForward
-    fn GoForward(&self) -> Fallible<()> {
+    fn GoForward(&self) -> ErrorResult {
         Navigate(self, NavigationDirection::Forward)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/reload
-    fn Reload(&self, _hardReload: bool) -> Fallible<()> {
+    fn Reload(&self, _hardReload: bool) -> ErrorResult {
         if self.Mozbrowser() {
             if self.upcast::<Node>().is_in_doc() {
                 self.navigate_or_reload_child_browsing_context(None);
@@ -492,7 +492,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/stop
-    fn Stop(&self) -> Fallible<()> {
+    fn Stop(&self) -> ErrorResult {
         Err(Error::NotSupported)
     }
 
