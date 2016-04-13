@@ -274,7 +274,8 @@ impl HTMLScriptElement {
 
         let window = window_from_node(self);
         let window = window.r();
-        let base_url = window.get_url();
+        let document = document_from_node(self);
+        let base_url = document.base_url();
 
         let is_external = match element.get_attribute(&ns!(), &atom!("src")) {
             // Step 16.
