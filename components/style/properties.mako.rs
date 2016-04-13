@@ -549,7 +549,7 @@ pub mod longhands {
                                            Method("transition_count", "usize")])}
 
     // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
-    <%self:longhand name="display" custom_cascade="True">
+    <%self:longhand name="display" custom_cascade="${CONFIG['product'] == 'servo'}">
         <%
             values = """inline block inline-block
                 table inline-table table-row-group table-header-group table-footer-group
@@ -606,16 +606,19 @@ pub mod longhands {
 
         impl ComputedValueAsSpecified for SpecifiedValue {}
 
-        fn cascade_property_custom<C: ComputedValues>(
-                                   _declaration: &PropertyDeclaration,
-                                   _inherited_style: &C,
-                                   context: &mut computed::Context<C>,
-                                   _seen: &mut PropertyBitField,
-                                   _cacheable: &mut bool,
-                                   _error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
-            longhands::_servo_display_for_hypothetical_box::derive_from_display(context);
-            longhands::_servo_text_decorations_in_effect::derive_from_display(context);
-        }
+        % if CONFIG["product"] == "servo":
+            fn cascade_property_custom<C: ComputedValues>(
+                                       _declaration: &PropertyDeclaration,
+                                       _inherited_style: &C,
+                                       context: &mut computed::Context<C>,
+                                       _seen: &mut PropertyBitField,
+                                       _cacheable: &mut bool,
+                                       _error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
+                longhands::_servo_display_for_hypothetical_box::derive_from_display(context);
+                longhands::_servo_text_decorations_in_effect::derive_from_display(context);
+            }
+        % endif
+
     </%self:longhand>
 
     ${single_keyword("position", "static absolute relative fixed")}
@@ -641,7 +644,7 @@ pub mod longhands {
 
     ${single_keyword("clear", "none left right both", gecko_ffi_name="mBreakType")}
 
-    <%self:longhand name="-servo-display-for-hypothetical-box" derived_from="display">
+    <%self:longhand name="-servo-display-for-hypothetical-box" derived_from="display" products="servo">
         pub use super::display::{SpecifiedValue, get_initial_value};
         pub use super::display::{parse};
 
@@ -744,8 +747,9 @@ pub mod longhands {
                       "parse_non_negative")}
 
     ${new_style_struct("InheritedText", is_inherited=True, gecko_name="nsStyleText",
-                       additional_methods=[Method("clone__servo_text_decorations_in_effect",
-                                                  "longhands::_servo_text_decorations_in_effect::computed_value::T")])}
+                       additional_methods=([Method("clone__servo_text_decorations_in_effect",
+                                                  "longhands::_servo_text_decorations_in_effect::computed_value::T")]
+                                           if CONFIG["product"] == "servo" else []))}
 
     <%self:longhand name="line-height">
         use cssparser::ToCss;
@@ -2278,7 +2282,7 @@ pub mod longhands {
 
     ${single_keyword("unicode-bidi", "normal embed isolate bidi-override isolate-override plaintext")}
 
-    <%self:longhand name="text-decoration" custom_cascade="True">
+    <%self:longhand name="text-decoration" custom_cascade="${CONFIG['product'] == 'servo'}">
         use cssparser::ToCss;
         use std::fmt;
         use values::computed::ComputedValueAsSpecified;
@@ -2353,15 +2357,17 @@ pub mod longhands {
             if !empty { Ok(result) } else { Err(()) }
         }
 
-        fn cascade_property_custom<C: ComputedValues>(
-                                   _declaration: &PropertyDeclaration,
-                                   _inherited_style: &C,
-                                   context: &mut computed::Context<C>,
-                                   _seen: &mut PropertyBitField,
-                                   _cacheable: &mut bool,
-                                   _error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
-            longhands::_servo_text_decorations_in_effect::derive_from_text_decoration(context);
-        }
+        % if CONFIG["product"] == "servo":
+            fn cascade_property_custom<C: ComputedValues>(
+                                       _declaration: &PropertyDeclaration,
+                                       _inherited_style: &C,
+                                       context: &mut computed::Context<C>,
+                                       _seen: &mut PropertyBitField,
+                                       _cacheable: &mut bool,
+                                       _error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
+                    longhands::_servo_text_decorations_in_effect::derive_from_text_decoration(context);
+            }
+        % endif
     </%self:longhand>
 
     ${single_keyword("text-decoration-style", "-moz-none solid double dotted dashed wavy",
@@ -2370,7 +2376,7 @@ pub mod longhands {
     ${switch_to_style_struct("InheritedText")}
 
     <%self:longhand name="-servo-text-decorations-in-effect"
-                    derived_from="display text-decoration">
+                    derived_from="display text-decoration" products="servo">
         use cssparser::{RGBA, ToCss};
         use std::fmt;
 
@@ -6143,29 +6149,30 @@ impl PropertyDeclaration {
     pub fn name(&self) -> PropertyDeclarationName {
         match *self {
             % for property in LONGHANDS:
+                PropertyDeclaration::${property.camel_case}(..) =>
                 % if property.derived_from is None:
-                    PropertyDeclaration::${property.camel_case}(..) => {
-                        PropertyDeclarationName::Longhand("${property.name}")
-                    }
+                    PropertyDeclarationName::Longhand("${property.name}"),
+                % else:
+                    PropertyDeclarationName::Internal,
                 % endif
             % endfor
             PropertyDeclaration::Custom(ref name, _) => {
                 PropertyDeclarationName::Custom(name.clone())
             }
-            _ => PropertyDeclarationName::Internal,
         }
     }
 
     pub fn value(&self) -> String {
         match *self {
             % for property in LONGHANDS:
+                PropertyDeclaration::${property.camel_case}
                 % if property.derived_from is None:
-                    PropertyDeclaration::${property.camel_case}(ref value) =>
-                        value.to_css_string(),
+                    (ref value) => value.to_css_string(),
+                % else:
+                    (_) => panic!("unsupported property declaration: ${property.name}"),
                 % endif
             % endfor
             PropertyDeclaration::Custom(_, ref value) => value.to_css_string(),
-            ref decl => panic!("unsupported property declaration: {}", decl.name()),
         }
     }
 
@@ -6207,16 +6214,16 @@ impl PropertyDeclaration {
     pub fn matches(&self, name: &str) -> bool {
         match *self {
             % for property in LONGHANDS:
+                PropertyDeclaration::${property.camel_case}(..) =>
                 % if property.derived_from is None:
-                    PropertyDeclaration::${property.camel_case}(..) => {
-                        name.eq_ignore_ascii_case("${property.name}")
-                    }
+                    name.eq_ignore_ascii_case("${property.name}"),
+                % else:
+                    false,
                 % endif
             % endfor
             PropertyDeclaration::Custom(ref declaration_name, _) => {
                 ::custom_properties::parse_name(name) == Ok(&**declaration_name)
             }
-            _ => false,
         }
     }
 
@@ -6427,7 +6434,7 @@ pub mod style_structs {
                 fn clone_text_orientation(&self) -> longhands::text_orientation::computed_value::T {
                     self.text_orientation.clone()
                 }
-            % elif style_struct.trait_name == "InheritedText":
+            % elif style_struct.trait_name == "InheritedText" and CONFIG["product"] == "servo":
                 fn clone__servo_text_decorations_in_effect(&self) ->
                     longhands::_servo_text_decorations_in_effect::computed_value::T {
                     self._servo_text_decorations_in_effect.clone()
@@ -7114,11 +7121,13 @@ pub fn cascade<C: ComputedValues>(
         if let Some(computed_display) = computed_display {
             let box_ = style.mutate_box();
             box_.set_display(computed_display);
-            box_.set__servo_display_for_hypothetical_box(if is_root_element {
-                computed_display
-            } else {
-                specified_display
-            });
+            % if CONFIG["product"] == "servo":
+                box_.set__servo_display_for_hypothetical_box(if is_root_element {
+                    computed_display
+                } else {
+                    specified_display
+                });
+            % endif
         }
     }
 
