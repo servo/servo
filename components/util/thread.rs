@@ -5,51 +5,17 @@
 use ipc_channel::ipc::IpcSender;
 use opts;
 use serde::Serialize;
-use std::borrow::ToOwned;
 use std::io::{Write, stderr};
 use std::panic::{PanicInfo, take_hook, set_hook};
+use std::sync::Mutex;
 use std::sync::mpsc::Sender;
 use std::thread;
-use std::thread::Builder;
 use thread_state;
 
 pub fn spawn_named<F>(name: String, f: F)
     where F: FnOnce() + Send + 'static
 {
-    let builder = thread::Builder::new().name(name);
-
-    if opts::get().full_backtraces {
-        builder.spawn(f).unwrap();
-        return;
-    }
-
-    let f_with_hook = move || {
-        let hook = take_hook();
-
-        let new_hook = move |info: &PanicInfo| {
-            let payload = info.payload();
-            if let Some(s) = payload.downcast_ref::<String>() {
-                if s.contains("SendError") {
-                    let err = stderr();
-                    let _ = write!(err.lock(), "Thread \"{}\" panicked with an unwrap of \
-                                                `SendError` (backtrace skipped)\n",
-                           thread::current().name().unwrap_or("<unknown thread>"));
-                    return;
-                } else if s.contains("RecvError")  {
-                    let err = stderr();
-                    let _ = write!(err.lock(), "Thread \"{}\" panicked with an unwrap of \
-                                                `RecvError` (backtrace skipped)\n",
-                           thread::current().name().unwrap_or("<unknown thread>"));
-                    return;
-                }
-            }
-            hook(&info);
-        };
-        set_hook(Box::new(new_hook));
-        f();
-    };
-
-    builder.spawn(f_with_hook).unwrap();
+    spawn_named_with_send_on_failure_maybe(name, None, f, (), None::<()>);
 }
 
 /// An abstraction over `Sender<T>` and `IpcSender<T>`, for use in
@@ -66,6 +32,11 @@ impl<T> SendOnFailure for Sender<T> where T: Send + 'static {
     }
 }
 
+impl SendOnFailure for () {
+    type Value = ();
+    fn send_on_failure(&mut self, _: ()) {}
+}
+
 impl<T> SendOnFailure for IpcSender<T> where T: Send + Serialize + 'static {
     type Value = T;
     fn send_on_failure(&mut self, value: T) {
@@ -78,23 +49,77 @@ pub fn spawn_named_with_send_on_failure<F, T, S>(name: String,
                                                  state: thread_state::ThreadState,
                                                  f: F,
                                                  msg: T,
-                                                 mut dest: S)
+                                                 dest: S)
                                                  where F: FnOnce() + Send + 'static,
                                                        T: Send + 'static,
                                                        S: Send + SendOnFailure<Value=T> + 'static {
-    let future_handle = thread::Builder::new().name(name.to_owned()).spawn(move || {
-        thread_state::initialize(state);
-        f()
-    }).unwrap();
 
-    let watcher_name = format!("{}Watcher", name);
-    Builder::new().name(watcher_name).spawn(move || {
-        match future_handle.join() {
-            Ok(()) => (),
-            Err(..) => {
-                debug!("{} failed, notifying constellation", name);
-                dest.send_on_failure(msg);
-            }
+    spawn_named_with_send_on_failure_maybe(name, Some(state), f, msg, Some(dest));
+}
+
+fn spawn_named_with_send_on_failure_maybe<F, T, S>(name: String,
+                                                 state: Option<thread_state::ThreadState>,
+                                                 f: F,
+                                                 msg: T,
+                                                 dest: Option<S>)
+                                                 where F: FnOnce() + Send + 'static,
+                                                       T: Send + 'static,
+                                                       S: Send + SendOnFailure<Value=T> + 'static {
+
+
+    let builder = thread::Builder::new().name(name.clone());
+
+    // store it locally, we can't trust that opts::get() will work whilst panicking
+    let full_backtraces = opts::get().full_backtraces;
+
+    // The panic handler can be called multiple times
+    // We only send the message the first time.
+    let dest = Mutex::new(dest);
+    let msg = Mutex::new(Some(msg));
+
+    let f_with_hook = move || {
+        if let Some(state) = state {
+            thread_state::initialize(state);
         }
-    }).unwrap();
+        let hook = take_hook();
+
+        let new_hook = move |info: &PanicInfo| {
+            let payload = info.payload();
+
+            // if the caller asked us to notify a thread, do so
+            if let (Ok(mut dest), Ok(mut msg)) = (dest.try_lock(), msg.try_lock()) {
+                if let Some(ref mut dest) = *dest {
+                    if let Some(msg) = msg.take() {
+                        debug!("{} failed, notifying constellation", name.clone());
+                        dest.send_on_failure(msg);
+                    }
+                }
+            }
+            if !full_backtraces {
+                if let Some(s) = payload.downcast_ref::<String>() {
+                    if s.contains("SendError") {
+                        let err = stderr();
+                        let _ = write!(err.lock(), "Thread \"{}\" panicked with an unwrap of \
+                                                    `SendError` (backtrace skipped)\n",
+                               thread::current().name().unwrap_or("<unknown thread>"));
+                        return;
+                    } else if s.contains("RecvError")  {
+                        let err = stderr();
+                        let _ = write!(err.lock(), "Thread \"{}\" panicked with an unwrap of \
+                                                    `RecvError` (backtrace skipped)\n",
+                               thread::current().name().unwrap_or("<unknown thread>"));
+                        return;
+                    }
+                }
+            }
+
+            // the old panic hook that prints a full backtrace
+            hook(&info);
+        };
+        set_hook(Box::new(new_hook));
+        f();
+    };
+
+
+    builder.spawn(f_with_hook).unwrap();
 }
