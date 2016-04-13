@@ -5,12 +5,12 @@
 use data_loader::decode;
 use fetch::cors_cache::{BasicCORSCache, CORSCache, CacheRequestDetails};
 use http_loader::{NetworkHttpRequestFactory, create_http_connector, obtain_response};
-use hyper::header::{Accept, CacheControl, IfMatch, IfRange, IfUnmodifiedSince, Location};
-use hyper::header::{AcceptLanguage, ContentLength, ContentLanguage, HeaderView, Pragma};
-use hyper::header::{AccessControlAllowCredentials, AccessControlAllowOrigin};
-use hyper::header::{Authorization, Basic, CacheDirective, ContentEncoding, Encoding};
-use hyper::header::{ContentType, Headers, IfModifiedSince, IfNoneMatch};
-use hyper::header::{QualityItem, q, qitem, Referer as RefererHeader, UserAgent};
+use hyper::header::{Accept, AcceptLanguage, Authorization, AccessControlAllowCredentials};
+use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
+use hyper::header::{AccessControlRequestHeaders, AccessControlMaxAge, AccessControlRequestMethod, Basic};
+use hyper::header::{CacheControl, CacheDirective, ContentEncoding, ContentLength, ContentLanguage, ContentType};
+use hyper::header::{Encoding, HeaderView, Headers, IfMatch, IfRange, IfUnmodifiedSince, IfModifiedSince};
+use hyper::header::{IfNoneMatch, Pragma, Location, QualityItem, Referer as RefererHeader, UserAgent, q, qitem};
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
@@ -20,9 +20,12 @@ use net_traits::request::{RedirectMode, Referer, Request, RequestMode, ResponseT
 use net_traits::response::{HttpsState, TerminationReason};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use resource_thread::CancellationListener;
+use std::collections::HashSet;
 use std::io::Read;
+use std::iter::FromIterator;
 use std::rc::Rc;
 use std::thread;
+use unicase::UniCase;
 use url::idna::domain_to_ascii;
 use url::{Origin as UrlOrigin, OpaqueOrigin, Url, UrlParser, whatwg_scheme_type_mapper};
 use util::thread::spawn_named;
@@ -210,7 +213,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
         let internal_response = if response.is_network_error() {
             &network_error_res
         } else {
-            response.get_actual_response()
+            response.actual_response()
         };
 
         // Step 13
@@ -245,7 +248,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
 
     // Step 16
     if request.synchronous {
-        response.get_actual_response().wait_until_done();
+        response.actual_response().wait_until_done();
         return response;
     }
 
@@ -263,7 +266,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
         let internal_response = if response.is_network_error() {
             &network_error_res
         } else {
-            response.get_actual_response()
+            response.actual_response()
         };
 
         // Step 18
@@ -365,7 +368,7 @@ fn http_fetch(request: Rc<Request>,
             }
 
             // Substep 4
-            let actual_response = res.get_actual_response();
+            let actual_response = res.actual_response();
             if actual_response.url_list.borrow().is_empty() {
                 *actual_response.url_list.borrow_mut() = request.url_list.borrow().clone();
             }
@@ -390,7 +393,7 @@ fn http_fetch(request: Rc<Request>,
             }, request.method.borrow().clone());
 
             let method_mismatch = !method_cache_match && (!is_simple_method(&request.method.borrow()) ||
-                request.use_cors_preflight);
+                                                          request.use_cors_preflight);
             let header_mismatch = request.headers.borrow().iter().any(|view|
                 !cache.match_header(CacheRequestDetails {
                     origin: origin.clone(),
@@ -401,7 +404,7 @@ fn http_fetch(request: Rc<Request>,
 
             // Sub-substep 1
             if method_mismatch || header_mismatch {
-                let preflight_result = preflight_fetch(request.clone());
+                let preflight_result = cors_preflight_fetch(request.clone(), Some(cache));
                 // Sub-substep 2
                 if preflight_result.response_type == ResponseType::Error {
                     return Response::network_error();
@@ -415,8 +418,7 @@ fn http_fetch(request: Rc<Request>,
         // Substep 3
         let credentials = match request.credentials_mode {
             CredentialsMode::Include => true,
-            CredentialsMode::CredentialsSameOrigin if
-                request.response_tainting.get() == ResponseTainting::Basic
+            CredentialsMode::CredentialsSameOrigin if request.response_tainting.get() == ResponseTainting::Basic
                 => true,
             _ => false
         };
@@ -437,7 +439,7 @@ fn http_fetch(request: Rc<Request>,
     let mut response = response.unwrap();
 
     // Step 5
-    match response.get_actual_response().status.unwrap() {
+    match response.actual_response().status.unwrap() {
 
         // Code 301, 302, 303, 307, 308
         StatusCode::MovedPermanently | StatusCode::Found | StatusCode::SeeOther |
@@ -518,21 +520,21 @@ fn http_redirect_fetch(request: Rc<Request>,
     assert_eq!(response.return_internal.get(), true);
 
     // Step 3
-    // this step is done early, because querying if Location is available says
+    // this step is done early, because querying if Location exists says
     // if it is None or Some, making it easy to seperate from the retrieval failure case
-    if !response.get_actual_response().headers.has::<Location>() {
+    if !response.actual_response().headers.has::<Location>() {
         return Rc::try_unwrap(response).ok().unwrap();
     }
 
     // Step 2
-    let location = match response.get_actual_response().headers.get::<Location>() {
+    let location = match response.actual_response().headers.get::<Location>() {
         Some(&Location(ref location)) => location.clone(),
         // Step 4
         _ => return Response::network_error()
     };
 
     // Step 5
-    let response_url = response.get_actual_response().url.as_ref().unwrap();
+    let response_url = response.actual_response().url.as_ref().unwrap();
     let location_url = UrlParser::new().base_url(response_url).parse(&*location);
 
     // Step 6
@@ -575,7 +577,7 @@ fn http_redirect_fetch(request: Rc<Request>,
     }
 
     // Step 13
-    let status_code = response.get_actual_response().status.unwrap();
+    let status_code = response.actual_response().status.unwrap();
     if ((status_code == StatusCode::MovedPermanently || status_code == StatusCode::Found) &&
         *request.method.borrow() == Method::Post) ||
         status_code == StatusCode::SeeOther {
@@ -876,11 +878,11 @@ fn http_network_fetch(request: Rc<Request>,
 
         // Substep 2
 
-    // TODO how can I tell if response was retrieved over HTTPS?
+    // TODO Determine if response was retrieved over HTTPS
     // TODO Servo needs to decide what ciphers are to be treated as "deprecated"
     response.https_state = HttpsState::None;
 
-    // TODO how do I read request?
+    // TODO Read request
 
     // Step 5
     // TODO when https://bugzilla.mozilla.org/show_bug.cgi?id=1030660
@@ -925,8 +927,113 @@ fn http_network_fetch(request: Rc<Request>,
 }
 
 /// [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
-fn preflight_fetch(_request: Rc<Request>) -> Response {
-    // TODO: Implement preflight fetch spec
+fn cors_preflight_fetch(request: Rc<Request>, cache: Option<BasicCORSCache>) -> Response {
+    // Step 1
+    let mut preflight = Request::new(request.current_url(), Some(request.origin.borrow().clone()), false);
+    *preflight.method.borrow_mut() = Method::Options;
+    preflight.initiator = request.initiator.clone();
+    preflight.type_ = request.type_.clone();
+    preflight.destination = request.destination.clone();
+    preflight.referer = request.referer.clone();
+
+    // Step 2
+    preflight.headers.borrow_mut().set::<AccessControlRequestMethod>(
+        AccessControlRequestMethod(request.method.borrow().clone()));
+
+    // Step 3, 4
+    let mut value = request.headers.borrow().iter()
+                                            .filter_map(|ref view| if is_simple_header(view) {
+                                                None
+                                            } else {
+                                                Some(UniCase(view.name().to_owned()))
+                                            }).collect::<Vec<UniCase<String>>>();
+    value.sort();
+
+    // Step 5
+    preflight.headers.borrow_mut().set::<AccessControlRequestHeaders>(
+        AccessControlRequestHeaders(value));
+
+    // Step 6
+    let preflight = Rc::new(preflight);
+    let response = http_network_or_cache_fetch(preflight.clone(), false, false);
+
+    // Step 7
+    if cors_check(request.clone(), &response).is_ok() &&
+       response.status.map_or(false, |status| status.is_success()) {
+        // Substep 1
+        let mut methods = if response.headers.has::<AccessControlAllowMethods>() {
+            match response.headers.get::<AccessControlAllowMethods>() {
+                Some(&AccessControlAllowMethods(ref m)) => m.clone(),
+                // Substep 3
+                None => return Response::network_error()
+            }
+        } else {
+            vec![]
+        };
+
+        // Substep 2
+        let header_names = if response.headers.has::<AccessControlAllowHeaders>() {
+            match response.headers.get::<AccessControlAllowHeaders>() {
+                Some(&AccessControlAllowHeaders(ref hn)) => hn.clone(),
+                // Substep 3
+                None => return Response::network_error()
+            }
+        } else {
+            vec![]
+        };
+
+        // Substep 4
+        if methods.is_empty() && request.use_cors_preflight {
+            methods = vec![request.method.borrow().clone()];
+        }
+
+        // Substep 5
+        if methods.iter().all(|method| *method != *request.method.borrow()) &&
+            !is_simple_method(&*request.method.borrow()) {
+            return Response::network_error();
+        }
+
+        // Substep 6
+        let set: HashSet<&UniCase<String>> = HashSet::from_iter(header_names.iter());
+        if request.headers.borrow().iter().any(|ref hv| !set.contains(&UniCase(hv.name().to_owned())) &&
+                                                        !is_simple_header(hv)) {
+            return Response::network_error();
+        }
+
+        // Substep 7, 8
+        let max_age = response.headers.get::<AccessControlMaxAge>().map(|acma| acma.0).unwrap_or(0);
+
+        // TODO: Substep 9 - Need to define what an imposed limit on max-age is
+
+        // Substep 10
+        let mut cache = match cache {
+            Some(c) => c,
+            None => return response
+        };
+
+        // Substep 11, 12
+        for method in &methods {
+            cache.match_method_and_update(CacheRequestDetails {
+                origin: request.origin.borrow().clone(),
+                destination: request.current_url(),
+                credentials: request.credentials_mode == CredentialsMode::Include
+            }, method.clone(), max_age);
+        }
+
+        // Substep 13, 14
+        for header_name in &header_names {
+            cache.match_header_and_update(CacheRequestDetails {
+                origin: request.origin.borrow().clone(),
+                destination: request.current_url(),
+                credentials: request.credentials_mode == CredentialsMode::Include
+            }, &*header_name, max_age);
+        }
+
+        // Substep 15
+        return response;
+    }
+
+    // Step 8
     Response::network_error()
 }
 
@@ -934,7 +1041,6 @@ fn preflight_fetch(_request: Rc<Request>) -> Response {
 fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
 
     // Step 1
-    // let headers = request.headers.borrow();
     let origin = response.headers.get::<AccessControlAllowOrigin>().cloned();
 
     // Step 2
@@ -942,18 +1048,18 @@ fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
 
     // Step 3
     if request.credentials_mode != CredentialsMode::Include &&
-        origin == AccessControlAllowOrigin::Any {
+       origin == AccessControlAllowOrigin::Any {
         return Ok(());
     }
 
     // Step 4
     let origin = match origin {
         AccessControlAllowOrigin::Value(origin) => origin,
-        // if it's Any or Null at this point, I see nothing to do but return Err(())
+        // if it's Any or Null at this point, there's nothing to do but return Err(())
         _ => return Err(())
     };
 
-    // strings are already utf-8 encoded, so I don't need to re-encode origin for this step
+    // strings are already utf-8 encoded, so there's no need to re-encode origin for this step
     match ascii_serialise_origin(&request.origin.borrow()) {
         Ok(request_origin) => {
             if request_origin != origin {

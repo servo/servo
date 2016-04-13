@@ -909,7 +909,7 @@ dependencies = [
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
  "traitobject 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "typeable 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "unicase 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicase 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1287,6 +1287,7 @@ dependencies = [
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "threadpool 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicase 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "uuid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1320,7 +1321,7 @@ dependencies = [
  "net_traits 0.0.1",
  "plugins 0.0.1",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
- "unicase 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicase 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
@@ -1743,7 +1744,7 @@ dependencies = [
  "string_cache 0.2.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
- "unicase 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicase 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "uuid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2111,8 +2112,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "unicase"
-version = "1.0.1"
+version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "rustc_version 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "unicode-bidi"
@@ -2365,7 +2369,7 @@ dependencies = [
  "openssl 0.7.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
- "unicase 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicase 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

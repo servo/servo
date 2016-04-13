@@ -44,6 +44,7 @@ openssl = "0.7.6"
 rustc-serialize = "0.3"
 threadpool = "1.0"
 time = "0.1.17"
+unicase = "1.4.0"
 url = {version = "0.5.7", features = ["heap_size"]}
 uuid = { version = "0.2", features = ["v4"] }
 websocket = "0.16.1"
