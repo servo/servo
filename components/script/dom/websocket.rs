@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
 use dom::bindings::codegen::UnionTypes::StringOrStringSequence;
 use dom::bindings::conversions::{ToJSValConvertible};
-use dom::bindings::error::{Error, Fallible};
+use dom::bindings::error::{Error, Fallible, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
@@ -385,7 +385,7 @@ impl WebSocketMethods for WebSocket {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
-    fn Send(&self, data: USVString) -> Fallible<()> {
+    fn Send(&self, data: USVString) -> ErrorResult {
 
         let data_byte_len = data.0.as_bytes().len() as u64;
         let send_data = try!(self.send_impl(data_byte_len));
@@ -400,7 +400,7 @@ impl WebSocketMethods for WebSocket {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
-    fn Send_(&self, blob: &Blob) -> Fallible<()> {
+    fn Send_(&self, blob: &Blob) -> ErrorResult {
 
         /* As per https://html.spec.whatwg.org/multipage/#websocket
            the buffered amount needs to be clamped to u32, even though Blob.Size() is u64
@@ -420,7 +420,7 @@ impl WebSocketMethods for WebSocket {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-close
-    fn Close(&self, code: Option<u16>, reason: Option<USVString>) -> Fallible<()>{
+    fn Close(&self, code: Option<u16>, reason: Option<USVString>) -> ErrorResult {
         if let Some(code) = code {
             //Fail if the supplied code isn't normal and isn't reserved for libraries, frameworks, and applications
             if code != close_code::NORMAL && (code < 3000 || code > 4999) {
