@@ -329,6 +329,19 @@ class MachCommands(CommandBase):
         run_file = path.abspath(path.join(self.context.topdir, "tests", "wpt", "run_wpt.py"))
         return self.wptrunner(run_file, **kwargs)
 
+    @Command('serve-wpt',
+             description='Serve the web platform tests',
+             category='testing')
+    def serve_wpt(self, **kwargs):
+        self.ensure_bootstrapped()
+        hosts_file_path = path.join(self.context.topdir, 'tests', 'wpt', 'hosts')
+        os.environ["hosts_file_path"] = hosts_file_path
+        wpt_dir = path.join(self.context.topdir, 'tests', 'wpt', 'web-platform-tests')
+        return call([
+            sys.executable,
+            path.join(wpt_dir, 'serve')
+        ], env=self.build_env(), cwd=wpt_dir)
+
     # Helper for test_css and test_wpt:
     def wptrunner(self, run_file, **kwargs):
         os.environ["RUST_BACKTRACE"] = "1"
