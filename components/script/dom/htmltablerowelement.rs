@@ -4,7 +4,9 @@
 
 use cssparser::RGBA;
 use dom::attr::AttrValue;
+use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
 use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::{self, HTMLTableRowElementMethods};
+use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::HTMLTableSectionElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
@@ -54,6 +56,14 @@ impl HTMLTableRowElement {
                            document,
                            HTMLTableRowElementBinding::Wrap)
     }
+
+    /// Determine the index for this `HTMLTableRowElement` within the given
+    /// `HTMLCollection`. Returns `-1` if not found within collection.
+    fn row_index(&self, collection: Root<HTMLCollection>) -> i32 {
+        collection.elements_iter()
+                  .position(|elem| (&elem as &Element) == self.upcast())
+                  .map_or(-1, |i| i as i32)
+    }
 }
 
 impl HTMLTableRowElementMethods for HTMLTableRowElement {
@@ -97,7 +107,7 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
             None => return -1,
         };
         if let Some(table) = parent.downcast::<HTMLTableElement>() {
-            return table.row_index(self).map_or(-1, |i| i as i32);
+            return self.row_index(table.Rows());
         }
         if !parent.is::<HTMLTableSectionElement>() {
             return -1;
@@ -107,8 +117,23 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
             None => return -1,
         };
         grandparent.downcast::<HTMLTableElement>()
-                   .and_then(|table| table.row_index(self))
-                   .map_or(-1, |i| i as i32)
+                   .map_or(-1, |table| self.row_index(table.Rows()))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tr-sectionrowindex
+    fn SectionRowIndex(&self) -> i32 {
+        let parent = match self.upcast::<Node>().GetParentNode() {
+            Some(parent) => parent,
+            None => return -1,
+        };
+        let collection = if let Some(table) = parent.downcast::<HTMLTableElement>() {
+            table.Rows()
+        } else if let Some(table_section) = parent.downcast::<HTMLTableSectionElement>() {
+            table_section.Rows()
+        } else {
+            return -1;
+        };
+        self.row_index(collection)
     }
 }
 
