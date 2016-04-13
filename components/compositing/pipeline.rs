@@ -139,10 +139,7 @@ impl Pipeline {
             .expect("Pipeline script to compositor chan");
         let mut pipeline_port = Some(pipeline_port);
 
-        let failure = Failure {
-            pipeline_id: state.id,
-            parent_info: state.parent_info,
-        };
+        let failure = Failure::new(state.id, state.parent_info);
 
         let window_size = state.window_size.map(|size| {
             WindowSizeData {
@@ -181,7 +178,7 @@ impl Pipeline {
                     subpage_id: subpage_id,
                     load_data: state.load_data.clone(),
                     paint_chan: layout_to_paint_chan.clone().to_opaque(),
-                    failure: failure,
+                    failure: failure.clone(),
                     pipeline_port: mem::replace(&mut pipeline_port, None)
                         .expect("script_pipeline != None but pipeline_port == None"),
                     layout_shutdown_chan: layout_shutdown_chan.clone(),
@@ -229,7 +226,7 @@ impl Pipeline {
             layout_to_constellation_chan: state.layout_to_constellation_chan,
             script_chan: script_chan,
             load_data: state.load_data.clone(),
-            failure: failure,
+            failure: failure.clone(),
             script_port: script_port,
             opts: (*opts::get()).clone(),
             layout_to_paint_chan: layout_to_paint_chan,

@@ -5,6 +5,7 @@
 use ipc_channel::ipc::IpcSender;
 use opts;
 use serde::Serialize;
+use std::any::Any;
 use std::borrow::ToOwned;
 use std::io::{Write, stderr};
 use std::panic::{PanicInfo, take_hook, set_hook};
@@ -12,6 +13,8 @@ use std::sync::mpsc::Sender;
 use std::thread;
 use std::thread::Builder;
 use thread_state;
+
+pub type PanicReason = Option<String>;
 
 pub fn spawn_named<F>(name: String, f: F)
     where F: FnOnce() + Send + 'static
@@ -52,6 +55,17 @@ pub fn spawn_named<F>(name: String, f: F)
     builder.spawn(f_with_hook).unwrap();
 }
 
+pub trait AddFailureDetails {
+    fn add_panic_message(&mut self, message: String);
+    fn add_panic_object(&mut self, object: Box<Any>) {
+        if let Some(message) = object.downcast_ref::<String>() {
+            self.add_panic_message(message.to_owned());
+        } else if let Some(&message) = object.downcast_ref::<&'static str>() {
+            self.add_panic_message(message.to_owned());
+        }
+    }
+}
+
 /// An abstraction over `Sender<T>` and `IpcSender<T>`, for use in
 /// `spawn_named_with_send_on_failure`.
 pub trait SendOnFailure {
@@ -62,14 +76,16 @@ pub trait SendOnFailure {
 impl<T> SendOnFailure for Sender<T> where T: Send + 'static {
     type Value = T;
     fn send_on_failure(&mut self, value: T) {
-        self.send(value).unwrap();
+        // Discard any errors to avoid double-panic
+        let _ = self.send(value);
     }
 }
 
 impl<T> SendOnFailure for IpcSender<T> where T: Send + Serialize + 'static {
     type Value = T;
     fn send_on_failure(&mut self, value: T) {
-        self.send(value).unwrap();
+        // Discard any errors to avoid double-panic
+        let _ = self.send(value);
     }
 }
 
@@ -77,11 +93,13 @@ impl<T> SendOnFailure for IpcSender<T> where T: Send + Serialize + 'static {
 pub fn spawn_named_with_send_on_failure<F, T, S>(name: String,
                                                  state: thread_state::ThreadState,
                                                  f: F,
-                                                 msg: T,
+                                                 mut msg: T,
                                                  mut dest: S)
-                                                 where F: FnOnce() + Send + 'static,
-                                                       T: Send + 'static,
-                                                       S: Send + SendOnFailure<Value=T> + 'static {
+    where F: FnOnce() + Send + 'static,
+          T: Send + AddFailureDetails + 'static,
+          S: Send + SendOnFailure + 'static,
+          S::Value: From<T>,
+{
     let future_handle = thread::Builder::new().name(name.to_owned()).spawn(move || {
         thread_state::initialize(state);
         f()
@@ -91,9 +109,10 @@ pub fn spawn_named_with_send_on_failure<F, T, S>(name: String,
     Builder::new().name(watcher_name).spawn(move || {
         match future_handle.join() {
             Ok(()) => (),
-            Err(..) => {
+            Err(err) => {
                 debug!("{} failed, notifying constellation", name);
-                dest.send_on_failure(msg);
+                msg.add_panic_object(err);
+                dest.send_on_failure(S::Value::from(msg));
             }
         }
     }).unwrap();

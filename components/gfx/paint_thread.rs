@@ -441,7 +441,7 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
 
             debug!("paint_thread: shutdown_chan send");
             shutdown_chan.send(()).unwrap();
-        }, ConstellationMsg::Failure(failure_msg), c);
+        }, failure_msg, c);
     }
 
     #[allow(unsafe_code)]
