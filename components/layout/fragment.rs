@@ -1030,8 +1030,13 @@ impl Fragment {
         let flags = self.quantities_included_in_intrinsic_inline_size();
         let style = self.style();
         let specified = if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
-            max(model::specified(style.min_inline_size(), Au(0)),
-                MaybeAuto::from_style(style.content_inline_size(), Au(0)).specified_or_zero())
+            let specified = MaybeAuto::from_style(style.content_inline_size(), Au(0)).specified_or_zero();
+            let min_or_specified = max(model::specified(style.min_inline_size(), Au(0)), specified);
+            if let Some(max) = model::specified_or_none(style.max_inline_size(), Au(0)) {
+                min(min_or_specified, max)
+            } else {
+                min_or_specified
+            }
         } else {
             Au(0)
         };
