@@ -7,6 +7,7 @@ use cors::{AsyncCORSResponseListener, CORSRequest, RequestMode, allow_cross_orig
 use document_loader::DocumentLoader;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
@@ -1426,7 +1427,9 @@ impl Extractable for DocumentOrBlobOrStringOrURLSearchParams {
                 (data.get_bytes().to_vec(), content_type)
             },
             DocumentOrBlobOrStringOrURLSearchParams::Document(ref d) => {
-                let data = d.serialize();
+                let data: Vec<u8> = d.serialize().unwrap().into();
+                let charset = encoding_from_whatwg_label(&*d.CharacterSet()).unwrap_or(UTF_8);
+                let decoded_data: Vec<u8> = charset.decode(&*data, DecoderTrap::Replace).unwrap().into_bytes();
                 let mut content_type = String::new();
                 if d.is_html_document() {
                     content_type.push_str("text/html");
@@ -1434,7 +1437,7 @@ impl Extractable for DocumentOrBlobOrStringOrURLSearchParams {
                     content_type.push_str("application/xml");
                 }
                 content_type.push_str(";charset=UTF-8");
-                (data.unwrap().into(), Some(DOMString::from(content_type.clone())))
+                (decoded_data, Some(DOMString::from(content_type.clone())))
             }
         }
     }
