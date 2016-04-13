@@ -314,7 +314,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
                 }
         } else if index == number_of_row_elements as i32 || index == -1 {
             // append new row to parent of last row in table
-            let last_row = rows.Item(number_of_row_elements)
+            let last_row = rows.Item(number_of_row_elements - 1)
                                .expect("InsertRow failed to find last row in table.");
 
             let last_row_parent =
