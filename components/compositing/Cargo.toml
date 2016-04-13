@@ -89,7 +89,7 @@ git = "https://github.com/servo/webrender"
 app_units = {version = "0.2.3", features = ["plugins"]}
 euclid = {version = "0.6.4", features = ["plugins"]}
 gleam = "0.2.8"
-image = "0.7"
+image = "0.9"
 log = "0.3.5"
 num = "0.1.24"
 offscreen_gl_context = "0.1.2"
