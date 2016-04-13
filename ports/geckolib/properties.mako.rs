@@ -6,6 +6,7 @@
 
 <%!
     from data import to_rust_ident
+    from data import Keyword
 %>
 
 use app_units::Au;
@@ -111,6 +112,47 @@ pub struct ${style_struct.gecko_struct_name};
 % endif
 </%def>
 
+<%def name="impl_simple_copy(ident, gecko_ffi_name)">
+    fn copy_${ident}_from(&mut self, other: &Self) {
+        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name};
+    }
+</%def>
+
+<%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword)">
+    fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        use gecko_style_structs as gss;
+        use style::properties::longhands::${ident}::computed_value::T as Keyword;
+        // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
+        self.gecko.${gecko_ffi_name} = match v {
+            % for value in keyword.values_for('gecko'):
+                Keyword::${to_rust_ident(value)} => gss::${keyword.gecko_constant(value)} as u8,
+            % endfor
+        };
+    }
+</%def>
+
+<%def name="impl_keyword_clone(ident, gecko_ffi_name, keyword)">
+    fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+        use gecko_style_structs as gss;
+        use style::properties::longhands::${ident}::computed_value::T as Keyword;
+        // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
+        match self.gecko.${gecko_ffi_name} as u32 {
+            % for value in keyword.values_for('gecko'):
+            gss::${keyword.gecko_constant(value)} => Keyword::${to_rust_ident(value)},
+            % endfor
+            x => panic!("Found unexpected value in style struct for ${ident} property: {}", x),
+        }
+    }
+</%def>
+
+<%def name="impl_keyword(ident, gecko_ffi_name, keyword, need_clone)">
+<%call expr="impl_keyword_setter(ident, gecko_ffi_name, keyword)"></%call>
+<%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
+%if need_clone:
+<%call expr="impl_keyword_clone(ident, gecko_ffi_name, keyword)"></%call>
+% endif
+</%def>
+
 <%def name="impl_style_struct(style_struct)">
 impl ${style_struct.gecko_struct_name} {
     #[allow(dead_code, unused_variables)]
@@ -206,34 +248,7 @@ impl ${style_struct.trait_name} for ${style_struct.gecko_struct_name} {
      * Auto-Generated Methods.
      */
     % for longhand in keyword_longhands:
-    fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T) {
-        use gecko_style_structs as gss;
-        use style::properties::longhands::${longhand.ident}::computed_value::T as Keyword;
-        // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
-        self.gecko.${longhand.gecko_ffi_name} = match v {
-            % for value in longhand.keyword.values_for('gecko'):
-                Keyword::${to_rust_ident(value)} => gss::${longhand.keyword.gecko_constant(value)} as u8,
-            % endfor
-        };
-    }
-    fn copy_${longhand.ident}_from(&mut self, other: &Self) {
-        self.gecko.${longhand.gecko_ffi_name} = other.gecko.${longhand.gecko_ffi_name};
-    }
-
-    %if longhand.need_clone:
-    fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T {
-        use gecko_style_structs as gss;
-        use style::properties::longhands::${longhand.ident}::computed_value::T as Keyword;
-        // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
-        match self.gecko.${longhand.gecko_ffi_name} as u32 {
-            % for value in longhand.keyword.values_for('gecko'):
-            gss::${longhand.keyword.gecko_constant(value)} => Keyword::${to_rust_ident(value)},
-            % endfor
-            x => panic!("Found unexpected value in style struct for ${longhand.name} property: {}", x),
-        }
-    }
-
-    % endif
+    <%call expr="impl_keyword(longhand.ident, longhand.gecko_ffi_name, longhand.keyword, longhand.need_clone)"></%call>
     % endfor
 
     /*
@@ -294,6 +309,16 @@ ${caller.body()}
     fn border_bottom_has_nonzero_width(&self) -> bool {
         unimplemented!()
     }
+</%self:impl_trait>
+
+<%self:impl_trait style_struct_name="Box" skip_longhands="display">
+
+    // We manually-implement the |display| property until we get general
+    // infrastructure for preffing certain values.
+    <% display_keyword = Keyword("display", "inline block inline-block table inline-table table-row-group " +
+                                            "table-header-group table-footer-group table-row table-column-group " +
+                                            "table-column table-cell table-caption list-item flex none") %>
+    <%call expr="impl_keyword('display', 'mDisplay', display_keyword, True)"></%call>
 </%self:impl_trait>
 
 % for style_struct in data.style_structs:

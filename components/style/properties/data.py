@@ -20,7 +20,7 @@ class Keyword(object):
     def __init__(self, name, values, gecko_constant_prefix=None,
                  extra_gecko_values=None, extra_servo_values=None):
         self.name = name
-        self.values = values
+        self.values = values.split()
         self.gecko_constant_prefix = gecko_constant_prefix or \
             "NS_STYLE_" + self.name.upper().replace("-", "_")
         self.extra_gecko_values = (extra_gecko_values or "").split()

@@ -170,7 +170,7 @@
             'gecko_constant_prefix', 'extra_gecko_values', 'extra_servo_values'
         ]}
     %>
-    <%call expr="longhand(name, keyword=Keyword(name, values.split(), **keyword_kwargs), **kwargs)">
+    <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
         pub use self::computed_value::T as SpecifiedValue;
         ${caller.body()}
         pub mod computed_value {
