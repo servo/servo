@@ -325,7 +325,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
                                             .expect("InsertRow failed to append last row.");
         } else {
             // insert new row before the index-th row in rows using the same parent
-            let ith_row = rows.Item(number_of_row_elements)
+            let ith_row = rows.Item(index as u32)
                               .expect("InsertRow failed to find a row in table.");
 
             let ith_row_parent = ith_row.upcast::<Node>().GetParentNode()
