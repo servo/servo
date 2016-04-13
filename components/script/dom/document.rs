@@ -1881,9 +1881,18 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#relaxing-the-same-origin-restriction
     fn Domain(&self) -> DOMString {
-        // TODO: This should use the effective script origin when it exists
-        let origin = self.window.get_url();
-        DOMString::from(origin.serialize_host().unwrap_or_else(|| "".to_owned()))
+        // Step 1.
+        if self.browsing_context().is_none() {
+            return DOMString::new();
+        }
+
+        if let Some(host) = self.origin.host() {
+            // Step 4.
+            DOMString::from(host.serialize())
+        } else {
+            // Step 3.
+            DOMString::new()
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-document-documenturi
