@@ -943,7 +943,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             let old_pipeline = old_pipeline_id
                 .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
 
-            let source_pipeline = self.pipelines.get(&load_info.containing_pipeline_id);
+            let source_pipeline =  match self.pipelines.get(&load_info.containing_pipeline_id) {
+                Some(source_pipeline) => source_pipeline,
+                None => return warn!("Script loaded url in closed iframe {}.", load_info.containing_pipeline_id),
+            };
 
             // If no url is specified, reload.
             let new_url = load_info.url.clone()
@@ -952,25 +955,23 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
             // Compare the pipeline's url to the new url. If the origin is the same,
             // then reuse the script thread in creating the new pipeline
-            let script_chan = source_pipeline.and_then(|source_pipeline| {
-                let source_url = source_pipeline.url.clone();
+            let source_url = source_pipeline.url.clone();
 
-                let same_script = (source_url.host() == new_url.host() &&
-                                   source_url.port() == new_url.port()) &&
-                    load_info.sandbox == IFrameSandboxState::IFrameUnsandboxed;
+            let same_script = source_url.host() == new_url.host() &&
+                              source_url.port() == new_url.port() &&
+                              load_info.sandbox == IFrameSandboxState::IFrameUnsandboxed;
 
-                // FIXME(tkuehn): Need to follow the standardized spec for checking same-origin
-                // Reuse the script thread if the URL is same-origin
-                if same_script {
-                    debug!("Constellation: loading same-origin iframe, \
-                            parent url {:?}, iframe url {:?}", source_url, new_url);
-                    Some(source_pipeline.script_chan.clone())
-                } else {
-                    debug!("Constellation: loading cross-origin iframe, \
-                            parent url {:?}, iframe url {:?}", source_url, new_url);
-                    None
-                }
-            });
+            // FIXME(tkuehn): Need to follow the standardized spec for checking same-origin
+            // Reuse the script thread if the URL is same-origin
+            let script_chan = if same_script {
+                debug!("Constellation: loading same-origin iframe, \
+                        parent url {:?}, iframe url {:?}", source_url, new_url);
+                Some(source_pipeline.script_chan.clone())
+            } else {
+                debug!("Constellation: loading cross-origin iframe, \
+                        parent url {:?}, iframe url {:?}", source_url, new_url);
+                None
+            };
 
             let window_size = old_pipeline.and_then(|old_pipeline| old_pipeline.size);
 
