@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use rustc::lint::{LateContext, LintPass, LintArray, Level, LateLintPass, LintContext};
-use rustc::middle::def;
-use rustc_front::hir;
+use rustc::hir::def;
+use rustc::hir;
 use syntax::ast;
 use utils::match_lang_ty;
 
