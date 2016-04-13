@@ -34,7 +34,9 @@ use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_thread::ImageResponse;
 use offscreen_gl_context::GLContextAttributes;
 use script_traits::ScriptMsg as ConstellationMsg;
+use std::any::TypeId;
 use std::cell::Cell;
+use std::marker::Reflect;
 use util::str::DOMString;
 use util::vec::byte_swap;
 use webrender_traits::WebGLError::*;
@@ -170,7 +172,9 @@ impl WebGLRenderingContext {
             .unwrap();
     }
 
-    fn validate_uniform(&self, uniform: Option<&WebGLUniformLocation>) -> bool {
+    fn validate_uniform<T: Reflect + 'static>(&self,
+                                              uniform: Option<&WebGLUniformLocation>,
+                                              data: Option<&[T]>) -> bool {
         if uniform.is_none() {
             return false;
         }
@@ -182,14 +186,54 @@ impl WebGLRenderingContext {
                 return false;
             },
         };
-        true
+        self.validate_uniform_data(uniform, data)
     }
 
-    fn validate_uniform_vector_parameters<T>(&self,
-                                      uniform: Option<&WebGLUniformLocation>,
-                                      expected_size: usize,
-                                      data: Option<&[T]>) -> bool {
-        if !self.validate_uniform(uniform) {
+    fn validate_uniform_data<T: Reflect + 'static>(&self,
+                                                   uniform: Option<&WebGLUniformLocation>,
+                                                   data: Option<&[T]>) -> bool {
+        let uniform = uniform.unwrap();
+        let program = self.current_program.get().unwrap();
+
+        let active_uniform = match program.get_active_uniform(
+            uniform.id() as u32) {
+            Ok(active_uniform) => active_uniform,
+            Err(_) => {
+                self.webgl_error(InvalidOperation);
+                return false;
+            },
+        };
+
+        let data = match data {
+            Some(data) => data,
+            None => {
+                self.webgl_error(InvalidOperation);
+                return false;
+            },
+        };
+
+        match active_uniform.Type() {
+            constants::FLOAT => data.len() >= 1 && TypeId::of::<T>() == TypeId::of::<f32>(),
+            constants::FLOAT_VEC2 => data.len() >= 2 && TypeId::of::<T>() == TypeId::of::<f32>(),
+            constants::FLOAT_VEC3 => data.len() >= 3 && TypeId::of::<T>() == TypeId::of::<f32>(),
+            constants::FLOAT_VEC4 => data.len() >= 4 && TypeId::of::<T>() == TypeId::of::<f32>(),
+            constants::INT => data.len() == 1 && TypeId::of::<T>() == TypeId::of::<i32>(),
+            constants::INT_VEC2 => data.len() >= 2 && TypeId::of::<T>() == TypeId::of::<i32>(),
+            constants::INT_VEC3 => data.len() >= 3 && TypeId::of::<T>() == TypeId::of::<i32>(),
+            constants::INT_VEC4 => data.len() >= 4 && TypeId::of::<T>() == TypeId::of::<i32>(),
+            _ => {
+                self.webgl_error(InvalidOperation);
+                false
+            },
+        }
+    }
+
+
+    fn validate_uniform_vector_parameters<T: Reflect + 'static>(&self,
+                                                                uniform: Option<&WebGLUniformLocation>,
+                                                                expected_size: usize,
+                                                                data: Option<&[T]>) -> bool {
+        if !self.validate_uniform(uniform, data) {
             return false;
         }
 
@@ -1040,7 +1084,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform1f(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   val: f32) {
-        if self.validate_uniform(uniform) {
+        if self.validate_uniform(uniform, Some(&[val])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform1f(uniform.unwrap().id(), val)))
                 .unwrap()
@@ -1051,7 +1095,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform1i(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   val: i32) {
-        if self.validate_uniform(uniform) {
+        if self.validate_uniform(uniform, Some(&[val])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform1i(uniform.unwrap().id(), val)))
                 .unwrap()
@@ -1090,7 +1134,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform2f(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: f32, y: f32) {
-        if self.validate_uniform(uniform) {
+        if self.validate_uniform(uniform, Some(&[x, y])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform2f(uniform.unwrap().id(), x, y)))
                 .unwrap()
@@ -1115,7 +1159,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform2i(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: i32, y: i32) {
-        if self.validate_uniform(uniform) {
+        if self.validate_uniform(uniform, Some(&[x, y])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform2i(uniform.unwrap().id(), x, y)))
                 .unwrap()
@@ -1140,7 +1184,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform3f(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: f32, y: f32, z: f32) {
-        if self.validate_uniform(uniform) {
+        if self.validate_uniform(uniform, Some(&[x, y, z])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform3f(uniform.unwrap().id(), x, y, z)))
                 .unwrap()
@@ -1165,7 +1209,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform3i(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: i32, y: i32, z: i32) {
-        if self.validate_uniform(uniform) {
+        if self.validate_uniform(uniform, Some(&[x, y, z])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform3i(uniform.unwrap().id(), x, y, z)))
                 .unwrap()
@@ -1190,7 +1234,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform4i(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: i32, y: i32, z: i32, w: i32) {
-        if self.validate_uniform(uniform) {
+        if self.validate_uniform(uniform, Some(&[x, y, z, w])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform4i(uniform.unwrap().id(), x, y, z, w)))
                 .unwrap()
@@ -1216,7 +1260,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform4f(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: f32, y: f32, z: f32, w: f32) {
-        if self.validate_uniform(uniform) {
+        if self.validate_uniform(uniform, Some(&[x, y, z, w])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform4f(uniform.unwrap().id(), x, y, z, w)))
                 .unwrap()

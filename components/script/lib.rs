@@ -17,6 +17,7 @@
 #![feature(on_unimplemented)]
 #![feature(peekable_is_empty)]
 #![feature(plugin)]
+#![feature(reflect_marker)]
 #![feature(slice_patterns)]
 
 #![deny(unsafe_code)]
