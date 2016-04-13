@@ -292,6 +292,61 @@ ${caller.body()}
     }
 </%self:impl_trait>
 
+<%self:impl_trait style_struct_name="Box" skip_longhands="display">
+
+    // We manually-implement the |display| property until we get general
+    // infrastructure for preffing certain values.
+    fn set_display(&mut self, v: longhands::display::computed_value::T) {
+        use gecko_style_structs as gss;
+        use style::properties::longhands::display::computed_value::T as Keyword;
+        self.gecko.mDisplay = match v {
+            Keyword::inline => gss::NS_STYLE_DISPLAY_INLINE as u8,
+            Keyword::block => gss::NS_STYLE_DISPLAY_BLOCK as u8,
+            Keyword::inline_block => gss::NS_STYLE_DISPLAY_INLINE_BLOCK as u8,
+            Keyword::table => gss::NS_STYLE_DISPLAY_TABLE as u8,
+            Keyword::inline_table => gss::NS_STYLE_DISPLAY_INLINE_TABLE as u8,
+            Keyword::table_row_group => gss::NS_STYLE_DISPLAY_TABLE_ROW_GROUP as u8,
+            Keyword::table_header_group => gss::NS_STYLE_DISPLAY_TABLE_HEADER_GROUP as u8,
+            Keyword::table_footer_group => gss::NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP as u8,
+            Keyword::table_row => gss::NS_STYLE_DISPLAY_TABLE_ROW as u8,
+            Keyword::table_column_group => gss::NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP as u8,
+            Keyword::table_column => gss::NS_STYLE_DISPLAY_TABLE_COLUMN as u8,
+            Keyword::table_cell => gss::NS_STYLE_DISPLAY_TABLE_CELL as u8,
+            Keyword::table_caption => gss::NS_STYLE_DISPLAY_TABLE_CAPTION as u8,
+            Keyword::list_item => gss::NS_STYLE_DISPLAY_LIST_ITEM as u8,
+            Keyword::flex => gss::NS_STYLE_DISPLAY_FLEX as u8,
+            Keyword::none => gss::NS_STYLE_DISPLAY_NONE as u8,
+        };
+    }
+    fn copy_display_from(&mut self, other: &Self) {
+        self.gecko.mDisplay = other.gecko.mDisplay;
+    }
+    fn clone_display(&self) -> longhands::display::computed_value::T {
+        use gecko_style_structs as gss;
+        use style::properties::longhands::display::computed_value::T as Keyword;
+        match self.gecko.mDisplay as u32 {
+            gss::NS_STYLE_DISPLAY_INLINE => Keyword::inline,
+            gss::NS_STYLE_DISPLAY_BLOCK => Keyword::block,
+            gss::NS_STYLE_DISPLAY_INLINE_BLOCK => Keyword::inline_block,
+            gss::NS_STYLE_DISPLAY_TABLE => Keyword::table,
+            gss::NS_STYLE_DISPLAY_INLINE_TABLE => Keyword::inline_table,
+            gss::NS_STYLE_DISPLAY_TABLE_ROW_GROUP => Keyword::table_row_group,
+            gss::NS_STYLE_DISPLAY_TABLE_HEADER_GROUP => Keyword::table_header_group,
+            gss::NS_STYLE_DISPLAY_TABLE_FOOTER_GROUP => Keyword::table_footer_group,
+            gss::NS_STYLE_DISPLAY_TABLE_ROW => Keyword::table_row,
+            gss::NS_STYLE_DISPLAY_TABLE_COLUMN_GROUP => Keyword::table_column_group,
+            gss::NS_STYLE_DISPLAY_TABLE_COLUMN => Keyword::table_column,
+            gss::NS_STYLE_DISPLAY_TABLE_CELL => Keyword::table_cell,
+            gss::NS_STYLE_DISPLAY_TABLE_CAPTION => Keyword::table_caption,
+            gss::NS_STYLE_DISPLAY_LIST_ITEM => Keyword::list_item,
+            gss::NS_STYLE_DISPLAY_FLEX => Keyword::flex,
+            gss::NS_STYLE_DISPLAY_NONE => Keyword::none,
+            x => panic!("Found unexpected value in style struct for display property: {}", x),
+        }
+    }
+
+</%self:impl_trait>
+
 % for style_struct in STYLE_STRUCTS:
 ${declare_style_struct(style_struct)}
 ${impl_style_struct(style_struct)}
