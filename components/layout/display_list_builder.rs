@@ -1461,15 +1461,15 @@ impl FragmentDisplayListBuilding for Fragment {
             return
         }
 
-        let tmp;
+        let overflow_clip_rect_owner;
         let overflow_clip_rect = match self.style.get_box()._servo_overflow_clip_box {
             overflow_clip_box::T::padding_box => {
                 // FIXME(SimonSapin): should be the padding box, not border box.
                 stacking_relative_border_box
             }
             overflow_clip_box::T::content_box => {
-                tmp = self.stacking_relative_content_box(stacking_relative_border_box);
-                &tmp
+                overflow_clip_rect_owner = self.stacking_relative_content_box(stacking_relative_border_box);
+                &overflow_clip_rect_owner
             }
         };
 
@@ -1743,46 +1743,13 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         };
 
         // Add the box that starts the block context.
-        let mut clip = self.base.clip.clone();
-
-        if establishes_stacking_context {
-            clip = clip.translate(&-self.base.stacking_relative_position)
-        }
-
-        // TODO(notriddle): To properly support transformations, we either need
-        // non-rectangular clipping regions in display lists, or clipping
-        // regions in terms of the parent coordinate system instead of the
-        // child coordinate system.
-        //
-        // This is a workaround for a common idiom of transform: translate().
-        if let Some(ref operations) = self.fragment.style().get_effects().transform.0 {
-            for operation in operations {
-                match *operation {
-                    transform::ComputedOperation::Translate(tx, ty, _) => {
-                        // N.B. When the clipping value comes from us, it
-                        // shouldn't be transformed.
-                        let tx = if let overflow_x::T::hidden = self.fragment.style().get_box()
-                                                                    .overflow_x {
-                            Au(0)
-                        } else {
-                            model::specified(tx, self.base.block_container_inline_size)
-                        };
-                        let ty = if let overflow_x::T::hidden = self.fragment.style().get_box()
-                                                                    .overflow_y.0 {
-                            Au(0)
-                        } else {
-                            model::specified(
-                                ty,
-                                self.base.block_container_explicit_block_size.unwrap_or(Au(0))
-                            )
-                        };
-                        let off = Point2D::new(tx, ty);
-                        clip = clip.translate(&-off);
-                    }
-                    _ => {}
-                };
-            }
-        }
+        let clip_owner;
+        let clip = if establishes_stacking_context {
+            clip_owner = self.base.clip.translate(&-self.base.stacking_relative_position);
+            &clip_owner
+        } else {
+            &self.base.clip
+        };
 
         self.fragment
             .build_display_list(state,
@@ -1795,7 +1762,7 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
                                     .relative_containing_block_mode,
                                 border_painting_mode,
                                 background_border_section,
-                                &clip,
+                                clip,
                                 &self.base.stacking_relative_position_of_display_port);
 
         self.base.build_display_items_for_debugging_tint(state, self.fragment.node);

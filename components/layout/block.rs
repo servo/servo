@@ -48,13 +48,13 @@ use incremental::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT};
 use layout_debug;
 use layout_thread::DISPLAY_PORT_SIZE_FACTOR;
 use model::{CollapsibleMargins, MaybeAuto, specified, specified_or_none};
-use model::{IntrinsicISizes, MarginCollapseInfo};
+use model::{self, IntrinsicISizes, MarginCollapseInfo};
 use rustc_serialize::{Encodable, Encoder};
 use std::cmp::{max, min};
 use std::fmt;
 use std::sync::Arc;
 use style::computed_values::{border_collapse, box_sizing, display, float, overflow_x, overflow_y};
-use style::computed_values::{position, text_align, transform_style};
+use style::computed_values::{position, text_align, transform, transform_style};
 use style::context::StyleContext;
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::{ComputedValues, ServoComputedValues};
@@ -1965,7 +1965,48 @@ impl Flow for BlockFlow {
 
             flow::mut_base(kid).late_absolute_position_info =
                 late_absolute_position_info_for_children;
-            flow::mut_base(kid).clip = clip.clone();
+            let clip = if kid.is_block_like() {
+                let mut clip = clip.clone();
+                let kid = kid.as_block();
+                // TODO(notriddle): To properly support transformations, we either need
+                // non-rectangular clipping regions in display lists, or clipping
+                // regions in terms of the parent coordinate system instead of the
+                // child coordinate system.
+                //
+                // This is a workaround for a common idiom of transform: translate().
+                if let Some(ref operations) = kid.fragment.style().get_effects().transform.0 {
+                    for operation in operations {
+                        match *operation {
+                            transform::ComputedOperation::Translate(tx, ty, _) => {
+                                // N.B. When the clipping value comes from us, it
+                                // shouldn't be transformed.
+                                let tx = if let overflow_x::T::hidden = kid.fragment.style().get_box()
+                                                                           .overflow_x {
+                                    Au(0)
+                                } else {
+                                    model::specified(tx, kid.base.block_container_inline_size)
+                                };
+                                let ty = if let overflow_x::T::hidden = kid.fragment.style().get_box()
+                                                                           .overflow_y.0 {
+                                    Au(0)
+                                } else {
+                                    model::specified(
+                                        ty,
+                                        kid.base.block_container_explicit_block_size.unwrap_or(Au(0))
+                                    )
+                                };
+                                let off = Point2D::new(tx, ty);
+                                clip = clip.translate(&-off);
+                            }
+                            _ => {}
+                        };
+                    }
+                }
+                clip
+            } else {
+                clip.clone()
+            };
+            flow::mut_base(kid).clip = clip;
             flow::mut_base(kid).stacking_relative_position_of_display_port =
                 stacking_relative_position_of_display_port_for_children;
         }

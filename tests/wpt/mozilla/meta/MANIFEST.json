@@ -5103,6 +5103,18 @@
             "url": "/_mozilla/css/translate_clip.html"
           }
         ],
+        "css/translate_clip_nested.html": [
+          {
+            "path": "css/translate_clip_nested.html",
+            "references": [
+              [
+                "/_mozilla/css/translate_clip_nested_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/translate_clip_nested.html"
+          }
+        ],
         "css/upper_id_attr.html": [
           {
             "path": "css/upper_id_attr.html",
@@ -11679,6 +11691,18 @@
             ]
           ],
           "url": "/_mozilla/css/translate_clip.html"
+        }
+      ],
+      "css/translate_clip_nested.html": [
+        {
+          "path": "css/translate_clip_nested.html",
+          "references": [
+            [
+              "/_mozilla/css/translate_clip_nested_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/translate_clip_nested.html"
         }
       ],
       "css/upper_id_attr.html": [
