@@ -12,6 +12,7 @@ use profile_traits::time::{TimerMetadataReflowType, TimerMetadataFrameType};
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
+use std::io::{self, Write};
 use std::time::Duration;
 use std::{thread, f64};
 use std_time::precise_time_ns;
@@ -251,10 +252,15 @@ impl Profiler {
     }
 
     fn print_buckets(&mut self) {
-        println!("{:35} {:14} {:9} {:30} {:15} {:15} {:-15} {:-15} {:-15}",
-                 "_category_", "_incremental?_", "_iframe?_",
-                 "            _url_", "    _mean (ms)_", "  _median (ms)_",
-                 "     _min (ms)_", "     _max (ms)_", "      _events_");
+        let stdout = io::stdout();
+        let mut lock = stdout.lock();
+
+        fn ignore<T>(_: T) { }
+
+        ignore(writeln!(&mut lock, "{:35} {:14} {:9} {:30} {:15} {:15} {:-15} {:-15} {:-15}",
+                        "_category_", "_incremental?_", "_iframe?_",
+                        "            _url_", "    _mean (ms)_", "  _median (ms)_",
+                        "     _min (ms)_", "     _max (ms)_", "      _events_"));
         for (&(ref category, ref meta), ref mut data) in &mut self.buckets {
             data.sort_by(|a, b| {
                 if a < b {
@@ -270,11 +276,12 @@ impl Profiler {
                      data[data_len / 2],
                      data.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
                      data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));
-                println!("{:-35}{} {:15.4} {:15.4} {:15.4} {:15.4} {:15}",
-                         category.format(), meta.format(), mean, median, min, max, data_len);
+                ignore(writeln!(&mut lock, "{:-35}{} {:15.4} {:15.4} {:15.4} {:15.4} {:15}",
+                                category.format(), meta.format(), mean, median, min, max,
+                                data_len));
             }
         }
-        println!("");
+        ignore(writeln!(&mut lock, ""));
     }
 }
 
