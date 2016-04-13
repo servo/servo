@@ -5043,6 +5043,18 @@
             "url": "/_mozilla/css/transition_calc.html"
           }
         ],
+        "css/translate_clip.html": [
+          {
+            "path": "css/translate_clip.html",
+            "references": [
+              [
+                "/_mozilla/css/translate_clip_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/translate_clip.html"
+          }
+        ],
         "css/upper_id_attr.html": [
           {
             "path": "css/upper_id_attr.html",
@@ -11559,6 +11571,18 @@
             ]
           ],
           "url": "/_mozilla/css/transition_calc.html"
+        }
+      ],
+      "css/translate_clip.html": [
+        {
+          "path": "css/translate_clip.html",
+          "references": [
+            [
+              "/_mozilla/css/translate_clip_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/translate_clip.html"
         }
       ],
       "css/upper_id_attr.html": [
