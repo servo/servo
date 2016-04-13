@@ -142,7 +142,7 @@ fn load_for_consumer(load_data: LoadData,
         connector: connector,
     };
 
-    let ui_provider = TFDProvider {};
+    let ui_provider = TFDProvider;
     let context = load_data.context.clone();
     match load::<WrappedHttpRequest, TFDProvider>(load_data, &ui_provider, hsts_list,
 
@@ -690,6 +690,7 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
 }
 
 pub trait UIProvider {
+    fn input_username_and_password(&self) -> (Option<String>, Option<String>);
     fn input_username(&self) -> Option<String>;
     fn input_password(&self) -> Option<String>;
 }
@@ -701,35 +702,24 @@ impl UIProvider for TFDProvider {
     fn input_password(&self) -> Option<String> {
         tinyfiledialogs::input_box("Enter password", "Password:", "")
     }
-}
-
-impl UIProvider for TestProvider {
-    fn input_username(&self) -> Option<String> {
-        Some("test".to_owned())
-     }
-    fn input_password(&self) -> Option<String> {
-        Some("test".to_owned())
+    fn input_username_and_password(&self) -> (Option<String>, Option<String>) {
+        (tinyfiledialogs::input_box("Enter username", "Username:", ""),
+        tinyfiledialogs::input_box("Enter password", "Password:", ""))
     }
 }
 
-pub struct TestProvider {
-
-}
-
-struct TFDProvider {
-
-}
+struct TFDProvider;
 
 pub fn load<A, B>(load_data: LoadData,
-               ui_provider: &B,
-               hsts_list: Arc<RwLock<HSTSList>>,
-               cookie_jar: Arc<RwLock<CookieStorage>>,
-               auth_cache: Arc<RwLock<HashMap<Url, AuthCacheEntry>>>,
-               devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-               request_factory: &HttpRequestFactory<R=A>,
-               user_agent: String,
-               cancel_listener: &CancellationListener)
-               -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static, B: UIProvider {
+                  ui_provider: &B,
+                  hsts_list: Arc<RwLock<HSTSList>>,
+                  cookie_jar: Arc<RwLock<CookieStorage>>,
+                  auth_cache: Arc<RwLock<HashMap<Url, AuthCacheEntry>>>,
+                  devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+                  request_factory: &HttpRequestFactory<R=A>,
+                  user_agent: String,
+                  cancel_listener: &CancellationListener)
+                  -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static, B: UIProvider {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -797,9 +787,10 @@ pub fn load<A, B>(load_data: LoadData,
                                &auth_cache, &load_data);
 
         //if there is a new auth header then set the request headers with it
-        if new_auth_header.is_some() {
-            request_headers.set(new_auth_header.clone().unwrap());
+        if let Some(ref auth_header) = new_auth_header {
+            request_headers.set(auth_header.clone());
         }
+
         let response = try!(obtain_response(request_factory, &doc_url, &method, &request_headers,
                                             &cancel_listener, &load_data.data, &load_data.method,
                                             &load_data.pipeline_id, iters, &devtools_chan, &request_id));
@@ -808,23 +799,21 @@ pub fn load<A, B>(load_data: LoadData,
 
         //if response status is unauthorized then prompt user for username and password
         if response.status() == StatusCode::Unauthorized {
+            let (username_option, password_option) = ui_provider.input_username_and_password();
 
             let username: String;
-            match ui_provider.input_username() {
-                Some(name) => username = name,
-                None => continue,
+
+            match username_option {
+                Some(name) => {
+                    username = name;
+                    new_auth_header =  Some(Authorization(Basic { username: username, password: password_option }));
+                    continue;
+                },
+                None => {},
             }
-
-            let password = ui_provider.input_password();
-            new_auth_header =  Some(Authorization(
-                Basic {
-                    username: username,
-                    password: password,
-                }
-            ));
-
-            continue;
         }
+
+        new_auth_header = None;
 
         if let Some(auth_header) = request_headers.get::<Authorization<Basic>>() {
             if response.status().class() == StatusClass::Success {
