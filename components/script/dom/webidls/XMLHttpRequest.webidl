@@ -14,7 +14,7 @@
  */
 
 // https://fetch.spec.whatwg.org/#bodyinit
-typedef (Blob or /*BufferSource or FormData or */DOMString or URLSearchParams) BodyInit;
+// typedef (Blob or /*BufferSource or FormData or */DOMString or URLSearchParams) BodyInit;
 
 enum XMLHttpRequestResponseType {
   "",
@@ -55,7 +55,7 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
            attribute boolean withCredentials;
   readonly attribute XMLHttpRequestUpload upload;
   [Throws]
-  void send(optional /*Document or*/ BodyInit? data = null);
+  void send(optional (Document or Blob or DOMString or URLSearchParams)? data = null);
   void abort();
 
   // response
