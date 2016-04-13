@@ -1029,17 +1029,15 @@ impl Fragment {
     fn style_specified_intrinsic_inline_size(&self) -> IntrinsicISizesContribution {
         let flags = self.quantities_included_in_intrinsic_inline_size();
         let style = self.style();
-        let specified = if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
-            let specified = MaybeAuto::from_style(style.content_inline_size(), Au(0)).specified_or_zero();
-            let min_or_specified = max(model::specified(style.min_inline_size(), Au(0)), specified);
+        let mut specified = Au(0);
+
+        if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
+            specified = MaybeAuto::from_style(style.content_inline_size(), Au(0)).specified_or_zero();
+            specified = max(model::specified(style.min_inline_size(), Au(0)), specified);
             if let Some(max) = model::specified_or_none(style.max_inline_size(), Au(0)) {
-                min(min_or_specified, max)
-            } else {
-                min_or_specified
+                specified = min(specified, max)
             }
-        } else {
-            Au(0)
-        };
+        }
 
         // FIXME(#2261, pcwalton): This won't work well for inlines: is this OK?
         let surrounding_inline_size = self.surrounding_intrinsic_inline_size();
