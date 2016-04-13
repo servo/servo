@@ -28,6 +28,7 @@ use style::parallel;
 use style::parser::ParserContextExtraData;
 use style::properties::ComputedValues;
 use style::selector_impl::{SelectorImplExt, PseudoElementCascadeType};
+use style::sequential;
 use style::stylesheets::Origin;
 use traversal::RecalcStyleOnly;
 use url::Url;
@@ -108,7 +109,7 @@ pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *m
     };
 
     if node.is_dirty() || node.has_dirty_descendants() {
-        parallel::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context, &mut data.work_queue);
+        sequential::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context);
     }
 }
 
