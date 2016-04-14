@@ -12,7 +12,7 @@ from servo_tidy import tidy
 
 
 def iterFile(name):
-    return iter(['tests/' + name])
+    return iter(['python/tidy/servo_tidy_tests/' + name])
 
 
 class CheckTidiness(unittest.TestCase):

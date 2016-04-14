@@ -29,8 +29,8 @@ from mach.decorators import (
 from servo.command_base import CommandBase, call, check_call
 from wptrunner import wptcommandline
 from update import updatecommandline
-import tidy
-from tidy_self_test import tidy_self_test
+from servo_tidy import tidy
+from servo_tidy_tests import test_tidy
 
 SCRIPT_PATH = os.path.split(__file__)[0]
 PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
@@ -279,7 +279,7 @@ class MachCommands(CommandBase):
                      help="Run unit tests for tidy")
     def test_tidy(self, faster, no_progress, self_test):
         if self_test:
-            return tidy_self_test.do_tests()
+            return test_tidy.do_tests()
         else:
             return tidy.scan(faster, not no_progress)
 
