@@ -1510,6 +1510,14 @@ impl ScriptThread {
         });
 
         let content_type = match metadata.content_type {
+            Some(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _))) => {
+                Some(DOMString::from("application/xml"))
+            }
+
+            Some(ContentType(Mime(TopLevel::Application, SubLevel::Ext(ref sub), _))) => {
+                Some(DOMString::from(format!("application/{}", sub)))
+            }
+
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {
                 Some(DOMString::from("text/xml"))
             }
@@ -1526,6 +1534,7 @@ impl ScriptThread {
                                                    Some(incomplete.url.clone()));
 
         let is_html_document = match metadata.content_type {
+            Some(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _))) |
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) =>
                 IsHTMLDocument::NonHTMLDocument,
             _ => IsHTMLDocument::HTMLDocument,
@@ -1595,6 +1604,14 @@ impl ScriptThread {
         document.set_https_state(metadata.https_state);
 
         match metadata.content_type {
+            Some(ContentType(Mime(TopLevel::Application, SubLevel::Ext(ref sub_level), _)))
+                if sub_level.ends_with("+xml") => {
+                parse_xml(document.r(),
+                          parse_input,
+                          final_url,
+                          xml::ParseContext::Owner(Some(incomplete.pipeline_id)));
+            }
+            Some(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _))) |
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {
                 parse_xml(document.r(),
                           parse_input,
