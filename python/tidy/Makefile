@@ -16,9 +16,7 @@ dev-env: $(VENV)/bin/python
 # for testing
 .PHONY: test
 test: dev-env
-	$(VENV)/bin/pip install --upgrade funcsigs
-	$(VENV)/bin/pip install --upgrade mock
-	$(VENV)/bin/python -m unittest discover -s tests -v
+	$(VENV)/bin/python -m unittest discover -s servo_tidy_tests -v
 
 
 .PHONY: clean

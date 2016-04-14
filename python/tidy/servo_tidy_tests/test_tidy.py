@@ -7,12 +7,14 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+import os
 import unittest
 from servo_tidy import tidy
 
 
 def iterFile(name):
-    return iter(['python/tidy/servo_tidy_tests/' + name])
+    path = 'servo_tidy_tests/' if os.path.exists('servo_tidy_tests/') else 'python/tidy/servo_tidy_tests/'
+    return iter([os.path.join(path, name)])
 
 
 class CheckTidiness(unittest.TestCase):
