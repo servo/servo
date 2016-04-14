@@ -16,6 +16,7 @@ use std::cell::Cell;
 use std::fmt;
 use url::Url;
 use util::geometry::{PagePx, ViewportPx};
+use util::thread::AddFailureDetails;
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use webrender_traits;
 
@@ -36,10 +37,27 @@ impl<T: Serialize + Deserialize> Clone for ConstellationChan<T> {
 }
 
 // We pass this info to various threads, so it lives in a separate, cloneable struct.
-#[derive(Clone, Copy, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct Failure {
     pub pipeline_id: PipelineId,
     pub parent_info: Option<(PipelineId, SubpageId)>,
+    pub panic_message: Option<String>,
+}
+
+impl Failure {
+    pub fn new(pipeline_id: PipelineId, parent_info: Option<(PipelineId, SubpageId)>) -> Failure {
+        Failure {
+            pipeline_id: pipeline_id,
+            parent_info: parent_info,
+            panic_message: None,
+        }
+    }
+}
+
+impl AddFailureDetails for Failure {
+    fn add_panic_message(&mut self, message: String) {
+        self.panic_message = Some(message);
+    }
 }
 
 #[derive(Copy, Clone, Deserialize, Serialize, HeapSizeOf)]

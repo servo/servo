@@ -445,7 +445,7 @@ impl ScriptThreadFactory for ScriptThread {
         let ConstellationChan(const_chan) = state.constellation_chan.clone();
         let (script_chan, script_port) = channel();
         let layout_chan = LayoutChan(layout_chan.sender());
-        let failure_info = state.failure_info;
+        let failure_info = state.failure_info.clone();
         thread::spawn_named_with_send_on_failure(format!("ScriptThread {:?}", state.id),
                                                thread_state::SCRIPT,
                                                move || {
@@ -481,7 +481,7 @@ impl ScriptThreadFactory for ScriptThread {
 
             // This must always be the very last operation performed before the thread completes
             failsafe.neuter();
-        }, ConstellationMsg::Failure(failure_info), const_chan);
+        }, failure_info, const_chan);
     }
 }
 

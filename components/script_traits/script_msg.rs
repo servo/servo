@@ -32,6 +32,12 @@ pub enum LayoutMsg {
     ViewportConstrained(PipelineId, ViewportConstraints),
 }
 
+impl From<Failure> for LayoutMsg {
+    fn from(failure: Failure) -> LayoutMsg {
+        LayoutMsg::Failure(failure)
+    }
+}
+
 /// Messages from the script to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum ScriptMsg {
@@ -85,4 +91,10 @@ pub enum ScriptMsg {
     SetDocumentState(PipelineId, DocumentState),
     /// Update the pipeline Url, which can change after redirections.
     SetFinalUrl(PipelineId, Url),
+}
+
+impl From<Failure> for ScriptMsg {
+    fn from(failure: Failure) -> ScriptMsg {
+        ScriptMsg::Failure(failure)
+    }
 }

@@ -286,7 +286,7 @@ impl LayoutThreadFactory for LayoutThread {
             }
             let _ = shutdown_chan.send(());
             let _ = content_process_shutdown_chan.send(());
-        }, ConstellationMsg::Failure(failure_msg), con_chan);
+        }, failure_msg, con_chan);
     }
 }
 
