@@ -69,8 +69,6 @@ ignored_dirs = [
     os.path.join(".", "."),
 ]
 
-spec_base_path = "components/script/dom/"
-
 
 def is_iter_empty(iterator):
     try:
@@ -223,7 +221,7 @@ def check_lock(file_name, contents):
         raise StopIteration
 
     # package names to be neglected (as named by cargo)
-    exceptions = ["bitflags", "xml-rs"]
+    exceptions = ["bitflags", "xml-rs", "byteorder"]
 
     import toml
     content = toml.loads(contents)
@@ -527,9 +525,10 @@ def check_json(filename, contents):
 
 
 def check_spec(file_name, lines):
-    if spec_base_path not in file_name:
+    base_path = "components/script/dom/"
+    if base_path not in file_name:
         raise StopIteration
-    file_name = os.path.relpath(os.path.splitext(file_name)[0], spec_base_path)
+    file_name = os.path.relpath(os.path.splitext(file_name)[0], base_path)
     patt = re.compile("^\s*\/\/.+")
 
     # Pattern representing a line with a macro
