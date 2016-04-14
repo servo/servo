@@ -2389,7 +2389,7 @@ class IDLUnionType(IDLType):
             return type.name
 
         for (i, type) in enumerate(self.memberTypes):
-            if not type.isComplete():
+            if not type.isComplete() and not isinstance(type, IDLTypedefType):
                 self.memberTypes[i] = type.complete(scope)
 
         self.name = "Or".join(typeName(type) for type in self.memberTypes)
@@ -2416,8 +2416,8 @@ class IDLUnionType(IDLType):
                                       [nullableType.location,
                                        self.flatMemberTypes[i].location])
                 self._dictionaryType = self.flatMemberTypes[i]
-            elif self.flatMemberTypes[i].isUnion():
-                self.flatMemberTypes[i:i + 1] = self.flatMemberTypes[i].memberTypes
+            elif self.flatMemberTypes[i].isUnion() and not isinstance(self.flatMemberTypes[i], IDLTypedefType):
+                self.flatMemberTypes[i] = self.flatMemberTypes[i].memberTypes
                 continue
             i += 1
 
@@ -2636,6 +2636,9 @@ class IDLTypedefType(IDLType):
 
     def isNonCallbackInterface(self):
         return self.inner.isNonCallbackInterface()
+
+    def isUnion(self):
+        return self.inner.isUnion()
 
     def isComplete(self):
         return False
