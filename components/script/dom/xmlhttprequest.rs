@@ -35,12 +35,12 @@ use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncoderTrap, Encoding, EncodingRef};
 use euclid::length::Length;
+use html5ever::serialize::Serializable;
 use hyper::header::Headers;
 use hyper::header::{Accept, ContentLength, ContentType, qitem};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{self, Mime};
-use html5ever::serialize::Serializable;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JS_ClearPendingException;
@@ -1439,14 +1439,12 @@ impl Extractable for DocumentOrBlobOrStringOrURLSearchParams {
                         charset.decode(&*data, DecoderTrap::Replace).unwrap().into_bytes()
                     }
                 };
-                let mut content_type = String::new();
-                if d.is_html_document() {
-                    content_type.push_str("text/html");
+                let content_type = if d.is_html_document() {
+                    mime!(Text/Html; Charset=Utf8)
                 } else {
-                    content_type.push_str("application/xml");
-                }
-                content_type.push_str(";charset=UTF-8");
-                (decoded_data, Some(DOMString::from(content_type.clone())))
+                    mime!(Application/Xml; Charset=Utf8)
+                };
+                (decoded_data, Some(DOMString::from(format!("{}", content_type))))
             }
         }
     }
