@@ -1820,14 +1820,11 @@ impl Document {
 
     pub fn serialize(&self) -> Fallible<DOMString> {
         let mut writer = vec![];
-        match serialize(&mut writer,
-                        &self.upcast::<Node>(),
-                        SerializeOpts {
-                            traversal_scope: ChildrenOnly,
-                            ..Default::default()
-                        }) {
-            Ok(()) => Ok(DOMString::from(String::from_utf8(writer).unwrap())),
-            Err(_) => panic!("Cannot serialize document"),
+        if let Ok(()) = serialize(&mut writer, &self.upcast::<Node>(),
+            SerializeOpts {traversal_scope: ChildrenOnly,..Default::default()}) {
+            Ok(DOMString::from(String::from_utf8(writer).unwrap()))
+        } else {
+            Err(Error::InvalidState)
         }
     }
 }
