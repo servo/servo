@@ -1705,7 +1705,7 @@ dependencies = [
  "uuid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_traits 0.1.0 (git+https://github.com/servo/webrender_traits)",
  "websocket 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "xml5ever 0.1.1 (git+https://github.com/Ygg01/xml5ever)",
+ "xml5ever 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2389,8 +2389,8 @@ dependencies = [
 
 [[package]]
 name = "xml5ever"
-version = "0.1.1"
-source = "git+https://github.com/Ygg01/xml5ever#a51a6df18f384ecfb0a99b288c267178cf68f7f7"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "log 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "mac 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
