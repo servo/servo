@@ -20,6 +20,7 @@ use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementM
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
@@ -1227,6 +1228,47 @@ impl Element {
             _ => Err(Error::Syntax)
         }
     }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scroll
+    pub fn scroll(&self, x_: f64, y_: f64, behavior: ScrollBehavior) {
+
+        // Step 1.2 or 2.3
+        let x = if x_.is_finite() { x_ } else { 0.0f64 };
+        let y = if y_.is_finite() { y_ } else { 0.0f64 };
+
+        let node = self.upcast::<Node>();
+
+        // Step 3
+        let doc = node.owner_doc();
+
+        // Step 4
+        if !doc.is_fully_active() {
+            return;
+        }
+
+        // Step 5
+        let win = doc.DefaultView();
+
+        // Step 7
+        if *self.root_element() == *self {
+            if doc.quirks_mode() == Quirks {
+                return;
+            }
+
+            win.scroll(x, y, behavior);
+            return;
+        }
+
+        // Step 9
+        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+           doc.quirks_mode() == Quirks &&
+           !self.potentially_scrollable() {
+               win.scroll(x, y, behavior);
+        }
+
+        // Step 11
+        win.scroll_node(node.to_trusted_node_address(), x, y, behavior);
+    }
 }
 
 impl ElementMethods for Element {
@@ -1483,66 +1525,213 @@ impl ElementMethods for Element {
                      rect.size.height.to_f64_px())
     }
 
+    // https://drafts.csswg.org/cssom-view/#dom-element-scroll
+    fn Scroll(&self, options: &ScrollToOptions) {
+        // Step 1
+        let left = options.left.unwrap_or(self.ScrollLeft());
+        let top = options.top.unwrap_or(self.ScrollTop());
+        self.scroll(left, top, options.parent.behavior);
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scroll
+    fn Scroll_(&self, x: f64, y: f64) {
+        self.scroll(x, y, ScrollBehavior::Auto);
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scrollto
+    fn ScrollTo(&self, options: &ScrollToOptions) {
+        self.Scroll(options);
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scrollto
+    fn ScrollTo_(&self, x: f64, y: f64) {
+        self.Scroll_(x, y);
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scrollby
+    fn ScrollBy(&self, options: &ScrollToOptions) {
+        // Step 2
+        let delta_left = options.left.unwrap_or(0.0f64);
+        let delta_top = options.top.unwrap_or(0.0f64);
+        let left = self.ScrollLeft();
+        let top = self.ScrollTop();
+        self.scroll(left + delta_left, top + delta_top,
+                    options.parent.behavior);
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scrollby
+    fn ScrollBy_(&self, x: f64, y: f64) {
+        let left = self.ScrollLeft();
+        let top = self.ScrollTop();
+        self.scroll(left + x, top + y, ScrollBehavior::Auto);
+    }
+
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
     fn ScrollTop(&self) -> f64 {
         let node = self.upcast::<Node>();
 
-        // 1. Let document be the element’s node document.
+        // Step 1
         let doc = node.owner_doc();
 
-        // 2. If the document is not the active document, return zero and terminate these steps.
+        // Step 2
         if !doc.is_fully_active() {
             return 0.0;
-        } else {
-            // 3. Let window be the value of document’s defaultView attribute.
-            let win = doc.DefaultView();
+        }
 
-            // 5. If the element is the root element and document is in quirks mode,
-            //    return zero and terminate these steps.
-            if *self.root_element() == *self {
-                if doc.quirks_mode() == Quirks {
-                    return 0.0;
-                }
+        // Step 3
+        let win = doc.DefaultView();
 
-                // 6. If the element is the root element return the value of scrollY on window.
-                return (*win).ScrollY() as f64;
-            }
-
-            // 7. If the element is the HTML body element, document is in quirks mode,
-            //    and the element is not potentially scrollable, return the value of scrollY on window.
-            if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
-               doc.quirks_mode() == Quirks &&
-               !self.potentially_scrollable() {
-                   return (*win).ScrollY() as f64;
-            }
-
-
-            // 8. If the element does not have any associated CSS layout box, return zero and terminate these steps.
-            if !self.has_css_layout_box() {
+        // Step 5
+        if *self.root_element() == *self {
+            if doc.quirks_mode() == Quirks {
                 return 0.0;
             }
 
-            // 9. Return the y-coordinate of the scrolling area at the alignment point
-            //    with the top of the padding edge of the element.
-            let point = node.scroll_offset();
-            return -point.y as f64;
+            // Step 6
+            return win.ScrollY() as f64;
         }
+
+        // Step 7
+        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+           doc.quirks_mode() == Quirks &&
+           !self.potentially_scrollable() {
+               return win.ScrollY() as f64;
+        }
+
+
+        // Step 8
+        if !self.has_css_layout_box() {
+            return 0.0;
+        }
+
+        // Step 9
+        let point = node.scroll_offset();
+        return point.y.abs() as f64;
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
-    fn SetScrollTop(&self, _scroll_top: f64) {
-        unimplemented!()
+    fn SetScrollTop(&self, y_: f64) {
+        let behavior = ScrollBehavior::Auto;
+
+        // Step 1, 2
+        let y = if y_.is_finite() { y_ } else { 0.0f64 };
+
+        let node = self.upcast::<Node>();
+
+        // Step 3
+        let doc = node.owner_doc();
+
+        // Step 4
+        if !doc.is_fully_active() {
+            return;
+        }
+
+        // Step 5
+        let win = doc.DefaultView();
+
+        // Step 7
+        if *self.root_element() == *self {
+            if doc.quirks_mode() == Quirks {
+                return;
+            }
+
+            win.scroll(win.ScrollX() as f64, y, behavior);
+            return;
+        }
+
+        // Step 9
+        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+           doc.quirks_mode() == Quirks &&
+           !self.potentially_scrollable() {
+               win.scroll(win.ScrollX() as f64, y, behavior);
+        }
+
+        // Step 11
+        win.scroll_node(node.to_trusted_node_address(), self.ScrollLeft(), y, behavior);
     }
 
-    // https://drafts.csswg.org/cssom-view/#dom-element-scrollleft
+    // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
     fn ScrollLeft(&self) -> f64 {
-        let point = self.upcast::<Node>().scroll_offset();
-        return -point.x as f64;
+        let node = self.upcast::<Node>();
+
+        // Step 1
+        let doc = node.owner_doc();
+
+        // Step 2
+        if !doc.is_fully_active() {
+            return 0.0;
+        }
+
+        // Step 3
+        let win = doc.DefaultView();
+
+        // Step 5
+        if *self.root_element() == *self {
+            if doc.quirks_mode() == Quirks {
+                return 0.0;
+            }
+
+            // Step 6
+            return win.ScrollX() as f64;
+        }
+
+        // Step 7
+        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+           doc.quirks_mode() == Quirks &&
+           !self.potentially_scrollable() {
+               return win.ScrollX() as f64;
+        }
+
+
+        // Step 8
+        if !self.has_css_layout_box() {
+            return 0.0;
+        }
+
+        // Step 9
+        let point = node.scroll_offset();
+        return point.x.abs() as f64;
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollleft
-    fn SetScrollLeft(&self, _scroll_left: f64) {
-        unimplemented!()
+    fn SetScrollLeft(&self, x_: f64) {
+        let behavior = ScrollBehavior::Auto;
+
+        // Step 1, 2
+        let x = if x_.is_finite() { x_ } else { 0.0f64 };
+
+        let node = self.upcast::<Node>();
+
+        // Step 3
+        let doc = node.owner_doc();
+
+        // Step 4
+        if !doc.is_fully_active() {
+            return;
+        }
+
+        // Step 5
+        let win = doc.DefaultView();
+
+        // Step 7
+        if *self.root_element() == *self {
+            if doc.quirks_mode() == Quirks {
+                return;
+            }
+
+            win.scroll(x, win.ScrollY() as f64, behavior);
+            return;
+        }
+
+        // Step 9
+        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+           doc.quirks_mode() == Quirks &&
+           !self.potentially_scrollable() {
+               win.scroll(x, win.ScrollY() as f64, behavior);
+        }
+
+        // Step 11
+        win.scroll_node(node.to_trusted_node_address(), x, self.ScrollTop(), behavior);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth
