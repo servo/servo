@@ -1428,8 +1428,17 @@ impl Extractable for DocumentOrBlobOrStringOrURLSearchParams {
             },
             DocumentOrBlobOrStringOrURLSearchParams::Document(ref d) => {
                 let data: Vec<u8> = d.serialize().unwrap().into();
-                let charset = encoding_from_whatwg_label(&*d.CharacterSet()).unwrap_or(UTF_8);
-                let decoded_data: Vec<u8> = charset.decode(&*data, DecoderTrap::Replace).unwrap().into_bytes();
+                let decoded_data: Vec<u8> = match &*d.CharacterSet() {
+                    "UTF-8" => {
+                        debug!("Document is already utf-8, skipping conversion {:?}", d.url());
+                        data
+                    },
+                    document_charset => {
+                        debug!("Document is {:?} we have to decode", document_charset);
+                        let charset = encoding_from_whatwg_label(&*d.CharacterSet()).unwrap_or(UTF_8);
+                        charset.decode(&*data, DecoderTrap::Replace).unwrap().into_bytes()
+                    }
+                };
                 let mut content_type = String::new();
                 if d.is_html_document() {
                     content_type.push_str("text/html");
