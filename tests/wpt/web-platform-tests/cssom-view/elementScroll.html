@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>cssom-view - elementScroll</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+    section {
+        width: 300px;
+        height: 300px;
+        /*position: absolute;*/
+        top: 16px;
+        left: 16px;
+        border: inset gray 3px;
+        overflow: scroll;
+        background: white;
+    }
+
+    div {
+        width: 400px;
+    }
+
+</style>
+
+<section id="section">
+    <div>
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc ultricies tortor eu augue eleifend malesuada. Duis id condimentum urna. Duis vulputate urna a dignissim sodales. Aenean et magna id dui rutrum suscipit. Etiam metus mauris, congue ac suscipit dapibus, mattis non neque. Donec porttitor eros sed mauris tristique, non condimentum augue feugiat. Suspendisse iaculis faucibus nunc at porttitor. Integer convallis enim in feugiat molestie. Ut eget tincidunt mi, vel malesuada lectus. Quisque fermentum neque a sapien interdum consectetur. Nam tincidunt leo sit amet tortor ornare, sit amet ultrices ante semper. Fusce malesuada mi vitae venenatis sagittis. Duis eget urna quam.
+
+    Sed lacinia aliquam tortor quis elementum. Cras vitae mauris erat. Vestibulum posuere justo et dolor condimentum feugiat. Sed at magna nunc. Suspendisse est nunc, ultrices sed enim lobortis, vulputate rutrum mauris. Fusce ultrices eget erat blandit porta. Sed eros nulla, tristique eget porta a, viverra vel velit. Praesent sit amet odio eleifend, tempor arcu ut, elementum tellus. Suspendisse lorem tortor, sodales eget nulla a, rhoncus lobortis magna. Phasellus purus ante, rhoncus a ipsum nec, condimentum lacinia purus. Cras lobortis posuere nisi, vitae dapibus ante feugiat et. Quisque ornare nisi quis erat congue viverra. Vestibulum a nunc odio.
+
+    Sed id venenatis tortor. Curabitur sit amet mauris eget mi semper rutrum vel et odio. Phasellus eu sapien in sem ultricies pretium eu sit amet magna. Nulla finibus nec lorem ac semper. Nulla eleifend eros id fringilla pellentesque. Proin eleifend, sem vel lobortis viverra, massa augue viverra felis, quis ultricies sapien ipsum at magna. Duis rutrum tempus lobortis. Aliquam quis nulla eget velit viverra pretium. Maecenas venenatis nec nisl at pulvinar. Duis in sodales lectus, ac porta augue.
+
+    Sed sed ante aliquam, rutrum nisl quis, fermentum tellus. Proin ac leo molestie, euismod mauris sed, consequat nunc. Vivamus ut leo a nunc pharetra accumsan a non lorem. Aliquam iaculis mattis augue, in eleifend est accumsan vel. Pellentesque efficitur pulvinar leo vel ornare. Pellentesque non fermentum enim, ut efficitur elit. Duis risus quam, congue vel nulla a, blandit egestas erat. Suspendisse at sodales dolor. Vivamus auctor, lorem et ultrices venenatis, erat ex mollis nisi, quis maximus libero quam a libero.
+
+    Curabitur elit lacus, bibendum non tempus a, bibendum sit amet ante. Mauris eget nibh quis leo rhoncus consequat. Integer iaculis sed sapien eu pellentesque. In aliquet elementum lorem, ut consequat elit ultrices id. Phasellus vestibulum ex ex, ac sagittis tortor convallis et. Curabitur placerat id lectus at aliquam. Morbi sed nisl sem. Nam sit amet arcu maximus, volutpat nisl ac, dignissim neque. Etiam nec efficitur libero. Quisque tristique pulvinar est, eget dictum ex vehicula non. Nam dignissim non felis a iaculis. Nullam vel dolor vitae libero aliquet congue. Donec mi eros, semper non lectus at, commodo ullamcorper ligula. Donec commodo, sem vel lacinia porttitor, elit orci maximus felis, eget eleifend est velit id lorem.
+    </div>
+</section>
+
+<script>
+    setup({explicit_done:true});
+    window.onload = function () {
+        var section = document.getElementById("section");
+
+        test(function () {
+            assert_equals(section.scrollTop, 0, "initial scrollTop should be 0");
+            assert_equals(section.scrollLeft, 0, "initial scrollLeft should be 0");
+
+            section.scrollTop  = 30;
+            section.scrollLeft = 40;
+
+            assert_equals(section.scrollTop, 30, "changed scrollTop should be 40");
+            assert_equals(section.scrollLeft, 40, "changed scrollLeft should be 40");
+        },  "Element scrollTop/Left getter/setter test");
+
+        test(function () {
+            section.scroll(50, 60);
+
+            assert_equals(section.scrollLeft, 50, "changed scrollLeft should be 60");
+            assert_equals(section.scrollTop, 60, "changed scrollTop should be 50");
+        },  "Element scroll test");
+
+        test(function () {
+            section.scrollTo(80, 70);
+
+            assert_equals(section.scrollLeft, 80, "changed scrollLeft should be 70");
+            assert_equals(section.scrollTop, 70, "changed scrollTop should be 80");
+        }, "Element scrollTo test");
+
+        test(function () {
+            var left = section.scrollLeft;
+            var top = section.scrollTop;
+
+            section.scrollBy(10, 20);
+
+            assert_equals(section.scrollLeft, left + 10, "increment of scrollLeft should be 10")
+            assert_equals(section.scrollTop, top + 20, "increment of scrollTop should be 20")
+        })
+
+        test(function () {
+            section.scrollTop  = 1000;
+            section.scrollLeft = 1000;
+
+            assert_equals(section.scrollTop, 636, "changed scrollTop should be 636");
+            assert_equals(section.scrollLeft, 100, "changed scrollLeft should be 100");
+
+        }, "Element scroll maximum test");
+
+        done();
+    };
+</script>

@@ -13740,6 +13740,10 @@
         "url": "/cssom-view/elementFromPoint.html"
       },
       {
+        "path": "cssom-view/elementScroll.html",
+        "url": "/cssom-view/elementScroll.html"
+      },
+      {
         "path": "cssom-view/elementsFromPoint.html",
         "url": "/cssom-view/elementsFromPoint.html"
       },
