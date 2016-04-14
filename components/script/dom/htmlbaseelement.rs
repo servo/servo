@@ -2,8 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::Attr;
+use dom::attr::{Attr, AttrValue};
 use dom::bindings::codegen::Bindings::HTMLBaseElementBinding;
+use dom::bindings::codegen::Bindings::HTMLBaseElementBinding::HTMLBaseElementMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
@@ -58,6 +59,33 @@ impl HTMLBaseElement {
             document.refresh_base_element();
         }
     }
+}
+
+impl HTMLBaseElementMethods for HTMLBaseElement {
+    // https://html.spec.whatwg.org/multipage/#dom-base-href
+    fn Href(&self) -> DOMString {
+        let document = document_from_node(self);
+
+        // Step 1.
+        if !self.upcast::<Element>().has_attribute(&atom!("href")) {
+            return DOMString::from(document.base_url().serialize());
+        }
+
+        // Step 2.
+        let fallback_base_url = document.fallback_base_url();
+
+        // Step 3.
+        let url = self.upcast::<Element>().get_url_attribute(&atom!("href"));
+
+        // Step 4.
+        let url_record = fallback_base_url.join(&*url);
+
+        // Step 5, 6.
+        DOMString::from(url_record.ok().map_or("".to_owned(), |record| record.serialize()))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-base-href
+    make_url_setter!(SetHref, "href");
 }
 
 impl VirtualMethods for HTMLBaseElement {

@@ -26,6 +26,7 @@ use profile_traits::time;
 use script_traits::{ConstellationControlMsg, InitialScriptState, MozBrowserEvent};
 use script_traits::{LayoutControlMsg, LayoutMsg, NewLayoutInfo, ScriptMsg};
 use script_traits::{ScriptToCompositorMsg, ScriptThreadFactory, TimerEventRequest};
+use std::collections::HashMap;
 use std::mem;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use url::Url;
@@ -33,7 +34,7 @@ use util;
 use util::geometry::{PagePx, ViewportPx};
 use util::ipc::OptionalIpcSender;
 use util::opts::{self, Opts};
-use util::prefs;
+use util::prefs::{self, Pref};
 use util::thread;
 use webrender_traits;
 
@@ -232,6 +233,7 @@ impl Pipeline {
             failure: failure,
             script_port: script_port,
             opts: (*opts::get()).clone(),
+            prefs: prefs::get_cloned(),
             layout_to_paint_chan: layout_to_paint_chan,
             pipeline_port: pipeline_port,
             layout_shutdown_chan: layout_shutdown_chan,
@@ -408,6 +410,7 @@ pub struct UnprivilegedPipelineContent {
     script_port: Option<IpcReceiver<ConstellationControlMsg>>,
     layout_to_paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
     opts: Opts,
+    prefs: HashMap<String, Pref>,
     paint_shutdown_chan: IpcSender<()>,
     pipeline_port: Option<IpcReceiver<LayoutControlMsg>>,
     pipeline_namespace_id: PipelineNamespaceId,
@@ -471,6 +474,10 @@ impl UnprivilegedPipelineContent {
 
     pub fn opts(&self) -> Opts {
         self.opts.clone()
+    }
+
+    pub fn prefs(&self) -> HashMap<String, Pref> {
+        self.prefs.clone()
     }
 }
 

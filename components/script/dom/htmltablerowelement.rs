@@ -4,7 +4,9 @@
 
 use cssparser::RGBA;
 use dom::attr::AttrValue;
+use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
 use dom::bindings::codegen::Bindings::HTMLTableRowElementBinding::{self, HTMLTableRowElementMethods};
+use dom::bindings::codegen::Bindings::HTMLTableSectionElementBinding::HTMLTableSectionElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
@@ -14,7 +16,9 @@ use dom::element::{Element, RawLayoutElementHelpers};
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::htmlelement::HTMLElement;
 use dom::htmltabledatacellelement::HTMLTableDataCellElement;
+use dom::htmltableelement::HTMLTableElement;
 use dom::htmltableheadercellelement::HTMLTableHeaderCellElement;
+use dom::htmltablesectionelement::HTMLTableSectionElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
@@ -52,6 +56,14 @@ impl HTMLTableRowElement {
                            document,
                            HTMLTableRowElementBinding::Wrap)
     }
+
+    /// Determine the index for this `HTMLTableRowElement` within the given
+    /// `HTMLCollection`. Returns `-1` if not found within collection.
+    fn row_index(&self, collection: Root<HTMLCollection>) -> i32 {
+        collection.elements_iter()
+                  .position(|elem| (&elem as &Element) == self.upcast())
+                  .map_or(-1, |i| i as i32)
+    }
 }
 
 impl HTMLTableRowElementMethods for HTMLTableRowElement {
@@ -86,6 +98,42 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
             index,
             || self.Cells(),
             |n| n.is::<HTMLTableDataCellElement>())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tr-rowindex
+    fn RowIndex(&self) -> i32 {
+        let parent = match self.upcast::<Node>().GetParentNode() {
+            Some(parent) => parent,
+            None => return -1,
+        };
+        if let Some(table) = parent.downcast::<HTMLTableElement>() {
+            return self.row_index(table.Rows());
+        }
+        if !parent.is::<HTMLTableSectionElement>() {
+            return -1;
+        }
+        let grandparent = match parent.upcast::<Node>().GetParentNode() {
+            Some(parent) => parent,
+            None => return -1,
+        };
+        grandparent.downcast::<HTMLTableElement>()
+                   .map_or(-1, |table| self.row_index(table.Rows()))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-tr-sectionrowindex
+    fn SectionRowIndex(&self) -> i32 {
+        let parent = match self.upcast::<Node>().GetParentNode() {
+            Some(parent) => parent,
+            None => return -1,
+        };
+        let collection = if let Some(table) = parent.downcast::<HTMLTableElement>() {
+            table.Rows()
+        } else if let Some(table_section) = parent.downcast::<HTMLTableSectionElement>() {
+            table_section.Rows()
+        } else {
+            return -1;
+        };
+        self.row_index(collection)
     }
 }
 

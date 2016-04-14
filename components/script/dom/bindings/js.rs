@@ -566,7 +566,7 @@ impl<T: Castable> Root<T> {
 
 impl<T: Reflectable> Root<T> {
     /// Create a new stack-bounded root for the provided JS-owned value.
-    /// It cannot not outlive its associated `RootCollection`, and it gives
+    /// It cannot outlive its associated `RootCollection`, and it gives
     /// out references which cannot outlive this new `Root`.
     pub fn new(unrooted: NonZero<*const T>) -> Root<T> {
         debug_assert!(thread_state::get().is_script());

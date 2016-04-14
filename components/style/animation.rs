@@ -24,7 +24,7 @@ use properties::longhands::transition_timing_function::computed_value::{Transiti
 use properties::longhands::vertical_align::computed_value::T as VerticalAlign;
 use properties::longhands::visibility::computed_value::T as Visibility;
 use properties::longhands::z_index::computed_value::T as ZIndex;
-use properties::style_struct_traits::TBox;
+use properties::style_struct_traits::Box;
 use properties::{ComputedValues, ServoComputedValues};
 use std::cmp::Ordering;
 use std::iter::repeat;

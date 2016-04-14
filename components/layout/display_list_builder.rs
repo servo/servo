@@ -1461,15 +1461,15 @@ impl FragmentDisplayListBuilding for Fragment {
             return
         }
 
-        let tmp;
+        let overflow_clip_rect_owner;
         let overflow_clip_rect = match self.style.get_box()._servo_overflow_clip_box {
             overflow_clip_box::T::padding_box => {
                 // FIXME(SimonSapin): should be the padding box, not border box.
                 stacking_relative_border_box
             }
             overflow_clip_box::T::content_box => {
-                tmp = self.stacking_relative_content_box(stacking_relative_border_box);
-                &tmp
+                overflow_clip_rect_owner = self.stacking_relative_content_box(stacking_relative_border_box);
+                &overflow_clip_rect_owner
             }
         };
 
@@ -1743,14 +1743,12 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
         };
 
         // Add the box that starts the block context.
-        let translated_clip = if establishes_stacking_context {
-            Some(self.base.clip.translate(&-self.base.stacking_relative_position))
+        let clip_owner;
+        let clip = if establishes_stacking_context {
+            clip_owner = self.base.clip.translate(&-self.base.stacking_relative_position);
+            &clip_owner
         } else {
-            None
-        };
-        let clip = match translated_clip {
-            Some(ref translated_clip) => translated_clip,
-            None => &self.base.clip,
+            &self.base.clip
         };
 
         self.fragment

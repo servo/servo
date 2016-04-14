@@ -19,7 +19,7 @@ use dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D;
 use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
-use dom::bindings::error::{Error, Fallible};
+use dom::bindings::error::{Error, Fallible, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, Root};
@@ -277,7 +277,7 @@ impl CanvasRenderingContext2D {
                   dy: f64,
                   dw: Option<f64>,
                   dh: Option<f64>)
-                  -> Fallible<()> {
+                  -> ErrorResult {
         let result = match image {
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLCanvasElement(ref canvas) => {
                 self.draw_html_canvas_element(canvas.r(),
@@ -333,7 +333,7 @@ impl CanvasRenderingContext2D {
                                 dy: f64,
                                 dw: Option<f64>,
                                 dh: Option<f64>)
-                                -> Fallible<()> {
+                                -> ErrorResult {
         // 1. Check the usability of the image argument
         if !canvas.is_valid() {
             return Err(Error::InvalidState);
@@ -408,7 +408,7 @@ impl CanvasRenderingContext2D {
                        dy: f64,
                        dw: f64,
                        dh: f64)
-                       -> Fallible<()> {
+                       -> ErrorResult {
         // Establish the source and destination rectangles
         let (source_rect, dest_rect) = self.adjust_source_dest_rects(image_size,
                                                                      sx,
@@ -742,7 +742,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                  image: HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D,
                  dx: f64,
                  dy: f64)
-                 -> Fallible<()> {
+                 -> ErrorResult {
         if !(dx.is_finite() && dy.is_finite()) {
             return Ok(());
         }
@@ -757,7 +757,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                   dy: f64,
                   dw: f64,
                   dh: f64)
-                  -> Fallible<()> {
+                  -> ErrorResult {
         if !(dx.is_finite() && dy.is_finite() && dw.is_finite() && dh.is_finite()) {
             return Ok(());
         }
@@ -776,7 +776,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                    dy: f64,
                    dw: f64,
                    dh: f64)
-                   -> Fallible<()> {
+                   -> ErrorResult {
         if !(sx.is_finite() && sy.is_finite() && sw.is_finite() && sh.is_finite() &&
              dx.is_finite() && dy.is_finite() && dw.is_finite() && dh.is_finite()) {
             return Ok(());
@@ -852,7 +852,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-arc
-    fn Arc(&self, x: f64, y: f64, r: f64, start: f64, end: f64, ccw: bool) -> Fallible<()> {
+    fn Arc(&self, x: f64, y: f64, r: f64, start: f64, end: f64, ccw: bool) -> ErrorResult {
         if !([x, y, r, start, end].iter().all(|x| x.is_finite())) {
             return Ok(());
         }
@@ -872,7 +872,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-arcto
-    fn ArcTo(&self, cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, r: f64) -> Fallible<()> {
+    fn ArcTo(&self, cp1x: f64, cp1y: f64, cp2x: f64, cp2y: f64, r: f64) -> ErrorResult {
         if !([cp1x, cp1y, cp2x, cp2y, r].iter().all(|x| x.is_finite())) {
             return Ok(());
         }

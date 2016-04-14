@@ -59,6 +59,11 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('use &[T] instead of &Vec<T>', errors.next()[2])
         self.assertEqual('use &str instead of &String', errors.next()[2])
 
+    def test_spec_link(self):
+        tidy.spec_base_path = "python/tidy_self_test/"
+        errors = tidy.collect_errors_for_files(iterFile('speclink.rs'), [], [tidy.check_spec])
+        self.assertEqual('method declared in webidl is missing a comment with a specification link', errors.next()[2])
+
     def test_webidl(self):
         errors = tidy.collect_errors_for_files(iterFile('spec.webidl'), [tidy.check_webidl_spec], [])
         self.assertEqual('No specification link found.', errors.next()[2])

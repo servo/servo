@@ -29,6 +29,7 @@ extern crate openssl;
 extern crate rustc_serialize;
 extern crate threadpool;
 extern crate time;
+extern crate unicase;
 extern crate url;
 extern crate util;
 extern crate uuid;
@@ -49,7 +50,7 @@ pub mod resource_thread;
 pub mod storage_thread;
 pub mod websocket_loader;
 
-/// An implementation of the [Fetch spec](https://fetch.spec.whatwg.org/)
+/// An implementation of the [Fetch specification](https://fetch.spec.whatwg.org/)
 pub mod fetch {
     pub mod cors_cache;
     pub mod methods;

@@ -1029,12 +1029,15 @@ impl Fragment {
     fn style_specified_intrinsic_inline_size(&self) -> IntrinsicISizesContribution {
         let flags = self.quantities_included_in_intrinsic_inline_size();
         let style = self.style();
-        let specified = if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
-            max(model::specified(style.min_inline_size(), Au(0)),
-                MaybeAuto::from_style(style.content_inline_size(), Au(0)).specified_or_zero())
-        } else {
-            Au(0)
-        };
+        let mut specified = Au(0);
+
+        if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
+            specified = MaybeAuto::from_style(style.content_inline_size(), Au(0)).specified_or_zero();
+            specified = max(model::specified(style.min_inline_size(), Au(0)), specified);
+            if let Some(max) = model::specified_or_none(style.max_inline_size(), Au(0)) {
+                specified = min(specified, max)
+            }
+        }
 
         // FIXME(#2261, pcwalton): This won't work well for inlines: is this OK?
         let surrounding_inline_size = self.surrounding_intrinsic_inline_size();
@@ -1375,7 +1378,7 @@ impl Fragment {
                 result.union_block(&block_flow.base.intrinsic_inline_sizes)
             }
             SpecificFragmentInfo::Image(ref mut image_fragment_info) => {
-                let image_inline_size = match self.style.content_inline_size() {
+                let mut image_inline_size = match self.style.content_inline_size() {
                     LengthOrPercentageOrAuto::Auto |
                     LengthOrPercentageOrAuto::Percentage(_) => {
                         image_fragment_info.image_inline_size()
@@ -1383,13 +1386,19 @@ impl Fragment {
                     LengthOrPercentageOrAuto::Length(length) => length,
                     LengthOrPercentageOrAuto::Calc(calc) => calc.length(),
                 };
+
+                image_inline_size = max(model::specified(self.style.min_inline_size(), Au(0)), image_inline_size);
+                if let Some(max) = model::specified_or_none(self.style.max_inline_size(), Au(0)) {
+                    image_inline_size = min(image_inline_size, max)
+                }
+
                 result.union_block(&IntrinsicISizes {
                     minimum_inline_size: image_inline_size,
                     preferred_inline_size: image_inline_size,
                 });
             }
             SpecificFragmentInfo::Canvas(ref mut canvas_fragment_info) => {
-                let canvas_inline_size = match self.style.content_inline_size() {
+                let mut canvas_inline_size = match self.style.content_inline_size() {
                     LengthOrPercentageOrAuto::Auto |
                     LengthOrPercentageOrAuto::Percentage(_) => {
                         canvas_fragment_info.canvas_inline_size()
@@ -1397,6 +1406,12 @@ impl Fragment {
                     LengthOrPercentageOrAuto::Length(length) => length,
                     LengthOrPercentageOrAuto::Calc(calc) => calc.length(),
                 };
+
+                canvas_inline_size = max(model::specified(self.style.min_inline_size(), Au(0)), canvas_inline_size);
+                if let Some(max) = model::specified_or_none(self.style.max_inline_size(), Au(0)) {
+                    canvas_inline_size = min(canvas_inline_size, max)
+                }
+
                 result.union_block(&IntrinsicISizes {
                     minimum_inline_size: canvas_inline_size,
                     preferred_inline_size: canvas_inline_size,

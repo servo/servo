@@ -89,6 +89,7 @@ use style::properties::PropertyDeclarationBlock;
 use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::PseudoElement;
 use style::values::specified::Length;
+use url::Origin as UrlOrigin;
 use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 use uuid::Uuid;
@@ -276,7 +277,7 @@ impl<A: JSTraceable, B: JSTraceable, C: JSTraceable> JSTraceable for (A, B, C) {
     }
 }
 
-no_jsmanaged_fields!(bool, f32, f64, String, Url, AtomicBool, AtomicUsize, Uuid);
+no_jsmanaged_fields!(bool, f32, f64, String, Url, AtomicBool, AtomicUsize, UrlOrigin, Uuid);
 no_jsmanaged_fields!(usize, u8, u16, u32, u64);
 no_jsmanaged_fields!(isize, i8, i16, i32, i64);
 no_jsmanaged_fields!(Sender<T>);

@@ -265,14 +265,14 @@ impl<'a> Iterator for FrameTreeIterator<'a> {
             let frame = match self.frames.get(&frame_id) {
                 Some(frame) => frame,
                 None => {
-                    debug!("Frame {:?} iterated after closure.", frame_id);
+                    warn!("Frame {:?} iterated after closure.", frame_id);
                     continue;
                 },
             };
             let pipeline = match self.pipelines.get(&frame.current) {
                 Some(pipeline) => pipeline,
                 None => {
-                    debug!("Pipeline {:?} iterated after closure.", frame.current);
+                    warn!("Pipeline {:?} iterated after closure.", frame.current);
                     continue;
                 },
             };
@@ -468,6 +468,11 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         let child_process = if opts::get().sandbox {
             let mut command = sandbox::Command::me().expect("Failed to get current sandbox.");
             command.arg("--content-process").arg(token);
+
+            if let Ok(value) = env::var("RUST_BACKTRACE") {
+                command.env("RUST_BACKTRACE", value);
+            }
+
             let profile = sandboxing::content_process_sandbox_profile();
             ChildProcess::Sandboxed(Sandbox::new(profile).start(&mut command)
                                     .expect("Failed to start sandboxed child process!"))
@@ -477,6 +482,11 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             let mut child_process = process::Command::new(path_to_self);
             child_process.arg("--content-process");
             child_process.arg(token);
+
+            if let Ok(value) = env::var("RUST_BACKTRACE") {
+                child_process.env("RUST_BACKTRACE", value);
+            }
+
             ChildProcess::Unsandboxed(child_process.spawn()
                                       .expect("Failed to start unsandboxed child process!"))
         };
@@ -691,7 +701,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     debug!("constellation got set final url message");
                     pipeline.url = final_url;
                 } else {
-                    debug!("constellation got set final url message for dead pipeline");
+                    warn!("constellation got set final url message for dead pipeline");
                 }
             }
             Request::Script(FromScriptMsg::MozBrowserEvent(pipeline_id,
@@ -725,16 +735,16 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 let result = self.clipboard_ctx.as_ref().map_or(
                     "".to_owned(),
                     |ctx| ctx.get_contents().unwrap_or_else(|e| {
-                        debug!("Error getting clipboard contents ({}), defaulting to empty string", e);
+                        warn!("Error getting clipboard contents ({}), defaulting to empty string", e);
                         "".to_owned()
                     })
                 );
-                sender.send(result).unwrap_or_else(|e| debug!("Failed to send clipboard ({})", e))
+                sender.send(result).unwrap_or_else(|e| warn!("Failed to send clipboard ({})", e))
             }
             Request::Script(FromScriptMsg::SetClipboardContents(s)) => {
                 if let Some(ref mut ctx) = self.clipboard_ctx {
                     if let Err(e) = ctx.set_contents(s) {
-                        debug!("Error setting clipboard contents ({})", e);
+                        warn!("Error setting clipboard contents ({})", e);
                     }
                 }
             }
@@ -742,7 +752,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 debug!("constellation got remove iframe message");
                 self.handle_remove_iframe_msg(pipeline_id);
                 if let Some(sender) = sender {
-                    sender.send(()).unwrap_or_else(|e| debug!("Error replying to remove iframe ({})", e));
+                    sender.send(()).unwrap_or_else(|e| warn!("Error replying to remove iframe ({})", e));
                 }
             }
             Request::Script(FromScriptMsg::NewFavicon(url)) => {
@@ -808,20 +818,20 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
         self.image_cache_thread.exit();
         self.resource_thread.send(net_traits::ControlMsg::Exit)
-            .unwrap_or_else(|e| debug!("Exit resource thread failed ({})", e));
+            .unwrap_or_else(|e| warn!("Exit resource thread failed ({})", e));
         self.devtools_chan.as_ref().map(|chan| {
             chan.send(DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg))
-                .unwrap_or_else(|e| debug!("Exit devtools failed ({})", e));
+                .unwrap_or_else(|e| warn!("Exit devtools failed ({})", e));
         });
         self.storage_thread.send(StorageThreadMsg::Exit)
-            .unwrap_or_else(|e| debug!("Exit storage thread failed ({})", e));
+            .unwrap_or_else(|e| warn!("Exit storage thread failed ({})", e));
         self.font_cache_thread.exit();
         self.compositor_proxy.send(ToCompositorMsg::ShutdownComplete);
     }
 
     fn handle_send_error(&mut self, pipeline_id: PipelineId) {
         let parent_info = match self.pipelines.get(&pipeline_id) {
-            None => return debug!("Pipeline {:?} send error after closure.", pipeline_id),
+            None => return warn!("Pipeline {:?} send error after closure.", pipeline_id),
             Some(pipeline) => pipeline.parent_info,
         };
         // Treat send error the same as receiving a failure message
@@ -847,11 +857,11 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         while let Some(pending_pipeline_id) = self.pending_frames.iter().find(|pending| {
             pending.old_pipeline_id == Some(pipeline_id)
         }).map(|frame| frame.new_pipeline_id) {
-            debug!("removing pending frame change for failed pipeline");
+            warn!("removing pending frame change for failed pipeline");
             self.close_pipeline(pending_pipeline_id, ExitPipelineMode::Force);
         }
 
-        debug!("creating replacement pipeline for about:failure");
+        warn!("creating replacement pipeline for about:failure");
 
         let new_pipeline_id = PipelineId::new();
         self.new_pipeline(new_pipeline_id,
@@ -901,15 +911,15 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     fn handle_subframe_loaded(&mut self, pipeline_id: PipelineId) {
         let parent_info = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline.parent_info,
-            None => return debug!("Pipeline {:?} loaded after closure.", pipeline_id),
+            None => return warn!("Pipeline {:?} loaded after closure.", pipeline_id),
         };
         let subframe_parent_id = match parent_info {
             Some(ref parent) => parent.0,
-            None => return debug!("Pipeline {:?} has no parent.", pipeline_id),
+            None => return warn!("Pipeline {:?} has no parent.", pipeline_id),
         };
         let script_chan = match self.pipelines.get(&subframe_parent_id) {
             Some(pipeline) => pipeline.script_chan.clone(),
-            None => return debug!("Pipeline {:?} subframe loaded after closure.", subframe_parent_id),
+            None => return warn!("Pipeline {:?} subframe loaded after closure.", subframe_parent_id),
         };
         let msg = ConstellationControlMsg::DispatchFrameLoadEvent {
             target: pipeline_id,
@@ -933,7 +943,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             let old_pipeline = old_pipeline_id
                 .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
 
-            let source_pipeline = self.pipelines.get(&load_info.containing_pipeline_id);
+            let source_pipeline =  match self.pipelines.get(&load_info.containing_pipeline_id) {
+                Some(source_pipeline) => source_pipeline,
+                None => return warn!("Script loaded url in closed iframe {}.", load_info.containing_pipeline_id),
+            };
 
             // If no url is specified, reload.
             let new_url = load_info.url.clone()
@@ -942,25 +955,23 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
             // Compare the pipeline's url to the new url. If the origin is the same,
             // then reuse the script thread in creating the new pipeline
-            let script_chan = source_pipeline.and_then(|source_pipeline| {
-                let source_url = source_pipeline.url.clone();
+            let source_url = &source_pipeline.url;
 
-                let same_script = (source_url.host() == new_url.host() &&
-                                   source_url.port() == new_url.port()) &&
-                    load_info.sandbox == IFrameSandboxState::IFrameUnsandboxed;
+            let same_script = source_url.host() == new_url.host() &&
+                              source_url.port() == new_url.port() &&
+                              load_info.sandbox == IFrameSandboxState::IFrameUnsandboxed;
 
-                // FIXME(tkuehn): Need to follow the standardized spec for checking same-origin
-                // Reuse the script thread if the URL is same-origin
-                if same_script {
-                    debug!("Constellation: loading same-origin iframe, \
-                            parent url {:?}, iframe url {:?}", source_url, new_url);
-                    Some(source_pipeline.script_chan.clone())
-                } else {
-                    debug!("Constellation: loading cross-origin iframe, \
-                            parent url {:?}, iframe url {:?}", source_url, new_url);
-                    None
-                }
-            });
+            // FIXME(tkuehn): Need to follow the standardized spec for checking same-origin
+            // Reuse the script thread if the URL is same-origin
+            let script_chan = if same_script {
+                debug!("Constellation: loading same-origin iframe, \
+                        parent url {:?}, iframe url {:?}", source_url, new_url);
+                Some(source_pipeline.script_chan.clone())
+            } else {
+                debug!("Constellation: loading cross-origin iframe, \
+                        parent url {:?}, iframe url {:?}", source_url, new_url);
+                None
+            };
 
             let window_size = old_pipeline.and_then(|old_pipeline| old_pipeline.size);
 
@@ -999,7 +1010,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     fn handle_tick_animation(&mut self, pipeline_id: PipelineId, tick_type: AnimationTickType) {
         let (layout_chan, script_chan) = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => (pipeline.layout_chan.0.clone(), pipeline.script_chan.clone()),
-            None => return debug!("Pipeline {:?} got tick after closure.", pipeline_id),
+            None => return warn!("Pipeline {:?} got tick after closure.", pipeline_id),
         };
         match tick_type {
             AnimationTickType::Script => {
@@ -1040,7 +1051,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 let script_chan = match self.pipelines.get(&parent_pipeline_id) {
                     Some(parent_pipeline) => parent_pipeline.script_chan.clone(),
                     None => {
-                        debug!("Pipeline {:?} child loaded after closure", parent_pipeline_id);
+                        warn!("Pipeline {:?} child loaded after closure", parent_pipeline_id);
                         return None;
                     },
                 };
@@ -1076,7 +1087,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 // Send message to ScriptThread that will suspend all timers
                 match self.pipelines.get(&source_id) {
                     Some(source) => source.freeze(),
-                    None => debug!("Pipeline {:?} loaded after closure", source_id),
+                    None => warn!("Pipeline {:?} loaded after closure", source_id),
                 };
                 Some(new_pipeline_id)
             }
@@ -1136,7 +1147,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         // If the frame_id lookup fails, then we are in the middle of tearing down
         // the root frame, so it is reasonable to silently ignore the navigation.
         let frame_id = match frame_id {
-            None => return debug!("Navigation after root's closure."),
+            None => return warn!("Navigation after root's closure."),
             Some(frame_id) => frame_id,
         };
 
@@ -1152,7 +1163,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     NavigationDirection::Forward => {
                         match frame.next.pop() {
                             None => {
-                                debug!("no next page to navigate to");
+                                warn!("no next page to navigate to");
                                 return;
                             },
                             Some(next) => {
@@ -1164,7 +1175,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     NavigationDirection::Back => {
                         match frame.prev.pop() {
                             None => {
-                                debug!("no previous page to navigate to");
+                                warn!("no previous page to navigate to");
                                 return;
                             },
                             Some(prev) => {
@@ -1179,7 +1190,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 (prev, next)
             },
             None => {
-                debug!("no frame to navigate from");
+                warn!("no frame to navigate from");
                 return;
             },
         };
@@ -1207,13 +1218,13 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         // This makes things like contentDocument work correctly.
         if let Some((parent_pipeline_id, subpage_id)) = pipeline_info {
             let script_chan = match self.pipelines.get(&parent_pipeline_id) {
-                None => return debug!("Pipeline {:?} child navigated after closure.", parent_pipeline_id),
+                None => return warn!("Pipeline {:?} child navigated after closure.", parent_pipeline_id),
                 Some(pipeline) => pipeline.script_chan.clone(),
             };
             let new_subpage_id = match self.pipelines.get(&next_pipeline_id) {
-                None => return debug!("Pipeline {:?} navigated to after closure.", next_pipeline_id),
+                None => return warn!("Pipeline {:?} navigated to after closure.", next_pipeline_id),
                 Some(pipeline) => match pipeline.parent_info {
-                    None => return debug!("Pipeline {:?} has no parent info.", next_pipeline_id),
+                    None => return warn!("Pipeline {:?} has no parent info.", next_pipeline_id),
                     Some((_, new_subpage_id)) => new_subpage_id,
                 },
             };
@@ -1271,7 +1282,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         // so it is reasonable to silently ignore the event.
         match self.pipelines.get(&containing_pipeline_id) {
             Some(pipeline) => pipeline.trigger_mozbrowser_event(subpage_id, event),
-            None => debug!("Pipeline {:?} handling mozbrowser event after closure.", containing_pipeline_id),
+            None => warn!("Pipeline {:?} handling mozbrowser event after closure.", containing_pipeline_id),
         }
     }
 
@@ -1284,7 +1295,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             .find(|x| x.old_pipeline_id == current_pipeline_id)
             .map(|x| x.new_pipeline_id).or(current_pipeline_id);
         resp_chan.send(pipeline_id)
-            .unwrap_or_else(|_| debug!("Failed get_pipeline response."));
+            .unwrap_or_else(|_| warn!("Failed get_pipeline response."));
     }
 
     fn handle_get_frame(&mut self,
@@ -1292,21 +1303,21 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                         resp_chan: IpcSender<Option<FrameId>>) {
         let frame_id = self.pipeline_to_frame_map.get(&pipeline_id).map(|x| *x);
         resp_chan.send(frame_id)
-            .unwrap_or_else(|_| debug!("Failed get_pipeline response."));
+            .unwrap_or_else(|_| warn!("Failed get_pipeline response."));
     }
 
     fn focus_parent_pipeline(&mut self, pipeline_id: PipelineId) {
         let parent_info = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline.parent_info,
-            None => return debug!("Pipeline {:?} focus parent after closure.", pipeline_id),
+            None => return warn!("Pipeline {:?} focus parent after closure.", pipeline_id),
         };
         let (containing_pipeline_id, subpage_id) = match parent_info {
             Some(info) => info,
-            None => return debug!("Pipeline {:?} focus has no parent.", pipeline_id),
+            None => return warn!("Pipeline {:?} focus has no parent.", pipeline_id),
         };
         let script_chan = match self.pipelines.get(&containing_pipeline_id) {
             Some(pipeline) => pipeline.script_chan.clone(),
-            None => return debug!("Pipeline {:?} focus after closure.", containing_pipeline_id),
+            None => return warn!("Pipeline {:?} focus after closure.", containing_pipeline_id),
         };
 
         // Send a message to the parent of the provided pipeline (if it exists)
@@ -1346,7 +1357,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         let webrender_api = self.webrender_api_sender.clone();
         let sender = CanvasPaintThread::start(*size, webrender_api);
         response_sender.send(sender)
-            .unwrap_or_else(|e| debug!("Create canvas paint thread response failed ({})", e))
+            .unwrap_or_else(|e| warn!("Create canvas paint thread response failed ({})", e))
     }
 
     fn handle_create_webgl_paint_thread_msg(
@@ -1358,7 +1369,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         let response = WebGLPaintThread::start(*size, attributes, webrender_api);
 
         response_sender.send(response)
-            .unwrap_or_else(|e| debug!("Create WebGL paint thread response failed ({})", e))
+            .unwrap_or_else(|e| warn!("Create WebGL paint thread response failed ({})", e))
     }
 
     fn handle_webdriver_msg(&mut self, msg: WebDriverCommandMsg) {
@@ -1371,14 +1382,14 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             WebDriverCommandMsg::Refresh(pipeline_id, reply) => {
                 let load_data = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => LoadData::new(pipeline.url.clone()),
-                    None => return debug!("Pipeline {:?} Refresh after closure.", pipeline_id),
+                    None => return warn!("Pipeline {:?} Refresh after closure.", pipeline_id),
                 };
                 self.load_url_for_webdriver(pipeline_id, load_data, reply);
             }
             WebDriverCommandMsg::ScriptCommand(pipeline_id, cmd) => {
                 let script_channel = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.script_chan.clone(),
-                    None => return debug!("Pipeline {:?} ScriptCommand after closure.", pipeline_id),
+                    None => return warn!("Pipeline {:?} ScriptCommand after closure.", pipeline_id),
                 };
                 let control_msg = ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, cmd);
                 script_channel.send(control_msg)
@@ -1387,7 +1398,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             WebDriverCommandMsg::SendKeys(pipeline_id, cmd) => {
                 let script_channel = match self.pipelines.get(&pipeline_id) {
                     Some(pipeline) => pipeline.script_chan.clone(),
-                    None => return debug!("Pipeline {:?} SendKeys after closure.", pipeline_id),
+                    None => return warn!("Pipeline {:?} SendKeys after closure.", pipeline_id),
                 };
                 for (key, mods, state) in cmd {
                     let event = CompositorEvent::KeyEvent(key, state, mods);
@@ -1403,7 +1414,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 if Some(pipeline_id) == current_pipeline_id {
                     self.compositor_proxy.send(ToCompositorMsg::CreatePng(reply));
                 } else {
-                    reply.send(None).unwrap_or_else(|e| debug!("Screenshot reply failed ({})", e));
+                    reply.send(None).unwrap_or_else(|e| warn!("Screenshot reply failed ({})", e));
                 }
             },
         }
@@ -1536,18 +1547,18 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             // Send Resize (or ResizeInactive) messages to each
             // pipeline in the frame tree.
             let frame = match self.frames.get(&root_frame_id) {
-                None => return debug!("Frame {:?} resized after closing.", root_frame_id),
+                None => return warn!("Frame {:?} resized after closing.", root_frame_id),
                 Some(frame) => frame,
             };
             let pipeline_id = frame.current;
             let pipeline = match self.pipelines.get(&pipeline_id) {
-                None => return debug!("Pipeline {:?} resized after closing.", pipeline_id),
+                None => return warn!("Pipeline {:?} resized after closing.", pipeline_id),
                 Some(pipeline) => pipeline,
             };
             let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(pipeline.id, new_size));
             for pipeline_id in frame.prev.iter().chain(&frame.next) {
                 let pipeline = match self.pipelines.get(&pipeline_id) {
-                    None => { debug!("Inactive pipeline {:?} resized after closing.", pipeline_id); continue; },
+                    None => { warn!("Inactive pipeline {:?} resized after closing.", pipeline_id); continue; },
                     Some(pipeline) => pipeline,
                 };
                 let _ = pipeline.script_chan.send(ConstellationControlMsg::ResizeInactive(pipeline.id,
@@ -1559,7 +1570,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         for pending_frame in &self.pending_frames {
             let pipeline_id = pending_frame.new_pipeline_id;
             let pipeline = match self.pipelines.get(&pipeline_id) {
-                None => { debug!("Pending pipeline {:?} is closed", pipeline_id); continue; }
+                None => { warn!("Pending pipeline {:?} is closed", pipeline_id); continue; }
                 Some(pipeline) => pipeline,
             };
             if pipeline.parent_info.is_none() {
@@ -1610,7 +1621,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             let pipeline_id = frame.current;
 
             let pipeline = match self.pipelines.get(&pipeline_id) {
-                None => { debug!("Pipeline {:?} screenshot while closing.", pipeline_id); continue; },
+                None => { warn!("Pipeline {:?} screenshot while closing.", pipeline_id); continue; },
                 Some(pipeline) => pipeline,
             };
 
@@ -1625,7 +1636,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
             let msg = LayoutControlMsg::GetWebFontLoadState(sender);
             pipeline.layout_chan.0.send(msg)
-                .unwrap_or_else(|e| debug!("Get web font failed ({})", e));
+                .unwrap_or_else(|e| warn!("Get web font failed ({})", e));
             if receiver.recv().unwrap_or(true) {
                 return ReadyToSave::WebFontNotLoaded;
             }
@@ -1723,12 +1734,12 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
 
         if let None = self.frames.remove(&frame_id) {
-            debug!("Closing frame {:?} twice.", frame_id);
+            warn!("Closing frame {:?} twice.", frame_id);
         }
 
         if let Some((parent_pipeline_id, _)) = parent_info {
             let parent_pipeline = match self.pipelines.get_mut(&parent_pipeline_id) {
-                None => return debug!("Pipeline {:?} child closed after parent.", parent_pipeline_id),
+                None => return warn!("Pipeline {:?} child closed after parent.", parent_pipeline_id),
                 Some(parent_pipeline) => parent_pipeline,
             };
             parent_pipeline.remove_child(frame_id);
@@ -1758,7 +1769,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
         let pipeline = match self.pipelines.remove(&pipeline_id) {
             Some(pipeline) => pipeline,
-            None => return debug!("Closing pipeline {:?} twice.", pipeline_id),
+            None => return warn!("Closing pipeline {:?} twice.", pipeline_id),
         };
 
         // If a child pipeline, remove from subpage map
@@ -1848,7 +1859,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                                                                          chan,
                                                                          self.compositor_sender.clone()));
                 if port.recv().is_err() {
-                    debug!("Compositor has discarded SetFrameTree");
+                    warn!("Compositor has discarded SetFrameTree");
                     return; // Our message has been discarded, probably shutting down.
                 }
             }

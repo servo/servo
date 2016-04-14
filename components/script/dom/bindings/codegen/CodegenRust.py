@@ -3800,22 +3800,6 @@ class CGUnionConversionStruct(CGThing):
             pre="impl FromJSValConvertible for %s {\n" % self.type,
             post="\n}")
 
-        conversions.append(CGGeneric(
-            "throw_not_in_union(cx, \"%s\");\n"
-            "Err(())" % ", ".join(names)))
-        method = CGWrapper(
-            CGIndenter(CGList(conversions, "\n\n")),
-            pre="unsafe fn from_jsval(cx: *mut JSContext,\n"
-                "                     value: HandleValue, _option: ()) -> Result<%s, ()> {\n" % self.type,
-            post="\n}")
-        return CGWrapper(
-            CGIndenter(CGList([
-                CGGeneric("type Config = ();"),
-                method,
-            ], "\n")),
-            pre="impl FromJSValConvertible for %s {\n" % self.type,
-            post="\n}")
-
     def try_method(self, t):
         templateVars = getUnionTypeTemplateVars(t, self.descriptorProvider)
         returnType = "Result<Option<%s>, ()>" % templateVars["typeName"]
