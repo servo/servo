@@ -128,7 +128,8 @@ fn test_single_line_textinput_with_max_length_multibyte() {
         Lines::Single,
         DOMString::from(""),
         DummyClipboardContext::new(""),
-        Some(2)
+        Some(2),
+        SelectionDirection::None,
     );
 
     textinput.insert_char('á');
@@ -145,7 +146,8 @@ fn test_single_line_textinput_with_max_length_multi_code_unit() {
         Lines::Single,
         DOMString::from(""),
         DummyClipboardContext::new(""),
-        Some(3)
+        Some(3),
+        SelectionDirection::None,
     );
 
     textinput.insert_char('\u{10437}');
@@ -164,7 +166,8 @@ fn test_single_line_textinput_with_max_length_inside_char() {
         Lines::Single,
         DOMString::from("\u{10437}"),
         DummyClipboardContext::new(""),
-        Some(1)
+        Some(1),
+        SelectionDirection::None,
     );
 
     textinput.insert_char('x');

@@ -230,7 +230,8 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionend
     fn SetSelectionEnd(&self, end: u32) {
-        self.textinput.borrow_mut().set_selection_range(self.SelectionStart(), end);
+        let selection_start = self.SelectionStart();
+        self.textinput.borrow_mut().set_selection_range(selection_start, end);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
@@ -241,7 +242,8 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectionstart
     fn SetSelectionStart(&self, start: u32) {
-        self.textinput.borrow_mut().set_selection_range(start, self.SelectionEnd());
+        let selection_end = self.SelectionEnd();
+        self.textinput.borrow_mut().set_selection_range(start, selection_end);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
