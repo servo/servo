@@ -1440,9 +1440,9 @@ impl Extractable for DocumentOrBlobOrStringOrURLSearchParams {
                     }
                 };
                 let content_type = if d.is_html_document() {
-                    mime!(Text/Html; Charset=Utf8)
+                    mime!(Text / Html; Charset = Utf8)
                 } else {
-                    mime!(Application/Xml; Charset=Utf8)
+                    mime!(Application / Xml; Charset = Utf8)
                 };
                 (decoded_data, Some(DOMString::from(format!("{}", content_type))))
             }
