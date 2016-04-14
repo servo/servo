@@ -35,6 +35,7 @@ extern crate servo;
 use servo::Browser;
 use servo::compositing::windowing::WindowEvent;
 use servo::util::opts::{self, ArgumentParsingResult};
+use servo::util::panicking::initiate_panic_hook;
 use std::rc::Rc;
 
 fn main() {
@@ -51,6 +52,7 @@ fn main() {
         None
     };
 
+    initiate_panic_hook();
     env_logger::init().unwrap();
 
     setup_logging();

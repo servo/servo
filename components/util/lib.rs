@@ -6,6 +6,7 @@
 #![feature(core_intrinsics)]
 #![feature(custom_derive)]
 #![cfg_attr(feature = "non-geckolib", feature(decode_utf16))]
+#![feature(fnbox)]
 #![feature(optin_builtin_traits)]
 #![feature(plugin)]
 #![feature(panic_handler)]
@@ -53,6 +54,7 @@ pub mod linked_list;
 pub mod non_geckolib;
 #[allow(unsafe_code)]
 pub mod opts;
+pub mod panicking;
 #[allow(unsafe_code)]
 pub mod prefs;
 pub mod print_tree;
