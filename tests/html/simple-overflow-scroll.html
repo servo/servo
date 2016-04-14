@@ -37,6 +37,10 @@ Curabitur elit lacus, bibendum non tempus a, bibendum sit amet ante. Mauris eget
 <script>
 var section = document.getElementById("section");
 
+window.setTimeout(function () {
+    section.scroll(0, 1000);
+}, 2000)
+
 window.setInterval(function () {
     console.log("scrollTop: " + section.scrollTop);
     console.log("scrollLeft: " + section.scrollLeft);
