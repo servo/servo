@@ -72,7 +72,11 @@ sudo emerge net-misc/curl media-libs/freeglut \
 On Windows:
 
 Download Python for Windows [here](https://www.python.org/downloads/release/python-2711/). This is
-required for the SpiderMonkey build on Windows.
+required for the SpiderMonkey build on Windows. Open windows shell and install `virtualenv`:
+
+```cmd
+pip install virtualenv
+```
 
 Install MSYS2 from [here](https://msys2.github.io/). After you have done so, open an MSYS shell
 window and update the core libraries and install new packages:
@@ -82,20 +86,19 @@ update-core
 pacman -Sy git mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype \
     mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates \
     mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch \
-    patchutils make python2-setuptools
-easy_install-2.7 pip virtualenv
+    patchutils make
 ```
 
-Open a new MSYS shell window as Administrator and remove the Python binaries (they
-are not compatible with our `mach` driver script yet, unfortunately):
-
+Now, open a MINGW64 (not MSYS!) shell window and adjust the `PATH` so that
 ```sh
-cd /mingw64/bin
-mv python2.exe python2-mingw64.exe
-mv python2.7.exe python2.7-mingw64.exe
+which python
+which virtualenv
 ```
+find the native `python` and `virtualenv` installed at the begining instead of the
+MSYS or MINGW64 pythons. Usually that means adding python install directory and Scripts
+directory within it at the begining of PATH.
 
-Now, open a MINGW64 (not MSYS!) shell window, and you should be able to build servo as usual!
+Now you should be able to build servo as usual!
 
 Cross-compilation for Android:
 
