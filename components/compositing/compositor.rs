@@ -720,7 +720,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                         let typed = layer.extra_data.borrow().scroll_offset;
                         let _ = sender.send(Point2D::new(typed.x.get(), typed.y.get()));
                     },
-                    None => {},
+                    None => {
+                        warn!("Can't find requested layer in handling Msg::GetScrollOffset");
+                    },
                 }
             }
 
