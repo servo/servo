@@ -691,17 +691,9 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
 
 pub trait UIProvider {
     fn input_username_and_password(&self) -> (Option<String>, Option<String>);
-    fn input_username(&self) -> Option<String>;
-    fn input_password(&self) -> Option<String>;
 }
 
 impl UIProvider for TFDProvider {
-    fn input_username(&self) -> Option<String> {
-        tinyfiledialogs::input_box("Enter username", "Username:", "")
-     }
-    fn input_password(&self) -> Option<String> {
-        tinyfiledialogs::input_box("Enter password", "Password:", "")
-    }
     fn input_username_and_password(&self) -> (Option<String>, Option<String>) {
         (tinyfiledialogs::input_box("Enter username", "Username:", ""),
         tinyfiledialogs::input_box("Enter password", "Password:", ""))

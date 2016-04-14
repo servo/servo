@@ -100,12 +100,6 @@ fn redirect_to(host: String) -> MockResponse {
 struct TestProvider;
 
 impl UIProvider for TestProvider {
-    fn input_username(&self) -> Option<String> {
-        Some("test".to_owned())
-     }
-    fn input_password(&self) -> Option<String> {
-        Some("test".to_owned())
-    }
     fn input_username_and_password(&self) -> (Option<String>, Option<String>) {
         (Some("test".to_owned()),
         Some("test".to_owned()))
@@ -1582,10 +1576,11 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
 
 #[test]
 fn test_auth_ui_sets_header_on_401() {
+
     struct Factory;
 
     impl HttpRequestFactory for Factory {
-        type R = MockRequest;
+        type R = AssertRequestMustIncludeHeaders;
 
         fn create(&self, url: Url, _: Method) -> Result<MockRequest, LoadError> {
 
@@ -1612,7 +1607,7 @@ fn test_auth_ui_sets_header_on_401() {
 
     let load_data = LoadData::new(LoadContext::Browsing, url, None);
 
-    let response = load::<MockRequest, TestProvider>(load_data, &ui_provider,
+    let response = load::<AssertRequestMustIncludeHeaders, TestProvider>(load_data, &ui_provider,
                               hsts_list,
                               cookie_jar,
                               auth_cache,
@@ -1620,22 +1615,4 @@ fn test_auth_ui_sets_header_on_401() {
                               &Factory,
                               DEFAULT_USER_AGENT.to_owned(),
                               &CancellationListener::new(None));
-/*
-    match response {
-        Ok(r) => {
-               match r.metadata.status {
-                   Some(s) => {
-
-                        if s.eq(&RawStatus(200, Cow::Borrowed("Ok"))) {
-                           return;
-                       } else {
-
-                           panic!("Response was not 200");
-                       }
-                   },
-                   None => {},
-               }
-        },
-        _ => panic!("Response was not ok"),
-    } */
 }
