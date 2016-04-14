@@ -6,9 +6,7 @@
 
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::codegen::Bindings::TestBindingBinding;
-use dom::bindings::codegen::Bindings::TestBindingBinding::{TestBindingMethods, TestDictionary};
-use dom::bindings::codegen::Bindings::TestBindingBinding::{TestDictionaryDefaults, TestEnum};
+use dom::bindings::codegen::Bindings::TestBindingBinding::{self, DocumentOrTypedefTest, TestBindingMethods, TestDictionary, TestDictionaryDefaults, TestEnum};
 use dom::bindings::codegen::UnionTypes::{BlobOrBoolean, BlobOrBlobSequence};
 use dom::bindings::codegen::UnionTypes::{BlobOrString, BlobOrUnsignedLong, EventOrString};
 use dom::bindings::codegen::UnionTypes::{EventOrUSVString, HTMLElementOrLong};
@@ -568,6 +566,7 @@ impl TestBindingMethods for TestBinding {
     fn PrefControlledAttributeEnabled(&self) -> bool { false }
     fn PrefControlledMethodDisabled(&self) {}
     fn PrefControlledMethodEnabled(&self) {}
+    fn DocumentOrTypedef(&self, _: Option<Option<DocumentOrTypedefTest >>) -> () {}
 }
 
 impl TestBinding {

@@ -77,6 +77,8 @@ dictionary TestDictionaryDefaults {
   object? nullableObjectValue = null;
 };
 
+typedef (Blob or HTMLElement or FormData) TypedefTest;
+
 [Constructor,
  Constructor(sequence<unrestricted double> numberSequence),
  Constructor(unrestricted double num),
@@ -433,4 +435,5 @@ interface TestBinding {
   static void prefControlledStaticMethodEnabled();
   [Pref="dom.testbinding.prefcontrolled2.enabled"]
   const unsigned short prefControlledConstEnabled = 0;
+  void documentOrTypedef(optional (Document or TypedefTest)? qux);
 };
