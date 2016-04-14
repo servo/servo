@@ -13,6 +13,7 @@ use dom::bindings::codegen::UnionTypes::{EventOrUSVString, HTMLElementOrLong};
 use dom::bindings::codegen::UnionTypes::{HTMLElementOrUnsignedLongOrStringOrBoolean, LongSequenceOrBoolean};
 use dom::bindings::codegen::UnionTypes::{StringOrLongSequence, StringOrStringSequence, StringSequenceOrUnsignedLong};
 use dom::bindings::codegen::UnionTypes::{StringOrUnsignedLong, StringOrBoolean, UnsignedLongOrBoolean};
+use dom::bindings::codegen::UnionTypes::DocumentOrBlobOrHTMLElementOrFormData;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
@@ -493,6 +494,8 @@ impl TestBindingMethods for TestBinding {
     fn StringMozPreference(&self, pref_name: DOMString) -> DOMString {
         get_pref(pref_name.as_ref()).as_string().map(|s| DOMString::from(s)).unwrap_or_else(|| DOMString::new())
     }
+
+    fn DocumentOrTypedef(&self, _: Option<Option<DocumentOrBlobOrHTMLElementOrFormData >>) -> () {}
 }
 
 impl TestBinding {
