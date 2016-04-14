@@ -57,7 +57,7 @@ pub fn spawn_named<F>(name: String, f: F)
 
 pub trait AddFailureDetails {
     fn add_panic_message(&mut self, message: String);
-    fn add_panic_object(&mut self, object: Box<Any>) {
+    fn add_panic_object(&mut self, object: &Any) {
         if let Some(message) = object.downcast_ref::<String>() {
             self.add_panic_message(message.to_owned());
         } else if let Some(&message) = object.downcast_ref::<&'static str>() {
@@ -111,7 +111,7 @@ pub fn spawn_named_with_send_on_failure<F, T, S>(name: String,
             Ok(()) => (),
             Err(err) => {
                 debug!("{} failed, notifying constellation", name);
-                msg.add_panic_object(err);
+                msg.add_panic_object(&*err);
                 dest.send_on_failure(S::Value::from(msg));
             }
         }
