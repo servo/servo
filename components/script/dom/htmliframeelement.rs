@@ -66,7 +66,6 @@ pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
     pipeline_id: Cell<Option<PipelineId>>,
     subpage_id: Cell<Option<SubpageId>>,
-    containing_page_pipeline_id: Cell<Option<PipelineId>>,
     sandbox: Cell<Option<u8>>,
     load_blocker: DOMRefCell<Option<LoadBlocker>>,
 }
@@ -125,8 +124,6 @@ impl HTMLIFrameElement {
         let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id();
         let new_pipeline_id = self.pipeline_id.get().unwrap();
         let private_iframe = self.privatebrowsing();
-
-        self.containing_page_pipeline_id.set(Some(window.pipeline()));
 
         let ConstellationChan(ref chan) = window.constellation_chan();
         let load_info = IFrameLoadInfo {
@@ -192,7 +189,6 @@ impl HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             pipeline_id: Cell::new(None),
             subpage_id: Cell::new(None),
-            containing_page_pipeline_id: Cell::new(None),
             sandbox: Cell::new(None),
             load_blocker: DOMRefCell::new(None),
         }
@@ -204,11 +200,6 @@ impl HTMLIFrameElement {
                document: &Document) -> Root<HTMLIFrameElement> {
         let element = HTMLIFrameElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLIFrameElementBinding::Wrap)
-    }
-
-    #[inline]
-    pub fn containing_page_pipeline_id(&self) -> Option<PipelineId> {
-        self.containing_page_pipeline_id.get()
     }
 
     #[inline]
@@ -373,7 +364,7 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> E
             let window = window_from_node(iframe);
             let window = window.r();
 
-            let pipeline_info = Some((iframe.containing_page_pipeline_id().unwrap(),
+            let pipeline_info = Some((window.pipeline(),
                                       iframe.subpage_id().unwrap()));
             let ConstellationChan(ref chan) = window.constellation_chan();
             let msg = ConstellationMsg::Navigate(pipeline_info, direction);
