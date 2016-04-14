@@ -1444,7 +1444,7 @@ impl Extractable for DocumentOrBlobOrStringOrURLSearchParams {
                 } else {
                     mime!(Application / Xml; Charset = Utf8)
                 };
-                (decoded_data, Some(DOMString::from(format!("{}", content_type))))
+                (decoded_data, Some(DOMString::from(content_type.to_string())))
             }
         }
     }
