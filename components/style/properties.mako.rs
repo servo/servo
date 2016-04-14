@@ -981,10 +981,16 @@ pub mod longhands {
     ${single_keyword("scroll-behavior", "auto smooth", products="gecko")}
 
     // Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-x
-    ${single_keyword("scroll-snap-type-x", "none mandatory proximity", products="gecko")}
+    ${single_keyword("scroll-snap-type-x", "none mandatory proximity",
+                     products="gecko", gecko_constant_prefix="NS_STYLE_SCROLL_SNAP_TYPE")}
 
     // Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-y
-    ${single_keyword("scroll-snap-type-y", "none mandatory proximity", products="gecko")}
+    ${single_keyword("scroll-snap-type-y", "none mandatory proximity",
+                     products="gecko", gecko_constant_prefix="NS_STYLE_SCROLL_SNAP_TYPE")}
+
+    // Compositing and Blending Level 1
+    // http://www.w3.org/TR/compositing-1/
+    ${single_keyword("isolation", "auto isolate", products="gecko")}
 
     ${switch_to_style_struct("InheritedBox")}
 
@@ -1392,7 +1398,8 @@ pub mod longhands {
 
     ${single_keyword("page-break-after", "auto always avoid left right", products="gecko")}
     ${single_keyword("page-break-before", "auto always avoid left right", products="gecko")}
-    ${single_keyword("page-break-inside", "auto avoid", products="gecko")}
+    ${single_keyword("page-break-inside", "auto avoid",
+                     products="gecko", gecko_ffi_name="mBreakInside", gecko_constant_prefix="NS_STYLE_PAGE_BREAK")}
 
     // CSS 2.1, Section 14 - Colors and Backgrounds
 
@@ -4386,18 +4393,10 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    // Compositing and Blending Level 1
-    // http://www.w3.org/TR/compositing-1/
-    ${single_keyword("isolation", "auto isolate", products="gecko")}
-
     ${single_keyword("mix-blend-mode",
                      """normal multiply screen overlay darken lighten color-dodge
                         color-burn hard-light soft-light difference exclusion hue
                         saturation color luminosity""", gecko_constant_prefix="NS_STYLE_BLEND")}
-
-    // CSS Masking Module Level 1
-    // https://www.w3.org/TR/css-masking-1/
-    ${single_keyword("mask-type", "luminance alpha", products="gecko")}
 
     // CSS Image Values and Replaced Content Module Level 3
     // https://drafts.csswg.org/css-images-3/
@@ -5020,20 +5019,17 @@ pub mod longhands {
 
     // SVG 1.1 (Second Edition)
     // https://www.w3.org/TR/SVG/
-    ${new_style_struct("SVG", is_inherited=True)}
+    ${new_style_struct("SVGInherited", is_inherited=True, gecko_name="nsStyleSVG")}
 
     // Section 10 - Text
-    ${single_keyword("dominant-baseline",
-                     """auto use-script no-change reset-size ideographic alphabetic hanging
-                        mathematical central middle text-after-edge text-before-edge""",
-                     products="gecko")}
 
     ${single_keyword("text-anchor", "start middle end", products="gecko")}
 
     // Section 11 - Painting: Filling, Stroking and Marker Symbols
     ${single_keyword("color-interpolation", "auto sRGB linearRGB", products="gecko")}
 
-    ${single_keyword("color-interpolation-filters", "auto sRGB linearRGB", products="gecko")}
+    ${single_keyword("color-interpolation-filters", "auto sRGB linearRGB",
+                     products="gecko", gecko_constant_prefix="NS_STYLE_COLOR_INTERPOLATION")}
 
     ${single_keyword("fill-rule", "nonzero evenodd", products="gecko")}
 
@@ -5044,14 +5040,22 @@ pub mod longhands {
 
     ${single_keyword("stroke-linejoin", "miter round bevel", products="gecko")}
 
-    ${switch_to_style_struct("Effects")}
+    // Section 14 - Clipping, Masking and Compositing
+    ${single_keyword("clip-rule", "nonzero evenodd",
+                     products="gecko", gecko_constant_prefix="NS_STYLE_FILL_RULE")}
+
+    ${new_style_struct("SVG", is_inherited=False, gecko_name="nsStyleSVGReset")}
+
+    ${single_keyword("dominant-baseline",
+                     """auto use-script no-change reset-size ideographic alphabetic hanging
+                        mathematical central middle text-after-edge text-before-edge""",
+                     products="gecko")}
 
     ${single_keyword("vector-effect", "none non-scaling-stroke", products="gecko")}
 
-    ${switch_to_style_struct("SVG")}
-
-    // Section 14 - Clipping, Masking and Compositing
-    ${single_keyword("clip-rule", "nonzero evenodd", products="gecko")}
+    // CSS Masking Module Level 1
+    // https://www.w3.org/TR/css-masking-1/
+    ${single_keyword("mask-type", "luminance alpha", products="gecko")}
 }
 
 
