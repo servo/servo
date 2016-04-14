@@ -103,6 +103,14 @@ def check_call(*args, **kwargs):
     return subprocess.check_call(*args, shell=sys.platform == 'win32', **kwargs)
 
 
+class BuildNotFound(Exception):
+    def __init__(self, message):
+        self.message = message
+
+    def __str__(self):
+        return self.message
+
+
 class CommandBase(object):
     """Base class for mach command providers.
 
@@ -203,6 +211,8 @@ class CommandBase(object):
             return path.join(self.context.topdir, "target")
 
     def get_binary_path(self, release, dev, android=False):
+        # TODO(autrilla): this function could still use work - it shouldn't
+        # handle quitting, or printing. It should return the path, or an error.
         base_path = self.get_target_dir()
 
         if android:
@@ -220,8 +230,8 @@ class CommandBase(object):
         dev_exists = path.exists(dev_path)
 
         if not release_exists and not dev_exists:
-            print("No Servo binary found. Please run './mach build' and try again.")
-            sys.exit()
+            raise BuildNotFound('No Servo binary found.'
+                                ' Perhaps you forgot to run `./mach build`?')
 
         if release and release_exists:
             return release_path
