@@ -7,10 +7,12 @@
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root, RootedReference};
+use dom::bindings::xmlname::namespace_from_domstring;
 use dom::comment::Comment;
 use dom::document::Document;
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementCreator};
+use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::servoxmlparser;
@@ -75,7 +77,13 @@ impl<'a> TreeSink for servoxmlparser::Sink {
 
     fn append(&mut self, parent: JS<Node>, child: NodeOrText<JS<Node>>) {
         let child = match child {
-            NodeOrText::AppendNode(n) => Root::from_ref(&*n),
+            NodeOrText::AppendNode(n) => {
+                let script = n.downcast::<HTMLScriptElement>();
+                if let Some(script) = script {
+                    script.prepare();
+                }
+                Root::from_ref(&*n)
+            },
             NodeOrText::AppendText(t) => {
                 let s: String = t.into();
                 let text = Text::new(DOMString::from(s), &self.document);
@@ -119,4 +127,3 @@ pub fn parse_xml(document: &Document,
     };
     parser.parse_chunk(String::from(input));
 }
-
