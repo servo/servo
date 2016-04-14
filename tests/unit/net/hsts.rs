@@ -6,6 +6,7 @@ use net::hsts::{HSTSList, HSTSEntry};
 use net::hsts::{secure_url, preload_hsts_domains};
 use net_traits::IncludeSubdomains;
 use time;
+use url::Url;
 
 #[test]
 fn test_hsts_entry_is_not_expired_when_it_has_no_timestamp() {
@@ -255,7 +256,7 @@ fn test_preload_hsts_domains_well_formed() {
 
 #[test]
 fn test_secure_url_does_not_change_explicit_port() {
-    let url = url!("http://mozilla.org:8080/");
+    let url = Url::parse("http://mozilla.org:8080/").unwrap();
     let secure = secure_url(&url);
 
     assert!(secure.port().unwrap() == 8080u16);
@@ -263,7 +264,7 @@ fn test_secure_url_does_not_change_explicit_port() {
 
 #[test]
 fn test_secure_url_does_not_affect_non_http_schemas() {
-    let url = url!("file://mozilla.org");
+    let url = Url::parse("file://mozilla.org").unwrap();
     let secure = secure_url(&url);
 
     assert_eq!(&secure.scheme, "file");
@@ -271,7 +272,7 @@ fn test_secure_url_does_not_affect_non_http_schemas() {
 
 #[test]
 fn test_secure_url_forces_an_http_host_in_list_to_https() {
-    let url = url!("http://mozilla.org");
+    let url = Url::parse("http://mozilla.org").unwrap();
     let secure = secure_url(&url);
 
     assert_eq!(&secure.scheme, "https");

@@ -372,7 +372,7 @@ fn expect_devtools_http_response(devtools_port: &Receiver<DevtoolsControlMsg>) -
 
 #[test]
 fn test_check_default_headers_loaded_in_every_request() {
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
 
     let http_state = HttpState::new();
 
@@ -415,7 +415,7 @@ fn test_check_default_headers_loaded_in_every_request() {
 
 #[test]
 fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length_should_be_set_to_0() {
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
 
     let http_state = HttpState::new();
 
@@ -452,7 +452,7 @@ fn test_request_and_response_data_with_network_messages() {
 
     let http_state = HttpState::new();
 
-    let url = url!("https://mozilla.com");
+    let url = Url::parse("https://mozilla.com").unwrap();
     let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
     // This will probably have to be changed as it uses fake_root_pipeline_id which is marked for removal.
     let pipeline_id = PipelineId::fake_root_pipeline_id();
@@ -526,7 +526,7 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
 
     let http_state = HttpState::new();
 
-    let url = url!("https://mozilla.com");
+    let url = Url::parse("https://mozilla.com").unwrap();
     let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     let _ = load::<MockRequest>(load_data, &http_state, Some(devtools_chan), &Factory,
@@ -556,7 +556,7 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
         }
     }
 
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
     let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.method = Method::Post;
 
@@ -584,7 +584,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
         }
     }
 
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
 
     let http_state = HttpState::new();
@@ -617,7 +617,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
         }
     }
 
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     let http_state = HttpState::new();
 
@@ -658,7 +658,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
         }
     }
 
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
     let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Body on POST!".as_bytes()));
 
@@ -687,7 +687,7 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
         }
     }
 
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
 
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
 
@@ -718,7 +718,7 @@ fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present
         }
     }
 
-    let url = url!("https://mozilla.com");
+    let url = Url::parse("https://mozilla.com").unwrap();
 
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
 
@@ -749,7 +749,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
         }
     }
 
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
 
     let http_state = HttpState::new();
 
@@ -769,7 +769,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
 
 #[test]
 fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_resource_manager() {
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
 
     let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
@@ -800,8 +800,8 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
 
 #[test]
 fn test_load_sends_secure_cookie_if_http_changed_to_https_due_to_entry_in_hsts_store() {
-    let url = url!("http://mozilla.com");
-    let secured_url = url!("https://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
+    let secured_url = Url::parse("https://mozilla.com").unwrap();
 
     let http_state = HttpState::new();
     {
@@ -842,7 +842,7 @@ fn test_load_sends_secure_cookie_if_http_changed_to_https_due_to_entry_in_hsts_s
 
 #[test]
 fn test_load_sends_cookie_if_nonhttp() {
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
 
     let http_state = HttpState::new();
 
@@ -886,7 +886,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
         }
     }
 
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
 
     let http_state = HttpState::new();
 
@@ -919,7 +919,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
 
     let http_state = HttpState::new();
 
-    let load_data = LoadData::new(LoadContext::Browsing, url!("http://mozilla.com"), None);
+    let load_data = LoadData::new(LoadContext::Browsing, Url::parse("http://mozilla.com").unwrap(), None);
     let _ = load::<MockRequest>(load_data,
                                 &http_state,
                                 None,
@@ -933,8 +933,8 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
 #[test]
 fn test_when_cookie_set_marked_httpsonly_secure_isnt_sent_on_http_request() {
 
-    let sec_url = url!("https://mozilla.com");
-    let url = url!("http://mozilla.com");
+    let sec_url = Url::parse("https://mozilla.com").unwrap();
+    let url = Url::parse("http://mozilla.com").unwrap();
 
     let http_state = HttpState::new();
 
@@ -966,7 +966,7 @@ fn test_when_cookie_set_marked_httpsonly_secure_isnt_sent_on_http_request() {
 fn test_load_sets_content_length_to_length_of_request_body() {
     let content = "This is a request body";
 
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
     let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.data = Some(<[_]>::to_vec(content.as_bytes()));
 
@@ -990,7 +990,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
     let mut accept_headers = Headers::new();
     accept_headers.set(Accept(vec![text_html.clone()]));
 
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
     let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
     load_data.headers.set(Accept(vec![text_html.clone()]));
@@ -1017,7 +1017,7 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
         QualityItem::new(Mime(TopLevel::Star, SubLevel::Star, vec![]), Quality(800)),
     ]));
 
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
     let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
@@ -1038,7 +1038,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
     let mut accept_encoding_headers = Headers::new();
     accept_encoding_headers.set(AcceptEncoding(vec![qitem(Encoding::Chunked)]));
 
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
     let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
     load_data.headers.set(AcceptEncoding(vec![qitem(Encoding::Chunked)]));
@@ -1062,7 +1062,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
                                                     qitem(Encoding::Deflate),
                                                     qitem(Encoding::EncodingExt("br".to_owned()))]));
 
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
     let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
@@ -1096,7 +1096,7 @@ fn test_load_errors_when_there_a_redirect_loop() {
         }
     }
 
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
 
     let http_state = HttpState::new();
@@ -1126,7 +1126,7 @@ fn test_load_errors_when_there_is_too_many_redirects() {
         }
     }
 
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
 
     let http_state = HttpState::new();
@@ -1164,7 +1164,7 @@ fn test_load_follows_a_redirect() {
         }
     }
 
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
 
     let http_state = HttpState::new();
@@ -1191,7 +1191,7 @@ impl HttpRequestFactory for DontConnectFactory {
 
 #[test]
 fn test_load_errors_when_scheme_is_not_http_or_https() {
-    let url = url!("ftp://not-supported");
+    let url = Url::parse("ftp://not-supported").unwrap();
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
 
     let http_state = HttpState::new();
@@ -1209,7 +1209,7 @@ fn test_load_errors_when_scheme_is_not_http_or_https() {
 
 #[test]
 fn test_load_errors_when_viewing_source_and_inner_url_scheme_is_not_http_or_https() {
-    let url = url!("view-source:ftp://not-supported");
+    let url = Url::parse("view-source:ftp://not-supported").unwrap();
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
 
     let http_state = HttpState::new();
@@ -1251,7 +1251,7 @@ fn test_load_errors_when_cancelled() {
     let cancel_listener = CancellationListener::new(Some(cancel_resource));
     cancel_sender.send(()).unwrap();
 
-    let url = url!("https://mozilla.com");
+    let url = Url::parse("https://mozilla.com").unwrap();
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None);
     let http_state = HttpState::new();
 
@@ -1268,8 +1268,8 @@ fn test_load_errors_when_cancelled() {
 
 #[test]
 fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
-    let url_x = url!("http://mozilla.com");
-    let url_y = url!("http://mozilla.org");
+    let url_x = Url::parse("http://mozilla.com").unwrap();
+    let url_y = Url::parse("http://mozilla.org").unwrap();
 
     struct Factory;
 
@@ -1338,7 +1338,7 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
 
 #[test]
 fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
-    let url = url!("http://mozilla.org/initial/");
+    let url = Url::parse("http://mozilla.org/initial/").unwrap();
 
     struct Factory;
 
@@ -1385,7 +1385,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
 
 #[test]
 fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
-    let url = url!("http://mozilla.com");
+    let url = Url::parse("http://mozilla.com").unwrap();
 
     let http_state = HttpState::new();
 

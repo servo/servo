@@ -13,6 +13,7 @@ use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredV
 use style::stylesheets::{CSSRule, StyleRule, Origin};
 use style::error_reporting::ParseErrorReporter;
 use style::servo::Stylesheet;
+use url::Url;
 
 #[test]
 fn test_parse_stylesheet() {
@@ -23,7 +24,7 @@ fn test_parse_stylesheet() {
         html , body /**/ { display: block; }
         #d1 > .ok { background: blue; }
     ";
-    let url = url!("about::test");
+    let url = Url::parse("about::test").unwrap();
     let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent,
                                           Box::new(CSSErrorReporterTest));
     assert_eq!(stylesheet, Stylesheet {
@@ -198,7 +199,7 @@ fn test_report_error_stylesheet() {
         invalid: true;
     }
     ";
-    let url = url!("about::test");
+    let url = Url::parse("about::test").unwrap();
     let error_reporter = Box::new(CSSInvalidErrorReporterTest::new());
 
     let errors = error_reporter.errors.clone();

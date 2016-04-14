@@ -1603,7 +1603,7 @@ impl Document {
                          source: DocumentSource,
                          doc_loader: DocumentLoader)
                          -> Document {
-        let url = url.unwrap_or_else(|| url!("about:blank"));
+        let url = url.unwrap_or_else(|| Url::parse("about:blank").unwrap());
 
         let (ready_state, domcontentloaded_dispatched) = if source == DocumentSource::FromParser {
             (DocumentReadyState::Loading, false)
