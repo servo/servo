@@ -50,9 +50,11 @@ def to_camel_case(ident):
     return re.sub("_([a-z])", lambda m: m.group(1).upper(), ident.strip("_").capitalize())
 
 class Keyword(object):
-    def __init__(self, name, values, extra_gecko_values=None, extra_servo_values=None):
+    def __init__(self, name, values, gecko_constant_prefix=None,
+                 extra_gecko_values=None, extra_servo_values=None):
         self.name = name
         self.values = values
+        self.gecko_constant_prefix = gecko_constant_prefix or "NS_STYLE_" + self.name.upper().replace("-", "_")
         self.extra_gecko_values = extra_gecko_values or []
         self.extra_servo_values = extra_servo_values or []
     def gecko_values(self):
@@ -66,10 +68,13 @@ class Keyword(object):
             return self.servo_values()
         else:
             raise Exception("Bad product: " + product)
+    def gecko_constant(self, value):
+        return self.gecko_constant_prefix + "_" + value.upper().replace("-", "_")
 
 class Longhand(object):
     def __init__(self, name, derived_from=None, keyword=None,
-                 custom_cascade=False, experimental=False, internal=False):
+                 custom_cascade=False, experimental=False, internal=False,
+                 gecko_ffi_name=None):
         self.name = name
         self.keyword = keyword
         self.ident = to_rust_ident(name)
@@ -78,6 +83,7 @@ class Longhand(object):
         self.experimental = ("layout.%s.enabled" % name) if experimental else None
         self.custom_cascade = custom_cascade
         self.internal = internal
+        self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
         if derived_from is None:
             self.derived_from = None
         else:
@@ -174,7 +180,8 @@ pub mod longhands {
     use values::specified;
 
     <%def name="raw_longhand(name, keyword=None, derived_from=None, products='gecko,servo',
-                             custom_cascade=False, experimental=False, internal=False)">
+                             custom_cascade=False, experimental=False, internal=False,
+                             gecko_ffi_name=None)">
     <%
         if not CONFIG['product'] in products:
             return ""
@@ -186,7 +193,8 @@ pub mod longhands {
                             keyword=keyword,
                             custom_cascade=custom_cascade,
                             experimental=experimental,
-                            internal=internal)
+                            internal=internal,
+                            gecko_ffi_name=gecko_ffi_name)
         property.style_struct = THIS_STYLE_STRUCT
         THIS_STYLE_STRUCT.longhands.append(property)
         LONGHANDS.append(property)
@@ -315,10 +323,12 @@ pub mod longhands {
     </%def>
 
     <%def name="longhand(name, derived_from=None, keyword=None, products='gecko,servo',
-                         custom_cascade=False, experimental=False, internal=False)">
+                         custom_cascade=False, experimental=False, internal=False,
+                         gecko_ffi_name=None)">
         <%self:raw_longhand name="${name}" derived_from="${derived_from}" keyword="${keyword}"
                 products="${products}" custom_cascade="${custom_cascade}"
-                experimental="${experimental}" internal="${internal}">
+                experimental="${experimental}" internal="${internal}"
+                gecko_ffi_name="${gecko_ffi_name}">
             ${caller.body()}
             % if derived_from is None:
                 pub fn parse_specified(context: &ParserContext, input: &mut Parser)
@@ -331,12 +341,15 @@ pub mod longhands {
 
     <%def name="single_keyword_computed(name, values, products='gecko,servo',
                                         extra_gecko_values=None, extra_servo_values=None,
-                                        custom_cascade=False, experimental=False, internal=False)">
+                                        custom_cascade=False, experimental=False, internal=False,
+                                        gecko_constant_prefix=None, gecko_ffi_name=None)">
         <%self:longhand name="${name}" keyword="${Keyword(name, values.split(),
-                                                          extra_gecko_values,
-                                                          extra_servo_values)}"
+                                                          gecko_constant_prefix=gecko_constant_prefix,
+                                                          extra_gecko_values=extra_gecko_values,
+                                                          extra_servo_values=extra_servo_values)}"
                         products="${products}" custom_cascade="${custom_cascade}"
-                        experimental="${experimental}" internal="${internal}">
+                        experimental="${experimental}" internal="${internal}",
+                        gecko_ffi_name="${gecko_ffi_name}">
             pub use self::computed_value::T as SpecifiedValue;
             ${caller.body()}
             pub mod computed_value {
@@ -356,12 +369,16 @@ pub mod longhands {
         </%self:longhand>
     </%def>
 
-    <%def name="single_keyword(name, values, products='gecko,servo', experimental=False, internal=False)">
+    <%def name="single_keyword(name, values, products='gecko,servo',
+                               experimental=False, internal=False,
+                               gecko_constant_prefix=None, gecko_ffi_name=None)">
         <%self:single_keyword_computed name="${name}"
                                        values="${values}"
                                        products="${products}"
                                        experimental="${experimental}"
-                                       internal="${internal}">
+                                       internal="${internal}",
+                                       gecko_constant_prefix="${gecko_constant_prefix}"
+                                       gecko_ffi_name="${gecko_ffi_name}">
             use values::computed::ComputedValueAsSpecified;
             impl ComputedValueAsSpecified for SpecifiedValue {}
         </%self:single_keyword_computed>
@@ -532,7 +549,7 @@ pub mod longhands {
                                            Method("transition_count", "usize")])}
 
     // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
-    <%self:longhand name="display" custom_cascade="True">
+    <%self:longhand name="display" custom_cascade="${CONFIG['product'] == 'servo'}">
         <%
             values = """inline block inline-block
                 table inline-table table-row-group table-header-group table-footer-group
@@ -589,21 +606,24 @@ pub mod longhands {
 
         impl ComputedValueAsSpecified for SpecifiedValue {}
 
-        fn cascade_property_custom<C: ComputedValues>(
-                                   _declaration: &PropertyDeclaration,
-                                   _inherited_style: &C,
-                                   context: &mut computed::Context<C>,
-                                   _seen: &mut PropertyBitField,
-                                   _cacheable: &mut bool,
-                                   _error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
-            longhands::_servo_display_for_hypothetical_box::derive_from_display(context);
-            longhands::_servo_text_decorations_in_effect::derive_from_display(context);
-        }
+        % if CONFIG["product"] == "servo":
+            fn cascade_property_custom<C: ComputedValues>(
+                                       _declaration: &PropertyDeclaration,
+                                       _inherited_style: &C,
+                                       context: &mut computed::Context<C>,
+                                       _seen: &mut PropertyBitField,
+                                       _cacheable: &mut bool,
+                                       _error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
+                longhands::_servo_display_for_hypothetical_box::derive_from_display(context);
+                longhands::_servo_text_decorations_in_effect::derive_from_display(context);
+            }
+        % endif
+
     </%self:longhand>
 
     ${single_keyword("position", "static absolute relative fixed")}
 
-    <%self:single_keyword_computed name="float" values="none left right">
+    <%self:single_keyword_computed name="float" values="none left right" gecko_ffi_name="mFloats">
         impl ToComputedValue for SpecifiedValue {
             type ComputedValue = computed_value::T;
 
@@ -622,9 +642,9 @@ pub mod longhands {
 
     </%self:single_keyword_computed>
 
-    ${single_keyword("clear", "none left right both")}
+    ${single_keyword("clear", "none left right both", gecko_ffi_name="mBreakType")}
 
-    <%self:longhand name="-servo-display-for-hypothetical-box" derived_from="display">
+    <%self:longhand name="-servo-display-for-hypothetical-box" derived_from="display" products="servo">
         pub use super::display::{SpecifiedValue, get_initial_value};
         pub use super::display::{parse};
 
@@ -688,7 +708,7 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    ${new_style_struct("InheritedBox", is_inherited=True,
+    ${new_style_struct("InheritedBox", is_inherited=True, gecko_name="nsStyleVisibility",
                        additional_methods=[Method("clone_direction",
                                                   "longhands::direction::computed_value::T"),
                                            Method("clone_writing_mode",
@@ -727,8 +747,9 @@ pub mod longhands {
                       "parse_non_negative")}
 
     ${new_style_struct("InheritedText", is_inherited=True, gecko_name="nsStyleText",
-                       additional_methods=[Method("clone__servo_text_decorations_in_effect",
-                                                  "longhands::_servo_text_decorations_in_effect::computed_value::T")])}
+                       additional_methods=([Method("clone__servo_text_decorations_in_effect",
+                                                  "longhands::_servo_text_decorations_in_effect::computed_value::T")]
+                                           if CONFIG["product"] == "servo" else []))}
 
     <%self:longhand name="line-height">
         use cssparser::ToCss;
@@ -919,7 +940,7 @@ pub mod longhands {
                      internal=True)}
 
     // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-    ${single_keyword("overflow-x", "visible hidden scroll auto")}
+    ${single_keyword("overflow-x", "visible hidden scroll auto", gecko_constant_prefix="NS_STYLE_OVERFLOW")}
 
     // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
     <%self:longhand name="overflow-y">
@@ -964,19 +985,25 @@ pub mod longhands {
     ${single_keyword("scroll-behavior", "auto smooth", products="gecko")}
 
     // Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-x
-    ${single_keyword("scroll-snap-type-x", "none mandatory proximity", products="gecko")}
+    ${single_keyword("scroll-snap-type-x", "none mandatory proximity",
+                     products="gecko", gecko_constant_prefix="NS_STYLE_SCROLL_SNAP_TYPE")}
 
     // Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-y
-    ${single_keyword("scroll-snap-type-y", "none mandatory proximity", products="gecko")}
+    ${single_keyword("scroll-snap-type-y", "none mandatory proximity",
+                     products="gecko", gecko_constant_prefix="NS_STYLE_SCROLL_SNAP_TYPE")}
+
+    // Compositing and Blending Level 1
+    // http://www.w3.org/TR/compositing-1/
+    ${single_keyword("isolation", "auto isolate", products="gecko")}
 
     ${switch_to_style_struct("InheritedBox")}
 
     // TODO: collapse. Well, do tables first.
-    ${single_keyword("visibility", "visible hidden")}
+    ${single_keyword("visibility", "visible hidden", gecko_ffi_name="mVisible")}
 
     // CSS 2.1, Section 12 - Generated content, automatic numbering, and lists
 
-    ${new_style_struct("Counters", is_inherited=False)}
+    ${new_style_struct("Counters", is_inherited=False, gecko_name="nsStyleContent")}
 
     <%self:longhand name="content">
         use cssparser::Token;
@@ -1375,7 +1402,8 @@ pub mod longhands {
 
     ${single_keyword("page-break-after", "auto always avoid left right", products="gecko")}
     ${single_keyword("page-break-before", "auto always avoid left right", products="gecko")}
-    ${single_keyword("page-break-inside", "auto avoid", products="gecko")}
+    ${single_keyword("page-break-inside", "auto avoid",
+                     products="gecko", gecko_ffi_name="mBreakInside", gecko_constant_prefix="NS_STYLE_PAGE_BREAK")}
 
     // CSS 2.1, Section 14 - Colors and Backgrounds
 
@@ -2236,13 +2264,14 @@ pub mod longhands {
 
     // Also known as "word-wrap" (which is more popular because of IE), but this is the preferred
     // name per CSS-TEXT 6.2.
-    ${single_keyword("overflow-wrap", "normal break-word")}
+    ${single_keyword("overflow-wrap", "normal break-word", gecko_ffi_name="mWordWrap",
+                                                           gecko_constant_prefix="NS_STYLE_WORDWRAP")}
 
     // TODO(pcwalton): Support `word-break: keep-all` once we have better CJK support.
-    ${single_keyword("word-break", "normal break-all")}
+    ${single_keyword("word-break", "normal break-all", gecko_constant_prefix="NS_STYLE_WORDBREAK")}
 
     // TODO(pcwalton): Support `text-justify: distribute`.
-    ${single_keyword("text-justify", "auto none inter-word")}
+    ${single_keyword("text-justify", "auto none inter-word", products="servo")}
 
     ${new_style_struct("Text", is_inherited=False, gecko_name="nsStyleTextReset",
                        additional_methods=[Method("has_underline", "bool"),
@@ -2253,7 +2282,7 @@ pub mod longhands {
 
     ${single_keyword("unicode-bidi", "normal embed isolate bidi-override isolate-override plaintext")}
 
-    <%self:longhand name="text-decoration" custom_cascade="True">
+    <%self:longhand name="text-decoration" custom_cascade="${CONFIG['product'] == 'servo'}">
         use cssparser::ToCss;
         use std::fmt;
         use values::computed::ComputedValueAsSpecified;
@@ -2328,15 +2357,17 @@ pub mod longhands {
             if !empty { Ok(result) } else { Err(()) }
         }
 
-        fn cascade_property_custom<C: ComputedValues>(
-                                   _declaration: &PropertyDeclaration,
-                                   _inherited_style: &C,
-                                   context: &mut computed::Context<C>,
-                                   _seen: &mut PropertyBitField,
-                                   _cacheable: &mut bool,
-                                   _error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
-            longhands::_servo_text_decorations_in_effect::derive_from_text_decoration(context);
-        }
+        % if CONFIG["product"] == "servo":
+            fn cascade_property_custom<C: ComputedValues>(
+                                       _declaration: &PropertyDeclaration,
+                                       _inherited_style: &C,
+                                       context: &mut computed::Context<C>,
+                                       _seen: &mut PropertyBitField,
+                                       _cacheable: &mut bool,
+                                       _error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
+                    longhands::_servo_text_decorations_in_effect::derive_from_text_decoration(context);
+            }
+        % endif
     </%self:longhand>
 
     ${single_keyword("text-decoration-style", "-moz-none solid double dotted dashed wavy",
@@ -2345,7 +2376,7 @@ pub mod longhands {
     ${switch_to_style_struct("InheritedText")}
 
     <%self:longhand name="-servo-text-decorations-in-effect"
-                    derived_from="display text-decoration">
+                    derived_from="display text-decoration" products="servo">
         use cssparser::{RGBA, ToCss};
         use std::fmt;
 
@@ -2425,7 +2456,8 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    <%self:single_keyword_computed name="white-space" values="normal pre nowrap pre-wrap pre-line">
+    <%self:single_keyword_computed name="white-space" values="normal pre nowrap pre-wrap pre-line",
+                                   gecko_constant_prefix="NS_STYLE_WHITESPACE">
         use values::computed::ComputedValueAsSpecified;
         impl ComputedValueAsSpecified for SpecifiedValue {}
 
@@ -2480,13 +2512,13 @@ pub mod longhands {
     // CSS 2.1, Section 17 - Tables
     ${new_style_struct("Table", is_inherited=False, gecko_name="nsStyleTable")}
 
-    ${single_keyword("table-layout", "auto fixed")}
+    ${single_keyword("table-layout", "auto fixed", gecko_ffi_name="mLayoutStrategy")}
 
-    ${new_style_struct("InheritedTable", is_inherited=True)}
+    ${new_style_struct("InheritedTable", is_inherited=True, gecko_name="nsStyleTableBorder")}
 
-    ${single_keyword("border-collapse", "separate collapse")}
+    ${single_keyword("border-collapse", "separate collapse", gecko_constant_prefix="NS_STYLE_BORDER")}
 
-    ${single_keyword("empty-cells", "show hide")}
+    ${single_keyword("empty-cells", "show hide", gecko_constant_prefix="NS_STYLE_TABLE_EMPTY_CELLS")}
 
     ${single_keyword("caption-side", "top bottom")}
 
@@ -2609,7 +2641,7 @@ pub mod longhands {
 
     ${single_keyword("box-sizing", "content-box border-box")}
 
-    ${new_style_struct("Pointing", is_inherited=True)}
+    ${new_style_struct("Pointing", is_inherited=True, gecko_name="nsStyleUserInterface")}
 
     <%self:longhand name="cursor">
         pub use self::computed_value::T as SpecifiedValue;
@@ -2853,7 +2885,7 @@ pub mod longhands {
     </%self:longhand>
 
     // Box-shadow, etc.
-    ${new_style_struct("Effects", is_inherited=False)}
+    ${new_style_struct("Effects", is_inherited=False, gecko_name="nsStyleEffects")}
 
     <%self:longhand name="opacity">
         use cssparser::ToCss;
@@ -4367,18 +4399,10 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    // Compositing and Blending Level 1
-    // http://www.w3.org/TR/compositing-1/
-    ${single_keyword("isolation", "auto isolate", products="gecko")}
-
     ${single_keyword("mix-blend-mode",
                      """normal multiply screen overlay darken lighten color-dodge
                         color-burn hard-light soft-light difference exclusion hue
-                        saturation color luminosity""")}
-
-    // CSS Masking Module Level 1
-    // https://www.w3.org/TR/css-masking-1/
-    ${single_keyword("mask-type", "luminance alpha", products="gecko")}
+                        saturation color luminosity""", gecko_constant_prefix="NS_STYLE_BLEND")}
 
     // CSS Image Values and Replaced Content Module Level 3
     // https://drafts.csswg.org/css-images-3/
@@ -5001,20 +5025,17 @@ pub mod longhands {
 
     // SVG 1.1 (Second Edition)
     // https://www.w3.org/TR/SVG/
-    ${new_style_struct("SVG", is_inherited=True)}
+    ${new_style_struct("SVGInherited", is_inherited=True, gecko_name="nsStyleSVG")}
 
     // Section 10 - Text
-    ${single_keyword("dominant-baseline",
-                     """auto use-script no-change reset-size ideographic alphabetic hanging
-                        mathematical central middle text-after-edge text-before-edge""",
-                     products="gecko")}
 
     ${single_keyword("text-anchor", "start middle end", products="gecko")}
 
     // Section 11 - Painting: Filling, Stroking and Marker Symbols
     ${single_keyword("color-interpolation", "auto sRGB linearRGB", products="gecko")}
 
-    ${single_keyword("color-interpolation-filters", "auto sRGB linearRGB", products="gecko")}
+    ${single_keyword("color-interpolation-filters", "auto sRGB linearRGB",
+                     products="gecko", gecko_constant_prefix="NS_STYLE_COLOR_INTERPOLATION")}
 
     ${single_keyword("fill-rule", "nonzero evenodd", products="gecko")}
 
@@ -5025,14 +5046,22 @@ pub mod longhands {
 
     ${single_keyword("stroke-linejoin", "miter round bevel", products="gecko")}
 
-    ${switch_to_style_struct("Effects")}
+    // Section 14 - Clipping, Masking and Compositing
+    ${single_keyword("clip-rule", "nonzero evenodd",
+                     products="gecko", gecko_constant_prefix="NS_STYLE_FILL_RULE")}
+
+    ${new_style_struct("SVG", is_inherited=False, gecko_name="nsStyleSVGReset")}
+
+    ${single_keyword("dominant-baseline",
+                     """auto use-script no-change reset-size ideographic alphabetic hanging
+                        mathematical central middle text-after-edge text-before-edge""",
+                     products="gecko")}
 
     ${single_keyword("vector-effect", "none non-scaling-stroke", products="gecko")}
 
-    ${switch_to_style_struct("SVG")}
-
-    // Section 14 - Clipping, Masking and Compositing
-    ${single_keyword("clip-rule", "nonzero evenodd", products="gecko")}
+    // CSS Masking Module Level 1
+    // https://www.w3.org/TR/css-masking-1/
+    ${single_keyword("mask-type", "luminance alpha", products="gecko")}
 }
 
 
@@ -6120,29 +6149,30 @@ impl PropertyDeclaration {
     pub fn name(&self) -> PropertyDeclarationName {
         match *self {
             % for property in LONGHANDS:
+                PropertyDeclaration::${property.camel_case}(..) =>
                 % if property.derived_from is None:
-                    PropertyDeclaration::${property.camel_case}(..) => {
-                        PropertyDeclarationName::Longhand("${property.name}")
-                    }
+                    PropertyDeclarationName::Longhand("${property.name}"),
+                % else:
+                    PropertyDeclarationName::Internal,
                 % endif
             % endfor
             PropertyDeclaration::Custom(ref name, _) => {
                 PropertyDeclarationName::Custom(name.clone())
             }
-            _ => PropertyDeclarationName::Internal,
         }
     }
 
     pub fn value(&self) -> String {
         match *self {
             % for property in LONGHANDS:
+                PropertyDeclaration::${property.camel_case}
                 % if property.derived_from is None:
-                    PropertyDeclaration::${property.camel_case}(ref value) =>
-                        value.to_css_string(),
+                    (ref value) => value.to_css_string(),
+                % else:
+                    (_) => panic!("unsupported property declaration: ${property.name}"),
                 % endif
             % endfor
             PropertyDeclaration::Custom(_, ref value) => value.to_css_string(),
-            ref decl => panic!("unsupported property declaration: {}", decl.name()),
         }
     }
 
@@ -6184,16 +6214,16 @@ impl PropertyDeclaration {
     pub fn matches(&self, name: &str) -> bool {
         match *self {
             % for property in LONGHANDS:
+                PropertyDeclaration::${property.camel_case}(..) =>
                 % if property.derived_from is None:
-                    PropertyDeclaration::${property.camel_case}(..) => {
-                        name.eq_ignore_ascii_case("${property.name}")
-                    }
+                    name.eq_ignore_ascii_case("${property.name}"),
+                % else:
+                    false,
                 % endif
             % endfor
             PropertyDeclaration::Custom(ref declaration_name, _) => {
                 ::custom_properties::parse_name(name) == Ok(&**declaration_name)
             }
-            _ => false,
         }
     }
 
@@ -6404,7 +6434,7 @@ pub mod style_structs {
                 fn clone_text_orientation(&self) -> longhands::text_orientation::computed_value::T {
                     self.text_orientation.clone()
                 }
-            % elif style_struct.trait_name == "InheritedText":
+            % elif style_struct.trait_name == "InheritedText" and CONFIG["product"] == "servo":
                 fn clone__servo_text_decorations_in_effect(&self) ->
                     longhands::_servo_text_decorations_in_effect::computed_value::T {
                     self._servo_text_decorations_in_effect.clone()
@@ -7091,11 +7121,13 @@ pub fn cascade<C: ComputedValues>(
         if let Some(computed_display) = computed_display {
             let box_ = style.mutate_box();
             box_.set_display(computed_display);
-            box_.set__servo_display_for_hypothetical_box(if is_root_element {
-                computed_display
-            } else {
-                specified_display
-            });
+            % if CONFIG["product"] == "servo":
+                box_.set__servo_display_for_hypothetical_box(if is_root_element {
+                    computed_display
+                } else {
+                    specified_display
+                });
+            % endif
         }
     }
 

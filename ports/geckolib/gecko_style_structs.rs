@@ -1314,7 +1314,6 @@ pub enum nsresult {
     NS_ERROR_SIGNED_APP_MANIFEST_INVALID = -2140471295,
     NS_ERROR_DOM_ANIM_MISSING_PROPS_ERR = -2140405759,
     NS_ERROR_DOM_ANIM_NO_TARGET_ERR = -2140405758,
-    NS_ERROR_DOM_ANIM_TARGET_NOT_IN_DOC_ERR = -2140405757,
     NS_ERROR_DOM_PUSH_INVALID_REGISTRATION_ERR = -2140340223,
     NS_ERROR_DOM_PUSH_DENIED_ERR = -2140340222,
     NS_ERROR_DOM_PUSH_ABORT_ERR = -2140340221,
@@ -1529,6 +1528,8 @@ fn bindgen_test_layout_nsAutoString() {
     assert_eq!(::std::mem::size_of::<nsAutoString>() , 160usize);
     assert_eq!(::std::mem::align_of::<nsAutoString>() , 8usize);
 }
+pub enum Dont_Instantiate_nsTArray_of { }
+pub enum Instead_Use_nsTArray_of { }
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
 pub struct nsTArrayElementTraits<> {
@@ -1887,6 +1888,7 @@ pub type nsCID = nsID;
  * interface.
  */
 pub type nsIID = nsID;
+pub enum COMTypeInfo { }
 /**
  * Basic component object model interface. Objects which implement
  * this interface support runtime interface discovery (QueryInterface)
@@ -1995,6 +1997,19 @@ pub struct RefPtrTraits<U> {
 #[repr(C)]
 pub struct RefPtr<T> {
     pub mRawPtr: *mut T,
+}
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub struct RefPtr_Proxy<T, R, Args> {
+    pub mRawPtr: *mut T,
+    pub _phantom0: ::std::marker::PhantomData<R>,
+    pub _phantom1: ::std::marker::PhantomData<Args>,
+}
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub struct RefPtr_ConstRemovingRefPtrTraits<T, U> {
+    pub _phantom0: ::std::marker::PhantomData<T>,
+    pub _phantom1: ::std::marker::PhantomData<U>,
 }
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -2142,6 +2157,13 @@ pub struct nsAutoPtr<T> {
 #[derive(Copy, Clone, Debug)]
 pub struct nsAutoPtr_Ptr<T> {
     pub mPtr: *mut T,
+}
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+pub struct nsAutoPtr_Proxy<T, R, Args> {
+    pub mRawPtr: *mut T,
+    pub _phantom0: ::std::marker::PhantomData<R>,
+    pub _phantom1: ::std::marker::PhantomData<Args>,
 }
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
@@ -4176,7 +4198,6 @@ fn bindgen_test_layout_nsCSSShadowArray() {
 #[repr(C)]
 pub struct nsStyleBorder {
     pub mBorderColors: *mut *mut nsBorderColors,
-    pub mBoxShadow: RefPtr<nsCSSShadowArray>,
     pub mBorderRadius: nsStyleCorners,
     pub mBorderImageSource: nsStyleImage,
     pub mBorderImageSlice: nsStyleSides,
@@ -4195,7 +4216,7 @@ pub struct nsStyleBorder {
 }
 #[test]
 fn bindgen_test_layout_nsStyleBorder() {
-    assert_eq!(::std::mem::size_of::<nsStyleBorder>() , 312usize);
+    assert_eq!(::std::mem::size_of::<nsStyleBorder>() , 304usize);
     assert_eq!(::std::mem::align_of::<nsStyleBorder>() , 8usize);
 }
 #[repr(C)]
@@ -4214,17 +4235,34 @@ fn bindgen_test_layout_nsStyleOutline() {
     assert_eq!(::std::mem::size_of::<nsStyleOutline>() , 112usize);
     assert_eq!(::std::mem::align_of::<nsStyleOutline>() , 8usize);
 }
+/**
+ * An object that allows sharing of arrays that store 'quotes' property
+ * values.  This is particularly important for inheritance, where we want
+ * to share the same 'quotes' value with a parent style context.
+ */
+#[repr(C)]
+pub struct nsStyleQuoteValues {
+    pub mRefCnt: nsAutoRefCnt,
+    pub _mOwningThread: nsAutoOwningThread,
+    pub mQuotePairs: u64,
+}
+#[test]
+fn bindgen_test_layout_nsStyleQuoteValues() {
+    assert_eq!(::std::mem::size_of::<nsStyleQuoteValues>() , 24usize);
+    assert_eq!(::std::mem::align_of::<nsStyleQuoteValues>() , 8usize);
+}
 #[repr(C)]
 pub struct nsStyleList {
     pub mListStylePosition: u8,
     pub mListStyleType: nsString,
     pub mCounterStyle: RefPtr<CounterStyle>,
     pub mListStyleImage: RefPtr<imgRequestProxy>,
+    pub mQuotes: RefPtr<nsStyleQuoteValues>,
     pub mImageRegion: nsRect,
 }
 #[test]
 fn bindgen_test_layout_nsStyleList() {
-    assert_eq!(::std::mem::size_of::<nsStyleList>() , 56usize);
+    assert_eq!(::std::mem::size_of::<nsStyleList>() , 64usize);
     assert_eq!(::std::mem::align_of::<nsStyleList>() , 8usize);
 }
 #[repr(C)]
@@ -4321,7 +4359,6 @@ fn bindgen_test_layout_nsStyleTextOverflow() {
 }
 #[repr(C)]
 pub struct nsStyleTextReset {
-    pub mVerticalAlign: nsStyleCoord,
     pub mTextOverflow: nsStyleTextOverflow,
     pub mTextDecorationLine: u8,
     pub mUnicodeBidi: u8,
@@ -4330,7 +4367,7 @@ pub struct nsStyleTextReset {
 }
 #[test]
 fn bindgen_test_layout_nsStyleTextReset() {
-    assert_eq!(::std::mem::size_of::<nsStyleTextReset>() , 80usize);
+    assert_eq!(::std::mem::size_of::<nsStyleTextReset>() , 64usize);
     assert_eq!(::std::mem::align_of::<nsStyleTextReset>() , 8usize);
 }
 #[repr(C)]
@@ -4350,6 +4387,7 @@ pub struct nsStyleText {
     pub mControlCharacterVisibility: u8,
     pub mTextEmphasisPosition: u8,
     pub mTextEmphasisStyle: u8,
+    pub mTextRendering: u8,
     pub mTabSize: i32,
     pub mTextEmphasisColor: nscolor,
     pub mWebkitTextFillColor: nscolor,
@@ -4398,7 +4436,7 @@ pub struct nsStyleVisibility {
     pub mImageOrientation: nsStyleImageOrientation,
     pub mDirection: u8,
     pub mVisible: u8,
-    pub mPointerEvents: u8,
+    pub mImageRendering: u8,
     pub mWritingMode: u8,
     pub mTextOrientation: u8,
     pub mColorAdjust: u8,
@@ -4531,8 +4569,6 @@ fn bindgen_test_layout_StyleAnimation() {
 #[repr(C)]
 pub struct nsStyleDisplay {
     pub mBinding: RefPtr<URLValue>,
-    pub mClip: nsRect,
-    pub mOpacity: f32,
     pub mDisplay: u8,
     pub mOriginalDisplay: u8,
     pub mContain: u8,
@@ -4548,9 +4584,7 @@ pub struct nsStyleDisplay {
     pub mOverflowY: u8,
     pub mOverflowClipBox: u8,
     pub mResize: u8,
-    pub mClipFlags: u8,
     pub mOrient: u8,
-    pub mMixBlendMode: u8,
     pub mIsolation: u8,
     pub mTopLayer: u8,
     pub mWillChangeBitField: u8,
@@ -4570,6 +4604,7 @@ pub struct nsStyleDisplay {
     pub mTransformOrigin: [nsStyleCoord; 3usize],
     pub mChildPerspective: nsStyleCoord,
     pub mPerspectiveOrigin: [nsStyleCoord; 2usize],
+    pub mVerticalAlign: nsStyleCoord,
     pub mTransitions: [u64; 7usize],
     pub mTransitionTimingFunctionCount: u32,
     pub mTransitionDurationCount: u32,
@@ -4587,7 +4622,7 @@ pub struct nsStyleDisplay {
 }
 #[test]
 fn bindgen_test_layout_nsStyleDisplay() {
-    assert_eq!(::std::mem::size_of::<nsStyleDisplay>() , 456usize);
+    assert_eq!(::std::mem::size_of::<nsStyleDisplay>() , 448usize);
     assert_eq!(::std::mem::align_of::<nsStyleDisplay>() , 8usize);
 }
 #[repr(C)]
@@ -4669,16 +4704,6 @@ fn bindgen_test_layout_nsStyleCounterData() {
     assert_eq!(::std::mem::align_of::<nsStyleCounterData>() , 8usize);
 }
 #[repr(C)]
-pub struct nsStyleQuotes {
-    pub mQuotesCount: u32,
-    pub mQuotes: *mut nsString,
-}
-#[test]
-fn bindgen_test_layout_nsStyleQuotes() {
-    assert_eq!(::std::mem::size_of::<nsStyleQuotes>() , 16usize);
-    assert_eq!(::std::mem::align_of::<nsStyleQuotes>() , 8usize);
-}
-#[repr(C)]
 pub struct nsStyleContent {
     pub mMarkerOffset: nsStyleCoord,
     pub mContents: *mut nsStyleContentData,
@@ -4723,13 +4748,14 @@ pub struct nsStyleUserInterface {
     pub mUserInput: u8,
     pub mUserModify: u8,
     pub mUserFocus: u8,
+    pub mPointerEvents: u8,
     pub mCursor: u8,
     pub mCursorArrayLength: u32,
     pub mCursorArray: *mut nsCursorImage,
 }
 #[test]
 fn bindgen_test_layout_nsStyleUserInterface() {
-    assert_eq!(::std::mem::size_of::<nsStyleUserInterface>() , 16usize);
+    assert_eq!(::std::mem::size_of::<nsStyleUserInterface>() , 24usize);
     assert_eq!(::std::mem::align_of::<nsStyleUserInterface>() , 8usize);
 }
 #[repr(C)]
@@ -4827,13 +4853,11 @@ pub struct nsStyleSVG {
     pub mColorInterpolation: u8,
     pub mColorInterpolationFilters: u8,
     pub mFillRule: u8,
-    pub mImageRendering: u8,
     pub mPaintOrder: u8,
     pub mShapeRendering: u8,
     pub mStrokeLinecap: u8,
     pub mStrokeLinejoin: u8,
     pub mTextAnchor: u8,
-    pub mTextRendering: u8,
     pub _bitfield_1: u8,
     pub _bitfield_2: u8,
 }
@@ -4933,7 +4957,6 @@ impl ::std::clone::Clone for nsTArray_CopyChooser {
 pub struct nsStyleSVGReset {
     pub mMask: nsStyleImageLayers,
     pub mClipPath: nsStyleClipPath,
-    pub mFilters: u64,
     pub mStopColor: nscolor,
     pub mFloodColor: nscolor,
     pub mLightingColor: nscolor,
@@ -4945,7 +4968,7 @@ pub struct nsStyleSVGReset {
 }
 #[test]
 fn bindgen_test_layout_nsStyleSVGReset() {
-    assert_eq!(::std::mem::size_of::<nsStyleSVGReset>() , 224usize);
+    assert_eq!(::std::mem::size_of::<nsStyleSVGReset>() , 216usize);
     assert_eq!(::std::mem::align_of::<nsStyleSVGReset>() , 8usize);
 }
 #[repr(C)]
@@ -4956,4 +4979,18 @@ pub struct nsStyleVariables {
 fn bindgen_test_layout_nsStyleVariables() {
     assert_eq!(::std::mem::size_of::<nsStyleVariables>() , 56usize);
     assert_eq!(::std::mem::align_of::<nsStyleVariables>() , 8usize);
+}
+#[repr(C)]
+pub struct nsStyleEffects {
+    pub mFilters: u64,
+    pub mBoxShadow: RefPtr<nsCSSShadowArray>,
+    pub mClip: nsRect,
+    pub mOpacity: f32,
+    pub mClipFlags: u8,
+    pub mMixBlendMode: u8,
+}
+#[test]
+fn bindgen_test_layout_nsStyleEffects() {
+    assert_eq!(::std::mem::size_of::<nsStyleEffects>() , 40usize);
+    assert_eq!(::std::mem::align_of::<nsStyleEffects>() , 8usize);
 }
