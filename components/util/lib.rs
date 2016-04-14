@@ -6,6 +6,7 @@
 #![feature(core_intrinsics)]
 #![feature(custom_derive)]
 #![cfg_attr(feature = "non-geckolib", feature(decode_utf16))]
+#![feature(fnbox)]
 #![feature(optin_builtin_traits)]
 #![feature(plugin)]
 #![feature(panic_handler)]
