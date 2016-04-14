@@ -47,6 +47,7 @@ use compositing::windowing::WindowEvent;
 use servo::Browser;
 use std::env;
 use util::opts;
+use util::panicking;
 
 mod input;
 mod window;
@@ -60,6 +61,8 @@ fn main() {
 
     // Parse the command line options and store them globally
     opts::from_cmdline_args(env::args().collect::<Vec<_>>().as_slice());
+
+    panicking::initiate_panic_hook();
 
     let window = window::Window::new();
 
