@@ -13,3 +13,5 @@ pyflakes == 0.8.0
 
 # For test-webidl
 ply == 3.8
+
+-e python/tidy
