@@ -11,6 +11,7 @@ path = "lib.rs"
 [dependencies]
 bitflags = "0.7"
 brotli = {git = "https://github.com/ende76/brotli-rs"}
+content-blocker = "0.2"
 cookie = {version = "0.2.4", features = ["serialize-rustc"]}
 device = {git = "https://github.com/servo/devices"}
 devtools_traits = {path = "../devtools_traits"}
@@ -18,6 +19,7 @@ flate2 = "0.2.0"
 hyper = {version = "0.9", features = ["serde-serialization"]}
 immeta = "0.3.1"
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+lazy_static = "0.2"
 log = "0.3.5"
 matches = "0.1"
 mime = "0.2.0"
