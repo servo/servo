@@ -32,7 +32,6 @@ def do_delayed_imports(logger, test_paths):
     global serve, sslutils
 
     serve_root = serve_path(test_paths)
-
     sys.path.insert(0, serve_root)
 
     failed = []
@@ -45,7 +44,6 @@ def do_delayed_imports(logger, test_paths):
     try:
         import sslutils
     except ImportError:
-        raise
         failed.append("sslutils")
 
     if failed:
