@@ -38,6 +38,7 @@ use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::node::{Node, NodeDamage, window_from_node};
+use dom::serviceworker::TrustedServiceWorkerAddress;
 use dom::servohtmlparser::ParserContext;
 use dom::uievent::UIEvent;
 use dom::window::{ReflowReason, ScriptHelpers, Window};
@@ -261,6 +262,12 @@ impl ScriptPort for Receiver<(TrustedWorkerAddress, MainThreadScriptMsg)> {
             Ok(_) => panic!("unexpected main thread event message!"),
             _ => Err(()),
         }
+    }
+}
+
+impl ScriptPort for Receiver<(TrustedServiceWorkerAddress, CommonScriptMsg)> {
+    fn recv(&self) -> Result<CommonScriptMsg, ()> {
+        self.recv().map(|(_, msg)| msg).map_err(|_| ())
     }
 }
 
@@ -871,6 +878,7 @@ impl ScriptThread {
                 ScriptThreadEventCategory::TimerEvent => ProfilerCategory::ScriptTimerEvent,
                 ScriptThreadEventCategory::WebSocketEvent => ProfilerCategory::ScriptWebSocketEvent,
                 ScriptThreadEventCategory::WorkerEvent => ProfilerCategory::ScriptWorkerEvent,
+                ScriptThreadEventCategory::ServiceWorkerEvent => ProfilerCategory::ScriptServiceWorkerEvent
             };
             profile(profiler_cat, None, self.time_profiler_chan.clone(), f)
         } else {
@@ -964,6 +972,7 @@ impl ScriptThread {
         let pipeline_id = match source {
             TimerSource::FromWindow(pipeline_id) => pipeline_id,
             TimerSource::FromWorker => panic!("Worker timeouts must not be sent to script thread"),
+            TimerSource::FromServiceWorker => panic!("Worker timeouts must not be sent to script thread"),
         };
 
         let context = self.root_browsing_context();
