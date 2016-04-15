@@ -176,19 +176,14 @@ pub mod longhands {
     use parser::ParserContext;
     use values::specified;
 
-    <%def name="raw_longhand(name, keyword=None, derived_from=None, products='gecko,servo',
-                             custom_cascade=False, experimental=False, internal=False,
-                             gecko_ffi_name=None)">
+    <%def name="raw_longhand(name, **kwargs)">
     <%
-        if not CONFIG['product'] in products:
+        products = kwargs.pop("products", "gecko,servo")
+        if not CONFIG["product"] in products:
             return ""
-        property = Longhand(name,
-                            derived_from=derived_from,
-                            keyword=keyword,
-                            custom_cascade=custom_cascade,
-                            experimental=experimental,
-                            internal=internal,
-                            gecko_ffi_name=gecko_ffi_name)
+
+        property = Longhand(name, **kwargs)
+
         property.style_struct = THIS_STYLE_STRUCT
         THIS_STYLE_STRUCT.longhands.append(property)
         LONGHANDS.append(property)
@@ -268,7 +263,7 @@ pub mod longhands {
                         );
                     }
 
-                    % if custom_cascade:
+                    % if property.custom_cascade:
                         cascade_property_custom(declaration,
                                                 inherited_style,
                                                 context,
