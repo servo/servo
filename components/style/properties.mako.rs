@@ -51,7 +51,7 @@ def to_camel_case(ident):
 
 class Keyword(object):
     def __init__(self, name, values, gecko_constant_prefix=None,
-                 extra_gecko_values=None, extra_servo_values=None):
+                 extra_gecko_values=None, extra_servo_values=None, **kwargs):
         self.name = name
         self.values = values
         self.gecko_constant_prefix = gecko_constant_prefix or "NS_STYLE_" + self.name.upper().replace("-", "_")
@@ -74,7 +74,7 @@ class Keyword(object):
 class Longhand(object):
     def __init__(self, name, derived_from=None, keyword=None,
                  custom_cascade=False, experimental=False, internal=False,
-                 gecko_ffi_name=None):
+                 gecko_ffi_name=None, **kwargs):
         self.name = name
         self.keyword = keyword
         self.ident = to_rust_ident(name)
@@ -84,10 +84,7 @@ class Longhand(object):
         self.custom_cascade = custom_cascade
         self.internal = internal
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
-        if derived_from is None:
-            self.derived_from = None
-        else:
-            self.derived_from = [ to_rust_ident(name) for name in derived_from ]
+        self.derived_from = (derived_from or "").split()
 
 class Shorthand(object):
     def __init__(self, name, sub_properties, experimental=False, internal=False):
@@ -179,34 +176,25 @@ pub mod longhands {
     use parser::ParserContext;
     use values::specified;
 
-    <%def name="raw_longhand(name, keyword=None, derived_from=None, products='gecko,servo',
-                             custom_cascade=False, experimental=False, internal=False,
-                             gecko_ffi_name=None)">
+    <%def name="raw_longhand(name, **kwargs)">
     <%
-        if not CONFIG['product'] in products:
+        products = kwargs.pop("products", "gecko,servo")
+        if not CONFIG["product"] in products:
             return ""
-        if derived_from is not None:
-            derived_from = derived_from.split()
 
-        property = Longhand(name,
-                            derived_from=derived_from,
-                            keyword=keyword,
-                            custom_cascade=custom_cascade,
-                            experimental=experimental,
-                            internal=internal,
-                            gecko_ffi_name=gecko_ffi_name)
+        property = Longhand(name, **kwargs)
+
         property.style_struct = THIS_STYLE_STRUCT
         THIS_STYLE_STRUCT.longhands.append(property)
         LONGHANDS.append(property)
         LONGHANDS_BY_NAME[name] = property
 
-        if derived_from is not None:
-            for name in derived_from:
-                DERIVED_LONGHANDS.setdefault(name, []).append(property)
+        for derived in property.derived_from:
+            DERIVED_LONGHANDS.setdefault(derived, []).append(property)
     %>
         pub mod ${property.ident} {
             #![allow(unused_imports)]
-            % if derived_from is None:
+            % if not property.derived_from:
                 use cssparser::Parser;
                 use parser::ParserContext;
                 use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
@@ -238,7 +226,7 @@ pub mod longhands {
                     }
                     _ => panic!("entered the wrong cascade_property() implementation"),
                 };
-                % if property.derived_from is None:
+                % if not property.derived_from:
                     if seen.get_${property.ident}() {
                         return
                     }
@@ -275,7 +263,7 @@ pub mod longhands {
                         );
                     }
 
-                    % if custom_cascade:
+                    % if property.custom_cascade:
                         cascade_property_custom(declaration,
                                                 inherited_style,
                                                 context,
@@ -287,7 +275,7 @@ pub mod longhands {
                     // Do not allow stylesheets to set derived properties.
                 % endif
             }
-            % if derived_from is None:
+            % if not property.derived_from:
                 pub fn parse_declared(context: &ParserContext, input: &mut Parser)
                                    -> Result<DeclaredValue<SpecifiedValue>, ()> {
                     match input.try(CSSWideKeyword::parse) {
@@ -322,34 +310,20 @@ pub mod longhands {
         }
     </%def>
 
-    <%def name="longhand(name, derived_from=None, keyword=None, products='gecko,servo',
-                         custom_cascade=False, experimental=False, internal=False,
-                         gecko_ffi_name=None)">
-        <%self:raw_longhand name="${name}" derived_from="${derived_from}" keyword="${keyword}"
-                products="${products}" custom_cascade="${custom_cascade}"
-                experimental="${experimental}" internal="${internal}"
-                gecko_ffi_name="${gecko_ffi_name}">
+    <%def name="longhand(name, **kwargs)">
+        <%call expr="raw_longhand(name, **kwargs)">
             ${caller.body()}
-            % if derived_from is None:
+            % if not LONGHANDS_BY_NAME[name].derived_from:
                 pub fn parse_specified(context: &ParserContext, input: &mut Parser)
                                    -> Result<DeclaredValue<SpecifiedValue>, ()> {
                     parse(context, input).map(DeclaredValue::Value)
                 }
             % endif
-        </%self:raw_longhand>
+        </%call>
     </%def>
 
-    <%def name="single_keyword_computed(name, values, products='gecko,servo',
-                                        extra_gecko_values=None, extra_servo_values=None,
-                                        custom_cascade=False, experimental=False, internal=False,
-                                        gecko_constant_prefix=None, gecko_ffi_name=None)">
-        <%self:longhand name="${name}" keyword="${Keyword(name, values.split(),
-                                                          gecko_constant_prefix=gecko_constant_prefix,
-                                                          extra_gecko_values=extra_gecko_values,
-                                                          extra_servo_values=extra_servo_values)}"
-                        products="${products}" custom_cascade="${custom_cascade}"
-                        experimental="${experimental}" internal="${internal}",
-                        gecko_ffi_name="${gecko_ffi_name}">
+    <%def name="single_keyword_computed(name, values, **kwargs)">
+        <%call expr="longhand(name, keyword=Keyword(name, values.split(), **kwargs), **kwargs)">
             pub use self::computed_value::T as SpecifiedValue;
             ${caller.body()}
             pub mod computed_value {
@@ -366,22 +340,14 @@ pub mod longhands {
                          -> Result<SpecifiedValue, ()> {
                 computed_value::T::parse(input)
             }
-        </%self:longhand>
+        </%call>
     </%def>
 
-    <%def name="single_keyword(name, values, products='gecko,servo',
-                               experimental=False, internal=False,
-                               gecko_constant_prefix=None, gecko_ffi_name=None)">
-        <%self:single_keyword_computed name="${name}"
-                                       values="${values}"
-                                       products="${products}"
-                                       experimental="${experimental}"
-                                       internal="${internal}",
-                                       gecko_constant_prefix="${gecko_constant_prefix}"
-                                       gecko_ffi_name="${gecko_ffi_name}">
+    <%def name="single_keyword(name, values, **kwargs)">
+        <%call expr="single_keyword_computed(name, values, **kwargs)">
             use values::computed::ComputedValueAsSpecified;
             impl ComputedValueAsSpecified for SpecifiedValue {}
-        </%self:single_keyword_computed>
+        </%call>
     </%def>
 
     <%def name="predefined_type(name, type, initial_value, parse_method='parse', products='gecko,servo')">
@@ -5803,7 +5769,7 @@ mod property_bit_field {
             self.storage[bit / 32] |= 1 << (bit % 32)
         }
         % for i, property in enumerate(LONGHANDS):
-            % if property.derived_from is None:
+            % if not property.derived_from:
                 #[allow(non_snake_case)]
                 #[inline]
                 pub fn get_${property.ident}(&self) -> bool {
@@ -5820,7 +5786,7 @@ mod property_bit_field {
 }
 
 % for property in LONGHANDS:
-    % if property.derived_from is None:
+    % if not property.derived_from:
         #[allow(non_snake_case)]
         fn substitute_variables_${property.ident}<F>(
             value: &DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
@@ -5991,7 +5957,7 @@ fn deduplicate_property_declarations(declarations: Vec<PropertyDeclaration>)
         match declaration {
             % for property in LONGHANDS:
                 PropertyDeclaration::${property.camel_case}(..) => {
-                    % if property.derived_from is None:
+                    % if not property.derived_from:
                         if seen.get_${property.ident}() {
                             continue
                         }
@@ -6150,7 +6116,7 @@ impl PropertyDeclaration {
         match *self {
             % for property in LONGHANDS:
                 PropertyDeclaration::${property.camel_case}(..) =>
-                % if property.derived_from is None:
+                % if not property.derived_from:
                     PropertyDeclarationName::Longhand("${property.name}"),
                 % else:
                     PropertyDeclarationName::Internal,
@@ -6166,7 +6132,7 @@ impl PropertyDeclaration {
         match *self {
             % for property in LONGHANDS:
                 PropertyDeclaration::${property.camel_case}
-                % if property.derived_from is None:
+                % if not property.derived_from:
                     (ref value) => value.to_css_string(),
                 % else:
                     (_) => panic!("unsupported property declaration: ${property.name}"),
@@ -6215,7 +6181,7 @@ impl PropertyDeclaration {
         match *self {
             % for property in LONGHANDS:
                 PropertyDeclaration::${property.camel_case}(..) =>
-                % if property.derived_from is None:
+                % if not property.derived_from:
                     name.eq_ignore_ascii_case("${property.name}"),
                 % else:
                     false,
@@ -6244,7 +6210,7 @@ impl PropertyDeclaration {
         }
         match_ignore_ascii_case! { name,
             % for property in LONGHANDS:
-                % if property.derived_from is None:
+                % if not property.derived_from:
                     "${property.name}" => {
                         % if property.internal:
                             if context.stylesheet_origin != Origin::UserAgent {
@@ -6857,7 +6823,7 @@ fn cascade_with_cached_declarations<C: ComputedValues>(
             match *declaration {
                 % for style_struct in active_style_structs():
                     % for property in style_struct.longhands:
-                        % if property.derived_from is None:
+                        % if not property.derived_from:
                             PropertyDeclaration::${property.camel_case}(ref
                                     ${'_' if not style_struct.inherited else ''}declared_value)
                                     => {
@@ -7363,7 +7329,7 @@ macro_rules! css_properties_accessors {
     ($macro_name: ident) => {
         $macro_name! {
             % for property in SHORTHANDS + LONGHANDS:
-                % if property.derived_from is None and not property.internal:
+                % if not property.derived_from and not property.internal:
                     % if '-' in property.name:
                         [${property.ident.capitalize()}, Set${property.ident.capitalize()}, "${property.name}"],
                     % endif
