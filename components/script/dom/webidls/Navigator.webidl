@@ -31,6 +31,10 @@ interface NavigatorBluetooth {
     readonly attribute Bluetooth bluetooth;
 };
 
+partial interface Navigator {
+  [SameObject] readonly attribute ServiceWorkerContainer serviceWorker;
+};
+
 // https://html.spec.whatwg.org/multipage/#navigatorlanguage
 [NoInterfaceObject/*, Exposed=Window,Worker*/]
 interface NavigatorLanguage {

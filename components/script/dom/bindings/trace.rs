@@ -80,6 +80,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::mpsc::{Receiver, Sender};
+use std::time::SystemTime;
 use string_cache::{Atom, Namespace, QualName};
 use style::attr::{AttrIdentifier, AttrValue};
 use style::element_state::*;
@@ -321,6 +322,7 @@ no_jsmanaged_fields!(HttpsState);
 no_jsmanaged_fields!(SharedRt);
 no_jsmanaged_fields!(TouchpadPressurePhase);
 no_jsmanaged_fields!(ReferrerPolicy);
+no_jsmanaged_fields!(SystemTime);
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]
