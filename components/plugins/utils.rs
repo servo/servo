@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use rustc::front::map as ast_map;
+use rustc::hir::def_id::DefId;
+use rustc::hir::map as ast_map;
+use rustc::hir::{self, def};
 use rustc::lint::{LateContext, LintContext};
-use rustc::middle::def;
-use rustc::middle::def_id::DefId;
-use rustc_front::hir;
 use syntax::ast;
 use syntax::attr::mark_used;
 use syntax::codemap::{ExpnFormat, Span};
@@ -102,8 +101,22 @@ pub fn unsafe_context(map: &ast_map::Map, id: ast::NodeId) -> bool {
 /// usage e.g. with
 /// `match_def_path(cx, id, &["core", "option", "Option"])`
 pub fn match_def_path(cx: &LateContext, def_id: DefId, path: &[&str]) -> bool {
-    cx.tcx.with_path(def_id, |iter| iter.map(|elem| elem.name())
-        .zip(path.iter()).all(|(nm, p)| &nm.as_str() == p))
+    let krate = &cx.tcx.crate_name(def_id.krate);
+    if krate != &path[0] {
+        return false;
+    }
+
+    let path = &path[1..];
+    let other = cx.tcx.def_path(def_id).data;
+
+    if other.len() != path.len() {
+        return false;
+    }
+
+    other.into_iter()
+         .map(|e| e.data)
+         .zip(path)
+         .all(|(nm, p)| nm.as_interned_str() == *p)
 }
 
 pub fn in_derive_expn(cx: &LateContext, span: Span) -> bool {

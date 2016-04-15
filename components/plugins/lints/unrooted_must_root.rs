@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use rustc::front::map as ast_map;
+use rustc::hir;
+use rustc::hir::intravisit as visit;
+use rustc::hir::map as ast_map;
+use rustc::hir::pat_util::pat_is_binding;
 use rustc::lint::{LateContext, LintPass, LintArray, LateLintPass, LintContext};
-use rustc::middle::pat_util::pat_is_binding;
 use rustc::ty;
-use rustc_front::hir;
-use rustc_front::intravisit as visit;
 use syntax::attr::AttrMetaMethods;
 use syntax::{ast, codemap};
 use utils::{match_def_path, in_derive_expn};
