@@ -483,6 +483,8 @@ impl SpeculatedFloatPlacement {
                 self.left = max(self.left, block_flow.base.speculated_float_placement_in.left);
                 self.right = max(self.right, block_flow.base.speculated_float_placement_in.right);
             }
+
+            //println!("computed floats out: {:?}", self);
         }
 
         let base_flow = flow::base(flow);
@@ -511,6 +513,10 @@ impl SpeculatedFloatPlacement {
         let mut placement = parent_block_flow.base.speculated_float_placement_in;
         let speculated_inline_content_edge_offsets =
             parent_block_flow.fragment.guess_inline_content_edge_offsets();
+        /*println!("parent_block_flow.speculated_float_placement_in={:?} \
+                  speculated_inline_content_edge_offsets={:?}",
+                 parent_block_flow.base.speculated_float_placement_in,
+                 speculated_inline_content_edge_offsets);*/
 
         if speculated_inline_content_edge_offsets.start > Au(0) {
             placement.left = if placement.left > speculated_inline_content_edge_offsets.start {

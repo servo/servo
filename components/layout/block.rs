@@ -868,6 +868,10 @@ impl BlockFlow {
                     flow::mut_base(kid).floats = Floats::new(self.fragment.style.writing_mode)
                 }
 
+                /*println!("about to possibly lay out in-order kid {:x}; floats={:?}",
+                         flow::base(kid) as *const _ as usize,
+                         flow::base(kid).floats);*/
+
                 // Lay the child out if this was an in-order traversal.
                 let need_to_process_child_floats =
                     kid.assign_block_size_for_inorder_child_if_necessary(layout_context,
@@ -1009,9 +1013,14 @@ impl BlockFlow {
                 self.base.position.size.block = cur_b;
             }
 
-            // Store the current set of floats in the flow so that flows that come later in the
+            // Translate the current set of floats back into the parent coordinate system in the
+            // inline direction, and store them in the flow so that flows that come later in the
             // document can access them.
+            floats.translate(LogicalSize::new(writing_mode,
+                                              self.fragment.inline_start_offset(),
+                                              Au(0)));
             self.base.floats = floats.clone();
+
             self.adjust_fragments_for_collapsed_margins_if_root(layout_context);
         } else {
             // We don't need to reflow, but we still need to perform in-order traversals if
