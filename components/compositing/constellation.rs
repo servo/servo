@@ -25,7 +25,7 @@ use gaol;
 #[cfg(not(target_os = "windows"))]
 use gaol::sandbox::{self, Sandbox, SandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
-use gfx_traits::{Epoch, PaintMsg as FromPaintMsg};
+use gfx_traits::Epoch;
 use ipc_channel::ipc::{self, IpcOneShotServer, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::{LayoutControlChan, LayoutThreadFactory};
@@ -34,7 +34,7 @@ use msg::constellation_msg::{FrameId, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, NavigationDirection};
 use msg::constellation_msg::{SubpageId, WindowSizeData};
-use msg::constellation_msg::{self, ConstellationChan, Failure};
+use msg::constellation_msg::{self, ConstellationChan, PanicMsg};
 use msg::webdriver_msg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::{StorageThread, StorageThreadMsg};
@@ -95,8 +95,8 @@ pub struct Constellation<LTF, STF> {
     /// A channel through which layout thread messages can be sent to this object.
     pub layout_sender: ConstellationChan<FromLayoutMsg>,
 
-    /// A channel through which paint thread messages can be sent to this object.
-    pub painter_sender: ConstellationChan<FromPaintMsg>,
+    /// A channel through which panic messages can be sent to this object.
+    pub panic_sender: ConstellationChan<PanicMsg>,
 
     /// Receives messages from scripts.
     pub script_receiver: Receiver<FromScriptMsg>,
@@ -107,8 +107,8 @@ pub struct Constellation<LTF, STF> {
     /// Receives messages from the layout thread
     pub layout_receiver: Receiver<FromLayoutMsg>,
 
-    /// Receives messages from paint thread.
-    pub painter_receiver: Receiver<FromPaintMsg>,
+    /// Receives panic messages.
+    pub panic_receiver: Receiver<PanicMsg>,
 
     /// A channel (the implementation of which is port-specific) through which messages can be sent
     /// to the compositor.
@@ -320,19 +320,19 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         let (compositor_sender, compositor_receiver) = channel();
         let (ipc_layout_receiver, ipc_layout_sender) = ConstellationChan::<FromLayoutMsg>::new();
         let layout_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_layout_receiver);
-        let (ipc_painter_receiver, ipc_painter_sender) = ConstellationChan::<FromPaintMsg>::new();
-        let painter_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_painter_receiver);
+        let (ipc_panic_receiver, ipc_panic_sender) = ConstellationChan::<PanicMsg>::new();
+        let panic_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_panic_receiver);
         let compositor_sender_clone = compositor_sender.clone();
         spawn_named("Constellation".to_owned(), move || {
             let mut constellation: Constellation<LTF, STF> = Constellation {
                 script_sender: ipc_script_sender,
                 compositor_sender: compositor_sender_clone,
                 layout_sender: ipc_layout_sender,
-                painter_sender: ipc_painter_sender,
                 script_receiver: script_receiver,
+                panic_sender: ipc_panic_sender,
                 compositor_receiver: compositor_receiver,
                 layout_receiver: layout_receiver,
-                painter_receiver: painter_receiver,
+                panic_receiver: panic_receiver,
                 compositor_proxy: state.compositor_proxy,
                 devtools_chan: state.devtools_chan,
                 resource_thread: state.resource_thread,
@@ -416,7 +416,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 parent_info: parent_info,
                 constellation_chan: self.script_sender.clone(),
                 layout_to_constellation_chan: self.layout_sender.clone(),
-                painter_chan: self.painter_sender.clone(),
+                panic_chan: self.panic_sender.clone(),
                 scheduler_chan: self.scheduler_chan.clone(),
                 compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
                 devtools_chan: self.devtools_chan.clone(),
@@ -548,7 +548,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             Script(FromScriptMsg),
             Compositor(FromCompositorMsg),
             Layout(FromLayoutMsg),
-            Paint(FromPaintMsg)
+            Panic(PanicMsg)
         }
 
         // Get one incoming request.
@@ -566,16 +566,16 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             let receiver_from_script = &self.script_receiver;
             let receiver_from_compositor = &self.compositor_receiver;
             let receiver_from_layout = &self.layout_receiver;
-            let receiver_from_paint = &self.painter_receiver;
+            let receiver_from_panic = &self.panic_receiver;
             select! {
                 msg = receiver_from_script.recv() =>
-                    Request::Script(msg.expect("Unexpected script failure in constellation")),
+                    Request::Script(msg.expect("Unexpected script channel panic in constellation")),
                 msg = receiver_from_compositor.recv() =>
-                    Request::Compositor(msg.expect("Unexpected compositor failure in constellation")),
+                    Request::Compositor(msg.expect("Unexpected compositor channel panic in constellation")),
                 msg = receiver_from_layout.recv() =>
-                    Request::Layout(msg.expect("Unexpected layout failure in constellation")),
-                msg = receiver_from_paint.recv() =>
-                    Request::Paint(msg.expect("Unexpected paint failure in constellation"))
+                    Request::Layout(msg.expect("Unexpected layout channel panic in constellation")),
+                msg = receiver_from_panic.recv() =>
+                    Request::Panic(msg.expect("Unexpected panic channel panic in constellation"))
             }
         };
 
@@ -655,10 +655,6 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             // Messages from script
 
 
-            Request::Script(FromScriptMsg::Failure(failure)) => {
-                debug!("handling script failure message from pipeline {:?}", failure);
-                self.handle_failure_msg(failure);
-            }
             Request::Script(FromScriptMsg::ScriptLoadedURLInIFrame(load_info)) => {
                 debug!("constellation got iframe URL load message {:?} {:?} {:?}",
                        load_info.containing_pipeline_id,
@@ -803,10 +799,6 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             Request::Layout(FromLayoutMsg::ChangeRunningAnimationsState(pipeline_id, animation_state)) => {
                 self.handle_change_running_animations_state(pipeline_id, animation_state)
             }
-            Request::Layout(FromLayoutMsg::Failure(failure)) => {
-                debug!("handling paint failure message from pipeline {:?}", failure);
-                self.handle_failure_msg(failure);
-            }
             Request::Layout(FromLayoutMsg::SetCursor(cursor)) => {
                 self.handle_set_cursor_msg(cursor)
             }
@@ -816,15 +808,12 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             }
 
 
-            // Messages from paint thread
+            // Panic messages
 
-
-            // Notification that painting has finished and is requesting permission to paint.
-            Request::Paint(FromPaintMsg::Failure(failure)) => {
-                debug!("handling paint failure message from pipeline {:?}", failure);
-                self.handle_failure_msg(failure);
+            Request::Panic((pipeline_id, panic_reason)) => {
+                debug!("handling panic message ({:?})", pipeline_id);
+                self.handle_panic(pipeline_id, panic_reason);
             }
-
         }
         true
     }
@@ -851,17 +840,12 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     }
 
     fn handle_send_error(&mut self, pipeline_id: PipelineId, err: IOError) {
-        let parent_info = match self.pipelines.get(&pipeline_id) {
-            None => return warn!("Pipeline {:?} send error after closure.", pipeline_id),
-            Some(pipeline) => pipeline.parent_info,
-        };
-        // Treat send error the same as receiving a failure message
+        // Treat send error the same as receiving a panic message
         debug!("Pipeline {:?} send error ({}).", pipeline_id, err);
-        let failure = Failure::new(pipeline_id, parent_info);
-        self.handle_failure_msg(failure);
+        self.handle_panic(Some(pipeline_id), format!("Send failed ({})", err));
     }
 
-    fn handle_failure_msg(&mut self, failure: Failure) {
+    fn handle_panic(&mut self, pipeline_id: Option<PipelineId>, reason: String) {
         if opts::get().hard_fail {
             // It's quite difficult to make Servo exit cleanly if some threads have failed.
             // Hard fail exists for test runners so we crash and that's good enough.
@@ -871,15 +855,26 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             process::exit(1);
         }
 
-        let window_size = self.pipelines.get(&failure.pipeline_id).and_then(|pipeline| pipeline.size);
+        debug!("Panic handler for pipeline {:?}: {}.", pipeline_id, reason);
+
+        if let Some(pipeline_id) = pipeline_id {
+            self.replace_pipeline_with_about_failure(pipeline_id);
+        }
+
+    }
+
+    fn replace_pipeline_with_about_failure(&mut self, pipeline_id: PipelineId) {
+
+        let parent_info = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.parent_info);
+        let window_size = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.size);
 
         // Notify the browser chrome that the pipeline has failed
-        self.trigger_mozbrowsererror(failure.pipeline_id);
+        self.trigger_mozbrowsererror(pipeline_id);
 
-        self.close_pipeline(failure.pipeline_id, ExitPipelineMode::Force);
+        self.close_pipeline(pipeline_id, ExitPipelineMode::Force);
 
         while let Some(pending_pipeline_id) = self.pending_frames.iter().find(|pending| {
-            pending.old_pipeline_id == Some(failure.pipeline_id)
+            pending.old_pipeline_id == Some(pipeline_id)
         }).map(|frame| frame.new_pipeline_id) {
             warn!("removing pending frame change for failed pipeline");
             self.close_pipeline(pending_pipeline_id, ExitPipelineMode::Force);
@@ -889,12 +884,12 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
         let new_pipeline_id = PipelineId::new();
         self.new_pipeline(new_pipeline_id,
-                          failure.parent_info,
+                          parent_info,
                           window_size,
                           None,
                           LoadData::new(Url::parse("about:failure").expect("infallible")));
 
-        self.push_pending_frame(new_pipeline_id, Some(failure.pipeline_id));
+        self.push_pending_frame(new_pipeline_id, Some(pipeline_id));
 
     }
 
