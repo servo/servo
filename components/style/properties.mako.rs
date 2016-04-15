@@ -51,7 +51,7 @@ def to_camel_case(ident):
 
 class Keyword(object):
     def __init__(self, name, values, gecko_constant_prefix=None,
-                 extra_gecko_values=None, extra_servo_values=None):
+                 extra_gecko_values=None, extra_servo_values=None, **kwargs):
         self.name = name
         self.values = values
         self.gecko_constant_prefix = gecko_constant_prefix or "NS_STYLE_" + self.name.upper().replace("-", "_")
@@ -74,7 +74,7 @@ class Keyword(object):
 class Longhand(object):
     def __init__(self, name, derived_from=None, keyword=None,
                  custom_cascade=False, experimental=False, internal=False,
-                 gecko_ffi_name=None):
+                 gecko_ffi_name=None, **kwargs):
         self.name = name
         self.keyword = keyword
         self.ident = to_rust_ident(name)
@@ -323,17 +323,8 @@ pub mod longhands {
         </%call>
     </%def>
 
-    <%def name="single_keyword_computed(name, values, products='gecko,servo',
-                                        extra_gecko_values=None, extra_servo_values=None,
-                                        custom_cascade=False, experimental=False, internal=False,
-                                        gecko_constant_prefix=None, gecko_ffi_name=None)">
-        <%self:longhand name="${name}" keyword="${Keyword(name, values.split(),
-                                                          gecko_constant_prefix=gecko_constant_prefix,
-                                                          extra_gecko_values=extra_gecko_values,
-                                                          extra_servo_values=extra_servo_values)}"
-                        products="${products}" custom_cascade="${custom_cascade}"
-                        experimental="${experimental}" internal="${internal}",
-                        gecko_ffi_name="${gecko_ffi_name}">
+    <%def name="single_keyword_computed(name, values, **kwargs)">
+        <%call expr="longhand(name, keyword=Keyword(name, values.split(), **kwargs), **kwargs)">
             pub use self::computed_value::T as SpecifiedValue;
             ${caller.body()}
             pub mod computed_value {
@@ -350,7 +341,7 @@ pub mod longhands {
                          -> Result<SpecifiedValue, ()> {
                 computed_value::T::parse(input)
             }
-        </%self:longhand>
+        </%call>
     </%def>
 
     <%def name="single_keyword(name, values, products='gecko,servo',
