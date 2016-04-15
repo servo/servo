@@ -113,10 +113,9 @@ impl UIProvider for TestProvider {
     }
 }
 
-fn basic_auth(headers: Headers) -> MockResponse {
-
+fn basic_auth() -> MockResponse {
     MockResponse::new(
-        headers,
+        Headers::new(),
         StatusCode::Unauthorized,
         RawStatus(401, Cow::Borrowed("Unauthorized")),
         b"".to_vec()
@@ -138,7 +137,8 @@ enum ResponseType {
     Redirect(String),
     RedirectWithHeaders(String, Headers),
     Text(Vec<u8>),
-    WithHeaders(Vec<u8>, Headers)
+    WithHeaders(Vec<u8>, Headers),
+    NeedsAuth,
 }
 
 struct MockRequest {
@@ -165,6 +165,9 @@ fn response_for_request_type(t: ResponseType) -> Result<MockResponse, LoadError>
         },
         ResponseType::WithHeaders(b, h) => {
             Ok(respond_with_headers(b, h))
+        },
+        ResponseType::NeedsAuth => {
+            Ok(basic_auth())
         }
     }
 }
@@ -176,40 +179,6 @@ impl HttpRequest for MockRequest {
 
     fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
         response_for_request_type(self.t)
-    }
-}
-
-struct AssertAuthHeaderRequest {
-    expected_headers: Headers,
-    request_headers: Headers,
-    t: ResponseType
-}
-
-impl AssertAuthHeaderRequest {
-    fn new(t: ResponseType, expected_headers: Headers) -> Self {
-        AssertAuthHeaderRequest { expected_headers: expected_headers, request_headers: Headers::new(), t: t }
-    }
-}
-
-impl HttpRequest for AssertAuthHeaderRequest {
-    type R = MockResponse;
-
-    fn headers_mut(&mut self) -> &mut Headers { &mut self.request_headers }
-
-    fn send(self, _: &Option<Vec<u8>>) -> Result<MockResponse, LoadError> {
-
-        if self.request_headers.has::<Authorization<Basic>>() {
-            for header in self.expected_headers.iter() {
-                assert!(self.request_headers.get_raw(header.name()).is_some());
-                assert_eq!(
-                    self.request_headers.get_raw(header.name()).unwrap(),
-                    self.expected_headers.get_raw(header.name()).unwrap()
-                )
-            }
-            response_for_request_type(self.t)
-        } else {
-            Ok(basic_auth(self.request_headers))
-        }
     }
 }
 
@@ -233,15 +202,17 @@ struct AssertAuthHeaderRequestFactory {
 }
 
 impl HttpRequestFactory for AssertAuthHeaderRequestFactory {
-    type R = AssertAuthHeaderRequest;
+    type R = MockRequest;
 
-    fn create(&self, _: Url, _: Method) -> Result<AssertAuthHeaderRequest, LoadError> {
-        Ok(
-            AssertAuthHeaderRequest::new(
-                ResponseType::Text(self.body.clone()),
-                self.expected_headers.clone()
-            )
-        )
+    fn create_with_headers(&self, _: Url, _: Method, headers: Headers) -> Result<MockRequest, LoadError> {
+        let request = if headers.has::<Authorization<Basic>>() {
+            assert_headers_included(&self.expected_headers, &headers);
+            MockRequest::new(ResponseType::Text(self.body.clone()))
+        } else {
+            MockRequest::new(ResponseType::NeedsAuth)
+        };
+
+        Ok(request)
     }
 }
 
