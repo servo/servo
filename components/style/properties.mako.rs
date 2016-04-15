@@ -55,8 +55,8 @@ class Keyword(object):
         self.name = name
         self.values = values
         self.gecko_constant_prefix = gecko_constant_prefix or "NS_STYLE_" + self.name.upper().replace("-", "_")
-        self.extra_gecko_values = extra_gecko_values or []
-        self.extra_servo_values = extra_servo_values or []
+        self.extra_gecko_values = (extra_gecko_values or "").split()
+        self.extra_servo_values = (extra_servo_values or "").split()
     def gecko_values(self):
         return self.values + self.extra_gecko_values
     def servo_values(self):
@@ -178,7 +178,7 @@ pub mod longhands {
 
     <%def name="raw_longhand(name, **kwargs)">
     <%
-        products = kwargs.pop("products", "gecko,servo")
+        products = kwargs.pop("products", "gecko servo").split()
         if not CONFIG["product"] in products:
             return ""
 
@@ -350,7 +350,7 @@ pub mod longhands {
         </%call>
     </%def>
 
-    <%def name="predefined_type(name, type, initial_value, parse_method='parse', products='gecko,servo')">
+    <%def name="predefined_type(name, type, initial_value, parse_method='parse', products='gecko servo')">
         <%self:longhand name="${name}" products="${products}">
             #[allow(unused_imports)]
             use app_units::Au;
@@ -587,7 +587,7 @@ pub mod longhands {
 
     </%self:longhand>
 
-    ${single_keyword("position", "static absolute relative fixed")}
+    ${single_keyword("position", "static absolute relative fixed", extra_gecko_values="sticky")}
 
     <%self:single_keyword_computed name="float" values="none left right" gecko_ffi_name="mFloats">
         impl ToComputedValue for SpecifiedValue {
@@ -965,7 +965,8 @@ pub mod longhands {
     ${switch_to_style_struct("InheritedBox")}
 
     // TODO: collapse. Well, do tables first.
-    ${single_keyword("visibility", "visible hidden", gecko_ffi_name="mVisible")}
+    ${single_keyword("visibility", "visible hidden", extra_gecko_values="collapse",
+                                                     gecko_ffi_name="mVisible")}
 
     // CSS 2.1, Section 12 - Generated content, automatic numbering, and lists
 
@@ -2234,7 +2235,8 @@ pub mod longhands {
                                                            gecko_constant_prefix="NS_STYLE_WORDWRAP")}
 
     // TODO(pcwalton): Support `word-break: keep-all` once we have better CJK support.
-    ${single_keyword("word-break", "normal break-all", gecko_constant_prefix="NS_STYLE_WORDBREAK")}
+    ${single_keyword("word-break", "normal break-all", extra_gecko_values="keep-all",
+                                                       gecko_constant_prefix="NS_STYLE_WORDBREAK")}
 
     // TODO(pcwalton): Support `text-justify: distribute`.
     ${single_keyword("text-justify", "auto none inter-word", products="servo")}
@@ -2461,7 +2463,8 @@ pub mod longhands {
     </%self:single_keyword_computed>
 
     // TODO(pcwalton): `full-width`
-    ${single_keyword("text-transform", "none capitalize uppercase lowercase")}
+    ${single_keyword("text-transform", "none capitalize uppercase lowercase",
+                     extra_gecko_values="full-width")}
 
     ${single_keyword("text-rendering", "auto optimizespeed optimizelegibility geometricprecision")}
 
@@ -2486,7 +2489,7 @@ pub mod longhands {
 
     ${single_keyword("empty-cells", "show hide", gecko_constant_prefix="NS_STYLE_TABLE_EMPTY_CELLS")}
 
-    ${single_keyword("caption-side", "top bottom")}
+    ${single_keyword("caption-side", "top bottom", extra_gecko_values="right left top-outside bottom-outside")}
 
     <%self:longhand name="border-spacing">
         use app_units::Au;
