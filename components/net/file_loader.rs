@@ -72,54 +72,54 @@ pub fn factory(load_data: LoadData,
                cancel_listener: CancellationListener) {
     assert!(&*load_data.url.scheme == "file");
     spawn_named("file_loader".to_owned(), move || {
-        let file_path: Result<PathBuf, ()> = load_data.url.to_file_path();
-        match file_path {
-            Ok(file_path) => {
-                match File::open(&file_path) {
-                    Ok(ref mut reader) => {
-                        if cancel_listener.is_cancelled() {
-                            if let Ok(progress_chan) = get_progress_chan(load_data, file_path,
-                                                                         senders, classifier, &[]) {
-                                let _ = progress_chan.send(Done(Err("load cancelled".to_owned())));
-                            }
-                            return;
-                        }
-                        match read_block(reader) {
-                            Ok(ReadStatus::Partial(buf)) => {
-                                let progress_chan = get_progress_chan(load_data, file_path,
-                                                                      senders, classifier, &buf).ok().unwrap();
-                                progress_chan.send(Payload(buf)).unwrap();
-                                let read_result = read_all(reader, &progress_chan, &cancel_listener);
-                                if let Ok(load_result) = read_result {
-                                    match load_result {
-                                        LoadResult::Cancelled => return,
-                                        LoadResult::Finished => progress_chan.send(Done(Ok(()))).unwrap(),
-                                    }
-                                }
-                            }
-                            Ok(ReadStatus::EOF) => {
-                                if let Ok(chan) = get_progress_chan(load_data, file_path,
-                                                                    senders, classifier, &[]) {
-                                    let _ = chan.send(Done(Ok(())));
-                                }
-                            }
-                            Err(e) => {
-                                send_error(load_data.url, e, senders);
-                            }
-                        };
-                    }
-                    Err(_) => {
-                        // this should be one of the three errors listed in
-                        // http://doc.rust-lang.org/std/fs/struct.OpenOptions.html#method.open
-                        // but, we'll go for a "file not found!"
-                        let url = Url::parse("about:not-found").unwrap();
-                        let load_data_404 = LoadData::new(load_data.context, url, None);
-                        about_loader::factory(load_data_404, senders, classifier, cancel_listener)
+        let file_path = match load_data.url.to_file_path() {
+            Ok(file_path) => file_path,
+            Err(_) => {
+                send_error(load_data.url, "Could not parse path".to_owned(), senders);
+                return;
+            },
+        };
+        let mut file = File::open(&file_path);
+        let reader = match file {
+            Ok(ref mut reader) => reader,
+            Err(_) => {
+                // this should be one of the three errors listed in
+                // http://doc.rust-lang.org/std/fs/struct.OpenOptions.html#method.open
+                // but, we'll go for a "file not found!"
+                let url = Url::parse("about:not-found").unwrap();
+                let load_data_404 = LoadData::new(load_data.context, url, None);
+                about_loader::factory(load_data_404, senders, classifier, cancel_listener);
+                return;
+            }
+        };
+        if cancel_listener.is_cancelled() {
+            if let Ok(progress_chan) = get_progress_chan(load_data, file_path,
+                                                         senders, classifier, &[]) {
+                let _ = progress_chan.send(Done(Err("load cancelled".to_owned())));
+            }
+            return;
+        }
+        match read_block(reader) {
+            Ok(ReadStatus::Partial(buf)) => {
+                let progress_chan = get_progress_chan(load_data, file_path,
+                                                      senders, classifier, &buf).ok().unwrap();
+                progress_chan.send(Payload(buf)).unwrap();
+                let read_result = read_all(reader, &progress_chan, &cancel_listener);
+                if let Ok(load_result) = read_result {
+                    match load_result {
+                        LoadResult::Cancelled => return,
+                        LoadResult::Finished => progress_chan.send(Done(Ok(()))).unwrap(),
                     }
                 }
             }
-            Err(_) => {
-                send_error(load_data.url, "Could not parse path".to_owned(), senders);
+            Ok(ReadStatus::EOF) => {
+                if let Ok(chan) = get_progress_chan(load_data, file_path,
+                                                    senders, classifier, &[]) {
+                    let _ = chan.send(Done(Ok(())));
+                }
+            }
+            Err(e) => {
+                send_error(load_data.url, e, senders);
             }
         }
     });
