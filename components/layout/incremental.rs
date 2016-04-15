@@ -5,7 +5,7 @@
 use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, IS_ABSOLUTELY_POSITIONED};
 use std::fmt;
 use std::sync::Arc;
-use style::computed_values::float;
+use style::computed_values::{display, float};
 use style::dom::TRestyleDamage;
 use style::properties::{ComputedValues, ServoComputedValues};
 
@@ -193,7 +193,17 @@ pub fn compute_damage(old: Option<&Arc<ServoComputedValues>>, new: &ServoCompute
         get_text.text_decoration, get_text.unicode_bidi,
         get_inheritedtable.empty_cells, get_inheritedtable.caption_side,
         get_column.column_width, get_column.column_count
-    ]) || add_if_not_equal!(old, new, damage,
+    ]) || (new.get_box().display == display::T::inline &&
+           add_if_not_equal!(old, new, damage,
+                             [REPAINT, STORE_OVERFLOW, BUBBLE_ISIZES, REFLOW_OUT_OF_FLOW, REFLOW,
+                              RECONSTRUCT_FLOW], [
+        // For inline boxes only, border/padding styles are used in flow construction (to decide
+        // whether to create fragments for empty flows).
+        get_border.border_top_width, get_border.border_right_width,
+        get_border.border_bottom_width, get_border.border_left_width,
+        get_padding.padding_top, get_padding.padding_right,
+        get_padding.padding_bottom, get_padding.padding_left
+    ])) || add_if_not_equal!(old, new, damage,
                             [ REPAINT, STORE_OVERFLOW, BUBBLE_ISIZES, REFLOW_OUT_OF_FLOW, REFLOW ],
         [get_border.border_top_width, get_border.border_right_width,
         get_border.border_bottom_width, get_border.border_left_width,

@@ -13,6 +13,7 @@
 
 #![deny(unsafe_code)]
 
+use app_units::Au;
 use block::BlockFlow;
 use context::LayoutContext;
 use data::{HAS_NEWLY_CONSTRUCTED_FLOW, PrivateLayoutData};
@@ -808,7 +809,9 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         let mut abs_descendants = AbsoluteDescendants::new();
 
         // Concatenate all the fragments of our kids, creating {ib} splits as necessary.
+        let mut is_empty = true;
         for kid in node.children() {
+            is_empty = false;
             if kid.get_pseudo_element_type() != PseudoElementType::Normal {
                 self.process(&kid);
             }
@@ -889,6 +892,22 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
             }
         }
 
+        if is_empty && node.style().has_padding_or_border() {
+            // An empty inline box needs at least one fragment to draw its background and borders.
+            let info = SpecificFragmentInfo::UnscannedText(
+                box UnscannedTextFragmentInfo::new(String::new(), None));
+            let mut modified_style = node.style().clone();
+            properties::modify_style_for_replaced_content(&mut modified_style);
+            properties::modify_style_for_text(&mut modified_style);
+            let fragment = Fragment::from_opaque_node_and_style(node.opaque(),
+                                                                node.get_pseudo_element_type().strip(),
+                                                                modified_style,
+                                                                node.selected_style().clone(),
+                                                                node.restyle_damage(),
+                                                                info);
+            fragment_accumulator.fragments.fragments.push_back(fragment)
+        }
+
         // Finally, make a new construction result.
         if opt_inline_block_splits.len() > 0 || !fragment_accumulator.fragments.is_empty()
                 || abs_descendants.len() > 0 {
@@ -923,8 +942,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
         }
 
         // If this node is ignorable whitespace, bail out now.
-        //
-        // FIXME(#2001, pcwalton): Don't do this if there's padding or borders.
         if node.is_ignorable_whitespace() {
             return ConstructionResult::ConstructionItem(ConstructionItem::Whitespace(
                 node.opaque(),
@@ -1851,4 +1868,26 @@ fn control_chars_to_fragment(node: &InlineFragmentNodeInfo,
                                          node.selected_style.clone(),
                                          restyle_damage,
                                          info)
+}
+
+/// Convenience methods for computed CSS values
+trait ComputedValueUtils {
+    /// Returns true if this node has non-zero padding or border.
+    fn has_padding_or_border(&self) -> bool;
+}
+
+impl ComputedValueUtils for ServoComputedValues {
+    fn has_padding_or_border(&self) -> bool {
+        let padding = self.get_padding();
+        let border = self.get_border();
+
+        !padding.padding_top.is_definitely_zero() ||
+           !padding.padding_right.is_definitely_zero() ||
+           !padding.padding_bottom.is_definitely_zero() ||
+           !padding.padding_left.is_definitely_zero() ||
+           border.border_top_width != Au(0) ||
+           border.border_right_width != Au(0) ||
+           border.border_bottom_width != Au(0) ||
+           border.border_left_width != Au(0)
+    }
 }
