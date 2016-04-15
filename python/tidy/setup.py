@@ -1,3 +1,12 @@
+# Copyright 2013 The Servo Project Developers. See the COPYRIGHT
+# file at the top-level directory of this distribution.
+#
+# Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+# http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+# <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+# option. This file may not be copied, modified, or distributed
+# except according to those terms.
+
 import os
 from setuptools import setup, find_packages
 
@@ -27,7 +36,8 @@ if __name__ == '__main__':
     setup(
         name='servo_tidy',
         version=VERSION,
-        description='The servo-tidy is used to check licenses, line lengths, whitespace, flake8 on Python files, lock file versions, and more.',
+        description='The servo-tidy is used to check licenses, '
+                    'line lengths, whitespace, flake8 on Python files, lock file versions, and more.',
         long_description=long_description,
         keywords='mozilla servo tidy ',
         author='The Servo Project Developers',
