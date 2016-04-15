@@ -23,13 +23,13 @@ use util::str::DOMString;
 
 // A device name can never be longer than 29 bytes. An adv packet is at most
 // 31 bytes long. The length and identifier of the length field take 2 bytes.
-// That least 29 bytes for the name.
-const MAX_FILTER_NAME_LENGTH: usize = 29;
-// 248 is the maximum number of UTF-8 code units in a Bluetooth Device Name.
-const MAX_DEVICE_NAME_LENGTH: usize = 248;
 const FILTER_EMPTY_ERROR: &'static str = "'filters' member must be non - empty to find any devices.";
 const FILTER_ERROR: &'static str = "A filter must restrict the devices in some way.";
 const FILTER_NAME_TOO_LONG_ERROR: &'static str = "A 'name' or 'namePrefix' can't be longer then 29 bytes.";
+// 248 is the maximum number of UTF-8 code units in a Bluetooth Device Name.
+const MAX_DEVICE_NAME_LENGTH: usize = 248;
+// That least 29 bytes for the name.
+const MAX_FILTER_NAME_LENGTH: usize = 29;
 const NAME_PREFIX_ERROR: &'static str = "'namePrefix', if present, must be non - empty.";
 const NAME_TOO_LONG_ERROR: &'static str = "A device name can't be longer than 248 bytes.";
 const SERVICE_ERROR: &'static str = "'services', if present, must contain at least one service.";
@@ -79,11 +79,8 @@ impl Clone for RequestDeviceOptions {
     }
 }
 
-fn canonicalize_filter(filter: &BluetoothScanFilter, global: GlobalRef)
-    -> Fallible<BluetoothScanfilter> {
-    if !(filter.services.is_some() ||
-         filter.name.is_some() ||
-         filter.namePrefix.is_some()) {
+fn canonicalize_filter(filter: &BluetoothScanFilter, global: GlobalRef) -> Fallible<BluetoothScanfilter> {
+    if !(filter.services.is_some() || filter.name.is_some() || filter.namePrefix.is_some()) {
         return Err(Type(FILTER_ERROR.to_owned()));
     }
 
@@ -129,8 +126,9 @@ fn canonicalize_filter(filter: &BluetoothScanFilter, global: GlobalRef)
     Ok(BluetoothScanfilter::new(name, name_prefix, services_vec))
 }
 
-fn convert_request_device_options(options: &RequestDeviceOptions, global: GlobalRef)
-    -> Fallible<RequestDeviceoptions> {
+fn convert_request_device_options(options: &RequestDeviceOptions,
+                                  global: GlobalRef)
+                                  -> Fallible<RequestDeviceoptions> {
     if options.filters.is_empty() {
         return Err(Type(FILTER_EMPTY_ERROR.to_owned()));
     }
@@ -160,15 +158,12 @@ fn convert_request_device_options(options: &RequestDeviceOptions, global: Global
 impl BluetoothMethods for Bluetooth {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
-    fn RequestDevice(&self,
-                     option: &RequestDeviceOptions)
-                     -> Fallible<Root<BluetoothDevice>> {
+    fn RequestDevice(&self, option: &RequestDeviceOptions) -> Fallible<Root<BluetoothDevice>> {
         let (sender, receiver) = ipc::channel().unwrap();
         match convert_request_device_options(option, self.global().r()) {
             Ok(option) => {
-                self.get_bluetooth_thread()
-                    .send(BluetoothMethodMsg::RequestDevice(option, sender))
-                    .unwrap();
+                self.get_bluetooth_thread().send(
+                    BluetoothMethodMsg::RequestDevice(option, sender)).unwrap();
                 let device = receiver.recv().unwrap();
                 match device {
                     BluetoothObjectMsg::BluetoothDevice {
@@ -211,7 +206,9 @@ impl BluetoothMethods for Bluetooth {
                     },
                     BluetoothObjectMsg::Error {
                         error
-                    } => return Err(Type(error)),
+                    } => {
+                        Err(Type(error))
+                    },
                     _ => unreachable!()
                 }
             },

@@ -11,7 +11,7 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTDescriptorBinding::Blue
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use dom::bindings::error::Error::{Type, Network};
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
@@ -90,8 +90,7 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
         let (sender, receiver) = ipc::channel().unwrap();
         if !self.Characteristic().Service().Device().Gatt().Connected() {
             Err(Network)
-        }
-        else {
+        } else {
             self.get_bluetooth_thread().send(
                 BluetoothMethodMsg::ReadValue(self.get_instance_id(), sender)).unwrap();
             let result = receiver.recv().unwrap();
@@ -103,7 +102,9 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
                 },
                 BluetoothObjectMsg::Error {
                     error
-                } => return Err(Type(error)),
+                } => {
+                    return Err(Type(error))
+                },
                 _ => unreachable!()
             };
             *self.value.borrow_mut() = value;
@@ -112,7 +113,7 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-writevalue
-    fn WriteValue(&self, value: Vec<u8>) -> Fallible<()> {
+    fn WriteValue(&self, value: Vec<u8>) -> ErrorResult {
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::WriteValue(self.get_instance_id(), value, sender)).unwrap();
@@ -121,7 +122,9 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
             BluetoothObjectMsg::BluetoothWriteValue => Ok(()),
             BluetoothObjectMsg::Error {
                 error
-            } => Err(Type(error)),
+            } => {
+                Err(Type(error))
+            },
             _ => unreachable!()
         }
     }
