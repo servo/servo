@@ -9,6 +9,7 @@ use context::{LayoutContext, SharedLayoutContext};
 use display_list_builder::DisplayListBuildState;
 use euclid::point::Point2D;
 use floats::SpeculatedFloatPlacement;
+use flow::IS_ABSOLUTELY_POSITIONED;
 use flow::{PostorderFlowTraversal, PreorderFlowTraversal};
 use flow::{self, Flow, ImmutableFlowUtils, InorderFlowTraversal, MutableFlowUtils};
 use flow_ref::{self, FlowRef};
@@ -144,10 +145,15 @@ pub fn guess_float_placement(flow: &mut Flow) {
 
     let mut floats_in = SpeculatedFloatPlacement::compute_floats_in_for_first_child(flow);
     for kid in flow::mut_base(flow).child_iter_mut() {
-        floats_in.compute_floats_in(kid);
-        flow::mut_base(kid).speculated_float_placement_in = floats_in;
-        guess_float_placement(kid);
-        floats_in = flow::base(kid).speculated_float_placement_out;
+        if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) {
+            // Do not propagate floats in or out, but do propogate between kids.
+            guess_float_placement(kid);
+        } else {
+            floats_in.compute_floats_in(kid);
+            flow::mut_base(kid).speculated_float_placement_in = floats_in;
+            guess_float_placement(kid);
+            floats_in = flow::base(kid).speculated_float_placement_out;
+        }
     }
     floats_in.compute_floats_out(flow);
     flow::mut_base(flow).speculated_float_placement_out = floats_in

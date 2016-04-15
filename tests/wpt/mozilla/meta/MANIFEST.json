@@ -106,6 +106,18 @@
             "url": "/_mozilla/css/absolute_inline_containing_block_a.html"
           }
         ],
+        "css/absolute_line_height_after_float.html": [
+          {
+            "path": "css/absolute_line_height_after_float.html",
+            "references": [
+              [
+                "/_mozilla/css/absolute_line_height_after_float_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/absolute_line_height_after_float.html"
+          }
+        ],
         "css/absolute_table.html": [
           {
             "path": "css/absolute_table.html",
@@ -6730,6 +6742,18 @@
             ]
           ],
           "url": "/_mozilla/css/absolute_inline_containing_block_a.html"
+        }
+      ],
+      "css/absolute_line_height_after_float.html": [
+        {
+          "path": "css/absolute_line_height_after_float.html",
+          "references": [
+            [
+              "/_mozilla/css/absolute_line_height_after_float_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/absolute_line_height_after_float.html"
         }
       ],
       "css/absolute_table.html": [
