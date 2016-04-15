@@ -37329,6 +37329,18 @@
             "url": "/html/semantics/embedded-content/the-iframe-element/iframe-with-base.html"
           }
         ],
+        "html/semantics/embedded-content/the-img-element/document-base-url.html": [
+          {
+            "path": "html/semantics/embedded-content/the-img-element/document-base-url.html",
+            "references": [
+              [
+                "/html/semantics/embedded-content/the-img-element/document-base-url-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/html/semantics/embedded-content/the-img-element/document-base-url.html"
+          }
+        ],
         "html/semantics/embedded-content/the-video-element/video_content_image.htm": [
           {
             "path": "html/semantics/embedded-content/the-video-element/video_content_image.htm",
@@ -40524,6 +40536,18 @@
             ]
           ],
           "url": "/html/semantics/embedded-content/the-iframe-element/iframe-with-base.html"
+        }
+      ],
+      "html/semantics/embedded-content/the-img-element/document-base-url.html": [
+        {
+          "path": "html/semantics/embedded-content/the-img-element/document-base-url.html",
+          "references": [
+            [
+              "/html/semantics/embedded-content/the-img-element/document-base-url-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/html/semantics/embedded-content/the-img-element/document-base-url.html"
         }
       ]
     }
