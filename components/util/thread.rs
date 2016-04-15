@@ -3,15 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::IpcSender;
-use opts;
+use panicking;
 use serde::Serialize;
 use std::any::Any;
 use std::borrow::ToOwned;
-use std::io::{Write, stderr};
-use std::panic::{PanicInfo, take_hook, set_hook};
 use std::sync::mpsc::Sender;
 use std::thread;
-use std::thread::Builder;
 use thread_state;
 
 pub type PanicReason = Option<String>;
@@ -19,40 +16,7 @@ pub type PanicReason = Option<String>;
 pub fn spawn_named<F>(name: String, f: F)
     where F: FnOnce() + Send + 'static
 {
-    let builder = thread::Builder::new().name(name);
-
-    if opts::get().full_backtraces {
-        builder.spawn(f).unwrap();
-        return;
-    }
-
-    let f_with_hook = move || {
-        let hook = take_hook();
-
-        let new_hook = move |info: &PanicInfo| {
-            let payload = info.payload();
-            if let Some(s) = payload.downcast_ref::<String>() {
-                if s.contains("SendError") {
-                    let err = stderr();
-                    let _ = write!(err.lock(), "Thread \"{}\" panicked with an unwrap of \
-                                                `SendError` (backtrace skipped)\n",
-                           thread::current().name().unwrap_or("<unknown thread>"));
-                    return;
-                } else if s.contains("RecvError")  {
-                    let err = stderr();
-                    let _ = write!(err.lock(), "Thread \"{}\" panicked with an unwrap of \
-                                                `RecvError` (backtrace skipped)\n",
-                           thread::current().name().unwrap_or("<unknown thread>"));
-                    return;
-                }
-            }
-            hook(&info);
-        };
-        set_hook(Box::new(new_hook));
-        f();
-    };
-
-    builder.spawn(f_with_hook).unwrap();
+    spawn_named_with_send_on_failure_maybe(name, None, f, |_| {});
 }
 
 pub trait AddFailureDetails {
@@ -100,20 +64,39 @@ pub fn spawn_named_with_send_on_failure<F, T, S>(name: String,
           S: Send + SendOnFailure + 'static,
           S::Value: From<T>,
 {
-    let future_handle = thread::Builder::new().name(name.to_owned()).spawn(move || {
-        thread_state::initialize(state);
-        f()
-    }).unwrap();
+    spawn_named_with_send_on_failure_maybe(name, Some(state), f,
+                                           move |err| {
+                                               msg.add_panic_object(err);
+                                               dest.send_on_failure(S::Value::from(msg));
+                                           });
+}
 
-    let watcher_name = format!("{}Watcher", name);
-    Builder::new().name(watcher_name).spawn(move || {
-        match future_handle.join() {
-            Ok(()) => (),
-            Err(err) => {
-                debug!("{} failed, notifying constellation", name);
-                msg.add_panic_object(&*err);
-                dest.send_on_failure(S::Value::from(msg));
-            }
+fn spawn_named_with_send_on_failure_maybe<F, G>(name: String,
+                                                 state: Option<thread_state::ThreadState>,
+                                                 f: F,
+                                                 fail: G)
+                                                 where F: FnOnce() + Send + 'static,
+                                                       G: FnOnce(&(Any + Send)) + Send + 'static {
+
+
+    let builder = thread::Builder::new().name(name.clone());
+
+    let local = panicking::PanicHandlerLocal {
+        fail: Box::new(fail),
+    };
+
+    let f_with_state = move || {
+        if let Some(state) = state {
+            thread_state::initialize(state);
         }
-    }).unwrap();
+
+        // set the handler
+        panicking::LOCAL_INFO.with(|i| {
+            *i.borrow_mut() = Some(local);
+        });
+        f();
+    };
+
+
+    builder.spawn(f_with_state).unwrap();
 }
