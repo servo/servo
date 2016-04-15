@@ -31,6 +31,12 @@ interface NavigatorBluetooth {
     readonly attribute Bluetooth bluetooth;
 };
 
+// https://slightlyoff.github.io/ServiceWorker/spec/service_worker/#navigator-service-worker
+//[Pref="dom.serviceworker.enabled"]
+partial interface Navigator {
+  [SameObject] readonly attribute ServiceWorkerContainer serviceWorker;
+};
+
 // https://html.spec.whatwg.org/multipage/#navigatorlanguage
 [NoInterfaceObject/*, Exposed=Window,Worker*/]
 interface NavigatorLanguage {
