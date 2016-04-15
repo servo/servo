@@ -370,11 +370,14 @@ pub mod longhands {
     </%def>
 
     <%def name="single_keyword(name, values, products='gecko,servo',
+                               extra_gecko_values=None, extra_servo_values=None,
                                experimental=False, internal=False,
                                gecko_constant_prefix=None, gecko_ffi_name=None)">
         <%self:single_keyword_computed name="${name}"
                                        values="${values}"
                                        products="${products}"
+                                       extra_gecko_values="${extra_gecko_values}"
+                                       extra_servo_values="${extra_servo_values}"
                                        experimental="${experimental}"
                                        internal="${internal}",
                                        gecko_constant_prefix="${gecko_constant_prefix}"
@@ -621,7 +624,7 @@ pub mod longhands {
 
     </%self:longhand>
 
-    ${single_keyword("position", "static absolute relative fixed")}
+    ${single_keyword("position", "static absolute relative fixed", extra_gecko_values="sticky".split())}
 
     <%self:single_keyword_computed name="float" values="none left right" gecko_ffi_name="mFloats">
         impl ToComputedValue for SpecifiedValue {
@@ -999,7 +1002,8 @@ pub mod longhands {
     ${switch_to_style_struct("InheritedBox")}
 
     // TODO: collapse. Well, do tables first.
-    ${single_keyword("visibility", "visible hidden", gecko_ffi_name="mVisible")}
+    ${single_keyword("visibility", "visible hidden", extra_gecko_values="collapse".split(),
+                                                     gecko_ffi_name="mVisible")}
 
     // CSS 2.1, Section 12 - Generated content, automatic numbering, and lists
 
@@ -2268,7 +2272,8 @@ pub mod longhands {
                                                            gecko_constant_prefix="NS_STYLE_WORDWRAP")}
 
     // TODO(pcwalton): Support `word-break: keep-all` once we have better CJK support.
-    ${single_keyword("word-break", "normal break-all", gecko_constant_prefix="NS_STYLE_WORDBREAK")}
+    ${single_keyword("word-break", "normal break-all", extra_gecko_values="keep-all".split(),
+                                                       gecko_constant_prefix="NS_STYLE_WORDBREAK")}
 
     // TODO(pcwalton): Support `text-justify: distribute`.
     ${single_keyword("text-justify", "auto none inter-word", products="servo")}
@@ -2495,7 +2500,8 @@ pub mod longhands {
     </%self:single_keyword_computed>
 
     // TODO(pcwalton): `full-width`
-    ${single_keyword("text-transform", "none capitalize uppercase lowercase")}
+    ${single_keyword("text-transform", "none capitalize uppercase lowercase",
+                     extra_gecko_values="full-width".split())}
 
     ${single_keyword("text-rendering", "auto optimizespeed optimizelegibility geometricprecision")}
 
@@ -2520,7 +2526,8 @@ pub mod longhands {
 
     ${single_keyword("empty-cells", "show hide", gecko_constant_prefix="NS_STYLE_TABLE_EMPTY_CELLS")}
 
-    ${single_keyword("caption-side", "top bottom")}
+    ${single_keyword("caption-side", "top bottom",
+                     extra_gecko_values="right left top-outside bottom-outside".split())}
 
     <%self:longhand name="border-spacing">
         use app_units::Au;
