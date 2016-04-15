@@ -86,7 +86,7 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
             if let Some(ref raw_content_type) = headers.get_raw("content-type") {
                 if raw_content_type.len() > 0 {
                     let last_raw_content_type = &raw_content_type[raw_content_type.len() - 1];
-                    check_for_apache_bug = apache_bug_predicate(last_raw_content_type)
+                    check_for_apache_bug = ApacheBugFlag::from_content_type(last_raw_content_type)
                 }
             }
             if let Some(ref raw_content_type_options) = headers.get_raw("X-content-type-options") {
@@ -111,18 +111,6 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
     }
 
     start_sending_opt(start_chan, metadata)
-}
-
-/// https://mimesniff.spec.whatwg.org/#supplied-mime-type-detection-algorithm
-fn apache_bug_predicate(last_raw_content_type: &[u8]) -> ApacheBugFlag {
-    if last_raw_content_type == b"text/plain"
-           || last_raw_content_type == b"text/plain; charset=ISO-8859-1"
-           || last_raw_content_type == b"text/plain; charset=iso-8859-1"
-           || last_raw_content_type == b"text/plain; charset=UTF-8" {
-        ApacheBugFlag::ON
-    } else {
-        ApacheBugFlag::OFF
-    }
 }
 
 /// For use by loaders in responding to a Load message.
