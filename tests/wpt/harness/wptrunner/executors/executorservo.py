@@ -71,7 +71,7 @@ class ServoTestharnessExecutor(ProcessTestExecutor):
         self.result_flag = threading.Event()
 
         args = [render_arg(self.browser.render_backend), "--hard-fail", "-u", "Servo/wptrunner",
-                "-z", self.test_url(test)]
+                "-Z", "replace-surrogates", "-z", self.test_url(test)]
         for stylesheet in self.browser.user_stylesheets:
             args += ["--user-stylesheet", stylesheet]
         for pref, value in test.environment.get('prefs', {}).iteritems():
@@ -204,7 +204,7 @@ class ServoRefTestExecutor(ProcessTestExecutor):
             debug_args, command = browser_command(
                 self.binary,
                 [render_arg(self.browser.render_backend), "--hard-fail", "--exit",
-                 "-u", "Servo/wptrunner", "-Z", "disable-text-aa,load-webfonts-synchronously",
+                 "-u", "Servo/wptrunner", "-Z", "disable-text-aa,load-webfonts-synchronously,replace-surrogates",
                  "--output=%s" % output_path, full_url],
                 self.debug_info)
 

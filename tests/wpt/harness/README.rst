@@ -231,7 +231,7 @@ The web-platform-test harness knows about several keys:
   Any value indicates that the test is disabled.
 
 `type`
-  The test type e.g. `testharness` or `reftest`.
+  The test type e.g. `testharness`, `reftest`, or `wdspec`.
 
 `reftype`
   The type of comparison for reftests; either `==` or `!=`.
