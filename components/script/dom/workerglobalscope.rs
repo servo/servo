@@ -14,6 +14,7 @@ use dom::console::Console;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::EventTarget;
+use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use dom::window::{base64_atob, base64_btoa};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
@@ -339,36 +340,49 @@ impl WorkerGlobalScope {
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
         let dedicated =
             self.downcast::<DedicatedWorkerGlobalScope>();
-        match dedicated {
-            Some(dedicated) => dedicated.script_chan(),
-            None => panic!("need to implement a sender for SharedWorker"),
+        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
+        if let Some(dedicated) = dedicated {
+            return dedicated.script_chan();
+        } else if let Some(service_worker) = service_worker {
+            return service_worker.script_chan();
+        } else {
+            panic!("need to implement a sender for SharedWorker")
         }
     }
 
     pub fn pipeline(&self) -> PipelineId {
-        let dedicated =
-            self.downcast::<DedicatedWorkerGlobalScope>();
-        match dedicated {
-            Some(dedicated) => dedicated.pipeline(),
-            None => panic!("need to add a pipeline for SharedWorker"),
+        let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
+        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
+        if let Some(dedicated) = dedicated {
+            return dedicated.pipeline();
+        } else if let Some(service_worker) = service_worker {
+            return service_worker.pipeline();
+        } else {
+            panic!("need to implement a sender for SharedWorker")
         }
     }
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
-        let dedicated =
-            self.downcast::<DedicatedWorkerGlobalScope>();
-        match dedicated {
-            Some(dedicated) => dedicated.new_script_pair(),
-            None => panic!("need to implement creating isolated event loops for SharedWorker"),
+        let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
+        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
+        if let Some(dedicated) = dedicated {
+            return dedicated.new_script_pair();
+        } else if let Some(service_worker) = service_worker {
+            return service_worker.new_script_pair();
+        } else {
+            panic!("need to implement a sender for SharedWorker")
         }
     }
 
     pub fn process_event(&self, msg: CommonScriptMsg) {
-        let dedicated =
-            self.downcast::<DedicatedWorkerGlobalScope>();
-        match dedicated {
-            Some(dedicated) => dedicated.process_event(msg),
-            None => panic!("need to implement processing single events for SharedWorker"),
+        let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
+        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
+        if let Some(dedicated) = dedicated {
+            return dedicated.process_event(msg);
+        } else if let Some(service_worker) = service_worker {
+            return service_worker.process_event(msg);
+        } else {
+            panic!("need to implement a sender for SharedWorker")
         }
     }
 

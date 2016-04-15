@@ -6670,6 +6670,12 @@
             "url": "/_mozilla/mozilla/sequence-hole.html"
           }
         ],
+        "mozilla/service-workers/service-worker-registration.html": [
+          {
+            "path": "mozilla/service-workers/service-worker-registration.html",
+            "url": "/_mozilla/mozilla/service-workers/service-worker-registration.html"
+          }
+        ],
         "mozilla/storage.html": [
           {
             "path": "mozilla/storage.html",

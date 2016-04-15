@@ -267,7 +267,9 @@ pub enum TimerSource {
     /// The event was requested from a window (ScriptThread).
     FromWindow(PipelineId),
     /// The event was requested from a worker (DedicatedGlobalWorkerScope).
-    FromWorker
+    FromWorker,
+    /// The event was requested from a worker (ServiceWorkerGlobalScope).
+    FromServiceWorker
 }
 
 /// The id to be used for a TimerEvent is defined by the corresponding TimerEventRequest.

@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+function register_serviceworker(script_url) {
+  var registration = navigator.serviceWorker.register(script_url);
+  return registration;
+}
+
+test(function (){
+  assert_true('serviceWorker' in navigator);
+}, "ServiceWorkerContainer in Navigator");
+
+
+test(function() {
+  var sw_reg = register_serviceworker('sw.js');
+  assert_class_string(sw_reg, "ServiceWorkerRegistration");
+}, "Test returns ServiceWorkerRegistration");
+
+test(function() {
+  var sw_reg = register_serviceworker('resources/sw.js', {scope: ''});
+  assert_equals(sw_reg.scope, "http://web-platform.test:8000/_mozilla/mozilla/service-workers/resources/sw.js");
+}, "Test Service Worker Registration property scope Url when no scope");
+
+
+test(function () {
+    assert_throws(null,
+                 function () { 
+                  var sw_reg = register_serviceworker('./in%5Csome%5fdir/sw.js'); 
+              }, "Invalid Url Path");
+}, "Test Checks for Invalid Url Path");
+
+
+test(function() {
+  var sw_reg = register_serviceworker('sw.js');
+  assert_class_string(sw_reg.active, "ServiceWorker");
+}, "Active Service Worker");
+
+
+test(function() {
+  var sw_reg = register_serviceworker('resources/sw.js');
+  assert_equals(sw_reg.active.scriptURL, "http://web-platform.test:8000/_mozilla/mozilla/service-workers/resources/sw.js");
+}, "Active Service Worker ScriptURL property");
+
+
+</script>
