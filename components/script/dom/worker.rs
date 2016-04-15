@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
+
+use dom::abstractworker::{SimpleWorkerErrorHandler, SharedRt, WorkerErrorHandler};
+use dom::abstractworker::{WorkerScriptLoadOrigin, WorkerScriptMsg};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
@@ -14,24 +16,19 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
-use dom::dedicatedworkerglobalscope::{DedicatedWorkerGlobalScope, WorkerScriptMsg};
+use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
-use dom::workerglobalscope::WorkerGlobalScopeInit;
+use dom::workerglobalscope::prepare_workerscope_init;
 use ipc_channel::ipc;
-use js::jsapi::{HandleValue, JSContext, JSRuntime, RootedValue};
-use js::jsapi::{JSAutoCompartment, JS_RequestInterruptCallback};
+use js::jsapi::{HandleValue, JSContext, RootedValue, JSAutoCompartment};
 use js::jsval::UndefinedValue;
-use js::rust::Runtime;
-use msg::constellation_msg::{PipelineId, ReferrerPolicy};
-use net_traits::{RequestSource, LoadOrigin};
 use script_thread::Runnable;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Sender, channel};
 use std::sync::{Arc, Mutex};
-use url::Url;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 
@@ -46,29 +43,6 @@ pub struct Worker {
     closing: Arc<AtomicBool>,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
     runtime: Arc<Mutex<Option<SharedRt>>>
-}
-
-#[derive(Clone)]
-pub struct WorkerScriptLoadOrigin {
-    referrer_url: Option<Url>,
-    referrer_policy: Option<ReferrerPolicy>,
-    request_source: RequestSource,
-    pipeline_id: Option<PipelineId>
-}
-
-impl LoadOrigin for WorkerScriptLoadOrigin {
-    fn referrer_url(&self) -> Option<Url> {
-        self.referrer_url.clone()
-    }
-    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
-        self.referrer_policy.clone()
-    }
-    fn request_source(&self) -> RequestSource {
-        self.request_source.clone()
-    }
-    fn pipeline_id(&self) -> Option<PipelineId> {
-        self.pipeline_id.clone()
-    }
 }
 
 impl Worker {
@@ -99,15 +73,10 @@ impl Worker {
             Err(_) => return Err(Error::Syntax),
         };
 
-        let resource_threads = global.resource_threads();
-        let constellation_chan = global.constellation_chan().clone();
-        let scheduler_chan = global.scheduler_chan().clone();
-
         let (sender, receiver) = channel();
         let closing = Arc::new(AtomicBool::new(false));
         let worker = Worker::new(global, sender.clone(), closing.clone());
         let worker_ref = Trusted::new(worker.r());
-        let worker_id = global.get_next_worker_id();
 
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: None,
@@ -117,34 +86,12 @@ impl Worker {
         };
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
-        let optional_sender = match global.devtools_chan() {
-            Some(ref chan) => {
-                let pipeline_id = global.pipeline();
-                let title = format!("Worker for {}", worker_url);
-                let page_info = DevtoolsPageInfo {
-                    title: title,
-                    url: worker_url.clone(),
-                };
-                chan.send(ScriptToDevtoolsControlMsg::NewGlobal((pipeline_id, Some(worker_id)),
-                                                                devtools_sender.clone(),
-                                                                page_info)).unwrap();
-                Some(devtools_sender)
-            },
-            None => None,
-        };
 
-        let init = WorkerGlobalScopeInit {
-            resource_threads: resource_threads,
-            mem_profiler_chan: global.mem_profiler_chan().clone(),
-            time_profiler_chan: global.time_profiler_chan().clone(),
-            to_devtools_sender: global.devtools_chan(),
-            from_devtools_sender: optional_sender,
-            constellation_chan: constellation_chan,
-            scheduler_chan: scheduler_chan,
-            panic_chan: global.panic_chan().clone(),
-            worker_id: worker_id,
-            closing: closing,
-        };
+        let init = prepare_workerscope_init(global,
+            "Worker".to_owned(),
+            worker_url.clone(),
+            devtools_sender.clone(),
+            closing);
 
         DedicatedWorkerGlobalScope::run_worker_scope(
             init, worker_url, global.pipeline(), devtools_receiver, worker.runtime.clone(), worker_ref,
@@ -245,76 +192,18 @@ impl Runnable for WorkerMessageHandler {
     }
 }
 
-pub struct SimpleWorkerErrorHandler {
-    addr: TrustedWorkerAddress,
-}
-
-impl SimpleWorkerErrorHandler {
-    pub fn new(addr: TrustedWorkerAddress) -> SimpleWorkerErrorHandler {
-        SimpleWorkerErrorHandler {
-            addr: addr
-        }
-    }
-}
-
-impl Runnable for SimpleWorkerErrorHandler {
-    fn handler(self: Box<SimpleWorkerErrorHandler>) {
+impl Runnable for SimpleWorkerErrorHandler<Worker> {
+    #[allow(unrooted_must_root)]
+    fn handler(self: Box<SimpleWorkerErrorHandler<Worker>>) {
         let this = *self;
         Worker::dispatch_simple_error(this.addr);
     }
 }
 
-pub struct WorkerErrorHandler {
-    addr: TrustedWorkerAddress,
-    msg: DOMString,
-    file_name: DOMString,
-    line_num: u32,
-    col_num: u32,
-}
-
-impl WorkerErrorHandler {
-    pub fn new(addr: TrustedWorkerAddress, msg: DOMString, file_name: DOMString, line_num: u32, col_num: u32)
-            -> WorkerErrorHandler {
-        WorkerErrorHandler {
-            addr: addr,
-            msg: msg,
-            file_name: file_name,
-            line_num: line_num,
-            col_num: col_num,
-        }
-    }
-}
-
-impl Runnable for WorkerErrorHandler {
-    fn handler(self: Box<WorkerErrorHandler>) {
+impl Runnable for WorkerErrorHandler<Worker> {
+    #[allow(unrooted_must_root)]
+    fn handler(self: Box<WorkerErrorHandler<Worker>>) {
         let this = *self;
         Worker::handle_error_message(this.addr, this.msg, this.file_name, this.line_num, this.col_num);
     }
 }
-
-#[derive(Copy, Clone)]
-pub struct SharedRt {
-    rt: *mut JSRuntime
-}
-
-impl SharedRt {
-    pub fn new(rt: &Runtime) -> SharedRt {
-        SharedRt {
-            rt: rt.rt()
-        }
-    }
-
-    #[allow(unsafe_code)]
-    pub fn request_interrupt(&self) {
-        unsafe {
-            JS_RequestInterruptCallback(self.rt);
-        }
-    }
-
-    pub fn rt(&self) -> *mut JSRuntime {
-        self.rt
-    }
-}
-
-#[allow(unsafe_code)]
-unsafe impl Send for SharedRt {}
