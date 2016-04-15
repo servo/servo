@@ -85,17 +85,16 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristic
-    fn GetCharacteristic(&self,  characteristic: StringOrUnsignedLong)
+    fn GetCharacteristic(&self,
+                         characteristic: StringOrUnsignedLong)
                          -> Fallible<Root<BluetoothRemoteGATTCharacteristic>> {
-        let uuid: String = match BluetoothUUID::GetCharacteristic(self.global().r(),
-                                                                  characteristic.clone()) {
+        let uuid: String = match BluetoothUUID::GetCharacteristic(self.global().r(), characteristic.clone()) {
             Ok(domstring) => domstring.to_string(),
             Err(error) => return Err(error),
         };
         let (sender, receiver) = ipc::channel().unwrap();
-        self.get_bluetooth_thread()
-            .send(BluetoothMethodMsg::GetCharacteristic(self.get_instance_id(), uuid, sender))
-            .unwrap();
+        self.get_bluetooth_thread().send(
+            BluetoothMethodMsg::GetCharacteristic(self.get_instance_id(), uuid, sender)).unwrap();
         let characteristic = receiver.recv().unwrap();
         match characteristic {
             BluetoothObjectMsg::BluetoothCharacteristic {
@@ -122,33 +121,35 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                                                                          reliable_write,
                                                                          writable_auxiliaries);
                 Ok(BluetoothRemoteGATTCharacteristic::new(self.global().r(),
-                                                            &self,
-                                                            DOMString::from(uuid),
-                                                            properties,
-                                                            instance_id))
+                                                          &self,
+                                                          DOMString::from(uuid),
+                                                          properties,
+                                                          instance_id))
             },
             BluetoothObjectMsg::Error {
                 error
-            } => return Err(Type(error)),
+            } => {
+                Err(Type(error))
+            },
             _ => unreachable!(),
         }
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristics
-    fn GetCharacteristics(&self, characteristic: Option<StringOrUnsignedLong>)
+    fn GetCharacteristics(&self,
+                          characteristic: Option<StringOrUnsignedLong>)
                           -> Fallible<Vec<Root<BluetoothRemoteGATTCharacteristic>>> {
-        let uuid: Option<String> = match characteristic {
-            Some(c) => match BluetoothUUID::GetCharacteristic(self.global().r(), c.clone()) {
-                Ok(domstring) => Some(domstring.to_string()),
+        let mut uuid: Option<String> = None;
+        if let Some(c)= characteristic {
+            match BluetoothUUID::GetCharacteristic(self.global().r(), c.clone()) {
+                Ok(domstring) => uuid = Some(domstring.to_string()),
                 Err(error) => return Err(error),
-            },
-            None => None,
+            }
         };
         let mut characteristics: Vec<Root<BluetoothRemoteGATTCharacteristic>> = vec!();
         let (sender, receiver) = ipc::channel().unwrap();
-        self.get_bluetooth_thread()
-            .send(BluetoothMethodMsg::GetCharacteristics(self.get_instance_id(), uuid, sender))
-            .unwrap();
+        self.get_bluetooth_thread().send(
+            BluetoothMethodMsg::GetCharacteristics(self.get_instance_id(), uuid, sender)).unwrap();
         let characteristics_vec = receiver.recv().unwrap();
         match characteristics_vec {
             BluetoothObjectMsg::BluetoothCharacteristics {
@@ -169,23 +170,21 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                             reliable_write,
                             writable_auxiliaries,
                         } => {
-                            let properties = &BluetoothCharacteristicProperties::new(
-                                self.global().r(),
-                                broadcast,
-                                read,
-                                write_without_response,
-                                write,
-                                notify,
-                                indicate,
-                                authenticated_signed_writes,
-                                reliable_write,
-                                writable_auxiliaries);
-                            characteristics.push(BluetoothRemoteGATTCharacteristic::new(
-                                self.global().r(),
-                                &self,
-                                DOMString::from(uuid),
-                                properties,
-                                instance_id))
+                            let properties = &BluetoothCharacteristicProperties::new(self.global().r(),
+                                                                                     broadcast,
+                                                                                     read,
+                                                                                     write_without_response,
+                                                                                     write,
+                                                                                     notify,
+                                                                                     indicate,
+                                                                                     authenticated_signed_writes,
+                                                                                     reliable_write,
+                                                                                     writable_auxiliaries);
+                            characteristics.push(BluetoothRemoteGATTCharacteristic::new(self.global().r(),
+                                                                                        &self,
+                                                                                        DOMString::from(uuid),
+                                                                                        properties,
+                                                                                        instance_id));
                         },
                         _ => unreachable!(),
                     }
@@ -194,7 +193,9 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
             },
             BluetoothObjectMsg::Error {
                 error
-            } => return Err(Type(error)),
+            } => {
+                Err(Type(error))
+            },
             _ => unreachable!(),
         }
     }
