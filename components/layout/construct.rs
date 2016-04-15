@@ -1861,6 +1861,7 @@ fn control_chars_to_fragment(node: &InlineFragmentNodeInfo,
     let info = SpecificFragmentInfo::UnscannedText(
         box UnscannedTextFragmentInfo::new(String::from(text), None));
     let mut style = node.style.clone();
+    properties::modify_style_for_replaced_content(&mut style);
     properties::modify_style_for_text(&mut style);
     Fragment::from_opaque_node_and_style(node.address,
                                          node.pseudo,
