@@ -84,10 +84,7 @@ class Longhand(object):
         self.custom_cascade = custom_cascade
         self.internal = internal
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
-        if derived_from is None:
-            self.derived_from = None
-        else:
-            self.derived_from = [ to_rust_ident(name) for name in derived_from ]
+        self.derived_from = [ to_rust_ident(name) for name in (derived_from or "").split()]
 
 class Shorthand(object):
     def __init__(self, name, sub_properties, experimental=False, internal=False):
@@ -185,9 +182,6 @@ pub mod longhands {
     <%
         if not CONFIG['product'] in products:
             return ""
-        if derived_from is not None:
-            derived_from = derived_from.split()
-
         property = Longhand(name,
                             derived_from=derived_from,
                             keyword=keyword,
@@ -200,13 +194,12 @@ pub mod longhands {
         LONGHANDS.append(property)
         LONGHANDS_BY_NAME[name] = property
 
-        if derived_from is not None:
-            for name in derived_from:
-                DERIVED_LONGHANDS.setdefault(name, []).append(property)
+        for name in property.derived_from:
+            DERIVED_LONGHANDS.setdefault(name, []).append(property)
     %>
         pub mod ${property.ident} {
             #![allow(unused_imports)]
-            % if derived_from is None:
+            % if not property.derived_from:
                 use cssparser::Parser;
                 use parser::ParserContext;
                 use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
@@ -238,7 +231,7 @@ pub mod longhands {
                     }
                     _ => panic!("entered the wrong cascade_property() implementation"),
                 };
-                % if property.derived_from is None:
+                % if not property.derived_from:
                     if seen.get_${property.ident}() {
                         return
                     }
@@ -287,7 +280,7 @@ pub mod longhands {
                     // Do not allow stylesheets to set derived properties.
                 % endif
             }
-            % if derived_from is None:
+            % if not property.derived_from:
                 pub fn parse_declared(context: &ParserContext, input: &mut Parser)
                                    -> Result<DeclaredValue<SpecifiedValue>, ()> {
                     match input.try(CSSWideKeyword::parse) {
@@ -330,7 +323,7 @@ pub mod longhands {
                 experimental="${experimental}" internal="${internal}"
                 gecko_ffi_name="${gecko_ffi_name}">
             ${caller.body()}
-            % if derived_from is None:
+            % if not derived_from:
                 pub fn parse_specified(context: &ParserContext, input: &mut Parser)
                                    -> Result<DeclaredValue<SpecifiedValue>, ()> {
                     parse(context, input).map(DeclaredValue::Value)
@@ -5803,7 +5796,7 @@ mod property_bit_field {
             self.storage[bit / 32] |= 1 << (bit % 32)
         }
         % for i, property in enumerate(LONGHANDS):
-            % if property.derived_from is None:
+            % if not property.derived_from:
                 #[allow(non_snake_case)]
                 #[inline]
                 pub fn get_${property.ident}(&self) -> bool {
@@ -5820,7 +5813,7 @@ mod property_bit_field {
 }
 
 % for property in LONGHANDS:
-    % if property.derived_from is None:
+    % if not property.derived_from:
         #[allow(non_snake_case)]
         fn substitute_variables_${property.ident}<F>(
             value: &DeclaredValue<longhands::${property.ident}::SpecifiedValue>,
@@ -5991,7 +5984,7 @@ fn deduplicate_property_declarations(declarations: Vec<PropertyDeclaration>)
         match declaration {
             % for property in LONGHANDS:
                 PropertyDeclaration::${property.camel_case}(..) => {
-                    % if property.derived_from is None:
+                    % if not property.derived_from:
                         if seen.get_${property.ident}() {
                             continue
                         }
@@ -6150,7 +6143,7 @@ impl PropertyDeclaration {
         match *self {
             % for property in LONGHANDS:
                 PropertyDeclaration::${property.camel_case}(..) =>
-                % if property.derived_from is None:
+                % if not property.derived_from:
                     PropertyDeclarationName::Longhand("${property.name}"),
                 % else:
                     PropertyDeclarationName::Internal,
@@ -6166,7 +6159,7 @@ impl PropertyDeclaration {
         match *self {
             % for property in LONGHANDS:
                 PropertyDeclaration::${property.camel_case}
-                % if property.derived_from is None:
+                % if not property.derived_from:
                     (ref value) => value.to_css_string(),
                 % else:
                     (_) => panic!("unsupported property declaration: ${property.name}"),
@@ -6215,7 +6208,7 @@ impl PropertyDeclaration {
         match *self {
             % for property in LONGHANDS:
                 PropertyDeclaration::${property.camel_case}(..) =>
-                % if property.derived_from is None:
+                % if not property.derived_from:
                     name.eq_ignore_ascii_case("${property.name}"),
                 % else:
                     false,
@@ -6244,7 +6237,7 @@ impl PropertyDeclaration {
         }
         match_ignore_ascii_case! { name,
             % for property in LONGHANDS:
-                % if property.derived_from is None:
+                % if not property.derived_from:
                     "${property.name}" => {
                         % if property.internal:
                             if context.stylesheet_origin != Origin::UserAgent {
@@ -6857,7 +6850,7 @@ fn cascade_with_cached_declarations<C: ComputedValues>(
             match *declaration {
                 % for style_struct in active_style_structs():
                     % for property in style_struct.longhands:
-                        % if property.derived_from is None:
+                        % if not property.derived_from:
                             PropertyDeclaration::${property.camel_case}(ref
                                     ${'_' if not style_struct.inherited else ''}declared_value)
                                     => {
@@ -7363,7 +7356,7 @@ macro_rules! css_properties_accessors {
     ($macro_name: ident) => {
         $macro_name! {
             % for property in SHORTHANDS + LONGHANDS:
-                % if property.derived_from is None and not property.internal:
+                % if not property.derived_from and not property.internal:
                     % if '-' in property.name:
                         [${property.ident.capitalize()}, Set${property.ident.capitalize()}, "${property.name}"],
                     % endif
