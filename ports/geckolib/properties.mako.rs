@@ -209,7 +209,12 @@ impl ${style_struct.trait_name} for ${style_struct.gecko_struct_name} {
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         self.gecko.${longhand.gecko_ffi_name} = match v {
             % for value in longhand.keyword.values_for('gecko'):
-                Keyword::${to_rust_ident(value)} => gss::${longhand.keyword.gecko_constant(value)} as u8,
+                % if value == 'full-width':
+            // FIXME: Deal with properties that deviate from naming conventions
+            Keyword::${to_rust_ident(value)} => gss::NS_STYLE_TEXT_TRANSFORM_FULLWIDTH as u8,
+                % else:
+            Keyword::${to_rust_ident(value)} => gss::${longhand.keyword.gecko_constant(value)} as u8,
+                % endif
             % endfor
         };
     }
