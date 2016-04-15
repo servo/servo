@@ -82,8 +82,7 @@ impl HTMLIFrameElement {
             if url.is_empty() {
                 None
             } else {
-                let window = window_from_node(self);
-                window.get_url().join(&url).ok()
+                document_from_node(self).base_url().join(&url).ok()
             }
         })
     }
