@@ -12,8 +12,8 @@ use canvas_traits::CanvasMsg;
 use euclid::point::Point2D;
 use euclid::size::Size2D;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{Failure, NavigationDirection, PipelineId};
 use msg::constellation_msg::{LoadData, SubpageId};
+use msg::constellation_msg::{NavigationDirection, PipelineId};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
@@ -24,18 +24,10 @@ use url::Url;
 pub enum LayoutMsg {
     /// Indicates whether this pipeline is currently running animations.
     ChangeRunningAnimationsState(PipelineId, AnimationState),
-    /// Layout thread failure.
-    Failure(Failure),
     /// Requests that the constellation inform the compositor of the a cursor change.
     SetCursor(Cursor),
     /// Notifies the constellation that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
-}
-
-impl From<Failure> for LayoutMsg {
-    fn from(failure: Failure) -> LayoutMsg {
-        LayoutMsg::Failure(failure)
-    }
 }
 
 /// Messages from the script to the constellation.
@@ -55,8 +47,6 @@ pub enum ScriptMsg {
     /// Causes a `load` event to be dispatched to any enclosing frame context element
     /// for the given pipeline.
     DOMLoad(PipelineId),
-    /// Script thread failure.
-    Failure(Failure),
     /// Notifies the constellation that this frame has received focus.
     Focus(PipelineId),
     /// Re-send a mouse button event that was sent to the parent window.
@@ -91,10 +81,4 @@ pub enum ScriptMsg {
     SetDocumentState(PipelineId, DocumentState),
     /// Update the pipeline Url, which can change after redirections.
     SetFinalUrl(PipelineId, Url),
-}
-
-impl From<Failure> for ScriptMsg {
-    fn from(failure: Failure) -> ScriptMsg {
-        ScriptMsg::Failure(failure)
-    }
 }
