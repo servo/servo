@@ -113,6 +113,7 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
     start_sending_opt(start_chan, metadata)
 }
 
+/// https://mimesniff.spec.whatwg.org/#supplied-mime-type-detection-algorithm
 fn apache_bug_predicate(last_raw_content_type: &[u8]) -> ApacheBugFlag {
     if last_raw_content_type == b"text/plain"
            || last_raw_content_type == b"text/plain; charset=ISO-8859-1"
