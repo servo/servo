@@ -1607,6 +1607,18 @@
             "url": "/_mozilla/css/floats_margin_collapse_with_clearance_a.html"
           }
         ],
+        "css/floats_inline_margins_a.html": [
+          {
+            "path": "css/floats_inline_margins_a.html",
+            "references": [
+              [
+                "/_mozilla/css/floats_inline_margins_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/floats_inline_margins_a.html"
+          }
+        ],
         "css/focus_selector.html": [
           {
             "path": "css/focus_selector.html",
@@ -8231,6 +8243,18 @@
             ]
           ],
           "url": "/_mozilla/css/floats_margin_collapse_with_clearance_a.html"
+        }
+      ],
+      "css/floats_inline_margins_a.html": [
+        {
+          "path": "css/floats_inline_margins_a.html",
+          "references": [
+            [
+              "/_mozilla/css/floats_inline_margins_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/floats_inline_margins_a.html"
         }
       ],
       "css/focus_selector.html": [

@@ -1020,9 +1020,14 @@ impl BlockFlow {
                 self.base.position.size.block = cur_b;
             }
 
-            // Store the current set of floats in the flow so that flows that come later in the
+            // Translate the current set of floats back into the parent coordinate system in the
+            // inline direction, and store them in the flow so that flows that come later in the
             // document can access them.
+            floats.translate(LogicalSize::new(writing_mode,
+                                              self.fragment.inline_start_offset(),
+                                              Au(0)));
             self.base.floats = floats.clone();
+
             self.adjust_fragments_for_collapsed_margins_if_root(layout_context);
         } else {
             // We don't need to reflow, but we still need to perform in-order traversals if
