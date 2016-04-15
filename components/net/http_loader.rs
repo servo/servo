@@ -198,19 +198,19 @@ pub trait HttpResponse: Read {
         "HTTP/1.1".to_owned()
     }
     fn content_encoding(&self) -> Option<Encoding> {
-        self.headers().get::<ContentEncoding>().and_then(|h| {
-            match *h {
-                ContentEncoding(ref encodings) => {
-                    if encodings.contains(&Encoding::Gzip) {
-                        Some(Encoding::Gzip)
-                    } else if encodings.contains(&Encoding::Deflate) {
-                        Some(Encoding::Deflate)
-                    } else if encodings.contains(&Encoding::EncodingExt("br".to_owned())) {
-                        Some(Encoding::EncodingExt("br".to_owned()))
-                    } else { None }
-                }
-            }
-        })
+        let encodings = match self.headers().get::<ContentEncoding>() {
+            Some(&ContentEncoding(ref encodings)) => encodings,
+            None => return None,
+        };
+        if encodings.contains(&Encoding::Gzip) {
+            Some(Encoding::Gzip)
+        } else if encodings.contains(&Encoding::Deflate) {
+            Some(Encoding::Deflate)
+        } else if encodings.contains(&Encoding::EncodingExt("br".to_owned())) {
+            Some(Encoding::EncodingExt("br".to_owned()))
+        } else {
+            None
+        }
     }
 }
 
