@@ -209,6 +209,8 @@ pub mod types {
     include!(concat!(env!("OUT_DIR"), "/InterfaceTypes.rs"));
 }
 
+pub mod abstractworker;
+pub mod abstractworkerglobalscope;
 pub mod activation;
 pub mod attr;
 pub mod beforeunloadevent;
@@ -231,6 +233,7 @@ pub mod canvasgradient;
 pub mod canvaspattern;
 pub mod canvasrenderingcontext2d;
 pub mod characterdata;
+pub mod client;
 pub mod closeevent;
 pub mod comment;
 pub mod console;
@@ -363,6 +366,10 @@ pub mod progressevent;
 pub mod radionodelist;
 pub mod range;
 pub mod screen;
+pub mod serviceworker;
+pub mod serviceworkercontainer;
+pub mod serviceworkerglobalscope;
+pub mod serviceworkerregistration;
 pub mod servohtmlparser;
 pub mod servoxmlparser;
 pub mod storage;

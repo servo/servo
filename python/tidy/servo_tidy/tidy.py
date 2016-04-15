@@ -522,6 +522,7 @@ def check_webidl_spec(file_name, contents):
         "//w3c.github.io",
         "//heycam.github.io/webidl",
         "//webbluetoothcg.github.io/web-bluetooth/",
+        "//slightlyoff.github.io/ServiceWorker/spec/service_worker/",
         # Not a URL
         "// This interface is entirely internal to Servo, and should not be" +
         " accessible to\n// web pages."

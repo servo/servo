@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
+use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId, DevtoolsPageInfo};
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
@@ -15,6 +15,7 @@ use dom::console::Console;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use dom::eventtarget::EventTarget;
+use dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use dom::window::{base64_atob, base64_btoa};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
@@ -55,6 +56,44 @@ pub struct WorkerGlobalScopeInit {
     pub panic_chan: IpcSender<PanicMsg>,
     pub worker_id: WorkerId,
     pub closing: Arc<AtomicBool>,
+}
+
+pub fn prepare_workerscope_init(global: GlobalRef,
+                                worker_type: String,
+                                worker_url: Url,
+                                devtools_sender: IpcSender<DevtoolScriptControlMsg>,
+                                closing: Arc<AtomicBool>) -> WorkerGlobalScopeInit {
+    let worker_id = global.get_next_worker_id();
+    let optional_sender = match global.devtools_chan() {
+            Some(ref chan) => {
+                let pipeline_id = global.pipeline();
+                let title = format!("{} for {}", worker_type, worker_url);
+                let page_info = DevtoolsPageInfo {
+                    title: title,
+                    url: worker_url,
+                };
+                chan.send(ScriptToDevtoolsControlMsg::NewGlobal((pipeline_id, Some(worker_id)),
+                                                                devtools_sender.clone(),
+                                                                page_info)).unwrap();
+                Some(devtools_sender)
+            },
+            None => None,
+        };
+
+    let init = WorkerGlobalScopeInit {
+            resource_threads: global.resource_threads(),
+            mem_profiler_chan: global.mem_profiler_chan().clone(),
+            to_devtools_sender: global.devtools_chan(),
+            time_profiler_chan: global.time_profiler_chan().clone(),
+            from_devtools_sender: optional_sender,
+            constellation_chan: global.constellation_chan().clone(),
+            panic_chan: global.panic_chan().clone(),
+            scheduler_chan: global.scheduler_chan().clone(),
+            worker_id: worker_id,
+            closing: closing,
+        };
+
+    init
 }
 
 // https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface
@@ -392,36 +431,49 @@ impl WorkerGlobalScope {
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
         let dedicated =
             self.downcast::<DedicatedWorkerGlobalScope>();
-        match dedicated {
-            Some(dedicated) => dedicated.script_chan(),
-            None => panic!("need to implement a sender for SharedWorker"),
+        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
+        if let Some(dedicated) = dedicated {
+            return dedicated.script_chan();
+        } else if let Some(service_worker) = service_worker {
+            return service_worker.script_chan();
+        } else {
+            panic!("need to implement a sender for SharedWorker")
         }
     }
 
     pub fn pipeline(&self) -> PipelineId {
-        let dedicated =
-            self.downcast::<DedicatedWorkerGlobalScope>();
-        match dedicated {
-            Some(dedicated) => dedicated.pipeline(),
-            None => panic!("need to add a pipeline for SharedWorker"),
+        let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
+        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
+        if let Some(dedicated) = dedicated {
+            return dedicated.pipeline();
+        } else if let Some(service_worker) = service_worker {
+            return service_worker.pipeline();
+        } else {
+            panic!("need to implement a sender for SharedWorker")
         }
     }
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
-        let dedicated =
-            self.downcast::<DedicatedWorkerGlobalScope>();
-        match dedicated {
-            Some(dedicated) => dedicated.new_script_pair(),
-            None => panic!("need to implement creating isolated event loops for SharedWorker"),
+        let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
+        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
+        if let Some(dedicated) = dedicated {
+            return dedicated.new_script_pair();
+        } else if let Some(service_worker) = service_worker {
+            return service_worker.new_script_pair();
+        } else {
+            panic!("need to implement a sender for SharedWorker")
         }
     }
 
     pub fn process_event(&self, msg: CommonScriptMsg) {
-        let dedicated =
-            self.downcast::<DedicatedWorkerGlobalScope>();
-        match dedicated {
-            Some(dedicated) => dedicated.process_event(msg),
-            None => panic!("need to implement processing single events for SharedWorker"),
+        let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
+        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
+        if let Some(dedicated) = dedicated {
+            return dedicated.process_event(msg);
+        } else if let Some(service_worker) = service_worker {
+            return service_worker.process_event(msg);
+        } else {
+            panic!("need to implement a sender for SharedWorker")
         }
     }
 

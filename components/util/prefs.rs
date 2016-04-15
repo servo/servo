@@ -65,6 +65,13 @@ impl PrefValue {
             _ => None,
         }
     }
+
+    pub fn as_u64(&self) -> Option<u64> {
+        match *self {
+            PrefValue::Number(x) => Some(x as u64),
+            _ => None,
+        }
+    }
 }
 
 impl ToJson for PrefValue {
