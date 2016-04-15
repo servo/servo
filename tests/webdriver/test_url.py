@@ -9,21 +9,10 @@
 
 import sys
 import unittest
-sys.path.insert(0, '/servo/tests/wpt/harness/wptrunner/executors')
+sys.path.insert(0, '/Users/krunal/Git/servo/tests/wpt/harness/wptrunner/executors')
 import webdriver
 import subprocess
-
-
-class ServoProcess(object):
-    def __init__(self):
-        self.path = "path/to/servo"
-        self.proc = None
-
-    def __enter__(self):
-        self.proc = subprocess.Popen(["./mach run --webdriver 7000 tests/html/about-mozilla.html"], shell=True)
-
-    def __exit__(self, *args, **kwargs):
-        self.proc.kill()
+from ServoProcess import ServoProcess
 
 
 class TestStringMethods(unittest.TestCase):
@@ -33,7 +22,7 @@ class TestStringMethods(unittest.TestCase):
             session.start()
             session.url = "http://google.com/about"
             self.assertEqual(session.url, "https://www.google.com/about/")
-            session.end()
+            #session.end()
 
 if __name__ == '__main__':
     unittest.main()
