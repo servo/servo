@@ -15,12 +15,11 @@ use euclid::rect::Rect;
 use euclid::size::Size2D;
 use font_cache_thread::FontCacheThread;
 use font_context::FontContext;
-use gfx_traits::PaintMsg as ConstellationMsg;
 use gfx_traits::{Epoch, FrameTreeId, LayerId, LayerKind, LayerProperties, PaintListener};
 use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
-use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
+use msg::constellation_msg::{ConstellationChan, PanicMsg, PipelineId};
 use paint_context::PaintContext;
 use profile_traits::mem::{self, ReportsChan};
 use profile_traits::time;
@@ -394,14 +393,13 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
                   layout_to_paint_port: Receiver<LayoutToPaintMsg>,
                   chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
                   compositor: C,
-                  constellation_chan: ConstellationChan<ConstellationMsg>,
+                  panic_chan: ConstellationChan<PanicMsg>,
                   font_cache_thread: FontCacheThread,
-                  failure_msg: Failure,
                   time_profiler_chan: time::ProfilerChan,
                   mem_profiler_chan: mem::ProfilerChan,
                   shutdown_chan: IpcSender<()>) {
-        let ConstellationChan(c) = constellation_chan.clone();
-        thread::spawn_named_with_send_on_failure(format!("PaintThread {:?}", id),
+        let ConstellationChan(c) = panic_chan.clone();
+        thread::spawn_named_with_send_on_panic(format!("PaintThread {:?}", id),
                                                thread_state::PAINT,
                                                move || {
             {
@@ -441,7 +439,7 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
 
             debug!("paint_thread: shutdown_chan send");
             shutdown_chan.send(()).unwrap();
-        }, failure_msg, c);
+        }, Some(id), c);
     }
 
     #[allow(unsafe_code)]
