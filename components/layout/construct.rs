@@ -1778,28 +1778,7 @@ pub fn strip_ignorable_whitespace_from_start(this: &mut LinkedList<Fragment>) {
             WhitespaceStrippingResult::FragmentContainedOnlyWhitespace => {
                 let removed_fragment = this.pop_front().unwrap();
                 if let Some(ref mut remaining_fragment) = this.front_mut() {
-                    if let Some(ref mut inline_context_of_remaining_fragment) =
-                            remaining_fragment.inline_context {
-                        if let Some(ref inline_context_of_removed_fragment) =
-                                removed_fragment.inline_context {
-                            for (inline_context_node_from_removed_fragment,
-                                 inline_context_node_from_remaining_fragment) in
-                                    inline_context_of_removed_fragment.nodes.iter().rev().zip(
-                                        inline_context_of_remaining_fragment.nodes.iter_mut().rev()
-                                    ) {
-                                if !inline_context_node_from_removed_fragment.flags.contains(
-                                        FIRST_FRAGMENT_OF_ELEMENT) {
-                                    continue
-                                }
-                                if inline_context_node_from_removed_fragment.address !=
-                                        inline_context_node_from_remaining_fragment.address {
-                                    continue
-                                }
-                                inline_context_node_from_remaining_fragment.flags.insert(
-                                    FIRST_FRAGMENT_OF_ELEMENT);
-                            }
-                        }
-                    }
+                    remaining_fragment.meld_with_prev_inline_fragment(&removed_fragment);
                 }
             }
         }
