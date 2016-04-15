@@ -14,16 +14,24 @@ from .base import (Protocol,
                    RefTestImplementation,
                    TestharnessExecutor,
                    strip_server)
-import webdriver
+from .. import webdriver
 from ..testrunner import Stop
+
+webdriver = None
 
 here = os.path.join(os.path.split(__file__)[0])
 
 extra_timeout = 5
 
 
+def do_delayed_imports():
+    global webdriver
+    import webdriver
+
+
 class ServoWebDriverProtocol(Protocol):
     def __init__(self, executor, browser, capabilities, **kwargs):
+        do_delayed_imports()
         Protocol.__init__(self, executor, browser)
         self.capabilities = capabilities
         self.host = browser.webdriver_host
@@ -34,10 +42,11 @@ class ServoWebDriverProtocol(Protocol):
         """Connect to browser via WebDriver."""
         self.runner = runner
 
+        url = "http://%s:%d" % (self.host, self.port)
         session_started = False
         try:
             self.session = webdriver.Session(self.host, self.port,
-                                             extension=webdriver.ServoExtensions)
+                extension=webdriver.servo.ServoCommandExtensions)
             self.session.start()
         except:
             self.logger.warning(
@@ -62,7 +71,7 @@ class ServoWebDriverProtocol(Protocol):
     def is_alive(self):
         try:
             # Get a simple property over the connection
-            self.session.handle
+            self.session.window_handle
         # TODO what exception?
         except Exception:
             return False
