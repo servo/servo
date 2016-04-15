@@ -1608,6 +1608,18 @@
             "url": "/_mozilla/css/floated_table_with_margin_a.html"
           }
         ],
+        "css/floats_inline_margins_a.html": [
+          {
+            "path": "css/floats_inline_margins_a.html",
+            "references": [
+              [
+                "/_mozilla/css/floats_inline_margins_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/floats_inline_margins_a.html"
+          }
+        ],
         "css/floats_margin_collapse_a.html": [
           {
             "path": "css/floats_margin_collapse_a.html",
@@ -8334,6 +8346,18 @@
             ]
           ],
           "url": "/_mozilla/css/floated_table_with_margin_a.html"
+        }
+      ],
+      "css/floats_inline_margins_a.html": [
+        {
+          "path": "css/floats_inline_margins_a.html",
+          "references": [
+            [
+              "/_mozilla/css/floats_inline_margins_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/floats_inline_margins_a.html"
         }
       ],
       "css/floats_margin_collapse_a.html": [
