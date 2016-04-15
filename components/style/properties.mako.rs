@@ -343,19 +343,11 @@ pub mod longhands {
         </%call>
     </%def>
 
-    <%def name="single_keyword(name, values, products='gecko,servo',
-                               experimental=False, internal=False,
-                               gecko_constant_prefix=None, gecko_ffi_name=None)">
-        <%self:single_keyword_computed name="${name}"
-                                       values="${values}"
-                                       products="${products}"
-                                       experimental="${experimental}"
-                                       internal="${internal}",
-                                       gecko_constant_prefix="${gecko_constant_prefix}"
-                                       gecko_ffi_name="${gecko_ffi_name}">
+    <%def name="single_keyword(name, values, **kwargs)">
+        <%call expr="single_keyword_computed(name, values, **kwargs)">
             use values::computed::ComputedValueAsSpecified;
             impl ComputedValueAsSpecified for SpecifiedValue {}
-        </%self:single_keyword_computed>
+        </%call>
     </%def>
 
     <%def name="predefined_type(name, type, initial_value, parse_method='parse', products='gecko,servo')">
