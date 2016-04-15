@@ -228,11 +228,11 @@ impl fmt::Debug for SpecificFragmentInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             SpecificFragmentInfo::ScannedText(ref info) => {
-                write!(f, "\"{}\"", slice_chars(&*info.run.text, info.range.begin().get() as usize,
+                write!(f, "{:?}", slice_chars(&*info.run.text, info.range.begin().get() as usize,
                                                  info.range.end().get() as usize))
             }
             SpecificFragmentInfo::UnscannedText(ref info) => {
-                write!(f, "\"{}\"", info.text)
+                write!(f, "{:?}", info.text)
             }
             _ => Ok(())
         }
