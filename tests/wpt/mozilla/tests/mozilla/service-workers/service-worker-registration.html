@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+function register_sw(script_url, scope_str='') {
+  var registration = navigator.serviceWorker.register(script_url, {'scope': scope_str });
+  return registration;
+}
+
+test(function (){
+  assert_true('serviceWorker' in navigator);
+}, "Test: Asserts ServiceWorkerContainer in Navigator");
+
+
+test(function() {
+  var sw_reg = register_sw('sw.js');
+  assert_class_string(sw_reg, "ServiceWorkerRegistration");
+}, "Test: Returns ServiceWorkerRegistration");
+
+test(function() {
+  var sw_reg = register_sw('resources/sw.js', './');
+  assert_equals(sw_reg.scope, "http://web-platform.test:8000/_mozilla/mozilla/service-workers/");
+}, "Test: Service Worker Registration property scope Url when no scope");
+
+test(function() {
+  var sw_reg = register_sw('resources/sw.js', '/some/nested/cache/directory');
+  assert_equals(sw_reg.scope, "http://web-platform.test:8000/some/nested/cache/directory");
+}, "Test: Service Worker Registration property scope when provided a scope");
+
+test(function () {
+    assert_throws(null,
+                function() {
+                var sw_reg = register_sw('./in%5Csome%5fdir/sw.js');
+              }, "Invalid Url Path");
+}, "Test: Throws Error when Invalid Url Path");
+
+test(function() {
+  var sw_reg = register_sw('sw.js');
+  assert_class_string(sw_reg.active, "ServiceWorker");
+}, "Test:Asserts an Active Service Worker");
+
+test(function() {
+  var sw_reg = register_sw('sw.js');
+  assert_class_string(sw_reg.active, "ServiceWorker");
+}, "Test:Asserts the controller attribute of ServiceWorkerContainer");
+
+test(function() {
+  var sw_reg = register_sw('resources/sw.js');
+  assert_equals(sw_reg.active.scriptURL, "http://web-platform.test:8000/_mozilla/mozilla/service-workers/resources/sw.js");
+}, "Test: Active Service Worker ScriptURL property");
+
+</script>
