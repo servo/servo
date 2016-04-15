@@ -470,17 +470,22 @@ impl SpeculatedFloatPlacement {
             let block_flow = flow.as_block();
             if block_flow.formatting_context_type() != FormattingContextType::None {
                 *self = block_flow.base.speculated_float_placement_in;
+            }
 
-                if self.left > Au(0) || self.right > Au(0) {
-                    let speculated_inline_content_edge_offsets =
-                        block_flow.fragment.guess_inline_content_edge_offsets();
-                    if self.left > Au(0) && speculated_inline_content_edge_offsets.start > Au(0) {
-                        self.left = self.left + speculated_inline_content_edge_offsets.start
-                    }
-                    if self.right > Au(0) && speculated_inline_content_edge_offsets.end > Au(0) {
-                        self.right = self.right + speculated_inline_content_edge_offsets.end
-                    }
+            if self.left > Au(0) || self.right > Au(0) {
+                let speculated_inline_content_edge_offsets =
+                    block_flow.fragment.guess_inline_content_edge_offsets();
+                if self.left > Au(0) && speculated_inline_content_edge_offsets.start > Au(0) {
+                    self.left = self.left + speculated_inline_content_edge_offsets.start
                 }
+                if self.right > Au(0) && speculated_inline_content_edge_offsets.end > Au(0) {
+                    self.right = self.right + speculated_inline_content_edge_offsets.end
+                }
+            }
+
+            if block_flow.formatting_context_type() == FormattingContextType::None {
+                self.left = max(self.left, block_flow.base.speculated_float_placement_in.left);
+                self.right = max(self.right, block_flow.base.speculated_float_placement_in.right);
             }
         }
 
