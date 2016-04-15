@@ -19,6 +19,7 @@
 #![feature(plugin)]
 #![feature(slice_patterns)]
 #![feature(stmt_expr_attributes)]
+#![feature(associated_type_defaults)]
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]

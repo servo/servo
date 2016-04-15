@@ -3,6 +3,7 @@
   "dom.forcetouch.enabled": false,
   "dom.mouseevent.which.enabled": false,
   "dom.mozbrowser.enabled": false,
+  "dom.serviceworker.timeout_seconds": 60,
   "dom.testbinding.enabled": false,
   "gfx.webrender.enabled": false,
   "js.baseline.enabled": true,
