@@ -15,7 +15,7 @@ use gfx::font_context::FontContext;
 use gfx::text::glyph::CharIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
-use inline::InlineFragments;
+use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFragments, LAST_FRAGMENT_OF_ELEMENT};
 use range::{Range, RangeIndex};
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
@@ -321,19 +321,26 @@ impl TextRunScanner {
         // Make new fragments with the runs and adjusted text indices.
         debug!("TextRunScanner: pushing {} fragment(s)", self.clump.len());
         let mut mappings = mappings.into_iter().peekable();
+        let mut prev_fragments_to_meld = Vec::new();
+
         for (logical_offset, old_fragment) in
                 mem::replace(&mut self.clump, LinkedList::new()).into_iter().enumerate() {
-             loop {
+            let mut is_first_mapping_of_this_old_fragment = true;
+            loop {
                 match mappings.peek() {
                     Some(mapping) if mapping.old_fragment_index == logical_offset => {}
                     Some(_) | None => {
-                        if let Some(ref mut last_fragment) = out_fragments.last_mut() {
-                            last_fragment.meld_with_next_inline_fragment(&old_fragment);
+                        if is_first_mapping_of_this_old_fragment {
+                            // There were no mappings for this unscanned fragment. Transfer its
+                            // flags to the previous/next sibling elements instead.
+                            if let Some(ref mut last_fragment) = out_fragments.last_mut() {
+                                last_fragment.meld_with_next_inline_fragment(&old_fragment);
+                            }
+                            prev_fragments_to_meld.push(old_fragment);
                         }
                         break;
                     }
                 };
-
                 let mut mapping = mappings.next().unwrap();
                 let scanned_run = runs[mapping.text_run_index].clone();
 
@@ -372,10 +379,31 @@ impl TextRunScanner {
                 let bounding_box_size = bounding_box_for_run_metrics(&new_metrics, writing_mode);
                 new_text_fragment_info.content_size = bounding_box_size;
 
-                let new_fragment = old_fragment.transform(
+                let mut new_fragment = old_fragment.transform(
                     bounding_box_size,
                     SpecificFragmentInfo::ScannedText(new_text_fragment_info));
 
+                let is_last_mapping_of_this_old_fragment = match mappings.peek() {
+                    Some(mapping) if mapping.old_fragment_index == logical_offset => false,
+                    _ => true
+                };
+
+                if let Some(ref mut context) = new_fragment.inline_context {
+                    for node in &mut context.nodes {
+                        if !is_last_mapping_of_this_old_fragment {
+                            node.flags.remove(LAST_FRAGMENT_OF_ELEMENT);
+                        }
+                        if !is_first_mapping_of_this_old_fragment {
+                            node.flags.remove(FIRST_FRAGMENT_OF_ELEMENT);
+                        }
+                    }
+                }
+
+                for prev_fragment in prev_fragments_to_meld.drain(..) {
+                    new_fragment.meld_with_prev_inline_fragment(&prev_fragment);
+                }
+
+                is_first_mapping_of_this_old_fragment = false;
                 out_fragments.push(new_fragment)
             }
         }
