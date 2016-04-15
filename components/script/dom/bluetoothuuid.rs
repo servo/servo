@@ -274,9 +274,7 @@ impl BluetoothUUID {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getservice
-    pub fn GetService(globalref: GlobalRef,
-                      name: StringOrUnsignedLong)
-                      -> Fallible<UUID> {
+    pub fn GetService(globalref: GlobalRef, name: StringOrUnsignedLong) -> Fallible<UUID> {
       BluetoothUUID::resolve_uuid_name(globalref,
                                        name,
                                        BLUETOOTH_ASSIGNED_SERVICES,
@@ -284,9 +282,7 @@ impl BluetoothUUID {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getcharacteristic
-    pub fn GetCharacteristic(globalref: GlobalRef,
-                             name: StringOrUnsignedLong)
-                             -> Fallible<UUID> {
+    pub fn GetCharacteristic(globalref: GlobalRef, name: StringOrUnsignedLong) -> Fallible<UUID> {
         BluetoothUUID::resolve_uuid_name(globalref,
                                          name,
                                          BLUETOOTH_ASSIGNED_CHARCTERISTICS,
@@ -294,9 +290,7 @@ impl BluetoothUUID {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getdescriptor
-    pub fn GetDescriptor(globalref: GlobalRef,
-                         name: StringOrUnsignedLong)
-                         -> Fallible<UUID> {
+    pub fn GetDescriptor(globalref: GlobalRef, name: StringOrUnsignedLong) -> Fallible<UUID> {
         BluetoothUUID::resolve_uuid_name(globalref,
                                          name,
                                          BLUETOOTH_ASSIGNED_DESCRIPTORS,
@@ -311,7 +305,7 @@ impl BluetoothUUID {
                              -> Fallible<DOMString> {
         match name {
             // Step 1
-            StringOrUnsignedLong::UnsignedLong(unsigned32) =>{
+            StringOrUnsignedLong::UnsignedLong(unsigned32) => {
                 Ok(BluetoothUUID::CanonicalUUID(globalref, unsigned32))
             },
             StringOrUnsignedLong::String(dstring) => {
@@ -322,8 +316,7 @@ impl BluetoothUUID {
                 } else {
                 // Step 3
                     let concatenated = format!("{}.{}", prefix, dstring);
-                    let is_in_table = assigned_numbers_table.iter()
-                                                            .find(|p| p.0 == concatenated);
+                    let is_in_table = assigned_numbers_table.iter().find(|p| p.0 == concatenated);
                     match is_in_table {
                         Some(&(_, alias)) => Ok(BluetoothUUID::CanonicalUUID(globalref, alias)),
                         None => Err(Syntax),
