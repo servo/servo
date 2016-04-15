@@ -1544,9 +1544,7 @@ impl Document {
         self.browsing_context.is_none() || !url_has_network_scheme(&self.url)
     }
 
-    pub fn nodes_from_point(&self, page_point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
-        assert!(self.GetDocumentElement().is_some());
-
+     pub fn nodes_from_point(&self, page_point: &Point2D<f32>) -> Vec<UntrustedNodeAddress> {
         self.window.layout().nodes_from_point(*page_point)
     }
 }
@@ -2680,6 +2678,10 @@ impl DocumentMethods for Document {
         let point = &Point2D { x: x, y: y };
         let window = window_from_node(self);
         let viewport = window.window_size().unwrap().visible_viewport;
+
+        if self.browsing_context().is_none() {
+            return vec!();
+        }
 
         // Step 2
         if x < 0.0 || y < 0.0 || x > viewport.width.get() || y > viewport.height.get() {
