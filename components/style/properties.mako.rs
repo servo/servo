@@ -311,13 +311,8 @@ pub mod longhands {
         }
     </%def>
 
-    <%def name="longhand(name, derived_from=None, keyword=None, products='gecko,servo',
-                         custom_cascade=False, experimental=False, internal=False,
-                         gecko_ffi_name=None)">
-        <%self:raw_longhand name="${name}" derived_from="${derived_from}" keyword="${keyword}"
-                products="${products}" custom_cascade="${custom_cascade}"
-                experimental="${experimental}" internal="${internal}"
-                gecko_ffi_name="${gecko_ffi_name}">
+    <%def name="longhand(name, **kwargs)">
+        <%call expr="raw_longhand(name, **kwargs)">
             ${caller.body()}
             % if not derived_from:
                 pub fn parse_specified(context: &ParserContext, input: &mut Parser)
@@ -325,7 +320,7 @@ pub mod longhands {
                     parse(context, input).map(DeclaredValue::Value)
                 }
             % endif
-        </%self:raw_longhand>
+        </%call>
     </%def>
 
     <%def name="single_keyword_computed(name, values, products='gecko,servo',
