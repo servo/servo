@@ -2519,6 +2519,18 @@
             "url": "/_mozilla/css/inline_margin_multiple_fragments_a.html"
           }
         ],
+        "css/inline_margin_nbsp.html": [
+          {
+            "path": "css/inline_margin_nbsp.html",
+            "references": [
+              [
+                "/_mozilla/css/inline_margin_nbsp_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/inline_margin_nbsp.html"
+          }
+        ],
         "css/inline_margins_a.html": [
           {
             "path": "css/inline_margins_a.html",
@@ -9167,6 +9179,18 @@
             ]
           ],
           "url": "/_mozilla/css/inline_margin_multiple_fragments_a.html"
+        }
+      ],
+      "css/inline_margin_nbsp.html": [
+        {
+          "path": "css/inline_margin_nbsp.html",
+          "references": [
+            [
+              "/_mozilla/css/inline_margin_nbsp_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/inline_margin_nbsp.html"
         }
       ],
       "css/inline_margins_a.html": [
