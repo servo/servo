@@ -614,6 +614,8 @@ interface WebGLRenderingContextBase
 
     //void readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
     //                GLenum format, GLenum type, ArrayBufferView? pixels);
+    void readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
+                    GLenum format, GLenum type, object? pixels);
 
     //void renderbufferStorage(GLenum target, GLenum internalformat,
     //                         GLsizei width, GLsizei height);
