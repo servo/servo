@@ -14,6 +14,7 @@ from setuptools import setup, find_packages
 VERSION = '0.0.1'
 
 install_requires = [
+    "flake8==2.4.1",
 ]
 
 here = os.path.dirname(os.path.abspath(__file__))
