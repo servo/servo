@@ -1,34 +1,47 @@
 [package]
-name = "profile"
-version = "0.0.1"
 authors = ["The Servo Project Developers"]
+name = "profile"
 publish = false
+version = "0.0.1"
+
+[dependencies]
+hbs-pow = "0.2"
+libc = "0.2"
+log = "0.3.5"
+regex = "0.1.55"
+serde = "0.7"
+serde_json = "0.7"
+serde_macros = "0.7"
+time = "0.1.12"
+
+[dependencies.ipc-channel]
+git = "https://github.com/servo/ipc-channel"
+
+[dependencies.plugins]
+path = "../plugins"
+
+[dependencies.profile_traits]
+path = "../profile_traits"
+
+[dependencies.util]
+path = "../util"
 
 [lib]
 name = "profile"
 path = "lib.rs"
 
-[dependencies.profile_traits]
-path = "../profile_traits"
+[target]
 
-[dependencies.plugins]
-path = "../plugins"
+[target.i686-apple-darwin]
 
-[dependencies.util]
-path = "../util"
-
-[dependencies.ipc-channel]
-git = "https://github.com/servo/ipc-channel"
-
-[dependencies]
-hbs-pow = "0.2"
-log = "0.3.5"
-libc = "0.2"
-regex = "0.1.55"
-time = "0.1.12"
-
-[target.x86_64-apple-darwin.dependencies.task_info]
-path = "../../support/rust-task_info"
+[target.i686-apple-darwin.dependencies]
 
 [target.i686-apple-darwin.dependencies.task_info]
+path = "../../support/rust-task_info"
+
+[target.x86_64-apple-darwin]
+
+[target.x86_64-apple-darwin.dependencies]
+
+[target.x86_64-apple-darwin.dependencies.task_info]
 path = "../../support/rust-task_info"

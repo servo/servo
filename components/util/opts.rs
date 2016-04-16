@@ -17,7 +17,7 @@ use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::{self, Read, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process;
 use std::sync::atomic::{AtomicBool, ATOMIC_BOOL_INIT, Ordering};
 use url::{self, Url};
@@ -49,6 +49,10 @@ pub struct Opts {
     /// `None` to disable the time profiler or `Some` with an interval in seconds to enable it and
     /// cause it to produce output on that interval (`-p`).
     pub time_profiler_period: Option<f64>,
+
+    /// When the profiler is enabled, this is an optional path to dump a self-contained HTML file
+    /// visualizing the traces as a timeline.
+    pub time_profiler_trace_path: Option<String>,
 
     /// `None` to disable the memory profiler or `Some` with an interval in seconds to enable it
     /// and cause it to produce output on that interval (`-m`).
@@ -469,6 +473,7 @@ pub fn default_opts() -> Opts {
         tile_size: 512,
         device_pixels_per_px: None,
         time_profiler_period: None,
+        time_profiler_trace_path: None,
         mem_profiler_period: None,
         layout_threads: 1,
         nonincremental_layout: false,
@@ -529,6 +534,9 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optopt("", "device-pixel-ratio", "Device pixels per px", "");
     opts.optopt("t", "threads", "Number of paint threads", "1");
     opts.optflagopt("p", "profile", "Profiler flag and output interval", "10");
+    opts.optflagopt("", "profiler-trace-path",
+                    "Path to dump a self-contained HTML timeline of profiler traces",
+                    "");
     opts.optflagopt("m", "memory-profile", "Memory profiler flag and output interval", "10");
     opts.optflag("x", "exit", "Exit after load flag");
     opts.optopt("y", "layout-threads", "Number of threads to use for layout", "1");
@@ -656,6 +664,15 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         period.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: -p ({})", err)))
     });
 
+    if let Some(ref time_profiler_trace_path) = opt_match.opt_str("profiler-trace-path") {
+        let mut path = PathBuf::from(time_profiler_trace_path);
+        path.pop();
+        if let Err(why) = fs::create_dir_all(&path) {
+            error!("Couldn't create/open {:?}: {:?}",
+                Path::new(time_profiler_trace_path).to_string_lossy(), why);
+        }
+    }
+
     let mem_profiler_period = opt_match.opt_default("m", "5").map(|period| {
         period.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: -m ({})", err)))
     });
@@ -755,6 +772,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         tile_size: tile_size,
         device_pixels_per_px: device_pixels_per_px,
         time_profiler_period: time_profiler_period,
+        time_profiler_trace_path: opt_match.opt_str("profiler-trace-path"),
         mem_profiler_period: mem_profiler_period,
         layout_threads: layout_threads,
         nonincremental_layout: nonincremental_layout,
