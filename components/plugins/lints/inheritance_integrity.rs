@@ -2,9 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use rustc::hir::{self, def};
 use rustc::lint::{LateContext, LintPass, LintArray, Level, LateLintPass, LintContext};
-use rustc::middle::def;
-use rustc_front::hir;
 use syntax::ast;
 use utils::match_lang_ty;
 

@@ -41,6 +41,7 @@ use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
 use time;
 use time::Tm;
+use tinyfiledialogs;
 use url::Url;
 use util::resource_files::resources_dir_path;
 use util::thread::spawn_named;
@@ -150,10 +151,12 @@ fn load_for_consumer(load_data: LoadData,
     let factory = NetworkHttpRequestFactory {
         connector: connector,
     };
+
+    let ui_provider = TFDProvider;
     let context = load_data.context.clone();
-    match load::<WrappedHttpRequest>(load_data, &http_state,
-                                     devtools_chan, &factory,
-                                     user_agent, &cancel_listener) {
+    match load(load_data, &ui_provider, &http_state,
+               devtools_chan, &factory,
+               user_agent, &cancel_listener) {
         Err(LoadError::UnsupportedScheme(url)) => {
             let s = format!("{} request, but we don't support that scheme", &*url.scheme);
             send_error(url, s, start_chan)
@@ -195,19 +198,19 @@ pub trait HttpResponse: Read {
         "HTTP/1.1".to_owned()
     }
     fn content_encoding(&self) -> Option<Encoding> {
-        self.headers().get::<ContentEncoding>().and_then(|h| {
-            match *h {
-                ContentEncoding(ref encodings) => {
-                    if encodings.contains(&Encoding::Gzip) {
-                        Some(Encoding::Gzip)
-                    } else if encodings.contains(&Encoding::Deflate) {
-                        Some(Encoding::Deflate)
-                    } else if encodings.contains(&Encoding::EncodingExt("br".to_owned())) {
-                        Some(Encoding::EncodingExt("br".to_owned()))
-                    } else { None }
-                }
-            }
-        })
+        let encodings = match self.headers().get::<ContentEncoding>() {
+            Some(&ContentEncoding(ref encodings)) => encodings,
+            None => return None,
+        };
+        if encodings.contains(&Encoding::Gzip) {
+            Some(Encoding::Gzip)
+        } else if encodings.contains(&Encoding::Deflate) {
+            Some(Encoding::Deflate)
+        } else if encodings.contains(&Encoding::EncodingExt("br".to_owned())) {
+            Some(Encoding::EncodingExt("br".to_owned()))
+        } else {
+            None
+        }
     }
 }
 
@@ -246,7 +249,7 @@ impl HttpResponse for WrappedHttpResponse {
 pub trait HttpRequestFactory {
     type R: HttpRequest;
 
-    fn create(&self, url: Url, method: Method) -> Result<Self::R, LoadError>;
+    fn create(&self, url: Url, method: Method, headers: Headers) -> Result<Self::R, LoadError>;
 }
 
 pub struct NetworkHttpRequestFactory {
@@ -256,7 +259,8 @@ pub struct NetworkHttpRequestFactory {
 impl HttpRequestFactory for NetworkHttpRequestFactory {
     type R = WrappedHttpRequest;
 
-    fn create(&self, url: Url, method: Method) -> Result<WrappedHttpRequest, LoadError> {
+    fn create(&self, url: Url, method: Method, headers: Headers)
+              -> Result<WrappedHttpRequest, LoadError> {
         let connection = Request::with_connector(method, url.clone(), &*self.connector);
 
         if let Err(HttpError::Ssl(ref error)) = connection {
@@ -271,13 +275,14 @@ impl HttpRequestFactory for NetworkHttpRequestFactory {
             }
         }
 
-        let request = match connection {
+        let mut request = match connection {
             Ok(req) => req,
 
             Err(e) => {
                  return Err(LoadError::Connection(url, e.description().to_owned()))
             }
         };
+        *request.headers_mut() = headers;
 
         Ok(WrappedHttpRequest { request: request })
     }
@@ -286,7 +291,6 @@ impl HttpRequestFactory for NetworkHttpRequestFactory {
 pub trait HttpRequest {
     type R: HttpResponse + 'static;
 
-    fn headers_mut(&mut self) -> &mut Headers;
     fn send(self, body: &Option<Vec<u8>>) -> Result<Self::R, LoadError>;
 }
 
@@ -296,10 +300,6 @@ pub struct WrappedHttpRequest {
 
 impl HttpRequest for WrappedHttpRequest {
     type R = WrappedHttpResponse;
-
-    fn headers_mut(&mut self) -> &mut Headers {
-        self.request.headers_mut()
-    }
 
     fn send(self, body: &Option<Vec<u8>>) -> Result<WrappedHttpResponse, LoadError> {
         let url = self.request.url.clone();
@@ -625,6 +625,7 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
                           request_id: &str)
                           -> Result<A::R, LoadError> where A: HttpRequest + 'static  {
 
+    let null_data = None;
     let response;
     let connection_url = replace_hosts(&url);
 
@@ -633,20 +634,7 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
     // a ConnectionAborted error. this loop tries again with a new
     // connection.
     loop {
-        let mut req = try!(request_factory.create(connection_url.clone(), method.clone()));
-        *req.headers_mut() = request_headers.clone();
-
-        if cancel_listener.is_cancelled() {
-            return Err(LoadError::Cancelled(connection_url.clone(), "load cancelled".to_owned()));
-        }
-
-        if log_enabled!(log::LogLevel::Info) {
-            info!("{}", method);
-            for header in req.headers_mut().iter() {
-                info!(" - {}", header);
-            }
-            info!("{:?}", data);
-        }
+        let mut headers = request_headers.clone();
 
         // Avoid automatically sending request body if a redirect has occurred.
         //
@@ -655,26 +643,42 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
         //
         // https://tools.ietf.org/html/rfc7231#section-6.4
         let is_redirected_request = iters != 1;
-        let cloned_data;
-        let maybe_response = match data {
+        let request_body;
+        match data {
             &Some(ref d) if !is_redirected_request => {
-                req.headers_mut().set(ContentLength(d.len() as u64));
-                cloned_data = data.clone();
-                req.send(data)
-            },
+                headers.set(ContentLength(d.len() as u64));
+                request_body = data;
+            }
             _ => {
                 if *load_data_method != Method::Get && *load_data_method != Method::Head {
-                    req.headers_mut().set(ContentLength(0))
+                    headers.set(ContentLength(0))
                 }
-                cloned_data = None;
-                req.send(&None)
+                request_body = &null_data;
             }
-        };
+        }
+
+        if log_enabled!(log::LogLevel::Info) {
+            info!("{}", method);
+            for header in headers.iter() {
+                info!(" - {}", header);
+            }
+            info!("{:?}", data);
+        }
+
+        let req = try!(request_factory.create(connection_url.clone(), method.clone(),
+                                              headers.clone()));
+
+        if cancel_listener.is_cancelled() {
+            return Err(LoadError::Cancelled(connection_url.clone(), "load cancelled".to_owned()));
+        }
+
+        let maybe_response = req.send(request_body);
+
         if let Some(pipeline_id) = *pipeline_id {
             send_request_to_devtools(
                 devtools_chan.clone(), request_id.clone().into(),
-                url.clone(), method.clone(), request_headers.clone(),
-                cloned_data, pipeline_id, time::now()
+                url.clone(), method.clone(), headers,
+                request_body.clone(), pipeline_id, time::now()
             );
         }
 
@@ -694,13 +698,27 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
     Ok(response)
 }
 
-pub fn load<A>(load_data: LoadData,
+pub trait UIProvider {
+    fn input_username_and_password(&self) -> (Option<String>, Option<String>);
+}
+
+impl UIProvider for TFDProvider {
+    fn input_username_and_password(&self) -> (Option<String>, Option<String>) {
+        (tinyfiledialogs::input_box("Enter username", "Username:", ""),
+        tinyfiledialogs::input_box("Enter password", "Password:", ""))
+    }
+}
+
+struct TFDProvider;
+
+pub fn load<A, B>(load_data: LoadData,
+               ui_provider: &B,
                http_state: &HttpState,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                request_factory: &HttpRequestFactory<R=A>,
                user_agent: String,
                cancel_listener: &CancellationListener)
-               -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static {
+               -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static, B: UIProvider {
     // FIXME: At the time of writing this FIXME, servo didn't have any central
     //        location for configuration. If you're reading this and such a
     //        repository DOES exist, please update this constant to use it.
@@ -710,6 +728,8 @@ pub fn load<A>(load_data: LoadData,
     let mut doc_url = load_data.url.clone();
     let mut redirected_to = HashSet::new();
     let mut method = load_data.method.clone();
+
+    let mut new_auth_header: Option<Authorization<Basic>> = None;
 
     if cancel_listener.is_cancelled() {
         return Err(LoadError::Cancelled(doc_url, "load cancelled".to_owned()));
@@ -765,11 +785,42 @@ pub fn load<A>(load_data: LoadData,
                                &user_agent, &http_state.cookie_jar,
                                &http_state.auth_cache, &load_data);
 
+        //if there is a new auth header then set the request headers with it
+        if let Some(ref auth_header) = new_auth_header {
+            request_headers.set(auth_header.clone());
+        }
+
         let response = try!(obtain_response(request_factory, &doc_url, &method, &request_headers,
                                             &cancel_listener, &load_data.data, &load_data.method,
                                             &load_data.pipeline_id, iters, &devtools_chan, &request_id));
 
         process_response_headers(&response, &doc_url, &http_state.cookie_jar, &http_state.hsts_list, &load_data);
+
+        //if response status is unauthorized then prompt user for username and password
+        if response.status() == StatusCode::Unauthorized {
+            let (username_option, password_option) = ui_provider.input_username_and_password();
+
+            match username_option {
+                Some(name) => {
+                    new_auth_header =  Some(Authorization(Basic { username: name, password: password_option }));
+                    continue;
+                },
+                None => {},
+            }
+        }
+
+        new_auth_header = None;
+
+        if let Some(auth_header) = request_headers.get::<Authorization<Basic>>() {
+            if response.status().class() == StatusClass::Success {
+                let auth_entry = AuthCacheEntry {
+                    user_name: auth_header.username.to_owned(),
+                    password: auth_header.password.to_owned().unwrap(),
+                };
+
+                http_state.auth_cache.write().unwrap().insert(doc_url.clone(), auth_entry);
+            }
+        }
 
         // --- Loop if there's a redirect
         if response.status().class() == StatusClass::Redirection {

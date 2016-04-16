@@ -43,19 +43,7 @@ fn main() {
         .env("PYTHONPATH", &mako)
         .env("TEMPLATE", &template)
         .env("PRODUCT", product)
-        .arg("-c")
-        .arg(r#"
-import os
-import sys
-from mako.template import Template
-from mako import exceptions
-try:
-    template = Template(open(os.environ['TEMPLATE'], 'rb').read(), input_encoding='utf8')
-    print(template.render(PRODUCT=os.environ['PRODUCT']).encode('utf8'))
-except:
-    sys.stderr.write(exceptions.text_error_template().render().encode('utf8'))
-    sys.exit(1)
-"#)
+        .arg("generate_properties_rs.py")
         .stderr(Stdio::inherit())
         .output()
         .unwrap();

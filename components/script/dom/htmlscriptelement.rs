@@ -272,10 +272,7 @@ impl HTMLScriptElement {
 
         // TODO: Step 15: environment settings object.
 
-        let window = window_from_node(self);
-        let window = window.r();
-        let base_url = window.get_url();
-
+        let base_url = doc.base_url();
         let is_external = match element.get_attribute(&ns!(), &atom!("src")) {
             // Step 16.
             Some(ref src) => {
@@ -300,7 +297,7 @@ impl HTMLScriptElement {
 
                 // Step 16.6.
                 // TODO(#9186): use the fetch infrastructure.
-                let script_chan = window.networking_task_source();
+                let script_chan = doc.window().networking_task_source();
                 let elem = Trusted::new(self, script_chan.clone());
 
                 let context = Arc::new(Mutex::new(ScriptContext {

@@ -23,7 +23,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, call, check_call
+from servo.command_base import CommandBase, cd, call, check_call, BuildNotFound
 
 
 def read_file(filename, if_exists=False):
@@ -263,11 +263,20 @@ class PostBuildCommands(CommandBase):
     @CommandArgument('--dev', '-d', action='store_true',
                      help='Package the dev build')
     def install(self, release=False, dev=False):
-        binary_path = self.get_binary_path(release, dev, android=True)
-        if not path.exists(binary_path):
-            # TODO: Run the build command automatically?
-            print("Servo build not found. Please run `./mach build` to compile Servo.")
-            return 1
+        try:
+            binary_path = self.get_binary_path(release, dev, android=True)
+        except BuildNotFound:
+            print("Servo build not found. Building servo...")
+            result = Registrar.dispatch(
+                "build", context=self.context, release=release, dev=dev
+            )
+            if result:
+                return result
+            try:
+                binary_path = self.get_binary_path(release, dev, android=True)
+            except BuildNotFound:
+                print("Rebuilding Servo did not solve the missing build problem.")
+                return 1
 
         apk_path = binary_path + ".apk"
         if not path.exists(apk_path):

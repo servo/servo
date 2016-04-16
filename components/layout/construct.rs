@@ -512,19 +512,20 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                 } else if flow.need_anonymous_flow(&*kid_flow) {
                     consecutive_siblings.push(kid_flow)
                 } else {
-                    // Flush any inline fragments that we were gathering up. This allows us to
-                    // handle {ib} splits.
-                    debug!("flushing {} inline box(es) to flow A",
-                           inline_fragment_accumulator.fragments.fragments.len());
-                    let old_inline_fragment_accumulator =
-                        mem::replace(inline_fragment_accumulator,
-                                     InlineFragmentsAccumulator::new());
-                    self.flush_inline_fragments_to_flow_or_list(
-                        old_inline_fragment_accumulator,
-                        flow,
-                        consecutive_siblings,
-                        abs_descendants,
-                        node);
+                    if !flow::base(&*kid_flow).flags.contains(IS_ABSOLUTELY_POSITIONED) {
+                        // Flush any inline fragments that we were gathering up. This allows us to
+                        // handle {ib} splits.
+                        let old_inline_fragment_accumulator =
+                            mem::replace(inline_fragment_accumulator,
+                                         InlineFragmentsAccumulator::new());
+                        self.flush_inline_fragments_to_flow_or_list(
+                            old_inline_fragment_accumulator,
+                            flow,
+                            consecutive_siblings,
+                            abs_descendants,
+                            node);
+                    }
+
                     if !consecutive_siblings.is_empty() {
                         let consecutive_siblings = mem::replace(consecutive_siblings, vec!());
                         self.generate_anonymous_missing_child(consecutive_siblings, flow, node);

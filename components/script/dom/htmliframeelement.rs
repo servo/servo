@@ -66,7 +66,6 @@ pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
     pipeline_id: Cell<Option<PipelineId>>,
     subpage_id: Cell<Option<SubpageId>>,
-    containing_page_pipeline_id: Cell<Option<PipelineId>>,
     sandbox: Cell<Option<u8>>,
     load_blocker: DOMRefCell<Option<LoadBlocker>>,
 }
@@ -83,8 +82,7 @@ impl HTMLIFrameElement {
             if url.is_empty() {
                 None
             } else {
-                let window = window_from_node(self);
-                window.get_url().join(&url).ok()
+                document_from_node(self).base_url().join(&url).ok()
             }
         })
     }
@@ -126,8 +124,6 @@ impl HTMLIFrameElement {
         let new_pipeline_id = self.pipeline_id.get().unwrap();
         let private_iframe = self.privatebrowsing();
 
-        self.containing_page_pipeline_id.set(Some(window.pipeline()));
-
         let ConstellationChan(ref chan) = window.constellation_chan();
         let load_info = IFrameLoadInfo {
             url: url,
@@ -149,7 +145,7 @@ impl HTMLIFrameElement {
     pub fn process_the_iframe_attributes(&self) {
         let url = match self.get_url() {
             Some(url) => url.clone(),
-            None => url!("about:blank"),
+            None => Url::parse("about:blank").unwrap(),
         };
 
         self.navigate_or_reload_child_browsing_context(Some(url));
@@ -192,7 +188,6 @@ impl HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             pipeline_id: Cell::new(None),
             subpage_id: Cell::new(None),
-            containing_page_pipeline_id: Cell::new(None),
             sandbox: Cell::new(None),
             load_blocker: DOMRefCell::new(None),
         }
@@ -204,11 +199,6 @@ impl HTMLIFrameElement {
                document: &Document) -> Root<HTMLIFrameElement> {
         let element = HTMLIFrameElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLIFrameElementBinding::Wrap)
-    }
-
-    #[inline]
-    pub fn containing_page_pipeline_id(&self) -> Option<PipelineId> {
-        self.containing_page_pipeline_id.get()
     }
 
     #[inline]
@@ -373,7 +363,7 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> E
             let window = window_from_node(iframe);
             let window = window.r();
 
-            let pipeline_info = Some((iframe.containing_page_pipeline_id().unwrap(),
+            let pipeline_info = Some((window.pipeline(),
                                       iframe.subpage_id().unwrap()));
             let ConstellationChan(ref chan) = window.constellation_chan();
             let msg = ConstellationMsg::Navigate(pipeline_info, direction);

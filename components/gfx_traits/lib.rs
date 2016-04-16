@@ -34,6 +34,12 @@ pub enum PaintMsg {
     Failure(Failure),
 }
 
+impl From<Failure> for PaintMsg {
+    fn from(failure: Failure) -> PaintMsg {
+        PaintMsg::Failure(failure)
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum LayerKind {
     NoTransform,

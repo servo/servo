@@ -463,7 +463,7 @@ const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;
 pub fn default_opts() -> Opts {
     Opts {
         is_running_problem_test: false,
-        url: Some(url!("about:blank")),
+        url: Some(Url::parse("about:blank").unwrap()),
         paint_threads: 1,
         gpu_painting: false,
         tile_size: 512,

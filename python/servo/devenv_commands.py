@@ -62,10 +62,12 @@ class MachCommands(CommandBase):
         help='Command-line arguments to be passed through to cargo update')
     @CommandArgument(
         '--package', '-p', default=None,
-        help='Updates selected package')
+        help='Updates the selected package')
     @CommandArgument(
         '--all-packages', '-a', action='store_true',
-        help='Updates all packages')
+        help='Updates all packages. NOTE! This is very likely to break your ' +
+             'working copy, making it impossible to build servo. Only do ' +
+             'this if you really know what you are doing.')
     def update_cargo(self, params=None, package=None, all_packages=None):
         if not params:
             params = []

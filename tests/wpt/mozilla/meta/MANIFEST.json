@@ -94,6 +94,18 @@
             "url": "/_mozilla/css/absolute_hypothetical_with_intervening_inline_block_a.html"
           }
         ],
+        "css/absolute_ib_split_a.html": [
+          {
+            "path": "css/absolute_ib_split_a.html",
+            "references": [
+              [
+                "/_mozilla/css/absolute_ib_split_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/absolute_ib_split_a.html"
+          }
+        ],
         "css/absolute_inline_containing_block_a.html": [
           {
             "path": "css/absolute_inline_containing_block_a.html",
@@ -104,6 +116,18 @@
               ]
             ],
             "url": "/_mozilla/css/absolute_inline_containing_block_a.html"
+          }
+        ],
+        "css/absolute_line_height_after_float.html": [
+          {
+            "path": "css/absolute_line_height_after_float.html",
+            "references": [
+              [
+                "/_mozilla/css/absolute_line_height_after_float_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/absolute_line_height_after_float.html"
           }
         ],
         "css/absolute_table.html": [
@@ -577,6 +601,18 @@
               ]
             ],
             "url": "/_mozilla/css/block_formatting_context_float_placement_a.html"
+          }
+        ],
+        "css/block_formatting_context_margin_collapse_a.html": [
+          {
+            "path": "css/block_formatting_context_margin_collapse_a.html",
+            "references": [
+              [
+                "/_mozilla/css/block_formatting_context_margin_collapse_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/block_formatting_context_margin_collapse_a.html"
           }
         ],
         "css/block_formatting_context_max_width_a.html": [
@@ -1569,6 +1605,30 @@
               ]
             ],
             "url": "/_mozilla/css/floated_table_with_margin_a.html"
+          }
+        ],
+        "css/floats_margin_collapse_a.html": [
+          {
+            "path": "css/floats_margin_collapse_a.html",
+            "references": [
+              [
+                "/_mozilla/css/floats_margin_collapse_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/floats_margin_collapse_a.html"
+          }
+        ],
+        "css/floats_margin_collapse_with_clearance_a.html": [
+          {
+            "path": "css/floats_margin_collapse_with_clearance_a.html",
+            "references": [
+              [
+                "/_mozilla/css/floats_margin_collapse_with_clearance_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/floats_margin_collapse_with_clearance_a.html"
           }
         ],
         "css/focus_selector.html": [
@@ -6696,6 +6756,18 @@
           "url": "/_mozilla/css/absolute_hypothetical_with_intervening_inline_block_a.html"
         }
       ],
+      "css/absolute_ib_split_a.html": [
+        {
+          "path": "css/absolute_ib_split_a.html",
+          "references": [
+            [
+              "/_mozilla/css/absolute_ib_split_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/absolute_ib_split_a.html"
+        }
+      ],
       "css/absolute_inline_containing_block_a.html": [
         {
           "path": "css/absolute_inline_containing_block_a.html",
@@ -6706,6 +6778,18 @@
             ]
           ],
           "url": "/_mozilla/css/absolute_inline_containing_block_a.html"
+        }
+      ],
+      "css/absolute_line_height_after_float.html": [
+        {
+          "path": "css/absolute_line_height_after_float.html",
+          "references": [
+            [
+              "/_mozilla/css/absolute_line_height_after_float_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/absolute_line_height_after_float.html"
         }
       ],
       "css/absolute_table.html": [
@@ -7179,6 +7263,18 @@
             ]
           ],
           "url": "/_mozilla/css/block_formatting_context_float_placement_a.html"
+        }
+      ],
+      "css/block_formatting_context_margin_collapse_a.html": [
+        {
+          "path": "css/block_formatting_context_margin_collapse_a.html",
+          "references": [
+            [
+              "/_mozilla/css/block_formatting_context_margin_collapse_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/block_formatting_context_margin_collapse_a.html"
         }
       ],
       "css/block_formatting_context_max_width_a.html": [
@@ -8171,6 +8267,30 @@
             ]
           ],
           "url": "/_mozilla/css/floated_table_with_margin_a.html"
+        }
+      ],
+      "css/floats_margin_collapse_a.html": [
+        {
+          "path": "css/floats_margin_collapse_a.html",
+          "references": [
+            [
+              "/_mozilla/css/floats_margin_collapse_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/floats_margin_collapse_a.html"
+        }
+      ],
+      "css/floats_margin_collapse_with_clearance_a.html": [
+        {
+          "path": "css/floats_margin_collapse_with_clearance_a.html",
+          "references": [
+            [
+              "/_mozilla/css/floats_margin_collapse_with_clearance_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/floats_margin_collapse_with_clearance_a.html"
         }
       ],
       "css/focus_selector.html": [

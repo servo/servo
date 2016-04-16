@@ -62,8 +62,8 @@
 		* Implementations of servo-specific mach commands.
 	* mach
 		* Implementation of `mach` command-line tool.
-	* tidy.py
-		* Code lints that are automatically run before merging changes.
+	* tidy
+		* Python package of code lints that are automatically run before merging changes.
 * resources
 	* Files used at run time. Need to be included somehow when distributing binary builds.
 * support
