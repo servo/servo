@@ -489,8 +489,19 @@ impl CanvasRenderingContext2D {
                     // TODO: will need to check that the context bitmap mode is fixed
                     // once we implement CanvasProxy
                     let window = window_from_node(&*self.canvas);
+
                     let style = window.GetComputedStyle(&*self.canvas.upcast(), None);
-                    self.parse_color(&style.GetPropertyValue(DOMString::from("color")))
+
+                    let not_in_doc = !self.canvas.upcast::<Node>().is_in_doc();
+                    let display_is_none = style.GetPropertyValue(DOMString::from("display")) == "none";
+
+                    let element_not_rendered = not_in_doc || display_is_none;
+
+                    if element_not_rendered {
+                        self.parse_color("black")
+                    } else {
+                        self.parse_color(&style.GetPropertyValue(DOMString::from("color")))
+                    }
                 },
                 _ => Err(())
             }
