@@ -147,7 +147,7 @@ impl WebGLProgram {
         }
 
         // Check if the name is reserved
-        if name.starts_with("webgl") || name.starts_with("_webgl_") {
+        if name.starts_with("gl_") || name.starts_with("webgl") || name.starts_with("_webgl_") {
             return Err(WebGLError::InvalidOperation);
         }
 
@@ -185,6 +185,10 @@ impl WebGLProgram {
         }
 
         // Check if the name is reserved
+        if name.starts_with("gl_") {
+            return Err(WebGLError::InvalidOperation);
+        }
+
         if name.starts_with("webgl") || name.starts_with("_webgl_") {
             return Ok(None);
         }
