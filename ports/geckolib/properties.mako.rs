@@ -181,7 +181,7 @@ impl Debug for ${style_struct.gecko_ffi_name} {
    # Enum class instead of NS_STYLE_...
    force_stub += ["box-sizing"]
    # Inconsistent constant naming in gecko
-   force_stub += ["unicode-bidi"]
+   force_stub += ["unicode-bidi", "text-transform"]
    # Need to figure out why servo has sideways-left computed value and gecko doesn't
    force_stub += ["text-orientation"]
    # Automatic mapping generates NS_STYLE_TEXT_DECORATION_STYLE__MOZ_NONE instead of
