@@ -228,11 +228,11 @@ impl fmt::Debug for SpecificFragmentInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             SpecificFragmentInfo::ScannedText(ref info) => {
-                write!(f, "\"{}\"", slice_chars(&*info.run.text, info.range.begin().get() as usize,
+                write!(f, "{:?}", slice_chars(&*info.run.text, info.range.begin().get() as usize,
                                                  info.range.end().get() as usize))
             }
             SpecificFragmentInfo::UnscannedText(ref info) => {
-                write!(f, "\"{}\"", info.text)
+                write!(f, "{:?}", info.text)
             }
             _ => Ok(())
         }
@@ -2497,25 +2497,48 @@ impl Fragment {
     pub fn meld_with_next_inline_fragment(&mut self, next_fragment: &Fragment) {
         if let Some(ref mut inline_context_of_this_fragment) = self.inline_context {
             if let Some(ref inline_context_of_next_fragment) = next_fragment.inline_context {
-                for (i, inline_context_node_from_next_fragment) in
-                        inline_context_of_next_fragment.nodes.iter().enumerate() {
-                    if i >= inline_context_of_this_fragment.nodes.len() {
-                        continue
-                    }
+                for (inline_context_node_from_this_fragment,
+                     inline_context_node_from_next_fragment)
+                    in inline_context_of_this_fragment.nodes.iter_mut().rev()
+                        .zip(inline_context_of_next_fragment.nodes.iter().rev())
+                {
                     if !inline_context_node_from_next_fragment.flags.contains(
                             LAST_FRAGMENT_OF_ELEMENT) {
                         continue
                     }
                     if inline_context_node_from_next_fragment.address !=
-                            inline_context_of_this_fragment.nodes[i].address {
+                            inline_context_node_from_this_fragment.address {
                         continue
                     }
-                    inline_context_of_this_fragment.nodes[i].flags.insert(
-                        LAST_FRAGMENT_OF_ELEMENT);
+                    inline_context_node_from_this_fragment.flags.insert(LAST_FRAGMENT_OF_ELEMENT);
                 }
             }
         }
     }
+
+    pub fn meld_with_prev_inline_fragment(&mut self, prev_fragment: &Fragment) {
+        if let Some(ref mut inline_context_of_this_fragment) = self.inline_context {
+            if let Some(ref inline_context_of_prev_fragment) = prev_fragment.inline_context {
+                for (inline_context_node_from_prev_fragment,
+                     inline_context_node_from_this_fragment)
+                    in inline_context_of_prev_fragment.nodes.iter().rev().zip(
+                            inline_context_of_this_fragment.nodes.iter_mut().rev())
+                {
+                    if !inline_context_node_from_prev_fragment.flags.contains(
+                            FIRST_FRAGMENT_OF_ELEMENT) {
+                        continue
+                    }
+                    if inline_context_node_from_prev_fragment.address !=
+                            inline_context_node_from_this_fragment.address {
+                        continue
+                    }
+                    inline_context_node_from_this_fragment.flags.insert(
+                        FIRST_FRAGMENT_OF_ELEMENT);
+                }
+            }
+        }
+    }
+
 
     pub fn fragment_id(&self) -> usize {
         return self as *const Fragment as usize;
