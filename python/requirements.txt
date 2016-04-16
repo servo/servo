@@ -9,7 +9,7 @@ toml == 0.9.1
 # For Python linting
 flake8 == 2.4.1
 pep8 == 1.5.7
-pyflakes == 0.8.0
+pyflakes == 0.8.1
 
 # For test-webidl
 ply == 3.8

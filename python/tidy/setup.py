@@ -49,4 +49,9 @@ if __name__ == '__main__':
         package_data={},
         install_requires=install_requires,
         zip_safe=False,
+        entry_points={
+            'console_scripts': [
+                'servo-tidy=servo_tidy.tidy:scan'
+            ],
+        },
     )
