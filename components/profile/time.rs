@@ -12,10 +12,13 @@ use profile_traits::time::{TimerMetadataReflowType, TimerMetadataFrameType};
 use std::borrow::ToOwned;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
+use std::fs;
 use std::io::{self, Write};
+use std::path;
 use std::time::Duration;
 use std::{thread, f64};
 use std_time::precise_time_ns;
+use trace_dump::TraceDump;
 use util::thread::spawn_named;
 use util::time::duration_from_seconds;
 
@@ -125,10 +128,11 @@ pub struct Profiler {
     pub port: IpcReceiver<ProfilerMsg>,
     buckets: ProfilerBuckets,
     pub last_msg: Option<ProfilerMsg>,
+    trace: Option<TraceDump>,
 }
 
 impl Profiler {
-    pub fn create(period: Option<f64>) -> ProfilerChan {
+    pub fn create(period: Option<f64>, file_path: Option<String>) -> ProfilerChan {
         let (chan, port) = ipc::channel().unwrap();
         match period {
             Some(period) => {
@@ -143,7 +147,11 @@ impl Profiler {
                 });
                 // Spawn the time profiler.
                 spawn_named("Time profiler".to_owned(), move || {
-                    let mut profiler = Profiler::new(port);
+                    let trace = file_path.as_ref()
+                        .map(path::Path::new)
+                        .map(fs::File::create)
+                        .map(|res| TraceDump::new(res.unwrap()));
+                    let mut profiler = Profiler::new(port, trace);
                     profiler.start();
                 });
             }
@@ -206,11 +214,12 @@ impl Profiler {
         profiler_chan
     }
 
-    pub fn new(port: IpcReceiver<ProfilerMsg>) -> Profiler {
+    pub fn new(port: IpcReceiver<ProfilerMsg>, trace: Option<TraceDump>) -> Profiler {
         Profiler {
             port: port,
             buckets: BTreeMap::new(),
             last_msg: None,
+            trace: trace,
         }
     }
 
@@ -235,6 +244,9 @@ impl Profiler {
         match msg.clone() {
             ProfilerMsg::Time(k, t, e) => {
                 heartbeats::maybe_heartbeat(&k.0, t.0, t.1, e.0, e.1);
+                if let Some(ref mut trace) = self.trace {
+                    trace.write_one(&k, t, e);
+                }
                 let ms = (t.1 - t.0) as f64 / 1000000f64;
                 self.find_or_insert(k, ms);
             },
