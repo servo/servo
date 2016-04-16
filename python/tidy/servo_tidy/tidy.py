@@ -601,11 +601,12 @@ def get_wpt_files(only_changed_files, progress):
 
 def check_wpt_lint_errors(files):
     wpt_working_dir = os.path.abspath(os.path.join(".", "tests", "wpt", "web-platform-tests"))
-    site.addsitedir(wpt_working_dir)
-    from tools.lint import lint
-    returncode = lint.lint(files)
-    if returncode:
-        yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(returncode))
+    if os.path.isdir(wpt_working_dir):
+        site.addsitedir(wpt_working_dir)
+        from tools.lint import lint
+        returncode = lint.lint(files)
+        if returncode:
+            yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(returncode))
 
 
 def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
