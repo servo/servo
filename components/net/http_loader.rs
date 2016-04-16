@@ -41,6 +41,7 @@ use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
 use time;
 use time::Tm;
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 use tinyfiledialogs;
 use url::Url;
 use util::resource_files::resources_dir_path;
@@ -703,9 +704,15 @@ pub trait UIProvider {
 }
 
 impl UIProvider for TFDProvider {
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
     fn input_username_and_password(&self) -> (Option<String>, Option<String>) {
         (tinyfiledialogs::input_box("Enter username", "Username:", ""),
         tinyfiledialogs::input_box("Enter password", "Password:", ""))
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+    fn input_username_and_password(&self) -> (Option<String>, Option<String>) {
+        (None, None)
     }
 }
 
