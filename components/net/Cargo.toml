@@ -32,9 +32,6 @@ git = "https://github.com/servo/ipc-channel"
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender_traits"
 
-[dependencies.tinyfiledialogs]
-git = "https://github.com/jdm/tinyfiledialogs"
-
 [dependencies]
 cookie = "0.2"
 flate2 = "0.2.0"
@@ -51,3 +48,6 @@ unicase = "1.4.0"
 url = {version = "0.5.7", features = ["heap_size"]}
 uuid = { version = "0.2", features = ["v4"] }
 websocket = "0.16.1"
+
+[target.'cfg(any(target_os = "macos", target_os = "linux"))'.dependencies]
+tinyfiledialogs = {git = "https://github.com/jdm/tinyfiledialogs"}
