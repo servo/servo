@@ -61,7 +61,7 @@ use layout_interface::{self, LayoutChan, NewLayoutThreadInfo, ScriptLayoutChan};
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{ConstellationChan, LoadData};
 use msg::constellation_msg::{PipelineId, PipelineNamespace};
-use msg::constellation_msg::{SubpageId, WindowSizeData};
+use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
@@ -635,8 +635,8 @@ impl ScriptThread {
             }
         }
 
-        for (id, size) in resizes {
-            self.handle_event(id, ResizeEvent(size));
+        for (id, (size, size_type)) in resizes {
+            self.handle_event(id, ResizeEvent(size, size_type));
         }
 
         // Store new resizes, and gather all other events.
@@ -689,9 +689,9 @@ impl ScriptThread {
                         self.handle_new_layout(new_layout_info);
                     })
                 }
-                FromConstellation(ConstellationControlMsg::Resize(id, size)) => {
+                FromConstellation(ConstellationControlMsg::Resize(id, size, size_type)) => {
                     self.profile_event(ScriptThreadEventCategory::Resize, || {
-                        self.handle_resize(id, size);
+                        self.handle_resize(id, size, size_type);
                     })
                 }
                 FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => {
@@ -1020,10 +1020,10 @@ impl ScriptThread {
         }
     }
 
-    fn handle_resize(&self, id: PipelineId, size: WindowSizeData) {
+    fn handle_resize(&self, id: PipelineId, size: WindowSizeData, size_type: WindowSizeType) {
         if let Some(ref page) = self.find_subpage(id) {
             let window = page.window();
-            window.set_resize_event(size);
+            window.set_resize_event(size, size_type);
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
@@ -1670,8 +1670,8 @@ impl ScriptThread {
         }
 
         match event {
-            ResizeEvent(new_size) => {
-                self.handle_resize_event(pipeline_id, new_size);
+            ResizeEvent(new_size, size_type) => {
+                self.handle_resize_event(pipeline_id, new_size, size_type);
             }
 
             MouseButtonEvent(event_type, button, point) => {
@@ -1831,7 +1831,7 @@ impl ScriptThread {
         }
     }
 
-    fn handle_resize_event(&self, pipeline_id: PipelineId, new_size: WindowSizeData) {
+    fn handle_resize_event(&self, pipeline_id: PipelineId, new_size: WindowSizeData, size_type: WindowSizeType) {
         let page = get_page(&self.root_page(), pipeline_id);
         let window = page.window();
         window.set_window_size(new_size);
@@ -1849,11 +1849,13 @@ impl ScriptThread {
 
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
-        let uievent = UIEvent::new(window.r(),
-                                   DOMString::from("resize"), EventBubbles::DoesNotBubble,
-                                   EventCancelable::NotCancelable, Some(window.r()),
-                                   0i32);
-        uievent.upcast::<Event>().fire(window.upcast());
+        if size_type == WindowSizeType::Resize {
+            let uievent = UIEvent::new(window.r(),
+                                       DOMString::from("resize"), EventBubbles::DoesNotBubble,
+                                       EventCancelable::NotCancelable, Some(window.r()),
+                                       0i32);
+            uievent.upcast::<Event>().fire(window.upcast());
+        }
     }
 
     /// Initiate a non-blocking fetch for a specified resource. Stores the InProgressLoad

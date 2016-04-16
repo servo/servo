@@ -50,6 +50,12 @@ pub struct WindowSizeData {
     pub device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>,
 }
 
+#[derive(Deserialize, Eq, PartialEq, Serialize, Copy, Clone, HeapSizeOf)]
+pub enum WindowSizeType {
+    Initial,
+    Resize,
+}
+
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Deserialize, Serialize)]
 pub enum KeyState {
     Pressed,

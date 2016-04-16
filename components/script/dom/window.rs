@@ -43,7 +43,8 @@ use js::rust::Runtime;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
 use layout_interface::{LayoutChan, LayoutRPC, Msg, Reflow, ReflowQueryType, MarginStyleResponse};
 use libc;
-use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId, WindowSizeData};
+use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId};
+use msg::constellation_msg::{WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceThread;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
@@ -181,7 +182,7 @@ pub struct Window {
     next_subpage_id: Cell<SubpageId>,
 
     /// Pending resize event, if any.
-    resize_event: Cell<Option<WindowSizeData>>,
+    resize_event: Cell<Option<(WindowSizeData, WindowSizeType)>>,
 
     /// Pipeline id associated with this page.
     id: PipelineId,
@@ -1280,11 +1281,11 @@ impl Window {
         self.pending_reflow_count.set(self.pending_reflow_count.get() + 1);
     }
 
-    pub fn set_resize_event(&self, event: WindowSizeData) {
-        self.resize_event.set(Some(event));
+    pub fn set_resize_event(&self, event: WindowSizeData, event_type: WindowSizeType) {
+        self.resize_event.set(Some((event, event_type)));
     }
 
-    pub fn steal_resize_event(&self) -> Option<WindowSizeData> {
+    pub fn steal_resize_event(&self) -> Option<(WindowSizeData, WindowSizeType)> {
         let event = self.resize_event.get();
         self.resize_event.set(None);
         event
