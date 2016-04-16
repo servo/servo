@@ -33,7 +33,7 @@ use msg::constellation_msg::WebDriverCommandMsg;
 use msg::constellation_msg::{FrameId, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, NavigationDirection};
-use msg::constellation_msg::{SubpageId, WindowSizeData};
+use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
 use msg::constellation_msg::{self, ConstellationChan, PanicMsg};
 use msg::webdriver_msg;
 use net_traits::image_cache_thread::ImageCacheThread;
@@ -639,9 +639,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 debug!("constellation got navigation message from compositor");
                 self.handle_navigate_msg(pipeline_info, direction);
             }
-            Request::Compositor(FromCompositorMsg::ResizedWindow(new_size)) => {
+            Request::Compositor(FromCompositorMsg::WindowSize(new_size, size_type)) => {
                 debug!("constellation got window resize message");
-                self.handle_resized_window_msg(new_size);
+                self.handle_window_size_msg(new_size, size_type);
             }
             Request::Compositor(FromCompositorMsg::TickAnimation(pipeline_id, tick_type)) => {
                 self.handle_tick_animation(pipeline_id, tick_type)
@@ -910,7 +910,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             visible_viewport: *size,
             initial_viewport: *size * ScaleFactor::new(1.0),
             device_pixel_ratio: self.window_size.device_pixel_ratio,
-        });
+        }, WindowSizeType::Initial);
 
         // Store the new rect inside the pipeline
         let result = {
@@ -1581,8 +1581,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     }
 
     /// Called when the window is resized.
-    fn handle_resized_window_msg(&mut self, new_size: WindowSizeData) {
-        debug!("handle_resized_window_msg: {:?} {:?}", new_size.initial_viewport.to_untyped(),
+    fn handle_window_size_msg(&mut self, new_size: WindowSizeData, size_type: WindowSizeType) {
+        debug!("handle_window_size_msg: {:?} {:?}", new_size.initial_viewport.to_untyped(),
                                                        new_size.visible_viewport.to_untyped());
 
         if let Some(root_frame_id) = self.root_frame_id {
@@ -1597,14 +1597,23 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 None => return warn!("Pipeline {:?} resized after closing.", pipeline_id),
                 Some(pipeline) => pipeline,
             };
-            let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(pipeline.id, new_size));
+            let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(
+                pipeline.id,
+                new_size,
+                size_type
+            ));
             for pipeline_id in frame.prev.iter().chain(&frame.next) {
                 let pipeline = match self.pipelines.get(&pipeline_id) {
-                    None => { warn!("Inactive pipeline {:?} resized after closing.", pipeline_id); continue; },
+                    None => {
+                        warn!("Inactive pipeline {:?} resized after closing.", pipeline_id);
+                        continue;
+                    },
                     Some(pipeline) => pipeline,
                 };
-                let _ = pipeline.script_chan.send(ConstellationControlMsg::ResizeInactive(pipeline.id,
-                                                                                          new_size));
+                let _ = pipeline.script_chan.send(ConstellationControlMsg::ResizeInactive(
+                    pipeline.id,
+                    new_size
+                ));
             }
         }
 
@@ -1616,8 +1625,11 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 Some(pipeline) => pipeline,
             };
             if pipeline.parent_info.is_none() {
-                let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(pipeline.id,
-                                                                                  new_size));
+                let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(
+                    pipeline.id,
+                    new_size,
+                    size_type
+                ));
             }
         }
 

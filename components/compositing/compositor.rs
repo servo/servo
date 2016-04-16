@@ -31,7 +31,7 @@ use layers::scene::Scene;
 use layout_traits::LayoutControlChan;
 use msg::constellation_msg::{ConvertPipelineIdFromWebRender, ConvertPipelineIdToWebRender, Image, PixelFormat};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{NavigationDirection, PipelineId, WindowSizeData};
+use msg::constellation_msg::{NavigationDirection, PipelineId, WindowSizeData, WindowSizeType};
 use pipeline::CompositionPipeline;
 use profile_traits::mem::{self, ReportKind, Reporter, ReporterRequest};
 use profile_traits::time::{self, ProfilerCategory, profile};
@@ -461,7 +461,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         compositor.update_zoom_transform();
 
         // Tell the constellation about the initial window size.
-        compositor.send_window_size();
+        compositor.send_window_size(WindowSizeType::Initial);
 
         compositor
     }
@@ -822,7 +822,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         // Initialize the new constellation channel by sending it the root window size.
         self.constellation_chan = new_constellation_chan;
-        self.send_window_size();
+        self.send_window_size(WindowSizeType::Initial);
 
         self.frame_tree_id.next();
         self.composite_if_necessary(CompositingReason::NewFrameTree);
@@ -1062,15 +1062,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.pending_subpages.insert(subpage_pipeline_id);
     }
 
-    fn send_window_size(&self) {
+    fn send_window_size(&self, size_type: WindowSizeType) {
         let dppx = self.page_zoom * self.device_pixels_per_screen_px();
         let initial_viewport = self.window_size.as_f32() / dppx;
         let visible_viewport = initial_viewport / self.viewport_zoom;
-        let msg = ConstellationMsg::ResizedWindow(WindowSizeData {
+        let msg = ConstellationMsg::WindowSize(WindowSizeData {
             device_pixel_ratio: dppx,
             initial_viewport: initial_viewport,
             visible_viewport: visible_viewport,
-        });
+        }, size_type);
 
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Sending window resize to constellation failed ({}).", e);
@@ -1295,7 +1295,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.window_size = new_size;
 
         self.scene.set_root_layer_size(new_size.as_f32());
-        self.send_window_size();
+        self.send_window_size(WindowSizeType::Resize);
     }
 
     fn on_load_url_window_event(&mut self, url_string: String) {
@@ -1725,14 +1725,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_zoom_reset_window_event(&mut self) {
         self.page_zoom = ScaleFactor::new(1.0);
         self.update_zoom_transform();
-        self.send_window_size();
+        self.send_window_size(WindowSizeType::Resize);
     }
 
     fn on_zoom_window_event(&mut self, magnification: f32) {
         self.page_zoom = ScaleFactor::new((self.page_zoom.get() * magnification)
                                           .max(MIN_ZOOM).min(MAX_ZOOM));
         self.update_zoom_transform();
-        self.send_window_size();
+        self.send_window_size(WindowSizeType::Resize);
     }
 
     /// Simulate a pinch zoom
