@@ -61,7 +61,7 @@ use layout_interface::{self, LayoutChan, NewLayoutThreadInfo, ScriptLayoutChan};
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{ConstellationChan, LoadData};
 use msg::constellation_msg::{PipelineId, PipelineNamespace};
-use msg::constellation_msg::{SubpageId, WindowSizeData};
+use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
@@ -689,9 +689,9 @@ impl ScriptThread {
                         self.handle_new_layout(new_layout_info);
                     })
                 }
-                FromConstellation(ConstellationControlMsg::Resize(id, size)) => {
+                FromConstellation(ConstellationControlMsg::Resize(id, size, size_type)) => {
                     self.profile_event(ScriptThreadEventCategory::Resize, || {
-                        self.handle_resize(id, size);
+                        self.handle_resize(id, size, size_type);
                     })
                 }
                 FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => {
@@ -1020,10 +1020,14 @@ impl ScriptThread {
         }
     }
 
-    fn handle_resize(&self, id: PipelineId, size: WindowSizeData) {
+    fn handle_resize(&self, id: PipelineId, size: WindowSizeData, size_type: WindowSizeType) {
         if let Some(ref page) = self.find_subpage(id) {
             let window = page.window();
-            window.set_resize_event(size);
+            if size_type == WindowSizeType::Resize  {
+                window.set_resize_event(size);
+            } else {
+                window.set_window_size(size);
+            }
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
