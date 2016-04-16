@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderi
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
-use dom::bindings::conversions::{ToJSValConvertible, array_buffer_view_data_checked};
+use dom::bindings::conversions::{ToJSValConvertible, array_buffer_view_data, array_buffer_view_data_checked};
 use dom::bindings::conversions::{array_buffer_view_to_vec_checked, array_buffer_view_to_vec};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
@@ -28,7 +28,7 @@ use dom::webgltexture::{TexParameterValue, WebGLTexture};
 use dom::webgluniformlocation::WebGLUniformLocation;
 use euclid::size::Size2D;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{JSContext, JSObject, RootedValue};
+use js::jsapi::{JSContext, JS_GetArrayBufferViewType, JSObject, RootedValue, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UndefinedValue};
 use net_traits::image::base::PixelFormat;
 use net_traits::image_cache_thread::ImageResponse;
@@ -471,8 +471,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             WebGLParameter::Int(val) => Int32Value(val),
             WebGLParameter::Bool(_) => panic!("Buffer parameter should not be bool"),
             WebGLParameter::Float(_) => panic!("Buffer parameter should not be float"),
-            WebGLParameter::String(_) => panic!("Buffer parameter should not be string"),
             WebGLParameter::FloatArray(_) => panic!("Buffer parameter should not be float array"),
+            WebGLParameter::String(_) => panic!("Buffer parameter should not be string"),
             WebGLParameter::Invalid => NullValue(),
         }
     }
@@ -1238,6 +1238,36 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             .unwrap()
     }
 
+    #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.12
+    fn ReadPixels(&self, _cx: *mut JSContext, x: i32, y: i32, width: i32, height: i32,
+                  format: u32, pixel_type: u32, pixels: *mut JSObject) {
+        let mut data = match unsafe { array_buffer_view_data::<u8>(pixels) } {
+            Some(data) => data,
+            None => return self.webgl_error(InvalidValue),
+        };
+
+        match unsafe { JS_GetArrayBufferViewType(pixels) } {
+            Type::Uint8 => (),
+            _ => return self.webgl_error(InvalidOperation)
+        }
+
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::ReadPixels(x, y, width, height, format, pixel_type, sender)))
+            .unwrap();
+
+        let result = receiver.recv().unwrap();
+
+        if result.len() > data.len() {
+            return self.webgl_error(InvalidOperation)
+        }
+
+        for i in 0..result.len() {
+            data[i] = result[i]
+        }
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.4
     fn Scissor(&self, x: i32, y: i32, width: i32, height: i32) {
         self.ipc_renderer
@@ -1337,11 +1367,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn GetShaderSource(&self, shader: Option<&WebGLShader>) -> Option<DOMString> {
-        if let Some(shader) = shader {
-            shader.source()
-        } else {
-            None
-        }
+        shader.and_then(|s| s.source())
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
