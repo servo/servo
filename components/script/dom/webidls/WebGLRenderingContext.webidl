@@ -622,12 +622,12 @@ interface WebGLRenderingContextBase
 
     void shaderSource(WebGLShader? shader, DOMString source);
 
-    //void stencilFunc(GLenum func, GLint ref, GLuint mask);
-    //void stencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask);
-    //void stencilMask(GLuint mask);
-    //void stencilMaskSeparate(GLenum face, GLuint mask);
-    //void stencilOp(GLenum fail, GLenum zfail, GLenum zpass);
-    //void stencilOpSeparate(GLenum face, GLenum fail, GLenum zfail, GLenum zpass);
+    void stencilFunc(GLenum func, GLint ref, GLuint mask);
+    void stencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask);
+    void stencilMask(GLuint mask);
+    void stencilMaskSeparate(GLenum face, GLuint mask);
+    void stencilOp(GLenum fail, GLenum zfail, GLenum zpass);
+    void stencilOpSeparate(GLenum face, GLenum fail, GLenum zfail, GLenum zpass);
 
     //void texImage2D(GLenum target, GLint level, GLenum internalformat,
     //                GLsizei width, GLsizei height, GLint border, GLenum format,
