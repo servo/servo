@@ -8,6 +8,7 @@
 use cookie_rs;
 use net_traits::CookieSource;
 use pub_domains::PUB_DOMAINS;
+use rustc_serialize::{Encodable, Encoder};
 use std::borrow::ToOwned;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use time::{Tm, now, at, Duration};
@@ -173,5 +174,67 @@ impl Cookie {
         }
 
         true
+    }
+}
+
+impl Encodable for Cookie {
+    fn encode<S: Encoder>(&self, s: &mut S) -> Result<(), S::Error> {
+        s.emit_struct("Cookie", 6, |e| {
+            try!(e.emit_struct_field("cookie", 0, |e| RsCookie(self.cookie.clone()).encode(e)));
+            try!(e.emit_struct_field("host_only", 1, |e| self.host_only.encode(e)));
+            try!(e.emit_struct_field("persistent", 2, |e| self.persistent.encode(e)));
+            try!(e.emit_struct_field("creation_time", 3, |e| Time(self.creation_time).encode(e)));
+            try!(e.emit_struct_field("last_access", 4, |e| Time(self.last_access).encode(e)));
+            match self.expiry_time {
+                Some(time) => try!(e.emit_struct_field("expiry_time", 5, |e| Time(time).encode(e))),
+                None => {},
+            }
+            Ok(())
+        })
+    }
+}
+
+struct Time(Tm);
+
+impl Encodable for Time {
+    fn encode<S: Encoder>(&self, s: &mut S) -> Result<(), S::Error> {
+        let Time(time) = *self;
+        s.emit_struct("Time", 11, |e| {
+            try!(e.emit_struct_field("tm_sec", 0, |e| time.tm_sec.encode(e)));
+            try!(e.emit_struct_field("tm_min", 1, |e| time.tm_min.encode(e)));
+            try!(e.emit_struct_field("tm_hour", 2, |e| time.tm_hour.encode(e)));
+            try!(e.emit_struct_field("tm_mday", 3, |e| time.tm_mday.encode(e)));
+            try!(e.emit_struct_field("tm_mon", 4, |e| time.tm_mon.encode(e)));
+            try!(e.emit_struct_field("tm_year", 5, |e| time.tm_year.encode(e)));
+            try!(e.emit_struct_field("tm_wday", 6, |e| time.tm_wday.encode(e)));
+            try!(e.emit_struct_field("tm_yday", 7, |e| time.tm_yday.encode(e)));
+            try!(e.emit_struct_field("tm_isdst", 8, |e| time.tm_isdst.encode(e)));
+            try!(e.emit_struct_field("tm_utcoff", 9, |e| time.tm_utcoff.encode(e)));
+            try!(e.emit_struct_field("tm_nsec", 10, |e| time.tm_nsec.encode(e)));
+            Ok(())
+        })
+    }
+}
+
+struct RsCookie(cookie_rs::Cookie);
+
+impl Encodable for RsCookie {
+    fn encode<S: Encoder>(&self, s: &mut S) -> Result<(), S::Error> {
+        let RsCookie(ref rs_cookie) = *self;
+        s.emit_struct("RsCookie", 9, |e| {
+            try!(e.emit_struct_field("name", 0, |e| rs_cookie.name.encode(e)));
+            try!(e.emit_struct_field("value", 1, |e| rs_cookie.value.encode(e)));
+            match rs_cookie.expires {
+                Some(time) => try!(e.emit_struct_field("expires", 2, |e| Time(time).encode(e))),
+                None => {},
+            }
+            try!(e.emit_struct_field("max_age", 3, |e| rs_cookie.max_age.encode(e)));
+            try!(e.emit_struct_field("domain", 4, |e| rs_cookie.domain.encode(e)));
+            try!(e.emit_struct_field("path", 5, |e| rs_cookie.path.encode(e)));
+            try!(e.emit_struct_field("secure", 6, |e| rs_cookie.secure.encode(e)));
+            try!(e.emit_struct_field("httponly", 7, |e| rs_cookie.httponly.encode(e)));
+            try!(e.emit_struct_field("custom", 8, |e| rs_cookie.custom.encode(e)));
+            Ok(())
+        })
     }
 }
