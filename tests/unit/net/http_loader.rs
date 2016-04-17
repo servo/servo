@@ -19,7 +19,7 @@ use hyper::status::StatusCode;
 use msg::constellation_msg::PipelineId;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
-use net::hsts::HSTSEntry;
+use net::hsts::HstsEntry;
 use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpResponse, UIProvider, HttpState};
 use net::resource_thread::{AuthCacheEntry, CancellationListener};
 use net_traits::{LoadData, CookieSource, LoadContext, IncludeSubdomains};
@@ -767,7 +767,7 @@ fn test_load_sends_secure_cookie_if_http_changed_to_https_due_to_entry_in_hsts_s
     let http_state = HttpState::new();
     {
         let mut hsts_list = http_state.hsts_list.write().unwrap();
-        let entry = HSTSEntry::new(
+        let entry = HstsEntry::new(
             "mozilla.com".to_owned(), IncludeSubdomains::Included, Some(1000000)
         ).unwrap();
         hsts_list.push(entry);
