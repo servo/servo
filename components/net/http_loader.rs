@@ -31,10 +31,10 @@ use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, Loa
 use net_traits::{Metadata, NetworkError};
 use openssl::ssl::error::{SslError, OpensslError};
 use openssl::ssl::{SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER, SslContext, SslMethod};
-use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt, AuthCacheEntry};
+use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt, AuthCache, AuthCacheEntry};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::error::Error;
 use std::io::{self, Read, Write};
 use std::sync::mpsc::Sender;
@@ -128,7 +128,7 @@ fn inner_url(url: &Url) -> Url {
 pub struct HttpState {
     pub hsts_list: Arc<RwLock<HstsList>>,
     pub cookie_jar: Arc<RwLock<CookieStorage>>,
-    pub auth_cache: Arc<RwLock<HashMap<Url, AuthCacheEntry>>>,
+    pub auth_cache: Arc<RwLock<AuthCache>>,
 }
 
 impl HttpState {
@@ -136,7 +136,7 @@ impl HttpState {
         HttpState {
             hsts_list: Arc::new(RwLock::new(HstsList::new())),
             cookie_jar: Arc::new(RwLock::new(CookieStorage::new())),
-            auth_cache: Arc::new(RwLock::new(HashMap::new())),
+            auth_cache: Arc::new(RwLock::new(AuthCache::new())),
         }
     }
 }
@@ -522,7 +522,7 @@ pub fn modify_request_headers(headers: &mut Headers,
                               url: &Url,
                               user_agent: &str,
                               cookie_jar: &Arc<RwLock<CookieStorage>>,
-                              auth_cache: &Arc<RwLock<HashMap<Url, AuthCacheEntry>>>,
+                              auth_cache: &Arc<RwLock<AuthCache>>,
                               load_data: &LoadData) {
     // Ensure that the host header is set from the original url
     let host = Host {
@@ -555,13 +555,13 @@ pub fn modify_request_headers(headers: &mut Headers,
 
 fn set_auth_header(headers: &mut Headers,
                    url: &Url,
-                   auth_cache: &Arc<RwLock<HashMap<Url, AuthCacheEntry>>>) {
+                   auth_cache: &Arc<RwLock<AuthCache>>) {
 
     if !headers.has::<Authorization<Basic>>() {
         if let Some(auth) = auth_from_url(url) {
             headers.set(auth);
         } else {
-            if let Some(ref auth_entry) = auth_cache.read().unwrap().get(url) {
+            if let Some(ref auth_entry) = auth_cache.read().unwrap().entries.get(url) {
                 auth_from_entry(&auth_entry, headers);
             }
         }
@@ -820,7 +820,7 @@ pub fn load<A, B>(load_data: &LoadData,
                     password: auth_header.password.to_owned().unwrap(),
                 };
 
-                http_state.auth_cache.write().unwrap().insert(doc_url.clone(), auth_entry);
+                http_state.auth_cache.write().unwrap().entries.insert(doc_url.clone(), auth_entry);
             }
         }
 
