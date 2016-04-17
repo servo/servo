@@ -38,6 +38,18 @@ use self::property_bit_field::PropertyBitField;
 
 <%!
 
+#
+# Globals must be declared in a %!-style block, since it is being called at compile-time (not
+# runtime).
+#
+STYLE_STRUCTS = []
+THIS_STYLE_STRUCT = None
+LONGHANDS = []
+LONGHANDS_BY_NAME = {}
+DERIVED_LONGHANDS = {}
+SHORTHANDS = []
+CONFIG = {}
+
 import re
 
 def to_rust_ident(name):
@@ -49,6 +61,9 @@ def to_rust_ident(name):
 def to_camel_case(ident):
     return re.sub("_([a-z])", lambda m: m.group(1).upper(), ident.strip("_").capitalize())
 
+#
+# The same goes for classes.
+#
 class Keyword(object):
     def __init__(self, name, values, gecko_constant_prefix=None,
                  extra_gecko_values=None, extra_servo_values=None, **kwargs):
@@ -128,26 +143,20 @@ class StyleStruct(object):
         self.gecko_ffi_name = gecko_ffi_name
         self.additional_methods = additional_methods or []
 
-STYLE_STRUCTS = []
-THIS_STYLE_STRUCT = None
-LONGHANDS = []
-LONGHANDS_BY_NAME = {}
-DERIVED_LONGHANDS = {}
-SHORTHANDS = []
-CONFIG = {}
+%>
 
-def set_product(p):
-    global CONFIG
-    CONFIG['product'] = p
+<%def name="new_style_struct(name, is_inherited, gecko_name=None, additional_methods=None)">
+<%
+global THIS_STYLE_STRUCT
 
-def new_style_struct(name, is_inherited, gecko_name=None, additional_methods=None):
-    global THIS_STYLE_STRUCT
+style_struct = StyleStruct(name, is_inherited, gecko_name, additional_methods)
+STYLE_STRUCTS.append(style_struct)
+THIS_STYLE_STRUCT = style_struct
+return ""
+%>
+</%def>
 
-    style_struct = StyleStruct(name, is_inherited, gecko_name, additional_methods)
-    STYLE_STRUCTS.append(style_struct)
-    THIS_STYLE_STRUCT = style_struct
-    return ""
-
+<%
 def active_style_structs():
     return filter(lambda s: s.additional_methods or s.longhands, STYLE_STRUCTS)
 
@@ -178,12 +187,13 @@ pub mod longhands {
 
     <%def name="raw_longhand(name, **kwargs)">
     <%
+        global THIS_STYLE_STRUCT
+
         products = kwargs.pop("products", "gecko servo").split()
-        if not CONFIG["product"] in products:
+        if not PRODUCT in products:
             return ""
 
         property = Longhand(name, **kwargs)
-
         property.style_struct = THIS_STYLE_STRUCT
         THIS_STYLE_STRUCT.longhands.append(property)
         LONGHANDS.append(property)
