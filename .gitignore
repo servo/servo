@@ -8,6 +8,7 @@
 /ports/android/obj
 /python/_virtualenv
 /python/tidy/servo_tidy.egg-info
+webidlyacc.py
 *~
 *#
 *.o
