@@ -20,6 +20,7 @@ extern crate util;
 
 #[cfg(test)] mod cookie;
 #[cfg(test)] mod data_loader;
+#[cfg(test)] mod file_loader;
 #[cfg(test)] mod fetch;
 #[cfg(test)] mod mime_classifier;
 #[cfg(test)] mod resource_thread;
