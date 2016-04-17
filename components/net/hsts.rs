@@ -63,7 +63,8 @@ impl HSTSList {
         }
     }
 
-    pub fn new_from_preload(preload_content: &str) -> Option<HSTSList> {
+    /// Create an `HSTSList` from the contents of a JSON preload file.
+    pub fn from_preload(preload_content: &str) -> Option<HSTSList> {
         decode(preload_content).ok()
     }
 
@@ -114,7 +115,7 @@ impl HSTSList {
 pub fn preload_hsts_domains() -> Option<HSTSList> {
     read_resource_file("hsts_preload.json").ok().and_then(|bytes| {
         from_utf8(&bytes).ok().and_then(|hsts_preload_content| {
-            HSTSList::new_from_preload(hsts_preload_content)
+            HSTSList::from_preload(hsts_preload_content)
         })
     })
 }

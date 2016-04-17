@@ -151,13 +151,13 @@ fn test_push_entry_to_hsts_list_should_add_an_entry() {
 #[test]
 fn test_parse_hsts_preload_should_return_none_when_json_invalid() {
     let mock_preload_content = "derp";
-    assert!(HSTSList::new_from_preload(mock_preload_content).is_none(), "invalid preload list should not have parsed")
+    assert!(HSTSList::from_preload(mock_preload_content).is_none(), "invalid preload list should not have parsed")
 }
 
 #[test]
 fn test_parse_hsts_preload_should_return_none_when_json_contains_no_entries_key() {
     let mock_preload_content = "{\"nothing\": \"to see here\"}";
-    assert!(HSTSList::new_from_preload(mock_preload_content).is_none(), "invalid preload list should not have parsed")
+    assert!(HSTSList::from_preload(mock_preload_content).is_none(), "invalid preload list should not have parsed")
 }
 
 #[test]
@@ -168,7 +168,7 @@ fn test_parse_hsts_preload_should_decode_host_and_includes_subdomains() {
                                          \"include_subdomains\": false}\
                                      ]\
                                  }";
-    let hsts_list = HSTSList::new_from_preload(mock_preload_content);
+    let hsts_list = HSTSList::from_preload(mock_preload_content);
     let entries = hsts_list.unwrap().entries;
 
     assert_eq!(entries[0].host, "mozilla.org");
