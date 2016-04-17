@@ -415,18 +415,26 @@ class CommandBase(object):
         if self.context.bootstrapped:
             return
 
-        if not self.config["tools"]["system-rust"] and \
-           (not path.exists(path.join(
-                            self.config["tools"]["rust-root"], "rustc", "bin", "rustc" + BIN_SUFFIX)) or
-                not all([path.exists(path.join(
-                        self.config["tools"]["rust-root"], "rustc", "lib", "rustlib", x
-                        )) for x in targets])):
-            print("looking for rustc at %s" % path.join(
-                self.config["tools"]["rust-root"], "rustc", "bin", "rustc" + BIN_SUFFIX))
+        rust_root = self.config["tools"]["rust-root"]
+        rustc_path = path.join(
+            rust_root, "rustc", "bin", "rustc" + BIN_SUFFIX
+        )
+        rustc_binary_exists = path.exists(rustc_path)
+
+        base_target_path = path.join(rust_root, "rustc", "lib", "rustlib")
+        target_paths = [path.join(base_target_path, t) for t in targets]
+        all_targets_exist = all([path.exists(p) for p in target_paths])
+
+        if (not self.config['tools']['system-rust'] and
+                (not rustc_binary_exists or not all_targets_exist)):
+            print("looking for rustc at %s" % (rustc_path))
             Registrar.dispatch("bootstrap-rust", context=self.context, target=targets)
-        if not self.config["tools"]["system-cargo"] and \
-           not path.exists(path.join(
-                self.config["tools"]["cargo-root"], "cargo", "bin", "cargo" + BIN_SUFFIX)):
+
+        cargo_path = path.join(self.config["tools"]["cargo-root"], "cargo", "bin",
+                               "cargo" + BIN_SUFFIX)
+        cargo_binary_exists = path.exists(cargo_path)
+
+        if not self.config["tools"]["system-cargo"] and not cargo_binary_exists:
             Registrar.dispatch("bootstrap-cargo", context=self.context)
 
         self.context.bootstrapped = True
