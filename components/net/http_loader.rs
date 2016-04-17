@@ -166,7 +166,7 @@ fn load_for_consumer(load_data: LoadData,
         Err(LoadError::Connection(url, e)) => {
             send_error(url, e, start_chan)
         }
-        Err(LoadError::MaxRedirects(url)) => {
+        Err(LoadError::MaxRedirects(url, _)) => {
             send_error(url, "too many redirects".to_owned(), start_chan)
         }
         Err(LoadError::Cors(url, msg)) |
@@ -336,7 +336,7 @@ pub enum LoadError {
     Ssl(Url, String),
     InvalidRedirect(Url, String),
     Decoding(Url, String),
-    MaxRedirects(Url),
+    MaxRedirects(Url, u32),  // u32 indicates number of redirects that occurred
     ConnectionAborted(String),
     Cancelled(Url, String),
 }
@@ -759,7 +759,7 @@ pub fn load<A, B>(load_data: LoadData,
         }
 
         if iters > max_redirects {
-            return Err(LoadError::MaxRedirects(doc_url));
+            return Err(LoadError::MaxRedirects(doc_url, iters - 1));
         }
 
         if &*doc_url.scheme != "http" && &*doc_url.scheme != "https" {
