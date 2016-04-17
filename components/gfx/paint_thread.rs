@@ -9,7 +9,7 @@ use azure::AzFloat;
 use azure::azure_hl::{BackendType, Color, DrawTarget, SurfaceFormat};
 use display_list::{DisplayItem, DisplayList, DisplayListEntry, DisplayListTraversal};
 use display_list::{LayerInfo, StackingContext, StackingContextId, StackingContextType};
-use euclid::Matrix4;
+use euclid::Matrix4D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
@@ -67,8 +67,8 @@ impl PaintLayer {
     fn new_from_stacking_context(layer_info: &LayerInfo,
                                  stacking_context: &StackingContext,
                                  parent_origin: &Point2D<Au>,
-                                 transform: &Matrix4,
-                                 perspective: &Matrix4,
+                                 transform: &Matrix4D<f32>,
+                                 perspective: &Matrix4D<f32>,
                                  parent_id: Option<LayerId>)
                                  -> PaintLayer {
         let bounds = Rect::new(stacking_context.bounds.origin + stacking_context.overflow.origin,
@@ -108,8 +108,8 @@ impl PaintLayer {
     fn new_for_display_item(layer_info: &LayerInfo,
                             item_bounds: &Rect<Au>,
                             parent_origin: &Point2D<Au>,
-                            transform: &Matrix4,
-                            perspective: &Matrix4,
+                            transform: &Matrix4D<f32>,
+                            perspective: &Matrix4D<f32>,
                             parent_id: Option<LayerId>,
                             stacking_context_id: StackingContextId,
                             item_index: usize)
@@ -179,8 +179,8 @@ impl LayerCreator {
         layer_creator.create_layers_for_stacking_context(&display_list.root_stacking_context,
                                                          &mut traversal,
                                                          &Point2D::zero(),
-                                                         &Matrix4::identity(),
-                                                         &Matrix4::identity());
+                                                         &Matrix4D::identity(),
+                                                         &Matrix4D::identity());
         layer_creator.layers
     }
 
@@ -204,8 +204,8 @@ impl LayerCreator {
                                               stacking_context: &StackingContext,
                                               traversal: &mut DisplayListTraversal<'a>,
                                               parent_origin: &Point2D<Au>,
-                                              transform: &Matrix4,
-                                              perspective: &Matrix4) {
+                                              transform: &Matrix4D<f32>,
+                                              perspective: &Matrix4D<f32>) {
         if let Some(ref layer_info) = stacking_context.layer_info {
             self.finalize_current_layer();
             let new_layer = PaintLayer::new_from_stacking_context(
@@ -227,8 +227,8 @@ impl LayerCreator {
             self.process_stacking_context_items(stacking_context,
                                                 traversal,
                                                 &-stacking_context.overflow.origin,
-                                                &Matrix4::identity(),
-                                                &Matrix4::identity());
+                                                &Matrix4D::identity(),
+                                                &Matrix4D::identity());
             self.finalize_current_layer();
             self.layer_details_stack.pop();
             return;
@@ -254,8 +254,8 @@ impl LayerCreator {
                                           stacking_context: &StackingContext,
                                           traversal: &mut DisplayListTraversal<'a>,
                                           parent_origin: &Point2D<Au>,
-                                          transform: &Matrix4,
-                                          perspective: &Matrix4) {
+                                          transform: &Matrix4D<f32>,
+                                          perspective: &Matrix4D<f32>) {
         for kid in stacking_context.children.iter() {
             while let Some(item) = traversal.advance(stacking_context) {
                 self.create_layers_for_item(item,
@@ -282,8 +282,8 @@ impl LayerCreator {
     fn create_layers_for_item<'a>(&mut self,
                                   item: &DisplayListEntry,
                                   parent_origin: &Point2D<Au>,
-                                  transform: &Matrix4,
-                                  perspective: &Matrix4) {
+                                  transform: &Matrix4D<f32>,
+                                  perspective: &Matrix4D<f32>) {
         if let DisplayItem::LayeredItemClass(ref layered_item) = item.item {
             // We need to finalize the last layer here before incrementing the entry
             // index, otherwise this item will be placed into the parent layer.
@@ -761,7 +761,7 @@ impl WorkerThread {
             };
 
             // Apply the translation to paint the tile we want.
-            let matrix = Matrix4::identity();
+            let matrix = Matrix4D::identity();
             let matrix = matrix.scale(scale as AzFloat, scale as AzFloat, 1.0);
             let tile_bounds = tile.page_rect.translate(&paint_layer.display_list_origin);
             let matrix = matrix.translate(-tile_bounds.origin.x as AzFloat,

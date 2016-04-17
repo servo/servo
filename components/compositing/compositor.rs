@@ -14,7 +14,7 @@ use euclid::point::TypedPoint2D;
 use euclid::rect::TypedRect;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
-use euclid::{Matrix4, Point2D, Rect, Size2D};
+use euclid::{Matrix4D, Point2D, Rect, Size2D};
 use gfx::paint_thread::{ChromeToPaintMsg, PaintRequest};
 use gfx_traits::{color, Epoch, FrameTreeId, LayerId, LayerKind, LayerProperties, ScrollPolicy};
 use gleam::gl;
@@ -826,8 +826,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             rect: Rect::zero(),
             background_color: color::transparent(),
             scroll_policy: ScrollPolicy::Scrollable,
-            transform: Matrix4::identity(),
-            perspective: Matrix4::identity(),
+            transform: Matrix4D::identity(),
+            perspective: Matrix4D::identity(),
             subpage_pipeline_id: None,
             establishes_3d_context: true,
             scrolls_overflow_area: false,
@@ -1029,8 +1029,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             rect: Rect::new(Point2D::zero(), layer_properties.rect.size),
             background_color: layer_properties.background_color,
             scroll_policy: ScrollPolicy::Scrollable,
-            transform: Matrix4::identity(),
-            perspective: Matrix4::identity(),
+            transform: Matrix4D::identity(),
+            perspective: Matrix4D::identity(),
             subpage_pipeline_id: Some(subpage_pipeline_id),
             establishes_3d_context: true,
             scrolls_overflow_area: true,
@@ -1854,8 +1854,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
 
         if let Some(ref root_layer) = self.scene.root {
-            root_layer.update_transform_state(&Matrix4::identity(),
-                                              &Matrix4::identity(),
+            root_layer.update_transform_state(&Matrix4D::identity(),
+                                              &Matrix4D::identity(),
                                               &Point2D::zero());
         }
 

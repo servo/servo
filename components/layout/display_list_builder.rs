@@ -16,7 +16,7 @@ use block::{BlockFlow, BlockStackingContextType};
 use canvas_traits::{CanvasMsg, CanvasPixelData, CanvasData, FromLayoutMsg};
 use context::LayoutContext;
 use euclid::num::Zero;
-use euclid::{Matrix4, Point2D, Point3D, Rect, SideOffsets2D, Size2D};
+use euclid::{Matrix4D, Point2D, Point3D, Rect, SideOffsets2D, Size2D};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};
 use flow_ref;
@@ -112,12 +112,12 @@ const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(1 * AU_PER_PX);
 // and behaves as it does in other browsers.
 // See https://lists.w3.org/Archives/Public/www-style/2016Jan/0020.html for more details.
 #[inline]
-fn create_perspective_matrix(d: Au) -> Matrix4 {
+fn create_perspective_matrix(d: Au) -> Matrix4D<f32> {
     let d = d.to_f32_px();
     if d <= 0.0 {
-        Matrix4::identity()
+        Matrix4D::identity()
     } else {
-        Matrix4::create_perspective(d)
+        Matrix4D::create_perspective(d)
     }
 }
 
@@ -1324,7 +1324,7 @@ impl FragmentDisplayListBuilding for Fragment {
             }
         };
 
-        let mut transform = Matrix4::identity();
+        let mut transform = Matrix4D::identity();
         if let Some(ref operations) = self.style().get_effects().transform.0 {
             let transform_origin = self.style().get_effects().transform_origin;
             let transform_origin =
@@ -1334,36 +1334,36 @@ impl FragmentDisplayListBuilding for Fragment {
                                               border_box.size.height).to_f32_px(),
                              transform_origin.depth.to_f32_px());
 
-            let pre_transform = Matrix4::create_translation(transform_origin.x,
-                                                            transform_origin.y,
-                                                            transform_origin.z);
-            let post_transform = Matrix4::create_translation(-transform_origin.x,
-                                                             -transform_origin.y,
-                                                             -transform_origin.z);
+            let pre_transform = Matrix4D::create_translation(transform_origin.x,
+                                                             transform_origin.y,
+                                                             transform_origin.z);
+            let post_transform = Matrix4D::create_translation(-transform_origin.x,
+                                                              -transform_origin.y,
+                                                              -transform_origin.z);
 
             for operation in operations {
                 let matrix = match *operation {
                     transform::ComputedOperation::Rotate(ax, ay, az, theta) => {
                         let theta = 2.0f32 * f32::consts::PI - theta.radians();
-                        Matrix4::create_rotation(ax, ay, az, theta)
+                        Matrix4D::create_rotation(ax, ay, az, theta)
                     }
                     transform::ComputedOperation::Perspective(d) => {
                         create_perspective_matrix(d)
                     }
                     transform::ComputedOperation::Scale(sx, sy, sz) => {
-                        Matrix4::create_scale(sx, sy, sz)
+                        Matrix4D::create_scale(sx, sy, sz)
                     }
                     transform::ComputedOperation::Translate(tx, ty, tz) => {
                         let tx = model::specified(tx, border_box.size.width).to_f32_px();
                         let ty = model::specified(ty, border_box.size.height).to_f32_px();
                         let tz = tz.to_f32_px();
-                        Matrix4::create_translation(tx, ty, tz)
+                        Matrix4D::create_translation(tx, ty, tz)
                     }
                     transform::ComputedOperation::Matrix(m) => {
                         m.to_gfx_matrix()
                     }
                     transform::ComputedOperation::Skew(theta_x, theta_y) => {
-                        Matrix4::create_skew(theta_x.radians(), theta_y.radians())
+                        Matrix4D::create_skew(theta_x.radians(), theta_y.radians())
                     }
                 };
 
@@ -1382,19 +1382,19 @@ impl FragmentDisplayListBuilding for Fragment {
                                  model::specified(perspective_origin.vertical,
                                                   border_box.size.height).to_f32_px());
 
-                let pre_transform = Matrix4::create_translation(perspective_origin.x,
-                                                                perspective_origin.y,
-                                                                0.0);
-                let post_transform = Matrix4::create_translation(-perspective_origin.x,
-                                                                 -perspective_origin.y,
+                let pre_transform = Matrix4D::create_translation(perspective_origin.x,
+                                                                 perspective_origin.y,
                                                                  0.0);
+                let post_transform = Matrix4D::create_translation(-perspective_origin.x,
+                                                                  -perspective_origin.y,
+                                                                  0.0);
 
                 let perspective_matrix = create_perspective_matrix(d);
 
                 pre_transform.mul(&perspective_matrix).mul(&post_transform)
             }
             LengthOrNone::None => {
-                Matrix4::identity()
+                Matrix4D::identity()
             }
         };
 

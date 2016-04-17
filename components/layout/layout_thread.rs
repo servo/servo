@@ -13,7 +13,7 @@ use azure::azure::AzColor;
 use construct::ConstructionResult;
 use context::{LayoutContext, SharedLayoutContext, heap_size_of_local_context};
 use display_list_builder::ToGfxColor;
-use euclid::Matrix4;
+use euclid::Matrix4D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::scale_factor::ScaleFactor;
@@ -890,8 +890,8 @@ impl LayoutThread {
                                          0,
                                          filter::T::new(Vec::new()),
                                          mix_blend_mode::T::normal,
-                                         Matrix4::identity(),
-                                         Matrix4::identity(),
+                                         Matrix4D::identity(),
+                                         Matrix4D::identity(),
                                          true,
                                          false,
                                          None);
