@@ -21,7 +21,7 @@ dependencies = [
  "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "style_traits 0.0.1",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
@@ -276,7 +276,7 @@ dependencies = [
  "serde_macros 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "style_traits 0.0.1",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "webrender 0.1.0 (git+https://github.com/servo/webrender)",
  "webrender_traits 0.1.0 (git+https://github.com/servo/webrender_traits)",
@@ -290,7 +290,7 @@ dependencies = [
  "openssl 0.7.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -395,7 +395,7 @@ dependencies = [
  "serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
@@ -641,7 +641,7 @@ dependencies = [
  "style_traits 0.0.1",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-script 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "webrender_traits 0.1.0 (git+https://github.com/servo/webrender_traits)",
 ]
@@ -811,7 +811,7 @@ dependencies = [
  "traitobject 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "typeable 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicase 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -974,7 +974,7 @@ dependencies = [
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-bidi 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicode-script 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "webrender_traits 0.1.0 (git+https://github.com/servo/webrender_traits)",
 ]
@@ -991,7 +991,7 @@ dependencies = [
  "script_traits 0.0.1",
  "serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "webrender_traits 0.1.0 (git+https://github.com/servo/webrender_traits)",
 ]
@@ -1155,7 +1155,7 @@ dependencies = [
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "webrender_traits 0.1.0 (git+https://github.com/servo/webrender_traits)",
 ]
@@ -1183,7 +1183,7 @@ dependencies = [
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
  "tinyfiledialogs 0.1.0 (git+https://github.com/jdm/tinyfiledialogs)",
  "unicase 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "uuid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_traits 0.1.0 (git+https://github.com/servo/webrender_traits)",
@@ -1217,7 +1217,7 @@ dependencies = [
  "plugins 0.0.1",
  "serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "websocket 0.16.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1594,7 +1594,7 @@ dependencies = [
  "style 0.0.1",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicase 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "uuid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_traits 0.1.0 (git+https://github.com/servo/webrender_traits)",
@@ -1624,7 +1624,7 @@ dependencies = [
  "serde_macros 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "style_traits 0.0.1",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
@@ -1711,7 +1711,7 @@ dependencies = [
  "script 0.0.1",
  "script_traits 0.0.1",
  "style 0.0.1",
- "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "webrender 0.1.0 (git+https://github.com/servo/webrender)",
  "webrender_traits 0.1.0 (git+https://github.com/servo/webrender_traits)",
@@ -1875,7 +1875,7 @@ dependencies = [
  "string_cache 0.2.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "style_traits 0.0.1",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
@@ -1895,7 +1895,7 @@ dependencies = [
  "selectors 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
 ]
 
@@ -2014,7 +2014,7 @@ dependencies = [
 
 [[package]]
 name = "url"
-version = "0.5.8"
+version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2075,7 +2075,7 @@ dependencies = [
  "serde_macros 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.2.12 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2194,7 +2194,7 @@ dependencies = [
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicase 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "url 0.5.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
