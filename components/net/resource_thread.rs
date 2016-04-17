@@ -10,7 +10,7 @@ use cookie_storage::CookieStorage;
 use data_loader;
 use devtools_traits::{DevtoolsControlMsg};
 use file_loader;
-use hsts::HSTSList;
+use hsts::HstsList;
 use http_loader::{self, Connector, create_http_connector, HttpState};
 use hyper::client::pool::Pool;
 use hyper::header::{ContentType, Header, SetCookie};
@@ -148,7 +148,7 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<Pro
 /// Create a ResourceThread
 pub fn new_resource_thread(user_agent: String,
                          devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceThread {
-    let hsts_preload = HSTSList::from_servo_preload();
+    let hsts_preload = HstsList::from_servo_preload();
     let (setup_chan, setup_port) = ipc::channel().unwrap();
     let setup_chan_clone = setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
@@ -276,7 +276,7 @@ pub struct ResourceManager {
     auth_cache: Arc<RwLock<HashMap<Url, AuthCacheEntry>>>,
     mime_classifier: Arc<MIMEClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-    hsts_list: Arc<RwLock<HSTSList>>,
+    hsts_list: Arc<RwLock<HstsList>>,
     connector: Arc<Pool<Connector>>,
     cancel_load_map: HashMap<ResourceId, Sender<()>>,
     next_resource_id: ResourceId,
@@ -284,7 +284,7 @@ pub struct ResourceManager {
 
 impl ResourceManager {
     pub fn new(user_agent: String,
-               hsts_list: HSTSList,
+               hsts_list: HstsList,
                devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
         ResourceManager {
             user_agent: user_agent,
