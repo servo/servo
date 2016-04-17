@@ -38,7 +38,7 @@ lazy_static! {
         // FIXME: presentational-hints.css should be at author origin with zero specificity.
         //        (Does it make a difference?)
         for &filename in &["user-agent.css", "servo.css", "presentational-hints.css"] {
-            match read_resource_file(&[filename]) {
+            match read_resource_file(filename) {
                 Ok(res) => {
                     let ua_stylesheet = Stylesheet::from_bytes(
                         &res,
@@ -65,7 +65,7 @@ lazy_static! {
 
 lazy_static! {
     pub static ref QUIRKS_MODE_STYLESHEET: Stylesheet<ServoSelectorImpl> = {
-        match read_resource_file(&["quirks-mode.css"]) {
+        match read_resource_file("quirks-mode.css") {
             Ok(res) => {
                 Stylesheet::from_bytes(
                     &res,
