@@ -70,6 +70,13 @@ impl HSTSList {
             .and_then(|c| decode(c).ok())
     }
 
+    pub fn from_servo_preload() -> HSTSList {
+        let file_bytes = read_resource_file("hsts_preload.json")
+                            .expect("Could not find Servo HSTS preload file");
+        HSTSList::from_preload(&file_bytes)
+            .expect("Servo HSTS preload file is invalid")
+    }
+
     pub fn is_host_secure(&self, host: &str) -> bool {
         // TODO - Should this be faster than O(n)? The HSTS list is only a few
         // hundred or maybe thousand entries...
@@ -112,12 +119,6 @@ impl HSTSList {
             }
         }
     }
-}
-
-pub fn preload_hsts_domains() -> Option<HSTSList> {
-    read_resource_file("hsts_preload.json")
-        .ok()
-        .and_then(|bytes| HSTSList::from_preload(&bytes))
 }
 
 pub fn secure_url(url: &Url) -> Url {

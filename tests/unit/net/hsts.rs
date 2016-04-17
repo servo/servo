@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use net::hsts::secure_url;
 use net::hsts::{HSTSList, HSTSEntry};
-use net::hsts::{secure_url, preload_hsts_domains};
 use net_traits::IncludeSubdomains;
 use time;
 use url::Url;
@@ -250,7 +250,7 @@ fn test_hsts_list_with_expired_entry_is_not_is_host_secure() {
 
 #[test]
 fn test_preload_hsts_domains_well_formed() {
-    let hsts_list = preload_hsts_domains().unwrap();
+    let hsts_list = HSTSList::from_servo_preload();
     assert!(!hsts_list.entries.is_empty());
 }
 
