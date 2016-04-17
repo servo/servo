@@ -10,7 +10,7 @@ use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpReques
 use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
 use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
-use hsts::{HSTSEntry, HSTSList, secure_url};
+use hsts::{HstsEntry, HstsList, secure_url};
 use hyper::Error as HttpError;
 use hyper::client::{Pool, Request, Response};
 use hyper::header::{Accept, AcceptEncoding, ContentLength, ContentType, Host};
@@ -125,7 +125,7 @@ fn inner_url(url: &Url) -> Url {
 }
 
 pub struct HttpState {
-    pub hsts_list: Arc<RwLock<HSTSList>>,
+    pub hsts_list: Arc<RwLock<HstsList>>,
     pub cookie_jar: Arc<RwLock<CookieStorage>>,
     pub auth_cache: Arc<RwLock<HashMap<Url, AuthCacheEntry>>>,
 }
@@ -133,7 +133,7 @@ pub struct HttpState {
 impl HttpState {
     pub fn new() -> HttpState {
         HttpState {
-            hsts_list: Arc::new(RwLock::new(HSTSList::new())),
+            hsts_list: Arc::new(RwLock::new(HstsList::new())),
             cookie_jar: Arc::new(RwLock::new(CookieStorage::new())),
             auth_cache: Arc::new(RwLock::new(HashMap::new())),
         }
@@ -401,7 +401,7 @@ fn set_cookies_from_response(url: Url, response: &HttpResponse, cookie_jar: &Arc
     }
 }
 
-fn update_sts_list_from_response(url: &Url, response: &HttpResponse, hsts_list: &Arc<RwLock<HSTSList>>) {
+fn update_sts_list_from_response(url: &Url, response: &HttpResponse, hsts_list: &Arc<RwLock<HstsList>>) {
     if url.scheme != "https" {
         return;
     }
@@ -415,7 +415,7 @@ fn update_sts_list_from_response(url: &Url, response: &HttpResponse, hsts_list: 
                 IncludeSubdomains::NotIncluded
             };
 
-            if let Some(entry) = HSTSEntry::new(host.to_owned(), include_subdomains, Some(header.max_age)) {
+            if let Some(entry) = HstsEntry::new(host.to_owned(), include_subdomains, Some(header.max_age)) {
                 info!("adding host {} to the strict transport security list", host);
                 info!("- max-age {}", header.max_age);
                 if header.include_subdomains {
@@ -518,7 +518,7 @@ fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     }
 }
 
-fn request_must_be_secured(url: &Url, hsts_list: &Arc<RwLock<HSTSList>>) -> bool {
+fn request_must_be_secured(url: &Url, hsts_list: &Arc<RwLock<HstsList>>) -> bool {
     match url.domain() {
         Some(domain) => hsts_list.read().unwrap().is_host_secure(domain),
         None => false
@@ -597,7 +597,7 @@ fn auth_from_url(doc_url: &Url) -> Option<Authorization<Basic>> {
 pub fn process_response_headers(response: &HttpResponse,
                                 url: &Url,
                                 cookie_jar: &Arc<RwLock<CookieStorage>>,
-                                hsts_list: &Arc<RwLock<HSTSList>>,
+                                hsts_list: &Arc<RwLock<HstsList>>,
                                 load_data: &LoadData) {
     info!("got HTTP response {}, headers:", response.status());
     if log_enabled!(log::LogLevel::Info) {

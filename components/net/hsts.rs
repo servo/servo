@@ -11,19 +11,19 @@ use url::Url;
 use util::resource_files::read_resource_file;
 
 #[derive(RustcDecodable, RustcEncodable, Clone)]
-pub struct HSTSEntry {
+pub struct HstsEntry {
     pub host: String,
     pub include_subdomains: bool,
     pub max_age: Option<u64>,
     pub timestamp: Option<u64>
 }
 
-impl HSTSEntry {
-    pub fn new(host: String, subdomains: IncludeSubdomains, max_age: Option<u64>) -> Option<HSTSEntry> {
+impl HstsEntry {
+    pub fn new(host: String, subdomains: IncludeSubdomains, max_age: Option<u64>) -> Option<HstsEntry> {
         if host.parse::<Ipv4Addr>().is_ok() || host.parse::<Ipv6Addr>().is_ok() {
             None
         } else {
-            Some(HSTSEntry {
+            Some(HstsEntry {
                 host: host,
                 include_subdomains: (subdomains == IncludeSubdomains::Included),
                 max_age: max_age,
@@ -52,19 +52,29 @@ impl HSTSEntry {
 }
 
 #[derive(RustcDecodable, RustcEncodable, Clone)]
-pub struct HSTSList {
-    pub entries: Vec<HSTSEntry>
+pub struct HstsList {
+    pub entries: Vec<HstsEntry>
 }
 
-impl HSTSList {
-    pub fn new() -> HSTSList {
-        HSTSList {
+impl HstsList {
+    pub fn new() -> HstsList {
+        HstsList {
             entries: vec![]
         }
     }
 
-    pub fn new_from_preload(preload_content: &str) -> Option<HSTSList> {
-        decode(preload_content).ok()
+    /// Create an `HstsList` from the bytes of a JSON preload file.
+    pub fn from_preload(preload_content: &[u8]) -> Option<HstsList> {
+        from_utf8(&preload_content)
+            .ok()
+            .and_then(|c| decode(c).ok())
+    }
+
+    pub fn from_servo_preload() -> HstsList {
+        let file_bytes = read_resource_file("hsts_preload.json")
+                            .expect("Could not find Servo HSTS preload file");
+        HstsList::from_preload(&file_bytes)
+            .expect("Servo HSTS preload file is invalid")
     }
 
     pub fn is_host_secure(&self, host: &str) -> bool {
@@ -94,7 +104,7 @@ impl HSTSList {
         })
     }
 
-    pub fn push(&mut self, entry: HSTSEntry) {
+    pub fn push(&mut self, entry: HstsEntry) {
         let have_domain = self.has_domain(&entry.host);
         let have_subdomain = self.has_subdomain(&entry.host);
 
@@ -109,14 +119,6 @@ impl HSTSList {
             }
         }
     }
-}
-
-pub fn preload_hsts_domains() -> Option<HSTSList> {
-    read_resource_file("hsts_preload.json").ok().and_then(|bytes| {
-        from_utf8(&bytes).ok().and_then(|hsts_preload_content| {
-            HSTSList::new_from_preload(hsts_preload_content)
-        })
-    })
 }
 
 pub fn secure_url(url: &Url) -> Url {

@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use net::hsts::{HSTSList, HSTSEntry};
-use net::hsts::{secure_url, preload_hsts_domains};
+use net::hsts::secure_url;
+use net::hsts::{HstsList, HstsEntry};
 use net_traits::IncludeSubdomains;
 use time;
 use url::Url;
 
 #[test]
 fn test_hsts_entry_is_not_expired_when_it_has_no_timestamp() {
-    let entry = HSTSEntry {
+    let entry = HstsEntry {
         host: "mozilla.org".to_owned(),
         include_subdomains: false,
         max_age: Some(20),
@@ -22,7 +22,7 @@ fn test_hsts_entry_is_not_expired_when_it_has_no_timestamp() {
 
 #[test]
 fn test_hsts_entry_is_not_expired_when_it_has_no_max_age() {
-    let entry = HSTSEntry {
+    let entry = HstsEntry {
         host: "mozilla.org".to_owned(),
         include_subdomains: false,
         max_age: None,
@@ -34,7 +34,7 @@ fn test_hsts_entry_is_not_expired_when_it_has_no_max_age() {
 
 #[test]
 fn test_hsts_entry_is_expired_when_it_has_reached_its_max_age() {
-    let entry = HSTSEntry {
+    let entry = HstsEntry {
         host: "mozilla.org".to_owned(),
         include_subdomains: false,
         max_age: Some(10),
@@ -46,30 +46,30 @@ fn test_hsts_entry_is_expired_when_it_has_reached_its_max_age() {
 
 #[test]
 fn test_hsts_entry_cant_be_created_with_ipv6_address_as_host() {
-    let entry = HSTSEntry::new(
+    let entry = HstsEntry::new(
         "2001:0db8:0000:0000:0000:ff00:0042:8329".to_owned(), IncludeSubdomains::NotIncluded, None
     );
 
-    assert!(entry.is_none(), "able to create HSTSEntry with IPv6 host");
+    assert!(entry.is_none(), "able to create HstsEntry with IPv6 host");
 }
 
 #[test]
 fn test_hsts_entry_cant_be_created_with_ipv4_address_as_host() {
-    let entry = HSTSEntry::new(
+    let entry = HstsEntry::new(
         "4.4.4.4".to_owned(), IncludeSubdomains::NotIncluded, None
     );
 
-    assert!(entry.is_none(), "able to create HSTSEntry with IPv4 host");
+    assert!(entry.is_none(), "able to create HstsEntry with IPv4 host");
 }
 
 #[test]
 fn test_push_entry_with_0_max_age_evicts_entry_from_list() {
-    let mut list = HSTSList {
-        entries: vec!(HSTSEntry::new("mozilla.org".to_owned(),
+    let mut list = HstsList {
+        entries: vec!(HstsEntry::new("mozilla.org".to_owned(),
             IncludeSubdomains::NotIncluded, Some(500000u64)).unwrap())
     };
 
-    list.push(HSTSEntry::new("mozilla.org".to_owned(),
+    list.push(HstsEntry::new("mozilla.org".to_owned(),
         IncludeSubdomains::NotIncluded, Some(0)).unwrap());
 
     assert!(list.is_host_secure("mozilla.org") == false)
@@ -77,12 +77,12 @@ fn test_push_entry_with_0_max_age_evicts_entry_from_list() {
 
 #[test]
 fn test_push_entry_to_hsts_list_should_not_add_subdomains_whose_superdomain_is_already_matched() {
-    let mut list = HSTSList {
-        entries: vec!(HSTSEntry::new("mozilla.org".to_owned(),
+    let mut list = HstsList {
+        entries: vec!(HstsEntry::new("mozilla.org".to_owned(),
             IncludeSubdomains::Included, None).unwrap())
     };
 
-    list.push(HSTSEntry::new("servo.mozilla.org".to_owned(),
+    list.push(HstsEntry::new("servo.mozilla.org".to_owned(),
         IncludeSubdomains::NotIncluded, None).unwrap());
 
     assert!(list.entries.len() == 1)
@@ -90,14 +90,14 @@ fn test_push_entry_to_hsts_list_should_not_add_subdomains_whose_superdomain_is_a
 
 #[test]
 fn test_push_entry_to_hsts_list_should_update_existing_domain_entrys_include_subdomains() {
-    let mut list = HSTSList {
-        entries: vec!(HSTSEntry::new("mozilla.org".to_owned(),
+    let mut list = HstsList {
+        entries: vec!(HstsEntry::new("mozilla.org".to_owned(),
             IncludeSubdomains::Included, None).unwrap())
     };
 
     assert!(list.is_host_secure("servo.mozilla.org"));
 
-    list.push(HSTSEntry::new("mozilla.org".to_owned(),
+    list.push(HstsEntry::new("mozilla.org".to_owned(),
         IncludeSubdomains::NotIncluded, None).unwrap());
 
     assert!(!list.is_host_secure("servo.mozilla.org"))
@@ -105,12 +105,12 @@ fn test_push_entry_to_hsts_list_should_update_existing_domain_entrys_include_sub
 
 #[test]
 fn test_push_entry_to_hsts_list_should_not_create_duplicate_entry() {
-    let mut list = HSTSList {
-        entries: vec!(HSTSEntry::new("mozilla.org".to_owned(),
+    let mut list = HstsList {
+        entries: vec!(HstsEntry::new("mozilla.org".to_owned(),
             IncludeSubdomains::NotIncluded, None).unwrap())
     };
 
-    list.push(HSTSEntry::new("mozilla.org".to_owned(),
+    list.push(HstsEntry::new("mozilla.org".to_owned(),
         IncludeSubdomains::NotIncluded, None).unwrap());
 
     assert!(list.entries.len() == 1)
@@ -118,16 +118,16 @@ fn test_push_entry_to_hsts_list_should_not_create_duplicate_entry() {
 
 #[test]
 fn test_push_multiple_entrie_to_hsts_list_should_add_them_all() {
-    let mut list = HSTSList {
+    let mut list = HstsList {
         entries: Vec::new()
     };
 
     assert!(!list.is_host_secure("mozilla.org"));
     assert!(!list.is_host_secure("bugzilla.org"));
 
-    list.push(HSTSEntry::new("mozilla.org".to_owned(),
+    list.push(HstsEntry::new("mozilla.org".to_owned(),
         IncludeSubdomains::Included, None).unwrap());
-    list.push(HSTSEntry::new("bugzilla.org".to_owned(),
+    list.push(HstsEntry::new("bugzilla.org".to_owned(),
         IncludeSubdomains::Included, None).unwrap());
 
     assert!(list.is_host_secure("mozilla.org"));
@@ -136,13 +136,13 @@ fn test_push_multiple_entrie_to_hsts_list_should_add_them_all() {
 
 #[test]
 fn test_push_entry_to_hsts_list_should_add_an_entry() {
-    let mut list = HSTSList {
+    let mut list = HstsList {
         entries: Vec::new()
     };
 
     assert!(!list.is_host_secure("mozilla.org"));
 
-    list.push(HSTSEntry::new("mozilla.org".to_owned(),
+    list.push(HstsEntry::new("mozilla.org".to_owned(),
         IncludeSubdomains::Included, None).unwrap());
 
     assert!(list.is_host_secure("mozilla.org"));
@@ -150,25 +150,25 @@ fn test_push_entry_to_hsts_list_should_add_an_entry() {
 
 #[test]
 fn test_parse_hsts_preload_should_return_none_when_json_invalid() {
-    let mock_preload_content = "derp";
-    assert!(HSTSList::new_from_preload(mock_preload_content).is_none(), "invalid preload list should not have parsed")
+    let mock_preload_content = b"derp";
+    assert!(HstsList::from_preload(mock_preload_content).is_none(), "invalid preload list should not have parsed")
 }
 
 #[test]
 fn test_parse_hsts_preload_should_return_none_when_json_contains_no_entries_key() {
-    let mock_preload_content = "{\"nothing\": \"to see here\"}";
-    assert!(HSTSList::new_from_preload(mock_preload_content).is_none(), "invalid preload list should not have parsed")
+    let mock_preload_content = b"{\"nothing\": \"to see here\"}";
+    assert!(HstsList::from_preload(mock_preload_content).is_none(), "invalid preload list should not have parsed")
 }
 
 #[test]
 fn test_parse_hsts_preload_should_decode_host_and_includes_subdomains() {
-    let mock_preload_content = "{\
+    let mock_preload_content = b"{\
                                      \"entries\": [\
                                         {\"host\": \"mozilla.org\",\
                                          \"include_subdomains\": false}\
                                      ]\
                                  }";
-    let hsts_list = HSTSList::new_from_preload(mock_preload_content);
+    let hsts_list = HstsList::from_preload(mock_preload_content);
     let entries = hsts_list.unwrap().entries;
 
     assert_eq!(entries[0].host, "mozilla.org");
@@ -177,7 +177,7 @@ fn test_parse_hsts_preload_should_decode_host_and_includes_subdomains() {
 
 #[test]
 fn test_hsts_list_with_no_entries_does_not_is_host_secure() {
-    let hsts_list = HSTSList {
+    let hsts_list = HstsList {
         entries: Vec::new()
     };
 
@@ -186,8 +186,8 @@ fn test_hsts_list_with_no_entries_does_not_is_host_secure() {
 
 #[test]
 fn test_hsts_list_with_exact_domain_entry_is_is_host_secure() {
-    let hsts_list = HSTSList {
-        entries: vec![HSTSEntry::new("mozilla.org".to_owned(),
+    let hsts_list = HstsList {
+        entries: vec![HstsEntry::new("mozilla.org".to_owned(),
             IncludeSubdomains::NotIncluded, None).unwrap()]
     };
 
@@ -196,8 +196,8 @@ fn test_hsts_list_with_exact_domain_entry_is_is_host_secure() {
 
 #[test]
 fn test_hsts_list_with_subdomain_when_include_subdomains_is_true_is_is_host_secure() {
-    let hsts_list = HSTSList {
-        entries: vec![HSTSEntry::new("mozilla.org".to_owned(),
+    let hsts_list = HstsList {
+        entries: vec![HstsEntry::new("mozilla.org".to_owned(),
             IncludeSubdomains::Included, None).unwrap()]
     };
 
@@ -206,8 +206,8 @@ fn test_hsts_list_with_subdomain_when_include_subdomains_is_true_is_is_host_secu
 
 #[test]
 fn test_hsts_list_with_subdomain_when_include_subdomains_is_false_is_not_is_host_secure() {
-    let hsts_list = HSTSList {
-        entries: vec![HSTSEntry::new("mozilla.org".to_owned(),
+    let hsts_list = HstsList {
+        entries: vec![HstsEntry::new("mozilla.org".to_owned(),
             IncludeSubdomains::NotIncluded, None).unwrap()]
     };
 
@@ -216,8 +216,8 @@ fn test_hsts_list_with_subdomain_when_include_subdomains_is_false_is_not_is_host
 
 #[test]
 fn test_hsts_list_with_subdomain_when_host_is_not_a_subdomain_is_not_is_host_secure() {
-    let hsts_list = HSTSList {
-        entries: vec![HSTSEntry::new("mozilla.org".to_owned(),
+    let hsts_list = HstsList {
+        entries: vec![HstsEntry::new("mozilla.org".to_owned(),
             IncludeSubdomains::Included, None).unwrap()]
     };
 
@@ -226,8 +226,8 @@ fn test_hsts_list_with_subdomain_when_host_is_not_a_subdomain_is_not_is_host_sec
 
 #[test]
 fn test_hsts_list_with_subdomain_when_host_is_exact_match_is_is_host_secure() {
-    let hsts_list = HSTSList {
-        entries: vec![HSTSEntry::new("mozilla.org".to_owned(),
+    let hsts_list = HstsList {
+        entries: vec![HstsEntry::new("mozilla.org".to_owned(),
             IncludeSubdomains::Included, None).unwrap()]
     };
 
@@ -236,8 +236,8 @@ fn test_hsts_list_with_subdomain_when_host_is_exact_match_is_is_host_secure() {
 
 #[test]
 fn test_hsts_list_with_expired_entry_is_not_is_host_secure() {
-    let hsts_list = HSTSList {
-        entries: vec![HSTSEntry {
+    let hsts_list = HstsList {
+        entries: vec![HstsEntry {
             host: "mozilla.org".to_owned(),
             include_subdomains: false,
             max_age: Some(20),
@@ -250,7 +250,7 @@ fn test_hsts_list_with_expired_entry_is_not_is_host_secure() {
 
 #[test]
 fn test_preload_hsts_domains_well_formed() {
-    let hsts_list = preload_hsts_domains().unwrap();
+    let hsts_list = HstsList::from_servo_preload();
     assert!(!hsts_list.entries.is_empty());
 }
 
