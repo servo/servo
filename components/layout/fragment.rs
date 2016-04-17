@@ -1728,6 +1728,7 @@ impl Fragment {
                     this_info.insertion_point = other_info.insertion_point;
                 }
                 self.border_padding.inline_end = next_fragment.border_padding.inline_end;
+                self.margin.inline_end = next_fragment.margin.inline_end;
             }
             _ => panic!("Can only merge two scanned-text fragments!"),
         }
