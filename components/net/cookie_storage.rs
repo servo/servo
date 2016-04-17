@@ -7,11 +7,21 @@
 
 use cookie::Cookie;
 use net_traits::CookieSource;
+use rustc_serialize::json::{ToJson, Json};
 use std::cmp::Ordering;
+use std::collections::BTreeMap;
 use url::Url;
 
 pub struct CookieStorage {
     cookies: Vec<Cookie>
+}
+
+impl ToJson for CookieStorage {
+    fn to_json(&self) -> Json {
+        let mut d = BTreeMap::new();
+        d.insert("cookies".to_string(), self.cookies.to_json());
+        Json::Object(d)
+    }
 }
 
 impl CookieStorage {

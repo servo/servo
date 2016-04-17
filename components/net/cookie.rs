@@ -8,7 +8,9 @@
 use cookie_rs;
 use net_traits::CookieSource;
 use pub_domains::PUB_DOMAINS;
+use rustc_serialize::json::{ToJson, Json};
 use std::borrow::ToOwned;
+use std::collections::BTreeMap;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use time::{Tm, now, at, Duration};
 use url::Url;
@@ -173,5 +175,50 @@ impl Cookie {
         }
 
         true
+    }
+}
+
+struct Time(Tm);
+
+impl ToJson for Time {
+    fn to_json(&self) -> Json {
+        let Time(time) = *self;
+        let mut time_b_tree = BTreeMap::new();
+        time_b_tree.insert("tm_sec".to_string(), time.tm_sec.to_json());
+        time_b_tree.insert("tm_min".to_string(), time.tm_min.to_json());
+        time_b_tree.insert("tm_hour".to_string(), time.tm_hour.to_json());
+        time_b_tree.insert("tm_mday".to_string(), time.tm_mday.to_json());
+        time_b_tree.insert("tm_mon".to_string(), time.tm_mon.to_json());
+        time_b_tree.insert("tm_year".to_string(), time.tm_year.to_json());
+        time_b_tree.insert("tm_wday".to_string(), time.tm_wday.to_json());
+        time_b_tree.insert("tm_yday".to_string(), time.tm_yday.to_json());
+        time_b_tree.insert("tm_isdst".to_string(), time.tm_isdst.to_json());
+        time_b_tree.insert("tm_utcoff".to_string(), time.tm_utcoff.to_json());
+        time_b_tree.insert("tm_nsec".to_string(), time.tm_nsec.to_json());
+        Json::Object(time_b_tree)
+    }
+}
+
+impl ToJson for Cookie {
+    fn to_json(&self) -> Json {
+        let mut rust_cookie = BTreeMap::new();
+        rust_cookie.insert("name".to_string(), self.cookie.name.to_json());
+        rust_cookie.insert("value".to_string(), self.cookie.value.to_json());
+        rust_cookie.insert("expires".to_string(), Time(self.cookie.expires.unwrap()).to_json());
+        rust_cookie.insert("max_age".to_string(), self.cookie.max_age.to_json());
+        rust_cookie.insert("domain".to_string(), self.cookie.domain.to_json());
+        rust_cookie.insert("path".to_string(), self.cookie.path.to_json());
+        rust_cookie.insert("secure".to_string(), self.cookie.secure.to_json());
+        rust_cookie.insert("httponly".to_string(), self.cookie.httponly.to_json());
+        rust_cookie.insert("custom".to_string(), self.cookie.custom.to_json());
+
+        let mut servo_cookie = BTreeMap::new();
+        servo_cookie.insert("cookie".to_string(), Json::Object(rust_cookie));
+        servo_cookie.insert("host_only".to_string(), self.host_only.to_json());
+        servo_cookie.insert("persistent".to_string(), self.persistent.to_json());
+        servo_cookie.insert("creation_time".to_string(), Time(self.creation_time).to_json());
+        servo_cookie.insert("last_access".to_string(), Time(self.last_access).to_json());
+        servo_cookie.insert("expiry_time".to_string(), Time(self.expiry_time.unwrap()).to_json());
+        Json::Object(servo_cookie)
     }
 }

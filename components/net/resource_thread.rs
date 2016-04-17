@@ -22,13 +22,19 @@ use net_traits::ProgressMsg::Done;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceThread, ResponseAction};
 use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
 use net_traits::{WebSocketCommunicate, WebSocketConnectData};
+use rustc_serialize::json::{self, ToJson, Json};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::cell::Cell;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
+use std::error::Error;
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, RwLock};
 use url::Url;
+use util::opts;
 use util::prefs;
 use util::thread::spawn_named;
 use websocket_loader;
@@ -198,12 +204,93 @@ impl ResourceChannelManager {
                 ControlMsg::Synchronize(sender) => {
                     let _ = sender.send(());
                 }
-                ControlMsg::Exit => break,
+                ControlMsg::Exit => {
+                    if let Some(ref profile_dir) = opts::get().profile_dir {
+
+                        write_auth_cache_to_file(&self.resource_manager.auth_cache, profile_dir);
+                        write_cookie_jar_to_file(&self.resource_manager.cookie_jar, profile_dir);
+                        write_hsts_list_to_file(&self.resource_manager.hsts_list, profile_dir);
+                    }
+                    break;
+                }
+
             }
         }
     }
 }
 
+fn write_auth_cache_to_file(auth_cache: &Arc<RwLock<HashMap<Url, AuthCacheEntry>>>, profile_dir: &str) {
+    let mut auth_string_map: HashMap<String, Json> = HashMap::new();
+    for (url, auth_entry) in auth_cache.read().unwrap().iter() {
+        auth_string_map.insert(url.serialize(), auth_entry.to_json());
+    }
+
+    let json_encoded_cache = json::encode(&auth_string_map).unwrap();
+    let path_string = profile_dir.to_string() + "/auth_cache";
+    let path = Path::new(&path_string);
+    let display = path.display();
+
+    let mut file = match File::create(&path) {
+        Err(why) => panic!("couldn't create {}: {}",
+                           display,
+                           Error::description(&why)),
+        Ok(file) => file,
+    };
+
+    match file.write_all(json_encoded_cache.as_bytes()) {
+        Err(why) => {
+            panic!("couldn't write to {}: {}", display,
+                                               Error::description(&why))
+        },
+        Ok(_) => println!("successfully wrote to {}", display),
+    }
+}
+
+fn write_cookie_jar_to_file(cookie_jar: &Arc<RwLock<CookieStorage>>, profile_dir: &str) {
+
+    let json_encoded_jar = json::encode(&cookie_jar.read().unwrap().to_json()).unwrap();
+    let path_string = profile_dir.to_string() + "/cookie_jar";
+    let path = Path::new(&path_string);
+    let display = path.display();
+
+    let mut file = match File::create(&path) {
+        Err(why) => panic!("couldn't create {}: {}",
+                           display,
+                           Error::description(&why)),
+        Ok(file) => file,
+    };
+
+    match file.write_all(json_encoded_jar.as_bytes()) {
+        Err(why) => {
+            panic!("couldn't write to {}: {}", display,
+                                               Error::description(&why))
+        },
+        Ok(_) => println!("successfully wrote to {}", display),
+    }
+}
+
+fn write_hsts_list_to_file(hsts_list: &Arc<RwLock<HSTSList>>, profile_dir: &str) {
+
+    let json_encoded_hsts_list = json::encode(&hsts_list.read().unwrap().clone()).unwrap();
+    let path_string = profile_dir.to_string() + "/hsts_list";
+    let path = Path::new(&path_string);
+    let display = path.display();
+
+    let mut file = match File::create(&path) {
+        Err(why) => panic!("couldn't create {}: {}",
+                           display,
+                           Error::description(&why)),
+        Ok(file) => file,
+    };
+
+    match file.write_all(json_encoded_hsts_list.as_bytes()) {
+        Err(why) => {
+            panic!("couldn't write to {}: {}", display,
+                                               Error::description(&why))
+        },
+        Ok(_) => println!("successfully wrote to {}", display),
+    }
+}
 /// The optional resources required by the `CancellationListener`
 pub struct CancellableResource {
     /// The receiver which receives a message on load cancellation
@@ -272,6 +359,15 @@ impl Drop for CancellationListener {
 pub struct AuthCacheEntry {
     pub user_name: String,
     pub password: String,
+}
+
+impl ToJson for AuthCacheEntry {
+    fn to_json(&self) -> Json {
+        let mut d = BTreeMap::new();
+        d.insert("user_name".to_string(), self.user_name.to_json());
+        d.insert("password".to_string(), self.password.to_json());
+        Json::Object(d)
+    }
 }
 
 pub struct ResourceManager {
