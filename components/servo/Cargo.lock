@@ -1414,6 +1414,7 @@ dependencies = [
 name = "net_tests"
 version = "0.0.1"
 dependencies = [
+ "content-blocker 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cookie 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
  "flate2 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
