@@ -13,17 +13,17 @@ use msg::constellation_msg::CONTROL;
 use msg::constellation_msg::SUPER;
 use msg::constellation_msg::{Key, KeyModifiers};
 use script::clipboard_provider::DummyClipboardContext;
-use script::textinput::{TextInput, TextPoint, Selection, Lines, Direction};
+use script::textinput::{TextInput, TextPoint, Selection, Lines, Direction, SelectionDirection};
 use util::str::DOMString;
 
 fn text_input(lines: Lines, s: &str) -> TextInput<DummyClipboardContext> {
-    TextInput::new(lines, DOMString::from(s), DummyClipboardContext::new(""), None)
+    TextInput::new(lines, DOMString::from(s), DummyClipboardContext::new(""), None, SelectionDirection::None)
 }
 
 #[test]
 fn test_set_content_ignores_max_length() {
     let mut textinput = TextInput::new(
-        Lines::Single, DOMString::from(""), DummyClipboardContext::new(""), Some(1)
+        Lines::Single, DOMString::from(""), DummyClipboardContext::new(""), Some(1), SelectionDirection::None
     );
 
     textinput.set_content(DOMString::from("mozilla rocks"));
@@ -36,7 +36,8 @@ fn test_textinput_when_inserting_multiple_lines_over_a_selection_respects_max_le
         Lines::Multiple,
         DOMString::from("hello\nworld"),
         DummyClipboardContext::new(""),
-        Some(17)
+        Some(17),
+        SelectionDirection::None,
     );
 
     textinput.edit_point = TextPoint { line: 0, index: 1 };
@@ -59,7 +60,8 @@ fn test_textinput_when_inserting_multiple_lines_still_respects_max_length() {
         Lines::Multiple,
         DOMString::from("hello\nworld"),
         DummyClipboardContext::new(""),
-        Some(17)
+        Some(17),
+        SelectionDirection::None
     );
 
     textinput.edit_point = TextPoint { line: 1, index: 0 };
@@ -75,7 +77,8 @@ fn test_textinput_when_content_is_already_longer_than_max_length_and_theres_no_s
         Lines::Single,
         DOMString::from("abc"),
         DummyClipboardContext::new(""),
-        Some(1)
+        Some(1),
+        SelectionDirection::None,
     );
 
     textinput.insert_char('a');
@@ -89,7 +92,8 @@ fn test_multi_line_textinput_with_maxlength_doesnt_allow_appending_characters_wh
         Lines::Multiple,
         DOMString::from("abc\nd"),
         DummyClipboardContext::new(""),
-        Some(5)
+        Some(5),
+        SelectionDirection::None,
     );
 
     textinput.insert_char('a');
@@ -103,7 +107,8 @@ fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_
         Lines::Single,
         DOMString::from("abcde"),
         DummyClipboardContext::new(""),
-        Some(5)
+        Some(5),
+        SelectionDirection::None,
     );
 
     textinput.edit_point = TextPoint { line: 0, index: 1 };
@@ -123,7 +128,8 @@ fn test_single_line_textinput_with_max_length_multibyte() {
         Lines::Single,
         DOMString::from(""),
         DummyClipboardContext::new(""),
-        Some(2)
+        Some(2),
+        SelectionDirection::None,
     );
 
     textinput.insert_char('á');
@@ -140,7 +146,8 @@ fn test_single_line_textinput_with_max_length_multi_code_unit() {
         Lines::Single,
         DOMString::from(""),
         DummyClipboardContext::new(""),
-        Some(3)
+        Some(3),
+        SelectionDirection::None,
     );
 
     textinput.insert_char('\u{10437}');
@@ -159,7 +166,8 @@ fn test_single_line_textinput_with_max_length_inside_char() {
         Lines::Single,
         DOMString::from("\u{10437}"),
         DummyClipboardContext::new(""),
-        Some(1)
+        Some(1),
+        SelectionDirection::None,
     );
 
     textinput.insert_char('x');
@@ -172,7 +180,8 @@ fn test_single_line_textinput_with_max_length_doesnt_allow_appending_characters_
         Lines::Single,
         DOMString::from("a"),
         DummyClipboardContext::new(""),
-        Some(1)
+        Some(1),
+        SelectionDirection::None,
     );
 
     textinput.insert_char('b');
@@ -388,7 +397,8 @@ fn test_clipboard_paste() {
     let mut textinput = TextInput::new(Lines::Single,
                                        DOMString::from("defg"),
                                        DummyClipboardContext::new("abc"),
-                                       None);
+                                       None,
+                                       SelectionDirection::None);
     assert_eq!(textinput.get_content(), "defg");
     assert_eq!(textinput.edit_point.index, 0);
     textinput.handle_keydown_aux(Key::V, MODIFIERS);
