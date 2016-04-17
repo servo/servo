@@ -112,7 +112,7 @@ impl HSTSList {
 }
 
 pub fn preload_hsts_domains() -> Option<HSTSList> {
-    read_resource_file(&["hsts_preload.json"]).ok().and_then(|bytes| {
+    read_resource_file("hsts_preload.json").ok().and_then(|bytes| {
         from_utf8(&bytes).ok().and_then(|hsts_preload_content| {
             HSTSList::new_from_preload(hsts_preload_content)
         })
