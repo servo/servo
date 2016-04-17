@@ -223,9 +223,9 @@ impl WebGLRenderingContext {
     // https://www.khronos.org/opengles/sdk/docs/man/xhtml/glUniform.xml
     // https://www.khronos.org/registry/gles/specs/2.0/es_full_spec_2.0.25.pdf#nameddest=section-2.10.4
     fn validate_uniform_parameters<T>(&self,
-                                   uniform: Option<&WebGLUniformLocation>,
-                                   type_: UniformType,
-                                   data: Option<&[T]>) -> bool {
+                                      uniform: Option<&WebGLUniformLocation>,
+                                      type_: UniformType,
+                                      data: Option<&[T]>) -> bool {
         let uniform = match uniform {
             Some(uniform) => uniform,
             None => return false,
@@ -1082,6 +1082,106 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::Scissor(x, y, width, height)))
             .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn StencilFunc(&self, func: u32, ref_: i32, mask: u32) {
+        match func {
+            constants::NEVER | constants::LESS | constants::EQUAL | constants::LEQUAL |
+            constants::GREATER | constants::NOTEQUAL | constants::GEQUAL | constants::ALWAYS =>
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(WebGLCommand::StencilFunc(func, ref_, mask)))
+                    .unwrap(),
+            _ => self.webgl_error(InvalidEnum),
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn StencilFuncSeparate(&self, face: u32, func: u32, ref_: i32, mask: u32) {
+        match face {
+            constants::FRONT | constants::BACK | constants::FRONT_AND_BACK => (),
+            _ => return self.webgl_error(InvalidEnum),
+        }
+
+        match func {
+            constants::NEVER | constants::LESS | constants::EQUAL | constants::LEQUAL |
+            constants::GREATER | constants::NOTEQUAL | constants::GEQUAL | constants::ALWAYS =>
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(WebGLCommand::StencilFuncSeparate(face, func, ref_, mask)))
+                    .unwrap(),
+            _ => self.webgl_error(InvalidEnum),
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn StencilMask(&self, mask: u32) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::StencilMask(mask)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn StencilMaskSeparate(&self, face: u32, mask: u32) {
+        match face {
+            constants::FRONT | constants::BACK | constants::FRONT_AND_BACK =>
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(WebGLCommand::StencilMaskSeparate(face, mask)))
+                    .unwrap(),
+            _ => return self.webgl_error(InvalidEnum),
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn StencilOp(&self, fail: u32, zfail: u32, zpass: u32) {
+        match fail {
+            0 | constants::KEEP | constants::REPLACE | constants::INCR | constants::DECR |
+            constants::INVERT | constants::INCR_WRAP | constants::DECR_WRAP => (),
+            _ => return self.webgl_error(InvalidEnum),
+        }
+
+        match zfail {
+            0 | constants::KEEP | constants::REPLACE | constants::INCR | constants::DECR |
+            constants::INVERT | constants::INCR_WRAP | constants::DECR_WRAP => (),
+            _ => return self.webgl_error(InvalidEnum),
+        }
+
+        match zpass {
+            0 | constants::KEEP | constants::REPLACE | constants::INCR | constants::DECR |
+            constants::INVERT | constants::INCR_WRAP | constants::DECR_WRAP =>
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(WebGLCommand::StencilOp(fail, zfail, zpass)))
+                    .unwrap(),
+            _ => return self.webgl_error(InvalidEnum),
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn StencilOpSeparate(&self, face: u32, fail: u32, zfail: u32, zpass: u32) {
+        match face {
+            constants::FRONT | constants::BACK | constants::FRONT_AND_BACK => (),
+            _ => return self.webgl_error(InvalidEnum),
+        }
+
+        match fail {
+            0 | constants::KEEP | constants::REPLACE | constants::INCR | constants::DECR |
+            constants::INVERT | constants::INCR_WRAP | constants::DECR_WRAP => (),
+            _ => return self.webgl_error(InvalidEnum),
+        }
+
+        match zfail {
+            0 | constants::KEEP | constants::REPLACE | constants::INCR | constants::DECR |
+            constants::INVERT | constants::INCR_WRAP | constants::DECR_WRAP => (),
+            _ => return self.webgl_error(InvalidEnum),
+        }
+
+        match zpass {
+            0 | constants::KEEP | constants::REPLACE | constants::INCR | constants::DECR |
+            constants::INVERT | constants::INCR_WRAP | constants::DECR_WRAP =>
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(WebGLCommand::StencilOpSeparate(face, fail, zfail, zpass)))
+                    .unwrap(),
+            _ => return self.webgl_error(InvalidEnum),
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
