@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use content_blocker::parse_list;
 use cookie_rs::Cookie as CookiePair;
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
@@ -1857,4 +1858,63 @@ fn test_custom_response_from_worker() {
     let (metadata, body) = load_request_with_source(Source::Worker, expected_body.clone());
     assert_eq!(metadata.status, Some(RawStatus(200, Cow::Borrowed("OK"))));
     assert_eq!(body, String::from_utf8(expected_body).unwrap());
+}
+
+#[test]
+fn test_content_blocked() {
+    struct Factory;
+    impl HttpRequestFactory for Factory {
+        type R = MockRequest;
+
+        fn create(&self, _url: Url, _method: Method, _: Headers) -> Result<MockRequest, LoadError> {
+            Ok(MockRequest::new(ResponseType::Text(<[_]>::to_vec("Yay!".as_bytes()))))
+        }
+    }
+
+    let blocked_url = Url::parse("http://mozilla.com").unwrap();
+    let url_without_cookies = Url::parse("http://mozilla2.com").unwrap();
+    let mut http_state = HttpState::new();
+
+    let blocked_content_list = "[{ \"trigger\": { \"url-filter\": \"https?://mozilla.com\" }, \
+                                   \"action\": { \"type\": \"block\" } },\
+                                 { \"trigger\": { \"url-filter\": \"https?://mozilla2.com\" }, \
+                                   \"action\": { \"type\": \"block-cookies\" } }]";
+    http_state.blocked_content = Arc::new(parse_list(blocked_content_list).ok());
+    assert!(http_state.blocked_content.is_some());
+
+    {
+        let mut cookie_jar = http_state.cookie_jar.write().unwrap();
+        let cookie = Cookie::new_wrapped(
+            CookiePair::parse("mozillaIs=theBest;").unwrap(),
+            &url_without_cookies,
+            CookieSource::HTTP
+        ).unwrap();
+        cookie_jar.push(cookie, CookieSource::HTTP);
+    }
+
+    let ui_provider = TestProvider::new();
+
+    let load_data = LoadData::new(LoadContext::Browsing, url_without_cookies, None);
+
+    let response = load(
+        load_data, &ui_provider, &http_state,
+        None, &AssertMustNotIncludeHeadersRequestFactory {
+            headers_not_expected: vec!["Cookie".to_owned()],
+            body: b"hi".to_vec(),
+        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+    match response {
+        Ok(_) => {},
+        _ => panic!("request should have succeeded without cookies"),
+    }
+
+    let load_data = LoadData::new(LoadContext::Browsing, blocked_url, None);
+
+    let response = load(
+        load_data, &ui_provider, &http_state,
+        None, &Factory,
+        DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+    match response {
+        Err(LoadError::ContentBlocked(_)) => {},
+        _ => panic!("request should have been blocked"),
+    }
 }
