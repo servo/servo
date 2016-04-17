@@ -1084,6 +1084,48 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             .unwrap()
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn StencilFunc(&self, func: u32, ref_: i32, mask: u32) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::StencilFunc(func, ref_, mask)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn StencilFuncSeparate(&self, face: u32, func: u32, ref_: i32, mask: u32) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::StencilFuncSeparate(face, func, ref_, mask)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn StencilMask(&self, mask: u32) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::StencilMask(mask)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn StencilMaskSeparate(&self, face: u32, mask: u32) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::StencilMaskSeparate(face, mask)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn StencilOp(&self, fail: u32, zfail: u32, zpass: u32) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::StencilOp(fail, zfail, zpass)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn StencilOpSeparate(&self, face: u32, fail: u32, zfail: u32, zpass: u32) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::StencilOpSeparate(face, fail, zfail, zpass)))
+            .unwrap()
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn LinkProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
