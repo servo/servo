@@ -423,7 +423,7 @@ impl FontCacheThread {
 
 // derived from http://stackoverflow.com/a/10864297/3830
 fn is_supported_font_type(toplevel: &TopLevel, sublevel: &SubLevel) -> bool {
-    if !prefs::get_pref("net.mime.sniff").as_boolean().unwrap_or(false) {
+    if !prefs::get_pref("network.mime.sniff").as_boolean().unwrap_or(false) {
         return true;
     }
 

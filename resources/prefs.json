@@ -49,7 +49,7 @@
   "layout.text-orientation.enabled": false,
   "layout.viewport.enabled": false,
   "layout.writing-mode.enabled": false,
-  "net.mime.sniff": false,
+  "network.mime.sniff": false,
   "shell.native-titlebar.enabled": true,
   "shell.homepage": "http://servo.org"
 }
