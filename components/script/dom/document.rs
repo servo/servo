@@ -1816,9 +1816,9 @@ impl Document {
         }
     }
 
+    //TODO - for now, setting no-referrer for all until reading in the value
     pub fn get_referrer_policy(&self) -> Option<ReferrerPolicy> {
-        //add logic in here (or elsewhere) to actually set this field
-        self.referrer_policy.clone()
+        Some(ReferrerPolicy::NoReferrer)
     }
 }
 
