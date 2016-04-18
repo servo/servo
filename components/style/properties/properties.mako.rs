@@ -2344,6 +2344,12 @@ pub fn modify_style_for_text(style: &mut Arc<ServoComputedValues>) {
         let mut effects = Arc::make_mut(&mut style.effects);
         effects.opacity = 1.0;
     }
+
+    if style.box_.vertical_align != longhands::vertical_align::computed_value::T::baseline {
+        let mut style = Arc::make_mut(style);
+        let mut box_style = Arc::make_mut(&mut style.box_);
+        box_style.vertical_align = longhands::vertical_align::computed_value::T::baseline
+    }
 }
 
 /// Adjusts the `margin` property as necessary to account for the text of an `input` element.
