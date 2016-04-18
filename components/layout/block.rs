@@ -33,7 +33,8 @@ use display_list_builder::BlockFlowDisplayListBuilding;
 use display_list_builder::{BorderPaintingMode, DisplayListBuildState, FragmentDisplayListBuilding};
 use euclid::{Point2D, Rect, Size2D};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
-use flow::{BLOCK_POSITION_IS_STATIC, CLEARS_LEFT, CLEARS_RIGHT, INLINE_POSITION_IS_STATIC};
+use flow::{BLOCK_POSITION_IS_STATIC, CLEARS_LEFT, CLEARS_RIGHT};
+use flow::{CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, INLINE_POSITION_IS_STATIC};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
 use flow::{NEEDS_LAYER, PostorderFlowTraversal, PreorderFlowTraversal, FragmentationContext};
@@ -1469,16 +1470,33 @@ impl BlockFlow {
         }
     }
 
-    /// Computes intrinsic widths for a block.
+    /// Computes intrinsic inline sizes for a block.
     pub fn bubble_inline_sizes_for_block(&mut self, consult_children: bool) {
         let _scope = layout_debug_scope!("block::bubble_inline_sizes {:x}", self.base.debug_id());
 
         let mut flags = self.base.flags;
+        flags.remove(CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
+        if self.fragment.is_text_or_replaced() {
+            flags.insert(CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
+        } else {
+            for kid in self.base.children.iter() {
+                if flow::base(kid).flags.contains(CONTAINS_TEXT_OR_REPLACED_FRAGMENTS) {
+                    flags.remove(CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
+                    break
+                }
+            }
+        }
 
         // Find the maximum inline-size from children.
+        //
+        // See: https://lists.w3.org/Archives/Public/www-style/2014Nov/0085.html
+        //
+        // FIXME(pcwalton): This doesn't exactly follow that algorithm at the moment.
+        // FIXME(pcwalton): This should consider all float descendants, not just children.
         let mut computation = self.fragment.compute_intrinsic_inline_sizes();
         let (mut left_float_width, mut right_float_width) = (Au(0), Au(0));
         let (mut left_float_width_accumulator, mut right_float_width_accumulator) = (Au(0), Au(0));
+        let mut preferred_inline_size_of_children_without_text_or_replaced_fragments = Au(0);
         for kid in self.base.child_iter_mut() {
             let is_absolutely_positioned =
                 flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
@@ -1498,17 +1516,23 @@ impl BlockFlow {
                     right_float_width_accumulator = Au(0)
                 }
 
-                match float_kind {
-                    float::T::none => {
+                match (float_kind,
+                       child_base.flags.contains(CONTAINS_TEXT_OR_REPLACED_FRAGMENTS)) {
+                    (float::T::none, true) => {
                         computation.content_intrinsic_sizes.preferred_inline_size =
                             max(computation.content_intrinsic_sizes.preferred_inline_size,
                                 child_base.intrinsic_inline_sizes.preferred_inline_size);
                     }
-                    float::T::left => {
+                    (float::T::none, false) => {
+                        preferred_inline_size_of_children_without_text_or_replaced_fragments = max(
+                            preferred_inline_size_of_children_without_text_or_replaced_fragments,
+                            child_base.intrinsic_inline_sizes.preferred_inline_size)
+                    }
+                    (float::T::left, _) => {
                         left_float_width_accumulator = left_float_width_accumulator +
                             child_base.intrinsic_inline_sizes.preferred_inline_size;
                     }
-                    float::T::right => {
+                    (float::T::right, _) => {
                         right_float_width_accumulator = right_float_width_accumulator +
                             child_base.intrinsic_inline_sizes.preferred_inline_size;
                     }
@@ -1518,14 +1542,19 @@ impl BlockFlow {
             flags.union_floated_descendants_flags(child_base.flags);
         }
 
-        // FIXME(pcwalton): This should consider all float descendants, not just children.
-        // FIXME(pcwalton): This is not well-spec'd; INTRINSIC specifies to do this, but CSS-SIZING
-        // says not to. In practice, Gecko and WebKit both do this.
         left_float_width = max(left_float_width, left_float_width_accumulator);
         right_float_width = max(right_float_width, right_float_width_accumulator);
+
+        /*println!("preferred inline size before={:?} left_float_width={:?} right_float_width={:?}",
+                 computation.content_intrinsic_sizes.preferred_inline_size,
+                 left_float_width,
+                 right_float_width);*/
+        computation.content_intrinsic_sizes.preferred_inline_size =
+            computation.content_intrinsic_sizes.preferred_inline_size + left_float_width +
+            right_float_width;
         computation.content_intrinsic_sizes.preferred_inline_size =
             max(computation.content_intrinsic_sizes.preferred_inline_size,
-                left_float_width + right_float_width);
+                preferred_inline_size_of_children_without_text_or_replaced_fragments);
 
         self.base.intrinsic_inline_sizes = computation.finish();
         self.base.flags = flags

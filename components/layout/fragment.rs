@@ -11,7 +11,7 @@ use canvas_traits::CanvasMsg;
 use context::LayoutContext;
 use euclid::{Point2D, Rect, Size2D};
 use floats::ClearType;
-use flow::{self, Flow};
+use flow::{self, Flow, ImmutableFlowUtils};
 use flow_ref::{self, FlowRef};
 use gfx;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, FragmentType, OpaqueNode, StackingContextId};
@@ -38,7 +38,7 @@ use std::sync::{Arc, Mutex};
 use style::computed_values::content::ContentItem;
 use style::computed_values::{border_collapse, clear, display, mix_blend_mode, overflow_wrap};
 use style::computed_values::{overflow_x, position, text_decoration, transform_style};
-use style::computed_values::{white_space, word_break, z_index};
+use style::computed_values::{vertical_align, white_space, word_break, z_index};
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::{ComputedValues, ServoComputedValues};
@@ -1032,7 +1032,8 @@ impl Fragment {
         let mut specified = Au(0);
 
         if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
-            specified = MaybeAuto::from_style(style.content_inline_size(), Au(0)).specified_or_zero();
+            specified = MaybeAuto::from_style(style.content_inline_size(),
+                                              Au(0)).specified_or_zero();
             specified = max(model::specified(style.min_inline_size(), Au(0)), specified);
             if let Some(max) = model::specified_or_none(style.max_inline_size(), Au(0)) {
                 specified = min(specified, max)
@@ -1071,7 +1072,8 @@ impl Fragment {
 
     pub fn calculate_line_height(&self, layout_context: &LayoutContext) -> Au {
         let font_style = self.style.get_font_arc();
-        let font_metrics = text::font_metrics_for_style(&mut layout_context.font_context(), font_style);
+        let font_metrics = text::font_metrics_for_style(&mut layout_context.font_context(),
+                                                        font_style);
         text::line_height_from_style(&*self.style, &font_metrics)
     }
 
@@ -1472,6 +1474,17 @@ impl Fragment {
         result
     }
 
+    /// Returns the narrowest inline-size that the first splittable part of this fragment could
+    /// possibly be split to. (In most cases, this returns the inline-size of the first word in
+    /// this fragment.)
+    pub fn minimum_splittable_inline_size(&self) -> Au {
+        match self.specific {
+            SpecificFragmentInfo::ScannedText(ref text) => {
+                text.run.minimum_splittable_inline_size(&text.range)
+            }
+            _ => Au(0),
+        }
+    }
 
     /// TODO: What exactly does this function return? Why is it Au(0) for
     /// `SpecificFragmentInfo::Generic`?
@@ -1941,12 +1954,14 @@ impl Fragment {
             SpecificFragmentInfo::Image(ref image_fragment_info) => {
                 let computed_block_size = image_fragment_info.replaced_image_fragment_info
                                                              .computed_block_size();
-                InlineMetrics {
+                let metrics = InlineMetrics {
                     block_size_above_baseline: computed_block_size +
                                                    self.border_padding.block_start,
                     depth_below_baseline: self.border_padding.block_end,
                     ascent: computed_block_size + self.border_padding.block_start,
-                }
+                };
+                //println!("image inline metrics={:?}", metrics);
+                metrics
             }
             SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
                 let computed_block_size = canvas_fragment_info.replaced_image_fragment_info
@@ -1973,14 +1988,22 @@ impl Fragment {
             }
             SpecificFragmentInfo::InlineBlock(ref info) => {
                 // See CSS 2.1 § 10.8.1.
-                let block_flow = info.flow_ref.as_block();
-                let font_style = self.style.get_font_arc();
-                let font_metrics = text::font_metrics_for_style(&mut layout_context.font_context(),
-                                                                font_style);
-                InlineMetrics::from_block_height(&font_metrics,
-                                                 block_flow.base.position.size.block,
-                                                 block_flow.fragment.margin.block_start,
-                                                 block_flow.fragment.margin.block_end)
+                let flow = &info.flow_ref;
+                let baseline_offset_of_last_line_box_in_flow =
+                    flow.baseline_offset_of_last_line_box_in_flow();
+                let (start_margin, end_margin) = if flow.is_block_like() {
+                    let block_flow = flow.as_block();
+                    (block_flow.fragment.margin.block_start, block_flow.fragment.margin.block_end)
+                } else {
+                    (Au(0), Au(0))
+                };
+                let metrics = InlineMetrics::new(
+                    baseline_offset_of_last_line_box_in_flow + start_margin,
+                    flow::base(&**flow).position.size.block -
+                        baseline_offset_of_last_line_box_in_flow + end_margin,
+                    baseline_offset_of_last_line_box_in_flow);
+                //println!("inline block metrics={:?}", metrics);
+                metrics
             }
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::InlineAbsolute(_) => {
@@ -2569,6 +2592,50 @@ impl Fragment {
     pub fn layer_id_for_overflow_scroll(&self) -> LayerId {
         LayerId::new_of_type(LayerType::OverflowScroll, self.node.id() as usize)
     }
+
+    /// Returns true if any of the inline styles associated with this fragment have
+    /// `vertical-align` set to `top` or `bottom`.
+    pub fn is_vertically_aligned_to_top_or_bottom(&self) -> bool {
+        let mut result = false;
+        match self.style.get_box().vertical_align {
+            vertical_align::T::top | vertical_align::T::bottom => result = true,
+            _ => {}
+        }
+        if let Some(ref inline_context) = self.inline_context {
+            for node in &inline_context.nodes {
+                match node.style.get_box().vertical_align {
+                    vertical_align::T::top | vertical_align::T::bottom => result = true,
+                    _ => {}
+                }
+            }
+        }
+        /*println!("is_vertically_aligned_to_top_or_bottom({:?}) = {:?}",
+                 self.specific.get_type(),
+                 result);*/
+        result
+    }
+
+    pub fn is_text_or_replaced(&self) -> bool {
+        match self.specific {
+            SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::GeneratedContent(_) |
+            SpecificFragmentInfo::InlineAbsolute(_) |
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
+            SpecificFragmentInfo::InlineBlock(_) |
+            SpecificFragmentInfo::Multicol |
+            SpecificFragmentInfo::MulticolColumn |
+            SpecificFragmentInfo::Table |
+            SpecificFragmentInfo::TableCell |
+            SpecificFragmentInfo::TableColumn(_) |
+            SpecificFragmentInfo::TableRow |
+            SpecificFragmentInfo::TableWrapper => false,
+            SpecificFragmentInfo::Canvas(_) |
+            SpecificFragmentInfo::Iframe(_) |
+            SpecificFragmentInfo::Image(_) |
+            SpecificFragmentInfo::ScannedText(_) |
+            SpecificFragmentInfo::UnscannedText(_) => true
+        }
+    }
 }
 
 impl fmt::Debug for Fragment {
@@ -2749,3 +2816,4 @@ pub struct SpeculatedInlineContentEdgeOffsets {
     pub start: Au,
     pub end: Au,
 }
+
