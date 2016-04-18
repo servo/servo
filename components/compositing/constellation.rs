@@ -38,7 +38,8 @@ use msg::constellation_msg::{self, ConstellationChan, Failure};
 use msg::webdriver_msg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::{StorageThread, StorageThreadMsg};
-use net_traits::{self, ResourceThread};
+use net_traits::{self, ResourceThread, ConstellationMsg};
+//use net_traits::{SendConstellationMsgChannel, Exit};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pipeline::{CompositionPipeline, InitialPipelineState, Pipeline, UnprivilegedPipelineContent};
 use profile_traits::mem;
@@ -102,6 +103,9 @@ pub struct Constellation<LTF, STF> {
 
     /// Receives messages from the compositor
     pub compositor_receiver: Receiver<FromCompositorMsg>,
+
+    /// Receives ConstellationMsg 
+    pub constellation_msg_receiver: Receiver<ConstellationMsg>,
 
     /// Receives messages from the layout thread
     pub layout_receiver: Receiver<FromLayoutMsg>,
@@ -322,6 +326,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         let (ipc_painter_receiver, ipc_painter_sender) = ConstellationChan::<FromPaintMsg>::new();
         let painter_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_painter_receiver);
         let compositor_sender_clone = compositor_sender.clone();
+        let (ipc_constellation_msg_sender, ipc_constellation_msg_receiver) = ipc::channel().unwrap();
+        let constellation_msg_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_constellation_msg_receiver);
         spawn_named("Constellation".to_owned(), move || {
             let mut constellation: Constellation<LTF, STF> = Constellation {
                 script_sender: ipc_script_sender,
@@ -330,6 +336,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 painter_sender: ipc_painter_sender,
                 script_receiver: script_receiver,
                 compositor_receiver: compositor_receiver,
+                constellation_msg_receiver: constellation_msg_receiver,
                 layout_receiver: layout_receiver,
                 painter_receiver: painter_receiver,
                 compositor_proxy: state.compositor_proxy,
@@ -379,6 +386,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             let namespace_id = constellation.next_pipeline_namespace_id();
             PipelineNamespace::install(namespace_id);
             constellation.run();
+            constellation.resource_thread.send(net_traits::ControlMsg::SendConstellationMsgChannel(ipc_constellation_msg_sender));
         });
         compositor_sender
     }
@@ -536,7 +544,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             Script(FromScriptMsg),
             Compositor(FromCompositorMsg),
             Layout(FromLayoutMsg),
-            Paint(FromPaintMsg)
+            Paint(FromPaintMsg),
+            Constellation(ConstellationMsg),
         }
 
         // Get one incoming request.
@@ -555,6 +564,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             let receiver_from_compositor = &self.compositor_receiver;
             let receiver_from_layout = &self.layout_receiver;
             let receiver_from_paint = &self.painter_receiver;
+            let receiver_from_constellation_msg = &self.constellation_msg_receiver;
             select! {
                 msg = receiver_from_script.recv() =>
                     Request::Script(msg.expect("Unexpected script failure in constellation")),
@@ -563,7 +573,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 msg = receiver_from_layout.recv() =>
                     Request::Layout(msg.expect("Unexpected layout failure in constellation")),
                 msg = receiver_from_paint.recv() =>
-                    Request::Paint(msg.expect("Unexpected paint failure in constellation"))
+                    Request::Paint(msg.expect("Unexpected paint failure in constellation")),
+                msg = receiver_from_constellation_msg.recv() =>
+                    Request::Constellation(msg.expect("Unexpected failure in constellation"))
             }
         };
 
@@ -796,6 +808,12 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             Request::Paint(FromPaintMsg::Failure(Failure { pipeline_id, parent_info })) => {
                 debug!("handling paint failure message from pipeline {:?}, {:?}", pipeline_id, parent_info);
                 self.handle_failure_msg(pipeline_id, parent_info);
+            }
+
+            Request::Constellation(ConstellationMsg::IsPrivate(pipeline_id, sender)) => {
+                debug!("constellation got IsPrivate message");
+                sender.send(self.check_is_pipeline_private(pipeline_id));
+                //self.check_is_pipeline_private(pipeline_id);
             }
 
         }

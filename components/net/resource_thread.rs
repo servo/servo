@@ -17,11 +17,13 @@ use hyper::header::{ContentType, Header, SetCookie};
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
+use msg::constellation_msg::PipelineId;
 use net_traits::LoadContext;
 use net_traits::ProgressMsg::Done;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceThread, ResponseAction};
 use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
 use net_traits::{WebSocketCommunicate, WebSocketConnectData};
+use net_traits::ConstellationMsg;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::cell::Cell;
@@ -37,6 +39,13 @@ pub enum ProgressSender {
     Channel(IpcSender<ProgressMsg>),
     Listener(AsyncResponseTarget),
 }
+
+#[allow(dead_code)]
+pub struct Foo {
+    cookie_storage: Option<CookieStorage>,
+    hsts_list: HSTSList,
+    connector: Arc<Pool<Connector>>,
+} 
 
 impl ProgressSender {
     //XXXjdm return actual error
@@ -102,27 +111,27 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
         });
         let (toplevel, sublevel) = classifier.classify(context,
                                                        no_sniff,
-                                                       check_for_apache_bug,
-                                                       &supplied_type,
-                                                       &partial_body);
-        let mime_tp: TopLevel = toplevel.parse().unwrap();
-        let mime_sb: SubLevel = sublevel.parse().unwrap();
-        metadata.content_type = Some(ContentType(Mime(mime_tp, mime_sb, vec![])));
+                                                           check_for_apache_bug,
+                                                           &supplied_type,
+                                                           &partial_body);
+            let mime_tp: TopLevel = toplevel.parse().unwrap();
+            let mime_sb: SubLevel = sublevel.parse().unwrap();
+            metadata.content_type = Some(ContentType(Mime(mime_tp, mime_sb, vec![])));
+        }
+
+        start_sending_opt(start_chan, metadata)
     }
 
-    start_sending_opt(start_chan, metadata)
-}
-
-fn apache_bug_predicate(last_raw_content_type: &[u8]) -> ApacheBugFlag {
-    if last_raw_content_type == b"text/plain"
-           || last_raw_content_type == b"text/plain; charset=ISO-8859-1"
-           || last_raw_content_type == b"text/plain; charset=iso-8859-1"
-           || last_raw_content_type == b"text/plain; charset=UTF-8" {
-        ApacheBugFlag::ON
-    } else {
-        ApacheBugFlag::OFF
+    fn apache_bug_predicate(last_raw_content_type: &[u8]) -> ApacheBugFlag {
+        if last_raw_content_type == b"text/plain"
+               || last_raw_content_type == b"text/plain; charset=ISO-8859-1"
+               || last_raw_content_type == b"text/plain; charset=iso-8859-1"
+               || last_raw_content_type == b"text/plain; charset=UTF-8" {
+            ApacheBugFlag::ON
+        } else {
+            ApacheBugFlag::OFF
+        }
     }
-}
 
 /// For use by loaders in responding to a Load message.
 fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<ProgressSender, ()> {
@@ -197,6 +206,9 @@ impl ResourceChannelManager {
                 }
                 ControlMsg::Synchronize(sender) => {
                     let _ = sender.send(());
+                }
+                ControlMsg::SendConstellationMsgChannel(sender) => {
+                    self.resource_manager.constellation_msg_chan = Some(sender);
                 }
                 ControlMsg::Exit => break,
             }
@@ -284,6 +296,7 @@ pub struct ResourceManager {
     connector: Arc<Pool<Connector>>,
     cancel_load_map: HashMap<ResourceId, Sender<()>>,
     next_resource_id: ResourceId,
+    constellation_msg_chan: Option<IpcSender<ConstellationMsg>>,
 }
 
 impl ResourceManager {
@@ -300,6 +313,7 @@ impl ResourceManager {
             connector: create_http_connector(),
             cancel_load_map: HashMap::new(),
             next_resource_id: ResourceId(0),
+            constellation_msg_chan: None,
         }
     }
 
@@ -375,5 +389,20 @@ impl ResourceManager {
                          connect: WebSocketCommunicate,
                          connect_data: WebSocketConnectData) {
         websocket_loader::init(connect, connect_data, self.cookie_jar.clone());
+    }
+
+    #[allow(dead_code)]
+    fn activate_cookie_storage(&self, pipeline_id: Option<PipelineId>) -> Foo {
+
+        // Use the ConstellationMsg sender to send a message and get the response.
+        let (tx, rx) = ipc::channel::<bool>().unwrap();
+        self.constellation_msg_chan.clone().unwrap().send(ConstellationMsg::IsPrivate(pipeline_id.unwrap(), tx));
+        rx.recv().unwrap();
+        let storage: Option<CookieStorage> = None;
+        Foo {
+            cookie_storage: storage,
+            hsts_list: HSTSList::new(),
+            connector: create_http_connector(),
+        }
     }
 }
