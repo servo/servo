@@ -13,21 +13,28 @@ sys.path.insert(0, os.path.join(BASE, "Mako-0.9.1.zip"))
 from mako import exceptions
 from mako.template import Template
 
+import data
+
 
 def main():
-    usage = "Usage: %s [ servo | gecko ] [ rust | html ]" % sys.argv[0]
+    usage = "Usage: %s [ servo | gecko ] [ style-crate | geckolib | html ]" % sys.argv[0]
     if len(sys.argv) < 3:
         abort(usage)
     product = sys.argv[1]
     output = sys.argv[2]
-    if product not in ["servo", "gecko"] or output not in ["rust", "html"]:
+    if product not in ["servo", "gecko"] or output not in ["style-crate", "geckolib", "html"]:
         abort(usage)
 
-    template, rust = render("properties.mako.rs", PRODUCT=product)
-    if output == "rust":
+    properties = data.PropertiesData(product=product)
+    rust = render(os.path.join(BASE, "properties.mako.rs"), product=product, data=properties)
+    if output == "style-crate":
+        write(os.environ["OUT_DIR"], "properties.rs", rust)
+    if output == "geckolib":
+        template = os.path.join(BASE, "..", "..", "..", "ports", "geckolib", "properties.mako.rs")
+        rust = render(template, data=properties)
         write(os.environ["OUT_DIR"], "properties.rs", rust)
     elif output == "html":
-        write_html(template)
+        write_html(properties)
 
 
 def abort(message):
@@ -35,11 +42,18 @@ def abort(message):
     sys.exit(1)
 
 
-def render(name, **context):
+def render(filename, **context):
     try:
-        template = Template(open(os.path.join(BASE, name), "rb").read(), input_encoding="utf8")
-        return template, template.render(**context).encode("utf8")
+        template = Template(open(filename, "rb").read(),
+                            input_encoding="utf8",
+                            strict_undefined=True,
+                            filename=filename)
+        # Uncomment to debug generated Python code:
+        #write("/tmp", "mako_%s.py" % os.path.basename(filename), template.code)
+        return template.render(**context).encode("utf8")
     except:
+        # Uncomment to see a traceback in generated Python code:
+        #raise
         abort(exceptions.text_error_template().render().encode("utf8"))
 
 
@@ -49,19 +63,18 @@ def write(directory, filename, content):
     open(os.path.join(directory, filename), "wb").write(content)
 
 
-def write_html(template):
+def write_html(properties):
     properties = dict(
         (p.name, {
             "flag": p.experimental,
             "shorthand": hasattr(p, "sub_properties")
         })
-        for p in template.module.LONGHANDS + template.module.SHORTHANDS
+        for p in properties.longhands + properties.shorthands
     )
-    _, html = render("properties.html.mako", properties=properties)
-
     doc_servo = os.path.join(BASE, "..", "..", "..", "target", "doc", "servo")
-    write(doc_servo, "css-properties.json", json.dumps(properties, indent=4))
+    html = render(os.path.join(BASE, "properties.html.mako"), properties=properties)
     write(doc_servo, "css-properties.html", html)
+    write(doc_servo, "css-properties.json", json.dumps(properties, indent=4))
 
 
 if __name__ == "__main__":

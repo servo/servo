@@ -35,7 +35,7 @@ fn main() {
     let status = Command::new(python)
         .arg(&script)
         .arg(product)
-        .arg("rust")
+        .arg("style-crate")
         .status()
         .unwrap();
     if !status.success() {
