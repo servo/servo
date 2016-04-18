@@ -40499,6 +40499,12 @@
         ]
       },
       "testharness": {
+        "html/semantics/tabular-data/the-table-element/insertRow-method-03.html": [
+          {
+            "path": "html/semantics/tabular-data/the-table-element/insertRow-method-03.html",
+            "url": "/html/semantics/tabular-data/the-table-element/insertRow-method-03.html"
+          }
+        ],
         "html/semantics/tabular-data/the-table-element/tFoot.html": [
           {
             "path": "html/semantics/tabular-data/the-table-element/tFoot.html",
