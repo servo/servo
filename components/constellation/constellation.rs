@@ -31,11 +31,12 @@ use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, NavigationD
 use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
 use msg::constellation_msg::{self, PanicMsg};
 use msg::webdriver_msg;
+use net_traits::ConstellationMsg as FromResourceMsg;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::StorageThreadMsg;
-use net_traits::{self, ResourceThreads, IpcSend};
+use net_traits::{self, ResourceThreads, IpcSend, CoreResourceMsg};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pipeline::{ChildProcess, InitialPipelineState, Pipeline};
 use profile_traits::mem;
@@ -99,6 +100,9 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// Receives messages from the compositor
     compositor_receiver: Receiver<FromCompositorMsg>,
+
+    /// Receives ConstellationMsg
+    pub resource_msg_receiver: Receiver<FromResourceMsg>,
 
     /// Receives messages from the layout thread
     layout_receiver: Receiver<FromLayoutMsg>,
@@ -323,6 +327,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let (compositor_sender, compositor_receiver) = channel();
         let compositor_sender_clone = compositor_sender.clone();
 
+        let (ipc_resource_msg_sender, ipc_resource_msg_receiver) = ipc::channel().expect("ipc channel failure");
+        let resource_msg_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_resource_msg_receiver);
+
         spawn_named("Constellation".to_owned(), move || {
             let mut constellation: Constellation<Message, LTF, STF> = Constellation {
                 script_sender: ipc_script_sender,
@@ -331,6 +338,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 script_receiver: script_receiver,
                 panic_sender: ipc_panic_sender,
                 compositor_receiver: compositor_receiver,
+                resource_msg_receiver: resource_msg_receiver,
                 layout_receiver: layout_receiver,
                 panic_receiver: panic_receiver,
                 compositor_proxy: state.compositor_proxy,
@@ -382,6 +390,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let namespace_id = constellation.next_pipeline_namespace_id();
             PipelineNamespace::install(namespace_id);
             constellation.run();
+            let _ = constellation.resource_threads.send(
+                CoreResourceMsg::SendConstellationMsgChannel(ipc_resource_msg_sender));
         });
         compositor_sender
     }
@@ -511,6 +521,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let receiver_from_compositor = &self.compositor_receiver;
             let receiver_from_layout = &self.layout_receiver;
             let receiver_from_panic = &self.panic_receiver;
+            let receiver_from_constellation_msg = &self.resource_msg_receiver;
             select! {
                 msg = receiver_from_script.recv() =>
                     Request::Script(msg.expect("Unexpected script channel panic in constellation")),
@@ -519,7 +530,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 msg = receiver_from_layout.recv() =>
                     Request::Layout(msg.expect("Unexpected layout channel panic in constellation")),
                 msg = receiver_from_panic.recv() =>
-                    Request::Panic(msg.expect("Unexpected panic channel panic in constellation"))
+                    Request::Panic(msg.expect("Unexpected panic channel panic in constellation")),
+                msg = receiver_from_constellation_msg.recv() =>
+                    Request::Resource(msg.expect("Unexpected resource failure in constellation"))
             }
         };
 
@@ -536,6 +549,19 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Request::Panic(message) => {
                 self.handle_request_from_panic(message);
             },
+            Request::Resource(message) => {
+                self.handle_request_from_resource(message);
+                true
+            }
+        }
+    }
+
+    fn handle_request_from_resource(&self, message: FromResourceMsg) {
+        match message {
+            FromResourceMsg::IsPrivate(pipeline_id, sender) => {
+                debug!("constellation got IsPrivate message");
+                let _ = sender.send(self.check_is_pipeline_private(pipeline_id));
+            }
         }
     }
 

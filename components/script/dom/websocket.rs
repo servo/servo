@@ -27,6 +27,7 @@ use js::jsapi::{JSAutoCompartment, RootedValue};
 use js::jsapi::{JS_GetArrayBufferData, JS_NewArrayBuffer};
 use js::jsval::UndefinedValue;
 use libc::{uint32_t, uint8_t};
+use msg::constellation_msg::PipelineId;
 use net_traits::CookieSource::HTTP;
 use net_traits::CoreResourceMsg::{WebsocketConnect, SetCookiesForUrl};
 use net_traits::MessageData;
@@ -263,12 +264,13 @@ impl WebSocket {
             action_receiver: resource_action_receiver,
         };
 
-        let _ = global.core_resource_thread().send(WebsocketConnect(connect, connect_data));
+        let _ = global.core_resource_thread().send(WebsocketConnect(global.pipeline(), connect, connect_data));
 
         *ws.sender.borrow_mut() = Some(dom_action_sender);
 
         let moved_address = address.clone();
         let sender = global.networking_task_source();
+        let pipeline = global.pipeline();
         thread::spawn(move || {
             while let Ok(event) = dom_event_receiver.recv() {
                 match event {
@@ -277,6 +279,7 @@ impl WebSocket {
                             address: moved_address.clone(),
                             headers: headers,
                             protocols: protocols,
+                            pipeline: pipeline,
                         };
                         sender.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, open_thread)).unwrap();
                     },
@@ -458,6 +461,7 @@ struct ConnectionEstablishedTask {
     address: Trusted<WebSocket>,
     protocols: Vec<String>,
     headers: Headers,
+    pipeline: PipelineId,
 }
 
 impl Runnable for ConnectionEstablishedTask {
@@ -488,9 +492,10 @@ impl Runnable for ConnectionEstablishedTask {
         if let Some(cookies) = self.headers.get_raw("set-cookie") {
             for cookie in cookies.iter() {
                 if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
-                    let _ = ws.global().r().core_resource_thread().send(SetCookiesForUrl(ws.url.clone(),
-                                                                                    cookie_value,
-                                                                                    HTTP));
+                    let _ = ws.global().r().core_resource_thread().send(SetCookiesForUrl(self.pipeline,
+                                                                                         ws.url.clone(),
+                                                                                         cookie_value,
+                                                                                         HTTP));
                 }
             }
         }

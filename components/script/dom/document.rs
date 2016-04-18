@@ -2567,7 +2567,8 @@ impl DocumentMethods for Document {
 
         let url = self.url();
         let (tx, rx) = ipc::channel().unwrap();
-        let _ = self.window.resource_threads().send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
+        let _ = self.window.resource_threads().send(GetCookiesForUrl(
+            self.window.pipeline(), (*url).clone(), tx, NonHTTP));
         let cookies = rx.recv().unwrap();
         Ok(cookies.map_or(DOMString::new(), DOMString::from))
     }
@@ -2585,7 +2586,7 @@ impl DocumentMethods for Document {
         let url = self.url();
         let _ = self.window
                     .resource_threads()
-                    .send(SetCookiesForUrl((*url).clone(), String::from(cookie), NonHTTP));
+                    .send(SetCookiesForUrl(self.window.pipeline(), (*url).clone(), String::from(cookie), NonHTTP));
         Ok(())
     }
 
