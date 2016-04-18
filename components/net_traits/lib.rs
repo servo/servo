@@ -232,6 +232,8 @@ pub enum ControlMsg {
     Cancel(ResourceId),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
     Synchronize(IpcSender<()>),
+    ///
+    SendConstellationMsgChannel(IpcSender<ConstellationMsg>),
     /// Break the load handler loop and exit
     Exit,
 }
@@ -429,9 +431,10 @@ pub fn unwrap_websocket_protocol(wsp: Option<&header::WebSocketProtocol>) -> Opt
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct ResourceId(pub u32);
 
+#[derive(Deserialize, Serialize)]
 pub enum ConstellationMsg {
     /// Queries whether a pipeline or its ancestors are private
-    IsPrivate(PipelineId, Sender<bool>),
+    IsPrivate(PipelineId, IpcSender<bool>),
 }
 
 /// Network errors that have to be exported out of the loaders
