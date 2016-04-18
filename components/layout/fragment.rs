@@ -1032,7 +1032,8 @@ impl Fragment {
         let mut specified = Au(0);
 
         if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
-            specified = MaybeAuto::from_style(style.content_inline_size(), Au(0)).specified_or_zero();
+            specified = MaybeAuto::from_style(style.content_inline_size(),
+                                              Au(0)).specified_or_zero();
             specified = max(model::specified(style.min_inline_size(), Au(0)), specified);
             if let Some(max) = model::specified_or_none(style.max_inline_size(), Au(0)) {
                 specified = min(specified, max)
@@ -1472,6 +1473,14 @@ impl Fragment {
         result
     }
 
+    pub fn minimum_splittable_inline_size(&self) -> Au {
+        match self.specific {
+            SpecificFragmentInfo::ScannedText(ref text) => {
+                text.run.minimum_splittable_inline_size(&text.range)
+            }
+            _ => Au(0),
+        }
+    }
 
     /// TODO: What exactly does this function return? Why is it Au(0) for
     /// `SpecificFragmentInfo::Generic`?
