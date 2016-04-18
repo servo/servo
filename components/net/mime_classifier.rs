@@ -28,6 +28,20 @@ pub enum ApacheBugFlag {
     OFF
 }
 
+impl ApacheBugFlag {
+    /// https://mimesniff.spec.whatwg.org/#supplied-mime-type-detection-algorithm
+    pub fn from_content_type(last_raw_content_type: &[u8]) -> ApacheBugFlag {
+        if last_raw_content_type == b"text/plain"
+               || last_raw_content_type == b"text/plain; charset=ISO-8859-1"
+               || last_raw_content_type == b"text/plain; charset=iso-8859-1"
+               || last_raw_content_type == b"text/plain; charset=UTF-8" {
+            ApacheBugFlag::ON
+        } else {
+            ApacheBugFlag::OFF
+        }
+    }
+}
+
 #[derive(PartialEq)]
 pub enum NoSniffFlag {
     ON,
