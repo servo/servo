@@ -372,33 +372,39 @@ fn no_ref_when_downgrade_header(referrer_url: Url, url: Url, referrer_url_str: S
     return Some(referrer_url_str);
 }
 
-fn generate_origin_referer_url(referrer_url: Url) -> Option<String> {
-    let scheme = referrer_url.scheme.clone();
-    if scheme == "https" || scheme == "http" {
-        if let Some(domain) = referrer_url.domain() {
-            if let Some(port) = referrer_url.port() {
-                return Some(scheme + "://" + domain + ":" + &port.to_string() + "/");
-            }
-            return Some(scheme + "://" + domain + "/");
-        }
+/// https://w3c.github.io/webappsec-referrer-policy/#strip-url
+fn generate_origin_referer_url(referrer_url: Url) -> String {
+    let mut ref_mutable = referrer_url.clone();
+    if let Some(relative) = ref_mutable.relative_scheme_data_mut() {
+        relative.path = Vec::new();
     }
-    return None;
+    ref_mutable.query = None; 
+    return ref_mutable.serialize()
 }
 
 /// https://w3c.github.io/webappsec-referrer-policy/#strip-url
-fn generate_nonorigin_referer_url(referrer_url: Url) -> String {
-    //TODO - need to also strip out username/password
-    return referrer_url.serialize_no_fragment();
+fn generate_nonorigin_referer_url(referrer_url: Url) -> Option<Url> {
+    let scheme = referrer_url.scheme.clone();
+    if scheme == "https" || scheme == "http" {
+        let mut ref_mutable = referrer_url.clone();
+        if let Some(relative) = ref_mutable.relative_scheme_data_mut() {
+            relative.username.clear();
+            relative.password = None;
+        }
+        ref_mutable.fragment = None;
+        return Some(ref_mutable);
+    }
+    return None;
 }
 
 
 fn set_referer(headers: &mut Headers, referrer_policy: Option<ReferrerPolicy>, referrer_url: Url, url: Url) {
     //should I even be checking? Is there a chance of this getting set 2x?
     if !headers.has::<Referer>() {
-        //step 3.3.1, 5
-        if let Some(referrer_origin) = generate_origin_referer_url(referrer_url.clone()) {
-            //step 4
-            let referrer_url_str = generate_nonorigin_referer_url(referrer_url.clone());
+        if let Some(referrer_url_stripped) = generate_nonorigin_referer_url(referrer_url.clone()) {
+            //step 4, 5
+            let referrer_url_str = referrer_url_stripped.serialize();
+            let referrer_origin = generate_origin_referer_url(referrer_url_stripped);
             //step 6
             let referer = match referrer_policy {
                 Some(ReferrerPolicy::NoReferrer) => None,
@@ -408,7 +414,7 @@ fn set_referer(headers: &mut Headers, referrer_policy: Option<ReferrerPolicy>, r
                 _ => no_ref_when_downgrade_header(referrer_url, url, referrer_url_str),
             };
             if let Some(referer_val) = referer {
-                headers.set(Referer(referer_val));            
+                headers.set(Referer(referer_val));
             }
         }
     } 
