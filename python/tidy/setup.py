@@ -11,9 +11,11 @@ import os
 from setuptools import setup, find_packages
 
 
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 
 install_requires = [
+    "flake8==2.4.1",
+    "toml==0.9.1",
 ]
 
 here = os.path.dirname(os.path.abspath(__file__))
@@ -47,4 +49,9 @@ if __name__ == '__main__':
         package_data={},
         install_requires=install_requires,
         zip_safe=False,
+        entry_points={
+            'console_scripts': [
+                'servo-tidy=servo_tidy.tidy:scan'
+            ],
+        },
     )

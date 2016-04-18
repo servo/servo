@@ -22,5 +22,4 @@ test: dev-env
 .PHONY: clean
 clean:
 	find . -name "*.pyc" -type f -delete
-
-
+	rm -rf $(VENV)

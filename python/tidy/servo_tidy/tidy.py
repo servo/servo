@@ -69,6 +69,8 @@ ignored_dirs = [
     os.path.join(".", "."),
 ]
 
+spec_base_path = "components/script/dom/"
+
 
 def is_iter_empty(iterator):
     try:
@@ -525,10 +527,9 @@ def check_json(filename, contents):
 
 
 def check_spec(file_name, lines):
-    base_path = "components/script/dom/"
-    if base_path not in file_name:
+    if spec_base_path not in file_name:
         raise StopIteration
-    file_name = os.path.relpath(os.path.splitext(file_name)[0], base_path)
+    file_name = os.path.relpath(os.path.splitext(file_name)[0], spec_base_path)
     patt = re.compile("^\s*\/\/.+")
 
     # Pattern representing a line with a macro
@@ -601,11 +602,12 @@ def get_wpt_files(only_changed_files, progress):
 
 def check_wpt_lint_errors(files):
     wpt_working_dir = os.path.abspath(os.path.join(".", "tests", "wpt", "web-platform-tests"))
-    site.addsitedir(wpt_working_dir)
-    from tools.lint import lint
-    returncode = lint.lint(files)
-    if returncode:
-        yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(returncode))
+    if os.path.isdir(wpt_working_dir):
+        site.addsitedir(wpt_working_dir)
+        from tools.lint import lint
+        returncode = lint.lint(files)
+        if returncode:
+            yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status {0}".format(returncode))
 
 
 def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):

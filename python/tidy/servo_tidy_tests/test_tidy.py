@@ -11,10 +11,11 @@ import os
 import unittest
 from servo_tidy import tidy
 
+base_path = 'servo_tidy_tests/' if os.path.exists('servo_tidy_tests/') else 'python/tidy/servo_tidy_tests/'
+
 
 def iterFile(name):
-    path = 'servo_tidy_tests/' if os.path.exists('servo_tidy_tests/') else 'python/tidy/servo_tidy_tests/'
-    return iter([os.path.join(path, name)])
+    return iter([os.path.join(base_path, name)])
 
 
 class CheckTidiness(unittest.TestCase):
@@ -60,6 +61,11 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('extra space before :', errors.next()[2])
         self.assertEqual('use &[T] instead of &Vec<T>', errors.next()[2])
         self.assertEqual('use &str instead of &String', errors.next()[2])
+
+    def test_spec_link(self):
+        tidy.spec_base_path = base_path
+        errors = tidy.collect_errors_for_files(iterFile('speclink.rs'), [], [tidy.check_spec])
+        self.assertEqual('method declared in webidl is missing a comment with a specification link', errors.next()[2])
 
     def test_webidl(self):
         errors = tidy.collect_errors_for_files(iterFile('spec.webidl'), [tidy.check_webidl_spec], [])
