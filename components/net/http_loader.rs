@@ -398,9 +398,10 @@ fn generate_nonorigin_referer_url(referrer_url: Url) -> Option<Url> {
     return None;
 }
 
-
+/// https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer
 fn set_referer(headers: &mut Headers, referrer_policy: Option<ReferrerPolicy>, referrer_url: Url, url: Url) {
     //should I even be checking? Is there a chance of this getting set 2x?
+    //please see spec re: redirects. Not 100% sure im handling that correctly
     if !headers.has::<Referer>() {
         if let Some(referrer_url_stripped) = generate_nonorigin_referer_url(referrer_url.clone()) {
             //step 4, 5
@@ -608,15 +609,8 @@ pub fn modify_request_headers(headers: &mut Headers,
     set_default_accept(headers);
     set_default_accept_encoding(headers);
 
-    //println!("URL {:?}", url.serialize());
     if let Some(ref_url) = load_data.referrer_url.clone() {
-        //println!("REFERRER: {:?}", ref_url.serialize());
         set_referer(headers, load_data.referrer_policy.clone(), ref_url, url.clone());
-    } 
-    else {
-        //TODO - remove this branch. for testing
-        //println!("REFERRER UNKNOWN");
-        headers.set(Referer("NO REF SENT??".to_owned())); 
     }
     
     // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
