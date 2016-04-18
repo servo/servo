@@ -1,3 +1,11 @@
+# How to use this glossary
+
+This is a collection of common terms that have a specific meaning in the context of the Servo project. The goal is to provide high-level definitions and useful links for further reading, rather than complete documentation about particular parts of the code.
+
+If there is a word or phrase used in Servo's code, issue tracker, mailing list, etc. that is confusing, please make a pull request that adds it to this file with a body of `TODO`. This will signal more knowledgeable people to add a more meaningful definition.
+
+# Glossary
+
 ### Compositor ###
     
 The thread that receives input events from the operating system and forwards them to the constellation. It is also in charge of compositing complete renders of web content and displaying them on the screen as fast as possible.
