@@ -39,7 +39,6 @@ use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use request::{Request, RequestInit};
 use response::{HttpsState, Response};
 use std::io::Error as IOError;
-use std::sync::mpsc::Sender;
 use std::thread;
 use storage_thread::StorageThreadMsg;
 use url::Url;
@@ -649,9 +648,10 @@ pub fn unwrap_websocket_protocol(wsp: Option<&header::WebSocketProtocol>) -> Opt
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct ResourceId(pub u32);
 
+#[derive(Deserialize, Serialize)]
 pub enum ConstellationMsg {
     /// Queries whether a pipeline or its ancestors are private
-    IsPrivate(PipelineId, Sender<bool>),
+    IsPrivate(PipelineId, IpcSender<bool>),
 }
 
 /// Network errors that have to be exported out of the loaders
