@@ -111,27 +111,27 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
         });
         let (toplevel, sublevel) = classifier.classify(context,
                                                        no_sniff,
-                                                           check_for_apache_bug,
-                                                           &supplied_type,
-                                                           &partial_body);
-            let mime_tp: TopLevel = toplevel.parse().unwrap();
-            let mime_sb: SubLevel = sublevel.parse().unwrap();
-            metadata.content_type = Some(ContentType(Mime(mime_tp, mime_sb, vec![])));
-        }
-
-        start_sending_opt(start_chan, metadata)
+                                                       check_for_apache_bug,
+                                                       &supplied_type,
+                                                       &partial_body);
+        let mime_tp: TopLevel = toplevel.parse().unwrap();
+        let mime_sb: SubLevel = sublevel.parse().unwrap();
+        metadata.content_type = Some(ContentType(Mime(mime_tp, mime_sb, vec![])));
     }
 
-    fn apache_bug_predicate(last_raw_content_type: &[u8]) -> ApacheBugFlag {
-        if last_raw_content_type == b"text/plain"
-               || last_raw_content_type == b"text/plain; charset=ISO-8859-1"
-               || last_raw_content_type == b"text/plain; charset=iso-8859-1"
-               || last_raw_content_type == b"text/plain; charset=UTF-8" {
-            ApacheBugFlag::ON
-        } else {
-            ApacheBugFlag::OFF
-        }
+    start_sending_opt(start_chan, metadata)
+}
+
+fn apache_bug_predicate(last_raw_content_type: &[u8]) -> ApacheBugFlag {
+    if last_raw_content_type == b"text/plain"
+           || last_raw_content_type == b"text/plain; charset=ISO-8859-1"
+           || last_raw_content_type == b"text/plain; charset=iso-8859-1"
+           || last_raw_content_type == b"text/plain; charset=UTF-8" {
+        ApacheBugFlag::ON
+    } else {
+        ApacheBugFlag::OFF
     }
+}
 
 /// For use by loaders in responding to a Load message.
 fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<ProgressSender, ()> {
