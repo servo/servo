@@ -634,45 +634,48 @@ bitflags! {
         #[doc = "Whether this flow must have its own layer. Even if this flag is not set, it might"]
         #[doc = "get its own layer if it's deemed to be likely to overlap flows with their own"]
         #[doc = "layer."]
-        const NEEDS_LAYER = 0b0000_0000_0000_0010_0000,
+        const NEEDS_LAYER = 0b0000_0000_0000_0000_0010_0000,
         #[doc = "Whether this flow is absolutely positioned. This is checked all over layout, so a"]
         #[doc = "virtual call is too expensive."]
-        const IS_ABSOLUTELY_POSITIONED = 0b0000_0000_0000_0100_0000,
+        const IS_ABSOLUTELY_POSITIONED = 0b0000_0000_0000_0000_0100_0000,
         #[doc = "Whether this flow clears to the left. This is checked all over layout, so a"]
         #[doc = "virtual call is too expensive."]
-        const CLEARS_LEFT = 0b0000_0000_0000_1000_0000,
+        const CLEARS_LEFT = 0b0000_0000_0000_0000_1000_0000,
         #[doc = "Whether this flow clears to the right. This is checked all over layout, so a"]
         #[doc = "virtual call is too expensive."]
-        const CLEARS_RIGHT = 0b0000_0000_0001_0000_0000,
+        const CLEARS_RIGHT = 0b0000_0000_0000_0001_0000_0000,
         #[doc = "Whether this flow is left-floated. This is checked all over layout, so a"]
         #[doc = "virtual call is too expensive."]
-        const FLOATS_LEFT = 0b0000_0000_0010_0000_0000,
+        const FLOATS_LEFT = 0b0000_0000_0000_0010_0000_0000,
         #[doc = "Whether this flow is right-floated. This is checked all over layout, so a"]
         #[doc = "virtual call is too expensive."]
-        const FLOATS_RIGHT = 0b0000_0000_0100_0000_0000,
+        const FLOATS_RIGHT = 0b0000_0000_0000_0100_0000_0000,
         #[doc = "Text alignment. \
 
                  NB: If you update this, update `TEXT_ALIGN_SHIFT` below."]
-        const TEXT_ALIGN = 0b0000_0111_1000_0000_0000,
+        const TEXT_ALIGN = 0b0000_0000_0111_1000_0000_0000,
         #[doc = "Whether this flow has a fragment with `counter-reset` or `counter-increment` \
                  styles."]
-        const AFFECTS_COUNTERS = 0b0000_1000_0000_0000_0000,
+        const AFFECTS_COUNTERS = 0b0000_0000_1000_0000_0000_0000,
         #[doc = "Whether this flow's descendants have fragments that affect `counter-reset` or \
                  `counter-increment` styles."]
-        const HAS_COUNTER_AFFECTING_CHILDREN = 0b0001_0000_0000_0000_0000,
+        const HAS_COUNTER_AFFECTING_CHILDREN = 0b0000_0001_0000_0000_0000_0000,
         #[doc = "Whether this flow behaves as though it had `position: static` for the purposes \
                  of positioning in the inline direction. This is set for flows with `position: \
                  static` and `position: relative` as well as absolutely-positioned flows with \
                  unconstrained positions in the inline direction."]
-        const INLINE_POSITION_IS_STATIC = 0b0010_0000_0000_0000_0000,
+        const INLINE_POSITION_IS_STATIC = 0b0000_0010_0000_0000_0000_0000,
         #[doc = "Whether this flow behaves as though it had `position: static` for the purposes \
                  of positioning in the block direction. This is set for flows with `position: \
                  static` and `position: relative` as well as absolutely-positioned flows with \
                  unconstrained positions in the block direction."]
-        const BLOCK_POSITION_IS_STATIC = 0b0100_0000_0000_0000_0000,
+        const BLOCK_POSITION_IS_STATIC = 0b0000_0100_0000_0000_0000_0000,
 
         /// Whether any ancestor is a fragmentation container
-        const CAN_BE_FRAGMENTED = 0b1000_0000_0000_0000_0000,
+        const CAN_BE_FRAGMENTED = 0b0000_1000_0000_0000_0000_0000,
+
+        /// Whether this flow contains any text and/or replaced fragments.
+        const CONTAINS_TEXT_OR_REPLACED_FRAGMENTS = 0b0001_0000_0000_0000_0000_0000,
     }
 }
 
@@ -986,9 +989,11 @@ impl fmt::Debug for BaseFlow {
         };
 
         write!(f,
-               "sc={:?} pos={:?}, floatspec-in={:?}, floatspec-out={:?}, overflow={:?}{}{}{}",
+               "sc={:?} pos={:?}, {}{} floatspec-in={:?}, floatspec-out={:?}, overflow={:?}{}{}{}",
                self.stacking_context_id,
                self.position,
+               if self.flags.contains(FLOATS_LEFT) { "FL" } else { "" },
+               if self.flags.contains(FLOATS_RIGHT) { "FR" } else { "" },
                self.speculated_float_placement_in,
                self.speculated_float_placement_out,
                self.overflow,
