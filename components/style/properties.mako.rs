@@ -402,15 +402,15 @@ pub mod longhands {
 
     // CSS 2.1, Section 8 - Box model
 
-    <%include file="properties/margin_longhand.mako.rs" args="helpers=self" />
-    <%include file="properties/padding_longhand.mako.rs" args="helpers=self" />
-    <%include file="properties/border_longhand.mako.rs" args="helpers=self" />
-    <%include file="properties/outline_longhand.mako.rs" args="helpers=self" />
-    <%include file="properties/position_longhand.mako.rs" args="helpers=self" />
+    <%include file="/properties/margin_longhand.mako.rs" args="helpers=self" />
+    <%include file="/properties/padding_longhand.mako.rs" args="helpers=self" />
+    <%include file="/properties/border_longhand.mako.rs" args="helpers=self" />
+    <%include file="/properties/outline_longhand.mako.rs" args="helpers=self" />
+    <%include file="/properties/position_longhand.mako.rs" args="helpers=self" />
 
     // CSS 2.1, Section 9 - Visual formatting model
 
-    <%include file="properties/box_longhand.mako.rs" args="helpers=self" />
+    <%include file="/properties/box_longhand.mako.rs" args="helpers=self" />
 
     ${new_style_struct("InheritedBox", is_inherited=True, gecko_name="nsStyleVisibility",
                        additional_methods=[Method("clone_direction",
@@ -2302,7 +2302,7 @@ pub mod longhands {
         }
     </%self:longhand>
 
-    <%include file="properties/border_shorthand.mako.rs" args="helpers=self" />
+    <%include file="/properties/border_shorthand.mako.rs" args="helpers=self" />
 
     // CSS Writing Modes Level 3
     // http://dev.w3.org/csswg/css-writing-modes/
@@ -5115,7 +5115,7 @@ pub mod shorthands {
         })
     </%self:shorthand>
 
-    <%include file="properties/outline_shorthand.mako.rs" args="helpers=self" />
+    <%include file="/properties/outline_shorthand.mako.rs" args="helpers=self" />
 
     <%self:shorthand name="font" sub_properties="font-style font-variant font-weight
                                                  font-size line-height font-family">
