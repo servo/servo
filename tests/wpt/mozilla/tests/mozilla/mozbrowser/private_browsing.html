@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf8" />
+<title>Private browsing</title>
+</head>
+<body>
+<iframe id="private_iframe"></iframe>
+</body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  async_test(function(t) {
+    var privateFrame = document.getElementById("private_iframe");
+    privateFrame.mozbrowser = "true";
+    privateFrame.mozprivatebrowsing = "true";
+
+    privateFrame.onload = t.step_func(function() {
+      var parent = privateFrame.parentNode;
+      parent.removeChild(privateFrame);
+
+      var iframe = document.createElement("iframe");
+      iframe.mozbrowser = "true";
+      iframe.onload = t.step_func(function() {
+        t.done();
+      });
+      iframe.addEventListener("mozbrowsershowmodalprompt", e => {
+        assert_equals(e.detail.message, "");
+      });
+      iframe.src = "iframe_contentDocument_inner.html";
+      parent.appendChild(iframe);
+    });
+    privateFrame.src = "iframe_privateContent_inner.html";
+  });
+</script>
+</html>
