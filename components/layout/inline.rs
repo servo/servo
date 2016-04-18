@@ -444,7 +444,7 @@ impl LineBreaker {
         // Initially, pretend a splittable fragment has zero inline-size. We will move it later if
         // it has nonzero inline-size and that causes problems.
         let placement_inline_size = if first_fragment.can_split() {
-            Au(0)
+            first_fragment.minimum_splittable_inline_size()
         } else {
             first_fragment.margin_box_inline_size() + self.indentation_for_pending_fragment()
         };
@@ -458,6 +458,7 @@ impl LineBreaker {
             max_inline_size: flow.base.position.size.inline,
             kind: FloatKind::Left,
         });
+        //println!("after placing between floats, line_bounds={:?}", line_bounds);
 
         // Simple case: if the fragment fits, then we can stop here.
         if line_bounds.size.inline > first_fragment.margin_box_inline_size() {
@@ -500,13 +501,14 @@ impl LineBreaker {
                                         &in_fragment,
                                         self.pending_line.bounds.start.b);
         let next_green_zone = next_line.size;
+        //println!("avoid_floats, next_line={:?}", next_line);
 
         let new_inline_size = self.pending_line.bounds.size.inline + first_fragment_inline_size;
 
         // Now, see if everything can fit at the new location.
         if next_green_zone.inline >= new_inline_size && next_green_zone.block >= new_block_size {
-            debug!("LineBreaker: case=adding fragment collides vertically with floats: moving \
-                    line");
+            /*println!("LineBreaker: case=adding fragment collides vertically with floats: moving \
+                      line");*/
 
             self.pending_line.bounds.start = next_line.start;
             self.pending_line.green_zone = next_green_zone;
@@ -536,6 +538,7 @@ impl LineBreaker {
         let fragment_is_line_break_opportunity = if self.pending_line_is_empty() {
             fragment.strip_leading_whitespace_if_necessary();
             let (line_bounds, _) = self.initial_line_placement(flow, &fragment, self.cur_b);
+            //println!("reflow_fragment, line bounds={:?}", line_bounds);
             self.pending_line.bounds.start = line_bounds.start;
             self.pending_line.green_zone = line_bounds.size;
             false
@@ -549,6 +552,9 @@ impl LineBreaker {
                fragment.border_box.size,
                self.pending_line.green_zone,
                fragment);
+        /*println!("reflow_fragment: pending_line.bounds={:?} pending_line.green_zone={:?}",
+                 self.pending_line.bounds,
+                 self.pending_line.green_zone);*/
 
         // NB: At this point, if `green_zone.inline < self.pending_line.bounds.size.inline` or
         // `green_zone.block < self.pending_line.bounds.size.block`, then we committed a line that
@@ -1465,7 +1471,10 @@ impl Flow for InlineFlow {
 
             // Set the block-start position of the current line.
             // `line_height_offset` is updated at the end of the previous loop.
-            line.bounds.start.b = line_distance_from_flow_block_start;
+            /*println!("changing line.bounds.start.b from {:?} to {:?}",
+                     line.bounds.start.b,
+                     line_distance_from_flow_block_start);*/
+            //line.bounds.start.b = line_distance_from_flow_block_start;
 
             // Calculate the distance from the baseline to the block-start and block-end of the
             // line.
@@ -1552,13 +1561,16 @@ impl Flow for InlineFlow {
             // `fragment.border_box.start.b` was set to the distance from the baseline above.
             InlineFlow::set_block_fragment_positions(&mut self.fragments,
                                                      line,
-                                                     line_distance_from_flow_block_start,
+                                                     line.bounds.start.b,
                                                      baseline_distance_from_block_start,
                                                      largest_depth_below_baseline);
 
             // This is used to set the block-start position of the next line in the next loop.
-            line.bounds.size.block = largest_block_size_above_baseline +
-                largest_depth_below_baseline;
+            /*println!("changing line.bounds.size.block from {:?} to {:?}",
+                     line.bounds.size.block,
+                     largest_block_size_above_baseline + largest_depth_below_baseline);*/
+            /*line.bounds.size.block = largest_block_size_above_baseline +
+                largest_depth_below_baseline;*/
             line_distance_from_flow_block_start = line_distance_from_flow_block_start +
                 line.bounds.size.block;
 

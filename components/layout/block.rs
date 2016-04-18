@@ -1528,6 +1528,9 @@ impl BlockFlow {
                 left_float_width + right_float_width);
 
         self.base.intrinsic_inline_sizes = computation.finish();
+        /*if self.base.flags.is_float() {
+            println!("intrinsic inline sizes for float={:?}", self.base.intrinsic_inline_sizes);
+        }*/
         self.base.flags = flags
     }
 
