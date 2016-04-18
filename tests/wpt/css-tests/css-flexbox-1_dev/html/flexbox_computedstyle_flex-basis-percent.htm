@@ -5,24 +5,23 @@
 <link href="reference/ref-pass-body.htm" rel="match">
 <meta content="dom" name="flags">
 <style>
-html {
+body {
 	display: flex;
 	width: 100px;
 }
-body {
+div {
 	color: red;
-	margin: 0;
 	flex-basis: 100%;
 }
 .PASS {color: black;}
 </style>
-</head><body><h1>FAIL, enable javascript</h1>
+</head><body><div id="test"><h1>FAIL, enable javascript</h1>
 <script>
-    var body = document.body;
+    var test = document.getElementById("test");
 
     var passed =
-	    getComputedStyle(body).getPropertyValue("flex-basis") ==
+	    getComputedStyle(test).getPropertyValue("flex-basis") ==
 	    "100%";
-    body.textContent = body.className = passed ? "PASS" : "FAIL";
+    test.textContent = test.className = passed ? "PASS" : "FAIL";
 </script>
 </body></html>

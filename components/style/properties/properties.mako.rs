@@ -4360,6 +4360,9 @@ pub mod longhands {
         }
     </%helpers:longhand>
 
+    ${helpers.predefined_type("flex-basis", "LengthOrPercentageOrAutoOrContent",
+                              "computed::LengthOrPercentageOrAutoOrContent::Auto")}
+
     ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse", products="gecko")}
 
     // SVG 1.1 (Second Edition)
