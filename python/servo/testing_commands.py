@@ -666,7 +666,7 @@ def check_css_properties_json(topdir):
         os.remove(filename)
     subprocess.check_call([
         sys.executable,
-        path.join(topdir, "components", "style", "build_properties_rs.py"),
+        path.join(topdir, "components", "style", "properties", "build.py"),
         "servo",
         "html",
     ])

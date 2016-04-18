@@ -59,7 +59,7 @@ def write_html(template):
     )
     _, html = render("properties.html.mako", properties=properties)
 
-    doc_servo = os.path.join(BASE, "..", "..", "target", "doc", "servo")
+    doc_servo = os.path.join(BASE, "..", "..", "..", "target", "doc", "servo")
     write(doc_servo, "css-properties.json", json.dumps(properties, indent=4))
     write(doc_servo, "css-properties.html", html)
 

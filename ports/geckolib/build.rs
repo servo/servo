@@ -41,9 +41,9 @@ fn main() {
     let geckolib_dir = Path::new(file!()).parent().unwrap();
     let top_dir = geckolib_dir.join("..").join("..");
 
-    let style_template = Path::new("components/style/properties.mako.rs");
+    let style_template = Path::new("components/style/properties/properties.mako.rs");
     let geckolib_template = Path::new("ports/geckolib/properties.mako.rs");
-    let mako = Path::new("components/style/Mako-0.9.1.zip");
+    let mako = Path::new("components/style/properties/Mako-0.9.1.zip");
 
     let result = Command::new(python)
         .current_dir(top_dir)
