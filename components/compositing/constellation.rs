@@ -38,7 +38,8 @@ use msg::constellation_msg::{self, ConstellationChan, PanicMsg};
 use msg::webdriver_msg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::{StorageThread, StorageThreadMsg};
-use net_traits::{self, ResourceThread};
+use net_traits::{self, ResourceThread, ConstellationMsg as FromResourceMsg};
+//use net_traits::{SendConstellationMsgChannel, Exit};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pipeline::{CompositionPipeline, InitialPipelineState, Pipeline, UnprivilegedPipelineContent};
 use profile_traits::mem;
@@ -103,6 +104,9 @@ pub struct Constellation<LTF, STF> {
 
     /// Receives messages from the compositor
     pub compositor_receiver: Receiver<FromCompositorMsg>,
+
+    /// Receives ConstellationMsg
+    pub resource_msg_receiver: Receiver<FromResourceMsg>,
 
     /// Receives messages from the layout thread
     pub layout_receiver: Receiver<FromLayoutMsg>,
@@ -326,6 +330,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         let (ipc_panic_receiver, ipc_panic_sender) = ConstellationChan::<PanicMsg>::new();
         let panic_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_panic_receiver);
         let compositor_sender_clone = compositor_sender.clone();
+        let (ipc_resource_msg_receiver, ipc_resource_msg_sender) = ConstellationChan::<FromResourceMsg>::new();
+        let resource_msg_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_resource_msg_receiver);
         spawn_named("Constellation".to_owned(), move || {
             let mut constellation: Constellation<LTF, STF> = Constellation {
                 script_sender: ipc_script_sender,
@@ -334,6 +340,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 script_receiver: script_receiver,
                 panic_sender: ipc_panic_sender,
                 compositor_receiver: compositor_receiver,
+                resource_msg_receiver: resource_msg_receiver,
                 layout_receiver: layout_receiver,
                 panic_receiver: panic_receiver,
                 compositor_proxy: state.compositor_proxy,
@@ -384,6 +391,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             let namespace_id = constellation.next_pipeline_namespace_id();
             PipelineNamespace::install(namespace_id);
             constellation.run();
+            let _ = constellation.resource_thread.send(
+                        net_traits::ControlMsg::SendConstellationMsgChannel(ipc_resource_msg_sender));
         });
         compositor_sender
     }
@@ -553,7 +562,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             Script(FromScriptMsg),
             Compositor(FromCompositorMsg),
             Layout(FromLayoutMsg),
-            Panic(PanicMsg)
+            Panic(PanicMsg),
+            Resource(FromResourceMsg),
         }
 
         // Get one incoming request.
@@ -572,6 +582,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             let receiver_from_compositor = &self.compositor_receiver;
             let receiver_from_layout = &self.layout_receiver;
             let receiver_from_panic = &self.panic_receiver;
+            let receiver_from_constellation_msg = &self.resource_msg_receiver;
             select! {
                 msg = receiver_from_script.recv() =>
                     Request::Script(msg.expect("Unexpected script channel panic in constellation")),
@@ -580,7 +591,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 msg = receiver_from_layout.recv() =>
                     Request::Layout(msg.expect("Unexpected layout channel panic in constellation")),
                 msg = receiver_from_panic.recv() =>
-                    Request::Panic(msg.expect("Unexpected panic channel panic in constellation"))
+                    Request::Panic(msg.expect("Unexpected panic channel panic in constellation")),
+                msg = receiver_from_constellation_msg.recv() =>
+                    Request::Resource(msg.expect("Unexpected resource failure in constellation"))
             }
         };
 
@@ -819,6 +832,12 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 debug!("handling panic message ({:?})", pipeline_id);
                 self.handle_panic(pipeline_id, panic_reason, backtrace);
             }
+
+            Request::Resource(FromResourceMsg::IsPrivate(pipeline_id, sender)) => {
+                debug!("constellation got IsPrivate message");
+                let _ = sender.send(self.check_is_pipeline_private(pipeline_id));
+            }
+
         }
         true
     }
