@@ -33,9 +33,8 @@ use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Attr, Mime};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use msg::constellation_msg::{PipelineId};
+use msg::constellation_msg::PipelineId;
 use serde::{Deserializer, Serializer};
-use std::sync::mpsc::Sender;
 use std::thread;
 use url::Url;
 use websocket::header;
@@ -222,6 +221,8 @@ pub enum ControlMsg {
     Cancel(ResourceId),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
     Synchronize(IpcSender<()>),
+    ///
+    SendConstellationMsgChannel(IpcSender<ConstellationMsg>),
     /// Break the load handler loop and exit
     Exit,
 }
@@ -410,9 +411,10 @@ pub fn unwrap_websocket_protocol(wsp: Option<&header::WebSocketProtocol>) -> Opt
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct ResourceId(pub u32);
 
+#[derive(Deserialize, Serialize)]
 pub enum ConstellationMsg {
     /// Queries whether a pipeline or its ancestors are private
-    IsPrivate(PipelineId, Sender<bool>),
+    IsPrivate(PipelineId, IpcSender<bool>),
 }
 
 /// Network errors that have to be exported out of the loaders
