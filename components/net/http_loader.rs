@@ -44,6 +44,7 @@ use time::Tm;
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 use tinyfiledialogs;
 use url::Url;
+use util::prefs;
 use util::resource_files::resources_dir_path;
 use util::thread::spawn_named;
 use uuid;
@@ -165,7 +166,7 @@ fn load_for_consumer(load_data: LoadData,
         Err(LoadError::Connection(url, e)) => {
             send_error(url, e, start_chan)
         }
-        Err(LoadError::MaxRedirects(url)) => {
+        Err(LoadError::MaxRedirects(url, _)) => {
             send_error(url, "too many redirects".to_owned(), start_chan)
         }
         Err(LoadError::Cors(url, msg)) |
@@ -335,7 +336,7 @@ pub enum LoadError {
     Ssl(Url, String),
     InvalidRedirect(Url, String),
     Decoding(Url, String),
-    MaxRedirects(Url),
+    MaxRedirects(Url, u32),  // u32 indicates number of redirects that occurred
     ConnectionAborted(String),
     Cancelled(Url, String),
 }
@@ -726,10 +727,7 @@ pub fn load<A, B>(load_data: LoadData,
                user_agent: String,
                cancel_listener: &CancellationListener)
                -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static, B: UIProvider {
-    // FIXME: At the time of writing this FIXME, servo didn't have any central
-    //        location for configuration. If you're reading this and such a
-    //        repository DOES exist, please update this constant to use it.
-    let max_redirects = 50;
+    let max_redirects = prefs::get_pref("network.http.redirection-limit").as_i64().unwrap() as u32;
     let mut iters = 0;
     // URL of the document being loaded, as seen by all the higher-level code.
     let mut doc_url = load_data.url.clone();
@@ -761,7 +759,7 @@ pub fn load<A, B>(load_data: LoadData,
         }
 
         if iters > max_redirects {
-            return Err(LoadError::MaxRedirects(doc_url));
+            return Err(LoadError::MaxRedirects(doc_url, iters - 1));
         }
 
         if &*doc_url.scheme != "http" && &*doc_url.scheme != "https" {

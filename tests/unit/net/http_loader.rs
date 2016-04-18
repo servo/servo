@@ -28,6 +28,7 @@ use std::io::{self, Write, Read, Cursor};
 use std::sync::mpsc::Receiver;
 use std::sync::{Arc, mpsc, RwLock};
 use url::Url;
+use util::prefs;
 
 const DEFAULT_USER_AGENT: &'static str = "Test-agent";
 
@@ -1103,13 +1104,20 @@ fn test_load_errors_when_there_is_too_many_redirects() {
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
 
+    let redirect_limit = 13.;
+    prefs::set_pref("network.http.redirection-limit",
+                    prefs::PrefValue::Number(redirect_limit));
+
     match load(load_data, &ui_provider, &http_state, None, &Factory,
                DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None)) {
-        Err(LoadError::MaxRedirects(url)) => {
+        Err(LoadError::MaxRedirects(url, num_redirects)) => {
+            assert_eq!(num_redirects, redirect_limit as u32);
             assert_eq!(url.domain().unwrap(), "mozilla.com")
         },
         _ => panic!("expected max redirects to fail")
     }
+
+    prefs::reset_pref("network.http.redirection-limit");
 }
 
 #[test]
