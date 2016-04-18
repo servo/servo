@@ -1,0 +1,55 @@
+<%page args="helpers" />
+
+${helpers.new_style_struct("Outline", is_inherited=False, gecko_name="nsStyleOutline",
+                           additional_methods=[helpers.new_method("outline_is_none_or_hidden_and_has_nonzero_width", "bool")])}
+
+// TODO(pcwalton): `invert`
+${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::CurrentColor")}
+
+<%helpers:longhand name="outline-style">
+    pub use values::specified::BorderStyle as SpecifiedValue;
+    pub fn get_initial_value() -> SpecifiedValue { SpecifiedValue::none }
+    pub mod computed_value {
+        pub use values::specified::BorderStyle as T;
+    }
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        match SpecifiedValue::parse(input) {
+            Ok(SpecifiedValue::hidden) => Err(()),
+            result => result
+        }
+    }
+</%helpers:longhand>
+
+<%helpers:longhand name="outline-width">
+    use app_units::Au;
+    use cssparser::ToCss;
+    use std::fmt;
+    use values::AuExtensionMethods;
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.0.to_css(dest)
+        }
+    }
+
+    pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        specified::parse_border_width(input).map(SpecifiedValue)
+    }
+    #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
+    pub struct SpecifiedValue(pub specified::Length);
+    pub mod computed_value {
+        use app_units::Au;
+        pub type T = Au;
+    }
+    pub use super::border_top_width::get_initial_value;
+    impl ToComputedValue for SpecifiedValue {
+        type ComputedValue = computed_value::T;
+
+        #[inline]
+        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
+            self.0.to_computed_value(context)
+        }
+    }
+</%helpers:longhand>
+
+${helpers.predefined_type("outline-offset", "Length", "Au(0)")}
