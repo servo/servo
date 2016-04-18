@@ -33,6 +33,9 @@ partial interface HTMLIFrameElement {
 partial interface HTMLIFrameElement {
     [Func="::dom::window::Window::global_is_mozbrowser"]
     attribute boolean mozbrowser;
+
+    [Func="::dom::window::Window::global_is_mozbrowser"]
+    attribute boolean mozprivatebrowsing;
 };
 
 HTMLIFrameElement implements BrowserElement;
