@@ -17,12 +17,9 @@ import site
 import StringIO
 import subprocess
 import sys
-from licenseck import licenses, licenses_toml, licenses_dep_toml
+import licenseck
 
-# License and header checks
-EMACS_HEADER = "/* -*- Mode:"
-VIM_HEADER = "/* vim:"
-MAX_LICENSE_LINESPAN = max(len(license.splitlines()) for license in licenses)
+COMMENTS = ["// ", "# ", " *", "/* ", "*/ "]
 
 # File patterns to include in the non-WPT tidy check.
 FILE_PATTERNS_TO_CHECK = ["*.rs", "*.rc", "*.cpp", "*.c",
@@ -49,13 +46,14 @@ IGNORED_FILES = [
     os.path.join(".", "components", "servo", "platform", "macos", "mod.rs"),
     # Hidden files
     os.path.join(".", "."),
+    # Long strings
+    os.path.join(".", "python", "tidy", "servo_tidy", "licenseck.py"),
 ]
 
 # Directories that are ignored for the non-WPT tidy check.
 IGNORED_DIRS = [
     # Upstream
     os.path.join(".", "support", "android", "apk"),
-    os.path.join(".", "support", "rust-task_info"),
     os.path.join(".", "tests", "wpt", "css-tests"),
     os.path.join(".", "tests", "wpt", "harness"),
     os.path.join(".", "tests", "wpt", "update"),
@@ -147,13 +145,39 @@ def filter_files(start_dir, only_changed_files, progress):
         yield file_name
 
 
+def uncomment(line):
+    for c in COMMENTS:
+        if line.startswith(c):
+            if line.endswith("*/"):
+                return line[len(c):(len(line) - 3)].strip()
+            return line[len(c):].strip()
+
+
+def licensed_mpl(header):
+    if licenseck.mpl in header:
+        return True
+    return False
+
+
+def licensed_apache(header):
+    if licenseck.apache in header:
+        if licenseck.copyright in header or licenseck.copyright_rust in header:
+            return True
+    return False
+
+
 def check_license(file_name, lines):
     if any(file_name.endswith(ext) for ext in (".toml", ".lock", ".json")):
         raise StopIteration
-    while lines and (lines[0].startswith(EMACS_HEADER) or lines[0].startswith(VIM_HEADER)):
-        lines = lines[1:]
-    contents = "".join(lines[:MAX_LICENSE_LINESPAN])
-    valid_license = any(contents.startswith(license) for license in licenses)
+    block = min(len(lines), licenseck.MAX_LICENSE_LINESPAN)
+    license_block = []
+    for l in lines[:block]:
+        l = l.rstrip('\n')
+        line = uncomment(l)
+        if line is not None:
+            license_block += [line]
+    contents = " ".join(license_block)
+    valid_license = licensed_mpl(contents) or licensed_apache(contents)
     acknowledged_bad_license = "xfail-license" in contents
     if not (valid_license or acknowledged_bad_license):
         yield (1, "incorrect license")
@@ -305,7 +329,7 @@ def check_toml(file_name, lines):
     for idx, line in enumerate(lines):
         if line.find("*") != -1:
             yield (idx + 1, "found asterisk instead of minimum version number")
-        for license in licenses_toml:
+        for license in licenseck.licenses_toml:
             ok_licensed |= (license in line)
     if not ok_licensed:
         yield (0, ".toml file should contain a valid license.")
@@ -711,7 +735,7 @@ def check_dep_license_errors(filenames, progress=True):
             ok_licensed = False
             lines = f.readlines()
             for idx, line in enumerate(lines):
-                for license_line in licenses_dep_toml:
+                for license_line in licenseck.licenses_dep_toml:
                     ok_licensed |= (license_line in line)
             if not ok_licensed:
                 yield (filename, 0, "dependency should contain a valid license.")
