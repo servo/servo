@@ -1245,8 +1245,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                            clip),
                                 image_data: Some(Arc::new(canvas_data.image_data)),
                                 webrender_image: WebRenderImageInfo {
-                                    width: width as u32,
-                                    height: height as u32,
+                                    width: canvas_fragment_info.canvas_inline_size().to_px() as u32,
+                                    height: canvas_fragment_info.canvas_block_size().to_px() as u32,
                                     format: PixelFormat::RGBA8,
                                     key: canvas_data.image_key,
                                 },
