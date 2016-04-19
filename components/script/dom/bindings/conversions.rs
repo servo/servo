@@ -253,12 +253,12 @@ pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()>
 
     let clasp = JS_GetClass(obj);
     if is_dom_class(&*clasp) {
-        debug!("plain old dom object");
+        trace!("plain old dom object");
         let domjsclass: *const DOMJSClass = clasp as *const DOMJSClass;
         return Ok(&(&*domjsclass).dom_class);
     }
     if is_dom_proxy(obj) {
-        debug!("proxy dom object");
+        trace!("proxy dom object");
         let dom_class: *const DOMClass = GetProxyHandlerExtra(obj) as *const DOMClass;
         return Ok(&*dom_class);
     }
