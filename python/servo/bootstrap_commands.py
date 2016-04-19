@@ -63,6 +63,9 @@ def download(desc, src, writer, start_byte=0):
 
         if not dumb:
             print()
+    except urllib2.URLError:
+        print("Error downloading Rust compiler; are you connected to the internet?")
+        sys.exit(1)
     except urllib2.HTTPError, e:
         print("Download failed (%d): %s - %s" % (e.code, e.reason, src))
         sys.exit(1)
