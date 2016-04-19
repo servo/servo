@@ -19,6 +19,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
 use net_traits::LoadContext;
 use net_traits::ProgressMsg::Done;
+use net_traits::response::ResponseError;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceThread, ResponseAction};
 use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
 use net_traits::{WebSocketCommunicate, WebSocketConnectData};
@@ -55,7 +56,7 @@ impl ProgressSender {
     }
 }
 
-pub fn send_error(url: Url, err: String, start_chan: LoadConsumer) {
+pub fn send_error(url: Url, err: ResponseError, start_chan: LoadConsumer) {
     let mut metadata: Metadata = Metadata::default(url);
     metadata.status = None;
 
@@ -339,7 +340,7 @@ impl ResourceManager {
             "about" => from_factory(about_loader::factory),
             _ => {
                 debug!("resource_thread: no loader for scheme {}", load_data.url.scheme);
-                send_error(load_data.url, "no loader for scheme".to_owned(), consumer);
+                send_error(load_data.url, ResponseError::NoLoaderForScheme, consumer);
                 return
             }
         };

@@ -8,7 +8,7 @@ use hyper::http::RawStatus;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::Done;
-use net_traits::response::HttpsState;
+use net_traits::response::{HttpsState, ResponseError};
 use net_traits::{LoadConsumer, LoadData, Metadata};
 use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt};
 use std::sync::Arc;
@@ -49,7 +49,7 @@ pub fn factory(mut load_data: LoadData,
             load_data.url = Url::from_file_path(&*path).unwrap();
         }
         _ => {
-            send_error(load_data.url, "Unknown about: URL.".to_owned(), start_chan);
+            send_error(load_data.url, ResponseError::UnknownAboutUrl, start_chan);
             return
         }
     };

@@ -45,6 +45,7 @@ use js::jsapi::JS_ClearPendingException;
 use js::jsapi::{JSContext, JS_ParseJSON, RootedValue};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use net_traits::ControlMsg::Load;
+use net_traits::response::ResponseError;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
 use net_traits::{LoadConsumer, LoadContext, LoadData, ResourceCORSData, ResourceThread};
 use network_listener::{NetworkListener, PreInvoke};
@@ -269,7 +270,7 @@ impl XMLHttpRequest {
                 self.xhr.root().process_data_available(self.gen_id, self.buf.borrow().clone());
             }
 
-            fn response_complete(&mut self, status: Result<(), String>) {
+            fn response_complete(&mut self, status: Result<(), ResponseError>) {
                 let rv = self.xhr.root().process_response_complete(self.gen_id, status);
                 *self.sync_status.borrow_mut() = Some(rv);
             }
@@ -914,7 +915,7 @@ impl XMLHttpRequest {
         self.process_partial_response(XHRProgress::Loading(gen_id, ByteString::new(payload)));
     }
 
-    fn process_response_complete(&self, gen_id: GenerationId, status: Result<(), String>)
+    fn process_response_complete(&self, gen_id: GenerationId, status: Result<(), ResponseError>)
                                  -> ErrorResult {
         match status {
             Ok(()) => {

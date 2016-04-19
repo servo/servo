@@ -8,6 +8,9 @@ use hyper::header::{AccessControlExposeHeaders, Headers};
 use hyper::status::StatusCode;
 use std::ascii::AsciiExt;
 use std::cell::{Cell, RefCell};
+use std::error::Error;
+use std::fmt;
+use std::io::Error as IoError;
 use std::sync::{Arc, Mutex};
 use url::Url;
 
@@ -70,6 +73,55 @@ pub enum ResponseMsg {
     Chunk(Vec<u8>),
     Finished,
     Errored
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub enum ResponseError {
+    ConnectionError(String),  // FIMXE: don't use string
+    CouldNotParsePath,
+    DecodeError(String),  // FIXME: don't use string
+    InvalidDataUri,
+    NonBase64DataUri,
+    InvalidUrl(String),  // FIXME: this is probably too generic?
+    IoError(String),  // FIXME: internally should be IoError, not String
+    LoadCancelled,
+    NoLoaderForScheme,
+    PreflightFetchInconsistentWithMainFetch,
+    RedirectLoop,
+    NonSuccessStatusCode { status_code: u16 },
+    NoStatusCode,
+    TooManyRedirects,
+    UnknownAboutUrl,
+    UnsupportedScheme { scheme: String },
+}
+
+impl fmt::Display for ResponseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        unimplemented!()
+    }
+}
+
+impl Error for ResponseError {
+    fn description(&self) -> &str {
+        match *self {
+            ResponseError::ConnectionError(..) => "connection error",
+            ResponseError::CouldNotParsePath => "could not parse path",
+            ResponseError::DecodeError(..) => "decode error",
+            ResponseError::InvalidDataUri => "invalid data uri",
+            ResponseError::IoError(..) => "i/o error",
+            ResponseError::InvalidUrl(..) => "invalid url",
+            ResponseError::LoadCancelled => "load cancelled",
+            ResponseError::NoLoaderForScheme => "no loader for scheme",
+            ResponseError::NonBase64DataUri => "non-base64 data uri",
+            ResponseError::NonSuccessStatusCode { .. } => "non-success status code",
+            ResponseError::NoStatusCode => "no status code",
+            ResponseError::PreflightFetchInconsistentWithMainFetch => "preflight fetch inconsistent with main fetch",
+            ResponseError::RedirectLoop => "redirect loop",
+            ResponseError::TooManyRedirects => "too many redirects",
+            ResponseError::UnknownAboutUrl => "unknown about:// url",
+            ResponseError::UnsupportedScheme { .. } => "unsupported scheme",
+        }
+    }
 }
 
 /// A [Response](https://fetch.spec.whatwg.org/#concept-response) as defined by the Fetch spec

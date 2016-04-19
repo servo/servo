@@ -6,6 +6,7 @@ use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 use mime_classifier::MIMEClassifier;
 use net_traits::LoadConsumer;
 use net_traits::ProgressMsg::{Payload, Done};
+use net_traits::response::ResponseError;
 use net_traits::{LoadData, Metadata};
 use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt};
 use rustc_serialize::base64::FromBase64;
@@ -110,7 +111,7 @@ pub fn load(load_data: LoadData,
                 let _ = chan.send(Done(Ok(())));
             }
         },
-        Err(DecodeError::InvalidDataUri) => send_error(url, "invalid data uri".to_owned(), start_chan),
-        Err(DecodeError::NonBase64DataUri) => send_error(url, "non-base64 data uri".to_owned(), start_chan),
+        Err(DecodeError::InvalidDataUri) => send_error(url, ResponseError::InvalidDataUri, start_chan),
+        Err(DecodeError::NonBase64DataUri) => send_error(url, ResponseError::NonBase64DataUri, start_chan),
     }
 }
