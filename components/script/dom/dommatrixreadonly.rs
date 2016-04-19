@@ -354,7 +354,7 @@ impl DOMMatrixMutateMethods for DOMMatrixReadOnly {
 
     fn TranslateSelf(&self, tx: f64, ty: f64, tz: f64) {
         let mut matrix = self.matrix.borrow_mut();
-        let translation: Matrix4D<f64> = Matrix4D::create_translation(tx, ty, tz);
+        let translation = Matrix4D::create_translation(tx, ty, tz);
         *matrix = translation.mul(&matrix);
         if tz != 0.0 {
             self.is2D.set(false);
@@ -363,11 +363,11 @@ impl DOMMatrixMutateMethods for DOMMatrixReadOnly {
 
     fn ScaleSelf(&self, scaleX: f64, scaleY: Option<f64>, scaleZ: f64, originX: f64, originY: f64, originZ: f64) {
         let mut matrix = self.matrix.borrow_mut();
-        let translation: Matrix4D<f64> = Matrix4D::create_translation(originX, originY, originZ);
+        let translation = Matrix4D::create_translation(originX, originY, originZ);
         *matrix = translation.mul(&matrix);
         let scale3D = Matrix4D::create_scale(scaleX, scaleY.unwrap_or(scaleX), scaleZ);
         *matrix = scale3D.mul(&matrix);
-        let translation_rev: Matrix4D<f64> = Matrix4D::create_translation(-originX, -originY, -originZ);
+        let translation_rev = Matrix4D::create_translation(-originX, -originY, -originZ);
         *matrix = translation_rev.mul(&matrix);
         if scaleZ != 1.0 || originZ != 0.0 {
             self.is2D.set(false);
@@ -376,11 +376,11 @@ impl DOMMatrixMutateMethods for DOMMatrixReadOnly {
 
     fn Scale3dSelf(&self, scale: f64, originX: f64, originY: f64, originZ: f64) {
         let mut matrix = self.matrix.borrow_mut();
-        let translation: Matrix4D<f64> = Matrix4D::create_translation(originX, originY, originZ);
+        let translation = Matrix4D::create_translation(originX, originY, originZ);
         *matrix = translation.mul(&matrix);
         let scale3D = Matrix4D::create_scale(scale, scale, scale);
         *matrix = scale3D.mul(&matrix);
-        let translation_rev: Matrix4D<f64> = Matrix4D::create_translation(-originX, -originY, -originZ);
+        let translation_rev = Matrix4D::create_translation(-originX, -originY, -originZ);
         *matrix = translation_rev.mul(&matrix);
         if scale != 1.0 {
             self.is2D.set(false);
@@ -422,7 +422,7 @@ impl DOMMatrixMutateMethods for DOMMatrixReadOnly {
     fn RotateAxisAngleSelf(&self, x: f64, y: f64, z: f64, angle: f64) {
         let mut matrix = self.matrix.borrow_mut();
         let (norm_x, norm_y, norm_z) = normalize_point(x, y, z);
-        let rotation: Matrix4D<f64> = Matrix4D::create_rotation(norm_x, norm_y, norm_z, deg_to_rad(angle));
+        let rotation = Matrix4D::create_rotation(norm_x, norm_y, norm_z, deg_to_rad(angle));
         *matrix = rotation.mul(&matrix);
         if x != 0.0 || y != 0.0 {
             self.is2D.set(false);
