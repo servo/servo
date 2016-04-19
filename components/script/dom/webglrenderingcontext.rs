@@ -67,65 +67,6 @@ bitflags! {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub enum UniformType {
-    Int,
-    IntVec2,
-    IntVec3,
-    IntVec4,
-    Float,
-    FloatVec2,
-    FloatVec3,
-    FloatVec4,
-}
-
-impl UniformType {
-    fn element_count(&self) -> usize {
-        match *self {
-            UniformType::Int => 1,
-            UniformType::IntVec2 => 2,
-            UniformType::IntVec3 => 3,
-            UniformType::IntVec4 => 4,
-            UniformType::Float => 1,
-            UniformType::FloatVec2 => 2,
-            UniformType::FloatVec3 => 3,
-            UniformType::FloatVec4 => 4,
-        }
-    }
-
-    fn is_compatible_with(&self, gl_type: u32) -> bool {
-        gl_type == self.as_gl_constant() || match *self {
-            // Sampler uniform variables have an index value (the index of the
-            // texture), and as such they have to be set as ints
-            UniformType::Int => gl_type == constants::SAMPLER_2D ||
-                                gl_type == constants::SAMPLER_CUBE,
-            // Don't ask me why, but it seems we must allow setting bool
-            // uniforms with uniform1f.
-            //
-            // See the WebGL conformance test
-            //   conformance/uniforms/gl-uniform-bool.html
-            UniformType::Float => gl_type == constants::BOOL,
-            UniformType::FloatVec2 => gl_type == constants::BOOL_VEC2,
-            UniformType::FloatVec3 => gl_type == constants::BOOL_VEC3,
-            UniformType::FloatVec4 => gl_type == constants::BOOL_VEC4,
-            _ => false,
-        }
-    }
-
-    fn as_gl_constant(&self) -> u32 {
-        match *self {
-            UniformType::Int => constants::INT,
-            UniformType::IntVec2 => constants::INT_VEC2,
-            UniformType::IntVec3 => constants::INT_VEC3,
-            UniformType::IntVec4 => constants::INT_VEC4,
-            UniformType::Float => constants::FLOAT,
-            UniformType::FloatVec2 => constants::FLOAT_VEC2,
-            UniformType::FloatVec3 => constants::FLOAT_VEC3,
-            UniformType::FloatVec4 => constants::FLOAT_VEC4,
-        }
-    }
-}
-
 #[dom_struct]
 pub struct WebGLRenderingContext {
     reflector_: Reflector,
@@ -244,7 +185,7 @@ impl WebGLRenderingContext {
     // https://www.khronos.org/registry/gles/specs/2.0/es_full_spec_2.0.25.pdf#nameddest=section-2.10.4
     fn validate_uniform_parameters<T>(&self,
                                    uniform: Option<&WebGLUniformLocation>,
-                                   uniform_type: UniformType,
+                                   uniform_type: UniformSetterType,
                                    data: Option<&[T]>) -> bool {
         let uniform = match uniform {
             Some(uniform) => uniform,
@@ -1302,7 +1243,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform1f(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   val: f32) {
-        if self.validate_uniform_parameters(uniform, UniformType::Float, Some(&[val])) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::Float, Some(&[val])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform1f(uniform.unwrap().id(), val)))
                 .unwrap()
@@ -1313,7 +1254,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform1i(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   val: i32) {
-        if self.validate_uniform_parameters(uniform, UniformType::Int, Some(&[val])) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::Int, Some(&[val])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform1i(uniform.unwrap().id(), val)))
                 .unwrap()
@@ -1326,7 +1267,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
         let data_vec = data.and_then(|d| array_buffer_view_to_vec::<i32>(d));
-        if self.validate_uniform_parameters(uniform, UniformType::Int, data_vec.as_ref().map(Vec::as_slice)) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::Int, data_vec.as_ref().map(Vec::as_slice)) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform1iv(uniform.unwrap().id(), data_vec.unwrap())))
                 .unwrap()
@@ -1339,7 +1280,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
         let data_vec = data.and_then(|d| array_buffer_view_to_vec::<f32>(d));
-        if self.validate_uniform_parameters(uniform, UniformType::Float, data_vec.as_ref().map(Vec::as_slice)) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::Float, data_vec.as_ref().map(Vec::as_slice)) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform1fv(uniform.unwrap().id(), data_vec.unwrap())))
                 .unwrap()
@@ -1350,7 +1291,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform2f(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: f32, y: f32) {
-        if self.validate_uniform_parameters(uniform, UniformType::FloatVec2, Some(&[x, y])) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::FloatVec2, Some(&[x, y])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform2f(uniform.unwrap().id(), x, y)))
                 .unwrap()
@@ -1363,7 +1304,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
         let data_vec = data.and_then(|d| array_buffer_view_to_vec::<f32>(d));
-        if self.validate_uniform_parameters(uniform, UniformType::FloatVec2, data_vec.as_ref().map(Vec::as_slice)) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::FloatVec2, data_vec.as_ref().map(Vec::as_slice)) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform2fv(uniform.unwrap().id(), data_vec.unwrap())))
                 .unwrap()
@@ -1374,7 +1315,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform2i(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: i32, y: i32) {
-        if self.validate_uniform_parameters(uniform, UniformType::IntVec2, Some(&[x, y])) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::IntVec2, Some(&[x, y])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform2i(uniform.unwrap().id(), x, y)))
                 .unwrap()
@@ -1387,7 +1328,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
         let data_vec = data.and_then(|d| array_buffer_view_to_vec::<i32>(d));
-        if self.validate_uniform_parameters(uniform, UniformType::IntVec2, data_vec.as_ref().map(Vec::as_slice)) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::IntVec2, data_vec.as_ref().map(Vec::as_slice)) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform2iv(uniform.unwrap().id(), data_vec.unwrap())))
                 .unwrap()
@@ -1398,7 +1339,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform3f(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: f32, y: f32, z: f32) {
-        if self.validate_uniform_parameters(uniform, UniformType::FloatVec3, Some(&[x, y, z])) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::FloatVec3, Some(&[x, y, z])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform3f(uniform.unwrap().id(), x, y, z)))
                 .unwrap()
@@ -1411,7 +1352,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
         let data_vec = data.and_then(|d| array_buffer_view_to_vec::<f32>(d));
-        if self.validate_uniform_parameters(uniform, UniformType::FloatVec3, data_vec.as_ref().map(Vec::as_slice)) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::FloatVec3, data_vec.as_ref().map(Vec::as_slice)) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform3fv(uniform.unwrap().id(), data_vec.unwrap())))
                 .unwrap()
@@ -1422,7 +1363,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform3i(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: i32, y: i32, z: i32) {
-        if self.validate_uniform_parameters(uniform, UniformType::IntVec3, Some(&[x, y, z])) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::IntVec3, Some(&[x, y, z])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform3i(uniform.unwrap().id(), x, y, z)))
                 .unwrap()
@@ -1435,7 +1376,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
         let data_vec = data.and_then(|d| array_buffer_view_to_vec::<i32>(d));
-        if self.validate_uniform_parameters(uniform, UniformType::IntVec3, data_vec.as_ref().map(Vec::as_slice)) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::IntVec3, data_vec.as_ref().map(Vec::as_slice)) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform3iv(uniform.unwrap().id(), data_vec.unwrap())))
                 .unwrap()
@@ -1446,7 +1387,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform4i(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: i32, y: i32, z: i32, w: i32) {
-        if self.validate_uniform_parameters(uniform, UniformType::IntVec4, Some(&[x, y, z, w])) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::IntVec4, Some(&[x, y, z, w])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform4i(uniform.unwrap().id(), x, y, z, w)))
                 .unwrap()
@@ -1460,7 +1401,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
         let data_vec = data.and_then(|d| array_buffer_view_to_vec::<i32>(d));
-        if self.validate_uniform_parameters(uniform, UniformType::IntVec4, data_vec.as_ref().map(Vec::as_slice)) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::IntVec4, data_vec.as_ref().map(Vec::as_slice)) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform4iv(uniform.unwrap().id(), data_vec.unwrap())))
                 .unwrap()
@@ -1471,7 +1412,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform4f(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: f32, y: f32, z: f32, w: f32) {
-        if self.validate_uniform_parameters(uniform, UniformType::FloatVec4, Some(&[x, y, z, w])) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::FloatVec4, Some(&[x, y, z, w])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform4f(uniform.unwrap().id(), x, y, z, w)))
                 .unwrap()
@@ -1484,7 +1425,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
         let data_vec = data.and_then(|d| array_buffer_view_to_vec::<f32>(d));
-        if self.validate_uniform_parameters(uniform, UniformType::FloatVec4, data_vec.as_ref().map(Vec::as_slice)) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::FloatVec4, data_vec.as_ref().map(Vec::as_slice)) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform4fv(uniform.unwrap().id(), data_vec.unwrap())))
                 .unwrap()
@@ -1783,5 +1724,64 @@ impl LayoutCanvasWebGLRenderingContextHelpers for LayoutJS<WebGLRenderingContext
     #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
         (*self.unsafe_get()).ipc_renderer.clone()
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum UniformSetterType {
+    Int,
+    IntVec2,
+    IntVec3,
+    IntVec4,
+    Float,
+    FloatVec2,
+    FloatVec3,
+    FloatVec4,
+}
+
+impl UniformSetterType {
+    pub fn element_count(&self) -> usize {
+        match *self {
+            UniformSetterType::Int => 1,
+            UniformSetterType::IntVec2 => 2,
+            UniformSetterType::IntVec3 => 3,
+            UniformSetterType::IntVec4 => 4,
+            UniformSetterType::Float => 1,
+            UniformSetterType::FloatVec2 => 2,
+            UniformSetterType::FloatVec3 => 3,
+            UniformSetterType::FloatVec4 => 4,
+        }
+    }
+
+    pub fn is_compatible_with(&self, gl_type: u32) -> bool {
+        gl_type == self.as_gl_constant() || match *self {
+            // Sampler uniform variables have an index value (the index of the
+            // texture), and as such they have to be set as ints
+            UniformSetterType::Int => gl_type == constants::SAMPLER_2D ||
+                                gl_type == constants::SAMPLER_CUBE,
+            // Don't ask me why, but it seems we must allow setting bool
+            // uniforms with uniform1f.
+            //
+            // See the WebGL conformance test
+            //   conformance/uniforms/gl-uniform-bool.html
+            UniformSetterType::Float => gl_type == constants::BOOL,
+            UniformSetterType::FloatVec2 => gl_type == constants::BOOL_VEC2,
+            UniformSetterType::FloatVec3 => gl_type == constants::BOOL_VEC3,
+            UniformSetterType::FloatVec4 => gl_type == constants::BOOL_VEC4,
+            _ => false,
+        }
+    }
+
+    fn as_gl_constant(&self) -> u32 {
+        match *self {
+            UniformSetterType::Int => constants::INT,
+            UniformSetterType::IntVec2 => constants::INT_VEC2,
+            UniformSetterType::IntVec3 => constants::INT_VEC3,
+            UniformSetterType::IntVec4 => constants::INT_VEC4,
+            UniformSetterType::Float => constants::FLOAT,
+            UniformSetterType::FloatVec2 => constants::FLOAT_VEC2,
+            UniformSetterType::FloatVec3 => constants::FLOAT_VEC3,
+            UniformSetterType::FloatVec4 => constants::FLOAT_VEC4,
+        }
     }
 }
