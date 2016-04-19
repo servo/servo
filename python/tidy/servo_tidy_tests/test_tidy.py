@@ -39,6 +39,14 @@ class CheckTidiness(unittest.TestCase):
         errors = tidy.collect_errors_for_files(iterFile('incorrect_license.rs'), [], [tidy.check_license])
         self.assertEqual('incorrect license', errors.next()[2])
 
+    #def test_modeline(self):
+    #    errors = tidy.collect_errors_for_files(iterFile('emacs_modeline.rs'), [], [tidy.check_header])
+    #    self.assertEqual('editor detritus in file', errors.next()[2])
+
+    def test_apache2_incomplete(self):
+        errors = tidy.collect_errors_for_files(iterFile('apache2_license.rs'), [], [tidy.check_license])
+        self.assertEqual('incorrect license', errors.next()[2])
+
     def test_rust(self):
         errors = tidy.collect_errors_for_files(iterFile('rust_tidy.rs'), [], [tidy.check_rust])
         self.assertEqual('use statement spans multiple lines', errors.next()[2])
@@ -79,3 +87,6 @@ class CheckTidiness(unittest.TestCase):
 def do_tests():
     suite = unittest.TestLoader().loadTestsFromTestCase(CheckTidiness)
     unittest.TextTestRunner(verbosity=2).run(suite)
+
+if __name__ == "__main__":
+    do_tests()
