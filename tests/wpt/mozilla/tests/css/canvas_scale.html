@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Verify that </title>
+<link rel="match" href="canvas_scale_ref.html">
+<style>
+canvas {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  margin: 0;
+}
+</style>
+<div style="width: 40px; height: 20px"><canvas width="16" height="16" data-color="#FF0000"></canvas><canvas width="16" height="16" data-color="#00FF00"></canvas></div>
+<canvas width="16" height="16" data-color="#00FF"></canvas><canvas width="16" height="16" data-color="#FF0000"></canvas>
+<script>
+// This can trigger a panic if the canvas is treated as a 40x40 pixel buffer,
+// rather than 32x32 and scaled up.
+var canvases = document.getElementsByTagName('canvas');
+for (var i = 0; i < canvases.length; i++) {
+console.log(canvases[i]);
+  var ctx = canvases[i].getContext('2d');
+  ctx.fillStyle = canvases[i].getAttribute('data-color');
+  ctx.fillRect(0, 0, 16, 16);
+}
+</script>
