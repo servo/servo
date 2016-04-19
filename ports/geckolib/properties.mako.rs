@@ -165,10 +165,9 @@ impl Debug for ${style_struct.gecko_ffi_name} {
 %endif
 </%def>
 
-<%def name="raw_impl_trait(style_struct, skip_longhands=None, skip_additionals=None)">
+<%def name="raw_impl_trait(style_struct, skip_longhands='', skip_additionals='')">
 <%
-   longhands = [x for x in style_struct.longhands
-                if not (skip_longhands and x.name in skip_longhands)]
+   longhands = [x for x in style_struct.longhands if not x.name in skip_longhands.split()]
 
    #
    # Make a list of types we can't auto-generate.
@@ -254,7 +253,7 @@ impl ${style_struct.trait_name} for ${style_struct.gecko_struct_name} {
     % endif
     % endfor
     <% additionals = [x for x in style_struct.additional_methods
-                      if not (skip_additionals and x.name in skip_additionals)] %>
+                      if not x.name in skip_additionals.split()] %>
     % for additional in additionals:
     ${additional.stub()}
     % endfor
@@ -262,7 +261,7 @@ impl ${style_struct.trait_name} for ${style_struct.gecko_struct_name} {
 </%def>
 
 <% data.manual_style_structs = [] %>
-<%def name="impl_trait(style_struct_name, skip_longhands=None, skip_additionals=None)">
+<%def name="impl_trait(style_struct_name, skip_longhands='', skip_additionals='')">
 <%self:raw_impl_trait style_struct="${next(x for x in data.style_structs if x.trait_name == style_struct_name)}"
                       skip_longhands="${skip_longhands}" skip_additionals="${skip_additionals}">
 ${caller.body()}
@@ -275,8 +274,8 @@ ${caller.body()}
 // infrastructure auto-generates everything not in those lists. This allows us to
 // iteratively implement more and more methods.
 <%self:impl_trait style_struct_name="Border"
-                  skip_longhands="${['border-left-color', 'border-left-style']}"
-                  skip_additionals="${['border_bottom_has_nonzero_width']}">
+                  skip_longhands="border-left-color border-left-style"
+                  skip_additionals="border_bottom_has_nonzero_width">
     fn set_border_left_color(&mut self, _: longhands::border_left_color::computed_value::T) {
         unimplemented!()
     }
