@@ -29,11 +29,11 @@ policies and contribution forms [3].
   <div class="pass">Orange.</div>
 </div>
 <script>
-  var shadowRoot = host.createShadowRoot(host);
-  shadowRoot.innerHTML = '<div id="host2">Hello a Shadow Root.<content></content><div>Banana.</div></div>';
+  var shadowRoot = host.attachShadow({mode: 'open'});
+  shadowRoot.innerHTML = '<div id="host2">Hello a Shadow Root.<slot></slot><div>Banana.</div></div>';
   var host2 = shadowRoot.getElementById("host2");
-  var shadowRoot2 = host2.createShadowRoot(host2);
-  shadowRoot2.innerHTML = '<div>Hello a Shadow Root2.</div><div><content></content></div>';
+  var shadowRoot2 = host2.attachShadow({mode: 'open'});
+  shadowRoot2.innerHTML = '<div>Hello a Shadow Root2.</div><div><slot></slot></div>';
 </script>
 </body>
 </html>

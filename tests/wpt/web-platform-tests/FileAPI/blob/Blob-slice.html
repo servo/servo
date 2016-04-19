@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
 <title>Blob slice</title>
-<link rel=help href="http://dev.w3.org/2006/webapi/FileAPI/#slice-method-algo">
+<link rel=help href="https://w3c.github.io/FileAPI/#slice-method-algo">
 <link rel=author title="Saurabh Anand" href="mailto:saurabhanandiit@gmail.com">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -162,6 +162,23 @@ test(function() {
 
 var invalidTypes = [
   "\xFF",
+  "te\x09xt/plain",
+  "te\x00xt/plain",
+  "te\x1Fxt/plain",
+  "te\x7Fxt/plain"
+];
+invalidTypes.forEach(function(type) {
+  test_blob(function() {
+    var blob = new Blob(["PASS"]);
+    return blob.slice(0, 4, type);
+  }, {
+    expected: "PASS",
+    type: "",
+    desc: "Invalid contentType (" + format_value(type) + ")"
+  });
+});
+
+var validTypes = [
   "te(xt/plain",
   "te)xt/plain",
   "te<xt/plain",
@@ -180,23 +197,6 @@ var invalidTypes = [
   "te{xt/plain",
   "te}xt/plain",
   "te\x20xt/plain",
-  "te\x09xt/plain",
-  "te\x00xt/plain",
-  "te\x1Fxt/plain",
-  "te\x7Fxt/plain"
-];
-invalidTypes.forEach(function(type) {
-  test_blob(function() {
-    var blob = new Blob(["PASS"]);
-    return blob.slice(0, 4, type);
-  }, {
-    expected: "PASS",
-    type: "",
-    desc: "Invalid contentType (" + format_value(type) + ")"
-  });
-});
-
-var validTypes = [
   "TEXT/PLAIN",
   "text/plain;charset = UTF-8",
   "text/plain;charset=UTF-8"

@@ -38,7 +38,7 @@ A_05_03_01_T01.step(unit(function (ctx) {
     d.body.appendChild(host);
 
     //Shadow root to play with
-    var s = host.createShadowRoot();
+    var s = host.attachShadow({mode: 'open'});
 
     var inp1 = d.createElement('input');
     inp1.setAttribute('id', 'inp1');
@@ -78,7 +78,7 @@ A_05_03_01_T02.step(unit(function (ctx) {
     d.body.appendChild(host);
 
     //Shadow root to play with
-    var s = host.createShadowRoot();
+    var s = host.attachShadow({mode: 'open'});
 
     var inp1 = d.createElement('input');
     inp1.setAttribute('id', 'inp1');
@@ -121,7 +121,7 @@ A_05_03_01_T03.step(unit(function (ctx) {
     d.body.appendChild(host);
 
     //Shadow root to play with
-    var s = host.createShadowRoot();
+    var s = host.attachShadow({mode: 'open'});
 
     var inp1 = d.createElement('input');
     inp1.setAttribute('id', 'inp1');
@@ -161,7 +161,7 @@ A_05_03_01_T04.step(unit(function (ctx) {
      d.body.appendChild(host);
 
      //Shadow root to play with
-     var s = host.createShadowRoot();
+     var s = host.attachShadow({mode: 'open'});
 
      var inp1 = d.createElement('input');
      inp1.setAttribute('id', 'inp1');
@@ -202,34 +202,34 @@ A_05_03_01_T05.step(unit(function (ctx) {
     var inp1 = d.createElement('input');
     inp1.setAttribute('id', 'inp1');
     inp1.setAttribute('type', 'checkbox');
-    inp1.setAttribute('class', 'clazz1');
+    inp1.setAttribute('slot', 'slot1');
     host.appendChild(inp1);
 
     var inp2 = d.createElement('input');
     inp2.setAttribute('id', 'inp2');
     inp2.setAttribute('type', 'checkbox');
-    inp2.setAttribute('class', 'clazz2');
+    inp2.setAttribute('slot', 'slot2');
     host.appendChild(inp2);
 
     var inp3 = d.createElement('input');
     inp3.setAttribute('id', 'inp3');
     inp3.setAttribute('type', 'checkbox');
-    inp3.setAttribute('class', 'clazz1');
+    inp3.setAttribute('slot', 'slot1');
     host.appendChild(inp3);
 
 
     //Shadow root to play with
-    var s = host.createShadowRoot();
+    var s = host.attachShadow({mode: 'open'});
 
     var shadowDiv = document.createElement('div');
-    shadowDiv.innerHTML = '<content select=".clazz1"></content>';
+    shadowDiv.innerHTML = '<slot name="slot1"></slot>';
     s.appendChild(shadowDiv);
 
     //element outside the shadow tree
     var inp4 = d.createElement('input');
     inp4.setAttribute('id', 'inp4');
     inp4.setAttribute('type', 'checkbox');
-    inp4.setAttribute('class', 'clazz1');
+    inp4.setAttribute('slot', 'slot1');
     d.body.appendChild(inp4);
 
     inp1.focus();
@@ -268,34 +268,34 @@ A_05_03_01_T06.step(unit(function (ctx) {
     var inp1 = d.createElement('input');
     inp1.setAttribute('id', 'inp1');
     inp1.setAttribute('type', 'checkbox');
-    inp1.setAttribute('class', 'clazz1');
+    inp1.setAttribute('slot', 'slot1');
     host.appendChild(inp1);
 
     var inp2 = d.createElement('input');
     inp2.setAttribute('id', 'inp2');
     inp2.setAttribute('type', 'checkbox');
-    inp2.setAttribute('class', 'clazz2');
+    inp2.setAttribute('slot', 'slot2');
     host.appendChild(inp2);
 
     var inp3 = d.createElement('input');
     inp3.setAttribute('id', 'inp3');
     inp3.setAttribute('type', 'checkbox');
-    inp3.setAttribute('class', 'clazz1');
+    inp3.setAttribute('slot', 'slot1');
     host.appendChild(inp3);
 
 
     //Shadow root to play with
-    var s = host.createShadowRoot();
+    var s = host.attachShadow({mode: 'open'});
 
     var shadowDiv = document.createElement('div');
-    shadowDiv.innerHTML = '<content select=".clazz1"></content>';
+    shadowDiv.innerHTML = '<slot name="slot1"></slot>';
     s.appendChild(shadowDiv);
 
     //element outside the shadow tree
     var inp4 = d.createElement('input');
     inp4.setAttribute('id', 'inp4');
     inp4.setAttribute('type', 'checkbox');
-    inp4.setAttribute('class', 'clazz1');
+    inp4.setAttribute('slot', 'slot1');
     d.body.appendChild(inp4);
 
     inp4.focus();

@@ -31,7 +31,7 @@ test(function () {
 
     var div = d.createElement('div');
     d.body.appendChild(div);
-    var s = div.createShadowRoot();
+    var s = div.attachShadow({mode: 'open'});
 
 
     HTML5_FORM_ASSOCIATED_ELEMENTS.forEach(function (tagName) {
@@ -58,7 +58,7 @@ test(function () {
 
     var div = d.createElement('div');
     form.appendChild(div);
-    var s = div.createShadowRoot();
+    var s = div.attachShadow({mode: 'open'});
 
     HTML5_FORM_ASSOCIATED_ELEMENTS.forEach(function (tagName) {
 
@@ -88,10 +88,11 @@ test(function () {
 
         var el = d.createElement(tagName);
         el.setAttribute('id', tagName + '_id');
+        el.setAttribute('slot', tagName + '_slot');
         div.appendChild(el);
 
-        var s = div.createShadowRoot();
-        s.innerHTML = '<content select="' + tagName + '"></content>';
+        var s = div.attachShadow({mode: 'open'});
+        s.innerHTML = '<slot name="' + tagName + '_slot"></slot>';
 
         assert_true(s.querySelector('#' + tagName + '_id') == null, 'Distributed form-associated element ' + tagName +
         ' in shadow tree must not be accessible shadow tree accessors');

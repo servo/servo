@@ -42,17 +42,8 @@ test(function() {
   assert_true("initEvent" in ev)
 })
 test(function() {
-  var ev = Event("test")
-  assert_equals(ev.type, "test")
-  assert_equals(ev.target, null)
-  assert_equals(ev.currentTarget, null)
-  assert_equals(ev.eventPhase, Event.NONE)
-  assert_equals(ev.bubbles, false)
-  assert_equals(ev.cancelable, false)
-  assert_equals(ev.defaultPrevented, false)
-  assert_equals(ev.isTrusted, false)
-  assert_true(ev.timeStamp > 0)
-  assert_true("initEvent" in ev)
+  assert_throws(new TypeError(), function() { Event("test") },
+                'Calling Event constructor without "new" must throw');
 })
 test(function() {
   var ev = new Event("I am an event", { bubbles: true, cancelable: false})

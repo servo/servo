@@ -47,7 +47,7 @@ A_07_02_02_T01.step(unit(function (ctx) {
     var chb2 = d.createElement('input');
     chb2.setAttribute('type', 'checkbox');
     chb2.setAttribute('id', 'chb2');
-    chb2.setAttribute('class', 'shadow');
+    chb2.setAttribute('slot', 'shadow');
     chb2.addEventListener('focus', A_07_02_02_T01.step_func(function(event) {
         assert_equals(counter++, 0, 'Point 1: wrong focus navigation order');
         expectations[1] = true;
@@ -58,7 +58,7 @@ A_07_02_02_T01.step(unit(function (ctx) {
     var chb3 = d.createElement('input');
     chb3.setAttribute('type', 'checkbox');
     chb3.setAttribute('id', 'chb3');
-    chb3.setAttribute('class', 'shadow');
+    chb3.setAttribute('slot', 'shadow');
     chb3.addEventListener('focus', A_07_02_02_T01.step_func(function(event) {
         assert_equals(counter++, 1, 'Point 2: wrong focus navigation order');
         expectations[2] = true;
@@ -66,10 +66,10 @@ A_07_02_02_T01.step(unit(function (ctx) {
     expectations[2] = false;
     host.appendChild(chb3);
 
-    var s = host.createShadowRoot();
+    var s = host.attachShadow({mode: 'open'});
 
     var div = d.createElement('div');
-    div.innerHTML = '<content select=".shadow"></content>';
+    div.innerHTML = '<slot name="shadow"></slot>';
     s.appendChild(div);
 
     var inp1 = d.createElement('input');
@@ -154,7 +154,7 @@ A_07_02_02_T02.step(unit(function (ctx) {
     var chb2 = d.createElement('input');
     chb2.setAttribute('type', 'checkbox');
     chb2.setAttribute('id', 'chb2');
-    chb2.setAttribute('class', 'shadow');
+    chb2.setAttribute('slot', 'shadow');
     chb2.addEventListener('focus', A_07_02_02_T02.step_func(function(event) {
         assert_equals(counter++, 2, 'Point 3: wrong focus navigation order');
         expectations[1] = true;
@@ -165,7 +165,7 @@ A_07_02_02_T02.step(unit(function (ctx) {
     var chb3 = d.createElement('input');
     chb3.setAttribute('type', 'checkbox');
     chb3.setAttribute('id', 'chb3');
-    chb3.setAttribute('class', 'shadow');
+    chb3.setAttribute('slot', 'shadow');
     chb3.addEventListener('focus', A_07_02_02_T02.step_func(function(event) {
         assert_equals(counter++, 3, 'Point 4: wrong focus navigation order');
         expectations[2] = true;
@@ -173,10 +173,10 @@ A_07_02_02_T02.step(unit(function (ctx) {
     expectations[2] = false;
     host.appendChild(chb3);
 
-    var s = host.createShadowRoot();
+    var s = host.attachShadow({mode: 'open'});
 
     var div = d.createElement('div');
-    div.innerHTML = '<content select=".shadow"></content>';
+    div.innerHTML = '<slot name="shadow"></slot>';
     s.appendChild(div);
 
     var inp1 = d.createElement('input');
