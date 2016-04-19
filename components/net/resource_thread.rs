@@ -227,17 +227,15 @@ impl CancellationListener {
     }
 
     pub fn is_cancelled(&self) -> bool {
-        match self.cancel_resource {
-            Some(ref resource) => {
-                match resource.cancel_receiver.try_recv() {
-                    Ok(_) => {
-                        self.cancel_status.set(true);
-                        true
-                    },
-                    Err(_) => self.cancel_status.get(),
-                }
-            },
-            None => false,      // channel doesn't exist!
+        let resource = match self.cancel_resource {
+            Some(ref resource) => resource,
+            None => return false,  // channel doesn't exist!
+        };
+        if resource.cancel_receiver.try_recv().is_ok() {
+            self.cancel_status.set(true);
+            true
+        } else {
+            self.cancel_status.get()
         }
     }
 }
