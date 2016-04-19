@@ -37,11 +37,11 @@ A_05_01_03_T01.step(unit(function (ctx) {
     '</div>';
 
     var ul = d.querySelector('#shadow-root');
-    var s = ul.createShadowRoot();
+    var s = ul.attachShadow({mode: 'open'});
 
     //make shadow subtree
     var div = document.createElement('div');
-    div.innerHTML = '<content select=".shadow"><span id="flbk">Fallback item</span></content>';
+    div.innerHTML = '<slot name="shadow"><span id="flbk">Fallback item</span></slot>';
     s.appendChild(div);
 
     d.body.addEventListener('click', A_05_01_03_T01.step_func(function (event) {

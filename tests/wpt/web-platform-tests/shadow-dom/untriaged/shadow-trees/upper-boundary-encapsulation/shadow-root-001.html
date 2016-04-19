@@ -25,22 +25,22 @@ policies and contribution forms [3].
 <script>
 test(function () {
     var doc = document.implementation.createHTMLDocument('Test');
-    var shadowRoot = doc.body.createShadowRoot();
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
     assert_equals(shadowRoot.parentNode, null);
 }, 'The parentNode attribute of a shadow root must always return null.');
 
 test(function () {
     var doc = document.implementation.createHTMLDocument('Test');
-    var shadowRoot = doc.body.createShadowRoot();
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
     assert_equals(shadowRoot.parentElement, null);
 }, 'The parentElement attribute of a shadow root must always return null.');
 
 test(function () {
     var doc = document.implementation.createHTMLDocument('Test');
-    var outerShadowRoot = doc.body.createShadowRoot();
+    var outerShadowRoot = doc.body.attachShadow({mode: 'open'});
     var div = doc.createElement('div');
     outerShadowRoot.appendChild(div);
-    var innerShadowRoot = div.createShadowRoot();
+    var innerShadowRoot = div.attachShadow({mode: 'open'});
     assert_equals(innerShadowRoot.parentNode, null);
 },
     'The parentNode attribute of a shadow root must always return null, ' +
@@ -49,10 +49,10 @@ test(function () {
 
 test(function () {
     var doc = document.implementation.createHTMLDocument('Test');
-    var outerShadowRoot = doc.body.createShadowRoot();
+    var outerShadowRoot = doc.body.attachShadow({mode: 'open'});
     var div = doc.createElement('div');
     outerShadowRoot.appendChild(div);
-    var innerShadowRoot = div.createShadowRoot();
+    var innerShadowRoot = div.attachShadow({mode: 'open'});
     assert_equals(innerShadowRoot.parentElement, null);
 },
     'The parentElement attribute of a shadow root must always return null, ' +

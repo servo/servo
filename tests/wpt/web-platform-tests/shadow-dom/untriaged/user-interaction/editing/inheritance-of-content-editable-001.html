@@ -29,7 +29,7 @@ test(unit(function (ctx) {
     host.contentEditable = "true";
     d.body.appendChild(host);
 
-    var s = host.createShadowRoot();
+    var s = host.attachShadow({mode: 'open'});
 
     assert_equals(host.contentEditable, "true");
     assert_equals(s.contentEditable, undefined);
@@ -42,7 +42,7 @@ test(unit(function (ctx) {
     host.contentEditable = "false";
     d.body.appendChild(host);
 
-    var s = host.createShadowRoot();
+    var s = host.attachShadow({mode: 'open'});
 
     assert_equals(host.contentEditable, 'false');
     assert_equals(s.contentEditable, undefined);
@@ -55,7 +55,7 @@ test(unit(function (ctx) {
     d.body.appendChild(host);
     d.body.contentEditable = "true";
 
-    var s = host.createShadowRoot();
+    var s = host.attachShadow({mode: 'open'});
 
     assert_equals(host.contentEditable, 'inherit');
     assert_equals(s.contentEditable, undefined);

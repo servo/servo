@@ -26,7 +26,7 @@ policies and contribution forms [3].
 <script>
 function testIDAttribute(elementName) {
     var doc = document.implementation.createHTMLDocument('Title');
-    var shadowRoot = doc.body.createShadowRoot();
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
     var element = doc.createElement(elementName);
     element.id = 'test-id';
     shadowRoot.appendChild(element);

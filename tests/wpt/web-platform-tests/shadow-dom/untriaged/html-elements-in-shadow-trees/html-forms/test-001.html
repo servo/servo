@@ -31,7 +31,7 @@ test(function () {
 
     var div = d.createElement('div');
     d.body.appendChild(div);
-    var s = div.createShadowRoot();
+    var s = div.attachShadow({mode: 'open'});
 
 
     HTML5_FORM_ASSOCIATED_ELEMENTS.forEach(function (tagName) {
@@ -56,7 +56,7 @@ test(function () {
 
     var div = d.createElement('div');
     form.appendChild(div);
-    s = div.createShadowRoot();
+    s = div.attachShadow({mode: 'open'});
 
     HTML5_FORM_ASSOCIATED_ELEMENTS.forEach(function (tagName) {
 
