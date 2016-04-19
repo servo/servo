@@ -25,20 +25,8 @@ pub use paint_listener::PaintListener;
 use azure::azure_hl::Color;
 use euclid::Matrix4D;
 use euclid::rect::Rect;
-use msg::constellation_msg::{Failure, PipelineId};
+use msg::constellation_msg::{PipelineId};
 use std::fmt::{self, Debug, Formatter};
-
-/// Messages from the paint task to the constellation.
-#[derive(Deserialize, Serialize)]
-pub enum PaintMsg {
-    Failure(Failure),
-}
-
-impl From<Failure> for PaintMsg {
-    fn from(failure: Failure) -> PaintMsg {
-        PaintMsg::Failure(failure)
-    }
-}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum LayerKind {

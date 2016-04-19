@@ -37,7 +37,7 @@ use ipc_channel::router::ROUTER;
 use layout_debug;
 use layout_traits::LayoutThreadFactory;
 use log;
-use msg::constellation_msg::{ConstellationChan, ConvertPipelineIdToWebRender, Failure, PipelineId};
+use msg::constellation_msg::{ConstellationChan, ConvertPipelineIdToWebRender, PanicMsg, PipelineId};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use net_traits::image_cache_thread::{UsePlaceholder};
 use parallel;
@@ -249,7 +249,7 @@ impl LayoutThreadFactory for LayoutThread {
               chan: OpaqueScriptLayoutChannel,
               pipeline_port: IpcReceiver<LayoutControlMsg>,
               constellation_chan: ConstellationChan<ConstellationMsg>,
-              failure_msg: Failure,
+              panic_chan: ConstellationChan<PanicMsg>,
               script_chan: IpcSender<ConstellationControlMsg>,
               paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
               image_cache_thread: ImageCacheThread,
@@ -259,8 +259,8 @@ impl LayoutThreadFactory for LayoutThread {
               shutdown_chan: IpcSender<()>,
               content_process_shutdown_chan: IpcSender<()>,
               webrender_api_sender: Option<webrender_traits::RenderApiSender>) {
-        let ConstellationChan(con_chan) = constellation_chan.clone();
-        thread::spawn_named_with_send_on_failure(format!("LayoutThread {:?}", id),
+        let ConstellationChan(fail_chan) = panic_chan.clone();
+        thread::spawn_named_with_send_on_panic(format!("LayoutThread {:?}", id),
                                                thread_state::LAYOUT,
                                                move || {
             { // Ensures layout thread is destroyed before we send shutdown message
@@ -286,7 +286,7 @@ impl LayoutThreadFactory for LayoutThread {
             }
             let _ = shutdown_chan.send(());
             let _ = content_process_shutdown_chan.send(());
-        }, failure_msg, con_chan);
+        }, Some(id), fail_chan);
     }
 }
 
@@ -732,7 +732,7 @@ impl LayoutThread {
                                   info.layout_pair,
                                   info.pipeline_port,
                                   info.constellation_chan,
-                                  info.failure,
+                                  info.panic_chan,
                                   info.script_chan.clone(),
                                   info.paint_chan.to::<LayoutToPaintMsg>(),
                                   self.image_cache_thread.clone(),

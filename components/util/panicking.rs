@@ -17,10 +17,15 @@ static HOOK_SET: Once = ONCE_INIT;
 /// TLS data pertaining to how failures should be reported
 pub struct PanicHandlerLocal {
     /// failure handler passed through spawn_named_with_send_on_failure
-    pub fail: Box<(FnBox(&(Any + Send))) + Send + 'static>
+    pub fail: Box<FnBox(&Any)>
 }
 
 thread_local!(pub static LOCAL_INFO: RefCell<Option<PanicHandlerLocal>> = RefCell::new(None));
+
+/// Set the thread-local panic hook
+pub fn set_thread_local_hook(local: Box<FnBox(&Any)>) {
+    LOCAL_INFO.with(|i| *i.borrow_mut() = Some(PanicHandlerLocal { fail: local }));
+}
 
 /// Initiates the custom panic hook
 /// Should be called in main() after arguments have been parsed
