@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
- * https://drafts.fxtf.org/geometry/#DOMMatrix
+ * https://drafts.fxtf.org/geometry-1/#DOMMatrix
  *
  * Copyright:
  * To the extent possible under law, the editors have waived all copyright and
@@ -12,8 +12,8 @@
  */
 
 [Constructor,
-/*Constructor(DOMString transformList),*/
-Constructor(sequence<unrestricted double> numberSequence),
+ /*Constructor(DOMString transformList),*/
+ Constructor(sequence<unrestricted double> numberSequence),
  /*Exposed=(Window,Worker)*/]
 interface DOMMatrixReadOnly {
 
