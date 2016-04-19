@@ -10,13 +10,13 @@ dependencies = [
  "gleam 0.2.24 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin_app 0.0.1",
  "libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libservo 0.0.1",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net_traits 0.0.1",
  "objc 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "script_traits 0.0.1",
- "servo 0.0.1",
  "style_traits 0.0.1",
  "url 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
@@ -1269,6 +1269,49 @@ dependencies = [
 ]
 
 [[package]]
+name = "libservo"
+version = "0.0.1"
+dependencies = [
+ "android_glue 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "backtrace 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bluetooth 0.0.1",
+ "bluetooth_traits 0.0.1",
+ "browserhtml 0.1.17 (git+https://github.com/browserhtml/browserhtml?branch=crate)",
+ "canvas 0.0.1",
+ "canvas_traits 0.0.1",
+ "compositing 0.0.1",
+ "constellation 0.0.1",
+ "debugger 0.0.1",
+ "devtools 0.0.1",
+ "devtools_traits 0.0.1",
+ "env_logger 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "euclid 0.10.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gaol 0.0.1 (git+https://github.com/servo/gaol)",
+ "gfx 0.0.1",
+ "gleam 0.2.24 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "layout 0.0.1",
+ "layout_thread 0.0.1",
+ "libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "msg 0.0.1",
+ "net 0.0.1",
+ "net_traits 0.0.1",
+ "profile 0.0.1",
+ "profile_traits 0.0.1",
+ "script 0.0.1",
+ "script_layout_interface 0.0.1",
+ "script_traits 0.0.1",
+ "sig 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "style 0.0.1",
+ "url 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "util 0.0.1",
+ "webdriver_server 0.0.1",
+ "webrender 0.9.0 (git+https://github.com/servo/webrender)",
+ "webrender_traits 0.9.0 (git+https://github.com/servo/webrender)",
+]
+
+[[package]]
 name = "libz-sys"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2106,50 +2149,6 @@ dependencies = [
  "itoa 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.1.35 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.8.17 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "servo"
-version = "0.0.1"
-dependencies = [
- "android_glue 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "backtrace 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "bluetooth 0.0.1",
- "bluetooth_traits 0.0.1",
- "browserhtml 0.1.17 (git+https://github.com/browserhtml/browserhtml?branch=crate)",
- "canvas 0.0.1",
- "canvas_traits 0.0.1",
- "compositing 0.0.1",
- "constellation 0.0.1",
- "debugger 0.0.1",
- "devtools 0.0.1",
- "devtools_traits 0.0.1",
- "env_logger 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.10.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "gaol 0.0.1 (git+https://github.com/servo/gaol)",
- "gfx 0.0.1",
- "gleam 0.2.24 (registry+https://github.com/rust-lang/crates.io-index)",
- "glutin_app 0.0.1",
- "ipc-channel 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "layout 0.0.1",
- "layout_thread 0.0.1",
- "libc 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
- "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "msg 0.0.1",
- "net 0.0.1",
- "net_traits 0.0.1",
- "profile 0.0.1",
- "profile_traits 0.0.1",
- "script 0.0.1",
- "script_layout_interface 0.0.1",
- "script_traits 0.0.1",
- "sig 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "style 0.0.1",
- "url 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "util 0.0.1",
- "webdriver_server 0.0.1",
- "webrender 0.9.0 (git+https://github.com/servo/webrender)",
- "webrender_traits 0.9.0 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
