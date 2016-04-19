@@ -264,11 +264,6 @@ impl WebGLRenderingContext {
                 return false;
         }
 
-        if type_.as_gl_constant() != active_uniform.Type() {
-            self.webgl_error(InvalidOperation);
-            return false;
-        }
-
         return true;
     }
 }
