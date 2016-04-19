@@ -1220,6 +1220,9 @@ impl FragmentDisplayListBuilding for Fragment {
                 let height = canvas_fragment_info.replaced_image_fragment_info
                     .computed_block_size.map_or(0, |h| h.to_px() as usize);
                 if width > 0 && height > 0 {
+                    let computed_width = canvas_fragment_info.canvas_inline_size().to_px();
+                    let computed_height = canvas_fragment_info.canvas_block_size().to_px();
+
                     let layer_id = self.layer_id();
                     let canvas_data = match canvas_fragment_info.ipc_renderer {
                         Some(ref ipc_renderer) => {
@@ -1230,7 +1233,10 @@ impl FragmentDisplayListBuilding for Fragment {
                             receiver.recv().unwrap()
                         },
                         None => CanvasData::Pixels(CanvasPixelData {
-                            image_data: IpcSharedMemory::from_byte(0xFFu8, width * height * 4),
+                            image_data: IpcSharedMemory::from_byte(0xFFu8,
+                                                                   (computed_width *
+                                                                    computed_height * 4)
+                                                                   as usize),
                             image_key: None,
                         }),
                     };
@@ -1245,8 +1251,8 @@ impl FragmentDisplayListBuilding for Fragment {
                                                            clip),
                                 image_data: Some(Arc::new(canvas_data.image_data)),
                                 webrender_image: WebRenderImageInfo {
-                                    width: width as u32,
-                                    height: height as u32,
+                                    width: computed_width as u32,
+                                    height: computed_height as u32,
                                     format: PixelFormat::RGBA8,
                                     key: canvas_data.image_key,
                                 },
