@@ -7,6 +7,20 @@
 <script src="utils.js"></script>
 <div id="log"></div>
 
+<div id=set0>
+<!-- The readonly attribute does not apply to the following input types -->
+<input id=checkbox1 type=checkbox>
+<input id=hidden1 type=hidden value=abc>
+<input id=range1 type=range>
+<input id=color1 type=color>
+<input id=radio1 type=radio>
+<input id=file1 type=file>
+<input id=submit1 type=submit>
+<input id=image1 type=image>
+<input id=button1 type=button value="Button">
+<input id=reset1 type=reset>
+</div>
+
 <div id=set1>
 <input id=input1>
 <input id=input2 readonly>
@@ -31,6 +45,10 @@
 </div>
 
 <script>
+  testSelector("#set0 :read-write", [], "The :read-write pseudo-class must not match input elements to which the readonly attribute does not apply");
+
+  testSelector("#set0 :read-only", ["checkbox1", "hidden1", "range1", "color1", "radio1", "file1", "submit1", "image1", "button1", "reset1"], "The :read-only pseudo-class must match input elements to which the readonly attribute does not apply");
+
   testSelector("#set1 :read-write", ["input1"], "The :read-write pseudo-class must match input elements to which the readonly attribute applies, and that are mutable");
 
   testSelector("#set1 :read-only", ["input2"], "The :read-only pseudo-class must not match input elements to which the readonly attribute applies, and that are mutable");

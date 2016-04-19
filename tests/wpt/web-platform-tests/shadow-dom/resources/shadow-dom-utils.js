@@ -115,7 +115,7 @@ function createTestMediaPlayer(d) {
         '</div>' +
     '</div>';
 
-    var playerShadowRoot = d.querySelector('#player-shadow-host').createShadowRoot();
+    var playerShadowRoot = d.querySelector('#player-shadow-host').attachShadow({mode: 'open'});
     playerShadowRoot.innerHTML = '' +
         '<div id="controls">' +
             '<button class="play-button">PLAY</button>' +
@@ -131,10 +131,10 @@ function createTestMediaPlayer(d) {
             '</div>' +
         '</div>';
 
-    var timeLineShadowRoot = playerShadowRoot.querySelector('#timeline-shadow-host').createShadowRoot();
+    var timeLineShadowRoot = playerShadowRoot.querySelector('#timeline-shadow-host').attachShadow({mode: 'open'});
     timeLineShadowRoot.innerHTML =  '<div class="slider-thumb" id="timeline-slider-thumb"></div>';
 
-    var volumeShadowRoot = playerShadowRoot.querySelector('#volume-shadow-host').createShadowRoot();
+    var volumeShadowRoot = playerShadowRoot.querySelector('#volume-shadow-host').attachShadow({mode: 'open'});
     volumeShadowRoot.innerHTML = '<div class="slider-thumb" id="volume-slider-thumb"></div>';
 
     return {

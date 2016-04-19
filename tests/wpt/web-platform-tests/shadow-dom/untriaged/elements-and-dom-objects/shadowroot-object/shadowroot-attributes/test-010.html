@@ -28,7 +28,7 @@ test(unit(function (ctx) {
 
     var host = d.createElement('div');
     d.body.appendChild(host);
-    var s = host.createShadowRoot();
+    var s = host.attachShadow({mode: 'open'});
 
     var span = d.createElement('span');
     span.innerHTML = 'Some text';
@@ -48,7 +48,7 @@ test(unit(function (ctx) {
 
     var host = d.createElement('div');
     d.body.appendChild(host);
-    var s = host.createShadowRoot();
+    var s = host.attachShadow({mode: 'open'});
 
     var span = d.createElement('span');
     span.setAttribute('id', 'spanId');

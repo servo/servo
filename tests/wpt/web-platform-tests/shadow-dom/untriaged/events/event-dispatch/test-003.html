@@ -33,7 +33,7 @@ A_05_05_03_T01.step(unit(function (ctx) {
     d.body.appendChild(host);
 
     //Shadow root to play with
-    var s = host.createShadowRoot();
+    var s = host.attachShadow({mode: 'open'});
     s.id = 'shadow';
 
     var input1 = d.createElement('input');

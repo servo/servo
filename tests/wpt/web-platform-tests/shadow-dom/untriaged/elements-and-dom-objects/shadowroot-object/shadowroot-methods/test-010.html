@@ -12,8 +12,8 @@ policies and contribution forms [3].
 <head>
 <title>Shadow DOM Test: A_10_01_02_09</title>
 <link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
-<link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#shadow-root-methods">
-<meta name="assert" content="ShadowRoot Object: Invoking the cloneNode() method on a ShadowRoot instance must always throw a DATA_CLONE_ERR exception.">
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-node-clonenode">
+<meta name="assert" content="If context object is a shadow root, throw a NotSupportedError exception.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../../../../html/resources/common.js"></script>
@@ -24,17 +24,17 @@ policies and contribution forms [3].
 <script>
 test(unit(function (ctx) {
     var d = newRenderedHTMLDocument(ctx);
-
     var host = d.createElement('div');
     d.body.appendChild(host);
-    var s = host.createShadowRoot();
+    var s = host.attachShadow({mode: 'open'});
 
     try {
         s.cloneNode();
         assert_true(false, 'Invoking the cloneNode() method on a ShadowRoot instance must always ' +
-        'throw a DATA_CLONE_ERR exception.');
+        'throw a NotSupportedError (code 9) exception.');
     } catch (e) {
-        assert_equals(e.code, 25, 'Wrong exceprion type');
+        assert_equals(e.code, 9, 'Wrong exception type');
+        assert_equals(e.name, 'NotSupportedError', 'Wrong exception name');
     }
 }), 'A_10_01_02_09_T01');
 </script>

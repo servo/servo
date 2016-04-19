@@ -1,4 +1,4 @@
-## Introdution ##
+## Introduction ##
 
 testharness.js provides a framework for writing low-level tests of
 browser functionality in javascript. It provides a convenient API for

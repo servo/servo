@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Ambient Light Sensor IDL tests</title>
-<link rel="author" title="Intel" href="http://www.intel.com">
-<link rel="help" href="http://www.w3.org/TR/ambient-light/">
+<title>Generic Sensor IDL tests</title>
+<link rel="author" title="Tobie Langel" href="http://www.codespeaks.com">
+<link rel="help" href="http://www.w3.org/TR/generic-sensor/">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/WebIDLParser.js"></script>
@@ -23,9 +23,7 @@ interface Error {
 
 dictionary EventInit {
 };
-</pre>
 
-<pre id="generic-idl">
 interface Sensor : EventTarget {
   readonly attribute SensorState state;
   readonly attribute SensorReading? reading;
@@ -59,7 +57,9 @@ interface SensorReadingEvent : Event {
 dictionary SensorReadingEventInit : EventInit {
   SensorReading reading;
 };
+</pre>
 
+<pre id="generic-idl">
 [Constructor(DOMString type, SensorErrorEventInit errorEventInitDict)]
 interface SensorErrorEvent : Event {
   readonly attribute Error error;
@@ -70,38 +70,17 @@ dictionary SensorErrorEventInit : EventInit {
 };
 </pre>
 
-<pre id="ambient-light-idl">
-[Constructor(optional SensorOptions sensorOptions)]
-interface AmbientLightSensor : Sensor {
-  readonly attribute AmbientLightSensorReading? reading;
-};
-
-[Constructor(AmbientLightSensorReadingInit ambientLightSensorReadingInit)]
-interface AmbientLightSensorReading : SensorReading {
-    readonly attribute unrestricted double illuminance;
-};
-
-dictionary AmbientLightSensorReadingInit {
-  unrestricted double illuminance;
-};
-
-</pre>
-
 <script>
 (function() {
   "use strict";
   var idl_array = new IdlArray();
   idl_array.add_untested_idls(document.getElementById('idl').textContent);
-  idl_array.add_untested_idls(document.getElementById('generic-idl').textContent);
-  idl_array.add_idls(document.getElementById('ambient-light-idl').textContent);
+  idl_array.add_idls(document.getElementById('generic-idl').textContent);
 
   idl_array.add_objects({
-    AmbientLightSensor: ['new AmbientLightSensor();'],
-    AmbientLightSensorReading: ['new AmbientLightSensorReading({ illuminance: 750 });'],
-    SensorReadingEvent: ['new SensorReadingEvent({ reading: new AmbientLightSensorReading({ illuminance: 750 }) });']
+    SensorErrorEvent: ['new SensorErrorEvent({ error: new TypeError("Boom!") });']
   });
 
   idl_array.test();
 })();
 </script>
-
