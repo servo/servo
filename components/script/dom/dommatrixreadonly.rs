@@ -8,37 +8,33 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::{reflect_dom_object, Reflectable, Reflector};
 use dom::dommatrix::DOMMatrix;
 use dom::dompoint::DOMPoint;
-use euclid::Matrix4;
+use euclid::Matrix4D;
 use euclid::Point4D;
 use std::cell::{Cell, RefCell};
-use std::f32;
 use std::f64;
 
 #[dom_struct]
 pub struct DOMMatrixReadOnly {
     reflector_: Reflector,
     is2D: Cell<bool>,
-    // TODO(peterjoel): Update this to Matrix4D<f64> when euclid suppots generics
-    matrix: RefCell<Matrix4>,
+    matrix: RefCell<Matrix4D<f64>>,
 }
 
 impl DOMMatrixReadOnly {
 
     pub fn new_from_vec(entries: Vec<f64>) -> Fallible<DOMMatrixReadOnly> {
-        // TODO this conversion (and others in this file) will be unnecessary when generic Matrix4D is used
-        let entries: Vec<f32> = entries.into_iter().map(|v| v as f32).collect();
         if entries.len() == 6 {
-            Ok(DOMMatrixReadOnly::new_from_matrix4(
+            Ok(DOMMatrixReadOnly::new_from_matrix4D(
                 true,
-                Matrix4::new(
+                Matrix4D::new(
                     entries[0], entries[1], 0.0, 0.0,
                     entries[2], entries[3], 0.0, 0.0,
                     0.0,        0.0,        1.0, 0.0,
                     entries[4], entries[5], 0.0, 1.0)))
         } else if entries.len() == 16 {
-            Ok(DOMMatrixReadOnly::new_from_matrix4(
+            Ok(DOMMatrixReadOnly::new_from_matrix4D(
                 false,
-                Matrix4::new(
+                Matrix4D::new(
                     entries[0],  entries[1],  entries[2],  entries[3],
                     entries[4],  entries[5],  entries[6],  entries[7],
                     entries[8],  entries[9],  entries[10], entries[11],
@@ -49,7 +45,7 @@ impl DOMMatrixReadOnly {
         }
     }
 
-    pub fn new_from_matrix4(is2D: bool, matrix: Matrix4) -> DOMMatrixReadOnly {
+    pub fn new_from_matrix4D(is2D: bool, matrix: Matrix4D<f64>) -> DOMMatrixReadOnly {
         DOMMatrixReadOnly {
             matrix: RefCell::new(matrix),
             reflector_: Reflector::new(),
@@ -58,7 +54,7 @@ impl DOMMatrixReadOnly {
     }
 
     pub fn new_from_init(init: &DOMMatrixInit) -> DOMMatrixReadOnly {
-        DOMMatrixReadOnly::new_from_matrix4(init.is2D.unwrap_or(false), init.to_matrix4())
+        DOMMatrixReadOnly::new_from_matrix4D(init.is2D.unwrap_or(false), init.to_matrix4D())
     }
 
     #[allow(unrooted_must_root)]
@@ -81,7 +77,7 @@ impl DOMMatrixReadOnly {
     fn to_DOMMatrix(&self) -> Root<DOMMatrix> {
         let matrix = self.matrix.borrow().clone();
         let is2D = self.is2D.get();
-        DOMMatrix::new_from_matrix4_rooted(self.global().r(), is2D, matrix)
+        DOMMatrix::new_from_matrix4D_rooted(self.global().r(), is2D, matrix)
     }
 }
 
@@ -205,22 +201,22 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
 
     fn FlipX(&self) -> Root<DOMMatrix> {
         let is2D = self.is2D.get();
-        let flip = Matrix4::new(-1.0, 0.0, 0.0, 0.0,
-                                 0.0, 1.0, 0.0, 0.0,
-                                 0.0, 0.0, 1.0, 0.0,
-                                 0.0, 0.0, 0.0, 1.0);
+        let flip = Matrix4D::new(-1.0, 0.0, 0.0, 0.0,
+                                  0.0, 1.0, 0.0, 0.0,
+                                  0.0, 0.0, 1.0, 0.0,
+                                  0.0, 0.0, 0.0, 1.0);
         let matrix = self.matrix.borrow().mul(&flip);
-        DOMMatrix::new_from_matrix4_rooted(self.global().r(), is2D, matrix)
+        DOMMatrix::new_from_matrix4D_rooted(self.global().r(), is2D, matrix)
     }
 
     fn FlipY(&self) -> Root<DOMMatrix> {
         let is2D = self.is2D.get();
-        let flip = Matrix4::new(1.0,  0.0, 0.0, 0.0,
-                                0.0, -1.0, 0.0, 0.0,
-                                0.0,  0.0, 1.0, 0.0,
-                                0.0,  0.0, 0.0, 1.0);
+        let flip = Matrix4D::new(1.0,  0.0, 0.0, 0.0,
+                                 0.0, -1.0, 0.0, 0.0,
+                                 0.0,  0.0, 1.0, 0.0,
+                                 0.0,  0.0, 0.0, 1.0);
         let matrix = self.matrix.borrow().mul(&flip);
-        DOMMatrix::new_from_matrix4_rooted(self.global().r(), is2D, matrix)
+        DOMMatrix::new_from_matrix4D_rooted(self.global().r(), is2D, matrix)
     }
 
     fn Inverse(&self) -> Root<DOMMatrix> {
@@ -229,7 +225,7 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
 
     fn TransformPoint(&self, point: &DOMPointInit) -> Root<DOMPoint> {
         let matrix = self.matrix.borrow();
-        let result = matrix.transform_point4d(&Point4D::new(point.x as f32, point.y as f32, point.z as f32, point.w as f32));
+        let result = matrix.transform_point4d(&Point4D::new(point.x, point.y, point.z, point.w));
         DOMPoint::new(self.global().r(), result.x as f64, result.y as f64, result.z as f64, result.w as f64)
     }
 }
@@ -262,70 +258,70 @@ pub trait DOMMatrixWriteMethods {
 
 impl DOMMatrixWriteMethods for DOMMatrixReadOnly {
     fn SetM11(&self, value: f64){
-        self.matrix.borrow_mut().m11 = value as f32;
+        self.matrix.borrow_mut().m11 = value;
     }
     fn SetM12(&self, value: f64){
-        self.matrix.borrow_mut().m12 = value as f32;
+        self.matrix.borrow_mut().m12 = value;
     }
     fn SetM13(&self, value: f64){
-        self.matrix.borrow_mut().m13 = value as f32;
+        self.matrix.borrow_mut().m13 = value;
     }
     fn SetM14(&self, value: f64){
-        self.matrix.borrow_mut().m14 = value as f32;
+        self.matrix.borrow_mut().m14 = value;
     }
     fn SetM21(&self, value: f64){
-        self.matrix.borrow_mut().m21 = value as f32;
+        self.matrix.borrow_mut().m21 = value;
     }
     fn SetM22(&self, value: f64){
-        self.matrix.borrow_mut().m22 = value as f32;
+        self.matrix.borrow_mut().m22 = value;
     }
     fn SetM23(&self, value: f64){
-        self.matrix.borrow_mut().m23 = value as f32;
+        self.matrix.borrow_mut().m23 = value;
     }
     fn SetM24(&self, value: f64){
-        self.matrix.borrow_mut().m24 = value as f32;
+        self.matrix.borrow_mut().m24 = value;
     }
     fn SetM31(&self, value: f64){
-        self.matrix.borrow_mut().m31 = value as f32;
+        self.matrix.borrow_mut().m31 = value;
     }
     fn SetM32(&self, value: f64){
-        self.matrix.borrow_mut().m32 = value as f32;
+        self.matrix.borrow_mut().m32 = value;
     }
     fn SetM33(&self, value: f64){
-        self.matrix.borrow_mut().m33 = value as f32;
+        self.matrix.borrow_mut().m33 = value;
     }
     fn SetM34(&self, value: f64){
-        self.matrix.borrow_mut().m34 = value as f32;
+        self.matrix.borrow_mut().m34 = value;
     }
     fn SetM41(&self, value: f64){
-        self.matrix.borrow_mut().m41 = value as f32;
+        self.matrix.borrow_mut().m41 = value;
     }
     fn SetM42(&self, value: f64){
-        self.matrix.borrow_mut().m42 = value as f32;
+        self.matrix.borrow_mut().m42 = value;
     }
     fn SetM43(&self, value: f64){
-        self.matrix.borrow_mut().m43 = value as f32;
+        self.matrix.borrow_mut().m43 = value;
     }
     fn SetM44(&self, value: f64){
-        self.matrix.borrow_mut().m44 = value as f32;
+        self.matrix.borrow_mut().m44 = value;
     }
     fn SetA(&self, value: f64){
-        self.matrix.borrow_mut().m11 = value as f32;
+        self.matrix.borrow_mut().m11 = value;
     }
     fn SetB(&self, value: f64){
-        self.matrix.borrow_mut().m12 = value as f32;
+        self.matrix.borrow_mut().m12 = value;
     }
     fn SetC(&self, value: f64){
-        self.matrix.borrow_mut().m21 = value as f32;
+        self.matrix.borrow_mut().m21 = value;
     }
     fn SetD(&self, value: f64){
-        self.matrix.borrow_mut().m22 = value as f32;
+        self.matrix.borrow_mut().m22 = value;
     }
     fn SetE(&self, value: f64){
-        self.matrix.borrow_mut().m41 = value as f32;
+        self.matrix.borrow_mut().m41 = value;
     }
     fn SetF(&self, value: f64){
-        self.matrix.borrow_mut().m42 = value as f32;
+        self.matrix.borrow_mut().m42 = value;
     }
 }
 
@@ -348,17 +344,17 @@ pub trait DOMMatrixMutateMethods {
 impl DOMMatrixMutateMethods for DOMMatrixReadOnly {
     fn MultiplySelf(&self, other: &DOMMatrixInit) {
         let mut matrix = self.matrix.borrow_mut();
-        *matrix = matrix.mul(&other.to_matrix4());
+        *matrix = matrix.mul(&other.to_matrix4D());
     }
 
     fn PreMultiplySelf(&self, other: &DOMMatrixInit) {
         let mut matrix = self.matrix.borrow_mut();
-        *matrix = other.to_matrix4().mul(&matrix);
+        *matrix = other.to_matrix4D().mul(&matrix);
     }
 
     fn TranslateSelf(&self, tx: f64, ty: f64, tz: f64) {
         let mut matrix = self.matrix.borrow_mut();
-        let translation: Matrix4 = Matrix4::create_translation(tx as f32, ty as f32, tz as f32);
+        let translation: Matrix4D<f64> = Matrix4D::create_translation(tx, ty, tz);
         *matrix = translation.mul(&matrix);
         if tz != 0.0 {
             self.is2D.set(false);
@@ -367,11 +363,11 @@ impl DOMMatrixMutateMethods for DOMMatrixReadOnly {
 
     fn ScaleSelf(&self, scaleX: f64, scaleY: Option<f64>, scaleZ: f64, originX: f64, originY: f64, originZ: f64) {
         let mut matrix = self.matrix.borrow_mut();
-        let translation: Matrix4 = Matrix4::create_translation(originX as f32, originY as f32, originZ as f32);
+        let translation: Matrix4D<f64> = Matrix4D::create_translation(originX, originY, originZ);
         *matrix = translation.mul(&matrix);
-        let scale3D = Matrix4::create_scale(scaleX as f32, scaleY.unwrap_or(scaleX) as f32, scaleZ as f32);
+        let scale3D = Matrix4D::create_scale(scaleX, scaleY.unwrap_or(scaleX), scaleZ);
         *matrix = scale3D.mul(&matrix);
-        let translation_rev: Matrix4 = Matrix4::create_translation(-originX as f32, -originY as f32, -originZ as f32);
+        let translation_rev: Matrix4D<f64> = Matrix4D::create_translation(-originX, -originY, -originZ);
         *matrix = translation_rev.mul(&matrix);
         if scaleZ != 1.0 || originZ != 0.0 {
             self.is2D.set(false);
@@ -380,11 +376,11 @@ impl DOMMatrixMutateMethods for DOMMatrixReadOnly {
 
     fn Scale3dSelf(&self, scale: f64, originX: f64, originY: f64, originZ: f64) {
         let mut matrix = self.matrix.borrow_mut();
-        let translation: Matrix4 = Matrix4::create_translation(originX as f32, originY as f32, originZ as f32);
+        let translation: Matrix4D<f64> = Matrix4D::create_translation(originX, originY, originZ);
         *matrix = translation.mul(&matrix);
-        let scale3D = Matrix4::create_scale(scale as f32, scale as f32, scale as f32);
+        let scale3D = Matrix4D::create_scale(scale, scale, scale);
         *matrix = scale3D.mul(&matrix);
-        let translation_rev: Matrix4 = Matrix4::create_translation(-originX as f32, -originY as f32, -originZ as f32);
+        let translation_rev: Matrix4D<f64> = Matrix4D::create_translation(-originX, -originY, -originZ);
         *matrix = translation_rev.mul(&matrix);
         if scale != 1.0 {
             self.is2D.set(false);
@@ -401,13 +397,13 @@ impl DOMMatrixMutateMethods for DOMMatrixReadOnly {
             }
         };
         if rotZ != 0.0 {
-            *matrix = Matrix4::create_rotation(0.0, 0.0, 1.0, deg_to_rad(rotZ) as f32).mul(&matrix);
+            *matrix = Matrix4D::create_rotation(0.0, 0.0, 1.0, deg_to_rad(rotZ)).mul(&matrix);
         }
         if rotY != 0.0 {
-            *matrix = Matrix4::create_rotation(0.0, 1.0, 0.0, deg_to_rad(rotY) as f32).mul(&matrix);
+            *matrix = Matrix4D::create_rotation(0.0, 1.0, 0.0, deg_to_rad(rotY)).mul(&matrix);
         }
         if rotX != 0.0 {
-            *matrix = Matrix4::create_rotation(1.0, 0.0, 0.0, deg_to_rad(rotX) as f32).mul(&matrix);
+            *matrix = Matrix4D::create_rotation(1.0, 0.0, 0.0, deg_to_rad(rotX)).mul(&matrix);
         }
         if rotX != 0.0 || rotY != 0.0 {
             self.is2D.set(false);
@@ -419,14 +415,14 @@ impl DOMMatrixMutateMethods for DOMMatrixReadOnly {
         // don't do anything when the rotation angle is zero or undefined
         if y != 0.0 || x < 0.0 {
             let rotZ = f64::atan2(y, x);
-            *matrix = Matrix4::create_rotation(0.0, 0.0, 1.0, rotZ as f32).mul(&matrix);
+            *matrix = Matrix4D::create_rotation(0.0, 0.0, 1.0, rotZ).mul(&matrix);
         }
     }
 
     fn RotateAxisAngleSelf(&self, x: f64, y: f64, z: f64, angle: f64) {
         let mut matrix = self.matrix.borrow_mut();
         let (norm_x, norm_y, norm_z) = normalize_point(x, y, z);
-        let rotation: Matrix4 = Matrix4::create_rotation(norm_x as f32, norm_y as f32, norm_z as f32, deg_to_rad(angle) as f32);
+        let rotation: Matrix4D<f64> = Matrix4D::create_rotation(norm_x, norm_y, norm_z, deg_to_rad(angle));
         *matrix = rotation.mul(&matrix);
         if x != 0.0 || y != 0.0 {
             self.is2D.set(false);
@@ -435,23 +431,23 @@ impl DOMMatrixMutateMethods for DOMMatrixReadOnly {
 
     fn SkewXSelf(&self, sx: f64) {
         let mut matrix = self.matrix.borrow_mut();
-        let skew_x = Matrix4::create_skew(deg_to_rad(sx) as f32, 0.0);
+        let skew_x = Matrix4D::create_skew(deg_to_rad(sx), 0.0);
         *matrix = skew_x.mul(&matrix);
     }
 
     fn SkewYSelf(&self, sy: f64) {
         let mut matrix = self.matrix.borrow_mut();
-        let skew_y = Matrix4::create_skew(0.0, deg_to_rad(sy) as f32);
+        let skew_y = Matrix4D::create_skew(0.0, deg_to_rad(sy));
         *matrix = skew_y.mul(&matrix);
     }
 
     fn InvertSelf(&self) {
         let mut matrix = self.matrix.borrow_mut();
         if matrix.determinant() == 0.0 {
-            *matrix = Matrix4::new(f32::NAN, f32::NAN, f32::NAN, f32::NAN,
-                                   f32::NAN, f32::NAN, f32::NAN, f32::NAN,
-                                   f32::NAN, f32::NAN, f32::NAN, f32::NAN,
-                                   f32::NAN, f32::NAN, f32::NAN, f32::NAN);
+            *matrix = Matrix4D::new(f64::NAN, f64::NAN, f64::NAN, f64::NAN,
+                                    f64::NAN, f64::NAN, f64::NAN, f64::NAN,
+                                    f64::NAN, f64::NAN, f64::NAN, f64::NAN,
+                                    f64::NAN, f64::NAN, f64::NAN, f64::NAN);
             self.is2D.set(false);
         } else {
             *matrix = matrix.invert();
@@ -475,10 +471,10 @@ fn normalize_point(x: f64, y: f64, z: f64) -> (f64, f64, f64) {
 }
 
 impl DOMMatrixInit {
-    fn to_matrix4(&self) -> Matrix4 {
-        Matrix4::new(self.m11.unwrap_or(1.0) as f32, self.m12.unwrap_or(0.0) as f32, self.m13 as f32, self.m14 as f32,
-                     self.m21.unwrap_or(0.0) as f32, self.m22.unwrap_or(1.0) as f32, self.m23 as f32, self.m24 as f32,
-                     self.m31 as f32,                self.m32 as f32,                self.m33 as f32, self.m34 as f32,
-                     self.m41.unwrap_or(0.0) as f32, self.m42.unwrap_or(0.0) as f32, self.m43 as f32, self.m44 as f32)
+    fn to_matrix4D(&self) -> Matrix4D<f64> {
+        Matrix4D::new(self.m11.unwrap_or(1.0), self.m12.unwrap_or(0.0), self.m13, self.m14,
+                      self.m21.unwrap_or(0.0), self.m22.unwrap_or(1.0), self.m23, self.m24,
+                      self.m31,                self.m32,                self.m33, self.m34,
+                      self.m41.unwrap_or(0.0), self.m42.unwrap_or(0.0), self.m43, self.m44)
     }
 }
