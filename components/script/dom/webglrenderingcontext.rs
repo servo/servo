@@ -979,12 +979,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn GetUniformLocation(&self,
                           program: Option<&WebGLProgram>,
                           name: DOMString) -> Option<Root<WebGLUniformLocation>> {
-        if let Some(program) = program {
-            handle_potential_webgl_error!(self, program.get_uniform_location(name), None)
-                .map(|location| WebGLUniformLocation::new(self.global().r(), location, program.id()))
-        } else {
-            None
-        }
+        program.and_then(|p| {
+            handle_potential_webgl_error!(self, p.get_uniform_location(name), None)
+                .map(|location| WebGLUniformLocation::new(self.global().r(), location, p.id()))
+        })
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
