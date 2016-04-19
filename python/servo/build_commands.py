@@ -214,7 +214,7 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped(target=target)
 
         if debug_mozjs:
-            features += ["script/debugmozjs"]
+            features += ["debugmozjs"]
 
         if features:
             opts += ["--features", "%s" % ' '.join(features)]
