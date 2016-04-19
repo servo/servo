@@ -47,7 +47,7 @@ class Keyword(object):
 class Longhand(object):
     def __init__(self, style_struct, name, derived_from=None, keyword=None,
                  custom_cascade=False, experimental=False, internal=False,
-                 gecko_ffi_name=None):
+                 need_clone=False, gecko_ffi_name=None):
         self.name = name
         self.keyword = keyword
         self.ident = to_rust_ident(name)
@@ -56,6 +56,7 @@ class Longhand(object):
         self.experimental = ("layout.%s.enabled" % name) if experimental else None
         self.custom_cascade = custom_cascade
         self.internal = internal
+        self.need_clone = need_clone
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
         self.derived_from = (derived_from or "").split()
 

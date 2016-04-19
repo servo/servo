@@ -54,15 +54,9 @@ pub mod longhands {
     <%include file="/longhand/padding.mako.rs" />
     <%include file="/longhand/position.mako.rs" />
 
-    <% data.new_style_struct("InheritedBox", inherited=True, gecko_ffi_name="nsStyleVisibility",
-                       additional_methods=[Method("clone_direction",
-                                                  "longhands::direction::computed_value::T"),
-                                           Method("clone_writing_mode",
-                                                  "longhands::writing_mode::computed_value::T"),
-                                           Method("clone_text_orientation",
-                                                  "longhands::text_orientation::computed_value::T")]) %>
+    <% data.new_style_struct("InheritedBox", inherited=True, gecko_ffi_name="nsStyleVisibility") %>
 
-    ${helpers.single_keyword("direction", "ltr rtl")}
+    ${helpers.single_keyword("direction", "ltr rtl", need_clone=True)}
 
     // CSS 2.1, Section 10 - Visual formatting model details
 
@@ -92,10 +86,7 @@ pub mod longhands {
                       "computed::LengthOrPercentageOrNone::None",
                       "parse_non_negative")}
 
-    <% data.new_style_struct("InheritedText", inherited=True, gecko_ffi_name="nsStyleText",
-                       additional_methods=([Method("clone__servo_text_decorations_in_effect",
-                                                  "longhands::_servo_text_decorations_in_effect::computed_value::T")]
-                                           if product == "servo" else [])) %>
+    <% data.new_style_struct("InheritedText", inherited=True, gecko_ffi_name="nsStyleText") %>
 
     <%helpers:longhand name="line-height">
         use cssparser::ToCss;
@@ -1076,11 +1067,9 @@ pub mod longhands {
         }
     </%helpers:longhand>
 
-    <% data.new_style_struct("Color", inherited=True, gecko_ffi_name="nsStyleColor",
-                       additional_methods=[Method("clone_color",
-                                                  "longhands::color::computed_value::T")]) %>
+    <% data.new_style_struct("Color", inherited=True, gecko_ffi_name="nsStyleColor") %>
 
-    <%helpers:raw_longhand name="color">
+    <%helpers:raw_longhand name="color" need_clone="True">
         use cssparser::Color as CSSParserColor;
         use cssparser::RGBA;
         use values::specified::{CSSColor, CSSRGBA};
@@ -1119,12 +1108,7 @@ pub mod longhands {
     // CSS 2.1, Section 15 - Fonts
 
     <% data.new_style_struct("Font", inherited=True, gecko_ffi_name="nsStyleFont",
-                       additional_methods=[Method("clone_font_size",
-                                                  "longhands::font_size::computed_value::T"),
-                                           Method("clone_font_weight",
-                                                  "longhands::font_weight::computed_value::T"),
-                                           Method("compute_font_hash", is_mut=True)]) %>
-
+                       additional_methods=[Method("compute_font_hash", is_mut=True)]) %>
     <%helpers:longhand name="font-family">
         use self::computed_value::FontFamily;
         use values::computed::ComputedValueAsSpecified;
@@ -1238,7 +1222,7 @@ pub mod longhands {
     ${helpers.single_keyword("font-style", "normal italic oblique")}
     ${helpers.single_keyword("font-variant", "normal small-caps")}
 
-    <%helpers:longhand name="font-weight">
+    <%helpers:longhand name="font-weight" need_clone="True">
         use cssparser::ToCss;
         use std::fmt;
 
@@ -1356,7 +1340,7 @@ pub mod longhands {
         }
     </%helpers:longhand>
 
-    <%helpers:longhand name="font-size">
+    <%helpers:longhand name="font-size" need_clone="True">
         use app_units::Au;
         use cssparser::ToCss;
         use std::fmt;
@@ -1724,7 +1708,7 @@ pub mod longhands {
     <% data.switch_to_style_struct("InheritedText") %>
 
     <%helpers:longhand name="-servo-text-decorations-in-effect"
-                    derived_from="display text-decoration" products="servo">
+                    derived_from="display text-decoration" need_clone="True" products="servo">
         use cssparser::{RGBA, ToCss};
         use std::fmt;
 
@@ -1970,11 +1954,13 @@ pub mod longhands {
     // http://dev.w3.org/csswg/css-writing-modes/
     <% data.switch_to_style_struct("InheritedBox") %>
 
-    ${helpers.single_keyword("writing-mode", "horizontal-tb vertical-rl vertical-lr", experimental=True)}
+    ${helpers.single_keyword("writing-mode", "horizontal-tb vertical-rl vertical-lr",
+                             experimental=True, need_clone=True)}
 
     // FIXME(SimonSapin): Add 'mixed' and 'upright' (needs vertical text support)
     // FIXME(SimonSapin): initial (first) value should be 'mixed', when that's implemented
-    ${helpers.single_keyword("text-orientation", "sideways sideways-left sideways-right", experimental=True)}
+    ${helpers.single_keyword("text-orientation", "sideways sideways-left sideways-right",
+                             experimental=True, need_clone=True)}
 
     // CSS Color Module Level 4
     // https://drafts.csswg.org/css-color/
@@ -5678,6 +5664,10 @@ pub mod style_struct_traits {
                 fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T);
                 #[allow(non_snake_case)]
                 fn copy_${longhand.ident}_from(&mut self, other: &Self);
+                % if longhand.need_clone:
+                    #[allow(non_snake_case)]
+                    fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T;
+                % endif
             % endfor
             % for additional in style_struct.additional_methods:
                 #[allow(non_snake_case)]
