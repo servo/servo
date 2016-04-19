@@ -35214,8 +35214,36 @@
   "local_changes": {
     "deleted": [],
     "deleted_reftests": {},
-    "items": {},
-    "reftest_nodes": {}
+    "items": {
+      "reftest": {
+        "html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html": [
+          {
+            "path": "html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html",
+            "references": [
+              [
+                "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html"
+          }
+        ]
+      }
+    },
+    "reftest_nodes": {
+      "html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html": [
+        {
+          "path": "html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html",
+          "references": [
+            [
+              "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html"
+        }
+      ]
+    }
   },
   "reftest_nodes": {
     "2dcontext/building-paths/canvas_complexshapes_arcto_001.htm": [
