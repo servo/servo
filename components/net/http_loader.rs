@@ -155,8 +155,7 @@ fn load_for_consumer(load_data: LoadData,
     };
 
     let ui_provider = TFDProvider;
-    let context = load_data.context.clone();
-    match load(load_data, &ui_provider, &http_state,
+    match load(&load_data, &ui_provider, &http_state,
                devtools_chan, &factory,
                user_agent, &cancel_listener) {
         Err(LoadError::UnsupportedScheme(url)) => {
@@ -180,14 +179,14 @@ fn load_for_consumer(load_data: LoadData,
 
             let mut image = resources_dir_path();
             image.push("badcert.html");
-            let load_data = LoadData::new(context, Url::from_file_path(&*image).unwrap(), None);
+            let load_data = LoadData::new(load_data.context, Url::from_file_path(&*image).unwrap(), None);
 
             file_loader::factory(load_data, start_chan, classifier, cancel_listener)
         }
         Err(LoadError::ConnectionAborted(_)) => unreachable!(),
         Ok(mut load_response) => {
             let metadata = load_response.metadata.clone();
-            send_data(context, &mut load_response, start_chan, metadata, classifier, &cancel_listener)
+            send_data(load_data.context, &mut load_response, start_chan, metadata, classifier, &cancel_listener)
         }
     }
 }
@@ -719,14 +718,14 @@ impl UIProvider for TFDProvider {
 
 struct TFDProvider;
 
-pub fn load<A, B>(load_data: LoadData,
-               ui_provider: &B,
-               http_state: &HttpState,
-               devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-               request_factory: &HttpRequestFactory<R=A>,
-               user_agent: String,
-               cancel_listener: &CancellationListener)
-               -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static, B: UIProvider {
+pub fn load<A, B>(load_data: &LoadData,
+                  ui_provider: &B,
+                  http_state: &HttpState,
+                  devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+                  request_factory: &HttpRequestFactory<R=A>,
+                  user_agent: String,
+                  cancel_listener: &CancellationListener)
+                  -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static, B: UIProvider {
     let max_redirects = prefs::get_pref("network.http.redirection-limit").as_i64().unwrap() as u32;
     let mut iters = 0;
     // URL of the document being loaded, as seen by all the higher-level code.
