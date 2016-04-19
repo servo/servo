@@ -6372,7 +6372,7 @@ impl ToCss for PropertyDeclaration {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
             % for property in LONGHANDS:
-                % if property.derived_from is None:
+                % if not property.derived_from:
                     PropertyDeclaration::${property.camel_case}(ref value) =>
                         value.to_css(dest),
                 % endif
