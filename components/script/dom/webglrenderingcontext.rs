@@ -304,10 +304,13 @@ impl WebGLRenderingContext {
 
         //  If an attempt is made to call this function with no
         //  WebGLTexture bound, an INVALID_OPERATION error is generated.
-        if texture.is_none() {
-            self.webgl_error(InvalidOperation);
-            return false;
-        }
+        let texture = match texture {
+            Some(texture) => texture,
+            None => {
+                self.webgl_error(InvalidOperation);
+                return false;
+            }
+        };
 
         // GL_INVALID_ENUM is generated if data_type is not an accepted value.
         match data_type {
@@ -368,6 +371,13 @@ impl WebGLRenderingContext {
         //
         // TODO(emilio): Check limits
         if width < 0 || height < 0 || level < 0 {
+            self.webgl_error(InvalidValue);
+            return false;
+        }
+
+        // GL_INVALID_VALUE is generated if level is greater than zero and the
+        // texture and the texture is not power of two.
+        if level > 0 && !texture.is_power_of_two() {
             self.webgl_error(InvalidValue);
             return false;
         }

@@ -227,6 +227,10 @@ impl WebGLTexture {
         }
     }
 
+    pub fn is_power_of_two(&self) -> bool {
+        self.image_info_at_face(0, 0).is_power_of_two()
+    }
+
     pub fn populate_mip_chain(&self, first_level: u32, last_level: u32) -> WebGLResult<()> {
         let base_image_info = self.image_info_at_face(0, first_level);
         if !base_image_info.is_initialized() {
