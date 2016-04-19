@@ -57,7 +57,7 @@ use layout_interface::{LayoutChan, LayoutRPC};
 use libc;
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData, ReferrerPolicy};
-use net_traits::{Metadata};
+use net_traits::Metadata;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::response::HttpsState;
