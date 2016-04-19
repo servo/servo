@@ -37,7 +37,7 @@
 	* script_traits
 		* APIs to the script crate for crates that don't want to depend on the script crate for build speed reasons.
 	* servo
-		* Entry points for the servo application and libservo embedding library.
+		* Entry point for the libservo embedding library.
 	* style
 		* APIs for parsing CSS and interacting with stylesheets and styled elements.
 	* style_traits
@@ -57,6 +57,8 @@
 		* Embedding implementation for the `glutin` windowing library.
 	* gonk
 		* Embedding implementation for the Firefox OS devices.
+	* servo
+		* Entry point for the servo application.
 * python
 	* servo
 		* Implementations of servo-specific mach commands.

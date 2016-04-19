@@ -1,17 +1,47 @@
 [package]
 
-name = "servo"
+name = "servo_app"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
+build = "build.rs"
 publish = false
 
-[lib]
+[[bin]]
 name = "servo"
-path = "lib.rs"
-crate-type = ["rlib"]
+path = "main.rs"
+test = false
+doc = false
+bench = false
 
 [dev-dependencies]
 image = "0.9"
+
+[dev-dependencies.gfx_tests]
+path = "../../tests/unit/gfx"
+
+[dev-dependencies.layout_tests]
+path = "../../tests/unit/layout"
+
+[dev-dependencies.net_tests]
+path = "../../tests/unit/net"
+
+[dev-dependencies.net_traits_tests]
+path = "../../tests/unit/net_traits"
+
+[dev-dependencies.script_tests]
+path = "../../tests/unit/script"
+
+[dev-dependencies.style_tests]
+path = "../../tests/unit/style"
+
+[dev-dependencies.util_tests]
+path = "../../tests/unit/util"
+
+[dev-dependencies.compiletest_helper]
+path = "../../tests/compiletest/helper"
+
+[dev-dependencies.plugin_compiletest]
+path = "../../tests/compiletest/plugin"
 
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender_traits"
@@ -19,10 +49,16 @@ git = "https://github.com/servo/webrender_traits"
 [dependencies.webrender]
 git = "https://github.com/servo/webrender"
 
+[dependencies.servo]
+path = "../../components/servo"
+
+[dependencies.glutin_app]
+path = "../../ports/glutin"
+optional = true
+
 [features]
-default = ["webdriver"]
-webdriver = ["webdriver_server"]
-energy-profiling = ["profile_traits/energy-profiling"]
+default = ["glutin_app"]
+energy-profiling = ["servo/energy-profiling"]
 
 [profile.release]
 opt-level = 3
@@ -30,59 +66,6 @@ codegen-units = 4
 # Uncomment to profile on Linux:
 # debug = true
 # lto = false
-
-[dependencies.compositing]
-path = "../compositing"
-
-[dependencies.net]
-path = "../net"
-
-[dependencies.net_traits]
-path = "../net_traits"
-
-[dependencies.msg]
-path = "../msg"
-
-[dependencies.profile]
-path = "../profile"
-
-[dependencies.profile_traits]
-path = "../profile_traits"
-
-[dependencies.util]
-path = "../util"
-features = ["non-geckolib"]
-
-[dependencies.script]
-path = "../script"
-
-[dependencies.script_traits]
-path = "../script_traits"
-
-[dependencies.layout]
-path = "../layout"
-
-[dependencies.gfx]
-path = "../gfx"
-
-[dependencies.style]
-path = "../style"
-
-[dependencies.canvas]
-path = "../canvas"
-
-[dependencies.canvas_traits]
-path = "../canvas_traits"
-
-[dependencies.devtools]
-path = "../devtools"
-
-[dependencies.webdriver_server]
-path     = "../webdriver_server"
-optional = true
-
-[dependencies.devtools_traits]
-path = "../devtools_traits"
 
 [dependencies.android_glue]
 version = "0.1.3"
