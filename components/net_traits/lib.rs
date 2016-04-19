@@ -268,7 +268,7 @@ impl Drop for PendingLoadGuard {
 }
 
 impl PendingAsyncLoad {
-    pub fn new(context: LoadContext, 
+    pub fn new(context: LoadContext,
                resource_thread: ResourceThread,
                url: Url,
                pipeline: Option<PipelineId>,

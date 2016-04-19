@@ -28,7 +28,7 @@ fn test_bad_scheme() {
     let (start_chan, start) = ipc::channel().unwrap();
     let url = Url::parse("bogus://whatever").unwrap();
     resource_thread.send(ControlMsg::Load(LoadData::new(LoadContext::Browsing, url, None, None, None),
-    
+
     LoadConsumer::Channel(start_chan), None)).unwrap();
     let response = start.recv().unwrap();
     match response.progress_port.recv().unwrap() {
