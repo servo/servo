@@ -521,7 +521,7 @@ impl ScriptThread {
                port: Receiver<MainThreadScriptMsg>,
                chan: Sender<MainThreadScriptMsg>)
                -> ScriptThread {
-        let runtime = new_rt_and_cx();
+        let runtime = unsafe { new_rt_and_cx() };
 
         unsafe {
             JS_SetWrapObjectCallbacks(runtime.rt(),
