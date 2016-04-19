@@ -133,7 +133,7 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<Pro
 
 /// Create a ResourceThread
 pub fn new_resource_thread(user_agent: String,
-                         devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceThread {
+                           devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceThread {
     let hsts_preload = HstsList::from_servo_preload();
     let (setup_chan, setup_port) = ipc::channel().unwrap();
     let setup_chan_clone = setup_chan.clone();
