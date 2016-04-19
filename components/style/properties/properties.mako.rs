@@ -591,7 +591,7 @@ impl Shorthand {
 
     pub fn name(&self) -> &'static str {
         match *self {
-            % for property in SHORTHANDS:
+            % for property in data.shorthands:
                 Shorthand::${property.camel_case} => "${property.name}",
             % endfor
         }
@@ -755,8 +755,8 @@ impl fmt::Display for PropertyDeclarationName {
 impl ToCss for PropertyDeclaration {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
         match *self {
-            % for property in LONGHANDS:
-                % if property.derived_from is None:
+            % for property in data.longhands:
+                % if not property.derived_from:
                     PropertyDeclaration::${property.camel_case}(ref value) =>
                         value.to_css(dest),
                 % endif
@@ -835,7 +835,7 @@ impl PropertyDeclaration {
     /// This is the case of custom properties and values that contain unsubstituted variables.
     pub fn value_is_unparsed(&self) -> bool {
       match *self {
-          % for property in LONGHANDS:
+          % for property in data.longhands:
               PropertyDeclaration::${property.camel_case}(ref value) => {
                   matches!(*value, DeclaredValue::WithVariables { .. })
               },
@@ -956,7 +956,7 @@ impl PropertyDeclaration {
         // first generate longhand to shorthands lookup map
         <%
             longhand_to_shorthand_map = {}
-            for shorthand in SHORTHANDS:
+            for shorthand in data.shorthands:
                 for sub_property in shorthand.sub_properties:
                     if sub_property.ident not in longhand_to_shorthand_map:
                         longhand_to_shorthand_map[sub_property.ident] = []
@@ -968,7 +968,7 @@ impl PropertyDeclaration {
         %>
 
         // based on lookup results for each longhand, create result arrays
-        % for property in LONGHANDS:
+        % for property in data.longhands:
             static ${property.ident.upper()}: &'static [Shorthand] = &[
                 % for shorthand in longhand_to_shorthand_map.get(property.ident, []):
                     Shorthand::${shorthand},
@@ -977,7 +977,7 @@ impl PropertyDeclaration {
         % endfor
 
         match *self {
-            % for property in LONGHANDS:
+            % for property in data.longhands:
                 PropertyDeclaration::${property.camel_case}(_) => ${property.ident.upper()},
             % endfor
             PropertyDeclaration::Custom(_, _) => &[]
