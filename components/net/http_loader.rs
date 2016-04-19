@@ -386,7 +386,7 @@ fn generate_origin_referer_url(referrer_url: Url) -> String {
     if let Some(relative) = ref_mutable.relative_scheme_data_mut() {
         relative.path = Vec::new();
     }
-    ref_mutable.query = None; 
+    ref_mutable.query = None;
     return ref_mutable.serialize()
 }
 
@@ -419,14 +419,15 @@ fn set_referer(headers: &mut Headers, referrer_policy: Option<ReferrerPolicy>, r
                 Some(ReferrerPolicy::NoReferrer) => None,
                 Some(ReferrerPolicy::OriginOnly) => Some(referrer_origin),
                 Some(ReferrerPolicy::UnsafeUrl) => Some(referrer_url_str),
-                Some(ReferrerPolicy::OriginWhenCrossOrigin) => origin_when_cross_origin_header(url, referrer_url_str, referrer_origin),
+                Some(ReferrerPolicy::OriginWhenCrossOrigin) =>
+                    origin_when_cross_origin_header(url, referrer_url_str, referrer_origin),
                 _ => no_ref_when_downgrade_header(referrer_url, url, referrer_url_str),
             };
             if let Some(referer_val) = referer {
                 headers.set(Referer(referer_val));
             }
         }
-    } 
+    }
 }
 
 pub fn set_request_cookies(url: Url, headers: &mut Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
@@ -615,7 +616,7 @@ pub fn modify_request_headers(headers: &mut Headers,
     if let Some(ref_url) = load_data.referrer_url.clone() {
         set_referer(headers, load_data.referrer_policy.clone(), ref_url, url.clone());
     }
-    
+
     // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
     if load_data.credentials_flag {
         set_request_cookies(url.clone(), headers, cookie_jar);
