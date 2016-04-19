@@ -39,7 +39,7 @@ for (var alias in aliases) {
   testAlias(alias.toLowerCase(), iface);
   testAlias(alias.toUpperCase(), iface);
 
-  if (!alias.endsWith("s")) {
+  if (alias[alias.length - 1] != "s") {
     var plural = alias + "s";
     if (!(plural in aliases)) {
       test(function () {
@@ -66,37 +66,28 @@ test(function() {
 }, "Should throw NOT_SUPPORTED_ERR for unrecognized arguments");
 
 /*
-The following are event interfaces which do actually exist, but must still
-throw since they're absent from the table in the spec
-for document.createEvent().
-This list is not exhaustive.
-*/
+ * The following are event interfaces which do actually exist, but must still
+ * throw since they're absent from the table in the spec for
+ * document.createEvent().  This list is not exhaustive, but includes all
+ * interfaces that it is known some UA does or did not throw for.
+ */
 var someNonCreateableEvents = [
-  "AnimationEvent",
   "AnimationPlayerEvent",
   "ApplicationCacheErrorEvent",
   "AudioProcessingEvent",
   "AutocompleteErrorEvent",
   "BeforeInstallPromptEvent",
-  "BeforeUnloadEvent",
   "BlobEvent",
   "ClipboardEvent",
-  "CloseEvent",
-  "CompositionEvent",
+  "CommandEvent",
+  "DataContainerEvent",
   "DeviceLightEvent",
-  "DeviceMotionEvent",
-  "DeviceOrientationEvent",
-  "DragEvent",
-  "ErrorEvent",
   "ExtendableEvent",
   "ExtendableMessageEvent",
   "FetchEvent",
-  "FocusEvent",
   "FontFaceSetLoadEvent",
   "GamepadEvent",
   "GeofencingEvent",
-  "HashChangeEvent",
-  "IDBVersionChangeEvent",
   "InstallEvent",
   "KeyEvent",
   "MIDIConnectionEvent",
@@ -107,16 +98,17 @@ var someNonCreateableEvents = [
   "MediaQueryListEvent",
   "MediaStreamEvent",
   "MediaStreamTrackEvent",
+  "MouseScrollEvent",
   "MutationEvent",
   "NotificationEvent",
+  "NotifyPaintEvent",
   "OfflineAudioCompletionEvent",
   "OrientationEvent",
-  "PageTransitionEvent",
+  "PageTransition", // Yes, with no "Event"
   "PointerEvent",
-  "PopStateEvent",
+  "PopUpEvent",
   "PresentationConnectionAvailableEvent",
   "PresentationConnectionCloseEvent",
-  "ProgressEvent",
   "PromiseRejectionEvent",
   "PushEvent",
   "RTCDTMFToneChangeEvent",
@@ -125,34 +117,37 @@ var someNonCreateableEvents = [
   "RelatedEvent",
   "ResourceProgressEvent",
   "SVGEvent",
-  "SVGZoomEvent",
+  "ScrollAreaEvent",
   "SecurityPolicyViolationEvent",
   "ServicePortConnectEvent",
   "ServiceWorkerMessageEvent",
+  "SimpleGestureEvent",
   "SpeechRecognitionError",
   "SpeechRecognitionEvent",
   "SpeechSynthesisEvent",
-  "StorageEvent",
   "SyncEvent",
-  "TextEvent",
-  "TrackEvent",
-  "TransitionEvent",
-  "WebGLContextEvent",
+  "TimeEvent",
   "WebKitAnimationEvent",
   "WebKitTransitionEvent",
-  "WheelEvent"
+  "XULCommandEvent",
 ];
 someNonCreateableEvents.forEach(function (eventInterface) {
-  test(function () {
-    assert_throws("NOT_SUPPORTED_ERR", function () {
-      var evt = document.createEvent(eventInterface);
-    });
-  }, 'Should throw NOT_SUPPORTED_ERR for non-legacy event interface "' + eventInterface + '"');
+  // SVGEvents is allowed, but not SVGEvent.  Make sure we only test if it's
+  // not whitelisted.
+  if (!(eventInterface in aliases)) {
+    test(function () {
+      assert_throws("NOT_SUPPORTED_ERR", function () {
+        var evt = document.createEvent(eventInterface);
+      });
+    }, 'Should throw NOT_SUPPORTED_ERR for non-legacy event interface "' + eventInterface + '"');
+  }
 
-  test(function () {
-    assert_throws("NOT_SUPPORTED_ERR", function () {
-      var evt = document.createEvent(eventInterface + "s");
-    });
-  }, 'Should throw NOT_SUPPORTED_ERR for pluralized non-legacy event interface "' + eventInterface + '"');
+  if (!(eventInterface + "s" in aliases)) {
+    test(function () {
+      assert_throws("NOT_SUPPORTED_ERR", function () {
+        var evt = document.createEvent(eventInterface + "s");
+      });
+    }, 'Should throw NOT_SUPPORTED_ERR for pluralized non-legacy event interface "' + eventInterface + 's"');
+  }
 });
 </script>

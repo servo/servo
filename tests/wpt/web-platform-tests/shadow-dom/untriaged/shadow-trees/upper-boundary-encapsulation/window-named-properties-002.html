@@ -25,7 +25,7 @@ policies and contribution forms [3].
 <script>
 function testNameAttribute(elementName) {
     var doc = document.implementation.createHTMLDocument('Title');
-    var shadowRoot = doc.body.createShadowRoot();
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
     var element = doc.createElement(elementName);
     element.name = 'test-name';
     shadowRoot.appendChild(element);

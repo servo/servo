@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Generic Sensor IDL tests</title>
+<link rel="author" title="Tobie Langel" href="http://www.codespeaks.com">
+<link rel="help" href="http://www.w3.org/TR/generic-sensor/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+<style>
+  pre {
+    display: none;
+  }
+</style>
+<div id="log"></div>
+
+<pre id="idl">
+interface Event {
+};
+
+interface Error {
+};
+
+dictionary EventInit {
+};
+
+interface Sensor : EventTarget {
+  readonly attribute SensorState state;
+  readonly attribute SensorReading? reading;
+  void start();
+  void stop();
+  attribute EventHandler onchange;
+  attribute EventHandler onstatechange;
+  attribute EventHandler onerror;
+};
+
+dictionary SensorOptions {
+  double? frequency;
+};
+
+enum SensorState {
+  "idle",
+  "activating",
+  "active",
+  "errored"
+};
+
+interface SensorReading {
+  readonly attribute DOMHighResTimeStamp timeStamp;
+};
+
+[Constructor(DOMString type, SensorReadingEventInit eventInitDict)]
+interface SensorReadingEvent : Event {
+  readonly attribute SensorReading reading;
+};
+
+dictionary SensorReadingEventInit : EventInit {
+  SensorReading reading;
+};
+</pre>
+
+<pre id="generic-idl">
+[Constructor(DOMString type, SensorErrorEventInit errorEventInitDict)]
+interface SensorErrorEvent : Event {
+  readonly attribute Error error;
+};
+
+dictionary SensorErrorEventInit : EventInit {
+  Error error;
+};
+</pre>
+
+<script>
+(function() {
+  "use strict";
+  var idl_array = new IdlArray();
+  idl_array.add_untested_idls(document.getElementById('idl').textContent);
+  idl_array.add_idls(document.getElementById('generic-idl').textContent);
+
+  idl_array.add_objects({
+    SensorErrorEvent: ['new SensorErrorEvent({ error: new TypeError("Boom!") });']
+  });
+
+  idl_array.test();
+})();
+</script>

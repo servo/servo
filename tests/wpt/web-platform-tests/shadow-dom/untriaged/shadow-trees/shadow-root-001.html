@@ -26,7 +26,7 @@ p { color: black; }
 <p>You should see green text saying "PASS" below.</p>
 <div id="host">FAIL</div>
 <script>
-var shadowRoot = window.host.createShadowRoot();
+var shadowRoot = window.host.attachShadow({mode: 'open'});
 shadowRoot.innerHTML =
     '<style>#pass { color: green; }</style>\n' +
     '<div id="pass">PASS</div>';

@@ -13,7 +13,7 @@
         </span>
         <script>
             var parent = document.getElementById('parent');
-            var shadow = parent.createShadowRoot();
+            var shadow = parent.attachShadow({mode: 'open'});
             var child = document.createElement('span');
             child.textContent = "if NOT underlined, it is success.";
             shadow.appendChild(child);

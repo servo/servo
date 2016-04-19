@@ -13,7 +13,7 @@ policies and contribution forms [3].
 <title>Shadow DOM Test: A_10_02_02_01</title>
 <link rel="author" title="Sergey G. Grekhov" href="mailto:sgrekhov@unipro.ru">
 <link rel="help" href="http://www.w3.org/TR/2013/WD-shadow-dom-20130514/#shadow-aware-methods">
-<meta name="assert" content="Extensions to Element Interface: createShadowRoot method creates new instance of Shadow root object">
+<meta name="assert" content="Extensions to Element Interface: attachShadow method creates new instance of Shadow root object">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../../../../html/resources/common.js"></script>
@@ -28,9 +28,9 @@ test(function () {
     var host = d.createElement('div');
     d.body.appendChild(host);
 
-    var s = host.createShadowRoot();
+    var s = host.attachShadow({mode: 'open'});
 
-    assert_true(s instanceof ShadowRoot, 'createShadowRoot() method should create new instance ' +
+    assert_true(s instanceof ShadowRoot, 'attachShadow() method should create new instance ' +
             'of ShadowRoot object');
 
 }, 'A_10_02_02_01_T01');

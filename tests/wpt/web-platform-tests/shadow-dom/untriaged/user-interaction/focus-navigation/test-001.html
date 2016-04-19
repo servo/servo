@@ -40,7 +40,7 @@ A_07_02_01_T01.step(unit(function (ctx) {
 
     var host = d.createElement('div');
     d.body.appendChild(host);
-    var s = host.createShadowRoot();
+    var s = host.attachShadow({mode: 'open'});
 
     var inp1 = d.createElement('input');
     inp1.setAttribute('type', 'text');

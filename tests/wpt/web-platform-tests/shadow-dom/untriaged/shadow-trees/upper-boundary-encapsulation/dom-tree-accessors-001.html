@@ -199,7 +199,7 @@ test(function () {
     body.appendChild(pHost);
     doc.documentElement.appendChild(body);
 
-    var shadowRoot = body.createShadowRoot();
+    var shadowRoot = body.attachShadow({mode: 'open'});
     var pShadow = doc.createElementNS(namespace, 'p');
     pShadow.className = "shadow";
     shadowRoot.appendChild(pShadow);
@@ -213,7 +213,7 @@ test(function () {
 test(function () {
     var doc = document.implementation.createHTMLDocument('');
     populateTestContentToHostDocument(doc);
-    var shadowRoot = doc.documentElement.createShadowRoot();
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
     populateTestContentToShadowRoot(shadowRoot);
 
     shadowRoot.querySelectorAll('p')[0].id = 'test-id';

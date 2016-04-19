@@ -26,7 +26,7 @@ test(function () {
     var d = newHTMLDocument();
     var div = d.createElement('div');
     d.body.appendChild(div);
-    var s = div.createShadowRoot();
+    var s = div.attachShadow({mode: 'open'});
 
     // node in shadow with id
     var input = d.createElement('input');
@@ -52,7 +52,7 @@ test(function () {
         var d = newHTMLDocument();
         var div = d.createElement('div');
         d.body.appendChild(div);
-        var s = div.createShadowRoot();
+        var s = div.attachShadow({mode: 'open'});
 
         var form = d.createElement('form');
         form.setAttribute('id', 'form_id');
