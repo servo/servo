@@ -1442,9 +1442,11 @@ fn test_auth_ui_sets_header_on_401() {
     }
 }
 
+#[test]
 fn test_referer_set_to_origin_with_originonly_policy() {
     let referrer_url = Url::parse("http://username:password@someurl.com/some/path#fragment").unwrap();
     let url = Url::parse("http://mozilla.com").unwrap();
+    let ui_provider = TestProvider::new();
 
     let load_data = LoadData::new(LoadContext::Browsing,
                                   url.clone(),
@@ -1457,18 +1459,19 @@ fn test_referer_set_to_origin_with_originonly_policy() {
 
     let http_state = HttpState::new();
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), &http_state,
-                                                    None, &AssertMustIncludeHeadersRequestFactory {
-                                                            expected_headers: referer_headers,
-                                                            body: <[_]>::to_vec(&[])
-                                                        }, DEFAULT_USER_AGENT.to_owned(),
-                                                        &CancellationListener::new(None));
+    let _ = load(&load_data.clone(), &ui_provider, &http_state, None,
+                 &AssertMustIncludeHeadersRequestFactory {
+                     expected_headers: referer_headers,
+                     body: <[_]>::to_vec(&[])
+                 }, DEFAULT_USER_AGENT.to_owned(),
+                 &CancellationListener::new(None));
 }
 
 #[test]
 fn test_referer_set_to_url_without_fragment_and_userinfo_with_unsafeurl_policy() {
     let referrer_url = Url::parse("http://username:password@someurl.com/some/path#fragment").unwrap();
     let url = Url::parse("http://mozilla.com").unwrap();
+    let ui_provider = TestProvider::new();
 
     let load_data = LoadData::new(LoadContext::Browsing,
                                   url.clone(),
@@ -1481,18 +1484,19 @@ fn test_referer_set_to_url_without_fragment_and_userinfo_with_unsafeurl_policy()
 
     let http_state = HttpState::new();
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), &http_state,
-                                                    None, &AssertMustIncludeHeadersRequestFactory {
-                                                            expected_headers: referer_headers,
-                                                            body: <[_]>::to_vec(&[])
-                                                        }, DEFAULT_USER_AGENT.to_owned(),
-                                                        &CancellationListener::new(None));
+    let _ = load(&load_data.clone(), &ui_provider, &http_state, None,
+                 &AssertMustIncludeHeadersRequestFactory {
+                     expected_headers: referer_headers,
+                     body: <[_]>::to_vec(&[])
+                 }, DEFAULT_USER_AGENT.to_owned(),
+                 &CancellationListener::new(None));
 }
 
 #[test]
 fn test_referer_set_to_origin_with_originwhencrossorigin_policy_across_origins() {
     let referrer_url = Url::parse("http://username:password@someurl.com/some/path#fragment").unwrap();
     let url = Url::parse("http://mozilla.com").unwrap();
+    let ui_provider = TestProvider::new();
 
     let load_data = LoadData::new(LoadContext::Browsing,
                                   url.clone(),
@@ -1505,18 +1509,19 @@ fn test_referer_set_to_origin_with_originwhencrossorigin_policy_across_origins()
 
     let http_state = HttpState::new();
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), &http_state,
-                                                    None, &AssertMustIncludeHeadersRequestFactory {
-                                                            expected_headers: referer_headers,
-                                                            body: <[_]>::to_vec(&[])
-                                                        }, DEFAULT_USER_AGENT.to_owned(),
-                                                        &CancellationListener::new(None));
+    let _ = load(&load_data.clone(), &ui_provider, &http_state, None,
+                 &AssertMustIncludeHeadersRequestFactory {
+                     expected_headers: referer_headers,
+                     body: <[_]>::to_vec(&[])
+                 }, DEFAULT_USER_AGENT.to_owned(),
+                 &CancellationListener::new(None));
 }
 
 #[test]
 fn test_referer_set_to_ref_url_with_originwhencrossorigin_policy_same_origin() {
     let referrer_url = Url::parse("http://username:password@mozilla.com/some/path#fragment").unwrap();
     let url = Url::parse("http://mozilla.com").unwrap();
+    let ui_provider = TestProvider::new();
 
     let load_data = LoadData::new(LoadContext::Browsing,
                                   url.clone(),
@@ -1529,18 +1534,19 @@ fn test_referer_set_to_ref_url_with_originwhencrossorigin_policy_same_origin() {
 
     let http_state = HttpState::new();
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), &http_state,
-                                                    None, &AssertMustIncludeHeadersRequestFactory {
-                                                            expected_headers: referer_headers,
-                                                            body: <[_]>::to_vec(&[])
-                                                        }, DEFAULT_USER_AGENT.to_owned(),
-                                                        &CancellationListener::new(None));
+    let _ = load(&load_data.clone(), &ui_provider, &http_state, None,
+                 &AssertMustIncludeHeadersRequestFactory {
+                     expected_headers: referer_headers,
+                     body: <[_]>::to_vec(&[])
+                 }, DEFAULT_USER_AGENT.to_owned(),
+                 &CancellationListener::new(None));
 }
 
 #[test]
 fn test_http_to_https_considered_cross_origin_for_referer_header_logic() {
     let referrer_url = Url::parse("http://mozilla.com/some/path").unwrap();
     let url = Url::parse("https://mozilla.com").unwrap();
+    let ui_provider = TestProvider::new();
 
     let load_data = LoadData::new(LoadContext::Browsing,
                                   url.clone(),
@@ -1553,18 +1559,19 @@ fn test_http_to_https_considered_cross_origin_for_referer_header_logic() {
 
     let http_state = HttpState::new();
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), &http_state,
-                                                    None, &AssertMustIncludeHeadersRequestFactory {
-                                                            expected_headers: referer_headers,
-                                                            body: <[_]>::to_vec(&[])
-                                                        }, DEFAULT_USER_AGENT.to_owned(),
-                                                        &CancellationListener::new(None));
+    let _ = load(&load_data.clone(), &ui_provider, &http_state, None,
+                 &AssertMustIncludeHeadersRequestFactory {
+                     expected_headers: referer_headers,
+                     body: <[_]>::to_vec(&[])
+                 }, DEFAULT_USER_AGENT.to_owned(),
+                 &CancellationListener::new(None));
 }
 
 #[test]
 fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_https_to_https() {
     let referrer_url = Url::parse("https://username:password@mozilla.com/some/path#fragment").unwrap();
     let url = Url::parse("https://mozilla.com").unwrap();
+    let ui_provider = TestProvider::new();
 
     let load_data = LoadData::new(LoadContext::Browsing,
                                   url.clone(),
@@ -1577,18 +1584,19 @@ fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_https_to_http
 
     let http_state = HttpState::new();
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), &http_state,
-                                                    None, &AssertMustIncludeHeadersRequestFactory {
-                                                            expected_headers: referer_headers,
-                                                            body: <[_]>::to_vec(&[])
-                                                        }, DEFAULT_USER_AGENT.to_owned(),
-                                                        &CancellationListener::new(None));
+    let _ = load(&load_data.clone(), &ui_provider, &http_state, None,
+                 &AssertMustIncludeHeadersRequestFactory {
+                     expected_headers: referer_headers,
+                     body: <[_]>::to_vec(&[])
+                 }, DEFAULT_USER_AGENT.to_owned(),
+                 &CancellationListener::new(None));
 }
 
 #[test]
 fn test_no_referer_set_with_noreferrerwhendowngrade_policy_https_to_http() {
     let referrer_url = Url::parse("https://username:password@mozilla.com/some/path#fragment").unwrap();
     let url = Url::parse("http://mozilla.com").unwrap();
+    let ui_provider = TestProvider::new();
 
     let load_data = LoadData::new(LoadContext::Browsing,
                                   url.clone(),
@@ -1598,8 +1606,8 @@ fn test_no_referer_set_with_noreferrerwhendowngrade_policy_https_to_http() {
 
     let http_state = HttpState::new();
 
-    let _ = load::<AssertRequestMustNotIncludeHeaders>(
-        load_data.clone(), &http_state, None,
+    let _ = load(
+        &load_data.clone(), &ui_provider, &http_state, None,
         &AssertMustNotIncludeHeadersRequestFactory {
             headers_not_expected: vec!["Referer".to_owned()],
             body: <[_]>::to_vec(&[])
@@ -1610,6 +1618,7 @@ fn test_no_referer_set_with_noreferrerwhendowngrade_policy_https_to_http() {
 fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_https() {
     let referrer_url = Url::parse("http://username:password@mozilla.com/some/path#fragment").unwrap();
     let url = Url::parse("https://mozilla.com").unwrap();
+    let ui_provider = TestProvider::new();
 
     let load_data = LoadData::new(LoadContext::Browsing,
                                   url.clone(),
@@ -1622,18 +1631,19 @@ fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_https
 
     let http_state = HttpState::new();
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), &http_state,
-                                                    None, &AssertMustIncludeHeadersRequestFactory {
-                                                            expected_headers: referer_headers,
-                                                            body: <[_]>::to_vec(&[])
-                                                        }, DEFAULT_USER_AGENT.to_owned(),
-                                                        &CancellationListener::new(None));
+    let _ = load(&load_data.clone(), &ui_provider, &http_state, None,
+                 &AssertMustIncludeHeadersRequestFactory {
+                     expected_headers: referer_headers,
+                     body: <[_]>::to_vec(&[])
+                 }, DEFAULT_USER_AGENT.to_owned(),
+                 &CancellationListener::new(None));
 }
 
 #[test]
 fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_http() {
     let referrer_url = Url::parse("http://username:password@mozilla.com/some/path#fragment").unwrap();
     let url = Url::parse("http://mozilla.com").unwrap();
+    let ui_provider = TestProvider::new();
 
     let load_data = LoadData::new(LoadContext::Browsing,
                                   url.clone(),
@@ -1646,18 +1656,19 @@ fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_http(
 
     let http_state = HttpState::new();
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), &http_state,
-                                                    None, &AssertMustIncludeHeadersRequestFactory {
-                                                            expected_headers: referer_headers,
-                                                            body: <[_]>::to_vec(&[])
-                                                        }, DEFAULT_USER_AGENT.to_owned(),
-                                                        &CancellationListener::new(None));
+    let _ = load(&load_data.clone(), &ui_provider, &http_state, None,
+                 &AssertMustIncludeHeadersRequestFactory {
+                     expected_headers: referer_headers,
+                     body: <[_]>::to_vec(&[])
+                 }, DEFAULT_USER_AGENT.to_owned(),
+                 &CancellationListener::new(None));
 }
 
 #[test]
 fn test_no_referrer_policy_follows_noreferrerwhendowngrade_https_to_https() {
     let referrer_url = Url::parse("https://username:password@mozilla.com/some/path#fragment").unwrap();
     let url = Url::parse("https://mozilla.com").unwrap();
+    let ui_provider = TestProvider::new();
 
     let load_data = LoadData::new(LoadContext::Browsing,
                                   url.clone(),
@@ -1670,18 +1681,19 @@ fn test_no_referrer_policy_follows_noreferrerwhendowngrade_https_to_https() {
 
     let http_state = HttpState::new();
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), &http_state,
-                                                    None, &AssertMustIncludeHeadersRequestFactory {
-                                                            expected_headers: referer_headers,
-                                                            body: <[_]>::to_vec(&[])
-                                                        }, DEFAULT_USER_AGENT.to_owned(),
-                                                        &CancellationListener::new(None));
+    let _ = load(&load_data.clone(), &ui_provider, &http_state, None,
+                 &AssertMustIncludeHeadersRequestFactory {
+                     expected_headers: referer_headers,
+                     body: <[_]>::to_vec(&[])
+                 }, DEFAULT_USER_AGENT.to_owned(),
+                 &CancellationListener::new(None));
 }
 
 #[test]
 fn test_no_referrer_policy_follows_noreferrerwhendowngrade_https_to_http() {
     let referrer_url = Url::parse("https://username:password@mozilla.com/some/path#fragment").unwrap();
     let url = Url::parse("http://mozilla.com").unwrap();
+    let ui_provider = TestProvider::new();
 
     let load_data = LoadData::new(LoadContext::Browsing,
                                   url.clone(),
@@ -1691,8 +1703,8 @@ fn test_no_referrer_policy_follows_noreferrerwhendowngrade_https_to_http() {
 
     let http_state = HttpState::new();
 
-    let _ = load::<AssertRequestMustNotIncludeHeaders>(
-        load_data.clone(), &http_state, None,
+    let _ = load(
+        &load_data.clone(), &ui_provider, &http_state, None,
         &AssertMustNotIncludeHeadersRequestFactory {
             headers_not_expected: vec!["Referer".to_owned()],
             body: <[_]>::to_vec(&[])
@@ -1703,6 +1715,7 @@ fn test_no_referrer_policy_follows_noreferrerwhendowngrade_https_to_http() {
 fn test_no_referrer_policy_follows_noreferrerwhendowngrade_http_to_https() {
     let referrer_url = Url::parse("http://username:password@mozilla.com/some/path#fragment").unwrap();
     let url = Url::parse("https://mozilla.com").unwrap();
+    let ui_provider = TestProvider::new();
 
     let load_data = LoadData::new(LoadContext::Browsing,
                                   url.clone(),
@@ -1715,18 +1728,19 @@ fn test_no_referrer_policy_follows_noreferrerwhendowngrade_http_to_https() {
 
     let http_state = HttpState::new();
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), &http_state,
-                                                    None, &AssertMustIncludeHeadersRequestFactory {
-                                                            expected_headers: referer_headers,
-                                                            body: <[_]>::to_vec(&[])
-                                                        }, DEFAULT_USER_AGENT.to_owned(),
-                                                        &CancellationListener::new(None));
+    let _ = load(&load_data.clone(), &ui_provider, &http_state, None,
+                 &AssertMustIncludeHeadersRequestFactory {
+                     expected_headers: referer_headers,
+                     body: <[_]>::to_vec(&[])
+                 }, DEFAULT_USER_AGENT.to_owned(),
+                 &CancellationListener::new(None));
 }
 
 #[test]
 fn test_no_referrer_policy_follows_noreferrerwhendowngrade_http_to_http() {
     let referrer_url = Url::parse("http://username:password@mozilla.com/some/path#fragment").unwrap();
     let url = Url::parse("http://mozilla.com").unwrap();
+    let ui_provider = TestProvider::new();
 
     let load_data = LoadData::new(LoadContext::Browsing,
                                   url.clone(),
@@ -1739,18 +1753,19 @@ fn test_no_referrer_policy_follows_noreferrerwhendowngrade_http_to_http() {
 
     let http_state = HttpState::new();
 
-    let _ = load::<AssertRequestMustIncludeHeaders>(load_data.clone(), &http_state,
-                                                    None, &AssertMustIncludeHeadersRequestFactory {
-                                                            expected_headers: referer_headers,
-                                                            body: <[_]>::to_vec(&[])
-                                                        }, DEFAULT_USER_AGENT.to_owned(),
-                                                        &CancellationListener::new(None));
+    let _ = load(&load_data.clone(), &ui_provider, &http_state, None,
+                 &AssertMustIncludeHeadersRequestFactory {
+                     expected_headers: referer_headers,
+                     body: <[_]>::to_vec(&[])
+                 }, DEFAULT_USER_AGENT.to_owned(),
+                 &CancellationListener::new(None));
 }
 
 #[test]
 fn test_no_referer_set_with_noreferrer_policy() {
     let referrer_url = Url::parse("http://someurl.com").unwrap();
     let url = Url::parse("http://mozilla.com").unwrap();
+    let ui_provider = TestProvider::new();
 
     let load_data = LoadData::new(LoadContext::Browsing,
                                   url.clone(),
@@ -1760,8 +1775,8 @@ fn test_no_referer_set_with_noreferrer_policy() {
 
     let http_state = HttpState::new();
 
-    let _ = load::<AssertRequestMustNotIncludeHeaders>(
-        load_data.clone(), &http_state, None,
+    let _ = load(
+        &load_data.clone(), &ui_provider, &http_state, None,
         &AssertMustNotIncludeHeadersRequestFactory {
             headers_not_expected: vec!["Referer".to_owned()],
             body: <[_]>::to_vec(&[])

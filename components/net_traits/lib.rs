@@ -432,14 +432,3 @@ pub enum ConstellationMsg {
     /// Queries whether a pipeline or its ancestors are private
     IsPrivate(PipelineId, Sender<bool>),
 }
-
-/// Referrer policy set for the environment
-#[derive(HeapSizeOf, Clone, Deserialize, Serialize)]
-pub enum ReferrerPolicy {
-    NoReferrer,
-    NoRefWhenDowngrade,
-    OriginOnly,
-    OriginWhenCrossOrigin,
-    UnsafeUrl,
-}
-
