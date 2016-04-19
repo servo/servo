@@ -5,7 +5,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{reflect_dom_object, Reflectable};
-use euclid::Matrix4;
+use euclid::Matrix4D;
 
 use super::dommatrixreadonly::{DOMMatrixMutateMethods, DOMMatrixReadOnly, DOMMatrixWriteMethods};
 
@@ -23,12 +23,12 @@ impl DOMMatrix {
         }
     }
 
-    fn new_from_matrix4(is2D: bool, matrix: Matrix4) -> DOMMatrix {
-        DOMMatrix::new_inherited(DOMMatrixReadOnly::new_from_matrix4(is2D, matrix))
+    fn new_from_matrix4D(is2D: bool, matrix: Matrix4D<f64>) -> DOMMatrix {
+        DOMMatrix::new_inherited(DOMMatrixReadOnly::new_from_matrix4D(is2D, matrix))
     }
 
-    pub fn new_from_matrix4_rooted(global: GlobalRef, is2D: bool, matrix: Matrix4) -> Root<DOMMatrix> {
-        reflect_dom_object(box DOMMatrix::new_from_matrix4(is2D, matrix), global, Wrap)
+    pub fn new_from_matrix4D_rooted(global: GlobalRef, is2D: bool, matrix: Matrix4D<f64>) -> Root<DOMMatrix> {
+        reflect_dom_object(box DOMMatrix::new_from_matrix4D(is2D, matrix), global, Wrap)
     }
 
     #[allow(unrooted_must_root)]
