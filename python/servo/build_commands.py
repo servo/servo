@@ -230,6 +230,8 @@ class MachCommands(CommandBase):
         if not (self.config["build"]["ccache"] == ""):
             env['CCACHE'] = self.config["build"]["ccache"]
 
+        env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -W unused-extern-crates"
+
         status = call(
             ["cargo", "build"] + opts,
             env=env, cwd=self.servo_crate(), verbose=verbose)
