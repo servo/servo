@@ -1,7 +1,12 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 <%page args="helpers" />
 
 ${helpers.new_style_struct("Outline", is_inherited=False, gecko_name="nsStyleOutline",
-                           additional_methods=[helpers.new_method("outline_is_none_or_hidden_and_has_nonzero_width", "bool")])}
+                           additional_methods=[helpers.new_method("outline_is_none_or_hidden_and_has_nonzero_width",
+                                                                  "bool")])}
 
 // TODO(pcwalton): `invert`
 ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::CurrentColor")}

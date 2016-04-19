@@ -1,8 +1,14 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 <%page args="helpers" />
 
 ${helpers.new_style_struct("Border", is_inherited=False, gecko_name="nsStyleBorder",
-                           additional_methods=[helpers.new_method("border_" + side + "_is_none_or_hidden_and_has_nonzero_width",
-                                                                  "bool") for side in ["top", "right", "bottom", "left"]])}
+                           additional_methods=[helpers.new_method("border_" + side +
+                                                                  "_is_none_or_hidden_and_has_nonzero_width",
+                                                                  "bool") for side in ["top", "right",
+                                                                                       "bottom", "left"]])}
 
 % for side in ["top", "right", "bottom", "left"]:
     ${helpers.predefined_type("border-%s-color" % side, "CSSColor", "::cssparser::Color::CurrentColor")}
