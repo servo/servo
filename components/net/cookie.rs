@@ -66,7 +66,7 @@ impl Cookie {
 
         // Step 7
         let mut path = cookie.path.unwrap_or("".to_owned());
-        if path.is_empty() || path.as_bytes()[0] != b'/' {
+        if path.chars().next() != Some('/') {
             let url_path = request.serialize_path();
             let url_path = url_path.as_ref().map(|path| &**path);
             path = Cookie::default_path(url_path.unwrap_or("")).to_owned();
@@ -96,7 +96,7 @@ impl Cookie {
     // http://tools.ietf.org/html/rfc6265#section-5.1.4
     pub fn default_path(request_path: &str) -> &str {
         // Step 2
-        if request_path.is_empty() || !request_path.starts_with("/") {
+        if request_path.chars().next() != Some('/') {
             return "/";
         }
 
