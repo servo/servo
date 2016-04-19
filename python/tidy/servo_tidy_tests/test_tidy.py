@@ -58,6 +58,10 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('script should use `[[` instead of `[` for conditional testing', errors.next()[2])
         self.assertNoMoreErrors(errors)
 
+    def test_apache2_incomplete(self):
+        errors = tidy.collect_errors_for_files(iterFile('apache2_license.rs'), [], [tidy.check_license])
+        self.assertEqual('incorrect license', errors.next()[2])
+
     def test_rust(self):
         errors = tidy.collect_errors_for_files(iterFile('rust_tidy.rs'), [], [tidy.check_rust], print_text=False)
         self.assertEqual('use statement spans multiple lines', errors.next()[2])
