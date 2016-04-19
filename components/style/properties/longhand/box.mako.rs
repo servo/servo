@@ -9,10 +9,7 @@
 <% data.new_style_struct("Box",
                          inherited=False,
                          gecko_ffi_name="nsStyleDisplay",
-                         additional_methods=[Method("is_floated", "bool"),
-                                             Method("overflow_x_is_visible", "bool"),
-                                             Method("overflow_y_is_visible", "bool"),
-                                             Method("transition_count", "usize")]) %>
+                         additional_methods=[Method("transition_count", "usize")]) %>
 
 // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
 <%helpers:longhand name="display" need_clone="True" custom_cascade="${product == 'servo'}">
@@ -89,7 +86,7 @@
 
 ${helpers.single_keyword("position", "static absolute relative fixed", need_clone=True, extra_gecko_values="sticky")}
 
-<%helpers:single_keyword_computed name="float" values="none left right" gecko_ffi_name="mFloats">
+<%helpers:single_keyword_computed name="float" values="none left right" need_clone="True" gecko_ffi_name="mFloats">
     impl ToComputedValue for SpecifiedValue {
         type ComputedValue = computed_value::T;
 

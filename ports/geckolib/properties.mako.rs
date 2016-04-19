@@ -276,7 +276,7 @@ ${caller.body()}
 // iteratively implement more and more methods.
 <%self:impl_trait style_struct_name="Border"
                   skip_longhands="${['border-left-color', 'border-left-style']}"
-                  skip_additionals="${['border_bottom_is_none_or_hidden_and_has_nonzero_width']}">
+                  skip_additionals="${['border_bottom_has_nonzero_width']}">
     fn set_border_left_color(&mut self, _: longhands::border_left_color::computed_value::T) {
         unimplemented!()
     }
@@ -289,7 +289,10 @@ ${caller.body()}
     fn copy_border_left_style_from(&mut self, _: &Self) {
         unimplemented!()
     }
-    fn border_bottom_is_none_or_hidden_and_has_nonzero_width(&self) -> bool {
+    fn clone_border_left_style(&self) -> longhands::border_left_style::computed_value::T {
+        unimplemented!()
+    }
+    fn border_bottom_has_nonzero_width(&self) -> bool {
         unimplemented!()
     }
 </%self:impl_trait>
