@@ -190,9 +190,8 @@ impl VirtualMethods for HTMLLinkElement {
 
 impl HTMLLinkElement {
     fn handle_stylesheet_url(&self, href: &str) {
-        let window = window_from_node(self);
-        let window = window.r();
-        match window.get_url().join(href) {
+        let document = document_from_node(self);
+        match document.base_url().join(href) {
             Ok(url) => {
                 let element = self.upcast::<Element>();
 
@@ -206,8 +205,7 @@ impl HTMLLinkElement {
                 let media = parse_media_query_list(&mut css_parser);
 
                 // TODO: #8085 - Don't load external stylesheets if the node's mq doesn't match.
-                let doc = window.Document();
-                let script_chan = window.networking_task_source();
+                let script_chan = document.window().networking_task_source();
                 let elem = Trusted::new(self, script_chan.clone());
 
                 let context = Arc::new(Mutex::new(StylesheetContext {
@@ -231,20 +229,19 @@ impl HTMLLinkElement {
                 });
 
                 if self.parser_inserted.get() {
-                    doc.increment_script_blocking_stylesheet_count();
+                    document.increment_script_blocking_stylesheet_count();
                 }
-                doc.load_async(LoadType::Stylesheet(url), response_target);
+                document.load_async(LoadType::Stylesheet(url), response_target);
             }
             Err(e) => debug!("Parsing url {} failed: {}", href, e)
         }
     }
 
     fn handle_favicon_url(&self, rel: &str, href: &str, sizes: &Option<String>) {
-        let window = window_from_node(self);
-        let window = window.r();
-        match window.get_url().join(href) {
+        let document = document_from_node(self);
+        match document.base_url().join(href) {
             Ok(url) => {
-                let ConstellationChan(ref chan) = window.constellation_chan();
+                let ConstellationChan(ref chan) = document.window().constellation_chan();
                 let event = ConstellationMsg::NewFavicon(url.clone());
                 chan.send(event).unwrap();
 
@@ -252,7 +249,7 @@ impl HTMLLinkElement {
                     Some(ref sizes) => MozBrowserEvent::IconChange(rel.to_owned(), url.to_string(), sizes.to_owned()),
                     None => MozBrowserEvent::IconChange(rel.to_owned(), url.to_string(), "".to_owned())
                 };
-                window.Document().trigger_mozbrowser_event(mozbrowser_event);
+                document.trigger_mozbrowser_event(mozbrowser_event);
             }
             Err(e) => debug!("Parsing url {} failed: {}", href, e)
         }
