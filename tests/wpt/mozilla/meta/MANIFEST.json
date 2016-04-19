@@ -5779,6 +5779,30 @@
             "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
           }
         ],
+        "mozilla/table_valign_bottom.html": [
+          {
+            "path": "mozilla/table_valign_bottom.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/table_valign_bottom_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/table_valign_bottom.html"
+          }
+        ],
+        "mozilla/table_valign_middle.html": [
+          {
+            "path": "mozilla/table_valign_middle.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/table_valign_middle_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/table_valign_middle.html"
+          }
+        ],
         "mozilla/webgl/clearcolor.html": [
           {
             "path": "mozilla/webgl/clearcolor.html",
@@ -12439,6 +12463,30 @@
             ]
           ],
           "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
+        }
+      ],
+      "mozilla/table_valign_bottom.html": [
+        {
+          "path": "mozilla/table_valign_bottom.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/table_valign_bottom_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/table_valign_bottom.html"
+        }
+      ],
+      "mozilla/table_valign_middle.html": [
+        {
+          "path": "mozilla/table_valign_middle.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/table_valign_middle_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/table_valign_middle.html"
         }
       ],
       "mozilla/webgl/clearcolor.html": [
