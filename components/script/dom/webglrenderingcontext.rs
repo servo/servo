@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::{CanvasCommonMsg, CanvasMsg};
-use dom::bindings::codegen::Bindings::WebGLActiveInfoBinding::WebGLActiveInfoMethods;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
@@ -68,6 +67,7 @@ bitflags! {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub enum UniformType {
     Int,
     IntVec2,
@@ -90,6 +90,25 @@ impl UniformType {
             UniformType::FloatVec2 => 2,
             UniformType::FloatVec3 => 3,
             UniformType::FloatVec4 => 4,
+        }
+    }
+
+    fn is_compatible_with(&self, gl_type: u32) -> bool {
+        gl_type == self.as_gl_constant() || match *self {
+            // Sampler uniform variables have an index value (the index of the
+            // texture), and as such they have to be set as ints
+            UniformType::Int => gl_type == constants::SAMPLER_2D ||
+                                gl_type == constants::SAMPLER_CUBE,
+            // Don't ask me why, but it seems we must allow setting bool
+            // uniforms with uniform1f.
+            //
+            // See the WebGL conformance test
+            //   conformance/uniforms/gl-uniform-bool.html
+            UniformType::Float => gl_type == constants::BOOL,
+            UniformType::FloatVec2 => gl_type == constants::BOOL_VEC2,
+            UniformType::FloatVec3 => gl_type == constants::BOOL_VEC3,
+            UniformType::FloatVec4 => gl_type == constants::BOOL_VEC4,
+            _ => false,
         }
     }
 
@@ -225,7 +244,7 @@ impl WebGLRenderingContext {
     // https://www.khronos.org/registry/gles/specs/2.0/es_full_spec_2.0.25.pdf#nameddest=section-2.10.4
     fn validate_uniform_parameters<T>(&self,
                                    uniform: Option<&WebGLUniformLocation>,
-                                   type_: UniformType,
+                                   uniform_type: UniformType,
                                    data: Option<&[T]>) -> bool {
         let uniform = match uniform {
             Some(uniform) => uniform,
@@ -233,8 +252,8 @@ impl WebGLRenderingContext {
         };
 
         let program = self.current_program.get();
-        let program = match program {
-            Some(ref program) if program.id() == uniform.program_id() => program,
+        match program {
+            Some(ref program) if program.id() == uniform.program_id() => {},
             _ => {
                 self.webgl_error(InvalidOperation);
                 return false;
@@ -249,28 +268,15 @@ impl WebGLRenderingContext {
             },
         };
 
-        // TODO(autrilla): Don't request this every time, cache it
-        let active_uniform = match program.get_active_uniform(
-            uniform.id() as u32) {
-            Ok(active_uniform) => active_uniform,
-            Err(_) => {
-                self.webgl_error(InvalidOperation);
-                return false;
-            },
-        };
-
-        if data.len() % type_.element_count() != 0 ||
-            (data.len() / type_.element_count() > active_uniform.Size() as usize) {
+        // TODO(emilio): Get more complex uniform info from ANGLE, and use it to
+        // properly validate that the uniform type is compatible with the
+        // uniform type, and that the uniform size matches.
+        if data.len() % uniform_type.element_count() != 0 {
                 self.webgl_error(InvalidOperation);
                 return false;
         }
 
-        if type_.as_gl_constant() != active_uniform.Type() {
-            self.webgl_error(InvalidOperation);
-            return false;
-        }
-
-        return true;
+        true
     }
 
     fn validate_tex_image_parameters(&self,
