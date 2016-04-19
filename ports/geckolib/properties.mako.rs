@@ -216,6 +216,21 @@ impl ${style_struct.trait_name} for ${style_struct.gecko_struct_name} {
     fn copy_${longhand.ident}_from(&mut self, other: &Self) {
         self.gecko.${longhand.gecko_ffi_name} = other.gecko.${longhand.gecko_ffi_name};
     }
+
+    %if longhand.need_clone:
+    fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T {
+        use gecko_style_structs as gss;
+        use style::properties::longhands::${longhand.ident}::computed_value::T as Keyword;
+        // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
+        match self.gecko.${longhand.gecko_ffi_name} as u32 {
+            % for value in longhand.keyword.values_for('gecko'):
+            gss::${longhand.keyword.gecko_constant(value)} => Keyword::${to_rust_ident(value)},
+            % endfor
+            x => panic!("Found unexpected value in style struct for ${longhand.name} property: {}", x),
+        }
+    }
+
+    % endif
     % endfor
 
     /*
@@ -228,6 +243,11 @@ impl ${style_struct.trait_name} for ${style_struct.gecko_struct_name} {
     fn copy_${longhand.ident}_from(&mut self, _: &Self) {
         unimplemented!()
     }
+    % if longhand.need_clone:
+    fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T {
+        unimplemented!()
+    }
+    % endif
     % endfor
     <% additionals = [x for x in style_struct.additional_methods
                       if not (skip_additionals and x.name in skip_additionals)] %>
