@@ -386,7 +386,7 @@ pub mod longhands {
     % endfor
 
     ${new_style_struct("Border", is_inherited=False, gecko_name="nsStyleBorder",
-                       additional_methods=[Method("border_" + side + "_is_none_or_hidden_and_has_nonzero_width",
+                       additional_methods=[Method("border_" + side + "_has_nonzero_width",
                                                   "bool") for side in ["top", "right", "bottom", "left"]])}
 
     % for side in ["top", "right", "bottom", "left"]:
@@ -394,7 +394,7 @@ pub mod longhands {
     % endfor
 
     % for side in ["top", "right", "bottom", "left"]:
-        ${predefined_type("border-%s-style" % side, "BorderStyle", "specified::BorderStyle::none")}
+        ${predefined_type("border-%s-style" % side, "BorderStyle", "specified::BorderStyle::none", need_clone=True)}
     % endfor
 
     % for side in ["top", "right", "bottom", "left"]:
@@ -443,12 +443,12 @@ pub mod longhands {
     % endfor
 
     ${new_style_struct("Outline", is_inherited=False, gecko_name="nsStyleOutline",
-                       additional_methods=[Method("outline_is_none_or_hidden_and_has_nonzero_width", "bool")])}
+                       additional_methods=[Method("outline_has_nonzero_width", "bool")])}
 
     // TODO(pcwalton): `invert`
     ${predefined_type("outline-color", "CSSColor", "::cssparser::Color::CurrentColor")}
 
-    <%self:longhand name="outline-style">
+    <%self:longhand name="outline-style" need_clone="True">
         pub use values::specified::BorderStyle as SpecifiedValue;
         pub fn get_initial_value() -> SpecifiedValue { SpecifiedValue::none }
         pub mod computed_value {
@@ -506,10 +506,7 @@ pub mod longhands {
     // CSS 2.1, Section 9 - Visual formatting model
 
     ${new_style_struct("Box", is_inherited=False, gecko_name="nsStyleDisplay",
-                       additional_methods=[Method("is_floated", "bool"),
-                                           Method("overflow_x_is_visible", "bool"),
-                                           Method("overflow_y_is_visible", "bool"),
-                                           Method("transition_count", "usize")])}
+                       additional_methods=[Method("transition_count", "usize")])}
 
     // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
     <%self:longhand name="display" need_clone="True" custom_cascade="${CONFIG['product'] == 'servo'}">
@@ -586,7 +583,7 @@ pub mod longhands {
 
     ${single_keyword("position", "static absolute relative fixed", need_clone=True, extra_gecko_values="sticky")}
 
-    <%self:single_keyword_computed name="float" values="none left right" gecko_ffi_name="mFloats">
+    <%self:single_keyword_computed name="float" values="none left right" need_clone="True" gecko_ffi_name="mFloats">
         impl ToComputedValue for SpecifiedValue {
             type ComputedValue = computed_value::T;
 
@@ -894,10 +891,11 @@ pub mod longhands {
                      internal=True)}
 
     // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-    ${single_keyword("overflow-x", "visible hidden scroll auto", gecko_constant_prefix="NS_STYLE_OVERFLOW")}
+    ${single_keyword("overflow-x", "visible hidden scroll auto", need_clone=True,
+                     gecko_constant_prefix="NS_STYLE_OVERFLOW")}
 
     // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-    <%self:longhand name="overflow-y">
+    <%self:longhand name="overflow-y" need_clone="True">
         use super::overflow_x;
 
         use cssparser::ToCss;
@@ -6336,8 +6334,10 @@ pub mod style_structs {
             % endfor
             % if style_struct.trait_name == "Border":
                 % for side in ["top", "right", "bottom", "left"]:
-                fn border_${side}_is_none_or_hidden_and_has_nonzero_width(&self) -> bool {
-                    self.border_${side}_style.none_or_hidden() &&
+                fn clone_border_${side}_style(&self) -> longhands::border_${side}_style::computed_value::T {
+                    self.border_${side}_style.clone()
+                }
+                fn border_${side}_has_nonzero_width(&self) -> bool {
                     self.border_${side}_width != ::app_units::Au(0)
                 }
                 % endfor
@@ -6348,14 +6348,14 @@ pub mod style_structs {
                 fn clone_position(&self) -> longhands::position::computed_value::T {
                     self.position.clone()
                 }
-                fn is_floated(&self) -> bool {
-                    self.float != longhands::float::SpecifiedValue::none
+                fn clone_float(&self) -> longhands::float::computed_value::T {
+                    self.float.clone()
                 }
-                fn overflow_x_is_visible(&self) -> bool {
-                    self.overflow_x == longhands::overflow_x::computed_value::T::visible
+                fn clone_overflow_x(&self) -> longhands::overflow_x::computed_value::T {
+                    self.overflow_x.clone()
                 }
-                fn overflow_y_is_visible(&self) -> bool {
-                    self.overflow_y.0 == longhands::overflow_x::computed_value::T::visible
+                fn clone_overflow_y(&self) -> longhands::overflow_y::computed_value::T {
+                    self.overflow_y.clone()
                 }
                 fn transition_count(&self) -> usize {
                     self.transition_property.0.len()
@@ -6395,8 +6395,11 @@ pub mod style_structs {
                     self._servo_text_decorations_in_effect.clone()
                 }
             % elif style_struct.trait_name == "Outline":
-                fn outline_is_none_or_hidden_and_has_nonzero_width(&self) -> bool {
-                    self.outline_style.none_or_hidden() && self.outline_width != ::app_units::Au(0)
+                fn clone_outline_style(&self) -> longhands::outline_style::computed_value::T {
+                    self.outline_style.clone()
+                }
+                fn outline_has_nonzero_width(&self) -> bool {
+                    self.outline_width != ::app_units::Au(0)
                 }
             % elif style_struct.trait_name == "Text":
                 fn has_underline(&self) -> bool {
@@ -7055,7 +7058,7 @@ pub fn cascade<C: ComputedValues>(
     let positioned = matches!(style.get_box().clone_position(),
         longhands::position::SpecifiedValue::absolute |
         longhands::position::SpecifiedValue::fixed);
-    let floated = style.get_box().is_floated();
+    let floated = style.get_box().clone_float() != longhands::float::SpecifiedValue::none;
     if positioned || floated || is_root_element {
         use computed_values::display::T;
 
@@ -7089,7 +7092,8 @@ pub fn cascade<C: ComputedValues>(
     {
         use computed_values::overflow_x::T as overflow;
         use computed_values::overflow_y;
-        match (style.get_box().overflow_x_is_visible(), style.get_box().overflow_y_is_visible()) {
+        match (style.get_box().clone_overflow_x() == longhands::overflow_x::computed_value::T::visible,
+               style.get_box().clone_overflow_y().0 == longhands::overflow_x::computed_value::T::visible) {
             (true, true) => {}
             (true, _) => {
                 style.mutate_box().set_overflow_x(overflow::auto);
@@ -7104,13 +7108,15 @@ pub fn cascade<C: ComputedValues>(
     // The initial value of border-*-width may be changed at computed value time.
     % for side in ["top", "right", "bottom", "left"]:
         // Like calling to_computed_value, which wouldn't type check.
-        if style.get_border().border_${side}_is_none_or_hidden_and_has_nonzero_width() {
+        if style.get_border().clone_border_${side}_style().none_or_hidden() &&
+           style.get_border().border_${side}_has_nonzero_width() {
             style.mutate_border().set_border_${side}_width(Au(0));
         }
     % endfor
 
     // The initial value of outline width may be changed at computed value time.
-    if style.get_outline().outline_is_none_or_hidden_and_has_nonzero_width() {
+    if style.get_outline().clone_outline_style().none_or_hidden() &&
+       style.get_outline().outline_has_nonzero_width() {
         style.mutate_outline().set_outline_width(Au(0));
     }
 
