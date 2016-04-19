@@ -949,8 +949,8 @@ impl LayoutThread {
                     let pipeline_id = self.id.to_webrender();
 
                     // TODO(gw) For now only create a root scrolling layer!
-                    let root_scroll_layer_id = webrender_traits::ScrollLayerId::new(pipeline_id, 0);
                     let mut frame_builder = WebRenderFrameBuilder::new(pipeline_id);
+                    let root_scroll_layer_id = frame_builder.next_scroll_layer_id();
                     let sc_id = rw_data.display_list.as_ref().unwrap().convert_to_webrender(
                         &mut self.webrender_api.as_mut().unwrap(),
                         pipeline_id,
