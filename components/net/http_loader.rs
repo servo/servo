@@ -374,6 +374,16 @@ fn no_ref_when_downgrade_header(referrer_url: Url, url: Url, referrer_url_str: S
     return Some(referrer_url_str);
 }
 
+/// https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-state-origin-when-cross-origin
+fn origin_when_cross_origin_header(url: Url, referrer_url_str: String, referrer_origin: String) -> Option<String> {
+    //TODO: spec notes http to https with same domain is considered cross-origin
+    //opposite is not specified - i am considering that also cross-origin here
+    if referrer_origin == generate_origin_referer_url(url) {
+        return Some(referrer_url_str);
+    }
+    return Some(referrer_origin);
+}
+
 /// https://w3c.github.io/webappsec-referrer-policy/#strip-url
 fn generate_origin_referer_url(referrer_url: Url) -> String {
     let mut ref_mutable = referrer_url.clone();
@@ -413,7 +423,7 @@ fn set_referer(headers: &mut Headers, referrer_policy: Option<ReferrerPolicy>, r
                 Some(ReferrerPolicy::NoReferrer) => None,
                 Some(ReferrerPolicy::OriginOnly) => Some(referrer_origin),
                 Some(ReferrerPolicy::UnsafeUrl) => Some(referrer_url_str),
-                Some(ReferrerPolicy::OriginWhenCrossOrigin) => None,
+                Some(ReferrerPolicy::OriginWhenCrossOrigin) => origin_when_cross_origin_header(url, referrer_url_str, referrer_origin),
                 _ => no_ref_when_downgrade_header(referrer_url, url, referrer_url_str),
             };
             if let Some(referer_val) = referer {
