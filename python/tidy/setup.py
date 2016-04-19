@@ -11,7 +11,7 @@ import os
 from setuptools import setup, find_packages
 
 
-VERSION = '0.0.2'
+VERSION = '0.0.3'
 
 install_requires = [
     "flake8==2.4.1",
