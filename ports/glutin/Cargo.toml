@@ -9,7 +9,7 @@ path = "lib.rs"
 
 [dependencies]
 bitflags = "0.4"
-url = {version = "0.5.7", features = ["heap_size"]}
+url = {version = "1.0.0", features = ["heap_size"]}
 gleam = "0.2.8"
 euclid = {version = "0.6.4", features = ["plugins"]}
 servo-glutin = "0.4"

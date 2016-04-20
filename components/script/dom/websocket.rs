@@ -210,7 +210,7 @@ impl WebSocket {
         // Step 2: Disallow https -> ws connections.
 
         // Step 3: Potentially block access to some ports.
-        let port: u16 = resource_url.port_or_default().unwrap();
+        let port: u16 = resource_url.port_or_known_default().unwrap();
 
         if BLOCKED_PORTS_LIST.iter().any(|&p| p == port) {
             return Err(Error::Security);
@@ -356,7 +356,7 @@ impl WebSocketMethods for WebSocket {
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-url
     fn Url(&self) -> DOMString {
-        DOMString::from(self.url.serialize())
+        DOMString::from(self.url.as_str())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-readystate

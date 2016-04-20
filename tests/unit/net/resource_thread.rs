@@ -8,8 +8,13 @@ use net_traits::hosts::{parse_hostsfile, host_replacement};
 use net_traits::{ControlMsg, LoadData, LoadConsumer, LoadContext, NetworkError, ProgressMsg};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
+use std::net::IpAddr;
 use std::sync::mpsc::channel;
 use url::Url;
+
+fn ip(s: &str) -> IpAddr {
+    s.parse().unwrap()
+}
 
 #[test]
 fn test_exit() {
@@ -37,8 +42,8 @@ fn test_parse_hostsfile() {
     let mock_hosts_file_content = "127.0.0.1 foo.bar.com\n127.0.0.2 servo.test.server";
     let hosts_table = parse_hostsfile(mock_hosts_file_content);
     assert_eq!(2, hosts_table.len());
-    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"foo.bar.com".to_owned()).unwrap());
-    assert_eq!("127.0.0.2".to_owned(), *hosts_table.get(&"servo.test.server".to_owned()).unwrap());
+    assert_eq!(ip("127.0.0.1"), *hosts_table.get("foo.bar.com").unwrap());
+    assert_eq!(ip("127.0.0.2"), *hosts_table.get("servo.test.server").unwrap());
 }
 
 #[test]
@@ -46,7 +51,7 @@ fn test_parse_malformed_hostsfile() {
     let mock_hosts_file_content = "malformed file\n127.0.0.1 foo.bar.com\nservo.test.server 127.0.0.1";
     let hosts_table = parse_hostsfile(mock_hosts_file_content);
     assert_eq!(1, hosts_table.len());
-    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"foo.bar.com".to_owned()).unwrap());
+    assert_eq!(ip("127.0.0.1"), *hosts_table.get("foo.bar.com").unwrap());
 }
 
 #[test]
@@ -54,7 +59,7 @@ fn test_parse_hostsfile_with_line_comment() {
     let mock_hosts_file_content = "# this is a line comment\n127.0.0.1 foo.bar.com\n# anothercomment";
     let hosts_table = parse_hostsfile(mock_hosts_file_content);
     assert_eq!(1, hosts_table.len());
-    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"foo.bar.com".to_owned()).unwrap());
+    assert_eq!(ip("127.0.0.1"), *hosts_table.get("foo.bar.com").unwrap());
 }
 
 #[test]
@@ -62,8 +67,8 @@ fn test_parse_hostsfile_with_end_of_line_comment() {
     let mock_hosts_file_content = "127.0.0.1 foo.bar.com # line ending comment\n127.0.0.2 servo.test.server #comment";
     let hosts_table = parse_hostsfile(mock_hosts_file_content);
     assert_eq!(2, hosts_table.len());
-    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"foo.bar.com".to_owned()).unwrap());
-    assert_eq!("127.0.0.2".to_owned(), *hosts_table.get(&"servo.test.server".to_owned()).unwrap());
+    assert_eq!(ip("127.0.0.1"), *hosts_table.get("foo.bar.com").unwrap());
+    assert_eq!(ip("127.0.0.2"), *hosts_table.get("servo.test.server").unwrap());
 }
 
 #[test]
@@ -71,8 +76,8 @@ fn test_parse_hostsfile_with_2_hostnames_for_1_address() {
     let mock_hosts_file_content = "127.0.0.1 foo.bar.com baz.bar.com";
     let hosts_table = parse_hostsfile(mock_hosts_file_content);
     assert_eq!(2, hosts_table.len());
-    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"foo.bar.com".to_owned()).unwrap());
-    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"baz.bar.com".to_owned()).unwrap());
+    assert_eq!(ip("127.0.0.1"), *hosts_table.get("foo.bar.com").unwrap());
+    assert_eq!(ip("127.0.0.1"), *hosts_table.get("baz.bar.com").unwrap());
 }
 
 #[test]
@@ -80,10 +85,10 @@ fn test_parse_hostsfile_with_4_hostnames_for_1_address() {
     let mock_hosts_file_content = "127.0.0.1 moz.foo.com moz.bar.com moz.baz.com moz.moz.com";
     let hosts_table = parse_hostsfile(mock_hosts_file_content);
     assert_eq!(4, hosts_table.len());
-    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"moz.foo.com".to_owned()).unwrap());
-    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"moz.bar.com".to_owned()).unwrap());
-    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"moz.baz.com".to_owned()).unwrap());
-    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"moz.moz.com".to_owned()).unwrap());
+    assert_eq!(ip("127.0.0.1"), *hosts_table.get("moz.foo.com").unwrap());
+    assert_eq!(ip("127.0.0.1"), *hosts_table.get("moz.bar.com").unwrap());
+    assert_eq!(ip("127.0.0.1"), *hosts_table.get("moz.baz.com").unwrap());
+    assert_eq!(ip("127.0.0.1"), *hosts_table.get("moz.moz.com").unwrap());
 }
 
 #[test]
@@ -91,8 +96,8 @@ fn test_parse_hostsfile_with_tabs_instead_spaces() {
     let mock_hosts_file_content = "127.0.0.1\tfoo.bar.com\n127.0.0.2\tservo.test.server";
     let hosts_table = parse_hostsfile(mock_hosts_file_content);
     assert_eq!(2, hosts_table.len());
-    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"foo.bar.com".to_owned()).unwrap());
-    assert_eq!("127.0.0.2".to_owned(), *hosts_table.get(&"servo.test.server".to_owned()).unwrap());
+    assert_eq!(ip("127.0.0.1"), *hosts_table.get("foo.bar.com").unwrap());
+    assert_eq!(ip("127.0.0.2"), *hosts_table.get("servo.test.server").unwrap());
 }
 
 #[test]
@@ -145,25 +150,25 @@ fn test_parse_hostsfile_with_end_of_line_whitespace()
                                    127.0.0.2 servo.test.server ";
     let hosts_table = parse_hostsfile(mock_hosts_file_content);
     assert_eq!(3, hosts_table.len());
-    assert_eq!("127.0.0.1".to_owned(), *hosts_table.get(&"foo.bar.com".to_owned()).unwrap());
-    assert_eq!("2001:db8:0:0:0:ff00:42:8329".to_owned(), *hosts_table.get(&"moz.foo.com".to_owned()).unwrap());
-    assert_eq!("127.0.0.2".to_owned(), *hosts_table.get(&"servo.test.server".to_owned()).unwrap());
+    assert_eq!(ip("127.0.0.1"), *hosts_table.get("foo.bar.com").unwrap());
+    assert_eq!(ip("2001:db8:0:0:0:ff00:42:8329"), *hosts_table.get("moz.foo.com").unwrap());
+    assert_eq!(ip("127.0.0.2"), *hosts_table.get("servo.test.server").unwrap());
 }
 
 #[test]
 fn test_replace_hosts() {
     let mut host_table = HashMap::new();
-    host_table.insert("foo.bar.com".to_owned(), "127.0.0.1".to_owned());
-    host_table.insert("servo.test.server".to_owned(), "127.0.0.2".to_owned());
+    host_table.insert("foo.bar.com".to_owned(), ip("127.0.0.1"));
+    host_table.insert("servo.test.server".to_owned(), ip("127.0.0.2"));
 
     let url = Url::parse("http://foo.bar.com:8000/foo").unwrap();
-    assert_eq!(host_replacement(&host_table, &url).domain().unwrap(), "127.0.0.1");
+    assert_eq!(host_replacement(&host_table, &url).host_str().unwrap(), "127.0.0.1");
 
     let url = Url::parse("http://servo.test.server").unwrap();
-    assert_eq!(host_replacement(&host_table, &url).domain().unwrap(), "127.0.0.2");
+    assert_eq!(host_replacement(&host_table, &url).host_str().unwrap(), "127.0.0.2");
 
     let url = Url::parse("http://a.foo.bar.com").unwrap();
-    assert_eq!(host_replacement(&host_table, &url).domain().unwrap(), "a.foo.bar.com");
+    assert_eq!(host_replacement(&host_table, &url).host_str().unwrap(), "a.foo.bar.com");
 }
 
 #[test]
