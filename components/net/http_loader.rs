@@ -43,7 +43,7 @@ use time;
 use time::Tm;
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 use tinyfiledialogs;
-use url::Url;
+use url::{Url, Position};
 use util::prefs;
 use util::resource_files::resources_dir_path;
 use util::thread::spawn_named;
@@ -89,7 +89,7 @@ pub fn factory(user_agent: String,
                             Arc<MIMEClassifier>,
                             CancellationListener) + Send> {
     box move |load_data: LoadData, senders, classifier, cancel_listener| {
-        spawn_named(format!("http_loader for {}", load_data.url.serialize()), move || {
+        spawn_named(format!("http_loader for {}", load_data.url), move || {
             load_for_consumer(load_data,
                               senders,
                               classifier,
@@ -118,11 +118,6 @@ pub fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
         Ok(_) => Ok(ReadResult::EOF),
         Err(_) => Err(()),
     }
-}
-
-fn inner_url(url: &Url) -> Url {
-    let inner_url = url.non_relative_scheme_data().unwrap();
-    Url::parse(inner_url).unwrap()
 }
 
 pub struct HttpState {
@@ -399,7 +394,7 @@ fn set_cookies_from_response(url: Url, response: &HttpResponse, cookie_jar: &Arc
 }
 
 fn update_sts_list_from_response(url: &Url, response: &HttpResponse, hsts_list: &Arc<RwLock<HstsList>>) {
-    if url.scheme != "https" {
+    if url.scheme() != "https" {
         return;
     }
 
@@ -526,8 +521,8 @@ pub fn modify_request_headers(headers: &mut Headers,
                               load_data: &LoadData) {
     // Ensure that the host header is set from the original url
     let host = Host {
-        hostname: url.serialize_host().unwrap(),
-        port: url.port_or_default()
+        hostname: url.host_str().unwrap().to_owned(),
+        port: url.port_or_known_default()
     };
     headers.set(host);
 
@@ -576,14 +571,14 @@ fn auth_from_entry(auth_entry: &AuthCacheEntry, headers: &mut Headers) {
 }
 
 fn auth_from_url(doc_url: &Url) -> Option<Authorization<Basic>> {
-    match doc_url.username() {
-        Some(username) if username != "" => {
-            Some(Authorization(Basic {
-                username: username.to_owned(),
-                password: Some(doc_url.password().unwrap_or("").to_owned())
-            }))
-        },
-        _ => None
+    let username = doc_url.username();
+    if username != "" {
+        Some(Authorization(Basic {
+            username: username.to_owned(),
+            password: Some(doc_url.password().unwrap_or("").to_owned())
+        }))
+    } else {
+        None
     }
 }
 
@@ -739,16 +734,16 @@ pub fn load<A, B>(load_data: &LoadData,
     // real URL that should be used for which the source is to be viewed.
     // Change our existing URL to that and keep note that we are viewing
     // the source rather than rendering the contents of the URL.
-    let viewing_source = doc_url.scheme == "view-source";
+    let viewing_source = doc_url.scheme() == "view-source";
     if viewing_source {
-        doc_url = inner_url(&load_data.url);
+        doc_url = Url::parse(&load_data.url[Position::BeforeUsername..]).unwrap();
     }
 
     // Loop to handle redirects.
     loop {
         iters = iters + 1;
 
-        if &*doc_url.scheme == "http" && request_must_be_secured(&doc_url, &http_state.hsts_list) {
+        if doc_url.scheme() == "http" && request_must_be_secured(&doc_url, &http_state.hsts_list) {
             info!("{} is in the strict transport security list, requesting secure host", doc_url);
             doc_url = secure_url(&doc_url);
         }
@@ -758,8 +753,8 @@ pub fn load<A, B>(load_data: &LoadData,
                                       "too many redirects".to_owned()));
         }
 
-        if &*doc_url.scheme != "http" && &*doc_url.scheme != "https" {
-            let s = format!("{} request, but we don't support that scheme", &*doc_url.scheme);
+        if !matches!(doc_url.scheme(), "http" | "https") {
+            let s = format!("{} request, but we don't support that scheme", doc_url.scheme());
             return Err(LoadError::new(doc_url, LoadErrorType::UnsupportedScheme, s));
         }
 
@@ -767,7 +762,7 @@ pub fn load<A, B>(load_data: &LoadData,
             return Err(LoadError::new(doc_url, LoadErrorType::Cancelled, "load cancelled".to_owned()));
         }
 
-        info!("requesting {}", doc_url.serialize());
+        info!("requesting {}", doc_url);
 
         // Avoid automatically preserving request headers when redirects occur.
         // See https://bugzilla.mozilla.org/show_bug.cgi?id=401564 and
@@ -877,7 +872,7 @@ pub fn load<A, B>(load_data: &LoadData,
         });
         metadata.headers = Some(adjusted_headers);
         metadata.status = Some(response.status_raw().clone());
-        metadata.https_state = if doc_url.scheme == "https" {
+        metadata.https_state = if doc_url.scheme() == "https" {
             HttpsState::Modern
         } else {
             HttpsState::None

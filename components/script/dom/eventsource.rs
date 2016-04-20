@@ -82,7 +82,7 @@ impl EventSourceMethods for EventSource {
 
     // https://html.spec.whatwg.org/multipage/#dom-eventsource-url
     fn Url(&self) -> DOMString {
-        DOMString::from(self.url.serialize())
+        DOMString::from(self.url.as_str())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-eventsource-withcredentials

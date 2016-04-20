@@ -21,4 +21,4 @@ path = "../../../components/script"
 path = "../../../components/util"
 
 [dependencies]
-url = {version = "0.5.8", features = ["heap_size"]}
+url = {version = "1.0.0", features = ["heap_size"]}
