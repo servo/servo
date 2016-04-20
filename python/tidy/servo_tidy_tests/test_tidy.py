@@ -61,6 +61,7 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('extra space before :', errors.next()[2])
         self.assertEqual('use &[T] instead of &Vec<T>', errors.next()[2])
         self.assertEqual('use &str instead of &String', errors.next()[2])
+        self.assertEqual('operators should go at the end of the first line', errors.next()[2])
 
     def test_spec_link(self):
         tidy.spec_base_path = base_path
