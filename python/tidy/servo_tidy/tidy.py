@@ -647,6 +647,7 @@ def scan(faster=False, progress=True):
     error = None
     for error in errors:
         print "\r\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
+    print
     if error is None:
-        print "\n\033[92mtidy reported no errors.\033[0m"
+        print "\033[92mtidy reported no errors.\033[0m"
     return int(error is not None)
