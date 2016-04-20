@@ -311,7 +311,7 @@ ${caller.body()}
     }
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Box" skip_longhands="display">
+<%self:impl_trait style_struct_name="Box" skip_longhands="display overflow-y">
 
     // We manually-implement the |display| property until we get general
     // infrastructure for preffing certain values.
@@ -319,6 +319,34 @@ ${caller.body()}
                                             "table-header-group table-footer-group table-row table-column-group " +
                                             "table-column table-cell table-caption list-item flex none") %>
     <%call expr="impl_keyword('display', 'mDisplay', display_keyword, True)"></%call>
+
+    // overflow-y is implemented as a newtype of overflow-x, so we need special handling.
+    // We could generalize this if we run into other newtype keywords.
+    <% overflow_x = data.longhands_by_name["overflow-x"] %>
+    fn set_overflow_y(&mut self, v: longhands::overflow_y::computed_value::T) {
+        use gecko_style_structs as gss;
+        use style::properties::longhands::overflow_x::computed_value::T as BaseType;
+        // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
+        self.gecko.mOverflowY = match v.0 {
+            % for value in overflow_x.keyword.values_for('gecko'):
+                BaseType::${to_rust_ident(value)} => gss::${overflow_x.keyword.gecko_constant(value)} as u8,
+            % endfor
+        };
+    }
+    <%call expr="impl_simple_copy('overflow_y', 'mOverflowY')"></%call>
+    fn clone_overflow_y(&self) -> longhands::overflow_y::computed_value::T {
+        use gecko_style_structs as gss;
+        use style::properties::longhands::overflow_x::computed_value::T as BaseType;
+        use style::properties::longhands::overflow_y::computed_value::T as NewType;
+        // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
+        match self.gecko.mOverflowY as u32 {
+            % for value in overflow_x.keyword.values_for('gecko'):
+            gss::${overflow_x.keyword.gecko_constant(value)} => NewType(BaseType::${to_rust_ident(value)}),
+            % endfor
+            x => panic!("Found unexpected value in style struct for overflow_y property: {}", x),
+        }
+    }
+
 </%self:impl_trait>
 
 % for style_struct in data.style_structs:
