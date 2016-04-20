@@ -118,16 +118,35 @@ pub struct ${style_struct.gecko_struct_name};
     }
 </%def>
 
+<%!
+def is_border_style_masked(ffi_name):
+    return ffi_name.split("[")[0] in ["mBorderStyle", "mOutlineStyle", "mTextDecorationStyle"]
+
+def get_gecko_property(ffi_name):
+    if is_border_style_masked(ffi_name):
+        return "(self.gecko.%s & (gecko_style_structs::BORDER_STYLE_MASK as u8))" % ffi_name
+    else:
+        return "self.gecko.%s" % ffi_name
+
+def set_gecko_property(ffi_name, expr):
+    if is_border_style_masked(ffi_name):
+        return "self.gecko.%s &= !(gecko_style_structs::BORDER_STYLE_MASK as u8);" % ffi_name + \
+               "self.gecko.%s |= %s as u8;" % (ffi_name, expr)
+    else:
+        return "self.gecko.%s = %s;" % (ffi_name, expr)
+%>
+
 <%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword)">
     fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
         use gecko_style_structs as gss;
         use style::properties::longhands::${ident}::computed_value::T as Keyword;
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
-        self.gecko.${gecko_ffi_name} = match v {
+        let result = match v {
             % for value in keyword.values_for('gecko'):
                 Keyword::${to_rust_ident(value)} => gss::${keyword.gecko_constant(value)} as u8,
             % endfor
         };
+        ${set_gecko_property(gecko_ffi_name, "result")}
     }
 </%def>
 
@@ -136,7 +155,7 @@ pub struct ${style_struct.gecko_struct_name};
         use gecko_style_structs as gss;
         use style::properties::longhands::${ident}::computed_value::T as Keyword;
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
-        match self.gecko.${gecko_ffi_name} as u32 {
+        match ${get_gecko_property(gecko_ffi_name)} as u32 {
             % for value in keyword.values_for('gecko'):
             gss::${keyword.gecko_constant(value)} => Keyword::${to_rust_ident(value)},
             % endfor
