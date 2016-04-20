@@ -71,6 +71,7 @@ use dom::processinginstruction::ProcessingInstruction;
 use dom::range::Range;
 use dom::servohtmlparser::{ParserRoot, ParserRef, MutNullableParserField};
 use dom::stylesheetlist::StyleSheetList;
+use dom::cssstylesheet::CSSStyleSheet;
 use dom::text::Text;
 use dom::touch::Touch;
 use dom::touchevent::TouchEvent;
@@ -1812,6 +1813,20 @@ impl Document {
             snapshot.attrs = Some(attrs);
         }
     }
+
+    /*pub fn generate_css_style_sheet(&self, index: u32) -> Root<CSSStyleSheet> {
+
+        //let mut stylesheets = self.stylesheets.borrow_mut();
+        /*stylesheets.unwrap()*/
+        //let (ref mut node, ref mut sheet) = 
+        self.stylesheets.borrow().as_ref().unwrap().iter()
+                        .map(|&(_, ref stylesheet)| stylesheet.clone())
+                        .collect()
+
+        //let sheet = (self.stylesheets.borrow().as_ref().unwrap()[index]).1.clone();
+        let (ref mut node, ref mut sheet) = (*self.stylesheets.borrow()).unwrap()[index as usize];
+        CSSStyleSheet::new(&self.window, *sheet)
+    }*/
 }
 
 
