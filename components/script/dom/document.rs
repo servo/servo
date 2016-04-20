@@ -93,7 +93,7 @@ use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::response::HttpsState;
 use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
-use num::ToPrimitive;
+use num_traits::ToPrimitive;
 use origin::Origin;
 use script_runtime::ScriptChan;
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable};

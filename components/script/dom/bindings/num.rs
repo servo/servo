@@ -4,7 +4,7 @@
 
 //! The `Finite<T>` struct.
 
-use num::Float;
+use num_traits::Float;
 use std::ops::Deref;
 
 /// Encapsulates the IDL restricted float type.

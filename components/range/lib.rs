@@ -13,7 +13,7 @@
 #![deny(unsafe_code)]
 
 extern crate heapsize;
-extern crate num as num_lib;
+extern crate num_traits;
 extern crate rustc_serialize;
 extern crate serde;
 
@@ -43,7 +43,7 @@ impl Int for isize {
     #[inline]
     fn max_value() -> isize { ::std::isize::MAX }
     #[inline]
-    fn from_usize(n: usize) -> Option<isize> { num_lib::NumCast::from(n) }
+    fn from_usize(n: usize) -> Option<isize> { num_traits::NumCast::from(n) }
 }
 impl Int for usize {
     #[inline]

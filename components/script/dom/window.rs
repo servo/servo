@@ -48,7 +48,7 @@ use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceThread;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::storage_thread::{StorageThread, StorageType};
-use num::traits::ToPrimitive;
+use num_traits::ToPrimitive;
 use page::Page;
 use profile_traits::mem;
 use reporter::CSSErrorReporter;
