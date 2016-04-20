@@ -35,9 +35,10 @@ git = "https://github.com/servo/webrender_traits"
 [dependencies]
 cookie = "0.2"
 flate2 = "0.2.0"
-hyper = { version = "0.8", features = [ "serde-serialization" ] }
+hyper = { version = "0.9", features = [ "serde-serialization" ] }
 immeta = "0.3.1"
 log = "0.3.5"
+matches = "0.1"
 mime = "0.2.0"
 mime_guess = "1.6.0"
 openssl = "0.7.6"
@@ -45,9 +46,9 @@ rustc-serialize = "0.3"
 threadpool = "1.0"
 time = "0.1.17"
 unicase = "1.4.0"
-url = {version = "0.5.7", features = ["heap_size"]}
+url = {version = "1.0.0", features = ["heap_size", "rustc-serialize"]}
 uuid = { version = "0.2", features = ["v4"] }
-websocket = "0.16.1"
+websocket = "0.17"
 
 [target.'cfg(any(target_os = "macos", target_os = "linux"))'.dependencies]
 tinyfiledialogs = {git = "https://github.com/jdm/tinyfiledialogs"}

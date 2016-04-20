@@ -25,4 +25,4 @@ rustc-serialize = "0.3"
 selectors = {version = "0.5", features = ["heap_size"]}
 serde = "0.7"
 serde_macros = "0.7"
-url = {version = "0.5.7", features = ["heap_size"]}
+url = {version = "1.0.0", features = ["heap_size"]}

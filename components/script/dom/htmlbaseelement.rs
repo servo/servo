@@ -68,7 +68,7 @@ impl HTMLBaseElementMethods for HTMLBaseElement {
 
         // Step 1.
         if !self.upcast::<Element>().has_attribute(&atom!("href")) {
-            return DOMString::from(document.base_url().serialize());
+            return DOMString::from(document.base_url().as_str());
         }
 
         // Step 2.
@@ -81,7 +81,7 @@ impl HTMLBaseElementMethods for HTMLBaseElement {
         let url_record = fallback_base_url.join(&*url);
 
         // Step 5, 6.
-        DOMString::from(url_record.ok().map_or("".to_owned(), |record| record.serialize()))
+        DOMString::from(url_record.as_ref().map(|url| url.as_str()).unwrap_or(""))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-base-href

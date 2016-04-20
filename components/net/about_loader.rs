@@ -27,8 +27,7 @@ pub fn factory(mut load_data: LoadData,
                classifier: Arc<MIMEClassifier>,
                cancel_listener: CancellationListener) {
     let url = load_data.url.clone();
-    let non_relative_scheme_data = url.non_relative_scheme_data().unwrap();
-    match non_relative_scheme_data {
+    match url.path() {
         "blank" => {
             let metadata = Metadata {
                 final_url: load_data.url,
@@ -49,7 +48,7 @@ pub fn factory(mut load_data: LoadData,
         }
         "crash" => panic!("Loading the about:crash URL."),
         "failure" | "not-found" =>
-            url_from_non_relative_scheme(&mut load_data, &(non_relative_scheme_data.to_owned() + ".html")),
+            url_from_non_relative_scheme(&mut load_data, &(url.path().to_owned() + ".html")),
         "sslfail" => url_from_non_relative_scheme(&mut load_data, "badcert.html"),
         _ => {
             send_error(load_data.url, NetworkError::Internal("Unknown about: URL.".to_owned()), start_chan);
