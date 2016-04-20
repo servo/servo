@@ -210,7 +210,7 @@ impl WebGLRenderingContext {
         };
 
         // TODO(emilio): Get more complex uniform info from ANGLE, and use it to
-        // properly validate that the uniform type is compatible with the
+        // properly validate that the uniform setter type is compatible with the
         // uniform type, and that the uniform size matches.
         if data.len() % uniform_type.element_count() != 0 {
             self.webgl_error(InvalidOperation);
@@ -320,7 +320,7 @@ impl WebGLRenderingContext {
         }
 
         // GL_INVALID_VALUE is generated if level is greater than zero and the
-        // texture and the texture is not power of two.
+        // texture is not power of two.
         if level > 0 &&
            (!(width as u32).is_power_of_two() ||
             !(height as u32).is_power_of_two()) {
