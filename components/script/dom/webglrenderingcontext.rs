@@ -213,8 +213,8 @@ impl WebGLRenderingContext {
         // properly validate that the uniform type is compatible with the
         // uniform type, and that the uniform size matches.
         if data.len() % uniform_type.element_count() != 0 {
-                self.webgl_error(InvalidOperation);
-                return false;
+            self.webgl_error(InvalidOperation);
+            return false;
         }
 
         true
@@ -616,6 +616,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 Err(e) => return self.webgl_error(e),
             }
         } else {
+            slot.set(None);
             // Unbind the current buffer
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::BindBuffer(target, 0)))
@@ -698,20 +699,24 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
             _ => return self.webgl_error(InvalidEnum),
         };
+
         let bound_buffer = match bound_buffer {
             Some(bound_buffer) => bound_buffer,
             None => return self.webgl_error(InvalidValue),
         };
+
         match usage {
             constants::STREAM_DRAW |
             constants::STATIC_DRAW |
             constants::DYNAMIC_DRAW => (),
             _ => return self.webgl_error(InvalidEnum),
         }
+
         let data = match data {
             Some(data) => data,
             None => return self.webgl_error(InvalidValue),
         };
+
         if let Some(data_vec) = array_buffer_view_to_vec::<u8>(data) {
             handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data_vec, usage));
         } else {
