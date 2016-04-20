@@ -284,7 +284,7 @@ impl ${style_struct.trait_name} for ${style_struct.gecko_struct_name} {
     % endif
     % endfor
     <% additionals = [x for x in style_struct.additional_methods
-                      if not x.name in skip_additionals.split()] %>
+                      if skip_additionals != "*" and not x.name in skip_additionals.split()] %>
     % for additional in additionals:
     ${additional.stub()}
     % endfor
@@ -325,16 +325,16 @@ fn static_assert() {
 
 <%self:impl_trait style_struct_name="Border"
                   skip_longhands="border-top-style border-right-style border-bottom-style border-left-style"
-                  skip_additionals="border_bottom_has_nonzero_width">
+                  skip_additionals="*">
 
     % for side in SIDES:
     <% impl_keyword("border_%s_style" % side.ident, "mBorderStyle[%s]" % side.index, border_style_keyword,
                     need_clone=True) %>
-    % endfor
 
-    fn border_bottom_has_nonzero_width(&self) -> bool {
-        unimplemented!()
+    fn border_${side.ident}_has_nonzero_width(&self) -> bool {
+        self.gecko.mComputedBorder.${side.ident} != 0
     }
+    % endfor
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Box" skip_longhands="display overflow-y">
