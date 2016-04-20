@@ -19,7 +19,7 @@ codegen-units = 4
 euclid = {version = "0.6.4", features = ["plugins"]}
 gleam = "0.2.8"
 libc = "0.2"
-url = {version = "0.5.7", features = ["heap_size"]}
+url = {version = "1.0.0", features = ["heap_size"]}
 
 [dependencies.servo]
 path = "../../components/servo"

@@ -60,8 +60,7 @@ use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use time;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
-use url::Url;
-use url::percent_encoding::{utf8_percent_encode, USERNAME_ENCODE_SET, PASSWORD_ENCODE_SET};
+use url::{Url, Position};
 use util::prefs;
 use util::str::DOMString;
 
@@ -360,15 +359,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
                 // Step 9
                 if parsed_url.host().is_some() {
-                    if let Some(scheme_data) = parsed_url.relative_scheme_data_mut() {
-                        if let Some(user_str) = username {
-                            scheme_data.username = utf8_percent_encode(&user_str.0, USERNAME_ENCODE_SET);
-
-                            // ensure that the password is mutated when a username is provided
-                            scheme_data.password = password.map(|pass_str| {
-                                utf8_percent_encode(&pass_str.0, PASSWORD_ENCODE_SET)
-                            });
-                        }
+                    if let Some(user_str) = username {
+                        parsed_url.set_username(&user_str.0).unwrap();
+                        let password = password.as_ref().map(|pass_str| &*pass_str.0);
+                        parsed_url.set_password(password).unwrap();
                     }
                 }
 
@@ -628,24 +622,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                                                   true);
         match cors_request {
             Ok(None) => {
-                let mut buf = String::new();
-                buf.push_str(&referer_url.scheme);
-                buf.push_str("://");
-
-                if let Some(ref h) = referer_url.serialize_host() {
-                    buf.push_str(h);
-                }
-
-                if let Some(ref p) = referer_url.port().as_ref() {
-                    buf.push_str(":");
-                    buf.push_str(&p.to_string());
-                }
-
-                if let Some(ref h) = referer_url.serialize_path() {
-                    buf.push_str(h);
-                }
-
-                self.request_headers.borrow_mut().set_raw("Referer".to_owned(), vec![buf.into_bytes()]);
+                let bytes = referer_url[..Position::AfterPath].as_bytes().to_vec();
+                self.request_headers.borrow_mut().set_raw("Referer".to_owned(), vec![bytes]);
             },
             Ok(Some(ref req)) => self.insert_trusted_header("origin".to_owned(),
                                                             req.origin.to_string()),
@@ -909,7 +887,7 @@ impl XMLHttpRequest {
             debug!("Bypassing cross origin check");
         }
 
-        *self.response_url.borrow_mut() = metadata.final_url.serialize_no_fragment();
+        *self.response_url.borrow_mut() = metadata.final_url[..Position::AfterQuery].to_owned();
 
         // XXXManishearth Clear cache entries in case of a network error
         self.process_partial_response(XHRProgress::HeadersReceived(gen_id, metadata.headers, metadata.status));

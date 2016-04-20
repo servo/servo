@@ -40,7 +40,7 @@ impl Cookie {
             _ => (false, None)
         };
 
-        let url_host = request.host().map_or("".to_owned(), |host| host.serialize());
+        let url_host = request.host_str().unwrap_or("").to_owned();
 
         // Step 4
         let mut domain = cookie.domain.clone().unwrap_or("".to_owned());
@@ -68,9 +68,7 @@ impl Cookie {
         // Step 7
         let mut path = cookie.path.unwrap_or("".to_owned());
         if path.chars().next() != Some('/') {
-            let url_path = request.serialize_path();
-            let url_path = url_path.as_ref().map(|path| &**path);
-            path = Cookie::default_path(url_path.unwrap_or("")).to_owned();
+            path = Cookie::default_path(request.path()).to_owned();
         }
         cookie.path = Some(path);
 
@@ -147,26 +145,26 @@ impl Cookie {
 
     // http://tools.ietf.org/html/rfc6265#section-5.4 step 1
     pub fn appropriate_for_url(&self, url: &Url, source: CookieSource) -> bool {
-        let domain = url.host().map(|host| host.serialize());
+        let domain = url.host_str();
         if self.host_only {
-            if self.cookie.domain != domain {
+            if self.cookie.domain.as_ref().map(String::as_str) != domain {
                 return false;
             }
         } else {
-            if let (Some(ref domain), &Some(ref cookie_domain)) = (domain, &self.cookie.domain) {
+            if let (Some(domain), &Some(ref cookie_domain)) = (domain, &self.cookie.domain) {
                 if !Cookie::domain_match(domain, cookie_domain) {
                     return false;
                 }
             }
         }
 
-        if let (Some(ref path), &Some(ref cookie_path)) = (url.serialize_path(), &self.cookie.path) {
-            if !Cookie::path_match(path, cookie_path) {
+        if let Some(ref cookie_path) = self.cookie.path {
+            if !Cookie::path_match(url.path(), cookie_path) {
                 return false;
             }
         }
 
-        if self.cookie.secure && url.scheme != "https" {
+        if self.cookie.secure && url.scheme() != "https" {
             return false;
         }
         if self.cookie.httponly && source == CookieSource::NonHTTP {

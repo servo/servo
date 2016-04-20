@@ -316,7 +316,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
     fn CurrentSrc(&self) -> DOMString {
         let ref url = self.current_request.borrow().url;
         match *url {
-            Some(ref url) => DOMString::from(url.serialize()),
+            Some(ref url) => DOMString::from(url.as_str()),
             None => DOMString::from(""),
         }
     }

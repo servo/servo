@@ -448,7 +448,7 @@ impl HTMLScriptElement {
         let window = window_from_node(self);
         let mut rval = RootedValue::new(window.get_cx(), UndefinedValue());
         window.evaluate_script_on_global_with_result(&*source,
-                                                         &*url.serialize(),
+                                                         url.as_str(),
                                                          rval.handle_mut());
 
         // Step 2.b.7.
