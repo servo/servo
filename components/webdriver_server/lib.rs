@@ -14,8 +14,6 @@ extern crate compositing;
 extern crate hyper;
 extern crate image;
 extern crate ipc_channel;
-#[macro_use]
-extern crate log;
 extern crate msg;
 extern crate regex;
 extern crate rustc_serialize;

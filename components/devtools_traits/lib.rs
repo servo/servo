@@ -25,7 +25,6 @@ extern crate msg;
 extern crate serde;
 extern crate time;
 extern crate url;
-extern crate util;
 
 use hyper::header::Headers;
 use hyper::http::RawStatus;
