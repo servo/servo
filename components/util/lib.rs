@@ -18,6 +18,7 @@
 #![deny(unsafe_code)]
 
 extern crate app_units;
+#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
 extern crate deque;
@@ -27,6 +28,7 @@ extern crate heapsize;
 extern crate ipc_channel;
 #[cfg(feature = "non-geckolib")]
 extern crate js;
+#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
 extern crate libc;
