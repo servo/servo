@@ -22,13 +22,16 @@ use msg::constellation_msg::{self, Key};
 use net_traits::net_error_list::NetError;
 use script_traits::{TouchEventType, TouchpadPressurePhase};
 use std::cell::{Cell, RefCell};
+#[cfg(not(target_os = "android"))]
 use std::os::raw::c_void;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender};
 use style_traits::cursor::Cursor;
 use url::Url;
 use util::geometry::ScreenPx;
-use util::opts::{self, RenderApi};
+use util::opts;
+#[cfg(not(target_os = "android"))]
+use util::opts::RenderApi;
 
 static mut g_nested_event_loop_listener: Option<*mut (NestedEventLoopListener + 'static)> = None;
 
