@@ -660,6 +660,7 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
 
 
 def check_css_properties_json(topdir):
+    print("Testing generation of css-properties.json...")
     filename = path.join(topdir, "target", "doc", "servo", "css-properties.json")
 
     if path.exists(filename):
@@ -675,3 +676,4 @@ def check_css_properties_json(topdir):
     assert len(properties) >= 100
     assert "margin-top" in properties
     assert "margin" in properties
+    print("OK")
