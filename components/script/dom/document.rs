@@ -74,6 +74,7 @@ use dom::progressevent::ProgressEvent;
 use dom::range::Range;
 use dom::storageevent::StorageEvent;
 use dom::stylesheetlist::StyleSheetList;
+use dom::cssstylesheet::CSSStyleSheet;
 use dom::text::Text;
 use dom::touch::Touch;
 use dom::touchevent::TouchEvent;

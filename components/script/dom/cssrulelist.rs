@@ -11,7 +11,6 @@ use dom::cssrule::CSSRule;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use heapsize::HeapSizeOf;
-use style::stylesheets;
 
 #[dom_struct]
 pub struct CSSRuleList {
