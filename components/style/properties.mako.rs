@@ -351,8 +351,8 @@ pub mod longhands {
         </%call>
     </%def>
 
-    <%def name="predefined_type(name, type, initial_value, parse_method='parse', products='gecko servo')">
-        <%self:longhand name="${name}" products="${products}">
+    <%def name="predefined_type(name, type, initial_value, parse_method='parse', **kwargs)">
+        <%call expr="longhand(name, **kwargs)">
             #[allow(unused_imports)]
             use app_units::Au;
             pub type SpecifiedValue = specified::${type};
@@ -364,7 +364,7 @@ pub mod longhands {
                                    -> Result<SpecifiedValue, ()> {
                 specified::${type}::${parse_method}(input)
             }
-        </%self:longhand>
+        </%call>
     </%def>
 
 
