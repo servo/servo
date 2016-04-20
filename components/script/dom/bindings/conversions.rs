@@ -53,7 +53,7 @@ use js::jsapi::{Type};
 use js::jsval::{ObjectValue, StringValue};
 use js::rust::ToString;
 use libc;
-use num::Float;
+use num_traits::Float;
 use std::{ptr, mem, slice};
 pub use util::non_geckolib::{StringificationBehavior, jsstring_to_str};
 use util::str::DOMString;

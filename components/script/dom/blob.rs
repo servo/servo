@@ -12,7 +12,7 @@ use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
 use encoding::all::UTF_8;
 use encoding::types::{EncoderTrap, Encoding};
-use num::ToPrimitive;
+use num_traits::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
