@@ -1858,6 +1858,14 @@ impl NodeMethods for Node {
         }
     }
 
+    // https://dom.spec.whatwg.org/#dom-node-rootnode
+    fn RootNode(&self) -> Root<Node> {
+        match self.GetParentNode() {
+            Some(parent) => parent.RootNode(),
+            None => Root::from_ref(&self)
+        }
+    }
+
     // https://dom.spec.whatwg.org/#dom-node-parentnode
     fn GetParentNode(&self) -> Option<Root<Node>> {
         self.parent_node.get()
