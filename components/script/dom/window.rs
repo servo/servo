@@ -74,6 +74,7 @@ use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
+use style::properties::longhands::{overflow_x};
 use style::selector_impl::PseudoElement;
 use task_source::TaskSource;
 use task_source::dom_manipulation::{DOMManipulationTaskSource, DOMManipulationTask};
@@ -911,11 +912,13 @@ impl Window {
         //TODO Step 11
         //let document = self.Document();
         // Step 12
-        self.perform_a_scroll(x.to_f32().unwrap_or(0.0f32), y.to_f32().unwrap_or(0.0f32), behavior, None);
+        self.perform_a_scroll(x.to_f32().unwrap_or(0.0f32), y.to_f32().unwrap_or(0.0f32),
+                              LayerId::null(), behavior, None);
     }
 
     /// https://drafts.csswg.org/cssom-view/#perform-a-scroll
-    pub fn perform_a_scroll(&self, x: f32, y: f32, behavior: ScrollBehavior, element: Option<&Element>) {
+    pub fn perform_a_scroll(&self, x: f32, y: f32, layer_id: LayerId,
+                            behavior: ScrollBehavior, element: Option<&Element>) {
         //TODO Step 1
         let point = Point2D::new(x, y);
         let smooth = match behavior {
@@ -934,7 +937,7 @@ impl Window {
         self.current_viewport.set(Rect::new(Point2D::new(Au::from_f32_px(x), Au::from_f32_px(y)), size));
 
         self.compositor.send(ScriptToCompositorMsg::ScrollFragmentPoint(
-                                                         self.pipeline(), LayerId::null(), point, smooth)).unwrap()
+                                                         self.pipeline(), layer_id, point, smooth)).unwrap()
     }
 
     pub fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
@@ -1120,6 +1123,40 @@ impl Window {
                     ReflowQueryType::NodeScrollGeometryQuery(node),
                     ReflowReason::Query);
         self.layout_rpc.node_scroll_area().client_rect
+    }
+
+    pub fn overflow_query(&self, node: TrustedNodeAddress) -> Point2D<overflow_x::computed_value::T> {
+        self.reflow(ReflowGoal::ForScriptQuery,
+                    ReflowQueryType::NodeOverflowQuery(node),
+                    ReflowReason::Query);
+        self.layout_rpc.node_overflow().0.unwrap()
+    }
+
+    pub fn scroll_offset_query(&self, node: TrustedNodeAddress) -> Point2D<f32> {
+        self.reflow(ReflowGoal::ForScriptQuery,
+                    ReflowQueryType::NodeLayerIdQuery(node),
+                    ReflowReason::Query);
+        let layer_id = self.layout_rpc.node_layer_id().layer_id;
+        let pipeline_id = self.id;
+
+        let (send, recv) = ipc::channel::<Point2D<f32>>().unwrap();
+        self.compositor.send(ScriptToCompositorMsg::GetScrollOffset(pipeline_id, layer_id, send)).unwrap();
+        recv.recv().unwrap_or(Point2D::zero())
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scroll
+    pub fn scroll_node(&self, node: TrustedNodeAddress,
+                       x_: f64, y_: f64, behavior: ScrollBehavior) {
+
+        self.reflow(ReflowGoal::ForScriptQuery,
+                    ReflowQueryType::NodeLayerIdQuery(node),
+                    ReflowReason::Query);
+
+        let layer_id = self.layout_rpc.node_layer_id().layer_id;
+
+        // Step 12
+        self.perform_a_scroll(x_.to_f32().unwrap_or(0.0f32), y_.to_f32().unwrap_or(0.0f32),
+                              layer_id, behavior, None);
     }
 
     pub fn resolved_style_query(&self,
@@ -1476,6 +1513,8 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
         ReflowQueryType::ContentBoxesQuery(_n) => "\tContentBoxesQuery",
         ReflowQueryType::HitTestQuery(_n, _o) => "\tHitTestQuery",
         ReflowQueryType::NodeGeometryQuery(_n) => "\tNodeGeometryQuery",
+        ReflowQueryType::NodeLayerIdQuery(_n) => "\tNodeLayerIdQuery",
+        ReflowQueryType::NodeOverflowQuery(_n) => "\tNodeOverFlowQuery",
         ReflowQueryType::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",
         ReflowQueryType::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
         ReflowQueryType::OffsetParentQuery(_n) => "\tOffsetParentQuery",

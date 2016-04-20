@@ -98,6 +98,10 @@ pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'stati
                 compositor_proxy.send(Msg::TouchEventProcessed(result))
             }
 
+            ScriptToCompositorMsg::GetScrollOffset(pid, lid, send) => {
+                compositor_proxy.send(Msg::GetScrollOffset(pid, lid, send));
+            }
+
             ScriptToCompositorMsg::Exited => break,
         }
     }
@@ -231,6 +235,8 @@ pub enum Msg {
     MoveTo(Point2D<i32>),
     /// Resize the window to size
     ResizeTo(Size2D<u32>),
+    /// Get scroll offset of a layer
+    GetScrollOffset(PipelineId, LayerId, IpcSender<Point2D<f32>>),
     /// A pipeline was shut down.
     // This message acts as a synchronization point between the constellation,
     // when it shuts down a pipeline, to the compositor; when the compositor
@@ -272,6 +278,7 @@ impl Debug for Msg {
             Msg::MoveTo(..) => write!(f, "MoveTo"),
             Msg::ResizeTo(..) => write!(f, "ResizeTo"),
             Msg::PipelineExited(..) => write!(f, "PipelineExited"),
+            Msg::GetScrollOffset(..) => write!(f, "GetScrollOffset"),
         }
     }
 }
