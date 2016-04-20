@@ -5,6 +5,7 @@
 //! A thread that takes a URL and streams back the binary data.
 
 use about_loader;
+use chrome_loader;
 use cookie;
 use cookie_storage::CookieStorage;
 use data_loader;
@@ -21,7 +22,7 @@ use net_traits::LoadContext;
 use net_traits::ProgressMsg::Done;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceThread, ResponseAction};
 use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
-use net_traits::{WebSocketCommunicate, WebSocketConnectData};
+use net_traits::{NetworkError, WebSocketCommunicate, WebSocketConnectData};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::cell::Cell;
@@ -55,11 +56,11 @@ impl ProgressSender {
     }
 }
 
-pub fn send_error(url: Url, err: String, start_chan: LoadConsumer) {
+pub fn send_error(url: Url, err: NetworkError, start_chan: LoadConsumer) {
     let mut metadata: Metadata = Metadata::default(url);
     metadata.status = None;
 
-    if let Ok(p) = start_sending_opt(start_chan, metadata) {
+    if let Ok(p) = start_sending_opt(start_chan, metadata, Some(err.clone())) {
         p.send(Done(Err(err))).unwrap();
     }
 }
@@ -107,16 +108,19 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
         metadata.content_type = Some(ContentType(Mime(mime_tp, mime_sb, vec![])));
     }
 
-    start_sending_opt(start_chan, metadata)
+    start_sending_opt(start_chan, metadata, None)
 }
 
 /// For use by loaders in responding to a Load message.
-fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<ProgressSender, ()> {
+/// It takes an optional NetworkError, so that we can extract the SSL Validation errors
+/// and take it to the HTML parser
+fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata,
+                     network_error: Option<NetworkError>) -> Result<ProgressSender, ()> {
     match start_chan {
         LoadConsumer::Channel(start_chan) => {
             let (progress_chan, progress_port) = ipc::channel().unwrap();
             let result = start_chan.send(LoadResponse {
-                metadata:      metadata,
+                metadata: metadata,
                 progress_port: progress_port,
             });
             match result {
@@ -125,7 +129,13 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<Pro
             }
         }
         LoadConsumer::Listener(target) => {
-            target.invoke_with_listener(ResponseAction::HeadersAvailable(metadata));
+            match network_error {
+                Some(NetworkError::SslValidation(url)) => {
+                    let error = NetworkError::SslValidation(url);
+                    target.invoke_with_listener(ResponseAction::HeadersAvailable(Err(error)));
+                }
+                _ => target.invoke_with_listener(ResponseAction::HeadersAvailable(Ok(metadata))),
+            }
             Ok(ProgressSender::Listener(target))
         }
     }
@@ -323,6 +333,7 @@ impl ResourceManager {
 
         let cancel_listener = CancellationListener::new(cancel_resource);
         let loader = match &*load_data.url.scheme {
+            "chrome" => from_factory(chrome_loader::factory),
             "file" => from_factory(file_loader::factory),
             "http" | "https" | "view-source" => {
                 let http_state = HttpState {
@@ -339,7 +350,7 @@ impl ResourceManager {
             "about" => from_factory(about_loader::factory),
             _ => {
                 debug!("resource_thread: no loader for scheme {}", load_data.url.scheme);
-                send_error(load_data.url, "no loader for scheme".to_owned(), consumer);
+                send_error(load_data.url, NetworkError::Internal("no loader for scheme".to_owned()), consumer);
                 return
             }
         };

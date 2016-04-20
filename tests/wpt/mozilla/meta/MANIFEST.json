@@ -5779,6 +5779,18 @@
             "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
           }
         ],
+        "mozilla/sslfail.html": [
+          {
+            "path": "mozilla/sslfail.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/sslfail-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/sslfail.html"
+          }
+        ],
         "mozilla/webgl/clearcolor.html": [
           {
             "path": "mozilla/webgl/clearcolor.html",
@@ -12439,6 +12451,18 @@
             ]
           ],
           "url": "/_mozilla/mozilla/iframe/resize_after_load.html"
+        }
+      ],
+      "mozilla/sslfail.html": [
+        {
+          "path": "mozilla/sslfail.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/sslfail-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/sslfail.html"
         }
       ],
       "mozilla/webgl/clearcolor.html": [

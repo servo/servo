@@ -20,6 +20,7 @@ use msg::constellation_msg::PipelineId;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net::hsts::HstsEntry;
+use net::http_loader::LoadErrorType;
 use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpResponse, UIProvider, HttpState};
 use net::resource_thread::{AuthCacheEntry, CancellationListener};
 use net_traits::{LoadData, CookieSource, LoadContext, IncludeSubdomains};
@@ -1075,9 +1076,8 @@ fn test_load_errors_when_there_a_redirect_loop() {
 
     match load(&load_data, &ui_provider, &http_state, None, &Factory,
                DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None)) {
-        Err(LoadError::InvalidRedirect(_, msg)) => {
-            assert_eq!(msg, "redirect loop");
-        },
+        Err(ref load_err) if load_err.error == LoadErrorType::InvalidRedirect =>
+            assert_eq!(&load_err.reason, "redirect loop"),
         _ => panic!("expected max redirects to fail")
     }
 }
@@ -1110,10 +1110,11 @@ fn test_load_errors_when_there_is_too_many_redirects() {
 
     match load(&load_data, &ui_provider, &http_state, None, &Factory,
                DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None)) {
-        Err(LoadError::MaxRedirects(url, num_redirects)) => {
+        Err(LoadError { error: LoadErrorType::MaxRedirects(num_redirects),
+                        url, .. }) => {
             assert_eq!(num_redirects, redirect_limit as u32);
-            assert_eq!(url.domain().unwrap(), "mozilla.com")
-        },
+            assert_eq!(url.domain().unwrap(), "mozilla.com");
+        }
         _ => panic!("expected max redirects to fail")
     }
 
@@ -1166,7 +1167,7 @@ impl HttpRequestFactory for DontConnectFactory {
     type R = MockRequest;
 
     fn create(&self, url: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-        Err(LoadError::Connection(url, "should not have connected".to_owned()))
+        Err(LoadError::new(url, LoadErrorType::Connection, "should not have connected".to_owned()))
     }
 }
 
@@ -1184,7 +1185,7 @@ fn test_load_errors_when_scheme_is_not_http_or_https() {
                &DontConnectFactory,
                DEFAULT_USER_AGENT.to_owned(),
                &CancellationListener::new(None)) {
-        Err(LoadError::UnsupportedScheme(_)) => {}
+        Err(ref load_err) if load_err.error == LoadErrorType::UnsupportedScheme => (),
         _ => panic!("expected ftp scheme to be unsupported")
     }
 }
@@ -1203,7 +1204,7 @@ fn test_load_errors_when_viewing_source_and_inner_url_scheme_is_not_http_or_http
                &DontConnectFactory,
                DEFAULT_USER_AGENT.to_owned(),
                &CancellationListener::new(None)) {
-        Err(LoadError::UnsupportedScheme(_)) => {}
+        Err(ref load_err) if load_err.error == LoadErrorType::UnsupportedScheme => (),
         _ => panic!("expected ftp scheme to be unsupported")
     }
 }
@@ -1245,7 +1246,7 @@ fn test_load_errors_when_cancelled() {
                &Factory,
                DEFAULT_USER_AGENT.to_owned(),
                &cancel_listener) {
-        Err(LoadError::Cancelled(_, _)) => (),
+        Err(ref load_err) if load_err.error == LoadErrorType::Cancelled => (),
         _ => panic!("expected load cancelled error!")
     }
 }

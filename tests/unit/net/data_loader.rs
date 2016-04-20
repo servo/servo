@@ -7,7 +7,7 @@ extern crate hyper;
 use ipc_channel::ipc;
 use net_traits::LoadConsumer::Channel;
 use net_traits::ProgressMsg::{Payload, Done};
-use net_traits::{LoadData, LoadContext};
+use net_traits::{LoadData, LoadContext, NetworkError};
 use self::hyper::header::ContentType;
 use self::hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 
@@ -36,7 +36,7 @@ fn assert_parse(url:          &'static str,
 
     match data {
         None => {
-            assert_eq!(progress, Done(Err("invalid data uri".to_owned())));
+            assert_eq!(progress, Done(Err(NetworkError::Internal("invalid data uri".to_owned()))));
         }
         Some(dat) => {
             assert_eq!(progress, Payload(dat));
