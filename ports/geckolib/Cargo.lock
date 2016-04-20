@@ -189,6 +189,16 @@ version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "idna"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-url?branch=1.0.0-pretending-to-be-0.5.9#c0807d7ee95ebc99ba854c75305d8a0434012f22"
+dependencies = [
+ "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-bidi 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-normalization 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "ipc-channel"
 version = "0.2.2"
 source = "git+https://github.com/servo/ipc-channel#e43fb22c431740a9bc54ce96caebd0e67d1a0586"
@@ -520,18 +530,21 @@ dependencies = [
 [[package]]
 name = "url"
 version = "0.5.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/servo/rust-url?branch=1.0.0-pretending-to-be-0.5.9#c0807d7ee95ebc99ba854c75305d8a0434012f22"
 dependencies = [
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "idna 0.1.0 (git+https://github.com/servo/rust-url?branch=1.0.0-pretending-to-be-0.5.9)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "unicode-bidi 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "unicode-normalization 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "uuid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "url"
+version = "0.5.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+replace = "url 0.5.9 (git+https://github.com/servo/rust-url?branch=1.0.0-pretending-to-be-0.5.9)"
 
 [[package]]
 name = "util"
