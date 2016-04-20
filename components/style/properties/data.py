@@ -134,6 +134,9 @@ class PropertiesData(object):
                 return
         raise Exception("Failed to find the struct named " + name)
 
+    def new_method(self, name, return_type):
+        return Method(name, return_type)
+
     def declare_longhand(self, name, products="gecko servo", **kwargs):
         products = products.split()
         if self.product not in products:
@@ -154,3 +157,7 @@ class PropertiesData(object):
         shorthand = Shorthand(name, sub_properties, *args, **kwargs)
         self.shorthands.append(shorthand)
         return shorthand
+
+    # Wrapper for the module-level method, since some scopes can only access the stuff in the PropertiesData class.
+    def to_rust_ident(self, name):
+        return to_rust_ident(name)

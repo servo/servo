@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.join(BASE, "Mako-0.9.1.zip"))
 sys.path.insert(0, BASE)  # For importing `data.py`
 
 from mako import exceptions
+from mako.lookup import TemplateLookup
 from mako.template import Template
 
 import data
@@ -44,10 +45,19 @@ def abort(message):
 
 def render(filename, **context):
     try:
+        # Workaround the fact that we can have a different working directory when called, and Mako includes will fail
+        # miserably if we don't give it proper instructions in the TemplateLookup.
+        if os.getcwd().endswith("components/style"):
+            properties_path = "properties"
+        else:
+            properties_path = "components/style/properties"
+
+        lookup = TemplateLookup(directories=[properties_path])
         template = Template(open(filename, "rb").read(),
+                            filename=filename,
                             input_encoding="utf8",
-                            strict_undefined=True,
-                            filename=filename)
+                            lookup=lookup,
+                            strict_undefined=True)
         # Uncomment to debug generated Python code:
         # write("/tmp", "mako_%s.py" % os.path.basename(filename), template.code)
         return template.render(**context).encode("utf8")
