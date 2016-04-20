@@ -26,9 +26,9 @@ git = "https://github.com/servo/ipc-channel"
 [dependencies]
 image = "0.9"
 log = "0.3.5"
-hyper = "0.8"
+hyper = "0.9"
 rustc-serialize = "0.3.4"
 regex = "0.1.55"
-url = {version = "0.5.7", features = ["heap_size"]}
+url = {version = "1.0.0", features = ["heap_size"]}
 uuid = { version = "0.2", features = ["v4"] }
-webdriver = "0.8"
+webdriver = "0.9"

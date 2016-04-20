@@ -171,4 +171,4 @@ bitflags = "0.3"
 env_logger = "0.3"
 euclid = {version = "0.6.4", features = ["plugins"]}
 libc = "0.2"
-url = {version = "0.5.7", features = ["heap_size", "serde_serialization", "query_encoding"]}
+url = {version = "1.0.0", features = ["heap_size", "serde", "query_encoding"]}

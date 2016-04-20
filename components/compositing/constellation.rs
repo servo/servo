@@ -1932,7 +1932,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
         let event_info = self.pipelines.get(&pipeline_id).and_then(|pipeline| {
             pipeline.parent_info.map(|(containing_pipeline_id, subpage_id)| {
-                (containing_pipeline_id, subpage_id, pipeline.url.serialize())
+                (containing_pipeline_id, subpage_id, pipeline.url.to_string())
             })
         });
 
