@@ -2230,6 +2230,14 @@ impl NodeMethods for Node {
         }
     }
 
+    // https://dom.spec.whatwg.org/#dom-node-issamenode
+    fn IsSameNode(&self, otherNode: Option<&Node>) -> bool {
+        match otherNode {
+            Some(node) => self == node,
+            None => false,
+        }
+    }
+
     // https://dom.spec.whatwg.org/#dom-node-comparedocumentposition
     fn CompareDocumentPosition(&self, other: &Node) -> u16 {
         if self == other {
