@@ -1858,6 +1858,11 @@ impl NodeMethods for Node {
         }
     }
 
+    // https://dom.spec.whatwg.org/#dom-node-rootnode
+    fn RootNode(&self) -> Root<Node> {
+        self.inclusive_ancestors().last().unwrap()
+    }
+
     // https://dom.spec.whatwg.org/#dom-node-parentnode
     fn GetParentNode(&self) -> Option<Root<Node>> {
         self.parent_node.get()
