@@ -482,6 +482,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                                                                &**node.style());
             inline_flow.minimum_block_size_above_baseline = ascent;
             inline_flow.minimum_depth_below_baseline = descent;
+            //println!("minimum ascent={:?} minimum descent={:?}", ascent, descent);
         }
 
         inline_flow_ref.finish();
