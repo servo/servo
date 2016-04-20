@@ -109,6 +109,7 @@ fi
   -match "nsIPrincipal.h"                                           \
   -match "nsDataHashtable.h"                                        \
   -match "nsCSSScanner.h"                                           \
+  -match "Types.h"                                                  \
   -blacklist-type "IsDestructibleFallbackImpl"                      \
   -blacklist-type "IsDestructibleFallback"                          \
   -opaque-type "nsIntMargin"                                        \
