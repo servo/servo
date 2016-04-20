@@ -389,7 +389,8 @@ impl WebGLRenderingContext {
         // TODO(emilio): Flip Y axis if necessary here
 
         // TexImage2D depth is always equal to 1
-        handle_potential_webgl_error!(self, texture.initialize(width as u32,
+        handle_potential_webgl_error!(self, texture.initialize(target,
+                                                               width as u32,
                                                                height as u32, 1,
                                                                internal_format,
                                                                level as u32));
