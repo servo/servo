@@ -378,6 +378,7 @@ def check_rust(file_name, lines):
             (r": &Vec<", "use &[T] instead of &Vec<T>", no_filter),
             # No benefit over using &str
             (r": &String", "use &str instead of &String", no_filter),
+            (r"^&&", "operators should go at the end of the first line", no_filter),
         ]
 
         for pattern, message, filter_func in regex_rules:
