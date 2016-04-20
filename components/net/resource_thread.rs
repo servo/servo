@@ -133,7 +133,7 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<Pro
 
 /// Create a ResourceThread
 pub fn new_resource_thread(user_agent: String,
-                         devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceThread {
+                           devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceThread {
     let hsts_preload = HstsList::from_servo_preload();
     let (setup_chan, setup_port) = ipc::channel().unwrap();
     let setup_chan_clone = setup_chan.clone();
@@ -227,17 +227,15 @@ impl CancellationListener {
     }
 
     pub fn is_cancelled(&self) -> bool {
-        match self.cancel_resource {
-            Some(ref resource) => {
-                match resource.cancel_receiver.try_recv() {
-                    Ok(_) => {
-                        self.cancel_status.set(true);
-                        true
-                    },
-                    Err(_) => self.cancel_status.get(),
-                }
-            },
-            None => false,      // channel doesn't exist!
+        let resource = match self.cancel_resource {
+            Some(ref resource) => resource,
+            None => return false,  // channel doesn't exist!
+        };
+        if resource.cancel_receiver.try_recv().is_ok() {
+            self.cancel_status.set(true);
+            true
+        } else {
+            self.cancel_status.get()
         }
     }
 }
