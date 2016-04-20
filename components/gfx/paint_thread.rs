@@ -9,18 +9,17 @@ use azure::AzFloat;
 use azure::azure_hl::{BackendType, Color, DrawTarget, SurfaceFormat};
 use display_list::{DisplayItem, DisplayList, DisplayListEntry, DisplayListTraversal};
 use display_list::{LayerInfo, StackingContext, StackingContextId, StackingContextType};
-use euclid::Matrix4;
+use euclid::Matrix4D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
 use font_cache_thread::FontCacheThread;
 use font_context::FontContext;
-use gfx_traits::PaintMsg as ConstellationMsg;
 use gfx_traits::{Epoch, FrameTreeId, LayerId, LayerKind, LayerProperties, PaintListener};
 use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
-use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
+use msg::constellation_msg::{ConstellationChan, PanicMsg, PipelineId};
 use paint_context::PaintContext;
 use profile_traits::mem::{self, ReportsChan};
 use profile_traits::time;
@@ -67,8 +66,8 @@ impl PaintLayer {
     fn new_from_stacking_context(layer_info: &LayerInfo,
                                  stacking_context: &StackingContext,
                                  parent_origin: &Point2D<Au>,
-                                 transform: &Matrix4,
-                                 perspective: &Matrix4,
+                                 transform: &Matrix4D<f32>,
+                                 perspective: &Matrix4D<f32>,
                                  parent_id: Option<LayerId>)
                                  -> PaintLayer {
         let bounds = Rect::new(stacking_context.bounds.origin + stacking_context.overflow.origin,
@@ -108,8 +107,8 @@ impl PaintLayer {
     fn new_for_display_item(layer_info: &LayerInfo,
                             item_bounds: &Rect<Au>,
                             parent_origin: &Point2D<Au>,
-                            transform: &Matrix4,
-                            perspective: &Matrix4,
+                            transform: &Matrix4D<f32>,
+                            perspective: &Matrix4D<f32>,
                             parent_id: Option<LayerId>,
                             stacking_context_id: StackingContextId,
                             item_index: usize)
@@ -179,8 +178,8 @@ impl LayerCreator {
         layer_creator.create_layers_for_stacking_context(&display_list.root_stacking_context,
                                                          &mut traversal,
                                                          &Point2D::zero(),
-                                                         &Matrix4::identity(),
-                                                         &Matrix4::identity());
+                                                         &Matrix4D::identity(),
+                                                         &Matrix4D::identity());
         layer_creator.layers
     }
 
@@ -204,8 +203,8 @@ impl LayerCreator {
                                               stacking_context: &StackingContext,
                                               traversal: &mut DisplayListTraversal<'a>,
                                               parent_origin: &Point2D<Au>,
-                                              transform: &Matrix4,
-                                              perspective: &Matrix4) {
+                                              transform: &Matrix4D<f32>,
+                                              perspective: &Matrix4D<f32>) {
         if let Some(ref layer_info) = stacking_context.layer_info {
             self.finalize_current_layer();
             let new_layer = PaintLayer::new_from_stacking_context(
@@ -227,8 +226,8 @@ impl LayerCreator {
             self.process_stacking_context_items(stacking_context,
                                                 traversal,
                                                 &-stacking_context.overflow.origin,
-                                                &Matrix4::identity(),
-                                                &Matrix4::identity());
+                                                &Matrix4D::identity(),
+                                                &Matrix4D::identity());
             self.finalize_current_layer();
             self.layer_details_stack.pop();
             return;
@@ -254,8 +253,8 @@ impl LayerCreator {
                                           stacking_context: &StackingContext,
                                           traversal: &mut DisplayListTraversal<'a>,
                                           parent_origin: &Point2D<Au>,
-                                          transform: &Matrix4,
-                                          perspective: &Matrix4) {
+                                          transform: &Matrix4D<f32>,
+                                          perspective: &Matrix4D<f32>) {
         for kid in stacking_context.children.iter() {
             while let Some(item) = traversal.advance(stacking_context) {
                 self.create_layers_for_item(item,
@@ -282,8 +281,8 @@ impl LayerCreator {
     fn create_layers_for_item<'a>(&mut self,
                                   item: &DisplayListEntry,
                                   parent_origin: &Point2D<Au>,
-                                  transform: &Matrix4,
-                                  perspective: &Matrix4) {
+                                  transform: &Matrix4D<f32>,
+                                  perspective: &Matrix4D<f32>) {
         if let DisplayItem::LayeredItemClass(ref layered_item) = item.item {
             // We need to finalize the last layer here before incrementing the entry
             // index, otherwise this item will be placed into the parent layer.
@@ -394,14 +393,13 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
                   layout_to_paint_port: Receiver<LayoutToPaintMsg>,
                   chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
                   compositor: C,
-                  constellation_chan: ConstellationChan<ConstellationMsg>,
+                  panic_chan: ConstellationChan<PanicMsg>,
                   font_cache_thread: FontCacheThread,
-                  failure_msg: Failure,
                   time_profiler_chan: time::ProfilerChan,
                   mem_profiler_chan: mem::ProfilerChan,
                   shutdown_chan: IpcSender<()>) {
-        let ConstellationChan(c) = constellation_chan.clone();
-        thread::spawn_named_with_send_on_failure(format!("PaintThread {:?}", id),
+        let ConstellationChan(c) = panic_chan.clone();
+        thread::spawn_named_with_send_on_panic(format!("PaintThread {:?}", id),
                                                thread_state::PAINT,
                                                move || {
             {
@@ -441,7 +439,7 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
 
             debug!("paint_thread: shutdown_chan send");
             shutdown_chan.send(()).unwrap();
-        }, failure_msg, c);
+        }, Some(id), c);
     }
 
     #[allow(unsafe_code)]
@@ -761,7 +759,7 @@ impl WorkerThread {
             };
 
             // Apply the translation to paint the tile we want.
-            let matrix = Matrix4::identity();
+            let matrix = Matrix4D::identity();
             let matrix = matrix.scale(scale as AzFloat, scale as AzFloat, 1.0);
             let tile_bounds = tile.page_rect.translate(&paint_layer.display_list_origin);
             let matrix = matrix.translate(-tile_bounds.origin.x as AzFloat,

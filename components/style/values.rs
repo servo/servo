@@ -1662,8 +1662,21 @@ pub mod computed {
     }
 
     impl LengthOrPercentage {
+        #[inline]
         pub fn zero() -> LengthOrPercentage {
             LengthOrPercentage::Length(Au(0))
+        }
+
+        /// Returns true if the computed value is absolute 0 or 0%.
+        ///
+        /// (Returns false for calc() values, even if ones that may resolve to zero.)
+        #[inline]
+        pub fn is_definitely_zero(&self) -> bool {
+            use self::LengthOrPercentage::*;
+            match *self {
+                Length(Au(0)) | Percentage(0.0) => true,
+                Length(_) | Percentage(_) | Calc(_) => false
+            }
         }
     }
 

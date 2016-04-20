@@ -5,7 +5,7 @@
 use std::env;
 use std::fs::File;
 use std::io::{self, Read};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 lazy_static! {
@@ -57,11 +57,9 @@ pub fn resources_dir_path() -> PathBuf {
     path
 }
 
-pub fn read_resource_file(relative_path_components: &[&str]) -> io::Result<Vec<u8>> {
+pub fn read_resource_file<P: AsRef<Path>>(relative_path: P) -> io::Result<Vec<u8>> {
     let mut path = resources_dir_path();
-    for component in relative_path_components {
-        path.push(component);
-    }
+    path.push(relative_path);
     let mut file = try!(File::open(&path));
     let mut data = Vec::new();
     try!(file.read_to_end(&mut data));

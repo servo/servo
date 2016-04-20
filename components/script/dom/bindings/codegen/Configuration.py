@@ -2,6 +2,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import os
+
 from WebIDL import IDLExternalInterface, IDLInterface, WebIDLError
 
 
@@ -360,7 +362,7 @@ class Descriptor(DescriptorProvider):
 
 # Some utility methods
 def getModuleFromObject(object):
-    return object.location.filename().split('/')[-1].split('.webidl')[0] + 'Binding'
+    return os.path.basename(object.location.filename()).split('.webidl')[0] + 'Binding'
 
 
 def getTypesFromDescriptor(descriptor):

@@ -63,5 +63,5 @@ fn register_clippy(reg: &mut Registry) {
     ::clippy::plugin_registrar(reg);
 }
 #[cfg(not(feature = "clippy"))]
-fn register_clippy(reg: &mut Registry) {
+fn register_clippy(_reg: &mut Registry) {
 }

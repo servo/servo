@@ -10,12 +10,11 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::paint_thread::{ChromeToPaintMsg, LayoutToPaintMsg, PaintThread};
-use gfx_traits::PaintMsg;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
 use layout_traits::{LayoutControlChan, LayoutThreadFactory};
-use msg::constellation_msg::{ConstellationChan, Failure, FrameId, PipelineId, SubpageId};
+use msg::constellation_msg::{ConstellationChan, PanicMsg, FrameId, PipelineId, SubpageId};
 use msg::constellation_msg::{LoadData, WindowSizeData};
 use msg::constellation_msg::{PipelineNamespaceId};
 use net_traits::ResourceThread;
@@ -85,8 +84,8 @@ pub struct InitialPipelineState {
     pub constellation_chan: ConstellationChan<ScriptMsg>,
     /// A channel for the layout thread to send messages to the constellation.
     pub layout_to_constellation_chan: ConstellationChan<LayoutMsg>,
-    /// A channel to the associated paint thread.
-    pub painter_chan: ConstellationChan<PaintMsg>,
+    /// A channel to report panics
+    pub panic_chan: ConstellationChan<PanicMsg>,
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerEventRequest>,
     /// A channel to the compositor.
@@ -140,8 +139,6 @@ impl Pipeline {
             .expect("Pipeline script to compositor chan");
         let mut pipeline_port = Some(pipeline_port);
 
-        let failure = Failure::new(state.id, state.parent_info);
-
         let window_size = state.window_size.map(|size| {
             WindowSizeData {
                 visible_viewport: size,
@@ -179,7 +176,7 @@ impl Pipeline {
                     subpage_id: subpage_id,
                     load_data: state.load_data.clone(),
                     paint_chan: layout_to_paint_chan.clone().to_opaque(),
-                    failure: failure.clone(),
+                    panic_chan: state.panic_chan.clone(),
                     pipeline_port: mem::replace(&mut pipeline_port, None)
                         .expect("script_pipeline != None but pipeline_port == None"),
                     layout_shutdown_chan: layout_shutdown_chan.clone(),
@@ -227,7 +224,7 @@ impl Pipeline {
             layout_to_constellation_chan: state.layout_to_constellation_chan,
             script_chan: script_chan,
             load_data: state.load_data.clone(),
-            failure: failure.clone(),
+            panic_chan: state.panic_chan.clone(),
             script_port: script_port,
             opts: (*opts::get()).clone(),
             prefs: prefs::get_cloned(),
@@ -246,13 +243,12 @@ impl Pipeline {
 
         let privileged_pipeline_content = PrivilegedPipelineContent {
             id: state.id,
-            painter_chan: state.painter_chan,
             compositor_proxy: state.compositor_proxy,
             font_cache_thread: state.font_cache_thread,
             time_profiler_chan: state.time_profiler_chan,
             mem_profiler_chan: state.mem_profiler_chan,
             load_data: state.load_data,
-            failure: failure,
+            panic_chan: state.panic_chan,
             layout_to_paint_port: layout_to_paint_port,
             chrome_to_paint_chan: chrome_to_paint_chan,
             chrome_to_paint_port: chrome_to_paint_port,
@@ -403,7 +399,7 @@ pub struct UnprivilegedPipelineContent {
     window_size: Option<WindowSizeData>,
     script_chan: IpcSender<ConstellationControlMsg>,
     load_data: LoadData,
-    failure: Failure,
+    panic_chan: ConstellationChan<PanicMsg>,
     script_port: Option<IpcReceiver<ConstellationControlMsg>>,
     layout_to_paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
     opts: Opts,
@@ -433,7 +429,7 @@ impl UnprivilegedPipelineContent {
             constellation_chan: self.constellation_chan.clone(),
             layout_to_constellation_chan: self.layout_to_constellation_chan.clone(),
             scheduler_chan: self.scheduler_chan.clone(),
-            failure_info: self.failure.clone(),
+            panic_chan: self.panic_chan.clone(),
             resource_thread: self.resource_thread,
             storage_thread: self.storage_thread.clone(),
             image_cache_thread: self.image_cache_thread.clone(),
@@ -452,7 +448,7 @@ impl UnprivilegedPipelineContent {
                                   layout_pair,
                                   self.pipeline_port.expect("No pipeline port."),
                                   self.layout_to_constellation_chan,
-                                  self.failure,
+                                  self.panic_chan,
                                   self.script_chan.clone(),
                                   self.layout_to_paint_chan.clone(),
                                   self.image_cache_thread,
@@ -480,14 +476,13 @@ impl UnprivilegedPipelineContent {
 
 pub struct PrivilegedPipelineContent {
     id: PipelineId,
-    painter_chan: ConstellationChan<PaintMsg>,
     compositor_proxy: Box<CompositorProxy + Send + 'static>,
     script_to_compositor_port: IpcReceiver<ScriptToCompositorMsg>,
     font_cache_thread: FontCacheThread,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: profile_mem::ProfilerChan,
     load_data: LoadData,
-    failure: Failure,
+    panic_chan: ConstellationChan<PanicMsg>,
     layout_to_paint_port: Receiver<LayoutToPaintMsg>,
     chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
     chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
@@ -502,9 +497,8 @@ impl PrivilegedPipelineContent {
                           self.layout_to_paint_port,
                           self.chrome_to_paint_port,
                           self.compositor_proxy.clone_compositor_proxy(),
-                          self.painter_chan,
+                          self.panic_chan,
                           self.font_cache_thread,
-                          self.failure,
                           self.time_profiler_chan,
                           self.mem_profiler_chan,
                           self.paint_shutdown_chan);
@@ -526,9 +520,8 @@ impl PrivilegedPipelineContent {
                           self.layout_to_paint_port,
                           self.chrome_to_paint_port,
                           self.compositor_proxy,
-                          self.painter_chan,
+                          self.panic_chan,
                           self.font_cache_thread,
-                          self.failure,
                           self.time_profiler_chan,
                           self.mem_profiler_chan,
                           self.paint_shutdown_chan);

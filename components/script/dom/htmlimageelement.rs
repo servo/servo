@@ -369,7 +369,7 @@ impl VirtualMethods for HTMLImageElement {
             &atom!("src") => {
                 self.update_image(mutation.new_value(attr).map(|value| {
                     // FIXME(ajeffrey): convert directly from AttrValue to DOMString
-                    (DOMString::from(&**value), window_from_node(self).get_url())
+                    (DOMString::from(&**value), document_from_node(self).base_url())
                 }));
             },
             _ => {},

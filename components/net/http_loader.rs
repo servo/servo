@@ -10,7 +10,7 @@ use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpReques
 use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
 use file_loader;
 use flate2::read::{DeflateDecoder, GzDecoder};
-use hsts::{HSTSEntry, HSTSList, secure_url};
+use hsts::{HstsEntry, HstsList, secure_url};
 use hyper::Error as HttpError;
 use hyper::client::{Pool, Request, Response};
 use hyper::header::{Accept, AcceptEncoding, ContentLength, ContentType, Host};
@@ -41,8 +41,10 @@ use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
 use time;
 use time::Tm;
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 use tinyfiledialogs;
 use url::Url;
+use util::prefs;
 use util::resource_files::resources_dir_path;
 use util::thread::spawn_named;
 use uuid;
@@ -124,7 +126,7 @@ fn inner_url(url: &Url) -> Url {
 }
 
 pub struct HttpState {
-    pub hsts_list: Arc<RwLock<HSTSList>>,
+    pub hsts_list: Arc<RwLock<HstsList>>,
     pub cookie_jar: Arc<RwLock<CookieStorage>>,
     pub auth_cache: Arc<RwLock<HashMap<Url, AuthCacheEntry>>>,
 }
@@ -132,7 +134,7 @@ pub struct HttpState {
 impl HttpState {
     pub fn new() -> HttpState {
         HttpState {
-            hsts_list: Arc::new(RwLock::new(HSTSList::new())),
+            hsts_list: Arc::new(RwLock::new(HstsList::new())),
             cookie_jar: Arc::new(RwLock::new(CookieStorage::new())),
             auth_cache: Arc::new(RwLock::new(HashMap::new())),
         }
@@ -153,8 +155,7 @@ fn load_for_consumer(load_data: LoadData,
     };
 
     let ui_provider = TFDProvider;
-    let context = load_data.context.clone();
-    match load(load_data, &ui_provider, &http_state,
+    match load(&load_data, &ui_provider, &http_state,
                devtools_chan, &factory,
                user_agent, &cancel_listener) {
         Err(LoadError::UnsupportedScheme(url)) => {
@@ -164,7 +165,7 @@ fn load_for_consumer(load_data: LoadData,
         Err(LoadError::Connection(url, e)) => {
             send_error(url, e, start_chan)
         }
-        Err(LoadError::MaxRedirects(url)) => {
+        Err(LoadError::MaxRedirects(url, _)) => {
             send_error(url, "too many redirects".to_owned(), start_chan)
         }
         Err(LoadError::Cors(url, msg)) |
@@ -178,14 +179,14 @@ fn load_for_consumer(load_data: LoadData,
 
             let mut image = resources_dir_path();
             image.push("badcert.html");
-            let load_data = LoadData::new(context, Url::from_file_path(&*image).unwrap(), None);
+            let load_data = LoadData::new(load_data.context, Url::from_file_path(&*image).unwrap(), None);
 
             file_loader::factory(load_data, start_chan, classifier, cancel_listener)
         }
         Err(LoadError::ConnectionAborted(_)) => unreachable!(),
         Ok(mut load_response) => {
             let metadata = load_response.metadata.clone();
-            send_data(context, &mut load_response, start_chan, metadata, classifier, &cancel_listener)
+            send_data(load_data.context, &mut load_response, start_chan, metadata, classifier, &cancel_listener)
         }
     }
 }
@@ -334,7 +335,7 @@ pub enum LoadError {
     Ssl(Url, String),
     InvalidRedirect(Url, String),
     Decoding(Url, String),
-    MaxRedirects(Url),
+    MaxRedirects(Url, u32),  // u32 indicates number of redirects that occurred
     ConnectionAborted(String),
     Cancelled(Url, String),
 }
@@ -400,7 +401,7 @@ fn set_cookies_from_response(url: Url, response: &HttpResponse, cookie_jar: &Arc
     }
 }
 
-fn update_sts_list_from_response(url: &Url, response: &HttpResponse, hsts_list: &Arc<RwLock<HSTSList>>) {
+fn update_sts_list_from_response(url: &Url, response: &HttpResponse, hsts_list: &Arc<RwLock<HstsList>>) {
     if url.scheme != "https" {
         return;
     }
@@ -414,7 +415,7 @@ fn update_sts_list_from_response(url: &Url, response: &HttpResponse, hsts_list: 
                 IncludeSubdomains::NotIncluded
             };
 
-            if let Some(entry) = HSTSEntry::new(host.to_owned(), include_subdomains, Some(header.max_age)) {
+            if let Some(entry) = HstsEntry::new(host.to_owned(), include_subdomains, Some(header.max_age)) {
                 info!("adding host {} to the strict transport security list", host);
                 info!("- max-age {}", header.max_age);
                 if header.include_subdomains {
@@ -517,7 +518,7 @@ fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     }
 }
 
-fn request_must_be_secured(url: &Url, hsts_list: &Arc<RwLock<HSTSList>>) -> bool {
+fn request_must_be_secured(url: &Url, hsts_list: &Arc<RwLock<HstsList>>) -> bool {
     match url.domain() {
         Some(domain) => hsts_list.read().unwrap().is_host_secure(domain),
         None => false
@@ -596,7 +597,7 @@ fn auth_from_url(doc_url: &Url) -> Option<Authorization<Basic>> {
 pub fn process_response_headers(response: &HttpResponse,
                                 url: &Url,
                                 cookie_jar: &Arc<RwLock<CookieStorage>>,
-                                hsts_list: &Arc<RwLock<HSTSList>>,
+                                hsts_list: &Arc<RwLock<HstsList>>,
                                 load_data: &LoadData) {
     info!("got HTTP response {}, headers:", response.status());
     if log_enabled!(log::LogLevel::Info) {
@@ -703,26 +704,29 @@ pub trait UIProvider {
 }
 
 impl UIProvider for TFDProvider {
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
     fn input_username_and_password(&self) -> (Option<String>, Option<String>) {
         (tinyfiledialogs::input_box("Enter username", "Username:", ""),
         tinyfiledialogs::input_box("Enter password", "Password:", ""))
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+    fn input_username_and_password(&self) -> (Option<String>, Option<String>) {
+        (None, None)
     }
 }
 
 struct TFDProvider;
 
-pub fn load<A, B>(load_data: LoadData,
-               ui_provider: &B,
-               http_state: &HttpState,
-               devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-               request_factory: &HttpRequestFactory<R=A>,
-               user_agent: String,
-               cancel_listener: &CancellationListener)
-               -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static, B: UIProvider {
-    // FIXME: At the time of writing this FIXME, servo didn't have any central
-    //        location for configuration. If you're reading this and such a
-    //        repository DOES exist, please update this constant to use it.
-    let max_redirects = 50;
+pub fn load<A, B>(load_data: &LoadData,
+                  ui_provider: &B,
+                  http_state: &HttpState,
+                  devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+                  request_factory: &HttpRequestFactory<R=A>,
+                  user_agent: String,
+                  cancel_listener: &CancellationListener)
+                  -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static, B: UIProvider {
+    let max_redirects = prefs::get_pref("network.http.redirection-limit").as_i64().unwrap() as u32;
     let mut iters = 0;
     // URL of the document being loaded, as seen by all the higher-level code.
     let mut doc_url = load_data.url.clone();
@@ -754,7 +758,7 @@ pub fn load<A, B>(load_data: LoadData,
         }
 
         if iters > max_redirects {
-            return Err(LoadError::MaxRedirects(doc_url));
+            return Err(LoadError::MaxRedirects(doc_url, iters - 1));
         }
 
         if &*doc_url.scheme != "http" && &*doc_url.scheme != "https" {

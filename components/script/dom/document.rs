@@ -2687,6 +2687,10 @@ impl DocumentMethods for Document {
         let window = window_from_node(self);
         let viewport = window.window_size().unwrap().visible_viewport;
 
+        if self.browsing_context().is_none() {
+            return None;
+        }
+
         if x < 0.0 || y < 0.0 || x > viewport.width.get() || y > viewport.height.get() {
             return None;
         }

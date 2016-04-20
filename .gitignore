@@ -7,6 +7,7 @@
 /ports/android/local.properties
 /ports/android/obj
 /python/_virtualenv
+/python/tidy/servo_tidy.egg-info
 *~
 *#
 *.o

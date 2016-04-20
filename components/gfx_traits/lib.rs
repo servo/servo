@@ -23,22 +23,10 @@ mod paint_listener;
 
 pub use paint_listener::PaintListener;
 use azure::azure_hl::Color;
-use euclid::matrix::Matrix4;
+use euclid::Matrix4D;
 use euclid::rect::Rect;
-use msg::constellation_msg::{Failure, PipelineId};
+use msg::constellation_msg::{PipelineId};
 use std::fmt::{self, Debug, Formatter};
-
-/// Messages from the paint task to the constellation.
-#[derive(Deserialize, Serialize)]
-pub enum PaintMsg {
-    Failure(Failure),
-}
-
-impl From<Failure> for PaintMsg {
-    fn from(failure: Failure) -> PaintMsg {
-        PaintMsg::Failure(failure)
-    }
-}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum LayerKind {
@@ -132,9 +120,9 @@ pub struct LayerProperties {
     /// The scrolling policy of this layer.
     pub scroll_policy: ScrollPolicy,
     /// The transform for this layer
-    pub transform: Matrix4,
+    pub transform: Matrix4D<f32>,
     /// The perspective transform for this layer
-    pub perspective: Matrix4,
+    pub perspective: Matrix4D<f32>,
     /// The subpage that this layer represents. If this is `Some`, this layer represents an
     /// iframe.
     pub subpage_pipeline_id: Option<PipelineId>,

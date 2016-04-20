@@ -10,7 +10,7 @@ use cookie_storage::CookieStorage;
 use data_loader;
 use devtools_traits::{DevtoolsControlMsg};
 use file_loader;
-use hsts::{HSTSList, preload_hsts_domains};
+use hsts::HstsList;
 use http_loader::{self, Connector, create_http_connector, HttpState};
 use hyper::client::pool::Pool;
 use hyper::header::{ContentType, Header, SetCookie};
@@ -77,17 +77,14 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
                                  classifier: Arc<MIMEClassifier>, partial_body: &[u8],
                                  context: LoadContext)
                                  -> Result<ProgressSender, ()> {
-    if prefs::get_pref("net.mime.sniff").as_boolean().unwrap_or(false) {
+    if prefs::get_pref("network.mime.sniff").as_boolean().unwrap_or(false) {
         // TODO: should be calculated in the resource loader, from pull requeset #4094
         let mut no_sniff = NoSniffFlag::OFF;
         let mut check_for_apache_bug = ApacheBugFlag::OFF;
 
         if let Some(ref headers) = metadata.headers {
-            if let Some(ref raw_content_type) = headers.get_raw("content-type") {
-                if raw_content_type.len() > 0 {
-                    let last_raw_content_type = &raw_content_type[raw_content_type.len() - 1];
-                    check_for_apache_bug = apache_bug_predicate(last_raw_content_type)
-                }
+            if let Some(ref content_type) = headers.get_raw("content-type").and_then(|c| c.last()) {
+                check_for_apache_bug = ApacheBugFlag::from_content_type(content_type)
             }
             if let Some(ref raw_content_type_options) = headers.get_raw("X-content-type-options") {
                 if raw_content_type_options.iter().any(|ref opt| *opt == b"nosniff") {
@@ -113,17 +110,6 @@ pub fn start_sending_sniffed_opt(start_chan: LoadConsumer, mut metadata: Metadat
     start_sending_opt(start_chan, metadata)
 }
 
-fn apache_bug_predicate(last_raw_content_type: &[u8]) -> ApacheBugFlag {
-    if last_raw_content_type == b"text/plain"
-           || last_raw_content_type == b"text/plain; charset=ISO-8859-1"
-           || last_raw_content_type == b"text/plain; charset=iso-8859-1"
-           || last_raw_content_type == b"text/plain; charset=UTF-8" {
-        ApacheBugFlag::ON
-    } else {
-        ApacheBugFlag::OFF
-    }
-}
-
 /// For use by loaders in responding to a Load message.
 fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<ProgressSender, ()> {
     match start_chan {
@@ -147,12 +133,8 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata) -> Result<Pro
 
 /// Create a ResourceThread
 pub fn new_resource_thread(user_agent: String,
-                         devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceThread {
-    let hsts_preload = match preload_hsts_domains() {
-        Some(list) => list,
-        None => HSTSList::new()
-    };
-
+                           devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceThread {
+    let hsts_preload = HstsList::from_servo_preload();
     let (setup_chan, setup_port) = ipc::channel().unwrap();
     let setup_chan_clone = setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
@@ -245,17 +227,15 @@ impl CancellationListener {
     }
 
     pub fn is_cancelled(&self) -> bool {
-        match self.cancel_resource {
-            Some(ref resource) => {
-                match resource.cancel_receiver.try_recv() {
-                    Ok(_) => {
-                        self.cancel_status.set(true);
-                        true
-                    },
-                    Err(_) => self.cancel_status.get(),
-                }
-            },
-            None => false,      // channel doesn't exist!
+        let resource = match self.cancel_resource {
+            Some(ref resource) => resource,
+            None => return false,  // channel doesn't exist!
+        };
+        if resource.cancel_receiver.try_recv().is_ok() {
+            self.cancel_status.set(true);
+            true
+        } else {
+            self.cancel_status.get()
         }
     }
 }
@@ -280,7 +260,7 @@ pub struct ResourceManager {
     auth_cache: Arc<RwLock<HashMap<Url, AuthCacheEntry>>>,
     mime_classifier: Arc<MIMEClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-    hsts_list: Arc<RwLock<HSTSList>>,
+    hsts_list: Arc<RwLock<HstsList>>,
     connector: Arc<Pool<Connector>>,
     cancel_load_map: HashMap<ResourceId, Sender<()>>,
     next_resource_id: ResourceId,
@@ -288,7 +268,7 @@ pub struct ResourceManager {
 
 impl ResourceManager {
     pub fn new(user_agent: String,
-               hsts_list: HSTSList,
+               hsts_list: HstsList,
                devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
         ResourceManager {
             user_agent: user_agent,

@@ -12,7 +12,7 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use gfx_traits::{Epoch, LayerId};
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use msg::constellation_msg::{ConstellationChan, Failure, PipelineId};
+use msg::constellation_msg::{ConstellationChan, PanicMsg, PipelineId};
 use msg::constellation_msg::{WindowSizeData};
 use net_traits::image_cache_thread::ImageCacheThread;
 use profile_traits::mem::ReportsChan;
@@ -250,7 +250,7 @@ pub struct NewLayoutThreadInfo {
     pub layout_pair: OpaqueScriptLayoutChannel,
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
     pub constellation_chan: ConstellationChan<ConstellationMsg>,
-    pub failure: Failure,
+    pub panic_chan: ConstellationChan<PanicMsg>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     pub image_cache_thread: ImageCacheThread,
     pub paint_chan: OptionalOpaqueIpcSender,

@@ -8,7 +8,7 @@ use util::prefs::{PrefValue, extend_prefs, read_prefs_from_file, get_pref, set_p
 fn test_create_pref() {
     let json_str = "{\
   \"layout.writing-mode.enabled\": true,\
-  \"net.mime.sniff\": false,\
+  \"network.mime.sniff\": false,\
   \"shell.homepage\": \"http://servo.org\"\
 }";
 

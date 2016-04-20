@@ -37233,6 +37233,18 @@
             "url": "/html/rendering/replaced-elements/images/space.html"
           }
         ],
+        "html/semantics/document-metadata/the-link-element/stylesheet-with-base.html": [
+          {
+            "path": "html/semantics/document-metadata/the-link-element/stylesheet-with-base.html",
+            "references": [
+              [
+                "/html/semantics/document-metadata/the-link-element/stylesheet-with-base-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/html/semantics/document-metadata/the-link-element/stylesheet-with-base.html"
+          }
+        ],
         "html/semantics/document-metadata/the-style-element/html_style_in_comment.xhtml": [
           {
             "path": "html/semantics/document-metadata/the-style-element/html_style_in_comment.xhtml",
@@ -37327,6 +37339,18 @@
               ]
             ],
             "url": "/html/semantics/embedded-content/the-iframe-element/iframe-with-base.html"
+          }
+        ],
+        "html/semantics/embedded-content/the-img-element/document-base-url.html": [
+          {
+            "path": "html/semantics/embedded-content/the-img-element/document-base-url.html",
+            "references": [
+              [
+                "/html/semantics/embedded-content/the-img-element/document-base-url-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/html/semantics/embedded-content/the-img-element/document-base-url.html"
           }
         ],
         "html/semantics/embedded-content/the-video-element/video_content_image.htm": [
@@ -40499,6 +40523,12 @@
         ]
       },
       "testharness": {
+        "html/semantics/tabular-data/the-table-element/insertRow-method-03.html": [
+          {
+            "path": "html/semantics/tabular-data/the-table-element/insertRow-method-03.html",
+            "url": "/html/semantics/tabular-data/the-table-element/insertRow-method-03.html"
+          }
+        ],
         "html/semantics/tabular-data/the-table-element/tFoot.html": [
           {
             "path": "html/semantics/tabular-data/the-table-element/tFoot.html",
@@ -40514,6 +40544,18 @@
       }
     },
     "reftest_nodes": {
+      "html/semantics/document-metadata/the-link-element/stylesheet-with-base.html": [
+        {
+          "path": "html/semantics/document-metadata/the-link-element/stylesheet-with-base.html",
+          "references": [
+            [
+              "/html/semantics/document-metadata/the-link-element/stylesheet-with-base-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/html/semantics/document-metadata/the-link-element/stylesheet-with-base.html"
+        }
+      ],
       "html/semantics/embedded-content/the-iframe-element/iframe-with-base.html": [
         {
           "path": "html/semantics/embedded-content/the-iframe-element/iframe-with-base.html",
@@ -40524,6 +40566,18 @@
             ]
           ],
           "url": "/html/semantics/embedded-content/the-iframe-element/iframe-with-base.html"
+        }
+      ],
+      "html/semantics/embedded-content/the-img-element/document-base-url.html": [
+        {
+          "path": "html/semantics/embedded-content/the-img-element/document-base-url.html",
+          "references": [
+            [
+              "/html/semantics/embedded-content/the-img-element/document-base-url-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/html/semantics/embedded-content/the-img-element/document-base-url.html"
         }
       ]
     }

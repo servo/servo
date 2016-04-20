@@ -389,7 +389,7 @@ pub struct ScriptThread {
     content_process_shutdown_chan: IpcSender<()>,
 }
 
-/// In the event of thread failure, all data on the stack runs its destructor. However, there
+/// In the event of thread panic, all data on the stack runs its destructor. However, there
 /// are no reachable, owning pointers to the DOM memory, so it never gets freed by default
 /// when the script thread fails. The ScriptMemoryFailsafe uses the destructor bomb pattern
 /// to forcibly tear down the JS compartments for pages associated with the failing ScriptThread.
@@ -442,11 +442,11 @@ impl ScriptThreadFactory for ScriptThread {
               state: InitialScriptState,
               layout_chan: &OpaqueScriptLayoutChannel,
               load_data: LoadData) {
-        let ConstellationChan(const_chan) = state.constellation_chan.clone();
+        let ConstellationChan(panic_chan) = state.panic_chan.clone();
         let (script_chan, script_port) = channel();
         let layout_chan = LayoutChan(layout_chan.sender());
-        let failure_info = state.failure_info.clone();
-        thread::spawn_named_with_send_on_failure(format!("ScriptThread {:?}", state.id),
+        let pipeline_id = state.id;
+        thread::spawn_named_with_send_on_panic(format!("ScriptThread {:?}", state.id),
                                                thread_state::SCRIPT,
                                                move || {
             PipelineNamespace::install(state.pipeline_namespace_id);
@@ -481,7 +481,7 @@ impl ScriptThreadFactory for ScriptThread {
 
             // This must always be the very last operation performed before the thread completes
             failsafe.neuter();
-        }, failure_info, const_chan);
+        }, Some(pipeline_id), panic_chan);
     }
 }
 
@@ -1061,7 +1061,7 @@ impl ScriptThread {
             subpage_id,
             load_data,
             paint_chan,
-            failure,
+            panic_chan,
             pipeline_port,
             layout_shutdown_chan,
             content_process_shutdown_chan,
@@ -1079,7 +1079,7 @@ impl ScriptThread {
             layout_pair: layout_pair,
             pipeline_port: pipeline_port,
             constellation_chan: self.layout_to_constellation_chan.clone(),
-            failure: failure,
+            panic_chan: panic_chan,
             paint_chan: paint_chan,
             script_chan: self.control_chan.clone(),
             image_cache_thread: self.image_cache_thread.clone(),

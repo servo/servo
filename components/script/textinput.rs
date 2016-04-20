@@ -21,6 +21,33 @@ pub enum Selection {
     NotSelected
 }
 
+#[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
+pub enum SelectionDirection {
+    Forward,
+    Backward,
+    None,
+}
+
+impl From<DOMString> for SelectionDirection {
+    fn from(direction: DOMString) -> SelectionDirection {
+        match direction.as_ref() {
+            "forward" => SelectionDirection::Forward,
+            "backward" => SelectionDirection::Backward,
+            _ => SelectionDirection::None,
+        }
+    }
+}
+
+impl From<SelectionDirection> for DOMString {
+    fn from(direction: SelectionDirection) -> DOMString {
+        match direction {
+            SelectionDirection::Forward => DOMString::from("forward"),
+            SelectionDirection::Backward => DOMString::from("backward"),
+            SelectionDirection::None => DOMString::from("none"),
+        }
+    }
+}
+
 #[derive(JSTraceable, Copy, Clone, HeapSizeOf, PartialEq)]
 pub struct TextPoint {
     /// 0-based line number
@@ -45,7 +72,8 @@ pub struct TextInput<T: ClipboardProvider> {
     /// The maximum number of UTF-16 code units this text input is allowed to hold.
     ///
     /// https://html.spec.whatwg.org/multipage/#attr-fe-maxlength
-    pub max_length: Option<usize>
+    pub max_length: Option<usize>,
+    pub selection_direction: SelectionDirection,
 }
 
 /// Resulting action to be taken by the owner of a text input that is handling an event.
@@ -138,14 +166,17 @@ fn len_of_first_n_code_units(text: &str, n: usize) -> usize {
 
 impl<T: ClipboardProvider> TextInput<T> {
     /// Instantiate a new text input control
-    pub fn new(lines: Lines, initial: DOMString, clipboard_provider: T, max_length: Option<usize>) -> TextInput<T> {
+    pub fn new(lines: Lines, initial: DOMString,
+               clipboard_provider: T, max_length: Option<usize>,
+               selection_direction: SelectionDirection) -> TextInput<T> {
         let mut i = TextInput {
             lines: vec!(),
             edit_point: Default::default(),
             selection_begin: None,
             multiline: lines == Lines::Multiple,
             clipboard_provider: clipboard_provider,
-            max_length: max_length
+            max_length: max_length,
+            selection_direction: selection_direction,
         };
         i.set_content(initial);
         i
@@ -606,5 +637,33 @@ impl<T: ClipboardProvider> TextInput<T> {
         TextPoint {
             line: line, index: index
         }
+    }
+
+    pub fn set_selection_range(&mut self, start: u32, end: u32) {
+        let mut start = start as usize;
+        let mut end = end as usize;
+        let text_end = self.get_content().len();
+
+        if start > text_end {
+            start = text_end;
+        } else if end > text_end {
+            end = text_end;
+        } else if start >= end {
+            start = end;
+        }
+
+        self.selection_begin = Some(self.get_text_point_for_absolute_point(start));
+        self.edit_point = self.get_text_point_for_absolute_point(end);
+    }
+
+    pub fn get_selection_start(&self) -> u32 {
+        let selection_start = match self.selection_begin {
+            Some(selection_begin_point) => {
+                self.get_absolute_point_for_text_point(&selection_begin_point)
+            },
+            None => self.get_absolute_insertion_point()
+        };
+
+        selection_start as u32
     }
 }

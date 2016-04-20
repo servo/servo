@@ -44,17 +44,14 @@ fn read_block(reader: &mut File) -> Result<ReadStatus, String> {
 
 fn read_all(reader: &mut File, progress_chan: &ProgressSender, cancel_listener: &CancellationListener)
             -> Result<LoadResult, String> {
-    loop {
-        if cancel_listener.is_cancelled() {
-            let _ = progress_chan.send(Done(Err("load cancelled".to_owned())));
-            return Ok(LoadResult::Cancelled);
-        }
-
+    while !cancel_listener.is_cancelled() {
         match try!(read_block(reader)) {
             ReadStatus::Partial(buf) => progress_chan.send(Payload(buf)).unwrap(),
             ReadStatus::EOF => return Ok(LoadResult::Finished),
         }
     }
+    let _ = progress_chan.send(Done(Err("load cancelled".to_owned())));
+    Ok(LoadResult::Cancelled)
 }
 
 fn get_progress_chan(load_data: LoadData, file_path: PathBuf,

@@ -36,6 +36,13 @@ TRACE_HOOK_NAME = '_trace'
 CONSTRUCT_HOOK_NAME = '_constructor'
 HASINSTANCE_HOOK_NAME = '_hasInstance'
 
+RUST_KEYWORDS = {"abstract", "alignof", "as", "become", "box", "break", "const", "continue",
+                 "else", "enum", "extern", "false", "final", "fn", "for", "if", "impl", "in",
+                 "let", "loop", "macro", "match", "mod", "move", "mut", "offsetof", "override",
+                 "priv", "proc", "pub", "pure", "ref", "return", "static", "self", "sizeof",
+                 "struct", "super", "true", "trait", "type", "typeof", "unsafe", "unsized",
+                 "use", "virtual", "where", "while", "yield"}
+
 
 def replaceFileIfChanged(filename, newContents):
     """
@@ -5247,7 +5254,7 @@ class CGDictionary(CGThing):
     @staticmethod
     def makeMemberName(name):
         # Can't use Rust keywords as member names.
-        if name == "type":
+        if name in RUST_KEYWORDS:
             return name + "_"
         return name
 
