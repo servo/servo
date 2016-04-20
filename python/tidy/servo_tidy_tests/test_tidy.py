@@ -19,25 +19,34 @@ def iterFile(name):
 
 
 class CheckTidiness(unittest.TestCase):
+    def assertNoMoreErrors(self, errors):
+        with self.assertRaises(StopIteration):
+            errors.next()
+
     def test_spaces_correctnes(self):
         errors = tidy.collect_errors_for_files(iterFile('wrong_space.rs'), [], [tidy.check_by_line])
         self.assertEqual('trailing whitespace', errors.next()[2])
         self.assertEqual('no newline at EOF', errors.next()[2])
         self.assertEqual('tab on line', errors.next()[2])
         self.assertEqual('CR on line', errors.next()[2])
+        self.assertEqual('no newline at EOF', errors.next()[2])
+        self.assertNoMoreErrors(errors)
 
     def test_long_line(self):
         errors = tidy.collect_errors_for_files(iterFile('long_line.rs'), [], [tidy.check_by_line])
         self.assertEqual('Line is longer than 120 characters', errors.next()[2])
+        self.assertNoMoreErrors(errors)
 
     def test_whatwg_link(self):
         errors = tidy.collect_errors_for_files(iterFile('whatwg_link.rs'), [], [tidy.check_by_line])
         self.assertTrue('link to WHATWG may break in the future, use this format instead:' in errors.next()[2])
         self.assertTrue('links to WHATWG single-page url, change to multi page:' in errors.next()[2])
+        self.assertNoMoreErrors(errors)
 
     def test_licence(self):
         errors = tidy.collect_errors_for_files(iterFile('incorrect_license.rs'), [], [tidy.check_license])
         self.assertEqual('incorrect license', errors.next()[2])
+        self.assertNoMoreErrors(errors)
 
     def test_rust(self):
         errors = tidy.collect_errors_for_files(iterFile('rust_tidy.rs'), [], [tidy.check_rust])
@@ -61,19 +70,23 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('extra space before :', errors.next()[2])
         self.assertEqual('use &[T] instead of &Vec<T>', errors.next()[2])
         self.assertEqual('use &str instead of &String', errors.next()[2])
+        self.assertNoMoreErrors(errors)
 
     def test_spec_link(self):
         tidy.spec_base_path = base_path
         errors = tidy.collect_errors_for_files(iterFile('speclink.rs'), [], [tidy.check_spec])
         self.assertEqual('method declared in webidl is missing a comment with a specification link', errors.next()[2])
+        self.assertNoMoreErrors(errors)
 
     def test_webidl(self):
         errors = tidy.collect_errors_for_files(iterFile('spec.webidl'), [tidy.check_webidl_spec], [])
         self.assertEqual('No specification link found.', errors.next()[2])
+        self.assertNoMoreErrors(errors)
 
     def test_toml(self):
         errors = tidy.collect_errors_for_files(iterFile('test.toml'), [tidy.check_toml], [])
         self.assertEqual('found asterisk instead of minimum version number', errors.next()[2])
+        self.assertNoMoreErrors(errors)
 
 
 def do_tests():
