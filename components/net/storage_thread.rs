@@ -4,10 +4,12 @@
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use net_traits::storage_thread::{StorageThread, StorageThreadMsg, StorageType};
+use resource_thread;
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use url::Url;
+use util::opts;
 use util::thread::spawn_named;
 
 const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
@@ -69,6 +71,9 @@ impl StorageManager {
                     self.clear(sender, url, storage_type)
                 }
                 StorageThreadMsg::Exit => {
+                    if let Some(ref profile_dir) = opts::get().profile_dir {
+                        resource_thread::write_json_to_file(&self.local_data, profile_dir, "local_data.json");
+                    }
                     break
                 }
             }

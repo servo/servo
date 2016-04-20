@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 //! A thread that takes a URL and streams back the binary data.
-
 use about_loader;
 use chrome_loader;
 use cookie;
@@ -23,13 +22,20 @@ use net_traits::ProgressMsg::Done;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceThread, ResponseAction};
 use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
 use net_traits::{NetworkError, WebSocketCommunicate, WebSocketConnectData};
+use rustc_serialize::Encodable;
+use rustc_serialize::json;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::cell::Cell;
 use std::collections::HashMap;
+use std::error::Error;
+use std::fs::File;
+use std::io::prelude::*;
+use std::path::Path;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, RwLock};
 use url::Url;
+use util::opts;
 use util::prefs;
 use util::thread::spawn_named;
 use websocket_loader;
@@ -190,9 +196,51 @@ impl ResourceChannelManager {
                 ControlMsg::Synchronize(sender) => {
                     let _ = sender.send(());
                 }
-                ControlMsg::Exit => break,
+                ControlMsg::Exit => {
+                    if let Some(ref profile_dir) = opts::get().profile_dir {
+                        match self.resource_manager.auth_cache.read() {
+                            Ok(auth_cache) => write_json_to_file(&*auth_cache, profile_dir, "auth_cache.json"),
+                            Err(_) => warn!("Error writing auth cache to disk"),
+                        }
+                        match self.resource_manager.cookie_jar.read() {
+                            Ok(jar) => write_json_to_file(&*jar, profile_dir, "cookie_jar.json"),
+                            Err(_) => warn!("Error writing cookie jar to disk"),
+                        }
+                        match self.resource_manager.hsts_list.read() {
+                            Ok(hsts) => write_json_to_file(&*hsts, profile_dir, "hsts_list.json"),
+                            Err(_) => warn!("Error writing hsts list to disk"),
+                        }
+                    }
+                    break;
+                }
+
             }
         }
+    }
+}
+
+pub fn write_json_to_file<T: Encodable>(data: &T, profile_dir: &str, filename: &str) {
+    let json_encoded: String;
+    match json::encode(&data) {
+        Ok(d) => json_encoded = d,
+        Err(_) => return,
+    }
+    let path = Path::new(profile_dir).join(filename);
+    let display = path.display();
+
+    let mut file = match File::create(&path) {
+        Err(why) => panic!("couldn't create {}: {}",
+                           display,
+                           Error::description(&why)),
+        Ok(file) => file,
+    };
+
+    match file.write_all(json_encoded.as_bytes()) {
+        Err(why) => {
+            panic!("couldn't write to {}: {}", display,
+                                               Error::description(&why))
+        },
+        Ok(_) => println!("successfully wrote to {}", display),
     }
 }
 
@@ -259,15 +307,32 @@ impl Drop for CancellationListener {
     }
 }
 
+#[derive(RustcDecodable, RustcEncodable, Clone)]
 pub struct AuthCacheEntry {
     pub user_name: String,
     pub password: String,
 }
 
+impl AuthCache {
+
+    pub fn new() -> AuthCache {
+        AuthCache {
+            version: 1,
+            entries: HashMap::new()
+        }
+    }
+}
+
+#[derive(RustcDecodable, RustcEncodable, Clone)]
+pub struct AuthCache {
+    pub version: u32,
+    pub entries: HashMap<Url, AuthCacheEntry>,
+}
+
 pub struct ResourceManager {
     user_agent: String,
     cookie_jar: Arc<RwLock<CookieStorage>>,
-    auth_cache: Arc<RwLock<HashMap<Url, AuthCacheEntry>>>,
+    auth_cache: Arc<RwLock<AuthCache>>,
     mime_classifier: Arc<MIMEClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
     hsts_list: Arc<RwLock<HstsList>>,
@@ -283,7 +348,7 @@ impl ResourceManager {
         ResourceManager {
             user_agent: user_agent,
             cookie_jar: Arc::new(RwLock::new(CookieStorage::new())),
-            auth_cache: Arc::new(RwLock::new(HashMap::new())),
+            auth_cache: Arc::new(RwLock::new(AuthCache::new())),
             mime_classifier: Arc::new(MIMEClassifier::new()),
             devtools_chan: devtools_channel,
             hsts_list: Arc::new(RwLock::new(hsts_list)),
