@@ -5,7 +5,7 @@
 use app_units::Au;
 use cssparser::{self, Color, RGBA};
 use euclid::num::Zero;
-use num::ToPrimitive;
+use num_traits::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::ops::Deref;
 use std::str::FromStr;

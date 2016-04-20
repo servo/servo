@@ -34,7 +34,7 @@ heapsize_plugin = "0.1.2"
 lazy_static = "0.1.16"
 log = "0.3.5"
 matches = "0.1"
-num = "0.1.24"
+num-traits = "0.1.32"
 rustc-serialize = "0.3"
 selectors = {version = "0.5", features = ["heap_size", "unstable"]}
 serde = {version = "0.7", features = ["nightly"]}
