@@ -114,7 +114,8 @@ pub mod longhands {
                                     //
                                     // FIXME: is it still?
                                     *cacheable = false;
-                                    let inherited_struct = inherited_style.get_${data.current_style_struct.trait_name_lower}();
+                                    let inherited_struct =
+                                        inherited_style.get_${data.current_style_struct.trait_name_lower}();
                                     context.mutate_style().mutate_${data.current_style_struct.trait_name_lower}()
                                            .copy_${property.ident}_from(inherited_struct);
                                 }

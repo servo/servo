@@ -124,10 +124,8 @@ class PropertiesData(object):
         self.style_structs.append(style_struct)
         self.current_style_struct = style_struct
 
-
     def active_style_structs(self):
         return [s for s in self.style_structs if s.additional_methods or s.longhands]
-
 
     def switch_to_style_struct(self, name):
         for style_struct in self.style_structs:
@@ -138,7 +136,7 @@ class PropertiesData(object):
 
     def declare_longhand(self, name, products="gecko servo", **kwargs):
         products = products.split()
-        if not self.product in products:
+        if self.product not in products:
             return
 
         longand = Longhand(self.current_style_struct, name, **kwargs)

@@ -4,7 +4,6 @@
 
 import json
 import os.path
-import re
 import sys
 
 BASE = os.path.dirname(__file__)
@@ -49,11 +48,11 @@ def render(filename, **context):
                             strict_undefined=True,
                             filename=filename)
         # Uncomment to debug generated Python code:
-        #write("/tmp", "mako_%s.py" % os.path.basename(filename), template.code)
+        # write("/tmp", "mako_%s.py" % os.path.basename(filename), template.code)
         return template.render(**context).encode("utf8")
     except:
         # Uncomment to see a traceback in generated Python code:
-        #raise
+        # raise
         abort(exceptions.text_error_template().render().encode("utf8"))
 
 
