@@ -38,7 +38,7 @@ use std::sync::{Arc, Mutex};
 use style::computed_values::content::ContentItem;
 use style::computed_values::{border_collapse, clear, display, mix_blend_mode, overflow_wrap};
 use style::computed_values::{overflow_x, position, text_decoration, transform_style};
-use style::computed_values::{white_space, word_break, z_index};
+use style::computed_values::{vertical_align, white_space, word_break, z_index};
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::{ComputedValues, ServoComputedValues};
@@ -1072,8 +1072,11 @@ impl Fragment {
 
     pub fn calculate_line_height(&self, layout_context: &LayoutContext) -> Au {
         let font_style = self.style.get_font_arc();
-        let font_metrics = text::font_metrics_for_style(&mut layout_context.font_context(), font_style);
-        text::line_height_from_style(&*self.style, &font_metrics)
+        let font_metrics = text::font_metrics_for_style(&mut layout_context.font_context(),
+                                                        font_style);
+        let line_height = text::line_height_from_style(&*self.style, &font_metrics);
+        //println!("calculate_line_height() == {:?}", line_height);
+        line_height
     }
 
     /// Returns the sum of the inline-sizes of all the borders of this fragment. Note that this
@@ -2577,6 +2580,22 @@ impl Fragment {
 
     pub fn layer_id_for_overflow_scroll(&self) -> LayerId {
         LayerId::new_of_type(LayerType::OverflowScroll, self.node.id() as usize)
+    }
+
+    pub fn is_vertically_aligned_to_top_or_bottom(&self) -> bool {
+        match self.style.get_box().vertical_align {
+            vertical_align::T::top | vertical_align::T::bottom => return true,
+            _ => {}
+        }
+        if let Some(ref inline_context) = self.inline_context {
+            for node in &inline_context.nodes {
+                match node.style.get_box().vertical_align {
+                    vertical_align::T::top | vertical_align::T::bottom => return true,
+                    _ => {}
+                }
+            }
+        }
+        false
     }
 }
 
