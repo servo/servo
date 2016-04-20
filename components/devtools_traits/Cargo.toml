@@ -11,9 +11,6 @@ path = "lib.rs"
 [dependencies.msg]
 path = "../msg"
 
-[dependencies.util]
-path = "../util"
-
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 
