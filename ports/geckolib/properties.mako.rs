@@ -337,6 +337,17 @@ fn static_assert() {
     % endfor
 </%self:impl_trait>
 
+<%self:impl_trait style_struct_name="Outline"
+                  skip_longhands="outline-style"
+                  skip_additionals="*">
+
+    <% impl_keyword("outline_style", "mOutlineStyle", border_style_keyword, need_clone=True) %>
+
+    fn outline_has_nonzero_width(&self) -> bool {
+        self.gecko.mCachedOutlineWidth != 0
+    }
+</%self:impl_trait>
+
 <%self:impl_trait style_struct_name="Box" skip_longhands="display overflow-y">
 
     // We manually-implement the |display| property until we get general
