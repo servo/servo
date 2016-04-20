@@ -41,7 +41,7 @@ class Keyword(object):
             raise Exception("Bad product: " + product)
 
     def gecko_constant(self, value):
-        return self.gecko_constant_prefix + "_" + value.upper().replace("-", "_")
+        return self.gecko_constant_prefix + "_" + value.replace("-moz-", "").replace("-", "_").upper()
 
 
 class Longhand(object):
