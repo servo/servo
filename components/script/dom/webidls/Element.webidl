@@ -36,6 +36,8 @@ interface Element : Node {
   [Pure]
   sequence<DOMString> getAttributeNames();
   [Pure]
+  boolean hasAttributes();
+  [Pure]
   DOMString? getAttribute(DOMString name);
   [Pure]
   DOMString? getAttributeNS(DOMString? namespace, DOMString localName);
