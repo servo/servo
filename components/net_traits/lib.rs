@@ -33,6 +33,7 @@ use hyper::method::Method;
 use hyper::mime::{Attr, Mime};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId};
+use response::ResponseError;
 use serde::{Deserializer, Serializer};
 use std::sync::mpsc::Sender;
 use std::thread;
@@ -119,7 +120,7 @@ pub trait AsyncResponseListener {
     fn data_available(&mut self, payload: Vec<u8>);
     /// The response is complete. If the provided status is an Err value, there is no guarantee
     /// that the response body was completely read.
-    fn response_complete(&mut self, status: Result<(), String>);
+    fn response_complete(&mut self, status: Result<(), ResponseError>);
 }
 
 /// Data for passing between threads/processes to indicate a particular action to
@@ -131,7 +132,7 @@ pub enum ResponseAction {
     /// Invoke data_available
     DataAvailable(Vec<u8>),
     /// Invoke response_complete
-    ResponseComplete(Result<(), String>)
+    ResponseComplete(Result<(), ResponseError>)
 }
 
 impl ResponseAction {
@@ -371,12 +372,12 @@ pub enum CookieSource {
 }
 
 /// Messages sent in response to a `Load` message
-#[derive(PartialEq, Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum ProgressMsg {
     /// Binary data - there may be multiple of these
     Payload(Vec<u8>),
     /// Indicates loading is complete, either successfully or not
-    Done(Result<(), String>)
+    Done(Result<(), ResponseError>)
 }
 
 /// Convenience function for synchronously loading a whole resource.
@@ -384,7 +385,7 @@ pub fn load_whole_resource(context: LoadContext,
                            resource_thread: &ResourceThread,
                            url: Url,
                            pipeline_id: Option<PipelineId>)
-        -> Result<(Metadata, Vec<u8>), String> {
+        -> Result<(Metadata, Vec<u8>), ResponseError> {
     let (start_chan, start_port) = ipc::channel().unwrap();
     resource_thread.send(ControlMsg::Load(LoadData::new(context, url, pipeline_id),
                        LoadConsumer::Channel(start_chan), None)).unwrap();

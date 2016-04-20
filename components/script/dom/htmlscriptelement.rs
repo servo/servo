@@ -33,6 +33,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::RootedValue;
 use js::jsval::UndefinedValue;
+use net_traits::response::ResponseError;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata};
 use network_listener::{NetworkListener, PreInvoke};
 use script_runtime::ScriptChan;
@@ -124,7 +125,7 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
 #[derive(HeapSizeOf, JSTraceable)]
 pub enum ScriptOrigin {
     Internal(DOMString, Url),
-    External(Result<(Metadata, Vec<u8>), String>),
+    External(Result<(Metadata, Vec<u8>), ResponseError>),
 }
 
 /// The context required for asynchronously loading an external script source.
@@ -138,20 +139,20 @@ struct ScriptContext {
     /// The initial URL requested.
     url: Url,
     /// Indicates whether the request failed, and why
-    status: Result<(), String>
+    status: Result<(), ResponseError>
 }
 
 impl AsyncResponseListener for ScriptContext {
     fn headers_available(&mut self, metadata: Metadata) {
         let status_code = match metadata.status {
-            Some(RawStatus(c, _)) => c,
-            _ => 0
+            Some(RawStatus(c, _)) => Some(c),
+            _ => None,
         };
 
         self.status = match status_code {
-            0 => Err("No http status code received".to_owned()),
-            200...299 => Ok(()), // HTTP ok status codes
-            _ => Err(format!("HTTP error code {}", status_code))
+            None => Err(ResponseError::NoStatusCode),
+            Some(200...299) => Ok(()), // HTTP ok status codes
+            Some(n) => Err(ResponseError::NonSuccessStatusCode { status_code: n }),
         };
 
         self.metadata = Some(metadata);
@@ -164,7 +165,7 @@ impl AsyncResponseListener for ScriptContext {
         }
     }
 
-    fn response_complete(&mut self, status: Result<(), String>) {
+    fn response_complete(&mut self, status: Result<(), ResponseError>) {
         let load = status.and(self.status.clone()).map(|_| {
             let data = mem::replace(&mut self.data, vec!());
             let metadata = self.metadata.take().unwrap();

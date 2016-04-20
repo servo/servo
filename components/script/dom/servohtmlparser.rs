@@ -26,6 +26,7 @@ use hyper::header::ContentType;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use js::jsapi::JSTracer;
 use msg::constellation_msg::{PipelineId, SubpageId};
+use net_traits::response::ResponseError;
 use net_traits::{AsyncResponseListener, Metadata};
 use network_listener::PreInvoke;
 use parse::Parser;
@@ -308,7 +309,7 @@ impl AsyncResponseListener for ParserContext {
         }
     }
 
-    fn response_complete(&mut self, status: Result<(), String>) {
+    fn response_complete(&mut self, status: Result<(), ResponseError>) {
         let parser = match self.parser.as_ref() {
             Some(parser) => parser.root(),
             None => return,

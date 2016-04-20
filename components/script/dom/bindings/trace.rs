@@ -60,7 +60,7 @@ use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData};
 use net_traits::Metadata;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
-use net_traits::response::HttpsState;
+use net_traits::response::{HttpsState, ResponseError};
 use net_traits::storage_thread::StorageType;
 use offscreen_gl_context::GLLimits;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
@@ -322,6 +322,7 @@ no_jsmanaged_fields!(AttrIdentifier);
 no_jsmanaged_fields!(AttrValue);
 no_jsmanaged_fields!(ElementSnapshot);
 no_jsmanaged_fields!(HttpsState);
+no_jsmanaged_fields!(ResponseError);
 no_jsmanaged_fields!(SharedRt);
 no_jsmanaged_fields!(TouchpadPressurePhase);
 

@@ -9,6 +9,7 @@ use net_traits::image::base::{Image, ImageMetadata, load_from_memory, PixelForma
 use net_traits::image_cache_thread::ImageResponder;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheCommand, ImageCacheThread, ImageState};
 use net_traits::image_cache_thread::{ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
+use net_traits::response::ResponseError;
 use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadData, ResourceThread};
 use net_traits::{ResponseAction, LoadContext};
 use std::borrow::ToOwned;
@@ -44,7 +45,7 @@ struct PendingLoad {
     metadata: Option<ImageMetadata>,
 
     // Once loading is complete, the result of the operation.
-    result: Option<Result<(), String>>,
+    result: Option<Result<(), ResponseError>>,
     listeners: Vec<ImageListener>,
 
     // The url being loaded. Do not forget that this may be several Mb
