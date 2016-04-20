@@ -21,7 +21,7 @@ use bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
 use gecko_style_structs;
 use heapsize::HeapSizeOf;
 use std::fmt::{self, Debug};
-use std::mem::zeroed;
+use std::mem::{transmute, zeroed};
 use std::sync::Arc;
 use style::custom_properties::ComputedValuesMap;
 use style::logical_geometry::WritingMode;
@@ -300,28 +300,38 @@ ${caller.body()}
 <% data.manual_style_structs.append(style_struct_name) %>
 </%def>
 
-// Proof-of-concept for a style struct with some manually-implemented methods. We add
-// the manually-implemented methods to skip_longhands and skip_additionals, and the
-// infrastructure auto-generates everything not in those lists. This allows us to
-// iteratively implement more and more methods.
+<%!
+class Side(object):
+    def __init__(self, name, index):
+        self.name = name
+        self.ident = name.lower()
+        self.index = index
+
+SIDES = [Side("Top", 0), Side("Right", 1), Side("Bottom", 2), Side("Left", 3)]
+
+%>
+
+#[allow(dead_code)]
+fn static_assert() {
+    unsafe {
+    % for side in SIDES:
+        transmute::<_, [u32; ${side.index}]>([1; gecko_style_structs::Side::eSide${side.name} as usize]);
+    % endfor
+    }
+}
+
+<% border_style_keyword = Keyword("border-style",
+                                  "none solid double dotted dashed hidden groove ridge inset outset") %>
+
 <%self:impl_trait style_struct_name="Border"
-                  skip_longhands="border-left-color border-left-style"
+                  skip_longhands="border-top-style border-right-style border-bottom-style border-left-style"
                   skip_additionals="border_bottom_has_nonzero_width">
-    fn set_border_left_color(&mut self, _: longhands::border_left_color::computed_value::T) {
-        unimplemented!()
-    }
-    fn copy_border_left_color_from(&mut self, _: &Self) {
-        unimplemented!()
-    }
-    fn set_border_left_style(&mut self, _: longhands::border_left_style::computed_value::T) {
-        unimplemented!()
-    }
-    fn copy_border_left_style_from(&mut self, _: &Self) {
-        unimplemented!()
-    }
-    fn clone_border_left_style(&self) -> longhands::border_left_style::computed_value::T {
-        unimplemented!()
-    }
+
+    % for side in SIDES:
+    <% impl_keyword("border_%s_style" % side.ident, "mBorderStyle[%s]" % side.index, border_style_keyword,
+                    need_clone=True) %>
+    % endfor
+
     fn border_bottom_has_nonzero_width(&self) -> bool {
         unimplemented!()
     }
