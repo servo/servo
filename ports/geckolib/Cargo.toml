@@ -38,3 +38,9 @@ path = "../../components/util"
 [dependencies.style]
 path = "../../components/style"
 features = ["gecko"]
+
+[replace]
+"url:0.5.9" = {git = "https://github.com/servo/rust-url", branch = "1.0.0-pretending-to-be-0.5.9"}
+"cookie:0.2.2" = {git = "https://github.com/SimonSapin/cookie-rs", branch = "url-1.0"}
+"hyper:0.8.1" = {git = "https://github.com/servo/hyper", branch = "url-1.0"}
+"websocket:0.16.2" = {git = "https://github.com/SimonSapin/rust-websocket", branch = "url-1.0"}
