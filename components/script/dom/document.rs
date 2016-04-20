@@ -73,6 +73,7 @@ use dom::progressevent::ProgressEvent;
 use dom::range::Range;
 use dom::storageevent::StorageEvent;
 use dom::stylesheetlist::StyleSheetList;
+use dom::cssstylesheet::CSSStyleSheet;
 use dom::text::Text;
 use dom::touch::Touch;
 use dom::touchevent::TouchEvent;
@@ -1824,6 +1825,20 @@ impl Document {
     pub fn get_referrer_policy(&self) -> Option<ReferrerPolicy> {
         return self.referrer_policy.clone();
     }
+
+    /*pub fn generate_css_style_sheet(&self, index: u32) -> Root<CSSStyleSheet> {
+
+        //let mut stylesheets = self.stylesheets.borrow_mut();
+        /*stylesheets.unwrap()*/
+        //let (ref mut node, ref mut sheet) = 
+        self.stylesheets.borrow().as_ref().unwrap().iter()
+                        .map(|&(_, ref stylesheet)| stylesheet.clone())
+                        .collect()
+
+        //let sheet = (self.stylesheets.borrow().as_ref().unwrap()[index]).1.clone();
+        let (ref mut node, ref mut sheet) = (*self.stylesheets.borrow()).unwrap()[index as usize];
+        CSSStyleSheet::new(&self.window, *sheet)
+    }*/
 }
 
 
