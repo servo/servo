@@ -35214,7 +35214,16 @@
   "local_changes": {
     "deleted": [],
     "deleted_reftests": {},
-    "items": {},
+    "items": {
+      "testharness": {
+        "dom/nodes/Node-isSameNode.html": [
+          {
+            "path": "dom/nodes/Node-isSameNode.html",
+            "url": "/dom/nodes/Node-isSameNode.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
