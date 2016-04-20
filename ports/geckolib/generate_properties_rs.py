@@ -6,11 +6,14 @@ import os
 import sys
 
 from mako import exceptions
+from mako.lookup import TemplateLookup
 from mako.template import Template
 
 try:
+    lookup = TemplateLookup(directories=['.'])
     style_template = Template(filename=os.environ['STYLE_TEMPLATE'],
-                              input_encoding='utf8')
+                              input_encoding='utf8',
+                              lookup=lookup)
     style_template.render(PRODUCT='gecko')
 
     geckolib_template = Template(filename=os.environ['GECKOLIB_TEMPLATE'], input_encoding='utf8')

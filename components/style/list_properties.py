@@ -10,9 +10,14 @@ import json
 
 style = os.path.dirname(__file__)
 sys.path.insert(0, os.path.join(style, "Mako-0.9.1.zip"))
+
+from mako.lookup import TemplateLookup
 from mako.template import Template
 
-template = Template(filename=os.path.join(style, "properties.mako.rs"), input_encoding='utf8')
+lookup = TemplateLookup(directories=[style])
+template = Template(filename=os.path.join(style, "properties.mako.rs"),
+                    input_encoding='utf8',
+                    lookup=lookup)
 template.render(PRODUCT='servo')
 properties = dict(
     (p.name, {
