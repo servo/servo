@@ -15,6 +15,7 @@
 #![feature(custom_derive, plugin)]
 #![plugin(heapsize_plugin, serde_macros)]
 
+#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
 extern crate heapsize;
