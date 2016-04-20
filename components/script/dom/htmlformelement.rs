@@ -244,8 +244,8 @@ impl HTMLFormElement {
         let base = doc.url();
         // TODO: Handle browsing contexts
         // Step 4
-        if submit_method_flag == SubmittedFrom::NotFromFormSubmitMethod
-           && !submitter.no_validate(self)
+        if submit_method_flag == SubmittedFrom::NotFromFormSubmitMethod &&
+           !submitter.no_validate(self)
         {
             if self.interactive_validation().is_err() {
                 // TODO: Implement event handlers on all form control elements

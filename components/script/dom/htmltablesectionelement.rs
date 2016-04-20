@@ -44,8 +44,8 @@ impl HTMLTableSectionElement {
 struct RowsFilter;
 impl CollectionFilter for RowsFilter {
     fn filter(&self, elem: &Element, root: &Node) -> bool {
-        elem.is::<HTMLTableRowElement>()
-            && elem.upcast::<Node>().GetParentNode().r() == Some(root)
+        elem.is::<HTMLTableRowElement>() &&
+            elem.upcast::<Node>().GetParentNode().r() == Some(root)
     }
 }
 
