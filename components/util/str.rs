@@ -124,19 +124,6 @@ impl Extend<char> for DOMString {
 pub type StaticCharVec = &'static [char];
 pub type StaticStringVec = &'static [&'static str];
 
-/// Whitespace as defined by HTML5 § 2.4.1.
-// TODO(SimonSapin) Maybe a custom Pattern can be more efficient?
-pub const WHITESPACE: &'static [char] = &[' ', '\t', '\x0a', '\x0c', '\x0d'];
-
-pub fn is_whitespace(s: &str) -> bool {
-    s.chars().all(char_is_whitespace)
-}
-
-#[inline]
-pub fn char_is_whitespace(c: char) -> bool {
-    WHITESPACE.contains(&c)
-}
-
 /// A "space character" according to:
 ///
 /// https://html.spec.whatwg.org/multipage/#space-character
@@ -147,6 +134,15 @@ pub static HTML_SPACE_CHARACTERS: StaticCharVec = &[
     '\u{000c}',
     '\u{000d}',
 ];
+
+#[inline]
+pub fn char_is_whitespace(c: char) -> bool {
+    HTML_SPACE_CHARACTERS.contains(&c)
+}
+
+pub fn is_whitespace(s: &str) -> bool {
+    s.chars().all(char_is_whitespace)
+}
 
 pub fn split_html_space_chars<'a>(s: &'a str) ->
                                   Filter<Split<'a, StaticCharVec>, fn(&&str) -> bool> {

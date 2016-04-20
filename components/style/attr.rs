@@ -11,7 +11,7 @@ use std::ops::Deref;
 use std::str::FromStr;
 use string_cache::{Atom, Namespace};
 use url::Url;
-use util::str::{DOMString, LengthOrPercentageOrAuto, HTML_SPACE_CHARACTERS, WHITESPACE};
+use util::str::{DOMString, LengthOrPercentageOrAuto, HTML_SPACE_CHARACTERS};
 use util::str::{read_numbers, split_html_space_chars, str_join};
 use values::specified::{Length};
 
@@ -279,7 +279,7 @@ pub fn parse_legacy_color(mut input: &str) -> Result<RGBA, ()> {
     }
 
     // Step 3.
-    input = input.trim_matches(WHITESPACE);
+    input = input.trim_matches(HTML_SPACE_CHARACTERS);
 
     // Step 4.
     if input.eq_ignore_ascii_case("transparent") {
@@ -407,7 +407,7 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     // Steps 1 & 2 are not relevant
 
     // Step 3
-    value = value.trim_left_matches(WHITESPACE);
+    value = value.trim_left_matches(HTML_SPACE_CHARACTERS);
 
     // Step 4
     if value.is_empty() {
