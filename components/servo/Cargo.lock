@@ -322,13 +322,19 @@ dependencies = [
 [[package]]
 name = "cookie"
 version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/SimonSapin/cookie-rs?branch=url-1.0#4006a8799fa96b83b16772cc97ccfb1a4382dbeb"
 dependencies = [
  "openssl 0.7.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.34 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "cookie"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+replace = "cookie 0.2.2 (git+https://github.com/SimonSapin/cookie-rs?branch=url-1.0)"
 
 [[package]]
 name = "core-foundation"
@@ -893,7 +899,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "hyper"
 version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/servo/hyper?branch=url-1.0#353217402264578933dca89c0e7f210052c552a5"
 dependencies = [
  "cookie 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "httparse 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -910,6 +916,22 @@ dependencies = [
  "typeable 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "unicase 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "hyper"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+replace = "hyper 0.8.1 (git+https://github.com/servo/hyper?branch=url-1.0)"
+
+[[package]]
+name = "idna"
+version = "0.1.0"
+source = "git+https://github.com/servo/rust-url?branch=1.0.0-pretending-to-be-0.5.9#c0807d7ee95ebc99ba854c75305d8a0434012f22"
+dependencies = [
+ "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-bidi 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unicode-normalization 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2206,18 +2228,21 @@ dependencies = [
 [[package]]
 name = "url"
 version = "0.5.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/servo/rust-url?branch=1.0.0-pretending-to-be-0.5.9#c0807d7ee95ebc99ba854c75305d8a0434012f22"
 dependencies = [
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "idna 0.1.0 (git+https://github.com/servo/rust-url?branch=1.0.0-pretending-to-be-0.5.9)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "unicode-bidi 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "unicode-normalization 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "uuid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "url"
+version = "0.5.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+replace = "url 0.5.9 (git+https://github.com/servo/rust-url?branch=1.0.0-pretending-to-be-0.5.9)"
 
 [[package]]
 name = "user32-sys"
@@ -2416,7 +2441,7 @@ dependencies = [
 [[package]]
 name = "websocket"
 version = "0.16.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/SimonSapin/rust-websocket?branch=url-1.0#0b70528b7120bac09e9042b520a3b1181fa4e097"
 dependencies = [
  "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2428,6 +2453,12 @@ dependencies = [
  "unicase 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 0.5.9 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "websocket"
+version = "0.16.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+replace = "websocket 0.16.2 (git+https://github.com/SimonSapin/rust-websocket?branch=url-1.0)"
 
 [[package]]
 name = "winapi"
