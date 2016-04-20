@@ -278,6 +278,8 @@ def check_toml(file_name, lines):
 def check_rust(file_name, lines):
     if not file_name.endswith(".rs") or \
        file_name.endswith("properties.mako.rs") or \
+       file_name.find("properties/longhand") or \
+       file_name.find("properties/shorthand") or \
        file_name.endswith(os.path.join("style", "build.rs")) or \
        file_name.endswith(os.path.join("geckolib", "build.rs")) or \
        file_name.endswith(os.path.join("unit", "style", "stylesheets.rs")):
