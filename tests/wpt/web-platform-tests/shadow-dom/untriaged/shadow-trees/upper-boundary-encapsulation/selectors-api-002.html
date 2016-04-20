@@ -36,7 +36,7 @@ function createTestDocument() {
     pHost.className = 'test-class';
     pHost.id = 'test-id';
     doc.body.appendChild(pHost);
-    var shadowRoot = doc.body.createShadowRoot();
+    var shadowRoot = doc.body.attachShadow({mode: 'open'});
     var pShadow = doc.createElement('p');
     pShadow.className = 'test-class';
     pShadow.id = 'test-id';

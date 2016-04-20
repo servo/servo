@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Ambient Light Events IDL tests</title>
+<title>Ambient Light Sensor IDL tests</title>
 <link rel="author" title="Intel" href="http://www.intel.com">
 <link rel="help" href="http://www.w3.org/TR/ambient-light/">
 <script src="/resources/testharness.js"></script>
@@ -14,46 +14,91 @@
 </style>
 <div id="log"></div>
 
-<pre id="untested_idl">
-[PrimaryGlobal]
-interface Window {
+<pre id="idl">
+interface Event {
 };
 
-interface Event {
+interface Error {
 };
 
 dictionary EventInit {
 };
 </pre>
 
-<pre id='idl'>
-partial interface Window {
-                attribute EventHandler ondevicelight;
+<pre id="generic-idl">
+interface Sensor : EventTarget {
+  readonly attribute SensorState state;
+  readonly attribute SensorReading? reading;
+  void start();
+  void stop();
+  attribute EventHandler onchange;
+  attribute EventHandler onstatechange;
+  attribute EventHandler onerror;
 };
 
-dictionary DeviceLightEventInit : EventInit {
-    unrestricted double value;
+dictionary SensorOptions {
+  double? frequency;
 };
 
-[Constructor (DOMString type, optional DeviceLightEventInit eventInitDict)]
-interface DeviceLightEvent : Event {
-    readonly    attribute unrestricted double value;
+enum SensorState {
+  "idle",
+  "activating",
+  "active",
+  "errored"
 };
+
+interface SensorReading {
+  readonly attribute DOMHighResTimeStamp timeStamp;
+};
+
+[Constructor(DOMString type, SensorReadingEventInit eventInitDict)]
+interface SensorReadingEvent : Event {
+  readonly attribute SensorReading reading;
+};
+
+dictionary SensorReadingEventInit : EventInit {
+  SensorReading reading;
+};
+
+[Constructor(DOMString type, SensorErrorEventInit errorEventInitDict)]
+interface SensorErrorEvent : Event {
+  readonly attribute Error error;
+};
+
+dictionary SensorErrorEventInit : EventInit {
+  Error error;
+};
+</pre>
+
+<pre id="ambient-light-idl">
+[Constructor(optional SensorOptions sensorOptions)]
+interface AmbientLightSensor : Sensor {
+  readonly attribute AmbientLightSensorReading? reading;
+};
+
+[Constructor(AmbientLightSensorReadingInit ambientLightSensorReadingInit)]
+interface AmbientLightSensorReading : SensorReading {
+    readonly attribute unrestricted double illuminance;
+};
+
+dictionary AmbientLightSensorReadingInit {
+  unrestricted double illuminance;
+};
+
 </pre>
 
 <script>
 (function() {
   "use strict";
   var idl_array = new IdlArray();
-  // replace 'EventHandler' and 'unrestricted double' unrecognised by idlharness.js
-  var idls = document.getElementById('idl').textContent.replace(/EventHandler/g, 'Function?').replace(/unrestricted double/g, 'double');
-
-  idl_array.add_untested_idls(document.getElementById('untested_idl').textContent);
-  idl_array.add_idls(idls);
+  idl_array.add_untested_idls(document.getElementById('idl').textContent);
+  idl_array.add_untested_idls(document.getElementById('generic-idl').textContent);
+  idl_array.add_idls(document.getElementById('ambient-light-idl').textContent);
 
   idl_array.add_objects({
-    Window: ['window'],
-    DeviceLightEvent: ['new DeviceLightEvent("foo")']
+    AmbientLightSensor: ['new AmbientLightSensor();'],
+    AmbientLightSensorReading: ['new AmbientLightSensorReading({ illuminance: 750 });'],
+    SensorReadingEvent: ['new SensorReadingEvent({ reading: new AmbientLightSensorReading({ illuminance: 750 }) });']
   });
 
   idl_array.test();

@@ -28,7 +28,7 @@ test(unit(function (ctx) {
     var host = d.createElement('div');
     host.setAttribute('id', 'shRoot');
     d.body.appendChild(host);
-    var s = host.createShadowRoot();
+    var s = host.attachShadow({mode: 'open'});
 
     var inp = d.createElement('input');
     inp.setAttribute('type', 'text');

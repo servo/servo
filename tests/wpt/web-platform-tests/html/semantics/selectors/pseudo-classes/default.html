@@ -34,10 +34,13 @@
 <input type=checkbox id=checkbox1 checked>
 <input type=checkbox id=checkbox2>
 <input type=checkbox id=checkbox3 default>
+<input type=radio name=radios id=radio1 checked>
+<input type=radio name=radios id=radio2>
+<input type=radio name=radios id=radio3 default>
 <select id=select1>
  <optgroup label="options" id=optgroup1>
-  <option value="option1" id=option1 selected>option1
   <option value="option1" id=option1>option1
+  <option value="option2" id=option2 selected>option2
 </select>
 <dialog id="dialog">
   <input type=submit id=input8>
@@ -53,9 +56,9 @@
 
 
 <script>
-  testSelector(":default", ["button2", "button4", "input3", "input5", "input7", "checkbox1", "option1", "button6", "button8"], "':default' matches <button>s that are their form's default button, <input>s of type submit/image that are their form's default button, checked <input>s and selected <option>s");
+  testSelector(":default", ["button2", "button4", "input3", "input5", "input7", "checkbox1", "radio1", "option2", "button6", "button8"], "':default' matches <button>s that are their form's default button, <input>s of type submit/image that are their form's default button, checked <input>s and selected <option>s");
 
   document.getElementById("button1").type = "submit"; // change the form's default button
-  testSelector(":default", ["button1", "button4", "input3", "input5", "input7", "checkbox1", "option1", "button6", "button8"], "':default' matches dynamically changed form's default buttons");
+  testSelector(":default", ["button1", "button4", "input3", "input5", "input7", "checkbox1", "radio1", "option2", "button6", "button8"], "':default' matches dynamically changed form's default buttons");
 
 </script>

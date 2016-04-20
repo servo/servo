@@ -26,7 +26,7 @@ test(function () {
     var d = newHTMLDocument();
     var div = d.createElement('div');
     d.body.appendChild(div);
-    var s = div.createShadowRoot();
+    var s = div.attachShadow({mode: 'open'});
 
     var input = d.createElement('input');
     input.setAttribute('type', 'text');
@@ -61,7 +61,7 @@ test(function () {
         div = d.createElement('div');
         d.body.appendChild(div);
 
-        var s = div.createShadowRoot();
+        var s = div.attachShadow({mode: 'open'});
         s.appendChild(form);
         s.appendChild(el);
 

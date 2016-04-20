@@ -36,7 +36,7 @@ test(unit(function (ctx) {
     var host = d.querySelector('#sr');
 
     //Shadow root to play with
-    var s = host.createShadowRoot();
+    var s = host.attachShadow({mode: 'open'});
 
     var style = d.createElement('style');
     style.innerHTML ='.invis {display:none}';

@@ -29,7 +29,7 @@ div {
 <div id="shadow-host"></div>
 <script>
 var shadowHost = document.getElementById('shadow-host');
-var shadowRoot = shadowHost.createShadowRoot();
+var shadowRoot = shadowHost.attachShadow({mode: 'open'});
 var style = document.createElement('style');
 style.innerHTML = 'div { background: red }';
 

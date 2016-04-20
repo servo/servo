@@ -32,7 +32,7 @@ test(unit(function (ctx) {
     //create Shadow root
     var root = d.createElement('div');
     d.body.appendChild(root);
-    var s = root.createShadowRoot();
+    var s = root.attachShadow({mode: 'open'});
 
     s.appendChild(link);
 

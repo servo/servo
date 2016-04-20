@@ -36,7 +36,7 @@ A_05_00_01_T1.step(function () {
         var div = d.createElement('div');
         d.body.appendChild(div);
 
-        var s = div.createShadowRoot();
+        var s = div.attachShadow({mode: 'open'});
 
         var div2 = d.createElement('div');
         s.appendChild(div2);

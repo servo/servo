@@ -28,7 +28,7 @@ test(function () {
     try {
         host.style.display = 'none';
         document.body.appendChild(host);
-        var shadowRoot = host.createShadowRoot();
+        var shadowRoot = host.attachShadow({mode: 'open'});
         var iframe = document.createElement('iframe');
         iframe.style.display = 'none';
         iframe.name = 'test-name';
