@@ -35235,6 +35235,12 @@
             "path": "dom/nodes/Element-hasAttributes.html",
             "url": "/dom/nodes/Element-hasAttributes.html"
           }
+        ],
+        "dom/nodes/Node-isSameNode.html": [
+          {
+            "path": "dom/nodes/Node-isSameNode.html",
+            "url": "/dom/nodes/Node-isSameNode.html"
+          }
         ]
       }
     },
