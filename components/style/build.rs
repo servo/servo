@@ -3,10 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::env;
-use std::fs::File;
-use std::io::Write;
 use std::path::Path;
-use std::process::{Command, Stdio, exit};
+use std::process::{Command, exit};
 
 #[cfg(windows)]
 fn find_python() -> String {
@@ -31,25 +29,16 @@ fn find_python() -> String {
 }
 
 fn main() {
-    let python = match env::var("PYTHON") {
-        Ok(python_path) => python_path,
-        Err(_) => find_python(),
-    };
-    let style = Path::new(file!()).parent().unwrap();
-    let mako = style.join("Mako-0.9.1.zip");
-    let template = style.join("properties.mako.rs");
+    let python = env::var("PYTHON").ok().unwrap_or_else(find_python);
+    let script = Path::new(file!()).parent().unwrap().join("properties").join("build.py");
     let product = if cfg!(feature = "gecko") { "gecko" } else { "servo" };
-    let result = Command::new(python)
-        .env("PYTHONPATH", &mako)
-        .env("TEMPLATE", &template)
-        .env("PRODUCT", product)
-        .arg("generate_properties_rs.py")
-        .stderr(Stdio::inherit())
-        .output()
+    let status = Command::new(python)
+        .arg(&script)
+        .arg(product)
+        .arg("style-crate")
+        .status()
         .unwrap();
-    if !result.status.success() {
+    if !status.success() {
         exit(1)
     }
-    let out = env::var("OUT_DIR").unwrap();
-    File::create(&Path::new(&out).join("properties.rs")).unwrap().write_all(&result.stdout).unwrap();
 }

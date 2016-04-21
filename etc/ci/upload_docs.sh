@@ -12,7 +12,7 @@ cd "$(dirname $0)/../.."
 # etc/doc.servo.org/index.html overwrites $(mach rust-root)/doc/index.html
 cp etc/doc.servo.org/* target/doc/
 
-python components/style/list_properties.py
+python components/style/properties/build.py servo html
 
 ghp-import -n target/doc
 git push -qf https://${TOKEN}@github.com/servo/doc.servo.org.git gh-pages
