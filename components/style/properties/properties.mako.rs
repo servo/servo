@@ -1960,8 +1960,11 @@ pub mod longhands {
 
     // FIXME(SimonSapin): Add 'mixed' and 'upright' (needs vertical text support)
     // FIXME(SimonSapin): initial (first) value should be 'mixed', when that's implemented
-    ${helpers.single_keyword("text-orientation", "sideways sideways-left sideways-right",
-                             experimental=True, need_clone=True)}
+    // FIXME(bholley): sideways-right is needed as an alias to sideways in gecko.
+    ${helpers.single_keyword("text-orientation", "sideways",
+                             experimental=True, need_clone=True,
+                             extra_gecko_values="mixed upright",
+                             extra_servo_values="sideways-right sideways-left")}
 
     // CSS Color Module Level 4
     // https://drafts.csswg.org/css-color/
@@ -6127,10 +6130,17 @@ pub fn get_writing_mode<S: style_struct_traits::InheritedBox>(inheritedbox_style
         },
     }
     match inheritedbox_style.clone_text_orientation() {
+    % if product == "servo":
         computed_values::text_orientation::T::sideways_right => {},
         computed_values::text_orientation::T::sideways_left => {
             flags.insert(logical_geometry::FLAG_VERTICAL_LR);
         },
+    % elif product == "gecko":
+        // FIXME(bholley): Need to make sure these are correct when we add
+        // full writing-mode support.
+        computed_values::text_orientation::T::mixed => {},
+        computed_values::text_orientation::T::upright => {},
+    % endif
         computed_values::text_orientation::T::sideways => {
             if flags.intersects(logical_geometry::FLAG_VERTICAL_LR) {
                 flags.insert(logical_geometry::FLAG_SIDEWAYS_LEFT);
