@@ -240,7 +240,7 @@ impl DedicatedWorkerGlobalScope {
                 }
             };
 
-            let runtime = new_rt_and_cx();
+            let runtime = unsafe { new_rt_and_cx() };
             *main_thread_rt.lock().unwrap() = Some(SharedRt::new(&runtime));
 
             let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
