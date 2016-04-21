@@ -44,14 +44,7 @@ def abort(message):
 
 def render(filename, **context):
     try:
-        # Workaround the fact that we can have a different working directory when called, and Mako includes will fail
-        # miserably if we don't give it proper instructions in the TemplateLookup.
-        if os.getcwd().endswith("components/style"):
-            properties_path = "properties"
-        else:
-            properties_path = "components/style/properties"
-
-        lookup = TemplateLookup(directories=[properties_path])
+        lookup = TemplateLookup(directories=[BASE])
         template = Template(open(filename, "rb").read(),
                             filename=filename,
                             input_encoding="utf8",

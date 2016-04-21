@@ -2,10 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
- <%page args="data, helpers" />
+<%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% data.new_style_struct("Outline", inherited=False, gecko_ffi_name="nsStyleOutline",
-                   additional_methods=[data.new_method("outline_is_none_or_hidden_and_has_nonzero_width", "bool")]) %>
+<% from data import Method %>
+
+<% data.new_style_struct("Outline",
+                         inherited=False,
+                         gecko_ffi_name="nsStyleOutline",
+                         additional_methods=[Method("outline_is_none_or_hidden_and_has_nonzero_width", "bool")]) %>
 
 // TODO(pcwalton): `invert`
 ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::CurrentColor")}
