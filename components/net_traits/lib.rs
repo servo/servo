@@ -87,7 +87,7 @@ pub struct LoadData {
     // https://fetch.spec.whatwg.org/#concept-http-fetch step 4.3
     pub credentials_flag: bool,
     pub context: LoadContext,
-    // https://w3c.github.io/webappsec-referrer-policy/
+    /// The policy and referring URL for the originator of this request
     pub referrer_policy: Option<ReferrerPolicy>,
     pub referrer_url: Option<Url>,
 
@@ -431,16 +431,6 @@ pub struct ResourceId(pub u32);
 pub enum ConstellationMsg {
     /// Queries whether a pipeline or its ancestors are private
     IsPrivate(PipelineId, Sender<bool>),
-}
-
-/// Referrer policy set for the environment
-#[derive(HeapSizeOf, Clone, Deserialize, Serialize)]
-pub enum ReferrerPolicy {
-    NoReferrer,
-    NoRefWhenDowngrade,
-    OriginOnly,
-    OriginWhenCrossOrigin,
-    UnsafeUrl,
 }
 
 /// Network errors that have to be exported out of the loaders

@@ -1883,7 +1883,6 @@ impl ScriptThread {
             load_data.url = Url::parse("about:blank").unwrap();
         }
 
-        //TODO - set referrer_policy/referrer_url
         resource_thread.send(ControlMsg::Load(NetLoadData {
             context: LoadContext::Browsing,
             url: load_data.url,

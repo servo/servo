@@ -394,7 +394,8 @@ impl ConvertPipelineIdFromWebRender for webrender_traits::PipelineId {
     }
 }
 
-/// Referrer policy set for the environment
+/// [Policies](https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states)
+/// for providing a referrer header for a request
 #[derive(HeapSizeOf, Clone, Deserialize, Serialize)]
 pub enum ReferrerPolicy {
     NoReferrer,

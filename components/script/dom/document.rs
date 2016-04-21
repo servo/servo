@@ -226,7 +226,7 @@ pub struct Document {
     touchpad_pressure_phase: Cell<TouchpadPressurePhase>,
     /// The document's origin.
     origin: Origin,
-    /// https://w3c.github.io/webappsec-referrer-policy/
+    ///  https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states
     referrer_policy: Option<ReferrerPolicy>,
 }
 
@@ -1686,7 +1686,8 @@ impl Document {
             https_state: Cell::new(HttpsState::None),
             touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
             origin: origin,
-            referrer_policy: None,
+            //TODO - setting this for now so no Referer header set
+            referrer_policy: ReferrerPolicy::NoReferrer,
         }
     }
 
@@ -1818,7 +1819,7 @@ impl Document {
 
     //TODO - for now, setting no-referrer for all until reading in the value
     pub fn get_referrer_policy(&self) -> Option<ReferrerPolicy> {
-        Some(ReferrerPolicy::NoReferrer)
+        return self.referrer_policy;
     }
 }
 
