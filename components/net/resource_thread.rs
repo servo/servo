@@ -29,11 +29,11 @@ use std::collections::HashMap;
 use std::io::prelude::*;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, RwLock};
+use storage_traits::write_json_to_file;
 use url::Url;
 use util::opts;
 use util::prefs;
 use util::thread::spawn_named;
-use util::write::write_json_to_file;
 use websocket_loader;
 
 pub enum ProgressSender {

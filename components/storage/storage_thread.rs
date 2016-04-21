@@ -7,10 +7,10 @@ use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use storage_traits::storage_thread::{StorageThread, StorageThreadMsg, StorageType};
+use storage_traits::write_json_to_file;
 use url::Url;
 use util::opts;
 use util::thread::spawn_named;
-use util::write::write_json_to_file;
 
 const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
 

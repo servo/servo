@@ -27,6 +27,7 @@ extern crate msg;
 extern crate net_traits;
 extern crate openssl;
 extern crate rustc_serialize;
+extern crate storage_traits;
 extern crate threadpool;
 extern crate time;
 #[cfg(any(target_os = "macos", target_os = "linux"))]
