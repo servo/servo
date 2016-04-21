@@ -96,8 +96,9 @@ impl ComputedValues for GeckoComputedValues {
     fn set_root_font_size(&mut self, s: Au) { self.root_font_size = s; }
     fn set_writing_mode(&mut self, mode: WritingMode) { self.writing_mode = mode; }
 
+    // FIXME(bholley): Implement this properly.
     #[inline]
-    fn is_multicol(&self) -> bool { unimplemented!() }
+    fn is_multicol(&self) -> bool { false }
 }
 
 <%def name="declare_style_struct(style_struct)">
