@@ -15,16 +15,26 @@ connect-src 'self' http://{{host}}:{{ports[http][0]}}; script-src 'self' 'unsafe
 
 <body>
     <script>
-        try {
-            var es = navigator.sendBeacon("http://www1.{{host}}:{{ports[http][0]}}/security/contentSecurityPolicy/echo-report.php");
-            log("Fail");
-        } catch (e) {
-            log("Pass");
-        }
+       if (typeof navigator.sendBeacon != 'function') {
+            t_log.set_status(t_log.NOTRUN, "No navigator.sendBeacon, cannot run test.");
+            t_log.phase = t_log.phases.HAS_RESULT;
+            t_log.done();
+        } else {
+	    try {
+	    var es = navigator.sendBeacon("http://www1.{{host}}:{{ports[http][0]}}/security/contentSecurityPolicy/echo-report.php");
+         	log("Fail");
+            } catch (e) {
+            	log("Pass");
+            }
+            var report =  document.createElement("script");
+            report.src = "../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=connect-src%20&apos;self&apos;";
+            report.async = true;
+            report.defer = true;
+            document.body.appendChild(report);
+	}
 
     </script>
     <div id="log"></div>
-    <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=connect-src%20&apos;self&apos;"></script>
 </body>
 
 </html>

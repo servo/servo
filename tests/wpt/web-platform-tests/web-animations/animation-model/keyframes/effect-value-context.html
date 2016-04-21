@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Tests that property values respond to changes to their context</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#keyframes-section">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<body>
+<div id="log"></div>
+<script>
+
+test(function(t) {
+  var div = createDiv(t);
+  div.style.fontSize = '10px';
+  var animation = div.animate([ { marginLeft: '10em' },
+                                { marginLeft: '20em' } ], 1000);
+  animation.currentTime = 500;
+  assert_equals(getComputedStyle(div).marginLeft, '150px',
+                'Effect value before updating font-size');
+  div.style.fontSize = '20px';
+  assert_equals(getComputedStyle(div).marginLeft, '300px',
+                'Effect value after updating font-size');
+}, 'Effect values reflect changes to font-size on element');
+
+test(function(t) {
+  var parentDiv = createDiv(t);
+  var div = createDiv(t);
+  parentDiv.appendChild(div);
+  parentDiv.style.fontSize = '10px';
+
+  var animation = div.animate([ { marginLeft: '10em' },
+                                { marginLeft: '20em' } ], 1000);
+  animation.currentTime = 500;
+  assert_equals(getComputedStyle(div).marginLeft, '150px',
+                'Effect value before updating font-size on parent element');
+  parentDiv.style.fontSize = '20px';
+  assert_equals(getComputedStyle(div).marginLeft, '300px',
+                'Effect value after updating font-size on parent element');
+}, 'Effect values reflect changes to font-size on parent element');
+
+promise_test(function(t) {
+  var parentDiv = createDiv(t);
+  var div = createDiv(t);
+  parentDiv.appendChild(div);
+  parentDiv.style.fontSize = '10px';
+  var animation = div.animate([ { marginLeft: '10em' },
+                                { marginLeft: '20em' } ], 1000);
+
+  animation.pause();
+  animation.currentTime = 500;
+  parentDiv.style.fontSize = '20px';
+
+  return animation.ready.then(function() {
+    assert_equals(getComputedStyle(div).marginLeft, '300px',
+                  'Effect value after updating font-size on parent element');
+  });
+}, 'Effect values reflect changes to font-size when computed style is not'
+   + ' immediately flushed');
+
+promise_test(function(t) {
+  var divWith10pxFontSize = createDiv(t);
+  divWith10pxFontSize.style.fontSize = '10px';
+  var divWith20pxFontSize = createDiv(t);
+  divWith20pxFontSize.style.fontSize = '20px';
+
+  var div = createDiv(t);
+  div.remove(); // Detach
+  var animation = div.animate([ { marginLeft: '10em' },
+                                { marginLeft: '20em' } ], 1000);
+  animation.pause();
+
+  return animation.ready.then(function() {
+    animation.currentTime = 500;
+
+    divWith10pxFontSize.appendChild(div);
+    assert_equals(getComputedStyle(div).marginLeft, '150px',
+                  'Effect value after attaching to font-size:10px parent');
+    divWith20pxFontSize.appendChild(div);
+    assert_equals(getComputedStyle(div).marginLeft, '300px',
+                  'Effect value after attaching to font-size:20px parent');
+  });
+}, 'Effect values reflect changes to font-size from reparenting');
+
+</script>
+</body>

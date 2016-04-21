@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>HTML Test: The embed element represents a document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta name="assert" content="Check if the embed element is ignored when used inside a media element">
+<script type="application/javascript">
+ window.childLoaded = false;
+ async_test(function() {
+   addEventListener("load", this.step_func_done(function() {
+     assert_false(window.childLoaded);
+   }));
+ }, "Test embed being ignored inside media element");
+</script>
+<body>
+  <video>
+    <embed type="text/html" src="embed-iframe.html" />
+  </video>
+  <audio>
+    <embed type="text/html" src="embed-iframe.html" />
+  </audio>
+</body>

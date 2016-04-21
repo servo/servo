@@ -6,6 +6,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../testcommon.js"></script>
+<script src="../resources/effect-easing-tests.js"></script>
 <body>
 <div id="log"></div>
 <div id="target"></div>
@@ -21,54 +22,6 @@ function assert_style_left_at(animation, time, easingFunction) {
                        'The left of the animation should be approximately ' +
                        easingFunction(portion) * 100 + ' at ' + time + 'ms');
 }
-
-var gEffectEasingTests = [
-  {
-    desc: 'steps(start) function',
-    easing: 'steps(2, start)',
-    easingFunction: stepStart(2)
-  },
-  {
-    desc: 'steps(end) function',
-    easing: 'steps(2, end)',
-    easingFunction: stepEnd(2)
-  },
-  {
-    desc: 'linear function',
-    easing: 'linear', // cubic-bezier(0, 0, 1.0, 1.0)
-    easingFunction: cubicBezier(0, 0, 1.0, 1.0)
-  },
-  {
-    desc: 'ease function',
-    easing: 'ease', // cubic-bezier(0.25, 0.1, 0.25, 1.0)
-    easingFunction: cubicBezier(0.25, 0.1, 0.25, 1.0)
-  },
-  {
-    desc: 'ease-in function',
-    easing: 'ease-in', // cubic-bezier(0.42, 0, 1.0, 1.0)
-    easingFunction: cubicBezier(0.42, 0, 1.0, 1.0)
-  },
-  {
-    desc: 'ease-in-out function',
-    easing: 'ease-in-out', // cubic-bezier(0.42, 0, 0.58, 1.0)
-    easingFunction: cubicBezier(0.42, 0, 0.58, 1.0)
-  },
-  {
-    desc: 'ease-out function',
-    easing: 'ease-out', // cubic-bezier(0, 0, 0.58, 1.0)
-    easingFunction: cubicBezier(0, 0, 0.58, 1.0)
-  },
-  {
-    desc: 'easing function which produces values greater than 1',
-    easing: 'cubic-bezier(0, 1.5, 1, 1.5)',
-    easingFunction: cubicBezier(0, 1.5, 1, 1.5)
-  },
-  {
-    desc: 'easing function which produces negative values',
-    easing: 'cubic-bezier(0, -0.5 ,1, -0.5)',
-    easingFunction: cubicBezier(0, -0.5, 1, -0.5)
-  },
-];
 
 gEffectEasingTests.forEach(function(options) {
   test(function(t) {
@@ -694,7 +647,7 @@ var gStepTimingFunctionTests = [
                   { currentTime: 2500, progress: 0.5 },
                 ]
   }
-]
+];
 
 gStepTimingFunctionTests.forEach(function(options) {
   test(function(t) {

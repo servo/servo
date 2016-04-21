@@ -3226,6 +3226,14 @@
         "url": "/touch-events/single-touch-manual.html"
       },
       {
+        "path": "uievents/order-of-events/focus-events/focus-manual.html",
+        "url": "/uievents/order-of-events/focus-events/focus-manual.html"
+      },
+      {
+        "path": "uievents/order-of-events/focus-events/legacy-manual.html",
+        "url": "/uievents/order-of-events/focus-events/legacy-manual.html"
+      },
+      {
         "path": "uievents/order-of-events/mouse-events/click-on-body-manual.html",
         "url": "/uievents/order-of-events/mouse-events/click-on-body-manual.html"
       },
@@ -3694,6 +3702,56 @@
           ]
         ],
         "url": "/compat/webkit-text-fill-color-property-001d.html"
+      },
+      {
+        "path": "compat/webkit-text-fill-color-property-002.html",
+        "references": [
+          [
+            "/compat/webkit-text-fill-color-property-002-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/compat/webkit-text-fill-color-property-002.html"
+      },
+      {
+        "path": "compat/webkit-text-fill-color-property-003.html",
+        "references": [
+          [
+            "/compat/webkit-text-fill-color-property-003-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/compat/webkit-text-fill-color-property-003.html"
+      },
+      {
+        "path": "compat/webkit-text-fill-color-property-004.html",
+        "references": [
+          [
+            "/compat/webkit-text-fill-color-property-004-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/compat/webkit-text-fill-color-property-004.html"
+      },
+      {
+        "path": "compat/webkit-text-fill-color-property-005.html",
+        "references": [
+          [
+            "/compat/webkit-text-fill-color-property-005-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/compat/webkit-text-fill-color-property-005.html"
+      },
+      {
+        "path": "compat/webkit-text-fill-color-property-006.html",
+        "references": [
+          [
+            "/compat/webkit-text-fill-color-property-006-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/compat/webkit-text-fill-color-property-006.html"
       },
       {
         "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html",
@@ -11068,10 +11126,6 @@
         "url": "/DOMEvents/tests/approved/EventListener.eventHandler.html"
       },
       {
-        "path": "DOMEvents/tests/approved/EventObject.after.dispatchEvent.html",
-        "url": "/DOMEvents/tests/approved/EventObject.after.dispatchEvent.html"
-      },
-      {
         "path": "DOMEvents/tests/approved/EventObject.multiple.dispatchEvent.html",
         "url": "/DOMEvents/tests/approved/EventObject.multiple.dispatchEvent.html"
       },
@@ -11106,10 +11160,6 @@
       {
         "path": "DOMEvents/tests/submissions/Microsoft/converted/EventListener.eventHandler.html",
         "url": "/DOMEvents/tests/submissions/Microsoft/converted/EventListener.eventHandler.html"
-      },
-      {
-        "path": "DOMEvents/tests/submissions/Microsoft/converted/EventObject.after.dispatchEvent.html",
-        "url": "/DOMEvents/tests/submissions/Microsoft/converted/EventObject.after.dispatchEvent.html"
       },
       {
         "path": "DOMEvents/tests/submissions/Microsoft/converted/EventObject.multiple.dispatchEvent.html",
@@ -14046,6 +14096,10 @@
       {
         "path": "dom/events/Event-constructors.html",
         "url": "/dom/events/Event-constructors.html"
+      },
+      {
+        "path": "dom/events/Event-defaultPrevented-after-dispatch.html",
+        "url": "/dom/events/Event-defaultPrevented-after-dispatch.html"
       },
       {
         "path": "dom/events/Event-defaultPrevented.html",
@@ -18732,6 +18786,10 @@
         "url": "/html/semantics/embedded-content/the-embed-element/embed-document.html"
       },
       {
+        "path": "html/semantics/embedded-content/the-embed-element/embed-ignored-in-media-element.html",
+        "url": "/html/semantics/embedded-content/the-embed-element/embed-ignored-in-media-element.html"
+      },
+      {
         "path": "html/semantics/embedded-content/the-iframe-element/iframe_javascript_url_01.htm",
         "url": "/html/semantics/embedded-content/the-iframe-element/iframe_javascript_url_01.htm"
       },
@@ -19990,6 +20048,22 @@
       {
         "path": "html/webappapis/scripting/processing-model-2/window-onerror-runtime-error.html",
         "url": "/html/webappapis/scripting/processing-model-2/window-onerror-runtime-error.html"
+      },
+      {
+        "path": "html/webappapis/scripting/processing-model-2/window-onerror-with-cross-frame-event-listeners-1.html",
+        "url": "/html/webappapis/scripting/processing-model-2/window-onerror-with-cross-frame-event-listeners-1.html"
+      },
+      {
+        "path": "html/webappapis/scripting/processing-model-2/window-onerror-with-cross-frame-event-listeners-2.html",
+        "url": "/html/webappapis/scripting/processing-model-2/window-onerror-with-cross-frame-event-listeners-2.html"
+      },
+      {
+        "path": "html/webappapis/scripting/processing-model-2/window-onerror-with-cross-frame-event-listeners-3.html",
+        "url": "/html/webappapis/scripting/processing-model-2/window-onerror-with-cross-frame-event-listeners-3.html"
+      },
+      {
+        "path": "html/webappapis/scripting/processing-model-2/window-onerror-with-cross-frame-event-listeners-4.html",
+        "url": "/html/webappapis/scripting/processing-model-2/window-onerror-with-cross-frame-event-listeners-4.html"
       },
       {
         "path": "html/webappapis/system-state-and-capabilities/the-navigator-object/NavigatorID.html",
@@ -28720,8 +28794,16 @@
         "url": "/web-animations/animation-effect-timing/duration.html"
       },
       {
+        "path": "web-animations/animation-effect-timing/easing.html",
+        "url": "/web-animations/animation-effect-timing/easing.html"
+      },
+      {
         "path": "web-animations/animation-effect-timing/endDelay.html",
         "url": "/web-animations/animation-effect-timing/endDelay.html"
+      },
+      {
+        "path": "web-animations/animation-effect-timing/fill.html",
+        "url": "/web-animations/animation-effect-timing/fill.html"
       },
       {
         "path": "web-animations/animation-effect-timing/getAnimations.html",
@@ -28738,6 +28820,18 @@
       {
         "path": "web-animations/animation-effect-timing/iterations.html",
         "url": "/web-animations/animation-effect-timing/iterations.html"
+      },
+      {
+        "path": "web-animations/animation-model/animation-types/discrete-animation.html",
+        "url": "/web-animations/animation-model/animation-types/discrete-animation.html"
+      },
+      {
+        "path": "web-animations/animation-model/animation-types/not-animatable.html",
+        "url": "/web-animations/animation-model/animation-types/not-animatable.html"
+      },
+      {
+        "path": "web-animations/animation-model/keyframes/effect-value-context.html",
+        "url": "/web-animations/animation-model/keyframes/effect-value-context.html"
       },
       {
         "path": "web-animations/animation-timeline/document-timeline.html",
@@ -28760,6 +28854,26 @@
         "url": "/web-animations/animation/finish.html"
       },
       {
+        "path": "web-animations/animation/finished.html",
+        "url": "/web-animations/animation/finished.html"
+      },
+      {
+        "path": "web-animations/animation/id.html",
+        "url": "/web-animations/animation/id.html"
+      },
+      {
+        "path": "web-animations/animation/oncancel.html",
+        "url": "/web-animations/animation/oncancel.html"
+      },
+      {
+        "path": "web-animations/animation/onfinish.html",
+        "url": "/web-animations/animation/onfinish.html"
+      },
+      {
+        "path": "web-animations/animation/pause.html",
+        "url": "/web-animations/animation/pause.html"
+      },
+      {
         "path": "web-animations/animation/play.html",
         "url": "/web-animations/animation/play.html"
       },
@@ -28770,6 +28884,14 @@
       {
         "path": "web-animations/animation/playbackRate.html",
         "url": "/web-animations/animation/playbackRate.html"
+      },
+      {
+        "path": "web-animations/animation/ready.html",
+        "url": "/web-animations/animation/ready.html"
+      },
+      {
+        "path": "web-animations/animation/reverse.html",
+        "url": "/web-animations/animation/reverse.html"
       },
       {
         "path": "web-animations/keyframe-effect/constructor.html",
@@ -35091,6 +35213,7 @@
   },
   "local_changes": {
     "deleted": [],
+    "deleted_reftests": {},
     "items": {},
     "reftest_nodes": {}
   },
@@ -35585,6 +35708,66 @@
           ]
         ],
         "url": "/compat/webkit-text-fill-color-property-001d.html"
+      }
+    ],
+    "compat/webkit-text-fill-color-property-002.html": [
+      {
+        "path": "compat/webkit-text-fill-color-property-002.html",
+        "references": [
+          [
+            "/compat/webkit-text-fill-color-property-002-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/compat/webkit-text-fill-color-property-002.html"
+      }
+    ],
+    "compat/webkit-text-fill-color-property-003.html": [
+      {
+        "path": "compat/webkit-text-fill-color-property-003.html",
+        "references": [
+          [
+            "/compat/webkit-text-fill-color-property-003-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/compat/webkit-text-fill-color-property-003.html"
+      }
+    ],
+    "compat/webkit-text-fill-color-property-004.html": [
+      {
+        "path": "compat/webkit-text-fill-color-property-004.html",
+        "references": [
+          [
+            "/compat/webkit-text-fill-color-property-004-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/compat/webkit-text-fill-color-property-004.html"
+      }
+    ],
+    "compat/webkit-text-fill-color-property-005.html": [
+      {
+        "path": "compat/webkit-text-fill-color-property-005.html",
+        "references": [
+          [
+            "/compat/webkit-text-fill-color-property-005-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/compat/webkit-text-fill-color-property-005.html"
+      }
+    ],
+    "compat/webkit-text-fill-color-property-006.html": [
+      {
+        "path": "compat/webkit-text-fill-color-property-006.html",
+        "references": [
+          [
+            "/compat/webkit-text-fill-color-property-006-ref.html",
+            "=="
+          ]
+        ],
+        "url": "/compat/webkit-text-fill-color-property-006.html"
       }
     ],
     "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html": [
@@ -41336,7 +41519,7 @@
       }
     ]
   },
-  "rev": "20fa4a3a71ab7a2f75b4febbe2e98aeeaf022c2b",
+  "rev": "0a518aaff73532a26e175789f7e75fa99593ac64",
   "url_base": "/",
   "version": 3
 }

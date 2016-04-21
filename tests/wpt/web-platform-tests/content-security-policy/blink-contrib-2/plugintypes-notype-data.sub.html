@@ -6,7 +6,7 @@
     <title>plugintypes-notype-data</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
-    <script src='../support/logTest.sub.js?logs=["PASS"]'></script>
+    <script src='../support/logTest.sub.js?logs=["PASS: object tag onerror handler fired"]'></script>
     <script src="../support/alertAssert.sub.js?alerts=[]"></script>
     <!-- enforcing policy:
 plugin-types application/x-invalid-type; script-src 'self' 'unsafe-inline'; connect-src 'self';
@@ -15,7 +15,7 @@ plugin-types application/x-invalid-type; script-src 'self' 'unsafe-inline'; conn
 
 <body>
     Given a `plugin-types` directive, plugins have to declare a type explicitly. No declared type, no load. This test passes if there&apos;s a CSP report and &quot;FAIL!&quot; isn&apos;t logged.
-    <object data="data:application/x-webkit-test-netscape" onload="log('FAIL');" onerror="log('PASS');"></object>
+    <object data="data:application/x-webkit-test-netscape" onload="log('FAIL');" onerror="log('PASS: object tag onerror handler fired');"></object>
     <div id="log"></div>
     <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=plugin-types+application/x-invalid-type"></script>
 </body>
