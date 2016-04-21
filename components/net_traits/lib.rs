@@ -87,7 +87,7 @@ pub struct LoadData {
     // https://fetch.spec.whatwg.org/#concept-http-fetch step 4.3
     pub credentials_flag: bool,
     pub context: LoadContext,
-    // https://w3c.github.io/webappsec-referrer-policy/
+    /// The policy and referring URL for the originator of this request
     pub referrer_policy: Option<ReferrerPolicy>,
     pub referrer_url: Option<Url>,
 
