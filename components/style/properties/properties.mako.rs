@@ -8,6 +8,8 @@
 // For example, Vec<&Foo> will be mangled as Vec&Foo>. To work around these issues, the code
 // can be escaped. In the above example, Vec<<&Foo> achieves the desired result of Vec<&Foo>.
 
+<%namespace name="helpers" file="/helpers.mako.rs" />
+
 use std::ascii::AsciiExt;
 use std::boxed::Box as StdBox;
 use std::collections::HashSet;
@@ -45,499 +47,12 @@ pub mod longhands {
     use parser::ParserContext;
     use values::specified;
 
-    <%def name="raw_longhand(*args, **kwargs)">
-        <%
-            property = data.declare_longhand(*args, **kwargs)
-            if property is None:
-                return ""
-        %>
-        pub mod ${property.ident} {
-            #![allow(unused_imports)]
-            % if not property.derived_from:
-                use cssparser::Parser;
-                use parser::ParserContext;
-                use properties::{CSSWideKeyword, DeclaredValue, Shorthand};
-            % endif
-            use error_reporting::ParseErrorReporter;
-            use properties::longhands;
-            use properties::property_bit_field::PropertyBitField;
-            use properties::{ComputedValues, ServoComputedValues, PropertyDeclaration};
-            use properties::style_struct_traits::${data.current_style_struct.trait_name};
-            use properties::style_structs;
-            use std::boxed::Box as StdBox;
-            use std::collections::HashMap;
-            use std::sync::Arc;
-            use values::computed::{TContext, ToComputedValue};
-            use values::{computed, specified};
-            use string_cache::Atom;
-            ${caller.body()}
-            #[allow(unused_variables)]
-            pub fn cascade_property<C: ComputedValues>(
-                                    declaration: &PropertyDeclaration,
-                                    inherited_style: &C,
-                                    context: &mut computed::Context<C>,
-                                    seen: &mut PropertyBitField,
-                                    cacheable: &mut bool,
-                                    error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
-                let declared_value = match *declaration {
-                    PropertyDeclaration::${property.camel_case}(ref declared_value) => {
-                        declared_value
-                    }
-                    _ => panic!("entered the wrong cascade_property() implementation"),
-                };
-                % if not property.derived_from:
-                    if seen.get_${property.ident}() {
-                        return
-                    }
-                    seen.set_${property.ident}();
-                    {
-                        let custom_props = context.style().custom_properties();
-                        ::properties::substitute_variables_${property.ident}(
-                            declared_value, &custom_props, |value| match *value {
-                                DeclaredValue::Value(ref specified_value) => {
-                                    let computed = specified_value.to_computed_value(context);
-                                    context.mutate_style().mutate_${data.current_style_struct.trait_name_lower}()
-                                                          .set_${property.ident}(computed);
-                                }
-                                DeclaredValue::WithVariables { .. } => unreachable!(),
-                                DeclaredValue::Initial => {
-                                    // We assume that it's faster to use copy_*_from rather than
-                                    // set_*(get_initial_value());
-                                    let initial_struct = C::initial_values()
-                                                          .get_${data.current_style_struct.trait_name_lower}();
-                                    context.mutate_style().mutate_${data.current_style_struct.trait_name_lower}()
-                                                          .copy_${property.ident}_from(initial_struct);
-                                },
-                                DeclaredValue::Inherit => {
-                                    // This is a bit slow, but this is rare so it shouldn't
-                                    // matter.
-                                    //
-                                    // FIXME: is it still?
-                                    *cacheable = false;
-                                    let inherited_struct =
-                                        inherited_style.get_${data.current_style_struct.trait_name_lower}();
-                                    context.mutate_style().mutate_${data.current_style_struct.trait_name_lower}()
-                                           .copy_${property.ident}_from(inherited_struct);
-                                }
-                            }, error_reporter
-                        );
-                    }
-
-                    % if property.custom_cascade:
-                        cascade_property_custom(declaration,
-                                                inherited_style,
-                                                context,
-                                                seen,
-                                                cacheable,
-                                                error_reporter);
-                    % endif
-                % else:
-                    // Do not allow stylesheets to set derived properties.
-                % endif
-            }
-            % if not property.derived_from:
-                pub fn parse_declared(context: &ParserContext, input: &mut Parser)
-                                   -> Result<DeclaredValue<SpecifiedValue>, ()> {
-                    match input.try(CSSWideKeyword::parse) {
-                        Ok(CSSWideKeyword::InheritKeyword) => Ok(DeclaredValue::Inherit),
-                        Ok(CSSWideKeyword::InitialKeyword) => Ok(DeclaredValue::Initial),
-                        Ok(CSSWideKeyword::UnsetKeyword) => Ok(DeclaredValue::${
-                            "Inherit" if data.current_style_struct.inherited else "Initial"}),
-                        Err(()) => {
-                            input.look_for_var_functions();
-                            let start = input.position();
-                            let specified = parse_specified(context, input);
-                            if specified.is_err() {
-                                while let Ok(_) = input.next() {}  // Look for var() after the error.
-                            }
-                            let var = input.seen_var_functions();
-                            if specified.is_err() && var {
-                                input.reset(start);
-                                let (first_token_type, css) = try!(
-                                    ::custom_properties::parse_non_custom_with_var(input));
-                                return Ok(DeclaredValue::WithVariables {
-                                    css: css.into_owned(),
-                                    first_token_type: first_token_type,
-                                    base_url: context.base_url.clone(),
-                                    from_shorthand: None,
-                                })
-                            }
-                            specified
-                        }
-                    }
-                }
-            % endif
-        }
-    </%def>
-
-    <%def name="longhand(name, **kwargs)">
-        <%call expr="raw_longhand(name, **kwargs)">
-            ${caller.body()}
-            % if not data.longhands_by_name[name].derived_from:
-                pub fn parse_specified(context: &ParserContext, input: &mut Parser)
-                                   -> Result<DeclaredValue<SpecifiedValue>, ()> {
-                    parse(context, input).map(DeclaredValue::Value)
-                }
-            % endif
-        </%call>
-    </%def>
-
-    <%def name="single_keyword_computed(name, values, **kwargs)">
-        <%
-            keyword_kwargs = {a: kwargs.pop(a, None) for a in [
-                'gecko_constant_prefix', 'extra_gecko_values', 'extra_servo_values'
-            ]}
-        %>
-        <%call expr="longhand(name, keyword=Keyword(name, values.split(), **keyword_kwargs), **kwargs)">
-            pub use self::computed_value::T as SpecifiedValue;
-            ${caller.body()}
-            pub mod computed_value {
-                define_css_keyword_enum! { T:
-                    % for value in data.longhands_by_name[name].keyword.values_for(product):
-                        "${value}" => ${to_rust_ident(value)},
-                    % endfor
-                }
-            }
-            #[inline] pub fn get_initial_value() -> computed_value::T {
-                computed_value::T::${to_rust_ident(values.split()[0])}
-            }
-            pub fn parse(_context: &ParserContext, input: &mut Parser)
-                         -> Result<SpecifiedValue, ()> {
-                computed_value::T::parse(input)
-            }
-        </%call>
-    </%def>
-
-    <%def name="single_keyword(name, values, **kwargs)">
-        <%call expr="single_keyword_computed(name, values, **kwargs)">
-            use values::computed::ComputedValueAsSpecified;
-            impl ComputedValueAsSpecified for SpecifiedValue {}
-        </%call>
-    </%def>
-
-    <%def name="predefined_type(name, type, initial_value, parse_method='parse', products='gecko servo')">
-        <%self:longhand name="${name}" products="${products}">
-            #[allow(unused_imports)]
-            use app_units::Au;
-            pub type SpecifiedValue = specified::${type};
-            pub mod computed_value {
-                pub use values::computed::${type} as T;
-            }
-            #[inline] pub fn get_initial_value() -> computed_value::T { ${initial_value} }
-            #[inline] pub fn parse(_context: &ParserContext, input: &mut Parser)
-                                   -> Result<SpecifiedValue, ()> {
-                specified::${type}::${parse_method}(input)
-            }
-        </%self:longhand>
-    </%def>
-
-
-    // CSS 2.1, Section 8 - Box model
-
-    <% data.new_style_struct("Margin", inherited=False, gecko_ffi_name="nsStyleMargin") %>
-
-    % for side in ["top", "right", "bottom", "left"]:
-        ${predefined_type("margin-" + side, "LengthOrPercentageOrAuto",
-                          "computed::LengthOrPercentageOrAuto::Length(Au(0))")}
-    % endfor
-
-    <% data.new_style_struct("Padding", inherited=False, gecko_ffi_name="nsStylePadding") %>
-
-    % for side in ["top", "right", "bottom", "left"]:
-        ${predefined_type("padding-" + side, "LengthOrPercentage",
-                          "computed::LengthOrPercentage::Length(Au(0))",
-                          "parse_non_negative")}
-    % endfor
-
-    <% data.new_style_struct("Border", inherited=False, gecko_ffi_name="nsStyleBorder",
-                       additional_methods=[Method("border_" + side + "_is_none_or_hidden_and_has_nonzero_width",
-                                                  "bool") for side in ["top", "right", "bottom", "left"]]) %>
-
-    % for side in ["top", "right", "bottom", "left"]:
-        ${predefined_type("border-%s-color" % side, "CSSColor", "::cssparser::Color::CurrentColor")}
-    % endfor
-
-    % for side in ["top", "right", "bottom", "left"]:
-        ${predefined_type("border-%s-style" % side, "BorderStyle", "specified::BorderStyle::none")}
-    % endfor
-
-    % for side in ["top", "right", "bottom", "left"]:
-        <%self:longhand name="border-${side}-width">
-            use app_units::Au;
-            use cssparser::ToCss;
-            use std::fmt;
-
-            impl ToCss for SpecifiedValue {
-                fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                    self.0.to_css(dest)
-                }
-            }
-
-            #[inline]
-            pub fn parse(_context: &ParserContext, input: &mut Parser)
-                                   -> Result<SpecifiedValue, ()> {
-                specified::parse_border_width(input).map(SpecifiedValue)
-            }
-            #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
-            pub struct SpecifiedValue(pub specified::Length);
-            pub mod computed_value {
-                use app_units::Au;
-                pub type T = Au;
-            }
-            #[inline] pub fn get_initial_value() -> computed_value::T {
-                Au::from_px(3)  // medium
-            }
-
-            impl ToComputedValue for SpecifiedValue {
-                type ComputedValue = computed_value::T;
-
-                #[inline]
-                fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
-                    self.0.to_computed_value(context)
-                }
-            }
-        </%self:longhand>
-    % endfor
-
-    // FIXME(#4126): when gfx supports painting it, make this Size2D<LengthOrPercentage>
-    % for corner in ["top-left", "top-right", "bottom-right", "bottom-left"]:
-        ${predefined_type("border-" + corner + "-radius", "BorderRadiusSize",
-                          "computed::BorderRadiusSize::zero()",
-                          "parse")}
-    % endfor
-
-    <% data.new_style_struct("Outline", inherited=False, gecko_ffi_name="nsStyleOutline",
-                       additional_methods=[Method("outline_is_none_or_hidden_and_has_nonzero_width", "bool")]) %>
-
-    // TODO(pcwalton): `invert`
-    ${predefined_type("outline-color", "CSSColor", "::cssparser::Color::CurrentColor")}
-
-    <%self:longhand name="outline-style">
-        pub use values::specified::BorderStyle as SpecifiedValue;
-        pub fn get_initial_value() -> SpecifiedValue { SpecifiedValue::none }
-        pub mod computed_value {
-            pub use values::specified::BorderStyle as T;
-        }
-        pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-            match SpecifiedValue::parse(input) {
-                Ok(SpecifiedValue::hidden) => Err(()),
-                result => result
-            }
-        }
-    </%self:longhand>
-
-    <%self:longhand name="outline-width">
-        use app_units::Au;
-        use cssparser::ToCss;
-        use std::fmt;
-        use values::AuExtensionMethods;
-
-        impl ToCss for SpecifiedValue {
-            fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                self.0.to_css(dest)
-            }
-        }
-
-        pub fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-            specified::parse_border_width(input).map(SpecifiedValue)
-        }
-        #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
-        pub struct SpecifiedValue(pub specified::Length);
-        pub mod computed_value {
-            use app_units::Au;
-            pub type T = Au;
-        }
-        pub use super::border_top_width::get_initial_value;
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
-
-            #[inline]
-            fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
-                self.0.to_computed_value(context)
-            }
-        }
-    </%self:longhand>
-
-    ${predefined_type("outline-offset", "Length", "Au(0)")}
-
-    <% data.new_style_struct("Position", inherited=False, gecko_ffi_name="nsStylePosition") %>
-
-    % for side in ["top", "right", "bottom", "left"]:
-        ${predefined_type(side, "LengthOrPercentageOrAuto",
-                          "computed::LengthOrPercentageOrAuto::Auto")}
-    % endfor
-
-    // CSS 2.1, Section 9 - Visual formatting model
-
-    <% data.new_style_struct("Box", inherited=False, gecko_ffi_name="nsStyleDisplay",
-                       additional_methods=[Method("clone_display",
-                                                  "longhands::display::computed_value::T"),
-                                           Method("clone_position",
-                                                  "longhands::position::computed_value::T"),
-                                           Method("is_floated", "bool"),
-                                           Method("overflow_x_is_visible", "bool"),
-                                           Method("overflow_y_is_visible", "bool"),
-                                           Method("transition_count", "usize")]) %>
-
-    // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
-    <%self:longhand name="display" custom_cascade="${product == 'servo'}">
-        <%
-            values = """inline block inline-block
-                table inline-table table-row-group table-header-group table-footer-group
-                table-row table-column-group table-column table-cell table-caption
-                list-item flex
-                none
-            """.split()
-            experimental_values = set("flex".split())
-        %>
-        pub use self::computed_value::T as SpecifiedValue;
-        use values::computed::{Context, ComputedValueAsSpecified};
-
-        pub mod computed_value {
-            #[allow(non_camel_case_types)]
-            #[derive(Clone, Eq, PartialEq, Copy, Hash, RustcEncodable, Debug, HeapSizeOf)]
-            #[derive(Deserialize, Serialize)]
-            pub enum T {
-                % for value in values:
-                    ${to_rust_ident(value)},
-                % endfor
-            }
-
-            impl ::cssparser::ToCss for T {
-                fn to_css<W>(&self, dest: &mut W) -> ::std::fmt::Result
-                where W: ::std::fmt::Write {
-                    match *self {
-                        % for value in values:
-                            T::${to_rust_ident(value)} => dest.write_str("${value}"),
-                        % endfor
-                    }
-                }
-            }
-        }
-        #[inline] pub fn get_initial_value() -> computed_value::T {
-            computed_value::T::${to_rust_ident(values[0])}
-        }
-        pub fn parse(_context: &ParserContext, input: &mut Parser)
-                     -> Result<SpecifiedValue, ()> {
-            match_ignore_ascii_case! { try!(input.expect_ident()),
-                % for value in values:
-                    "${value}" => {
-                        % if value in experimental_values:
-                            if !::util::prefs::get_pref("layout.${value}.enabled")
-                                .as_boolean().unwrap_or(false) {
-                                return Err(())
-                            }
-                        % endif
-                        Ok(computed_value::T::${to_rust_ident(value)})
-                    },
-                % endfor
-                _ => Err(())
-            }
-        }
-
-        impl ComputedValueAsSpecified for SpecifiedValue {}
-
-        % if product == "servo":
-            fn cascade_property_custom<C: ComputedValues>(
-                                       _declaration: &PropertyDeclaration,
-                                       _inherited_style: &C,
-                                       context: &mut computed::Context<C>,
-                                       _seen: &mut PropertyBitField,
-                                       _cacheable: &mut bool,
-                                       _error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
-                longhands::_servo_display_for_hypothetical_box::derive_from_display(context);
-                longhands::_servo_text_decorations_in_effect::derive_from_display(context);
-            }
-        % endif
-
-    </%self:longhand>
-
-    ${single_keyword("position", "static absolute relative fixed", extra_gecko_values="sticky")}
-
-    <%self:single_keyword_computed name="float" values="none left right" gecko_ffi_name="mFloats">
-        impl ToComputedValue for SpecifiedValue {
-            type ComputedValue = computed_value::T;
-
-            #[inline]
-            fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
-                let positioned = matches!(context.style().get_box().clone_position(),
-                    longhands::position::SpecifiedValue::absolute |
-                    longhands::position::SpecifiedValue::fixed);
-                if positioned {
-                    SpecifiedValue::none
-                } else {
-                    *self
-                }
-            }
-        }
-
-    </%self:single_keyword_computed>
-
-    ${single_keyword("clear", "none left right both", gecko_ffi_name="mBreakType")}
-
-    <%self:longhand name="-servo-display-for-hypothetical-box" derived_from="display" products="servo">
-        pub use super::display::{SpecifiedValue, get_initial_value};
-        pub use super::display::{parse};
-
-        pub mod computed_value {
-            pub type T = super::SpecifiedValue;
-        }
-
-        #[inline]
-        pub fn derive_from_display<Cx: TContext>(context: &mut Cx) {
-            let d = context.style().get_box().clone_display();
-            context.mutate_style().mutate_box().set__servo_display_for_hypothetical_box(d);
-        }
-
-    </%self:longhand>
-
-    <% data.switch_to_style_struct("Position") %>
-
-    <%self:longhand name="z-index">
-        use values::computed::ComputedValueAsSpecified;
-
-        impl ComputedValueAsSpecified for SpecifiedValue {}
-        pub type SpecifiedValue = computed_value::T;
-        pub mod computed_value {
-            use cssparser::ToCss;
-            use std::fmt;
-
-            #[derive(PartialEq, Clone, Eq, Copy, Debug, HeapSizeOf)]
-            pub enum T {
-                Auto,
-                Number(i32),
-            }
-
-            impl ToCss for T {
-                fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                    match *self {
-                        T::Auto => dest.write_str("auto"),
-                        T::Number(number) => write!(dest, "{}", number),
-                    }
-                }
-            }
-
-            impl T {
-                pub fn number_or_zero(self) -> i32 {
-                    match self {
-                        T::Auto => 0,
-                        T::Number(value) => value,
-                    }
-                }
-            }
-        }
-        #[inline]
-        pub fn get_initial_value() -> computed_value::T {
-            computed_value::T::Auto
-        }
-        fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-            if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
-                Ok(computed_value::T::Auto)
-            } else {
-                specified::parse_integer(input).map(computed_value::T::Number)
-            }
-        }
-    </%self:longhand>
+    <%include file="/longhand/border.mako.rs" />
+    <%include file="/longhand/box.mako.rs" />
+    <%include file="/longhand/margin.mako.rs" />
+    <%include file="/longhand/outline.mako.rs" />
+    <%include file="/longhand/padding.mako.rs" />
+    <%include file="/longhand/position.mako.rs" />
 
     <% data.new_style_struct("InheritedBox", inherited=True, gecko_ffi_name="nsStyleVisibility",
                        additional_methods=[Method("clone_direction",
@@ -547,33 +62,33 @@ pub mod longhands {
                                            Method("clone_text_orientation",
                                                   "longhands::text_orientation::computed_value::T")]) %>
 
-    ${single_keyword("direction", "ltr rtl")}
+    ${helpers.single_keyword("direction", "ltr rtl")}
 
     // CSS 2.1, Section 10 - Visual formatting model details
 
     <% data.switch_to_style_struct("Box") %>
 
-    ${predefined_type("width", "LengthOrPercentageOrAuto",
+    ${helpers.predefined_type("width", "LengthOrPercentageOrAuto",
                       "computed::LengthOrPercentageOrAuto::Auto",
                       "parse_non_negative")}
 
-    ${predefined_type("height", "LengthOrPercentageOrAuto",
+    ${helpers.predefined_type("height", "LengthOrPercentageOrAuto",
                       "computed::LengthOrPercentageOrAuto::Auto",
                       "parse_non_negative")}
 
     <% data.switch_to_style_struct("Position") %>
 
-    ${predefined_type("min-width", "LengthOrPercentage",
+    ${helpers.predefined_type("min-width", "LengthOrPercentage",
                       "computed::LengthOrPercentage::Length(Au(0))",
                       "parse_non_negative")}
-    ${predefined_type("max-width", "LengthOrPercentageOrNone",
+    ${helpers.predefined_type("max-width", "LengthOrPercentageOrNone",
                       "computed::LengthOrPercentageOrNone::None",
                       "parse_non_negative")}
 
-    ${predefined_type("min-height", "LengthOrPercentage",
+    ${helpers.predefined_type("min-height", "LengthOrPercentage",
                       "computed::LengthOrPercentage::Length(Au(0))",
                       "parse_non_negative")}
-    ${predefined_type("max-height", "LengthOrPercentageOrNone",
+    ${helpers.predefined_type("max-height", "LengthOrPercentageOrNone",
                       "computed::LengthOrPercentageOrNone::None",
                       "parse_non_negative")}
 
@@ -582,7 +97,7 @@ pub mod longhands {
                                                   "longhands::_servo_text_decorations_in_effect::computed_value::T")]
                                            if product == "servo" else [])) %>
 
-    <%self:longhand name="line-height">
+    <%helpers:longhand name="line-height">
         use cssparser::ToCss;
         use std::fmt;
         use values::AuExtensionMethods;
@@ -672,11 +187,11 @@ pub mod longhands {
                 }
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
     <% data.switch_to_style_struct("Box") %>
 
-    <%self:longhand name="vertical-align">
+    <%helpers:longhand name="vertical-align">
         use cssparser::ToCss;
         use std::fmt;
 
@@ -758,23 +273,23 @@ pub mod longhands {
                 }
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
 
     // CSS 2.1, Section 11 - Visual effects
 
     // Non-standard, see https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box#Specifications
-    ${single_keyword("-servo-overflow-clip-box", "padding-box content-box", products="servo",
+    ${helpers.single_keyword("-servo-overflow-clip-box", "padding-box content-box", products="servo",
                      internal=True)}
 
-    ${single_keyword("overflow-clip-box", "padding-box content-box", products="gecko",
+    ${helpers.single_keyword("overflow-clip-box", "padding-box content-box", products="gecko",
                      internal=True)}
 
     // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-    ${single_keyword("overflow-x", "visible hidden scroll auto", gecko_constant_prefix="NS_STYLE_OVERFLOW")}
+    ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", gecko_constant_prefix="NS_STYLE_OVERFLOW")}
 
     // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-    <%self:longhand name="overflow-y">
+    <%helpers:longhand name="overflow-y">
         use super::overflow_x;
 
         use cssparser::ToCss;
@@ -809,35 +324,35 @@ pub mod longhands {
         pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
             overflow_x::parse(context, input).map(SpecifiedValue)
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
     // CSSOM View Module
     // https://www.w3.org/TR/cssom-view-1/
-    ${single_keyword("scroll-behavior", "auto smooth", products="gecko")}
+    ${helpers.single_keyword("scroll-behavior", "auto smooth", products="gecko")}
 
     // Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-x
-    ${single_keyword("scroll-snap-type-x", "none mandatory proximity",
+    ${helpers.single_keyword("scroll-snap-type-x", "none mandatory proximity",
                      products="gecko", gecko_constant_prefix="NS_STYLE_SCROLL_SNAP_TYPE")}
 
     // Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/scroll-snap-type-y
-    ${single_keyword("scroll-snap-type-y", "none mandatory proximity",
+    ${helpers.single_keyword("scroll-snap-type-y", "none mandatory proximity",
                      products="gecko", gecko_constant_prefix="NS_STYLE_SCROLL_SNAP_TYPE")}
 
     // Compositing and Blending Level 1
     // http://www.w3.org/TR/compositing-1/
-    ${single_keyword("isolation", "auto isolate", products="gecko")}
+    ${helpers.single_keyword("isolation", "auto isolate", products="gecko")}
 
     <% data.switch_to_style_struct("InheritedBox") %>
 
     // TODO: collapse. Well, do tables first.
-    ${single_keyword("visibility", "visible hidden", extra_gecko_values="collapse",
+    ${helpers.single_keyword("visibility", "visible hidden", extra_gecko_values="collapse",
                                                      gecko_ffi_name="mVisible")}
 
     // CSS 2.1, Section 12 - Generated content, automatic numbering, and lists
 
     <% data.new_style_struct("Counters", inherited=False, gecko_ffi_name="nsStyleContent") %>
 
-    <%self:longhand name="content">
+    <%helpers:longhand name="content">
         use cssparser::Token;
         use std::ascii::AsciiExt;
         use values::computed::ComputedValueAsSpecified;
@@ -998,11 +513,11 @@ pub mod longhands {
                 Err(())
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
     <% data.new_style_struct("List", inherited=True, gecko_ffi_name="nsStyleList") %>
 
-    ${single_keyword("list-style-position", "outside inside")}
+    ${helpers.single_keyword("list-style-position", "outside inside")}
 
     // TODO(pcwalton): Implement the full set of counter styles per CSS-COUNTER-STYLES [1] 6.1:
     //
@@ -1010,14 +525,14 @@ pub mod longhands {
     //     upper-roman
     //
     // [1]: http://dev.w3.org/csswg/css-counter-styles/
-    ${single_keyword("list-style-type", """
+    ${helpers.single_keyword("list-style-type", """
         disc none circle square decimal arabic-indic bengali cambodian cjk-decimal devanagari
         gujarati gurmukhi kannada khmer lao malayalam mongolian myanmar oriya persian telugu thai
         tibetan lower-alpha upper-alpha cjk-earthly-branch cjk-heavenly-stem lower-greek hiragana
         hiragana-iroha katakana katakana-iroha disclosure-open disclosure-closed
     """)}
 
-    <%self:longhand name="list-style-image">
+    <%helpers:longhand name="list-style-image">
         use cssparser::{ToCss, Token};
         use std::fmt;
         use url::Url;
@@ -1080,9 +595,9 @@ pub mod longhands {
         pub fn get_initial_value() -> computed_value::T {
             computed_value::T(None)
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
-    <%self:longhand name="quotes">
+    <%helpers:longhand name="quotes">
         use std::borrow::Cow;
         use std::fmt;
         use values::computed::ComputedValueAsSpecified;
@@ -1146,11 +661,11 @@ pub mod longhands {
                 Err(())
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
     <% data.switch_to_style_struct("Counters") %>
 
-    <%self:longhand name="counter-increment">
+    <%helpers:longhand name="counter-increment">
         use std::fmt;
         use super::content;
         use values::computed::ComputedValueAsSpecified;
@@ -1217,34 +732,34 @@ pub mod longhands {
                 Err(())
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
-    <%self:longhand name="counter-reset">
+    <%helpers:longhand name="counter-reset">
         pub use super::counter_increment::{SpecifiedValue, computed_value, get_initial_value};
         use super::counter_increment::{parse_common};
 
         pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
             parse_common(0, input)
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
     // CSS 2.1, Section 13 - Paged media
 
     <% data.switch_to_style_struct("Box") %>
 
-    ${single_keyword("page-break-after", "auto always avoid left right", products="gecko")}
-    ${single_keyword("page-break-before", "auto always avoid left right", products="gecko")}
-    ${single_keyword("page-break-inside", "auto avoid",
+    ${helpers.single_keyword("page-break-after", "auto always avoid left right", products="gecko")}
+    ${helpers.single_keyword("page-break-before", "auto always avoid left right", products="gecko")}
+    ${helpers.single_keyword("page-break-inside", "auto avoid",
                      products="gecko", gecko_ffi_name="mBreakInside", gecko_constant_prefix="NS_STYLE_PAGE_BREAK")}
 
     // CSS 2.1, Section 14 - Colors and Backgrounds
 
     <% data.new_style_struct("Background", inherited=False, gecko_ffi_name="nsStyleBackground") %>
-    ${predefined_type(
+    ${helpers.predefined_type(
         "background-color", "CSSColor",
         "::cssparser::Color::RGBA(::cssparser::RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}
 
-    <%self:longhand name="background-image">
+    <%helpers:longhand name="background-image">
         use cssparser::ToCss;
         use std::fmt;
         use values::specified::Image;
@@ -1302,9 +817,9 @@ pub mod longhands {
                 }
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
-    <%self:longhand name="background-position">
+    <%helpers:longhand name="background-position">
             use cssparser::ToCss;
             use std::fmt;
             use values::AuExtensionMethods;
@@ -1415,17 +930,17 @@ pub mod longhands {
                     .unwrap_or(specified::PositionComponent::Center);
                 SpecifiedValue::new(first, second)
             }
-    </%self:longhand>
+    </%helpers:longhand>
 
-    ${single_keyword("background-repeat", "repeat repeat-x repeat-y no-repeat")}
+    ${helpers.single_keyword("background-repeat", "repeat repeat-x repeat-y no-repeat")}
 
-    ${single_keyword("background-attachment", "scroll fixed")}
+    ${helpers.single_keyword("background-attachment", "scroll fixed")}
 
-    ${single_keyword("background-clip", "border-box padding-box content-box")}
+    ${helpers.single_keyword("background-clip", "border-box padding-box content-box")}
 
-    ${single_keyword("background-origin", "padding-box border-box content-box")}
+    ${helpers.single_keyword("background-origin", "padding-box border-box content-box")}
 
-    <%self:longhand name="background-size">
+    <%helpers:longhand name="background-size">
         use cssparser::{ToCss, Token};
         use std::ascii::AsciiExt;
         use std::fmt;
@@ -1559,13 +1074,13 @@ pub mod longhands {
                 height: height,
             }))
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
     <% data.new_style_struct("Color", inherited=True, gecko_ffi_name="nsStyleColor",
                        additional_methods=[Method("clone_color",
                                                   "longhands::color::computed_value::T")]) %>
 
-    <%self:raw_longhand name="color">
+    <%helpers:raw_longhand name="color">
         use cssparser::Color as CSSParserColor;
         use cssparser::RGBA;
         use values::specified::{CSSColor, CSSRGBA};
@@ -1599,7 +1114,7 @@ pub mod longhands {
                 authored: value.authored,
             }))
         }
-    </%self:raw_longhand>
+    </%helpers:raw_longhand>
 
     // CSS 2.1, Section 15 - Fonts
 
@@ -1610,7 +1125,7 @@ pub mod longhands {
                                                   "longhands::font_weight::computed_value::T"),
                                            Method("compute_font_hash", is_mut=True)]) %>
 
-    <%self:longhand name="font-family">
+    <%helpers:longhand name="font-family">
         use self::computed_value::FontFamily;
         use values::computed::ComputedValueAsSpecified;
         pub use self::computed_value::T as SpecifiedValue;
@@ -1717,13 +1232,13 @@ pub mod longhands {
             }
             Ok(FontFamily::FamilyName(Atom::from(value)))
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
 
-    ${single_keyword("font-style", "normal italic oblique")}
-    ${single_keyword("font-variant", "normal small-caps")}
+    ${helpers.single_keyword("font-style", "normal italic oblique")}
+    ${helpers.single_keyword("font-variant", "normal small-caps")}
 
-    <%self:longhand name="font-weight">
+    <%helpers:longhand name="font-weight">
         use cssparser::ToCss;
         use std::fmt;
 
@@ -1839,9 +1354,9 @@ pub mod longhands {
                 }
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
-    <%self:longhand name="font-size">
+    <%helpers:longhand name="font-size">
         use app_units::Au;
         use cssparser::ToCss;
         use std::fmt;
@@ -1904,19 +1419,19 @@ pub mod longhands {
             })
             .map(SpecifiedValue)
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
-    ${single_keyword("font-stretch",
+    ${helpers.single_keyword("font-stretch",
                      "normal ultra-condensed extra-condensed condensed semi-condensed semi-expanded \
                      expanded extra-expanded ultra-expanded")}
 
-    ${single_keyword("font-kerning", "auto none normal", products="gecko")}
+    ${helpers.single_keyword("font-kerning", "auto none normal", products="gecko")}
 
     // CSS 2.1, Section 16 - Text
 
     <% data.switch_to_style_struct("InheritedText") %>
 
-    <%self:longhand name="text-align">
+    <%helpers:longhand name="text-align">
         pub use self::computed_value::T as SpecifiedValue;
         use values::computed::ComputedValueAsSpecified;
         impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -1966,9 +1481,9 @@ pub mod longhands {
                      -> Result<SpecifiedValue, ()> {
             computed_value::T::parse(input)
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
-    <%self:longhand name="letter-spacing">
+    <%helpers:longhand name="letter-spacing">
         use cssparser::ToCss;
         use std::fmt;
         use values::AuExtensionMethods;
@@ -2028,9 +1543,9 @@ pub mod longhands {
                 specified::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
-    <%self:longhand name="word-spacing">
+    <%helpers:longhand name="word-spacing">
         use cssparser::ToCss;
         use std::fmt;
         use values::AuExtensionMethods;
@@ -2090,32 +1605,32 @@ pub mod longhands {
                 specified::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
-    ${predefined_type("text-indent", "LengthOrPercentage", "computed::LengthOrPercentage::Length(Au(0))")}
+    ${helpers.predefined_type("text-indent", "LengthOrPercentage", "computed::LengthOrPercentage::Length(Au(0))")}
 
     // Also known as "word-wrap" (which is more popular because of IE), but this is the preferred
     // name per CSS-TEXT 6.2.
-    ${single_keyword("overflow-wrap", "normal break-word", gecko_ffi_name="mWordWrap",
+    ${helpers.single_keyword("overflow-wrap", "normal break-word", gecko_ffi_name="mWordWrap",
                                                            gecko_constant_prefix="NS_STYLE_WORDWRAP")}
 
     // TODO(pcwalton): Support `word-break: keep-all` once we have better CJK support.
-    ${single_keyword("word-break", "normal break-all", extra_gecko_values="keep-all",
+    ${helpers.single_keyword("word-break", "normal break-all", extra_gecko_values="keep-all",
                                                        gecko_constant_prefix="NS_STYLE_WORDBREAK")}
 
     // TODO(pcwalton): Support `text-justify: distribute`.
-    ${single_keyword("text-justify", "auto none inter-word", products="servo")}
+    ${helpers.single_keyword("text-justify", "auto none inter-word", products="servo")}
 
     <% data.new_style_struct("Text", inherited=False, gecko_ffi_name="nsStyleTextReset",
                        additional_methods=[Method("has_underline", "bool"),
                                            Method("has_overline", "bool"),
                                            Method("has_line_through", "bool")]) %>
 
-    ${single_keyword("text-overflow", "clip ellipsis")}
+    ${helpers.single_keyword("text-overflow", "clip ellipsis")}
 
-    ${single_keyword("unicode-bidi", "normal embed isolate bidi-override isolate-override plaintext")}
+    ${helpers.single_keyword("unicode-bidi", "normal embed isolate bidi-override isolate-override plaintext")}
 
-    <%self:longhand name="text-decoration" custom_cascade="${product == 'servo'}">
+    <%helpers:longhand name="text-decoration" custom_cascade="${product == 'servo'}">
         use cssparser::ToCss;
         use std::fmt;
         use values::computed::ComputedValueAsSpecified;
@@ -2201,14 +1716,14 @@ pub mod longhands {
                     longhands::_servo_text_decorations_in_effect::derive_from_text_decoration(context);
             }
         % endif
-    </%self:longhand>
+    </%helpers:longhand>
 
-    ${single_keyword("text-decoration-style", "-moz-none solid double dotted dashed wavy",
+    ${helpers.single_keyword("text-decoration-style", "-moz-none solid double dotted dashed wavy",
                      products="gecko")}
 
     <% data.switch_to_style_struct("InheritedText") %>
 
-    <%self:longhand name="-servo-text-decorations-in-effect"
+    <%helpers:longhand name="-servo-text-decorations-in-effect"
                     derived_from="display text-decoration" products="servo">
         use cssparser::{RGBA, ToCss};
         use std::fmt;
@@ -2287,10 +1802,10 @@ pub mod longhands {
             let derived = derive(context);
             context.mutate_style().mutate_inheritedtext().set__servo_text_decorations_in_effect(derived);
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
-    <%self:single_keyword_computed name="white-space" values="normal pre nowrap pre-wrap pre-line",
-                                   gecko_constant_prefix="NS_STYLE_WHITESPACE">
+    <%helpers:single_keyword_computed name="white-space" values="normal pre nowrap pre-wrap pre-line",
+                                      gecko_constant_prefix="NS_STYLE_WHITESPACE">
         use values::computed::ComputedValueAsSpecified;
         impl ComputedValueAsSpecified for SpecifiedValue {}
 
@@ -2325,38 +1840,38 @@ pub mod longhands {
                 }
             }
         }
-    </%self:single_keyword_computed>
+    </%helpers:single_keyword_computed>
 
     // TODO(pcwalton): `full-width`
-    ${single_keyword("text-transform", "none capitalize uppercase lowercase",
+    ${helpers.single_keyword("text-transform", "none capitalize uppercase lowercase",
                      extra_gecko_values="full-width")}
 
-    ${single_keyword("text-rendering", "auto optimizespeed optimizelegibility geometricprecision")}
+    ${helpers.single_keyword("text-rendering", "auto optimizespeed optimizelegibility geometricprecision")}
 
     // CSS Text Module Level 3
     // https://www.w3.org/TR/css-text-3/
-    ${single_keyword("hyphens", "none manual auto", products="gecko")}
+    ${helpers.single_keyword("hyphens", "none manual auto", products="gecko")}
 
     // CSS Ruby Layout Module Level 1
     // https://www.w3.org/TR/css-ruby-1/
-    ${single_keyword("ruby-align", "start center space-between space-around", products="gecko")}
+    ${helpers.single_keyword("ruby-align", "start center space-between space-around", products="gecko")}
 
-    ${single_keyword("ruby-position", "over under", products="gecko")}
+    ${helpers.single_keyword("ruby-position", "over under", products="gecko")}
 
     // CSS 2.1, Section 17 - Tables
     <% data.new_style_struct("Table", inherited=False, gecko_ffi_name="nsStyleTable") %>
 
-    ${single_keyword("table-layout", "auto fixed", gecko_ffi_name="mLayoutStrategy")}
+    ${helpers.single_keyword("table-layout", "auto fixed", gecko_ffi_name="mLayoutStrategy")}
 
     <% data.new_style_struct("InheritedTable", inherited=True, gecko_ffi_name="nsStyleTableBorder") %>
 
-    ${single_keyword("border-collapse", "separate collapse", gecko_constant_prefix="NS_STYLE_BORDER")}
+    ${helpers.single_keyword("border-collapse", "separate collapse", gecko_constant_prefix="NS_STYLE_BORDER")}
 
-    ${single_keyword("empty-cells", "show hide", gecko_constant_prefix="NS_STYLE_TABLE_EMPTY_CELLS")}
+    ${helpers.single_keyword("empty-cells", "show hide", gecko_constant_prefix="NS_STYLE_TABLE_EMPTY_CELLS")}
 
-    ${single_keyword("caption-side", "top bottom", extra_gecko_values="right left top-outside bottom-outside")}
+    ${helpers.single_keyword("caption-side", "top bottom", extra_gecko_values="right left top-outside bottom-outside")}
 
-    <%self:longhand name="border-spacing">
+    <%helpers:longhand name="border-spacing">
         use app_units::Au;
         use values::AuExtensionMethods;
 
@@ -2443,41 +1958,41 @@ pub mod longhands {
                 (None, Some(_)) => panic!("shouldn't happen"),
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
     // CSS Fragmentation Module Level 3
     // https://www.w3.org/TR/css-break-3/
     <% data.switch_to_style_struct("Border") %>
 
-    ${single_keyword("box-decoration-break", "slice clone", products="gecko")}
+    ${helpers.single_keyword("box-decoration-break", "slice clone", products="gecko")}
 
     // CSS Writing Modes Level 3
     // http://dev.w3.org/csswg/css-writing-modes/
     <% data.switch_to_style_struct("InheritedBox") %>
 
-    ${single_keyword("writing-mode", "horizontal-tb vertical-rl vertical-lr", experimental=True)}
+    ${helpers.single_keyword("writing-mode", "horizontal-tb vertical-rl vertical-lr", experimental=True)}
 
     // FIXME(SimonSapin): Add 'mixed' and 'upright' (needs vertical text support)
     // FIXME(SimonSapin): initial (first) value should be 'mixed', when that's implemented
-    ${single_keyword("text-orientation", "sideways sideways-left sideways-right", experimental=True)}
+    ${helpers.single_keyword("text-orientation", "sideways sideways-left sideways-right", experimental=True)}
 
     // CSS Color Module Level 4
     // https://drafts.csswg.org/css-color/
-    ${single_keyword("color-adjust", "economy exact", products="gecko")}
+    ${helpers.single_keyword("color-adjust", "economy exact", products="gecko")}
 
     // CSS Basic User Interface Module Level 3
     // http://dev.w3.org/csswg/css-ui/
     <% data.switch_to_style_struct("Box") %>
 
-    ${single_keyword("resize", "none both horizontal vertical", products="gecko")}
+    ${helpers.single_keyword("resize", "none both horizontal vertical", products="gecko")}
 
     <% data.switch_to_style_struct("Position") %>
 
-    ${single_keyword("box-sizing", "content-box border-box")}
+    ${helpers.single_keyword("box-sizing", "content-box border-box")}
 
     <% data.new_style_struct("Pointing", inherited=True, gecko_ffi_name="nsStyleUserInterface") %>
 
-    <%self:longhand name="cursor">
+    <%helpers:longhand name="cursor">
         pub use self::computed_value::T as SpecifiedValue;
         use values::computed::ComputedValueAsSpecified;
 
@@ -2519,17 +2034,17 @@ pub mod longhands {
                 .map(SpecifiedValue::SpecifiedCursor)
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
     // NB: `pointer-events: auto` (and use of `pointer-events` in anything that isn't SVG, in fact)
     // is nonstandard, slated for CSS4-UI.
     // TODO(pcwalton): SVG-only values.
-    ${single_keyword("pointer-events", "auto none")}
+    ${helpers.single_keyword("pointer-events", "auto none")}
 
 
     <% data.new_style_struct("Column", inherited=False, gecko_ffi_name="nsStyleColumn") %>
 
-    <%self:longhand name="column-width" experimental="True">
+    <%helpers:longhand name="column-width" experimental="True">
         use cssparser::ToCss;
         use std::fmt;
         use values::AuExtensionMethods;
@@ -2589,9 +2104,9 @@ pub mod longhands {
                 specified::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
-    <%self:longhand name="column-count" experimental="True">
+    <%helpers:longhand name="column-count" experimental="True">
         use cssparser::ToCss;
         use std::fmt;
 
@@ -2654,9 +2169,9 @@ pub mod longhands {
                 Ok(SpecifiedValue::Specified(count as u32))
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
-    <%self:longhand name="column-gap" experimental="True">
+    <%helpers:longhand name="column-gap" experimental="True">
         use cssparser::ToCss;
         use std::fmt;
         use values::AuExtensionMethods;
@@ -2716,12 +2231,12 @@ pub mod longhands {
                 specified::Length::parse_non_negative(input).map(SpecifiedValue::Specified)
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
     // Box-shadow, etc.
     <% data.new_style_struct("Effects", inherited=False, gecko_ffi_name="nsStyleEffects") %>
 
-    <%self:longhand name="opacity">
+    <%helpers:longhand name="opacity">
         use cssparser::ToCss;
         use std::fmt;
         use values::CSSFloat;
@@ -2760,9 +2275,9 @@ pub mod longhands {
         fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
             specified::parse_number(input).map(SpecifiedValue)
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
-    <%self:longhand name="box-shadow">
+    <%helpers:longhand name="box-shadow">
         use cssparser::{self, ToCss};
         use std::fmt;
         use values::AuExtensionMethods;
@@ -2968,9 +2483,9 @@ pub mod longhands {
                 inset: inset,
             })
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
-    <%self:longhand name="clip">
+    <%helpers:longhand name="clip">
         use cssparser::ToCss;
         use std::fmt;
         use values::AuExtensionMethods;
@@ -3121,11 +2636,11 @@ pub mod longhands {
                 Err(())
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
     <% data.switch_to_style_struct("InheritedText") %>
 
-    <%self:longhand name="text-shadow">
+    <%helpers:longhand name="text-shadow">
         use cssparser::{self, ToCss};
         use std::fmt;
         use values::AuExtensionMethods;
@@ -3301,11 +2816,11 @@ pub mod longhands {
                 }).collect())
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
     <% data.switch_to_style_struct("Effects") %>
 
-    <%self:longhand name="filter">
+    <%helpers:longhand name="filter">
         //pub use self::computed_value::T as SpecifiedValue;
         use cssparser::ToCss;
         use std::fmt;
@@ -3535,9 +3050,9 @@ pub mod longhands {
                 }).collect() }
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
-    <%self:longhand name="transform">
+    <%helpers:longhand name="transform">
         use app_units::Au;
         use values::CSSFloat;
 
@@ -3990,7 +3505,7 @@ pub mod longhands {
                 computed_value::T(Some(result))
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
     pub struct OriginParseResult {
         horizontal: Option<specified::LengthOrPercentage>,
@@ -4075,13 +3590,13 @@ pub mod longhands {
         }
     }
 
-    ${single_keyword("backface-visibility", "visible hidden")}
+    ${helpers.single_keyword("backface-visibility", "visible hidden")}
 
-    ${single_keyword("transform-box", "border-box fill-box view-box", products="gecko")}
+    ${helpers.single_keyword("transform-box", "border-box fill-box view-box", products="gecko")}
 
-    ${single_keyword("transform-style", "auto flat preserve-3d")}
+    ${helpers.single_keyword("transform-style", "auto flat preserve-3d")}
 
-    <%self:longhand name="transform-origin">
+    <%helpers:longhand name="transform-origin">
         use app_units::Au;
         use values::AuExtensionMethods;
         use values::specified::{Length, LengthOrPercentage, Percentage};
@@ -4157,13 +3672,13 @@ pub mod longhands {
                 }
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
-    ${predefined_type("perspective",
+    ${helpers.predefined_type("perspective",
                       "LengthOrNone",
                       "computed::LengthOrNone::None")}
 
-    <%self:longhand name="perspective-origin">
+    <%helpers:longhand name="perspective-origin">
         use values::specified::{LengthOrPercentage, Percentage};
 
         use cssparser::ToCss;
@@ -4231,9 +3746,9 @@ pub mod longhands {
                 }
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
-    ${single_keyword("mix-blend-mode",
+    ${helpers.single_keyword("mix-blend-mode",
                      """normal multiply screen overlay darken lighten color-dodge
                         color-burn hard-light soft-light difference exclusion hue
                         saturation color luminosity""", gecko_constant_prefix="NS_STYLE_BLEND")}
@@ -4243,11 +3758,11 @@ pub mod longhands {
 
     <% data.switch_to_style_struct("Position") %>
 
-    ${single_keyword("object-fit", "fill contain cover none scale-down", products="gecko")}
+    ${helpers.single_keyword("object-fit", "fill contain cover none scale-down", products="gecko")}
 
     <% data.switch_to_style_struct("InheritedBox") %>
 
-    <%self:longhand name="image-rendering">
+    <%helpers:longhand name="image-rendering">
 
         pub mod computed_value {
             use cssparser::ToCss;
@@ -4300,12 +3815,12 @@ pub mod longhands {
                 *self
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
     <% data.switch_to_style_struct("Box") %>
 
     // TODO(pcwalton): Multiple transitions.
-    <%self:longhand name="transition-duration">
+    <%helpers:longhand name="transition-duration">
         use values::specified::Time;
 
         pub use self::computed_value::T as SpecifiedValue;
@@ -4364,11 +3879,11 @@ pub mod longhands {
         pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
             Ok(SpecifiedValue(try!(input.parse_comma_separated(parse_one))))
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
     // TODO(pcwalton): Lots more timing functions.
     // TODO(pcwalton): Multiple transitions.
-    <%self:longhand name="transition-timing-function">
+    <%helpers:longhand name="transition-timing-function">
         use self::computed_value::{StartEnd, TransitionTimingFunction};
 
         use euclid::point::Point2D;
@@ -4561,10 +4076,10 @@ pub mod longhands {
         pub fn parse(_: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue,()> {
             Ok(SpecifiedValue(try!(input.parse_comma_separated(parse_one))))
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
     // TODO(pcwalton): Lots more properties.
-    <%self:longhand name="transition-property">
+    <%helpers:longhand name="transition-property">
         use self::computed_value::TransitionProperty;
 
         pub use self::computed_value::SingleComputedValue as SingleSpecifiedValue;
@@ -4816,14 +4331,14 @@ pub mod longhands {
                 (*self).clone()
             }
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
-    <%self:longhand name="transition-delay">
+    <%helpers:longhand name="transition-delay">
         pub use properties::longhands::transition_duration::{SingleSpecifiedValue, SpecifiedValue};
         pub use properties::longhands::transition_duration::{computed_value};
         pub use properties::longhands::transition_duration::{get_initial_single_value};
         pub use properties::longhands::transition_duration::{get_initial_value, parse, parse_one};
-    </%self:longhand>
+    </%helpers:longhand>
 
     // CSS Flexible Box Layout Module Level 1
     // http://www.w3.org/TR/css3-flexbox/
@@ -4831,10 +4346,10 @@ pub mod longhands {
     <% data.switch_to_style_struct("Position") %>
 
     // Flex container properties
-    ${single_keyword("flex-direction", "row row-reverse column column-reverse", experimental=True)}
+    ${helpers.single_keyword("flex-direction", "row row-reverse column column-reverse", experimental=True)}
 
     // https://drafts.csswg.org/css-flexbox/#propdef-order
-    <%self:longhand name="order">
+    <%helpers:longhand name="order">
         use values::computed::ComputedValueAsSpecified;
 
         impl ComputedValueAsSpecified for SpecifiedValue {}
@@ -4853,9 +4368,9 @@ pub mod longhands {
         fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
             specified::parse_integer(input)
         }
-    </%self:longhand>
+    </%helpers:longhand>
 
-    ${single_keyword("flex-wrap", "nowrap wrap wrap-reverse", products="gecko")}
+    ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse", products="gecko")}
 
     // SVG 1.1 (Second Edition)
     // https://www.w3.org/TR/SVG/
@@ -4863,39 +4378,39 @@ pub mod longhands {
 
     // Section 10 - Text
 
-    ${single_keyword("text-anchor", "start middle end", products="gecko")}
+    ${helpers.single_keyword("text-anchor", "start middle end", products="gecko")}
 
     // Section 11 - Painting: Filling, Stroking and Marker Symbols
-    ${single_keyword("color-interpolation", "auto sRGB linearRGB", products="gecko")}
+    ${helpers.single_keyword("color-interpolation", "auto sRGB linearRGB", products="gecko")}
 
-    ${single_keyword("color-interpolation-filters", "auto sRGB linearRGB",
+    ${helpers.single_keyword("color-interpolation-filters", "auto sRGB linearRGB",
                      products="gecko", gecko_constant_prefix="NS_STYLE_COLOR_INTERPOLATION")}
 
-    ${single_keyword("fill-rule", "nonzero evenodd", products="gecko")}
+    ${helpers.single_keyword("fill-rule", "nonzero evenodd", products="gecko")}
 
-    ${single_keyword("shape-rendering", "auto optimizeSpeed crispEdges geometricPrecision",
+    ${helpers.single_keyword("shape-rendering", "auto optimizeSpeed crispEdges geometricPrecision",
                      products="gecko")}
 
-    ${single_keyword("stroke-linecap", "butt round square", products="gecko")}
+    ${helpers.single_keyword("stroke-linecap", "butt round square", products="gecko")}
 
-    ${single_keyword("stroke-linejoin", "miter round bevel", products="gecko")}
+    ${helpers.single_keyword("stroke-linejoin", "miter round bevel", products="gecko")}
 
     // Section 14 - Clipping, Masking and Compositing
-    ${single_keyword("clip-rule", "nonzero evenodd",
+    ${helpers.single_keyword("clip-rule", "nonzero evenodd",
                      products="gecko", gecko_constant_prefix="NS_STYLE_FILL_RULE")}
 
     <% data.new_style_struct("SVG", inherited=False, gecko_ffi_name="nsStyleSVGReset") %>
 
-    ${single_keyword("dominant-baseline",
+    ${helpers.single_keyword("dominant-baseline",
                      """auto use-script no-change reset-size ideographic alphabetic hanging
                         mathematical central middle text-after-edge text-before-edge""",
                      products="gecko")}
 
-    ${single_keyword("vector-effect", "none non-scaling-stroke", products="gecko")}
+    ${helpers.single_keyword("vector-effect", "none non-scaling-stroke", products="gecko")}
 
     // CSS Masking Module Level 1
     // https://www.w3.org/TR/css-masking-1/
-    ${single_keyword("mask-type", "luminance alpha", products="gecko")}
+    ${helpers.single_keyword("mask-type", "luminance alpha", products="gecko")}
 }
 
 

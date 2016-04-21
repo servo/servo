@@ -10,6 +10,7 @@ BASE = os.path.dirname(__file__)
 sys.path.insert(0, os.path.join(BASE, "Mako-0.9.1.zip"))
 
 from mako import exceptions
+from mako.lookup import TemplateLookup
 from mako.template import Template
 
 import data
@@ -43,10 +44,12 @@ def abort(message):
 
 def render(filename, **context):
     try:
+        lookup = TemplateLookup(directories=[BASE])
         template = Template(open(filename, "rb").read(),
+                            filename=filename,
                             input_encoding="utf8",
-                            strict_undefined=True,
-                            filename=filename)
+                            lookup=lookup,
+                            strict_undefined=True)
         # Uncomment to debug generated Python code:
         # write("/tmp", "mako_%s.py" % os.path.basename(filename), template.code)
         return template.render(**context).encode("utf8")
