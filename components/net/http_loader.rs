@@ -160,11 +160,11 @@ fn load_for_consumer(load_data: LoadData,
                user_agent, &cancel_listener) {
         Err(error) => {
             match error.error {
-                LoadErrorType::ConnectionAborted => unreachable!(),
-                LoadErrorType::Ssl => send_error(error.url.clone(),
-                                                 NetworkError::SslValidation(error.url),
-                                                 start_chan),
-                _ => send_error(error.url, NetworkError::Internal(error.reason), start_chan)
+                LoadErrorType::ConnectionAborted { .. } => unreachable!(),
+                LoadErrorType::Ssl { .. } => send_error(error.url.clone(),
+                                                        NetworkError::SslValidation(error.url),
+                                                        start_chan),
+                _ => send_error(error.url, NetworkError::Internal(error.error.error_reason()), start_chan)
             }
         }
         Ok(mut load_response) => {
@@ -252,14 +252,15 @@ impl HttpRequestFactory for NetworkHttpRequestFactory {
             if let Some(&SslError::OpenSslErrors(ref errors)) = error.downcast_ref::<SslError>() {
                 if errors.iter().any(is_cert_verify_error) {
                     let msg = format!("ssl error: {:?} {:?}", error.description(), error.cause());
-                    return Err(LoadError::new(url, LoadErrorType::Ssl, msg));
+                    return Err(LoadError::new(url, LoadErrorType::Ssl { reason: msg }));
                 }
             }
         }
 
         let mut request = match connection {
             Ok(req) => req,
-            Err(e) => return Err(LoadError::new(url, LoadErrorType::Connection, e.description().to_owned())),
+            Err(e) => return Err(
+                LoadError::new(url, LoadErrorType::Connection { reason: e.description().to_owned() })),
         };
         *request.headers_mut() = headers;
 
@@ -284,23 +285,22 @@ impl HttpRequest for WrappedHttpRequest {
         let url = self.request.url.clone();
         let mut request_writer = match self.request.start() {
             Ok(streaming) => streaming,
-            Err(e) => return Err(LoadError::new(url, LoadErrorType::Connection, e.description().to_owned())),
+            Err(e) => return Err(LoadError::new(url, LoadErrorType::Connection { reason: e.description().to_owned() })),
         };
 
         if let Some(ref data) = *body {
             if let Err(e) = request_writer.write_all(&data) {
-                return Err(LoadError::new(url, LoadErrorType::Connection, e.description().to_owned()))
+                return Err(LoadError::new(url, LoadErrorType::Connection { reason: e.description().to_owned() }))
             }
         }
 
         let response = match request_writer.send() {
             Ok(w) => w,
             Err(HttpError::Io(ref io_error)) if io_error.kind() == io::ErrorKind::ConnectionAborted => {
-                return Err(LoadError::new(url, LoadErrorType::ConnectionAborted,
-                                          io_error.description().to_owned()));
+                let error_type = LoadErrorType::ConnectionAborted { reason: io_error.description().to_owned() };
+                return Err(LoadError::new(url, error_type));
             },
-            Err(e) => return Err(LoadError::new(url, LoadErrorType::Connection,
-                                                e.description().to_owned())),
+            Err(e) => return Err(LoadError::new(url, LoadErrorType::Connection { reason: e.description().to_owned() })),
         };
 
         Ok(WrappedHttpResponse { response: response })
@@ -311,15 +311,13 @@ impl HttpRequest for WrappedHttpRequest {
 pub struct LoadError {
     pub url: Url,
     pub error: LoadErrorType,
-    pub reason: String,
 }
 
 impl LoadError {
-    pub fn new(url: Url, error: LoadErrorType, reason: String) -> LoadError {
+    pub fn new(url: Url, error: LoadErrorType) -> LoadError {
         LoadError {
             url: url,
             error: error,
-            reason: reason,
         }
     }
 }
@@ -327,14 +325,33 @@ impl LoadError {
 #[derive(Eq, PartialEq, Debug)]
 pub enum LoadErrorType {
     Cancelled,
-    Connection,
-    ConnectionAborted,
-    Cors,
-    Decoding,
-    InvalidRedirect,
+    Connection { reason: String },
+    ConnectionAborted { reason: String },
+    // Preflight fetch inconsistent with main fetch
+    CorsPreflightFetchInconsistent,
+    Decoding { reason: String },
+    InvalidRedirect { reason: String },
     MaxRedirects(u32), // u32 indicates number of redirects that occurred
-    Ssl,
-    UnsupportedScheme,
+    RedirectLoop,
+    Ssl { reason: String },
+    UnsupportedScheme { scheme: String },
+}
+
+impl LoadErrorType {
+    fn error_reason(self) -> String {
+        match self {
+            LoadErrorType::Cancelled => "load cancelled".into(),
+            LoadErrorType::Connection { reason } => reason,
+            LoadErrorType::ConnectionAborted { reason } => reason,
+            LoadErrorType::CorsPreflightFetchInconsistent => "preflight fetch inconsistent with main fetch".into(),
+            LoadErrorType::Decoding { reason } => reason,
+            LoadErrorType::InvalidRedirect { reason } => reason,
+            LoadErrorType::MaxRedirects(_) => "too many redirects".into(),
+            LoadErrorType::RedirectLoop => "redirect loop".into(),
+            LoadErrorType::Ssl { reason } => reason,
+            LoadErrorType::UnsupportedScheme { .. } => "unsupported url scheme".into(),
+        }
+    }
 }
 
 fn set_default_accept_encoding(headers: &mut Headers) {
@@ -454,7 +471,7 @@ impl<R: HttpResponse> StreamedResponse<R> {
                 let result = GzDecoder::new(response);
                 match result {
                     Ok(response_decoding) => Ok(StreamedResponse::new(m, Decoder::Gzip(response_decoding))),
-                    Err(err) => Err(LoadError::new(m.final_url, LoadErrorType::Decoding, err.to_string())),
+                    Err(err) => Err(LoadError::new(m.final_url, LoadErrorType::Decoding { reason: err.to_string() })),
                 }
             }
             Some(Encoding::Deflate) => {
@@ -663,7 +680,7 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
                                               headers.clone()));
 
         if cancel_listener.is_cancelled() {
-            return Err(LoadError::new(connection_url.clone(), LoadErrorType::Cancelled, "load cancelled".to_owned()));
+            return Err(LoadError::new(connection_url.clone(), LoadErrorType::Cancelled));
         }
 
         let maybe_response = req.send(request_body);
@@ -679,8 +696,8 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
         response = match maybe_response {
             Ok(r) => r,
             Err(e) => {
-                if let LoadErrorType::ConnectionAborted = e.error {
-                    debug!("connection aborted ({:?}), possibly stale, trying new connection", e.reason);
+                if let LoadErrorType::ConnectionAborted { reason } = e.error {
+                    debug!("connection aborted ({:?}), possibly stale, trying new connection", reason);
                     continue;
                 } else {
                     return Err(e)
@@ -732,7 +749,7 @@ pub fn load<A, B>(load_data: &LoadData,
     let mut new_auth_header: Option<Authorization<Basic>> = None;
 
     if cancel_listener.is_cancelled() {
-        return Err(LoadError::new(doc_url, LoadErrorType::Cancelled, "load cancelled".to_owned()));
+        return Err(LoadError::new(doc_url, LoadErrorType::Cancelled));
     }
 
     // If the URL is a view-source scheme then the scheme data contains the
@@ -754,17 +771,16 @@ pub fn load<A, B>(load_data: &LoadData,
         }
 
         if iters > max_redirects {
-            return Err(LoadError::new(doc_url, LoadErrorType::MaxRedirects(iters - 1),
-                                      "too many redirects".to_owned()));
+            return Err(LoadError::new(doc_url, LoadErrorType::MaxRedirects(iters - 1)));
         }
 
         if &*doc_url.scheme != "http" && &*doc_url.scheme != "https" {
-            let s = format!("{} request, but we don't support that scheme", &*doc_url.scheme);
-            return Err(LoadError::new(doc_url, LoadErrorType::UnsupportedScheme, s));
+            let scheme = doc_url.scheme.clone();
+            return Err(LoadError::new(doc_url, LoadErrorType::UnsupportedScheme { scheme: scheme }));
         }
 
         if cancel_listener.is_cancelled() {
-            return Err(LoadError::new(doc_url, LoadErrorType::Cancelled, "load cancelled".to_owned()));
+            return Err(LoadError::new(doc_url, LoadErrorType::Cancelled));
         }
 
         info!("requesting {}", doc_url.serialize());
@@ -830,9 +846,7 @@ pub fn load<A, B>(load_data: &LoadData,
                 // CORS (https://fetch.spec.whatwg.org/#http-fetch, status section, point 9, 10)
                 if let Some(ref c) = load_data.cors {
                     if c.preflight {
-                        return Err(LoadError::new(doc_url,
-                                                  LoadErrorType::Cors,
-                                                  "Preflight fetch inconsistent with main fetch".to_owned()));
+                        return Err(LoadError::new(doc_url, LoadErrorType::CorsPreflightFetchInconsistent));
                     } else {
                         // XXXManishearth There are some CORS-related steps here,
                         // but they don't seem necessary until credentials are implemented
@@ -841,7 +855,8 @@ pub fn load<A, B>(load_data: &LoadData,
 
                 let new_doc_url = match doc_url.join(&new_url) {
                     Ok(u) => u,
-                    Err(e) => return Err(LoadError::new(doc_url, LoadErrorType::InvalidRedirect, e.to_string())),
+                    Err(e) => return Err(
+                        LoadError::new(doc_url, LoadErrorType::InvalidRedirect { reason: e.to_string() })),
                 };
 
                 // According to https://tools.ietf.org/html/rfc7231#section-6.4.2,
@@ -853,7 +868,7 @@ pub fn load<A, B>(load_data: &LoadData,
                 }
 
                 if redirected_to.contains(&new_doc_url) {
-                    return Err(LoadError::new(doc_url, LoadErrorType::InvalidRedirect, "redirect loop".to_owned()));
+                    return Err(LoadError::new(doc_url, LoadErrorType::RedirectLoop));
                 }
 
                 info!("redirecting to {}", new_doc_url);
