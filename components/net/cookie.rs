@@ -8,7 +8,7 @@
 use cookie_rs;
 use net_traits::CookieSource;
 use pub_domains::PUB_DOMAINS;
-use rustc_serialize::{Encodable, Encoder};
+use rustc_serialize::{Decodable, Decoder, Encodable, Encoder};
 use std::borrow::ToOwned;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use time::{Tm, now, at, Duration};
@@ -187,10 +187,26 @@ impl Encodable for Cookie {
             try!(e.emit_struct_field("last_access", 4, |e| Time(self.last_access).encode(e)));
             match self.expiry_time {
                 Some(time) => try!(e.emit_struct_field("expiry_time", 5, |e| Time(time).encode(e))),
-                None => {},
+                None => {
+                    let  none: Option<bool> = None;
+                    try!(e.emit_struct_field("expiry_time", 5, |e| none.encode(e)));
+                }
             }
             Ok(())
         })
+    }
+}
+
+impl Decodable for Cookie {
+    fn decode<D: Decoder>(decoder: &mut D) -> Result<Cookie, D::Error> {
+        decoder.read_struct("Cookie", 6, |d| Ok(Cookie {
+            cookie: try!(d.read_struct_field("cookie", 0, decode_cookie)),
+            host_only: try!(d.read_struct_field("host_only", 1, Decodable::decode)),
+            persistent: try!(d.read_struct_field("persistent", 2, Decodable::decode)),
+            creation_time: try!(d.read_struct_field("creation_time", 3, decode_time)),
+            last_access: try!(d.read_struct_field("last_access", 4, decode_time)),
+            expiry_time: try!(d.read_struct_field("expiry_time", 5, decode_time_option)),
+        }))
     }
 }
 
@@ -199,7 +215,7 @@ struct Time(Tm);
 impl Encodable for Time {
     fn encode<S: Encoder>(&self, s: &mut S) -> Result<(), S::Error> {
         let Time(time) = *self;
-        s.emit_struct("Time", 11, |e| {
+        s.emit_struct("Tm", 11, |e| {
             try!(e.emit_struct_field("tm_sec", 0, |e| time.tm_sec.encode(e)));
             try!(e.emit_struct_field("tm_min", 1, |e| time.tm_min.encode(e)));
             try!(e.emit_struct_field("tm_hour", 2, |e| time.tm_hour.encode(e)));
@@ -216,6 +232,43 @@ impl Encodable for Time {
     }
 }
 
+fn decode_time<D: Decoder>(decoder: &mut D) -> Result<Tm, D::Error> {
+    decoder.read_struct("Tm", 11, |d| Ok(Tm {
+        tm_sec: try!(d.read_struct_field("tm_sec", 0, Decodable::decode)),
+        tm_min: try!(d.read_struct_field("tm_min", 1, Decodable::decode)),
+        tm_hour: try!(d.read_struct_field("tm_hour", 2, Decodable::decode)),
+        tm_mday: try!(d.read_struct_field("tm_mday", 3, Decodable::decode)),
+        tm_mon: try!(d.read_struct_field("tm_mon", 4, Decodable::decode)),
+        tm_year: try!(d.read_struct_field("tm_year", 5, Decodable::decode)),
+        tm_wday: try!(d.read_struct_field("tm_wday", 6, Decodable::decode)),
+        tm_yday: try!(d.read_struct_field("tm_yday", 7, Decodable::decode)),
+        tm_isdst: try!(d.read_struct_field("tm_isdst", 8, Decodable::decode)),
+        tm_utcoff: try!(d.read_struct_field("tm_utcoff", 9, Decodable::decode)),
+        tm_nsec: try!(d.read_struct_field("tm_nsec", 10, Decodable::decode)),
+    }))
+}
+
+fn decode_time_option<D: Decoder>(decoder: &mut D) -> Result<Option<Tm>, D::Error> {
+    match decoder.read_struct("Tm", 11, |d| {
+        Ok(Some(Tm {
+            tm_sec: try!(d.read_struct_field("tm_sec", 0, Decodable::decode)),
+            tm_min: try!(d.read_struct_field("tm_min", 1, Decodable::decode)),
+            tm_hour: try!(d.read_struct_field("tm_hour", 2, Decodable::decode)),
+            tm_mday: try!(d.read_struct_field("tm_mday", 3, Decodable::decode)),
+            tm_mon: try!(d.read_struct_field("tm_mon", 4, Decodable::decode)),
+            tm_year: try!(d.read_struct_field("tm_year", 5, Decodable::decode)),
+            tm_wday: try!(d.read_struct_field("tm_wday", 6, Decodable::decode)),
+            tm_yday: try!(d.read_struct_field("tm_yday", 7, Decodable::decode)),
+            tm_isdst: try!(d.read_struct_field("tm_isdst", 8, Decodable::decode)),
+            tm_utcoff: try!(d.read_struct_field("tm_utcoff", 9, Decodable::decode)),
+            tm_nsec: try!(d.read_struct_field("tm_nsec", 10, Decodable::decode)),
+        }))
+    }) {
+        Ok(result) => Ok(result),
+        Err(_) => Ok(None),
+    }
+}
+
 struct RsCookie(cookie_rs::Cookie);
 
 impl Encodable for RsCookie {
@@ -226,7 +279,10 @@ impl Encodable for RsCookie {
             try!(e.emit_struct_field("value", 1, |e| rs_cookie.value.encode(e)));
             match rs_cookie.expires {
                 Some(time) => try!(e.emit_struct_field("expires", 2, |e| Time(time).encode(e))),
-                None => {},
+                None => {
+                    let  none: Option<bool> = None;
+                    try!(e.emit_struct_field("expires", 2, |e| none.encode(e)));
+                }
             }
             try!(e.emit_struct_field("max_age", 3, |e| rs_cookie.max_age.encode(e)));
             try!(e.emit_struct_field("domain", 4, |e| rs_cookie.domain.encode(e)));
@@ -237,4 +293,18 @@ impl Encodable for RsCookie {
             Ok(())
         })
     }
+}
+
+fn decode_cookie<D: Decoder>(decoder: &mut D) -> Result<cookie_rs::Cookie, D::Error> {
+    decoder.read_struct("RsCookie", 9, |d| Ok(cookie_rs::Cookie {
+        name: try!(d.read_struct_field("name", 0, Decodable::decode)),
+        value: try!(d.read_struct_field("value", 1, Decodable::decode)),
+        expires: try!(d.read_struct_field("expires", 2, decode_time_option)),
+        max_age: try!(d.read_struct_field("max_age", 3, Decodable::decode)),
+        domain: try!(d.read_struct_field("domain", 4, Decodable::decode)),
+        path: try!(d.read_struct_field("path", 5, Decodable::decode)),
+        secure: try!(d.read_struct_field("secure", 6, Decodable::decode)),
+        httponly: try!(d.read_struct_field("httponly", 7, Decodable::decode)),
+        custom: try!(d.read_struct_field("custom", 8, Decodable::decode)),
+    }))
 }
