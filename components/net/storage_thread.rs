@@ -37,10 +37,14 @@ struct StorageManager {
 
 impl StorageManager {
     fn new(port: IpcReceiver<StorageThreadMsg>) -> StorageManager {
+        let mut local_data = HashMap::new();
+        if let Some(ref profile_dir) = opts::get().profile_dir {
+            resource_thread::read_json_from_file(&mut local_data, profile_dir, "local_data.json");
+        }
         StorageManager {
             port: port,
             session_data: HashMap::new(),
-            local_data: HashMap::new(),
+            local_data: local_data,
         }
     }
 }
