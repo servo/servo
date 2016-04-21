@@ -26,6 +26,9 @@ path = "../plugins"
 [dependencies.msg]
 path = "../msg"
 
+[dependencies.storage_traits]
+path = "../storage_traits"
+
 [dependencies.ipc-channel]
 git = "https://github.com/servo/ipc-channel"
 

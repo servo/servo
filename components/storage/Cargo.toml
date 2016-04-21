@@ -7,7 +7,7 @@ publish = false
 path = "lib.rs"
 
 [dependencies]
-url = {version = "0.5.7", features = ["heap_size"]}
+url = {version = "1.0.0", features = ["heap_size"]}
 
 [dependencies.storage_traits]
 path = "../storage_traits"
