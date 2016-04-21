@@ -7,7 +7,6 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
 
-    </script>
     <!-- enforcing policy:
 script-src 'self' 'nonce-nonceynonce' 'sha256-dWTP4Di8KBjaiXvQ5mRquI9OoBSo921ahYxLfYSiuT8='; connect-src 'self';
 -->
@@ -34,12 +33,9 @@ script-src 'self' 'nonce-nonceynonce' 'sha256-dWTP4Di8KBjaiXvQ5mRquI9OoBSo921ahY
       var scriptContent2 = "window.finish('" + nonMatchingContent + "');";
 
       var script1 = document.createElement('script');
-      script1.innerHTML = scriptContent1;
       var script2 = document.createElement('script');
-      script2.innerHTML = scriptContent2;
 
-      script1.test = async_test("Inline script with hash in CSP");
-      script2.test = async_test("Inline script without hash in CSP");
+      script1.test = async_test("Only matching content runs even with NFC normalization.");
 
       var failure = function() {
         assert_unreached();
@@ -51,16 +47,18 @@ script-src 'self' 'nonce-nonceynonce' 'sha256-dWTP4Di8KBjaiXvQ5mRquI9OoBSo921ahY
             script1.test.done();
           });
         } else {
-          assert_unreached();
+	  script1.test.step(function() {
+            assert_unreached("nonMatchingContent script ran");
+	  });
         }
       }
 
       script1.onerror = failure;
-      script2.onerror = script2.test.step_func(function() {
-        script2.test.done();
-      });
-      document.body.appendChild(script1);
+
       document.body.appendChild(script2);
+      script2.textContent = scriptContent2;
+      document.body.appendChild(script1);
+      script1.textContent = scriptContent1;
     </script>
 
     <p>

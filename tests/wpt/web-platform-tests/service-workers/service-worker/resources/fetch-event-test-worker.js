@@ -95,6 +95,22 @@ function handleCache(event) {
   event.respondWith(new Response(event.request.cache));
 }
 
+function handleEventSource(event) {
+  if (event.request.mode === 'navigate') {
+    return;
+  }
+  var data = {
+    mode: event.request.mode,
+    cache: event.request.cache,
+    credentials: event.request.credentials
+  };
+  var body = 'data:' + JSON.stringify(data) + '\n\n';
+  event.respondWith(new Response(body, {
+      headers: { 'Content-Type': 'text/event-stream' }
+    }
+  ));
+}
+
 self.addEventListener('fetch', function(event) {
     var url = event.request.url;
     var handlers = [
@@ -112,6 +128,7 @@ self.addEventListener('fetch', function(event) {
       { pattern: '?used-check', fn: handleUsedCheck },
       { pattern: '?fragment-check', fn: handleFragmentCheck },
       { pattern: '?cache', fn: handleCache },
+      { pattern: '?eventsource', fn: handleEventSource },
     ];
 
     var handler = null;

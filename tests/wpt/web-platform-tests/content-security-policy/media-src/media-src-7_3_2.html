@@ -52,6 +52,13 @@
         source_test.step(function() {
             source_test.set_status(source_test.FAIL);
         });
+
+        setTimeout(function() { 
+          if(source_test.phase != source_test.phases.COMPLETE) {
+		source_test.step( function () { assert_unreached("Onerror event never fired for track element."); });
+		source_test.done();
+	   }
+        }, 2 * 1000);
     </script>
 
   <script async defer src="../support/checkReport.sub.js?reportField=violated-directive&reportValue=media-src%20%27self%27">
