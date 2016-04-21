@@ -92,7 +92,7 @@ use msg::constellation_msg::{PipelineId, ReferrerPolicy, SubpageId};
 use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::response::HttpsState;
-use net_traits::{AsyncResponseTarget, PendingAsyncLoad, ReferrerPolicy};
+use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num_traits::ToPrimitive;
 use origin::Origin;
 use script_runtime::ScriptChan;
@@ -1687,7 +1687,7 @@ impl Document {
             touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
             origin: origin,
             //TODO - setting this for now so no Referer header set
-            referrer_policy: ReferrerPolicy::NoReferrer,
+            referrer_policy: Some(ReferrerPolicy::NoReferrer),
         }
     }
 
@@ -1817,9 +1817,9 @@ impl Document {
         }
     }
 
-    //TODO - for now, setting no-referrer for all until reading in the value
+    //TODO - for now, returns no-referrer for all until reading in the value
     pub fn get_referrer_policy(&self) -> Option<ReferrerPolicy> {
-        return self.referrer_policy;
+        return self.referrer_policy.clone();
     }
 }
 
