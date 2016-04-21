@@ -75,6 +75,16 @@ class CheckTidiness(unittest.TestCase):
         errors = tidy.collect_errors_for_files(iterFile('test.toml'), [tidy.check_toml], [])
         self.assertEqual('found asterisk instead of minimum version number', errors.next()[2])
 
+    def test_lock(self):
+        errors = tidy.collect_errors_for_files(iterFile('duplicated_package.lock'), [tidy.check_lock], [])
+        msg = """duplicate versions for package "test"
+\t\033[93mfound dependency on version 0.4.9\033[0m
+\t\033[91mbut highest version is 0.5.1\033[0m
+\t\033[93mtry upgrading with\033[0m \033[96m./mach cargo-update -p test:0.4.9\033[0m
+\tThe following packages depend on version 0.4.9:
+\t\ttest2"""
+        self.assertEqual(msg, errors.next()[2])
+
 
 def do_tests():
     suite = unittest.TestLoader().loadTestsFromTestCase(CheckTidiness)
