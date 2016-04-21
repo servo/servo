@@ -20,6 +20,7 @@ use dom::node::{Node, NodeDamage};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 use std::cell::Ref;
+use util::opts;
 
 // https://dom.spec.whatwg.org/#characterdata
 #[dom_struct]
@@ -94,16 +95,34 @@ impl CharacterDataMethods for CharacterData {
     fn SubstringData(&self, offset: u32, count: u32) -> Fallible<DOMString> {
         let data = self.data.borrow();
         // Step 1.
-        let data_from_offset = match find_utf16_code_unit_offset(&data, offset) {
-            Some(offset_bytes) => &data[offset_bytes..],
+        let mut substring = String::new();
+        let remaining;
+        match split_at_utf16_code_unit_offset(&data, offset) {
+            Ok((_, astral, s)) => {
+                // As if we had split the UTF-16 surrogate pair in half
+                // and then transcoded that to UTF-8 lossily,
+                // since our DOMString is currently strict UTF-8.
+                if astral.is_some() {
+                    substring = substring + "\u{FFFD}";
+                }
+                remaining = s;
+            }
             // Step 2.
-            None => return Err(Error::IndexSize),
-        };
-        let substring = match find_utf16_code_unit_offset(data_from_offset, count) {
+            Err(()) => return Err(Error::IndexSize),
+        }
+        match split_at_utf16_code_unit_offset(remaining, count) {
             // Steps 3.
-            None => data_from_offset,
+            Err(()) => substring = substring + remaining,
             // Steps 4.
-            Some(count_bytes) => &data_from_offset[..count_bytes],
+            Ok((s, astral, _)) => {
+                substring = substring + s;
+                // As if we had split the UTF-16 surrogate pair in half
+                // and then transcoded that to UTF-8 lossily,
+                // since our DOMString is currently strict UTF-8.
+                if astral.is_some() {
+                    substring = substring + "\u{FFFD}";
+                }
+            }
         };
         Ok(DOMString::from(substring))
     }
@@ -126,26 +145,54 @@ impl CharacterDataMethods for CharacterData {
 
     // https://dom.spec.whatwg.org/#dom-characterdata-replacedata
     fn ReplaceData(&self, offset: u32, count: u32, arg: DOMString) -> ErrorResult {
-        let new_data = {
+        let mut new_data;
+        {
             let data = self.data.borrow();
-            let (prefix, data_from_offset) = match find_utf16_code_unit_offset(&data, offset) {
-                Some(offset_bytes) => data.split_at(offset_bytes),
+            let prefix;
+            let replacement_before;
+            let remaining;
+            match split_at_utf16_code_unit_offset(&data, offset) {
+                Ok((p, astral, r)) => {
+                    prefix = p;
+                    // As if we had split the UTF-16 surrogate pair in half
+                    // and then transcoded that to UTF-8 lossily,
+                    // since our DOMString is currently strict UTF-8.
+                    replacement_before = if astral.is_some() { "\u{FFFD}" } else { "" };
+                    remaining = r;
+                }
                 // Step 2.
-                None => return Err(Error::IndexSize),
+                Err(()) => return Err(Error::IndexSize),
             };
-            let suffix = match find_utf16_code_unit_offset(data_from_offset, count) {
+            let replacement_after;
+            let suffix;
+            match split_at_utf16_code_unit_offset(remaining, count) {
                 // Steps 3.
-                None => "",
-                Some(count_bytes) => &data_from_offset[count_bytes..],
+                Err(()) => {
+                    replacement_after = "";
+                    suffix = "";
+                }
+                Ok((_, astral, s)) => {
+                    // As if we had split the UTF-16 surrogate pair in half
+                    // and then transcoded that to UTF-8 lossily,
+                    // since our DOMString is currently strict UTF-8.
+                    replacement_after = if astral.is_some() { "\u{FFFD}" } else { "" };
+                    suffix = s;
+                }
             };
             // Step 4: Mutation observers.
             // Step 5 to 7.
-            let mut new_data = String::with_capacity(prefix.len() + arg.len() + suffix.len());
+            new_data = String::with_capacity(
+                prefix.len() +
+                replacement_before.len() +
+                arg.len() +
+                replacement_after.len() +
+                suffix.len());
             new_data.push_str(prefix);
+            new_data.push_str(replacement_before);
             new_data.push_str(&arg);
+            new_data.push_str(replacement_after);
             new_data.push_str(suffix);
-            new_data
-        };
+        }
         *self.data.borrow_mut() = DOMString::from(new_data);
         self.content_changed();
         // Steps 8-11.
@@ -200,19 +247,40 @@ impl LayoutCharacterDataHelpers for LayoutJS<CharacterData> {
     }
 }
 
-/// Given a number of UTF-16 code units from the start of the given string,
-/// return the corresponding number of UTF-8 bytes.
+/// Split the given string at the given position measured in UTF-16 code units from the start.
 ///
-/// s[find_utf16_code_unit_offset(s, o).unwrap()..] == s.to_utf16()[o..].to_utf8()
-fn find_utf16_code_unit_offset(s: &str, offset: u32) -> Option<usize> {
+/// * `Err(())` indicates that `offset` if after the end of the string
+/// * `Ok((before, None, after))` indicates that `offset` is between Unicode code points.
+///   The two string slices are such that:
+///   `before == s.to_utf16()[..offset].to_utf8()` and
+///   `after == s.to_utf16()[offset..].to_utf8()`
+/// * `Ok((before, Some(ch), after))` indicates that `offset` is "in the middle"
+///   of a single Unicode code point that would be represented in UTF-16 by a surrogate pair
+///   of two 16-bit code units.
+///   `ch` is that code point.
+///   The two string slices are such that:
+///   `before == s.to_utf16()[..offset - 1].to_utf8()` and
+///   `after == s.to_utf16()[offset + 1..].to_utf8()`
+///
+/// # Panics
+///
+/// Note that the third variant is only ever returned when the `-Z replace-surrogates`
+/// command-line option is specified.
+/// When it *would* be returned but the option is *not* specified, this function panics.
+fn split_at_utf16_code_unit_offset(s: &str, offset: u32) -> Result<(&str, Option<char>, &str), ()> {
     let mut code_units = 0;
     for (i, c) in s.char_indices() {
         if code_units == offset {
-            return Some(i);
+            let (a, b) = s.split_at(i);
+            return Ok((a, None, b));
         }
         code_units += 1;
         if c > '\u{FFFF}' {
             if code_units == offset {
+                if opts::get().replace_surrogates {
+                    debug_assert!(c.len_utf8() == 4);
+                    return Ok((&s[..i], Some(c), &s[i + c.len_utf8()..]))
+                }
                 panic!("\n\n\
                     Would split a surrogate pair in CharacterData API.\n\
                     If you see this in real content, please comment with the URL\n\
@@ -223,8 +291,8 @@ fn find_utf16_code_unit_offset(s: &str, offset: u32) -> Option<usize> {
         }
     }
     if code_units == offset {
-        Some(s.len())
+        Ok((s, None, ""))
     } else {
-        None
+        Err(())
     }
 }
