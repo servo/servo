@@ -279,7 +279,7 @@ dependencies = [
 
 [[package]]
 name = "cookie"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "openssl 0.7.8 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -789,7 +789,7 @@ name = "hyper"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "cookie 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cookie 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "httparse 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "language-tags 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1166,7 +1166,7 @@ name = "net"
 version = "0.0.1"
 dependencies = [
  "brotli 0.3.20 (git+https://github.com/ende76/brotli-rs)",
- "cookie 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cookie 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
  "flate2 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2011,6 +2011,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "kernel32-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.6 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
