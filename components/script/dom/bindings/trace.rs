@@ -193,6 +193,15 @@ impl<T: JSTraceable> JSTraceable for Vec<T> {
     }
 }
 
+impl<T: JSTraceable> JSTraceable for (T, T, T, T) {
+    fn trace(&self, trc: *mut JSTracer) {
+        self.0.trace(trc);
+        self.1.trace(trc);
+        self.2.trace(trc);
+        self.3.trace(trc);
+    }
+}
+
 // XXXManishearth Check if the following three are optimized to no-ops
 // if e.trace() is a no-op (e.g it is an no_jsmanaged_fields type)
 impl<T: JSTraceable + 'static> JSTraceable for SmallVec<[T; 1]> {

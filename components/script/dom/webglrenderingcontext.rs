@@ -83,6 +83,8 @@ pub struct WebGLRenderingContext {
     bound_buffer_array: MutNullableHeap<JS<WebGLBuffer>>,
     bound_buffer_element_array: MutNullableHeap<JS<WebGLBuffer>>,
     current_program: MutNullableHeap<JS<WebGLProgram>>,
+    #[ignore_heap_size_of = "Because it's small"]
+    current_vertex_attrib_0: Cell<(f32, f32, f32, f32)>,
 }
 
 impl WebGLRenderingContext {
@@ -111,6 +113,7 @@ impl WebGLRenderingContext {
                 bound_buffer_array: MutNullableHeap::new(None),
                 bound_buffer_element_array: MutNullableHeap::new(None),
                 current_program: MutNullableHeap::new(None),
+                current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),
             }
         })
     }
@@ -173,6 +176,10 @@ impl WebGLRenderingContext {
     fn vertex_attrib(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
         if indx > self.limits.max_vertex_attribs {
             return self.webgl_error(InvalidValue);
+        }
+
+        if indx == 0 {
+            self.current_vertex_attrib_0.set((x, y, z, w))
         }
 
         self.ipc_renderer
@@ -1136,6 +1143,38 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             handle_potential_webgl_error!(self, p.get_uniform_location(name), None)
                 .map(|location| WebGLUniformLocation::new(self.global().r(), location, p.id()))
         })
+    }
+
+    #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    fn GetVertexAttrib(&self, cx: *mut JSContext, index: u32, pname: u32) -> JSVal {
+        if index == 0 && pname == constants::CURRENT_VERTEX_ATTRIB {
+            let mut result = RootedValue::new(cx, UndefinedValue());
+            let (x, y, z, w) = self.current_vertex_attrib_0.get();
+            let attrib = vec![x, y, z, w];
+            unsafe {
+                attrib.to_jsval(cx, result.handle_mut());
+            }
+            return result.ptr
+        }
+
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::GetVertexAttrib(index, pname, sender))).unwrap();
+
+        match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
+            WebGLParameter::Int(val) => Int32Value(val),
+            WebGLParameter::Bool(val) => BooleanValue(val),
+            WebGLParameter::String(_) => panic!("Vertex attrib should not be string"),
+            WebGLParameter::Float(_) => panic!("Vertex attrib should not be float"),
+            WebGLParameter::FloatArray(val) => {
+                let mut result = RootedValue::new(cx, UndefinedValue());
+                unsafe {
+                    val.to_jsval(cx, result.handle_mut());
+                }
+                result.ptr
+            }
+            WebGLParameter::Invalid => NullValue(),
+        }
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
