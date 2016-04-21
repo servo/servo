@@ -1337,7 +1337,7 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-hasattributes
     fn HasAttributes(&self) -> bool {
-        self.attrs.borrow().len() > 0
+        !self.attrs.borrow().is_empty()
     }
 
     // https://dom.spec.whatwg.org/#dom-element-getattributenames
