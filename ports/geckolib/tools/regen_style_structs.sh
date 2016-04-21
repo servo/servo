@@ -116,6 +116,7 @@ fi
   -opaque-type "nsIntPoint"                                         \
   -opaque-type "nsIntRect"                                          \
   -opaque-type "nsTArray"                                           \
+  -opaque-type "nsStyleAutoArray"                                   \
   -opaque-type "nsCOMArray"                                         \
   -opaque-type "nsDependentString"                                  \
   -opaque-type "EntryStore"                                         \

@@ -230,12 +230,17 @@ impl HeapSizeOf for ${style_struct.gecko_ffi_name} {
     // Not entirely accurate, but good enough for now.
     fn heap_size_of_children(&self) -> usize { 0 }
 }
+
+// FIXME(bholley): Make bindgen generate Debug for all types.
+%if style_struct.gecko_ffi_name in "nsStyleBorder nsStylePosition nsStyleDisplay nsStyleList nsStyleBackground "\
+                                    "nsStyleFont nsStyleEffects nsStyleSVGReset".split():
 impl Debug for ${style_struct.gecko_ffi_name} {
     // FIXME(bholley): Generate this.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "GECKO STYLE STRUCT")
     }
 }
+%endif
 %endif
 </%def>
 
