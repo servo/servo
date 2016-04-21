@@ -2,17 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
- <%page args="data, helpers" />
+<%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% data.new_style_struct("Box", inherited=False, gecko_ffi_name="nsStyleDisplay",
-                   additional_methods=[data.new_method("clone_display",
-                                                       "longhands::display::computed_value::T"),
-                                       data.new_method("clone_position",
-                                                       "longhands::position::computed_value::T"),
-                                       data.new_method("is_floated", "bool"),
-                                       data.new_method("overflow_x_is_visible", "bool"),
-                                       data.new_method("overflow_y_is_visible", "bool"),
-                                       data.new_method("transition_count", "usize")]) %>
+<% from data import Method, to_rust_ident %>
+
+<% data.new_style_struct("Box",
+                         inherited=False,
+                         gecko_ffi_name="nsStyleDisplay",
+                         additional_methods=[Method("clone_display", "longhands::display::computed_value::T"),
+                                             Method("clone_position", "longhands::position::computed_value::T"),
+                                             Method("is_floated", "bool"),
+                                             Method("overflow_x_is_visible", "bool"),
+                                             Method("overflow_y_is_visible", "bool"),
+                                             Method("transition_count", "usize")]) %>
 
 // TODO(SimonSapin): don't parse `inline-table`, since we don't support it
 <%helpers:longhand name="display" custom_cascade="${product == 'servo'}">
@@ -34,7 +36,7 @@
         #[derive(Deserialize, Serialize)]
         pub enum T {
             % for value in values:
-                ${data.to_rust_ident(value)},
+                ${to_rust_ident(value)},
             % endfor
         }
 
@@ -43,14 +45,14 @@
             where W: ::std::fmt::Write {
                 match *self {
                     % for value in values:
-                        T::${data.to_rust_ident(value)} => dest.write_str("${value}"),
+                        T::${to_rust_ident(value)} => dest.write_str("${value}"),
                     % endfor
                 }
             }
         }
     }
     #[inline] pub fn get_initial_value() -> computed_value::T {
-        computed_value::T::${data.to_rust_ident(values[0])}
+        computed_value::T::${to_rust_ident(values[0])}
     }
     pub fn parse(_context: &ParserContext, input: &mut Parser)
                  -> Result<SpecifiedValue, ()> {
@@ -63,7 +65,7 @@
                             return Err(())
                         }
                     % endif
-                    Ok(computed_value::T::${data.to_rust_ident(value)})
+                    Ok(computed_value::T::${to_rust_ident(value)})
                 },
             % endfor
             _ => Err(())
