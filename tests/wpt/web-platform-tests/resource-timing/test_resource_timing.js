@@ -161,6 +161,13 @@ function resource_load(expected)
 
     t["timing_attrs"].step(function test() {
         var actual = window.performance.getEntriesByName(expected.name)[0];
+
+        // Debugging bug 1263428
+        // Feel free to remove/overwrite this piece of code
+        if (actual.connectStart < actual.domainLookupEnd) {
+            assert_true(false, "actual: "+JSON.stringify(actual));
+        }
+
         assert_equals(actual.redirectStart, 0, "redirectStart time");
         assert_equals(actual.redirectEnd, 0, "redirectEnd time");
         assert_true(actual.secureConnectionStart == undefined ||

@@ -16,6 +16,11 @@ connect-src 'self' http://{{host}}:{{ports[http][0]}}; script-src 'self' 'unsafe
 
 <body>
     <script>
+    if(typeof SharedWorker != 'function') {
+        t_alert.set_status(t_alert.NOTRUN, "No SharedWorker, cannot run test.");
+        t_alert.phase = t_alert.phases.HAS_RESULT;
+ 	t_alert.done();
+    } else {
         try {
             var worker = new SharedWorker('http://{{host}}:{{ports[http][0]}}/content-security-policy/blink-contrib/resources/shared-worker-make-xhr-allowed.sub.js');
             worker.port.onmessage = function(event) {
@@ -24,10 +29,15 @@ connect-src 'self' http://{{host}}:{{ports[http][0]}}; script-src 'self' 'unsafe
         } catch (e) {
             alert_assert(e);
         }
+        var report =  document.createElement("script");
+        report.src = "../support/checkReport.sub.js?reportExists=false";
+        report.async = true;
+        report.defer = true;
+        document.body.appendChild(report);
+    }
 
     </script>
     <div id="log"></div>
-    <script async defer src="../support/checkReport.sub.js?reportExists=false"></script>
 </body>
 
 </html>

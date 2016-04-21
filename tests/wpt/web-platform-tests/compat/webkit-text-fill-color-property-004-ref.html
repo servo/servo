@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>webkit-text-fill-color on MathML reference</title>
+<link rel="author" title="Jeremy Chen" href="jeremychen@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<style>
+math {
+  font-size: 50px;
+  color: green;
+}
+</style>
+<body>
+<p>Pass if color of operators and operands are all green!!!</p>
+  <math>
+    <mrow>
+      <mrow>
+        <msup>
+          <mi>a</mi>
+          <mn>2</mn>
+        </msup>
+        <mo>+</mo>
+        <msup>
+          <mi>b</mi>
+          <mn>2</mn>
+        </msup>
+      </mrow>
+      <mo>=</mo>
+      <msup>
+        <mi>c</mi>
+        <mn>2</mn>
+      </msup>
+    </mrow>
+  </math>
+</body>
