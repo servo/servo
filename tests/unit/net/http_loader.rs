@@ -1082,8 +1082,7 @@ fn test_load_errors_when_there_a_redirect_loop() {
 
     match load(&load_data, &ui_provider, &http_state, None, &Factory,
                DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None)) {
-        Err(ref load_err) if load_err.error == LoadErrorType::InvalidRedirect =>
-            assert_eq!(&load_err.reason, "redirect loop"),
+        Err(ref load_err) if load_err.error == LoadErrorType::RedirectLoop => (),
         _ => panic!("expected max redirects to fail")
     }
 }
@@ -1172,7 +1171,7 @@ impl HttpRequestFactory for DontConnectFactory {
     type R = MockRequest;
 
     fn create(&self, url: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
-        Err(LoadError::new(url, LoadErrorType::Connection, "should not have connected".to_owned()))
+        Err(LoadError::new(url, LoadErrorType::Connection { reason: "should not have connected".into() }))
     }
 }
 
@@ -1190,7 +1189,7 @@ fn test_load_errors_when_scheme_is_not_http_or_https() {
                &DontConnectFactory,
                DEFAULT_USER_AGENT.to_owned(),
                &CancellationListener::new(None)) {
-        Err(ref load_err) if load_err.error == LoadErrorType::UnsupportedScheme => (),
+        Err(ref load_err) if load_err.error == LoadErrorType::UnsupportedScheme { scheme: "ftp".into() } => (),
         _ => panic!("expected ftp scheme to be unsupported")
     }
 }
@@ -1209,7 +1208,7 @@ fn test_load_errors_when_viewing_source_and_inner_url_scheme_is_not_http_or_http
                &DontConnectFactory,
                DEFAULT_USER_AGENT.to_owned(),
                &CancellationListener::new(None)) {
-        Err(ref load_err) if load_err.error == LoadErrorType::UnsupportedScheme => (),
+        Err(ref load_err) if load_err.error == LoadErrorType::UnsupportedScheme { scheme: "ftp".into() } => (),
         _ => panic!("expected ftp scheme to be unsupported")
     }
 }
