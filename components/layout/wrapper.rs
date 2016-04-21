@@ -630,7 +630,7 @@ impl<T> PseudoElementType<T> {
         }
     }
 
-    pub fn is_before_or_after(&self) -> bool {
+    pub fn is_replaced_content(&self) -> bool {
         match *self {
             PseudoElementType::Before(_) | PseudoElementType::After(_) => true,
             _ => false,
@@ -1041,7 +1041,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     }
 
     fn text_content(&self) -> TextContent {
-        if self.pseudo.is_before_or_after() {
+        if self.pseudo.is_replaced_content() {
             let data = &self.borrow_layout_data().unwrap().style_data;
 
             let style = if self.pseudo.is_before() {
