@@ -28,7 +28,7 @@ use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::response::HttpsState;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, LoadData};
-use net_traits::{Metadata, NetworkError, ReferrerPolicy};
+use net_traits::{Metadata, NetworkError};
 use openssl::ssl::error::{SslError, OpensslError};
 use openssl::ssl::{SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER, SslContext, SslMethod};
 use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt, AuthCache, AuthCacheEntry};
@@ -357,72 +357,53 @@ fn set_default_accept(headers: &mut Headers) {
 }
 
 /// https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-state-no-referrer-when-downgrade
-fn no_ref_when_downgrade_header(referrer_url: Url, url: Url, referrer_url_str: String) -> Option<String> {
-    //TODO - is this general enough for 'secure'?
+fn no_ref_when_downgrade_header(referrer_url: Url, url: Url) -> Option<Url> {
     if referrer_url.scheme == "https" && url.scheme != "https" {
         return None;
     }
-    return Some(referrer_url_str);
-}
-
-/// https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-state-origin-when-cross-origin
-fn origin_when_cross_origin_header(url: Url, referrer_url_str: String, referrer_origin: String) -> Option<String> {
-    //TODO: spec notes http to https with same domain is considered cross-origin
-    //opposite is not specified - i am considering that also cross-origin here
-    if referrer_origin == generate_origin_referer_url(url) {
-        return Some(referrer_url_str);
-    }
-    return Some(referrer_origin);
+    return generate_referer_url(referrer_url, false);
 }
 
 /// https://w3c.github.io/webappsec-referrer-policy/#strip-url
-fn generate_origin_referer_url(referrer_url: Url) -> String {
-    let mut ref_mutable = referrer_url.clone();
-    if let Some(relative) = ref_mutable.relative_scheme_data_mut() {
-        relative.path = Vec::new();
-    }
-    ref_mutable.query = None;
-    return ref_mutable.serialize()
-}
-
-/// https://w3c.github.io/webappsec-referrer-policy/#strip-url
-fn generate_nonorigin_referer_url(referrer_url: Url) -> Option<Url> {
-    let scheme = referrer_url.scheme.clone();
-    if scheme == "https" || scheme == "http" {
-        let mut ref_mutable = referrer_url.clone();
-        if let Some(relative) = ref_mutable.relative_scheme_data_mut() {
+fn generate_referer_url(mut referrer_url: Url, origin_only: bool) -> Option<Url> {
+    if referrer_url.scheme == "https" || referrer_url.scheme == "http" {
+        if let Some(relative) = referrer_url.relative_scheme_data_mut() {
             relative.username.clear();
             relative.password = None;
+            if origin_only {
+                relative.path.truncate(0);
+            }
         }
-        ref_mutable.fragment = None;
-        return Some(ref_mutable);
+        referrer_url.fragment = None;
+        if origin_only {
+            referrer_url.query = None;
+        }
+        return Some(referrer_url);
     }
     return None;
 }
 
 /// https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer
-fn set_referer(headers: &mut Headers, referrer_policy: Option<ReferrerPolicy>, referrer_url: Url, url: Url) {
-    //should I even be checking? Is there a chance of this getting set 2x?
-    //please see spec re: redirects. Not 100% sure im handling that correctly
+fn determine_request_referrer(headers: &mut Headers,
+                              referrer_policy: Option<ReferrerPolicy>,
+                              referrer_url: Option<Url>,
+                              url: Url) -> Option<Url> {
+    //TODO - algorithm step 2 not addressed
     if !headers.has::<Referer>() {
-        if let Some(referrer_url_stripped) = generate_nonorigin_referer_url(referrer_url.clone()) {
-            //step 4, 5
-            let referrer_url_str = referrer_url_stripped.serialize();
-            let referrer_origin = generate_origin_referer_url(referrer_url_stripped);
-            //step 6
+        if let Some(ref_url) = referrer_url {
+            let cross_origin = ref_url.origin() != url.origin() || ref_url.scheme != url.scheme;
             let referer = match referrer_policy {
                 Some(ReferrerPolicy::NoReferrer) => None,
-                Some(ReferrerPolicy::OriginOnly) => Some(referrer_origin),
-                Some(ReferrerPolicy::UnsafeUrl) => Some(referrer_url_str),
-                Some(ReferrerPolicy::OriginWhenCrossOrigin) =>
-                    origin_when_cross_origin_header(url, referrer_url_str, referrer_origin),
-                _ => no_ref_when_downgrade_header(referrer_url, url, referrer_url_str),
+                Some(ReferrerPolicy::OriginOnly) => generate_referer_url(ref_url, true),
+                Some(ReferrerPolicy::UnsafeUrl) => generate_referer_url(ref_url, false),
+                Some(ReferrerPolicy::OriginWhenCrossOrigin) => generate_referer_url(ref_url, cross_origin),
+                Some(ReferrerPolicy::NoRefWhenDowngrade) => no_ref_when_downgrade_header(ref_url, url),
+                None => no_ref_when_downgrade_header(ref_url, url),
             };
-            if let Some(referer_val) = referer {
-                headers.set(Referer(referer_val));
-            }
+            return referer;
         }
     }
+    return None;
 }
 
 pub fn set_request_cookies(url: Url, headers: &mut Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
@@ -608,8 +589,11 @@ pub fn modify_request_headers(headers: &mut Headers,
     set_default_accept(headers);
     set_default_accept_encoding(headers);
 
-    if let Some(ref_url) = load_data.referrer_url.clone() {
-        set_referer(headers, load_data.referrer_policy.clone(), ref_url, url.clone());
+    if let Some(referer_val) = determine_request_referrer(headers,
+                                                          load_data.referrer_policy.clone(),
+                                                          load_data.referrer_url.clone(),
+                                                          url.clone()) {
+        headers.set(Referer(referer_val.serialize()));
     }
 
     // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
