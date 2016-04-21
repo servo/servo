@@ -619,18 +619,20 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
         // List of absolute descendants, in tree order.
         let mut abs_descendants = AbsoluteDescendants::new();
-        for kid in node.children() {
-            if kid.get_pseudo_element_type() != PseudoElementType::Normal {
-                self.process(&kid);
-            }
+        if !node.is_replaced_content() {
+            for kid in node.children() {
+                if kid.get_pseudo_element_type() != PseudoElementType::Normal {
+                    self.process(&kid);
+                }
 
-            self.build_block_flow_using_construction_result_of_child(
-                &mut flow,
-                &mut consecutive_siblings,
-                node,
-                kid,
-                &mut inline_fragment_accumulator,
-                &mut abs_descendants);
+                self.build_block_flow_using_construction_result_of_child(
+                    &mut flow,
+                    &mut consecutive_siblings,
+                    node,
+                    kid,
+                    &mut inline_fragment_accumulator,
+                    &mut abs_descendants);
+            }
         }
 
         // Perform a final flush of any inline fragments that we were gathering up to handle {ib}
