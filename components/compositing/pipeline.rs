@@ -19,7 +19,6 @@ use msg::constellation_msg::{LoadData, WindowSizeData};
 use msg::constellation_msg::{PipelineNamespaceId};
 use net_traits::ResourceThread;
 use net_traits::image_cache_thread::ImageCacheThread;
-use net_traits::storage_thread::StorageThread;
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
 use script_traits::{ConstellationControlMsg, InitialScriptState, MozBrowserEvent};
@@ -28,6 +27,7 @@ use script_traits::{ScriptToCompositorMsg, ScriptThreadFactory, TimerEventReques
 use std::collections::HashMap;
 use std::mem;
 use std::sync::mpsc::{Receiver, Sender, channel};
+use storage_traits::storage_thread::StorageThread;
 use url::Url;
 use util;
 use util::geometry::{PagePx, ViewportPx};

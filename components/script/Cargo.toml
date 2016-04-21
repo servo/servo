@@ -34,6 +34,9 @@ path = "../script_traits"
 [dependencies.devtools_traits]
 path = "../devtools_traits"
 
+[dependencies.storage_traits]
+path = "../storage_traits"
+
 [dependencies.style]
 path = "../style"
 
