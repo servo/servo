@@ -78,6 +78,12 @@ path = "../net_traits"
 [dependencies.msg]
 path = "../msg"
 
+[dependencies.storage]
+path = "../storage"
+
+[dependencies.storage_traits]
+path = "../storage_traits"
+
 [dependencies.profile]
 path = "../profile"
 

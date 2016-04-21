@@ -22,22 +22,18 @@ use net_traits::ProgressMsg::Done;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceThread, ResponseAction};
 use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
 use net_traits::{NetworkError, WebSocketCommunicate, WebSocketConnectData};
-use rustc_serialize::Encodable;
-use rustc_serialize::json;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::cell::Cell;
 use std::collections::HashMap;
-use std::error::Error;
-use std::fs::File;
 use std::io::prelude::*;
-use std::path::Path;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, RwLock};
 use url::Url;
 use util::opts;
 use util::prefs;
 use util::thread::spawn_named;
+use util::write::write_json_to_file;
 use websocket_loader;
 
 pub enum ProgressSender {
@@ -216,31 +212,6 @@ impl ResourceChannelManager {
 
             }
         }
-    }
-}
-
-pub fn write_json_to_file<T: Encodable>(data: &T, profile_dir: &str, filename: &str) {
-    let json_encoded: String;
-    match json::encode(&data) {
-        Ok(d) => json_encoded = d,
-        Err(_) => return,
-    }
-    let path = Path::new(profile_dir).join(filename);
-    let display = path.display();
-
-    let mut file = match File::create(&path) {
-        Err(why) => panic!("couldn't create {}: {}",
-                           display,
-                           Error::description(&why)),
-        Ok(file) => file,
-    };
-
-    match file.write_all(json_encoded.as_bytes()) {
-        Err(why) => {
-            panic!("couldn't write to {}: {}", display,
-                                               Error::description(&why))
-        },
-        Ok(_) => println!("successfully wrote to {}", display),
     }
 }
 

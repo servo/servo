@@ -44,6 +44,7 @@ extern crate profile_traits;
 extern crate rand;
 extern crate script_traits;
 extern crate serde;
+extern crate storage_traits;
 extern crate style_traits;
 extern crate time;
 extern crate url;

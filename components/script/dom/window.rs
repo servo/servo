@@ -47,7 +47,6 @@ use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId,
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceThread;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
-use net_traits::storage_thread::{StorageThread, StorageType};
 use num_traits::ToPrimitive;
 use page::Page;
 use profile_traits::mem;
@@ -71,6 +70,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
 use std::sync::mpsc::{Sender, channel};
 use std::sync::{Arc, Mutex};
+use storage_traits::storage_thread::{StorageThread, StorageType};
 use string_cache::Atom;
 use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;

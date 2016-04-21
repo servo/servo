@@ -69,6 +69,7 @@ pub mod time;
 pub mod vec;
 #[allow(unsafe_code)]
 pub mod workqueue;
+pub mod write;
 
 #[allow(unsafe_code)]
 pub fn breakpoint() {
