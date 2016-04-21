@@ -172,6 +172,18 @@ def set_gecko_property(ffi_name, expr):
 % endif
 </%def>
 
+<%def name="impl_app_units(ident, gecko_ffi_name, need_clone)">
+    fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        self.gecko.${gecko_ffi_name} = v.0;
+    }
+<%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
+%if need_clone:
+    fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+        Au(self.gecko.${gecko_ffi_name})
+    }
+% endif
+</%def>
+
 <%def name="impl_style_struct(style_struct)">
 impl ${style_struct.gecko_struct_name} {
     #[allow(dead_code, unused_variables)]
@@ -346,6 +358,12 @@ fn static_assert() {
     fn outline_has_nonzero_width(&self) -> bool {
         self.gecko.mCachedOutlineWidth != 0
     }
+</%self:impl_trait>
+
+<%self:impl_trait style_struct_name="Font" skip_longhands="font-size">
+
+    // FIXME(bholley): This doesn't handle zooming properly.
+    <% impl_app_units("font_size", "mSize", need_clone=True) %>
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Box" skip_longhands="display overflow-y">
