@@ -14,7 +14,7 @@ use euclid::size::Size2D;
 use gfx_traits::color;
 use ipc_channel::ipc::IpcSharedMemory;
 use ipc_channel::ipc::{self, IpcSender};
-use num::ToPrimitive;
+use num_traits::ToPrimitive;
 use std::borrow::ToOwned;
 use std::mem;
 use util::opts;

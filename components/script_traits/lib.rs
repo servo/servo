@@ -376,6 +376,8 @@ pub enum ScriptToCompositorMsg {
     ResizeTo(Size2D<u32>),
     /// Script has handled a touch event, and either prevented or allowed default actions.
     TouchEventProcessed(EventResult),
+    /// Get Scroll Offset
+    GetScrollOffset(PipelineId, LayerId, IpcSender<Point2D<f32>>),
     /// Requests that the compositor shut down.
     Exit,
     /// Allow the compositor to free script-specific resources.

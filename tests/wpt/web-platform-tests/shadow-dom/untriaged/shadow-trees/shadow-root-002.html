@@ -34,7 +34,7 @@ in this order.
 <div class="pass">C</div>
 </div>
 <script>
-var shadowRoot = window.host.createShadowRoot();
+var shadowRoot = window.host.attachShadow({mode: 'open'});
 
 shadowRoot.innerHTML =
     '<style>\n' +
@@ -42,7 +42,7 @@ shadowRoot.innerHTML =
     '* { color: red; }\n' +
     '</style>' +
     '<div class="shadow-pass">A</div>\n' +
-    '<content>FAIL</content>' +
+    '<slot>FAIL</slot>' +
     '<div class="shadow-pass">D</div>';
 </script>
 </body>

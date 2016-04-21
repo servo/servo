@@ -19,6 +19,8 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
@@ -39,6 +41,7 @@ use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::htmlbodyelement::{HTMLBodyElement, HTMLBodyElementLayoutHelpers};
 use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlcollection::HTMLCollection;
+use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlfontelement::{HTMLFontElement, HTMLFontElementLayoutHelpers};
 use dom::htmlhrelement::{HTMLHRElement, HTMLHRLayoutHelpers};
@@ -86,7 +89,7 @@ use string_cache::{Atom, Namespace, QualName};
 use style::element_state::*;
 use style::error_reporting::ParseErrorReporter;
 use style::properties::DeclaredValue;
-use style::properties::longhands::{self, background_image, border_spacing, font_family, font_size};
+use style::properties::longhands::{self, background_image, border_spacing, font_family, overflow_x, font_size};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
 use style::values::CSSFloat;
@@ -163,6 +166,35 @@ impl Element {
             box Element::new_inherited(local_name, namespace, prefix, document),
             document,
             ElementBinding::Wrap)
+    }
+
+    // https://drafts.csswg.org/cssom-view/#css-layout-box
+    // Elements that have a computed value of the display property
+    // that is table-column or table-column-group
+    // FIXME: Currently, it is assumed to be true always
+    fn has_css_layout_box(&self) -> bool {
+        true
+    }
+
+    // https://drafts.csswg.org/cssom-view/#potentially-scrollable
+    fn potentially_scrollable(&self) -> bool {
+        self.has_css_layout_box() &&
+        !self.overflow_x_is_visible() &&
+        !self.overflow_y_is_visible()
+    }
+
+    // used value of overflow-x is "visible"
+    fn overflow_x_is_visible(&self) -> bool {
+        let window = window_from_node(self);
+        let overflow_pair = window.overflow_query(self.upcast::<Node>().to_trusted_node_address());
+        overflow_pair.x == overflow_x::computed_value::T::visible
+    }
+
+    // used value of overflow-y is "visible"
+    fn overflow_y_is_visible(&self) -> bool {
+        let window = window_from_node(self);
+        let overflow_pair = window.overflow_query(self.upcast::<Node>().to_trusted_node_address());
+        overflow_pair.y != overflow_x::computed_value::T::visible
     }
 }
 
@@ -1196,6 +1228,49 @@ impl Element {
             _ => Err(Error::Syntax)
         }
     }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scroll
+    pub fn scroll(&self, x_: f64, y_: f64, behavior: ScrollBehavior) {
+
+        // Step 1.2 or 2.3
+        let x = if x_.is_finite() { x_ } else { 0.0f64 };
+        let y = if y_.is_finite() { y_ } else { 0.0f64 };
+
+        let node = self.upcast::<Node>();
+
+        // Step 3
+        let doc = node.owner_doc();
+
+        // Step 4
+        if !doc.is_fully_active() {
+            return;
+        }
+
+        // Step 5
+        let win = doc.DefaultView();
+
+        // Step 7
+        if *self.root_element() == *self {
+            if doc.quirks_mode() != Quirks {
+                win.scroll(x, y, behavior);
+            }
+
+            return;
+        }
+
+        // Step 9
+        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+           doc.quirks_mode() == Quirks &&
+           !self.potentially_scrollable() {
+               win.scroll(x, y, behavior);
+               return;
+        }
+
+        // Step 10 (TODO)
+
+        // Step 11
+        win.scroll_node(node.to_trusted_node_address(), x, y, behavior);
+    }
 }
 
 impl ElementMethods for Element {
@@ -1450,6 +1525,220 @@ impl ElementMethods for Element {
                      rect.origin.y.to_f64_px(),
                      rect.size.width.to_f64_px(),
                      rect.size.height.to_f64_px())
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scroll
+    fn Scroll(&self, options: &ScrollToOptions) {
+        // Step 1
+        let left = options.left.unwrap_or(self.ScrollLeft());
+        let top = options.top.unwrap_or(self.ScrollTop());
+        self.scroll(left, top, options.parent.behavior);
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scroll
+    fn Scroll_(&self, x: f64, y: f64) {
+        self.scroll(x, y, ScrollBehavior::Auto);
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scrollto
+    fn ScrollTo(&self, options: &ScrollToOptions) {
+        self.Scroll(options);
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scrollto
+    fn ScrollTo_(&self, x: f64, y: f64) {
+        self.Scroll_(x, y);
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scrollby
+    fn ScrollBy(&self, options: &ScrollToOptions) {
+        // Step 2
+        let delta_left = options.left.unwrap_or(0.0f64);
+        let delta_top = options.top.unwrap_or(0.0f64);
+        let left = self.ScrollLeft();
+        let top = self.ScrollTop();
+        self.scroll(left + delta_left, top + delta_top,
+                    options.parent.behavior);
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scrollby
+    fn ScrollBy_(&self, x: f64, y: f64) {
+        let left = self.ScrollLeft();
+        let top = self.ScrollTop();
+        self.scroll(left + x, top + y, ScrollBehavior::Auto);
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
+    fn ScrollTop(&self) -> f64 {
+        let node = self.upcast::<Node>();
+
+        // Step 1
+        let doc = node.owner_doc();
+
+        // Step 2
+        if !doc.is_fully_active() {
+            return 0.0;
+        }
+
+        // Step 3
+        let win = doc.DefaultView();
+
+        // Step 5
+        if *self.root_element() == *self {
+            if doc.quirks_mode() == Quirks {
+                return 0.0;
+            }
+
+            // Step 6
+            return win.ScrollY() as f64;
+        }
+
+        // Step 7
+        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+           doc.quirks_mode() == Quirks &&
+           !self.potentially_scrollable() {
+               return win.ScrollY() as f64;
+        }
+
+
+        // Step 8
+        if !self.has_css_layout_box() {
+            return 0.0;
+        }
+
+        // Step 9
+        let point = node.scroll_offset();
+        return point.y.abs() as f64;
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
+    fn SetScrollTop(&self, y_: f64) {
+        let behavior = ScrollBehavior::Auto;
+
+        // Step 1, 2
+        let y = if y_.is_finite() { y_ } else { 0.0f64 };
+
+        let node = self.upcast::<Node>();
+
+        // Step 3
+        let doc = node.owner_doc();
+
+        // Step 4
+        if !doc.is_fully_active() {
+            return;
+        }
+
+        // Step 5
+        let win = doc.DefaultView();
+
+        // Step 7
+        if *self.root_element() == *self {
+            if doc.quirks_mode() != Quirks {
+                win.scroll(win.ScrollX() as f64, y, behavior);
+            }
+
+            return;
+        }
+
+        // Step 9
+        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+           doc.quirks_mode() == Quirks &&
+           !self.potentially_scrollable() {
+               win.scroll(win.ScrollX() as f64, y, behavior);
+               return;
+        }
+
+        // Step 10 (TODO)
+
+        // Step 11
+        win.scroll_node(node.to_trusted_node_address(), self.ScrollLeft(), y, behavior);
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scrolltop
+    fn ScrollLeft(&self) -> f64 {
+        let node = self.upcast::<Node>();
+
+        // Step 1
+        let doc = node.owner_doc();
+
+        // Step 2
+        if !doc.is_fully_active() {
+            return 0.0;
+        }
+
+        // Step 3
+        let win = doc.DefaultView();
+
+        // Step 5
+        if *self.root_element() == *self {
+            if doc.quirks_mode() != Quirks {
+                // Step 6
+                return win.ScrollX() as f64;
+            }
+
+            return 0.0;
+        }
+
+        // Step 7
+        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+           doc.quirks_mode() == Quirks &&
+           !self.potentially_scrollable() {
+               return win.ScrollX() as f64;
+        }
+
+
+        // Step 8
+        if !self.has_css_layout_box() {
+            return 0.0;
+        }
+
+        // Step 9
+        let point = node.scroll_offset();
+        return point.x.abs() as f64;
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-element-scrollleft
+    fn SetScrollLeft(&self, x_: f64) {
+        let behavior = ScrollBehavior::Auto;
+
+        // Step 1, 2
+        let x = if x_.is_finite() { x_ } else { 0.0f64 };
+
+        let node = self.upcast::<Node>();
+
+        // Step 3
+        let doc = node.owner_doc();
+
+        // Step 4
+        if !doc.is_fully_active() {
+            return;
+        }
+
+        // Step 5
+        let win = doc.DefaultView();
+
+        // Step 7
+        if *self.root_element() == *self {
+            if doc.quirks_mode() == Quirks {
+                return;
+            }
+
+            win.scroll(x, win.ScrollY() as f64, behavior);
+            return;
+        }
+
+        // Step 9
+        if doc.GetBody().r() == self.downcast::<HTMLElement>() &&
+           doc.quirks_mode() == Quirks &&
+           !self.potentially_scrollable() {
+               win.scroll(x, win.ScrollY() as f64, behavior);
+               return;
+        }
+
+        // Step 10 (TODO)
+
+        // Step 11
+        win.scroll_node(node.to_trusted_node_address(), x, self.ScrollTop(), behavior);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scrollwidth

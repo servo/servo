@@ -183,15 +183,21 @@ impl FontCache {
                             ROUTER.add_route(data_receiver.to_opaque(), box move |message| {
                                 let response: ResponseAction = message.to().unwrap();
                                 match response {
-                                    ResponseAction::HeadersAvailable(metadata) => {
-                                        let is_response_valid =
-                                            metadata.content_type.as_ref().map_or(false, |content_type| {
-                                                let mime = &content_type.0;
-                                                is_supported_font_type(&mime.0, &mime.1)
-                                            });
-                                        info!("{} font with MIME type {:?}",
+                                    ResponseAction::HeadersAvailable(meta_result) => {
+                                        let is_response_valid = match meta_result {
+                                            Ok(ref metadata) => {
+                                                metadata.content_type.as_ref().map_or(false, |content_type| {
+                                                    let mime = &content_type.0;
+                                                    is_supported_font_type(&mime.0, &mime.1)
+                                                })
+                                            }
+                                            Err(_) => false,
+                                        };
+
+                                        info!("{} font with MIME type {}",
                                               if is_response_valid { "Loading" } else { "Ignoring" },
-                                              metadata.content_type);
+                                              meta_result.map(|ref meta| format!("{:?}", meta.content_type))
+                                                         .unwrap_or(format!("<Network Error>")));
                                         *response_valid.lock().unwrap() = is_response_valid;
                                     }
                                     ResponseAction::DataAvailable(new_bytes) => {

@@ -13,11 +13,12 @@ use flow;
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use gfx::display_list::OpaqueNode;
+use gfx_traits::{LayerId};
 use layout_thread::LayoutThreadData;
 use msg::constellation_msg::ConstellationChan;
 use opaque_node::OpaqueNodeMethods;
-use script::layout_interface::{ContentBoxResponse, ContentBoxesResponse, NodeGeometryResponse};
-use script::layout_interface::{HitTestResponse, LayoutRPC, OffsetParentResponse};
+use script::layout_interface::{ContentBoxResponse, NodeOverflowResponse, ContentBoxesResponse, NodeGeometryResponse};
+use script::layout_interface::{HitTestResponse, LayoutRPC, OffsetParentResponse, NodeLayerIdResponse};
 use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan, MarginStyleResponse};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
@@ -112,9 +113,20 @@ impl LayoutRPC for LayoutRPCImpl {
         }
     }
 
+    fn node_overflow(&self) -> NodeOverflowResponse {
+        NodeOverflowResponse(self.0.lock().unwrap().overflow_response.0)
+    }
+
     fn node_scroll_area(&self) -> NodeGeometryResponse {
         NodeGeometryResponse {
             client_rect: self.0.lock().unwrap().scroll_area_response
+        }
+    }
+
+    fn node_layer_id(&self) -> NodeLayerIdResponse {
+        NodeLayerIdResponse {
+            layer_id: self.0.lock().unwrap().layer_id_response
+                          .expect("layer_id is not correctly fetched, see PR #9968")
         }
     }
 
@@ -425,6 +437,7 @@ impl FragmentBorderBoxIterator for UnioningFragmentScrollAreaIterator {
         let bottom_padding = (border_box.size.height - bottom_border - top_border).to_px();
         let top_padding = top_border.to_px();
         let left_padding = left_border.to_px();
+
         match self.level {
             Some(start_level) if level <= start_level => { self.is_child = false; }
             Some(_) => {
@@ -515,6 +528,11 @@ pub fn process_node_geometry_request<N: LayoutNode>(requested_node: N, layout_ro
     let mut iterator = FragmentLocatingFragmentIterator::new(requested_node.opaque());
     sequential::iterate_through_flow_tree_fragment_border_boxes(layout_root, &mut iterator);
     iterator.client_rect
+}
+
+pub fn process_node_layer_id_request<N: LayoutNode>(requested_node: N) -> LayerId {
+    let layout_node = requested_node.to_threadsafe();
+    layout_node.layer_id()
 }
 
 pub fn process_node_scroll_area_request< N: LayoutNode>(requested_node: N, layout_root: &mut FlowRef)
@@ -689,6 +707,14 @@ pub fn process_offset_parent_query<N: LayoutNode>(requested_node: N, layout_root
             OffsetParentResponse::empty()
         }
     }
+}
+
+pub fn process_node_overflow_request<N: LayoutNode>(requested_node: N) -> NodeOverflowResponse {
+    let layout_node = requested_node.to_threadsafe();
+    let style = &*layout_node.style();
+    let style_box = style.get_box();
+
+    NodeOverflowResponse(Some((Point2D::new(style_box.overflow_x, style_box.overflow_y.0))))
 }
 
 pub fn process_margin_style_query<N: LayoutNode>(requested_node: N)

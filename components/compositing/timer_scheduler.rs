@@ -5,7 +5,7 @@
 use euclid::length::Length;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use num::traits::Saturating;
+use num_traits::Saturating;
 use script_traits::{MsDuration, NsDuration, precise_time_ms, precise_time_ns};
 use script_traits::{TimerEvent, TimerEventRequest};
 use std::cell::RefCell;

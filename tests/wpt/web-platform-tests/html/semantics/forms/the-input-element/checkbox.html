@@ -40,7 +40,7 @@
     assert_true(c1_click_fired, "input event should fire after click event");
     assert_false(c1_change_fired, "input event should fire before change event");
     assert_true(e.bubbles, "event should bubble");
-    assert_false(e.isTrusted, "click()-initiated event should be trusted");
+    assert_false(e.isTrusted, "click()-initiated event should not be trusted");
     assert_false(e.cancelable, "event should not be cancelable");
     assert_true(checkbox1.checked, "checkbox is checked");
     assert_false(checkbox1.indeterminate, "checkbox is not indeterminate");
@@ -51,7 +51,7 @@
     assert_true(c1_click_fired, "change event should fire after click event");
     assert_true(c1_input_fired, "change event should fire after input event");
     assert_true(e.bubbles, "event should bubble")
-    assert_false(e.isTrusted, "click()-initiated event should be trusted");
+    assert_false(e.isTrusted, "click()-initiated event should not be trusted");
     assert_false(e.cancelable, "event should not be cancelable");
     assert_true(checkbox1.checked, "checkbox is checked");
     assert_false(checkbox1.indeterminate, "checkbox is not indeterminate");

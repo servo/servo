@@ -15,7 +15,7 @@ use heapsize::HeapSizeOf;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::{HandleValue, Heap, RootedValue};
 use js::jsval::{JSVal, UndefinedValue};
-use num::traits::Saturating;
+use num_traits::Saturating;
 use script_traits::{MsDuration, precise_time_ms};
 use script_traits::{TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use std::cell::Cell;

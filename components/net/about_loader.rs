@@ -9,11 +9,18 @@ use hyper::mime::{Mime, SubLevel, TopLevel};
 use mime_classifier::MIMEClassifier;
 use net_traits::ProgressMsg::Done;
 use net_traits::response::HttpsState;
-use net_traits::{LoadConsumer, LoadData, Metadata};
+use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError};
 use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt};
 use std::sync::Arc;
 use url::Url;
 use util::resource_files::resources_dir_path;
+
+fn url_from_non_relative_scheme(load_data: &mut LoadData, filename: &str) {
+    let mut path = resources_dir_path();
+    path.push(filename);
+    assert!(path.exists());
+    load_data.url = Url::from_file_path(&*path).unwrap();
+}
 
 pub fn factory(mut load_data: LoadData,
                start_chan: LoadConsumer,
@@ -41,15 +48,11 @@ pub fn factory(mut load_data: LoadData,
             return
         }
         "crash" => panic!("Loading the about:crash URL."),
-        "failure" | "not-found" => {
-            let mut path = resources_dir_path();
-            let file_name = non_relative_scheme_data.to_owned() + ".html";
-            path.push(&file_name);
-            assert!(path.exists());
-            load_data.url = Url::from_file_path(&*path).unwrap();
-        }
+        "failure" | "not-found" =>
+            url_from_non_relative_scheme(&mut load_data, &(non_relative_scheme_data.to_owned() + ".html")),
+        "sslfail" => url_from_non_relative_scheme(&mut load_data, "badcert.html"),
         _ => {
-            send_error(load_data.url, "Unknown about: URL.".to_owned(), start_chan);
+            send_error(load_data.url, NetworkError::Internal("Unknown about: URL.".to_owned()), start_chan);
             return
         }
     };

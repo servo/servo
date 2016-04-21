@@ -5,7 +5,7 @@
 use ipc_channel::ipc;
 use net::resource_thread::new_resource_thread;
 use net_traits::hosts::{parse_hostsfile, host_replacement};
-use net_traits::{ControlMsg, LoadData, LoadConsumer, ProgressMsg, LoadContext};
+use net_traits::{ControlMsg, LoadData, LoadConsumer, LoadContext, NetworkError, ProgressMsg};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::sync::mpsc::channel;
@@ -213,9 +213,7 @@ fn test_cancelled_listener() {
     // (but, the loading has been cancelled)
     let _ = body_sender.send(body);
     let response = receiver.recv().unwrap();
-    match response.progress_port.recv().unwrap() {
-        ProgressMsg::Done(result) => assert_eq!(result.unwrap_err(), "load cancelled".to_owned()),
-        _ => panic!("baaaah!"),
-    }
+    assert_eq!(response.progress_port.recv().unwrap(),
+               ProgressMsg::Done(Err(NetworkError::Internal("load cancelled".to_owned()))));
     resource_thread.send(ControlMsg::Exit).unwrap();
 }

@@ -34,7 +34,7 @@ A_05_04_05_T01.step(unit(function (ctx) {
     d.body.appendChild(host);
 
     //Shadow root to play with
-    var s = host.createShadowRoot();
+    var s = host.attachShadow({mode: 'open'});
 
     var inp1 = d.createElement('input');
     inp1.setAttribute('id', 'inp1');

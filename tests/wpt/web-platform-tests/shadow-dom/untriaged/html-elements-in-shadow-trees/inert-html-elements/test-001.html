@@ -58,7 +58,7 @@ A_08_01_01_T01.step(function () {
     //create Shadow root
     var root = d.createElement('div');
     d.body.appendChild(root);
-    var s = root.createShadowRoot();
+    var s = root.attachShadow({mode: 'open'});
 
     // create base element, set iframe as a target
     var base = d.createElement('base');

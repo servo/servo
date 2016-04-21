@@ -15,7 +15,7 @@ use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
 use style::values::specified;
-use util::str::{DOMString, WHITESPACE, read_numbers};
+use util::str::{DOMString, HTML_SPACE_CHARACTERS, read_numbers};
 
 #[dom_struct]
 pub struct HTMLFontElement {
@@ -124,7 +124,7 @@ pub fn parse_legacy_font_size(mut input: &str) -> Option<&'static str> {
     // Steps 1 & 2 are not relevant
 
     // Step 3
-    input = input.trim_matches(WHITESPACE);
+    input = input.trim_matches(HTML_SPACE_CHARACTERS);
 
     enum ParseMode {
         RelativePlus,

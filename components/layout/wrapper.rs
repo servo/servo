@@ -34,6 +34,7 @@ use core::nonzero::NonZero;
 use data::{LayoutDataFlags, PrivateLayoutData};
 use gfx::display_list::OpaqueNode;
 use gfx::text::glyph::CharIndex;
+use gfx_traits::{LayerId, LayerType};
 use incremental::RestyleDamage;
 use msg::constellation_msg::PipelineId;
 use opaque_node::OpaqueNodeMethods;
@@ -851,6 +852,21 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
     fn iframe_pipeline_id(&self) -> PipelineId;
 
     fn get_colspan(&self) -> u32;
+
+    fn layer_id(&self) -> LayerId {
+        let layer_type = match self.get_pseudo_element_type() {
+            PseudoElementType::Normal => LayerType::FragmentBody,
+            PseudoElementType::Before(_) => LayerType::BeforePseudoContent,
+            PseudoElementType::After(_) => LayerType::AfterPseudoContent,
+            PseudoElementType::DetailsSummary(_) => LayerType::FragmentBody,
+            PseudoElementType::DetailsContent(_) => LayerType::FragmentBody,
+        };
+        LayerId::new_of_type(layer_type, self.opaque().id() as usize)
+    }
+
+    fn layer_id_for_overflow_scroll(&self) -> LayerId {
+        LayerId::new_of_type(LayerType::OverflowScroll, self.opaque().id() as usize)
+    }
 }
 
 // This trait is only public so that it can be implemented by the gecko wrapper.

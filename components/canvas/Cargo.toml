@@ -38,5 +38,5 @@ git = "https://github.com/servo/webrender_traits"
 euclid = {version = "0.6.4", features = ["plugins"]}
 gleam = "0.2.8"
 log = "0.3.5"
-num = "0.1.24"
+num-traits = "0.1.32"
 offscreen_gl_context = "0.1.2"

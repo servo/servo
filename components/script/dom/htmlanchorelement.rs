@@ -25,7 +25,7 @@ use dom::mouseevent::MouseEvent;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
-use num::ToPrimitive;
+use num_traits::ToPrimitive;
 use std::default::Default;
 use string_cache::Atom;
 use url::{Url, UrlParser};

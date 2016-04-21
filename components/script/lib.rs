@@ -53,7 +53,7 @@ extern crate libc;
 extern crate log;
 extern crate msg;
 extern crate net_traits;
-extern crate num;
+extern crate num_traits;
 extern crate offscreen_gl_context;
 extern crate phf;
 #[macro_use]
