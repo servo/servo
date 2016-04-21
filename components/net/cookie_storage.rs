@@ -11,7 +11,7 @@ use rustc_serialize::{Encodable, Encoder};
 use std::cmp::Ordering;
 use url::Url;
 
-#[derive(RustcEncodable, Clone)]
+#[derive(Clone, RustcDecodable, RustcEncodable)]
 pub struct CookieStorage {
     version: u32,
     cookies: Vec<Cookie>

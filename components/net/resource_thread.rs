@@ -22,8 +22,8 @@ use net_traits::ProgressMsg::Done;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceThread, ResponseAction};
 use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
 use net_traits::{NetworkError, WebSocketCommunicate, WebSocketConnectData};
-use rustc_serialize::Encodable;
 use rustc_serialize::json;
+use rustc_serialize::{Decodable, Encodable};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::cell::Cell;
@@ -219,6 +219,34 @@ impl ResourceChannelManager {
     }
 }
 
+pub fn read_json_from_file<T: Decodable>(data: &mut T, profile_dir: &str, filename: &str) {
+
+    let path = Path::new(profile_dir).join(filename);
+    let display = path.display();
+
+    let mut file = match File::open(&path) {
+        Err(why) => {
+            warn!("couldn't open {}: {}", display, Error::description(&why));
+            return;
+        },
+        Ok(file) => file,
+    };
+
+    let mut string_buffer: String = String::new();
+    match file.read_to_string(&mut string_buffer) {
+        Err(why) => {
+            panic!("couldn't read from {}: {}", display,
+                                                Error::description(&why))
+        },
+        Ok(_) => println!("successfully read from {}", display),
+    }
+
+    match json::decode(&string_buffer) {
+        Ok(decoded_buffer) => *data = decoded_buffer,
+        Err(why) => warn!("Could not decode buffer{}", why),
+    }
+}
+
 pub fn write_json_to_file<T: Encodable>(data: &T, profile_dir: &str, filename: &str) {
     let json_encoded: String;
     match json::encode(&data) {
@@ -343,12 +371,19 @@ pub struct ResourceManager {
 
 impl ResourceManager {
     pub fn new(user_agent: String,
-               hsts_list: HstsList,
+               mut hsts_list: HstsList,
                devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
+        let mut auth_cache = AuthCache::new();
+        let mut cookie_jar = CookieStorage::new();
+        if let Some(ref profile_dir) = opts::get().profile_dir {
+            read_json_from_file(&mut auth_cache, profile_dir, "auth_cache.json");
+            read_json_from_file(&mut hsts_list, profile_dir, "hsts_list.json");
+            read_json_from_file(&mut cookie_jar, profile_dir, "cookie_jar.json");
+        }
         ResourceManager {
             user_agent: user_agent,
-            cookie_jar: Arc::new(RwLock::new(CookieStorage::new())),
-            auth_cache: Arc::new(RwLock::new(AuthCache::new())),
+            cookie_jar: Arc::new(RwLock::new(cookie_jar)),
+            auth_cache: Arc::new(RwLock::new(auth_cache)),
             mime_classifier: Arc::new(MIMEClassifier::new()),
             devtools_chan: devtools_channel,
             hsts_list: Arc::new(RwLock::new(hsts_list)),
