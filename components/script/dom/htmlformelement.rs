@@ -284,7 +284,7 @@ impl HTMLFormElement {
         let _target = submitter.target();
         // TODO: Handle browsing contexts, partially loaded documents (step 16-17)
 
-        let mut load_data = LoadData::new(action_components);
+        let mut load_data = LoadData::new(action_components, None, None);
 
         let parsed_data = match enctype {
             FormEncType::UrlEncoded => {

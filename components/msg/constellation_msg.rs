@@ -245,24 +245,14 @@ pub struct LoadData {
 }
 
 impl LoadData {
-    pub fn new(url: Url) -> LoadData {
-        LoadData {
-            url: url,
-            method: Method::Get,
-            headers: Headers::new(),
-            data: None,
-            referrer_policy: None,
-            referrer_url: None,
-        }
-    }
-    pub fn new_with_referrer(url: Url, referrer_policy: Option<ReferrerPolicy>, referrer_url: Url) -> LoadData {
+    pub fn new(url: Url, referrer_policy: Option<ReferrerPolicy>, referrer_url: Option<Url>) -> LoadData {
         LoadData {
             url: url,
             method: Method::Get,
             headers: Headers::new(),
             data: None,
             referrer_policy: referrer_policy,
-            referrer_url: Some(referrer_url),
+            referrer_url: referrer_url,
         }
     }
 }
