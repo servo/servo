@@ -45,7 +45,6 @@ pub mod image_cache_thread;
 pub mod net_error_list;
 pub mod request;
 pub mod response;
-pub mod storage_thread;
 
 /// Image handling.
 ///

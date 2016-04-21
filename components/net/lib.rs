@@ -50,7 +50,6 @@ pub mod image_cache_thread;
 pub mod mime_classifier;
 pub mod pub_domains;
 pub mod resource_thread;
-pub mod storage_thread;
 pub mod websocket_loader;
 
 /// An implementation of the [Fetch specification](https://fetch.spec.whatwg.org/)

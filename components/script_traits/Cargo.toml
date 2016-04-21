@@ -26,6 +26,9 @@ path = "../plugins"
 [dependencies.profile_traits]
 path = "../profile_traits"
 
+[dependencies.storage_traits]
+path = "../storage_traits"
+
 [dependencies.style_traits]
 path = "../style_traits"
 

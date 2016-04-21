@@ -24,6 +24,7 @@ extern crate net_traits;
 extern crate offscreen_gl_context;
 extern crate profile_traits;
 extern crate serde;
+extern crate storage_traits;
 extern crate style_traits;
 extern crate time;
 extern crate url;
@@ -48,9 +49,9 @@ use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceThread;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::response::HttpsState;
-use net_traits::storage_thread::StorageThread;
 use profile_traits::mem;
 use std::any::Any;
+use storage_traits::storage_thread::StorageThread;
 use url::Url;
 use util::ipc::OptionalOpaqueIpcSender;
 

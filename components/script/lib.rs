@@ -69,6 +69,7 @@ extern crate script_traits;
 extern crate selectors;
 extern crate serde;
 extern crate smallvec;
+extern crate storage_traits;
 #[macro_use(atom, ns)] extern crate string_cache;
 #[macro_use]
 extern crate style;
