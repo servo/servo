@@ -335,13 +335,21 @@ fn static_assert() {
 <% border_style_keyword = Keyword("border-style",
                                   "none solid double dotted dashed hidden groove ridge inset outset") %>
 
+<%
+skip_border_longhands = ""
+for side in SIDES:
+    skip_border_longhands += "border-{0}-style border-{0}-width ".format(side.ident)
+%>
+
 <%self:impl_trait style_struct_name="Border"
-                  skip_longhands="border-top-style border-right-style border-bottom-style border-left-style"
+                  skip_longhands="${skip_border_longhands}"
                   skip_additionals="*">
 
     % for side in SIDES:
     <% impl_keyword("border_%s_style" % side.ident, "mBorderStyle[%s]" % side.index, border_style_keyword,
                     need_clone=True) %>
+
+    <% impl_app_units("border_%s_width" % side.ident, "mComputedBorder.%s" % side.ident, need_clone=False) %>
 
     fn border_${side.ident}_has_nonzero_width(&self) -> bool {
         self.gecko.mComputedBorder.${side.ident} != 0
