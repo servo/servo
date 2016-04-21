@@ -595,7 +595,7 @@ interface WebGLRenderingContextBase
 
     WebGLUniformLocation? getUniformLocation(WebGLProgram? program, DOMString name);
 
-    //any getVertexAttrib(GLuint index, GLenum pname);
+    any getVertexAttrib(GLuint index, GLenum pname);
 
     //[WebGLHandlesContextLoss] GLsizeiptr getVertexAttribOffset(GLuint index, GLenum pname);
 

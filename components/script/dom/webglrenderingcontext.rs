@@ -985,6 +985,24 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         })
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    fn GetVertexAttrib(&self, cx: *mut JSContext, index: u32, pname: u32) -> JSVal {
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.ipc_renderer.send(CanvasMsg::WebGL(WebGLCommand::GetVertexAttrib(index, pname, sender))).unwrap();
+
+        match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
+            WebGLParameter::Int(val) => Int32Value(val),
+            WebGLParameter::Bool(val) => BooleanValue(val),
+            WebGLParameter::String(_) => panic!("Vertex attrib should not be string"),
+            WebGLParameter::Float(_) => panic!("Vertex attrib should not be float"),
+            WebGLParameter::FloatArray(val) => {
+                //val.to_jsval(cx, handle)
+              panic!("Vertex attrib should not be float")
+            }
+            WebGLParameter::Invalid => NullValue(),
+        }
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn Hint(&self, target: u32, mode: u32) {
         if target != constants::GENERATE_MIPMAP_HINT {
