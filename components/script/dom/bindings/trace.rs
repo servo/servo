@@ -61,7 +61,7 @@ use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::response::HttpsState;
 use net_traits::storage_thread::StorageType;
-use net_traits::{Metadata, NetworkError, ReferrerPolicy};
+use net_traits::{Metadata, NetworkError};
 use offscreen_gl_context::GLLimits;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
