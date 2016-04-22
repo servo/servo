@@ -703,10 +703,6 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
             })
     }
 
-    // TODO(emilio): Since the ::-details-* pseudos are internal, just affecting
-    // one element, and only changing `display` property when the element `open`
-    // attribute changes, this should be eligible for not being cascaded
-    // eagerly, reading the display property from layout instead.
     #[inline]
     fn get_details_summary_pseudo(&self) -> Option<Self> {
         if self.is_element() &&
@@ -725,18 +721,29 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
 
     #[inline]
     fn get_details_content_pseudo(&self) -> Option<Self> {
-        if self.is_element() &&
-           self.as_element().get_local_name() == &atom!("details") &&
-           self.as_element().get_namespace() == &ns!(html) {
-            self.borrow_layout_data().unwrap()
-                .style_data.per_pseudo
-                .get(&PseudoElement::DetailsContent)
-                .map(|style| {
-                    self.with_pseudo(PseudoElementType::DetailsContent(style.get_box().display))
-                })
-        } else {
-            None
+        if !self.is_element() {
+            return None;
         }
+
+        let element = self.as_element();
+        if element.get_local_name() != &atom!("details") ||
+           element.get_namespace() != &ns!(html) {
+            return None;
+        }
+
+        self.borrow_layout_data().unwrap()
+            .style_data
+            .precomputed
+            .non_eagerly_cascaded_pseudo_elements
+            .get(&PseudoElement::DetailsContent)
+            .map(|style| {
+                let display = if element.get_attr(&ns!(), &atom!("open")).is_some() {
+                    style.get_box().display
+                } else {
+                    display::T::none
+                };
+                self.with_pseudo(PseudoElementType::DetailsContent(display))
+            })
     }
 
     /// Borrows the layout data immutably. Fails on a conflicting borrow.
@@ -759,11 +766,19 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
     fn style(&self) -> Ref<Arc<ServoComputedValues>> {
         Ref::map(self.borrow_layout_data().unwrap(), |data| {
             let style = match self.get_pseudo_element_type() {
-                PseudoElementType::Before(_) => data.style_data.per_pseudo.get(&PseudoElement::Before),
-                PseudoElementType::After(_) => data.style_data.per_pseudo.get(&PseudoElement::After),
-                PseudoElementType::DetailsSummary(_) => data.style_data.per_pseudo.get(&PseudoElement::DetailsSummary),
-                PseudoElementType::DetailsContent(_) => data.style_data.per_pseudo.get(&PseudoElement::DetailsContent),
-                PseudoElementType::Normal => data.style_data.style.as_ref(),
+                PseudoElementType::Before(_)
+                    => data.style_data.per_pseudo.get(&PseudoElement::Before),
+                PseudoElementType::After(_)
+                    => data.style_data.per_pseudo.get(&PseudoElement::After),
+                PseudoElementType::DetailsSummary(_)
+                    => data.style_data.per_pseudo.get(&PseudoElement::DetailsSummary),
+                PseudoElementType::DetailsContent(_)
+                    => data.style_data
+                           .precomputed
+                           .non_eagerly_cascaded_pseudo_elements
+                           .get(&PseudoElement::DetailsContent),
+                PseudoElementType::Normal
+                    => data.style_data.style.as_ref(),
             };
             style.unwrap()
         })
@@ -1170,8 +1185,8 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
                 loop {
                     let next_node = if let Some(ref node) = current_node {
                         if node.is_element() &&
-                                node.as_element().get_local_name() == &atom!("summary") &&
-                                node.as_element().get_namespace() == &ns!(html) {
+                           node.as_element().get_local_name() == &atom!("summary") &&
+                           node.as_element().get_namespace() == &ns!(html) {
                             self.current_node = None;
                             return Some(node.clone());
                         }
