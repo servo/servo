@@ -35,7 +35,7 @@ impl<T: Serialize + Deserialize> Clone for ConstellationChan<T> {
     }
 }
 
-pub type PanicMsg = (Option<PipelineId>, String);
+pub type PanicMsg = (Option<PipelineId>, String, String);
 
 #[derive(Copy, Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct WindowSizeData {
