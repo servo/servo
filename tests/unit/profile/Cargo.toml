@@ -1,0 +1,15 @@
+[package]
+name = "profile_tests"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+
+[lib]
+name = "profile_tests"
+path = "lib.rs"
+doctest = false
+
+[dependencies.profile]
+path = "../../../components/profile"
+
+[dependencies.profile_traits]
+path = "../../../components/profile_traits"
