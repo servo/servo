@@ -59,7 +59,7 @@ use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcSender};
 use msg::constellation_msg::{FrameId, Key, KeyState, KeyModifiers, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
-use msg::constellation_msg::{WebDriverCommandMsg, WindowSizeData};
+use msg::constellation_msg::{WebDriverCommandMsg, WindowSizeData, WindowSizeType};
 use std::collections::HashMap;
 use url::Url;
 
@@ -103,7 +103,7 @@ pub enum CompositorMsg {
     KeyEvent(Key, KeyState, KeyModifiers),
     LoadUrl(PipelineId, LoadData),
     Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
-    ResizedWindow(WindowSizeData),
+    WindowSize(WindowSizeData, WindowSizeType),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.
     TickAnimation(PipelineId, AnimationTickType),
     /// Dispatch a webdriver command

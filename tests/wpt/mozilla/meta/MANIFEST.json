@@ -6682,6 +6682,12 @@
             "url": "/_mozilla/mozilla/window_requestAnimationFrame2.html"
           }
         ],
+        "mozilla/window_resize_not_triggered_on_load.html": [
+          {
+            "path": "mozilla/window_resize_not_triggered_on_load.html",
+            "url": "/_mozilla/mozilla/window_resize_not_triggered_on_load.html"
+          }
+        ],
         "mozilla/window_setInterval.html": [
           {
             "path": "mozilla/window_setInterval.html",
