@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::
     BluetoothRemoteGATTCharacteristicMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
-use dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
 use dom::bindings::error::Error::{Network, Type};
 use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::global::GlobalRef;
@@ -19,7 +18,7 @@ use dom::bindings::str::ByteString;
 use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use dom::bluetoothremotegattdescriptor::BluetoothRemoteGATTDescriptor;
 use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
-use dom::bluetoothuuid::BluetoothUUID;
+use dom::bluetoothuuid::{BluetoothDescriptorUUID, BluetoothUUID};
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::bluetooth_thread::{BluetoothMethodMsg, BluetoothObjectMsg};
 use util::str::DOMString;
@@ -94,7 +93,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptor
-    fn GetDescriptor(&self, descriptor: StringOrUnsignedLong) -> Fallible<Root<BluetoothRemoteGATTDescriptor>> {
+    fn GetDescriptor(&self, descriptor: BluetoothDescriptorUUID) -> Fallible<Root<BluetoothRemoteGATTDescriptor>> {
         let uuid: String = match BluetoothUUID::GetDescriptor(self.global().r(), descriptor.clone()) {
             Ok(domstring) => domstring.to_string(),
             Err(error) => return Err(error),
@@ -124,7 +123,7 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptors
     fn GetDescriptors(&self,
-                      descriptor: Option<StringOrUnsignedLong>)
+                      descriptor: Option<BluetoothDescriptorUUID>)
                       -> Fallible<Vec<Root<BluetoothRemoteGATTDescriptor>>> {
         let mut uuid: Option<String> = None;
         if let Some(d)= descriptor {
