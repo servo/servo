@@ -43,8 +43,9 @@ use actors::tab::TabActor;
 use actors::thread::ThreadActor;
 use actors::timeline::TimelineActor;
 use actors::worker::WorkerActor;
-use devtools_traits::{ChromeToDevtoolsControlMsg, ConsoleMessage, DevtoolsControlMsg};
+use devtools_traits::{ChromeToDevtoolsControlMsg, ConsoleMessage};
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo, LogLevel, NetworkEvent};
+use devtools_traits::{DevtoolsControlMsg, HttpRequest, HttpResponse};
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
@@ -535,10 +536,12 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 for stream in &accepted_connections {
                     connections.push(stream.try_clone().unwrap());
                 }
-                //TODO: Get pipeline_id from NetworkEventMessage after fixing the send in http_loader
-                // For now, the id of the first pipeline is passed
+                let pipeline_id = match network_event {
+                    NetworkEvent::HttpRequest(HttpRequest { pipeline_id, .. }) => { pipeline_id }
+                    NetworkEvent::HttpResponse(HttpResponse { pipeline_id, .. }) => { pipeline_id }
+                };
                 handle_network_event(actors.clone(), connections, &actor_pipelines, &mut actor_requests,
-                                     &actor_workers, PipelineId::fake_root_pipeline_id(), request_id, network_event);
+                                     &actor_workers, pipeline_id, request_id, network_event);
             },
             DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg) => break
         }
