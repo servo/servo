@@ -469,9 +469,9 @@ impl<'a> GlyphStore {
                                     character: char,
                                     data: &GlyphData) {
         let glyph_is_compressible = is_simple_glyph_id(data.id) &&
-            is_simple_advance(data.advance)
-                && data.offset == Point2D::zero()
-                && data.cluster_start;  // others are stored in detail buffer
+            is_simple_advance(data.advance) &&
+                data.offset == Point2D::zero() &&
+                data.cluster_start;  // others are stored in detail buffer
 
         debug_assert!(data.ligature_start); // can't compress ligature continuation glyphs.
         debug_assert!(i < self.char_len());

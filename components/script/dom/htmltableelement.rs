@@ -132,8 +132,8 @@ impl HTMLTableElementMethods for HTMLTableElement {
 
         impl CollectionFilter for TableRowFilter {
             fn filter(&self, elem: &Element, root: &Node) -> bool {
-                elem.is::<HTMLTableRowElement>()
-                    && (root.is_parent_of(elem.upcast())
+                elem.is::<HTMLTableRowElement>() &&
+                    (root.is_parent_of(elem.upcast())
                         || self.sections.iter().any(|ref section| section.is_parent_of(elem.upcast())))
             }
         }
@@ -250,9 +250,9 @@ impl HTMLTableElementMethods for HTMLTableElement {
         struct TBodiesFilter;
         impl CollectionFilter for TBodiesFilter {
             fn filter(&self, elem: &Element, root: &Node) -> bool {
-                elem.is::<HTMLTableSectionElement>()
-                    && elem.local_name() == &atom!("tbody")
-                    && elem.upcast::<Node>().GetParentNode().r() == Some(root)
+                elem.is::<HTMLTableSectionElement>() &&
+                    elem.local_name() == &atom!("tbody") &&
+                    elem.upcast::<Node>().GetParentNode().r() == Some(root)
             }
         }
 

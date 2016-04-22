@@ -136,10 +136,10 @@ impl Cookie {
         if string == domain_string {
             return true;
         }
-        if string.ends_with(domain_string)
-            && string.as_bytes()[string.len()-domain_string.len()-1] == b'.'
-            && string.parse::<Ipv4Addr>().is_err()
-            && string.parse::<Ipv6Addr>().is_err() {
+        if string.ends_with(domain_string) &&
+            string.as_bytes()[string.len()-domain_string.len()-1] == b'.' &&
+            string.parse::<Ipv4Addr>().is_err() &&
+            string.parse::<Ipv6Addr>().is_err() {
             return true;
         }
         false
