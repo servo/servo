@@ -72,7 +72,7 @@ use style::properties::{ComputedValues, ServoComputedValues};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::{NonTSPseudoClass, PseudoElement, ServoSelectorImpl};
-use style::servo::PrivateStyleData;
+use style::servo::{PrecomputedStyleData, PrivateStyleData};
 use url::Url;
 use util::str::{is_whitespace, search_index};
 
@@ -168,11 +168,11 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         OpaqueNodeMethods::from_jsmanaged(unsafe { self.get_jsmanaged() })
     }
 
-    fn initialize_data(self) {
+    fn initialize_data(self, precomputed: &Arc<PrecomputedStyleData>) {
         let has_data = unsafe { self.borrow_data_unchecked().is_some() };
         if !has_data {
             let ptr: NonOpaqueStyleAndLayoutData =
-                Box::into_raw(box RefCell::new(PrivateLayoutData::new()));
+                Box::into_raw(box RefCell::new(PrivateLayoutData::new(precomputed.clone())));
             let opaque = OpaqueStyleAndLayoutData {
                 ptr: unsafe { NonZero::new(ptr as *mut ()) }
             };
@@ -703,9 +703,10 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
             })
     }
 
-    // TODO(emilio): Since the ::-details-* pseudos are internal, just affecting one element, and
-    // only changing `display` property when the element `open` attribute changes, this should be
-    // eligible for not being cascaded eagerly, reading the display property from layout instead.
+    // TODO(emilio): Since the ::-details-* pseudos are internal, just affecting
+    // one element, and only changing `display` property when the element `open`
+    // attribute changes, this should be eligible for not being cascaded
+    // eagerly, reading the display property from layout instead.
     #[inline]
     fn get_details_summary_pseudo(&self) -> Option<Self> {
         if self.is_element() &&
