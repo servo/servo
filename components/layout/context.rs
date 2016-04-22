@@ -108,7 +108,7 @@ pub struct LayoutContext<'a> {
     cached_local_layout_context: Rc<LocalLayoutContext>,
 }
 
-impl<'a> StyleContext<'a, ServoSelectorImpl, ServoComputedValues> for LayoutContext<'a> {
+impl<'a> StyleContext<'a, ServoSelectorImpl> for LayoutContext<'a> {
     fn shared_context(&self) -> &'a SharedStyleContext {
         &self.shared.style_context
     }

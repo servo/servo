@@ -8,7 +8,8 @@ use data::PrivateStyleData;
 use element_state::ElementState;
 use properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
-use selector_impl::ElementExt;
+use selector_impl::{ElementExt, SelectorImplExt};
+use selector_matching::PrecomputedStyleData;
 use selectors::Element;
 use selectors::matching::DeclarationBlock;
 use smallvec::VecLike;
@@ -89,7 +90,10 @@ pub trait TNode : Sized + Copy + Clone {
     /// initialized.
     ///
     /// FIXME(pcwalton): Do this as part of fragment building instead of in a traversal.
-    fn initialize_data(self);
+    fn initialize_data(self,
+                       precomputed: &Arc<PrecomputedStyleData<<Self::ConcreteElement as Element>::Impl,
+                                                              Self::ConcreteComputedValues>>)
+        where <Self::ConcreteElement as Element>::Impl: SelectorImplExt;
 
     /// While doing a reflow, the node at the root has no parent, as far as we're
     /// concerned. This method returns `None` at the reflow root.
@@ -137,19 +141,19 @@ pub trait TNode : Sized + Copy + Clone {
     #[inline(always)]
     unsafe fn borrow_data_unchecked(&self)
         -> Option<*const PrivateStyleData<<Self::ConcreteElement as Element>::Impl,
-                                          Self::ConcreteComputedValues>>;
+                                           Self::ConcreteComputedValues>>;
 
     /// Borrows the PrivateStyleData immutably. Fails on a conflicting borrow.
     #[inline(always)]
     fn borrow_data(&self)
         -> Option<Ref<PrivateStyleData<<Self::ConcreteElement as Element>::Impl,
-                                       Self::ConcreteComputedValues>>>;
+                                           Self::ConcreteComputedValues>>>;
 
     /// Borrows the PrivateStyleData mutably. Fails on a conflicting borrow.
     #[inline(always)]
     fn mutate_data(&self)
         -> Option<RefMut<PrivateStyleData<<Self::ConcreteElement as Element>::Impl,
-                                          Self::ConcreteComputedValues>>>;
+                                           Self::ConcreteComputedValues>>>;
 
     /// Get the description of how to account for recent style changes.
     fn restyle_damage(self) -> Self::ConcreteRestyleDamage;
