@@ -41,6 +41,17 @@ impl WebGLContextEvent {
         }
     }
 
+    pub fn new_uninitialized(global_ref: GlobalRef) -> Root<WebGLContextEvent> {
+        // according to https://www.khronos.org/registry/webgl/specs/1.0/#5.15 this is
+        // additional information or the empty string if no additional information is
+        // available.
+        let status_message = DOMString::new();
+        reflect_dom_object(
+                        box WebGLContextEvent::new_inherited(status_message),
+                        global_ref,
+                        WebGLContextEventBinding::Wrap)
+    }
+
     pub fn new(global: GlobalRef,
                type_: Atom,
                bubbles: EventBubbles,
