@@ -11,6 +11,9 @@ use regex::Regex;
 use util::str::DOMString;
 
 pub type UUID = DOMString;
+pub type BluetoothServiceUUID = StringOrUnsignedLong;
+pub type BluetoothCharacteristicUUID = StringOrUnsignedLong;
+pub type BluetoothDescriptorUUID = StringOrUnsignedLong;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothuuid
  #[dom_struct]
@@ -274,7 +277,7 @@ impl BluetoothUUID {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getservice
-    pub fn GetService(globalref: GlobalRef, name: StringOrUnsignedLong) -> Fallible<UUID> {
+    pub fn GetService(globalref: GlobalRef, name: BluetoothServiceUUID) -> Fallible<UUID> {
       BluetoothUUID::resolve_uuid_name(globalref,
                                        name,
                                        BLUETOOTH_ASSIGNED_SERVICES,
@@ -282,7 +285,7 @@ impl BluetoothUUID {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getcharacteristic
-    pub fn GetCharacteristic(globalref: GlobalRef, name: StringOrUnsignedLong) -> Fallible<UUID> {
+    pub fn GetCharacteristic(globalref: GlobalRef, name: BluetoothCharacteristicUUID) -> Fallible<UUID> {
         BluetoothUUID::resolve_uuid_name(globalref,
                                          name,
                                          BLUETOOTH_ASSIGNED_CHARCTERISTICS,
@@ -290,7 +293,7 @@ impl BluetoothUUID {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothuuid-getdescriptor
-    pub fn GetDescriptor(globalref: GlobalRef, name: StringOrUnsignedLong) -> Fallible<UUID> {
+    pub fn GetDescriptor(globalref: GlobalRef, name: BluetoothDescriptorUUID) -> Fallible<UUID> {
         BluetoothUUID::resolve_uuid_name(globalref,
                                          name,
                                          BLUETOOTH_ASSIGNED_DESCRIPTORS,
