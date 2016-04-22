@@ -31,7 +31,7 @@ impl URLSearchParams {
     fn new_inherited(url: Option<&URL>) -> URLSearchParams {
         URLSearchParams {
             reflector_: Reflector::new(),
-            list: DOMRefCell::new(vec![]),
+            list: DOMRefCell::new(url.map_or(Vec::new(), |url| url.query_pairs())),
             url: MutableWeakRef::new(url),
         }
     }
@@ -111,26 +111,28 @@ impl URLSearchParamsMethods for URLSearchParams {
 
     // https://url.spec.whatwg.org/#dom-urlsearchparams-set
     fn Set(&self, name: USVString, value: USVString) {
-        // Step 1.
-        let mut list = self.list.borrow_mut();
-        let mut index = None;
-        let mut i = 0;
-        list.retain(|&(ref k, _)| {
-            if index.is_none() {
-                if k == &name.0 {
-                    index = Some(i);
+        {
+            // Step 1.
+            let mut list = self.list.borrow_mut();
+            let mut index = None;
+            let mut i = 0;
+            list.retain(|&(ref k, _)| {
+                if index.is_none() {
+                    if k == &name.0 {
+                        index = Some(i);
+                    } else {
+                        i += 1;
+                    }
+                    true
                 } else {
-                    i += 1;
+                    k != &name.0
                 }
-                true
-            } else {
-                k != &name.0
-            }
-        });
-        match index {
-            Some(index) => list[index].1 = value.0,
-            None => list.push((name.0, value.0)), // Step 2.
-        };
+            });
+            match index {
+                Some(index) => list[index].1 = value.0,
+                None => list.push((name.0, value.0)), // Step 2.
+            };
+        }  // Un-borrow self.list
         // Step 3.
         self.update_steps();
     }
