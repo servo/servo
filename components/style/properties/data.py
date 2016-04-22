@@ -128,13 +128,6 @@ class PropertiesData(object):
     def active_style_structs(self):
         return [s for s in self.style_structs if s.additional_methods or s.longhands]
 
-    def switch_to_style_struct(self, name):
-        for style_struct in self.style_structs:
-            if style_struct.trait_name == name:
-                self.current_style_struct = style_struct
-                return
-        raise Exception("Failed to find the struct named " + name)
-
     def declare_longhand(self, name, products="gecko servo", **kwargs):
         products = products.split()
         if self.product not in products:
