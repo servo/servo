@@ -20,7 +20,8 @@ export LIBCLANG_PATH="$(pwd)/llvm/build/Release+Asserts/lib"
 export DYLD_LIBRARY_PATH="$(pwd)/llvm/build/Release+Asserts/lib"
 export LD_LIBRARY_PATH="$(pwd)/llvm/build/Release+Asserts/lib"
 export DIST_INCLUDE="$1/dist/include"
-CLANG_SEARCH_DIRS=$(clang++ -E -x c++ - -v < /dev/null 2>&1 | awk '{ \
+LLVM_BIN=llvm/build/Release+Asserts/bin
+CLANG_SEARCH_DIRS=$($LLVM_BIN/clang++ -E -x c++ - -v < /dev/null 2>&1 | awk '{ \
   if ($0 == "#include <...> search starts here:")                    \
     in_headers = 1;                                                  \
   else if ($0 == "End of search list.")                              \
