@@ -144,6 +144,7 @@ impl URLMethods for URL {
         match Url::parse(&value.0) {
             Ok(url) => {
                 *self.url.borrow_mut() = url;
+                self.search_params.set(None);  // To be re-initialized in the SearchParams getter.
                 Ok(())
             },
             Err(error) => {
