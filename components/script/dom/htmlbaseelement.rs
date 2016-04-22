@@ -81,10 +81,7 @@ impl HTMLBaseElementMethods for HTMLBaseElement {
         let url_record = fallback_base_url.join(&*url);
 
         // Step 5, 6.
-        DOMString::from(match url_record {
-            Ok(ref url) => url.as_str(),
-            Err(_) => ""
-        })
+        DOMString::from(url_record.map_or("", Url::as_str))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-base-href
