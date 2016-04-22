@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
-use dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
 use dom::bindings::error::Error::Type;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
@@ -13,7 +12,7 @@ use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
-use dom::bluetoothuuid::BluetoothUUID;
+use dom::bluetoothuuid::{BluetoothCharacteristicUUID, BluetoothUUID};
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::bluetooth_thread::{BluetoothMethodMsg, BluetoothObjectMsg};
 use util::str::DOMString;
@@ -86,7 +85,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristic
     fn GetCharacteristic(&self,
-                         characteristic: StringOrUnsignedLong)
+                         characteristic: BluetoothCharacteristicUUID)
                          -> Fallible<Root<BluetoothRemoteGATTCharacteristic>> {
         let uuid: String = match BluetoothUUID::GetCharacteristic(self.global().r(), characteristic.clone()) {
             Ok(domstring) => domstring.to_string(),
@@ -137,7 +136,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristics
     fn GetCharacteristics(&self,
-                          characteristic: Option<StringOrUnsignedLong>)
+                          characteristic: Option<BluetoothCharacteristicUUID>)
                           -> Fallible<Vec<Root<BluetoothRemoteGATTCharacteristic>>> {
         let mut uuid: Option<String> = None;
         if let Some(c)= characteristic {
