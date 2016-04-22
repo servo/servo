@@ -22,9 +22,6 @@ path = "../msg"
 [dependencies.plugins]
 path = "../plugins"
 
-[dependencies.util]
-path = "../util"
-
 [dependencies]
 euclid = {version = "0.6.5", features = ["plugins"]}
 heapsize = "0.3.0"

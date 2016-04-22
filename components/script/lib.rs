@@ -30,6 +30,7 @@
 
 extern crate angle;
 extern crate app_units;
+#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
 extern crate canvas;

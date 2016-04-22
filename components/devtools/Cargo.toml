@@ -25,7 +25,6 @@ git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
 hyper = { version = "0.8", features = [ "serde-serialization" ] }
-log = "0.3.5"
 serde = "0.7"
 serde_json = "0.7"
 serde_macros = "0.7"

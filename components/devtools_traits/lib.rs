@@ -15,6 +15,7 @@
 #![feature(custom_derive, plugin)]
 #![plugin(heapsize_plugin, serde_macros)]
 
+#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
 extern crate heapsize;
@@ -24,7 +25,6 @@ extern crate msg;
 extern crate serde;
 extern crate time;
 extern crate url;
-extern crate util;
 
 use hyper::header::Headers;
 use hyper::http::RawStatus;

@@ -21,6 +21,7 @@
 
 extern crate app_units;
 extern crate azure;
+#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
 extern crate canvas_traits;
@@ -49,7 +50,6 @@ extern crate rustc_serialize;
 extern crate script;
 extern crate script_traits;
 extern crate selectors;
-extern crate serde;
 extern crate serde_json;
 extern crate smallvec;
 #[macro_use(atom, ns)] extern crate string_cache;

@@ -130,7 +130,7 @@ optional = true
 version = "0.1.3"
 optional = true
 
-[dependencies.log]
+[target.arm-linux-androideabi.dependencies.log]
 version = "0.3"
 features = ["release_max_level_info"]
 
@@ -171,5 +171,4 @@ bitflags = "0.3"
 env_logger = "0.3"
 euclid = {version = "0.6.4", features = ["plugins"]}
 libc = "0.2"
-offscreen_gl_context = "0.1.2"
 url = {version = "0.5.7", features = ["heap_size", "serde_serialization", "query_encoding"]}

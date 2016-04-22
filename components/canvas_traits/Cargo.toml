@@ -25,9 +25,6 @@ features = [ "nightly" ]
 [dependencies.plugins]
 path = "../plugins"
 
-[dependencies.util]
-path = "../util"
-
 [dependencies.webrender_traits]
 git = "https://github.com/servo/webrender_traits"
 
@@ -36,6 +33,5 @@ cssparser = {version = "0.5.4", features = ["heap_size", "serde-serialization"]}
 euclid = {version = "0.6.4", features = ["plugins"]}
 heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
-offscreen_gl_context = "0.1.2"
 serde_macros = "0.7"
 
