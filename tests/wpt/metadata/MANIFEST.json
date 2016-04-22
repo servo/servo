@@ -35228,6 +35228,14 @@
             "url": "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html"
           }
         ]
+      },
+      "testharness": {
+        "dom/nodes/Element-hasAttributes.html": [
+          {
+            "path": "dom/nodes/Element-hasAttributes.html",
+            "url": "/dom/nodes/Element-hasAttributes.html"
+          }
+        ]
       }
     },
     "reftest_nodes": {
