@@ -8,8 +8,9 @@
 use dom::TElement;
 use element_state::*;
 use error_reporting::{ParseErrorReporter, StdoutErrorReporter};
+use euclid::Size2D;
 use media_queries::{Device, MediaType};
-use properties::{PropertyDeclaration, PropertyDeclarationBlock};
+use properties::{self, ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RestyleHint, DependencySet};
 use selector_impl::{SelectorImplExt, ServoSelectorImpl};
 use selectors::Element;
@@ -83,6 +84,25 @@ lazy_static! {
     };
 }
 
+#[derive(HeapSizeOf)]
+pub struct PrecomputedStyleData<Impl: SelectorImpl, Computed: ComputedValues> {
+    /// Computed values for a given non-eagerly cascaded pseudo-element.  These
+    /// are eagerly computed once, and then just looked up in the table,
+    /// since they only appear in rules of the form *|*::pseudo-element
+    pub non_eagerly_cascaded_pseudo_elements: HashMap<Impl::PseudoElement,
+                                                      Computed,
+                                                      BuildHasherDefault<::fnv::FnvHasher>>,
+}
+
+impl<Impl, Computed> PrecomputedStyleData<Impl, Computed>
+    where Impl: SelectorImpl, Computed: ComputedValues {
+    fn new() -> Self {
+        PrecomputedStyleData {
+            non_eagerly_cascaded_pseudo_elements: HashMap::with_hasher(Default::default()),
+        }
+    }
+}
+
 /// This structure holds all the selectors and device characteristics
 /// for a given document. The selectors are converted into `Rule`s
 /// (defined in rust-selectors), and introduced in a `SelectorMap`
@@ -116,11 +136,18 @@ pub struct Stylist<Impl: SelectorImplExt> {
     /// The current selector maps, after evaluating media
     /// rules against the current device.
     element_map: PerPseudoElementSelectorMap<Impl>,
+
     /// The selector maps corresponding to a given pseudo-element
     /// (depending on the implementation)
     pseudos_map: HashMap<Impl::PseudoElement,
                          PerPseudoElementSelectorMap<Impl>,
                          BuildHasherDefault<::fnv::FnvHasher>>,
+
+    /// Precomputed data to be shared to the nodes.
+    /// Note that this has to be an Arc, since the layout thread needs the
+    /// stylist mutable.
+    precomputed: Arc<PrecomputedStyleData<Impl, Impl::ComputedValues>>,
+
     rules_source_order: usize,
 
     /// Selector dependencies used to compute restyle hints.
@@ -138,6 +165,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
 
             element_map: PerPseudoElementSelectorMap::new(),
             pseudos_map: HashMap::with_hasher(Default::default()),
+            precomputed: Arc::new(PrecomputedStyleData::new()),
             rules_source_order: 0,
             state_deps: DependencySet::new(),
         };
@@ -160,6 +188,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
 
         self.element_map = PerPseudoElementSelectorMap::new();
         self.pseudos_map = HashMap::with_hasher(Default::default());
+        self.precomputed = Arc::new(PrecomputedStyleData::new());
         self.rules_source_order = 0;
         self.state_deps.clear();
 
@@ -182,8 +211,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
     }
 
     fn add_stylesheet(&mut self, stylesheet: &Stylesheet<Impl>) {
-        let device = &self.device;
-        if !stylesheet.is_effective_for_device(device) {
+        if !stylesheet.is_effective_for_device(&self.device) {
             return;
         }
         let mut rules_source_order = self.rules_source_order;
@@ -195,20 +223,21 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                 if !$style_rule.declarations.$priority.is_empty() {
                     for selector in &$style_rule.selectors {
                         let map = if let Some(ref pseudo) = selector.pseudo_element {
-                            self.pseudos_map.entry(pseudo.clone())
-                                            .or_insert_with(PerPseudoElementSelectorMap::new)
-                                            .borrow_for_origin(&stylesheet.origin)
+                            self.pseudos_map
+                                .entry(pseudo.clone())
+                                .or_insert_with(PerPseudoElementSelectorMap::new)
+                                .borrow_for_origin(&stylesheet.origin)
                         } else {
                             self.element_map.borrow_for_origin(&stylesheet.origin)
                         };
 
                         map.$priority.insert(Rule {
-                                selector: selector.compound_selectors.clone(),
-                                declarations: DeclarationBlock {
-                                    specificity: selector.specificity,
-                                    declarations: $style_rule.declarations.$priority.clone(),
-                                    source_order: rules_source_order,
-                                },
+                            selector: selector.compound_selectors.clone(),
+                            declarations: DeclarationBlock {
+                                specificity: selector.specificity,
+                                declarations: $style_rule.declarations.$priority.clone(),
+                                source_order: rules_source_order,
+                            },
                         });
                     }
                 }
@@ -223,7 +252,46 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                 self.state_deps.note_selector(selector.compound_selectors.clone());
             }
         }
+
         self.rules_source_order = rules_source_order;
+
+        Impl::each_non_eagerly_cascaded_pseudo_element(|pseudo| {
+            // TODO: Don't precompute this, and compute it on demand instead
+            // This is actually kind of hard, because the stylist is shared
+            // between threads.
+            //
+            if let Some(map) = self.pseudos_map.get(&pseudo) {
+                let mut precomputed = Arc::get_mut(&mut self.precomputed)
+                                           .expect("Stylist was not the single owner of PrecomputedStyleData");
+
+                let mut declarations = vec![];
+
+                map.user_agent.normal.get_universal_rules(&mut declarations);
+
+                map.user_agent.important.get_universal_rules(&mut declarations);
+
+                // NB: Viewport size shouldn't matter since these rules should
+                // be absolute.
+                let (computed, _) =
+                    properties::cascade::<Impl::ComputedValues>(Size2D::zero(),
+                                                                &declarations, false,
+                                                                None, None,
+                                                                box StdoutErrorReporter);
+                precomputed.non_eagerly_cascaded_pseudo_elements.insert(pseudo, computed);
+            }
+        })
+    }
+
+    pub fn get_precomputed_data(&self) -> &Arc<PrecomputedStyleData<Impl, Impl::ComputedValues>> {
+        &self.precomputed
+    }
+
+    pub fn get_non_eagerly_cascaded_pseudo_element_style(&self,
+                                                         pseudo: &Impl::PseudoElement) -> Option<Impl::ComputedValues> {
+        debug_assert!(!Impl::is_eagerly_cascaded_pseudo_element(pseudo));
+        self.precomputed
+            .non_eagerly_cascaded_pseudo_elements
+            .get(pseudo).map(|computed| computed.clone())
     }
 
     pub fn compute_restyle_hint<E>(&self, element: &E,
@@ -284,19 +352,15 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         assert!(!self.is_device_dirty);
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
                 "Style attributes do not apply to pseudo-elements");
+        debug_assert!(pseudo_element.is_none() ||
+                      Impl::is_eagerly_cascaded_pseudo_element(pseudo_element.as_ref().unwrap()));
 
         let map = match pseudo_element {
-            Some(ref pseudo) => match self.pseudos_map.get(pseudo) {
-                Some(map) => map,
-                // TODO(emilio): get non eagerly-cascaded pseudo-element rules here.
-                // Actually assume there are no rules applicable.
-                None => return true,
-            },
+            Some(ref pseudo) => self.pseudos_map.get(pseudo).unwrap(),
             None => &self.element_map,
         };
 
         let mut shareable = true;
-
 
         // Step 1: Normal user-agent rules.
         map.user_agent.normal.get_all_matching_rules(element,
