@@ -60,7 +60,7 @@ use layout_interface::{ReflowQueryType};
 use layout_interface::{self, LayoutChan, NewLayoutThreadInfo, ScriptLayoutChan};
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{ConstellationChan, LoadData};
-use msg::constellation_msg::{PipelineId, PipelineNamespace};
+use msg::constellation_msg::{PipelineId};
 use msg::constellation_msg::{SubpageId, WindowSizeData};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
@@ -449,7 +449,6 @@ impl ScriptThreadFactory for ScriptThread {
         thread::spawn_named_with_send_on_panic(format!("ScriptThread {:?}", state.id),
                                                thread_state::SCRIPT,
                                                move || {
-            PipelineNamespace::install(state.pipeline_namespace_id);
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
             let chan = MainThreadScriptChan(script_chan.clone());

@@ -29,7 +29,7 @@ use layers::rendergl;
 use layers::rendergl::RenderContext;
 use layers::scene::Scene;
 use layout_traits::LayoutControlChan;
-use msg::constellation_msg::{ConvertPipelineIdFromWebRender, ConvertPipelineIdToWebRender, Image, PixelFormat};
+use msg::constellation_msg::{Image, PixelFormat};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, WindowSizeData};
 use pipeline::CompositionPipeline;
@@ -40,6 +40,7 @@ use script_traits::{AnimationState, ConstellationControlMsg, LayoutControlMsg};
 use script_traits::{MouseButton, MouseEventType, TouchpadPressurePhase, TouchEventType, TouchId};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
+use std::convert::From;
 use std::fs::File;
 use std::mem as std_mem;
 use std::rc::Rc;
@@ -359,7 +360,7 @@ impl webrender_traits::RenderNotifier for RenderNotifier {
     fn pipeline_size_changed(&mut self,
                              pipeline_id: webrender_traits::PipelineId,
                              size: Option<Size2D<f32>>) {
-        let pipeline_id = pipeline_id.from_webrender();
+        let pipeline_id = PipelineId::from(pipeline_id);
 
         if let Some(size) = size {
             let msg = ConstellationMsg::FrameSize(pipeline_id, size);
@@ -804,7 +805,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.root_pipeline = Some(frame_tree.pipeline.clone());
 
         if let Some(ref webrender_api) = self.webrender_api {
-            let pipeline_id = frame_tree.pipeline.id.to_webrender();
+            let pipeline_id = webrender_traits::PipelineId::from(frame_tree.pipeline.id);
             webrender_api.set_root_pipeline(pipeline_id);
         }
 
@@ -1982,7 +1983,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 let mut pipeline_epochs = HashMap::new();
                 for (id, details) in &self.pipeline_details {
                     if let Some(ref webrender) = self.webrender {
-                        let webrender_pipeline_id = id.to_webrender();
+                        let webrender_pipeline_id = webrender_traits::PipelineId::from(*id);
                         if let Some(webrender_traits::Epoch(epoch)) = webrender.current_epoch(webrender_pipeline_id) {
                             let epoch = Epoch(epoch);
                             pipeline_epochs.insert(*id, epoch);

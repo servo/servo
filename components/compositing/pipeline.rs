@@ -16,7 +16,6 @@ use layers::geometry::DevicePixel;
 use layout_traits::{LayoutControlChan, LayoutThreadFactory};
 use msg::constellation_msg::{ConstellationChan, PanicMsg, FrameId, PipelineId, SubpageId};
 use msg::constellation_msg::{LoadData, WindowSizeData};
-use msg::constellation_msg::{PipelineNamespaceId};
 use net_traits::ResourceThread;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::StorageThread;
@@ -113,8 +112,6 @@ pub struct InitialPipelineState {
     pub script_chan: Option<IpcSender<ConstellationControlMsg>>,
     /// Information about the page to load.
     pub load_data: LoadData,
-    /// The ID of the pipeline namespace for this script thread.
-    pub pipeline_namespace_id: PipelineNamespaceId,
     /// Optional webrender api (if enabled).
     pub webrender_api_sender: Option<webrender_traits::RenderApiSender>,
 }
@@ -233,7 +230,6 @@ impl Pipeline {
             layout_shutdown_chan: layout_shutdown_chan,
             paint_shutdown_chan: paint_shutdown_chan.clone(),
             script_to_compositor_chan: script_to_compositor_chan,
-            pipeline_namespace_id: state.pipeline_namespace_id,
             layout_content_process_shutdown_chan: layout_content_process_shutdown_chan,
             layout_content_process_shutdown_port: layout_content_process_shutdown_port,
             script_content_process_shutdown_chan: script_content_process_shutdown_chan,
@@ -406,7 +402,6 @@ pub struct UnprivilegedPipelineContent {
     prefs: HashMap<String, Pref>,
     paint_shutdown_chan: IpcSender<()>,
     pipeline_port: Option<IpcReceiver<LayoutControlMsg>>,
-    pipeline_namespace_id: PipelineNamespaceId,
     layout_shutdown_chan: IpcSender<()>,
     layout_content_process_shutdown_chan: IpcSender<()>,
     layout_content_process_shutdown_port: IpcReceiver<()>,
@@ -437,7 +432,6 @@ impl UnprivilegedPipelineContent {
             mem_profiler_chan: self.mem_profiler_chan.clone(),
             devtools_chan: self.devtools_chan,
             window_size: self.window_size,
-            pipeline_namespace_id: self.pipeline_namespace_id,
             content_process_shutdown_chan: self.script_content_process_shutdown_chan.clone(),
         }, &layout_pair, self.load_data.clone());
 

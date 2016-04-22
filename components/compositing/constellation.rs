@@ -32,7 +32,7 @@ use layout_traits::{LayoutControlChan, LayoutThreadFactory};
 use msg::constellation_msg::WebDriverCommandMsg;
 use msg::constellation_msg::{FrameId, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, NavigationDirection};
+use msg::constellation_msg::{NavigationDirection};
 use msg::constellation_msg::{SubpageId, WindowSizeData};
 use msg::constellation_msg::{self, ConstellationChan, PanicMsg};
 use msg::webdriver_msg;
@@ -143,9 +143,6 @@ pub struct Constellation<LTF, STF> {
 
     /// ID of the root frame.
     root_frame_id: Option<FrameId>,
-
-    /// The next free ID to assign to a pipeline ID namespace.
-    next_pipeline_namespace_id: PipelineNamespaceId,
 
     /// The next free ID to assign to a frame.
     next_frame_id: FrameId,
@@ -344,7 +341,6 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 pipeline_to_frame_map: HashMap::new(),
                 subpage_map: HashMap::new(),
                 pending_frames: vec!(),
-                next_pipeline_namespace_id: PipelineNamespaceId(0),
                 root_frame_id: None,
                 next_frame_id: FrameId(0),
                 focus_pipeline_id: None,
@@ -377,8 +373,6 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     (rng, prob)
                 }),
             };
-            let namespace_id = constellation.next_pipeline_namespace_id();
-            PipelineNamespace::install(namespace_id);
             constellation.run();
         });
         compositor_sender
@@ -393,13 +387,6 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 break;
             }
         }
-    }
-
-    fn next_pipeline_namespace_id(&mut self) -> PipelineNamespaceId {
-        let namespace_id = self.next_pipeline_namespace_id;
-        let PipelineNamespaceId(ref mut i) = self.next_pipeline_namespace_id;
-        *i += 1;
-        namespace_id
     }
 
     /// Helper function for creating a pipeline
@@ -430,7 +417,6 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 script_chan: script_channel,
                 load_data: load_data,
                 device_pixel_ratio: self.window_size.device_pixel_ratio,
-                pipeline_namespace_id: self.next_pipeline_namespace_id(),
                 webrender_api_sender: self.webrender_api_sender.clone(),
             });
 
