@@ -13,7 +13,7 @@
  <body>
 
   <h1>CSS Masking Level 1 CR Test Suite</h1>
-  <h2>Positioned Masks (5 tests)</h2>
+  <h2>Positioned Masks (49 tests)</h2>
   <table width="100%">
     <col id="test-column"></col>
     <col id="refs-column"></col>
@@ -37,7 +37,51 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.1">+</a>
         <a href="https://www.w3.org/TR/css-masking-1/#the-mask-image">7.1 Mask Image Source: the mask-image property</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 4 tests -->
+      <tr id="mask-image-1a-7.1" class="primary">
+        <td><strong>
+            <a href="mask-image-1a.xht">mask-image-1a</a></strong></td>
+        <td><a href="reference/mask-image-1-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: mask layer image
+          <ul class="assert">
+            <li>Test checks whether image as mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-image-1b-7.1" class="primary">
+        <td><strong>
+            <a href="mask-image-1b.xht">mask-image-1b</a></strong></td>
+        <td><a href="reference/mask-image-1-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: mask layer image
+          <ul class="assert">
+            <li>Test checks whether SVG image as mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-image-1c-7.1" class="primary">
+        <td><strong>
+            <a href="mask-image-1c.xht">mask-image-1c</a></strong></td>
+        <td><a href="reference/mask-image-1-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: mask layer image
+          <ul class="assert">
+            <li>Test checks whether SVG mask element as mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-image-2-7.1" class="primary">
+        <td><strong>
+            <a href="mask-image-2.xht">mask-image-2</a></strong></td>
+        <td><a href="reference/mask-image-2-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-image: mask layer image
+          <ul class="assert">
+            <li>Test checks whether gradient CSS image as mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s7.1.#mask-layer-image">
       <!-- 0 tests -->
@@ -61,7 +105,29 @@
       <!-- 0 tests -->
     </tbody>
     <tbody id="s7.2.#propdef-mask-mode">
-      <!-- 0 tests -->
+      <!-- 2 tests -->
+      <tr id="mask-mode-a-7.2.#propdef-mask-mode" class="primary">
+        <td><strong>
+            <a href="mask-mode-a.xht">mask-mode-a</a></strong></td>
+        <td><a href="reference/mask-mode-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-mode with vector image
+          <ul class="assert">
+            <li>Test checks that mask an SVG image referenced by mask-image is correct with different mask mode.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-mode-b-7.2.#propdef-mask-mode" class="primary">
+        <td><strong>
+            <a href="mask-mode-b.xht">mask-mode-b</a></strong></td>
+        <td><a href="reference/mask-mode-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-mode with raster image
+          <ul class="assert">
+            <li>Test checks that mask a PNG image referenced by mask-image is correct with different mask mode.</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s7.2.#typedef-masking-mode">
       <!-- 0 tests -->
@@ -79,7 +145,40 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.3">+</a>
         <a href="https://www.w3.org/TR/css-masking-1/#the-mask-repeat">7.3 Tiling Mask Images: The mask-repeat property</a></th></tr>
-      <!-- 1 tests -->
+      <!-- 4 tests -->
+      <tr id="mask-repeat-1-7.3" class="primary">
+        <td><strong>
+            <a href="mask-repeat-1.xht">mask-repeat-1</a></strong></td>
+        <td><a href="reference/mask-repeat-1-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-repeat: repeated mask layer image
+          <ul class="assert">
+            <li>Test checks whether repeated mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-repeat-2-7.3" class="primary">
+        <td><strong>
+            <a href="mask-repeat-2.xht">mask-repeat-2</a></strong></td>
+        <td><a href="reference/mask-repeat-2-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-repeat: repeated mask layer image
+          <ul class="assert">
+            <li>Test checks whether repeated mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-repeat-3-7.3" class="primary">
+        <td><strong>
+            <a href="mask-repeat-3.xht">mask-repeat-3</a></strong></td>
+        <td><a href="reference/mask-repeat-3-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-repeat: repeated mask layer image
+          <ul class="assert">
+            <li>Test checks whether repeated mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
       <tr id="test-mask-7.3" class="">
         <td>
             <a href="test-mask.xht">test-mask</a></td>
@@ -99,7 +198,161 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.4">+</a>
         <a href="https://www.w3.org/TR/css-masking-1/#the-mask-position">7.4 Positioning Mask Images: the mask-position property</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 14 tests -->
+      <tr id="mask-position-1a-7.4" class="primary">
+        <td><strong>
+            <a href="mask-position-1a.xht">mask-position-1a</a></strong></td>
+        <td><a href="reference/mask-position-1-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-position: mask positioning
+          <ul class="assert">
+            <li>Test checks whether positioning mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-position-1b-7.4" class="primary">
+        <td><strong>
+            <a href="mask-position-1b.xht">mask-position-1b</a></strong></td>
+        <td><a href="reference/mask-position-1-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-position: mask positioning
+          <ul class="assert">
+            <li>Test checks whether positioning mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-position-1c-7.4" class="primary">
+        <td><strong>
+            <a href="mask-position-1c.xht">mask-position-1c</a></strong></td>
+        <td><a href="reference/mask-position-1-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-position: mask positioning
+          <ul class="assert">
+            <li>Test checks whether positioning mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-position-2a-7.4" class="primary">
+        <td><strong>
+            <a href="mask-position-2a.xht">mask-position-2a</a></strong></td>
+        <td><a href="reference/mask-position-2-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-position: mask positioning
+          <ul class="assert">
+            <li>Test checks whether positioning mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-position-2b-7.4" class="primary">
+        <td><strong>
+            <a href="mask-position-2b.xht">mask-position-2b</a></strong></td>
+        <td><a href="reference/mask-position-2-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-position: mask positioning
+          <ul class="assert">
+            <li>Test checks whether positioning mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-position-3a-7.4" class="primary">
+        <td><strong>
+            <a href="mask-position-3a.xht">mask-position-3a</a></strong></td>
+        <td><a href="reference/mask-position-3-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-position: mask positioning
+          <ul class="assert">
+            <li>Test checks whether positioning mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-position-3b-7.4" class="primary">
+        <td><strong>
+            <a href="mask-position-3b.xht">mask-position-3b</a></strong></td>
+        <td><a href="reference/mask-position-3-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-position: mask positioning
+          <ul class="assert">
+            <li>Test checks whether positioning mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-position-4a-7.4" class="primary">
+        <td><strong>
+            <a href="mask-position-4a.xht">mask-position-4a</a></strong></td>
+        <td><a href="reference/mask-position-4-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-position: mask positioning
+          <ul class="assert">
+            <li>Test checks whether positioning mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-position-4b-7.4" class="primary">
+        <td><strong>
+            <a href="mask-position-4b.xht">mask-position-4b</a></strong></td>
+        <td><a href="reference/mask-position-4-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-position: mask positioning
+          <ul class="assert">
+            <li>Test checks whether positioning mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-position-4c-7.4" class="primary">
+        <td><strong>
+            <a href="mask-position-4c.xht">mask-position-4c</a></strong></td>
+        <td><a href="reference/mask-position-4-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-position: mask positioning
+          <ul class="assert">
+            <li>Test checks whether positioning mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-position-4d-7.4" class="primary">
+        <td><strong>
+            <a href="mask-position-4d.xht">mask-position-4d</a></strong></td>
+        <td><a href="reference/mask-position-4-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-position: mask positioning
+          <ul class="assert">
+            <li>Test checks whether positioning mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-position-5-7.4" class="primary">
+        <td><strong>
+            <a href="mask-position-5.xht">mask-position-5</a></strong></td>
+        <td><a href="reference/mask-position-5-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-position: mask positioning
+          <ul class="assert">
+            <li>Test checks whether positioning mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-position-6-7.4" class="primary">
+        <td><strong>
+            <a href="mask-position-6.xht">mask-position-6</a></strong></td>
+        <td><a href="reference/mask-position-6-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-position: mask positioning
+          <ul class="assert">
+            <li>Test checks whether positioning mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-position-7-7.4" class="primary">
+        <td><strong>
+            <a href="mask-position-7.xht">mask-position-7</a></strong></td>
+        <td><a href="reference/mask-position-7-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-position: mask positioning
+          <ul class="assert">
+            <li>Test checks whether positioning mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s7.4.#propdef-mask-position">
       <!-- 0 tests -->
@@ -108,7 +361,18 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.5">+</a>
         <a href="https://www.w3.org/TR/css-masking-1/#the-mask-clip">7.5 Masking Area: the mask-clip property</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 1 tests -->
+      <tr id="mask-clip-1-7.5" class="">
+        <td>
+            <a href="mask-clip-1.xht">mask-clip-1</a></td>
+        <td><a href="reference/mask-clip-1-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-clip: clip mask image
+          <ul class="assert">
+            <li>border-box, padding-box, and content-box values of mask-clip should clip to the appropriate boxes.</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s7.5.#mask-painting-area">
       <!-- 0 tests -->
@@ -144,7 +408,29 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.6">+</a>
         <a href="https://www.w3.org/TR/css-masking-1/#the-mask-origin">7.6 Positioning Area: the mask-origin property</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 2 tests -->
+      <tr id="mask-origin-1-7.6" class="primary">
+        <td><strong>
+            <a href="mask-origin-1.xht">mask-origin-1</a></strong></td>
+        <td><a href="reference/mask-origin-1-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-origin: mask positioning area
+          <ul class="assert">
+            <li>Test checks whether setting mask position area works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-origin-2-7.6" class="primary">
+        <td><strong>
+            <a href="mask-origin-2.xht">mask-origin-2</a></strong></td>
+        <td><a href="reference/mask-origin-2-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-origin: mask positioning area
+          <ul class="assert">
+            <li>Test checks whether setting mask origin to margin-box works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s7.6.#mask-positioning-area">
       <!-- 0 tests -->
@@ -177,7 +463,205 @@
       <tr><th colspan="4" scope="rowgroup">
         <a href="#s7.7">+</a>
         <a href="https://www.w3.org/TR/css-masking-1/#the-mask-size">7.7 Sizing Mask Images: the mask-size property</a></th></tr>
-      <!-- 0 tests -->
+      <!-- 18 tests -->
+      <tr id="mask-size-auto-7.7" class="primary">
+        <td><strong>
+            <a href="mask-size-auto.xht">mask-size-auto</a></strong></td>
+        <td><a href="reference/mask-size-auto-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-size: mask layer size
+          <ul class="assert">
+            <li>Test checks whether sizing mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-size-auto-auto-7.7" class="primary">
+        <td><strong>
+            <a href="mask-size-auto-auto.xht">mask-size-auto-auto</a></strong></td>
+        <td><a href="reference/mask-size-auto-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-size: mask layer size
+          <ul class="assert">
+            <li>Test checks whether sizing mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-size-auto-length-7.7" class="primary">
+        <td><strong>
+            <a href="mask-size-auto-length.xht">mask-size-auto-length</a></strong></td>
+        <td><a href="reference/mask-size-auto-length-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-size: mask layer size
+          <ul class="assert">
+            <li>Test checks whether sizing mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-size-auto-percent-7.7" class="primary">
+        <td><strong>
+            <a href="mask-size-auto-percent.xht">mask-size-auto-percent</a></strong></td>
+        <td><a href="reference/mask-size-auto-length-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-size: mask layer size
+          <ul class="assert">
+            <li>Test checks whether sizing mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-size-contain-7.7" class="primary">
+        <td><strong>
+            <a href="mask-size-contain.xht">mask-size-contain</a></strong></td>
+        <td><a href="reference/mask-size-contain-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-size: mask layer size
+          <ul class="assert">
+            <li>Test checks whether sizing mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-size-contain-clip-border-7.7" class="primary">
+        <td><strong>
+            <a href="mask-size-contain-clip-border.xht">mask-size-contain-clip-border</a></strong></td>
+        <td><a href="reference/mask-size-contain-clip-border-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-size: mask layer size
+          <ul class="assert">
+            <li>Test checks whether sizing mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-size-contain-clip-padding-7.7" class="primary">
+        <td><strong>
+            <a href="mask-size-contain-clip-padding.xht">mask-size-contain-clip-padding</a></strong></td>
+        <td><a href="reference/mask-size-contain-clip-padding-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-size: mask layer size
+          <ul class="assert">
+            <li>Test checks whether sizing mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-size-contain-position-fifty-fifty-7.7" class="primary">
+        <td><strong>
+            <a href="mask-size-contain-position-fifty-fifty.xht">mask-size-contain-position-fifty-fifty</a></strong></td>
+        <td><a href="reference/mask-size-contain-position-fifty-fifty-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-size: mask layer size
+          <ul class="assert">
+            <li>Test checks whether sizing mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-size-cover-7.7" class="primary">
+        <td><strong>
+            <a href="mask-size-cover.xht">mask-size-cover</a></strong></td>
+        <td><a href="reference/mask-size-cover-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-size: mask layer size
+          <ul class="assert">
+            <li>Test checks whether sizing mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-size-length-7.7" class="primary">
+        <td><strong>
+            <a href="mask-size-length.xht">mask-size-length</a></strong></td>
+        <td><a href="reference/mask-size-length-length-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-size: mask layer size
+          <ul class="assert">
+            <li>Test checks whether sizing mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-size-length-auto-7.7" class="primary">
+        <td><strong>
+            <a href="mask-size-length-auto.xht">mask-size-length-auto</a></strong></td>
+        <td><a href="reference/mask-size-length-length-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-size: mask layer size
+          <ul class="assert">
+            <li>Test checks whether sizing mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-size-length-length-7.7" class="primary">
+        <td><strong>
+            <a href="mask-size-length-length.xht">mask-size-length-length</a></strong></td>
+        <td><a href="reference/mask-size-length-length-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-size: mask layer size
+          <ul class="assert">
+            <li>Test checks whether sizing mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-size-length-percent-7.7" class="primary">
+        <td><strong>
+            <a href="mask-size-length-percent.xht">mask-size-length-percent</a></strong></td>
+        <td><a href="reference/mask-size-length-percent-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-size: mask layer size
+          <ul class="assert">
+            <li>Test checks whether sizing mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-size-percent-7.7" class="primary">
+        <td><strong>
+            <a href="mask-size-percent.xht">mask-size-percent</a></strong></td>
+        <td><a href="reference/mask-size-percent-percent-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-size: mask layer size
+          <ul class="assert">
+            <li>Test checks whether sizing mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-size-percent-auto-7.7" class="primary">
+        <td><strong>
+            <a href="mask-size-percent-auto.xht">mask-size-percent-auto</a></strong></td>
+        <td><a href="reference/mask-size-percent-percent-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-size: mask layer size
+          <ul class="assert">
+            <li>Test checks whether sizing mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-size-percent-length-7.7" class="primary">
+        <td><strong>
+            <a href="mask-size-percent-length.xht">mask-size-percent-length</a></strong></td>
+        <td><a href="reference/mask-size-percent-percent-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-size: mask layer size
+          <ul class="assert">
+            <li>Test checks whether sizing mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-size-percent-percent-7.7" class="primary">
+        <td><strong>
+            <a href="mask-size-percent-percent.xht">mask-size-percent-percent</a></strong></td>
+        <td><a href="reference/mask-size-percent-percent-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-size: mask layer size
+          <ul class="assert">
+            <li>Test checks whether sizing mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
+      <tr id="mask-size-percent-percent-stretch-7.7" class="primary">
+        <td><strong>
+            <a href="mask-size-percent-percent-stretch.xht">mask-size-percent-percent-stretch</a></strong></td>
+        <td><a href="reference/mask-size-percent-percent-stretch-ref.xht">=</a> </td>
+        <td></td>
+        <td>CSS Masking: mask-size: mask layer size
+          <ul class="assert">
+            <li>Test checks whether sizing mask layer works correctly or not.</li>
+          </ul>
+        </td>
+      </tr>
     </tbody>
     <tbody id="s7.7.#propdef-mask-size">
       <!-- 0 tests -->
