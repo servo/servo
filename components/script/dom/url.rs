@@ -42,6 +42,10 @@ impl URL {
                            global, URLBinding::Wrap)
     }
 
+    pub fn query_pairs(&self) -> Vec<(String, String)> {
+        self.url.borrow().query_pairs().into_owned().collect()
+    }
+
     pub fn set_query_pairs(&self, pairs: &[(String, String)]) {
         let mut url = self.url.borrow_mut();
         url.query_pairs_mut().clear().extend_pairs(pairs);
