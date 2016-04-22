@@ -632,6 +632,10 @@ interface WebGLRenderingContextBase
     //void texImage2D(GLenum target, GLint level, GLenum internalformat,
     //                GLsizei width, GLsizei height, GLint border, GLenum format,
     //                GLenum type, ArrayBufferView? pixels);
+    // FIXME: SM interface arguments
+    void texImage2D(GLenum target, GLint level, GLenum internalformat,
+                    GLsizei width, GLsizei height, GLint border, GLenum format,
+                    GLenum type, optional object data);
     void texImage2D(GLenum target, GLint level, GLenum internalformat,
                     GLenum format, GLenum type, TexImageSource? source); // May throw DOMException
 
