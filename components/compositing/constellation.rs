@@ -896,7 +896,6 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     fn handle_init_load(&mut self, url: Url) {
         let window_size = self.window_size.visible_viewport;
         let root_pipeline_id = PipelineId::new();
-        debug_assert!(PipelineId::fake_root_pipeline_id() == root_pipeline_id);
         self.new_pipeline(root_pipeline_id, None, Some(window_size), None, LoadData::new(url.clone()));
         self.handle_load_start_msg(&root_pipeline_id);
         self.push_pending_frame(root_pipeline_id, None);
