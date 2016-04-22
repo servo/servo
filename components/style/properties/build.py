@@ -8,6 +8,7 @@ import sys
 
 BASE = os.path.dirname(__file__)
 sys.path.insert(0, os.path.join(BASE, "Mako-0.9.1.zip"))
+sys.path.insert(0, BASE)  # For importing `data.py`
 
 from mako import exceptions
 from mako.lookup import TemplateLookup
