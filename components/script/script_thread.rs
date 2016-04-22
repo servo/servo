@@ -1524,8 +1524,6 @@ impl ScriptThread {
                                                    Some(incomplete.url.clone()));
 
         let is_html_document = match metadata.content_type {
-            Some(ContentType(Mime(TopLevel::Application, SubLevel::Ext(ref sub_level), _)))
-                if sub_level.ends_with("+xml") => IsHTMLDocument::NonHTMLDocument,
             Some(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _))) |
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) =>
                 IsHTMLDocument::NonHTMLDocument,
