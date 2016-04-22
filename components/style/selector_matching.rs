@@ -42,7 +42,7 @@ lazy_static! {
                 Ok(res) => {
                     let ua_stylesheet = Stylesheet::from_bytes(
                         &res,
-                        Url::parse(&format!("chrome:///{:?}", filename)).unwrap(),
+                        Url::parse(&format!("chrome://resources/{:?}", filename)).unwrap(),
                         None,
                         None,
                         Origin::UserAgent,
@@ -69,7 +69,7 @@ lazy_static! {
             Ok(res) => {
                 Stylesheet::from_bytes(
                     &res,
-                    Url::parse("chrome:///quirks-mode.css").unwrap(),
+                    Url::parse("chrome://resources/quirks-mode.css").unwrap(),
                     None,
                     None,
                     Origin::UserAgent,
