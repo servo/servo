@@ -78,6 +78,7 @@ use dom::touchlist::TouchList;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
 use dom::window::{ReflowReason, Window};
+use dom::webglcontextevent::WebGLContextEvent;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use euclid::point::Point2D;
@@ -2168,6 +2169,8 @@ impl DocumentMethods for Document {
                         &TouchList::new(&self.window, &[]),
                     )
                 )),
+            "webglcontextevent" =>
+                Ok(Root::upcast(WebGLContextEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
             _ =>
                 Err(Error::NotSupported),
         }
