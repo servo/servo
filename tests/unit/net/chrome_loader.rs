@@ -7,40 +7,46 @@ use url::Url;
 
 #[test]
 fn test_relative() {
-    let url = Url::parse("chrome:/../something").unwrap();
+    let url = Url::parse("chrome://resources/../something").unwrap();
     assert!(resolve_chrome_url(&url).is_err());
 }
 
 #[test]
 fn test_relative_2() {
-    let url = Url::parse("chrome:/subdir/../something").unwrap();
+    let url = Url::parse("chrome://resources/subdir/../something").unwrap();
     assert!(resolve_chrome_url(&url).is_err());
 }
 
 #[test]
 #[cfg(not(target_os = "windows"))]
 fn test_absolute() {
-    let url = Url::parse("chrome:/etc/passwd").unwrap();
+    let url = Url::parse("chrome://resources/etc/passwd").unwrap();
     assert!(resolve_chrome_url(&url).is_err());
 }
 
 #[test]
 #[cfg(target_os = "windows")]
 fn test_absolute_2() {
-    let url = Url::parse("chrome:/C:\\Windows").unwrap();
+    let url = Url::parse("chrome://resources/C:\\Windows").unwrap();
     assert!(resolve_chrome_url(&url).is_err());
 }
 
 #[test]
 #[cfg(target_os = "windows")]
 fn test_absolute_3() {
-    let url = Url::parse("chrome:/\\\\server/C$").unwrap();
+    let url = Url::parse("chrome://resources/\\\\server/C$").unwrap();
     assert!(resolve_chrome_url(&url).is_err());
 }
 
 #[test]
 fn test_valid() {
-    let url = Url::parse("chrome:/badcert.jpg").unwrap();
+    let url = Url::parse("chrome://resources/badcert.jpg").unwrap();
     let resolved = resolve_chrome_url(&url).unwrap();
     assert_eq!(resolved.scheme(), "file");
+}
+
+#[test]
+fn test_incorrect_host() {
+    let url = Url::parse("chrome://not-resources/badcert.jpg").unwrap();
+    assert!(resolve_chrome_url(&url).is_err());
 }
