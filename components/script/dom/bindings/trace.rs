@@ -96,6 +96,9 @@ use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 use uuid::Uuid;
 use webrender_traits::WebGLError;
+use style::selector_impl::ServoSelectorImpl;
+use style::stylesheets::CSSRule;
+
 
 /// A trait to allow tracing (only) DOM objects.
 pub trait JSTraceable {

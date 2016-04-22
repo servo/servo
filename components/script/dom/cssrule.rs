@@ -8,7 +8,6 @@ use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::cssstylerule::CSSStyleRule;
 use dom::window::Window;
 use style::selector_impl::ServoSelectorImpl;
 use style::stylesheets;
