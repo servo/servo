@@ -94,6 +94,9 @@ use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 use uuid::Uuid;
 use webrender_traits::WebGLError;
+use style::selector_impl::ServoSelectorImpl;
+use style::stylesheets::CSSRule;
+
 
 /// A trait to allow tracing (only) DOM objects.
 pub trait JSTraceable {
@@ -326,6 +329,11 @@ no_jsmanaged_fields!(HttpsState);
 no_jsmanaged_fields!(SharedRt);
 no_jsmanaged_fields!(TouchpadPressurePhase);
 no_jsmanaged_fields!(ReferrerPolicy);
+no_jsmanaged_fields!(ServoSelectorImpl);
+
+impl JSTraceable for CSSRule<ServoSelectorImpl> {
+    fn trace(&self, _: *mut JSTracer) {}
+}
 
 impl JSTraceable for ConstellationChan<ScriptMsg> {
     #[inline]
