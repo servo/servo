@@ -1860,10 +1860,8 @@ impl NodeMethods for Node {
 
     // https://dom.spec.whatwg.org/#dom-node-rootnode
     fn RootNode(&self) -> Root<Node> {
-        match self.GetParentNode() {
-            Some(parent) => parent.RootNode(),
-            None => Root::from_ref(&self)
-        }
+        let tree_root = self.inclusive_ancestors().last().unwrap();
+        Root::from_ref(&tree_root)
     }
 
     // https://dom.spec.whatwg.org/#dom-node-parentnode
