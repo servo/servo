@@ -51,15 +51,11 @@ details::-servo-details-summary {
 details[open]::-servo-details-summary {
   list-style: disclosure-open;
 }
-details::-servo-details-content {
+*|*::-servo-details-content {
   margin-left: 40px;
   overflow: hidden;
-  display: none;
-}
-details[open]::-servo-details-content {
   display: block;
 }
-
 /*
  * Until servo supports svg properly, make sure to at least prevent svg
  * children from being layed out and rendered like usual html.
