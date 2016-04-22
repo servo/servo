@@ -2156,7 +2156,7 @@ impl DocumentMethods for Document {
                 Ok(Root::upcast(CustomEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
             "htmlevents" | "events" | "event" =>
                 Ok(Event::new_uninitialized(GlobalRef::Window(&self.window))),
-            "keyboardevent" | "keyevents" =>
+            "keyboardevent" =>
                 Ok(Root::upcast(KeyboardEvent::new_uninitialized(&self.window))),
             "messageevent" =>
                 Ok(Root::upcast(MessageEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
