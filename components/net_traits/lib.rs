@@ -13,7 +13,6 @@
 
 #![deny(unsafe_code)]
 
-extern crate device;
 extern crate heapsize;
 extern crate hyper;
 extern crate image as piston_image;
