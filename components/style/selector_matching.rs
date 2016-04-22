@@ -90,7 +90,7 @@ pub struct PrecomputedStyleData<Impl: SelectorImpl, Computed: ComputedValues> {
     /// are eagerly computed once, and then just looked up in the table,
     /// since they only appear in rules of the form *|*::pseudo-element
     pub non_eagerly_cascaded_pseudo_elements: HashMap<Impl::PseudoElement,
-                                                      Computed,
+                                                      Arc<Computed>,
                                                       BuildHasherDefault<::fnv::FnvHasher>>,
 }
 
@@ -277,7 +277,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                                                                 &declarations, false,
                                                                 None, None,
                                                                 box StdoutErrorReporter);
-                precomputed.non_eagerly_cascaded_pseudo_elements.insert(pseudo, computed);
+                precomputed.non_eagerly_cascaded_pseudo_elements.insert(pseudo, Arc::new(computed));
             }
         })
     }
@@ -287,7 +287,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
     }
 
     pub fn get_non_eagerly_cascaded_pseudo_element_style(&self,
-                                                         pseudo: &Impl::PseudoElement) -> Option<Impl::ComputedValues> {
+                                                         pseudo: &Impl::PseudoElement) -> Option<Arc<Impl::ComputedValues>> {
         debug_assert!(!Impl::is_eagerly_cascaded_pseudo_element(pseudo));
         self.precomputed
             .non_eagerly_cascaded_pseudo_elements
