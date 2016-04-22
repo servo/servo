@@ -159,15 +159,14 @@ impl SelectorImpl for ServoSelectorImpl {
 impl SelectorImplExt for ServoSelectorImpl {
     type ComputedValues = ServoComputedValues;
 
-    // TODO: Making details-summary not eagerly cascaded shouldn't be difficult
     #[inline]
     fn is_eagerly_cascaded_pseudo_element(pseudo: &PseudoElement) -> bool {
         match *pseudo {
             PseudoElement::Before |
             PseudoElement::After |
             PseudoElement::Selection |
-            PseudoElement::DetailsContent |
             PseudoElement::DetailsSummary => true,
+            PseudoElement::DetailsContent => false,
         }
     }
 
