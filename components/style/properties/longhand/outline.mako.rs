@@ -9,12 +9,12 @@
 <% data.new_style_struct("Outline",
                          inherited=False,
                          gecko_ffi_name="nsStyleOutline",
-                         additional_methods=[Method("outline_is_none_or_hidden_and_has_nonzero_width", "bool")]) %>
+                         additional_methods=[Method("outline_has_nonzero_width", "bool")]) %>
 
 // TODO(pcwalton): `invert`
 ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::CurrentColor")}
 
-<%helpers:longhand name="outline-style">
+<%helpers:longhand name="outline-style" need_clone="True">
     pub use values::specified::BorderStyle as SpecifiedValue;
     pub fn get_initial_value() -> SpecifiedValue { SpecifiedValue::none }
     pub mod computed_value {

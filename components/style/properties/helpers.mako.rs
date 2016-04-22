@@ -16,8 +16,8 @@
     </%call>
 </%def>
 
-<%def name="predefined_type(name, type, initial_value, parse_method='parse', products='gecko servo')">
-    <%self:longhand name="${name}" products="${products}">
+<%def name="predefined_type(name, type, initial_value, parse_method='parse', **kwargs)">
+    <%call expr="longhand(name, **kwargs)">
         #[allow(unused_imports)]
         use app_units::Au;
         pub type SpecifiedValue = specified::${type};
@@ -29,7 +29,7 @@
                                -> Result<SpecifiedValue, ()> {
             specified::${type}::${parse_method}(input)
         }
-    </%self:longhand>
+    </%call>
 </%def>
 
 <%def name="raw_longhand(*args, **kwargs)">
@@ -170,7 +170,7 @@
             'gecko_constant_prefix', 'extra_gecko_values', 'extra_servo_values'
         ]}
     %>
-    <%call expr="longhand(name, keyword=Keyword(name, values.split(), **keyword_kwargs), **kwargs)">
+    <%call expr="longhand(name, keyword=Keyword(name, values, **keyword_kwargs), **kwargs)">
         pub use self::computed_value::T as SpecifiedValue;
         ${caller.body()}
         pub mod computed_value {

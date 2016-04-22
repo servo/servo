@@ -20,7 +20,7 @@ class Keyword(object):
     def __init__(self, name, values, gecko_constant_prefix=None,
                  extra_gecko_values=None, extra_servo_values=None):
         self.name = name
-        self.values = values
+        self.values = values.split()
         self.gecko_constant_prefix = gecko_constant_prefix or \
             "NS_STYLE_" + self.name.upper().replace("-", "_")
         self.extra_gecko_values = (extra_gecko_values or "").split()
@@ -41,13 +41,13 @@ class Keyword(object):
             raise Exception("Bad product: " + product)
 
     def gecko_constant(self, value):
-        return self.gecko_constant_prefix + "_" + value.upper().replace("-", "_")
+        return self.gecko_constant_prefix + "_" + value.replace("-moz-", "").replace("-", "_").upper()
 
 
 class Longhand(object):
     def __init__(self, style_struct, name, derived_from=None, keyword=None,
                  custom_cascade=False, experimental=False, internal=False,
-                 gecko_ffi_name=None):
+                 need_clone=False, gecko_ffi_name=None):
         self.name = name
         self.keyword = keyword
         self.ident = to_rust_ident(name)
@@ -56,6 +56,7 @@ class Longhand(object):
         self.experimental = ("layout.%s.enabled" % name) if experimental else None
         self.custom_cascade = custom_cascade
         self.internal = internal
+        self.need_clone = need_clone
         self.gecko_ffi_name = gecko_ffi_name or "m" + self.camel_case
         self.derived_from = (derived_from or "").split()
 

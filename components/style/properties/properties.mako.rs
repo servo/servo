@@ -54,15 +54,9 @@ pub mod longhands {
     <%include file="/longhand/padding.mako.rs" />
     <%include file="/longhand/position.mako.rs" />
 
-    <% data.new_style_struct("InheritedBox", inherited=True, gecko_ffi_name="nsStyleVisibility",
-                       additional_methods=[Method("clone_direction",
-                                                  "longhands::direction::computed_value::T"),
-                                           Method("clone_writing_mode",
-                                                  "longhands::writing_mode::computed_value::T"),
-                                           Method("clone_text_orientation",
-                                                  "longhands::text_orientation::computed_value::T")]) %>
+    <% data.new_style_struct("InheritedBox", inherited=True, gecko_ffi_name="nsStyleVisibility") %>
 
-    ${helpers.single_keyword("direction", "ltr rtl")}
+    ${helpers.single_keyword("direction", "ltr rtl", need_clone=True)}
 
     // CSS 2.1, Section 10 - Visual formatting model details
 
@@ -92,10 +86,7 @@ pub mod longhands {
                       "computed::LengthOrPercentageOrNone::None",
                       "parse_non_negative")}
 
-    <% data.new_style_struct("InheritedText", inherited=True, gecko_ffi_name="nsStyleText",
-                       additional_methods=([Method("clone__servo_text_decorations_in_effect",
-                                                  "longhands::_servo_text_decorations_in_effect::computed_value::T")]
-                                           if product == "servo" else [])) %>
+    <% data.new_style_struct("InheritedText", inherited=True, gecko_ffi_name="nsStyleText") %>
 
     <%helpers:longhand name="line-height">
         use cssparser::ToCss;
@@ -286,10 +277,11 @@ pub mod longhands {
                      internal=True)}
 
     // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-    ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", gecko_constant_prefix="NS_STYLE_OVERFLOW")}
+    ${helpers.single_keyword("overflow-x", "visible hidden scroll auto", need_clone=True,
+                             gecko_constant_prefix="NS_STYLE_OVERFLOW")}
 
     // FIXME(pcwalton, #2742): Implement scrolling for `scroll` and `auto`.
-    <%helpers:longhand name="overflow-y">
+    <%helpers:longhand name="overflow-y" need_clone="True">
         use super::overflow_x;
 
         use cssparser::ToCss;
@@ -1076,11 +1068,9 @@ pub mod longhands {
         }
     </%helpers:longhand>
 
-    <% data.new_style_struct("Color", inherited=True, gecko_ffi_name="nsStyleColor",
-                       additional_methods=[Method("clone_color",
-                                                  "longhands::color::computed_value::T")]) %>
+    <% data.new_style_struct("Color", inherited=True, gecko_ffi_name="nsStyleColor") %>
 
-    <%helpers:raw_longhand name="color">
+    <%helpers:raw_longhand name="color" need_clone="True">
         use cssparser::Color as CSSParserColor;
         use cssparser::RGBA;
         use values::specified::{CSSColor, CSSRGBA};
@@ -1119,12 +1109,7 @@ pub mod longhands {
     // CSS 2.1, Section 15 - Fonts
 
     <% data.new_style_struct("Font", inherited=True, gecko_ffi_name="nsStyleFont",
-                       additional_methods=[Method("clone_font_size",
-                                                  "longhands::font_size::computed_value::T"),
-                                           Method("clone_font_weight",
-                                                  "longhands::font_weight::computed_value::T"),
-                                           Method("compute_font_hash", is_mut=True)]) %>
-
+                       additional_methods=[Method("compute_font_hash", is_mut=True)]) %>
     <%helpers:longhand name="font-family">
         use self::computed_value::FontFamily;
         use values::computed::ComputedValueAsSpecified;
@@ -1238,7 +1223,7 @@ pub mod longhands {
     ${helpers.single_keyword("font-style", "normal italic oblique")}
     ${helpers.single_keyword("font-variant", "normal small-caps")}
 
-    <%helpers:longhand name="font-weight">
+    <%helpers:longhand name="font-weight" need_clone="True">
         use cssparser::ToCss;
         use std::fmt;
 
@@ -1356,7 +1341,7 @@ pub mod longhands {
         }
     </%helpers:longhand>
 
-    <%helpers:longhand name="font-size">
+    <%helpers:longhand name="font-size" need_clone="True">
         use app_units::Au;
         use cssparser::ToCss;
         use std::fmt;
@@ -1724,7 +1709,7 @@ pub mod longhands {
     <% data.switch_to_style_struct("InheritedText") %>
 
     <%helpers:longhand name="-servo-text-decorations-in-effect"
-                    derived_from="display text-decoration" products="servo">
+                    derived_from="display text-decoration" need_clone="True" products="servo">
         use cssparser::{RGBA, ToCss};
         use std::fmt;
 
@@ -1970,11 +1955,16 @@ pub mod longhands {
     // http://dev.w3.org/csswg/css-writing-modes/
     <% data.switch_to_style_struct("InheritedBox") %>
 
-    ${helpers.single_keyword("writing-mode", "horizontal-tb vertical-rl vertical-lr", experimental=True)}
+    ${helpers.single_keyword("writing-mode", "horizontal-tb vertical-rl vertical-lr",
+                             experimental=True, need_clone=True)}
 
     // FIXME(SimonSapin): Add 'mixed' and 'upright' (needs vertical text support)
     // FIXME(SimonSapin): initial (first) value should be 'mixed', when that's implemented
-    ${helpers.single_keyword("text-orientation", "sideways sideways-left sideways-right", experimental=True)}
+    // FIXME(bholley): sideways-right is needed as an alias to sideways in gecko.
+    ${helpers.single_keyword("text-orientation", "sideways",
+                             experimental=True, need_clone=True,
+                             extra_gecko_values="mixed upright",
+                             extra_servo_values="sideways-right sideways-left")}
 
     // CSS Color Module Level 4
     // https://drafts.csswg.org/css-color/
@@ -5678,6 +5668,10 @@ pub mod style_struct_traits {
                 fn set_${longhand.ident}(&mut self, v: longhands::${longhand.ident}::computed_value::T);
                 #[allow(non_snake_case)]
                 fn copy_${longhand.ident}_from(&mut self, other: &Self);
+                % if longhand.need_clone:
+                    #[allow(non_snake_case)]
+                    fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T;
+                % endif
             % endfor
             % for additional in style_struct.additional_methods:
                 #[allow(non_snake_case)]
@@ -5729,8 +5723,10 @@ pub mod style_structs {
             % endfor
             % if style_struct.trait_name == "Border":
                 % for side in ["top", "right", "bottom", "left"]:
-                fn border_${side}_is_none_or_hidden_and_has_nonzero_width(&self) -> bool {
-                    self.border_${side}_style.none_or_hidden() &&
+                fn clone_border_${side}_style(&self) -> longhands::border_${side}_style::computed_value::T {
+                    self.border_${side}_style.clone()
+                }
+                fn border_${side}_has_nonzero_width(&self) -> bool {
                     self.border_${side}_width != ::app_units::Au(0)
                 }
                 % endfor
@@ -5741,14 +5737,14 @@ pub mod style_structs {
                 fn clone_position(&self) -> longhands::position::computed_value::T {
                     self.position.clone()
                 }
-                fn is_floated(&self) -> bool {
-                    self.float != longhands::float::SpecifiedValue::none
+                fn clone_float(&self) -> longhands::float::computed_value::T {
+                    self.float.clone()
                 }
-                fn overflow_x_is_visible(&self) -> bool {
-                    self.overflow_x == longhands::overflow_x::computed_value::T::visible
+                fn clone_overflow_x(&self) -> longhands::overflow_x::computed_value::T {
+                    self.overflow_x.clone()
                 }
-                fn overflow_y_is_visible(&self) -> bool {
-                    self.overflow_y.0 == longhands::overflow_x::computed_value::T::visible
+                fn clone_overflow_y(&self) -> longhands::overflow_y::computed_value::T {
+                    self.overflow_y.clone()
                 }
                 fn transition_count(&self) -> usize {
                     self.transition_property.0.len()
@@ -5788,8 +5784,11 @@ pub mod style_structs {
                     self._servo_text_decorations_in_effect.clone()
                 }
             % elif style_struct.trait_name == "Outline":
-                fn outline_is_none_or_hidden_and_has_nonzero_width(&self) -> bool {
-                    self.outline_style.none_or_hidden() && self.outline_width != ::app_units::Au(0)
+                fn clone_outline_style(&self) -> longhands::outline_style::computed_value::T {
+                    self.outline_style.clone()
+                }
+                fn outline_has_nonzero_width(&self) -> bool {
+                    self.outline_width != ::app_units::Au(0)
                 }
             % elif style_struct.trait_name == "Text":
                 fn has_underline(&self) -> bool {
@@ -6131,10 +6130,17 @@ pub fn get_writing_mode<S: style_struct_traits::InheritedBox>(inheritedbox_style
         },
     }
     match inheritedbox_style.clone_text_orientation() {
+    % if product == "servo":
         computed_values::text_orientation::T::sideways_right => {},
         computed_values::text_orientation::T::sideways_left => {
             flags.insert(logical_geometry::FLAG_VERTICAL_LR);
         },
+    % elif product == "gecko":
+        // FIXME(bholley): Need to make sure these are correct when we add
+        // full writing-mode support.
+        computed_values::text_orientation::T::mixed => {},
+        computed_values::text_orientation::T::upright => {},
+    % endif
         computed_values::text_orientation::T::sideways => {
             if flags.intersects(logical_geometry::FLAG_VERTICAL_LR) {
                 flags.insert(logical_geometry::FLAG_SIDEWAYS_LEFT);
@@ -6448,7 +6454,7 @@ pub fn cascade<C: ComputedValues>(
     let positioned = matches!(style.get_box().clone_position(),
         longhands::position::SpecifiedValue::absolute |
         longhands::position::SpecifiedValue::fixed);
-    let floated = style.get_box().is_floated();
+    let floated = style.get_box().clone_float() != longhands::float::SpecifiedValue::none;
     if positioned || floated || is_root_element {
         use computed_values::display::T;
 
@@ -6482,7 +6488,8 @@ pub fn cascade<C: ComputedValues>(
     {
         use computed_values::overflow_x::T as overflow;
         use computed_values::overflow_y;
-        match (style.get_box().overflow_x_is_visible(), style.get_box().overflow_y_is_visible()) {
+        match (style.get_box().clone_overflow_x() == longhands::overflow_x::computed_value::T::visible,
+               style.get_box().clone_overflow_y().0 == longhands::overflow_x::computed_value::T::visible) {
             (true, true) => {}
             (true, _) => {
                 style.mutate_box().set_overflow_x(overflow::auto);
@@ -6497,13 +6504,15 @@ pub fn cascade<C: ComputedValues>(
     // The initial value of border-*-width may be changed at computed value time.
     % for side in ["top", "right", "bottom", "left"]:
         // Like calling to_computed_value, which wouldn't type check.
-        if style.get_border().border_${side}_is_none_or_hidden_and_has_nonzero_width() {
+        if style.get_border().clone_border_${side}_style().none_or_hidden() &&
+           style.get_border().border_${side}_has_nonzero_width() {
             style.mutate_border().set_border_${side}_width(Au(0));
         }
     % endfor
 
     // The initial value of outline width may be changed at computed value time.
-    if style.get_outline().outline_is_none_or_hidden_and_has_nonzero_width() {
+    if style.get_outline().clone_outline_style().none_or_hidden() &&
+       style.get_outline().outline_has_nonzero_width() {
         style.mutate_outline().set_outline_width(Au(0));
     }
 

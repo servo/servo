@@ -7,7 +7,7 @@
 <% from data import Method %>
 
 <% data.new_style_struct("Border", inherited=False, gecko_ffi_name="nsStyleBorder",
-                   additional_methods=[Method("border_" + side + "_is_none_or_hidden_and_has_nonzero_width",
+                   additional_methods=[Method("border_" + side + "_has_nonzero_width",
                                               "bool") for side in ["top", "right", "bottom", "left"]]) %>
 
 % for side in ["top", "right", "bottom", "left"]:
@@ -15,7 +15,7 @@
 % endfor
 
 % for side in ["top", "right", "bottom", "left"]:
-    ${helpers.predefined_type("border-%s-style" % side, "BorderStyle", "specified::BorderStyle::none")}
+    ${helpers.predefined_type("border-%s-style" % side, "BorderStyle", "specified::BorderStyle::none", need_clone=True)}
 % endfor
 
 % for side in ["top", "right", "bottom", "left"]:
