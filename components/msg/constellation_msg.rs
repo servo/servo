@@ -320,18 +320,6 @@ impl PipelineId {
         })
     }
 
-    // TODO(gw): This should be removed. It's only required because of the code
-    // that uses it in the devtools lib.rs file (which itself is a TODO). Once
-    // that is fixed, this should be removed. It also relies on the first
-    // call to PipelineId::new() returning (0,0), which is checked with an
-    // assert in handle_init_load().
-    pub fn fake_root_pipeline_id() -> PipelineId {
-        PipelineId {
-            namespace_id: PipelineNamespaceId(0),
-            index: PipelineIndex(0),
-        }
-    }
-
     pub fn to_webrender(&self) -> webrender_traits::PipelineId {
         let PipelineNamespaceId(namespace_id) = self.namespace_id;
         let PipelineIndex(index) = self.index;
