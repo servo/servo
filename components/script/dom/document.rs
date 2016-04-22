@@ -1814,18 +1814,18 @@ impl Document {
         }
     }
 
-    /*pub fn generate_css_style_sheet(&self, index: u32) -> Root<CSSStyleSheet> {
+    /*pub fn get_nth_cssstylesheet(&self, index: u32) -> Root<CSSStyleSheet> {
 
-        //let mut stylesheets = self.stylesheets.borrow_mut();
-        /*stylesheets.unwrap()*/
-        //let (ref mut node, ref mut sheet) = 
+        let mut stylesheets = self.stylesheets.borrow_mut();
+        //stylesheets.unwrap()
+        let (ref mut node, ref mut sheet) = 
         self.stylesheets.borrow().as_ref().unwrap().iter()
                         .map(|&(_, ref stylesheet)| stylesheet.clone())
                         .collect()
 
         //let sheet = (self.stylesheets.borrow().as_ref().unwrap()[index]).1.clone();
         let (ref mut node, ref mut sheet) = (*self.stylesheets.borrow()).unwrap()[index as usize];
-        CSSStyleSheet::new(&self.window, *sheet)
+        CSSStyleSheet::new(&self.window, *sheet, ? )
     }*/
 }
 
