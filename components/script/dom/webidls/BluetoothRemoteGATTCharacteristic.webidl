@@ -10,9 +10,9 @@ interface BluetoothRemoteGATTCharacteristic {
   readonly attribute BluetoothCharacteristicProperties properties;
   readonly attribute ByteString? value;
   [Throws]
-  BluetoothRemoteGATTDescriptor getDescriptor((DOMString or unsigned long) descriptor);
+  BluetoothRemoteGATTDescriptor getDescriptor(BluetoothDescriptorUUID descriptor);
   [Throws]
-  sequence<BluetoothRemoteGATTDescriptor> getDescriptors(optional (DOMString or unsigned long) descriptor);
+  sequence<BluetoothRemoteGATTDescriptor> getDescriptors(optional BluetoothDescriptorUUID descriptor);
   //Promise<BluetoothRemoteGATTDescriptor> getDescriptor(BluetoothDescriptorUUID descriptor);
   //Promise<sequence<BluetoothRemoteGATTDescriptor>>
   //getDescriptors(optional BluetoothDescriptorUUID descriptor);

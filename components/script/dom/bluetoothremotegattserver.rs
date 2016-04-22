@@ -5,7 +5,6 @@
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
-use dom::bindings::codegen::UnionTypes::StringOrUnsignedLong;
 use dom::bindings::error::Error::Type;
 use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::global::GlobalRef;
@@ -13,7 +12,7 @@ use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
-use dom::bluetoothuuid::BluetoothUUID;
+use dom::bluetoothuuid::{BluetoothServiceUUID, BluetoothUUID};
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::bluetooth_thread::{BluetoothMethodMsg, BluetoothObjectMsg};
 use std::cell::Cell;
@@ -106,7 +105,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservice
-    fn GetPrimaryService(&self, service: StringOrUnsignedLong) -> Fallible<Root<BluetoothRemoteGATTService>> {
+    fn GetPrimaryService(&self, service: BluetoothServiceUUID) -> Fallible<Root<BluetoothRemoteGATTService>> {
         let uuid: String = match BluetoothUUID::GetService(self.global().r(), service.clone()) {
             Ok(domstring) => domstring.to_string(),
             Err(error) => return Err(error),
@@ -138,7 +137,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservices
     fn GetPrimaryServices(&self,
-                          service: Option<StringOrUnsignedLong>)
+                          service: Option<BluetoothServiceUUID>)
                           -> Fallible<Vec<Root<BluetoothRemoteGATTService>>> {
         let mut uuid: Option<String> = None;
         if let Some(s)= service {
