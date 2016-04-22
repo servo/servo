@@ -35214,7 +35214,16 @@
   "local_changes": {
     "deleted": [],
     "deleted_reftests": {},
-    "items": {},
+    "items": {
+      "testharness": {
+        "dom/nodes/Element-hasAttributes.html": [
+          {
+            "path": "dom/nodes/Element-hasAttributes.html",
+            "url": "/dom/nodes/Element-hasAttributes.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
