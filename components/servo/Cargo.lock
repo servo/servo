@@ -163,22 +163,17 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "bitflags"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
 name = "block"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "blurz"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "dbus 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -433,8 +428,8 @@ name = "dbus"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "libc 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "pkg-config 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pkg-config 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -456,9 +451,9 @@ dependencies = [
 [[package]]
 name = "device"
 version = "0.0.1"
-source = "git+https://github.com/dati91/devices?branch=device-api#dccc5111e46124cef596cef10ce9056362892e59"
+source = "git+https://github.com/servo/devices#eeac5abfd548b63dcc48873261609922351551e1"
 dependencies = [
- "blurz 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "blurz 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1335,7 +1330,7 @@ dependencies = [
  "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "brotli 0.3.20 (git+https://github.com/ende76/brotli-rs)",
  "cookie 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "device 0.0.1 (git+https://github.com/dati91/devices?branch=device-api)",
+ "device 0.0.1 (git+https://github.com/servo/devices)",
  "devtools_traits 0.0.1",
  "flate2 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1396,7 +1391,6 @@ dependencies = [
 name = "net_traits"
 version = "0.0.1"
 dependencies = [
- "device 0.0.1 (git+https://github.com/dati91/devices?branch=device-api)",
  "heapsize 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
