@@ -14,8 +14,10 @@ pub struct PrivateStyleData<Impl: SelectorImpl, ConcreteComputedValues: Computed
     /// The results of CSS styling for this node.
     pub style: Option<Arc<ConcreteComputedValues>>,
 
-    /// Precomputed data needed to avoid doing the cascade for some
+    /// Shared rules data needed to avoid doing the cascade for some
     /// pseudo-elements like "-servo-details-content"
+    ///
+    /// TODO: Move to TLS to avoid this extra pointer?
     pub precomputed: Arc<PrecomputedStyleData<Impl, ConcreteComputedValues>>,
 
     /// The results of CSS styling for each pseudo-element (if any).
