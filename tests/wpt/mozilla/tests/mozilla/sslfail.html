@@ -8,10 +8,10 @@
     <body>
         <script>
 var iframe = document.createElement('iframe');
-document.body.appendChild(iframe);
 iframe.src = location.href
                      .replace(HTTP_ORIGIN, HTTPS_ORIGIN)
                      .replace('sslfail.html', 'resources/ssl.https.html');
+document.body.appendChild(iframe);
         </script>
     </body>
 </html>
