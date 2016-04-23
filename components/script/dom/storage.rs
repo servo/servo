@@ -129,7 +129,11 @@ impl StorageMethods for Storage {
         let (sender, receiver) = ipc::channel().unwrap();
 
         self.get_storage_thread().send(StorageThreadMsg::Keys(sender, self.get_url(), self.storage_type)).unwrap();
-        receiver.recv().unwrap().iter().cloned().map(DOMString::from).collect() // FIXME: inefficient?
+        receiver.recv()
+                .unwrap()
+                .into_iter()
+                .map(DOMString::from)
+                .collect()
     }
 
     // check-tidy: no specs after this line
