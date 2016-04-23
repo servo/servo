@@ -56,6 +56,19 @@ pub enum PseudoElement {
     DetailsContent,
 }
 
+impl PseudoElement {
+    #[inline]
+    pub fn is_eagerly_cascaded(&self) -> bool {
+        match *self {
+            PseudoElement::Before |
+            PseudoElement::After |
+            PseudoElement::Selection |
+            PseudoElement::DetailsSummary => true,
+            PseudoElement::DetailsContent => false,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
 pub enum NonTSPseudoClass {
     AnyLink,
@@ -161,13 +174,7 @@ impl SelectorImplExt for ServoSelectorImpl {
 
     #[inline]
     fn is_eagerly_cascaded_pseudo_element(pseudo: &PseudoElement) -> bool {
-        match *pseudo {
-            PseudoElement::Before |
-            PseudoElement::After |
-            PseudoElement::Selection |
-            PseudoElement::DetailsSummary => true,
-            PseudoElement::DetailsContent => false,
-        }
+        pseudo.is_eagerly_cascaded()
     }
 
     #[inline]
