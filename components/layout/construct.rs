@@ -619,18 +619,20 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
         // List of absolute descendants, in tree order.
         let mut abs_descendants = AbsoluteDescendants::new();
-        for kid in node.children() {
-            if kid.get_pseudo_element_type() != PseudoElementType::Normal {
-                self.process(&kid);
-            }
+        if !node.is_replaced_content() {
+            for kid in node.children() {
+                if kid.get_pseudo_element_type() != PseudoElementType::Normal {
+                    self.process(&kid);
+                }
 
-            self.build_block_flow_using_construction_result_of_child(
-                &mut flow,
-                &mut consecutive_siblings,
-                node,
-                kid,
-                &mut inline_fragment_accumulator,
-                &mut abs_descendants);
+                self.build_block_flow_using_construction_result_of_child(
+                    &mut flow,
+                    &mut consecutive_siblings,
+                    node,
+                    kid,
+                    &mut inline_fragment_accumulator,
+                    &mut abs_descendants);
+            }
         }
 
         // Perform a final flush of any inline fragments that we were gathering up to handle {ib}
@@ -683,7 +685,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                        HTMLElementTypeId::HTMLInputElement))) ||
            node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                        HTMLElementTypeId::HTMLTextAreaElement)));
-        if node.get_pseudo_element_type().is_before_or_after() ||
+        if node.get_pseudo_element_type().is_replaced_content() ||
                 node_is_input_or_text_area {
             // A TextArea's text contents are displayed through the input text
             // box, so don't construct them.
@@ -1659,7 +1661,6 @@ impl<ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNode
                                              where ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode {
     fn is_replaced_content(&self) -> bool {
         match self.type_id() {
-            None |
             Some(NodeTypeId::CharacterData(_)) |
             Some(NodeTypeId::DocumentType) |
             Some(NodeTypeId::DocumentFragment) |
@@ -1673,6 +1674,7 @@ impl<ConcreteThreadSafeLayoutNode> NodeUtils for ConcreteThreadSafeLayoutNode
             Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
                         HTMLElementTypeId::HTMLObjectElement))) => self.has_object_data(),
             Some(NodeTypeId::Element(_)) => false,
+            None => self.get_pseudo_element_type().is_replaced_content(),
         }
     }
 
