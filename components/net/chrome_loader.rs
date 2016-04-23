@@ -6,27 +6,33 @@ use file_loader;
 use mime_classifier::MIMEClassifier;
 use net_traits::{LoadConsumer, LoadData, NetworkError};
 use resource_thread::{CancellationListener, send_error};
-use std::path::Path;
+use std::fs::canonicalize;
 use std::sync::Arc;
 use url::Url;
+use url::percent_encoding::percent_decode;
 use util::resource_files::resources_dir_path;
 
 pub fn resolve_chrome_url(url: &Url) -> Result<Url, ()> {
-    assert_eq!(url.scheme, "chrome");
-    // Skip the initial //
-    let non_relative_scheme_data = &url.non_relative_scheme_data().unwrap()[2..];
-    let relative_path = Path::new(non_relative_scheme_data);
-    // Don't allow chrome URLs access to files outside of the resources directory.
-    if non_relative_scheme_data.find("..").is_some() ||
-       relative_path.is_absolute() ||
-       relative_path.has_root() {
-        return Err(());
+    assert_eq!(url.scheme(), "chrome");
+    if url.host_str() != Some("resources") {
+        return Err(())
     }
-
-    let mut path = resources_dir_path();
-    path.push(non_relative_scheme_data);
-    assert!(path.exists());
-    return Ok(Url::from_file_path(&*path).unwrap());
+    let resources = canonicalize(resources_dir_path())
+        .expect("Error canonicalizing path to the resources directory");
+    let mut path = resources.clone();
+    for segment in url.path_segments().unwrap() {
+        match percent_decode(segment.as_bytes()).decode_utf8() {
+            // Check ".." to prevent access to files outside of the resources directory.
+            Ok(segment) => path.push(&*segment),
+            _ => return Err(())
+        }
+    }
+    match canonicalize(path) {
+        Ok(ref path) if path.starts_with(&resources) && path.exists() => {
+            Ok(Url::from_file_path(path).unwrap())
+        }
+        _ => Err(())
+    }
 }
 
 pub fn factory(mut load_data: LoadData,

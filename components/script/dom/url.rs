@@ -13,7 +13,7 @@ use dom::urlhelper::UrlHelper;
 use dom::urlsearchparams::URLSearchParams;
 use std::borrow::ToOwned;
 use std::default::Default;
-use url::{Host, Url, UrlParser};
+use url::{Host, Url};
 use util::str::DOMString;
 
 // https://url.spec.whatwg.org/#url
@@ -42,8 +42,13 @@ impl URL {
                            global, URLBinding::Wrap)
     }
 
-    pub fn set_query(&self, query: String) {
-        self.url.borrow_mut().query = Some(query);
+    pub fn query_pairs(&self) -> Vec<(String, String)> {
+        self.url.borrow().query_pairs().into_owned().collect()
+    }
+
+    pub fn set_query_pairs(&self, pairs: &[(String, String)]) {
+        let mut url = self.url.borrow_mut();
+        url.query_pairs_mut().clear().extend_pairs(pairs);
     }
 }
 
@@ -68,17 +73,11 @@ impl URL {
                 }
         };
         // Step 3.
-        let parsed_url = {
-            let mut parser = UrlParser::new();
-            if let Some(parsed_base) = parsed_base.as_ref() {
-                parser.base_url(parsed_base);
-            }
-            match parser.parse(&url.0) {
-                Ok(url) => url,
-                Err(error) => {
-                    // Step 4.
-                    return Err(Error::Type(format!("could not parse URL: {}", error)));
-                }
+        let parsed_url = match Url::options().base_url(parsed_base.as_ref()).parse(&url.0) {
+            Ok(url) => url,
+            Err(error) => {
+                // Step 4.
+                return Err(Error::Type(format!("could not parse URL: {}", error)));
             }
         };
         // Step 5: Skip (see step 8 below).
@@ -145,6 +144,7 @@ impl URLMethods for URL {
         match Url::parse(&value.0) {
             Ok(url) => {
                 *self.url.borrow_mut() = url;
+                self.search_params.set(None);  // To be re-initialized in the SearchParams getter.
                 Ok(())
             },
             Err(error) => {
@@ -207,7 +207,7 @@ impl URLMethods for URL {
     fn SetSearch(&self, value: USVString) {
         UrlHelper::SetSearch(&mut self.url.borrow_mut(), value);
         if let Some(search_params) = self.search_params.get() {
-            search_params.set_list(self.url.borrow().query_pairs().unwrap_or_else(|| vec![]));
+            search_params.set_list(self.url.borrow().query_pairs().into_owned().collect());
         }
     }
 

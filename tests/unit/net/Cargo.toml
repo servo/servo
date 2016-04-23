@@ -31,8 +31,8 @@ git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
 cookie = "0.2"
-hyper = "0.8"
-url = {version = "0.5.7", features = ["heap_size"]}
+hyper = "0.9"
+url = {version = "1.0.0", features = ["heap_size"]}
 time = "0.1"
 flate2 = "0.2.0"
 unicase = "1.0"

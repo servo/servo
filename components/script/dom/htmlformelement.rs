@@ -44,7 +44,7 @@ use std::cell::Cell;
 use std::sync::mpsc::Sender;
 use string_cache::Atom;
 use task_source::dom_manipulation::DOMManipulationTask;
-use url::form_urlencoded::serialize;
+use url::form_urlencoded;
 use util::str::DOMString;
 
 #[derive(JSTraceable, PartialEq, Clone, Copy, HeapSizeOf)]
@@ -269,7 +269,7 @@ impl HTMLFormElement {
         let mut action = submitter.action();
         // Step 8
         if action.is_empty() {
-            action = DOMString::from(base.serialize());
+            action = DOMString::from(base.as_str());
         }
         // Step 9-11
         let action_components = match base.join(&action) {
@@ -277,8 +277,7 @@ impl HTMLFormElement {
             Err(_) => return
         };
         // Step 12-15
-        let _action = action_components.serialize();
-        let scheme = action_components.scheme.clone();
+        let scheme = action_components.scheme().to_owned();
         let enctype = submitter.enctype();
         let method = submitter.method();
         let _target = submitter.target();
@@ -290,7 +289,9 @@ impl HTMLFormElement {
             FormEncType::UrlEncoded => {
                 let mime: mime::Mime = "application/x-www-form-urlencoded".parse().unwrap();
                 load_data.headers.set(ContentType(mime));
-                serialize(form_data.iter().map(|d| (&*d.name, &*d.value)))
+                form_urlencoded::Serializer::new(String::new())
+                    .extend_pairs(form_data.into_iter().map(|field| (field.name, field.value)))
+                    .finish()
             }
             _ => "".to_owned() // TODO: Add serializers for the other encoding types
         };
@@ -302,7 +303,8 @@ impl HTMLFormElement {
             (_, FormMethod::FormDialog) => return, // Unimplemented
             // https://html.spec.whatwg.org/multipage/#submit-mutate-action
             ("http", FormMethod::FormGet) | ("https", FormMethod::FormGet) => {
-                load_data.url.query = Some(parsed_data);
+                // FIXME(SimonSapin): use url.query_pairs_mut() here.
+                load_data.url.set_query(Some(&*parsed_data));
                 self.plan_to_navigate(load_data, &win);
             }
             // https://html.spec.whatwg.org/multipage/#submit-body

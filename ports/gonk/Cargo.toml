@@ -49,7 +49,7 @@ features = ["non-geckolib"]
 
 [dependencies]
 env_logger = "0.3"
-url = {version = "0.5.7", features = ["heap_size"]}
+url = {version = "1.0.0", features = ["heap_size"]}
 time = "0.1.17"
 errno = "0.1"
 libc = "0.2"

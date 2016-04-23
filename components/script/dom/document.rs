@@ -515,7 +515,7 @@ impl Document {
             self.GetDocumentElement()
         } else {
             // Step 3 & 4
-            String::from_utf8(percent_decode(fragid.as_bytes())).ok()
+            percent_decode(fragid.as_bytes()).decode_utf8().ok()
                 // Step 5
                 .and_then(|decoded_fragid| self.get_element_by_id(&Atom::from(decoded_fragid)))
                 // Step 6
@@ -1585,7 +1585,7 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
 
 /// https://url.spec.whatwg.org/#network-scheme
 fn url_has_network_scheme(url: &Url) -> bool {
-    match &*url.scheme {
+    match url.scheme() {
         "ftp" | "http" | "https" => true,
         _ => false,
     }
@@ -1844,7 +1844,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-url
     fn URL(&self) -> DOMString {
-        DOMString::from(self.url().serialize())
+        DOMString::from(self.url().as_str())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-activeelement
@@ -1886,7 +1886,7 @@ impl DocumentMethods for Document {
 
         if let Some(host) = self.origin.host() {
             // Step 4.
-            DOMString::from(host.serialize())
+            DOMString::from(host.to_string())
         } else {
             // Step 3.
             DOMString::new()
