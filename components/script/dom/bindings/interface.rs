@@ -114,7 +114,7 @@ unsafe impl Sync for NonCallbackInterfaceObjectClass {}
 
 impl NonCallbackInterfaceObjectClass {
     /// Create a new `NonCallbackInterfaceObjectClass` structure.
-    pub const fn new(
+    pub const unsafe fn new(
             constructor: ConstructorClassHook,
             string_rep: &'static [u8],
             proto_id: PrototypeList::ID,
