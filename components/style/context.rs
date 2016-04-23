@@ -65,4 +65,3 @@ pub enum ReflowGoal {
     /// We're reflowing in order to satisfy a script query. No display list will be created.
     ForScriptQuery,
 }
-
