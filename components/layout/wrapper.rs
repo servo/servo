@@ -646,6 +646,16 @@ impl<T> PseudoElementType<T> {
             PseudoElementType::DetailsContent(_) => PseudoElementType::DetailsContent(()),
         }
     }
+
+    pub fn style_pseudo_element(&self) -> PseudoElement {
+        match *self {
+            PseudoElementType::Normal => unreachable!("style_pseudo_element called with PseudoElementType::Normal"),
+            PseudoElementType::Before(_) => PseudoElement::Before,
+            PseudoElementType::After(_) => PseudoElement::After,
+            PseudoElementType::DetailsSummary(_) => PseudoElement::DetailsSummary,
+            PseudoElementType::DetailsContent(_) => PseudoElement::DetailsContent,
+        }
+    }
 }
 
 /// A thread-safe version of `LayoutNode`, used during flow construction. This type of layout
@@ -764,37 +774,31 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
     /// Unlike the version on TNode, this handles pseudo-elements.
     #[inline]
     fn style(&self) -> Ref<Arc<ServoComputedValues>> {
-        // Precompute anonymous-box pseudo-element style if not cached.
         match self.get_pseudo_element_type() {
-            PseudoElementType::DetailsContent(_) => {
-                if self.borrow_layout_data().unwrap()
-                       .style_data.per_pseudo.get(&PseudoElement::DetailsContent).is_none() {
+            PseudoElementType::Normal => {
+                Ref::map(self.borrow_layout_data().unwrap(), |data| {
+                    data.style_data.style.as_ref().unwrap()
+                })
+            },
+            other => {
+                // Precompute non-eagerly-cascaded pseudo-element styles if not
+                // cached before.
+                let style_pseudo = other.style_pseudo_element();
+                if !style_pseudo.is_eagerly_cascaded() &&
+                   !self.borrow_layout_data().unwrap().style_data.per_pseudo.contains_key(&style_pseudo) {
                     let mut data = self.mutate_layout_data().unwrap();
                     let new_style = data.style_data
                                         .precomputed
-                                        .computed_values_for(&PseudoElement::DetailsContent,
+                                        .computed_values_for(&style_pseudo,
                                                              data.style_data.style.as_ref());
-                    data.style_data.per_pseudo.insert(PseudoElement::DetailsContent, new_style.unwrap());
+                    data.style_data.per_pseudo.insert(style_pseudo.clone(), new_style.unwrap());
                 }
-            }
-            _ => {},
-        };
 
-        Ref::map(self.borrow_layout_data().unwrap(), |data| {
-            let style = match self.get_pseudo_element_type() {
-                PseudoElementType::Before(_)
-                    => data.style_data.per_pseudo.get(&PseudoElement::Before),
-                PseudoElementType::After(_)
-                    => data.style_data.per_pseudo.get(&PseudoElement::After),
-                PseudoElementType::DetailsSummary(_)
-                    => data.style_data.per_pseudo.get(&PseudoElement::DetailsSummary),
-                PseudoElementType::DetailsContent(_)
-                    => data.style_data.per_pseudo.get(&PseudoElement::DetailsContent),
-                PseudoElementType::Normal
-                    => data.style_data.style.as_ref(),
-            };
-            style.unwrap()
-        })
+                Ref::map(self.borrow_layout_data().unwrap(), |data| {
+                    data.style_data.per_pseudo.get(&style_pseudo).unwrap()
+                })
+            }
+        }
     }
 
     #[inline]
@@ -813,20 +817,11 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
         let mut data = self.mutate_layout_data().unwrap();
 
         match self.get_pseudo_element_type() {
-            PseudoElementType::Before(_) => {
-                data.style_data.per_pseudo.remove(&PseudoElement::Before);
-            }
-            PseudoElementType::After(_) => {
-                data.style_data.per_pseudo.remove(&PseudoElement::After);
-            }
-            PseudoElementType::DetailsSummary(_) => {
-                data.style_data.per_pseudo.remove(&PseudoElement::DetailsSummary);
-            }
-            PseudoElementType::DetailsContent(_) => {
-                data.style_data.per_pseudo.remove(&PseudoElement::DetailsContent);
-            }
             PseudoElementType::Normal => {
                 data.style_data.style = None;
+            }
+            other => {
+                data.style_data.per_pseudo.remove(&other.style_pseudo_element());
             }
         };
     }
