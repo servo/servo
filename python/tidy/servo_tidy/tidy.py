@@ -133,6 +133,14 @@ def check_license(file_name, lines):
         yield (1, "incorrect license")
 
 
+def check_modeline(file_name, lines):
+    for idx, line in enumerate(lines[:5]):
+        if re.search('^.*[ \t](vi:|vim:|ex:)[ \t]', line):
+            yield (idx + 1, "vi modeline present")
+        elif re.search('-\*-.*-\*-', line, re.IGNORECASE):
+            yield (idx + 1, "emacs file variables present")
+
+
 def check_length(file_name, idx, line):
     if file_name.endswith(".lock") or file_name.endswith(".json"):
         raise StopIteration
@@ -639,7 +647,7 @@ def scan(faster=False, progress=True):
     # standard checks
     files_to_check = filter_files('.', faster, progress)
     checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
-    line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec)
+    line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec, check_modeline)
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
     # wpt lint checks
     wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(faster, progress))

@@ -89,6 +89,14 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('found asterisk instead of minimum version number', errors.next()[2])
         self.assertNoMoreErrors(errors)
 
+    def test_modeline(self):
+        errors = tidy.collect_errors_for_files(iterFile('modeline.txt'), [], [tidy.check_modeline])
+        self.assertEqual('vi modeline present', errors.next()[2])
+        self.assertEqual('vi modeline present', errors.next()[2])
+        self.assertEqual('vi modeline present', errors.next()[2])
+        self.assertEqual('emacs file variables present', errors.next()[2])
+        self.assertEqual('emacs file variables present', errors.next()[2])
+
 
 def do_tests():
     suite = unittest.TestLoader().loadTestsFromTestCase(CheckTidiness)
