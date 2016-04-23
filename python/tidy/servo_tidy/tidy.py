@@ -17,7 +17,11 @@ import site
 import StringIO
 import subprocess
 import sys
-from licenseck import licenses
+import licenseck
+
+EMACS_HEADER = "/* -*- Mode:"
+VIM_HEADER = "/* vim:"
+COMMENTS = ["// ", "# ", " *", "/* ", "*/ "]
 
 # File patterns to include in the non-WPT tidy check.
 file_patterns_to_check = ["*.rs", "*.rc", "*.cpp", "*.c",
@@ -116,18 +120,37 @@ def filter_files(start_dir, faster, progress):
         yield file_name
 
 
-EMACS_HEADER = "/* -*- Mode:"
-VIM_HEADER = "/* vim:"
-MAX_LICENSE_LINESPAN = max(len(license.splitlines()) for license in licenses)
+def check_header(file_name, lines):
+    for l in lines[:3]:
+        if EMACS_HEADER in l or VIM_HEADER in l:
+            # yield(1, "editor detritus in file")
+            pass
+
+def uncomment(line):
+    for c in COMMENTS:
+        if line.startswith(c):
+            return line[len(c):]
+
+
+def licensed_mpl(header):
+    if licenseck.mpl in header:
+        return True
+    return False
+
+
+def licensed_apache(header):
+    if licenseck.apache in header:
+        if licenseck.copyright in header:
+            return True
+    return False
 
 
 def check_license(file_name, lines):
     if any(file_name.endswith(ext) for ext in (".toml", ".lock", ".json")):
         raise StopIteration
-    while lines and (lines[0].startswith(EMACS_HEADER) or lines[0].startswith(VIM_HEADER)):
-        lines = lines[1:]
-    contents = "".join(lines[:MAX_LICENSE_LINESPAN])
-    valid_license = any(contents.startswith(license) for license in licenses)
+    block = min(len(lines), licenseck.MAX_LICENSE_LINESPAN)
+    contents = "".join([uncomment(l) for l in lines[:block]])
+    valid_license = licensed_mpl(contents) or licensed_apache(contents)
     acknowledged_bad_license = "xfail-license" in contents
     if not (valid_license or acknowledged_bad_license):
         yield (1, "incorrect license")
@@ -639,7 +662,7 @@ def scan(faster=False, progress=True):
     # standard checks
     files_to_check = filter_files('.', faster, progress)
     checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
-    line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec)
+    line_checking_functions = (check_header, check_license, check_by_line, check_toml, check_rust, check_spec)
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
     # wpt lint checks
     wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(faster, progress))
