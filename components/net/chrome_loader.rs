@@ -6,6 +6,8 @@ use file_loader;
 use mime_classifier::MIMEClassifier;
 use net_traits::{LoadConsumer, LoadData, NetworkError};
 use resource_thread::{CancellationListener, send_error};
+use std::fs::canonicalize;
+use std::path::is_separator;
 use std::sync::Arc;
 use url::Url;
 use url::percent_encoding::percent_decode;
@@ -16,16 +18,24 @@ pub fn resolve_chrome_url(url: &Url) -> Result<Url, ()> {
     if url.host_str() != Some("resources") {
         return Err(())
     }
-    let resources = resources_dir_path();
+    let resources = canonicalize(resources_dir_path())
+        .expect("Error canonicalizing path to the resources directory");
     let mut path = resources.clone();
     for segment in url.path_segments().unwrap() {
-        path.push(&*try!(percent_decode(segment.as_bytes()).decode_utf8().map_err(|_| ())))
+        match percent_decode(segment.as_bytes()).decode_utf8() {
+            // Check ".." to prevent access to files outside of the resources directory.
+            Ok(ref segment) if !bad_path_segment(segment) => path.push(&**segment),
+            _ => return Err(())
+        }
     }
-    // Don't allow chrome URLs access to files outside of the resources directory.
-    if !(path.starts_with(resources) && path.exists()) {
-        return Err(());
+    match canonicalize(path) {
+        Ok(ref path) if path.exists() => Ok(Url::from_file_path(path).unwrap()),
+        _ => Err(())
     }
-    return Ok(Url::from_file_path(&*path).unwrap());
+}
+
+fn bad_path_segment(s: &str) -> bool {
+    s == ".." || s.chars().any(is_separator)
 }
 
 pub fn factory(mut load_data: LoadData,
