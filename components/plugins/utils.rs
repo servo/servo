@@ -73,30 +73,6 @@ pub fn match_lang_did(cx: &LateContext, did: DefId, value: &str) -> bool {
     })
 }
 
-// Determines if a block is in an unsafe context so that an unhelpful
-// lint can be aborted.
-pub fn unsafe_context(map: &ast_map::Map, id: ast::NodeId) -> bool {
-    match map.find(map.get_parent(id)) {
-        Some(ast_map::NodeImplItem(itm)) => {
-            match itm.node {
-                hir::ImplItemKind::Method(ref sig, _) => sig.unsafety == hir::Unsafety::Unsafe,
-                _ => false
-            }
-        },
-        Some(ast_map::NodeItem(itm)) => {
-            match itm.node {
-                hir::ItemFn(_, style, _, _, _, _) => match style {
-                    hir::Unsafety::Unsafe => true,
-                    _ => false,
-                },
-                _ => false,
-            }
-        }
-        _ => false // There are probably a couple of other unsafe cases we don't care to lint, those will need
-                   // to be added.
-    }
-}
-
 /// check if a DefId's path matches the given absolute type path
 /// usage e.g. with
 /// `match_def_path(cx, id, &["core", "option", "Option"])`
