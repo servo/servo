@@ -86,12 +86,13 @@ lazy_static! {
 
 #[derive(HeapSizeOf)]
 pub struct PrecomputedStyleData<Impl: SelectorImpl, Computed: ComputedValues> {
-    /// Computed values for a given non-eagerly cascaded pseudo-element.  These
-    /// are eagerly computed once, and then just looked up in the table,
-    /// since they only appear in rules of the form *|*::pseudo-element
-    pub non_eagerly_cascaded_pseudo_elements: HashMap<Impl::PseudoElement,
-                                                      Arc<Computed>,
-                                                      BuildHasherDefault<::fnv::FnvHasher>>,
+    /// Applicable declarations for a given non-eagerly cascaded pseudo-element.
+    /// These are eagerly computed once, and then used to resolve the new
+    /// computed values on the fly on layout.
+    non_eagerly_cascaded_pseudo_elements: HashMap<Impl::PseudoElement,
+                                                  Vec<DeclarationBlock>,
+                                                  BuildHasherDefault<::fnv::FnvHasher>>,
+    _phantom: ::std::marker::PhantomData<Computed>,
 }
 
 impl<Impl, Computed> PrecomputedStyleData<Impl, Computed>
@@ -99,6 +100,22 @@ impl<Impl, Computed> PrecomputedStyleData<Impl, Computed>
     fn new() -> Self {
         PrecomputedStyleData {
             non_eagerly_cascaded_pseudo_elements: HashMap::with_hasher(Default::default()),
+            _phantom: ::std::marker::PhantomData,
+        }
+    }
+
+    pub fn computed_values_for(&self,
+                               pseudo: &Impl::PseudoElement,
+                               parent: Option<&Arc<Computed>>) -> Option<Arc<Computed>> {
+        if let Some(declarations) = self.non_eagerly_cascaded_pseudo_elements.get(pseudo) {
+            let (computed, _) =
+                properties::cascade::<Computed>(Size2D::zero(),
+                                                &declarations, false,
+                                                parent.map(|p| &**p), None,
+                                                box StdoutErrorReporter);
+            Some(Arc::new(computed))
+        } else {
+            parent.map(|p| p.clone())
         }
     }
 }
@@ -256,28 +273,21 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
         self.rules_source_order = rules_source_order;
 
         Impl::each_non_eagerly_cascaded_pseudo_element(|pseudo| {
-            // TODO: Don't precompute this, and compute it on demand instead
+            // TODO: Don't precompute this, compute it on demand instead and
+            // cache it.
+            //
             // This is actually kind of hard, because the stylist is shared
             // between threads.
-            //
-            if let Some(map) = self.pseudos_map.get(&pseudo) {
+            if let Some(map) = self.pseudos_map.remove(&pseudo) {
                 let mut precomputed = Arc::get_mut(&mut self.precomputed)
                                            .expect("Stylist was not the single owner of PrecomputedStyleData");
 
                 let mut declarations = vec![];
 
                 map.user_agent.normal.get_universal_rules(&mut declarations);
-
                 map.user_agent.important.get_universal_rules(&mut declarations);
 
-                // NB: Viewport size shouldn't matter since these rules should
-                // be absolute.
-                let (computed, _) =
-                    properties::cascade::<Impl::ComputedValues>(Size2D::zero(),
-                                                                &declarations, false,
-                                                                None, None,
-                                                                box StdoutErrorReporter);
-                precomputed.non_eagerly_cascaded_pseudo_elements.insert(pseudo, Arc::new(computed));
+                precomputed.non_eagerly_cascaded_pseudo_elements.insert(pseudo, declarations);
             }
         })
     }
@@ -287,11 +297,11 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
     }
 
     pub fn get_non_eagerly_cascaded_pseudo_element_style(&self,
-                                                         pseudo: &Impl::PseudoElement) -> Option<Arc<Impl::ComputedValues>> {
+                                                         pseudo: &Impl::PseudoElement,
+                                                         parent: Option<&Arc<Impl::ComputedValues>>) -> Option<Arc<Impl::ComputedValues>> {
         debug_assert!(!Impl::is_eagerly_cascaded_pseudo_element(pseudo));
         self.precomputed
-            .non_eagerly_cascaded_pseudo_elements
-            .get(pseudo).map(|computed| computed.clone())
+            .computed_values_for(pseudo, parent)
     }
 
     pub fn compute_restyle_hint<E>(&self, element: &E,
