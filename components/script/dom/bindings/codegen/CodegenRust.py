@@ -1908,9 +1908,10 @@ class CGInterfaceObjectJSClass(CGThing):
             "depth": self.descriptor.prototypeDepth
         }
         return """\
-static InterfaceObjectClass: NonCallbackInterfaceObjectClass =
+static InterfaceObjectClass: NonCallbackInterfaceObjectClass = unsafe {
     NonCallbackInterfaceObjectClass::new(%(constructor)s, %(representation)s,
-                                         PrototypeList::ID::%(id)s, %(depth)s);
+                                         PrototypeList::ID::%(id)s, %(depth)s)
+};
 """ % args
 
 
