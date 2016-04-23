@@ -2485,7 +2485,7 @@ dependencies = [
 [[package]]
 name = "xml5ever"
 version = "0.1.1"
-source = "git+https://github.com/Ygg01/xml5ever#4900bbadef28c940a0cd73dc735d53709a2845c7"
+source = "git+https://github.com/Ygg01/xml5ever#a51a6df18f384ecfb0a99b288c267178cf68f7f7"
 dependencies = [
  "log 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "mac 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
