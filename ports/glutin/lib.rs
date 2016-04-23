@@ -7,7 +7,6 @@
 #![feature(box_syntax)]
 
 #[macro_use] extern crate bitflags;
-#[cfg(target_os = "macos")] extern crate cgl;
 extern crate compositing;
 #[allow(unused_extern_crates)]
 #[cfg(target_os = "android")] extern crate egl;

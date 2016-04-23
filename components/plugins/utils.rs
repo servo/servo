@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use rustc::hir::def_id::DefId;
-use rustc::hir::map as ast_map;
 use rustc::hir::{self, def};
 use rustc::lint::{LateContext, LintContext};
 use syntax::ast;
