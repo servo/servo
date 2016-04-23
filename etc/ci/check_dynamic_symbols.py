@@ -29,6 +29,7 @@ for line in objdump_output:
 difference = actual_symbols - allowed_symbols
 
 if len(difference) > 0:
-    human_readable_difference = ", ".join(str(s) for s in difference)
-    print("Unexpected dynamic symbols in binary: {0}".format(human_readable_difference))
+    human_readable_difference = u"\n\u2514 ".join(["".join(u"\n\u251C " + str(s) for s in list(difference)[:-1]),
+                                                   str(list(difference)[-1])])
+    print(u"\u25B6 Unexpected dynamic symbols in binary: {0}".format(human_readable_difference))
     sys.exit(-1)
