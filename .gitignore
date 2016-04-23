@@ -26,3 +26,12 @@ servo-test
 Servo.app
 .config.mk.last
 /glfw
+
+# Editors
+
+# IntelliJ
+.idea
+*.iws
+
+# VSCode
+.vscode
