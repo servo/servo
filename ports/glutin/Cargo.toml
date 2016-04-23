@@ -48,8 +48,5 @@ x11 = "2.0.0"
 [target.aarch64-unknown-linux-gnu.dependencies]
 x11 = "2.0.0"
 
-[target.x86_64-apple-darwin.dependencies]
-cgl = "0.1"
-
 [target.arm-linux-androideabi.dependencies]
 servo-egl = "0.2"

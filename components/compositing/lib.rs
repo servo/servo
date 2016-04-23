@@ -18,10 +18,6 @@ extern crate azure;
 extern crate canvas;
 extern crate canvas_traits;
 extern crate clipboard;
-#[cfg(target_os = "macos")]
-extern crate core_graphics;
-#[cfg(target_os = "macos")]
-extern crate core_text;
 extern crate devtools_traits;
 extern crate euclid;
 #[cfg(not(target_os = "windows"))]

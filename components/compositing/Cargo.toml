@@ -98,7 +98,3 @@ serde = "0.7"
 serde_macros = "0.7"
 time = "0.1.17"
 url = {version = "0.5.7", features = ["heap_size"]}
-
-[target.x86_64-apple-darwin.dependencies]
-core-graphics = "0.3"
-core-text = "1.1"
