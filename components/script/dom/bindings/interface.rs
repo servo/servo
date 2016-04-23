@@ -7,10 +7,11 @@
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::conversions::get_dom_class;
 use dom::bindings::utils::get_proto_or_iface_array;
+use js::error::throw_type_error;
 use js::glue::UncheckedUnwrapObject;
 use js::jsapi::{Class, ClassExtension, ClassSpec, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{HandleObject, HandleValue, JSClass, JSContext, JSFunctionSpec};
-use js::jsapi::{JSPropertySpec, JSString, JS_DefineProperty1, JS_DefineProperty2};
+use js::jsapi::{JSNative, JSPropertySpec, JSString, JS_DefineProperty1, JS_DefineProperty2};
 use js::jsapi::{JS_DefineProperty4, JS_GetClass, JS_GetFunctionObject, JS_GetPrototype};
 use js::jsapi::{JS_InternString, JS_LinkConstructorAndPrototype, JS_NewFunction, JS_NewObject};
 use js::jsapi::{JS_NewObjectWithUniqueType, JS_NewStringCopyZ, JS_DefineProperty};
@@ -93,10 +94,6 @@ unsafe extern "C" fn fun_to_string_hook(cx: *mut JSContext,
     ret
 }
 
-/// A constructor class hook.
-pub type ConstructorClassHook =
-    unsafe extern "C" fn(cx: *mut JSContext, argc: u32, vp: *mut Value) -> bool;
-
 /// The class of a non-callback interface object.
 #[derive(Copy, Clone)]
 pub struct NonCallbackInterfaceObjectClass {
@@ -115,7 +112,7 @@ unsafe impl Sync for NonCallbackInterfaceObjectClass {}
 impl NonCallbackInterfaceObjectClass {
     /// Create a new `NonCallbackInterfaceObjectClass` structure.
     pub const unsafe fn new(
-            constructor: ConstructorClassHook,
+            constructor_behavior: InterfaceConstructorBehavior,
             string_rep: &'static [u8],
             proto_id: PrototypeList::ID,
             proto_depth: u16)
@@ -132,8 +129,8 @@ impl NonCallbackInterfaceObjectClass {
                 resolve: None,
                 convert: None,
                 finalize: None,
-                call: Some(constructor),
-                construct: Some(constructor),
+                call: constructor_behavior.call,
+                construct: constructor_behavior.construct,
                 hasInstance: Some(has_instance_hook),
                 trace: None,
                 spec: ClassSpec {
@@ -179,6 +176,34 @@ impl NonCallbackInterfaceObjectClass {
     pub fn as_jsclass(&self) -> &JSClass {
         unsafe {
             &*(self as *const _ as *const JSClass)
+        }
+    }
+}
+
+/// A constructor class hook.
+pub type ConstructorClassHook =
+    unsafe extern "C" fn(cx: *mut JSContext, argc: u32, vp: *mut Value) -> bool;
+
+/// The constructor behavior of a non-callback interface object.
+pub struct InterfaceConstructorBehavior {
+    call: JSNative,
+    construct: JSNative,
+}
+
+impl InterfaceConstructorBehavior {
+    /// An interface constructor that unconditionally throws a type error.
+    pub const fn throw() -> InterfaceConstructorBehavior {
+        InterfaceConstructorBehavior {
+            call: Some(invalid_constructor),
+            construct: Some(invalid_constructor),
+        }
+    }
+
+    /// An interface constructor that calls a native Rust function.
+    pub const fn call(hook: ConstructorClassHook) -> InterfaceConstructorBehavior {
+        InterfaceConstructorBehavior {
+            call: Some(non_new_constructor),
+            construct: Some(hook),
         }
     }
 }
@@ -379,4 +404,22 @@ unsafe fn define_on_global_object(
                                obj,
                                0,
                                None, None));
+}
+
+unsafe extern "C" fn invalid_constructor(
+        cx: *mut JSContext,
+        _argc: libc::c_uint,
+        _vp: *mut JSVal)
+        -> bool {
+    throw_type_error(cx, "Illegal constructor.");
+    false
+}
+
+unsafe extern "C" fn non_new_constructor(
+        cx: *mut JSContext,
+        _argc: libc::c_uint,
+        _vp: *mut JSVal)
+        -> bool {
+    throw_type_error(cx, "This constructor needs to be called with `new`.");
+    false
 }
