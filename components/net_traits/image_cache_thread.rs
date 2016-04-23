@@ -161,9 +161,8 @@ impl ImageCacheThread {
         receiver.recv().unwrap()
     }
 
-    /// Get the vector of bytess .... 
-    /// See ImageCacheCommand::StoreDecodeImage.
-    pub fn find_store_decode_image(&self, 
+    /// Decode the given image bytes and cache the result for the given URL.
+    pub fn store_complete_image_bytes(&self, 
                                    url: Url, 
                                    image_data: Vec<u8>) {
         let msg = ImageCacheCommand::StoreDecodeImage(url, image_data);
