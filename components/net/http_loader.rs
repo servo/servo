@@ -36,6 +36,7 @@ use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::collections::HashSet;
 use std::error::Error;
+use std::fmt;
 use std::io::{self, Read, Write};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
@@ -159,7 +160,7 @@ fn load_for_consumer(load_data: LoadData,
                 LoadErrorType::Ssl { .. } => send_error(error.url.clone(),
                                                         NetworkError::SslValidation(error.url),
                                                         start_chan),
-                _ => send_error(error.url, NetworkError::Internal(error.error.error_reason()), start_chan)
+                _ => send_error(error.url, NetworkError::Internal(error.error.description().to_owned()), start_chan)
             }
         }
         Ok(mut load_response) => {
@@ -332,19 +333,25 @@ pub enum LoadErrorType {
     UnsupportedScheme { scheme: String },
 }
 
-impl LoadErrorType {
-    fn error_reason(self) -> String {
-        match self {
-            LoadErrorType::Cancelled => "load cancelled".into(),
-            LoadErrorType::Connection { reason } => reason,
-            LoadErrorType::ConnectionAborted { reason } => reason,
-            LoadErrorType::CorsPreflightFetchInconsistent => "preflight fetch inconsistent with main fetch".into(),
-            LoadErrorType::Decoding { reason } => reason,
-            LoadErrorType::InvalidRedirect { reason } => reason,
-            LoadErrorType::MaxRedirects(_) => "too many redirects".into(),
-            LoadErrorType::RedirectLoop => "redirect loop".into(),
-            LoadErrorType::Ssl { reason } => reason,
-            LoadErrorType::UnsupportedScheme { .. } => "unsupported url scheme".into(),
+impl fmt::Display for LoadErrorType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.description())
+    }
+}
+
+impl Error for LoadErrorType {
+    fn description(&self) -> &str {
+        match *self {
+            LoadErrorType::Cancelled => "load cancelled",
+            LoadErrorType::Connection { ref reason } => reason,
+            LoadErrorType::ConnectionAborted { ref reason } => reason,
+            LoadErrorType::CorsPreflightFetchInconsistent => "preflight fetch inconsistent with main fetch",
+            LoadErrorType::Decoding { ref reason } => reason,
+            LoadErrorType::InvalidRedirect { ref reason } => reason,
+            LoadErrorType::MaxRedirects(_) => "too many redirects",
+            LoadErrorType::RedirectLoop => "redirect loop",
+            LoadErrorType::Ssl { ref reason } => reason,
+            LoadErrorType::UnsupportedScheme { .. } => "unsupported url scheme",
         }
     }
 }
