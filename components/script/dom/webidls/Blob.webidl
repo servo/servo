@@ -3,8 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // http://dev.w3.org/2006/webapi/FileAPI/#dfn-Blob
-[Constructor,
- Constructor(sequence<(/*ArrayBuffer or ArrayBufferView or */Blob or DOMString)> blobParts,
+[Constructor(optional sequence<(/*ArrayBuffer or ArrayBufferView or */Blob or DOMString)> blobParts,
   optional BlobPropertyBag options),
  Exposed=Window/*,Worker*/]
 interface Blob {
