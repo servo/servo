@@ -734,8 +734,8 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
         self.borrow_layout_data().unwrap()
             .style_data
             .precomputed
-            .non_eagerly_cascaded_pseudo_elements
-            .get(&PseudoElement::DetailsContent)
+            .computed_values_for(&PseudoElement::DetailsContent,
+                                 Some(&*self.style()))
             .map(|style| {
                 let display = if element.get_attr(&ns!(), &atom!("open")).is_some() {
                     style.get_box().display
@@ -764,6 +764,22 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
     /// Unlike the version on TNode, this handles pseudo-elements.
     #[inline]
     fn style(&self) -> Ref<Arc<ServoComputedValues>> {
+        // Precompute anonymous-box pseudo-element style if not cached.
+        match self.get_pseudo_element_type() {
+            PseudoElementType::DetailsContent(_) => {
+                if self.borrow_layout_data().unwrap()
+                       .style_data.per_pseudo.get(&PseudoElement::DetailsContent).is_none() {
+                    let mut data = self.mutate_layout_data().unwrap();
+                    let new_style = data.style_data
+                                        .precomputed
+                                        .computed_values_for(&PseudoElement::DetailsContent,
+                                                             data.style_data.style.as_ref());
+                    data.style_data.per_pseudo.insert(PseudoElement::DetailsContent, new_style.unwrap());
+                }
+            }
+            _ => {},
+        };
+
         Ref::map(self.borrow_layout_data().unwrap(), |data| {
             let style = match self.get_pseudo_element_type() {
                 PseudoElementType::Before(_)
@@ -773,10 +789,7 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
                 PseudoElementType::DetailsSummary(_)
                     => data.style_data.per_pseudo.get(&PseudoElement::DetailsSummary),
                 PseudoElementType::DetailsContent(_)
-                    => data.style_data
-                           .precomputed
-                           .non_eagerly_cascaded_pseudo_elements
-                           .get(&PseudoElement::DetailsContent),
+                    => data.style_data.per_pseudo.get(&PseudoElement::DetailsContent),
                 PseudoElementType::Normal
                     => data.style_data.style.as_ref(),
             };
@@ -787,7 +800,9 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
     #[inline]
     fn selected_style(&self) -> Ref<Arc<ServoComputedValues>> {
         Ref::map(self.borrow_layout_data().unwrap(), |data| {
-            data.style_data.per_pseudo.get(&PseudoElement::Selection).unwrap_or(data.style_data.style.as_ref().unwrap())
+            data.style_data.per_pseudo
+                .get(&PseudoElement::Selection)
+                .unwrap_or(data.style_data.style.as_ref().unwrap())
         })
     }
 
@@ -810,7 +825,6 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
             PseudoElementType::DetailsContent(_) => {
                 data.style_data.per_pseudo.remove(&PseudoElement::DetailsContent);
             }
-
             PseudoElementType::Normal => {
                 data.style_data.style = None;
             }
