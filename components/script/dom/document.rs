@@ -2186,6 +2186,8 @@ impl DocumentMethods for Document {
                 Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, self.URL()))),
             "progressevent" =>
                 Ok(Root::upcast(ProgressEvent::new_uninitialized(&self.window))),
+            "focusevent" =>
+                Ok(Root::upcast(FocusEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
             _ =>
                 Err(Error::NotSupported),
         }
