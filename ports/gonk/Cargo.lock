@@ -1695,7 +1695,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+http://github.com/emilio/rust-selectors?branch=get-all-rules-try#d3cd3e00e218f59416768f1f3a0719c0a4f05a9c"
 dependencies = [
  "bitflags 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1707,6 +1707,12 @@ dependencies = [
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "selectors"
+version = "0.5.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+replace = "selectors 0.5.3 (git+http://github.com/emilio/rust-selectors?branch=get-all-rules-try)"
 
 [[package]]
 name = "semver"
