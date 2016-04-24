@@ -904,39 +904,41 @@ impl RangeMethods for Range {
     fn GetClientRects(&self) -> Option<Root<DOMRectList>> {
         let start_node = self.StartContainer();
         let end_node = self.EndContainer();
-        let win = window_from_node(start_node.r()).r();
+        let win = window_from_node(start_node.r());
 
-        fn push_rects(node: Option<Root<Node>>, rects: &Vec<Root<DOMRect>>) {
+        fn push_rects(node: Option<Root<Node>>, rects: &mut Vec<Root<DOMRect>>) {
             match node {
                 Some(node) => {
-                    let element: Element = *node.downcast::<Element>().unwrap();
-                    let element_rects = element.GetClientRects().r();
+                    let element: &Element = node.downcast::<Element>().unwrap();
+                    let element_rects = element.GetClientRects();
 
-                    for i in 0..element_rects.Length() {
-                        match element_rects.Item(i) {
-                            Some(rect) => rects.push(rect)
+                    for i in 0..element_rects.r().Length() {
+                        match element_rects.r().Item(i) {
+                            Some(rect) => rects.push(rect),
+                            None => ()
                         }
                     }
-                }
+                },
+                None => ()
             }
         }
 
         let mut rects = Vec::new();
 
         if start_node == end_node {
-            push_rects(Some(start_node), &rects);
-            return Some(DOMRectList::new(win, rects.iter()))
+            push_rects(Some(start_node), &mut rects);
+            return Some(DOMRectList::new(win.r(), rects.into_iter()))
         }
 
         let (first, last, children) = self.contained_children().unwrap();
 
-        push_rects(first, &rects);
+        push_rects(first, &mut rects);
         for node in children {
-            push_rects(Some(node), &rects);
+            push_rects(Some(node), &mut rects);
         }
-        push_rects(last, &rects);
+        push_rects(last, &mut rects);
 
-        Some(DOMRectList::new(win, rects.iter()))
+        Some(DOMRectList::new(win.r(), rects.into_iter()))
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-range-getboundingclientrect
