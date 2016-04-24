@@ -156,7 +156,9 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
                     self.0.next().map(|r| &**r)
                 }
             }
-            let serialized_value = shorthand.serialize_shorthand_to_string(Map(list.iter()));
+
+            // TODO: important is hardcoded to false because method does not implement it yet
+            let serialized_value = shorthand.serialize_shorthand_value_to_string(Map(list.iter()), false);
             return DOMString::from(serialized_value);
         }
 
@@ -238,10 +240,8 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let element = self.owner.upcast::<Element>();
 
         // Step 8
-        for decl in declarations {
-            // Step 9
-            element.update_inline_style(decl, priority);
-        }
+        // Step 9
+        element.update_inline_style(declarations, priority);
 
         Ok(())
     }
