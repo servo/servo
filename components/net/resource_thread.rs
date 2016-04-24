@@ -6,6 +6,7 @@
 use about_loader;
 use chrome_loader;
 use cookie;
+use cookie_rs;
 use cookie_storage::CookieStorage;
 use data_loader;
 use devtools_traits::{DevtoolsControlMsg};
@@ -17,6 +18,7 @@ use hyper::header::{ContentType, Header, SetCookie};
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
+use msg::constellation_msg::CookieData;
 use net_traits::LoadContext;
 use net_traits::ProgressMsg::Done;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceThread, ResponseAction};
@@ -27,13 +29,14 @@ use rustc_serialize::json;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::cell::Cell;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, RwLock};
+use time::{self, Duration, Timespec};
 use url::Url;
 use util::opts;
 use util::prefs;
@@ -182,10 +185,30 @@ impl ResourceChannelManager {
                     self.resource_manager.websocket_connect(connect, connect_data),
                 ControlMsg::SetCookiesForUrl(request, cookie_list, source) =>
                     self.resource_manager.set_cookies_for_url(request, cookie_list, source),
+                ControlMsg::SetCookiesForUrlWithData(request, cookie, source) =>
+                    self.resource_manager.set_cookies_for_url_with_data(request, cookie, source),
                 ControlMsg::GetCookiesForUrl(url, consumer, source) => {
                     let cookie_jar = &self.resource_manager.cookie_jar;
                     let mut cookie_jar = cookie_jar.write().unwrap();
                     consumer.send(cookie_jar.cookies_for_url(&url, source)).unwrap();
+                }
+                ControlMsg::GetCookiesDataForUrl(url, consumer, source) => {
+                    //consumer.send(self.resource_manager.get_cookie_by_name_for_url(url, name, source));
+                    let cookie_jar = &self.resource_manager.cookie_jar;
+                    let mut cookie_jar = cookie_jar.write().unwrap();
+                    let cookies = cookie_jar.cookies_data_for_url(&url, source).into_iter().map(|c| {
+                        CookieData {
+                            name: c.name,
+                            value: c.value,
+                            path: c.path,
+                            expiry: c.expires.map(|x| x.to_timespec().sec as u64),
+                            max_age: c.max_age,
+                            secure: c.secure,
+                            http: c.httponly,
+                            domain: c.domain
+                        }
+                    }).collect();
+                    consumer.send(cookies).unwrap();
                 }
                 ControlMsg::Cancel(res_id) => {
                     if let Some(cancel_sender) = self.resource_manager.cancel_load_map.get(&res_id) {
@@ -368,6 +391,29 @@ impl ResourceManager {
                     cookie_jar.push(cookie, source);
                 }
             }
+        }
+    }
+
+    fn set_cookies_for_url_with_data(&mut self, request: Url, cookie_data: CookieData, source: CookieSource) {
+        let cookie = cookie_rs::Cookie {
+            name: cookie_data.name,
+            value: cookie_data.value,
+            expires: match cookie_data.expiry {
+                Some(date) => Some(time::at(Timespec::new(date as i64, 0))),
+                None => Some(time::at(time::get_time() + Duration::days(20 * 365)))
+            },
+            max_age: None,
+            domain: cookie_data.domain,
+            path: cookie_data.path,
+            secure: cookie_data.secure,
+            httponly: cookie_data.http,
+            custom: BTreeMap::new(),
+        };
+
+        if let Some(cookie) = cookie::Cookie::new_wrapped(cookie, &request, source) {
+            let cookie_jar = &self.cookie_jar;
+            let mut cookie_jar = cookie_jar.write().unwrap();
+            cookie_jar.push(cookie, source)
         }
     }
 

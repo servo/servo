@@ -983,6 +983,8 @@ impl ScriptThread {
     fn handle_webdriver_msg(&self, pipeline_id: PipelineId, msg: WebDriverScriptCommand) {
         let page = self.root_page();
         match msg {
+            WebDriverScriptCommand::AddCookie(params, reply) =>
+                webdriver_handlers::handle_add_cookie(&page, pipeline_id, params, reply),
             WebDriverScriptCommand::ExecuteScript(script, reply) =>
                 webdriver_handlers::handle_execute_script(&page, pipeline_id, script, reply),
             WebDriverScriptCommand::FindElementCSS(selector, reply) =>
@@ -993,6 +995,10 @@ impl ScriptThread {
                 webdriver_handlers::handle_focus_element(&page, pipeline_id, element_id, reply),
             WebDriverScriptCommand::GetActiveElement(reply) =>
                 webdriver_handlers::handle_get_active_element(&page, pipeline_id, reply),
+            WebDriverScriptCommand::GetCookies(reply) =>
+                webdriver_handlers::handle_get_cookies(&page, pipeline_id, reply),
+            WebDriverScriptCommand::GetCookie(name, reply) =>
+                webdriver_handlers::handle_get_cookie(&page, pipeline_id, name, reply),
             WebDriverScriptCommand::GetElementTagName(node_id, reply) =>
                 webdriver_handlers::handle_get_name(&page, pipeline_id, node_id, reply),
             WebDriverScriptCommand::GetElementAttribute(node_id, name, reply) =>
