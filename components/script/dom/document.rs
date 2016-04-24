@@ -2169,7 +2169,7 @@ impl DocumentMethods for Document {
                     )
                 )),
             "focusevent" =>
-+                Ok(Root::upcast(FocusEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(FocusEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
             _ =>
                 Err(Error::NotSupported),
         }
