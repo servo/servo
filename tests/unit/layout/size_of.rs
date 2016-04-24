@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use layout::Fragment;
+use layout::ServoThreadSafeLayoutNode;
 use std::mem::size_of;
 
 #[test]
@@ -12,7 +13,7 @@ fn test_size_of_fragment() {
 
     if actual < expected {
         panic!("Your changes have decreased the stack size of layout::fragment::Fragment \
-                from {} to {}. Good work! Please update the size in tests/layout/size_of.rs",
+                from {} to {}. Good work! Please update the size in tests/unit/layout/size_of.rs",
                 expected, actual);
     }
 
@@ -20,7 +21,27 @@ fn test_size_of_fragment() {
         panic!("Your changes have increased the stack size of layout::fragment::Fragment \
                 from {} to {}.  Please consider choosing a design which avoids this increase. \
                 If you feel that the increase is necessary, update the size in \
-                tests/layout/size_of.rs.",
+                tests/unit/layout/size_of.rs.",
+                expected, actual);
+    }
+}
+
+#[test]
+fn test_size_of_layout_node() {
+    let expected = 16;
+    let actual = size_of::<ServoThreadSafeLayoutNode>();
+
+    if actual < expected {
+        panic!("Your changes have decreased the stack size of layout::wrapper::ServoThreadSafeLayoutNode \
+                from {} to {}. Good work! Please update the size in tests/layout/unit/size_of.rs",
+                expected, actual);
+    }
+
+    if actual > expected {
+        panic!("Your changes have increased the stack size of layout::wrapper::ServoThreadSafeLayoutNode \
+                from {} to {}.  Please consider choosing a design which avoids this increase. \
+                If you feel that the increase is necessary, update the size in \
+                tests/unit/layout/size_of.rs.",
                 expected, actual);
     }
 }
