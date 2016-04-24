@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Range getClientRects</title>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<div id=data>Testing data
+  <p>Paragraph</p>
+</div>
+<div id=data2>Data 2
+  <p id=data3>Data 3</p>
+</div>
+<script>
+test(function() {
+  var values = [
+    {top: 26, right: 85.515625, bottom: 44, left: 8, width: 77.515625},
+    {top: 60, right: 1432, bottom: 78, left: 8, width: 1424},
+    {top: 60, right: 72.859375, bottom: 78, left: 8, width: 64.859375},
+    {top: 94, right: 1432, bottom: 146, left: 8, width: 1424},
+    {top: 94, right: 50.203125, bottom: 112, left: 8, width: 42.203125}
+  ]
+  var r = document.createRange();
+  r.setStart(document.getElementById('data'), 0);
+  r.setEnd(document.getElementById('data3'), 0);
+  var clientRects = r.getClientRects();
+  assert_equals(clientRects.length, 5);
+  for (var i = 0; i < values.length; i++) {
+    for (var property in values[i]) {
+      assert_equals(clientRects[i][property], values[i][property]);
+    }
+  }
+})
+</script>
