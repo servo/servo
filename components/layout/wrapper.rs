@@ -1073,13 +1073,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
 
     fn text_content(&self) -> TextContent {
         if self.pseudo.is_replaced_content() {
-            let data = &self.borrow_layout_data().unwrap().style_data;
-
-            let style = if self.pseudo.is_before() {
-                data.per_pseudo.get(&PseudoElement::Before).unwrap()
-            } else {
-                data.per_pseudo.get(&PseudoElement::After).unwrap()
-            };
+            let style = self.resolved_style();
 
             return match style.as_ref().get_counters().content {
                 content::T::Content(ref value) if !value.is_empty() => {
@@ -1105,7 +1099,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
             return TextContent::Text(data);
         }
 
-        panic!("not text!")
+        unreachable!("not text!")
     }
 
     fn selection(&self) -> Option<Range<CharIndex>> {
