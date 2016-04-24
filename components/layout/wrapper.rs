@@ -667,7 +667,7 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
 
     /// Creates a new `ThreadSafeLayoutNode` for the same `LayoutNode`
     /// with a different pseudo-element type.
-    fn with_pseudo(&self, pseudo: PseudoElementType<display::T>) -> Self;
+    fn with_pseudo(&self, pseudo: PseudoElementType<Option<display::T>>) -> Self;
 
     /// Converts self into an `OpaqueNode`.
     fn opaque(&self) -> OpaqueNode;
@@ -691,26 +691,28 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
     fn as_element(&self) -> Self::ConcreteThreadSafeLayoutElement;
 
     #[inline]
-    fn get_pseudo_element_type(&self) -> PseudoElementType<display::T>;
+    fn get_pseudo_element_type(&self) -> PseudoElementType<Option<display::T>>;
 
     #[inline]
     fn get_before_pseudo(&self) -> Option<Self> {
-        self.borrow_layout_data().unwrap()
-            .style_data.per_pseudo
-            .get(&PseudoElement::Before)
-            .map(|style| {
-                self.with_pseudo(PseudoElementType::Before(style.get_box().display))
-            })
+        if self.borrow_layout_data().unwrap()
+               .style_data.per_pseudo
+               .contains_key(&PseudoElement::Before) {
+            Some(self.with_pseudo(PseudoElementType::Before(None)))
+        } else {
+            None
+        }
     }
 
     #[inline]
     fn get_after_pseudo(&self) -> Option<Self> {
-        self.borrow_layout_data().unwrap()
-            .style_data.per_pseudo
-            .get(&PseudoElement::After)
-            .map(|style| {
-                self.with_pseudo(PseudoElementType::After(style.get_box().display))
-            })
+        if self.borrow_layout_data().unwrap()
+               .style_data.per_pseudo
+               .contains_key(&PseudoElement::Before) {
+            Some(self.with_pseudo(PseudoElementType::After(None)))
+        } else {
+            None
+        }
     }
 
     #[inline]
@@ -718,12 +720,7 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
         if self.is_element() &&
            self.as_element().get_local_name() == &atom!("details") &&
            self.as_element().get_namespace() == &ns!(html) {
-            self.borrow_layout_data().unwrap()
-                .style_data.per_pseudo
-                .get(&PseudoElement::DetailsSummary)
-                .map(|style| {
-                    self.with_pseudo(PseudoElementType::DetailsSummary(style.get_box().display))
-                })
+            Some(self.with_pseudo(PseudoElementType::DetailsSummary(None)))
         } else {
             None
         }
@@ -731,22 +728,18 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
 
     #[inline]
     fn get_details_content_pseudo(&self) -> Option<Self> {
-        if !self.is_element() {
-            return None;
-        }
-
-        let element = self.as_element();
-        if element.get_local_name() != &atom!("details") ||
-           element.get_namespace() != &ns!(html) {
-            return None;
-        }
-
-        let display = if element.get_attr(&ns!(), &atom!("open")).is_some() {
-            display::T::block
+        if self.is_element() &&
+           self.as_element().get_local_name() == &atom!("details") &&
+           self.as_element().get_namespace() == &ns!(html) {
+            let display = if self.as_element().get_attr(&ns!(), &atom!("open")).is_some() {
+                None // Specified by the stylesheet
+            } else {
+                Some(display::T::none)
+            };
+            Some(self.with_pseudo(PseudoElementType::DetailsContent(display)))
         } else {
-            display::T::none
-        };
-        Some(self.with_pseudo(PseudoElementType::DetailsContent(display)))
+            None
+        }
     }
 
     /// Borrows the layout data immutably. Fails on a conflicting borrow.
@@ -929,7 +922,9 @@ pub struct ServoThreadSafeLayoutNode<'ln> {
     /// The wrapped node.
     node: ServoLayoutNode<'ln>,
 
-    pseudo: PseudoElementType<display::T>,
+    /// The pseudo-element type, with (optionally),
+    /// an specified display value to override the stylesheet.
+    pseudo: PseudoElementType<Option<display::T>>,
 }
 
 impl<'a> PartialEq for ServoThreadSafeLayoutNode<'a> {
@@ -979,7 +974,8 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     type ConcreteThreadSafeLayoutElement = ServoThreadSafeLayoutElement<'ln>;
     type ChildrenIterator = ThreadSafeLayoutNodeChildrenIterator<Self>;
 
-    fn with_pseudo(&self, pseudo: PseudoElementType<display::T>) -> ServoThreadSafeLayoutNode<'ln> {
+    fn with_pseudo(&self,
+                   pseudo: PseudoElementType<Option<display::T>>) -> ServoThreadSafeLayoutNode<'ln> {
         ServoThreadSafeLayoutNode {
             node: self.node.clone(),
             pseudo: pseudo,
@@ -1024,7 +1020,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         }
     }
 
-    fn get_pseudo_element_type(&self) -> PseudoElementType<display::T> {
+    fn get_pseudo_element_type(&self) -> PseudoElementType<Option<display::T>> {
         self.pseudo
     }
 
