@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use cssparser::{AtRuleParser,CssStringWriter, DeclarationListParser, DeclarationParser, Parser,ToCss, Token};
 use dom::attr::Attr;
 use dom::attr::AttrValue;
 use dom::bindings::cell::DOMRefCell;
@@ -31,6 +32,10 @@ use script_runtime::{CommonScriptMsg, ScriptChan};
 use script_thread::Runnable;
 use std::sync::Arc;
 use string_cache::Atom;
+use style::font_face;
+use style::parser::{ParserContext, log_css_error};
+use style::media_queries::Expression;
+use style::values::specified::Length;
 use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
@@ -48,6 +53,11 @@ struct ImageRequest {
     url: Option<Url>,
     image: Option<Arc<Image>>,
     metadata: Option<ImageMetadata>,
+}
+
+struct Size{
+    expression: Expression,
+    length: Length,
 }
 #[dom_struct]
 pub struct HTMLImageElement {
@@ -398,3 +408,28 @@ fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
     let value = AttrValue::Dimension(DOMString::from(value.to_string()), dim);
     element.set_attribute(&attr, value);
 }
+
+fn parse_a_sizes_attribute(size: String, width: Option<u32>)-> Size{
+    let s_Size : Size;
+   // s_Size:Length=0;
+   // s_Size:Expression:width = 100 ;
+    //parse comma separated
+    let mut input = &mut Parser::new(&size);
+
+   // let unparsed_sizes_list = try!(input.parse_comma_separated(input));
+  // let unparsed_sizes_list = 
+// loop through the unparsed_sizes_list
+   /*for val in (unparsed_sizes_list) {
+
+    // remove whitespace token 
+
+
+    if()
+   }*/
+
+
+    return s_Size;
+
+}
+    
+
