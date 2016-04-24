@@ -12,7 +12,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::xmlname::validate_qualified_name;
+use dom::bindings::xmlname::{validate_qualified_name, namespace_from_domstring};
 use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
 use dom::documenttype::DocumentType;
@@ -62,19 +62,26 @@ impl DOMImplementationMethods for DOMImplementation {
 
     // https://dom.spec.whatwg.org/#dom-domimplementation-createdocument
     fn CreateDocument(&self,
-                      namespace: Option<DOMString>,
+                      maybe_namespace: Option<DOMString>,
                       qname: DOMString,
                       maybe_doctype: Option<&DocumentType>)
                       -> Fallible<Root<XMLDocument>> {
         let win = self.document.window();
         let loader = DocumentLoader::new(&self.document.loader());
+        let namespace = namespace_from_domstring(maybe_namespace.to_owned());
+
+        let content_type = match namespace {
+            ns!(html) => "application/xhtml+xml",
+            ns!(svg) => "image/svg+xml",
+            _ => "application/xml"
+        };
 
         // Step 1.
         let doc = XMLDocument::new(win,
                                    None,
                                    None,
                                    IsHTMLDocument::NonHTMLDocument,
-                                   None,
+                                   Some(DOMString::from(content_type)),
                                    None,
                                    DocumentSource::NotFromParser,
                                    loader);
@@ -82,7 +89,7 @@ impl DOMImplementationMethods for DOMImplementation {
         let maybe_elem = if qname.is_empty() {
             None
         } else {
-            match doc.upcast::<Document>().CreateElementNS(namespace, qname) {
+            match doc.upcast::<Document>().CreateElementNS(maybe_namespace, qname) {
                 Err(error) => return Err(error),
                 Ok(elem) => Some(elem),
             }

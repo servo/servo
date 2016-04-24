@@ -123,7 +123,7 @@ test(function() {
         var doc = document.implementation.createDocument(namespace, qualifiedName, doctype)
         assert_equals(doc.compatMode, "CSS1Compat")
         assert_equals(doc.characterSet, "UTF-8")
-        assert_equals(doc.contentType, namespace == htmlNamespace ? "text/html"
+        assert_equals(doc.contentType, namespace == htmlNamespace ? "application/xhtml+xml"
                                  : namespace == svgNamespace ?  "image/svg+xml"
                                  : "application/xml")
         assert_equals(doc.URL, "about:blank")
