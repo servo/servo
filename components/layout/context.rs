@@ -130,6 +130,11 @@ impl<'a> LayoutContext<'a> {
     }
 
     #[inline(always)]
+    pub fn style_context(&self) -> &SharedStyleContext {
+        &self.shared.style_context
+    }
+
+    #[inline(always)]
     pub fn font_context(&self) -> RefMut<FontContext> {
         self.cached_local_layout_context.font_context.borrow_mut()
     }
