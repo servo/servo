@@ -14898,6 +14898,10 @@
         "url": "/dom/ranges/Range-getClientRects.html"
       },
       {
+        "path": "dom/ranges/Range-getBoundingClientRect.html",
+        "url": "/dom/ranges/Range-getBoundingClientRect.html"
+      },
+      {
         "path": "dom/ranges/Range-stringifier.html",
         "url": "/dom/ranges/Range-stringifier.html"
       },
