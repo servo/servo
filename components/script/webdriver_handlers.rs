@@ -25,12 +25,15 @@ use dom::window::ScriptHelpers;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JSContext;
 use js::jsapi::{HandleValue, RootedValue};
 use js::jsval::UndefinedValue;
-use msg::constellation_msg::{PipelineId, WindowSizeData};
+use msg::constellation_msg::{CookieData, PipelineId, WindowSizeData};
+use msg::webdriver_msg::WebDriverCookieError;
 use msg::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
+use net_traits::ControlMsg::{GetCookiesDataForUrl, SetCookiesForUrlWithData};
+use net_traits::CookieSource::{HTTP, NonHTTP};
 use page::Page;
 use script_thread::get_page;
 use std::rc::Rc;
@@ -174,6 +177,64 @@ pub fn handle_get_active_element(page: &Rc<Page>,
                                  reply: IpcSender<Option<String>>) {
     reply.send(page.document().GetActiveElement().map(
         |elem| elem.upcast::<Node>().unique_id())).unwrap();
+}
+
+pub fn handle_get_cookies(page: &Rc<Page>,
+                         _pipeline: PipelineId,
+                         reply: IpcSender<Vec<CookieData>>) {
+    let document = page.document();
+    let url = document.url();
+    let (sender, receiver) = ipc::channel().unwrap();
+    let _ = document.DefaultView().resource_thread().send(
+        GetCookiesDataForUrl(url.clone(), sender, NonHTTP)
+        );
+    let cookies = receiver.recv().unwrap();
+    reply.send(cookies).unwrap();
+}
+
+pub fn handle_get_cookie(page: &Rc<Page>,
+                         _pipeline: PipelineId,
+                         name: String,
+                         reply: IpcSender<Vec<CookieData>>) {
+    let document = page.document();
+    let url = document.url();
+    let (sender, receiver) = ipc::channel().unwrap();
+    let _ = document.DefaultView().resource_thread().send(
+        GetCookiesDataForUrl(url.clone(), sender, NonHTTP)
+        );
+    let cookies = receiver.recv().unwrap();
+    reply.send(cookies.into_iter().filter(|c| c.name == &*name).collect()).unwrap();
+}
+
+pub fn handle_add_cookie(page: &Rc<Page>,
+                         _pipeline: PipelineId,
+                         cookie: CookieData,
+                         reply: IpcSender<Result<(), WebDriverCookieError>>) {
+    let document = page.document();
+    let url = document.url();
+    let method = if cookie.http {
+        HTTP
+    } else {
+        NonHTTP
+    };
+    reply.send(match (document.is_cookie_averse(), cookie.domain.clone()) {
+        (true, _) => Err(WebDriverCookieError::InvalidDomain),
+        (false, Some(ref domain)) if url.host_str().map(|x| { x == &**domain }).unwrap_or(false) => {
+            let _ = document.DefaultView().resource_thread().send(
+                SetCookiesForUrlWithData(url.clone(), cookie, method)
+                );
+            Ok(())
+        },
+        (false, None) => {
+            let _ = document.DefaultView().resource_thread().send(
+                SetCookiesForUrlWithData(url.clone(), cookie, method)
+                );
+            Ok(())
+        },
+        (_, _) => {
+            Err(WebDriverCookieError::UnableToSetCookie)
+        },
+    }).unwrap();
 }
 
 pub fn handle_get_title(page: &Rc<Page>, _pipeline: PipelineId, reply: IpcSender<String>) {

@@ -6,6 +6,7 @@
 //! http://tools.ietf.org/html/rfc6265
 
 use cookie::Cookie;
+use cookie_rs;
 use net_traits::CookieSource;
 use rustc_serialize::{Encodable, Encoder};
 use std::cmp::Ordering;
@@ -118,5 +119,12 @@ impl CookieStorage {
             0 => None,
             _ => Some(result)
         }
+    }
+
+    pub fn cookies_data_for_url(&mut self, url: &Url, source: CookieSource) -> Vec<cookie_rs::Cookie> {
+        self.cookies.iter_mut().filter(|c| { c.appropriate_for_url(url, source) }).map(|c| {
+            c.touch();
+            c.cookie.clone()
+        }).collect()
     }
 }
