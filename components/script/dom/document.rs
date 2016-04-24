@@ -72,6 +72,7 @@ use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::progressevent::ProgressEvent;
 use dom::range::Range;
+use dom::servohtmlparser::{ParserRoot, ParserRef, MutNullableParserField};
 use dom::storageevent::StorageEvent;
 use dom::stylesheetlist::StyleSheetList;
 use dom::cssstylesheet::CSSStyleSheet;

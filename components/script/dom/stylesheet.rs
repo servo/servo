@@ -65,9 +65,8 @@ impl StyleSheetMethods for StyleSheet {
         self.title.clone()
     }
 
-    // https://drafts.csswg.org/cssom/#dom-stylesheet-ownernode
-    /*fn GetOwnerNode(&self) -> Option<UnionTypes::ElementOrProcessingInstruction>{
-        //None
-        self.owner.unwrap().deref().downcast::<Element>()
-    }*/
+    // https://drafts.csswg.org/cssom/#dom-stylesheet-title
+    fn GetOwnerNode(&self) -> Option<UnionTypes::ElementOrProcessingInstruction>{
+        None
+    }   
 }
