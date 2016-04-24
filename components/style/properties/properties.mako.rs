@@ -404,7 +404,55 @@ enum AppendableValue<'a, I>
 where I: Iterator<Item=&'a PropertyDeclaration> {
     Declaration(&'a PropertyDeclaration),
     DeclarationsForShorthand(I),
-    Css(&'a str)
+    Css(&'a str, bool)
+}
+
+fn append_property_name<W>(dest: &mut W,
+                           property_name: &str,
+                           is_first_serialization: &mut bool)
+                           -> fmt::Result where W: fmt::Write {
+
+    // after first serialization(key: value;) add whitespace between the pairs
+    if !*is_first_serialization {
+        try!(write!(dest, " "));
+    }
+    else {
+        *is_first_serialization = false;
+    }
+
+    write!(dest, "{}", property_name)
+}
+
+fn append_declaration_value<'a, W, I>
+                           (dest: &mut W,
+                            appendable_value: AppendableValue<'a, I>,
+                            is_important: bool)
+                            -> fmt::Result
+                            where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
+  match appendable_value {
+      AppendableValue::Css(css, _) => {
+          try!(write!(dest, "{}", css))
+      },
+      AppendableValue::Declaration(decl) => {
+          try!(decl.to_css(dest));
+       },
+       AppendableValue::DeclarationsForShorthand(decls) => {
+           let mut decls = decls.peekable();
+           while let Some(decl) = decls.next() {
+               try!(decl.to_css(dest));
+
+               if decls.peek().is_some() {
+                   try!(write!(dest, " "));
+               }
+           }
+       }
+  }
+
+  if is_important {
+      try!(write!(dest, " !important"));
+  }
+
+  Ok(())
 }
 
 fn append_serialization<'a, W, I>(dest: &mut W,
@@ -415,38 +463,26 @@ fn append_serialization<'a, W, I>(dest: &mut W,
                                   -> fmt::Result
                                   where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
 
-    // after first serialization(key: value;) add whitespace between the pairs
-    if !*is_first_serialization {
-        try!(write!(dest, " "));
-    }
-    else {
-        *is_first_serialization = false;
-    }
+    try!(append_property_name(dest, property_name, is_first_serialization));
+    try!(write!(dest, ":"));
 
-    try!(write!(dest, "{}:", property_name));
-
-    match appendable_value {
-        AppendableValue::Css(css) => try!(write!(dest, " {}", css)),
-        AppendableValue::Declaration(decl) => {
+    // for normal parsed values, add a space between key: and value
+    match &appendable_value {
+        &AppendableValue::Css(_, is_unparsed) => {
+            if !is_unparsed {
+                try!(write!(dest, " "))
+            }
+        },
+        &AppendableValue::Declaration(decl) => {
             if !decl.value_is_unparsed() {
                 // for normal parsed values, add a space between key: and value
                 try!(write!(dest, " "));
             }
-
-            try!(decl.to_css(dest));
          },
-         AppendableValue::DeclarationsForShorthand(decls) => {
-             for decl in decls {
-                 try!(write!(dest, " "));
-                 try!(decl.to_css(dest));
-             }
-         }
+         &AppendableValue::DeclarationsForShorthand(_) => try!(write!(dest, " "))
     }
 
-    if is_important {
-        try!(write!(dest, " !important"));
-    }
-
+    try!(append_declaration_value(dest, appendable_value, is_important));
     write!(dest, ";")
 }
 
@@ -622,15 +658,15 @@ impl Shorthand {
     }
 
     /// Serializes possible shorthand value to String.
-    pub fn serialize_shorthand_to_string<'a, I>(self, declarations: I) -> String
+    pub fn serialize_shorthand_value_to_string<'a, I>(self, declarations: I, is_important: bool) -> String
     where I: Iterator<Item=&'a PropertyDeclaration> + Clone {
+        let appendable_value = self.get_shorthand_appendable_value(declarations).unwrap();
         let mut result = String::new();
-        self.serialize_shorthand_to_buffer(&mut result, declarations, &mut true).unwrap();
+        append_declaration_value(&mut result, appendable_value, is_important).unwrap();
         result
     }
 
-
-    /// Serializes possible shorthand value to input buffer given a list of longhand declarations.
+    /// Serializes possible shorthand name with value to input buffer given a list of longhand declarations.
     /// On success, returns true if shorthand value is written and false if no shorthand value is present.
     pub fn serialize_shorthand_to_buffer<'a, W, I>(self,
                                                    dest: &mut W,
@@ -638,47 +674,53 @@ impl Shorthand {
                                                    is_first_serialization: &mut bool)
                                                    -> Result<bool, fmt::Error>
     where W: Write, I: Iterator<Item=&'a PropertyDeclaration> + Clone {
+        match self.get_shorthand_appendable_value(declarations) {
+            None => Ok(false),
+            Some(appendable_value) => {
+                let property_name = self.name();
 
-        // Only cloning iterators (a few pointers each) not declarations.
-        let mut declarations2 = declarations.clone();
-        let mut declarations3 = declarations.clone();
-
-        let first_declaration = match declarations2.next() {
-            Some(declaration) => declaration,
-            None => return Ok(false)
-        };
-
-        let property_name = self.name();
-
-        // https://drafts.csswg.org/css-variables/#variables-in-shorthands
-        if let Some(css) = first_declaration.with_variables_from_shorthand(self) {
-            if declarations2.all(|d| d.with_variables_from_shorthand(self) == Some(css)) {
-               return append_serialization::<W, I>(
-                   dest, property_name, AppendableValue::Css(css), false, is_first_serialization
-               ).and_then(|_| Ok(true));
-           }
-           else {
-               return Ok(false);
-           }
-        }
-
-        if !declarations3.any(|d| d.with_variables()) {
-            try!(
                 append_serialization(
                     dest,
                     property_name,
-                    AppendableValue::DeclarationsForShorthand(declarations),
+                    appendable_value,
                     false,
                     is_first_serialization
-                )
-            );
-            // FIXME: this needs property-specific code, which probably should be in style/
-            // "as appropriate according to the grammar of shorthand "
-            // https://drafts.csswg.org/cssom/#serialize-a-css-value
-            return Ok(true);
+                ).and_then(|_| Ok(true))
+            }
         }
+    }
 
-        Ok(false)
+    fn get_shorthand_appendable_value<'a, I>(self, declarations: I) -> Option<AppendableValue<'a, I>>
+        where I: Iterator<Item=&'a PropertyDeclaration> + Clone {
+
+            // Only cloning iterators (a few pointers each) not declarations.
+            let mut declarations2 = declarations.clone();
+            let mut declarations3 = declarations.clone();
+
+            let first_declaration = match declarations2.next() {
+                Some(declaration) => declaration,
+                None => return None
+            };
+
+            // https://drafts.csswg.org/css-variables/#variables-in-shorthands
+            if let Some(css) = first_declaration.with_variables_from_shorthand(self) {
+                if declarations2.all(|d| d.with_variables_from_shorthand(self) == Some(css)) {
+                   let is_unparsed = first_declaration.value_is_unparsed();
+                   return Some(AppendableValue::Css(css, is_unparsed));
+               }
+               else {
+                   return None;
+               }
+            }
+
+            if !declarations3.any(|d| d.with_variables()) {
+                return Some(AppendableValue::DeclarationsForShorthand(declarations));
+                // FIXME: this needs property-specific code, which probably should be in style/
+                // "as appropriate according to the grammar of shorthand "
+                // https://drafts.csswg.org/cssom/#serialize-a-css-value
+            }
+
+            None
     }
 }
 
