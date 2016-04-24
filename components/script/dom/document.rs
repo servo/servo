@@ -33,6 +33,7 @@ use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::bindings::xmlname::{validate_and_extract, namespace_from_domstring, xml_name_type};
 use dom::browsingcontext::BrowsingContext;
 use dom::comment::Comment;
+use dom::cssstylesheet::CSSStyleSheet;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
@@ -73,7 +74,6 @@ use dom::progressevent::ProgressEvent;
 use dom::range::Range;
 use dom::storageevent::StorageEvent;
 use dom::stylesheetlist::StyleSheetList;
-use dom::cssstylesheet::CSSStyleSheet;
 use dom::text::Text;
 use dom::touch::Touch;
 use dom::touchevent::TouchEvent;
@@ -1828,16 +1828,9 @@ impl Document {
 
     /*pub fn get_nth_cssstylesheet(&self, index: u32) -> Root<CSSStyleSheet> {
 
-        //let mut stylesheets = self.stylesheets.borrow_mut();
-        stylesheets.unwrap()
-        //let (ref mut node, ref mut sheet) = 
-        self.stylesheets.borrow().as_ref().unwrap().iter()
-                        .map(|&(_, ref stylesheet)| stylesheet.clone())
-                        .collect()
-
-        //let sheet = (self.stylesheets.borrow().as_ref().unwrap()[index]).1.clone();
+        let mut stylesheets = self.stylesheets.borrow_mut();
         let (ref mut node, ref mut sheet) = (*self.stylesheets.borrow()).unwrap()[index as usize];
-        CSSStyleSheet::new(&self.window, *sheet)
+        CSSStyleSheet::new(&self.window, *sheet, ? )
     }*/
 }
 

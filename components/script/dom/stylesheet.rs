@@ -4,9 +4,11 @@
 
 use dom::bindings::codegen::Bindings::StyleSheetBinding;
 use dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
+use dom::bindings::codegen::UnionTypes;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Root};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::node::Node;
 use dom::window::Window;
 use util::str::DOMString;
 
@@ -17,24 +19,27 @@ pub struct StyleSheet {
     type_: DOMString,
     href: Option<DOMString>,
     title: Option<DOMString>,
+    owner: Option<JS<Node>>,
 }
 
 impl StyleSheet {
     #[allow(unrooted_must_root)]
-    fn new_inherited(type_: DOMString, href: Option<DOMString>, title: Option<DOMString>) -> StyleSheet {
+    fn new_inherited(type_: DOMString, href: Option<DOMString>, title: Option<DOMString>, owner: Option<JS<Node>>) -> StyleSheet {
         StyleSheet {
             reflector_: Reflector::new(),
             type_: type_,
             href: href,
-            title: title
+            title: title,
+            owner: owner
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(window: &Window, type_: DOMString,
                href: Option<DOMString>,
-               title: Option<DOMString>) -> Root<StyleSheet> {
-        reflect_dom_object(box StyleSheet::new_inherited(type_, href, title),
+               title: Option<DOMString>,
+               owner: Option<JS<Node>>) -> Root<StyleSheet> {
+        reflect_dom_object(box StyleSheet::new_inherited(type_, href, title, owner),
                            GlobalRef::Window(window),
                            StyleSheetBinding::Wrap)
     }
@@ -56,5 +61,9 @@ impl StyleSheetMethods for StyleSheet {
     fn GetTitle(&self) -> Option<DOMString> {
         self.title.clone()
     }
-}
 
+    // https://drafts.csswg.org/cssom/#dom-stylesheet-title
+    fn GetOwnerNode(&self) -> Option<UnionTypes::ElementOrProcessingInstruction>{
+        None
+    }   
+}

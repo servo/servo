@@ -40,8 +40,7 @@ impl CSSRule {
 impl CSSRuleMethods for CSSRule {
     // https://drafts.csswg.org/cssom/#dom-cssrule-type
     fn Type_(&self) -> u16 {
-        
-        match &self{
+        match &self.rule {
            CSSStyleRule => CSSRuleConstants::STYLE_RULE,
         }
         //TODO match for other rules

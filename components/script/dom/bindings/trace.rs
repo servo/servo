@@ -88,15 +88,14 @@ use style::element_state::*;
 use style::properties::PropertyDeclarationBlock;
 use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::PseudoElement;
+use style::selector_impl::ServoSelectorImpl;
+use style::stylesheets::CSSRule;
 use style::values::specified::Length;
 use url::Origin as UrlOrigin;
 use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 use uuid::Uuid;
 use webrender_traits::WebGLError;
-use style::selector_impl::ServoSelectorImpl;
-use style::stylesheets::CSSRule;
-
 
 /// A trait to allow tracing (only) DOM objects.
 pub trait JSTraceable {
