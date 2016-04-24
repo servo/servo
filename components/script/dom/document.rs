@@ -2170,7 +2170,7 @@ impl DocumentMethods for Document {
                     )
                 )),
             "errorevent" =>
-+                Ok(Root::upcast(ErrorEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+                Ok(Root::upcast(ErrorEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
             _ =>
                 Err(Error::NotSupported),
         }
