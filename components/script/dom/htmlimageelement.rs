@@ -247,6 +247,11 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_setter!(SetSrc, "src");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-srcset
+    //make_getter!(Srcset, "srcset");
+    // https://html.spec.whatwg.org/multipage/#dom-img-srcset
+    //make_setter!(SetsrcSet, "srcset");
+
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
     make_enumerated_getter!(CrossOrigin, "crossorigin", "anonymous", ("use-credentials"));
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
@@ -397,4 +402,9 @@ fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
     let dim = LengthOrPercentageOrAuto::Length(Au::from_px(value as i32));
     let value = AttrValue::Dimension(DOMString::from(value.to_string()), dim);
     element.set_attribute(&attr, value);
+}
+
+fn parse_a_srcset_attribute(input: String){
+    let position = &input;
+    
 }
