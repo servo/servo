@@ -574,8 +574,8 @@ pub fn process_resolved_style_request<N: LayoutNode>(
     let layout_node = match *pseudo {
         Some(PseudoElement::Before) => layout_node.get_before_pseudo(),
         Some(PseudoElement::After) => layout_node.get_after_pseudo(),
-        Some(PseudoElement::DetailsSummary) => layout_node.get_details_summary_pseudo(),
-        Some(PseudoElement::DetailsContent) => layout_node.get_details_content_pseudo(),
+        Some(PseudoElement::DetailsSummary) |
+        Some(PseudoElement::DetailsContent) |
         Some(PseudoElement::Selection) => None,
         _ => Some(layout_node)
     };
@@ -590,7 +590,7 @@ pub fn process_resolved_style_request<N: LayoutNode>(
         Some(layout_node) => layout_node
     };
 
-    let style = &*layout_node.style();
+    let style = &*layout_node.resolved_style();
 
     let positioned = match style.get_box().position {
         position::computed_value::T::relative |
@@ -711,7 +711,7 @@ pub fn process_offset_parent_query<N: LayoutNode>(requested_node: N, layout_root
 
 pub fn process_node_overflow_request<N: LayoutNode>(requested_node: N) -> NodeOverflowResponse {
     let layout_node = requested_node.to_threadsafe();
-    let style = &*layout_node.style();
+    let style = &*layout_node.resolved_style();
     let style_box = style.get_box();
 
     NodeOverflowResponse(Some((Point2D::new(style_box.overflow_x, style_box.overflow_y.0))))
@@ -720,7 +720,7 @@ pub fn process_node_overflow_request<N: LayoutNode>(requested_node: N) -> NodeOv
 pub fn process_margin_style_query<N: LayoutNode>(requested_node: N)
         -> MarginStyleResponse {
     let layout_node = requested_node.to_threadsafe();
-    let style = &*layout_node.style();
+    let style = &*layout_node.resolved_style();
     let margin = style.get_margin();
 
     MarginStyleResponse {
