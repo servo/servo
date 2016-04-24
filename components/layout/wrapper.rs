@@ -708,7 +708,7 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
     fn get_after_pseudo(&self) -> Option<Self> {
         if self.borrow_layout_data().unwrap()
                .style_data.per_pseudo
-               .contains_key(&PseudoElement::Before) {
+               .contains_key(&PseudoElement::After) {
             Some(self.with_pseudo(PseudoElementType::After(None)))
         } else {
             None
