@@ -909,14 +909,18 @@ impl RangeMethods for Range {
         fn push_rects(node: Option<Root<Node>>, rects: &mut Vec<Root<DOMRect>>) {
             match node {
                 Some(node) => {
-                    let element: &Element = node.downcast::<Element>().unwrap();
-                    let element_rects = element.GetClientRects();
+                    if let Some(element) = node.downcast::<Element>() {
+                        let element_rects = element.GetClientRects();
 
-                    for i in 0..element_rects.r().Length() {
-                        match element_rects.r().Item(i) {
-                            Some(rect) => rects.push(rect),
-                            None => ()
+                        for i in 0..element_rects.r().Length() {
+                            match element_rects.r().Item(i) {
+                                Some(rect) => rects.push(rect),
+                                None => ()
+                            }
                         }
+                    }
+                    if let Some(text) = node.downcast::<CharacterSet>() {
+                        // TODO: How to calculate from Text?
                     }
                 },
                 None => ()
