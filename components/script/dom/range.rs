@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
+use dom::bindings::codegen::Bindings::DOMRectListBinding::DOMRectListMethods;
+use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
@@ -21,7 +23,11 @@ use dom::bindings::weakref::{WeakRef, WeakRefVec};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
+use dom::domrect::DOMRect;
+use dom::domrectlist::DOMRectList;
+use dom::element::Element;
 use dom::node::{Node, UnbindContext};
+use dom::node::{window_from_node};
 use dom::text::Text;
 use heapsize::HeapSizeOf;
 use js::jsapi::JSTracer;
@@ -892,6 +898,56 @@ impl RangeMethods for Range {
 
         // Step 6.
         s
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-range-getclientrects
+    fn GetClientRects(&self) -> Option<Root<DOMRectList>> {
+        let start_node = self.StartContainer();
+        let end_node = self.EndContainer();
+        let win = window_from_node(start_node.r()).r();
+
+        fn push_rects(node: Option<Root<Node>>, rects: &Vec<Root<DOMRect>>) {
+            match node {
+                Some(node) => {
+                    let element: Element = *node.downcast::<Element>().unwrap();
+                    let element_rects = element.GetClientRects().r();
+
+                    for i in 0..element_rects.Length() {
+                        match element_rects.Item(i) {
+                            Some(rect) => rects.push(rect)
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut rects = Vec::new();
+
+        if start_node == end_node {
+            push_rects(Some(start_node), &rects);
+            return Some(DOMRectList::new(win, rects.iter()))
+        }
+
+        let (first, last, children) = self.contained_children().unwrap();
+
+        push_rects(first, &rects);
+        for node in children {
+            push_rects(Some(node), &rects);
+        }
+        push_rects(last, &rects);
+
+        Some(DOMRectList::new(win, rects.iter()))
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-range-getboundingclientrect
+    fn GetBoundingClientRect(&self) -> Root<DOMRect> {
+        let node = self.StartContainer();
+        let win = window_from_node(node.r());
+
+        match self.GetClientRects() {
+            Some(rv) => rv.r().Item(0).unwrap(),
+            None => DOMRect::new(GlobalRef::Window(win.r()), 0.0, 0.0, 0.0, 0.0)
+        }
     }
 }
 
