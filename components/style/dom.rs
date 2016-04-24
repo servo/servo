@@ -4,12 +4,12 @@
 
 #![allow(unsafe_code)]
 
+use context::SharedStyleContext;
 use data::PrivateStyleData;
 use element_state::ElementState;
 use properties::{ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RESTYLE_DESCENDANTS, RESTYLE_LATER_SIBLINGS, RESTYLE_SELF, RestyleHint};
 use selector_impl::{ElementExt, SelectorImplExt};
-use selector_matching::PrecomputedStyleData;
 use selectors::Element;
 use selectors::matching::DeclarationBlock;
 use smallvec::VecLike;
@@ -90,10 +90,7 @@ pub trait TNode : Sized + Copy + Clone {
     /// initialized.
     ///
     /// FIXME(pcwalton): Do this as part of fragment building instead of in a traversal.
-    fn initialize_data(self,
-                       precomputed: &Arc<PrecomputedStyleData<<Self::ConcreteElement as Element>::Impl,
-                                                              Self::ConcreteComputedValues>>)
-        where <Self::ConcreteElement as Element>::Impl: SelectorImplExt;
+    fn initialize_data(self);
 
     /// While doing a reflow, the node at the root has no parent, as far as we're
     /// concerned. This method returns `None` at the reflow root.
@@ -174,7 +171,10 @@ pub trait TNode : Sized + Copy + Clone {
 
     /// Returns the style results for the given node. If CSS selector matching
     /// has not yet been performed, fails.
-    fn style(&self) -> Ref<Arc<Self::ConcreteComputedValues>> {
+    fn style(&self,
+             _context: &SharedStyleContext<<Self::ConcreteElement as Element>::Impl>)
+        -> Ref<Arc<Self::ConcreteComputedValues>>
+        where <Self::ConcreteElement as Element>::Impl: SelectorImplExt<ComputedValues=Self::ConcreteComputedValues> {
         Ref::map(self.borrow_data().unwrap(), |data| data.style.as_ref().unwrap())
     }
 

@@ -129,7 +129,7 @@ pub fn recalc_style_at<'a, N, C>(context: &'a C,
     //
     // FIXME(pcwalton): Stop allocating here. Ideally this should just be done by the HTML
     // parser.
-    node.initialize_data(context.shared_context().stylist.get_precomputed_data());
+    node.initialize_data();
 
     // Get the parent node.
     let parent_opt = node.layout_parent_node(root);
