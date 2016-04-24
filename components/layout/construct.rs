@@ -1507,11 +1507,13 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
                 // Pseudo-element.
                 let style = node.style(self.style_context());
                 let display = match node.get_pseudo_element_type() {
-                    PseudoElementType::Normal => display::T::inline,
-                    PseudoElementType::Before(display) => display,
-                    PseudoElementType::After(display) => display,
-                    PseudoElementType::DetailsContent(display) => display,
-                    PseudoElementType::DetailsSummary(display) => display,
+                    PseudoElementType::Normal
+                        => display::T::inline,
+                    PseudoElementType::Before(maybe_display) |
+                    PseudoElementType::After(maybe_display) |
+                    PseudoElementType::DetailsContent(maybe_display) |
+                    PseudoElementType::DetailsSummary(maybe_display)
+                        => maybe_display.unwrap_or(style.get_box().display),
                 };
                 (display, style.get_box().float, style.get_box().position)
             }
