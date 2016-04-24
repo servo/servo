@@ -5,6 +5,7 @@
 //! Implementation of cookie storage as specified in
 //! http://tools.ietf.org/html/rfc6265
 
+use cookie_rs;
 use cookie::Cookie;
 use net_traits::CookieSource;
 use rustc_serialize::{Encodable, Encoder};
@@ -118,5 +119,12 @@ impl CookieStorage {
             0 => None,
             _ => Some(result)
         }
+    }
+
+    pub fn cookies_by_name_for_url(&mut self, url: &Url, name: &str, source: CookieSource) -> Vec<cookie_rs::Cookie> {
+        self.cookies.iter_mut().filter(|c| { c.appropriate_for_url(url, source) && c.cookie.name == name }).map(|c| {
+            c.touch();
+            c.cookie.clone()
+        }).collect()
     }
 }
