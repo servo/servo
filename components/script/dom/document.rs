@@ -2168,6 +2168,8 @@ impl DocumentMethods for Document {
                         &TouchList::new(&self.window, &[]),
                     )
                 )),
+            "focusevent" =>
+                Ok(Root::upcast(FocusEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
             _ =>
                 Err(Error::NotSupported),
         }
