@@ -11,6 +11,5 @@ use stylesheets;
 /// Concrete types for servo Style implementation
 pub type Stylesheet = stylesheets::Stylesheet<ServoSelectorImpl>;
 pub type PrivateStyleData = data::PrivateStyleData<ServoSelectorImpl, ServoComputedValues>;
-pub type PrecomputedStyleData = selector_matching::PrecomputedStyleData<ServoSelectorImpl, ServoComputedValues>;
 pub type Stylist = selector_matching::Stylist<ServoSelectorImpl>;
 pub type SharedStyleContext = context::SharedStyleContext<ServoSelectorImpl>;
