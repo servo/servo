@@ -103,3 +103,4 @@ mod wrapper;
 
 // For unit tests:
 pub use fragment::Fragment;
+pub use wrapper::ServoThreadSafeLayoutNode;
