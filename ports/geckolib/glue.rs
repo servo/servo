@@ -18,7 +18,7 @@ use std::ptr;
 use std::slice;
 use std::str::from_utf8_unchecked;
 use std::sync::{Arc, Mutex};
-use style::context::{ReflowGoal, StylistWrapper};
+use style::context::{ReflowGoal};
 use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::parallel;
@@ -51,7 +51,8 @@ pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *m
     // into a runtime-wide init hook at some point.
     GeckoComputedValues::initial_values();
 
-    let _needs_dirtying = data.stylist.update(&data.stylesheets, data.stylesheets_changed);
+    let _needs_dirtying = Arc::get_mut(&mut data.stylist).unwrap()
+                              .update(&data.stylesheets, data.stylesheets_changed);
     data.stylesheets_changed = false;
 
     let shared_style_context = SharedStyleContext {
@@ -59,7 +60,7 @@ pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *m
         screen_size_changed: false,
         generation: 0,
         goal: ReflowGoal::ForScriptQuery,
-        stylist: StylistWrapper(&data.stylist),
+        stylist: data.stylist.clone(),
         new_animations_sender: Mutex::new(data.new_animations_sender.clone()),
         running_animations: data.running_animations.clone(),
         expired_animations: data.expired_animations.clone(),
