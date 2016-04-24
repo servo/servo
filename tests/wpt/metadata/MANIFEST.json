@@ -14894,6 +14894,10 @@
         "url": "/dom/ranges/Range-constructor.html"
       },
       {
+        "path": "dom/ranges/Range-getClientRects.html",
+        "url": "/dom/ranges/Range-getClientRects.html"
+      },
+      {
         "path": "dom/ranges/Range-stringifier.html",
         "url": "/dom/ranges/Range-stringifier.html"
       },
