@@ -52,7 +52,7 @@ impl<'a> StandaloneStyleContext<'a> {
     }
 }
 
-impl<'a> StyleContext<'a, GeckoSelectorImpl, GeckoComputedValues> for StandaloneStyleContext<'a> {
+impl<'a> StyleContext<'a, GeckoSelectorImpl> for StandaloneStyleContext<'a> {
     fn shared_context(&self) -> &'a SharedStyleContext {
         &self.shared
     }
