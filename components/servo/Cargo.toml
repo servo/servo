@@ -172,3 +172,6 @@ env_logger = "0.3"
 euclid = {version = "0.6.4", features = ["plugins"]}
 libc = "0.2"
 url = {version = "1.0.0", features = ["heap_size", "serde", "query_encoding"]}
+
+[replace]
+"selectors:0.5.3" = { git = "http://github.com/emilio/rust-selectors", branch = "get-all-rules-try" }
