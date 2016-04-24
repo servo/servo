@@ -38,3 +38,6 @@ path = "../../components/util"
 [dependencies.style]
 path = "../../components/style"
 features = ["gecko"]
+
+[replace]
+"selectors:0.5.3" = { git = "http://github.com/emilio/rust-selectors", branch = "get-all-rules-try" }

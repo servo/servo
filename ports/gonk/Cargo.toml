@@ -56,3 +56,6 @@ libc = "0.2"
 euclid = {version = "0.6.4", features = ["plugins"]}
 gleam = "0.2.8"
 servo-egl = "0.2"
+
+[replace]
+"selectors:0.5.3" = { git = "http://github.com/emilio/rust-selectors", branch = "get-all-rules-try" }
