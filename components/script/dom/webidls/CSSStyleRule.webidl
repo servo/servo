@@ -5,6 +5,6 @@
 
 // https://drafts.csswg.org/cssom/#the-CSSStyleRule-interface
 interface CSSStyleRule : CSSRule {
-  attribute DOMString selectorText;
+  readonly attribute DOMString selectorText;
   //[SameObject, PutForwards=cssText] readonly attribute CSSStyleDeclaration style;
 };
