@@ -361,11 +361,11 @@ fn no_ref_when_downgrade_header(referrer_url: Url, url: Url) -> Option<Url> {
     if referrer_url.scheme == "https" && url.scheme != "https" {
         return None;
     }
-    return generate_referer_url(referrer_url, false);
+    return strip_url(referrer_url, false);
 }
 
 /// https://w3c.github.io/webappsec-referrer-policy/#strip-url
-fn generate_referer_url(mut referrer_url: Url, origin_only: bool) -> Option<Url> {
+fn strip_url(mut referrer_url: Url, origin_only: bool) -> Option<Url> {
     if referrer_url.scheme == "https" || referrer_url.scheme == "http" {
         if let Some(relative) = referrer_url.relative_scheme_data_mut() {
             relative.username.clear();
@@ -391,16 +391,14 @@ fn determine_request_referrer(headers: &mut Headers,
     //TODO - algorithm step 2 not addressed
     if !headers.has::<Referer>() {
         if let Some(ref_url) = referrer_url {
-            let cross_origin = ref_url.origin() != url.origin() || ref_url.scheme != url.scheme;
-            let referer = match referrer_policy {
+            let cross_origin = ref_url.origin() != url.origin();
+            return match referrer_policy {
                 Some(ReferrerPolicy::NoReferrer) => None,
-                Some(ReferrerPolicy::OriginOnly) => generate_referer_url(ref_url, true),
-                Some(ReferrerPolicy::UnsafeUrl) => generate_referer_url(ref_url, false),
-                Some(ReferrerPolicy::OriginWhenCrossOrigin) => generate_referer_url(ref_url, cross_origin),
-                Some(ReferrerPolicy::NoRefWhenDowngrade) => no_ref_when_downgrade_header(ref_url, url),
-                None => no_ref_when_downgrade_header(ref_url, url),
+                Some(ReferrerPolicy::OriginOnly) => strip_url(ref_url, true),
+                Some(ReferrerPolicy::UnsafeUrl) => strip_url(ref_url, false),
+                Some(ReferrerPolicy::OriginWhenCrossOrigin) => strip_url(ref_url, cross_origin),
+                Some(ReferrerPolicy::NoRefWhenDowngrade) | None => no_ref_when_downgrade_header(ref_url, url),
             };
-            return referer;
         }
     }
     return None;

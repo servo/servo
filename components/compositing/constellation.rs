@@ -1009,6 +1009,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         };
 
         // Create the new pipeline, attached to the parent and push to pending frames
+        // TODO - loaddata here should have referrer info (not None, None)
         self.new_pipeline(load_info.new_pipeline_id,
                           Some((load_info.containing_pipeline_id, load_info.new_subpage_id)),
                           window_size,
