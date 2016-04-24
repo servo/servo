@@ -72,7 +72,7 @@ use style::properties::{ComputedValues, ServoComputedValues};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::{NonTSPseudoClass, PseudoElement, ServoSelectorImpl};
-use style::servo::{PrecomputedStyleData, PrivateStyleData};
+use style::servo::{PrivateStyleData, SharedStyleContext};
 use url::Url;
 use util::str::is_whitespace;
 
@@ -168,11 +168,11 @@ impl<'ln> TNode for ServoLayoutNode<'ln> {
         OpaqueNodeMethods::from_jsmanaged(unsafe { self.get_jsmanaged() })
     }
 
-    fn initialize_data(self, precomputed: &Arc<PrecomputedStyleData>) {
+    fn initialize_data(self) {
         let has_data = unsafe { self.borrow_data_unchecked().is_some() };
         if !has_data {
             let ptr: NonOpaqueStyleAndLayoutData =
-                Box::into_raw(box RefCell::new(PrivateLayoutData::new(precomputed.clone())));
+                Box::into_raw(box RefCell::new(PrivateLayoutData::new()));
             let opaque = OpaqueStyleAndLayoutData {
                 ptr: unsafe { NonZero::new(ptr as *mut ()) }
             };
@@ -428,14 +428,14 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     #[inline]
-    fn get_attr<'a>(&'a self, namespace: &Namespace, name: &Atom) -> Option<&'a str> {
+    fn get_attr(&self, namespace: &Namespace, name: &Atom) -> Option<&str> {
         unsafe {
             (*self.element.unsafe_get()).get_attr_val_for_layout(namespace, name)
         }
     }
 
     #[inline]
-    fn get_attrs<'a>(&'a self, name: &Atom) -> Vec<&'a str> {
+    fn get_attrs(&self, name: &Atom) -> Vec<&str> {
         unsafe {
             (*self.element.unsafe_get()).get_attr_vals_for_layout(name)
         }
@@ -745,19 +745,12 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
             return None;
         }
 
-        self.borrow_layout_data().unwrap()
-            .style_data
-            .precomputed
-            .computed_values_for(&PseudoElement::DetailsContent,
-                                 Some(&*self.style()))
-            .map(|style| {
-                let display = if element.get_attr(&ns!(), &atom!("open")).is_some() {
-                    style.get_box().display
-                } else {
-                    display::T::none
-                };
-                self.with_pseudo(PseudoElementType::DetailsContent(display))
-            })
+        let display = if element.get_attr(&ns!(), &atom!("open")).is_some() {
+            display::T::block
+        } else {
+            display::T::none
+        };
+        Some(self.with_pseudo(PseudoElementType::DetailsContent(display)))
     }
 
     /// Borrows the layout data immutably. Fails on a conflicting borrow.
@@ -777,7 +770,7 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
     ///
     /// Unlike the version on TNode, this handles pseudo-elements.
     #[inline]
-    fn style(&self) -> Ref<Arc<ServoComputedValues>> {
+    fn style(&self, context: &SharedStyleContext) -> Ref<Arc<ServoComputedValues>> {
         match self.get_pseudo_element_type() {
             PseudoElementType::Normal => {
                 Ref::map(self.borrow_layout_data().unwrap(), |data| {
@@ -791,10 +784,9 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
                 if !style_pseudo.is_eagerly_cascaded() &&
                    !self.borrow_layout_data().unwrap().style_data.per_pseudo.contains_key(&style_pseudo) {
                     let mut data = self.mutate_layout_data().unwrap();
-                    let new_style = data.style_data
-                                        .precomputed
-                                        .computed_values_for(&style_pseudo,
-                                                             data.style_data.style.as_ref());
+                    let new_style = context.stylist
+                                           .computed_values_for_pseudo(&style_pseudo,
+                                                                       data.style_data.style.as_ref());
                     data.style_data.per_pseudo.insert(style_pseudo.clone(), new_style.unwrap());
                 }
 
@@ -805,8 +797,26 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
         }
     }
 
+    /// Returns the already resolved style of the node.
+    ///
+    /// This differs from `style(ctx)` in that if the pseudo-element has not yet
+    /// been computed it would panic.
+    ///
+    /// This should be used just for querying layout, not from layout itself.
     #[inline]
-    fn selected_style(&self) -> Ref<Arc<ServoComputedValues>> {
+    fn resolved_style(&self) -> Ref<Arc<ServoComputedValues>> {
+        Ref::map(self.borrow_layout_data().unwrap(), |data| {
+            match self.get_pseudo_element_type() {
+                PseudoElementType::Normal
+                    => data.style_data.style.as_ref().unwrap(),
+                other
+                    => data.style_data.per_pseudo.get(&other.style_pseudo_element()).unwrap(),
+            }
+        })
+    }
+
+    #[inline]
+    fn selected_style(&self, _context: &SharedStyleContext) -> Ref<Arc<ServoComputedValues>> {
         Ref::map(self.borrow_layout_data().unwrap(), |data| {
             data.style_data.per_pseudo
                 .get(&PseudoElement::Selection)
@@ -830,7 +840,7 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
         };
     }
 
-    fn is_ignorable_whitespace(&self) -> bool;
+    fn is_ignorable_whitespace(&self, context: &SharedStyleContext) -> bool;
 
     fn restyle_damage(self) -> RestyleDamage;
 
@@ -909,7 +919,7 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized {
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<ConcreteThreadSafeLayoutElement = Self>;
 
     #[inline]
-    fn get_attr<'a>(&'a self, namespace: &Namespace, name: &Atom) -> Option<&'a str>;
+    fn get_attr(&self, namespace: &Namespace, name: &Atom) -> Option<&str>;
 
     #[inline]
     fn get_local_name(&self) -> &Atom;
@@ -1030,7 +1040,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         self.node.mutate_layout_data()
     }
 
-    fn is_ignorable_whitespace(&self) -> bool {
+    fn is_ignorable_whitespace(&self, context: &SharedStyleContext) -> bool {
         unsafe {
             let text: LayoutJS<Text> = match self.get_jsmanaged().downcast() {
                 Some(text) => text,
@@ -1047,7 +1057,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
             //
             // If you implement other values for this property, you will almost certainly
             // want to update this check.
-            !self.style().get_inheritedtext().white_space.preserve_newlines()
+            !self.style(context).get_inheritedtext().white_space.preserve_newlines()
         }
     }
 

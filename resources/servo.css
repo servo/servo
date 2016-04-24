@@ -54,7 +54,6 @@ details[open]::-servo-details-summary {
 *|*::-servo-details-content {
   margin-left: 40px;
   overflow: hidden;
-  display: block;
 }
 /*
  * Until servo supports svg properly, make sure to at least prevent svg

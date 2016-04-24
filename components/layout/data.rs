@@ -4,8 +4,7 @@
 
 use construct::ConstructionResult;
 use incremental::RestyleDamage;
-use std::sync::Arc;
-use style::servo::{PrecomputedStyleData, PrivateStyleData};
+use style::servo::PrivateStyleData;
 
 /// Data that layout associates with a node.
 pub struct PrivateLayoutData {
@@ -37,9 +36,9 @@ pub struct PrivateLayoutData {
 
 impl PrivateLayoutData {
     /// Creates new layout data.
-    pub fn new(precomputed_style_data: Arc<PrecomputedStyleData>) -> PrivateLayoutData {
+    pub fn new() -> PrivateLayoutData {
         PrivateLayoutData {
-            style_data: PrivateStyleData::new(precomputed_style_data),
+            style_data: PrivateStyleData::new(),
             restyle_damage: RestyleDamage::empty(),
             flow_construction_result: ConstructionResult::None,
             before_flow_construction_result: ConstructionResult::None,
