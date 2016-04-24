@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use properties::ComputedValues;
-use selector_matching::PrecomputedStyleData;
 use selectors::parser::SelectorImpl;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
@@ -13,12 +12,6 @@ use std::sync::atomic::AtomicIsize;
 pub struct PrivateStyleData<Impl: SelectorImpl, ConcreteComputedValues: ComputedValues> {
     /// The results of CSS styling for this node.
     pub style: Option<Arc<ConcreteComputedValues>>,
-
-    /// Shared rules data needed to avoid doing the cascade for some
-    /// pseudo-elements like "-servo-details-content"
-    ///
-    /// TODO: Move to TLS to avoid this extra pointer?
-    pub precomputed: Arc<PrecomputedStyleData<Impl, ConcreteComputedValues>>,
 
     /// The results of CSS styling for each pseudo-element (if any).
     pub per_pseudo: HashMap<Impl::PseudoElement, Arc<ConcreteComputedValues>,
@@ -30,11 +23,9 @@ pub struct PrivateStyleData<Impl: SelectorImpl, ConcreteComputedValues: Computed
 
 impl<Impl, ConcreteComputedValues> PrivateStyleData<Impl, ConcreteComputedValues>
     where Impl: SelectorImpl, ConcreteComputedValues: ComputedValues {
-    pub fn new(precomputed: Arc<PrecomputedStyleData<Impl, ConcreteComputedValues>>)
-        -> PrivateStyleData<Impl, ConcreteComputedValues> {
+    pub fn new() -> PrivateStyleData<Impl, ConcreteComputedValues> {
         PrivateStyleData {
             style: None,
-            precomputed: precomputed,
             per_pseudo: HashMap::with_hasher(Default::default()),
             parallel: DomParallelInfo::new(),
         }
