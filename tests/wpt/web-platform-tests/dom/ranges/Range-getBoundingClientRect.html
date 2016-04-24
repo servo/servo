@@ -14,13 +14,13 @@
 test(function() {
   var values = {x: 8, y: 28.800003051757812, width: 1280,
     height: 123.19999694824219, top: 28.800003051757812, right: 1288,
-    bottom: 152, left: 8}
+    bottom: 152, left: 8};
+
   var r = document.createRange();
   r.setStart(document.getElementById('data'), 0);
   r.setEnd(document.getElementById('data3'), 0);
 
   var rect = r.getBoundingClientRect();
-  console.log(rect);
   for (var property in values) {
     assert_equals(values[property], rect[property]);
   }
