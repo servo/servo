@@ -403,8 +403,13 @@ fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
     let value = AttrValue::Dimension(DOMString::from(value.to_string()), dim);
     element.set_attribute(&attr, value);
 }
+ 
+struct ImageSource {
+    candidates: String,
+}
 
-fn parse_a_srcset_attribute(input: String){
-    let position = &input;
-    
+impl ImageSource{
+    fn parse_a_srcset_attribute(&self, input: String) -> ImageSource {
+        let position = &input;
+    }    
 }
