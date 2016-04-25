@@ -12,6 +12,7 @@ use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storage::Storage;
+use dom::window::Window;
 use string_cache::Atom;
 use util::str::DOMString;
 
@@ -40,6 +41,13 @@ impl StorageEvent {
             url: url,
             storageArea: MutNullableHeap::new(storageArea)
         }
+    }
+
+    pub fn new_uninitialized(window: &Window,
+                             url: DOMString) -> Root<StorageEvent> {
+        reflect_dom_object(box StorageEvent::new_inherited(None, None, None, url, None),
+                           GlobalRef::Window(window),
+                           StorageEventBinding::Wrap)
     }
 
     pub fn new(global: GlobalRef,
