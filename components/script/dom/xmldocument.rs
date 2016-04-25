@@ -49,17 +49,18 @@ impl XMLDocument {
                browsing_context: Option<&BrowsingContext>,
                url: Option<Url>,
                doctype: IsHTMLDocument,
-               content_type: Option<DOMString>,
+               content_type_str: &str,
                last_modified: Option<String>,
                source: DocumentSource,
                doc_loader: DocumentLoader)
                -> Root<XMLDocument> {
+        let content_type = DOMString::from(content_type_str);
         let doc = reflect_dom_object(
             box XMLDocument::new_inherited(window,
                                            browsing_context,
                                            url,
                                            doctype,
-                                           content_type,
+                                           Some(content_type),
                                            last_modified,
                                            source,
                                            doc_loader),

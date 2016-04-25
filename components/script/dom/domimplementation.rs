@@ -71,9 +71,9 @@ impl DOMImplementationMethods for DOMImplementation {
         let namespace = namespace_from_domstring(maybe_namespace.to_owned());
 
         let content_type = match namespace {
-            ns!(html) => DOMString::from("application/xhtml+xml"),
-            ns!(svg) => DOMString::from("image/svg+xml"),
-            _ => DOMString::from("application/xml")
+            ns!(html) => "application/xhtml+xml",
+            ns!(svg) => "image/svg+xml",
+            _ => "application/xml"
         };
 
         // Step 1.
@@ -81,7 +81,7 @@ impl DOMImplementationMethods for DOMImplementation {
                                    None,
                                    None,
                                    IsHTMLDocument::NonHTMLDocument,
-                                   Some(content_type),
+                                   content_type,
                                    None,
                                    DocumentSource::NotFromParser,
                                    loader);
