@@ -406,6 +406,7 @@ impl HTMLFormElement {
             ("http", FormMethod::FormPost) | ("https", FormMethod::FormPost) => {
                 load_data.method = Method::Post;
                 load_data.data = Some(parsed_data.into_bytes());
+                self.plan_to_navigate(load_data, &win);
             }
             // https://html.spec.whatwg.org/multipage/#submit-get-action
             ("file", _) | ("about", _) | ("data", FormMethod::FormGet) |
