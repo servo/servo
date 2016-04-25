@@ -142,6 +142,11 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "bitflags"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "block"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1202,6 +1207,7 @@ dependencies = [
 name = "net"
 version = "0.0.1"
 dependencies = [
+ "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "brotli 0.3.20 (git+https://github.com/ende76/brotli-rs)",
  "cookie 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "devtools_traits 0.0.1",
