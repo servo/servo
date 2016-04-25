@@ -1815,10 +1815,8 @@ impl Document {
     }
 
     pub fn get_nth_cssstylesheet(&self, index: u32) -> Root<CSSStyleSheet> {
-
-        let mut stylesheets = self.stylesheets.borrow_mut();
         let (ref mut node, ref mut sheet) = (*self.stylesheets.borrow()).unwrap()[index as usize];
-        CSSStyleSheet::new(&self.window, *sheet, node)
+        CSSStyleSheet::new(&self.window, *sheet)
     }
 }
 

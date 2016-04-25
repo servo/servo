@@ -17,22 +17,22 @@ use style::servo::Stylesheet;
 pub struct CSSStyleSheet {
         reflector_: Reflector,
         stylesheet: Arc<Stylesheet>,
-        node: Node,
+        //node: Node,
 }
 
 impl CSSStyleSheet {
     #[allow(unrooted_must_root)]
-    fn new_inherited(stylesheet: Arc<Stylesheet>, node: &Node) -> CSSStyleSheet {
+    fn new_inherited(stylesheet: Arc<Stylesheet>) -> CSSStyleSheet {
         CSSStyleSheet {
             reflector_: Reflector::new(),
             stylesheet: stylesheet,
-            node: *node,
+            //node: *node,
         }
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, stylesheet: Arc<Stylesheet>, node: &Node) -> Root<CSSStyleSheet> {
-        reflect_dom_object(box CSSStyleSheet::new_inherited(stylesheet, node),
+    pub fn new(window: &Window, stylesheet: Arc<Stylesheet>) -> Root<CSSStyleSheet> {
+        reflect_dom_object(box CSSStyleSheet::new_inherited(stylesheet),
                            GlobalRef::Window(window),
                            CSSStyleSheetBinding::Wrap)
     }
