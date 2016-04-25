@@ -35241,6 +35241,15 @@
     "deleted": [],
     "deleted_reftests": {},
     "items": {},
+      "testharness": {
+        "html/semantics/forms/form-submission-0/submit-entity-body.html": [
+          {
+            "path": "html/semantics/forms/form-submission-0/submit-entity-body.html",
+            "url": "/html/semantics/forms/form-submission-0/submit-entity-body.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {

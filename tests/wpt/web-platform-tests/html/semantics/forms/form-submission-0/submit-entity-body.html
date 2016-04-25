@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+var simple_tests = [
+  {
+    name: "form submission should navigate to url with x-www-form-urlencoded",
+    input: "<input name=foo value=bara>",
+    enctype: "application/x-www-form-urlencoded"
+  },
+  {
+    name: "form submission should navigate to url with multipart/form-data",
+    input: "<textarea name=foo>bar</textarea>",
+    enctype: "multipart/form-data"
+  },
+];
+simple_tests.forEach(function(test_obj) {
+  test_obj.test = async_test(test_obj.name);
+});
+function run_simple_test() {
+  if (simple_tests.length == 0) {
+    return;
+  }
+  var test_obj = simple_tests.pop();
+  var t = test_obj.test;
+  var testframe = document.getElementById("testframe");
+  var testdocument = testframe.contentWindow.document;
+  testdocument.body.innerHTML =
+    "<form id=testform method=post action=\"form-submission.py\" enctype=\"" + test_obj.enctype + "\">" +
+    test_obj.input +
+    "</form>";
+  testframe.onload = function() {
+    t.step(function (){
+      var response = testframe.contentDocument.documentElement.textContent;
+      assert_equals(response, "OK");
+    });
+    t.done();
+    run_simple_test();
+  };
+  testdocument.getElementById("testform").submit();
+}
+</script>
+<iframe id=testframe src="/common/blank.html" onload="run_simple_test();"></iframe>
