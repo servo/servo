@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Use the document base url when resolving worker URLs</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<base href="/workers/constructors/Worker/sample_worker/"></base>
+<script>
+    async_test(function(t) {
+        var worker = new Worker('worker.js');
+        var data = "foo";
+        worker.postMessage("foo");
+        worker.onmessage = t.step_func(function(event) {
+            assert_equals(event.data, data, "event.data does match expected data");
+            t.done();
+        });
+    }, "Use the document base url when resolving worker URLs");
+</script>

@@ -35241,6 +35241,12 @@
             "path": "dom/nodes/Node-isSameNode.html",
             "url": "/dom/nodes/Node-isSameNode.html"
           }
+        ],
+        "workers/constructors/Worker/use-base-url.html": [
+          {
+            "path": "workers/constructors/Worker/use-base-url.html",
+            "url": "/workers/constructors/Worker/use-base-url.html"
+          }
         ]
       }
     },
