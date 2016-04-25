@@ -358,7 +358,7 @@ fn set_default_accept(headers: &mut Headers) {
 
 /// https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-state-no-referrer-when-downgrade
 fn no_ref_when_downgrade_header(referrer_url: Url, url: Url) -> Option<Url> {
-    if referrer_url.scheme == "https" && url.scheme != "https" {
+    if referrer_url.scheme() == "https" && url.scheme() != "https" {
         return None;
     }
     return strip_url(referrer_url, false);
@@ -366,17 +366,14 @@ fn no_ref_when_downgrade_header(referrer_url: Url, url: Url) -> Option<Url> {
 
 /// https://w3c.github.io/webappsec-referrer-policy/#strip-url
 fn strip_url(mut referrer_url: Url, origin_only: bool) -> Option<Url> {
-    if referrer_url.scheme == "https" || referrer_url.scheme == "http" {
-        if let Some(relative) = referrer_url.relative_scheme_data_mut() {
-            relative.username.clear();
-            relative.password = None;
-            if origin_only {
-                relative.path.truncate(0);
-            }
-        }
-        referrer_url.fragment = None;
+    //TODO - url changed on me! I updated this, which now works but gives unused result warnings
+    if referrer_url.scheme() == "https" || referrer_url.scheme() == "http" {
+        referrer_url.set_username("");
+        referrer_url.set_password(None);
+        referrer_url.set_fragment(None);
         if origin_only {
-            referrer_url.query = None;
+            referrer_url.set_path("");
+            referrer_url.set_query(None);
         }
         return Some(referrer_url);
     }
@@ -591,7 +588,7 @@ pub fn modify_request_headers(headers: &mut Headers,
                                                           load_data.referrer_policy.clone(),
                                                           load_data.referrer_url.clone(),
                                                           url.clone()) {
-        headers.set(Referer(referer_val.serialize()));
+        headers.set(Referer(referer_val.into_string()));
     }
 
     // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
