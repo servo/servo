@@ -22,7 +22,7 @@ pub struct CSSRule {
 
 impl CSSRule {
     #[allow(unrooted_must_root)]
-    fn new_inherited(rule: stylesheets::CSSRule<ServoSelectorImpl>) -> CSSRule {
+    pub fn new_inherited(rule: stylesheets::CSSRule<ServoSelectorImpl>) -> CSSRule {
         CSSRule {
             reflector_: Reflector::new(),
             rule: rule

@@ -10,6 +10,7 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::cssrule::CSSRule;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
+use heapsize::HeapSizeOf;
 use style::stylesheets;
 
 #[dom_struct]
@@ -37,8 +38,7 @@ impl CSSRuleList {
 impl CSSRuleListMethods for CSSRuleList {
     // https://drafts.csswg.org/cssom/#dom-stylesheetlist-length
     fn Length(&self) -> u32 {
-       0
-       //self.stylesheet.get_cssstylesheet().rules().len() as u32
+       self.stylesheet.get_cssstylesheet().heap_size_of_children() as u32
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheetlist-item
