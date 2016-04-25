@@ -1813,7 +1813,7 @@ impl ScriptThread {
                     doc.find_iframe(subpage_id)
                 });
                 if let Some(iframe) = iframe.r() {
-                    iframe.navigate_or_reload_child_browsing_context(Some(load_data.url));
+                    iframe.navigate_or_reload_child_browsing_context(Some(load_data));
                 }
             }
             None => {
