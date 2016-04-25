@@ -11,6 +11,8 @@
 
 #![deny(unsafe_code)]
 
+#[macro_use]
+extern crate bitflags;
 extern crate brotli;
 extern crate cookie as cookie_rs;
 extern crate device;
