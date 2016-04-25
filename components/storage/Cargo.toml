@@ -1,0 +1,19 @@
+[package]
+name = "storage"
+version = "0.1.0"
+publish = false
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+url = {version = "1.0.0", features = ["heap_size"]}
+
+[dependencies.storage_traits]
+path = "../storage_traits"
+
+[dependencies.util]
+path = "../util"
+
+[dependencies.ipc-channel]
+git = "https://github.com/servo/ipc-channel"

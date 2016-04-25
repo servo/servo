@@ -41,5 +41,3 @@ pub enum StorageThreadMsg {
 
 /// Handle to a storage thread
 pub type StorageThread = IpcSender<StorageThreadMsg>;
-
-

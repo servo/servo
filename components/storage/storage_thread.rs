@@ -3,11 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use net_traits::storage_thread::{StorageThread, StorageThreadMsg, StorageType};
-use resource_thread;
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
+use storage_traits::storage_thread::{StorageThread, StorageThreadMsg, StorageType};
+use storage_traits::write_json_to_file;
 use url::Url;
 use util::opts;
 use util::thread::spawn_named;
@@ -72,7 +72,7 @@ impl StorageManager {
                 }
                 StorageThreadMsg::Exit => {
                     if let Some(ref profile_dir) = opts::get().profile_dir {
-                        resource_thread::write_json_to_file(&self.local_data, profile_dir, "local_data.json");
+                        write_json_to_file(&self.local_data, profile_dir, "local_data.json");
                     }
                     break
                 }
