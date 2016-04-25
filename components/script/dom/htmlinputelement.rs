@@ -11,6 +11,7 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
+use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
@@ -29,8 +30,11 @@ use dom::node::{Node, NodeDamage, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
+use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
+use regex::Regex;
+//use range::Range;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::InputEvent;
 use script_thread::Runnable;
@@ -86,7 +90,6 @@ pub struct HTMLInputElement {
     activation_state: DOMRefCell<InputActivationState>,
     // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag
     value_dirty: Cell<bool>,
-
     // TODO: selected files for file input
 }
 
@@ -936,9 +939,245 @@ impl VirtualMethods for HTMLInputElement {
     }
 }
 
-impl FormControl for HTMLInputElement {}
+impl FormControl for HTMLInputElement {
+    fn candidate_for_validation(&self, element: &Element) -> bool {
+        if element.as_maybe_validatable().is_some() {
+            return true
+        }
+        else {
+           return false
+        }
+    }
 
-impl Validatable for HTMLInputElement {}
+    fn satisfies_constraints(&self, element: &Element) -> bool {
+        let vs = ValidityState::new(window_from_node(self).r(), element);
+        return  vs.Valid()
+    }
+
+    fn ValueMissing(&self) -> bool {
+        let attr_value_check = self.upcast::<Element>().get_attribute_by_name(DOMString::from("required"))
+                .map(|s| s.Value());
+            if attr_value_check.is_some() {
+                    //let html_input_element = self.element.downcast::<HTMLInputElement>().unwrap();
+                    let input_value_check = self.get_value_for_validation();
+                    if input_value_check.is_some() {
+                        return false;
+                    }
+                    else {
+                            println!("Error - Value missing in html input element");
+                            return true;
+                    }
+            }
+            else {
+                return false;
+            }
+    }
+    fn TypeMismatch(&self) -> bool {
+                //let regex_email: Regex = Regex::new(r"/^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-] \
+                //    {0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/").unwrap();
+                let regex_email: Regex = Regex::new(r"").unwrap();
+                let regex_url: Regex = Regex::new(r"").unwrap();
+                let regex_number: Regex = Regex::new(r"").unwrap();
+                let attr_value_check = self.upcast::<Element>().get_attribute_by_name(DOMString::from("type"))
+                    .map(|s| s.Value());
+                match attr_value_check {
+                    Some(attr_value) => {
+                        // let html_input_element = self.element.downcast::<HTMLInputElement>().unwrap();
+                        let input_value_check = self.get_value_for_validation();
+                        match input_value_check {
+                            Some(input_value) => {
+                                if (attr_value == "email") & (!regex_email.is_match(&*input_value)) {
+                                        println!("Type error in html text input [email]");
+                                        return true;
+                                }
+                                else if (attr_value == "url") & (!regex_url.is_match(&*input_value)) {
+                                    println!("Type error in html text input [url]");
+                                    return true;
+                                }
+                                else if (attr_value == "number") & (!regex_number.is_match(&*input_value)) {
+                                    println!("Type error in html text input [number]");
+                                    return true;
+                                }
+                                else {
+                                    return false;
+                                }
+                            },
+                            None => {
+                                return false;
+                            }
+                        }
+                    },
+                    None => {
+                        return false;
+                    }
+                }
+                //let data = element1.form_datum(Some(FormSubmitter::InputElement(element1)));
+    }
+    fn PatternMismatch(&self) -> bool {
+            return false;
+    }
+    fn TooLong(&self) -> bool {
+
+        let attr_value_check = self.upcast::<Element>().get_attribute_by_name(DOMString::from("maxlength"))
+            .map(|s| s.Value());
+        match attr_value_check {
+            Some(attr_value) => {
+                let maxlength = attr_value.parse().unwrap();
+                //let html_input_element = self.element.downcast::<HTMLInputElement>().unwrap();
+                let input_value_check = self.get_value_for_validation();
+                match input_value_check {
+                    Some(input_value) => {
+                        if input_value.len() > maxlength {
+                            println!("Error - TooLong html input element");
+                            return true;
+                        }
+                        else {
+                            return false;
+                        }
+                    },
+                    None => {
+                        return false;
+                    }
+                }
+            },
+            None => {
+                return false;
+            }
+        }
+    }
+    fn TooShort(&self) -> bool {
+        let attr_value_check = self.upcast::<Element>().get_attribute_by_name(DOMString::from("minlength"))
+            .map(|s| s.Value());
+        match attr_value_check {
+            Some(attr_value) => {
+                let minlength = attr_value.parse().unwrap();
+                // let html_input_element = self.element.downcast::<HTMLInputElement>().unwrap();
+                let input_value_check = self.get_value_for_validation();
+                match input_value_check {
+                    Some(input_value) => {
+                        if input_value.len() < minlength {
+                            println!("Error - TooShort html input element");
+                            return true;
+                        }
+                        else {
+                            return false;
+                        }
+                    },
+                    None => {
+                        return false;
+                    }
+                }
+            },
+            None => {
+                return false;
+            }
+        }
+    }
+    fn RangeUnderflow(&self) -> bool {
+        let attr_value_check = self.upcast::<Element>().get_attribute_by_name(DOMString::from("min"))
+            .map(|s| s.Value());
+        match attr_value_check {
+            Some(attr_value) => {
+                let min: f32 = attr_value.parse().unwrap();
+                // let html_input_element = self.element.downcast::<HTMLInputElement>().unwrap();
+                let input_value_check = self.get_value_for_validation();
+                match input_value_check {
+                    Some(input_value) => {
+                        let text_value: f32 = input_value.parse().unwrap();
+                        if text_value < min {
+                            println!("Error - RangeUnderflow html input element");
+                            return true;
+                        }
+                        else {
+                            return false;
+                        }
+                    },
+                    None => {
+                        return false;
+                    }
+                }
+            },
+            None => {
+                return false;
+            }
+        }
+    }
+    fn RangeOverflow(&self) -> bool {
+        let attr_value_check = self.upcast::<Element>().get_attribute_by_name(DOMString::from("max"))
+            .map(|s| s.Value());
+        match attr_value_check {
+            Some(attr_value) => {
+                let max: f32 = attr_value.parse().unwrap();
+                // let html_input_element = self.element.downcast::<HTMLInputElement>().unwrap();
+                let input_value_check = self.get_value_for_validation();
+                match input_value_check {
+                    Some(input_value) => {
+                        let text_value: f32 = input_value.parse().unwrap();
+                        if text_value > max {
+                            println!("Error - RangeOverflow html input element");
+                            return true;
+                        }
+                        else {
+                            return false;
+                        }
+                    },
+                    None => {
+                        return false;
+                    }
+                }
+            },
+            None => {
+                return false;
+            }
+        }
+    }
+    fn StepMismatch(&self) -> bool {
+
+        let attr_value_check = self.upcast::<Element>().get_attribute_by_name(DOMString::from("step"))
+            .map(|s| s.Value());
+        match attr_value_check {
+            Some(attr_value) => {
+                let step: f32 = attr_value.parse().unwrap();
+                // let html_input_element = self.element.downcast::<HTMLInputElement>().unwrap();
+                let input_value_check = self.get_value_for_validation();
+                match input_value_check {
+                    Some(input_value) => {
+                        let text_value: f32 = input_value.parse().unwrap();
+                        if text_value % step == 0.0_f32 {
+                            return false;
+                        }
+                        else {
+                            println!("Error - StepMismatch html input element");
+                            return true;
+                        }
+                    },
+                    None => {
+                        return false;
+                    }
+                }
+            },
+            None => {
+                return false;
+            }
+        }
+    }
+    fn BadInput(&self) -> bool {
+            return false;
+    }
+    fn CustomError(&self) -> bool {
+            return false;
+    }
+
+}
+impl Validatable for HTMLInputElement {
+    fn get_value_for_validation(&self) -> Option<DOMString>{
+        if self.Value().is_empty() {
+            None
+        } else {
+            Some(self.Value())
+        }
+    }
+}
 
 impl Activatable for HTMLInputElement {
     fn as_element(&self) -> &Element {

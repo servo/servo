@@ -4,10 +4,12 @@
 
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::reflector::{Reflectable};
@@ -22,8 +24,10 @@ use dom::htmlinputelement::ChangeEventRunnable;
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{ChildrenMutation, Node, NodeDamage, UnbindContext};
 use dom::node::{document_from_node};
+use dom::node::{window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
+use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 use script_traits::ScriptMsg as ConstellationMsg;
@@ -33,6 +37,8 @@ use string_cache::Atom;
 use style::element_state::*;
 use textinput::{KeyReaction, Lines, TextInput, SelectionDirection};
 use util::str::DOMString;
+
+
 
 #[dom_struct]
 pub struct HTMLTextAreaElement {
@@ -390,6 +396,123 @@ impl VirtualMethods for HTMLTextAreaElement {
     }
 }
 
-impl FormControl for HTMLTextAreaElement {}
+impl FormControl for HTMLTextAreaElement {
+    fn candidate_for_validation(&self, element: &Element) -> bool {
+        if element.as_maybe_validatable().is_some() {
+            return true
+        }
+        else {
+           return false
+        }
+    }
 
-impl Validatable for HTMLTextAreaElement {}
+    fn satisfies_constraints(&self, element: &Element) -> bool {
+        let vs = ValidityState::new(window_from_node(self).r(), element);
+        return  vs.Valid()
+    }
+    fn ValueMissing(&self) -> bool {
+        let attr_value_check = self.upcast::<Element>().get_attribute_by_name(DOMString::from("required"))
+            .map(|s| s.Value());
+        if attr_value_check.is_some() {
+            //    let html_textarea_element = self.element.downcast::<HTMLTextAreaElement>().unwrap();
+                let input_value_check = self.get_value_for_validation();
+                if input_value_check.is_some() {
+                    return false;
+                }
+                else {
+                        println!("Error - Value missing in html text area element");
+                        return true;
+                }
+           }
+           else {
+                return false;
+           }
+    }
+    fn TypeMismatch(&self) -> bool {
+            return false;
+    }
+    fn PatternMismatch(&self) -> bool {
+            return false;
+    }
+    fn TooLong(&self) -> bool {
+        let attr_value_check = self.upcast::<Element>().get_attribute_by_name(DOMString::from("maxlength"))
+            .map(|s| s.Value());
+        match attr_value_check {
+            Some(attr_value) => {
+                let maxlength = attr_value.parse().unwrap();
+                //let html_textarea_element = self.element.downcast::<HTMLTextAreaElement>().unwrap();
+                let input_value_check = self.get_value_for_validation();
+                match input_value_check {
+                    Some(input_value) => {
+                     if input_value.len() > maxlength {
+                                println!("Error - TooLong in text area");
+                                return true;
+                        }
+                        else {
+                            return false;
+                        }
+                    },
+                    None => {
+                        return false;
+                    }
+                }
+            },
+            None => {
+                return false;
+            }
+        }
+    }
+    fn TooShort(&self) -> bool {
+        let attr_value_check = self.upcast::<Element>().get_attribute_by_name(DOMString::from("minlength"))
+            .map(|s| s.Value());
+        match attr_value_check {
+            Some(attr_value) => {
+                let minlength = attr_value.parse().unwrap();
+                // let html_input_element = self.element.downcast::<HTMLInputElement>().unwrap();
+                let input_value_check = self.get_value_for_validation();
+                match input_value_check {
+                    Some(input_value) => {
+                        if input_value.len() < minlength {
+                            println!("Error - TooShort html input element");
+                            return true;
+                        }
+                        else {
+                            return false;
+                        }
+                    },
+                    None => {
+                        return false;
+                    }
+                }
+            },
+            None => {
+                return false;
+            }
+        }
+    }
+    fn RangeUnderflow(&self) -> bool {
+            return false;
+    }
+    fn RangeOverflow(&self) -> bool {
+            return false;
+    }
+    fn StepMismatch(&self) -> bool {
+            return false;
+    }
+    fn BadInput(&self) -> bool {
+            return false;
+    }
+    fn CustomError(&self) -> bool {
+            return false;
+    }
+}
+
+impl Validatable for HTMLTextAreaElement {
+    fn get_value_for_validation(&self) -> Option<DOMString>{
+        if self.Value().is_empty() {
+            None
+        } else {
+            Some(self.Value())
+        }
+    }
+}

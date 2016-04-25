@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
+use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
@@ -228,6 +229,24 @@ impl HTMLFormElementMethods for HTMLFormElement {
     fn Length(&self) -> u32 {
         self.Elements().Length() as u32
     }
+    // https://html.spec.whatwg.org/multipage/#the-form-element:statically-validate-the-constraints
+    fn Check_validity(&self) -> bool {
+         let _unhandled_invalid_controls = match self.static_validation() {
+            Ok(()) => return true,
+            Err(err) => {
+            println!("Error in form fields in CheckValdity");
+                return false
+            }
+        };
+    }
+    // https://html.spec.whatwg.org/multipage/#the-form-element:interactively-validate-the-constraints
+    fn Report_validity(&self) -> bool {
+        if self.interactive_validation().is_err() {
+           return false;
+        } else {
+            return true;
+        }
+    }
 }
 
 #[derive(Copy, Clone, HeapSizeOf, PartialEq)]
@@ -446,14 +465,16 @@ impl HTMLFormElement {
         // Step 1-3
         let _unhandled_invalid_controls = match self.static_validation() {
             Ok(()) => return Ok(()),
-            Err(err) => err
+            Err(err) => {
+                err[0].as_event_target().downcast::<HTMLElement>().unwrap().Focus();
+                err
+            }
         };
         // TODO: Report the problems with the constraints of at least one of
         //       the elements given in unhandled invalid controls to the user
         // Step 4
         Err(())
     }
-
     /// Statitically validate the constraints of form elements
     /// https://html.spec.whatwg.org/multipage/#statically-validate-the-constraints
     fn static_validation(&self) -> Result<(), Vec<FormSubmittableElement>> {
@@ -463,8 +484,53 @@ impl HTMLFormElement {
         // Step 1-3
         let invalid_controls = node.traverse_preorder().filter_map(|field| {
             if let Some(_el) = field.downcast::<Element>() {
-                None // Remove this line if you decide to refactor
-
+                //if self.check_if_candidate_for_validation(_el) & !self.check_if_candidate_satisfies_constraints(_el) {
+                match _el.upcast::<Node>().type_id() {
+                    NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
+                        let html_input_element = _el.downcast::<HTMLInputElement>().unwrap();
+                        if html_input_element.candidate_for_validation(_el)
+                        & !html_input_element.satisfies_constraints(_el) {
+                            return Some(FormSubmittableElement::InputElement(
+                                Root::from_ref(_el.downcast::<HTMLInputElement>().unwrap())))
+                        }
+                    }
+                    NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) => {
+                        let html_button_element = _el.downcast::<HTMLButtonElement>().unwrap();
+                        if html_button_element.candidate_for_validation(_el)
+                        & !html_button_element.satisfies_constraints(_el) {
+                            return Some(FormSubmittableElement::ButtonElement(
+                                Root::from_ref(_el.downcast::<HTMLButtonElement>().unwrap())))
+                        }
+                    }
+                    NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
+                        let html_select_element = _el.downcast::<HTMLSelectElement>().unwrap();
+                        if html_select_element.candidate_for_validation(_el)
+                        & !html_select_element.satisfies_constraints(_el) {
+                            return Some(FormSubmittableElement::SelectElement(
+                                Root::from_ref(_el.downcast::<HTMLSelectElement>().unwrap())))
+                        }
+                    }
+                    NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
+                        let html_textarea_element = _el.downcast::<HTMLTextAreaElement>().unwrap();
+                        if html_textarea_element.candidate_for_validation(_el)
+                        & !html_textarea_element.satisfies_constraints(_el) {
+                            return Some(FormSubmittableElement::TextAreaElement(
+                                Root::from_ref(_el.downcast::<HTMLTextAreaElement>().unwrap())))
+                        }
+                    }
+                    NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)) => {
+                        let html_object_element = _el.downcast::<HTMLObjectElement>().unwrap();
+                        if html_object_element.candidate_for_validation(_el)
+                        & !html_object_element.satisfies_constraints(_el) {
+                            return Some(FormSubmittableElement::ObjectElement(
+                                Root::from_ref(_el.downcast::<HTMLObjectElement>().unwrap())))
+                        }
+                    }
+                    _ => { }
+                }
+                //}
+                // None // Remove this line if you decide to refactor
+                None
                 // XXXKiChjang: Form control elements should each have a candidate_for_validation
                 //              and satisfies_constraints methods
 
@@ -473,7 +539,10 @@ impl HTMLFormElement {
             }
         }).collect::<Vec<FormSubmittableElement>>();
         // Step 4
-        if invalid_controls.is_empty() { return Ok(()); }
+        if invalid_controls.is_empty() {
+            println!("Invalid Controls is Empty");
+            return Ok(());
+        }
         // Step 5-6
         let unhandled_invalid_controls = invalid_controls.into_iter().filter_map(|field| {
             let event = field.as_event_target()
@@ -858,8 +927,20 @@ pub trait FormControl: DerivedFrom<Element> + Reflectable {
     }
 
     // XXXKiChjang: Implement these on inheritors
-    // fn candidate_for_validation(&self) -> bool;
-    // fn satisfies_constraints(&self) -> bool;
+    fn candidate_for_validation(&self, element: &Element) -> bool;
+    fn satisfies_constraints(&self, element: &Element) -> bool;
+    // Implement these on htmlinputelement, htmlselectelement, etc
+    fn ValueMissing(&self) -> bool;
+    fn TypeMismatch(&self) -> bool;
+    fn PatternMismatch(&self) -> bool;
+    fn TooLong(&self) -> bool;
+    fn TooShort(&self) -> bool;
+    fn RangeUnderflow(&self) -> bool;
+    fn RangeOverflow(&self) -> bool;
+    fn StepMismatch(&self) -> bool;
+    fn BadInput(&self) -> bool;
+    fn CustomError(&self) -> bool;
+
 }
 
 impl VirtualMethods for HTMLFormElement {
