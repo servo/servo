@@ -18,6 +18,10 @@ use dom::node::{document_from_node, Node};
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
 use util::str::DOMString;
+use dom::validitystate::ValidityState;
+use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
+use dom::node::{window_from_node};
+
 
 #[dom_struct]
 pub struct HTMLLabelElement {
@@ -138,4 +142,21 @@ impl HTMLLabelElement {
     }
 }
 
-impl FormControl for HTMLLabelElement {}
+impl FormControl for HTMLLabelElement {
+    fn candidate_for_validation(&self, element: &Element) -> bool {
+        match element.as_maybe_validatable() {
+            Some(x) => {
+                //  println!("retun true" );
+                return true
+            },
+            None => { //println!("retun false" );
+                return false 
+            }
+        }
+    }
+
+    fn satisfies_constraints(&self, element: &Element) -> bool {
+        let vs = ValidityState::new(window_from_node(self).r(), element);
+        return  vs.Valid()
+    }
+}
