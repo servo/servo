@@ -1,0 +1,21 @@
+[root]
+name = "servo"
+version = "0.0.1"
+
+[[package]]
+name = "test"
+version = "0.4.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "test"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "test2"
+version = "0.1.0"
+source = "git+https://github.com/"
+dependencies = [
+ "test 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
+]

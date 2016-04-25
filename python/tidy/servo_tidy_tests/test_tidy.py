@@ -96,6 +96,18 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('vi modeline present', errors.next()[2])
         self.assertEqual('emacs file variables present', errors.next()[2])
         self.assertEqual('emacs file variables present', errors.next()[2])
+        self.assertNoMoreErrors(errors)
+
+    def test_lock(self):
+        errors = tidy.collect_errors_for_files(iterFile('duplicated_package.lock'), [tidy.check_lock], [])
+        msg = """duplicate versions for package "test"
+\t\033[93mfound dependency on version 0.4.9\033[0m
+\t\033[91mbut highest version is 0.5.1\033[0m
+\t\033[93mtry upgrading with\033[0m \033[96m./mach cargo-update -p test:0.4.9\033[0m
+\tThe following packages depend on version 0.4.9:
+\t\ttest2"""
+        self.assertEqual(msg, errors.next()[2])
+        self.assertNoMoreErrors(errors)
 
 
 def do_tests():
