@@ -329,7 +329,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         let (ipc_panic_receiver, ipc_panic_sender) = ConstellationChan::<PanicMsg>::new();
         let panic_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_panic_receiver);
         let compositor_sender_clone = compositor_sender.clone();
-        let (ipc_resource_msg_sender, ipc_resource_msg_receiver) = ipc::channel().unwrap();
+        //let (ipc_resource_msg_sender, ipc_resource_msg_receiver) = ipc::channel().unwrap();
+        let (ipc_resource_msg_receiver, ipc_resource_msg_sender) = ConstellationChan::<FromResourceMsg>::new();
         let resource_msg_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_resource_msg_receiver);
         spawn_named("Constellation".to_owned(), move || {
             let mut constellation: Constellation<LTF, STF> = Constellation {
@@ -390,9 +391,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             let namespace_id = constellation.next_pipeline_namespace_id();
             PipelineNamespace::install(namespace_id);
             constellation.run();
-            constellation.resource_thread.send(net_traits::ControlMsg::
-                                               SendConstellationMsgChannel
-                                               (ipc_resource_msg_sender));
+            let _ = constellation.resource_thread.send(
+                        net_traits::ControlMsg::SendConstellationMsgChannel(ipc_resource_msg_sender));
         });
         compositor_sender
     }
@@ -834,8 +834,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
             Request::Resource(FromResourceMsg::IsPrivate(pipeline_id, sender)) => {
                 debug!("constellation got IsPrivate message");
-                sender.send(self.check_is_pipeline_private(pipeline_id));
-                //self.check_is_pipeline_private(pipeline_id);
+                let _ = sender.send(self.check_is_pipeline_private(pipeline_id));
             }
 
         }

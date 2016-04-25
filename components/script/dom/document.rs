@@ -2563,7 +2563,7 @@ impl DocumentMethods for Document {
         let url = self.url();
         let _ = self.window
                     .resource_thread()
-                    .send(SetCookiesForUrl((*url).clone(), String::from(cookie), NonHTTP));
+                    .send(SetCookiesForUrl(self.window.pipeline(), (*url).clone(), String::from(cookie), NonHTTP));
         Ok(())
     }
 
