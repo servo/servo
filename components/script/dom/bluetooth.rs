@@ -18,7 +18,7 @@ use dom::bluetoothuuid::BluetoothUUID;
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::bluetooth_scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use net_traits::bluetooth_scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
-use net_traits::bluetooth_thread::{BluetoothMethodMsg, BluetoothObjectMsg};
+use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use util::str::DOMString;
 
 const FILTER_EMPTY_ERROR: &'static str = "'filters' member must be non - empty to find any devices.";
@@ -133,51 +133,32 @@ impl BluetoothMethods for Bluetooth {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
     fn RequestDevice(&self, option: &RequestDeviceOptions) -> Fallible<Root<BluetoothDevice>> {
         let (sender, receiver) = ipc::channel().unwrap();
-        match try!(convert_request_device_options(option, self.global().r())) {
-            option => {
-                self.get_bluetooth_thread().send(
-                    BluetoothMethodMsg::RequestDevice(option, sender)).unwrap();
-                let device = receiver.recv().unwrap();
-                match device {
-                    BluetoothObjectMsg::BluetoothDevice {
-                        id,
-                        name,
-                        device_class,
-                        vendor_id_source,
-                        vendor_id,
-                        product_id,
-                        product_version,
-                        appearance,
-                        tx_power,
-                        rssi,
-                    } => {
-                        let ad_data = &BluetoothAdvertisingData::new(self.global().r(),
-                                                                     appearance,
-                                                                     tx_power,
-                                                                     rssi);
-                        let vendor_id_source = vendor_id_source.map(|vid| match vid.as_str() {
-                            "bluetooth" => VendorIDSource::Bluetooth,
-                            "usb" => VendorIDSource::Usb,
-                            _ => VendorIDSource::Unknown,
-                        });
-                        let name = name.map(DOMString::from);
-                        Ok(BluetoothDevice::new(self.global().r(),
-                                                DOMString::from(id),
-                                                name,
-                                                ad_data,
-                                                device_class,
-                                                vendor_id_source,
-                                                vendor_id,
-                                                product_id,
-                                                product_version))
-                    },
-                    BluetoothObjectMsg::Error {
-                        error
-                    } => {
-                        Err(Type(error))
-                    },
-                    _ => unreachable!()
-                }
+        let option = try!(convert_request_device_options(option, self.global().r()));
+        self.get_bluetooth_thread().send(BluetoothMethodMsg::RequestDevice(option, sender)).unwrap();
+        let device = receiver.recv().unwrap();
+        match device {
+            Ok(device) => {
+                let ad_data = BluetoothAdvertisingData::new(self.global().r(),
+                                                            device.appearance,
+                                                            device.tx_power,
+                                                            device.rssi);
+                let vendor_id_source = device.vendor_id_source.map(|vid| match vid.as_str() {
+                    "bluetooth" => VendorIDSource::Bluetooth,
+                    "usb" => VendorIDSource::Usb,
+                    _ => VendorIDSource::Unknown,
+                });
+                Ok(BluetoothDevice::new(self.global().r(),
+                                        DOMString::from(device.id),
+                                        device.name.map(DOMString::from),
+                                        &ad_data,
+                                        device.device_class,
+                                        vendor_id_source,
+                                        device.vendor_id,
+                                        device.product_id,
+                                        device.product_version))
+            },
+            Err(error) => {
+                Err(Type(error))
             },
         }
     }
