@@ -932,8 +932,8 @@ impl ScriptThread {
                 LiveDOMReferences::cleanup(addr),
             MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(reports_chan)) =>
                 self.collect_reports(reports_chan),
-            MainThreadScriptMsg::DOMManipulation(msg) =>
-                msg.handle_msg(self),
+            MainThreadScriptMsg::DOMManipulation(task) =>
+                task.handle_task(self),
         }
     }
 

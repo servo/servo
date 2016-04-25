@@ -42,7 +42,7 @@ pub enum DOMManipulationTask {
 }
 
 impl DOMManipulationTask {
-    pub fn handle_msg(self, script_thread: &ScriptThread) {
+    pub fn handle_task(self, script_thread: &ScriptThread) {
         use self::DOMManipulationTask::*;
 
         match self {
