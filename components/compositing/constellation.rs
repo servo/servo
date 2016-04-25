@@ -982,7 +982,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             };
 
             // If no url is specified, reload.
-            let new_url = load_info.url.clone()
+            let new_url = load_info.load_data.clone().map(|data| data.url)
                 .or_else(|| old_pipeline.map(|old_pipeline| old_pipeline.url.clone()))
                 .unwrap_or_else(|| Url::parse("about:blank").expect("infallible"));
 
@@ -1016,13 +1016,20 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
         };
 
+        let load_data = if let Some(mut data) = load_info.load_data {
+            data.url = new_url;
+            data
+        } else {
+            // TODO - loaddata here should have referrer info (not None, None)
+            LoadData::new(new_url, None, None)
+        };
+
         // Create the new pipeline, attached to the parent and push to pending frames
-        // TODO - loaddata here should have referrer info (not None, None)
         self.new_pipeline(load_info.new_pipeline_id,
                           Some((load_info.containing_pipeline_id, load_info.new_subpage_id)),
                           window_size,
                           script_chan,
-                          LoadData::new(new_url, None, None));
+                          load_data);
 
         self.subpage_map.insert((load_info.containing_pipeline_id, load_info.new_subpage_id),
                                 load_info.new_pipeline_id);
