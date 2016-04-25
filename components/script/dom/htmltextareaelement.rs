@@ -370,10 +370,20 @@ impl VirtualMethods for HTMLTextAreaElement {
                     KeyReaction::Nothing => (),
                 }
             }
+        }else if event.type_() == atom!("invalid") && !event.DefaultPrevented() {
+            document_from_node(self).request_focus(self.upcast());
         }
     }
 }
 
 impl FormControl for HTMLTextAreaElement {}
 
-impl Validatable for HTMLTextAreaElement {}
+impl Validatable for HTMLTextAreaElement {
+    fn get_value_for_validation(&self) -> Option<DOMString>{
+        if self.Value().is_empty() {
+            None
+        } else {
+            Some(self.Value())
+        }
+    }
+}
