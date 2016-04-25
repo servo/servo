@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe id=testframe src="/common/blank.html"></iframe>
+<script>
+var simple_tests = [
+  {
+    name: "text.simple",
+    input: "<input name=foo value=bara>",
+    url: "resources/url-encoded.py"
+  },
+];
+simple_tests.forEach(function(test_obj) {
+  test_obj.test = async_test(test_obj.name);
+});
+function run_simple_test() {
+  if (simple_tests.length == 0) {
+    return;
+  }
+  test_obj = simple_tests.pop();
+  var t = test_obj.test;
+  var testframe = document.getElementById("testframe");
+  var testdocument = testframe.contentWindow.document;
+  testdocument.body.innerHTML =
+    "<form id=testform method=post action=\"" + test_obj.url + "\">" +
+    test_obj.input +
+    "</form>";
+  testframe.onload = function() {
+    t.step(function (){
+      var response = testframe.contentWindow.document.documentElement.textContent;
+      assert_equals(response, "OK");
+    });
+    t.done();
+    run_simple_test();
+  };
+  testdocument.getElementById("testform").submit();
+}
+document.getElementById("testframe").onload = run_simple_test;
+</script>
