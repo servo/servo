@@ -51,7 +51,6 @@ use net_traits::response::HttpsState;
 use net_traits::storage_thread::StorageThread;
 use profile_traits::mem;
 use std::any::Any;
-use url::Url;
 use util::ipc::OptionalOpaqueIpcSender;
 
 pub use script_msg::{LayoutMsg, ScriptMsg};
@@ -405,8 +404,8 @@ pub enum IFrameSandboxState {
 /// Specifies the information required to load a URL in an iframe.
 #[derive(Deserialize, Serialize)]
 pub struct IFrameLoadInfo {
-    /// Url to load
-    pub url: Option<Url>,
+    /// Load data containing the url to load
+    pub load_data: Option<LoadData>,
     /// Pipeline ID of the parent of this iframe
     pub containing_pipeline_id: PipelineId,
     /// The new subpage ID for this load
