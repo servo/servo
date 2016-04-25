@@ -577,11 +577,12 @@ def check_spec(file_name, lines):
                 brace_count -= 1
 
 
-def collect_errors_for_files(files_to_check, checking_functions, line_checking_functions):
+def collect_errors_for_files(files_to_check, checking_functions, line_checking_functions, print_text=True):
     (has_element, files_to_check) = is_iter_empty(files_to_check)
     if not has_element:
         raise StopIteration
-    print '\rChecking files for tidiness...'
+    if print_text:
+        print '\rChecking files for tidiness...'
     for filename in files_to_check:
         with open(filename, "r") as f:
             contents = f.read()
