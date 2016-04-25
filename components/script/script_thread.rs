@@ -101,6 +101,7 @@ use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
 use time::Tm;
+use tinyfiledialogs;
 use url::{Url, Position};
 use util::opts;
 use util::str::DOMString;
@@ -892,6 +893,8 @@ impl ScriptThread {
                 self.handle_framed_content_changed(containing_pipeline_id, subpage_id),
             ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
+            ConstellationControlMsg::Alert(message) =>
+                self.handle_alert(message),
         }
     }
 
@@ -1946,6 +1949,10 @@ impl ScriptThread {
                     css_error)).unwrap();
              }
         }
+    }
+
+    fn handle_alert(&self, message: String) {
+        tinyfiledialogs::message_box("Alert!", &message, "ok", "warning", 2);
     }
 }
 

@@ -797,6 +797,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 debug!("constellation got SetDocumentState message");
                 self.document_states.insert(pipeline_id, state);
             }
+            Request::Script(FromScriptMsg::Alert(pipeline_id, message)) => {
+                debug!("constellation got Alert message");
+                self.handle_alert(pipeline_id, message);
+            }
 
 
             // Messages from layout thread
@@ -1060,6 +1064,35 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         };
         if let Err(e) = result {
             self.handle_send_error(pipeline_id, e);
+        }
+    }
+
+    fn handle_alert(&mut self, pipeline_id: PipelineId, message: String) {
+        match self.pipelines.get(&pipeline_id).and_then(|source| source.parent_info) {
+            Some((parent_pipeline_id, subpage_id)) => {
+                let pipeline = self.pipelines.get(&parent_pipeline_id);
+                if prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) {
+                    match pipeline {
+                        Some(pipeline) => {
+                            // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsershowmodalprompt
+                            let event = MozBrowserEvent::ShowModalPrompt("alert".to_owned(), "Alert".to_owned(),
+                                                                         String::from(message), "".to_owned());
+                            pipeline.trigger_mozbrowser_event(subpage_id, event);
+                        }
+                        None => return warn!("Pipeline {:?} got script tick after closure.", pipeline_id),
+                    }
+                }
+            },
+            None => {
+                let msg = ConstellationControlMsg::Alert(message);
+                let result = match self.pipelines.get(&pipeline_id) {
+                    Some(pipeline) => pipeline.script_chan.send(msg),
+                    None => return warn!("Pipeline {:?} got script tick after closure.", pipeline_id),
+                };
+                if let Err(e) = result {
+                    self.handle_send_error(pipeline_id, e);
+                }
+            }
         }
     }
 
