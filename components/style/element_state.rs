@@ -27,5 +27,7 @@ bitflags! {
         const IN_CHECKED_STATE = 0x20,
         #[doc = "https://html.spec.whatwg.org/multipage/#selector-indeterminate"]
         const IN_INDETERMINATE_STATE = 0x40,
+        #[doc = "https://html.spec.whatwg.org/multipage/#selector-read-write"]
+        const IN_READ_WRITE_STATE = 0x80,
     }
 }

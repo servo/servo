@@ -124,7 +124,7 @@ impl HTMLInputElement {
         let chan = document.window().constellation_chan();
         HTMLInputElement {
             htmlelement:
-                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
+                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE | IN_READ_WRITE_STATE,
                                                       localName, prefix, document),
             input_type: Cell::new(InputType::InputText),
             placeholder: DOMRefCell::new(DOMString::new()),
@@ -710,6 +710,10 @@ impl VirtualMethods for HTMLInputElement {
                 el.set_disabled_state(disabled_state);
                 el.set_enabled_state(!disabled_state);
                 el.check_ancestors_disabled_state_for_form_control();
+
+                if self.input_type.get() == InputType::InputText {
+                    el.set_read_write_state(false);
+                }
             },
             &atom!("checked") if !self.checked_changed.get() => {
                 let checked_state = match mutation {
@@ -745,6 +749,15 @@ impl VirtualMethods for HTMLInputElement {
                         // https://html.spec.whatwg.org/multipage/#input-type-change
                         let (old_value_mode, old_idl_value) = (self.value_mode(), self.Value());
                         self.input_type.set(new_type);
+
+                        let el = self.upcast::<Element>();
+                        if new_type == InputType::InputText {
+                            let read_write = !(self.ReadOnly() || el.disabled_state());
+                            el.set_read_write_state(read_write);
+                        } else {
+                            el.set_read_write_state(false);
+                        }
+
                         let new_value_mode = self.value_mode();
 
                         match (&old_value_mode, old_idl_value.is_empty(), new_value_mode) {
@@ -789,6 +802,10 @@ impl VirtualMethods for HTMLInputElement {
                                 self.radio_group_name().as_ref());
                         }
                         self.input_type.set(InputType::InputText);
+                        let el = self.upcast::<Element>();
+
+                        let read_write = !(self.ReadOnly() || el.disabled_state());
+                        el.set_read_write_state(read_write);
                     }
                 }
             },
@@ -822,6 +839,17 @@ impl VirtualMethods for HTMLInputElement {
                         attr.value().chars().filter(|&c| c != '\n' && c != '\r'));
                 }
             },
+            &atom!("readonly") if self.input_type.get() == InputType::InputText => {
+                let el = self.upcast::<Element>();
+                match mutation {
+                    AttributeMutation::Set(_) => {
+                        el.set_read_write_state(false);
+                    },
+                    AttributeMutation::Removed => {
+                        el.set_read_write_state(!el.disabled_state());
+                    }
+                }
+            }
             _ => {},
         }
     }
