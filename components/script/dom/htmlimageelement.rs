@@ -33,6 +33,7 @@ use std::sync::Arc;
 use string_cache::Atom;
 use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
+use style::values::specified::Length;
 
 #[derive(JSTraceable, HeapSizeOf)]
 #[allow(dead_code)]
@@ -404,12 +405,36 @@ fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
     element.set_attribute(&attr, value);
 }
  
+
 struct ImageSource {
-    candidates: String,
+    candidate: String,
+    length: Length,
+}
+
+fn collect_sequence_characters<'a, P>(s: &'a str, predicate: P)
+                  -> (&'a str, &'a str)
+                  where P: Fn(char) -> bool {
+    for (i, c) in s.chars().enumerate() {
+        if !predicate(c) {
+            return (&s[0..i], &s[i..]);
+        }
+    }
+    return (s, "");
 }
 
 impl ImageSource{
-    fn parse_a_srcset_attribute(&self, input: String) -> ImageSource {
+    fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
         let position = &input;
+        let candidate: Vec<ImageSource> = Vec::new();
+        //let position1 = &s;
+        let(spaces, position) = collect_sequence_characters(position, |c| c ==',' || c == ' ');
+        println!("{} {}", spaces, position);
+        let x = spaces.find(',');
+        match x {
+            Some(val) => println!("{}", val), // can do assert here
+            None => println!("Parse error"),    
+        }
+        candidate
+    
     }    
 }
