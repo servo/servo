@@ -36,6 +36,7 @@ git = "https://github.com/servo/webrender_traits"
 git = "https://github.com/servo/devices"
 
 [dependencies]
+bitflags = "0.6.0"
 cookie = "0.2"
 flate2 = "0.2.0"
 hyper = { version = "0.8", features = [ "serde-serialization" ] }
