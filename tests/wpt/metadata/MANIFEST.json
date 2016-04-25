@@ -35242,6 +35242,12 @@
             "url": "/dom/nodes/Node-isSameNode.html"
           }
         ],
+        "html/semantics/forms/form-submission-0/submit-entity-body.html": [
+          {
+            "path": "html/semantics/forms/form-submission-0/submit-entity-body.html",
+            "url": "/html/semantics/forms/form-submission-0/submit-entity-body.html"
+          }
+        ],
         "workers/constructors/Worker/use-base-url.html": [
           {
             "path": "workers/constructors/Worker/use-base-url.html",
