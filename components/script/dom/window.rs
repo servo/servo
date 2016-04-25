@@ -1199,8 +1199,10 @@ impl Window {
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
     pub fn load_url(&self, url: Url) {
+        let doc = self.Document();
         self.main_thread_script_chan().send(
-            MainThreadScriptMsg::Navigate(self.id, LoadData::new(url))).unwrap();
+            MainThreadScriptMsg::Navigate(self.id,
+                LoadData::new(url, doc.get_referrer_policy(), Some(doc.url().clone())))).unwrap();
     }
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
