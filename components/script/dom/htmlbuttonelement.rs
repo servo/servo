@@ -204,7 +204,11 @@ impl VirtualMethods for HTMLButtonElement {
 
 impl FormControl for HTMLButtonElement {}
 
-impl Validatable for HTMLButtonElement {}
+impl Validatable for HTMLButtonElement {
+    fn get_value_for_validation(&self) -> Option<DOMString>{
+        None
+    }
+}
 
 impl Activatable for HTMLButtonElement {
     fn as_element(&self) -> &Element {

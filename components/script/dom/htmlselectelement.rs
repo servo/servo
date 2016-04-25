@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::{Attr, AttrValue};
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
@@ -12,11 +13,12 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, FormDatum, HTMLFormElement};
 use dom::htmloptionelement::HTMLOptionElement;
-use dom::node::{Node, UnbindContext, window_from_node};
+use dom::node::{Node, UnbindContext, window_from_node, document_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::validitystate::ValidityState;
@@ -232,8 +234,36 @@ impl VirtualMethods for HTMLSelectElement {
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }
+    fn handle_event(&self, event: &Event) {
+        if let Some(s) = self.super_type() {
+            s.handle_event(event);
+        }
+        if event.type_() == atom!("click") && !event.DefaultPrevented() {
+            // TODO: Dispatch events for non activatable inputs
+            // https://html.spec.whatwg.org/multipage/#common-input-element-events
+
+            //TODO: set the editing position for text inputs
+
+            document_from_node(self).request_focus(self.upcast());
+        } else if event.type_() == atom!("invalid") && !event.DefaultPrevented() {
+            document_from_node(self).request_focus(self.upcast());
+        }
+    }
 }
 
 impl FormControl for HTMLSelectElement {}
 
-impl Validatable for HTMLSelectElement {}
+impl Validatable for HTMLSelectElement {
+    fn get_value_for_validation(&self) -> Option<DOMString>{
+        /*let node = self.upcast::<Node>();
+        for opt in node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>) {
+            let element = opt.upcast::<Element>();
+            if opt.Selected() && element.enabled_state() {
+                Some(DOMString::from("Has a valid value"))
+            }
+        }*/
+
+        None
+
+    }
+}

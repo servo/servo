@@ -899,13 +899,22 @@ impl VirtualMethods for HTMLInputElement {
                         Nothing => (),
                     }
                 }
+        } else if event.type_() == atom!("invalid") && !event.DefaultPrevented() {
+            document_from_node(self).request_focus(self.upcast());
         }
     }
 }
 
 impl FormControl for HTMLInputElement {}
-
-impl Validatable for HTMLInputElement {}
+impl Validatable for HTMLInputElement {
+    fn get_value_for_validation(&self) -> Option<DOMString>{
+        if self.Value().is_empty() {
+            None
+        } else {
+            Some(self.Value())
+        }
+    }
+}
 
 impl Activatable for HTMLInputElement {
     fn as_element(&self) -> &Element {
