@@ -4588,6 +4588,18 @@
             "url": "/_mozilla/css/submit_focus_a.html"
           }
         ],
+        "css/svg_children.html": [
+          {
+            "path": "css/svg_children.html",
+            "references": [
+              [
+                "/_mozilla/css/svg_children_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/svg_children.html"
+          }
+        ],
         "css/table_auto_width.html": [
           {
             "path": "css/table_auto_width.html",
@@ -11278,6 +11290,18 @@
             ]
           ],
           "url": "/_mozilla/css/submit_focus_a.html"
+        }
+      ],
+      "css/svg_children.html": [
+        {
+          "path": "css/svg_children.html",
+          "references": [
+            [
+              "/_mozilla/css/svg_children_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/svg_children.html"
         }
       ],
       "css/table_auto_width.html": [
