@@ -8,7 +8,7 @@ use device::bluetooth::BluetoothGATTCharacteristic;
 use device::bluetooth::BluetoothGATTDescriptor;
 use device::bluetooth::BluetoothGATTService;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use net_traits::bluetooth_scanfilter::{RequestDeviceoptions, matches_filters};
+use net_traits::bluetooth_scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence, RequestDeviceoptions};
 use net_traits::bluetooth_thread::{BluetoothMethodMsg, BluetoothObjectMsg};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
@@ -53,6 +53,47 @@ impl BluetoothThreadFactory for IpcSender<BluetoothMethodMsg> {
         });
         sender
     }
+}
+
+fn matches_filter(device: &BluetoothDevice, filter: &BluetoothScanfilter) -> bool {
+    if filter.is_empty_or_invalid() {
+        return false;
+    }
+
+    if !filter.get_name().is_empty() {
+        if device.get_name().ok() != Some(filter.get_name().to_string()) {
+            return false;
+        }
+    }
+
+    if !filter.get_name_prefix().is_empty() {
+        if let Ok(device_name) = device.get_name() {
+            if !device_name.starts_with(filter.get_name_prefix()) {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    if !filter.get_services().is_empty() {
+        if let Ok(device_uuids) = device.get_uuids() {
+            for service in filter.get_services() {
+                if device_uuids.iter().find(|x| x == &service).is_none() {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+fn matches_filters(device: &BluetoothDevice, filters: &BluetoothScanfilterSequence) -> bool {
+    if filters.has_empty_or_invalid_filter() {
+        return false;
+    }
+
+    return filters.iter().any(|f| matches_filter(device, f))
 }
 
 pub struct BluetoothManager {
