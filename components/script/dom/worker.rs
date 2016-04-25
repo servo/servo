@@ -69,7 +69,7 @@ impl Worker {
     // https://html.spec.whatwg.org/multipage/#dom-worker
     pub fn Constructor(global: GlobalRef, script_url: DOMString) -> Fallible<Root<Worker>> {
         // Step 2-4.
-        let worker_url = match global.get_url().join(&script_url) {
+        let worker_url = match global.api_base_url().join(&script_url) {
             Ok(url) => url,
             Err(_) => return Err(Error::Syntax),
         };
