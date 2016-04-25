@@ -89,27 +89,26 @@ impl BluetoothRemoteGATTDescriptorMethods for BluetoothRemoteGATTDescriptor {
     fn ReadValue(&self) -> Fallible<ByteString> {
         let (sender, receiver) = ipc::channel().unwrap();
         if !self.Characteristic().Service().Device().Gatt().Connected() {
-            Err(Network)
-        } else {
-            self.get_bluetooth_thread().send(
-                BluetoothMethodMsg::ReadValue(self.get_instance_id(), sender)).unwrap();
-            let result = receiver.recv().unwrap();
-            let value = match result {
-                BluetoothObjectMsg::BluetoothReadValue {
-                    value
-                } => {
-                    Some(ByteString::new(value))
-                },
-                BluetoothObjectMsg::Error {
-                    error
-                } => {
-                    return Err(Type(error))
-                },
-                _ => unreachable!()
-            };
-            *self.value.borrow_mut() = value;
-            Ok(self.GetValue().unwrap())
+            return Err(Network)
         }
+        self.get_bluetooth_thread().send(
+            BluetoothMethodMsg::ReadValue(self.get_instance_id(), sender)).unwrap();
+        let result = receiver.recv().unwrap();
+        let value = match result {
+            BluetoothObjectMsg::BluetoothReadValue {
+                value
+            } => {
+                ByteString::new(value)
+            },
+            BluetoothObjectMsg::Error {
+                error
+            } => {
+                return Err(Type(error))
+            },
+            _ => unreachable!()
+        };
+        *self.value.borrow_mut() = Some(value.clone());
+        Ok(value)
     }
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-writevalue

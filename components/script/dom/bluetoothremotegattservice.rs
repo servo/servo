@@ -87,10 +87,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
     fn GetCharacteristic(&self,
                          characteristic: BluetoothCharacteristicUUID)
                          -> Fallible<Root<BluetoothRemoteGATTCharacteristic>> {
-        let uuid: String = match BluetoothUUID::GetCharacteristic(self.global().r(), characteristic.clone()) {
-            Ok(domstring) => domstring.to_string(),
-            Err(error) => return Err(error),
-        };
+        let uuid = try!(BluetoothUUID::GetCharacteristic(self.global().r(), characteristic)).to_string();
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetCharacteristic(self.get_instance_id(), uuid, sender)).unwrap();
@@ -120,7 +117,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                                                                          reliable_write,
                                                                          writable_auxiliaries);
                 Ok(BluetoothRemoteGATTCharacteristic::new(self.global().r(),
-                                                          &self,
+                                                          self,
                                                           DOMString::from(uuid),
                                                           properties,
                                                           instance_id))
@@ -139,13 +136,10 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                           characteristic: Option<BluetoothCharacteristicUUID>)
                           -> Fallible<Vec<Root<BluetoothRemoteGATTCharacteristic>>> {
         let mut uuid: Option<String> = None;
-        if let Some(c)= characteristic {
-            match BluetoothUUID::GetCharacteristic(self.global().r(), c.clone()) {
-                Ok(domstring) => uuid = Some(domstring.to_string()),
-                Err(error) => return Err(error),
-            }
+        if let Some(c) = characteristic {
+            uuid = Some(try!(BluetoothUUID::GetCharacteristic(self.global().r(), c)).to_string())
         };
-        let mut characteristics: Vec<Root<BluetoothRemoteGATTCharacteristic>> = vec!();
+        let mut characteristics = vec!();
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetCharacteristics(self.get_instance_id(), uuid, sender)).unwrap();
@@ -180,7 +174,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                                                                                      reliable_write,
                                                                                      writable_auxiliaries);
                             characteristics.push(BluetoothRemoteGATTCharacteristic::new(self.global().r(),
-                                                                                        &self,
+                                                                                        self,
                                                                                         DOMString::from(uuid),
                                                                                         properties,
                                                                                         instance_id));
