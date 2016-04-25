@@ -33,7 +33,7 @@ use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Attr, Mime};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use msg::constellation_msg::{ConstellationChan, PipelineId, ReferrerPolicy};
 use serde::{Deserializer, Serializer};
 use std::sync::mpsc::Sender;
 use std::thread;
@@ -223,17 +223,17 @@ pub enum ControlMsg {
     /// Request the data associated with a particular URL
     Load(LoadData, LoadConsumer, Option<IpcSender<ResourceId>>),
     /// Try to make a websocket connection to a URL.
-    WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
+    WebsocketConnect(PipelineId, WebSocketCommunicate, WebSocketConnectData),
     /// Store a set of cookies for a given originating URL
-    SetCookiesForUrl(Url, String, CookieSource),
+    SetCookiesForUrl(PipelineId, Url, String, CookieSource),
     /// Retrieve the stored cookies for a given URL
     GetCookiesForUrl(Url, IpcSender<Option<String>>, CookieSource),
     /// Cancel a network request corresponding to a given `ResourceId`
     Cancel(ResourceId),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
     Synchronize(IpcSender<()>),
-    ///
-    SendConstellationMsgChannel(IpcSender<ConstellationMsg>),
+    /// Send the ConstellationChan for checking a private pipeline
+    SendConstellationMsgChannel(ConstellationChan<ConstellationMsg>),
     /// Break the load handler loop and exit
     Exit,
 }
