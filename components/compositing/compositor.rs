@@ -93,8 +93,8 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// The application window.
     window: Rc<Window>,
 
-    /// The display this compositor targets.
-    native_display: NativeDisplay,
+    /// The display this compositor targets. Will be None when using webrender.
+    native_display: Option<NativeDisplay>,
 
     /// The port on which we receive messages.
     port: Box<CompositorReceiver>,
@@ -401,7 +401,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             sender.create_api()
         });
 
-        let native_display = window.native_display();
+        let native_display = if state.webrender.is_some() {
+            None
+        } else {
+            Some(window.native_display())
+        };
+
         IOCompositor {
             window: window,
             native_display: native_display,
@@ -572,7 +577,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::ReturnUnusedNativeSurfaces(native_surfaces),
              ShutdownState::NotShuttingDown) => {
-                self.surface_map.insert_surfaces(&self.native_display, native_surfaces);
+                if let Some(ref native_display) = self.native_display {
+                    self.surface_map.insert_surfaces(native_display, native_surfaces);
+                }
             }
 
             (Msg::ScrollFragmentPoint(pipeline_id, layer_id, point, _),
@@ -2220,7 +2227,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn initialize_compositing(&mut self) {
         if self.webrender.is_none() {
             let show_debug_borders = opts::get().show_debug_borders;
-            self.context = Some(rendergl::RenderContext::new(self.native_display.clone(),
+            // We can unwrap native_display because it's only None when using webrender.
+            self.context = Some(rendergl::RenderContext::new(self.native_display
+                                                             .expect("n_d should be Some when not using wr").clone(),
                                                              show_debug_borders,
                                                              opts::get().output_file.is_some()))
         }
@@ -2309,7 +2318,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         where B: IntoIterator<Item=Box<LayerBuffer>>
     {
         let surfaces = buffers.into_iter().map(|buffer| buffer.native_surface);
-        self.surface_map.insert_surfaces(&self.native_display, surfaces);
+        if let Some(ref native_display) = self.native_display {
+            self.surface_map.insert_surfaces(native_display, surfaces);
+        }
     }
 
     fn get_root_pipeline_id(&self) -> Option<PipelineId> {
