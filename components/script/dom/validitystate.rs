@@ -102,7 +102,7 @@ impl ValidityStateMethods for ValidityState {
                 return false;
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
-                let attr_value_check = self.element.get_attribute_by_name(DOMString::from("required"))
+               let attr_value_check = self.element.get_attribute_by_name(DOMString::from("required"))
                 .map(|s| s.Value());
                 match attr_value_check {
                     Some(attr_value) => {
