@@ -1897,20 +1897,24 @@ class CGInterfaceObjectJSClass(CGThing):
 
     def define(self):
         if self.descriptor.interface.ctor():
-            constructor = CONSTRUCT_HOOK_NAME
+            constructorBehavior = "InterfaceConstructorBehavior::call(%s)" % CONSTRUCT_HOOK_NAME
         else:
-            constructor = "throwing_constructor"
+            constructorBehavior = "InterfaceConstructorBehavior::throw()"
         name = self.descriptor.interface.identifier.name
         args = {
-            "constructor": constructor,
+            "constructorBehavior": constructorBehavior,
             "id": name,
             "representation": str_to_const_array("function %s() {\\n    [native code]\\n}" % name),
             "depth": self.descriptor.prototypeDepth
         }
         return """\
-static InterfaceObjectClass: NonCallbackInterfaceObjectClass =
-    NonCallbackInterfaceObjectClass::new(%(constructor)s, %(representation)s,
-                                         PrototypeList::ID::%(id)s, %(depth)s);
+static InterfaceObjectClass: NonCallbackInterfaceObjectClass = unsafe {
+    NonCallbackInterfaceObjectClass::new(
+        %(constructorBehavior)s,
+        %(representation)s,
+        PrototypeList::ID::%(id)s,
+        %(depth)s)
+};
 """ % args
 
 
@@ -2449,10 +2453,8 @@ if <*mut JSObject>::needs_post_barrier(prototype.ptr) {
         if self.descriptor.interface.hasInterfaceObject():
             properties["name"] = str_to_const_array(name)
             if self.descriptor.interface.ctor():
-                properties["constructor"] = CONSTRUCT_HOOK_NAME
                 properties["length"] = methodLength(self.descriptor.interface.ctor())
             else:
-                properties["constructor"] = "throwing_constructor"
                 properties["length"] = 0
             if self.descriptor.interface.parent:
                 parentName = toBindingNamespace(self.descriptor.getParentName())
@@ -5400,9 +5402,9 @@ class CGBindingRoot(CGThing):
             'js::rust::{GCMethods, define_methods, define_properties}',
             'dom::bindings',
             'dom::bindings::global::{GlobalRef, global_root_from_object, global_root_from_reflector}',
-            'dom::bindings::interface::{NonCallbackInterfaceObjectClass, create_callback_interface_object}',
-            'dom::bindings::interface::{create_interface_prototype_object, create_named_constructors}',
-            'dom::bindings::interface::{create_noncallback_interface_object}',
+            'dom::bindings::interface::{InterfaceConstructorBehavior, NonCallbackInterfaceObjectClass}',
+            'dom::bindings::interface::{create_callback_interface_object, create_interface_prototype_object}',
+            'dom::bindings::interface::{create_named_constructors, create_noncallback_interface_object}',
             'dom::bindings::interface::{ConstantSpec, NonNullJSNative}',
             'dom::bindings::interface::ConstantVal::{IntVal, UintVal}',
             'dom::bindings::js::{JS, Root, RootedReference}',
@@ -5416,8 +5418,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{generic_method, generic_setter, get_array_index_from_id}',
             'dom::bindings::utils::{get_dictionary_property, get_property_on_prototype}',
             'dom::bindings::utils::{get_proto_or_iface_array, has_property_on_prototype}',
-            'dom::bindings::utils::{is_platform_object, resolve_global, set_dictionary_property}',
-            'dom::bindings::utils::{throwing_constructor, trace_global}',
+            'dom::bindings::utils::{is_platform_object, resolve_global, set_dictionary_property, trace_global}',
             'dom::bindings::trace::{JSTraceable, RootedTraceable}',
             'dom::bindings::callback::{CallbackContainer,CallbackInterface,CallbackFunction}',
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
