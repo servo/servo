@@ -2161,13 +2161,17 @@ impl<'a> ::selectors::Element for Root<Element> {
                 }
             },
 
+            NonTSPseudoClass::ReadOnly =>
+                !Element::state(self).contains(pseudo_class.state_flag()),
+
             NonTSPseudoClass::Active |
             NonTSPseudoClass::Focus |
             NonTSPseudoClass::Hover |
             NonTSPseudoClass::Enabled |
             NonTSPseudoClass::Disabled |
             NonTSPseudoClass::Checked |
-            NonTSPseudoClass::Indeterminate =>
+            NonTSPseudoClass::Indeterminate |
+            NonTSPseudoClass::ReadWrite =>
                 Element::state(self).contains(pseudo_class.state_flag()),
         }
     }
@@ -2429,6 +2433,14 @@ impl Element {
 
     pub fn set_disabled_state(&self, value: bool) {
         self.set_state(IN_DISABLED_STATE, value)
+    }
+
+    pub fn read_write_state(&self) -> bool {
+        self.state.get().contains(IN_READ_WRITE_STATE)
+    }
+
+    pub fn set_read_write_state(&self, value: bool) {
+        self.set_state(IN_READ_WRITE_STATE, value)
     }
 }
 

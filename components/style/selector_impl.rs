@@ -44,6 +44,8 @@ pub enum NonTSPseudoClass {
     Checked,
     Indeterminate,
     ServoNonZeroBorder,
+    ReadWrite,
+    ReadOnly
 }
 
 impl NonTSPseudoClass {
@@ -58,6 +60,7 @@ impl NonTSPseudoClass {
             Disabled => IN_DISABLED_STATE,
             Checked => IN_CHECKED_STATE,
             Indeterminate => IN_INDETERMINATE_STATE,
+            ReadOnly | ReadWrite => IN_READ_WRITE_STATE,
 
             AnyLink |
             Link |
@@ -88,6 +91,8 @@ impl SelectorImpl for ServoSelectorImpl {
             "disabled" => Disabled,
             "checked" => Checked,
             "indeterminate" => Indeterminate,
+            "read-write" => ReadWrite,
+            "read-only" => ReadOnly,
             "-servo-nonzero-border" => {
                 if !context.in_user_agent_stylesheet {
                     return Err(());

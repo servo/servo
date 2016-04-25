@@ -550,13 +550,17 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
                 }
             },
 
+            NonTSPseudoClass::ReadOnly =>
+                !self.element.get_state_for_layout().contains(pseudo_class.state_flag()),
+
             NonTSPseudoClass::Active |
             NonTSPseudoClass::Focus |
             NonTSPseudoClass::Hover |
             NonTSPseudoClass::Enabled |
             NonTSPseudoClass::Disabled |
             NonTSPseudoClass::Checked |
-            NonTSPseudoClass::Indeterminate =>
+            NonTSPseudoClass::Indeterminate |
+            NonTSPseudoClass::ReadWrite =>
                 self.element.get_state_for_layout().contains(pseudo_class.state_flag())
         }
     }
