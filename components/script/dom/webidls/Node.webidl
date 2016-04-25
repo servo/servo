@@ -58,6 +58,8 @@ interface Node : EventTarget {
   Node cloneNode(optional boolean deep = false);
   [Pure]
   boolean isEqualNode(Node? node);
+  [Pure]
+  boolean isSameNode(Node? otherNode); // historical alias of ===
 
   const unsigned short DOCUMENT_POSITION_DISCONNECTED = 0x01;
   const unsigned short DOCUMENT_POSITION_PRECEDING = 0x02;
