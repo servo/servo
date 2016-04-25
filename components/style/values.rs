@@ -1051,6 +1051,50 @@ pub mod specified {
     }
 
     #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
+    pub enum LengthOrPercentageOrAutoOrContent {
+        Length(Length),
+        Percentage(Percentage),
+        Calc(CalcLengthOrPercentage),
+        Auto,
+        Content
+    }
+
+    impl ToCss for LengthOrPercentageOrAutoOrContent {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                LengthOrPercentageOrAutoOrContent::Length(len) => len.to_css(dest),
+                LengthOrPercentageOrAutoOrContent::Percentage(perc) => perc.to_css(dest),
+                LengthOrPercentageOrAutoOrContent::Auto => dest.write_str("auto"),
+                LengthOrPercentageOrAutoOrContent::Content => dest.write_str("content"),
+                LengthOrPercentageOrAutoOrContent::Calc(calc) => calc.to_css(dest),
+            }
+        }
+    }
+
+    impl LengthOrPercentageOrAutoOrContent {
+        pub fn parse(input: &mut Parser) -> Result<LengthOrPercentageOrAutoOrContent, ()> {
+            let context = AllowedNumericType::NonNegative;
+            match try!(input.next()) {
+                Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
+                    Length::parse_dimension(value.value, unit).map(LengthOrPercentageOrAutoOrContent::Length),
+                Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
+                    Ok(LengthOrPercentageOrAutoOrContent::Percentage(Percentage(value.unit_value))),
+                Token::Number(ref value) if value.value == 0. =>
+                    Ok(LengthOrPercentageOrAutoOrContent::Length(Length::Absolute(Au(0)))),
+                Token::Ident(ref value) if value.eq_ignore_ascii_case("auto") =>
+                    Ok(LengthOrPercentageOrAutoOrContent::Auto),
+                Token::Ident(ref value) if value.eq_ignore_ascii_case("content") =>
+                    Ok(LengthOrPercentageOrAutoOrContent::Content),
+                Token::Function(ref name) if name.eq_ignore_ascii_case("calc") => {
+                    let calc = try!(input.parse_nested_block(CalcLengthOrPercentage::parse_length_or_percentage));
+                    Ok(LengthOrPercentageOrAutoOrContent::Calc(calc))
+                },
+                _ => Err(())
+            }
+        }
+    }
+
+    #[derive(Clone, PartialEq, Copy, Debug, HeapSizeOf)]
     pub struct BorderRadiusSize(pub Size2D<LengthOrPercentage>);
 
     impl BorderRadiusSize {
@@ -1767,6 +1811,64 @@ pub mod computed {
                 => write!(dest, "{}%", percentage * 100.),
                 LengthOrPercentageOrAuto::Auto => dest.write_str("auto"),
                 LengthOrPercentageOrAuto::Calc(calc) => calc.to_css(dest),
+            }
+        }
+    }
+
+    #[derive(PartialEq, Clone, Copy, HeapSizeOf)]
+    pub enum LengthOrPercentageOrAutoOrContent {
+        Length(Au),
+        Percentage(CSSFloat),
+        Calc(CalcLengthOrPercentage),
+        Auto,
+        Content
+    }
+    impl fmt::Debug for LengthOrPercentageOrAutoOrContent {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            match *self {
+                LengthOrPercentageOrAutoOrContent::Length(length) => write!(f, "{:?}", length),
+                LengthOrPercentageOrAutoOrContent::Percentage(percentage) => write!(f, "{}%", percentage * 100.),
+                LengthOrPercentageOrAutoOrContent::Calc(calc) => write!(f, "{:?}", calc),
+                LengthOrPercentageOrAutoOrContent::Auto => write!(f, "auto"),
+                LengthOrPercentageOrAutoOrContent::Content => write!(f, "content")
+            }
+        }
+    }
+
+    impl ToComputedValue for specified::LengthOrPercentageOrAutoOrContent {
+        type ComputedValue = LengthOrPercentageOrAutoOrContent;
+
+        #[inline]
+        fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> LengthOrPercentageOrAutoOrContent {
+            match *self {
+                specified::LengthOrPercentageOrAutoOrContent::Length(value) => {
+                    LengthOrPercentageOrAutoOrContent::Length(value.to_computed_value(context))
+                },
+                specified::LengthOrPercentageOrAutoOrContent::Percentage(value) => {
+                    LengthOrPercentageOrAutoOrContent::Percentage(value.0)
+                },
+                specified::LengthOrPercentageOrAutoOrContent::Calc(calc) => {
+                    LengthOrPercentageOrAutoOrContent::Calc(calc.to_computed_value(context))
+                },
+                specified::LengthOrPercentageOrAutoOrContent::Auto => {
+                    LengthOrPercentageOrAutoOrContent::Auto
+                },
+                specified::LengthOrPercentageOrAutoOrContent::Content => {
+                    LengthOrPercentageOrAutoOrContent::Content
+                }
+            }
+        }
+    }
+
+    impl ::cssparser::ToCss for LengthOrPercentageOrAutoOrContent {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                LengthOrPercentageOrAutoOrContent::Length(length) => length.to_css(dest),
+                LengthOrPercentageOrAutoOrContent::Percentage(percentage)
+                => write!(dest, "{}%", percentage * 100.),
+                LengthOrPercentageOrAutoOrContent::Calc(calc) => calc.to_css(dest),
+                LengthOrPercentageOrAutoOrContent::Auto => dest.write_str("auto"),
+                LengthOrPercentageOrAutoOrContent::Content => dest.write_str("content")
             }
         }
     }
