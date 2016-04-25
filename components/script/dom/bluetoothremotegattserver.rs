@@ -106,10 +106,7 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservice
     fn GetPrimaryService(&self, service: BluetoothServiceUUID) -> Fallible<Root<BluetoothRemoteGATTService>> {
-        let uuid: String = match BluetoothUUID::GetService(self.global().r(), service.clone()) {
-            Ok(domstring) => domstring.to_string(),
-            Err(error) => return Err(error),
-        };
+        let uuid = try!(BluetoothUUID::GetService(self.global().r(), service)).to_string();
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetPrimaryService(String::from(self.Device().Id()), uuid, sender)).unwrap();
@@ -140,13 +137,10 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
                           service: Option<BluetoothServiceUUID>)
                           -> Fallible<Vec<Root<BluetoothRemoteGATTService>>> {
         let mut uuid: Option<String> = None;
-        if let Some(s)= service {
-            match BluetoothUUID::GetService(self.global().r(), s.clone()) {
-                Ok(domstring) => uuid = Some(domstring.to_string()),
-                Err(error) => return Err(error),
-            }
+        if let Some(s) = service {
+            uuid = Some(try!(BluetoothUUID::GetService(self.global().r(), s)).to_string())
         };
-        let mut services: Vec<Root<BluetoothRemoteGATTService>> = vec!();
+        let mut services = vec!();
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetPrimaryServices(String::from(self.Device().Id()), uuid, sender)).unwrap();
