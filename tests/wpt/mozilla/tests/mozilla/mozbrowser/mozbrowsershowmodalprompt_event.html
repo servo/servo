@@ -16,4 +16,16 @@
         }));
         document.body.appendChild(iframe);
     });
+
+    async_test(function(t) {
+        var iframe = document.createElement("iframe");
+        iframe.mozbrowser = "true";
+        iframe.src = "mozbrowsershowmodalprompt_event_nested_iframe.html";
+        iframe.addEventListener("mozbrowsershowmodalprompt", t.step_func(e => {
+            assert_equals(e.detail.promptType, "alert");
+            assert_equals(e.detail.message, "my alert message");
+            t.done();
+        }));
+        document.body.appendChild(iframe);
+    }, "mozbrowsershowmodalprompt event from nested iframes triggering an alert");
 </script>

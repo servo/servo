@@ -73,6 +73,8 @@ extern crate smallvec;
 #[macro_use]
 extern crate style;
 extern crate time;
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+extern crate tinyfiledialogs;
 extern crate unicase;
 extern crate url;
 #[macro_use]
