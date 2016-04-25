@@ -53,6 +53,16 @@ dictionary BrowserElementSecurityChangeDetail {
   boolean mixedContent;
 };
 
+dictionary BrowserElementErrorEventDetail {
+  // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsererror
+  // just requires a "type" field, but we also provide
+  // an optional human-readable description, and
+  // an optional machine-readable report (e.g. a backtrace for panics)
+  DOMString type;
+  DOMString description;
+  DOMString report;
+};
+
 dictionary BrowserElementLocationChangeEventDetail {
   DOMString uri;
   boolean canGoBack;

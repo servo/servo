@@ -433,7 +433,7 @@ pub enum MozBrowserEvent {
     /// handling `<menuitem>` element available within the browser `<iframe>`'s content.
     ContextMenu,
     /// Sent when an error occurred while trying to load content within a browser `<iframe>`.
-    Error,
+    Error(MozBrowserErrorType, Option<String>, Option<String>),
     /// Sent when the favicon of a browser `<iframe>` changes.
     IconChange(String, String, String),
     /// Sent when the browser `<iframe>` has reached the server.
@@ -466,7 +466,7 @@ impl MozBrowserEvent {
             MozBrowserEvent::Close => "mozbrowserclose",
             MozBrowserEvent::Connected => "mozbrowserconnected",
             MozBrowserEvent::ContextMenu => "mozbrowsercontextmenu",
-            MozBrowserEvent::Error => "mozbrowsererror",
+            MozBrowserEvent::Error(_, _, _) => "mozbrowsererror",
             MozBrowserEvent::IconChange(_, _, _) => "mozbrowsericonchange",
             MozBrowserEvent::LoadEnd => "mozbrowserloadend",
             MozBrowserEvent::LoadStart => "mozbrowserloadstart",
@@ -477,6 +477,24 @@ impl MozBrowserEvent {
             MozBrowserEvent::TitleChange(_) => "mozbrowsertitlechange",
             MozBrowserEvent::UsernameAndPasswordRequired => "mozbrowserusernameandpasswordrequired",
             MozBrowserEvent::OpenSearch => "mozbrowseropensearch"
+        }
+    }
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsererror
+/// The different types of Browser error events
+#[derive(Deserialize, Serialize)]
+pub enum MozBrowserErrorType {
+    // For the moment, we are just reporting panics, using the "fatal" type.
+    /// A fatal error
+    Fatal,
+}
+
+impl MozBrowserErrorType {
+    /// Get the name of the error type as a `& str`
+    pub fn name(&self) -> &'static str {
+        match *self {
+            MozBrowserErrorType::Fatal => "fatal",
         }
     }
 }
