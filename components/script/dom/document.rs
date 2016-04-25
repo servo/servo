@@ -70,6 +70,7 @@ use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::Range;
 use dom::servohtmlparser::{ParserRoot, ParserRef, MutNullableParserField};
+use dom::storageevent::StorageEvent;
 use dom::stylesheetlist::StyleSheetList;
 use dom::text::Text;
 use dom::touch::Touch;
@@ -2171,6 +2172,8 @@ impl DocumentMethods for Document {
                 )),
             "webglcontextevent" =>
                 Ok(Root::upcast(WebGLContextEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+            "storageevent" =>
+                Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, self.URL()))),
             _ =>
                 Err(Error::NotSupported),
         }
