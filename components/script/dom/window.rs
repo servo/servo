@@ -425,9 +425,12 @@ impl WindowMethods for Window {
         stdout.flush().unwrap();
         stderr.flush().unwrap();
 
+        self.constellation_chan().0.send(ConstellationMsg::Alert(self.pipeline(), s.to_string())).unwrap();
+
         // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsershowmodalprompt
         let event = MozBrowserEvent::ShowModalPrompt("alert".to_owned(), "Alert".to_owned(),
                                                      String::from(s), "".to_owned());
+
         self.Document().trigger_mozbrowser_event(event);
     }
 
