@@ -706,7 +706,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         // Step 2
         let override_mime = try!(mime.parse::<Mime>().map_err(|_| Error::Syntax));
         // Step 3
-        *self.override_mime_type.borrow_mut() = Some(override_mime.clone());
+        let type_str_no_params = mime.split(';').next().unwrap_or(&mime);
+        let lower_type_str = type_str_no_params.to_ascii_lowercase();
+        let mime_no_params = lower_type_str.parse::<Mime>().unwrap();
+        *self.override_mime_type.borrow_mut() = Some(mime_no_params.clone());
         // Step 4
         let value = override_mime.get_param(mime::Attr::Charset);
         *self.override_charset.borrow_mut() = value.and_then(|value| {
