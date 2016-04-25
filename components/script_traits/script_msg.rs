@@ -81,4 +81,6 @@ pub enum ScriptMsg {
     SetDocumentState(PipelineId, DocumentState),
     /// Update the pipeline Url, which can change after redirections.
     SetFinalUrl(PipelineId, Url),
+    /// Trigger an alert box
+    Alert(PipelineId, String)
 }

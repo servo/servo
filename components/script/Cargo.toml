@@ -58,6 +58,7 @@ serde = "0.7"
 smallvec = "0.1"
 string_cache = {version = "0.2.12", features = ["heap_size", "unstable"]}
 time = "0.1.12"
+tinyfiledialogs = {git = "https://github.com/jdm/tinyfiledialogs"}
 unicase = "1.0"
 url = {version = "1.0.0", features = ["heap_size"]}
 uuid = { version = "0.2", features = ["v4"] }
