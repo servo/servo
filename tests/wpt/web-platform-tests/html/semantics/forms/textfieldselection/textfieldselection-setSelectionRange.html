@@ -114,7 +114,20 @@ test(function() {
     assert_equals(input.selectionStart, 0, "element.selectionStart should be 0");
     assert_equals(input.selectionEnd, 1, "element.selectionEnd should be 1");
   },'input setSelectionRange(undefined,1)');
+
 },"test of input.setSelectionRange");
+async_test(function() {
+  var q = false;
+  var input = document.getElementById("a");
+  input.addEventListener("select", this.step_func_done(function(e) {
+    assert_true(q, "event should be queued");
+    assert_true(e.isTrusted, "event is trusted");
+    assert_true(e.bubbles, "event bubbles");
+    assert_false(e.cancelable, "event is not cancelable");
+  }));
+  input.setSelectionRange(0, 1);
+  q = true;
+}, "input setSelectionRange fires a select event");
 
 test(function() {
   var textarea = document.getElementById("b");
@@ -220,5 +233,18 @@ test(function() {
     assert_equals(textarea.selectionStart, 0, "element.selectionStart should be 0");
     assert_equals(textarea.selectionEnd, 1, "element.selectionStart should be 1");
   },'textarea setSelectionRange(undefined,1)');
+
 },"test of textarea.setSelectionRange");
+async_test(function() {
+  var q = false;
+  var textarea = document.getElementById("b");
+  textarea.addEventListener("select", this.step_func_done(function(e) {
+    assert_true(q, "event should be queued");
+    assert_true(e.isTrusted, "event is trusted");
+    assert_true(e.bubbles, "event bubbles");
+    assert_false(e.cancelable, "event is not cancelable");
+  }));
+  textarea.setSelectionRange(0, 1);
+  q = true;
+}, "textarea setSelectionRange fires a select event");
 </script>
