@@ -2228,7 +2228,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         if self.webrender.is_none() {
             let show_debug_borders = opts::get().show_debug_borders;
             // We can unwrap() native_display because it's only None when using webrender.
-            self.context = Some(rendergl::RenderContext::new(self.native_display.unwrap().clone(),
+            self.context = Some(rendergl::RenderContext::new(self.native_display
+                                                             .expect("n_d should be Some when not using wr").clone(),
                                                              show_debug_borders,
                                                              opts::get().output_file.is_some()))
         }
