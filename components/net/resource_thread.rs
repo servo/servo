@@ -191,8 +191,8 @@ impl ResourceChannelManager {
                     self.resource_manager.websocket_connect(pipeline_id, connect, connect_data),
                 ControlMsg::SetCookiesForUrl(pipeline_id, request, cookie_list, source) =>
                     self.resource_manager.set_cookies_for_url(pipeline_id, request, cookie_list, source),
-                ControlMsg::GetCookiesForUrl(url, consumer, source) => {
-                    let cookie_jar = &self.resource_manager.get_resource_group(None).cookie_jar;
+                ControlMsg::GetCookiesForUrl(pipeline_id, url, consumer, source) => {
+                    let cookie_jar = &self.resource_manager.get_resource_group(Some(pipeline_id)).cookie_jar;
                     let mut cookie_jar = cookie_jar.write().unwrap();
                     consumer.send(cookie_jar.cookies_for_url(&url, source)).unwrap();
                 }
@@ -393,15 +393,17 @@ impl ResourceManager {
             read_json_from_file(&mut hsts_list, profile_dir, "hsts_list.json");
             read_json_from_file(&mut cookie_jar, profile_dir, "cookie_jar.json");
         }
-	let resource_group = ResourceGroup {
-            cookie_jar: Some(Arc::new(RwLock::new(CookieStorage::new()))),
-            auth_cache: Arc::new(RwLock::new(AuthCache::new())),
+        let resource_group = ResourceGroup {
+            cookie_jar: Arc::new(RwLock::new(cookie_jar)),
+            auth_cache: Arc::new(RwLock::new(auth_cache)),
             hsts_list: Arc::new(RwLock::new(hsts_list.clone())),
             connector: create_http_connector(),
         };
+        let auth_cache = AuthCache::new();
+        let cookie_jar = CookieStorage::new();
         let private_resource_group = ResourceGroup {
-            cookie_jar: Arc::new(RwLock::new(CookieStorage::new())),
-            auth_cache: Arc::new(RwLock::new(AuthCache::new())),
+            cookie_jar: Arc::new(RwLock::new(cookie_jar)),
+            auth_cache: Arc::new(RwLock::new(auth_cache)),
             hsts_list: Arc::new(RwLock::new(hsts_list.clone())),
             connector: create_http_connector(),
         };

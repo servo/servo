@@ -226,7 +226,7 @@ pub enum ControlMsg {
     /// Store a set of cookies for a given originating URL
     SetCookiesForUrl(PipelineId, Url, String, CookieSource),
     /// Retrieve the stored cookies for a given URL
-    GetCookiesForUrl(Url, IpcSender<Option<String>>, CookieSource),
+    GetCookiesForUrl(PipelineId, Url, IpcSender<Option<String>>, CookieSource),
     /// Cancel a network request corresponding to a given `ResourceId`
     Cancel(ResourceId),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
