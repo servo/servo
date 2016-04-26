@@ -20,7 +20,7 @@ use dom::bluetoothremotegattdescriptor::BluetoothRemoteGATTDescriptor;
 use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use dom::bluetoothuuid::{BluetoothDescriptorUUID, BluetoothUUID};
 use ipc_channel::ipc::{self, IpcSender};
-use net_traits::bluetooth_thread::{BluetoothMethodMsg, BluetoothObjectMsg};
+use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use util::str::DOMString;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattcharacteristic
@@ -100,21 +100,15 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             BluetoothMethodMsg::GetDescriptor(self.get_instance_id(), uuid, sender)).unwrap();
         let descriptor = receiver.recv().unwrap();
         match descriptor {
-            BluetoothObjectMsg::BluetoothDescriptor {
-                uuid,
-                instance_id
-            } => {
+            Ok((uuid, instance_id)) => {
                 Ok(BluetoothRemoteGATTDescriptor::new(self.global().r(),
                                                       self,
                                                       DOMString::from(uuid),
                                                       instance_id))
             },
-            BluetoothObjectMsg::Error {
-                error
-            } => {
+            Err(error) => {
                 Err(Type(error))
             },
-            _ => unreachable!()
         }
     }
 
@@ -127,36 +121,22 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             uuid = Some(try!(BluetoothUUID::GetDescriptor(self.global().r(), d)).to_string())
         };
         let (sender, receiver) = ipc::channel().unwrap();
-        let mut descriptors = vec!();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetDescriptors(self.get_instance_id(), uuid, sender)).unwrap();
         let descriptors_vec = receiver.recv().unwrap();
         match descriptors_vec {
-            BluetoothObjectMsg::BluetoothDescriptors {
-                descriptors_vec
-            } => {
-                for d in descriptors_vec {
-                    match d {
-                        BluetoothObjectMsg::BluetoothDescriptor {
-                            uuid,
-                            instance_id,
-                        } => {
-                            descriptors.push(BluetoothRemoteGATTDescriptor::new(self.global().r(),
-                                                                                self,
-                                                                                DOMString::from(uuid),
-                                                                                instance_id));
-                        },
-                        _ => unreachable!(),
-                    }
-                }
-                Ok(descriptors)
+            Ok(descriptor_vec) => {
+                Ok(descriptor_vec.into_iter()
+                                 .map(|(uuid, instance_id)|
+                                      BluetoothRemoteGATTDescriptor::new(self.global().r(),
+                                                                         self,
+                                                                         DOMString::from(uuid),
+                                                                         instance_id))
+                                  .collect())
             },
-            BluetoothObjectMsg::Error {
-                error
-            } => {
+            Err(error) => {
                 Err(Type(error))
             },
-            _ => unreachable!(),
         }
     }
 
@@ -175,17 +155,12 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             BluetoothMethodMsg::ReadValue(self.get_instance_id(), sender)).unwrap();
         let result = receiver.recv().unwrap();
         let value = match result {
-            BluetoothObjectMsg::BluetoothReadValue {
-                value
-            } => {
-                ByteString::new(value)
+            Ok(val) => {
+                ByteString::new(val)
             },
-            BluetoothObjectMsg::Error {
-                error
-            } => {
+            Err(error) => {
                 return Err(Type(error))
             },
-            _ => unreachable!()
         };
         *self.value.borrow_mut() = Some(value.clone());
         Ok(value)
@@ -198,13 +173,10 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             BluetoothMethodMsg::WriteValue(self.get_instance_id(), value, sender)).unwrap();
         let result = receiver.recv().unwrap();
         match result {
-            BluetoothObjectMsg::BluetoothWriteValue => Ok(()),
-            BluetoothObjectMsg::Error {
-                error
-            } => {
+            Ok(_) => Ok(()),
+            Err(error) => {
                 Err(Type(error))
             },
-            _ => unreachable!()
         }
     }
 }
