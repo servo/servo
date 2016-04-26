@@ -256,6 +256,13 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
         let direction = direction.map_or(SelectionDirection::None, |d| SelectionDirection::from(d));
         self.textinput.borrow_mut().selection_direction = direction;
         self.textinput.borrow_mut().set_selection_range(start, end);
+        let window = window_from_node(self);
+        let task_source = window.user_interaction_task_source();
+        let _ = task_source.queue_event(
+            &self.upcast(),
+            atom!("select"),
+            EventBubbles::Bubbles,
+            EventCancelable::NotCancelable);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
