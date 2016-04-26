@@ -10,6 +10,7 @@ extern crate app_units;
 extern crate cssparser;
 extern crate euclid;
 extern crate msg;
+extern crate rustc_serialize;
 extern crate selectors;
 #[macro_use(atom, ns)] extern crate string_cache;
 extern crate style;
@@ -20,6 +21,7 @@ extern crate util;
 #[cfg(test)] mod attr;
 #[cfg(test)] mod logical_geometry;
 #[cfg(test)] mod media_queries;
+#[cfg(test)] mod properties;
 #[cfg(test)] mod stylesheets;
 #[cfg(test)] mod viewport;
 
