@@ -11,6 +11,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::window::Window;
 use string_cache::Atom;
 use util::str::DOMString;
 
@@ -30,6 +31,11 @@ impl ProgressEvent {
             loaded: loaded,
             total: total
         }
+    }
+    pub fn new_uninitialized(window: &Window) -> Root<ProgressEvent> {
+        reflect_dom_object(box ProgressEvent::new_inherited(false, 0, 0),
+                           GlobalRef::Window(window),
+                           ProgressEventBinding::Wrap)
     }
     pub fn new(global: GlobalRef, type_: Atom,
                can_bubble: EventBubbles, cancelable: EventCancelable,
