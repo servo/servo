@@ -360,10 +360,14 @@ for side in SIDES:
     }
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Font" skip_longhands="font-size">
+<%self:impl_trait style_struct_name="Font" skip_longhands="font-size" skip_additionals="*">
 
     // FIXME(bholley): This doesn't handle zooming properly.
     <% impl_app_units("font_size", "mSize", need_clone=True) %>
+
+    // This is used for PartialEq, which we don't implement for gecko style structs.
+    fn compute_font_hash(&mut self) {}
+
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Box" skip_longhands="display overflow-y">
