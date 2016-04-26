@@ -410,7 +410,7 @@ impl VirtualMethods for HTMLTableElement {
             }
             atom!("cellspacing") => {
                 self.cellspacing.set(mutation.new_value(attr).and_then(|value| {
-                    parse_unsigned_integer(value.chars())
+                    parse_unsigned_integer(value.chars()).ok()
                 }));
             },
             _ => {},

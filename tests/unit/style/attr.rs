@@ -7,6 +7,15 @@ use style::attr::{AttrValue, parse_length};
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
 #[test]
+fn test_parse_double() {
+    let value = DOMString::from("432.5e2");
+    match AttrValue::from_double(value, 0.0) {
+        AttrValue::Double(_, num) => assert_eq!(num, 43250f64),
+        _ => panic!("expected a double value")
+    }
+}
+
+#[test]
 fn test_from_limited_i32_should_be_default_when_less_than_0() {
     let value = DOMString::from("-1");
     match AttrValue::from_limited_i32(value, 0) {
