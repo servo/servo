@@ -12,18 +12,20 @@ import unittest
 import os.path as path
 import webdriver
 import subprocess
-from ServoProcess import ServoProcess
 import server
 
 
-
-def handler(self):
-    return 200, [('Content-Type', 'text/html')], '<html><body>hi there</body></html>'
-
 class TestStringMethods(unittest.TestCase):
     
+    
     def test_get(self):
-        #print("inside test_get")
+        from ServoProcess import ServoProcess
+        import server
+        import webdriver
+
+        def handler(self):
+            return 200, [('Content-Type', 'text/html')], '<html><body>hi there</body></html>'
+
         with ServoProcess():
             server.serve(handler)
             session = webdriver.Session('127.0.0.1', 7000)
@@ -32,8 +34,7 @@ class TestStringMethods(unittest.TestCase):
             self.assertEqual(session.url, "http://localhost:8001/")
             #session.end()
             server.stop()
-        #print("inside test_get END")
-
+        
 
 # if __name__ == '__main__':
 #     unittest.main()    
