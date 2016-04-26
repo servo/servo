@@ -12,14 +12,15 @@ use context::LayoutContext;
 use cssparser::Color;
 use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode, DisplayListBuildState};
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
-use flow::{Flow, FlowClass, OpaqueFlow};
+use flow::{self, Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::{StackingContext, StackingContextId};
+use incremental::REFLOW;
 use layout_debug;
 use model::MaybeAuto;
 use std::fmt;
 use std::sync::Arc;
-use style::computed_values::{border_collapse, border_top_style};
+use style::computed_values::{border_collapse, border_top_style, vertical_align};
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::{ComputedValues, ServoComputedValues};
 use table::InternalTable;
@@ -74,6 +75,42 @@ impl TableCellFlow {
             None,
             MarginsMayCollapseFlag::MarginsMayNotCollapse);
         debug_assert!(remaining.is_none());
+        if !flow::base(self).restyle_damage.contains(REFLOW) {
+            return;
+        }
+        let first_start = flow::base(self).children.front().map(|kid| {
+            flow::base(kid).position.start.b
+        });
+        if let Some(mut first_start) = first_start {
+            let mut last_end = first_start;
+            for kid in flow::base(self).children.iter() {
+                let kid_base = flow::base(kid);
+                let start = kid_base.position.start.b
+                    - kid_base.collapsible_margins.block_start_margin_for_noncollapsible_context();
+                let end = kid_base.position.start.b + kid_base.position.size.block
+                    + kid_base.collapsible_margins.block_end_margin_for_noncollapsible_context();
+                if start < first_start {
+                    first_start = start;
+                }
+                if end > last_end {
+                    last_end = end;
+                }
+            }
+            let kids_size = last_end - first_start;
+            let self_size = flow::base(self).position.size.block -
+                self.block_flow.fragment.border_padding.block_start_end();
+            let kids_self_gap = self_size - kids_size;
+            let offset = match self.block_flow.fragment.style().get_box().vertical_align {
+                vertical_align::T::middle => kids_self_gap / 2,
+                vertical_align::T::bottom => kids_self_gap,
+                _ => Au(0),
+            };
+            if offset != Au(0) {
+                for kid in flow::mut_base(self).children.iter_mut() {
+                    flow::mut_base(kid).position.start.b = flow::mut_base(kid).position.start.b + offset;
+                }
+            }
+        }
     }
 }
 
