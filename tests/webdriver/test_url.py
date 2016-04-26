@@ -7,13 +7,10 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-import sys
-import unittest
-import os.path as path
 import webdriver
-import subprocess
 import server
 from ServoProcess import ServoProcess
+
 
 def handler(self):
     return 200, [('Content-Type', 'text/html')], '<html><body>hi there</body></html>'
@@ -26,8 +23,6 @@ with ServoProcess():
     try:
         assert session.url == "http://localhost:8001/"
     except AssertionError, e:
-        raise Exception("URL don`t match!") 
-    #session.end()
+        raise Exception("URL don`t match!")
+#    session.end()
     server.stop()
-        
-
