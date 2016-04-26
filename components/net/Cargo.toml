@@ -33,7 +33,7 @@ git = "https://github.com/servo/ipc-channel"
 git = "https://github.com/servo/webrender_traits"
 
 [dependencies]
-cookie = "0.2"
+cookie = { version = "0.2.4", features = [ "serialize-rustc" ] }
 flate2 = "0.2.0"
 hyper = { version = "0.9", features = [ "serde-serialization" ] }
 immeta = "0.3.1"
