@@ -125,15 +125,13 @@ def is_border_style_masked(ffi_name):
 def get_gecko_property(ffi_name):
     if is_border_style_masked(ffi_name):
         return "(self.gecko.%s & (gecko_style_structs::BORDER_STYLE_MASK as u8))" % ffi_name
-    else:
-        return "self.gecko.%s" % ffi_name
+    return "self.gecko.%s" % ffi_name
 
 def set_gecko_property(ffi_name, expr):
     if is_border_style_masked(ffi_name):
         return "self.gecko.%s &= !(gecko_style_structs::BORDER_STYLE_MASK as u8);" % ffi_name + \
                "self.gecko.%s |= %s as u8;" % (ffi_name, expr)
-    else:
-        return "self.gecko.%s = %s;" % (ffi_name, expr)
+    return "self.gecko.%s = %s;" % (ffi_name, expr)
 %>
 
 <%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword)">
