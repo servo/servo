@@ -25,24 +25,18 @@ import urllib
 class TestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         status, headers, body = self.handler()
-        #print status, headers, body, "...In GET"
         self.send_response(status)
         for header in headers:
             self.send_header(header[0], header[1])
         self.end_headers()
         self.wfile.write(body)
-
-    def do_DELETE(self):
-        print "DELETEd"
         
 class TestServer(HTTPServer):
     def shutdown(self):
         self.socket.close()
         HTTPServer.shutdown(self)
 
-
 httpd = None
-
 
 def serve(handler):
     global httpd
@@ -56,9 +50,3 @@ def serve(handler):
     
 def stop():
     httpd.shutdown()
-
-
-# def handler(self):
-#     return 200, [('Content-Type', 'text/html')], '<html><body>hi there</body></html>'
-
-# #serve(handler)
