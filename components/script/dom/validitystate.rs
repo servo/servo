@@ -640,7 +640,7 @@ impl ValidityStateMethods for ValidityState {
                         return false;
                     }
                 }
-        false       
+        false
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-valid
