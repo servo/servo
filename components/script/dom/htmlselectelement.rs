@@ -259,7 +259,7 @@ impl Validatable for HTMLSelectElement {
         for opt in node.traverse_preorder().filter_map(Root::downcast::<HTMLOptionElement>) {
             let element = opt.upcast::<Element>();
             if opt.Selected() && element.enabled_state() {
-                Some(DOMString::from("Has a valid value"))
+                Some(self.Name())
             }
         }*/
 
