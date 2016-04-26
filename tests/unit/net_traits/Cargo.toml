@@ -8,5 +8,5 @@ name = "net_traits_tests"
 path = "lib.rs"
 doctest = false
 
-[dependencies.net_traits]
-path = "../../../components/net_traits"
+[dependencies]
+net_traits = {path = "../../../components/net_traits"}

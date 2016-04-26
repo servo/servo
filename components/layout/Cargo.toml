@@ -8,59 +8,24 @@ publish = false
 name = "layout"
 path = "lib.rs"
 
-[dependencies.azure]
-git = "https://github.com/servo/rust-azure"
-features = ["plugins"]
-
-[dependencies.canvas_traits]
-path = "../canvas_traits"
-
-[dependencies.gfx]
-path = "../gfx"
-
-[dependencies.gfx_traits]
-path = "../gfx_traits"
-
-[dependencies.msg]
-path = "../msg"
-
-[dependencies.script]
-path = "../script"
-
-[dependencies.layout_traits]
-path = "../layout_traits"
-
-[dependencies.range]
-path = "../range"
-
-[dependencies.script_traits]
-path = "../script_traits"
-
-[dependencies.style]
-path = "../style"
-
-[dependencies.style_traits]
-path = "../style_traits"
-
-[dependencies.plugins]
-path = "../plugins"
-
-[dependencies.net_traits]
-path = "../net_traits"
-
-[dependencies.profile_traits]
-path = "../profile_traits"
-
-[dependencies.util]
-path = "../util"
-
-[dependencies.ipc-channel]
-git = "https://github.com/servo/ipc-channel"
-
-[dependencies.webrender_traits]
-git = "https://github.com/servo/webrender_traits"
-
 [dependencies]
+azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
+canvas_traits = {path = "../canvas_traits"}
+gfx = {path = "../gfx"}
+gfx_traits = {path = "../gfx_traits"}
+msg = {path = "../msg"}
+script = {path = "../script"}
+layout_traits = {path = "../layout_traits"}
+range = {path = "../range"}
+script_traits = {path = "../script_traits"}
+style = {path = "../style"}
+style_traits = {path = "../style_traits"}
+plugins = {path = "../plugins"}
+net_traits = {path = "../net_traits"}
+profile_traits = {path = "../profile_traits"}
+util = {path = "../util"}
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+webrender_traits = {git = "https://github.com/servo/webrender_traits"}
 app_units = {version = "0.2.3", features = ["plugins"]}
 bitflags = "0.3"
 cssparser = {version = "0.5.4", features = ["heap_size", "serde-serialization"]}

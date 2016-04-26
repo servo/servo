@@ -8,11 +8,7 @@ name = "gfx_tests"
 path = "lib.rs"
 doctest = false
 
-[dependencies.gfx]
-path = "../../../components/gfx"
-
-[dependencies.ipc-channel]
-git = "https://github.com/servo/ipc-channel"
-
-[dependencies.style]
-path = "../../../components/style"
+[dependencies]
+gfx = {path = "../../../components/gfx"}
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+style = {path = "../../../components/style"}

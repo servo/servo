@@ -20,63 +20,25 @@ euclid = {version = "0.6.4", features = ["plugins"]}
 gleam = "0.2.8"
 libc = "0.2"
 url = {version = "1.0.0", features = ["heap_size"]}
+servo = {path = "../../components/servo"}
+glutin_app = {path = "../glutin"}
+plugins = {path = "../../components/plugins"}
+compositing = {path = "../../components/compositing"}
+gfx = {path = "../../components/gfx"}
+log = {version = "0.3.5", features = ["release_max_level_info"]}
+script = {path = "../../components/script"}
+script_traits = {path = "../../components/script_traits"}
+net_traits = {path = "../../components/net_traits"}
+msg = {path = "../../components/msg"}
+util = {path = "../../components/util", features = ["non-geckolib"]}
+style = {path = "../../components/style"}
+style_traits = {path = "../../components/style_traits"}
+devtools = {path = "../../components/devtools"}
+azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
+js = {git = "https://github.com/servo/rust-mozjs"}
+layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
 
-[dependencies.servo]
-path = "../../components/servo"
-
-[dependencies.glutin_app]
-path = "../glutin"
-
-[dependencies.plugins]
-path = "../../components/plugins"
-
-[dependencies.compositing]
-path = "../../components/compositing"
-
-[dependencies.gfx]
-path = "../../components/gfx"
-
-[dependencies.log]
-version = "0.3.5"
-features = ["release_max_level_info"]
-
-[dependencies.script]
-path = "../../components/script"
-
-[dependencies.script_traits]
-path = "../../components/script_traits"
-
-[dependencies.net_traits]
-path = "../../components/net_traits"
-
-[dependencies.msg]
-path = "../../components/msg"
-
-[dependencies.util]
-path = "../../components/util"
-features = ["non-geckolib"]
-
-[dependencies.style]
-path = "../../components/style"
-
-[dependencies.style_traits]
-path = "../../components/style_traits"
-
-[dependencies.devtools]
-path = "../../components/devtools"
-
-[dependencies.azure]
-git = "https://github.com/servo/rust-azure"
-features = ["plugins"]
-
-[dependencies.js]
-git = "https://github.com/servo/rust-mozjs"
-
-[dependencies.layers]
-git = "https://github.com/servo/rust-layers"
-features = ["plugins"]
-
-[target.x86_64-apple-darwin.dependencies]
+[target.'cfg(target_os="macos")'.dependencies]
 objc = "0.2"
 cocoa = "0.3"
 core-foundation = "0.2"
@@ -84,8 +46,5 @@ core-graphics = "0.3"
 core-text = "1.1"
 cgl = "0.1"
 
-[target.i686-unknown-linux-gnu.dependencies]
-x11 = "2.3"
-
-[target.x86_64-unknown-linux-gnu.dependencies]
+[target.'cfg(target_os="linux")'.dependencies]
 x11 = "2.3"

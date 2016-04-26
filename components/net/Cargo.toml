@@ -8,31 +8,15 @@ publish = false
 name = "net"
 path = "lib.rs"
 
-[dependencies.net_traits]
-path = "../net_traits"
-
-[dependencies.util]
-path = "../util"
-
-[dependencies.devtools_traits]
-path = "../devtools_traits"
-
-[dependencies.brotli]
-git = "https://github.com/ende76/brotli-rs"
-
-[dependencies.plugins]
-path = "../plugins"
-
-[dependencies.msg]
-path = "../msg"
-
-[dependencies.ipc-channel]
-git = "https://github.com/servo/ipc-channel"
-
-[dependencies.webrender_traits]
-git = "https://github.com/servo/webrender_traits"
-
 [dependencies]
+net_traits = {path = "../net_traits"}
+util = {path = "../util"}
+devtools_traits = {path = "../devtools_traits"}
+brotli = {git = "https://github.com/ende76/brotli-rs"}
+plugins = {path = "../plugins"}
+msg = {path = "../msg"}
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+webrender_traits = {git = "https://github.com/servo/webrender_traits"}
 cookie = { version = "0.2.4", features = [ "serialize-rustc" ] }
 flate2 = "0.2.0"
 hyper = { version = "0.9", features = [ "serde-serialization" ] }

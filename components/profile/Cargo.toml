@@ -8,27 +8,18 @@ publish = false
 name = "profile"
 path = "lib.rs"
 
-[dependencies.profile_traits]
-path = "../profile_traits"
-
-[dependencies.plugins]
-path = "../plugins"
-
-[dependencies.util]
-path = "../util"
-
-[dependencies.ipc-channel]
-git = "https://github.com/servo/ipc-channel"
-
 [dependencies]
+profile_traits = {path = "../profile_traits"}
+plugins = {path = "../plugins"}
+util = {path = "../util"}
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 hbs-pow = "0.2"
 log = "0.3.5"
 libc = "0.2"
-regex = "0.1.55"
 time = "0.1.12"
 
-[target.x86_64-apple-darwin.dependencies.task_info]
-path = "../../support/rust-task_info"
+[target.'cfg(target_os = "macos")'.dependencies]
+task_info = {path = "../../support/rust-task_info"}
 
-[target.i686-apple-darwin.dependencies.task_info]
-path = "../../support/rust-task_info"
+[target.'cfg(target_os = "linux")'.dependencies]
+regex = "0.1.55"

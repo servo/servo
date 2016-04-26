@@ -24,17 +24,7 @@ selectors = {version = "0.5", features = ["heap_size", "unstable"]}
 smallvec = "0.1"
 string_cache = {version = "0.2.12", features = ["heap_size", "unstable"]}
 url = {version = "1.0.0", features = ["heap_size", "query_encoding", "serde"]}
-
-[dependencies.log]
-version = "0.3.5"
-features = ["release_max_level_info"]
-
-[dependencies.plugins]
-path = "../../components/plugins"
-
-[dependencies.util]
-path = "../../components/util"
-
-[dependencies.style]
-path = "../../components/style"
-features = ["gecko"]
+log = {version = "0.3.5", features = ["release_max_level_info"]}
+plugins = {path = "../../components/plugins"}
+util = {path = "../../components/util"}
+style = {path = "../../components/style", features = ["gecko"]}

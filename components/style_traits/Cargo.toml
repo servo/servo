@@ -8,13 +8,9 @@ publish = false
 name = "style_traits"
 path = "lib.rs"
 
-[dependencies.util]
-path = "../util"
-
-[dependencies.plugins]
-path = "../plugins"
-
 [dependencies]
+util = {path = "../util"}
+plugins = {path = "../plugins"}
 cssparser = {version = "0.5.4", features = ["heap_size", "serde-serialization"]}
 euclid = {version = "0.6.4", features = ["plugins"]}
 heapsize = "0.3.0"
