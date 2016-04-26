@@ -256,8 +256,20 @@ class MachCommands(CommandBase):
         modules = glob.glob(dirname(run_file) + "/*.py")
         __all__ = [basename(f)[:-3] for f in modules if isfile(f)]
         self.test_web_driver(run_file, __all__)
-
-
+        '''test_dir = path.abspath(path.join(self.context.topdir, "tests", "webdriver"))
+        sys.path.append(path.join(self.context.topdir, "tests", "webdriver", "harness"))
+        for f in os.listdir(test_dir):
+            name, ext = os.path.splitext(f)
+            if ext != '.py':
+                continue
+            try:
+                print("in hee "+ f)
+                execfile(open(path.join(test_dir, f)))
+                 # TODO the test passed
+            except Exception as e:
+                 # TODO the test failed
+                pass
+'''
     @Command('test-content',
              description='Run the content tests',
              category='testing')
