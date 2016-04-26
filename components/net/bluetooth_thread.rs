@@ -25,7 +25,6 @@ const VALUE_ERROR: &'static str = "No characteristic or descriptor found with th
 
 bitflags! {
     flags Flags: u32 {
-        const EMPTY                       = 0b000000000,
         const BROADCAST                   = 0b000000001,
         const READ                        = 0b000000010,
         const WRITE_WITHOUT_RESPONSE      = 0b000000100,
@@ -197,7 +196,7 @@ impl BluetoothManager {
                 self.cached_devices.insert(address, device.clone());
             }
         }
-        self.cached_devices.iter().map(|(_,d)| d.clone() ).collect()
+        self.cached_devices.iter().map(|(_, d)| d.clone()).collect()
     }
 
     fn get_device(&mut self, adapter: &mut BluetoothAdapter, device_id: &str) -> Option<&BluetoothDevice> {
@@ -288,7 +287,7 @@ impl BluetoothManager {
     }
 
     fn get_characteristic_properties(&self, characteristic: &BluetoothGATTCharacteristic) -> Flags {
-        let mut props: Flags = EMPTY;
+        let mut props: Flags = Flags::empty();
         let flags = characteristic.get_flags().unwrap_or(vec!());
         for flag in flags {
             match flag.as_ref() {
@@ -624,15 +623,11 @@ impl BluetoothManager {
             Some(a) => a,
             None => send_error!(sender, ADAPTER_ERROR),
         };
-        let mut value = match self.get_gatt_characteristic(&mut adapter, &id) {
-            Some(c) => Some(c.read_value().unwrap_or(vec!())),
-            None => None,
-        };
+        let mut value = self.get_gatt_characteristic(&mut adapter, &id)
+                            .map(|c| c.read_value().unwrap_or(vec![]));
         if value.is_none() {
-            value = match self.get_gatt_descriptor(&mut adapter, &id) {
-                Some(d) => Some(d.read_value().unwrap_or(vec!())),
-                None => None,
-            };
+            value = self.get_gatt_descriptor(&mut adapter, &id)
+                        .map(|d| d.read_value().unwrap_or(vec![]));
         }
 
         let message = match value {
@@ -648,15 +643,11 @@ impl BluetoothManager {
             Some(a) => a,
             None => send_error!(sender, ADAPTER_ERROR),
         };
-        let mut result = match self.get_gatt_characteristic(&mut adapter, &id) {
-            Some(c) => Some(c.write_value(value.clone())),
-            None => None,
-        };
+        let mut result = self.get_gatt_characteristic(&mut adapter, &id)
+                             .map(|c| c.write_value(value.clone()));
         if result.is_none() {
-            result = match self.get_gatt_descriptor(&mut adapter, &id) {
-                Some(d) => Some(d.write_value(value.clone())),
-                None => None,
-            };
+            result = self.get_gatt_descriptor(&mut adapter, &id)
+                         .map(|d| d.write_value(value.clone()));
         }
 
         let message = match result {
