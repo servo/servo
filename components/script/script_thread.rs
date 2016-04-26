@@ -1118,7 +1118,7 @@ impl ScriptThread {
         doc.mut_loader().inhibit_events();
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
-        let addr: Trusted<Document> = Trusted::new(doc, self.chan.clone());
+        let addr: Trusted<Document> = Trusted::new(doc);
         let handler = box DocumentProgressHandler::new(addr.clone());
         self.dom_manipulation_task_source.queue(DOMManipulationTask::DocumentProgress(handler)).unwrap();
 
@@ -1866,8 +1866,7 @@ impl ScriptThread {
         let script_chan = self.chan.clone();
         let resource_thread = self.resource_thread.clone();
 
-        let context = Arc::new(Mutex::new(ParserContext::new(id, subpage, script_chan.clone(),
-                                                             load_data.url.clone())));
+        let context = Arc::new(Mutex::new(ParserContext::new(id, subpage, load_data.url.clone())));
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let listener = NetworkListener {
             context: context,

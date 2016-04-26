@@ -72,7 +72,8 @@ impl<T: Reflectable> Trusted<T> {
     /// Create a new `Trusted<T>` instance from an existing DOM pointer. The DOM object will
     /// be prevented from being GCed for the duration of the resulting `Trusted<T>` object's
     /// lifetime.
-    pub fn new(ptr: &T, script_chan: Box<ScriptChan + Send>) -> Trusted<T> {
+    pub fn new(ptr: &T) -> Trusted<T> {
+        let script_chan = ptr.global().r().script_chan();
         LIVE_REFERENCES.with(|ref r| {
             let r = r.borrow();
             let live_references = r.as_ref().unwrap();

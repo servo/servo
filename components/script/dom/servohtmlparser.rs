@@ -62,21 +62,17 @@ pub struct ParserContext {
     id: PipelineId,
     /// The subpage associated with this document.
     subpage: Option<SubpageId>,
-    /// The target event loop for the response notifications.
-    script_chan: Box<ScriptChan + Send>,
     /// The URL for this document.
     url: Url,
 }
 
 impl ParserContext {
-    pub fn new(id: PipelineId, subpage: Option<SubpageId>, script_chan: Box<ScriptChan + Send>,
-               url: Url) -> ParserContext {
+    pub fn new(id: PipelineId, subpage: Option<SubpageId>, url: Url) -> ParserContext {
         ParserContext {
             parser: None,
             is_synthesized_document: false,
             id: id,
             subpage: subpage,
-            script_chan: script_chan,
             url: url,
         }
     }
@@ -107,11 +103,9 @@ impl AsyncResponseListener for ParserContext {
         let parser = parser.r();
         self.parser = Some(match parser {
             ParserRef::HTML(parser) => TrustedParser::HTML(
-                                        Trusted::new(parser,
-                                                     self.script_chan.clone())),
+                                        Trusted::new(parser)),
             ParserRef::XML(parser) => TrustedParser::XML(
-                                        Trusted::new(parser,
-                                                     self.script_chan.clone())),
+                                        Trusted::new(parser)),
         });
 
         match content_type {

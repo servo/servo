@@ -38,7 +38,7 @@ use hyper::method::Method;
 use hyper::mime;
 use msg::constellation_msg::{LoadData, PipelineId};
 use script_runtime::ScriptChan;
-use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable};
+use script_thread::{MainThreadScriptMsg, Runnable};
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::sync::mpsc::Sender;
@@ -331,13 +331,12 @@ impl HTMLFormElement {
         self.generation_id.set(GenerationId(prev_id + 1));
 
         // Step 2
-        let chan = MainThreadScriptChan(window.main_thread_script_chan().clone()).clone();
         let nav = box PlannedNavigation {
             load_data: load_data,
             pipeline_id: window.pipeline(),
             script_chan: window.main_thread_script_chan().clone(),
             generation_id: self.generation_id.get(),
-            form: Trusted::new(self, chan)
+            form: Trusted::new(self)
         };
 
         // Step 3

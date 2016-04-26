@@ -14,8 +14,7 @@ use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use script_runtime::ScriptChan;
-use script_thread::{MainThreadScriptChan, Runnable};
+use script_thread::Runnable;
 use std::cell::Cell;
 use string_cache::Atom;
 use task_source::dom_manipulation::DOMManipulationTask;
@@ -74,8 +73,7 @@ impl VirtualMethods for HTMLDetailsElement {
             let window = window_from_node(self);
             let window = window.r();
             let task_source = window.dom_manipulation_task_source();
-            let chan = MainThreadScriptChan(window.main_thread_script_chan().clone()).clone();
-            let details = Trusted::new(self, chan.clone());
+            let details = Trusted::new(self);
             let runnable = box ToggleEventRunnable {
                 element: details,
                 toggle_number: counter
