@@ -38,6 +38,7 @@ use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
 use dom::element::{Element, ElementCreator};
+use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::focusevent::FocusEvent;
@@ -2188,6 +2189,8 @@ impl DocumentMethods for Document {
                 Ok(Root::upcast(ProgressEvent::new_uninitialized(&self.window))),
             "focusevent" =>
                 Ok(Root::upcast(FocusEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+            "errorevent" =>
+                Ok(Root::upcast(ErrorEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
             _ =>
                 Err(Error::NotSupported),
         }
