@@ -14,49 +14,34 @@ if [ ! -d rust-bindgen ]; then
   exit 1
 fi
 
-# Need to find a way to avoid hardcoding these
-export RUST_BACKTRACE=1
-export LIBCLANG_PATH="$(pwd)/llvm/build/Release+Asserts/lib"
-export DYLD_LIBRARY_PATH="$(pwd)/llvm/build/Release+Asserts/lib"
-export LD_LIBRARY_PATH="$(pwd)/llvm/build/Release+Asserts/lib"
-export DIST_INCLUDE="$1/dist/include"
-CLANG_SEARCH_DIRS=$(clang++ -E -x c++ - -v < /dev/null 2>&1 | awk '{ \
-  if ($0 == "#include <...> search starts here:")                    \
-    in_headers = 1;                                                  \
-  else if ($0 == "End of search list.")                              \
-    in_headers = 0;                                                  \
-  else if (in_headers == 1) {                                        \
-    gsub(/^[ \t]+/, "", $0);                                         \
-    gsub(/[ \t].+$/, "", $0);                                        \
-    printf " -isystem %s", $0;                                       \
-  }
-}' | sed -e s/:$//g)
+# Check for /usr/include
+if [ ! -d /usr/include ]; then
+  echo "/usr/include doesn't exist. Mac users may need to run xcode-select --install."
+  exit 1
+fi
+
+if [ "$(uname)" == "Linux" ]; then
+  PLATFORM_DEPENDENT_DEFINES+="-DOS_LINUX";
+  LIBCLANG_PATH=/usr/lib/llvm-3.8/lib;
+else
+  PLATFORM_DEPENDENT_DEFINES+="-DOS_MACOSX";
+  LIBCLANG_PATH=`brew --prefix llvm38`/lib/llvm-3.8/lib;
+fi
+
 
 # Check for the include directory.
+export DIST_INCLUDE="$1/dist/include"
 if [ ! -d "$DIST_INCLUDE" ]; then
   echo "$DIST_INCLUDE: directory not found"
   exit 1
 fi
 
-PLATFORM_DEPENDENT_DEFINES="";
-if [ "$(uname)" == "Linux" ]; then
-  PLATFORM_DEPENDENT_DEFINES+="-DOS_LINUX";
-else
-  PLATFORM_DEPENDENT_DEFINES+="-DOS_MACOSX";
-fi
+export RUST_BACKTRACE=1
 
-# Uncomment the following line to run rust-bindgen in a debugger on mac. The
-# absolute path is required to allow launching lldb with an untrusted library
-# in DYLD_LIBRARY_PATH.
-#
-# /Applications/Xcode.app/Contents/Developer/usr/bin/lldb --
-# gdb -ex "break rust_panic" -ex run  --args                          \
-# -enable-cxx-namespaces                                            \
 ./rust-bindgen/target/debug/bindgen                                 \
   -o ../gecko_style_structs.rs                                      \
   -x c++ -std=gnu++0x                                               \
   -allow-unknown-types                                              \
-  $CLANG_SEARCH_DIRS                                                \
   "-I$DIST_INCLUDE" "-I$DIST_INCLUDE/nspr"                          \
   "-I$1/../nsprpub/pr/include"                                      \
   $PLATFORM_DEPENDENT_DEFINES                                       \
