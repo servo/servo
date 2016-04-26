@@ -394,6 +394,9 @@ impl ImageCache {
                 let result = self.get_image_or_meta_if_available(url, use_placeholder);
                 consumer.send(result).unwrap();
             }
+            ImageCacheCommand::StoreDecodeImage(url, image_vector) => {
+                self.store_decode_image(url, image_vector);
+            }
         };
 
         None
@@ -587,6 +590,23 @@ impl ImageCache {
                 Ok(ImageOrMetadataAvailable::MetadataAvailable(meta.clone()))
             }
         }
+    }
+
+    fn store_decode_image(&mut self,
+                          ref_url: Url,
+                          loaded_bytes: Vec<u8>) {
+        let (cache_result, load_key, _) = self.pending_loads.get_cached(Arc::new(ref_url));
+        assert!(cache_result == CacheResult::Miss);
+        let action = ResponseAction::DataAvailable(loaded_bytes);
+        let _ = self.progress_sender.send(ResourceLoadInfo {
+            action: action,
+            key: load_key,
+        });
+        let action = ResponseAction::ResponseComplete(Ok(()));
+        let _ = self.progress_sender.send(ResourceLoadInfo {
+            action: action,
+            key: load_key,
+        });
     }
 }
 

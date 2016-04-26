@@ -92,6 +92,10 @@ pub enum ImageCacheCommand {
     /// state and but its metadata has been made available, it will be sent as a response.
     GetImageOrMetadataIfAvailable(Url, UsePlaceholder, IpcSender<Result<ImageOrMetadataAvailable, ImageState>>),
 
+    /// Instruct the cache to store this data as a newly-complete network request and continue
+    /// decoding the result into pixel data
+    StoreDecodeImage(Url, Vec<u8>),
+
     /// Clients must wait for a response before shutting down the ResourceThread
     Exit(IpcSender<()>),
 }
@@ -157,6 +161,14 @@ impl ImageCacheThread {
         receiver.recv().unwrap()
     }
 
+    /// Decode the given image bytes and cache the result for the given URL.
+    pub fn store_complete_image_bytes(&self,
+                                   url: Url,
+                                   image_data: Vec<u8>) {
+        let msg = ImageCacheCommand::StoreDecodeImage(url, image_data);
+        self.chan.send(msg).unwrap();
+    }
+
     /// Shutdown the image cache thread.
     pub fn exit(&self) {
         let (response_chan, response_port) = ipc::channel().unwrap();
@@ -164,4 +176,3 @@ impl ImageCacheThread {
         response_port.recv().unwrap();
     }
 }
-
