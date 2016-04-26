@@ -264,7 +264,7 @@ impl WebRenderStackingContextConverter for StackingContext {
                                          _force_positioned_stacking_level: bool) {
         for child in self.children.iter() {
             while let Some(item) = traversal.advance(self) {
-                item.item.convert_to_webrender(builder, frame_builder);
+                item.convert_to_webrender(builder, frame_builder);
             }
 
             if child.context_type == StackingContextType::Real {
@@ -295,7 +295,7 @@ impl WebRenderStackingContextConverter for StackingContext {
         }
 
         while let Some(item) = traversal.advance(self) {
-            item.item.convert_to_webrender(builder, frame_builder);
+            item.convert_to_webrender(builder, frame_builder);
         }
     }
 
