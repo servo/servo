@@ -547,6 +547,14 @@ impl HTMLInputElementMethods for HTMLInputElement {
         let direction = direction.map_or(SelectionDirection::None, |d| SelectionDirection::from(d));
         self.textinput.borrow_mut().selection_direction = direction;
         self.textinput.borrow_mut().set_selection_range(start, end);
+        let window = window_from_node(self);
+        let input_elem = Trusted::new(self.upcast::<EventTarget>());
+        let task_source = window.user_interaction_task_source();
+        let _ = task_source.queue(UserInteractionTask::FireEvent(
+            atom!("select"),
+            input_elem,
+            EventBubbles::Bubbles,
+            EventCancelable::NotCancelable));
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
