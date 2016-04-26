@@ -5164,6 +5164,16 @@
         "url": "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas-fallback.html"
       },
       {
+        "path": "html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html",
+        "references": [
+          [
+            "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale_ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html"
+      },
+      {
         "path": "html/rendering/replaced-elements/images/space.html",
         "references": [
           [
@@ -14538,6 +14548,10 @@
         "url": "/dom/nodes/Element-getElementsByTagNameNS.html"
       },
       {
+        "path": "dom/nodes/Element-hasAttributes.html",
+        "url": "/dom/nodes/Element-hasAttributes.html"
+      },
+      {
         "path": "dom/nodes/Element-insertAdjacentElement.html",
         "url": "/dom/nodes/Element-insertAdjacentElement.html"
       },
@@ -14680,6 +14694,10 @@
       {
         "path": "dom/nodes/Node-isEqualNode.html",
         "url": "/dom/nodes/Node-isEqualNode.html"
+      },
+      {
+        "path": "dom/nodes/Node-isSameNode.html",
+        "url": "/dom/nodes/Node-isSameNode.html"
       },
       {
         "path": "dom/nodes/Node-lookupNamespaceURI.html",
@@ -28278,6 +28296,10 @@
         "url": "/shadow-dom/ShadowRoot-interface.html"
       },
       {
+        "path": "shadow-dom/leaktests/html-collection.html",
+        "url": "/shadow-dom/leaktests/html-collection.html"
+      },
+      {
         "path": "shadow-dom/styles/shadow-cascade-order.html",
         "url": "/shadow-dom/styles/shadow-cascade-order.html"
       },
@@ -33318,6 +33340,10 @@
         "url": "/workers/constructors/Worker/unresolvable-url.html"
       },
       {
+        "path": "workers/constructors/Worker/use-base-url.html",
+        "url": "/workers/constructors/Worker/use-base-url.html"
+      },
+      {
         "path": "workers/interfaces.worker.js",
         "url": "/workers/interfaces.worker"
       },
@@ -35214,56 +35240,8 @@
   "local_changes": {
     "deleted": [],
     "deleted_reftests": {},
-    "items": {
-      "reftest": {
-        "html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html": [
-          {
-            "path": "html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html",
-            "references": [
-              [
-                "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale_ref.html",
-                "=="
-              ]
-            ],
-            "url": "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html"
-          }
-        ]
-      },
-      "testharness": {
-        "dom/nodes/Element-hasAttributes.html": [
-          {
-            "path": "dom/nodes/Element-hasAttributes.html",
-            "url": "/dom/nodes/Element-hasAttributes.html"
-          }
-        ],
-        "dom/nodes/Node-isSameNode.html": [
-          {
-            "path": "dom/nodes/Node-isSameNode.html",
-            "url": "/dom/nodes/Node-isSameNode.html"
-          }
-        ],
-        "workers/constructors/Worker/use-base-url.html": [
-          {
-            "path": "workers/constructors/Worker/use-base-url.html",
-            "url": "/workers/constructors/Worker/use-base-url.html"
-          }
-        ]
-      }
-    },
-    "reftest_nodes": {
-      "html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html": [
-        {
-          "path": "html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html",
-          "references": [
-            [
-              "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale_ref.html",
-              "=="
-            ]
-          ],
-          "url": "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html"
-        }
-      ]
-    }
+    "items": {},
+    "reftest_nodes": {}
   },
   "reftest_nodes": {
     "2dcontext/building-paths/canvas_complexshapes_arcto_001.htm": [
@@ -38048,6 +38026,18 @@
           ]
         ],
         "url": "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas-fallback.html"
+      }
+    ],
+    "html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html": [
+      {
+        "path": "html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html",
+        "references": [
+          [
+            "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale_ref.html",
+            "=="
+          ]
+        ],
+        "url": "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html"
       }
     ],
     "html/rendering/replaced-elements/images/space.html": [
@@ -41567,7 +41557,7 @@
       }
     ]
   },
-  "rev": "0a518aaff73532a26e175789f7e75fa99593ac64",
+  "rev": "b94b41945d3c7c9b4f3346cf8654cc5ca7ae567c",
   "url_base": "/",
   "version": 3
 }
