@@ -68,6 +68,7 @@ use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node};
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
+use dom::progressevent::ProgressEvent;
 use dom::range::Range;
 use dom::servohtmlparser::{ParserRoot, ParserRef, MutNullableParserField};
 use dom::storageevent::StorageEvent;
@@ -2183,6 +2184,8 @@ impl DocumentMethods for Document {
                 Ok(Root::upcast(WebGLContextEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
             "storageevent" =>
                 Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, self.URL()))),
+            "progressevent" =>
+                Ok(Root::upcast(ProgressEvent::new_uninitialized(&self.window))),
             _ =>
                 Err(Error::NotSupported),
         }
