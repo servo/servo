@@ -24,7 +24,6 @@ promise_test(() => {
 
     cancel() {
       randomSource.readStop();
-      randomSource.onend();
 
       return new Promise(resolve => {
         setTimeout(() => {
