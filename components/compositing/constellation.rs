@@ -330,7 +330,6 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         let (ipc_panic_receiver, ipc_panic_sender) = ConstellationChan::<PanicMsg>::new();
         let panic_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_panic_receiver);
         let compositor_sender_clone = compositor_sender.clone();
-        //let (ipc_resource_msg_sender, ipc_resource_msg_receiver) = ipc::channel().unwrap();
         let (ipc_resource_msg_receiver, ipc_resource_msg_sender) = ConstellationChan::<FromResourceMsg>::new();
         let resource_msg_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_resource_msg_receiver);
         spawn_named("Constellation".to_owned(), move || {
