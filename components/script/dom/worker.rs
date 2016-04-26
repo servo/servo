@@ -81,7 +81,7 @@ impl Worker {
         let (sender, receiver) = channel();
         let closing = Arc::new(AtomicBool::new(false));
         let worker = Worker::new(global, sender.clone(), closing.clone());
-        let worker_ref = Trusted::new(worker.r(), global.script_chan());
+        let worker_ref = Trusted::new(worker.r());
         let worker_id = global.get_next_worker_id();
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
@@ -166,7 +166,7 @@ impl WorkerMethods for Worker {
     // https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
     fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
-        let address = Trusted::new(self, self.global().r().script_chan());
+        let address = Trusted::new(self);
         self.sender.send((address, WorkerScriptMsg::DOMMessage(data))).unwrap();
         Ok(())
     }

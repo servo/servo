@@ -262,8 +262,7 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
         self.textinput.borrow_mut().selection_direction = direction;
         self.textinput.borrow_mut().set_selection_range(start, end);
         let window = window_from_node(self);
-        let chan = MainThreadScriptChan(window.main_thread_script_chan().clone()).clone();
-        let textarea = Trusted::new(self.upcast::<EventTarget>(), chan);
+        let textarea = Trusted::new(self.upcast::<EventTarget>());
         let task_source = window.user_interaction_task_source();
         let _ = task_source.queue(UserInteractionTask::FireEvent(
             atom!("select"),
@@ -371,8 +370,7 @@ impl VirtualMethods for HTMLTextAreaElement {
 
                         if event.IsTrusted() {
                             let window = window_from_node(self);
-                            let chan = MainThreadScriptChan(window.main_thread_script_chan().clone()).clone();
-                            let textarea = Trusted::new(self.upcast::<EventTarget>(), chan);
+                            let textarea = Trusted::new(self.upcast::<EventTarget>());
                             let task_source = window.user_interaction_task_source();
                             let _ = task_source.queue(UserInteractionTask::FireEvent(
                                 atom!("input"),

@@ -156,8 +156,7 @@ impl Storage {
         let global_root = self.global();
         let global_ref = global_root.r();
         let task_source = global_ref.as_window().dom_manipulation_task_source();
-        let chan = MainThreadScriptChan(global_ref.as_window().main_thread_script_chan().clone()).clone();
-        let trusted_storage = Trusted::new(self, chan);
+        let trusted_storage = Trusted::new(self);
         task_source.queue(DOMManipulationTask::SendStorageNotification(
             box StorageEventRunnable::new(trusted_storage, key, old_value, new_value))).unwrap();
     }

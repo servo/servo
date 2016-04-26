@@ -359,7 +359,7 @@ impl FileReader {
 
         let load_data = ReadMetaData::new(String::from(type_), label.map(String::from), function);
 
-        let fr = Trusted::new(self, global.file_reading_task_source());
+        let fr = Trusted::new(self);
         let gen_id = self.generation_id.get();
 
         let script_chan = global.file_reading_task_source();

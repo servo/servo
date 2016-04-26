@@ -205,8 +205,7 @@ impl HTMLLinkElement {
                 let media = parse_media_query_list(&mut css_parser);
 
                 // TODO: #8085 - Don't load external stylesheets if the node's mq doesn't match.
-                let script_chan = document.window().networking_task_source();
-                let elem = Trusted::new(self, script_chan.clone());
+                let elem = Trusted::new(self);
 
                 let context = Arc::new(Mutex::new(StylesheetContext {
                     elem: elem,
@@ -219,7 +218,7 @@ impl HTMLLinkElement {
                 let (action_sender, action_receiver) = ipc::channel().unwrap();
                 let listener = NetworkListener {
                     context: context,
-                    script_chan: script_chan,
+                    script_chan: document.window().networking_task_source(),
                 };
                 let response_target = AsyncResponseTarget {
                     sender: action_sender,
