@@ -21,14 +21,15 @@ use net_traits::bluetooth_scanfilter::{RequestDeviceoptions, ServiceUUIDSequence
 use net_traits::bluetooth_thread::{BluetoothMethodMsg, BluetoothObjectMsg};
 use util::str::DOMString;
 
-// A device name can never be longer than 29 bytes. An adv packet is at most
-// 31 bytes long. The length and identifier of the length field take 2 bytes.
 const FILTER_EMPTY_ERROR: &'static str = "'filters' member must be non - empty to find any devices.";
 const FILTER_ERROR: &'static str = "A filter must restrict the devices in some way.";
 const FILTER_NAME_TOO_LONG_ERROR: &'static str = "A 'name' or 'namePrefix' can't be longer then 29 bytes.";
 // 248 is the maximum number of UTF-8 code units in a Bluetooth Device Name.
 const MAX_DEVICE_NAME_LENGTH: usize = 248;
-// That least 29 bytes for the name.
+// A device name can never be longer than 29 bytes.
+// An advertising packet is at most 31 bytes long.
+// The length and identifier of the length field take 2 bytes.
+// That leaves 29 bytes for the name.
 const MAX_FILTER_NAME_LENGTH: usize = 29;
 const NAME_PREFIX_ERROR: &'static str = "'namePrefix', if present, must be non - empty.";
 const NAME_TOO_LONG_ERROR: &'static str = "A device name can't be longer than 248 bytes.";
@@ -60,45 +61,23 @@ impl Bluetooth {
     }
 }
 
-impl Clone for BluetoothScanFilter {
-    fn clone(&self) -> BluetoothScanFilter {
-        BluetoothScanFilter {
-            name: self.name.clone(),
-            namePrefix: self.namePrefix.clone(),
-            services: self.services.clone(),
-        }
-    }
-}
-
-impl Clone for RequestDeviceOptions {
-    fn clone(&self) -> RequestDeviceOptions {
-        RequestDeviceOptions {
-            filters: self.filters.clone(),
-            optionalServices: self.optionalServices.clone(),
-        }
-    }
-}
-
 fn canonicalize_filter(filter: &BluetoothScanFilter, global: GlobalRef) -> Fallible<BluetoothScanfilter> {
-    if !(filter.services.is_some() || filter.name.is_some() || filter.namePrefix.is_some()) {
+    if filter.services.is_none() && filter.name.is_none() && filter.namePrefix.is_none() {
         return Err(Type(FILTER_ERROR.to_owned()));
     }
 
-    let mut services_vec: Vec<String> = vec!();
-    if let Some(services) = filter.services.clone() {
+    let mut services_vec = vec!();
+    if let Some(ref services) = filter.services {
         if services.is_empty() {
             return Err(Type(SERVICE_ERROR.to_owned()));
         }
         for service in services {
-            match BluetoothUUID::GetService(global, service) {
-                Ok(valid) => services_vec.push(valid.to_string()),
-                Err(err) => return Err(err),
-            }
+            services_vec.push(try!(BluetoothUUID::GetService(global, service.clone())).to_string());
         }
     }
 
     let mut name = String::new();
-    if let Some(filter_name) = filter.name.clone() {
+    if let Some(ref filter_name) = filter.name {
         //NOTE: DOMString::len() gives back the size in bytes
         if filter_name.len() > MAX_DEVICE_NAME_LENGTH {
             return Err(Type(NAME_TOO_LONG_ERROR.to_owned()));
@@ -110,8 +89,8 @@ fn canonicalize_filter(filter: &BluetoothScanFilter, global: GlobalRef) -> Falli
     }
 
     let mut name_prefix = String::new();
-    if let Some(filter_name_prefix) = filter.namePrefix.clone() {
-        if filter_name_prefix.len() == 0 {
+    if let Some(ref filter_name_prefix) = filter.namePrefix {
+        if filter_name_prefix.is_empty() {
             return Err(Type(NAME_PREFIX_ERROR.to_owned()));
         }
         if filter_name_prefix.len() > MAX_DEVICE_NAME_LENGTH {
@@ -135,19 +114,13 @@ fn convert_request_device_options(options: &RequestDeviceOptions,
 
     let mut filters = vec!();
     for filter in &options.filters {
-        match canonicalize_filter(&filter, global) {
-            Ok(canonicalized_filter) => filters.push(canonicalized_filter),
-            Err(err) => return Err(err),
-        }
+        filters.push(try!(canonicalize_filter(&filter, global)));
     }
 
     let mut optional_services = vec!();
-    if let Some(opt_services) = options.optionalServices.clone() {
+    if let Some(ref opt_services) = options.optionalServices {
         for opt_service in opt_services {
-            match BluetoothUUID::GetService(global, opt_service) {
-                Ok(valid_service) => optional_services.push(valid_service.to_string()),
-                Err(err) => return Err(err),
-            }
+            optional_services.push(try!(BluetoothUUID::GetService(global, opt_service.clone())).to_string());
         }
     }
 
@@ -160,8 +133,8 @@ impl BluetoothMethods for Bluetooth {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
     fn RequestDevice(&self, option: &RequestDeviceOptions) -> Fallible<Root<BluetoothDevice>> {
         let (sender, receiver) = ipc::channel().unwrap();
-        match convert_request_device_options(option, self.global().r()) {
-            Ok(option) => {
+        match try!(convert_request_device_options(option, self.global().r())) {
+            option => {
                 self.get_bluetooth_thread().send(
                     BluetoothMethodMsg::RequestDevice(option, sender)).unwrap();
                 let device = receiver.recv().unwrap();
@@ -182,18 +155,12 @@ impl BluetoothMethods for Bluetooth {
                                                                      appearance,
                                                                      tx_power,
                                                                      rssi);
-                        let vendor_id_source = match vendor_id_source {
-                            Some(vid) => match vid.as_ref() {
-                                "bluetooth" => Some(VendorIDSource::Bluetooth),
-                                "usb" => Some(VendorIDSource::Usb),
-                                _ => Some(VendorIDSource::Unknown),
-                            },
-                            None => None,
-                        };
-                        let name = match name {
-                            Some(n) => Some(DOMString::from(n)),
-                            None => None,
-                        };
+                        let vendor_id_source = vendor_id_source.map(|vid| match vid.as_str() {
+                            "bluetooth" => VendorIDSource::Bluetooth,
+                            "usb" => VendorIDSource::Usb,
+                            _ => VendorIDSource::Unknown,
+                        });
+                        let name = name.map(DOMString::from);
                         Ok(BluetoothDevice::new(self.global().r(),
                                                 DOMString::from(id),
                                                 name,
@@ -212,7 +179,6 @@ impl BluetoothMethods for Bluetooth {
                     _ => unreachable!()
                 }
             },
-            Err(err) => Err(err),
         }
     }
 }
