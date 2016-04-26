@@ -35,11 +35,11 @@ class TestStringMethods(unittest.TestCase):
         #print("inside test_get END")
 
 
-if __name__ == '__main__':
-    unittest.main()    
+# if __name__ == '__main__':
+#     unittest.main()    
 
-# suite = unittest.TestSuite()
-# for method in dir(TestStringMethods):
-#     if method.startswith("test"):
-#         suite.addTest(TestStringMethods(method))
-# unittest.TextTestRunner().run(suite)
+suite = unittest.TestSuite()
+for method in dir(TestStringMethods):
+    if method.startswith("test"):
+        suite.addTest(TestStringMethods(method))
+unittest.TextTestRunner().run(suite)
