@@ -33,6 +33,7 @@ use std::sync::Arc;
 use string_cache::Atom;
 use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
+use style::values::specified::Length;
 
 #[derive(JSTraceable, HeapSizeOf)]
 #[allow(dead_code)]
@@ -247,6 +248,11 @@ impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-src
     make_setter!(SetSrc, "src");
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-srcset
+    //make_getter!(Srcset, "srcset");
+    // https://html.spec.whatwg.org/multipage/#dom-img-srcset
+    //make_setter!(SetsrcSet, "srcset");
+
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
     make_enumerated_getter!(CrossOrigin, "crossorigin", "anonymous", ("use-credentials"));
     // https://html.spec.whatwg.org/multipage/#dom-img-crossOrigin
@@ -397,4 +403,38 @@ fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
     let dim = LengthOrPercentageOrAuto::Length(Au::from_px(value as i32));
     let value = AttrValue::Dimension(DOMString::from(value.to_string()), dim);
     element.set_attribute(&attr, value);
+}
+ 
+
+struct ImageSource {
+    candidate: String,
+    length: Length,
+}
+
+fn collect_sequence_characters<'a, P>(s: &'a str, predicate: P)
+                  -> (&'a str, &'a str)
+                  where P: Fn(char) -> bool {
+    for (i, c) in s.chars().enumerate() {
+        if !predicate(c) {
+            return (&s[0..i], &s[i..]);
+        }
+    }
+    return (s, "");
+}
+
+impl ImageSource{
+    fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
+        let position = &input;
+        let candidate: Vec<ImageSource> = Vec::new();
+        //let position1 = &s;
+        let(spaces, position) = collect_sequence_characters(position, |c| c ==',' || c == ' ');
+        println!("{} {}", spaces, position);
+        let x = spaces.find(',');
+        match x {
+            Some(val) => println!("{}", val), // can do assert here
+            None => println!("Parse error"),    
+        }
+        candidate
+    
+    }    
 }
