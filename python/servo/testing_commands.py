@@ -141,8 +141,6 @@ class MachCommands(CommandBase):
     @CommandArgument('test_name', nargs=argparse.REMAINDER,
                      help="Only run tests that match this pattern or file path")
     def test_unit(self, test_name=None, package=None):
-        check_css_properties_json(self.context.topdir)
-
         if test_name is None:
             test_name = []
 
@@ -657,23 +655,3 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
 
         if editor:
             proc.wait()
-
-
-def check_css_properties_json(topdir):
-    print("Testing generation of css-properties.json...")
-    filename = path.join(topdir, "target", "doc", "servo", "css-properties.json")
-
-    if path.exists(filename):
-        os.remove(filename)
-    subprocess.check_call([
-        sys.executable,
-        path.join(topdir, "components", "style", "properties", "build.py"),
-        "servo",
-        "html",
-    ])
-    properties = json.load(open(filename))
-
-    assert len(properties) >= 100
-    assert "margin-top" in properties
-    assert "margin" in properties
-    print("OK")
