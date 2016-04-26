@@ -56,3 +56,62 @@
         }
     }
 </%helpers:longhand>
+
+// CSS Flexible Box Layout Module Level 1
+// http://www.w3.org/TR/css3-flexbox/
+
+// Flex container properties
+${helpers.single_keyword("flex-direction", "row row-reverse column column-reverse", experimental=True)}
+
+// https://drafts.csswg.org/css-flexbox/#propdef-order
+<%helpers:longhand name="order">
+    use values::computed::ComputedValueAsSpecified;
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+
+    pub type SpecifiedValue = computed_value::T;
+
+    pub mod computed_value {
+        pub type T = i32;
+    }
+
+    #[inline]
+    pub fn get_initial_value() -> computed_value::T {
+        0
+    }
+
+    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        specified::parse_integer(input)
+    }
+</%helpers:longhand>
+
+${helpers.predefined_type("flex-basis",
+                          "LengthOrPercentageOrAutoOrContent",
+                          "computed::LengthOrPercentageOrAutoOrContent::Auto")}
+
+${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse", products="gecko")}
+
+${helpers.predefined_type("min-width",
+                          "LengthOrPercentage",
+                          "computed::LengthOrPercentage::Length(Au(0))",
+                          "parse_non_negative")}
+${helpers.predefined_type("max-width",
+                          "LengthOrPercentageOrNone",
+                          "computed::LengthOrPercentageOrNone::None",
+                          "parse_non_negative")}
+
+${helpers.predefined_type("min-height",
+                          "LengthOrPercentage",
+                          "computed::LengthOrPercentage::Length(Au(0))",
+                          "parse_non_negative")}
+${helpers.predefined_type("max-height",
+                          "LengthOrPercentageOrNone",
+                          "computed::LengthOrPercentageOrNone::None",
+                          "parse_non_negative")}
+
+${helpers.single_keyword("box-sizing",
+                         "content-box border-box")}
+
+// CSS Image Values and Replaced Content Module Level 3
+// https://drafts.csswg.org/css-images-3/
+${helpers.single_keyword("object-fit", "fill contain cover none scale-down", products="gecko")}
