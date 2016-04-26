@@ -5,13 +5,19 @@
 // `data` comes from components/style/properties.mako.rs; see build.rs for more details.
 
 <%!
-    from data import to_rust_ident
-    from data import Keyword
+from data import to_rust_ident
+from data import Keyword, StyleStruct
+
+# These three Gecko style structs don't have an equivalent Servo struct, but
+# we still need to be able to provide instances of them with initial values.
+empty_style_structs = [StyleStruct("UIReset", False, gecko_ffi_name="nsStyleUIReset"),
+                       StyleStruct("XUL", False, gecko_ffi_name="nsStyleXUL"),
+                       StyleStruct("Variables", True, gecko_ffi_name="nsStyleVariables")]
 %>
 
 use app_units::Au;
-% for style_struct in data.style_structs:
-%if style_struct.gecko_ffi_name:
+% for style_struct in data.style_structs + empty_style_structs:
+% if style_struct.gecko_ffi_name:
 use gecko_style_structs::${style_struct.gecko_ffi_name};
 use bindings::Gecko_Construct_${style_struct.gecko_ffi_name};
 use bindings::Gecko_CopyConstruct_${style_struct.gecko_ffi_name};
@@ -19,6 +25,7 @@ use bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
 % endif
 % endfor
 use gecko_style_structs;
+use glue::ArcHelpers;
 use heapsize::HeapSizeOf;
 use std::fmt::{self, Debug};
 use std::mem::{transmute, zeroed};
@@ -106,6 +113,11 @@ impl ComputedValues for GeckoComputedValues {
 % if style_struct.gecko_ffi_name:
 pub struct ${style_struct.gecko_struct_name} {
     gecko: ${style_struct.gecko_ffi_name},
+}
+impl ${style_struct.gecko_struct_name} {
+    pub fn get_gecko(&self) -> &${style_struct.gecko_ffi_name} {
+        &self.gecko
+    }
 }
 % else:
 pub struct ${style_struct.gecko_struct_name};
@@ -221,7 +233,7 @@ impl HeapSizeOf for ${style_struct.gecko_ffi_name} {
 
 // FIXME(bholley): Make bindgen generate Debug for all types.
 %if style_struct.gecko_ffi_name in "nsStyleBorder nsStylePosition nsStyleDisplay nsStyleList nsStyleBackground "\
-                                    "nsStyleFont nsStyleEffects nsStyleSVGReset".split():
+                                   "nsStyleFont nsStyleEffects nsStyleSVGReset nsStyleVariables".split():
 impl Debug for ${style_struct.gecko_ffi_name} {
     // FIXME(bholley): Generate this.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -404,13 +416,50 @@ for side in SIDES:
 
 </%self:impl_trait>
 
+<%def name="define_ffi_struct_accessor(style_struct, use_initial=False)">
+#[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn Servo_GetStyle${style_struct.gecko_ffi_short_name}(computed_values: *mut ServoComputedValues)
+  -> *const ${style_struct.gecko_ffi_name} {
+    % if use_initial:
+        INITIAL_GECKO_EMPTY_STRUCTS.${style_struct.gecko_ffi_short_name_lower}.get_gecko()
+          as *const ${style_struct.gecko_ffi_name}
+    % else:
+        type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
+        Helpers::with(computed_values, |values| values.get_${style_struct.trait_name_lower}().get_gecko()
+                                                  as *const ${style_struct.gecko_ffi_name})
+    % endif
+}
+</%def>
+
 % for style_struct in data.style_structs:
 ${declare_style_struct(style_struct)}
 ${impl_style_struct(style_struct)}
 % if not style_struct.trait_name in data.manual_style_structs:
 <%self:raw_impl_trait style_struct="${style_struct}"></%self:raw_impl_trait>
 % endif
+${define_ffi_struct_accessor(style_struct)}
 % endfor
+
+% for style_struct in empty_style_structs:
+${declare_style_struct(style_struct)}
+${impl_style_struct(style_struct)}
+${define_ffi_struct_accessor(style_struct, use_initial=True)}
+% endfor
+
+struct GeckoEmptyStructs {
+    % for style_struct in empty_style_structs:
+        ${style_struct.ident}: Arc<${style_struct.gecko_struct_name}>,
+    % endfor
+}
+
+lazy_static! {
+    static ref INITIAL_GECKO_EMPTY_STRUCTS: GeckoEmptyStructs = GeckoEmptyStructs {
+        % for style_struct in empty_style_structs:
+            ${style_struct.ident}: ${style_struct.gecko_struct_name}::initial(),
+        % endfor
+    };
+}
 
 lazy_static! {
     pub static ref INITIAL_GECKO_VALUES: GeckoComputedValues = GeckoComputedValues {

@@ -106,7 +106,15 @@ class StyleStruct(object):
         self.ident = to_rust_ident(self.trait_name_lower)
         self.longhands = []
         self.inherited = inherited
-        self.gecko_ffi_name = gecko_ffi_name
+        if gecko_ffi_name:
+            assert gecko_ffi_name.startswith("nsStyle")
+            self.gecko_ffi_name = gecko_ffi_name
+            self.gecko_ffi_short_name = gecko_ffi_name[7:]
+            self.gecko_ffi_short_name_lower = self.gecko_ffi_short_name.lower()
+        else:
+            self.gecko_ffi_name = None
+            self.gecko_ffi_short_name = None
+            self.gecko_ffi_short_name_lower = None
         self.additional_methods = additional_methods or []
 
 
