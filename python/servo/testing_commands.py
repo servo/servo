@@ -283,24 +283,28 @@ class MachCommands(CommandBase):
              description='Run the webdriver tests',
              category='testing')
     def test_webdriver(self, params=None):
-        run_file = path.abspath(path.join(self.context.topdir, "tests", "webdriver", "test1.py"))
-        modules = glob.glob(dirname(run_file) + "/*.py")
-        __all__ = [basename(f)[:-3] for f in modules if isfile(f)]
-        self.test_web_driver(run_file, __all__)
-        '''test_dir = path.abspath(path.join(self.context.topdir, "tests", "webdriver"))
+        # run_file = path.abspath(path.join(self.context.topdir, "tests", "webdriver", "test1.py"))
+        # modules = glob.glob(dirname(run_file) + "/*.py")
+        # __all__ = [basename(f)[:-3] for f in modules if isfile(f)]
+        # self.test_web_driver(run_file, __all__)
+        test_dir = path.abspath(path.join(self.context.topdir, "tests", "webdriver"))
+        sys.path.append(path.join(self.context.topdir, "tests", "wpt", "harness", "wptrunner", "executors"))
         sys.path.append(path.join(self.context.topdir, "tests", "webdriver", "harness"))
+
         for f in os.listdir(test_dir):
             name, ext = os.path.splitext(f)
             if ext != '.py':
                 continue
             try:
-                print("in hee "+ f)
-                execfile(open(path.join(test_dir, f)))
+                print("in here "+ f)
+                execfile(path.join(test_dir, f))
+                print("Test passed")
                  # TODO the test passed
             except Exception as e:
                  # TODO the test failed
+                print(e)
                 pass
-'''
+
     @Command('test-content',
              description='Run the content tests',
              category='testing')
