@@ -16,15 +16,8 @@ function test_withCredentials(worker) {
   test(function() {
     var client = new XMLHttpRequest()
     client.open("GET", "resources/delay.py?ms=1000", false)
-    if (worker) {
-      client.withCredentials = true
-      assert_true(client.withCredentials, "set in OPEN state")
-    } else {
-      assert_throws("InvalidAccessError", function() {
-        client.withCredentials = true
-      })
-      assert_false(client.withCredentials, "set in OPEN state")
-    }
+    client.withCredentials = true
+    assert_true(client.withCredentials, "set in OPEN state")
   }, "setting on synchronous XHR")
 
   async_test(function() {

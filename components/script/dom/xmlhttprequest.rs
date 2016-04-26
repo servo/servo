@@ -369,8 +369,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 // Step 10
                 if !async {
                     // FIXME: This should only happen if the global environment is a document environment
-                    if self.timeout.get() != 0 || self.with_credentials.get() ||
-                       self.response_type.get() != XMLHttpRequestResponseType::_empty {
+                    if self.timeout.get() != 0 || self.response_type.get() != XMLHttpRequestResponseType::_empty {
                         return Err(Error::InvalidAccess)
                     }
                 }
@@ -507,8 +506,6 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             // Step 2
             _ if self.send_flag.get() => Err(Error::InvalidState),
             // Step 3
-            _ if self.sync_in_window() => Err(Error::InvalidAccess),
-            // Step 4
             _ => {
                 self.with_credentials.set(with_credentials);
                 Ok(())
