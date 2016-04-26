@@ -8,17 +8,9 @@ name = "script_tests"
 path = "lib.rs"
 doctest = false
 
-[dependencies.msg]
-path = "../../../components/msg"
-
-[dependencies.plugins]
-path = "../../../components/plugins"
-
-[dependencies.script]
-path = "../../../components/script"
-
-[dependencies.util]
-path = "../../../components/util"
-
 [dependencies]
+msg = {path = "../../../components/msg"}
+plugins = {path = "../../../components/plugins"}
+script = {path = "../../../components/script"}
+util = {path = "../../../components/util"}
 url = {version = "1.0.0", features = ["heap_size"]}

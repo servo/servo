@@ -13,57 +13,23 @@ path = "lib.rs"
 [features]
 debugmozjs = ['js/debugmozjs']
 
-[dependencies.plugins]
-path = "../plugins"
-
-[dependencies.util]
-path = "../util"
-
-[dependencies.msg]
-path = "../msg"
-
-[dependencies.net_traits]
-path = "../net_traits"
-
-[dependencies.profile_traits]
-path = "../profile_traits"
-
-[dependencies.script_traits]
-path = "../script_traits"
-
-[dependencies.devtools_traits]
-path = "../devtools_traits"
-
-[dependencies.style]
-path = "../style"
-
-[dependencies.canvas]
-path = "../canvas"
-
-[dependencies.canvas_traits]
-path = "../canvas_traits"
-
-[dependencies.js]
-git = "https://github.com/servo/rust-mozjs"
-
-[dependencies.angle]
-git = "https://github.com/emilio/angle"
-branch = "servo"
-
-[dependencies.ipc-channel]
-git = "https://github.com/servo/ipc-channel"
-
-[dependencies.xml5ever]
-git = "https://github.com/Ygg01/xml5ever"
-features = ["unstable"]
-
-[dependencies.gfx_traits]
-path = "../gfx_traits"
-
-[dependencies.webrender_traits]
-git = "https://github.com/servo/webrender_traits"
-
 [dependencies]
+plugins = {path = "../plugins"}
+util = {path = "../util"}
+msg = {path = "../msg"}
+net_traits = {path = "../net_traits"}
+profile_traits = {path = "../profile_traits"}
+script_traits = {path = "../script_traits"}
+devtools_traits = {path = "../devtools_traits"}
+style = {path = "../style"}
+canvas = {path = "../canvas"}
+canvas_traits = {path = "../canvas_traits"}
+js = {git = "https://github.com/servo/rust-mozjs"}
+angle = {git = "https://github.com/emilio/angle", branch = "servo"}
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+xml5ever = {git = "https://github.com/Ygg01/xml5ever", features = ["unstable"]}
+gfx_traits = {path = "../gfx_traits"}
+webrender_traits = {git = "https://github.com/servo/webrender_traits"}
 app_units = {version = "0.2.3", features = ["plugins"]}
 bitflags = "0.3"
 caseless = "0.1.0"

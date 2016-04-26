@@ -8,8 +8,6 @@ name = "profile_tests"
 path = "lib.rs"
 doctest = false
 
-[dependencies.profile]
-path = "../../../components/profile"
-
-[dependencies.profile_traits]
-path = "../../../components/profile_traits"
+[dependencies]
+profile = {path = "../../../components/profile"}
+profile_traits = {path = "../../../components/profile_traits"}

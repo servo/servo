@@ -8,22 +8,12 @@ name = "style_tests"
 path = "lib.rs"
 doctest = false
 
-[dependencies.msg]
-path = "../../../components/msg"
-
-[dependencies.plugins]
-path = "../../../components/plugins"
-
-[dependencies.style]
-path = "../../../components/style"
-
-[dependencies.style_traits]
-path = "../../../components/style_traits"
-
-[dependencies.util]
-path = "../../../components/util"
-
 [dependencies]
+msg = {path = "../../../components/msg"}
+plugins = {path = "../../../components/plugins"}
+style = {path = "../../../components/style"}
+style_traits = {path = "../../../components/style_traits"}
+util = {path = "../../../components/util"}
 app_units = {version = "0.2.3", features = ["plugins"]}
 cssparser = {version = "0.5.4", features = ["heap_size"]}
 euclid = {version = "0.6.4", features = ["plugins"]}
