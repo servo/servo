@@ -18,6 +18,7 @@
 #![deny(unsafe_code)]
 
 extern crate app_units;
+extern crate backtrace;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;

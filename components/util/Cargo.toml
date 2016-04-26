@@ -29,6 +29,7 @@ git = "https://github.com/servo/ipc-channel"
 
 [dependencies]
 app_units = {version = "0.2.3", features = ["plugins"]}
+backtrace = "0.2.1"
 bitflags = "0.3"
 deque = "0.3.1"
 euclid = {version = "0.6.4", features = ["unstable", "plugins"]}
