@@ -906,7 +906,7 @@ impl RangeMethods for Range {
         let end_node = self.EndContainer();
         let win = window_from_node(start_node.r());
 
-        fn push_rects(node: Option<Root<Node>>, rects: &mut Vec<Root<DOMRect>>) {
+        fn push_rects(node: Option<Root<Node>>, rects: &mut Vec<Root<DOMRect>>, range: &Range) {
             match node {
                 Some(node) => {
                     if let Some(element) = node.downcast::<Element>() {
@@ -919,8 +919,33 @@ impl RangeMethods for Range {
                             }
                         }
                     }
-                    if let Some(text) = node.downcast::<CharacterSet>() {
-                        // TODO: How to calculate from Text?
+
+                    if let Some(text) = node.downcast::<Text>() {
+                        let start_node = range.StartContainer();
+                        let end_node = range.EndContainer();
+                        let win = window_from_node(start_node.r());
+
+                        let cut_text = if node == start_node {
+                            let text = start_node.downcast::<Text>().unwrap();
+                            text.SplitText(range.StartOffset()).unwrap()
+                        } else if node == end_node {
+                            let text = end_node.downcast::<Text>().unwrap();
+                            text.SplitText(range.EndOffset()).unwrap()
+                        } else {
+                            Root::from_ref(text)
+                        };
+
+                        let node = cut_text.upcast::<Node>();
+                        let node_rects = node.content_boxes();
+                        for rect in &node_rects {
+                            rects.push(DOMRect::new(GlobalRef::Window(win.r()),
+                                                    rect.origin.x.to_f64_px(),
+                                                    rect.origin.y.to_f64_px(),
+                                                    rect.size.width.to_f64_px(),
+                                                    rect.size.height.to_f64_px()))
+                        }
+
+                        debug!("Some text received {:?}", text.WholeText());
                     }
                 },
                 None => ()
@@ -930,17 +955,17 @@ impl RangeMethods for Range {
         let mut rects = Vec::new();
 
         if start_node == end_node {
-            push_rects(Some(start_node), &mut rects);
+            push_rects(Some(start_node), &mut rects, &self);
             return Some(DOMRectList::new(win.r(), rects.into_iter()))
         }
 
         let (first, last, children) = self.contained_children().unwrap();
 
-        push_rects(first, &mut rects);
+        push_rects(first, &mut rects, &self);
         for node in children {
-            push_rects(Some(node), &mut rects);
+            push_rects(Some(node), &mut rects, &self);
         }
-        push_rects(last, &mut rects);
+        push_rects(last, &mut rects, &self);
 
         Some(DOMRectList::new(win.r(), rects.into_iter()))
     }
