@@ -131,7 +131,7 @@ version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "dbus 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "rustc-serialize 0.3.16 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -385,7 +385,7 @@ dependencies = [
 [[package]]
 name = "device"
 version = "0.0.1"
-source = "git+https://github.com/servo/devices#92b97961c12ebf4bb65a8603d2dd2a090d4cc7fb"
+source = "git+https://github.com/servo/devices#08516259d8010d698dc4f691d935a5671f73b489"
 dependencies = [
  "blurz 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
