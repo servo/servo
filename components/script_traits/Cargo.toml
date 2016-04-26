@@ -8,37 +8,17 @@ publish = false
 name = "script_traits"
 path = "lib.rs"
 
-[dependencies.canvas_traits]
-path = "../canvas_traits"
-
-[dependencies.gfx_traits]
-path = "../gfx_traits"
-
-[dependencies.msg]
-path = "../msg"
-
-[dependencies.net_traits]
-path = "../net_traits"
-
-[dependencies.plugins]
-path = "../plugins"
-
-[dependencies.profile_traits]
-path = "../profile_traits"
-
-[dependencies.style_traits]
-path = "../style_traits"
-
-[dependencies.util]
-path = "../util"
-
-[dependencies.devtools_traits]
-path = "../devtools_traits"
-
-[dependencies.ipc-channel]
-git = "https://github.com/servo/ipc-channel"
-
 [dependencies]
+canvas_traits = {path = "../canvas_traits"}
+gfx_traits = {path = "../gfx_traits"}
+msg = {path = "../msg"}
+net_traits = {path = "../net_traits"}
+plugins = {path = "../plugins"}
+profile_traits = {path = "../profile_traits"}
+style_traits = {path = "../style_traits"}
+util = {path = "../util"}
+devtools_traits = {path = "../devtools_traits"}
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 app_units = {version = "0.2.3", features = ["plugins"]}
 euclid = {version = "0.6.4", features = ["plugins"]}
 heapsize = "0.3.0"

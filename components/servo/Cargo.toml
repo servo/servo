@@ -18,45 +18,6 @@ test = false
 doc = false
 bench = false
 
-[dev-dependencies]
-image = "0.9"
-
-[dev-dependencies.gfx_tests]
-path = "../../tests/unit/gfx"
-
-[dev-dependencies.layout_tests]
-path = "../../tests/unit/layout"
-
-[dev-dependencies.net_tests]
-path = "../../tests/unit/net"
-
-[dev-dependencies.net_traits_tests]
-path = "../../tests/unit/net_traits"
-
-[dev-dependencies.profile_tests]
-path = "../../tests/unit/profile"
-
-[dev-dependencies.script_tests]
-path = "../../tests/unit/script"
-
-[dev-dependencies.style_tests]
-path = "../../tests/unit/style"
-
-[dev-dependencies.util_tests]
-path = "../../tests/unit/util"
-
-[dev-dependencies.compiletest_helper]
-path = "../../tests/compiletest/helper"
-
-[dev-dependencies.plugin_compiletest]
-path = "../../tests/compiletest/plugin"
-
-[dependencies.webrender_traits]
-git = "https://github.com/servo/webrender_traits"
-
-[dependencies.webrender]
-git = "https://github.com/servo/webrender"
-
 [features]
 default = ["glutin_app", "webdriver"]
 webdriver = ["webdriver_server"]
@@ -69,106 +30,53 @@ codegen-units = 4
 # debug = true
 # lto = false
 
-[dependencies.compositing]
-path = "../compositing"
-
-[dependencies.net]
-path = "../net"
-
-[dependencies.net_traits]
-path = "../net_traits"
-
-[dependencies.msg]
-path = "../msg"
-
-[dependencies.profile]
-path = "../profile"
-
-[dependencies.profile_traits]
-path = "../profile_traits"
-
-[dependencies.util]
-path = "../util"
-features = ["non-geckolib"]
-
-[dependencies.script]
-path = "../script"
-
-[dependencies.script_traits]
-path = "../script_traits"
-
-[dependencies.layout]
-path = "../layout"
-
-[dependencies.gfx]
-path = "../gfx"
-
-[dependencies.style]
-path = "../style"
-
-[dependencies.canvas]
-path = "../canvas"
-
-[dependencies.canvas_traits]
-path = "../canvas_traits"
-
-[dependencies.devtools]
-path = "../devtools"
-
-[dependencies.webdriver_server]
-path     = "../webdriver_server"
-optional = true
-
-[dependencies.devtools_traits]
-path = "../devtools_traits"
-
-[dependencies.glutin_app]
-path = "../../ports/glutin"
-optional = true
-
-[dependencies.android_glue]
-version = "0.1.3"
-optional = true
-
-[target.arm-linux-androideabi.dependencies.log]
-version = "0.3"
-features = ["release_max_level_info"]
-
-[target.arm-linux-androideabi.dependencies.gaol]
-git = "https://github.com/servo/gaol"
-
-[target.x86_64-apple-darwin.dependencies.gaol]
-git = "https://github.com/servo/gaol"
-
-[target.x86_64-unknown-linux-gnu.dependencies.gaol]
-git = "https://github.com/servo/gaol"
-
-[target.i686-unknown-linux-gnu.dependencies.gaol]
-git = "https://github.com/servo/gaol"
-
-[target.arm-unknown-linux-gnueabihf.dependencies.gaol]
-git = "https://github.com/servo/gaol"
-
-[target.aarch64-unknown-linux-gnu.dependencies.gaol]
-git = "https://github.com/servo/gaol"
-
-[dependencies.ipc-channel]
-git = "https://github.com/servo/ipc-channel"
-
-[dependencies.layers]
-git = "https://github.com/servo/rust-layers"
-features = ["plugins"]
-
-[dependencies.gleam]
-version = "0.2"
-
-[dependencies.browserhtml]
-git = "https://github.com/browserhtml/browserhtml"
-branch = "gh-pages"
+[dev-dependencies]
+image = "0.9"
+gfx_tests = {path = "../../tests/unit/gfx"}
+layout_tests = {path = "../../tests/unit/layout"}
+net_tests = {path = "../../tests/unit/net"}
+net_traits_tests = {path = "../../tests/unit/net_traits"}
+profile_tests = {path = "../../tests/unit/profile"}
+script_tests = {path = "../../tests/unit/script"}
+style_tests = {path = "../../tests/unit/style"}
+util_tests = {path = "../../tests/unit/util"}
+compiletest_helper = {path = "../../tests/compiletest/helper"}
+plugin_compiletest = {path = "../../tests/compiletest/plugin"}
 
 [dependencies]
+webrender_traits = {git = "https://github.com/servo/webrender_traits"}
+webrender = {git = "https://github.com/servo/webrender"}
+compositing = {path = "../compositing"}
+net = {path = "../net"}
+net_traits = {path = "../net_traits"}
+msg = {path = "../msg"}
+profile = {path = "../profile"}
+profile_traits = {path = "../profile_traits"}
+util = {path = "../util", features = ["non-geckolib"]}
+script = {path = "../script"}
+script_traits = {path = "../script_traits"}
+layout = {path = "../layout"}
+gfx = {path = "../gfx"}
+style = {path = "../style"}
+canvas = {path = "../canvas"}
+canvas_traits = {path = "../canvas_traits"}
+devtools = {path = "../devtools"}
+webdriver_server = {path = "../webdriver_server", optional = true}
+devtools_traits = {path = "../devtools_traits"}
+glutin_app = {path = "../../ports/glutin", optional = true}
+android_glue = {version = "0.1.3", optional = true}
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
+gleam = "0.2"
+browserhtml = {git = "https://github.com/browserhtml/browserhtml", branch = "gh-pages"}
 bitflags = "0.3"
 env_logger = "0.3"
 euclid = {version = "0.6.4", features = ["plugins"]}
 libc = "0.2"
 url = {version = "1.0.0", features = ["heap_size", "serde", "query_encoding"]}
+
+[target.'cfg(target_os = "android")'.dependencies]
+log = {version = "0.3", features = ["release_max_level_info"]}
+
+[target.'cfg(not(target_os = "windows"))'.dependencies]
+gaol = {git = "https://github.com/servo/gaol"}

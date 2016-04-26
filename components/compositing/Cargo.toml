@@ -8,84 +8,26 @@ publish = false
 name = "compositing"
 path = "lib.rs"
 
-[dependencies.gfx]
-path = "../gfx"
-
-[dependencies.gfx_traits]
-path = "../gfx_traits"
-
-[dependencies.layout_traits]
-path = "../layout_traits"
-
-[dependencies.script_traits]
-path = "../script_traits"
-
-[dependencies.style_traits]
-path = "../style_traits"
-
-[dependencies.msg]
-path = "../msg"
-
-[dependencies.profile_traits]
-path = "../profile_traits"
-
-[dependencies.net_traits]
-path = "../net_traits"
-
-[dependencies.util]
-path = "../util"
-
-[dependencies.devtools_traits]
-path = "../devtools_traits"
-
-[dependencies.canvas_traits]
-path = "../canvas_traits"
-
-[dependencies.canvas]
-path = "../canvas"
-
-[dependencies.plugins]
-path = "../plugins"
-
-[dependencies.azure]
-git = "https://github.com/servo/rust-azure"
-features = ["plugins"]
-
-[dependencies.layers]
-git = "https://github.com/servo/rust-layers"
-features = ["plugins"]
-
-[dependencies.clipboard]
-git = "https://github.com/aweinstock314/rust-clipboard"
-
-[dependencies.ipc-channel]
-git = "https://github.com/servo/ipc-channel"
-
-[target.arm-linux-androideabi.dependencies.gaol]
-git = "https://github.com/servo/gaol"
-
-[target.x86_64-apple-darwin.dependencies.gaol]
-git = "https://github.com/servo/gaol"
-
-[target.x86_64-unknown-linux-gnu.dependencies.gaol]
-git = "https://github.com/servo/gaol"
-
-[target.i686-unknown-linux-gnu.dependencies.gaol]
-git = "https://github.com/servo/gaol"
-
-[target.arm-unknown-linux-gnueabihf.dependencies.gaol]
-git = "https://github.com/servo/gaol"
-
-[target.aarch64-unknown-linux-gnu.dependencies.gaol]
-git = "https://github.com/servo/gaol"
-
-[dependencies.webrender_traits]
-git = "https://github.com/servo/webrender_traits"
-
-[dependencies.webrender]
-git = "https://github.com/servo/webrender"
-
 [dependencies]
+gfx = {path = "../gfx"}
+gfx_traits = {path = "../gfx_traits"}
+layout_traits = {path = "../layout_traits"}
+script_traits = {path = "../script_traits"}
+style_traits = {path = "../style_traits"}
+msg = {path = "../msg"}
+profile_traits = {path = "../profile_traits"}
+net_traits = {path = "../net_traits"}
+util = {path = "../util"}
+devtools_traits = {path = "../devtools_traits"}
+canvas_traits = {path = "../canvas_traits"}
+canvas = {path = "../canvas"}
+plugins = {path = "../plugins"}
+azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
+layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
+clipboard = {git = "https://github.com/aweinstock314/rust-clipboard"}
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+webrender_traits = {git = "https://github.com/servo/webrender_traits"}
+webrender = {git = "https://github.com/servo/webrender"}
 app_units = {version = "0.2.3", features = ["plugins"]}
 euclid = {version = "0.6.4", features = ["plugins"]}
 gleam = "0.2.8"
@@ -98,3 +40,6 @@ serde = "0.7"
 serde_macros = "0.7"
 time = "0.1.17"
 url = {version = "1.0.0", features = ["heap_size"]}
+
+[target.'cfg(not(target_os = "windows"))'.dependencies]
+gaol = {git = "https://github.com/servo/gaol"}

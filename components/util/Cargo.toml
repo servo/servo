@@ -17,17 +17,10 @@ path = "lib.rs"
 # set this feature.
 non-geckolib = ["js"]
 
-[dependencies.plugins]
-path = "../plugins"
-
-[dependencies.js]
-git = "https://github.com/servo/rust-mozjs"
-optional = true
-
-[dependencies.ipc-channel]
-git = "https://github.com/servo/ipc-channel"
-
 [dependencies]
+plugins = {path = "../plugins"}
+js = {git = "https://github.com/servo/rust-mozjs", optional = true}
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 app_units = {version = "0.2.3", features = ["plugins"]}
 backtrace = "0.2.1"
 bitflags = "0.3"
@@ -49,5 +42,5 @@ smallvec = "0.1"
 string_cache = {version = "0.2.12", features = ["heap_size"]}
 url = {version = "1.0.0", features = ["heap_size", "serde"]}
 
-[target.x86_64-pc-windows-gnu.dependencies]
+[target.'cfg(windows)'.dependencies]
 kernel32-sys = "0.2"

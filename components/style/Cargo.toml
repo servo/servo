@@ -13,16 +13,10 @@ path = "lib.rs"
 [features]
 gecko = []
 
-[dependencies.plugins]
-path = "../plugins"
-
-[dependencies.util]
-path = "../util"
-
-[dependencies.style_traits]
-path = "../style_traits"
-
 [dependencies]
+plugins = {path = "../plugins"}
+util = {path = "../util"}
+style_traits = {path = "../style_traits"}
 app_units = {version = "0.2.3", features = ["plugins"]}
 bitflags = "0.3"
 cssparser = {version = "0.5.5", features = ["heap_size", "serde-serialization"]}

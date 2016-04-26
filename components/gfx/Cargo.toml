@@ -31,100 +31,28 @@ string_cache = {version = "0.2.12", features = ["heap_size"]}
 time = "0.1.12"
 unicode-script = { version = "0.1", features = ["harfbuzz"] }
 url = {version = "1.0.0", features = ["heap_size"]}
+plugins = {path = "../plugins"}
+gfx_traits = {path = "../gfx_traits"}
+net_traits = {path = "../net_traits"}
+util = {path = "../util"}
+msg = {path = "../msg"}
+profile_traits = {path = "../profile_traits"}
+range = {path = "../range"}
+style = {path = "../style"}
+style_traits = {path = "../style_traits"}
+azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
+layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+webrender_traits = {git = "https://github.com/servo/webrender_traits"}
 
-[dependencies.plugins]
-path = "../plugins"
-
-[dependencies.gfx_traits]
-path = "../gfx_traits"
-
-[dependencies.net_traits]
-path = "../net_traits"
-
-[dependencies.util]
-path = "../util"
-
-[dependencies.msg]
-path = "../msg"
-
-[dependencies.profile_traits]
-path = "../profile_traits"
-
-[dependencies.range]
-path = "../range"
-
-[dependencies.style]
-path = "../style"
-
-[dependencies.style_traits]
-path = "../style_traits"
-
-[dependencies.azure]
-git = "https://github.com/servo/rust-azure"
-features = ["plugins"]
-
-[dependencies.layers]
-git = "https://github.com/servo/rust-layers"
-features = ["plugins"]
-
-[dependencies.ipc-channel]
-git = "https://github.com/servo/ipc-channel"
-
-[dependencies.webrender_traits]
-git = "https://github.com/servo/webrender_traits"
-
-[target.x86_64-apple-darwin.dependencies]
+[target.'cfg(target_os = "macos")'.dependencies]
 core-foundation = "0.2"
 core-graphics = "0.3"
 core-text = "1.1"
 
-[target.i686-unknown-linux-gnu.dependencies]
+[target.'cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))'.dependencies]
 servo-fontconfig = "0.2"
+freetype = {git = "https://github.com/servo/rust-freetype"}
 
-[target.x86_64-unknown-linux-gnu.dependencies]
-servo-fontconfig = "0.2"
-
-[target.arm-unknown-linux-gnueabihf.dependencies]
-servo-fontconfig = "0.2"
-
-[target.aarch64-unknown-linux-gnu.dependencies]
-servo-fontconfig = "0.2"
-
-[target.arm-linux-androideabi.dependencies]
-servo-fontconfig = "0.2"
-
-[target.x86_64-pc-windows-gnu.dependencies]
-servo-fontconfig = "0.2"
-
-[target.i686-unknown-linux-gnu.dependencies.freetype]
-git = "https://github.com/servo/rust-freetype"
-
-[target.x86_64-unknown-linux-gnu.dependencies.freetype]
-git = "https://github.com/servo/rust-freetype"
-
-[target.arm-unknown-linux-gnueabihf.dependencies.freetype]
-git = "https://github.com/servo/rust-freetype"
-
-[target.aarch64-unknown-linux-gnu.dependencies.freetype]
-git = "https://github.com/servo/rust-freetype"
-
-[target.arm-linux-androideabi.dependencies.freetype]
-git = "https://github.com/servo/rust-freetype"
-
-[target.x86_64-pc-windows-gnu.dependencies.freetype]
-git = "https://github.com/servo/rust-freetype"
-
-[target.x86_64-unknown-linux-gnu.dependencies.simd]
-git = "https://github.com/huonw/simd"
-
-[target.x86_64-apple-darwin.dependencies.simd]
-git = "https://github.com/huonw/simd"
-
-[target.aarch64-unknown-linux-gnu.dependencies.simd]
-git = "https://github.com/huonw/simd"
-
-[target.x86_64-pc-windows-gnu.dependencies.simd]
-git = "https://github.com/huonw/simd"
-
-[target.x86_64-pc-windows-msvc.dependencies.simd]
-git = "https://github.com/huonw/simd"
+[target.'cfg(any(target_arch = "x86_64", target_arch = "aarch64"))'.dependencies]
+simd = {git = "https://github.com/huonw/simd"}

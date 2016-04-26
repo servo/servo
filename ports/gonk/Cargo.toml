@@ -5,49 +5,20 @@ authors = ["The Servo Project Developers"]
 
 build = "build.rs"
 
-[dependencies.compositing]
-path = "../../components/compositing"
-
-[dependencies.layers]
-git = "https://github.com/servo/rust-layers"
-features = ["plugins"]
-
-[dependencies.msg]
-path = "../../components/msg"
-
-[dependencies.script]
-path = "../../components/script"
-
-[dependencies.script_traits]
-path = "../../components/script_traits"
-
-[dependencies.style_traits]
-path = "../../components/style_traits"
-
-[dependencies.net_traits]
-path = "../../components/net_traits"
-
-[dependencies.gfx]
-path = "../../components/gfx"
-
-[dependencies.layout]
-path = "../../components/layout"
-
-[dependencies.devtools]
-path = "../../components/devtools"
-
-[dependencies.servo]
-path = "../../components/servo"
-default-features = false
-
-[dependencies.profile]
-path = "../../components/profile"
-
-[dependencies.util]
-path = "../../components/util"
-features = ["non-geckolib"]
-
 [dependencies]
+compositing = {path = "../../components/compositing"}
+layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
+msg = {path = "../../components/msg"}
+script = {path = "../../components/script"}
+script_traits = {path = "../../components/script_traits"}
+style_traits = {path = "../../components/style_traits"}
+net_traits = {path = "../../components/net_traits"}
+gfx = {path = "../../components/gfx"}
+layout = {path = "../../components/layout"}
+devtools = {path = "../../components/devtools"}
+servo = {path = "../../components/servo", default-features = false}
+profile = {path = "../../components/profile"}
+util = {path = "../../components/util", features = ["non-geckolib"]}
 env_logger = "0.3"
 url = {version = "1.0.0", features = ["heap_size"]}
 time = "0.1.17"

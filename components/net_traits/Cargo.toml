@@ -8,19 +8,11 @@ publish = false
 name = "net_traits"
 path = "lib.rs"
 
-[dependencies.util]
-path = "../util"
-
-[dependencies.msg]
-path = "../msg"
-
-[dependencies.ipc-channel]
-git = "https://github.com/servo/ipc-channel"
-
-[dependencies.plugins]
-path = "../plugins"
-
 [dependencies]
+util = {path = "../util"}
+msg = {path = "../msg"}
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+plugins = {path = "../plugins"}
 heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
 hyper = { version = "0.9", features = [ "serde-serialization" ] }

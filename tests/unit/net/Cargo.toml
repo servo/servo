@@ -8,28 +8,14 @@ name = "net_tests"
 path = "lib.rs"
 doctest = false
 
-[dependencies.net]
-path = "../../../components/net"
-
-[dependencies.net_traits]
-path = "../../../components/net_traits"
-
-[dependencies.util]
-path = "../../../components/util"
-
-[dependencies.msg]
-path = "../../../components/msg"
-
-[dependencies.plugins]
-path = "../../../components/plugins"
-
-[dependencies.devtools_traits]
-path = "../../../components/devtools_traits"
-
-[dependencies.ipc-channel]
-git = "https://github.com/servo/ipc-channel"
-
 [dependencies]
+net = {path = "../../../components/net"}
+net_traits = {path = "../../../components/net_traits"}
+util = {path = "../../../components/util"}
+msg = {path = "../../../components/msg"}
+plugins = {path = "../../../components/plugins"}
+devtools_traits = {path = "../../../components/devtools_traits"}
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 cookie = "0.2"
 hyper = "0.9"
 url = {version = "1.0.0", features = ["heap_size"]}

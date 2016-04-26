@@ -8,22 +8,12 @@ publish = false
 name = "devtools"
 path = "lib.rs"
 
-[dependencies.devtools_traits]
-path = "../devtools_traits"
-
-[dependencies.msg]
-path = "../msg"
-
-[dependencies.util]
-path = "../util"
-
-[dependencies.plugins]
-path = "../plugins"
-
-[dependencies.ipc-channel]
-git = "https://github.com/servo/ipc-channel"
-
 [dependencies]
+devtools_traits = {path = "../devtools_traits"}
+msg = {path = "../msg"}
+util = {path = "../util"}
+plugins = {path = "../plugins"}
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 hyper = { version = "0.9", features = [ "serde-serialization" ] }
 serde = "0.7"
 serde_json = "0.7"
