@@ -20,7 +20,7 @@
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import threading
-import urllib
+
 
 class TestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -30,13 +30,15 @@ class TestHandler(BaseHTTPRequestHandler):
             self.send_header(header[0], header[1])
         self.end_headers()
         self.wfile.write(body)
-        
+
+
 class TestServer(HTTPServer):
     def shutdown(self):
         self.socket.close()
         HTTPServer.shutdown(self)
 
 httpd = None
+
 
 def serve(handler):
     global httpd
@@ -47,6 +49,7 @@ def serve(handler):
     httpd_thread = threading.Thread(target=httpd.serve_forever)
     httpd_thread.setDaemon(True)
     httpd_thread.start()
-    
+
+
 def stop():
     httpd.shutdown()

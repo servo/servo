@@ -16,8 +16,6 @@ import os
 import os.path as path
 from collections import OrderedDict
 from time import time
-from os.path import dirname, basename, isfile
-import glob
 
 from mach.registrar import Registrar
 from mach.decorators import (
