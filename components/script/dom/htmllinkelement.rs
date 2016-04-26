@@ -15,11 +15,14 @@ use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeMutation, Element, ElementCreator};
+use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
+use hyper::header::ContentType;
+use hyper::mime::{Mime, TopLevel, SubLevel};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use layout_interface::{LayoutChan, Msg};
@@ -273,6 +276,13 @@ impl PreInvoke for StylesheetContext {}
 impl AsyncResponseListener for StylesheetContext {
     fn headers_available(&mut self, metadata: Result<Metadata, NetworkError>) {
         self.metadata = metadata.ok();
+        let content_type = self.metadata.clone().and_then(|meta| meta.content_type);
+        match content_type {
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Css, _))) => {},
+            _ => {
+                self.elem.root().upcast::<EventTarget>().fire_simple_event("error");
+            }
+        }
     }
 
     fn data_available(&mut self, payload: Vec<u8>) {
@@ -281,6 +291,13 @@ impl AsyncResponseListener for StylesheetContext {
     }
 
     fn response_complete(&mut self, _status: Result<(), NetworkError>) {
+        match _status {
+            Err(_) => {
+                self.elem.root().upcast::<EventTarget>().fire_simple_event("error");
+                return;
+            },
+            _ => {}
+        };
         let data = mem::replace(&mut self.data, vec!());
         let metadata = match self.metadata.take() {
             Some(meta) => meta,
