@@ -42,7 +42,7 @@ impl BluetoothScanfilter {
         &self.name_prefix
     }
 
-    pub fn get_services(&self) -> &Vec<String> {
+    pub fn get_services(&self) -> &[String] {
         &self.services.0
     }
 
