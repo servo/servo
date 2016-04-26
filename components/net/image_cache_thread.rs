@@ -597,7 +597,12 @@ impl ImageCache {
                           loaded_bytes: Vec<u8>) {
         let (cache_result, load_key, pending_load) = self.pending_loads.get_cached(Arc::new(ref_url));
         assert!(cache_result == CacheResult::Miss);
-        let action: ResponseAction = ResponseAction::ResponseComplete(Ok(()));
+        let action = ResponseAction::DataAvailable(loaded_bytes);
+        self.progress_sender.send(ResourceLoadInfo {
+            action: action,
+            key: load_key,
+        });
+        action = ResponseAction::ResponseComplete(Ok(()));
         self.progress_sender.send(ResourceLoadInfo {
             action: action,
             key: load_key,
