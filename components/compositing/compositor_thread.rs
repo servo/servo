@@ -128,7 +128,7 @@ impl PaintListener for Box<CompositorProxy + 'static + Send> {
         // just return None in this case, since the paint thread
         // will exit shortly and never actually be requested
         // to paint buffers by the compositor.
-        port.recv().ok()
+        port.recv().unwrap_or(None)
     }
 
     fn assign_painted_buffers(&mut self,
@@ -179,7 +179,7 @@ pub enum Msg {
     /// Requests the compositor's graphics metadata. Graphics metadata is what the painter needs
     /// to create surfaces that the compositor can see. On Linux this is the X display; on Mac this
     /// is the pixel format.
-    GetNativeDisplay(Sender<NativeDisplay>),
+    GetNativeDisplay(Sender<Option<NativeDisplay>>),
 
     /// Tells the compositor to create or update the layers for a pipeline if necessary
     /// (i.e. if no layer with that ID exists).
