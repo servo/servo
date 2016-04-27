@@ -125,15 +125,13 @@ def is_border_style_masked(ffi_name):
 def get_gecko_property(ffi_name):
     if is_border_style_masked(ffi_name):
         return "(self.gecko.%s & (gecko_style_structs::BORDER_STYLE_MASK as u8))" % ffi_name
-    else:
-        return "self.gecko.%s" % ffi_name
+    return "self.gecko.%s" % ffi_name
 
 def set_gecko_property(ffi_name, expr):
     if is_border_style_masked(ffi_name):
         return "self.gecko.%s &= !(gecko_style_structs::BORDER_STYLE_MASK as u8);" % ffi_name + \
                "self.gecko.%s |= %s as u8;" % (ffi_name, expr)
-    else:
-        return "self.gecko.%s = %s;" % (ffi_name, expr)
+    return "self.gecko.%s = %s;" % (ffi_name, expr)
 %>
 
 <%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword)">
@@ -251,7 +249,7 @@ impl Debug for ${style_struct.gecko_ffi_name} {
    # Enum class instead of NS_STYLE_...
    force_stub += ["box-sizing"]
    # Inconsistent constant naming in gecko
-   force_stub += ["unicode-bidi", "text-transform"]
+   force_stub += ["text-transform"]
    # These are booleans.
    force_stub += ["page-break-after", "page-break-before"]
 
@@ -360,10 +358,14 @@ for side in SIDES:
     }
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Font" skip_longhands="font-size">
+<%self:impl_trait style_struct_name="Font" skip_longhands="font-size" skip_additionals="*">
 
     // FIXME(bholley): This doesn't handle zooming properly.
     <% impl_app_units("font_size", "mSize", need_clone=True) %>
+
+    // This is used for PartialEq, which we don't implement for gecko style structs.
+    fn compute_font_hash(&mut self) {}
+
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Box" skip_longhands="display overflow-y">

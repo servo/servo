@@ -25,7 +25,6 @@ use gecko_style_structs::nsStyleSVGReset;
 use gecko_style_structs::nsStyleColumn;
 use gecko_style_structs::nsStyleEffects;
 
-
 pub enum nsIAtom { }
 pub enum nsINode { }
 pub type RawGeckoNode = nsINode;
@@ -86,7 +85,8 @@ extern "C" {
      -> *mut ServoComputedValues;
     pub fn Servo_GetComputedValuesForAnonymousBox(parentStyleOrNull:
                                                       *mut ServoComputedValues,
-                                                  pseudoTag: *mut nsIAtom)
+                                                  pseudoTag: *mut nsIAtom,
+                                                  set: *mut RawServoStyleSet)
      -> *mut ServoComputedValues;
     pub fn Servo_AddRefComputedValues(arg1: *mut ServoComputedValues);
     pub fn Servo_ReleaseComputedValues(arg1: *mut ServoComputedValues);

@@ -182,8 +182,10 @@ pub extern "C" fn Servo_GetComputedValues(element: *mut RawGeckoElement)
 
 #[no_mangle]
 pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(_parentStyleOrNull: *mut ServoComputedValues,
-                                                         _pseudoTag: *mut nsIAtom)
+                                                         _pseudoTag: *mut nsIAtom,
+                                                         raw_data: *mut RawServoStyleSet)
      -> *mut ServoComputedValues {
+    let _data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
     unimplemented!();
 }
 
