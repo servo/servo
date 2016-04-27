@@ -97,3 +97,4 @@ unicase = "1.0"
 url = {version = "1.0.0", features = ["heap_size"]}
 uuid = { version = "0.2", features = ["v4"] }
 websocket = "0.17"
+mime_guess = "1.6.0"
