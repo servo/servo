@@ -171,6 +171,10 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
 
         self.element_map = PerPseudoElementSelectorMap::new();
         self.pseudos_map = HashMap::with_hasher(Default::default());
+        Impl::each_eagerly_cascaded_pseudo_element(|pseudo| {
+            self.pseudos_map.insert(pseudo, PerPseudoElementSelectorMap::new());
+        });
+
         self.non_eagerly_cascaded_pseudo_element_decls = HashMap::with_hasher(Default::default());
         self.rules_source_order = 0;
         self.state_deps.clear();
