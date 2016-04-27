@@ -15,7 +15,6 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
 use dom::node::Node;
-use dom::servoxmlparser::ServoXMLParser;
 use dom::window::Window;
 use encoding::all::UTF_8;
 use encoding::types::{DecoderTrap, Encoding};
@@ -28,13 +27,11 @@ use js::jsapi::JSTracer;
 use msg::constellation_msg::{PipelineId, SubpageId};
 use net_traits::{AsyncResponseListener, Metadata, NetworkError};
 use network_listener::PreInvoke;
-use parse::Parser;
+use parse::{TrustedParser, ParserRef, Parser};
 use script_runtime::ScriptChan;
 use script_thread::ScriptThread;
 use std::cell::Cell;
-use std::cell::UnsafeCell;
 use std::default::Default;
-use std::ptr;
 use url::Url;
 use util::resource_files::read_resource_file;
 
@@ -54,160 +51,6 @@ pub struct FragmentContext<'a> {
 }
 
 pub type Tokenizer = tokenizer::Tokenizer<TreeBuilder<JS<Node>, Sink>>;
-
-#[must_root]
-#[derive(JSTraceable, HeapSizeOf)]
-pub enum ParserField {
-    HTML(JS<ServoHTMLParser>),
-    XML(JS<ServoXMLParser>),
-}
-
-#[must_root]
-#[derive(JSTraceable, HeapSizeOf)]
-pub struct MutNullableParserField {
-    #[ignore_heap_size_of = "XXXjdm"]
-    ptr: UnsafeCell<Option<ParserField>>,
-}
-
-impl Default for MutNullableParserField {
-    #[allow(unrooted_must_root)]
-    fn default() -> MutNullableParserField {
-        MutNullableParserField {
-            ptr: UnsafeCell::new(None),
-        }
-    }
-}
-
-impl MutNullableParserField {
-    #[allow(unsafe_code)]
-    pub fn set(&self, val: Option<ParserRef>) {
-        unsafe {
-            *self.ptr.get() = val.map(|val| {
-                match val {
-                    ParserRef::HTML(parser) => ParserField::HTML(JS::from_ref(parser)),
-                    ParserRef::XML(parser) => ParserField::XML(JS::from_ref(parser)),
-                }
-            });
-        }
-    }
-
-    #[allow(unsafe_code, unrooted_must_root)]
-    pub fn get(&self) -> Option<ParserRoot> {
-        unsafe {
-            ptr::read(self.ptr.get()).map(|o| {
-                match o {
-                    ParserField::HTML(parser) => ParserRoot::HTML(Root::from_ref(&*parser)),
-                    ParserField::XML(parser) => ParserRoot::XML(Root::from_ref(&*parser)),
-                }
-            })
-        }
-    }
-}
-
-pub enum ParserRoot {
-    HTML(Root<ServoHTMLParser>),
-    XML(Root<ServoXMLParser>),
-}
-
-impl ParserRoot {
-    pub fn r(&self) -> ParserRef {
-        match *self {
-            ParserRoot::HTML(ref parser) => ParserRef::HTML(parser.r()),
-            ParserRoot::XML(ref parser) => ParserRef::XML(parser.r()),
-        }
-    }
-}
-
-enum TrustedParser {
-    HTML(Trusted<ServoHTMLParser>),
-    XML(Trusted<ServoXMLParser>),
-}
-
-impl TrustedParser {
-    pub fn root(&self) -> ParserRoot {
-        match *self {
-            TrustedParser::HTML(ref parser) => ParserRoot::HTML(parser.root()),
-            TrustedParser::XML(ref parser) => ParserRoot::XML(parser.root()),
-        }
-    }
-}
-
-pub enum ParserRef<'a> {
-    HTML(&'a ServoHTMLParser),
-    XML(&'a ServoXMLParser),
-}
-
-impl<'a> ParserRef<'a> {
-    fn parse_chunk(&self, input: String) {
-        match *self {
-            ParserRef::HTML(parser) => parser.parse_chunk(input),
-            ParserRef::XML(parser) => parser.parse_chunk(input),
-        }
-    }
-
-    pub fn window(&self) -> &Window {
-        match *self {
-            ParserRef::HTML(parser) => parser.window(),
-            ParserRef::XML(parser) => parser.window(),
-        }
-    }
-
-    pub fn resume(&self) {
-        match *self {
-            ParserRef::HTML(parser) => parser.resume(),
-            ParserRef::XML(parser) => parser.resume(),
-        }
-    }
-
-    pub fn suspend(&self) {
-        match *self {
-            ParserRef::HTML(parser) => parser.suspend(),
-            ParserRef::XML(parser) => parser.suspend(),
-        }
-    }
-
-    pub fn is_suspended(&self) -> bool {
-        match *self {
-            ParserRef::HTML(parser) => parser.is_suspended(),
-            ParserRef::XML(parser) => parser.is_suspended(),
-        }
-    }
-
-    pub fn pending_input(&self) -> &DOMRefCell<Vec<String>> {
-        match *self {
-            ParserRef::HTML(parser) => parser.pending_input(),
-            ParserRef::XML(parser) => parser.pending_input(),
-        }
-    }
-
-    pub fn set_plaintext_state(&self) {
-        match *self {
-            ParserRef::HTML(parser) => parser.set_plaintext_state(),
-            ParserRef::XML(parser) => parser.set_plaintext_state(),
-        }
-    }
-
-    pub fn parse_sync(&self) {
-        match *self {
-            ParserRef::HTML(parser) => parser.parse_sync(),
-            ParserRef::XML(parser) => parser.parse_sync(),
-        }
-    }
-
-    pub fn document(&self) -> &Document {
-        match *self {
-            ParserRef::HTML(parser) => parser.document(),
-            ParserRef::XML(parser) => parser.document(),
-        }
-    }
-
-    pub fn last_chunk_received(&self) -> &Cell<bool> {
-        match *self {
-            ParserRef::HTML(parser) => parser.last_chunk_received(),
-            ParserRef::XML(parser) => parser.last_chunk_received(),
-        }
-    }
-}
 
 /// The context required for asynchronously fetching a document and parsing it progressively.
 pub struct ParserContext {
@@ -477,9 +320,8 @@ impl ServoHTMLParser {
 
 }
 
-
 impl ServoHTMLParser {
-    fn parse_sync(&self) {
+    pub fn parse_sync(&self) {
         // This parser will continue to parse while there is either pending input or
         // the parser remains unsuspended.
         loop {
@@ -507,30 +349,30 @@ impl ServoHTMLParser {
         }
     }
 
-    fn window(&self) -> &Window {
+    pub fn window(&self) -> &Window {
         self.document.window()
     }
 
-    fn suspend(&self) {
+    pub fn suspend(&self) {
         assert!(!self.suspended.get());
         self.suspended.set(true);
     }
 
-    fn resume(&self) {
+    pub fn resume(&self) {
         assert!(self.suspended.get());
         self.suspended.set(false);
         self.parse_sync();
     }
 
-    fn is_suspended(&self) -> bool {
+    pub fn is_suspended(&self) -> bool {
         self.suspended.get()
     }
 
-    fn document(&self) -> &Document {
+    pub fn document(&self) -> &Document {
         &self.document
     }
 
-    fn last_chunk_received(&self) -> &Cell<bool> {
+    pub fn last_chunk_received(&self) -> &Cell<bool> {
         &self.last_chunk_received
     }
 }
