@@ -33,7 +33,7 @@ pub enum Destination {
 }
 
 /// A request [origin](https://fetch.spec.whatwg.org/#concept-request-origin)
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Origin {
     Client,
     Origin(UrlOrigin)
