@@ -7,7 +7,7 @@
 
 <% data.new_style_struct("Box",
                          inherited=False,
-                         gecko_ffi_name="nsStyleDisplay",
+                         gecko_name="Display",
                          additional_methods=[Method("transition_count", "usize")]) %>
 
 // TODO(SimonSapin): don't parse `inline-table`, since we don't support it

@@ -4,6 +4,6 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% data.new_style_struct("Table", inherited=False, gecko_ffi_name="nsStyleTable") %>
+<% data.new_style_struct("Table", inherited=False) %>
 
 ${helpers.single_keyword("table-layout", "auto fixed", gecko_ffi_name="mLayoutStrategy")}

@@ -4,7 +4,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% data.new_style_struct("List", inherited=True, gecko_ffi_name="nsStyleList") %>
+<% data.new_style_struct("List", inherited=True) %>
 
 ${helpers.single_keyword("list-style-position", "outside inside")}
 

@@ -4,7 +4,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% data.new_style_struct("SVG", inherited=False, gecko_ffi_name="nsStyleSVGReset") %>
+<% data.new_style_struct("SVG", inherited=False, gecko_name="SVGReset") %>
 
 ${helpers.single_keyword("dominant-baseline",
                  """auto use-script no-change reset-size ideographic alphabetic hanging

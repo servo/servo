@@ -4,7 +4,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% data.new_style_struct("Column", inherited=False, gecko_ffi_name="nsStyleColumn") %>
+<% data.new_style_struct("Column", inherited=False) %>
 
 <%helpers:longhand name="column-width" experimental="True">
     use cssparser::ToCss;
