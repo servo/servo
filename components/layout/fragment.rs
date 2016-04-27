@@ -11,7 +11,7 @@ use canvas_traits::CanvasMsg;
 use context::LayoutContext;
 use euclid::{Point2D, Rect, Size2D};
 use floats::ClearType;
-use flow::{self, Flow};
+use flow::{self, Flow, ImmutableFlowUtils};
 use flow_ref::{self, FlowRef};
 use gfx;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, FragmentType, OpaqueNode, StackingContextId};
@@ -38,7 +38,7 @@ use std::sync::{Arc, Mutex};
 use style::computed_values::content::ContentItem;
 use style::computed_values::{border_collapse, clear, display, mix_blend_mode, overflow_wrap};
 use style::computed_values::{overflow_x, position, text_decoration, transform_style};
-use style::computed_values::{white_space, word_break, z_index};
+use style::computed_values::{vertical_align, white_space, word_break, z_index};
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::{ComputedValues, ServoComputedValues};
@@ -2556,6 +2556,24 @@ impl Fragment {
 
     pub fn layer_id_for_overflow_scroll(&self) -> LayerId {
         LayerId::new_of_type(LayerType::OverflowScroll, self.node.id() as usize)
+    }
+
+    /// Returns true if any of the inline styles associated with this fragment have
+    /// `vertical-align` set to `top` or `bottom`.
+    pub fn is_vertically_aligned_to_top_or_bottom(&self) -> bool {
+        match self.style.get_box().vertical_align {
+            vertical_align::T::top | vertical_align::T::bottom => return true,
+            _ => {}
+        }
+        if let Some(ref inline_context) = self.inline_context {
+            for node in &inline_context.nodes {
+                match node.style.get_box().vertical_align {
+                    vertical_align::T::top | vertical_align::T::bottom => return true,
+                    _ => {}
+                }
+            }
+        }
+        false
     }
 
     pub fn is_text_or_replaced(&self) -> bool {
