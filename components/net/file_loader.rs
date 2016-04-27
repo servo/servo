@@ -50,7 +50,7 @@ fn read_all(reader: &mut File, progress_chan: &ProgressSender, cancel_listener: 
             ReadStatus::EOF => return Ok(LoadResult::Finished),
         }
     }
-    let _ = progress_chan.send(Done(Err(NetworkError::Internal("load cancelled".to_owned()))));
+    let _ = progress_chan.send(Done(Err(NetworkError::LoadCancelled)));
     Ok(LoadResult::Cancelled)
 }
 
@@ -92,7 +92,7 @@ pub fn factory(load_data: LoadData,
         if cancel_listener.is_cancelled() {
             if let Ok(progress_chan) = get_progress_chan(load_data, file_path,
                                                          senders, classifier, &[]) {
-                let _ = progress_chan.send(Done(Err(NetworkError::Internal("load cancelled".to_owned()))));
+                let _ = progress_chan.send(Done(Err(NetworkError::LoadCancelled)));
             }
             return;
         }

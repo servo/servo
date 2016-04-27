@@ -437,9 +437,9 @@ pub enum ConstellationMsg {
 /// Network errors that have to be exported out of the loaders
 #[derive(Clone, PartialEq, Eq, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub enum NetworkError {
-    /// Could be any of the internal errors, like unsupported scheme, load
-    /// cancellation, connection errors, etc.
+    /// Could be any of the internal errors, like unsupported scheme, connection errors, etc.
     Internal(String),
+    LoadCancelled,
     /// SSL validation error that has to be handled in the HTML parser
     SslValidation(Url),
 }

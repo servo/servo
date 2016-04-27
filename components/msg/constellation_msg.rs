@@ -400,4 +400,3 @@ pub enum ReferrerPolicy {
     OriginWhenCrossOrigin,
     UnsafeUrl,
 }
-

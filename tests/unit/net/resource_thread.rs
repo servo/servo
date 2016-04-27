@@ -220,6 +220,6 @@ fn test_cancelled_listener() {
     let _ = body_sender.send(body);
     let response = receiver.recv().unwrap();
     assert_eq!(response.progress_port.recv().unwrap(),
-               ProgressMsg::Done(Err(NetworkError::Internal("load cancelled".to_owned()))));
+               ProgressMsg::Done(Err(NetworkError::LoadCancelled)));
     resource_thread.send(ControlMsg::Exit).unwrap();
 }
