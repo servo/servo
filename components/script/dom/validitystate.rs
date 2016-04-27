@@ -59,6 +59,7 @@ impl ValidityState {
             state: ValidityStates::Valid
         }
     }
+    
     pub fn new(window: &Window, element: &Element) -> Root<ValidityState> {
         reflect_dom_object(box ValidityState::new_inherited(element),
                            GlobalRef::Window(window),
@@ -645,7 +646,8 @@ impl ValidityStateMethods for ValidityState {
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-valid
     fn Valid(&self) -> bool {
-        return !(self.ValueMissing()|
+        return !(
+            self.ValueMissing()|
             self.TypeMismatch()|
             self.PatternMismatch()|
             self.TooLong()|

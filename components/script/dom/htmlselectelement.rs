@@ -26,6 +26,7 @@ use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
 use style::element_state::*;
 use util::str::DOMString;
+use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 
 #[dom_struct]
 pub struct HTMLSelectElement {
@@ -251,7 +252,24 @@ impl VirtualMethods for HTMLSelectElement {
     }
 }
 
-impl FormControl for HTMLSelectElement {}
+impl FormControl for HTMLSelectElement {
+    fn candidate_for_validation(&self, element: &Element) -> bool {
+        match element.as_maybe_validatable() {
+            Some(x) => {
+                //  println!("retun true" );
+                return true
+            },
+            None => { //println!("retun false" );
+                return false 
+            }
+        }
+    }
+
+    fn satisfies_constraints(&self, element: &Element) -> bool {
+        let vs = ValidityState::new(window_from_node(self).r(), element);
+        return  vs.Valid()
+    }
+}
 
 impl Validatable for HTMLSelectElement {
     fn get_value_for_validation(&self) -> Option<DOMString>{

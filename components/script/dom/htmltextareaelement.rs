@@ -33,6 +33,9 @@ use string_cache::Atom;
 use style::element_state::*;
 use textinput::{KeyReaction, Lines, TextInput, SelectionDirection};
 use util::str::DOMString;
+use dom::validitystate::ValidityState;
+use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
+use dom::node::{window_from_node};
 
 #[dom_struct]
 pub struct HTMLTextAreaElement {
@@ -376,7 +379,24 @@ impl VirtualMethods for HTMLTextAreaElement {
     }
 }
 
-impl FormControl for HTMLTextAreaElement {}
+impl FormControl for HTMLTextAreaElement {
+    fn candidate_for_validation(&self, element: &Element) -> bool {
+        match element.as_maybe_validatable() {
+            Some(x) => {
+                //  println!("retun true" );
+                return true
+            },
+            None => { //println!("retun false" );
+                return false 
+            }
+        }
+    }
+
+    fn satisfies_constraints(&self, element: &Element) -> bool {
+        let vs = ValidityState::new(window_from_node(self).r(), element);
+        return  vs.Valid()
+    }
+}
 
 impl Validatable for HTMLTextAreaElement {
     fn get_value_for_validation(&self) -> Option<DOMString>{

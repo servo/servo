@@ -9,11 +9,13 @@ use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
+use dom::element::{AttributeMutation, Element};
 use dom::node::{Node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validitystate::ValidityState;
 use string_cache::Atom;
 use util::str::DOMString;
+use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 
 #[dom_struct]
 pub struct HTMLOutputElement {
@@ -57,4 +59,21 @@ impl HTMLOutputElementMethods for HTMLOutputElement {
     }
 }
 
-impl FormControl for HTMLOutputElement {}
+impl FormControl for HTMLOutputElement {
+    fn candidate_for_validation(&self, element: &Element) -> bool {
+        match element.as_maybe_validatable() {
+            Some(x) => {
+                //  println!("retun true" );
+                return true
+            },
+            None => { //println!("retun false" );
+                return false 
+            }
+        }
+    }
+
+    fn satisfies_constraints(&self, element: &Element) -> bool {
+        let vs = ValidityState::new(window_from_node(self).r(), element);
+        return  vs.Valid()
+    }  
+}

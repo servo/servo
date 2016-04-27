@@ -20,6 +20,7 @@ use net_traits::image::base::Image;
 use std::sync::Arc;
 use string_cache::Atom;
 use util::str::DOMString;
+use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 
 #[dom_struct]
 pub struct HTMLObjectElement {
@@ -115,4 +116,21 @@ impl VirtualMethods for HTMLObjectElement {
     }
 }
 
-impl FormControl for HTMLObjectElement {}
+impl FormControl for HTMLObjectElement {
+    fn candidate_for_validation(&self, element: &Element) -> bool {
+        match element.as_maybe_validatable() {
+            Some(x) => {
+                //  println!("retun true" );
+                return true
+            },
+            None => { //println!("retun false" );
+                return false 
+            }
+        }
+    }
+
+    fn satisfies_constraints(&self, element: &Element) -> bool {
+        let vs = ValidityState::new(window_from_node(self).r(), element);
+        return  vs.Valid()
+    }
+}

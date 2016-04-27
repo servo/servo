@@ -44,6 +44,8 @@ use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDef
 use textinput::Lines::Single;
 use textinput::{TextInput, SelectionDirection};
 use util::str::{DOMString, search_index};
+use dom::validitystate::ValidityState;
+use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -905,7 +907,24 @@ impl VirtualMethods for HTMLInputElement {
     }
 }
 
-impl FormControl for HTMLInputElement {}
+impl FormControl for HTMLInputElement {
+    fn candidate_for_validation(&self, element: &Element) -> bool {
+        match element.as_maybe_validatable() {
+            Some(x) => {
+                //  println!("retun true" );
+                return true
+            },
+            None => { //println!("retun false" );
+                return false 
+            }
+        }
+    }
+
+    fn satisfies_constraints(&self, element: &Element) -> bool {
+        let vs = ValidityState::new(window_from_node(self).r(), element);
+        return  vs.Valid()
+    }
+}
 impl Validatable for HTMLInputElement {
     fn get_value_for_validation(&self) -> Option<DOMString>{
         if self.Value().is_empty() {

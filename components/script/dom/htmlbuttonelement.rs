@@ -26,6 +26,7 @@ use std::cell::Cell;
 use string_cache::Atom;
 use style::element_state::*;
 use util::str::DOMString;
+use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone)]
 #[derive(HeapSizeOf)]
@@ -202,7 +203,24 @@ impl VirtualMethods for HTMLButtonElement {
     }
 }
 
-impl FormControl for HTMLButtonElement {}
+impl FormControl for HTMLButtonElement {
+    fn candidate_for_validation(&self, element: &Element) -> bool {
+        match element.as_maybe_validatable() {
+            Some(x) => {
+                //  println!("retun true" );
+                return true
+            },
+            None => { //println!("retun false" );
+                return false 
+            }
+        }
+    }
+
+    fn satisfies_constraints(&self, element: &Element) -> bool {
+        let vs = ValidityState::new(window_from_node(self).r(), element);
+        return  vs.Valid()
+    }
+}
 
 impl Validatable for HTMLButtonElement {
     fn get_value_for_validation(&self) -> Option<DOMString>{
