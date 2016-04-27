@@ -290,6 +290,7 @@ class MachCommands(CommandBase):
             if ext != '.py':
                 continue
             try:
+                print(f, "in here")
                 execfile(path.join(test_dir, f))
                 print("Test Passed")
                 # TODO the test passed
