@@ -1496,6 +1496,8 @@ pub trait ComputedValues : Clone + Send + Sync + 'static {
         % endfor
         ) -> Self;
 
+        fn clone_for_text_node(&self) -> Self;
+
         fn initial_values() -> &'static Self;
 
         fn do_cascade_property<F: FnOnce(&Vec<Option<CascadePropertyFn<Self>>>)>(f: F);
@@ -1552,6 +1554,14 @@ impl ComputedValues for ServoComputedValues {
                 ${style_struct.ident}: ${style_struct.ident},
             % endfor
             }
+        }
+
+        fn clone_for_text_node(&self) -> Self {
+            // Text nodes get a copy of the parent style. This ensures
+            // that during fragment construction any non-inherited
+            // CSS properties (such as vertical-align) are correctly
+            // set on the fragment(s).
+            self.clone()
         }
 
         fn initial_values() -> &'static Self { &*INITIAL_SERVO_VALUES }
