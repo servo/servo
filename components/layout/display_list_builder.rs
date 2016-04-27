@@ -13,7 +13,7 @@
 use app_units::{Au, AU_PER_PX};
 use azure::azure_hl::Color;
 use block::{BlockFlow, BlockStackingContextType};
-use canvas_traits::{CanvasMsg, CanvasPixelData, CanvasData, FromLayoutMsg};
+use canvas_traits::{CanvasMsg, CanvasData, FromLayoutMsg};
 use context::LayoutContext;
 use euclid::num::Zero;
 use euclid::{Matrix4D, Point2D, Point3D, Rect, SideOffsets2D, Size2D};
@@ -34,7 +34,7 @@ use gfx::paint_thread::THREAD_TINT_COLORS;
 use gfx::text::glyph::CharIndex;
 use gfx_traits::{color, ScrollPolicy};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
-use ipc_channel::ipc::{self, IpcSharedMemory};
+use ipc_channel::ipc::{self};
 use list_item::ListItemFlow;
 use model::{self, MaybeAuto, ToGfxMatrix};
 use net_traits::image::base::PixelFormat;
@@ -1259,13 +1259,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                 FromLayoutMsg::SendData(sender))).unwrap();
                             receiver.recv().unwrap()
                         },
-                        None => CanvasData::Pixels(CanvasPixelData {
-                            image_data: IpcSharedMemory::from_byte(0xFFu8,
-                                                                   (computed_width *
-                                                                    computed_height * 4)
-                                                                   as usize),
-                            image_key: None,
-                        }),
+                        None => return,
                     };
 
                     let base = state.create_base_display_item(
