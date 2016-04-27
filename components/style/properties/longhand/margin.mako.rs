@@ -4,7 +4,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% data.new_style_struct("Margin", inherited=False, gecko_ffi_name="nsStyleMargin") %>
+<% data.new_style_struct("Margin", inherited=False) %>
 
 % for side in ["top", "right", "bottom", "left"]:
     ${helpers.predefined_type("margin-" + side, "LengthOrPercentageOrAuto",

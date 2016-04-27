@@ -4,7 +4,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% data.new_style_struct("Position", inherited=False, gecko_ffi_name="nsStylePosition") %>
+<% data.new_style_struct("Position", inherited=False) %>
 
 % for side in ["top", "right", "bottom", "left"]:
     ${helpers.predefined_type(side, "LengthOrPercentageOrAuto",

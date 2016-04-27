@@ -4,7 +4,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% data.new_style_struct("Counters", inherited=False, gecko_ffi_name="nsStyleContent") %>
+<% data.new_style_struct("Counters", inherited=False, gecko_name="Content") %>
 
 <%helpers:longhand name="content">
     use cssparser::Token;

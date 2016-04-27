@@ -11,14 +11,13 @@
 
 use app_units::Au;
 % for style_struct in data.style_structs:
-%if style_struct.gecko_ffi_name:
 use gecko_style_structs::${style_struct.gecko_ffi_name};
 use bindings::Gecko_Construct_${style_struct.gecko_ffi_name};
 use bindings::Gecko_CopyConstruct_${style_struct.gecko_ffi_name};
 use bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
-% endif
 % endfor
 use gecko_style_structs;
+use glue::ArcHelpers;
 use heapsize::HeapSizeOf;
 use std::fmt::{self, Debug};
 use std::mem::{transmute, zeroed};
@@ -103,13 +102,9 @@ impl ComputedValues for GeckoComputedValues {
 
 <%def name="declare_style_struct(style_struct)">
 #[derive(Clone, HeapSizeOf, Debug)]
-% if style_struct.gecko_ffi_name:
 pub struct ${style_struct.gecko_struct_name} {
     gecko: ${style_struct.gecko_ffi_name},
 }
-% else:
-pub struct ${style_struct.gecko_struct_name};
-% endif
 </%def>
 
 <%def name="impl_simple_copy(ident, gecko_ffi_name)">
@@ -192,8 +187,10 @@ impl ${style_struct.gecko_struct_name} {
         }
         result
     }
+    pub fn get_gecko(&self) -> &${style_struct.gecko_ffi_name} {
+        &self.gecko
+    }
 }
-%if style_struct.gecko_ffi_name:
 impl Drop for ${style_struct.gecko_struct_name} {
     fn drop(&mut self) {
         unsafe {
@@ -226,7 +223,6 @@ impl Debug for ${style_struct.gecko_ffi_name} {
         write!(f, "GECKO STYLE STRUCT")
     }
 }
-%endif
 %endif
 </%def>
 
@@ -406,12 +402,24 @@ for side in SIDES:
 
 </%self:impl_trait>
 
+<%def name="define_ffi_struct_accessor(style_struct)">
+#[no_mangle]
+#[allow(non_snake_case, unused_variables)]
+pub extern "C" fn Servo_GetStyle${style_struct.gecko_name}(computed_values: *mut ServoComputedValues)
+  -> *const ${style_struct.gecko_ffi_name} {
+    type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
+    Helpers::with(computed_values, |values| values.get_${style_struct.trait_name_lower}().get_gecko()
+                                                as *const ${style_struct.gecko_ffi_name})
+}
+</%def>
+
 % for style_struct in data.style_structs:
 ${declare_style_struct(style_struct)}
 ${impl_style_struct(style_struct)}
 % if not style_struct.trait_name in data.manual_style_structs:
 <%self:raw_impl_trait style_struct="${style_struct}"></%self:raw_impl_trait>
 % endif
+${define_ffi_struct_accessor(style_struct)}
 % endfor
 
 lazy_static! {

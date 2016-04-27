@@ -92,29 +92,29 @@ pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8,
     }
 }
 
-struct ArcHelpers<GeckoType, ServoType> {
+pub struct ArcHelpers<GeckoType, ServoType> {
     phantom1: PhantomData<GeckoType>,
     phantom2: PhantomData<ServoType>,
 }
 
 impl<GeckoType, ServoType> ArcHelpers<GeckoType, ServoType> {
-    fn with<F, Output>(raw: *mut GeckoType, cb: F) -> Output
-                       where F: FnOnce(&Arc<ServoType>) -> Output {
+    pub fn with<F, Output>(raw: *mut GeckoType, cb: F) -> Output
+                           where F: FnOnce(&Arc<ServoType>) -> Output {
         let owned = unsafe { Self::into(raw) };
         let result = cb(&owned);
         forget(owned);
         result
     }
 
-    unsafe fn into(ptr: *mut GeckoType) -> Arc<ServoType> {
+    pub unsafe fn into(ptr: *mut GeckoType) -> Arc<ServoType> {
         transmute(ptr)
     }
 
-    unsafe fn addref(ptr: *mut GeckoType) {
+    pub unsafe fn addref(ptr: *mut GeckoType) {
         Self::with(ptr, |arc| forget(arc.clone()));
     }
 
-    unsafe fn release(ptr: *mut GeckoType) {
+    pub unsafe fn release(ptr: *mut GeckoType) {
         let _ = Self::into(ptr);
     }
 }

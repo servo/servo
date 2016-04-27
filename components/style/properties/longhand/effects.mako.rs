@@ -5,7 +5,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 // Box-shadow, etc.
-<% data.new_style_struct("Effects", inherited=False, gecko_ffi_name="nsStyleEffects") %>
+<% data.new_style_struct("Effects", inherited=False) %>
 
 <%helpers:longhand name="opacity">
     use cssparser::ToCss;
