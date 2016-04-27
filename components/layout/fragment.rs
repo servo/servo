@@ -1471,6 +1471,17 @@ impl Fragment {
         result
     }
 
+    /// Returns the narrowest inline-size that the first splittable part of this fragment could
+    /// possibly be split to. (In most cases, this returns the inline-size of the first word in
+    /// this fragment.)
+    pub fn minimum_splittable_inline_size(&self) -> Au {
+        match self.specific {
+            SpecificFragmentInfo::ScannedText(ref text) => {
+                text.run.minimum_splittable_inline_size(&text.range)
+            }
+            _ => Au(0),
+        }
+    }
 
     /// TODO: What exactly does this function return? Why is it Au(0) for
     /// `SpecificFragmentInfo::Generic`?
