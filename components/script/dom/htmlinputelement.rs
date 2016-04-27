@@ -43,7 +43,7 @@ use style::element_state::*;
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
 use textinput::{TextInput, SelectionDirection};
-use util::str::{DOMString, search_index};
+use util::str::{DOMString};
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -174,7 +174,7 @@ pub trait LayoutHTMLInputElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn size_for_layout(self) -> u32;
     #[allow(unsafe_code)]
-    unsafe fn selection_for_layout(self) -> Option<Range<isize>>;
+    unsafe fn selection_for_layout(self) -> Option<Range<usize>>;
     #[allow(unsafe_code)]
     unsafe fn checked_state_for_layout(self) -> bool;
     #[allow(unsafe_code)]
@@ -207,7 +207,8 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
             InputType::InputPassword => {
                 let text = get_raw_textinput_value(self);
                 if !text.is_empty() {
-                    // The implementation of selection_for_layout expects a 1:1 mapping of chars.
+                    // FIXME:
+                    // The implementation of selection_for_layout expects a 1:1 mapping of bytes.
                     text.chars().map(|_| '●').collect()
                 } else {
                     String::from((*self.unsafe_get()).placeholder.borrow_for_layout().clone())
@@ -216,7 +217,6 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
             _ => {
                 let text = get_raw_textinput_value(self);
                 if !text.is_empty() {
-                    // The implementation of selection_for_layout expects a 1:1 mapping of chars.
                     String::from(text)
                 } else {
                     String::from((*self.unsafe_get()).placeholder.borrow_for_layout().clone())
@@ -233,24 +233,19 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn selection_for_layout(self) -> Option<Range<isize>> {
+    unsafe fn selection_for_layout(self) -> Option<Range<usize>> {
         if !(*self.unsafe_get()).upcast::<Element>().focus_state() {
             return None;
         }
 
-        // Use the raw textinput to get the index as long as we use a 1:1 char mapping
-        // in value_for_layout.
-        let raw = match (*self.unsafe_get()).input_type.get() {
-            InputType::InputText |
-            InputType::InputPassword => get_raw_textinput_value(self),
+        match (*self.unsafe_get()).input_type.get() {
+            InputType::InputText | InputType::InputPassword => {}
             _ => return None
-        };
+        }
+
+        // FIXME: For password inputs, map indices from raw value to value_for_layout.
         let textinput = (*self.unsafe_get()).textinput.borrow_for_layout();
-        let selection = textinput.get_absolute_selection_range();
-        let begin_byte = selection.begin();
-        let begin = search_index(begin_byte, raw.char_indices());
-        let length = search_index(selection.length(), raw[begin_byte..].char_indices());
-        Some(Range::new(begin, length))
+        Some(textinput.get_absolute_selection_range())
     }
 
     #[allow(unrooted_must_root)]

@@ -11,7 +11,7 @@ use std::ffi::CStr;
 use std::fmt;
 use std::iter::{Filter, Peekable};
 use std::ops::{Deref, DerefMut};
-use std::str::{Bytes, CharIndices, Split, from_utf8};
+use std::str::{Bytes, Split, from_utf8};
 use string_cache::Atom;
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
@@ -270,41 +270,4 @@ pub fn str_join<I, T>(strs: I, join: &str) -> String
         acc.push_str(s.as_ref());
         acc
     })
-}
-
-// Lifted from Rust's StrExt implementation, which is being removed.
-pub fn slice_chars(s: &str, begin: usize, end: usize) -> &str {
-    assert!(begin <= end);
-    let mut count = 0;
-    let mut begin_byte = None;
-    let mut end_byte = None;
-
-    // This could be even more efficient by not decoding,
-    // only finding the char boundaries
-    for (idx, _) in s.char_indices() {
-        if count == begin { begin_byte = Some(idx); }
-        if count == end { end_byte = Some(idx); break; }
-        count += 1;
-    }
-    if begin_byte.is_none() && count == begin { begin_byte = Some(s.len()) }
-    if end_byte.is_none() && count == end { end_byte = Some(s.len()) }
-
-    match (begin_byte, end_byte) {
-        (None, _) => panic!("slice_chars: `begin` is beyond end of string"),
-        (_, None) => panic!("slice_chars: `end` is beyond end of string"),
-        (Some(a), Some(b)) => unsafe { s.slice_unchecked(a, b) }
-    }
-}
-
-// searches a character index in CharIndices
-// returns indices.count if not found
-pub fn search_index(index: usize, indices: CharIndices) -> isize {
-    let mut character_count = 0;
-    for (character_index, _) in indices {
-        if character_index == index {
-            return character_count;
-        }
-        character_count += 1
-    }
-    character_count
 }
