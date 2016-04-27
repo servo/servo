@@ -112,7 +112,7 @@ pub struct BasicCORSCache(Vec<CORSCacheEntry>);
 fn match_headers(cors_cache: &CORSCacheEntry, cors_req: &CacheRequestDetails) -> bool {
     cors_cache.origin == cors_req.origin &&
         cors_cache.url == cors_req.destination &&
-        cors_cache.credentials == cors_req.credentials
+        (cors_cache.credentials || !cors_req.credentials)
 }
 
 impl BasicCORSCache {
