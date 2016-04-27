@@ -10,8 +10,9 @@ use bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues, ServoN
 use bindings::{nsIAtom};
 use data::PerDocumentStyleData;
 use euclid::Size2D;
+use gecko_style_structs::SheetParsingMode;
 use properties::GeckoComputedValues;
-use selector_impl::{SharedStyleContext, Stylesheet};
+use selector_impl::{GeckoSelectorImpl, SharedStyleContext, Stylesheet};
 use std::marker::PhantomData;
 use std::mem::{forget, transmute};
 use std::ptr;
@@ -81,13 +82,20 @@ pub extern "C" fn Servo_DropNodeData(data: *mut ServoNodeData) -> () {
 
 #[no_mangle]
 pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8,
-                                                length: u32) -> *mut RawServoStyleSheet {
+                                                length: u32,
+                                                mode: SheetParsingMode) -> *mut RawServoStyleSheet {
 
     let input = unsafe { from_utf8_unchecked(slice::from_raw_parts(bytes, length as usize)) };
 
-    // FIXME(heycam): Pass in the real base URL and sheet origin to use.
+    let origin = match mode {
+        SheetParsingMode::eAuthorSheetFeatures => Origin::Author,
+        SheetParsingMode::eUserSheetFeatures => Origin::User,
+        SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
+    };
+
+    // FIXME(heycam): Pass in the real base URL.
     let url = Url::parse("about:none").unwrap();
-    let sheet = Arc::new(Stylesheet::from_str(input, url, Origin::Author, Box::new(StdoutErrorReporter)));
+    let sheet = Arc::new(Stylesheet::from_str(input, url, origin, Box::new(StdoutErrorReporter)));
     unsafe {
         transmute(sheet)
     }
@@ -182,12 +190,48 @@ pub extern "C" fn Servo_GetComputedValues(element: *mut RawGeckoElement)
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(_parentStyleOrNull: *mut ServoComputedValues,
-                                                         _pseudoTag: *mut nsIAtom,
+pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(parent_style_or_null: *mut ServoComputedValues,
+                                                         pseudo_tag: *mut nsIAtom,
                                                          raw_data: *mut RawServoStyleSet)
      -> *mut ServoComputedValues {
-    let _data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
-    unimplemented!();
+    use bindings::Gecko_GetAtomAsUTF16;
+    use selectors::parser::{ParserContext, SelectorImpl};
+
+    let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
+
+    // TODO: This is ugly and should go away once we get an atom back-end.
+    let pseudo_string = unsafe {
+        let mut length = 0;
+        let buff = Gecko_GetAtomAsUTF16(pseudo_tag, &mut length);
+        String::from_utf16(slice::from_raw_parts(buff, length as usize)).unwrap()
+    };
+
+    let mut context = ParserContext::new();
+    // Parse every pseudo-element possible.
+    context.in_user_agent_stylesheet = true;
+
+    let pseudo = match GeckoSelectorImpl::parse_pseudo_element(&context, &pseudo_string) {
+        Ok(pseudo) => pseudo,
+        Err(_) => {
+            warn!("stylo: Unable to parse pseudo-element: {}", pseudo_string);
+            return ptr::null_mut();
+        }
+    };
+
+    unsafe {
+        let parent: Option<Arc<GeckoComputedValues>> =
+            if parent_style_or_null.is_null() {
+                None
+            } else {
+                Some(transmute(parent_style_or_null))
+            };
+
+        let new_computed = data.stylist.computed_values_for_pseudo(&pseudo, parent.as_ref());
+
+        forget(parent);
+
+        new_computed.map_or(ptr::null_mut(), |c| transmute(c))
+    }
 }
 
 #[no_mangle]
