@@ -4,28 +4,59 @@
 use bluetooth_scanfilter::RequestDeviceoptions;
 use ipc_channel::ipc::IpcSender;
 
-pub type BluetoothResult<T> = Result<T, String>;
+#[derive(Deserialize, Serialize)]
+pub struct BluetoothDeviceMsg {
+    // Bluetooth Device properties
+    pub id: String,
+    pub name: Option<String>,
+    pub device_class: Option<u32>,
+    pub vendor_id_source: Option<String>,
+    pub vendor_id: Option<u32>,
+    pub product_id: Option<u32>,
+    pub product_version: Option<u32>,
+    // Advertisiong Data properties
+    pub appearance: Option<u16>,
+    pub tx_power: Option<i8>,
+    pub rssi: Option<i8>,
+}
 
-pub type BluetoothDeviceMsg = (// Bluetooth Device properties
-                               String, Option<String>, Option<u32>, Option<String>,
-                               Option<u32>, Option<u32>, Option<u32>,
-                               // Advertisiong Data properties
-                               Option<u16>, Option<i8>, Option<i8>);
+#[derive(Deserialize, Serialize)]
+pub struct BluetoothServiceMsg {
+    pub uuid: String,
+    pub is_primary: bool,
+    pub instance_id: String,
+}
 
-pub type BluetoothServiceMsg = (String, bool, String);
+#[derive(Deserialize, Serialize)]
+pub struct BluetoothCharacteristicMsg {
+    // Characteristic
+    pub uuid: String,
+    pub instance_id: String,
+    // Characteristic properties
+    pub broadcast: bool,
+    pub read: bool,
+    pub write_without_response: bool,
+    pub write: bool,
+    pub notify: bool,
+    pub indicate: bool,
+    pub authenticated_signed_writes: bool,
+    pub reliable_write: bool,
+    pub writable_auxiliaries: bool,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct BluetoothDescriptorMsg {
+    pub uuid: String,
+    pub instance_id: String,
+}
 
 pub type BluetoothServicesMsg = Vec<BluetoothServiceMsg>;
 
-pub type BluetoothCharacteristicMsg = (// Characteristic
-                                       String, String,
-                                       // Characteristic properties
-                                       bool, bool, bool, bool, bool, bool, bool, bool, bool);
-
 pub type BluetoothCharacteristicsMsg = Vec<BluetoothCharacteristicMsg>;
 
-pub type BluetoothDescriptorMsg = (String, String);
-
 pub type BluetoothDescriptorsMsg = Vec<BluetoothDescriptorMsg>;
+
+pub type BluetoothResult<T> = Result<T, String>;
 
 #[derive(Deserialize, Serialize)]
 pub enum BluetoothMethodMsg {

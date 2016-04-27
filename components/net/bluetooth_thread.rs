@@ -365,23 +365,18 @@ impl BluetoothManager {
                                                            .collect();
         for device in matched_devices {
             if let Ok(address) = device.get_address() {
-                let message = Ok((address,
-                                  device.get_name().ok(),
-                                  device.get_class().ok(),
-                                  device.get_vendor_id_source().ok(),
-                                  device.get_vendor_id().ok(),
-                                  device.get_product_id().ok(),
-                                  device.get_device_id().ok(),
-                                  device.get_appearance().ok(),
-                                  match device.get_tx_power() {
-                                      Ok(p) => Some(p as i8),
-                                      Err(_) => None,
-                                  },
-                                  match device.get_rssi() {
-                                      Ok(p) => Some(p as i8),
-                                      Err(_) => None,
-                                  },
-                ));
+                let message = Ok(BluetoothDeviceMsg {
+                                     id: address,
+                                     name: device.get_name().ok(),
+                                     device_class: device.get_class().ok(),
+                                     vendor_id_source: device.get_vendor_id_source().ok(),
+                                     vendor_id: device.get_vendor_id().ok(),
+                                     product_id: device.get_product_id().ok(),
+                                     product_version: device.get_device_id().ok(),
+                                     appearance: device.get_appearance().ok(),
+                                     tx_power: device.get_tx_power().ok().map(|p| p as i8),
+                                     rssi: device.get_rssi().ok().map(|p| p as i8),
+                                 });
                 return drop(sender.send(message));
             }
         }
@@ -443,7 +438,11 @@ impl BluetoothManager {
         for service in services {
             if service.is_primary().unwrap_or(false) {
                 if let Ok(uuid) = service.get_uuid() {
-                    return drop(sender.send(Ok((uuid, true, service.get_object_path()))));
+                    return drop(sender.send(Ok(BluetoothServiceMsg {
+                                                   uuid: uuid,
+                                                   is_primary: true,
+                                                   instance_id: service.get_object_path(),
+                                               })));
                 }
             }
         }
@@ -469,7 +468,11 @@ impl BluetoothManager {
         for service in services {
             if service.is_primary().unwrap_or(false) {
                 if let Ok(uuid) = service.get_uuid() {
-                    services_vec.push((uuid, true, service.get_object_path()));
+                    services_vec.push(BluetoothServiceMsg {
+                                          uuid: uuid,
+                                          is_primary: true,
+                                          instance_id: service.get_object_path(),
+                                      });
                 }
             }
         }
@@ -495,17 +498,19 @@ impl BluetoothManager {
         for characteristic in characteristics {
             if let Ok(uuid) = characteristic.get_uuid() {
                 let properties = self.get_characteristic_properties(&characteristic);
-                let message = Ok((uuid,
-                                  characteristic.get_object_path(),
-                                  properties.contains(BROADCAST),
-                                  properties.contains(READ),
-                                  properties.contains(WRITE_WITHOUT_RESPONSE),
-                                  properties.contains(WRITE),
-                                  properties.contains(NOTIFY),
-                                  properties.contains(INDICATE),
-                                  properties.contains(AUTHENTICATED_SIGNED_WRITES),
-                                  properties.contains(RELIABLE_WRITE),
-                                  properties.contains(WRITABLE_AUXILIARIES)));
+                let message = Ok(BluetoothCharacteristicMsg {
+                                     uuid: uuid,
+                                     instance_id: characteristic.get_object_path(),
+                                     broadcast: properties.contains(BROADCAST),
+                                     read: properties.contains(READ),
+                                     write_without_response: properties.contains(WRITE_WITHOUT_RESPONSE),
+                                     write: properties.contains(WRITE),
+                                     notify: properties.contains(NOTIFY),
+                                     indicate: properties.contains(INDICATE),
+                                     authenticated_signed_writes: properties.contains(AUTHENTICATED_SIGNED_WRITES),
+                                     reliable_write: properties.contains(RELIABLE_WRITE),
+                                     writable_auxiliaries: properties.contains(WRITABLE_AUXILIARIES),
+                                 });
                 return drop(sender.send(message));
             }
         }
@@ -531,17 +536,20 @@ impl BluetoothManager {
         for characteristic in characteristics {
             if let Ok(uuid) = characteristic.get_uuid() {
                 let properties = self.get_characteristic_properties(&characteristic);
-                characteristics_vec.push((uuid,
-                                          characteristic.get_object_path(),
-                                          properties.contains(BROADCAST),
-                                          properties.contains(READ),
-                                          properties.contains(WRITE_WITHOUT_RESPONSE),
-                                          properties.contains(WRITE),
-                                          properties.contains(NOTIFY),
-                                          properties.contains(INDICATE),
-                                          properties.contains(AUTHENTICATED_SIGNED_WRITES),
-                                          properties.contains(RELIABLE_WRITE),
-                                          properties.contains(WRITABLE_AUXILIARIES)));
+                characteristics_vec.push(
+                                BluetoothCharacteristicMsg {
+                                    uuid: uuid,
+                                    instance_id: characteristic.get_object_path(),
+                                    broadcast: properties.contains(BROADCAST),
+                                    read: properties.contains(READ),
+                                    write_without_response: properties.contains(WRITE_WITHOUT_RESPONSE),
+                                    write: properties.contains(WRITE),
+                                    notify: properties.contains(NOTIFY),
+                                    indicate: properties.contains(INDICATE),
+                                    authenticated_signed_writes: properties.contains(AUTHENTICATED_SIGNED_WRITES),
+                                    reliable_write: properties.contains(RELIABLE_WRITE),
+                                    writable_auxiliaries: properties.contains(WRITABLE_AUXILIARIES),
+                                });
             }
         }
         if characteristics_vec.is_empty() {
@@ -565,7 +573,10 @@ impl BluetoothManager {
         }
         for descriptor in descriptors {
             if let Ok(uuid) = descriptor.get_uuid() {
-                return drop(sender.send(Ok((uuid, descriptor.get_object_path()))));
+                return drop(sender.send(Ok(BluetoothDescriptorMsg {
+                                               uuid: uuid,
+                                               instance_id: descriptor.get_object_path(),
+                                           })));
             }
         }
         return drop(sender.send(Err(String::from(DESCRIPTOR_ERROR))));
@@ -589,13 +600,15 @@ impl BluetoothManager {
         let mut descriptors_vec = vec!();
         for descriptor in descriptors {
             if let Ok(uuid) = descriptor.get_uuid() {
-                descriptors_vec.push((uuid, descriptor.get_object_path()));
+                descriptors_vec.push(BluetoothDescriptorMsg {
+                                         uuid: uuid,
+                                         instance_id: descriptor.get_object_path(),
+                                     });
             }
         }
         if descriptors_vec.is_empty() {
             return drop(sender.send(Err(String::from(DESCRIPTOR_ERROR))));
         }
-
         let _ = sender.send(Ok(descriptors_vec));
     }
 
@@ -610,11 +623,7 @@ impl BluetoothManager {
             value = self.get_gatt_descriptor(&mut adapter, &id)
                         .map(|d| d.read_value().unwrap_or(vec![]));
         }
-        let message = match value {
-            Some(v) => Ok(v),
-            None => Err(String::from(VALUE_ERROR)),
-        };
-        let _ = sender.send(message);
+        let _ = sender.send(value.ok_or(String::from(VALUE_ERROR)));
     }
 
     fn write_value(&mut self, id: String, value: Vec<u8>, sender: IpcSender<BluetoothResult<bool>>) {

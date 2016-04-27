@@ -100,11 +100,11 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
             BluetoothMethodMsg::GetDescriptor(self.get_instance_id(), uuid, sender)).unwrap();
         let descriptor = receiver.recv().unwrap();
         match descriptor {
-            Ok((uuid, instance_id)) => {
+            Ok(descriptor) => {
                 Ok(BluetoothRemoteGATTDescriptor::new(self.global().r(),
                                                       self,
-                                                      DOMString::from(uuid),
-                                                      instance_id))
+                                                      DOMString::from(descriptor.uuid),
+                                                      descriptor.instance_id))
             },
             Err(error) => {
                 Err(Type(error))
@@ -127,12 +127,11 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
         match descriptors_vec {
             Ok(descriptor_vec) => {
                 Ok(descriptor_vec.into_iter()
-                                 .map(|(uuid, instance_id)|
-                                      BluetoothRemoteGATTDescriptor::new(self.global().r(),
-                                                                         self,
-                                                                         DOMString::from(uuid),
-                                                                         instance_id))
-                                  .collect())
+                                 .map(|desc| BluetoothRemoteGATTDescriptor::new(self.global().r(),
+                                                                                self,
+                                                                                DOMString::from(desc.uuid),
+                                                                                desc.instance_id))
+                                 .collect())
             },
             Err(error) => {
                 Err(Type(error))

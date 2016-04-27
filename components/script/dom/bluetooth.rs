@@ -137,34 +137,25 @@ impl BluetoothMethods for Bluetooth {
         self.get_bluetooth_thread().send(BluetoothMethodMsg::RequestDevice(option, sender)).unwrap();
         let device = receiver.recv().unwrap();
         match device {
-            Ok((id,
-                name,
-                device_class,
-                vendor_id_source,
-                vendor_id,
-                product_id,
-                product_version,
-                appearance,
-                tx_power,
-                rssi)) => {
+            Ok(device) => {
                 let ad_data = BluetoothAdvertisingData::new(self.global().r(),
-                                                             appearance,
-                                                             tx_power,
-                                                             rssi);
-                let vendor_id_source = vendor_id_source.map(|vid| match vid.as_str() {
+                                                            device.appearance,
+                                                            device.tx_power,
+                                                            device.rssi);
+                let vendor_id_source = device.vendor_id_source.map(|vid| match vid.as_str() {
                     "bluetooth" => VendorIDSource::Bluetooth,
                     "usb" => VendorIDSource::Usb,
                     _ => VendorIDSource::Unknown,
                 });
                 Ok(BluetoothDevice::new(self.global().r(),
-                                        DOMString::from(id),
-                                        name.map(DOMString::from),
+                                        DOMString::from(device.id),
+                                        device.name.map(DOMString::from),
                                         &ad_data,
-                                        device_class,
+                                        device.device_class,
                                         vendor_id_source,
-                                        vendor_id,
-                                        product_id,
-                                        product_version))
+                                        device.vendor_id,
+                                        device.product_id,
+                                        device.product_version))
             },
             Err(error) => {
                 Err(Type(error))

@@ -93,32 +93,22 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
             BluetoothMethodMsg::GetCharacteristic(self.get_instance_id(), uuid, sender)).unwrap();
         let characteristic = receiver.recv().unwrap();
         match characteristic {
-            Ok((uuid,
-                instance_id,
-                broadcast,
-                read,
-                write_without_response,
-                write,
-                notify,
-                indicate,
-                authenticated_signed_writes,
-                reliable_write,
-                writable_auxiliaries)) => {
+            Ok(characteristic) => {
                 let properties = BluetoothCharacteristicProperties::new(self.global().r(),
-                                                                         broadcast,
-                                                                         read,
-                                                                         write_without_response,
-                                                                         write,
-                                                                         notify,
-                                                                         indicate,
-                                                                         authenticated_signed_writes,
-                                                                         reliable_write,
-                                                                         writable_auxiliaries);
+                                                                        characteristic.broadcast,
+                                                                        characteristic.read,
+                                                                        characteristic.write_without_response,
+                                                                        characteristic.write,
+                                                                        characteristic.notify,
+                                                                        characteristic.indicate,
+                                                                        characteristic.authenticated_signed_writes,
+                                                                        characteristic.reliable_write,
+                                                                        characteristic.writable_auxiliaries);
                 Ok(BluetoothRemoteGATTCharacteristic::new(self.global().r(),
                                                           self,
-                                                          DOMString::from(uuid),
+                                                          DOMString::from(characteristic.uuid),
                                                           &properties,
-                                                          instance_id))
+                                                          characteristic.instance_id))
             },
             Err(error) => {
                 Err(Type(error))
@@ -142,32 +132,21 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
         match characteristics_vec {
             Ok(characteristic_vec) => {
                 for characteristic in characteristic_vec {
-                    let (uuid,
-                         instance_id,
-                         broadcast,
-                         read,
-                         write_without_response,
-                         write,
-                         notify,
-                         indicate,
-                         authenticated_signed_writes,
-                         reliable_write,
-                         writable_auxiliaries) = characteristic;
                     let properties = BluetoothCharacteristicProperties::new(self.global().r(),
-                                                                             broadcast,
-                                                                             read,
-                                                                             write_without_response,
-                                                                             write,
-                                                                             notify,
-                                                                             indicate,
-                                                                             authenticated_signed_writes,
-                                                                             reliable_write,
-                                                                             writable_auxiliaries);
+                                                                            characteristic.broadcast,
+                                                                            characteristic.read,
+                                                                            characteristic.write_without_response,
+                                                                            characteristic.write,
+                                                                            characteristic.notify,
+                                                                            characteristic.indicate,
+                                                                            characteristic.authenticated_signed_writes,
+                                                                            characteristic.reliable_write,
+                                                                            characteristic.writable_auxiliaries);
                     characteristics.push(BluetoothRemoteGATTCharacteristic::new(self.global().r(),
                                                                                 self,
-                                                                                DOMString::from(uuid),
+                                                                                DOMString::from(characteristic.uuid),
                                                                                 &properties,
-                                                                                instance_id));
+                                                                                characteristic.instance_id));
                 }
                 Ok(characteristics)
             },

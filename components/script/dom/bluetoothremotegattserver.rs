@@ -102,12 +102,12 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
             BluetoothMethodMsg::GetPrimaryService(String::from(self.Device().Id()), uuid, sender)).unwrap();
         let service = receiver.recv().unwrap();
         match service {
-            Ok((uuid, is_primary, instance_id)) => {
+            Ok(service) => {
                 Ok(BluetoothRemoteGATTService::new(self.global().r(),
                                                    &self.device.get(),
-                                                   DOMString::from(uuid),
-                                                   is_primary,
-                                                   instance_id))
+                                                   DOMString::from(service.uuid),
+                                                   service.is_primary,
+                                                   service.instance_id))
             },
             Err(error) => {
                 Err(Type(error))
@@ -130,12 +130,11 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
         match services_vec {
             Ok(service_vec) => {
                 Ok(service_vec.into_iter()
-                              .map(|(uuid, is_primary, instance_id)|
-                                   BluetoothRemoteGATTService::new(self.global().r(),
-                                                                   &self.device.get(),
-                                                                   DOMString::from(uuid),
-                                                                   is_primary,
-                                                                   instance_id))
+                              .map(|service| BluetoothRemoteGATTService::new(self.global().r(),
+                                                                             &self.device.get(),
+                                                                             DOMString::from(service.uuid),
+                                                                             service.is_primary,
+                                                                             service.instance_id))
                               .collect())
             },
             Err(error) => {
