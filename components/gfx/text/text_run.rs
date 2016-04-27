@@ -297,6 +297,13 @@ impl<'a> TextRun {
         })
     }
 
+    pub fn minimum_splittable_inline_size(&self, range: &Range<CharIndex>) -> Au {
+        match self.natural_word_slices_in_range(range).next() {
+            None => Au(0),
+            Some(slice) => self.advance_for_range(&slice.range),
+        }
+    }
+
     /// Returns the index of the first glyph run containing the given character index.
     fn index_of_first_glyph_run_containing(&self, index: CharIndex) -> Option<usize> {
         let self_ptr = self as *const TextRun;
