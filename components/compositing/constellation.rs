@@ -1869,6 +1869,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         if let Some((ref mut rng, _)) = self.random_pipeline_closure {
             if let Some(pipeline_id) = rng.choose(&*pipeline_ids) {
                 if let Some(pipeline) = self.pipelines.get(pipeline_id) {
+                    // Don't kill the root pipeline
+                    if pipeline.parent_info.is_none() { return; }
                     // Note that we deliberately do not do any of the tidying up
                     // associated with closing a pipeline. The constellation should cope!
                     info!("Randomly closing pipeline {}.", pipeline_id);
