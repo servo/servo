@@ -151,14 +151,24 @@ impl SelectorImpl for GeckoSelectorImpl {
         Ok(pseudo_class)
     }
 
-    fn parse_pseudo_element(_context: &ParserContext,
+    fn parse_pseudo_element(context: &ParserContext,
                             name: &str) -> Result<PseudoElement, ()> {
         use self::PseudoElement::*;
-        let pseudo_element = match_ignore_ascii_case! { name,
-            "before" => Before,
-            "after" => After,
-            "first-line" => FirstLine,
 
+        // The braces here are unfortunate, but they're needed for
+        // match_ignore_ascii_case! to work as expected.
+        match_ignore_ascii_case! { name,
+            "before" => { return Ok(Before) },
+            "after" => { return Ok(After) },
+            "first-line" => { return Ok(FirstLine) },
+            _ => {}
+        }
+
+        if !context.in_user_agent_stylesheet {
+            return Err(())
+        }
+
+        Ok(match_ignore_ascii_case! { name,
             "-moz-non-element" => MozNonElement,
 
             "-moz-anonymous-block" => MozAnonymousBlock,
@@ -225,9 +235,7 @@ impl SelectorImpl for GeckoSelectorImpl {
             "-moz-svg-text" => MozSVGText,
 
             _ => return Err(())
-        };
-
-        Ok(pseudo_element)
+        })
     }
 }
 
