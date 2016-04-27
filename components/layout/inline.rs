@@ -11,7 +11,8 @@ use display_list_builder::DisplayListBuildState;
 use display_list_builder::{FragmentDisplayListBuilding, InlineFlowDisplayListBuilding};
 use euclid::{Point2D, Size2D};
 use floats::{FloatKind, Floats, PlacementInfo};
-use flow::{EarlyAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
+use flow::{CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, EarlyAbsolutePositionInfo, MutableFlowUtils};
+use flow::{OpaqueFlow};
 use flow::{self, BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, IS_ABSOLUTELY_POSITIONED};
 use flow_ref;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
@@ -1275,6 +1276,16 @@ impl InlineFlow {
             }
         }
     }
+
+    pub fn baseline_offset_of_last_line(&self) -> Option<Au> {
+        match self.lines.last() {
+            None => None,
+            Some(ref last_line) => {
+                Some(last_line.bounds.start.b + last_line.bounds.size.block -
+                     last_line.inline_metrics.depth_below_baseline)
+            }
+        }
+    }
 }
 
 impl Flow for InlineFlow {
@@ -1299,6 +1310,8 @@ impl Flow for InlineFlow {
         for kid in self.base.child_iter_mut() {
             flow::mut_base(kid).floats = Floats::new(writing_mode);
         }
+
+        self.base.flags.remove(CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
 
         let mut intrinsic_sizes_for_flow = IntrinsicISizesContribution::new();
         let mut intrinsic_sizes_for_inline_run = IntrinsicISizesContribution::new();
@@ -1358,6 +1371,10 @@ impl Flow for InlineFlow {
             }
 
             fragment.restyle_damage.remove(BUBBLE_ISIZES);
+
+            if fragment.is_text_or_replaced() {
+                self.base.flags.insert(CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
+            }
         }
 
         // Flush any remaining nonbroken-run and inline-run intrinsic sizes.

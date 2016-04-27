@@ -1077,7 +1077,7 @@ impl Fragment {
     /// Returns the sum of the inline-sizes of all the borders of this fragment. Note that this
     /// can be expensive to compute, so if possible use the `border_padding` field instead.
     #[inline]
-    fn border_width(&self) -> LogicalMargin<Au> {
+    pub fn border_width(&self) -> LogicalMargin<Au> {
         let style_border_width = match self.specific {
             SpecificFragmentInfo::ScannedText(_) |
             SpecificFragmentInfo::InlineBlock(_) => LogicalMargin::zero(self.style.writing_mode),
@@ -1983,14 +1983,19 @@ impl Fragment {
             }
             SpecificFragmentInfo::InlineBlock(ref info) => {
                 // See CSS 2.1 § 10.8.1.
-                let block_flow = info.flow_ref.as_block();
-                let font_style = self.style.get_font_arc();
-                let font_metrics = text::font_metrics_for_style(&mut layout_context.font_context(),
-                                                                font_style);
-                InlineMetrics::from_block_height(&font_metrics,
-                                                 block_flow.base.position.size.block,
-                                                 block_flow.fragment.margin.block_start,
-                                                 block_flow.fragment.margin.block_end)
+                let flow = &info.flow_ref;
+                let block_flow = flow.as_block();
+                let baseline_offset = match flow.baseline_offset_of_last_line_box_in_flow() {
+                    Some(baseline_offset) => baseline_offset,
+                    None => block_flow.fragment.border_box.size.block,
+                };
+                let start_margin = block_flow.fragment.margin.block_start;
+                let end_margin = block_flow.fragment.margin.block_end;
+                let depth_below_baseline = flow::base(&**flow).position.size.block -
+                    baseline_offset + end_margin;
+                InlineMetrics::new(baseline_offset + start_margin,
+                                   depth_below_baseline,
+                                   baseline_offset)
             }
             SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
             SpecificFragmentInfo::InlineAbsolute(_) => {
@@ -2551,6 +2556,28 @@ impl Fragment {
 
     pub fn layer_id_for_overflow_scroll(&self) -> LayerId {
         LayerId::new_of_type(LayerType::OverflowScroll, self.node.id() as usize)
+    }
+
+    pub fn is_text_or_replaced(&self) -> bool {
+        match self.specific {
+            SpecificFragmentInfo::Generic |
+            SpecificFragmentInfo::InlineAbsolute(_) |
+            SpecificFragmentInfo::InlineAbsoluteHypothetical(_) |
+            SpecificFragmentInfo::InlineBlock(_) |
+            SpecificFragmentInfo::Multicol |
+            SpecificFragmentInfo::MulticolColumn |
+            SpecificFragmentInfo::Table |
+            SpecificFragmentInfo::TableCell |
+            SpecificFragmentInfo::TableColumn(_) |
+            SpecificFragmentInfo::TableRow |
+            SpecificFragmentInfo::TableWrapper => false,
+            SpecificFragmentInfo::Canvas(_) |
+            SpecificFragmentInfo::GeneratedContent(_) |
+            SpecificFragmentInfo::Iframe(_) |
+            SpecificFragmentInfo::Image(_) |
+            SpecificFragmentInfo::ScannedText(_) |
+            SpecificFragmentInfo::UnscannedText(_) => true
+        }
     }
 }
 
