@@ -1474,7 +1474,7 @@ impl BlockFlow {
         }
     }
 
-    /// Computes intrinsic widths for a block.
+    /// Computes intrinsic inline sizes for a block.
     pub fn bubble_inline_sizes_for_block(&mut self, consult_children: bool) {
         let _scope = layout_debug_scope!("block::bubble_inline_sizes {:x}", self.base.debug_id());
 
