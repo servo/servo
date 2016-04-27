@@ -27,7 +27,7 @@ use range::{Range, RangeIndex};
 use std::cmp::max;
 use std::collections::VecDeque;
 use std::sync::Arc;
-use std::{fmt, isize, mem};
+use std::{fmt, i32, isize, mem};
 use style::computed_values::{display, overflow_x, position, text_align, text_justify};
 use style::computed_values::{text_overflow, vertical_align, white_space};
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
@@ -419,13 +419,23 @@ impl LineBreaker {
     // block-size. This might not be the case with some weird text fonts.
     fn new_inline_metrics_for_line(&self, new_fragment: &Fragment, layout_context: &LayoutContext)
                                    -> InlineMetrics {
-        self.pending_line.inline_metrics.max(&new_fragment.inline_metrics(layout_context))
+        if !new_fragment.is_vertically_aligned_to_top_or_bottom() {
+            let fragment_inline_metrics = new_fragment.inline_metrics(layout_context);
+            self.pending_line.inline_metrics.max(&fragment_inline_metrics)
+        } else {
+            self.pending_line.inline_metrics
+        }
     }
 
     fn new_block_size_for_line(&self, new_fragment: &Fragment, layout_context: &LayoutContext)
                                -> Au {
-        max(self.pending_line.bounds.size.block,
-            self.new_inline_metrics_for_line(new_fragment, layout_context).block_size())
+        let new_block_size = if new_fragment.is_vertically_aligned_to_top_or_bottom() {
+            max(new_fragment.inline_metrics(layout_context).block_size(),
+                self.minimum_block_size_above_baseline + self.minimum_depth_below_baseline)
+        } else {
+            self.new_inline_metrics_for_line(new_fragment, layout_context).block_size()
+        };
+        max(self.pending_line.bounds.size.block, new_block_size)
     }
 
     /// Computes the position of a line that has only the provided fragment. Returns the bounding
@@ -856,105 +866,6 @@ impl InlineFlow {
         flow
     }
 
-    /// Returns the distance from the baseline for the logical block-start inline-start corner of
-    /// this fragment, taking into account the value of the CSS `vertical-align` property.
-    /// Negative values mean "toward the logical block-start" and positive values mean "toward the
-    /// logical block-end".
-    ///
-    /// The extra boolean is set if and only if `largest_block_size_for_top_fragments` and/or
-    /// `largest_block_size_for_bottom_fragments` were updated. That is, if the box has a `top` or
-    /// `bottom` value for `vertical-align`, true is returned.
-    fn distance_from_baseline(fragment: &Fragment,
-                              ascent: Au,
-                              parent_text_block_start: Au,
-                              parent_text_block_end: Au,
-                              block_size_above_baseline: &mut Au,
-                              depth_below_baseline: &mut Au,
-                              largest_block_size_for_top_fragments: &mut Au,
-                              largest_block_size_for_bottom_fragments: &mut Au,
-                              layout_context: &LayoutContext)
-                              -> (Au, bool) {
-        let (mut offset_from_baseline, mut largest_size_updated) = (Au(0), false);
-        for style in fragment.inline_styles() {
-            // Ignore `vertical-align` values for table cells.
-            let box_style = style.get_box();
-            match box_style.display {
-                display::T::inline | display::T::block | display::T::inline_block => {}
-                _ => continue,
-            }
-
-            match box_style.vertical_align {
-                vertical_align::T::baseline => {}
-                vertical_align::T::middle => {
-                    // TODO: x-height value should be used from font info.
-                    // TODO: Doing nothing here passes our current reftests but doesn't work in
-                    // all situations. Add vertical align reftests and fix this.
-                },
-                vertical_align::T::sub => {
-                    let sub_offset = (parent_text_block_start + parent_text_block_end)
-                                        .scale_by(FONT_SUBSCRIPT_OFFSET_RATIO);
-                    offset_from_baseline = offset_from_baseline + sub_offset
-                },
-                vertical_align::T::super_ => {
-                    let super_offset = (parent_text_block_start + parent_text_block_end)
-                                        .scale_by(FONT_SUPERSCRIPT_OFFSET_RATIO);
-                    offset_from_baseline = offset_from_baseline - super_offset
-                },
-                vertical_align::T::text_top => {
-                    let fragment_block_size = *block_size_above_baseline +
-                        *depth_below_baseline;
-                    let prev_depth_below_baseline = *depth_below_baseline;
-                    *block_size_above_baseline = parent_text_block_start;
-                    *depth_below_baseline = fragment_block_size - *block_size_above_baseline;
-                    offset_from_baseline = offset_from_baseline + *depth_below_baseline -
-                        prev_depth_below_baseline
-                },
-                vertical_align::T::text_bottom => {
-                    let fragment_block_size = *block_size_above_baseline +
-                        *depth_below_baseline;
-                    let prev_depth_below_baseline = *depth_below_baseline;
-                    *depth_below_baseline = parent_text_block_end;
-                    *block_size_above_baseline = fragment_block_size - *depth_below_baseline;
-                    offset_from_baseline = offset_from_baseline + *depth_below_baseline -
-                        prev_depth_below_baseline
-                },
-                vertical_align::T::top => {
-                    if !largest_size_updated {
-                        largest_size_updated = true;
-                        *largest_block_size_for_top_fragments =
-                            max(*largest_block_size_for_top_fragments,
-                                *block_size_above_baseline + *depth_below_baseline);
-                        offset_from_baseline = offset_from_baseline +
-                            *block_size_above_baseline
-                    }
-                },
-                vertical_align::T::bottom => {
-                    if !largest_size_updated {
-                        largest_size_updated = true;
-                        *largest_block_size_for_bottom_fragments =
-                            max(*largest_block_size_for_bottom_fragments,
-                                *block_size_above_baseline + *depth_below_baseline);
-                        offset_from_baseline = offset_from_baseline - *depth_below_baseline
-                    }
-                },
-                vertical_align::T::LengthOrPercentage(LengthOrPercentage::Length(length)) => {
-                    offset_from_baseline = offset_from_baseline - length
-                }
-                vertical_align::T::LengthOrPercentage(LengthOrPercentage::Percentage(p)) => {
-                    let line_height = fragment.calculate_line_height(layout_context);
-                    let percent_offset = line_height.scale_by(p);
-                    offset_from_baseline = offset_from_baseline - percent_offset
-                }
-                vertical_align::T::LengthOrPercentage(LengthOrPercentage::Calc(calc)) => {
-                    let line_height = fragment.calculate_line_height(layout_context);
-                    let percent_offset = line_height.scale_by(calc.percentage());
-                    offset_from_baseline = offset_from_baseline - percent_offset - calc.length()
-                }
-            }
-        }
-        (offset_from_baseline - ascent, largest_size_updated)
-    }
-
     /// Sets fragment positions in the inline direction based on alignment for one line. This
     /// performs text justification if mandated by the style.
     fn set_inline_fragment_positions(fragments: &mut InlineFragments,
@@ -1120,13 +1031,12 @@ impl InlineFlow {
         }
     }
 
-    /// Sets final fragment positions in the block direction for one line. Assumes that the
-    /// fragment positions were initially set to the distance from the baseline first.
+    /// Sets final fragment positions in the block direction for one line.
     fn set_block_fragment_positions(fragments: &mut InlineFragments,
                                     line: &Line,
-                                    line_distance_from_flow_block_start: Au,
-                                    baseline_distance_from_block_start: Au,
-                                    largest_depth_below_baseline: Au) {
+                                    minimum_block_size_above_baseline: Au,
+                                    minimum_depth_below_baseline: Au,
+                                    layout_context: &LayoutContext) {
         for fragment_index in line.range.each_index() {
             // If any of the inline styles say `top` or `bottom`, adjust the vertical align
             // appropriately.
@@ -1134,42 +1044,63 @@ impl InlineFlow {
             // FIXME(#5624, pcwalton): This passes our current reftests but isn't the right thing
             // to do.
             let fragment = fragments.get_mut(fragment_index.to_usize());
-            let mut vertical_align = vertical_align::T::baseline;
+            let fragment_inline_metrics = fragment.inline_metrics(layout_context);
+            let mut block_start = line.bounds.start.b +
+                line.inline_metrics.block_size_above_baseline -
+                fragment_inline_metrics.ascent;
+
             for style in fragment.inline_styles() {
-                match (style.get_box().display, style.get_box().vertical_align) {
-                    (display::T::inline, vertical_align::T::top) |
-                    (display::T::block, vertical_align::T::top) |
-                    (display::T::inline_block, vertical_align::T::top) => {
-                        vertical_align = vertical_align::T::top;
-                        break
+                match style.get_box().vertical_align {
+                    vertical_align::T::baseline => {}
+                    vertical_align::T::middle => {}
+                    vertical_align::T::sub => {
+                        let sub_offset =
+                            (minimum_block_size_above_baseline +
+                             minimum_depth_below_baseline).scale_by(FONT_SUBSCRIPT_OFFSET_RATIO);
+                        block_start = block_start + sub_offset
                     }
-                    (display::T::inline, vertical_align::T::bottom) |
-                    (display::T::block, vertical_align::T::bottom) |
-                    (display::T::inline_block, vertical_align::T::bottom) => {
-                        vertical_align = vertical_align::T::bottom;
-                        break
+                    vertical_align::T::super_ => {
+                        let super_offset =
+                            (minimum_block_size_above_baseline +
+                             minimum_depth_below_baseline).scale_by(FONT_SUPERSCRIPT_OFFSET_RATIO);
+                        block_start = block_start - super_offset
                     }
-                    _ => {}
+                    vertical_align::T::text_top => {
+                        block_start = line.bounds.start.b +
+                            line.inline_metrics.block_size_above_baseline -
+                            minimum_block_size_above_baseline
+                    }
+                    vertical_align::T::text_bottom => {
+                        block_start = line.bounds.start.b +
+                            line.inline_metrics.block_size_above_baseline +
+                            minimum_depth_below_baseline -
+                            fragment.border_box.size.block
+                    }
+                    vertical_align::T::top => {
+                        block_start = line.bounds.start.b
+                    }
+                    vertical_align::T::bottom => {
+                        block_start = line.bounds.start.b + line.bounds.size.block -
+                            fragment.border_box.size.block
+                    }
+                    vertical_align::T::LengthOrPercentage(LengthOrPercentage::Length(length)) => {
+                        block_start = block_start - length
+                    }
+                    vertical_align::T::LengthOrPercentage(LengthOrPercentage::Percentage(
+                            percentage)) => {
+                        let line_height = fragment.calculate_line_height(layout_context);
+                        let length = line_height.scale_by(percentage);
+                        block_start = block_start - length
+                    }
+                    vertical_align::T::LengthOrPercentage(LengthOrPercentage::Calc(calc)) => {
+                        let line_height = fragment.calculate_line_height(layout_context);
+                        let percentage_length = line_height.scale_by(calc.percentage());
+                        block_start = block_start - percentage_length - calc.length()
+                    }
                 }
             }
 
-            match vertical_align {
-                vertical_align::T::top => {
-                    fragment.border_box.start.b = fragment.border_box.start.b +
-                        line_distance_from_flow_block_start
-                }
-                vertical_align::T::bottom => {
-                    fragment.border_box.start.b = fragment.border_box.start.b +
-                        line_distance_from_flow_block_start +
-                        baseline_distance_from_block_start +
-                        largest_depth_below_baseline;
-                }
-                _ => {
-                    fragment.border_box.start.b = fragment.border_box.start.b +
-                        line_distance_from_flow_block_start + baseline_distance_from_block_start
-                }
-            }
-
+            fragment.border_box.start.b = block_start;
             fragment.update_late_computed_block_position_if_necessary();
         }
     }
@@ -1193,31 +1124,88 @@ impl InlineFlow {
         let line_height = text::line_height_from_style(style, &font_metrics);
         let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
 
-        let mut block_size_above_baseline = inline_metrics.block_size_above_baseline;
-        let mut depth_below_baseline = inline_metrics.depth_below_baseline;
+        let mut block_size_above_baseline = Au(0);
+        let mut depth_below_baseline = Au(i32::MIN);
+        let mut largest_block_size_for_top_fragments = Au(0);
+        let mut largest_block_size_for_bottom_fragments = Au(0);
+
+        // We use `vertical_align::T::baseline` here because `vertical-align` must not apply to
+        // the inside of inline blocks.
+        update_inline_metrics(&inline_metrics,
+                              style.get_box().display,
+                              vertical_align::T::baseline,
+                              &mut block_size_above_baseline,
+                              &mut depth_below_baseline,
+                              &mut largest_block_size_for_top_fragments,
+                              &mut largest_block_size_for_bottom_fragments);
 
         // According to CSS 2.1 § 10.8, `line-height` of any inline element specifies the minimal
         // height of line boxes within the element.
         for frag in &self.fragments.fragments {
-            match frag.inline_context {
-                Some(ref inline_context) => {
-                    for node in &inline_context.nodes {
-                        let font_style = node.style.get_font_arc();
-                        let font_metrics = text::font_metrics_for_style(font_context, font_style);
-                        let line_height = text::line_height_from_style(&*node.style, &font_metrics);
-                        let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics,
-                                                                              line_height);
-                        block_size_above_baseline = max(block_size_above_baseline,
-                                                        inline_metrics.block_size_above_baseline);
-                        depth_below_baseline = max(depth_below_baseline,
-                                                   inline_metrics.depth_below_baseline);
-                    }
+            if let Some(ref inline_context) = frag.inline_context {
+                for node in &inline_context.nodes {
+                    let font_style = node.style.get_font_arc();
+                    let font_metrics = text::font_metrics_for_style(font_context, font_style);
+                    let line_height = text::line_height_from_style(&*node.style, &font_metrics);
+                    let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics,
+                                                                          line_height);
+
+                    update_inline_metrics(&inline_metrics,
+                                          node.style.get_box().display,
+                                          node.style.get_box().vertical_align,
+                                          &mut block_size_above_baseline,
+                                          &mut depth_below_baseline,
+                                          &mut largest_block_size_for_top_fragments,
+                                          &mut largest_block_size_for_bottom_fragments);
+
                 }
-                None => {}
             }
         }
 
-        (block_size_above_baseline, depth_below_baseline)
+        block_size_above_baseline =
+            max(block_size_above_baseline,
+                largest_block_size_for_bottom_fragments - max(depth_below_baseline, Au(0)));
+        depth_below_baseline =
+            max(depth_below_baseline,
+                largest_block_size_for_top_fragments - block_size_above_baseline);
+
+        return (block_size_above_baseline, depth_below_baseline);
+
+        fn update_inline_metrics(inline_metrics: &InlineMetrics,
+                                 display_value: display::T,
+                                 vertical_align_value: vertical_align::T,
+                                 block_size_above_baseline: &mut Au,
+                                 depth_below_baseline: &mut Au,
+                                 largest_block_size_for_top_fragments: &mut Au,
+                                 largest_block_size_for_bottom_fragments: &mut Au) {
+            match (display_value, vertical_align_value) {
+                (display::T::inline, vertical_align::T::top) |
+                (display::T::block, vertical_align::T::top) |
+                (display::T::inline_block, vertical_align::T::top) if
+                        inline_metrics.block_size_above_baseline >= Au(0) => {
+                    *largest_block_size_for_top_fragments =
+                        max(*largest_block_size_for_top_fragments,
+                            inline_metrics.block_size_above_baseline +
+                            inline_metrics.depth_below_baseline)
+                }
+                (display::T::inline, vertical_align::T::bottom) |
+                (display::T::block, vertical_align::T::bottom) |
+                (display::T::inline_block, vertical_align::T::bottom) if
+                        inline_metrics.depth_below_baseline >= Au(0) => {
+                    *largest_block_size_for_bottom_fragments =
+                        max(*largest_block_size_for_bottom_fragments,
+                            inline_metrics.block_size_above_baseline +
+                            inline_metrics.depth_below_baseline)
+                }
+                _ => {
+                    *block_size_above_baseline =
+                        max(*block_size_above_baseline,
+                            inline_metrics.block_size_above_baseline);
+                    *depth_below_baseline = max(*depth_below_baseline,
+                                                inline_metrics.depth_below_baseline);
+                }
+            }
+        }
     }
 
     fn update_restyle_damage(&mut self) {
@@ -1468,11 +1456,8 @@ impl Flow for InlineFlow {
 
 
         // Now, go through each line and lay out the fragments inside.
-        let mut line_distance_from_flow_block_start = Au(0);
         let line_count = self.lines.len();
-        for line_index in 0..line_count {
-            let line = &mut self.lines[line_index];
-
+        for (line_index, line) in self.lines.iter_mut().enumerate() {
             // Lay out fragments in the inline direction, and justify them if necessary.
             InlineFlow::set_inline_fragment_positions(&mut self.fragments,
                                                       line,
@@ -1480,108 +1465,17 @@ impl Flow for InlineFlow {
                                                       indentation,
                                                       line_index + 1 == line_count);
 
-            // Set the block-start position of the current line.
-            // `line_height_offset` is updated at the end of the previous loop.
-            line.bounds.start.b = line_distance_from_flow_block_start;
-
-            // Calculate the distance from the baseline to the block-start and block-end of the
-            // line.
-            let mut largest_block_size_above_baseline = self.minimum_block_size_above_baseline;
-            let mut largest_depth_below_baseline = self.minimum_depth_below_baseline;
-
-            // Calculate the largest block-size among fragments with 'top' and 'bottom' values
-            // respectively.
-            let (mut largest_block_size_for_top_fragments,
-                 mut largest_block_size_for_bottom_fragments) = (Au(0), Au(0));
-
-            for fragment_index in line.range.each_index() {
-                let fragment = &mut self.fragments.fragments[fragment_index.to_usize()];
-
-                let InlineMetrics {
-                    mut block_size_above_baseline,
-                    mut depth_below_baseline,
-                    ascent
-                } = fragment.inline_metrics(layout_context);
-
-                // To calculate text-top and text-bottom value when `vertical-align` is involved,
-                // we should find the top and bottom of the content area of the parent fragment.
-                // "Content area" is defined in CSS 2.1 § 10.6.1.
-                //
-                // TODO: We should extract em-box info from the font size of the parent and
-                // calculate the distances from the baseline to the block-start and the block-end
-                // of the parent's content area.
-
-                // We should calculate the distance from baseline to the top of parent's content
-                // area. But for now we assume it's the font size.
-                //
-                // CSS 2.1 does not state which font to use. This version of the code uses
-                // the parent's font.
-
-                // Calculate the final block-size above the baseline for this fragment.
-                //
-                // The no-update flag decides whether `largest_block_size_for_top_fragments` and
-                // `largest_block_size_for_bottom_fragments` are to be updated or not. This will be
-                // set if and only if the fragment has `vertical-align` set to `top` or `bottom`.
-                let (distance_from_baseline, no_update_flag) =
-                    InlineFlow::distance_from_baseline(
-                        fragment,
-                        ascent,
-                        self.minimum_block_size_above_baseline,
-                        self.minimum_depth_below_baseline,
-                        &mut block_size_above_baseline,
-                        &mut depth_below_baseline,
-                        &mut largest_block_size_for_top_fragments,
-                        &mut largest_block_size_for_bottom_fragments,
-                        layout_context);
-
-                // Unless the current fragment has `vertical-align` set to `top` or `bottom`,
-                // `largest_block_size_above_baseline` and `largest_depth_below_baseline` are
-                // updated.
-                if !no_update_flag {
-                    largest_block_size_above_baseline = max(block_size_above_baseline,
-                                                            largest_block_size_above_baseline);
-                    largest_depth_below_baseline = max(depth_below_baseline,
-                                                       largest_depth_below_baseline);
-                }
-
-                // Temporarily use `fragment.border_box.start.b` to mean "the distance from the
-                // baseline". We will assign the real value later.
-                fragment.border_box.start.b = distance_from_baseline
-            }
-
-            // Calculate the distance from the baseline to the top of the largest fragment with a
-            // value for `bottom`. Then, if necessary, update `largest_block-size_above_baseline`.
-            largest_block_size_above_baseline =
-                max(largest_block_size_above_baseline,
-                    largest_block_size_for_bottom_fragments - largest_depth_below_baseline);
-
-            // Calculate the distance from baseline to the bottom of the largest fragment with a
-            // value for `top`. Then, if necessary, update `largest_depth_below_baseline`.
-            largest_depth_below_baseline =
-                max(largest_depth_below_baseline,
-                    largest_block_size_for_top_fragments - largest_block_size_above_baseline);
-
-            // Now, the distance from the logical block-start of the line to the baseline can be
-            // computed as `largest_block-size_above_baseline`.
-            let baseline_distance_from_block_start = largest_block_size_above_baseline;
-
-            // Compute the final positions in the block direction of each fragment. Recall that
-            // `fragment.border_box.start.b` was set to the distance from the baseline above.
+            // Compute the final positions in the block direction of each fragment.
             InlineFlow::set_block_fragment_positions(&mut self.fragments,
                                                      line,
-                                                     line_distance_from_flow_block_start,
-                                                     baseline_distance_from_block_start,
-                                                     largest_depth_below_baseline);
+                                                     self.minimum_block_size_above_baseline,
+                                                     self.minimum_depth_below_baseline,
+                                                     layout_context);
 
-            // This is used to set the block-start position of the next line in the next loop.
-            line.bounds.size.block = largest_block_size_above_baseline +
-                largest_depth_below_baseline;
-            line_distance_from_flow_block_start = line_distance_from_flow_block_start +
-                line.bounds.size.block;
-
-            // We're no longer on the first line, so set indentation to zero.
+            // This is used to set the block-start position of the next line in the next iteration
+            // of the loop. We're no longer on the first line, so set indentation to zero.
             indentation = Au(0)
-        } // End of `lines.iter_mut()` loop.
+        }
 
         // Assign block sizes for any inline-block descendants.
         let thread_id = self.base.thread_id;
@@ -1965,22 +1859,6 @@ impl InlineMetrics {
             block_size_above_baseline: font_metrics.ascent + half_leading,
             depth_below_baseline: font_metrics.descent + leading - half_leading,
             ascent: font_metrics.ascent,
-        }
-    }
-
-    /// Calculates inline metrics from font metrics and line block-size per CSS 2.1 § 10.8.1.
-    #[inline]
-    pub fn from_block_height(font_metrics: &FontMetrics,
-                             block_height: Au,
-                             block_start_margin: Au,
-                             block_end_margin: Au)
-                             -> InlineMetrics {
-        let leading = block_height + block_start_margin + block_end_margin -
-            (font_metrics.ascent + font_metrics.descent);
-        InlineMetrics {
-            block_size_above_baseline: font_metrics.ascent + leading.scale_by(0.5),
-            depth_below_baseline: font_metrics.descent + leading.scale_by(0.5),
-            ascent: font_metrics.ascent + leading.scale_by(0.5) - block_start_margin,
         }
     }
 
