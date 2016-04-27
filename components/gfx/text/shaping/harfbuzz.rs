@@ -311,11 +311,12 @@ impl Shaper {
             debug!("{}: {:?} --> {}", i, ch, byte_to_glyph[i]);
         }
 
-        // some helpers
         let mut glyph_span = 0..0;
-        // this span contains first byte of first char, to last byte of last char in range.
-        // so, end() points to first byte of last+1 char, if it's less than byte_max.
-        let mut char_byte_span = 0..0;
+
+        // This span contains first byte of first char, to last byte of last char in range.
+        // So, char_byte_span.end points to first byte of last+1 char, if it's less than byte_max.
+        let mut char_byte_span;
+
         let mut y_pos = Au(0);
 
         // main loop over each glyph. each iteration usually processes 1 glyph and 1+ chars.
@@ -333,8 +334,8 @@ impl Shaper {
             // find a range of chars corresponding to this glyph, plus
             // any trailing chars that do not have associated glyphs.
             while char_byte_span.end < byte_max {
-                let range = text.char_range_at(char_byte_span.end);
-                char_byte_span.end = range.next;
+                let ch = text[char_byte_span.end..].chars().next().unwrap();
+                char_byte_span.end += ch.len_utf8();
 
                 debug!("Processing char byte span: off={}, len={} for glyph idx={}",
                        char_byte_span.start, char_byte_span.len(), glyph_span.start);
@@ -343,8 +344,8 @@ impl Shaper {
                         byte_to_glyph[char_byte_span.end] == NO_GLYPH {
                     debug!("Extending char byte span to include byte offset={} with no associated \
                             glyph", char_byte_span.end);
-                    let range = text.char_range_at(char_byte_span.end);
-                    char_byte_span.end = range.next;
+                    let ch = text[char_byte_span.end..].chars().next().unwrap();
+                    char_byte_span.end += ch.len_utf8();
                     glyph_spans_multiple_characters = true;
                 }
 
@@ -413,9 +414,8 @@ impl Shaper {
             // extend, clipping at end of text range.
             while covered_byte_span.end < byte_max &&
                     byte_to_glyph[covered_byte_span.end] == NO_GLYPH {
-                let range = text.char_range_at(covered_byte_span.end);
-                drop(range.ch);
-                covered_byte_span.end = range.next;
+                let ch = text[covered_byte_span.end..].chars().next().unwrap();
+                covered_byte_span.end += ch.len_utf8();
             }
 
             if covered_byte_span.start >= byte_max {
@@ -437,7 +437,7 @@ impl Shaper {
                 //
                 // NB: When we acquire the ability to handle ligatures that cross word boundaries,
                 // we'll need to do something special to handle `word-spacing` properly.
-                let character = text.char_at(char_byte_span.start);
+                let character = text[char_byte_span.clone()].chars().next().unwrap();
                 if is_bidi_control(character) {
                     glyphs.add_nonglyph_for_char_index(char_idx, false, false);
                 } else if character == '\t' {
@@ -482,11 +482,7 @@ impl Shaper {
                 glyphs.add_glyphs_for_char_index(char_idx, &datas);
 
                 // set the other chars, who have no glyphs
-                let mut i = covered_byte_span.start;
-                loop {
-                    let range = text.char_range_at(i);
-                    i = range.next;
-                    if i >= covered_byte_span.end { break; }
+                for _ in text[covered_byte_span].chars().skip(1) {
                     char_idx = char_idx + char_step;
                     glyphs.add_nonglyph_for_char_index(char_idx, false, false);
                 }
