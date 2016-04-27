@@ -160,6 +160,7 @@ fn load_for_consumer(load_data: LoadData,
                 LoadErrorType::Ssl { .. } => send_error(error.url.clone(),
                                                         NetworkError::SslValidation(error.url),
                                                         start_chan),
+                LoadErrorType::Cancelled => send_error(error.url, NetworkError::LoadCancelled, start_chan),
                 _ => send_error(error.url, NetworkError::Internal(error.error.description().to_owned()), start_chan)
             }
         }
@@ -983,7 +984,7 @@ fn send_data<R: Read>(context: LoadContext,
 
     loop {
         if cancel_listener.is_cancelled() {
-            let _ = progress_chan.send(Done(Err(NetworkError::Internal("load cancelled".to_owned()))));
+            let _ = progress_chan.send(Done(Err(NetworkError::LoadCancelled)));
             return;
         }
 
