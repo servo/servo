@@ -20,7 +20,7 @@ use url::Url;
 /// Union type for CORS cache entries
 ///
 /// Each entry might pertain to a header or method
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum HeaderOrMethod {
     HeaderData(String),
     MethodData(Method)
@@ -43,7 +43,7 @@ impl HeaderOrMethod {
 }
 
 /// An entry in the CORS cache
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CORSCacheEntry {
     pub origin: Origin,
     pub url: Url,
@@ -112,7 +112,7 @@ pub struct BasicCORSCache(Vec<CORSCacheEntry>);
 fn match_headers(cors_cache: &CORSCacheEntry, cors_req: &CacheRequestDetails) -> bool {
     cors_cache.origin == cors_req.origin &&
         cors_cache.url == cors_req.destination &&
-        cors_cache.credentials == cors_req.credentials
+        (cors_cache.credentials || !cors_req.credentials)
 }
 
 impl BasicCORSCache {
@@ -150,7 +150,7 @@ impl CORSCache for BasicCORSCache {
         let BasicCORSCache(buf) = self.clone();
         let now = time::now().to_timespec();
         let new_buf: Vec<CORSCacheEntry> = buf.into_iter()
-                                              .filter(|e| now.sec > e.created.sec + e.max_age as i64)
+                                              .filter(|e| now.sec < e.created.sec + e.max_age as i64)
                                               .collect();
         *self = BasicCORSCache(new_buf);
     }
