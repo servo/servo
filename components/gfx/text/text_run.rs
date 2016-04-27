@@ -303,7 +303,14 @@ impl<'a> TextRun {
         })
     }
 
-    /// Returns the index of the first glyph run containing the given byte index.
+    pub fn minimum_splittable_inline_size(&self, range: &Range<ByteIndex>) -> Au {
+        match self.natural_word_slices_in_range(range).next() {
+            None => Au(0),
+            Some(slice) => self.advance_for_range(&slice.range),
+        }
+    }
+
+    /// Returns the index of the first glyph run containing the given character index.
     fn index_of_first_glyph_run_containing(&self, index: ByteIndex) -> Option<usize> {
         let self_ptr = self as *const TextRun;
         INDEX_OF_FIRST_GLYPH_RUN_CACHE.with(|index_of_first_glyph_run_cache| {
