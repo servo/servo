@@ -8,6 +8,7 @@ use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
@@ -20,6 +21,7 @@ use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers, LayoutElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::filelist::FileList;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, FormDatum, FormSubmitter, HTMLFormElement};
@@ -76,6 +78,7 @@ pub struct HTMLInputElement {
     htmlelement: HTMLElement,
     input_type: Cell<InputType>,
     checked_changed: Cell<bool>,
+    filelist: DOMRefCell<Option<FileList>>,
     placeholder: DOMRefCell<DOMString>,
     value_changed: Cell<bool>,
     size: Cell<u32>,
@@ -85,8 +88,6 @@ pub struct HTMLInputElement {
     activation_state: DOMRefCell<InputActivationState>,
     // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag
     value_dirty: Cell<bool>,
-
-    // TODO: selected files for file input
 }
 
 #[derive(JSTraceable)]
@@ -128,6 +129,7 @@ impl HTMLInputElement {
                                                       localName, prefix, document),
             input_type: Cell::new(InputType::InputText),
             placeholder: DOMRefCell::new(DOMString::new()),
+            filelist: DOMRefCell::new(None),
             checked_changed: Cell::new(false),
             value_changed: Cell::new(false),
             maxlength: Cell::new(DEFAULT_MAX_LENGTH),
@@ -297,6 +299,14 @@ impl HTMLInputElementMethods for HTMLInputElement {
         self.form_owner()
     }
 
+    // https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)
+    fn GetFiles(&self) -> Option<Root<FileList>> {
+        match *self.filelist.borrow() {
+            None => None,
+            Some(ref fl) => Some(Root::from_ref(fl)),
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-input-defaultchecked
     make_bool_getter!(DefaultChecked, "checked");
 
@@ -357,8 +367,15 @@ impl HTMLInputElementMethods for HTMLInputElement {
                             |a| DOMString::from(a.summarize().value))
             }
             ValueMode::Filename => {
-                // TODO: return C:\fakepath\<first of selected files> when a file is selected
-                DOMString::from("")
+                match *self.filelist.borrow() {
+                    None => DOMString::from(""),
+                    Some(ref fl) => {
+                        match fl.Item(0) {
+                            Some(ref f) => f.name().clone(),
+                            None => DOMString::from(""),
+                        }
+                    }
+                }
             }
         }
     }
@@ -376,7 +393,8 @@ impl HTMLInputElementMethods for HTMLInputElement {
             }
             ValueMode::Filename => {
                 if value.is_empty() {
-                    // TODO: empty list of selected files
+                    // Deselect all files
+                    *self.filelist.borrow_mut() = None
                 } else {
                     return Err(Error::InvalidState);
                 }
