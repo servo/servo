@@ -4,7 +4,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% data.new_style_struct("Color", inherited=True, gecko_ffi_name="nsStyleColor") %>
+<% data.new_style_struct("Color", inherited=True) %>
 
 <%helpers:raw_longhand name="color" need_clone="True">
     use cssparser::Color as CSSParserColor;

@@ -7,7 +7,6 @@
 
 <% data.new_style_struct("Font",
                          inherited=True,
-                         gecko_ffi_name="nsStyleFont",
                          additional_methods=[Method("compute_font_hash", is_mut=True)]) %>
 <%helpers:longhand name="font-family">
     use self::computed_value::FontFamily;

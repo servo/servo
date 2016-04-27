@@ -4,7 +4,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% data.new_style_struct("InheritedBox", inherited=True, gecko_ffi_name="nsStyleVisibility") %>
+<% data.new_style_struct("InheritedBox", inherited=True, gecko_name="Visibility") %>
 
 ${helpers.single_keyword("direction", "ltr rtl", need_clone=True)}
 

@@ -4,7 +4,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% data.new_style_struct("Background", inherited=False, gecko_ffi_name="nsStyleBackground") %>
+<% data.new_style_struct("Background", inherited=False) %>
 ${helpers.predefined_type(
     "background-color", "CSSColor",
     "::cssparser::Color::RGBA(::cssparser::RGBA { red: 0., green: 0., blue: 0., alpha: 0. }) /* transparent */")}

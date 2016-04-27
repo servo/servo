@@ -7,7 +7,6 @@
 
 <% data.new_style_struct("Outline",
                          inherited=False,
-                         gecko_ffi_name="nsStyleOutline",
                          additional_methods=[Method("outline_has_nonzero_width", "bool")]) %>
 
 // TODO(pcwalton): `invert`

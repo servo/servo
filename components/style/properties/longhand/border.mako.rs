@@ -5,7 +5,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 <% from data import Method %>
 
-<% data.new_style_struct("Border", inherited=False, gecko_ffi_name="nsStyleBorder",
+<% data.new_style_struct("Border", inherited=False,
                    additional_methods=[Method("border_" + side + "_has_nonzero_width",
                                               "bool") for side in ["top", "right", "bottom", "left"]]) %>
 

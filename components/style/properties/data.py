@@ -98,7 +98,7 @@ class Method(object):
 
 
 class StyleStruct(object):
-    def __init__(self, name, inherited, gecko_ffi_name=None, additional_methods=None):
+    def __init__(self, name, inherited, gecko_name=None, additional_methods=None):
         self.servo_struct_name = "Servo" + name
         self.gecko_struct_name = "Gecko" + name
         self.trait_name = name
@@ -106,7 +106,8 @@ class StyleStruct(object):
         self.ident = to_rust_ident(self.trait_name_lower)
         self.longhands = []
         self.inherited = inherited
-        self.gecko_ffi_name = gecko_ffi_name
+        self.gecko_name = gecko_name or name
+        self.gecko_ffi_name = "nsStyle" + self.gecko_name
         self.additional_methods = additional_methods or []
 
 

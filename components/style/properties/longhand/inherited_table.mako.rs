@@ -4,7 +4,7 @@
 
  <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% data.new_style_struct("InheritedTable", inherited=True, gecko_ffi_name="nsStyleTableBorder") %>
+<% data.new_style_struct("InheritedTable", inherited=True, gecko_name="TableBorder") %>
 
 ${helpers.single_keyword("border-collapse", "separate collapse", gecko_constant_prefix="NS_STYLE_BORDER")}
 ${helpers.single_keyword("empty-cells", "show hide", gecko_constant_prefix="NS_STYLE_TABLE_EMPTY_CELLS")}

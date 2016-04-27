@@ -4,7 +4,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% data.new_style_struct("InheritedText", inherited=True, gecko_ffi_name="nsStyleText") %>
+<% data.new_style_struct("InheritedText", inherited=True, gecko_name="Text") %>
 
 <%helpers:longhand name="line-height">
     use cssparser::ToCss;

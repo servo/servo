@@ -8,7 +8,7 @@
 // https://www.w3.org/TR/SVG/
 <% data.new_style_struct("SVGInherited",
                          inherited=True,
-                         gecko_ffi_name="nsStyleSVG") %>
+                         gecko_name="SVG") %>
 
 // Section 10 - Text
 

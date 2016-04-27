@@ -4,7 +4,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% data.new_style_struct("Padding", inherited=False, gecko_ffi_name="nsStylePadding") %>
+<% data.new_style_struct("Padding", inherited=False) %>
 
 % for side in ["top", "right", "bottom", "left"]:
     ${helpers.predefined_type("padding-" + side, "LengthOrPercentage",

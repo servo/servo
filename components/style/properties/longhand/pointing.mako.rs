@@ -4,7 +4,7 @@
 
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
-<% data.new_style_struct("Pointing", inherited=True, gecko_ffi_name="nsStyleUserInterface") %>
+<% data.new_style_struct("Pointing", inherited=True, gecko_name="UserInterface") %>
 
 <%helpers:longhand name="cursor">
     pub use self::computed_value::T as SpecifiedValue;
