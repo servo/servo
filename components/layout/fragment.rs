@@ -1031,7 +1031,8 @@ impl Fragment {
         let mut specified = Au(0);
 
         if flags.contains(INTRINSIC_INLINE_SIZE_INCLUDES_SPECIFIED) {
-            specified = MaybeAuto::from_style(style.content_inline_size(), Au(0)).specified_or_zero();
+            specified = MaybeAuto::from_style(style.content_inline_size(),
+                                              Au(0)).specified_or_zero();
             specified = max(model::specified(style.min_inline_size(), Au(0)), specified);
             if let Some(max) = model::specified_or_none(style.max_inline_size(), Au(0)) {
                 specified = min(specified, max)
@@ -1070,7 +1071,8 @@ impl Fragment {
 
     pub fn calculate_line_height(&self, layout_context: &LayoutContext) -> Au {
         let font_style = self.style.get_font_arc();
-        let font_metrics = text::font_metrics_for_style(&mut layout_context.font_context(), font_style);
+        let font_metrics = text::font_metrics_for_style(&mut layout_context.font_context(),
+                                                        font_style);
         text::line_height_from_style(&*self.style, &font_metrics)
     }
 
