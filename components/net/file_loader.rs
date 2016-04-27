@@ -50,7 +50,7 @@ fn read_all(reader: &mut File, progress_chan: &ProgressSender, cancel_listener: 
             ReadStatus::EOF => return Ok(LoadResult::Finished),
         }
     }
-    let _ = progress_chan.send(Done(Err(NetworkError::Internal("load cancelled".to_owned()))));
+    let _ = progress_chan.send(Done(Err(NetworkError::LoadCancelled)));
     Ok(LoadResult::Cancelled)
 }
 
@@ -72,7 +72,7 @@ pub fn factory(load_data: LoadData,
         let file_path = match load_data.url.to_file_path() {
             Ok(file_path) => file_path,
             Err(_) => {
-                send_error(load_data.url, NetworkError::Internal("Could not parse path".to_owned()), senders);
+                send_error(load_data.url, NetworkError::LoadCancelled, senders);
                 return;
             },
         };
@@ -92,7 +92,7 @@ pub fn factory(load_data: LoadData,
         if cancel_listener.is_cancelled() {
             if let Ok(progress_chan) = get_progress_chan(load_data, file_path,
                                                          senders, classifier, &[]) {
-                let _ = progress_chan.send(Done(Err(NetworkError::Internal("load cancelled".to_owned()))));
+                let _ = progress_chan.send(Done(Err(NetworkError::LoadCancelled)));
             }
             return;
         }
