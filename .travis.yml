@@ -34,7 +34,7 @@ matrix:
             - python-virtualenv
             - xorg-dev
             - ccache
-            - libdbus-1-dev
+            - libdbus-glib-1-dev
 
 branches:
   only:
