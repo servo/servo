@@ -424,9 +424,6 @@ impl Shaper {
                 char_byte_span.start = char_byte_span.end;
             }
 
-            // clamp to end of text. (I don't think this will be necessary, but..)
-            covered_byte_span.end = cmp::min(covered_byte_span.end, byte_max);
-
             // fast path: 1-to-1 mapping of single char and single glyph.
             if glyph_span.len() == 1 && !glyph_spans_multiple_characters {
                 // TODO(Issue #214): cluster ranges need to be computed before
