@@ -1519,11 +1519,10 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
             }
             Some(NodeTypeId::Element(_)) => {
                 let style = node.style(self.style_context());
-                let munged_display = if style.get_box()._servo_display_for_hypothetical_box ==
-                        display::T::inline {
-                    display::T::inline
-                } else {
-                    style.get_box().display
+                let original_display = style.get_box()._servo_display_for_hypothetical_box;
+                let munged_display = match original_display {
+                    display::T::inline | display::T::inline_block => original_display,
+                    _ => style.get_box().display,
                 };
                 (munged_display, style.get_box().float, style.get_box().position)
             }
@@ -1577,7 +1576,8 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
 
             // Inline items that are absolutely-positioned contribute inline fragment construction
             // results with a hypothetical fragment.
-            (display::T::inline, _, position::T::absolute) => {
+            (display::T::inline, _, position::T::absolute) |
+            (display::T::inline_block, _, position::T::absolute) => {
                 let construction_result =
                     self.build_fragment_for_absolutely_positioned_inline(node);
                 self.set_flow_construction_result(node, construction_result)
