@@ -43,7 +43,7 @@ use style::computed_values::{border_style, filter, image_rendering, mix_blend_mo
 use style::properties::{ComputedValues};
 use style_traits::cursor::Cursor;
 use text::TextRun;
-use text::glyph::CharIndex;
+use text::glyph::ByteIndex;
 use util::geometry::{self, MAX_RECT, ScreenPx};
 use util::print_tree::PrintTree;
 use webrender_traits::{self, WebGLContextId};
@@ -989,7 +989,7 @@ pub struct TextDisplayItem {
     pub text_run: Arc<TextRun>,
 
     /// The range of text within the text run.
-    pub range: Range<CharIndex>,
+    pub range: Range<ByteIndex>,
 
     /// The color of the text.
     pub text_color: Color,

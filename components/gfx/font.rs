@@ -154,7 +154,7 @@ impl Font {
 
         let start_time = time::precise_time_ns();
 
-        let mut glyphs = GlyphStore::new(text.chars().count(),
+        let mut glyphs = GlyphStore::new(text.len(),
                                          options.flags.contains(IS_WHITESPACE_SHAPING_FLAG),
                                          options.flags.contains(RTL_FLAG));
         shaper.as_ref().unwrap().shape_text(text, options, &mut glyphs);
