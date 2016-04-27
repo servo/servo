@@ -13,7 +13,7 @@ use hyper::server::{Handler, Listening, Server};
 use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
-use net::fetch::cors_cache::{BasicCORSCache, CacheRequestDetails, CORSCache};
+use net::fetch::cors_cache::{CacheRequestDetails, CORSCache};
 use net::fetch::methods::{fetch, fetch_async, fetch_with_cors_cache};
 use net_traits::AsyncFetchListener;
 use net_traits::request::{Origin, RedirectMode, Referer, Request, RequestMode};
@@ -181,7 +181,7 @@ fn test_cors_preflight_cache_fetch() {
     static ACK: &'static [u8] = b"ACK";
     let state = Arc::new(AtomicUsize::new(0));
     let counter = state.clone();
-    let mut cache = BasicCORSCache::new();
+    let mut cache = CORSCache::new();
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
         if request.method == Method::Options && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
             assert!(request.headers.has::<AccessControlRequestMethod>());

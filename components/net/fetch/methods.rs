@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use data_loader::decode;
-use fetch::cors_cache::{BasicCORSCache, CORSCache, CacheRequestDetails};
+use fetch::cors_cache::{CORSCache, CacheRequestDetails};
 use http_loader::{NetworkHttpRequestFactory, create_http_connector, obtain_response};
 use hyper::header::{Accept, AcceptLanguage, Authorization, AccessControlAllowCredentials};
 use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
@@ -40,10 +40,10 @@ pub fn fetch_async(request: Request, listener: Box<AsyncFetchListener + Send>) {
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
 pub fn fetch(request: Rc<Request>) -> Response {
-    fetch_with_cors_cache(request, &mut BasicCORSCache::new())
+    fetch_with_cors_cache(request, &mut CORSCache::new())
 }
 
-pub fn fetch_with_cors_cache(request: Rc<Request>, cache: &mut BasicCORSCache) -> Response {
+pub fn fetch_with_cors_cache(request: Rc<Request>, cache: &mut CORSCache) -> Response {
 
     // Step 1
     if request.window.get() == Window::Client {
@@ -110,7 +110,7 @@ pub fn fetch_with_cors_cache(request: Rc<Request>, cache: &mut BasicCORSCache) -
 }
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
-fn main_fetch(request: Rc<Request>, cache: &mut BasicCORSCache, cors_flag: bool, recursive_flag: bool) -> Response {
+fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool, recursive_flag: bool) -> Response {
     // TODO: Implement main fetch spec
 
     // Step 1
@@ -284,7 +284,7 @@ fn main_fetch(request: Rc<Request>, cache: &mut BasicCORSCache, cors_flag: bool,
 }
 
 /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
-fn basic_fetch(request: Rc<Request>, cache: &mut BasicCORSCache) -> Response {
+fn basic_fetch(request: Rc<Request>, cache: &mut CORSCache) -> Response {
 
     let url = request.current_url();
 
@@ -328,7 +328,7 @@ fn basic_fetch(request: Rc<Request>, cache: &mut BasicCORSCache) -> Response {
 
 /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
 fn http_fetch(request: Rc<Request>,
-              cache: &mut BasicCORSCache,
+              cache: &mut CORSCache,
               cors_flag: bool,
               cors_preflight_flag: bool,
               authentication_fetch_flag: bool) -> Response {
@@ -507,7 +507,7 @@ fn http_fetch(request: Rc<Request>,
 
 /// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
 fn http_redirect_fetch(request: Rc<Request>,
-                       cache: &mut BasicCORSCache,
+                       cache: &mut CORSCache,
                        response: Rc<Response>,
                        cors_flag: bool) -> Response {
 
@@ -922,7 +922,7 @@ fn http_network_fetch(request: Rc<Request>,
 }
 
 /// [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
-fn cors_preflight_fetch(request: Rc<Request>, cache: &mut BasicCORSCache) -> Response {
+fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache) -> Response {
     // Step 1
     let mut preflight = Request::new(request.current_url(), Some(request.origin.borrow().clone()), false);
     *preflight.method.borrow_mut() = Method::Options;
