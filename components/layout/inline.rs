@@ -444,7 +444,7 @@ impl LineBreaker {
         // Initially, pretend a splittable fragment has zero inline-size. We will move it later if
         // it has nonzero inline-size and that causes problems.
         let placement_inline_size = if first_fragment.can_split() {
-            Au(0)
+            first_fragment.minimum_splittable_inline_size()
         } else {
             first_fragment.margin_box_inline_size() + self.indentation_for_pending_fragment()
         };
