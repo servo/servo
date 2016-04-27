@@ -58,7 +58,7 @@ pub struct GeckoNode<'ln> {
 }
 
 impl<'ln> GeckoNode<'ln> {
-    unsafe fn from_raw(n: *mut RawGeckoNode) -> GeckoNode<'ln> {
+    pub unsafe fn from_raw(n: *mut RawGeckoNode) -> GeckoNode<'ln> {
         GeckoNode {
             node: n,
             chain: PhantomData,
