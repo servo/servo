@@ -5926,6 +5926,12 @@
         ]
       },
       "testharness": {
+        "css/canvas_without_context.html": [
+          {
+            "path": "css/canvas_without_context.html",
+            "url": "/_mozilla/css/canvas_without_context.html"
+          }
+        ],
         "css/flex-item-assign-inline-size.html": [
           {
             "path": "css/flex-item-assign-inline-size.html",

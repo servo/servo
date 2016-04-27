@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div {
+      width: 20px;
+      height: 20px;
+      background-color: green;
+  }
+</style>
+<div><canvas id="myCanvas" width="20" height="20"></canvas></div>
+<script>
+test(function() {
+    var myCanvas = document.getElementById("myCanvas");
+    
+    assert_equals(myCanvas.clientWidth, 20);
+    assert_equals(myCanvas.clientHeight, 20);
+});
+</script>
+</html>
