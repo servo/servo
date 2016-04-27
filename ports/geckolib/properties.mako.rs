@@ -69,6 +69,25 @@ impl ComputedValues for GeckoComputedValues {
         }
     }
 
+    fn style_for_child_text_node(parent: &Arc<Self>) -> Arc<Self> {
+        // Gecko expects text nodes to be styled as if they were elements that
+        // matched no rules (that is, inherited style structs are inherited and
+        // non-inherited style structs are set to their initial values).
+        Arc::new(GeckoComputedValues {
+            custom_properties: parent.custom_properties.clone(),
+            shareable: parent.shareable,
+            writing_mode: parent.writing_mode,
+            root_font_size: parent.root_font_size,
+            % for style_struct in data.style_structs:
+            % if style_struct.inherited:
+            ${style_struct.ident}: parent.${style_struct.ident}.clone(),
+            % else:
+            ${style_struct.ident}: Self::initial_values().${style_struct.ident}.clone(),
+            % endif
+            % endfor
+        })
+    }
+
     fn initial_values() -> &'static Self { &*INITIAL_GECKO_VALUES }
 
     fn do_cascade_property<F: FnOnce(&Vec<Option<CascadePropertyFn<Self>>>)>(f: F) {
