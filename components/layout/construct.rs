@@ -686,7 +686,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
     /// FIXME(pcwalton): It is not clear to me that there isn't a cleaner way to handle
     /// `<textarea>`.
     fn build_flow_for_block_like(&mut self, flow: FlowRef, node: &ConcreteThreadSafeLayoutNode)
-                            -> ConstructionResult {
+                                 -> ConstructionResult {
         let mut initial_fragments = IntermediateInlineFragments::new();
         let node_is_input_or_text_area =
            node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
@@ -1023,7 +1023,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
     /// This is an annoying case, because the computed `display` value is `block`, but the
     /// hypothetical box is inline.
-    fn build_fragment_for_absolutely_positioned_inline(&mut self, node: &ConcreteThreadSafeLayoutNode)
+    fn build_fragment_for_absolutely_positioned_inline(&mut self,
+                                                       node: &ConcreteThreadSafeLayoutNode)
                                                        -> ConstructionResult {
         let block_flow_result = self.build_flow_for_block(node, None);
         let (block_flow, abs_descendants) = match block_flow_result {
