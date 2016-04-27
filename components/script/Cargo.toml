@@ -27,7 +27,7 @@ canvas_traits = {path = "../canvas_traits"}
 js = {git = "https://github.com/servo/rust-mozjs"}
 angle = {git = "https://github.com/emilio/angle", branch = "servo"}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
-xml5ever = {git = "https://github.com/Ygg01/xml5ever", features = ["unstable"]}
+xml5ever = {version = "0.1.2", features = ["unstable"]}
 gfx_traits = {path = "../gfx_traits"}
 webrender_traits = {git = "https://github.com/servo/webrender_traits"}
 app_units = {version = "0.2.3", features = ["plugins"]}

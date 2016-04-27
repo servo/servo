@@ -1510,23 +1510,22 @@ impl ScriptThread {
             headers.get().map(|&LastModified(HttpDate(ref tm))| dom_last_modified(tm))
         });
 
-        let content_type = match metadata.content_type {
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {
-                Some(DOMString::from("text/xml"))
+        let content_type = metadata.content_type.as_ref().and_then(|&ContentType(ref mimetype)| {
+            match *mimetype {
+                Mime(TopLevel::Application, SubLevel::Xml, _) |
+                Mime(TopLevel::Application, SubLevel::Ext(_), _) |
+                Mime(TopLevel::Text, SubLevel::Xml, _) |
+                Mime(TopLevel::Text, SubLevel::Plain, _) => Some(DOMString::from(mimetype.to_string())),
+                _ => None,
             }
-
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
-                Some(DOMString::from("text/plain"))
-            }
-
-            _ => None
-        };
+        });
 
         let loader = DocumentLoader::new_with_thread(self.resource_thread.clone(),
                                                    Some(page.pipeline()),
                                                    Some(incomplete.url.clone()));
 
         let is_html_document = match metadata.content_type {
+            Some(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _))) |
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) =>
                 IsHTMLDocument::NonHTMLDocument,
             _ => IsHTMLDocument::HTMLDocument,
@@ -1587,19 +1586,26 @@ impl ScriptThread {
 
         document.set_https_state(metadata.https_state);
 
-        match metadata.content_type {
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {
-                parse_xml(document.r(),
-                          parse_input,
-                          final_url,
-                          xml::ParseContext::Owner(Some(incomplete.pipeline_id)));
-            }
-            _ => {
-                parse_html(document.r(),
-                           parse_input,
-                           final_url,
-                           ParseContext::Owner(Some(incomplete.pipeline_id)));
-            }
+        let is_xml = match metadata.content_type {
+            Some(ContentType(Mime(TopLevel::Application, SubLevel::Ext(ref sub_level), _)))
+                if sub_level.ends_with("+xml") => true,
+
+            Some(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _))) |
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => true,
+
+            _ => false,
+        };
+
+        if is_xml {
+            parse_xml(document.r(),
+                      parse_input,
+                      final_url,
+                      xml::ParseContext::Owner(Some(incomplete.pipeline_id)));
+        } else {
+            parse_html(document.r(),
+                       parse_input,
+                       final_url,
+                       ParseContext::Owner(Some(incomplete.pipeline_id)));
         }
 
         if incomplete.is_frozen {

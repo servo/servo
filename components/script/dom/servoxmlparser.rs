@@ -127,6 +127,8 @@ impl ServoXMLParser {
             if !pending_input.is_empty() {
                 let chunk = pending_input.remove(0);
                 self.tokenizer.borrow_mut().feed(chunk.into());
+            } else {
+                self.tokenizer.borrow_mut().run();
             }
 
             // Document parsing is blocked on an external resource.
