@@ -1814,10 +1814,10 @@ impl Document {
         }
     }
 
-    pub fn get_nth_cssstylesheet(&self, index: u32) -> Root<CSSStyleSheet> {
+    /*pub fn get_nth_cssstylesheet(&self, index: u32) -> Root<CSSStyleSheet> {
         let (ref mut node, ref mut sheet) = (*self.stylesheets.borrow()).unwrap()[index as usize];
         CSSStyleSheet::new(&self.window, *sheet)
-    }
+    }*/
 }
 
 

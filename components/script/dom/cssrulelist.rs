@@ -21,7 +21,7 @@ pub struct CSSRuleList {
 
 impl CSSRuleList {
     #[allow(unrooted_must_root)]
-    fn new_inherited(stylesheet: &CSSStyleSheet) -> CSSRuleList {
+    pub fn new_inherited(stylesheet: &CSSStyleSheet) -> CSSRuleList {
         CSSRuleList {
             reflector_: Reflector::new(),
             stylesheet: JS::from_ref(stylesheet),

@@ -12,11 +12,13 @@ use dom::node::Node;
 use dom::window::Window;
 use std::sync::Arc;
 use style::servo::Stylesheet;
+use dom::stylesheet::StyleSheet;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct CSSStyleSheet {
-        reflector_: Reflector,
-        stylesheet: Arc<Stylesheet>,
+    ss: StyleSheet,
+    stylesheet: Arc<Stylesheet>,
         //node: Node,
 }
 
@@ -24,7 +26,7 @@ impl CSSStyleSheet {
     #[allow(unrooted_must_root)]
     fn new_inherited(stylesheet: Arc<Stylesheet>) -> CSSStyleSheet {
         CSSStyleSheet {
-            reflector_: Reflector::new(),
+            ss: StyleSheet::new_inherited(DOMString::from_string(String::from("text/css")), None, None, None),
             stylesheet: stylesheet,
             //node: *node,
         }
@@ -44,8 +46,8 @@ impl CSSStyleSheet {
 
 impl CSSStyleSheetMethods for CSSStyleSheet {
         // https://drafts.csswg.org/cssom/#dom-stylesheetlist-cssrules
-        fn CssRules(&self) -> Root<CSSRuleList>  {
-        // TODO: step 1
-        CSSRuleList::new(&self.window, &self) //gives error
-        }
+    fn CssRules(&self) -> Root<CSSRuleList>  {
+    // TODO: step 1
+        Root::from_ref(&CSSRuleList::new_inherited(&self))
+    }
 }

@@ -28,7 +28,7 @@ impl CSSStyleRule {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window,cssrule: CSSRule, selectortext: DOMString) -> Root<CSSStyleRule> {
+    pub fn new(window: &Window, cssrule: CSSRule, selectortext: DOMString) -> Root<CSSStyleRule> {
         reflect_dom_object(box CSSStyleRule::new_inherited(cssrule, selectortext),
                            GlobalRef::Window(window),
                            CSSStyleRuleBinding::Wrap)
