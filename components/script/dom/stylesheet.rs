@@ -2,12 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use core::ops::Deref;
 use dom::bindings::codegen::Bindings::StyleSheetBinding;
 use dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
 use dom::bindings::codegen::UnionTypes;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::element::Element;
 use dom::node::Node;
 use dom::window::Window;
 use util::str::DOMString;
@@ -24,13 +27,13 @@ pub struct StyleSheet {
 
 impl StyleSheet {
     #[allow(unrooted_must_root)]
-    fn new_inherited(type_: DOMString, href: Option<DOMString>, title: Option<DOMString>, owner: Option<JS<Node>>) -> StyleSheet {
+    pub fn new_inherited(type_: DOMString, href: Option<DOMString>, title: Option<DOMString>, owner: Option<&Node>) -> StyleSheet {
         StyleSheet {
             reflector_: Reflector::new(),
             type_: type_,
             href: href,
             title: title,
-            owner: owner
+            owner: Some(JS::from_ref(owner.unwrap()))
         }
     }
 
@@ -38,7 +41,7 @@ impl StyleSheet {
     pub fn new(window: &Window, type_: DOMString,
                href: Option<DOMString>,
                title: Option<DOMString>,
-               owner: Option<JS<Node>>) -> Root<StyleSheet> {
+               owner: Option<&Node>) -> Root<StyleSheet> {
         reflect_dom_object(box StyleSheet::new_inherited(type_, href, title, owner),
                            GlobalRef::Window(window),
                            StyleSheetBinding::Wrap)
@@ -62,8 +65,10 @@ impl StyleSheetMethods for StyleSheet {
         self.title.clone()
     }
 
-    // https://drafts.csswg.org/cssom/#dom-stylesheet-title
-    fn GetOwnerNode(&self) -> Option<UnionTypes::ElementOrProcessingInstruction>{
-        None
-    }   
+    // https://drafts.csswg.org/cssom/#dom-stylesheet-ownernode
+    /*fn GetOwnerNode(&self) -> Option<UnionTypes::ElementOrProcessingInstruction>{
+        //None
+        self.owner.unwrap().deref().downcast::<Element>()
+    }*/
 }
+
