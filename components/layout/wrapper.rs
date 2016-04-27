@@ -795,7 +795,8 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
     /// This differs from `style(ctx)` in that if the pseudo-element has not yet
     /// been computed it would panic.
     ///
-    /// This should be used just for querying layout, not from layout itself.
+    /// This should be used just for querying layout, or when we know the
+    /// element style is precomputed, not from general layout itself.
     #[inline]
     fn resolved_style(&self) -> Ref<Arc<ServoComputedValues>> {
         Ref::map(self.borrow_layout_data().unwrap(), |data| {
