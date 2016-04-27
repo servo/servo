@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="match" href="canvas_without_context_ref.html">
+</head>
+<body>
+<div><canvas id="c"></canvas></div>
+<script>
+
+var canvas = document.getElementById('c');
+canvas.width = 20;
+canvas.height = 20;
+var ctx = canvas.getContext('2d');
+ctx.fillStyle = 'green';
+ctx.fillRect(0, 0, 20, 20);
+
+</script>
+</body>
+</html>
