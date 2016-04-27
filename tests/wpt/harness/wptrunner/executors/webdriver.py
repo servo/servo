@@ -217,6 +217,7 @@ class Transport(object):
 
         try:
             resp = self._connection.getresponse()
+
         except Exception:
             # This should probably be more specific
             raise IOError
@@ -419,6 +420,7 @@ class Session(object):
     @property
     @command
     def url(self):
+        print("later bc")
         return self.send_command("GET", "url", key="value")
 
     @url.setter
