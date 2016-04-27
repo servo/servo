@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use core::ops::Deref;
 use dom::bindings::codegen::Bindings::StyleSheetBinding;
 use dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
 use dom::bindings::codegen::UnionTypes;
@@ -26,13 +27,13 @@ pub struct StyleSheet {
 
 impl StyleSheet {
     #[allow(unrooted_must_root)]
-    fn new_inherited(type_: DOMString, href: Option<DOMString>, title: Option<DOMString>, owner: Option<&Node>) -> StyleSheet {
+    pub fn new_inherited(type_: DOMString, href: Option<DOMString>, title: Option<DOMString>, owner: Option<&Node>) -> StyleSheet {
         StyleSheet {
             reflector_: Reflector::new(),
             type_: type_,
             href: href,
             title: title,
-            owner: owner
+            owner: Some(JS::from_ref(owner.unwrap()))
         }
     }
 
@@ -65,8 +66,8 @@ impl StyleSheetMethods for StyleSheet {
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-ownernode
-    fn GetOwnerNode(&self) -> Option<UnionTypes::ElementOrProcessingInstruction>{
+    /*fn GetOwnerNode(&self) -> Option<UnionTypes::ElementOrProcessingInstruction>{
         //None
-        self.owner.downcast_mut::<Element>()
-    }   
+        self.owner.unwrap().deref().downcast::<Element>()
+    }*/
 }
