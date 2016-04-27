@@ -512,26 +512,28 @@ impl<R: HttpResponse> StreamedResponse<R> {
     }
 
     fn from_http_response(response: R, m: Metadata) -> Result<StreamedResponse<R>, LoadError> {
-        match response.content_encoding() {
+        let decoder = match response.content_encoding() {
             Some(Encoding::Gzip) => {
                 let result = GzDecoder::new(response);
                 match result {
-                    Ok(response_decoding) => Ok(StreamedResponse::new(m, Decoder::Gzip(response_decoding))),
-                    Err(err) => Err(LoadError::new(m.final_url, LoadErrorType::Decoding { reason: err.to_string() })),
+                    Ok(response_decoding) => Decoder::Gzip(response_decoding),
+                    Err(err) => {
+                        return Err(
+                            LoadError::new(m.final_url, LoadErrorType::Decoding { reason: err.to_string() }))
+                    }
                 }
             }
             Some(Encoding::Deflate) => {
-                let response_decoding = DeflateDecoder::new(response);
-                Ok(StreamedResponse::new(m, Decoder::Deflate(response_decoding)))
+                Decoder::Deflate(DeflateDecoder::new(response))
             }
             Some(Encoding::EncodingExt(ref ext)) if ext == "br" => {
-                let response_decoding = Decompressor::new(response);
-                Ok(StreamedResponse::new(m, Decoder::Brotli(response_decoding)))
+                Decoder::Brotli(Decompressor::new(response))
             }
             _ => {
-                Ok(StreamedResponse::new(m, Decoder::Plain(response)))
+                Decoder::Plain(response)
             }
-        }
+        };
+        Ok(StreamedResponse::new(m, decoder))
     }
 }
 
