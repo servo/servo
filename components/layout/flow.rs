@@ -991,9 +991,11 @@ impl fmt::Debug for BaseFlow {
         };
 
         write!(f,
-               "sc={:?} pos={:?}, floatspec-in={:?}, floatspec-out={:?}, overflow={:?}{}{}{}",
+               "sc={:?} pos={:?}, {}{} floatspec-in={:?}, floatspec-out={:?}, overflow={:?}{}{}{}",
                self.stacking_context_id,
                self.position,
+               if self.flags.contains(FLOATS_LEFT) { "FL" } else { "" },
+               if self.flags.contains(FLOATS_RIGHT) { "FR" } else { "" },
                self.speculated_float_placement_in,
                self.speculated_float_placement_out,
                self.overflow,
