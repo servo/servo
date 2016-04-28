@@ -1871,7 +1871,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 if let Some(pipeline) = self.pipelines.get(pipeline_id) {
                     // Don't kill the mozbrowser pipeline
                     if prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) &&
-                        pipeline.parent_info.is_some()
+                        pipeline.parent_info.is_none()
                     {
                         info!("Not closing mozbrowser pipeline {}.", pipeline_id);
                     } else {
