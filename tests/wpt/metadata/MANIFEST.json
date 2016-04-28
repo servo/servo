@@ -3226,22 +3226,6 @@
         "url": "/touch-events/single-touch-manual.html"
       },
       {
-        "path": "uievents/keyboard/key-101en-us-manual.html",
-        "url": "/uievents/keyboard/key-101en-us-manual.html"
-      },
-      {
-        "path": "uievents/keyboard/key-102fr-fr-manual.html",
-        "url": "/uievents/keyboard/key-102fr-fr-manual.html"
-      },
-      {
-        "path": "uievents/keyboard/key-manual.css",
-        "url": "/uievents/keyboard/key-manual.css"
-      },
-      {
-        "path": "uievents/keyboard/key-manual.js",
-        "url": "/uievents/keyboard/key-manual.js"
-      },
-      {
         "path": "uievents/order-of-events/focus-events/focus-manual.html",
         "url": "/uievents/order-of-events/focus-events/focus-manual.html"
       },
@@ -3770,44 +3754,44 @@
         "url": "/compat/webkit-text-fill-color-property-006.html"
       },
       {
-        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html",
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html",
         "references": [
           [
-            "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag-ref.html",
+            "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag-ref.html",
             "=="
           ]
         ],
-        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html"
+        "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html"
       },
       {
-        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html",
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html",
         "references": [
           [
-            "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag-ref.html",
+            "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag-ref.html",
             "=="
           ]
         ],
-        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html"
+        "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html"
       },
       {
-        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html",
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html",
         "references": [
           [
-            "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension-ref.html",
+            "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension-ref.html",
             "=="
           ]
         ],
-        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html"
+        "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html"
       },
       {
-        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html",
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html",
         "references": [
           [
-            "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension-ref.html",
+            "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension-ref.html",
             "=="
           ]
         ],
-        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html"
+        "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html"
       },
       {
         "path": "html/dom/elements/global-attributes/dir_auto-EN-L.html",
@@ -5188,16 +5172,6 @@
           ]
         ],
         "url": "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html"
-      },
-      {
-        "path": "html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_without_context_a.html",
-        "references": [
-          [
-            "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_without_context_ref.html",
-            "=="
-          ]
-        ],
-        "url": "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_without_context_a.html"
       },
       {
         "path": "html/rendering/replaced-elements/images/space.html",
@@ -11138,6 +11112,98 @@
         "url": "/2dcontext/transformations/2d.transformation.translate.nonfinite.html"
       },
       {
+        "path": "DOMEvents/ClickFakeEvent.nondocument.html",
+        "url": "/DOMEvents/ClickFakeEvent.nondocument.html"
+      },
+      {
+        "path": "DOMEvents/constructors.html",
+        "url": "/DOMEvents/constructors.html"
+      },
+      {
+        "path": "DOMEvents/event-phases-order.html",
+        "url": "/DOMEvents/event-phases-order.html"
+      },
+      {
+        "path": "DOMEvents/init-event-while-dispatching.html",
+        "url": "/DOMEvents/init-event-while-dispatching.html"
+      },
+      {
+        "path": "DOMEvents/tests/approved/DOM.event.flow.html",
+        "url": "/DOMEvents/tests/approved/DOM.event.flow.html"
+      },
+      {
+        "path": "DOMEvents/tests/approved/EventListener.eventHandler.html",
+        "url": "/DOMEvents/tests/approved/EventListener.eventHandler.html"
+      },
+      {
+        "path": "DOMEvents/tests/approved/EventObject.multiple.dispatchEvent.html",
+        "url": "/DOMEvents/tests/approved/EventObject.multiple.dispatchEvent.html"
+      },
+      {
+        "path": "DOMEvents/tests/approved/ProcessingInstruction.DOMCharacterDataModified.html",
+        "url": "/DOMEvents/tests/approved/ProcessingInstruction.DOMCharacterDataModified.html"
+      },
+      {
+        "path": "DOMEvents/tests/approved/dispatchEvent.click.checkbox.html",
+        "url": "/DOMEvents/tests/approved/dispatchEvent.click.checkbox.html"
+      },
+      {
+        "path": "DOMEvents/tests/approved/domnodeinserted.html",
+        "url": "/DOMEvents/tests/approved/domnodeinserted.html"
+      },
+      {
+        "path": "DOMEvents/tests/approved/stopImmediatePropagation.effect.html",
+        "url": "/DOMEvents/tests/approved/stopImmediatePropagation.effect.html"
+      },
+      {
+        "path": "DOMEvents/tests/approved/stopPropagation.deferred.effect.html",
+        "url": "/DOMEvents/tests/approved/stopPropagation.deferred.effect.html"
+      },
+      {
+        "path": "DOMEvents/tests/submissions/Microsoft/converted/DOM.event.flow.html",
+        "url": "/DOMEvents/tests/submissions/Microsoft/converted/DOM.event.flow.html"
+      },
+      {
+        "path": "DOMEvents/tests/submissions/Microsoft/converted/EventListener.dispatch.new.event.html",
+        "url": "/DOMEvents/tests/submissions/Microsoft/converted/EventListener.dispatch.new.event.html"
+      },
+      {
+        "path": "DOMEvents/tests/submissions/Microsoft/converted/EventListener.eventHandler.html",
+        "url": "/DOMEvents/tests/submissions/Microsoft/converted/EventListener.eventHandler.html"
+      },
+      {
+        "path": "DOMEvents/tests/submissions/Microsoft/converted/EventObject.multiple.dispatchEvent.html",
+        "url": "/DOMEvents/tests/submissions/Microsoft/converted/EventObject.multiple.dispatchEvent.html"
+      },
+      {
+        "path": "DOMEvents/tests/submissions/Microsoft/converted/ProcessingInstruction.DOMCharacterDataModified.html",
+        "url": "/DOMEvents/tests/submissions/Microsoft/converted/ProcessingInstruction.DOMCharacterDataModified.html"
+      },
+      {
+        "path": "DOMEvents/tests/submissions/Microsoft/converted/dispatchEvent.click.checkbox.html",
+        "url": "/DOMEvents/tests/submissions/Microsoft/converted/dispatchEvent.click.checkbox.html"
+      },
+      {
+        "path": "DOMEvents/tests/submissions/Microsoft/converted/domnodeinserted.html",
+        "url": "/DOMEvents/tests/submissions/Microsoft/converted/domnodeinserted.html"
+      },
+      {
+        "path": "DOMEvents/tests/submissions/Microsoft/converted/stopImmediatePropagation.effect.html",
+        "url": "/DOMEvents/tests/submissions/Microsoft/converted/stopImmediatePropagation.effect.html"
+      },
+      {
+        "path": "DOMEvents/tests/submissions/Microsoft/converted/stopPropagation.deferred.effect.html",
+        "url": "/DOMEvents/tests/submissions/Microsoft/converted/stopPropagation.deferred.effect.html"
+      },
+      {
+        "path": "DOMEvents/throwing-in-listener-and-window-error-event.html",
+        "url": "/DOMEvents/throwing-in-listener-and-window-error-event.html"
+      },
+      {
+        "path": "DOMEvents/throwing-in-listener-when-all-have-not-run-yet.html",
+        "url": "/DOMEvents/throwing-in-listener-when-all-have-not-run-yet.html"
+      },
+      {
         "path": "FileAPI/FileReader/Progress_event_bubbles_cancelable.html",
         "url": "/FileAPI/FileReader/Progress_event_bubbles_cancelable.html"
       },
@@ -11514,10 +11580,6 @@
         "url": "/IndexedDB/idbcursor_update_index7.htm"
       },
       {
-        "path": "IndexedDB/idbcursor_update_index8.htm",
-        "url": "/IndexedDB/idbcursor_update_index8.htm"
-      },
-      {
         "path": "IndexedDB/idbcursor_update_objectstore.htm",
         "url": "/IndexedDB/idbcursor_update_objectstore.htm"
       },
@@ -11548,10 +11610,6 @@
       {
         "path": "IndexedDB/idbcursor_update_objectstore8.htm",
         "url": "/IndexedDB/idbcursor_update_objectstore8.htm"
-      },
-      {
-        "path": "IndexedDB/idbcursor_update_objectstore9.htm",
-        "url": "/IndexedDB/idbcursor_update_objectstore9.htm"
       },
       {
         "path": "IndexedDB/idbdatabase_close.htm",
@@ -12582,10 +12640,6 @@
         "url": "/XMLHttpRequest/open-url-multi-window-5.htm"
       },
       {
-        "path": "XMLHttpRequest/open-url-multi-window-6.htm",
-        "url": "/XMLHttpRequest/open-url-multi-window-6.htm"
-      },
-      {
         "path": "XMLHttpRequest/open-url-multi-window.htm",
         "url": "/XMLHttpRequest/open-url-multi-window.htm"
       },
@@ -13594,10 +13648,6 @@
         "url": "/content-security-policy/generic/generic-0_9.sub.html"
       },
       {
-        "path": "content-security-policy/generic/no-default-src.sub.html",
-        "url": "/content-security-policy/generic/no-default-src.sub.html"
-      },
-      {
         "path": "content-security-policy/img-src/img-src-4_1.html",
         "url": "/content-security-policy/img-src/img-src-4_1.html"
       },
@@ -13806,224 +13856,224 @@
         "url": "/cssom-view/scrollingElement.html"
       },
       {
-        "path": "custom-elements/v0/concepts/custom-elements-type-naming.html",
-        "url": "/custom-elements/v0/concepts/custom-elements-type-naming.html"
+        "path": "custom-elements/concepts/custom-elements-type-naming.html",
+        "url": "/custom-elements/concepts/custom-elements-type-naming.html"
       },
       {
-        "path": "custom-elements/v0/creating-and-passing-registries/new-registry-test.html",
-        "url": "/custom-elements/v0/creating-and-passing-registries/new-registry-test.html"
+        "path": "custom-elements/creating-and-passing-registries/new-registry-test.html",
+        "url": "/custom-elements/creating-and-passing-registries/new-registry-test.html"
       },
       {
-        "path": "custom-elements/v0/creating-and-passing-registries/no-registry-test.html",
-        "url": "/custom-elements/v0/creating-and-passing-registries/no-registry-test.html"
+        "path": "custom-elements/creating-and-passing-registries/no-registry-test.html",
+        "url": "/custom-elements/creating-and-passing-registries/no-registry-test.html"
       },
       {
-        "path": "custom-elements/v0/creating-and-passing-registries/share-registry-create-document.html",
-        "url": "/custom-elements/v0/creating-and-passing-registries/share-registry-create-document.html"
+        "path": "custom-elements/creating-and-passing-registries/share-registry-create-document.html",
+        "url": "/custom-elements/creating-and-passing-registries/share-registry-create-document.html"
       },
       {
-        "path": "custom-elements/v0/creating-and-passing-registries/share-registry-import-document.html",
-        "url": "/custom-elements/v0/creating-and-passing-registries/share-registry-import-document.html"
+        "path": "custom-elements/creating-and-passing-registries/share-registry-import-document.html",
+        "url": "/custom-elements/creating-and-passing-registries/share-registry-import-document.html"
       },
       {
-        "path": "custom-elements/v0/custom-element-lifecycle/enqueuing-and-invoking-callbacks/invoke-callbacks.html",
-        "url": "/custom-elements/v0/custom-element-lifecycle/enqueuing-and-invoking-callbacks/invoke-callbacks.html"
+        "path": "custom-elements/custom-element-lifecycle/enqueuing-and-invoking-callbacks/invoke-callbacks.html",
+        "url": "/custom-elements/custom-element-lifecycle/enqueuing-and-invoking-callbacks/invoke-callbacks.html"
       },
       {
-        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attached-callback-move-element-test.html",
-        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attached-callback-move-element-test.html"
+        "path": "custom-elements/custom-element-lifecycle/types-of-callbacks/attached-callback-move-element-test.html",
+        "url": "/custom-elements/custom-element-lifecycle/types-of-callbacks/attached-callback-move-element-test.html"
       },
       {
-        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-change-attribute-test.html",
-        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-change-attribute-test.html"
+        "path": "custom-elements/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-change-attribute-test.html",
+        "url": "/custom-elements/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-change-attribute-test.html"
       },
       {
-        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-remove-attribute-test.html",
-        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-remove-attribute-test.html"
+        "path": "custom-elements/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-remove-attribute-test.html",
+        "url": "/custom-elements/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-remove-attribute-test.html"
       },
       {
-        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-set-attribute-test.html",
-        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-set-attribute-test.html"
+        "path": "custom-elements/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-set-attribute-test.html",
+        "url": "/custom-elements/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-set-attribute-test.html"
       },
       {
-        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-element-prototype-test.html",
-        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-element-prototype-test.html"
+        "path": "custom-elements/custom-element-lifecycle/types-of-callbacks/created-callback-element-prototype-test.html",
+        "url": "/custom-elements/custom-element-lifecycle/types-of-callbacks/created-callback-element-prototype-test.html"
       },
       {
-        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-order-test.html",
-        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-order-test.html"
+        "path": "custom-elements/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-order-test.html",
+        "url": "/custom-elements/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-order-test.html"
       },
       {
-        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-test.html",
-        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-test.html"
+        "path": "custom-elements/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-test.html",
+        "url": "/custom-elements/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-test.html"
       },
       {
-        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-move-element-test.html",
-        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-move-element-test.html"
+        "path": "custom-elements/custom-element-lifecycle/types-of-callbacks/detached-callback-move-element-test.html",
+        "url": "/custom-elements/custom-element-lifecycle/types-of-callbacks/detached-callback-move-element-test.html"
       },
       {
-        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-no-browsing-context-test.html",
-        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-no-browsing-context-test.html"
+        "path": "custom-elements/custom-element-lifecycle/types-of-callbacks/detached-callback-no-browsing-context-test.html",
+        "url": "/custom-elements/custom-element-lifecycle/types-of-callbacks/detached-callback-no-browsing-context-test.html"
       },
       {
-        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-with-browsing-context-test.html",
-        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-with-browsing-context-test.html"
+        "path": "custom-elements/custom-element-lifecycle/types-of-callbacks/detached-callback-with-browsing-context-test.html",
+        "url": "/custom-elements/custom-element-lifecycle/types-of-callbacks/detached-callback-with-browsing-context-test.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/changing-is-attribute.html",
-        "url": "/custom-elements/v0/instantiating/changing-is-attribute.html"
+        "path": "custom-elements/instantiating-custom-elements/changing-is-attribute.html",
+        "url": "/custom-elements/instantiating-custom-elements/changing-is-attribute.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/custom-element-constructor-is-attribute.html",
-        "url": "/custom-elements/v0/instantiating/custom-element-constructor-is-attribute.html"
+        "path": "custom-elements/instantiating-custom-elements/custom-element-constructor-is-attribute.html",
+        "url": "/custom-elements/instantiating-custom-elements/custom-element-constructor-is-attribute.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/custom-element-constructor-local-name.html",
-        "url": "/custom-elements/v0/instantiating/custom-element-constructor-local-name.html"
+        "path": "custom-elements/instantiating-custom-elements/custom-element-constructor-local-name.html",
+        "url": "/custom-elements/instantiating-custom-elements/custom-element-constructor-local-name.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/custom-element-constructor-namespace.html",
-        "url": "/custom-elements/v0/instantiating/custom-element-constructor-namespace.html"
+        "path": "custom-elements/instantiating-custom-elements/custom-element-constructor-namespace.html",
+        "url": "/custom-elements/instantiating-custom-elements/custom-element-constructor-namespace.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/custom-element-constructor-node-document.html",
-        "url": "/custom-elements/v0/instantiating/custom-element-constructor-node-document.html"
+        "path": "custom-elements/instantiating-custom-elements/custom-element-constructor-node-document.html",
+        "url": "/custom-elements/instantiating-custom-elements/custom-element-constructor-node-document.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/custom-element-constructor-prototype.html",
-        "url": "/custom-elements/v0/instantiating/custom-element-constructor-prototype.html"
+        "path": "custom-elements/instantiating-custom-elements/custom-element-constructor-prototype.html",
+        "url": "/custom-elements/instantiating-custom-elements/custom-element-constructor-prototype.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/custom-element-prototype.html",
-        "url": "/custom-elements/v0/instantiating/custom-element-prototype.html"
+        "path": "custom-elements/instantiating-custom-elements/custom-element-prototype.html",
+        "url": "/custom-elements/instantiating-custom-elements/custom-element-prototype.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/custom-element-type-is-attribute.html",
-        "url": "/custom-elements/v0/instantiating/custom-element-type-is-attribute.html"
+        "path": "custom-elements/instantiating-custom-elements/custom-element-type-is-attribute.html",
+        "url": "/custom-elements/instantiating-custom-elements/custom-element-type-is-attribute.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/custom-element-type-local-name-and-is-attribute.html",
-        "url": "/custom-elements/v0/instantiating/custom-element-type-local-name-and-is-attribute.html"
+        "path": "custom-elements/instantiating-custom-elements/custom-element-type-local-name-and-is-attribute.html",
+        "url": "/custom-elements/instantiating-custom-elements/custom-element-type-local-name-and-is-attribute.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/custom-element-type-local-name.html",
-        "url": "/custom-elements/v0/instantiating/custom-element-type-local-name.html"
+        "path": "custom-elements/instantiating-custom-elements/custom-element-type-local-name.html",
+        "url": "/custom-elements/instantiating-custom-elements/custom-element-type-local-name.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-interface-type-is-a-local-name.html",
-        "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-interface-type-is-a-local-name.html"
+        "path": "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-interface-type-is-a-local-name.html",
+        "url": "/custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-interface-type-is-a-local-name.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-interface-type-is-a-type-extension.html",
-        "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-interface-type-is-a-type-extension.html"
+        "path": "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-interface-type-is-a-type-extension.html",
+        "url": "/custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-interface-type-is-a-type-extension.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-is-attribute.html",
-        "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-is-attribute.html"
+        "path": "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-is-attribute.html",
+        "url": "/custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-is-attribute.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-namespace.html",
-        "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-namespace.html"
+        "path": "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-namespace.html",
+        "url": "/custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-namespace.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-extension-is-a-type.html",
-        "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-extension-is-a-type.html"
+        "path": "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-type-extension-is-a-type.html",
+        "url": "/custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-type-extension-is-a-type.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-extension-unresolved.html",
-        "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-extension-unresolved.html"
+        "path": "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-type-extension-unresolved.html",
+        "url": "/custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-type-extension-unresolved.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-is-a-local-name.html",
-        "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-is-a-local-name.html"
+        "path": "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-type-is-a-local-name.html",
+        "url": "/custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-type-is-a-local-name.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/extensions-to-document-interface/created-callback-create-element-ns.html",
-        "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/created-callback-create-element-ns.html"
+        "path": "custom-elements/instantiating-custom-elements/extensions-to-document-interface/created-callback-create-element-ns.html",
+        "url": "/custom-elements/instantiating-custom-elements/extensions-to-document-interface/created-callback-create-element-ns.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/extensions-to-document-interface/created-callback-create-element.html",
-        "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/created-callback-create-element.html"
+        "path": "custom-elements/instantiating-custom-elements/extensions-to-document-interface/created-callback-create-element.html",
+        "url": "/custom-elements/instantiating-custom-elements/extensions-to-document-interface/created-callback-create-element.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/non-configurable-constructor-property.html",
-        "url": "/custom-elements/v0/instantiating/non-configurable-constructor-property.html"
+        "path": "custom-elements/instantiating-custom-elements/non-configurable-constructor-property.html",
+        "url": "/custom-elements/instantiating-custom-elements/non-configurable-constructor-property.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/prototype-is-interface-prototype-object.html",
-        "url": "/custom-elements/v0/instantiating/prototype-is-interface-prototype-object.html"
+        "path": "custom-elements/instantiating-custom-elements/prototype-is-interface-prototype-object.html",
+        "url": "/custom-elements/instantiating-custom-elements/prototype-is-interface-prototype-object.html"
       },
       {
-        "path": "custom-elements/v0/instantiating/unchanged-attribute.html",
-        "url": "/custom-elements/v0/instantiating/unchanged-attribute.html"
+        "path": "custom-elements/instantiating-custom-elements/unchanged-attribute.html",
+        "url": "/custom-elements/instantiating-custom-elements/unchanged-attribute.html"
       },
       {
-        "path": "custom-elements/v0/registering/definition-construction-algorithm-default-namespace.html",
-        "url": "/custom-elements/v0/registering/definition-construction-algorithm-default-namespace.html"
+        "path": "custom-elements/registering-custom-elements/definition-construction-algorithm-default-namespace.html",
+        "url": "/custom-elements/registering-custom-elements/definition-construction-algorithm-default-namespace.html"
       },
       {
-        "path": "custom-elements/v0/registering/definition-construction-algorithm-duplicate-definition.html",
-        "url": "/custom-elements/v0/registering/definition-construction-algorithm-duplicate-definition.html"
+        "path": "custom-elements/registering-custom-elements/definition-construction-algorithm-duplicate-definition.html",
+        "url": "/custom-elements/registering-custom-elements/definition-construction-algorithm-duplicate-definition.html"
       },
       {
-        "path": "custom-elements/v0/registering/definition-construction-algorithm-invalid-type.html",
-        "url": "/custom-elements/v0/registering/definition-construction-algorithm-invalid-type.html"
+        "path": "custom-elements/registering-custom-elements/definition-construction-algorithm-invalid-type.html",
+        "url": "/custom-elements/registering-custom-elements/definition-construction-algorithm-invalid-type.html"
       },
       {
-        "path": "custom-elements/v0/registering/definition-construction-algorithm-local-name-lowercased.html",
-        "url": "/custom-elements/v0/registering/definition-construction-algorithm-local-name-lowercased.html"
+        "path": "custom-elements/registering-custom-elements/definition-construction-algorithm-local-name-lowercased.html",
+        "url": "/custom-elements/registering-custom-elements/definition-construction-algorithm-local-name-lowercased.html"
       },
       {
-        "path": "custom-elements/v0/registering/definition-construction-algorithm-name-is-null.html",
-        "url": "/custom-elements/v0/registering/definition-construction-algorithm-name-is-null.html"
+        "path": "custom-elements/registering-custom-elements/definition-construction-algorithm-name-is-null.html",
+        "url": "/custom-elements/registering-custom-elements/definition-construction-algorithm-name-is-null.html"
       },
       {
-        "path": "custom-elements/v0/registering/definition-construction-algorithm-no-interface-for-name.html",
-        "url": "/custom-elements/v0/registering/definition-construction-algorithm-no-interface-for-name.html"
+        "path": "custom-elements/registering-custom-elements/definition-construction-algorithm-no-interface-for-name.html",
+        "url": "/custom-elements/registering-custom-elements/definition-construction-algorithm-no-interface-for-name.html"
       },
       {
-        "path": "custom-elements/v0/registering/definition-construction-algorithm-svg-namespace-name-is-null.html",
-        "url": "/custom-elements/v0/registering/definition-construction-algorithm-svg-namespace-name-is-null.html"
+        "path": "custom-elements/registering-custom-elements/definition-construction-algorithm-svg-namespace-name-is-null.html",
+        "url": "/custom-elements/registering-custom-elements/definition-construction-algorithm-svg-namespace-name-is-null.html"
       },
       {
-        "path": "custom-elements/v0/registering/definition-construction-algorithm-svg-namespace.html",
-        "url": "/custom-elements/v0/registering/definition-construction-algorithm-svg-namespace.html"
+        "path": "custom-elements/registering-custom-elements/definition-construction-algorithm-svg-namespace.html",
+        "url": "/custom-elements/registering-custom-elements/definition-construction-algorithm-svg-namespace.html"
       },
       {
-        "path": "custom-elements/v0/registering/definition-construction-algorithm-type-name-lowercased.html",
-        "url": "/custom-elements/v0/registering/definition-construction-algorithm-type-name-lowercased.html"
+        "path": "custom-elements/registering-custom-elements/definition-construction-algorithm-type-name-lowercased.html",
+        "url": "/custom-elements/registering-custom-elements/definition-construction-algorithm-type-name-lowercased.html"
       },
       {
-        "path": "custom-elements/v0/registering/element-registration-algorithm-no-registry.html",
-        "url": "/custom-elements/v0/registering/element-registration-algorithm-no-registry.html"
+        "path": "custom-elements/registering-custom-elements/element-registration-algorithm-no-registry.html",
+        "url": "/custom-elements/registering-custom-elements/element-registration-algorithm-no-registry.html"
       },
       {
-        "path": "custom-elements/v0/registering/extensions-to-document-interface/custom-element-name.html",
-        "url": "/custom-elements/v0/registering/extensions-to-document-interface/custom-element-name.html"
+        "path": "custom-elements/registering-custom-elements/extensions-to-document-interface/custom-element-name.html",
+        "url": "/custom-elements/registering-custom-elements/extensions-to-document-interface/custom-element-name.html"
       },
       {
-        "path": "custom-elements/v0/registering/extensions-to-document-interface/custom-element-prototype.html",
-        "url": "/custom-elements/v0/registering/extensions-to-document-interface/custom-element-prototype.html"
+        "path": "custom-elements/registering-custom-elements/extensions-to-document-interface/custom-element-prototype.html",
+        "url": "/custom-elements/registering-custom-elements/extensions-to-document-interface/custom-element-prototype.html"
       },
       {
-        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector-all.html",
-        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector-all.html"
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector-all.html",
+        "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector-all.html"
       },
       {
-        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector.html",
-        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector.html"
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector.html",
+        "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector.html"
       },
       {
-        "path": "custom-elements/v0/registering/unresolved-elements-interface-html-element.html",
-        "url": "/custom-elements/v0/registering/unresolved-elements-interface-html-element.html"
+        "path": "custom-elements/registering-custom-elements/unresolved-elements-interface-html-element.html",
+        "url": "/custom-elements/registering-custom-elements/unresolved-elements-interface-html-element.html"
       },
       {
-        "path": "custom-elements/v0/registering/unresolved-elements-interface-html-unknown-element.html",
-        "url": "/custom-elements/v0/registering/unresolved-elements-interface-html-unknown-element.html"
+        "path": "custom-elements/registering-custom-elements/unresolved-elements-interface-html-unknown-element.html",
+        "url": "/custom-elements/registering-custom-elements/unresolved-elements-interface-html-unknown-element.html"
       },
       {
-        "path": "custom-elements/v0/registering/unresolved-elements-interface-svg-element.html",
-        "url": "/custom-elements/v0/registering/unresolved-elements-interface-svg-element.html"
+        "path": "custom-elements/registering-custom-elements/unresolved-elements-interface-svg-element.html",
+        "url": "/custom-elements/registering-custom-elements/unresolved-elements-interface-svg-element.html"
       },
       {
         "path": "dom/collections/HTMLCollection-as-proto-length-get-throws.html",
@@ -14144,10 +14194,6 @@
       {
         "path": "dom/interfaces.html",
         "url": "/dom/interfaces.html"
-      },
-      {
-        "path": "dom/lists/DOMTokenList-coverage-for-attributes.html",
-        "url": "/dom/lists/DOMTokenList-coverage-for-attributes.html"
       },
       {
         "path": "dom/lists/DOMTokenList-stringifier.html",
@@ -14950,56 +14996,8 @@
         "url": "/domparsing/XMLSerializer-serializeToString.html"
       },
       {
-        "path": "domparsing/createContextualFragment.html",
-        "url": "/domparsing/createContextualFragment.html"
-      },
-      {
-        "path": "domparsing/innerhtml-01.xhtml",
-        "url": "/domparsing/innerhtml-01.xhtml"
-      },
-      {
-        "path": "domparsing/innerhtml-03.xhtml",
-        "url": "/domparsing/innerhtml-03.xhtml"
-      },
-      {
-        "path": "domparsing/innerhtml-04.html",
-        "url": "/domparsing/innerhtml-04.html"
-      },
-      {
-        "path": "domparsing/innerhtml-05.xhtml",
-        "url": "/domparsing/innerhtml-05.xhtml"
-      },
-      {
-        "path": "domparsing/innerhtml-06.html",
-        "url": "/domparsing/innerhtml-06.html"
-      },
-      {
-        "path": "domparsing/innerhtml-07.html",
-        "url": "/domparsing/innerhtml-07.html"
-      },
-      {
         "path": "domparsing/insert-adjacent.html",
         "url": "/domparsing/insert-adjacent.html"
-      },
-      {
-        "path": "domparsing/insert_adjacent_html.html",
-        "url": "/domparsing/insert_adjacent_html.html"
-      },
-      {
-        "path": "domparsing/insert_adjacent_html.xhtml",
-        "url": "/domparsing/insert_adjacent_html.xhtml"
-      },
-      {
-        "path": "domparsing/outerhtml-01.html",
-        "url": "/domparsing/outerhtml-01.html"
-      },
-      {
-        "path": "domparsing/outerhtml-02.html",
-        "url": "/domparsing/outerhtml-02.html"
-      },
-      {
-        "path": "domparsing/xml-serialization.xhtml",
-        "url": "/domparsing/xml-serialization.xhtml"
       },
       {
         "path": "domxpath/001.html",
@@ -15192,10 +15190,6 @@
       {
         "path": "encoding/textdecoder-byte-order-marks.html",
         "url": "/encoding/textdecoder-byte-order-marks.html"
-      },
-      {
-        "path": "encoding/textdecoder-fatal-single-byte.html",
-        "url": "/encoding/textdecoder-fatal-single-byte.html"
       },
       {
         "path": "encoding/textdecoder-fatal-streaming.html",
@@ -15790,20 +15784,12 @@
         "url": "/fetch/api/request/request-structure.html"
       },
       {
-        "path": "fetch/api/response/response-cancel-stream.html",
-        "url": "/fetch/api/response/response-cancel-stream.html"
-      },
-      {
         "path": "fetch/api/response/response-clone.html",
         "url": "/fetch/api/response/response-clone.html"
       },
       {
         "path": "fetch/api/response/response-consume-empty.html",
         "url": "/fetch/api/response/response-consume-empty.html"
-      },
-      {
-        "path": "fetch/api/response/response-consume-stream.html",
-        "url": "/fetch/api/response/response-consume-stream.html"
       },
       {
         "path": "fetch/api/response/response-consume.html",
@@ -15832,26 +15818,6 @@
       {
         "path": "fetch/api/response/response-static-redirect.html",
         "url": "/fetch/api/response/response-static-redirect.html"
-      },
-      {
-        "path": "fetch/api/response/response-stream-disturbed-1.html",
-        "url": "/fetch/api/response/response-stream-disturbed-1.html"
-      },
-      {
-        "path": "fetch/api/response/response-stream-disturbed-2.html",
-        "url": "/fetch/api/response/response-stream-disturbed-2.html"
-      },
-      {
-        "path": "fetch/api/response/response-stream-disturbed-3.html",
-        "url": "/fetch/api/response/response-stream-disturbed-3.html"
-      },
-      {
-        "path": "fetch/api/response/response-stream-disturbed-4.html",
-        "url": "/fetch/api/response/response-stream-disturbed-4.html"
-      },
-      {
-        "path": "fetch/api/response/response-stream-disturbed-5.html",
-        "url": "/fetch/api/response/response-stream-disturbed-5.html"
       },
       {
         "path": "fetch/nosniff/image.html",
@@ -16402,10 +16368,6 @@
         "url": "/html/browsers/history/the-history-interface/traverse_the_history_write_onload_2.html"
       },
       {
-        "path": "html/browsers/history/the-location-interface/allow_prototype_cycle_through_location.sub.html",
-        "url": "/html/browsers/history/the-location-interface/allow_prototype_cycle_through_location.sub.html"
-      },
-      {
         "path": "html/browsers/history/the-location-interface/assign_after_load.html",
         "url": "/html/browsers/history/the-location-interface/assign_after_load.html"
       },
@@ -16698,10 +16660,6 @@
         "url": "/html/browsers/windows/targeting-cross-origin-nested-browsing-contexts.sub.html"
       },
       {
-        "path": "html/dom/documents/dom-tree-accessors/Document.body.html",
-        "url": "/html/dom/documents/dom-tree-accessors/Document.body.html"
-      },
-      {
         "path": "html/dom/documents/dom-tree-accessors/Document.currentScript.sub.html",
         "url": "/html/dom/documents/dom-tree-accessors/Document.currentScript.sub.html"
       },
@@ -16712,6 +16670,14 @@
       {
         "path": "html/dom/documents/dom-tree-accessors/Element.getElementsByClassName-null-undef.html",
         "url": "/html/dom/documents/dom-tree-accessors/Element.getElementsByClassName-null-undef.html"
+      },
+      {
+        "path": "html/dom/documents/dom-tree-accessors/document.body-getter.html",
+        "url": "/html/dom/documents/dom-tree-accessors/document.body-getter.html"
+      },
+      {
+        "path": "html/dom/documents/dom-tree-accessors/document.body-setter-01.html",
+        "url": "/html/dom/documents/dom-tree-accessors/document.body-setter-01.html"
       },
       {
         "path": "html/dom/documents/dom-tree-accessors/document.embeds-document.plugins-01.html",
@@ -17566,16 +17532,8 @@
         "url": "/html/semantics/document-metadata/styling/LinkStyle.html"
       },
       {
-        "path": "html/semantics/document-metadata/the-base-element/base_about_blank.html",
-        "url": "/html/semantics/document-metadata/the-base-element/base_about_blank.html"
-      },
-      {
         "path": "html/semantics/document-metadata/the-base-element/base_href_empty.html",
         "url": "/html/semantics/document-metadata/the-base-element/base_href_empty.html"
-      },
-      {
-        "path": "html/semantics/document-metadata/the-base-element/base_href_invalid.html",
-        "url": "/html/semantics/document-metadata/the-base-element/base_href_invalid.html"
       },
       {
         "path": "html/semantics/document-metadata/the-base-element/base_href_specified.sub.html",
@@ -17588,10 +17546,6 @@
       {
         "path": "html/semantics/document-metadata/the-base-element/base_multiple.html",
         "url": "/html/semantics/document-metadata/the-base-element/base_multiple.html"
-      },
-      {
-        "path": "html/semantics/document-metadata/the-base-element/base_srcdoc.html",
-        "url": "/html/semantics/document-metadata/the-base-element/base_srcdoc.html"
       },
       {
         "path": "html/semantics/document-metadata/the-link-element/link-load-event.html",
@@ -18854,10 +18808,6 @@
         "url": "/html/semantics/embedded-content/the-embed-element/embed-ignored-in-media-element.html"
       },
       {
-        "path": "html/semantics/embedded-content/the-iframe-element/iframe-load-event.html",
-        "url": "/html/semantics/embedded-content/the-iframe-element/iframe-load-event.html"
-      },
-      {
         "path": "html/semantics/embedded-content/the-iframe-element/iframe_javascript_url_01.htm",
         "url": "/html/semantics/embedded-content/the-iframe-element/iframe_javascript_url_01.htm"
       },
@@ -19032,10 +18982,6 @@
       {
         "path": "html/semantics/forms/form-submission-0/getactionurl.html",
         "url": "/html/semantics/forms/form-submission-0/getactionurl.html"
-      },
-      {
-        "path": "html/semantics/forms/form-submission-0/submit-entity-body.html",
-        "url": "/html/semantics/forms/form-submission-0/submit-entity-body.html"
       },
       {
         "path": "html/semantics/forms/form-submission-0/url-encoded.html",
@@ -19530,10 +19476,6 @@
         "url": "/html/semantics/scripting-1/the-script-element/script-text.html"
       },
       {
-        "path": "html/semantics/scripting-1/the-script-element/scripting-enabled.html",
-        "url": "/html/semantics/scripting-1/the-script-element/scripting-enabled.html"
-      },
-      {
         "path": "html/semantics/scripting-1/the-template-element/additions-to-parsing-xhtml-documents/node-document.html",
         "url": "/html/semantics/scripting-1/the-template-element/additions-to-parsing-xhtml-documents/node-document.html"
       },
@@ -19938,16 +19880,8 @@
         "url": "/html/syntax/parsing/the-end.html"
       },
       {
-        "path": "html/syntax/serializing-html-fragments/initial-linefeed-pre.html",
-        "url": "/html/syntax/serializing-html-fragments/initial-linefeed-pre.html"
-      },
-      {
         "path": "html/syntax/serializing-html-fragments/outerHTML.html",
         "url": "/html/syntax/serializing-html-fragments/outerHTML.html"
-      },
-      {
-        "path": "html/syntax/serializing-html-fragments/serializing.html",
-        "url": "/html/syntax/serializing-html-fragments/serializing.html"
       },
       {
         "path": "html/syntax/serializing-xml-fragments/outerHTML.html",
@@ -20434,10 +20368,6 @@
         "url": "/media-source/mediasource-play.html"
       },
       {
-        "path": "media-source/mediasource-preload.html",
-        "url": "/media-source/mediasource-preload.html"
-      },
-      {
         "path": "media-source/mediasource-remove.html",
         "url": "/media-source/mediasource-remove.html"
       },
@@ -20504,10 +20434,6 @@
       {
         "path": "mediacapture-streams/MediaDevices-getUserMedia.html",
         "url": "/mediacapture-streams/MediaDevices-getUserMedia.html"
-      },
-      {
-        "path": "mediacapture-streams/MediaStream-MediaElement-preload-none.html",
-        "url": "/mediacapture-streams/MediaStream-MediaElement-preload-none.html"
       },
       {
         "path": "mediacapture-streams/MediaStream-MediaElement-srcObject.html",
@@ -22616,30 +22542,6 @@
       {
         "path": "performance-timeline/idlharness.html",
         "url": "/performance-timeline/idlharness.html"
-      },
-      {
-        "path": "performance-timeline/po-disconnect.html",
-        "url": "/performance-timeline/po-disconnect.html"
-      },
-      {
-        "path": "performance-timeline/po-getentries.html",
-        "url": "/performance-timeline/po-getentries.html"
-      },
-      {
-        "path": "performance-timeline/po-mark-measure.html",
-        "url": "/performance-timeline/po-mark-measure.html"
-      },
-      {
-        "path": "performance-timeline/po-navigation.html",
-        "url": "/performance-timeline/po-navigation.html"
-      },
-      {
-        "path": "performance-timeline/po-observe.html",
-        "url": "/performance-timeline/po-observe.html"
-      },
-      {
-        "path": "performance-timeline/po-resource.html",
-        "url": "/performance-timeline/po-resource.html"
       },
       {
         "path": "pointerevents/pointerevent_constructor.html",
@@ -27966,14 +27868,6 @@
         "url": "/screen-orientation/orientation-reading.html"
       },
       {
-        "path": "secure-contexts/basic-popup-and-iframe-tests.html",
-        "url": "/secure-contexts/basic-popup-and-iframe-tests.html"
-      },
-      {
-        "path": "secure-contexts/basic-popup-and-iframe-tests.https.html",
-        "url": "/secure-contexts/basic-popup-and-iframe-tests.https.html"
-      },
-      {
         "path": "selection/Document-open.html",
         "url": "/selection/Document-open.html"
       },
@@ -28214,10 +28108,6 @@
         "url": "/service-workers/service-worker/multiple-update.https.html"
       },
       {
-        "path": "service-workers/service-worker/navigate-window.https.html",
-        "url": "/service-workers/service-worker/navigate-window.https.html"
-      },
-      {
         "path": "service-workers/service-worker/navigation-redirect.https.html",
         "url": "/service-workers/service-worker/navigation-redirect.https.html"
       },
@@ -28374,10 +28264,6 @@
         "url": "/service-workers/service-worker/update-after-oneday.https.html"
       },
       {
-        "path": "service-workers/service-worker/update-recovery.https.html",
-        "url": "/service-workers/service-worker/update-recovery.https.html"
-      },
-      {
         "path": "service-workers/service-worker/update.https.html",
         "url": "/service-workers/service-worker/update.https.html"
       },
@@ -28398,18 +28284,6 @@
         "url": "/service-workers/service-worker/xhr.https.html"
       },
       {
-        "path": "shadow-dom/Document-prototype-adoptNode.html",
-        "url": "/shadow-dom/Document-prototype-adoptNode.html"
-      },
-      {
-        "path": "shadow-dom/Document-prototype-currentScript.html",
-        "url": "/shadow-dom/Document-prototype-currentScript.html"
-      },
-      {
-        "path": "shadow-dom/Document-prototype-importNode.html",
-        "url": "/shadow-dom/Document-prototype-importNode.html"
-      },
-      {
         "path": "shadow-dom/Element-interface-attachShadow.html",
         "url": "/shadow-dom/Element-interface-attachShadow.html"
       },
@@ -28418,16 +28292,16 @@
         "url": "/shadow-dom/Element-interface-shadowRoot-attribute.html"
       },
       {
-        "path": "shadow-dom/Node-prototype-cloneNode.html",
-        "url": "/shadow-dom/Node-prototype-cloneNode.html"
-      },
-      {
         "path": "shadow-dom/ShadowRoot-interface.html",
         "url": "/shadow-dom/ShadowRoot-interface.html"
       },
       {
         "path": "shadow-dom/leaktests/html-collection.html",
         "url": "/shadow-dom/leaktests/html-collection.html"
+      },
+      {
+        "path": "shadow-dom/styles/shadow-cascade-order.html",
+        "url": "/shadow-dom/styles/shadow-cascade-order.html"
       },
       {
         "path": "shadow-dom/untriaged/elements-and-dom-objects/extensions-to-element-interface/attributes/test-006.html",
@@ -28770,10 +28644,6 @@
         "url": "/touch-events/create-touch-touchlist.html"
       },
       {
-        "path": "touch-events/historical.html",
-        "url": "/touch-events/historical.html"
-      },
-      {
         "path": "touch-events/touch-globaleventhandler-interface.html",
         "url": "/touch-events/touch-globaleventhandler-interface.html"
       },
@@ -28808,66 +28678,6 @@
       {
         "path": "typedarrays/constructors.html",
         "url": "/typedarrays/constructors.html"
-      },
-      {
-        "path": "uievents/ClickFakeEvent.nondocument.html",
-        "url": "/uievents/ClickFakeEvent.nondocument.html"
-      },
-      {
-        "path": "uievents/constructors/constructors.html",
-        "url": "/uievents/constructors/constructors.html"
-      },
-      {
-        "path": "uievents/legacy-domevents-tests/approved/DOM.event.flow.html",
-        "url": "/uievents/legacy-domevents-tests/approved/DOM.event.flow.html"
-      },
-      {
-        "path": "uievents/legacy-domevents-tests/approved/EventListener.eventHandler.html",
-        "url": "/uievents/legacy-domevents-tests/approved/EventListener.eventHandler.html"
-      },
-      {
-        "path": "uievents/legacy-domevents-tests/approved/EventObject.multiple.dispatchEvent.html",
-        "url": "/uievents/legacy-domevents-tests/approved/EventObject.multiple.dispatchEvent.html"
-      },
-      {
-        "path": "uievents/legacy-domevents-tests/approved/ProcessingInstruction.DOMCharacterDataModified.html",
-        "url": "/uievents/legacy-domevents-tests/approved/ProcessingInstruction.DOMCharacterDataModified.html"
-      },
-      {
-        "path": "uievents/legacy-domevents-tests/approved/dispatchEvent.click.checkbox.html",
-        "url": "/uievents/legacy-domevents-tests/approved/dispatchEvent.click.checkbox.html"
-      },
-      {
-        "path": "uievents/legacy-domevents-tests/approved/domnodeinserted.html",
-        "url": "/uievents/legacy-domevents-tests/approved/domnodeinserted.html"
-      },
-      {
-        "path": "uievents/legacy-domevents-tests/approved/stopImmediatePropagation.effect.html",
-        "url": "/uievents/legacy-domevents-tests/approved/stopImmediatePropagation.effect.html"
-      },
-      {
-        "path": "uievents/legacy-domevents-tests/approved/stopPropagation.deferred.effect.html",
-        "url": "/uievents/legacy-domevents-tests/approved/stopPropagation.deferred.effect.html"
-      },
-      {
-        "path": "uievents/legacy-domevents-tests/submissions/Microsoft/converted/EventListener.dispatch.new.event.html",
-        "url": "/uievents/legacy-domevents-tests/submissions/Microsoft/converted/EventListener.dispatch.new.event.html"
-      },
-      {
-        "path": "uievents/order-of-events/event-phases-order.html",
-        "url": "/uievents/order-of-events/event-phases-order.html"
-      },
-      {
-        "path": "uievents/order-of-events/init-event-while-dispatching.html",
-        "url": "/uievents/order-of-events/init-event-while-dispatching.html"
-      },
-      {
-        "path": "uievents/throwing-in-listener-and-window-error-event.html",
-        "url": "/uievents/throwing-in-listener-and-window-error-event.html"
-      },
-      {
-        "path": "uievents/throwing-in-listener-when-all-have-not-run-yet.html",
-        "url": "/uievents/throwing-in-listener-when-all-have-not-run-yet.html"
       },
       {
         "path": "url/a-element-xhtml.xhtml",
@@ -29106,14 +28916,6 @@
         "url": "/web-animations/animation/reverse.html"
       },
       {
-        "path": "web-animations/animation/startTime.html",
-        "url": "/web-animations/animation/startTime.html"
-      },
-      {
-        "path": "web-animations/document/getAnimations.html",
-        "url": "/web-animations/document/getAnimations.html"
-      },
-      {
         "path": "web-animations/keyframe-effect/constructor.html",
         "url": "/web-animations/keyframe-effect/constructor.html"
       },
@@ -29122,36 +28924,20 @@
         "url": "/web-animations/keyframe-effect/effect-easing.html"
       },
       {
+        "path": "web-animations/keyframe-effect/getComputedTiming-currentIteration.html",
+        "url": "/web-animations/keyframe-effect/getComputedTiming-currentIteration.html"
+      },
+      {
+        "path": "web-animations/keyframe-effect/getComputedTiming-progress.html",
+        "url": "/web-animations/keyframe-effect/getComputedTiming-progress.html"
+      },
+      {
         "path": "web-animations/keyframe-effect/getComputedTiming.html",
         "url": "/web-animations/keyframe-effect/getComputedTiming.html"
       },
       {
         "path": "web-animations/keyframe-effect/keyframe-handling.html",
         "url": "/web-animations/keyframe-effect/keyframe-handling.html"
-      },
-      {
-        "path": "web-animations/keyframe-effect/setFrames.html",
-        "url": "/web-animations/keyframe-effect/setFrames.html"
-      },
-      {
-        "path": "web-animations/keyframe-effect/setTarget.html",
-        "url": "/web-animations/keyframe-effect/setTarget.html"
-      },
-      {
-        "path": "web-animations/timing-model/animation-effects/active-time.html",
-        "url": "/web-animations/timing-model/animation-effects/active-time.html"
-      },
-      {
-        "path": "web-animations/timing-model/animation-effects/current-iteration.html",
-        "url": "/web-animations/timing-model/animation-effects/current-iteration.html"
-      },
-      {
-        "path": "web-animations/timing-model/animation-effects/simple-iteration-progress.html",
-        "url": "/web-animations/timing-model/animation-effects/simple-iteration-progress.html"
-      },
-      {
-        "path": "web-animations/timing-model/animations/set-the-animation-start-time.html",
-        "url": "/web-animations/timing-model/animations/set-the-animation-start-time.html"
       },
       {
         "path": "webaudio/the-audio-api/the-audiobuffer-interface/idl-test.html",
@@ -32630,16 +32416,8 @@
         "url": "/websockets/binary/001.html"
       },
       {
-        "path": "websockets/binary/001.html",
-        "url": "/websockets/binary/001.html?wss"
-      },
-      {
         "path": "websockets/binary/005.html",
         "url": "/websockets/binary/005.html"
-      },
-      {
-        "path": "websockets/binary/005.html",
-        "url": "/websockets/binary/005.html?wss"
       },
       {
         "path": "websockets/binaryType-wrong-value.htm",
@@ -32650,24 +32428,12 @@
         "url": "/websockets/closing-handshake/002.html"
       },
       {
-        "path": "websockets/closing-handshake/002.html",
-        "url": "/websockets/closing-handshake/002.html?wss"
-      },
-      {
         "path": "websockets/closing-handshake/003.html",
         "url": "/websockets/closing-handshake/003.html"
       },
       {
-        "path": "websockets/closing-handshake/003.html",
-        "url": "/websockets/closing-handshake/003.html?wss"
-      },
-      {
         "path": "websockets/closing-handshake/004.html",
         "url": "/websockets/closing-handshake/004.html"
-      },
-      {
-        "path": "websockets/closing-handshake/004.html",
-        "url": "/websockets/closing-handshake/004.html?wss"
       },
       {
         "path": "websockets/constructor.html",
@@ -32678,184 +32444,92 @@
         "url": "/websockets/constructor/001.html"
       },
       {
-        "path": "websockets/constructor/001.html",
-        "url": "/websockets/constructor/001.html?wss"
-      },
-      {
         "path": "websockets/constructor/002.html",
         "url": "/websockets/constructor/002.html"
-      },
-      {
-        "path": "websockets/constructor/002.html",
-        "url": "/websockets/constructor/002.html?wss"
       },
       {
         "path": "websockets/constructor/004.html",
         "url": "/websockets/constructor/004.html"
       },
       {
-        "path": "websockets/constructor/004.html",
-        "url": "/websockets/constructor/004.html?wss"
-      },
-      {
         "path": "websockets/constructor/005.html",
         "url": "/websockets/constructor/005.html"
-      },
-      {
-        "path": "websockets/constructor/005.html",
-        "url": "/websockets/constructor/005.html?wss"
       },
       {
         "path": "websockets/constructor/006.html",
         "url": "/websockets/constructor/006.html"
       },
       {
-        "path": "websockets/constructor/006.html",
-        "url": "/websockets/constructor/006.html?wss"
-      },
-      {
         "path": "websockets/constructor/007.html",
         "url": "/websockets/constructor/007.html"
-      },
-      {
-        "path": "websockets/constructor/007.html",
-        "url": "/websockets/constructor/007.html?wss"
       },
       {
         "path": "websockets/constructor/008.html",
         "url": "/websockets/constructor/008.html"
       },
       {
-        "path": "websockets/constructor/008.html",
-        "url": "/websockets/constructor/008.html?wss"
-      },
-      {
         "path": "websockets/constructor/009.html",
         "url": "/websockets/constructor/009.html"
-      },
-      {
-        "path": "websockets/constructor/009.html",
-        "url": "/websockets/constructor/009.html?wss"
       },
       {
         "path": "websockets/constructor/010.html",
         "url": "/websockets/constructor/010.html"
       },
       {
-        "path": "websockets/constructor/010.html",
-        "url": "/websockets/constructor/010.html?wss"
-      },
-      {
         "path": "websockets/constructor/011.html",
         "url": "/websockets/constructor/011.html"
-      },
-      {
-        "path": "websockets/constructor/011.html",
-        "url": "/websockets/constructor/011.html?wss"
       },
       {
         "path": "websockets/constructor/012.html",
         "url": "/websockets/constructor/012.html"
       },
       {
-        "path": "websockets/constructor/012.html",
-        "url": "/websockets/constructor/012.html?wss"
-      },
-      {
         "path": "websockets/constructor/016.html",
         "url": "/websockets/constructor/016.html"
-      },
-      {
-        "path": "websockets/constructor/016.html",
-        "url": "/websockets/constructor/016.html?wss"
       },
       {
         "path": "websockets/constructor/017.html",
         "url": "/websockets/constructor/017.html"
       },
       {
-        "path": "websockets/constructor/017.html",
-        "url": "/websockets/constructor/017.html?wss"
-      },
-      {
         "path": "websockets/constructor/018.html",
         "url": "/websockets/constructor/018.html"
-      },
-      {
-        "path": "websockets/constructor/018.html",
-        "url": "/websockets/constructor/018.html?wss"
       },
       {
         "path": "websockets/constructor/019.html",
         "url": "/websockets/constructor/019.html"
       },
       {
-        "path": "websockets/constructor/019.html",
-        "url": "/websockets/constructor/019.html?wss"
-      },
-      {
         "path": "websockets/constructor/020.html",
         "url": "/websockets/constructor/020.html"
-      },
-      {
-        "path": "websockets/constructor/020.html",
-        "url": "/websockets/constructor/020.html?wss"
       },
       {
         "path": "websockets/constructor/021.html",
         "url": "/websockets/constructor/021.html"
       },
       {
-        "path": "websockets/constructor/021.html",
-        "url": "/websockets/constructor/021.html?wss"
-      },
-      {
         "path": "websockets/constructor/022.html",
         "url": "/websockets/constructor/022.html"
-      },
-      {
-        "path": "websockets/constructor/022.html",
-        "url": "/websockets/constructor/022.html?wss"
       },
       {
         "path": "websockets/cookies/001.html",
         "url": "/websockets/cookies/001.html"
       },
       {
-        "path": "websockets/cookies/001.html",
-        "url": "/websockets/cookies/001.html?wss"
-      },
-      {
         "path": "websockets/cookies/002.html",
         "url": "/websockets/cookies/002.html"
-      },
-      {
-        "path": "websockets/cookies/002.html",
-        "url": "/websockets/cookies/002.html?wss"
       },
       {
         "path": "websockets/cookies/003.html",
         "url": "/websockets/cookies/003.html"
       },
       {
-        "path": "websockets/cookies/003.html",
-        "url": "/websockets/cookies/003.html?wss"
-      },
-      {
         "path": "websockets/cookies/004.html",
         "url": "/websockets/cookies/004.html"
       },
       {
-        "path": "websockets/cookies/004.html",
-        "url": "/websockets/cookies/004.html?wss"
-      },
-      {
         "path": "websockets/cookies/006.html",
         "url": "/websockets/cookies/006.html"
-      },
-      {
-        "path": "websockets/cookies/006.html",
-        "url": "/websockets/cookies/006.html?wss"
       },
       {
         "path": "websockets/eventhandlers.html",
@@ -32864,10 +32538,6 @@
       {
         "path": "websockets/interfaces/CloseEvent/clean-close.html",
         "url": "/websockets/interfaces/CloseEvent/clean-close.html"
-      },
-      {
-        "path": "websockets/interfaces/CloseEvent/clean-close.html",
-        "url": "/websockets/interfaces/CloseEvent/clean-close.html?wss"
       },
       {
         "path": "websockets/interfaces/CloseEvent/constructor.html",
@@ -32882,552 +32552,276 @@
         "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-arraybuffer.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-arraybuffer.html",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-arraybuffer.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-blob.html",
         "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-blob.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-blob.html",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-blob.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-defineProperty-getter.html",
         "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-defineProperty-getter.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-defineProperty-getter.html",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-defineProperty-getter.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-defineProperty-setter.html",
         "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-defineProperty-setter.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-defineProperty-setter.html",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-defineProperty-setter.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-deleting.html",
         "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-deleting.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-deleting.html",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-deleting.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-getting.html",
         "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-getting.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-getting.html",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-getting.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-initial.html",
         "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-initial.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-initial.html",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-initial.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-readonly.html",
         "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-readonly.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-readonly.html",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-readonly.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-unicode.html",
         "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-unicode.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-unicode.html",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-unicode.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/close/close-basic.html",
         "url": "/websockets/interfaces/WebSocket/close/close-basic.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/close/close-basic.html",
-        "url": "/websockets/interfaces/WebSocket/close/close-basic.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/close/close-multiple.html",
         "url": "/websockets/interfaces/WebSocket/close/close-multiple.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/close/close-multiple.html",
-        "url": "/websockets/interfaces/WebSocket/close/close-multiple.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/close/close-nested.html",
         "url": "/websockets/interfaces/WebSocket/close/close-nested.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/close/close-nested.html",
-        "url": "/websockets/interfaces/WebSocket/close/close-nested.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/close/close-replace.html",
         "url": "/websockets/interfaces/WebSocket/close/close-replace.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/close/close-replace.html",
-        "url": "/websockets/interfaces/WebSocket/close/close-replace.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/close/close-return.html",
         "url": "/websockets/interfaces/WebSocket/close/close-return.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/close/close-return.html",
-        "url": "/websockets/interfaces/WebSocket/close/close-return.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/constants/001.html",
         "url": "/websockets/interfaces/WebSocket/constants/001.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/constants/001.html",
-        "url": "/websockets/interfaces/WebSocket/constants/001.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/constants/002.html",
         "url": "/websockets/interfaces/WebSocket/constants/002.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/constants/002.html",
-        "url": "/websockets/interfaces/WebSocket/constants/002.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/constants/003.html",
         "url": "/websockets/interfaces/WebSocket/constants/003.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/constants/003.html",
-        "url": "/websockets/interfaces/WebSocket/constants/003.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/constants/004.html",
         "url": "/websockets/interfaces/WebSocket/constants/004.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/constants/004.html",
-        "url": "/websockets/interfaces/WebSocket/constants/004.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/constants/005.html",
         "url": "/websockets/interfaces/WebSocket/constants/005.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/constants/005.html",
-        "url": "/websockets/interfaces/WebSocket/constants/005.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/constants/006.html",
         "url": "/websockets/interfaces/WebSocket/constants/006.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/constants/006.html",
-        "url": "/websockets/interfaces/WebSocket/constants/006.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/events/001.html",
         "url": "/websockets/interfaces/WebSocket/events/001.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/events/001.html",
-        "url": "/websockets/interfaces/WebSocket/events/001.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/events/002.html",
         "url": "/websockets/interfaces/WebSocket/events/002.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/events/002.html",
-        "url": "/websockets/interfaces/WebSocket/events/002.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/events/003.html",
         "url": "/websockets/interfaces/WebSocket/events/003.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/events/003.html",
-        "url": "/websockets/interfaces/WebSocket/events/003.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/events/004.html",
         "url": "/websockets/interfaces/WebSocket/events/004.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/events/004.html",
-        "url": "/websockets/interfaces/WebSocket/events/004.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/events/006.html",
         "url": "/websockets/interfaces/WebSocket/events/006.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/events/006.html",
-        "url": "/websockets/interfaces/WebSocket/events/006.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/events/007.html",
         "url": "/websockets/interfaces/WebSocket/events/007.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/events/007.html",
-        "url": "/websockets/interfaces/WebSocket/events/007.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/events/008.html",
         "url": "/websockets/interfaces/WebSocket/events/008.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/events/008.html",
-        "url": "/websockets/interfaces/WebSocket/events/008.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/events/009.html",
         "url": "/websockets/interfaces/WebSocket/events/009.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/events/009.html",
-        "url": "/websockets/interfaces/WebSocket/events/009.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/events/010.html",
         "url": "/websockets/interfaces/WebSocket/events/010.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/events/010.html",
-        "url": "/websockets/interfaces/WebSocket/events/010.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/events/011.html",
         "url": "/websockets/interfaces/WebSocket/events/011.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/events/011.html",
-        "url": "/websockets/interfaces/WebSocket/events/011.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/events/012.html",
         "url": "/websockets/interfaces/WebSocket/events/012.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/events/012.html",
-        "url": "/websockets/interfaces/WebSocket/events/012.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/events/013.html",
         "url": "/websockets/interfaces/WebSocket/events/013.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/events/013.html",
-        "url": "/websockets/interfaces/WebSocket/events/013.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/events/014.html",
         "url": "/websockets/interfaces/WebSocket/events/014.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/events/014.html",
-        "url": "/websockets/interfaces/WebSocket/events/014.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/events/015.html",
         "url": "/websockets/interfaces/WebSocket/events/015.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/events/015.html",
-        "url": "/websockets/interfaces/WebSocket/events/015.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/events/016.html",
         "url": "/websockets/interfaces/WebSocket/events/016.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/events/016.html",
-        "url": "/websockets/interfaces/WebSocket/events/016.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/events/017.html",
         "url": "/websockets/interfaces/WebSocket/events/017.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/events/017.html",
-        "url": "/websockets/interfaces/WebSocket/events/017.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/events/018.html",
         "url": "/websockets/interfaces/WebSocket/events/018.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/events/018.html",
-        "url": "/websockets/interfaces/WebSocket/events/018.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/events/019.html",
         "url": "/websockets/interfaces/WebSocket/events/019.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/events/019.html",
-        "url": "/websockets/interfaces/WebSocket/events/019.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/events/020.html",
         "url": "/websockets/interfaces/WebSocket/events/020.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/events/020.html",
-        "url": "/websockets/interfaces/WebSocket/events/020.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/extensions/001.html",
         "url": "/websockets/interfaces/WebSocket/extensions/001.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/extensions/001.html",
-        "url": "/websockets/interfaces/WebSocket/extensions/001.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/protocol/protocol-initial.html",
         "url": "/websockets/interfaces/WebSocket/protocol/protocol-initial.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/protocol/protocol-initial.html",
-        "url": "/websockets/interfaces/WebSocket/protocol/protocol-initial.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/readyState/001.html",
         "url": "/websockets/interfaces/WebSocket/readyState/001.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/readyState/001.html",
-        "url": "/websockets/interfaces/WebSocket/readyState/001.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/readyState/002.html",
         "url": "/websockets/interfaces/WebSocket/readyState/002.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/readyState/002.html",
-        "url": "/websockets/interfaces/WebSocket/readyState/002.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/readyState/003.html",
         "url": "/websockets/interfaces/WebSocket/readyState/003.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/readyState/003.html",
-        "url": "/websockets/interfaces/WebSocket/readyState/003.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/readyState/004.html",
         "url": "/websockets/interfaces/WebSocket/readyState/004.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/readyState/004.html",
-        "url": "/websockets/interfaces/WebSocket/readyState/004.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/readyState/005.html",
         "url": "/websockets/interfaces/WebSocket/readyState/005.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/readyState/005.html",
-        "url": "/websockets/interfaces/WebSocket/readyState/005.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/readyState/006.html",
         "url": "/websockets/interfaces/WebSocket/readyState/006.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/readyState/006.html",
-        "url": "/websockets/interfaces/WebSocket/readyState/006.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/readyState/007.html",
         "url": "/websockets/interfaces/WebSocket/readyState/007.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/readyState/007.html",
-        "url": "/websockets/interfaces/WebSocket/readyState/007.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/readyState/008.html",
         "url": "/websockets/interfaces/WebSocket/readyState/008.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/readyState/008.html",
-        "url": "/websockets/interfaces/WebSocket/readyState/008.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/send/001.html",
         "url": "/websockets/interfaces/WebSocket/send/001.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/send/001.html",
-        "url": "/websockets/interfaces/WebSocket/send/001.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/send/002.html",
         "url": "/websockets/interfaces/WebSocket/send/002.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/send/002.html",
-        "url": "/websockets/interfaces/WebSocket/send/002.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/send/003.html",
         "url": "/websockets/interfaces/WebSocket/send/003.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/send/003.html",
-        "url": "/websockets/interfaces/WebSocket/send/003.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/send/004.html",
         "url": "/websockets/interfaces/WebSocket/send/004.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/send/004.html",
-        "url": "/websockets/interfaces/WebSocket/send/004.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/send/005.html",
         "url": "/websockets/interfaces/WebSocket/send/005.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/send/005.html",
-        "url": "/websockets/interfaces/WebSocket/send/005.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/send/006.html",
         "url": "/websockets/interfaces/WebSocket/send/006.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/send/006.html",
-        "url": "/websockets/interfaces/WebSocket/send/006.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/send/007.html",
         "url": "/websockets/interfaces/WebSocket/send/007.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/send/007.html",
-        "url": "/websockets/interfaces/WebSocket/send/007.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/send/008.html",
         "url": "/websockets/interfaces/WebSocket/send/008.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/send/008.html",
-        "url": "/websockets/interfaces/WebSocket/send/008.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/send/009.html",
         "url": "/websockets/interfaces/WebSocket/send/009.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/send/009.html",
-        "url": "/websockets/interfaces/WebSocket/send/009.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/send/010.html",
         "url": "/websockets/interfaces/WebSocket/send/010.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/send/010.html",
-        "url": "/websockets/interfaces/WebSocket/send/010.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/send/011.html",
         "url": "/websockets/interfaces/WebSocket/send/011.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/send/011.html",
-        "url": "/websockets/interfaces/WebSocket/send/011.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/send/012.html",
         "url": "/websockets/interfaces/WebSocket/send/012.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/send/012.html",
-        "url": "/websockets/interfaces/WebSocket/send/012.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/url/001.html",
         "url": "/websockets/interfaces/WebSocket/url/001.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/url/001.html",
-        "url": "/websockets/interfaces/WebSocket/url/001.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/url/002.html",
         "url": "/websockets/interfaces/WebSocket/url/002.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/url/002.html",
-        "url": "/websockets/interfaces/WebSocket/url/002.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/url/003.html",
         "url": "/websockets/interfaces/WebSocket/url/003.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/url/003.html",
-        "url": "/websockets/interfaces/WebSocket/url/003.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/url/004.html",
         "url": "/websockets/interfaces/WebSocket/url/004.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/url/004.html",
-        "url": "/websockets/interfaces/WebSocket/url/004.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/url/005.html",
         "url": "/websockets/interfaces/WebSocket/url/005.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/url/005.html",
-        "url": "/websockets/interfaces/WebSocket/url/005.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/url/006.html",
         "url": "/websockets/interfaces/WebSocket/url/006.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/url/006.html",
-        "url": "/websockets/interfaces/WebSocket/url/006.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/url/resolve.html",
         "url": "/websockets/interfaces/WebSocket/url/resolve.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/url/resolve.html",
-        "url": "/websockets/interfaces/WebSocket/url/resolve.html?wss"
-      },
-      {
         "path": "websockets/opening-handshake/001.html",
         "url": "/websockets/opening-handshake/001.html"
-      },
-      {
-        "path": "websockets/opening-handshake/001.html",
-        "url": "/websockets/opening-handshake/001.html?wss"
       },
       {
         "path": "websockets/opening-handshake/003-sets-origin.worker.js",
@@ -33438,40 +32832,20 @@
         "url": "/websockets/opening-handshake/003.html"
       },
       {
-        "path": "websockets/opening-handshake/003.html",
-        "url": "/websockets/opening-handshake/003.html?wss"
-      },
-      {
         "path": "websockets/opening-handshake/005.html",
         "url": "/websockets/opening-handshake/005.html"
-      },
-      {
-        "path": "websockets/opening-handshake/005.html",
-        "url": "/websockets/opening-handshake/005.html?wss"
       },
       {
         "path": "websockets/security/001.html",
         "url": "/websockets/security/001.html"
       },
       {
-        "path": "websockets/security/001.html",
-        "url": "/websockets/security/001.html?wss"
-      },
-      {
         "path": "websockets/security/002.html",
         "url": "/websockets/security/002.html"
       },
       {
-        "path": "websockets/security/002.html",
-        "url": "/websockets/security/002.html?wss"
-      },
-      {
         "path": "websockets/unload-a-document/001.html",
         "url": "/websockets/unload-a-document/001.html"
-      },
-      {
-        "path": "websockets/unload-a-document/001.html",
-        "url": "/websockets/unload-a-document/001.html?wss"
       },
       {
         "path": "websockets/unload-a-document/003.html",
@@ -34486,19 +33860,19 @@
         "url": "/cors/status-async.htm"
       },
       {
-        "path": "custom-elements/v0/concepts/custom-elements-type-allowed-chars-first-char.html",
+        "path": "custom-elements/concepts/custom-elements-type-allowed-chars-first-char.html",
         "timeout": "long",
-        "url": "/custom-elements/v0/concepts/custom-elements-type-allowed-chars-first-char.html"
+        "url": "/custom-elements/concepts/custom-elements-type-allowed-chars-first-char.html"
       },
       {
-        "path": "custom-elements/v0/concepts/custom-elements-type-allowed-chars.html",
+        "path": "custom-elements/concepts/custom-elements-type-allowed-chars.html",
         "timeout": "long",
-        "url": "/custom-elements/v0/concepts/custom-elements-type-allowed-chars.html"
+        "url": "/custom-elements/concepts/custom-elements-type-allowed-chars.html"
       },
       {
-        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attached-callback-test.html",
+        "path": "custom-elements/custom-element-lifecycle/types-of-callbacks/attached-callback-test.html",
         "timeout": "long",
-        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attached-callback-test.html"
+        "url": "/custom-elements/custom-element-lifecycle/types-of-callbacks/attached-callback-test.html"
       },
       {
         "path": "dom/nodes/Document-characterSet-normalization.html",
@@ -35766,19 +35140,9 @@
         "url": "/websockets/binary/002.html"
       },
       {
-        "path": "websockets/binary/002.html",
-        "timeout": "long",
-        "url": "/websockets/binary/002.html?wss"
-      },
-      {
         "path": "websockets/binary/004.html",
         "timeout": "long",
         "url": "/websockets/binary/004.html"
-      },
-      {
-        "path": "websockets/binary/004.html",
-        "timeout": "long",
-        "url": "/websockets/binary/004.html?wss"
       },
       {
         "path": "websockets/constructor/013.html",
@@ -35786,19 +35150,9 @@
         "url": "/websockets/constructor/013.html"
       },
       {
-        "path": "websockets/constructor/013.html",
-        "timeout": "long",
-        "url": "/websockets/constructor/013.html?wss"
-      },
-      {
         "path": "websockets/constructor/014.html",
         "timeout": "long",
         "url": "/websockets/constructor/014.html"
-      },
-      {
-        "path": "websockets/constructor/014.html",
-        "timeout": "long",
-        "url": "/websockets/constructor/014.html?wss"
       },
       {
         "path": "websockets/cookies/005.html",
@@ -35806,19 +35160,9 @@
         "url": "/websockets/cookies/005.html"
       },
       {
-        "path": "websockets/cookies/005.html",
-        "timeout": "long",
-        "url": "/websockets/cookies/005.html?wss"
-      },
-      {
         "path": "websockets/cookies/007.html",
         "timeout": "long",
         "url": "/websockets/cookies/007.html"
-      },
-      {
-        "path": "websockets/cookies/007.html",
-        "timeout": "long",
-        "url": "/websockets/cookies/007.html?wss"
       },
       {
         "path": "websockets/extended-payload-length.html",
@@ -35826,19 +35170,9 @@
         "url": "/websockets/extended-payload-length.html"
       },
       {
-        "path": "websockets/extended-payload-length.html",
-        "timeout": "long",
-        "url": "/websockets/extended-payload-length.html?wss"
-      },
-      {
         "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-large.html",
         "timeout": "long",
         "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-large.html"
-      },
-      {
-        "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-large.html",
-        "timeout": "long",
-        "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-large.html?wss"
       },
       {
         "path": "websockets/interfaces/WebSocket/close/close-connecting.html",
@@ -35846,19 +35180,9 @@
         "url": "/websockets/interfaces/WebSocket/close/close-connecting.html"
       },
       {
-        "path": "websockets/interfaces/WebSocket/close/close-connecting.html",
-        "timeout": "long",
-        "url": "/websockets/interfaces/WebSocket/close/close-connecting.html?wss"
-      },
-      {
         "path": "websockets/keeping-connection-open/001.html",
         "timeout": "long",
         "url": "/websockets/keeping-connection-open/001.html"
-      },
-      {
-        "path": "websockets/keeping-connection-open/001.html",
-        "timeout": "long",
-        "url": "/websockets/keeping-connection-open/001.html?wss"
       },
       {
         "path": "websockets/opening-handshake/002.html",
@@ -35866,19 +35190,9 @@
         "url": "/websockets/opening-handshake/002.html"
       },
       {
-        "path": "websockets/opening-handshake/002.html",
-        "timeout": "long",
-        "url": "/websockets/opening-handshake/002.html?wss"
-      },
-      {
         "path": "websockets/unload-a-document/002.html",
         "timeout": "long",
         "url": "/websockets/unload-a-document/002.html"
-      },
-      {
-        "path": "websockets/unload-a-document/002.html",
-        "timeout": "long",
-        "url": "/websockets/unload-a-document/002.html?wss"
       },
       {
         "path": "websockets/unload-a-document/004.html",
@@ -35889,11 +35203,6 @@
         "path": "websockets/unload-a-document/005.html",
         "timeout": "long",
         "url": "/websockets/unload-a-document/005.html"
-      },
-      {
-        "path": "websockets/unload-a-document/005.html",
-        "timeout": "long",
-        "url": "/websockets/unload-a-document/005.html?wss"
       },
       {
         "path": "webstorage/event_basic.html",
@@ -35926,18 +35235,1829 @@
         "url": "/webstorage/storage_session_setitem_quotaexceedederr.html"
       }
     ],
-    "wdspec": [
-      {
-        "path": "webdriver/navigation.py",
-        "url": "/webdriver/navigation.py"
-      }
-    ]
+    "wdspec": []
   },
   "local_changes": {
-    "deleted": [],
-    "deleted_reftests": {},
-    "items": {},
-    "reftest_nodes": {}
+    "deleted": [
+      "custom-elements/registering-custom-elements/unresolved-elements-interface-html-element.html",
+      "custom-elements/creating-and-passing-registries/share-registry-import-document.html",
+      "custom-elements/registering-custom-elements/unresolved-elements-interface-html-unknown-element.html",
+      "DOMEvents/tests/approved/stopImmediatePropagation.effect.html",
+      "DOMEvents/tests/approved/EventListener.eventHandler.html",
+      "custom-elements/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-order-test.html",
+      "shadow-dom/styles/shadow-cascade-order.html",
+      "custom-elements/instantiating-custom-elements/custom-element-type-local-name.html",
+      "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-interface-type-is-a-type-extension.html",
+      "custom-elements/custom-element-lifecycle/types-of-callbacks/detached-callback-with-browsing-context-test.html",
+      "DOMEvents/throwing-in-listener-and-window-error-event.html",
+      "custom-elements/instantiating-custom-elements/custom-element-constructor-is-attribute.html",
+      "custom-elements/instantiating-custom-elements/custom-element-constructor-prototype.html",
+      "DOMEvents/tests/submissions/Microsoft/converted/DOM.event.flow.html",
+      "custom-elements/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-test.html",
+      "custom-elements/instantiating-custom-elements/changing-is-attribute.html",
+      "DOMEvents/tests/approved/domnodeinserted.html",
+      "html/dom/documents/dom-tree-accessors/document.body-setter-01.html",
+      "DOMEvents/tests/submissions/Microsoft/converted/EventListener.dispatch.new.event.html",
+      "DOMEvents/tests/submissions/Microsoft/converted/dispatchEvent.click.checkbox.html",
+      "DOMEvents/tests/approved/EventObject.multiple.dispatchEvent.html",
+      "custom-elements/registering-custom-elements/extensions-to-document-interface/custom-element-name.html",
+      "DOMEvents/event-phases-order.html",
+      "custom-elements/creating-and-passing-registries/no-registry-test.html",
+      "custom-elements/custom-element-lifecycle/types-of-callbacks/detached-callback-no-browsing-context-test.html",
+      "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector-all.html",
+      "custom-elements/custom-element-lifecycle/types-of-callbacks/detached-callback-move-element-test.html",
+      "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-type-extension-is-a-type.html",
+      "custom-elements/registering-custom-elements/definition-construction-algorithm-default-namespace.html",
+      "web-animations/keyframe-effect/getComputedTiming-progress.html",
+      "custom-elements/custom-element-lifecycle/enqueuing-and-invoking-callbacks/invoke-callbacks.html",
+      "custom-elements/creating-and-passing-registries/new-registry-test.html",
+      "DOMEvents/tests/submissions/Microsoft/converted/stopImmediatePropagation.effect.html",
+      "custom-elements/instantiating-custom-elements/custom-element-constructor-node-document.html",
+      "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-type-is-a-local-name.html",
+      "custom-elements/instantiating-custom-elements/extensions-to-document-interface/created-callback-create-element-ns.html",
+      "custom-elements/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-remove-attribute-test.html",
+      "DOMEvents/constructors.html",
+      "custom-elements/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-set-attribute-test.html",
+      "custom-elements/custom-element-lifecycle/types-of-callbacks/attached-callback-test.html",
+      "DOMEvents/tests/submissions/Microsoft/converted/EventListener.eventHandler.html",
+      "custom-elements/registering-custom-elements/definition-construction-algorithm-svg-namespace.html",
+      "DOMEvents/tests/submissions/Microsoft/converted/EventObject.multiple.dispatchEvent.html",
+      "custom-elements/registering-custom-elements/definition-construction-algorithm-local-name-lowercased.html",
+      "DOMEvents/tests/submissions/Microsoft/converted/domnodeinserted.html",
+      "custom-elements/instantiating-custom-elements/extensions-to-document-interface/created-callback-create-element.html",
+      "custom-elements/registering-custom-elements/definition-construction-algorithm-no-interface-for-name.html",
+      "custom-elements/registering-custom-elements/definition-construction-algorithm-name-is-null.html",
+      "custom-elements/concepts/custom-elements-type-naming.html",
+      "custom-elements/concepts/custom-elements-type-allowed-chars.html",
+      "custom-elements/registering-custom-elements/element-registration-algorithm-no-registry.html",
+      "DOMEvents/tests/submissions/Microsoft/converted/stopPropagation.deferred.effect.html",
+      "custom-elements/registering-custom-elements/extensions-to-document-interface/custom-element-prototype.html",
+      "custom-elements/registering-custom-elements/definition-construction-algorithm-duplicate-definition.html",
+      "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-type-extension-unresolved.html",
+      "custom-elements/instantiating-custom-elements/custom-element-prototype.html",
+      "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html",
+      "html/dom/documents/dom-tree-accessors/document.body-getter.html",
+      "custom-elements/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-change-attribute-test.html",
+      "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html",
+      "custom-elements/concepts/custom-elements-type-allowed-chars-first-char.html",
+      "custom-elements/instantiating-custom-elements/custom-element-type-local-name-and-is-attribute.html",
+      "custom-elements/instantiating-custom-elements/custom-element-constructor-namespace.html",
+      "DOMEvents/tests/submissions/Microsoft/converted/ProcessingInstruction.DOMCharacterDataModified.html",
+      "custom-elements/instantiating-custom-elements/custom-element-type-is-attribute.html",
+      "DOMEvents/init-event-while-dispatching.html",
+      "custom-elements/instantiating-custom-elements/non-configurable-constructor-property.html",
+      "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-namespace.html",
+      "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-is-attribute.html",
+      "custom-elements/registering-custom-elements/definition-construction-algorithm-invalid-type.html",
+      "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html",
+      "custom-elements/instantiating-custom-elements/extensions-to-document-interface/create-element-interface-type-is-a-local-name.html",
+      "DOMEvents/tests/approved/dispatchEvent.click.checkbox.html",
+      "custom-elements/registering-custom-elements/unresolved-elements-interface-svg-element.html",
+      "custom-elements/custom-element-lifecycle/types-of-callbacks/created-callback-element-prototype-test.html",
+      "custom-elements/registering-custom-elements/definition-construction-algorithm-svg-namespace-name-is-null.html",
+      "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html",
+      "DOMEvents/ClickFakeEvent.nondocument.html",
+      "DOMEvents/throwing-in-listener-when-all-have-not-run-yet.html",
+      "DOMEvents/tests/approved/DOM.event.flow.html",
+      "custom-elements/creating-and-passing-registries/share-registry-create-document.html",
+      "custom-elements/instantiating-custom-elements/unchanged-attribute.html",
+      "custom-elements/registering-custom-elements/definition-construction-algorithm-type-name-lowercased.html",
+      "DOMEvents/tests/approved/stopPropagation.deferred.effect.html",
+      "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector.html",
+      "custom-elements/instantiating-custom-elements/custom-element-constructor-local-name.html",
+      "web-animations/keyframe-effect/getComputedTiming-currentIteration.html",
+      "DOMEvents/tests/approved/ProcessingInstruction.DOMCharacterDataModified.html",
+      "custom-elements/instantiating-custom-elements/prototype-is-interface-prototype-object.html",
+      "custom-elements/custom-element-lifecycle/types-of-callbacks/attached-callback-move-element-test.html"
+    ],
+    "deleted_reftests": {
+      "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html": [
+        {
+          "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html",
+          "references": [
+            [
+              "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html"
+        }
+      ],
+      "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html": [
+        {
+          "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html",
+          "references": [
+            [
+              "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html"
+        }
+      ],
+      "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html": [
+        {
+          "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html",
+          "references": [
+            [
+              "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html"
+        }
+      ],
+      "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html": [
+        {
+          "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html",
+          "references": [
+            [
+              "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html"
+        }
+      ]
+    },
+    "items": {
+      "manual": {
+        "uievents/keyboard/key-101en-us-manual.html": [
+          {
+            "path": "uievents/keyboard/key-101en-us-manual.html",
+            "url": "/uievents/keyboard/key-101en-us-manual.html"
+          }
+        ],
+        "uievents/keyboard/key-102fr-fr-manual.html": [
+          {
+            "path": "uievents/keyboard/key-102fr-fr-manual.html",
+            "url": "/uievents/keyboard/key-102fr-fr-manual.html"
+          }
+        ],
+        "uievents/keyboard/key-manual.css": [
+          {
+            "path": "uievents/keyboard/key-manual.css",
+            "url": "/uievents/keyboard/key-manual.css"
+          }
+        ],
+        "uievents/keyboard/key-manual.js": [
+          {
+            "path": "uievents/keyboard/key-manual.js",
+            "url": "/uievents/keyboard/key-manual.js"
+          }
+        ]
+      },
+      "reftest": {
+        "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html": [
+          {
+            "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html",
+            "references": [
+              [
+                "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html"
+          }
+        ],
+        "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html": [
+          {
+            "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html",
+            "references": [
+              [
+                "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html"
+          }
+        ],
+        "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html": [
+          {
+            "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html",
+            "references": [
+              [
+                "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html"
+          }
+        ],
+        "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html": [
+          {
+            "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html",
+            "references": [
+              [
+                "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension-ref.html",
+                "=="
+              ]
+            ],
+            "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html"
+          }
+        ],
+        "html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_without_context_a.html": [
+          {
+            "path": "html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_without_context_a.html",
+            "references": [
+              [
+                "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_without_context_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_without_context_a.html"
+          }
+        ]
+      },
+      "testharness": {
+        "IndexedDB/idbcursor_update_index8.htm": [
+          {
+            "path": "IndexedDB/idbcursor_update_index8.htm",
+            "url": "/IndexedDB/idbcursor_update_index8.htm"
+          }
+        ],
+        "IndexedDB/idbcursor_update_objectstore9.htm": [
+          {
+            "path": "IndexedDB/idbcursor_update_objectstore9.htm",
+            "url": "/IndexedDB/idbcursor_update_objectstore9.htm"
+          }
+        ],
+        "XMLHttpRequest/open-url-multi-window-6.htm": [
+          {
+            "path": "XMLHttpRequest/open-url-multi-window-6.htm",
+            "url": "/XMLHttpRequest/open-url-multi-window-6.htm"
+          }
+        ],
+        "content-security-policy/generic/no-default-src.sub.html": [
+          {
+            "path": "content-security-policy/generic/no-default-src.sub.html",
+            "url": "/content-security-policy/generic/no-default-src.sub.html"
+          }
+        ],
+        "custom-elements/v0/concepts/custom-elements-type-allowed-chars-first-char.html": [
+          {
+            "path": "custom-elements/v0/concepts/custom-elements-type-allowed-chars-first-char.html",
+            "timeout": "long",
+            "url": "/custom-elements/v0/concepts/custom-elements-type-allowed-chars-first-char.html"
+          }
+        ],
+        "custom-elements/v0/concepts/custom-elements-type-allowed-chars.html": [
+          {
+            "path": "custom-elements/v0/concepts/custom-elements-type-allowed-chars.html",
+            "timeout": "long",
+            "url": "/custom-elements/v0/concepts/custom-elements-type-allowed-chars.html"
+          }
+        ],
+        "custom-elements/v0/concepts/custom-elements-type-naming.html": [
+          {
+            "path": "custom-elements/v0/concepts/custom-elements-type-naming.html",
+            "url": "/custom-elements/v0/concepts/custom-elements-type-naming.html"
+          }
+        ],
+        "custom-elements/v0/creating-and-passing-registries/new-registry-test.html": [
+          {
+            "path": "custom-elements/v0/creating-and-passing-registries/new-registry-test.html",
+            "url": "/custom-elements/v0/creating-and-passing-registries/new-registry-test.html"
+          }
+        ],
+        "custom-elements/v0/creating-and-passing-registries/no-registry-test.html": [
+          {
+            "path": "custom-elements/v0/creating-and-passing-registries/no-registry-test.html",
+            "url": "/custom-elements/v0/creating-and-passing-registries/no-registry-test.html"
+          }
+        ],
+        "custom-elements/v0/creating-and-passing-registries/share-registry-create-document.html": [
+          {
+            "path": "custom-elements/v0/creating-and-passing-registries/share-registry-create-document.html",
+            "url": "/custom-elements/v0/creating-and-passing-registries/share-registry-create-document.html"
+          }
+        ],
+        "custom-elements/v0/creating-and-passing-registries/share-registry-import-document.html": [
+          {
+            "path": "custom-elements/v0/creating-and-passing-registries/share-registry-import-document.html",
+            "url": "/custom-elements/v0/creating-and-passing-registries/share-registry-import-document.html"
+          }
+        ],
+        "custom-elements/v0/custom-element-lifecycle/enqueuing-and-invoking-callbacks/invoke-callbacks.html": [
+          {
+            "path": "custom-elements/v0/custom-element-lifecycle/enqueuing-and-invoking-callbacks/invoke-callbacks.html",
+            "url": "/custom-elements/v0/custom-element-lifecycle/enqueuing-and-invoking-callbacks/invoke-callbacks.html"
+          }
+        ],
+        "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attached-callback-move-element-test.html": [
+          {
+            "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attached-callback-move-element-test.html",
+            "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attached-callback-move-element-test.html"
+          }
+        ],
+        "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attached-callback-test.html": [
+          {
+            "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attached-callback-test.html",
+            "timeout": "long",
+            "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attached-callback-test.html"
+          }
+        ],
+        "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-change-attribute-test.html": [
+          {
+            "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-change-attribute-test.html",
+            "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-change-attribute-test.html"
+          }
+        ],
+        "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-remove-attribute-test.html": [
+          {
+            "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-remove-attribute-test.html",
+            "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-remove-attribute-test.html"
+          }
+        ],
+        "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-set-attribute-test.html": [
+          {
+            "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-set-attribute-test.html",
+            "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-set-attribute-test.html"
+          }
+        ],
+        "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-element-prototype-test.html": [
+          {
+            "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-element-prototype-test.html",
+            "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-element-prototype-test.html"
+          }
+        ],
+        "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-order-test.html": [
+          {
+            "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-order-test.html",
+            "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-order-test.html"
+          }
+        ],
+        "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-test.html": [
+          {
+            "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-test.html",
+            "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-test.html"
+          }
+        ],
+        "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-move-element-test.html": [
+          {
+            "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-move-element-test.html",
+            "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-move-element-test.html"
+          }
+        ],
+        "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-no-browsing-context-test.html": [
+          {
+            "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-no-browsing-context-test.html",
+            "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-no-browsing-context-test.html"
+          }
+        ],
+        "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-with-browsing-context-test.html": [
+          {
+            "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-with-browsing-context-test.html",
+            "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-with-browsing-context-test.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/changing-is-attribute.html": [
+          {
+            "path": "custom-elements/v0/instantiating/changing-is-attribute.html",
+            "url": "/custom-elements/v0/instantiating/changing-is-attribute.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/custom-element-constructor-is-attribute.html": [
+          {
+            "path": "custom-elements/v0/instantiating/custom-element-constructor-is-attribute.html",
+            "url": "/custom-elements/v0/instantiating/custom-element-constructor-is-attribute.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/custom-element-constructor-local-name.html": [
+          {
+            "path": "custom-elements/v0/instantiating/custom-element-constructor-local-name.html",
+            "url": "/custom-elements/v0/instantiating/custom-element-constructor-local-name.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/custom-element-constructor-namespace.html": [
+          {
+            "path": "custom-elements/v0/instantiating/custom-element-constructor-namespace.html",
+            "url": "/custom-elements/v0/instantiating/custom-element-constructor-namespace.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/custom-element-constructor-node-document.html": [
+          {
+            "path": "custom-elements/v0/instantiating/custom-element-constructor-node-document.html",
+            "url": "/custom-elements/v0/instantiating/custom-element-constructor-node-document.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/custom-element-constructor-prototype.html": [
+          {
+            "path": "custom-elements/v0/instantiating/custom-element-constructor-prototype.html",
+            "url": "/custom-elements/v0/instantiating/custom-element-constructor-prototype.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/custom-element-prototype.html": [
+          {
+            "path": "custom-elements/v0/instantiating/custom-element-prototype.html",
+            "url": "/custom-elements/v0/instantiating/custom-element-prototype.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/custom-element-type-is-attribute.html": [
+          {
+            "path": "custom-elements/v0/instantiating/custom-element-type-is-attribute.html",
+            "url": "/custom-elements/v0/instantiating/custom-element-type-is-attribute.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/custom-element-type-local-name-and-is-attribute.html": [
+          {
+            "path": "custom-elements/v0/instantiating/custom-element-type-local-name-and-is-attribute.html",
+            "url": "/custom-elements/v0/instantiating/custom-element-type-local-name-and-is-attribute.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/custom-element-type-local-name.html": [
+          {
+            "path": "custom-elements/v0/instantiating/custom-element-type-local-name.html",
+            "url": "/custom-elements/v0/instantiating/custom-element-type-local-name.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-interface-type-is-a-local-name.html": [
+          {
+            "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-interface-type-is-a-local-name.html",
+            "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-interface-type-is-a-local-name.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-interface-type-is-a-type-extension.html": [
+          {
+            "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-interface-type-is-a-type-extension.html",
+            "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-interface-type-is-a-type-extension.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-is-attribute.html": [
+          {
+            "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-is-attribute.html",
+            "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-is-attribute.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-namespace.html": [
+          {
+            "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-namespace.html",
+            "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-namespace.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-extension-is-a-type.html": [
+          {
+            "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-extension-is-a-type.html",
+            "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-extension-is-a-type.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-extension-unresolved.html": [
+          {
+            "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-extension-unresolved.html",
+            "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-extension-unresolved.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-is-a-local-name.html": [
+          {
+            "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-is-a-local-name.html",
+            "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-is-a-local-name.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/extensions-to-document-interface/created-callback-create-element-ns.html": [
+          {
+            "path": "custom-elements/v0/instantiating/extensions-to-document-interface/created-callback-create-element-ns.html",
+            "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/created-callback-create-element-ns.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/extensions-to-document-interface/created-callback-create-element.html": [
+          {
+            "path": "custom-elements/v0/instantiating/extensions-to-document-interface/created-callback-create-element.html",
+            "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/created-callback-create-element.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/non-configurable-constructor-property.html": [
+          {
+            "path": "custom-elements/v0/instantiating/non-configurable-constructor-property.html",
+            "url": "/custom-elements/v0/instantiating/non-configurable-constructor-property.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/prototype-is-interface-prototype-object.html": [
+          {
+            "path": "custom-elements/v0/instantiating/prototype-is-interface-prototype-object.html",
+            "url": "/custom-elements/v0/instantiating/prototype-is-interface-prototype-object.html"
+          }
+        ],
+        "custom-elements/v0/instantiating/unchanged-attribute.html": [
+          {
+            "path": "custom-elements/v0/instantiating/unchanged-attribute.html",
+            "url": "/custom-elements/v0/instantiating/unchanged-attribute.html"
+          }
+        ],
+        "custom-elements/v0/registering/definition-construction-algorithm-default-namespace.html": [
+          {
+            "path": "custom-elements/v0/registering/definition-construction-algorithm-default-namespace.html",
+            "url": "/custom-elements/v0/registering/definition-construction-algorithm-default-namespace.html"
+          }
+        ],
+        "custom-elements/v0/registering/definition-construction-algorithm-duplicate-definition.html": [
+          {
+            "path": "custom-elements/v0/registering/definition-construction-algorithm-duplicate-definition.html",
+            "url": "/custom-elements/v0/registering/definition-construction-algorithm-duplicate-definition.html"
+          }
+        ],
+        "custom-elements/v0/registering/definition-construction-algorithm-invalid-type.html": [
+          {
+            "path": "custom-elements/v0/registering/definition-construction-algorithm-invalid-type.html",
+            "url": "/custom-elements/v0/registering/definition-construction-algorithm-invalid-type.html"
+          }
+        ],
+        "custom-elements/v0/registering/definition-construction-algorithm-local-name-lowercased.html": [
+          {
+            "path": "custom-elements/v0/registering/definition-construction-algorithm-local-name-lowercased.html",
+            "url": "/custom-elements/v0/registering/definition-construction-algorithm-local-name-lowercased.html"
+          }
+        ],
+        "custom-elements/v0/registering/definition-construction-algorithm-name-is-null.html": [
+          {
+            "path": "custom-elements/v0/registering/definition-construction-algorithm-name-is-null.html",
+            "url": "/custom-elements/v0/registering/definition-construction-algorithm-name-is-null.html"
+          }
+        ],
+        "custom-elements/v0/registering/definition-construction-algorithm-no-interface-for-name.html": [
+          {
+            "path": "custom-elements/v0/registering/definition-construction-algorithm-no-interface-for-name.html",
+            "url": "/custom-elements/v0/registering/definition-construction-algorithm-no-interface-for-name.html"
+          }
+        ],
+        "custom-elements/v0/registering/definition-construction-algorithm-svg-namespace-name-is-null.html": [
+          {
+            "path": "custom-elements/v0/registering/definition-construction-algorithm-svg-namespace-name-is-null.html",
+            "url": "/custom-elements/v0/registering/definition-construction-algorithm-svg-namespace-name-is-null.html"
+          }
+        ],
+        "custom-elements/v0/registering/definition-construction-algorithm-svg-namespace.html": [
+          {
+            "path": "custom-elements/v0/registering/definition-construction-algorithm-svg-namespace.html",
+            "url": "/custom-elements/v0/registering/definition-construction-algorithm-svg-namespace.html"
+          }
+        ],
+        "custom-elements/v0/registering/definition-construction-algorithm-type-name-lowercased.html": [
+          {
+            "path": "custom-elements/v0/registering/definition-construction-algorithm-type-name-lowercased.html",
+            "url": "/custom-elements/v0/registering/definition-construction-algorithm-type-name-lowercased.html"
+          }
+        ],
+        "custom-elements/v0/registering/element-registration-algorithm-no-registry.html": [
+          {
+            "path": "custom-elements/v0/registering/element-registration-algorithm-no-registry.html",
+            "url": "/custom-elements/v0/registering/element-registration-algorithm-no-registry.html"
+          }
+        ],
+        "custom-elements/v0/registering/extensions-to-document-interface/custom-element-name.html": [
+          {
+            "path": "custom-elements/v0/registering/extensions-to-document-interface/custom-element-name.html",
+            "url": "/custom-elements/v0/registering/extensions-to-document-interface/custom-element-name.html"
+          }
+        ],
+        "custom-elements/v0/registering/extensions-to-document-interface/custom-element-prototype.html": [
+          {
+            "path": "custom-elements/v0/registering/extensions-to-document-interface/custom-element-prototype.html",
+            "url": "/custom-elements/v0/registering/extensions-to-document-interface/custom-element-prototype.html"
+          }
+        ],
+        "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector-all.html": [
+          {
+            "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector-all.html",
+            "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector-all.html"
+          }
+        ],
+        "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector.html": [
+          {
+            "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector.html",
+            "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector.html"
+          }
+        ],
+        "custom-elements/v0/registering/unresolved-elements-interface-html-element.html": [
+          {
+            "path": "custom-elements/v0/registering/unresolved-elements-interface-html-element.html",
+            "url": "/custom-elements/v0/registering/unresolved-elements-interface-html-element.html"
+          }
+        ],
+        "custom-elements/v0/registering/unresolved-elements-interface-html-unknown-element.html": [
+          {
+            "path": "custom-elements/v0/registering/unresolved-elements-interface-html-unknown-element.html",
+            "url": "/custom-elements/v0/registering/unresolved-elements-interface-html-unknown-element.html"
+          }
+        ],
+        "custom-elements/v0/registering/unresolved-elements-interface-svg-element.html": [
+          {
+            "path": "custom-elements/v0/registering/unresolved-elements-interface-svg-element.html",
+            "url": "/custom-elements/v0/registering/unresolved-elements-interface-svg-element.html"
+          }
+        ],
+        "dom/lists/DOMTokenList-coverage-for-attributes.html": [
+          {
+            "path": "dom/lists/DOMTokenList-coverage-for-attributes.html",
+            "url": "/dom/lists/DOMTokenList-coverage-for-attributes.html"
+          }
+        ],
+        "domparsing/createContextualFragment.html": [
+          {
+            "path": "domparsing/createContextualFragment.html",
+            "url": "/domparsing/createContextualFragment.html"
+          }
+        ],
+        "domparsing/innerhtml-01.xhtml": [
+          {
+            "path": "domparsing/innerhtml-01.xhtml",
+            "url": "/domparsing/innerhtml-01.xhtml"
+          }
+        ],
+        "domparsing/innerhtml-03.xhtml": [
+          {
+            "path": "domparsing/innerhtml-03.xhtml",
+            "url": "/domparsing/innerhtml-03.xhtml"
+          }
+        ],
+        "domparsing/innerhtml-04.html": [
+          {
+            "path": "domparsing/innerhtml-04.html",
+            "url": "/domparsing/innerhtml-04.html"
+          }
+        ],
+        "domparsing/innerhtml-05.xhtml": [
+          {
+            "path": "domparsing/innerhtml-05.xhtml",
+            "url": "/domparsing/innerhtml-05.xhtml"
+          }
+        ],
+        "domparsing/innerhtml-06.html": [
+          {
+            "path": "domparsing/innerhtml-06.html",
+            "url": "/domparsing/innerhtml-06.html"
+          }
+        ],
+        "domparsing/innerhtml-07.html": [
+          {
+            "path": "domparsing/innerhtml-07.html",
+            "url": "/domparsing/innerhtml-07.html"
+          }
+        ],
+        "domparsing/insert_adjacent_html.html": [
+          {
+            "path": "domparsing/insert_adjacent_html.html",
+            "url": "/domparsing/insert_adjacent_html.html"
+          }
+        ],
+        "domparsing/insert_adjacent_html.xhtml": [
+          {
+            "path": "domparsing/insert_adjacent_html.xhtml",
+            "url": "/domparsing/insert_adjacent_html.xhtml"
+          }
+        ],
+        "domparsing/outerhtml-01.html": [
+          {
+            "path": "domparsing/outerhtml-01.html",
+            "url": "/domparsing/outerhtml-01.html"
+          }
+        ],
+        "domparsing/outerhtml-02.html": [
+          {
+            "path": "domparsing/outerhtml-02.html",
+            "url": "/domparsing/outerhtml-02.html"
+          }
+        ],
+        "domparsing/xml-serialization.xhtml": [
+          {
+            "path": "domparsing/xml-serialization.xhtml",
+            "url": "/domparsing/xml-serialization.xhtml"
+          }
+        ],
+        "encoding/textdecoder-fatal-single-byte.html": [
+          {
+            "path": "encoding/textdecoder-fatal-single-byte.html",
+            "url": "/encoding/textdecoder-fatal-single-byte.html"
+          }
+        ],
+        "fetch/api/response/response-cancel-stream.html": [
+          {
+            "path": "fetch/api/response/response-cancel-stream.html",
+            "url": "/fetch/api/response/response-cancel-stream.html"
+          }
+        ],
+        "fetch/api/response/response-consume-stream.html": [
+          {
+            "path": "fetch/api/response/response-consume-stream.html",
+            "url": "/fetch/api/response/response-consume-stream.html"
+          }
+        ],
+        "fetch/api/response/response-stream-disturbed-1.html": [
+          {
+            "path": "fetch/api/response/response-stream-disturbed-1.html",
+            "url": "/fetch/api/response/response-stream-disturbed-1.html"
+          }
+        ],
+        "fetch/api/response/response-stream-disturbed-2.html": [
+          {
+            "path": "fetch/api/response/response-stream-disturbed-2.html",
+            "url": "/fetch/api/response/response-stream-disturbed-2.html"
+          }
+        ],
+        "fetch/api/response/response-stream-disturbed-3.html": [
+          {
+            "path": "fetch/api/response/response-stream-disturbed-3.html",
+            "url": "/fetch/api/response/response-stream-disturbed-3.html"
+          }
+        ],
+        "fetch/api/response/response-stream-disturbed-4.html": [
+          {
+            "path": "fetch/api/response/response-stream-disturbed-4.html",
+            "url": "/fetch/api/response/response-stream-disturbed-4.html"
+          }
+        ],
+        "fetch/api/response/response-stream-disturbed-5.html": [
+          {
+            "path": "fetch/api/response/response-stream-disturbed-5.html",
+            "url": "/fetch/api/response/response-stream-disturbed-5.html"
+          }
+        ],
+        "html/browsers/history/the-location-interface/allow_prototype_cycle_through_location.sub.html": [
+          {
+            "path": "html/browsers/history/the-location-interface/allow_prototype_cycle_through_location.sub.html",
+            "url": "/html/browsers/history/the-location-interface/allow_prototype_cycle_through_location.sub.html"
+          }
+        ],
+        "html/dom/documents/dom-tree-accessors/Document.body.html": [
+          {
+            "path": "html/dom/documents/dom-tree-accessors/Document.body.html",
+            "url": "/html/dom/documents/dom-tree-accessors/Document.body.html"
+          }
+        ],
+        "html/semantics/document-metadata/the-base-element/base_about_blank.html": [
+          {
+            "path": "html/semantics/document-metadata/the-base-element/base_about_blank.html",
+            "url": "/html/semantics/document-metadata/the-base-element/base_about_blank.html"
+          }
+        ],
+        "html/semantics/document-metadata/the-base-element/base_href_invalid.html": [
+          {
+            "path": "html/semantics/document-metadata/the-base-element/base_href_invalid.html",
+            "url": "/html/semantics/document-metadata/the-base-element/base_href_invalid.html"
+          }
+        ],
+        "html/semantics/document-metadata/the-base-element/base_srcdoc.html": [
+          {
+            "path": "html/semantics/document-metadata/the-base-element/base_srcdoc.html",
+            "url": "/html/semantics/document-metadata/the-base-element/base_srcdoc.html"
+          }
+        ],
+        "html/semantics/embedded-content/the-iframe-element/iframe-load-event.html": [
+          {
+            "path": "html/semantics/embedded-content/the-iframe-element/iframe-load-event.html",
+            "url": "/html/semantics/embedded-content/the-iframe-element/iframe-load-event.html"
+          }
+        ],
+        "html/semantics/forms/form-submission-0/submit-entity-body.html": [
+          {
+            "path": "html/semantics/forms/form-submission-0/submit-entity-body.html",
+            "url": "/html/semantics/forms/form-submission-0/submit-entity-body.html"
+          }
+        ],
+        "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html": [
+          {
+            "path": "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html",
+            "url": "/html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html"
+          }
+        ],
+        "html/semantics/scripting-1/the-script-element/scripting-enabled.html": [
+          {
+            "path": "html/semantics/scripting-1/the-script-element/scripting-enabled.html",
+            "url": "/html/semantics/scripting-1/the-script-element/scripting-enabled.html"
+          }
+        ],
+        "html/syntax/serializing-html-fragments/initial-linefeed-pre.html": [
+          {
+            "path": "html/syntax/serializing-html-fragments/initial-linefeed-pre.html",
+            "url": "/html/syntax/serializing-html-fragments/initial-linefeed-pre.html"
+          }
+        ],
+        "html/syntax/serializing-html-fragments/serializing.html": [
+          {
+            "path": "html/syntax/serializing-html-fragments/serializing.html",
+            "url": "/html/syntax/serializing-html-fragments/serializing.html"
+          }
+        ],
+        "media-source/mediasource-preload.html": [
+          {
+            "path": "media-source/mediasource-preload.html",
+            "url": "/media-source/mediasource-preload.html"
+          }
+        ],
+        "mediacapture-streams/MediaStream-MediaElement-preload-none.html": [
+          {
+            "path": "mediacapture-streams/MediaStream-MediaElement-preload-none.html",
+            "url": "/mediacapture-streams/MediaStream-MediaElement-preload-none.html"
+          }
+        ],
+        "performance-timeline/po-disconnect.html": [
+          {
+            "path": "performance-timeline/po-disconnect.html",
+            "url": "/performance-timeline/po-disconnect.html"
+          }
+        ],
+        "performance-timeline/po-getentries.html": [
+          {
+            "path": "performance-timeline/po-getentries.html",
+            "url": "/performance-timeline/po-getentries.html"
+          }
+        ],
+        "performance-timeline/po-mark-measure.html": [
+          {
+            "path": "performance-timeline/po-mark-measure.html",
+            "url": "/performance-timeline/po-mark-measure.html"
+          }
+        ],
+        "performance-timeline/po-navigation.html": [
+          {
+            "path": "performance-timeline/po-navigation.html",
+            "url": "/performance-timeline/po-navigation.html"
+          }
+        ],
+        "performance-timeline/po-observe.html": [
+          {
+            "path": "performance-timeline/po-observe.html",
+            "url": "/performance-timeline/po-observe.html"
+          }
+        ],
+        "performance-timeline/po-resource.html": [
+          {
+            "path": "performance-timeline/po-resource.html",
+            "url": "/performance-timeline/po-resource.html"
+          }
+        ],
+        "secure-contexts/basic-popup-and-iframe-tests.html": [
+          {
+            "path": "secure-contexts/basic-popup-and-iframe-tests.html",
+            "url": "/secure-contexts/basic-popup-and-iframe-tests.html"
+          }
+        ],
+        "secure-contexts/basic-popup-and-iframe-tests.https.html": [
+          {
+            "path": "secure-contexts/basic-popup-and-iframe-tests.https.html",
+            "url": "/secure-contexts/basic-popup-and-iframe-tests.https.html"
+          }
+        ],
+        "service-workers/service-worker/navigate-window.https.html": [
+          {
+            "path": "service-workers/service-worker/navigate-window.https.html",
+            "url": "/service-workers/service-worker/navigate-window.https.html"
+          }
+        ],
+        "service-workers/service-worker/update-recovery.https.html": [
+          {
+            "path": "service-workers/service-worker/update-recovery.https.html",
+            "url": "/service-workers/service-worker/update-recovery.https.html"
+          }
+        ],
+        "shadow-dom/Document-prototype-adoptNode.html": [
+          {
+            "path": "shadow-dom/Document-prototype-adoptNode.html",
+            "url": "/shadow-dom/Document-prototype-adoptNode.html"
+          }
+        ],
+        "shadow-dom/Document-prototype-currentScript.html": [
+          {
+            "path": "shadow-dom/Document-prototype-currentScript.html",
+            "url": "/shadow-dom/Document-prototype-currentScript.html"
+          }
+        ],
+        "shadow-dom/Document-prototype-importNode.html": [
+          {
+            "path": "shadow-dom/Document-prototype-importNode.html",
+            "url": "/shadow-dom/Document-prototype-importNode.html"
+          }
+        ],
+        "shadow-dom/Node-prototype-cloneNode.html": [
+          {
+            "path": "shadow-dom/Node-prototype-cloneNode.html",
+            "url": "/shadow-dom/Node-prototype-cloneNode.html"
+          }
+        ],
+        "touch-events/historical.html": [
+          {
+            "path": "touch-events/historical.html",
+            "url": "/touch-events/historical.html"
+          }
+        ],
+        "uievents/ClickFakeEvent.nondocument.html": [
+          {
+            "path": "uievents/ClickFakeEvent.nondocument.html",
+            "url": "/uievents/ClickFakeEvent.nondocument.html"
+          }
+        ],
+        "uievents/constructors/constructors.html": [
+          {
+            "path": "uievents/constructors/constructors.html",
+            "url": "/uievents/constructors/constructors.html"
+          }
+        ],
+        "uievents/legacy-domevents-tests/approved/DOM.event.flow.html": [
+          {
+            "path": "uievents/legacy-domevents-tests/approved/DOM.event.flow.html",
+            "url": "/uievents/legacy-domevents-tests/approved/DOM.event.flow.html"
+          }
+        ],
+        "uievents/legacy-domevents-tests/approved/EventListener.eventHandler.html": [
+          {
+            "path": "uievents/legacy-domevents-tests/approved/EventListener.eventHandler.html",
+            "url": "/uievents/legacy-domevents-tests/approved/EventListener.eventHandler.html"
+          }
+        ],
+        "uievents/legacy-domevents-tests/approved/EventObject.multiple.dispatchEvent.html": [
+          {
+            "path": "uievents/legacy-domevents-tests/approved/EventObject.multiple.dispatchEvent.html",
+            "url": "/uievents/legacy-domevents-tests/approved/EventObject.multiple.dispatchEvent.html"
+          }
+        ],
+        "uievents/legacy-domevents-tests/approved/ProcessingInstruction.DOMCharacterDataModified.html": [
+          {
+            "path": "uievents/legacy-domevents-tests/approved/ProcessingInstruction.DOMCharacterDataModified.html",
+            "url": "/uievents/legacy-domevents-tests/approved/ProcessingInstruction.DOMCharacterDataModified.html"
+          }
+        ],
+        "uievents/legacy-domevents-tests/approved/dispatchEvent.click.checkbox.html": [
+          {
+            "path": "uievents/legacy-domevents-tests/approved/dispatchEvent.click.checkbox.html",
+            "url": "/uievents/legacy-domevents-tests/approved/dispatchEvent.click.checkbox.html"
+          }
+        ],
+        "uievents/legacy-domevents-tests/approved/domnodeinserted.html": [
+          {
+            "path": "uievents/legacy-domevents-tests/approved/domnodeinserted.html",
+            "url": "/uievents/legacy-domevents-tests/approved/domnodeinserted.html"
+          }
+        ],
+        "uievents/legacy-domevents-tests/approved/stopImmediatePropagation.effect.html": [
+          {
+            "path": "uievents/legacy-domevents-tests/approved/stopImmediatePropagation.effect.html",
+            "url": "/uievents/legacy-domevents-tests/approved/stopImmediatePropagation.effect.html"
+          }
+        ],
+        "uievents/legacy-domevents-tests/approved/stopPropagation.deferred.effect.html": [
+          {
+            "path": "uievents/legacy-domevents-tests/approved/stopPropagation.deferred.effect.html",
+            "url": "/uievents/legacy-domevents-tests/approved/stopPropagation.deferred.effect.html"
+          }
+        ],
+        "uievents/legacy-domevents-tests/submissions/Microsoft/converted/EventListener.dispatch.new.event.html": [
+          {
+            "path": "uievents/legacy-domevents-tests/submissions/Microsoft/converted/EventListener.dispatch.new.event.html",
+            "url": "/uievents/legacy-domevents-tests/submissions/Microsoft/converted/EventListener.dispatch.new.event.html"
+          }
+        ],
+        "uievents/order-of-events/event-phases-order.html": [
+          {
+            "path": "uievents/order-of-events/event-phases-order.html",
+            "url": "/uievents/order-of-events/event-phases-order.html"
+          }
+        ],
+        "uievents/order-of-events/init-event-while-dispatching.html": [
+          {
+            "path": "uievents/order-of-events/init-event-while-dispatching.html",
+            "url": "/uievents/order-of-events/init-event-while-dispatching.html"
+          }
+        ],
+        "uievents/throwing-in-listener-and-window-error-event.html": [
+          {
+            "path": "uievents/throwing-in-listener-and-window-error-event.html",
+            "url": "/uievents/throwing-in-listener-and-window-error-event.html"
+          }
+        ],
+        "uievents/throwing-in-listener-when-all-have-not-run-yet.html": [
+          {
+            "path": "uievents/throwing-in-listener-when-all-have-not-run-yet.html",
+            "url": "/uievents/throwing-in-listener-when-all-have-not-run-yet.html"
+          }
+        ],
+        "web-animations/animation/startTime.html": [
+          {
+            "path": "web-animations/animation/startTime.html",
+            "url": "/web-animations/animation/startTime.html"
+          }
+        ],
+        "web-animations/document/getAnimations.html": [
+          {
+            "path": "web-animations/document/getAnimations.html",
+            "url": "/web-animations/document/getAnimations.html"
+          }
+        ],
+        "web-animations/keyframe-effect/setFrames.html": [
+          {
+            "path": "web-animations/keyframe-effect/setFrames.html",
+            "url": "/web-animations/keyframe-effect/setFrames.html"
+          }
+        ],
+        "web-animations/keyframe-effect/setTarget.html": [
+          {
+            "path": "web-animations/keyframe-effect/setTarget.html",
+            "url": "/web-animations/keyframe-effect/setTarget.html"
+          }
+        ],
+        "web-animations/timing-model/animation-effects/active-time.html": [
+          {
+            "path": "web-animations/timing-model/animation-effects/active-time.html",
+            "url": "/web-animations/timing-model/animation-effects/active-time.html"
+          }
+        ],
+        "web-animations/timing-model/animation-effects/current-iteration.html": [
+          {
+            "path": "web-animations/timing-model/animation-effects/current-iteration.html",
+            "url": "/web-animations/timing-model/animation-effects/current-iteration.html"
+          }
+        ],
+        "web-animations/timing-model/animation-effects/simple-iteration-progress.html": [
+          {
+            "path": "web-animations/timing-model/animation-effects/simple-iteration-progress.html",
+            "url": "/web-animations/timing-model/animation-effects/simple-iteration-progress.html"
+          }
+        ],
+        "web-animations/timing-model/animations/set-the-animation-start-time.html": [
+          {
+            "path": "web-animations/timing-model/animations/set-the-animation-start-time.html",
+            "url": "/web-animations/timing-model/animations/set-the-animation-start-time.html"
+          }
+        ],
+        "websockets/binary/001.html": [
+          {
+            "path": "websockets/binary/001.html",
+            "url": "/websockets/binary/001.html?wss"
+          }
+        ],
+        "websockets/binary/002.html": [
+          {
+            "path": "websockets/binary/002.html",
+            "timeout": "long",
+            "url": "/websockets/binary/002.html?wss"
+          }
+        ],
+        "websockets/binary/004.html": [
+          {
+            "path": "websockets/binary/004.html",
+            "timeout": "long",
+            "url": "/websockets/binary/004.html?wss"
+          }
+        ],
+        "websockets/binary/005.html": [
+          {
+            "path": "websockets/binary/005.html",
+            "url": "/websockets/binary/005.html?wss"
+          }
+        ],
+        "websockets/closing-handshake/002.html": [
+          {
+            "path": "websockets/closing-handshake/002.html",
+            "url": "/websockets/closing-handshake/002.html?wss"
+          }
+        ],
+        "websockets/closing-handshake/003.html": [
+          {
+            "path": "websockets/closing-handshake/003.html",
+            "url": "/websockets/closing-handshake/003.html?wss"
+          }
+        ],
+        "websockets/closing-handshake/004.html": [
+          {
+            "path": "websockets/closing-handshake/004.html",
+            "url": "/websockets/closing-handshake/004.html?wss"
+          }
+        ],
+        "websockets/constructor/001.html": [
+          {
+            "path": "websockets/constructor/001.html",
+            "url": "/websockets/constructor/001.html?wss"
+          }
+        ],
+        "websockets/constructor/002.html": [
+          {
+            "path": "websockets/constructor/002.html",
+            "url": "/websockets/constructor/002.html?wss"
+          }
+        ],
+        "websockets/constructor/004.html": [
+          {
+            "path": "websockets/constructor/004.html",
+            "url": "/websockets/constructor/004.html?wss"
+          }
+        ],
+        "websockets/constructor/005.html": [
+          {
+            "path": "websockets/constructor/005.html",
+            "url": "/websockets/constructor/005.html?wss"
+          }
+        ],
+        "websockets/constructor/006.html": [
+          {
+            "path": "websockets/constructor/006.html",
+            "url": "/websockets/constructor/006.html?wss"
+          }
+        ],
+        "websockets/constructor/007.html": [
+          {
+            "path": "websockets/constructor/007.html",
+            "url": "/websockets/constructor/007.html?wss"
+          }
+        ],
+        "websockets/constructor/008.html": [
+          {
+            "path": "websockets/constructor/008.html",
+            "url": "/websockets/constructor/008.html?wss"
+          }
+        ],
+        "websockets/constructor/009.html": [
+          {
+            "path": "websockets/constructor/009.html",
+            "url": "/websockets/constructor/009.html?wss"
+          }
+        ],
+        "websockets/constructor/010.html": [
+          {
+            "path": "websockets/constructor/010.html",
+            "url": "/websockets/constructor/010.html?wss"
+          }
+        ],
+        "websockets/constructor/011.html": [
+          {
+            "path": "websockets/constructor/011.html",
+            "url": "/websockets/constructor/011.html?wss"
+          }
+        ],
+        "websockets/constructor/012.html": [
+          {
+            "path": "websockets/constructor/012.html",
+            "url": "/websockets/constructor/012.html?wss"
+          }
+        ],
+        "websockets/constructor/013.html": [
+          {
+            "path": "websockets/constructor/013.html",
+            "timeout": "long",
+            "url": "/websockets/constructor/013.html?wss"
+          }
+        ],
+        "websockets/constructor/014.html": [
+          {
+            "path": "websockets/constructor/014.html",
+            "timeout": "long",
+            "url": "/websockets/constructor/014.html?wss"
+          }
+        ],
+        "websockets/constructor/016.html": [
+          {
+            "path": "websockets/constructor/016.html",
+            "url": "/websockets/constructor/016.html?wss"
+          }
+        ],
+        "websockets/constructor/017.html": [
+          {
+            "path": "websockets/constructor/017.html",
+            "url": "/websockets/constructor/017.html?wss"
+          }
+        ],
+        "websockets/constructor/018.html": [
+          {
+            "path": "websockets/constructor/018.html",
+            "url": "/websockets/constructor/018.html?wss"
+          }
+        ],
+        "websockets/constructor/019.html": [
+          {
+            "path": "websockets/constructor/019.html",
+            "url": "/websockets/constructor/019.html?wss"
+          }
+        ],
+        "websockets/constructor/020.html": [
+          {
+            "path": "websockets/constructor/020.html",
+            "url": "/websockets/constructor/020.html?wss"
+          }
+        ],
+        "websockets/constructor/021.html": [
+          {
+            "path": "websockets/constructor/021.html",
+            "url": "/websockets/constructor/021.html?wss"
+          }
+        ],
+        "websockets/constructor/022.html": [
+          {
+            "path": "websockets/constructor/022.html",
+            "url": "/websockets/constructor/022.html?wss"
+          }
+        ],
+        "websockets/cookies/001.html": [
+          {
+            "path": "websockets/cookies/001.html",
+            "url": "/websockets/cookies/001.html?wss"
+          }
+        ],
+        "websockets/cookies/002.html": [
+          {
+            "path": "websockets/cookies/002.html",
+            "url": "/websockets/cookies/002.html?wss"
+          }
+        ],
+        "websockets/cookies/003.html": [
+          {
+            "path": "websockets/cookies/003.html",
+            "url": "/websockets/cookies/003.html?wss"
+          }
+        ],
+        "websockets/cookies/004.html": [
+          {
+            "path": "websockets/cookies/004.html",
+            "url": "/websockets/cookies/004.html?wss"
+          }
+        ],
+        "websockets/cookies/005.html": [
+          {
+            "path": "websockets/cookies/005.html",
+            "timeout": "long",
+            "url": "/websockets/cookies/005.html?wss"
+          }
+        ],
+        "websockets/cookies/006.html": [
+          {
+            "path": "websockets/cookies/006.html",
+            "url": "/websockets/cookies/006.html?wss"
+          }
+        ],
+        "websockets/cookies/007.html": [
+          {
+            "path": "websockets/cookies/007.html",
+            "timeout": "long",
+            "url": "/websockets/cookies/007.html?wss"
+          }
+        ],
+        "websockets/extended-payload-length.html": [
+          {
+            "path": "websockets/extended-payload-length.html",
+            "timeout": "long",
+            "url": "/websockets/extended-payload-length.html?wss"
+          }
+        ],
+        "websockets/interfaces/CloseEvent/clean-close.html": [
+          {
+            "path": "websockets/interfaces/CloseEvent/clean-close.html",
+            "url": "/websockets/interfaces/CloseEvent/clean-close.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-arraybuffer.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-arraybuffer.html",
+            "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-arraybuffer.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-blob.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-blob.html",
+            "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-blob.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-defineProperty-getter.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-defineProperty-getter.html",
+            "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-defineProperty-getter.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-defineProperty-setter.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-defineProperty-setter.html",
+            "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-defineProperty-setter.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-deleting.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-deleting.html",
+            "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-deleting.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-getting.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-getting.html",
+            "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-getting.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-initial.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-initial.html",
+            "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-initial.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-large.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-large.html",
+            "timeout": "long",
+            "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-large.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-readonly.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-readonly.html",
+            "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-readonly.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-unicode.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-unicode.html",
+            "url": "/websockets/interfaces/WebSocket/bufferedAmount/bufferedAmount-unicode.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/close/close-basic.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/close/close-basic.html",
+            "url": "/websockets/interfaces/WebSocket/close/close-basic.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/close/close-connecting.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/close/close-connecting.html",
+            "timeout": "long",
+            "url": "/websockets/interfaces/WebSocket/close/close-connecting.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/close/close-multiple.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/close/close-multiple.html",
+            "url": "/websockets/interfaces/WebSocket/close/close-multiple.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/close/close-nested.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/close/close-nested.html",
+            "url": "/websockets/interfaces/WebSocket/close/close-nested.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/close/close-replace.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/close/close-replace.html",
+            "url": "/websockets/interfaces/WebSocket/close/close-replace.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/close/close-return.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/close/close-return.html",
+            "url": "/websockets/interfaces/WebSocket/close/close-return.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/constants/001.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/constants/001.html",
+            "url": "/websockets/interfaces/WebSocket/constants/001.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/constants/002.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/constants/002.html",
+            "url": "/websockets/interfaces/WebSocket/constants/002.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/constants/003.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/constants/003.html",
+            "url": "/websockets/interfaces/WebSocket/constants/003.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/constants/004.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/constants/004.html",
+            "url": "/websockets/interfaces/WebSocket/constants/004.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/constants/005.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/constants/005.html",
+            "url": "/websockets/interfaces/WebSocket/constants/005.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/constants/006.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/constants/006.html",
+            "url": "/websockets/interfaces/WebSocket/constants/006.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/events/001.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/events/001.html",
+            "url": "/websockets/interfaces/WebSocket/events/001.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/events/002.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/events/002.html",
+            "url": "/websockets/interfaces/WebSocket/events/002.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/events/003.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/events/003.html",
+            "url": "/websockets/interfaces/WebSocket/events/003.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/events/004.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/events/004.html",
+            "url": "/websockets/interfaces/WebSocket/events/004.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/events/006.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/events/006.html",
+            "url": "/websockets/interfaces/WebSocket/events/006.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/events/007.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/events/007.html",
+            "url": "/websockets/interfaces/WebSocket/events/007.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/events/008.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/events/008.html",
+            "url": "/websockets/interfaces/WebSocket/events/008.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/events/009.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/events/009.html",
+            "url": "/websockets/interfaces/WebSocket/events/009.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/events/010.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/events/010.html",
+            "url": "/websockets/interfaces/WebSocket/events/010.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/events/011.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/events/011.html",
+            "url": "/websockets/interfaces/WebSocket/events/011.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/events/012.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/events/012.html",
+            "url": "/websockets/interfaces/WebSocket/events/012.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/events/013.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/events/013.html",
+            "url": "/websockets/interfaces/WebSocket/events/013.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/events/014.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/events/014.html",
+            "url": "/websockets/interfaces/WebSocket/events/014.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/events/015.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/events/015.html",
+            "url": "/websockets/interfaces/WebSocket/events/015.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/events/016.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/events/016.html",
+            "url": "/websockets/interfaces/WebSocket/events/016.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/events/017.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/events/017.html",
+            "url": "/websockets/interfaces/WebSocket/events/017.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/events/018.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/events/018.html",
+            "url": "/websockets/interfaces/WebSocket/events/018.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/events/019.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/events/019.html",
+            "url": "/websockets/interfaces/WebSocket/events/019.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/events/020.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/events/020.html",
+            "url": "/websockets/interfaces/WebSocket/events/020.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/extensions/001.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/extensions/001.html",
+            "url": "/websockets/interfaces/WebSocket/extensions/001.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/protocol/protocol-initial.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/protocol/protocol-initial.html",
+            "url": "/websockets/interfaces/WebSocket/protocol/protocol-initial.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/readyState/001.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/readyState/001.html",
+            "url": "/websockets/interfaces/WebSocket/readyState/001.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/readyState/002.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/readyState/002.html",
+            "url": "/websockets/interfaces/WebSocket/readyState/002.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/readyState/003.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/readyState/003.html",
+            "url": "/websockets/interfaces/WebSocket/readyState/003.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/readyState/004.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/readyState/004.html",
+            "url": "/websockets/interfaces/WebSocket/readyState/004.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/readyState/005.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/readyState/005.html",
+            "url": "/websockets/interfaces/WebSocket/readyState/005.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/readyState/006.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/readyState/006.html",
+            "url": "/websockets/interfaces/WebSocket/readyState/006.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/readyState/007.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/readyState/007.html",
+            "url": "/websockets/interfaces/WebSocket/readyState/007.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/readyState/008.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/readyState/008.html",
+            "url": "/websockets/interfaces/WebSocket/readyState/008.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/send/001.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/send/001.html",
+            "url": "/websockets/interfaces/WebSocket/send/001.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/send/002.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/send/002.html",
+            "url": "/websockets/interfaces/WebSocket/send/002.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/send/003.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/send/003.html",
+            "url": "/websockets/interfaces/WebSocket/send/003.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/send/004.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/send/004.html",
+            "url": "/websockets/interfaces/WebSocket/send/004.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/send/005.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/send/005.html",
+            "url": "/websockets/interfaces/WebSocket/send/005.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/send/006.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/send/006.html",
+            "url": "/websockets/interfaces/WebSocket/send/006.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/send/007.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/send/007.html",
+            "url": "/websockets/interfaces/WebSocket/send/007.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/send/008.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/send/008.html",
+            "url": "/websockets/interfaces/WebSocket/send/008.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/send/009.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/send/009.html",
+            "url": "/websockets/interfaces/WebSocket/send/009.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/send/010.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/send/010.html",
+            "url": "/websockets/interfaces/WebSocket/send/010.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/send/011.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/send/011.html",
+            "url": "/websockets/interfaces/WebSocket/send/011.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/send/012.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/send/012.html",
+            "url": "/websockets/interfaces/WebSocket/send/012.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/url/001.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/url/001.html",
+            "url": "/websockets/interfaces/WebSocket/url/001.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/url/002.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/url/002.html",
+            "url": "/websockets/interfaces/WebSocket/url/002.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/url/003.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/url/003.html",
+            "url": "/websockets/interfaces/WebSocket/url/003.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/url/004.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/url/004.html",
+            "url": "/websockets/interfaces/WebSocket/url/004.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/url/005.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/url/005.html",
+            "url": "/websockets/interfaces/WebSocket/url/005.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/url/006.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/url/006.html",
+            "url": "/websockets/interfaces/WebSocket/url/006.html?wss"
+          }
+        ],
+        "websockets/interfaces/WebSocket/url/resolve.html": [
+          {
+            "path": "websockets/interfaces/WebSocket/url/resolve.html",
+            "url": "/websockets/interfaces/WebSocket/url/resolve.html?wss"
+          }
+        ],
+        "websockets/keeping-connection-open/001.html": [
+          {
+            "path": "websockets/keeping-connection-open/001.html",
+            "timeout": "long",
+            "url": "/websockets/keeping-connection-open/001.html?wss"
+          }
+        ],
+        "websockets/opening-handshake/001.html": [
+          {
+            "path": "websockets/opening-handshake/001.html",
+            "url": "/websockets/opening-handshake/001.html?wss"
+          }
+        ],
+        "websockets/opening-handshake/002.html": [
+          {
+            "path": "websockets/opening-handshake/002.html",
+            "timeout": "long",
+            "url": "/websockets/opening-handshake/002.html?wss"
+          }
+        ],
+        "websockets/opening-handshake/003.html": [
+          {
+            "path": "websockets/opening-handshake/003.html",
+            "url": "/websockets/opening-handshake/003.html?wss"
+          }
+        ],
+        "websockets/opening-handshake/005.html": [
+          {
+            "path": "websockets/opening-handshake/005.html",
+            "url": "/websockets/opening-handshake/005.html?wss"
+          }
+        ],
+        "websockets/security/001.html": [
+          {
+            "path": "websockets/security/001.html",
+            "url": "/websockets/security/001.html?wss"
+          }
+        ],
+        "websockets/security/002.html": [
+          {
+            "path": "websockets/security/002.html",
+            "url": "/websockets/security/002.html?wss"
+          }
+        ],
+        "websockets/unload-a-document/001.html": [
+          {
+            "path": "websockets/unload-a-document/001.html",
+            "url": "/websockets/unload-a-document/001.html?wss"
+          }
+        ],
+        "websockets/unload-a-document/002.html": [
+          {
+            "path": "websockets/unload-a-document/002.html",
+            "timeout": "long",
+            "url": "/websockets/unload-a-document/002.html?wss"
+          }
+        ],
+        "websockets/unload-a-document/005.html": [
+          {
+            "path": "websockets/unload-a-document/005.html",
+            "timeout": "long",
+            "url": "/websockets/unload-a-document/005.html?wss"
+          }
+        ]
+      },
+      "wdspec": {
+        "webdriver/navigation.py": [
+          {
+            "path": "webdriver/navigation.py",
+            "url": "/webdriver/navigation.py"
+          }
+        ]
+      }
+    },
+    "reftest_nodes": {
+      "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html": [
+        {
+          "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html",
+          "references": [
+            [
+              "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html"
+        }
+      ],
+      "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html": [
+        {
+          "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html",
+          "references": [
+            [
+              "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html"
+        }
+      ],
+      "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html": [
+        {
+          "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html",
+          "references": [
+            [
+              "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html"
+        }
+      ],
+      "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html": [
+        {
+          "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html",
+          "references": [
+            [
+              "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension-ref.html",
+              "=="
+            ]
+          ],
+          "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html"
+        }
+      ],
+      "html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_without_context_a.html": [
+        {
+          "path": "html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_without_context_a.html",
+          "references": [
+            [
+              "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_without_context_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_without_context_a.html"
+        }
+      ]
+    }
   },
   "reftest_nodes": {
     "2dcontext/building-paths/canvas_complexshapes_arcto_001.htm": [
@@ -36492,52 +37612,52 @@
         "url": "/compat/webkit-text-fill-color-property-006.html"
       }
     ],
-    "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html": [
+    "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html": [
       {
-        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html",
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html",
         "references": [
           [
-            "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag-ref.html",
+            "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag-ref.html",
             "=="
           ]
         ],
-        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html"
+        "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html"
       }
     ],
-    "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html": [
+    "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html": [
       {
-        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html",
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html",
         "references": [
           [
-            "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag-ref.html",
+            "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag-ref.html",
             "=="
           ]
         ],
-        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html"
+        "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html"
       }
     ],
-    "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html": [
+    "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html": [
       {
-        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html",
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html",
         "references": [
           [
-            "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension-ref.html",
+            "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension-ref.html",
             "=="
           ]
         ],
-        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html"
+        "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html"
       }
     ],
-    "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html": [
+    "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html": [
       {
-        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html",
+        "path": "custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html",
         "references": [
           [
-            "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension-ref.html",
+            "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension-ref.html",
             "=="
           ]
         ],
-        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html"
+        "url": "/custom-elements/registering-custom-elements/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html"
       }
     ],
     "html/dom/elements/global-attributes/dir_auto-EN-L-ref.html": [
@@ -38734,18 +39854,6 @@
           ]
         ],
         "url": "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_scale.html"
-      }
-    ],
-    "html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_without_context_a.html": [
-      {
-        "path": "html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_without_context_a.html",
-        "references": [
-          [
-            "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_without_context_ref.html",
-            "=="
-          ]
-        ],
-        "url": "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_without_context_a.html"
       }
     ],
     "html/rendering/replaced-elements/images/space.html": [
@@ -42265,7 +43373,7 @@
       }
     ]
   },
-  "rev": "697b971060b2d475a73c1c3755232a4674d61cf5",
+  "rev": "b94b41945d3c7c9b4f3346cf8654cc5ca7ae567c",
   "url_base": "/",
   "version": 3
 }
