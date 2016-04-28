@@ -55,5 +55,5 @@ core-text = "1.1"
 servo-fontconfig = "0.2"
 freetype = {git = "https://github.com/servo/rust-freetype"}
 
-[target.'cfg(any(target_arch = "x86_64", target_arch = "aarch64"))'.dependencies]
+[target.'cfg(any(target_feature = "sse2", target_feature = "neon"))'.dependencies]
 simd = {git = "https://github.com/huonw/simd"}

@@ -5,7 +5,7 @@
 use app_units::Au;
 use euclid::point::Point2D;
 use range::{self, EachIndex, Range, RangeIndex};
-#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+#[cfg(any(target_feature = "sse2", target_feature = "neon"))]
 use simd::u32x4;
 use std::cmp::{Ordering, PartialOrd};
 use std::vec::Vec;
@@ -551,7 +551,7 @@ impl<'a> GlyphStore {
     }
 
     #[inline]
-    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+    #[cfg(any(target_feature = "sse2", target_feature = "neon"))]
     fn advance_for_byte_range_simple_glyphs(&self, range: &Range<ByteIndex>) -> Au {
         let mask = u32x4::splat(GLYPH_ADVANCE_MASK);
         let mut simd_advance = u32x4::splat(0);
@@ -580,16 +580,16 @@ impl<'a> GlyphStore {
         Au(advance) + leftover
     }
 
-    /// When SIMD isn't available (non-x86_x64/aarch64), fallback to the slow path.
+    /// When SIMD isn't available, fallback to the slow path.
     #[inline]
-    #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+    #[cfg(not(any(target_feature = "sse2", target_feature = "neon")))]
     fn advance_for_byte_range_simple_glyphs(&self, range: &Range<ByteIndex>) -> Au {
         self.advance_for_byte_range_slow_path(range)
     }
 
     /// Used for SIMD.
     #[inline]
-    #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+    #[cfg(any(target_feature = "sse2", target_feature = "neon"))]
     fn transmute_entry_buffer_to_u32_buffer(&self) -> &[u32] {
         unsafe { mem::transmute(self.entry_buffer.as_slice()) }
     }
