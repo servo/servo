@@ -21,6 +21,7 @@ use net_traits::response::{HttpsState, TerminationReason};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use resource_thread::CancellationListener;
 use std::collections::HashSet;
+use std::fs::File;
 use std::io::Read;
 use std::iter::FromIterator;
 use std::rc::Rc;
@@ -313,7 +314,26 @@ fn basic_fetch(request: Rc<Request>) -> Response {
             }
         },
 
-        "blob" | "file" | "ftp" => {
+        "file" => {
+            if *request.method.borrow() == Method::Get {
+                url.to_file_path().ok()
+                    .and_then(|file_path| File::open(file_path).ok())
+                    .and_then(|mut file| {
+                        let mut bytes = vec![];
+                        let _ = file.read_to_end(&mut bytes);
+
+                        let mut response = Response::new();
+                        *response.body.lock().unwrap() = ResponseBody::Done(bytes);
+                        // TODO Add MIME type
+                        Some(response)
+                    })
+                    .unwrap_or(Response::network_error())
+            } else {
+                Response::network_error()
+            }
+        },
+
+        "blob" | "ftp" => {
             // XXXManishearth handle these
             panic!("Unimplemented scheme for Fetch")
         },
