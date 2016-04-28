@@ -133,7 +133,7 @@ impl Window {
 
         builder = builder_with_platform_options(builder);
 
-        let mut glutin_window = builder.build().unwrap();
+        let mut glutin_window = builder.build().expect("Failed to create window.");
 
         unsafe { glutin_window.make_current().expect("Failed to make context current!") }
 
@@ -207,31 +207,30 @@ impl Window {
 
     fn handle_window_event(&self, event: glutin::Event) -> bool {
         match event {
-            Event::KeyboardInput(element_state, _scan_code, virtual_key_code) => {
-                if virtual_key_code.is_some() {
-                    let virtual_key_code = virtual_key_code.unwrap();
-
-                    match (element_state, virtual_key_code) {
-                        (_, VirtualKeyCode::LControl) => self.toggle_modifier(LEFT_CONTROL),
-                        (_, VirtualKeyCode::RControl) => self.toggle_modifier(RIGHT_CONTROL),
-                        (_, VirtualKeyCode::LShift) => self.toggle_modifier(LEFT_SHIFT),
-                        (_, VirtualKeyCode::RShift) => self.toggle_modifier(RIGHT_SHIFT),
-                        (_, VirtualKeyCode::LAlt) => self.toggle_modifier(LEFT_ALT),
-                        (_, VirtualKeyCode::RAlt) => self.toggle_modifier(RIGHT_ALT),
-                        (_, VirtualKeyCode::LWin) => self.toggle_modifier(LEFT_SUPER),
-                        (_, VirtualKeyCode::RWin) => self.toggle_modifier(RIGHT_SUPER),
-                        (_, key_code) => {
-                            if let Ok(key) = Window::glutin_key_to_script_key(key_code) {
-                                let state = match element_state {
-                                    ElementState::Pressed => KeyState::Pressed,
-                                    ElementState::Released => KeyState::Released,
-                                };
-                                let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
-                                self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(key, state, modifiers));
-                            }
+            Event::KeyboardInput(element_state, _scan_code, Some(virtual_key_code)) => {
+                match virtual_key_code {
+                    VirtualKeyCode::LControl => self.toggle_modifier(LEFT_CONTROL),
+                    VirtualKeyCode::RControl => self.toggle_modifier(RIGHT_CONTROL),
+                    VirtualKeyCode::LShift => self.toggle_modifier(LEFT_SHIFT),
+                    VirtualKeyCode::RShift => self.toggle_modifier(RIGHT_SHIFT),
+                    VirtualKeyCode::LAlt => self.toggle_modifier(LEFT_ALT),
+                    VirtualKeyCode::RAlt => self.toggle_modifier(RIGHT_ALT),
+                    VirtualKeyCode::LWin => self.toggle_modifier(LEFT_SUPER),
+                    VirtualKeyCode::RWin => self.toggle_modifier(RIGHT_SUPER),
+                    _ => {
+                        if let Ok(key) = Window::glutin_key_to_script_key(virtual_key_code) {
+                            let state = match element_state {
+                                ElementState::Pressed => KeyState::Pressed,
+                                ElementState::Released => KeyState::Released,
+                            };
+                            let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
+                            self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(key, state, modifiers));
                         }
                     }
                 }
+            }
+            Event::KeyboardInput(_, _, None) => {
+                debug!("Keyboard input without virtual key.");
             }
             Event::Resized(width, height) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Resize(Size2D::typed(width, height)));
@@ -340,7 +339,13 @@ impl Window {
 
     #[cfg(any(target_os = "macos", target_os = "windows"))]
     fn handle_next_event(&self) -> bool {
-        let event = self.window.wait_events().next().unwrap();
+        let event = match self.window.wait_events().next() {
+            None => {
+                warn!("Window event stream closed.");
+                return false;
+            },
+            Some(event) => event,
+        };
         let mut close = self.handle_window_event(event);
         if !close {
             while let Some(event) = self.window.poll_events().next() {
@@ -362,7 +367,13 @@ impl Window {
         // because it doesn't call X11 functions from another thread, so doesn't
         // hit the same issues explained below.
         if opts::get().use_webrender {
-            let event = self.window.wait_events().next().unwrap();
+            let event = match self.window.wait_events().next() {
+                None => {
+                    warn!("Window event stream closed.");
+                    return false;
+                },
+                Some(event) => event,
+            };
             let mut close = self.handle_window_event(event);
             if !close {
                 while let Some(event) = self.window.poll_events().next() {
@@ -530,7 +541,7 @@ impl Window {
     }
 
     fn glutin_mods_to_script_mods(modifiers: KeyModifiers) -> constellation_msg::KeyModifiers {
-        let mut result = constellation_msg::KeyModifiers::from_bits(0).unwrap();
+        let mut result = constellation_msg::KeyModifiers::from_bits(0).expect("infallible");
         if modifiers.intersects(LEFT_SHIFT | RIGHT_SHIFT) {
             result.insert(SHIFT);
         }
@@ -579,19 +590,23 @@ fn create_window_proxy(window: &Window) -> Option<glutin::WindowProxy> {
 impl WindowMethods for Window {
     fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, u32> {
         let scale_factor = self.window.hidpi_factor() as u32;
-        let (width, height) = self.window.get_inner_size().unwrap();
+        // TODO(ajeffrey): can this fail?
+        let (width, height) = self.window.get_inner_size().expect("Failed to get window inner size.");
         Size2D::typed(width * scale_factor, height * scale_factor)
     }
 
     fn size(&self) -> TypedSize2D<ScreenPx, f32> {
-        let (width, height) = self.window.get_inner_size().unwrap();
+        // TODO(ajeffrey): can this fail?
+        let (width, height) = self.window.get_inner_size().expect("Failed to get window inner size.");
         Size2D::typed(width as f32, height as f32)
     }
 
     fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
-        let (width, height) = self.window.get_outer_size().unwrap();
+        // TODO(ajeffrey): can this fail?
+        let (width, height) = self.window.get_outer_size().expect("Failed to get window outer size.");
         let size = Size2D::new(width, height);
-        let (x, y) = self.window.get_position().unwrap();
+        // TODO(ajeffrey): can this fail?
+        let (x, y) = self.window.get_position().expect("Failed to get window position.");
         let origin = Point2D::new(x as i32, y as i32);
         (size, origin)
     }
@@ -605,7 +620,9 @@ impl WindowMethods for Window {
     }
 
     fn present(&self) {
-        self.window.swap_buffers().unwrap();
+        if let Err(err) = self.window.swap_buffers() {
+            warn!("Failed to swap window buffers ({}).", err);
+        }
     }
 
     fn create_compositor_channel(&self)
@@ -826,7 +843,9 @@ unsafe impl Send for GlutinCompositorProxy {}
 impl CompositorProxy for GlutinCompositorProxy {
     fn send(&self, msg: compositor_thread::Msg) {
         // Send a message and kick the OS event loop awake.
-        self.sender.send(msg).unwrap();
+        if let Err(err) = self.sender.send(msg) {
+            warn!("Failed to send response ({}).", err);
+        }
         if let Some(ref window_proxy) = self.window_proxy {
             window_proxy.wakeup_event_loop()
         }
