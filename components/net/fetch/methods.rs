@@ -14,6 +14,7 @@ use hyper::header::{IfNoneMatch, Pragma, Location, QualityItem, Referer as Refer
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
+use mime_guess::guess_mime_type;
 use net_traits::AsyncFetchListener;
 use net_traits::request::{CacheMode, CredentialsMode, Type, Origin, Window};
 use net_traits::request::{RedirectMode, Referer, Request, RequestMode, ResponseTainting};
@@ -21,6 +22,7 @@ use net_traits::response::{HttpsState, TerminationReason};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use resource_thread::CancellationListener;
 use std::collections::HashSet;
+use std::fs::File;
 use std::io::Read;
 use std::iter::FromIterator;
 use std::rc::Rc;
@@ -153,6 +155,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
 
             if (same_origin && !cors_flag ) ||
                 (current_url.scheme() == "data" && request.same_origin_data.get()) ||
+                (current_url.scheme() == "file" && request.same_origin_data.get()) ||
                 current_url.scheme() == "about" ||
                 request.mode == RequestMode::Navigate {
 
@@ -313,7 +316,31 @@ fn basic_fetch(request: Rc<Request>) -> Response {
             }
         },
 
-        "blob" | "file" | "ftp" => {
+        "file" => {
+            if *request.method.borrow() == Method::Get {
+                url.to_file_path().ok()
+                    .and_then(|file_path| {
+                        let file_path_dup = &file_path.to_owned();
+                        if let Some(mut file) = File::open(file_path).ok() {
+                            let mut bytes = vec![];
+                            let _ = file.read_to_end(&mut bytes);
+                            let mime = guess_mime_type(file_path_dup);
+
+                            let mut response = Response::new();
+                            *response.body.lock().unwrap() = ResponseBody::Done(bytes);
+                            response.headers.set(ContentType(mime));
+                            Some(response)
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or(Response::network_error())
+            } else {
+                Response::network_error()
+            }
+        },
+
+        "blob" | "ftp" => {
             // XXXManishearth handle these
             panic!("Unimplemented scheme for Fetch")
         },
