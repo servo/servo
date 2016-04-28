@@ -80,6 +80,7 @@ extern crate unicode_script;
 extern crate url;
 extern crate util;
 extern crate webrender_traits;
+extern crate xi_unicode;
 
 pub use paint_context::PaintContext;
 
