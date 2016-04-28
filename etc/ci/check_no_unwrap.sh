@@ -12,4 +12,4 @@ FILES=("components/compositing/compositor.rs"
        "components/compositing/pipeline.rs"
        "components/compositing/constellation.rs")
 
-! grep -n "unwrap(" "${FILES[@]}"
+! grep -n "unwrap(\|panic!(" "${FILES[@]}"
