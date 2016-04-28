@@ -276,10 +276,9 @@ impl PreInvoke for StylesheetContext {}
 impl AsyncResponseListener for StylesheetContext {
     fn headers_available(&mut self, metadata: Result<Metadata, NetworkError>) {
         self.metadata = metadata.ok();
-        let content_type = self.metadata.clone().and_then(|meta| meta.content_type);
-        match content_type {
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Css, _))) => {},
-            _ => {
+        if let Some(ref meta) = self.metadata {
+            if let Some(ContentType(Mime(TopLevel::Text, SubLevel::Css, _))) = meta.content_type {
+            } else {
                 self.elem.root().upcast::<EventTarget>().fire_simple_event("error");
             }
         }
@@ -290,14 +289,11 @@ impl AsyncResponseListener for StylesheetContext {
         self.data.append(&mut payload);
     }
 
-    fn response_complete(&mut self, _status: Result<(), NetworkError>) {
-        match _status {
-            Err(_) => {
-                self.elem.root().upcast::<EventTarget>().fire_simple_event("error");
-                return;
-            },
-            _ => {}
-        };
+    fn response_complete(&mut self, status: Result<(), NetworkError>) {
+        if status.is_err() {
+            self.elem.root().upcast::<EventTarget>().fire_simple_event("error");
+            return;
+        }
         let data = mem::replace(&mut self.data, vec!());
         let metadata = match self.metadata.take() {
             Some(meta) => meta,
