@@ -847,6 +847,7 @@ dependencies = [
  "euclid 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.2.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "layers 0.2.5 (git+https://github.com/servo/rust-layers)",
+ "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "net_traits 0.0.1",
  "script_traits 0.0.1",

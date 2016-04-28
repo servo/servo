@@ -14,6 +14,7 @@ extern crate euclid;
 extern crate gleam;
 extern crate glutin;
 extern crate layers;
+#[macro_use] extern crate log;
 extern crate msg;
 extern crate net_traits;
 extern crate script_traits;
@@ -41,8 +42,9 @@ pub fn create_window(parent: Option<WindowID>) -> Rc<Window> {
     let opts = opts::get();
     let foreground = opts.output_file.is_none() && !opts.headless;
     let scale_factor = ScaleFactor::new(opts.device_pixels_per_px.unwrap_or(1.0));
-    let size = opts.initial_window_size.as_f32() * scale_factor;
+    let size_f32 = opts.initial_window_size.as_f32() * scale_factor;
+    let size_u32 = size_f32.as_uint().cast().expect("Window size should fit in a u32.");
 
     // Open a window.
-    Window::new(foreground, size.as_uint().cast().unwrap(), parent)
+    Window::new(foreground, size_u32, parent)
 }
