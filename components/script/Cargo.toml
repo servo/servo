@@ -24,7 +24,7 @@ devtools_traits = {path = "../devtools_traits"}
 style = {path = "../style"}
 canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
-js = {git = "https://github.com/servo/rust-mozjs"}
+js = {git = "https://github.com/servo/rust-mozjs", branch = "smup"}
 angle = {git = "https://github.com/emilio/angle", branch = "servo"}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 xml5ever = {git = "https://github.com/Ygg01/xml5ever", features = ["unstable"]}
