@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // For simd (currently x86_64/aarch64)
+#![feature(cfg_target_feature)]
 #![cfg_attr(any(target_os = "linux", target_os = "android", target_os = "windows"), feature(heap_api))]
 
 #![feature(alloc)]
@@ -67,7 +68,7 @@ extern crate range;
 extern crate rustc_serialize;
 extern crate serde;
 
-#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+#[cfg(any(target_feature = "sse2", target_feature = "neon"))]
 extern crate simd;
 
 extern crate skia;
