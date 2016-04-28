@@ -190,11 +190,8 @@ impl<'a> TextRun {
         let (mut byte_i, mut char_i) = (0, CharIndex(0));
         let mut cur_slice_is_whitespace = false;
         let (mut byte_last_boundary, mut char_last_boundary) = (0, CharIndex(0));
-        while byte_i < text.len() {
-            let range = text.char_range_at(byte_i);
-            let ch = range.ch;
-            let next = range.next;
 
+        for ch in text.chars() {
             // Slices alternate between whitespace and non-whitespace,
             // representing line break opportunities.
             let can_break_before = if cur_slice_is_whitespace {
@@ -234,7 +231,7 @@ impl<'a> TextRun {
                 char_last_boundary = char_i;
             }
 
-            byte_i = next;
+            byte_i = byte_i + ch.len_utf8();
             char_i = char_i + CharIndex(1);
         }
 

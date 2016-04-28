@@ -11,7 +11,7 @@
 #![feature(custom_derive)]
 #![feature(mpsc_select)]
 #![feature(plugin)]
-#![feature(str_char)]
+#![feature(range_contains)]
 #![feature(unique)]
 
 #![plugin(heapsize_plugin)]
