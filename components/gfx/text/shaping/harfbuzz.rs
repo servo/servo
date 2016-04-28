@@ -323,9 +323,8 @@ impl Shaper {
         // in cases with complex glyph-character associations, 2+ glyphs and 1+ chars can be
         // processed.
         while glyph_span.start < glyph_count {
-            // start by looking at just one glyph.
-            glyph_span.end += 1;
             debug!("Processing glyph at idx={}", glyph_span.start);
+            glyph_span.end = glyph_span.start;
 
             let char_byte_start = glyph_data.byte_offset_of_glyph(glyph_span.start) as usize;
             char_byte_span = char_byte_start..char_byte_start;
