@@ -44,6 +44,7 @@ azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
 layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 webrender_traits = {git = "https://github.com/servo/webrender_traits"}
+xi-unicode = "0.0.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 core-foundation = "0.2"

@@ -12,7 +12,9 @@ use std::cmp::{Ordering, max};
 use std::slice::Iter;
 use std::sync::Arc;
 use text::glyph::{ByteIndex, GlyphStore};
+use util::str::char_is_whitespace;
 use webrender_traits;
+use xi_unicode::LineBreakIterator;
 
 thread_local! {
     static INDEX_OF_FIRST_GLYPH_RUN_CACHE: Cell<Option<(*const TextRun, ByteIndex, usize)>> =
@@ -191,73 +193,40 @@ impl<'a> TextRun {
 
     pub fn break_and_shape(font: &mut Font, text: &str, options: &ShapingOptions)
                            -> Vec<GlyphRun> {
-        // TODO(Issue #230): do a better job. See Gecko's LineBreaker.
         let mut glyphs = vec!();
-        let mut byte_i = 0;
-        let mut cur_slice_is_whitespace = false;
-        let mut byte_last_boundary = 0;
+        let mut slice = 0..0;
 
-        for ch in text.chars() {
-            // Slices alternate between whitespace and non-whitespace,
-            // representing line break opportunities.
-            let can_break_before = if cur_slice_is_whitespace {
-                match ch {
-                    ' ' | '\t' | '\n' => false,
-                    _ => {
-                        cur_slice_is_whitespace = false;
-                        true
-                    }
-                }
-            } else {
-                match ch {
-                    ' ' | '\t' | '\n' => {
-                        cur_slice_is_whitespace = true;
-                        true
-                    },
-                    _ => false
-                }
-            };
+        for (idx, _is_hard_break) in LineBreakIterator::new(text) {
+            // Extend the slice to the next UAX#14 line break opportunity.
+            slice.end = idx;
+            let word = &text[slice.clone()];
 
-            // Create a glyph store for this slice if it's nonempty.
-            if can_break_before && byte_i > byte_last_boundary {
-                let slice = &text[byte_last_boundary .. byte_i];
-                debug!("creating glyph store for slice {} (ws? {}), {} - {} in run {}",
-                        slice, !cur_slice_is_whitespace, byte_last_boundary, byte_i, text);
+            // Split off any trailing whitespace into a separate glyph run.
+            let mut whitespace = slice.end..slice.end;
+            if let Some((i, _)) = word.char_indices().rev()
+                                     .take_while(|&(_, c)| char_is_whitespace(c)).last() {
+                whitespace.start = slice.start + i;
+                slice.end = whitespace.start;
+            }
 
-                let mut options = *options;
-                if !cur_slice_is_whitespace {
-                    options.flags.insert(IS_WHITESPACE_SHAPING_FLAG);
-                }
-
+            if slice.len() > 0 {
                 glyphs.push(GlyphRun {
-                    glyph_store: font.shape_text(slice, &options),
-                    range: Range::new(ByteIndex(byte_last_boundary as isize),
-                                      ByteIndex((byte_i - byte_last_boundary) as isize)),
+                    glyph_store: font.shape_text(&text[slice.clone()], options),
+                    range: Range::new(ByteIndex(slice.start as isize),
+                                      ByteIndex(slice.len() as isize)),
                 });
-                byte_last_boundary = byte_i;
             }
-
-            byte_i = byte_i + ch.len_utf8();
-        }
-
-        // Create a glyph store for the final slice if it's nonempty.
-        if byte_i > byte_last_boundary {
-            let slice = &text[byte_last_boundary..];
-            debug!("creating glyph store for final slice {} (ws? {}), {} - {} in run {}",
-                slice, cur_slice_is_whitespace, byte_last_boundary, text.len(), text);
-
-            let mut options = *options;
-            if cur_slice_is_whitespace {
+            if whitespace.len() > 0 {
+                let mut options = options.clone();
                 options.flags.insert(IS_WHITESPACE_SHAPING_FLAG);
+                glyphs.push(GlyphRun {
+                    glyph_store: font.shape_text(&text[whitespace.clone()], &options),
+                    range: Range::new(ByteIndex(whitespace.start as isize),
+                                      ByteIndex(whitespace.len() as isize)),
+                });
             }
-
-            glyphs.push(GlyphRun {
-                glyph_store: font.shape_text(slice, &options),
-                range: Range::new(ByteIndex(byte_last_boundary as isize),
-                                  ByteIndex((byte_i - byte_last_boundary) as isize)),
-            });
+            slice.start = whitespace.end;
         }
-
         glyphs
     }
 
