@@ -385,9 +385,12 @@ class MachCommands(CommandBase):
              description='Update the web platform tests',
              category='testing',
              parser=updatecommandline.create_parser())
-    def update_css(self, **kwargs):
+    @CommandArgument('--patch', action='store_true', default=False,
+                     help='Create an mq patch or git commit containing the changes')
+    def update_css(self, patch, **kwargs):
         self.ensure_bootstrapped()
         run_file = path.abspath(path.join("tests", "wpt", "update_css.py"))
+        kwargs["no_patch"] = not patch
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
         return run_globals["update_tests"](**kwargs)
