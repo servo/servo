@@ -7,7 +7,7 @@ use profile_traits::time::ProfilerMsg;
 
 #[test]
 fn time_profiler_smoke_test() {
-    let chan = time::Profiler::create(None);
+    let chan = time::Profiler::create(None, None);
     assert!(true, "Can create the profiler thread");
 
     chan.send(ProfilerMsg::Exit);

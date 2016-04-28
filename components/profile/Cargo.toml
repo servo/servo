@@ -16,6 +16,9 @@ ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 hbs-pow = "0.2"
 log = "0.3.5"
 libc = "0.2"
+serde = "0.7"
+serde_json = "0.7"
+serde_macros = "0.7"
 time = "0.1.12"
 
 [target.'cfg(target_os = "macos")'.dependencies]
