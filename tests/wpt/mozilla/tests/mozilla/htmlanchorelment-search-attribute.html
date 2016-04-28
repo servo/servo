@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<html>
+<head>
+<title>HTMLAnchorElement search setter crashes</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<a>anchor</a>
+<script>
+test(function() {
+  var a = document.querySelector('a');
+  a.href = "http://google.com?ho";
+  a.search = "?hi";
+});
+</script>
+</head>
+</html>
