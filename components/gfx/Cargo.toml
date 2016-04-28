@@ -56,8 +56,8 @@ core-text = "2.0"
 freetype = "0.2"
 servo-fontconfig = "0.2.1"
 
-[target.'cfg(any(target_arch = "x86_64", target_arch = "aarch64"))'.dependencies]
-simd = {git = "https://github.com/huonw/simd"}
+[target.'cfg(any(target_feature = "sse2", target_feature = "neon"))'.dependencies]
+simd = "0.2.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 dwrote = "0.1.5"
