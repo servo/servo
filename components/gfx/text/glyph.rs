@@ -517,19 +517,6 @@ impl<'a> GlyphStore {
         self.entry_buffer[i.to_usize()] = entry;
     }
 
-    // used when a character index has no associated glyph---for example, a ligature continuation.
-    pub fn add_nonglyph_for_char_index(&mut self,
-                                       i: CharIndex,
-                                       cluster_start: bool,
-                                       ligature_start: bool) {
-        assert!(i < self.char_len());
-
-        let entry = GlyphEntry::complex(cluster_start, ligature_start, 0);
-        debug!("adding spacer for character without associated glyph[idx={:?}]", i);
-
-        self.entry_buffer[i.to_usize()] = entry;
-    }
-
     #[inline]
     pub fn iter_glyphs_for_char_range(&'a self, rang: &Range<CharIndex>) -> GlyphIterator<'a> {
         if rang.begin() >= self.char_len() {

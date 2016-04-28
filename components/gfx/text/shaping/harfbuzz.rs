@@ -435,7 +435,7 @@ impl Shaper {
                 // we'll need to do something special to handle `word-spacing` properly.
                 let character = text[char_byte_span.clone()].chars().next().unwrap();
                 if is_bidi_control(character) {
-                    glyphs.add_nonglyph_for_char_index(char_idx, false, false);
+                    // Don't add any glyphs for bidi control chars
                 } else if character == '\t' {
                     // Treat tabs in pre-formatted text as a fixed number of spaces.
                     //
@@ -476,12 +476,6 @@ impl Shaper {
 
                 // now add the detailed glyph entry.
                 glyphs.add_glyphs_for_char_index(char_idx, &datas);
-
-                // set the other chars, who have no glyphs
-                for _ in text[covered_byte_span].chars().skip(1) {
-                    char_idx = char_idx + char_step;
-                    glyphs.add_nonglyph_for_char_index(char_idx, false, false);
-                }
             }
 
             // shift up our working spans past things we just handled.
