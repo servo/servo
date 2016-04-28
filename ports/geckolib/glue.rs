@@ -12,7 +12,7 @@ use data::PerDocumentStyleData;
 use euclid::Size2D;
 use gecko_style_structs::SheetParsingMode;
 use properties::GeckoComputedValues;
-use selector_impl::{GeckoSelectorImpl, SharedStyleContext, Stylesheet};
+use selector_impl::{GeckoSelectorImpl, PseudoElement, SharedStyleContext, Stylesheet};
 use std::marker::PhantomData;
 use std::mem::{forget, transmute};
 use std::ptr;
@@ -29,6 +29,29 @@ use traversal::RecalcStyleOnly;
 use url::Url;
 use util::arc_ptr_eq;
 use wrapper::{GeckoDocument, GeckoElement, GeckoNode, NonOpaqueStyleData};
+
+// TODO: This is ugly and should go away once we get an atom back-end.
+pub fn pseudo_element_from_atom(pseudo: *mut nsIAtom,
+                                in_ua_stylesheet: bool) -> Result<PseudoElement, String> {
+    use bindings::Gecko_GetAtomAsUTF16;
+    use selectors::parser::{ParserContext, SelectorImpl};
+
+    let pseudo_string = unsafe {
+        let mut length = 0;
+        let mut buff = Gecko_GetAtomAsUTF16(pseudo, &mut length);
+
+        // Handle the annoying preceding colon in front of everything in nsCSSAnonBoxList.h.
+        debug_assert!(length >= 2 && *buff == ':' as u16 && *buff.offset(1) != ':' as u16);
+        buff = buff.offset(1);
+        length -= 1;
+
+        String::from_utf16(slice::from_raw_parts(buff, length as usize)).unwrap()
+    };
+
+    let mut context = ParserContext::new();
+    context.in_user_agent_stylesheet = in_ua_stylesheet;
+    GeckoSelectorImpl::parse_pseudo_element(&context, &pseudo_string).map_err(|_| pseudo_string)
+}
 
 /*
  * For Gecko->Servo function calls, we need to redeclare the same signature that was declared in
@@ -106,17 +129,38 @@ pub struct ArcHelpers<GeckoType, ServoType> {
     phantom2: PhantomData<ServoType>,
 }
 
+
 impl<GeckoType, ServoType> ArcHelpers<GeckoType, ServoType> {
     pub fn with<F, Output>(raw: *mut GeckoType, cb: F) -> Output
                            where F: FnOnce(&Arc<ServoType>) -> Output {
+        debug_assert!(!raw.is_null());
+
         let owned = unsafe { Self::into(raw) };
         let result = cb(&owned);
         forget(owned);
         result
     }
 
+    pub fn maybe_with<F, Output>(maybe_raw: *mut GeckoType, cb: F) -> Output
+                                 where F: FnOnce(Option<&Arc<ServoType>>) -> Output {
+        let owned = if maybe_raw.is_null() {
+            None
+        } else {
+            Some(unsafe { Self::into(maybe_raw) })
+        };
+
+        let result = cb(owned.as_ref());
+        forget(owned);
+
+        result
+    }
+
     pub unsafe fn into(ptr: *mut GeckoType) -> Arc<ServoType> {
         transmute(ptr)
+    }
+
+    pub unsafe fn from(owned: Arc<ServoType>) -> *mut GeckoType {
+        transmute(owned)
     }
 
     pub unsafe fn addref(ptr: *mut GeckoType) {
@@ -194,44 +238,22 @@ pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(parent_style_or_null: *
                                                          pseudo_tag: *mut nsIAtom,
                                                          raw_data: *mut RawServoStyleSet)
      -> *mut ServoComputedValues {
-    use bindings::Gecko_GetAtomAsUTF16;
-    use selectors::parser::{ParserContext, SelectorImpl};
-
     let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
 
-    // TODO: This is ugly and should go away once we get an atom back-end.
-    let pseudo_string = unsafe {
-        let mut length = 0;
-        let buff = Gecko_GetAtomAsUTF16(pseudo_tag, &mut length);
-        String::from_utf16(slice::from_raw_parts(buff, length as usize)).unwrap()
-    };
-
-    let mut context = ParserContext::new();
-    // Parse every pseudo-element possible.
-    context.in_user_agent_stylesheet = true;
-
-    let pseudo = match GeckoSelectorImpl::parse_pseudo_element(&context, &pseudo_string) {
+    let pseudo = match pseudo_element_from_atom(pseudo_tag, true) {
         Ok(pseudo) => pseudo,
-        Err(_) => {
-            warn!("stylo: Unable to parse pseudo-element: {}", pseudo_string);
+        Err(pseudo) => {
+            warn!("stylo: Unable to parse anonymous-box pseudo-element: {}", pseudo);
             return ptr::null_mut();
         }
     };
 
-    unsafe {
-        let parent: Option<Arc<GeckoComputedValues>> =
-            if parent_style_or_null.is_null() {
-                None
-            } else {
-                Some(transmute(parent_style_or_null))
-            };
+    type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
 
-        let new_computed = data.stylist.computed_values_for_pseudo(&pseudo, parent.as_ref());
-
-        forget(parent);
-
-        new_computed.map_or(ptr::null_mut(), |c| transmute(c))
-    }
+    Helpers::maybe_with(parent_style_or_null, |maybe_parent| {
+        let new_computed = data.stylist.computed_values_for_pseudo(&pseudo, maybe_parent);
+        new_computed.map_or(ptr::null_mut(), |c| unsafe { Helpers::from(c) })
+    })
 }
 
 #[no_mangle]
