@@ -24,7 +24,7 @@ use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, UnbindContext, window_from_node, document_from_node};
+use dom::node::{Node, NodeDamage, UnbindContext, window_from_node, document_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::{ReflowReason, Window};
@@ -177,8 +177,14 @@ impl HTMLIFrameElement {
         }
     }
 
-    pub fn update_subpage_id(&self, new_subpage_id: SubpageId) {
+    pub fn update_subpage_id(&self, new_subpage_id: SubpageId, new_pipeline_id: PipelineId) {
         self.subpage_id.set(Some(new_subpage_id));
+        self.pipeline_id.set(Some(new_pipeline_id));
+
+        let mut blocker = self.load_blocker.borrow_mut();
+        LoadBlocker::terminate(&mut blocker);
+
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn new_inherited(localName: Atom,

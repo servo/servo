@@ -128,8 +128,8 @@ pub enum ConstellationControlMsg {
     Navigate(PipelineId, SubpageId, LoadData),
     /// Requests the script thread forward a mozbrowser event to an iframe it owns
     MozBrowserEvent(PipelineId, SubpageId, MozBrowserEvent),
-    /// Updates the current subpage id of a given iframe
-    UpdateSubpageId(PipelineId, SubpageId, SubpageId),
+    /// Updates the current subpage and pipeline IDs of a given iframe
+    UpdateSubpageId(PipelineId, SubpageId, SubpageId, PipelineId),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
     FocusIFrame(PipelineId, SubpageId),
     /// Passes a webdriver command to the script thread for execution
