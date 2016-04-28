@@ -1122,13 +1122,11 @@ pub struct ChangeEventRunnable {
 
 impl ChangeEventRunnable {
     pub fn send(node: &Node) {
-        let window = window_from_node(node);
-        let window = window.r();
-        let chan = window.user_interaction_task_source();
-        let handler = Trusted::new(node, chan.clone());
+        let handler = Trusted::new(node);
         let dispatcher = ChangeEventRunnable {
             element: handler,
         };
+        let chan = window_from_node(node).user_interaction_task_source();
         let _ = chan.send(CommonScriptMsg::RunnableMsg(InputEvent, box dispatcher));
     }
 }

@@ -333,8 +333,6 @@ impl FileReader {
     }
 
     fn read(&self, function: FileReaderFunction, blob: &Blob, label: Option<DOMString>) -> ErrorResult {
-        let root = self.global();
-        let global = root.r();
         // Step 1
         if self.ready_state.get() == FileReaderReadyState::Loading {
             return Err(Error::InvalidState);
@@ -359,10 +357,10 @@ impl FileReader {
 
         let load_data = ReadMetaData::new(String::from(type_), label.map(String::from), function);
 
-        let fr = Trusted::new(self, global.file_reading_task_source());
+        let fr = Trusted::new(self);
         let gen_id = self.generation_id.get();
 
-        let script_chan = global.file_reading_task_source();
+        let script_chan = self.global().r().file_reading_task_source();
 
         spawn_named("file reader async operation".to_owned(), move || {
             perform_annotated_read_operation(gen_id, load_data, blob_contents, fr, script_chan)

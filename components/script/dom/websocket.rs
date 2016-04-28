@@ -245,7 +245,7 @@ impl WebSocket {
 
         // Step 7.
         let ws = WebSocket::new(global, resource_url.clone());
-        let address = Trusted::new(ws.r(), global.networking_task_source());
+        let address = Trusted::new(ws.r());
 
         let connect_data = WebSocketConnectData {
             resource_url: resource_url.clone(),
@@ -314,9 +314,7 @@ impl WebSocket {
             WebSocketRequestState::Closing | WebSocketRequestState::Closed => true,
         };
 
-        let global = self.global();
-        let chan = global.r().networking_task_source();
-        let address = Trusted::new(self, chan.clone());
+        let address = Trusted::new(self);
 
         match data_byte_len.checked_add(self.buffered_amount.get()) {
             None => panic!(),
@@ -334,7 +332,8 @@ impl WebSocket {
                 address: address,
             };
 
-            chan.send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
+            let global = self.global();
+            global.r().script_chan().send(CommonScriptMsg::RunnableMsg(WebSocketEvent, task)).unwrap();
         }
 
         Ok(true)
@@ -440,9 +439,8 @@ impl WebSocketMethods for WebSocket {
                   will abort connecting the websocket*/
                 self.ready_state.set(WebSocketRequestState::Closing);
 
-                let global = self.global();
-                let sender = global.r().networking_task_source();
-                let address = Trusted::new(self, sender.clone());
+                let address = Trusted::new(self);
+                let sender = self.global().r().networking_task_source();
                 fail_the_websocket_connection(address, sender);
             }
             WebSocketRequestState::Open => {

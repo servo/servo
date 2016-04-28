@@ -100,7 +100,7 @@ use num_traits::ToPrimitive;
 use origin::Origin;
 use parse::{ParserRoot, ParserRef, MutNullableParserField};
 use script_runtime::ScriptChan;
-use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable};
+use script_thread::{MainThreadScriptMsg, Runnable};
 use script_traits::UntrustedNodeAddress;
 use script_traits::{AnimationState, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{ScriptMsg as ConstellationMsg, ScriptToCompositorMsg};
@@ -1460,8 +1460,7 @@ impl Document {
 
         update_with_current_time_ms(&self.dom_content_loaded_event_start);
 
-        let chan = MainThreadScriptChan(self.window().main_thread_script_chan().clone()).clone();
-        let doctarget = Trusted::new(self.upcast::<EventTarget>(), chan);
+        let doctarget = Trusted::new(self.upcast::<EventTarget>());
         let task_source = self.window().dom_manipulation_task_source();
         let _ = task_source.queue(DOMManipulationTask::FireEvent(
             atom!("DOMContentLoaded"), doctarget, EventBubbles::Bubbles, EventCancelable::NotCancelable));

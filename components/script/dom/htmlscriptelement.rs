@@ -36,7 +36,6 @@ use js::jsval::UndefinedValue;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
 use network_listener::{NetworkListener, PreInvoke};
 use script_runtime::ScriptChan;
-use script_thread::MainThreadScriptChan;
 use std::ascii::AsciiExt;
 use std::cell::Cell;
 use std::mem;
@@ -299,8 +298,7 @@ impl HTMLScriptElement {
 
                 // Step 16.6.
                 // TODO(#9186): use the fetch infrastructure.
-                let script_chan = doc.window().networking_task_source();
-                let elem = Trusted::new(self, script_chan.clone());
+                let elem = Trusted::new(self);
 
                 let context = Arc::new(Mutex::new(ScriptContext {
                     elem: elem,
@@ -313,7 +311,7 @@ impl HTMLScriptElement {
                 let (action_sender, action_receiver) = ipc::channel().unwrap();
                 let listener = NetworkListener {
                     context: context,
-                    script_chan: script_chan,
+                    script_chan: doc.window().networking_task_source(),
                 };
                 let response_target = AsyncResponseTarget {
                     sender: action_sender,
@@ -465,19 +463,15 @@ impl HTMLScriptElement {
         if external {
             self.dispatch_load_event();
         } else {
-            let chan = MainThreadScriptChan(window.main_thread_script_chan().clone()).clone();
-            let script_element = Trusted::new(self.upcast::<EventTarget>(), chan);
+            let script_element = Trusted::new(self.upcast::<EventTarget>());
             let task_source = window.dom_manipulation_task_source();
             task_source.queue(DOMManipulationTask::FireSimpleEvent(atom!("load"), script_element)).unwrap();
         }
     }
 
     pub fn queue_error_event(&self) {
-        let window = window_from_node(self);
-        let window = window.r();
-        let chan = MainThreadScriptChan(window.main_thread_script_chan().clone()).clone();
-        let task_source = window.dom_manipulation_task_source();
-        let script_element = Trusted::new(self.upcast::<EventTarget>(), chan);
+        let task_source = window_from_node(self).dom_manipulation_task_source();
+        let script_element = Trusted::new(self.upcast::<EventTarget>());
         task_source.queue(DOMManipulationTask::FireSimpleEvent(atom!("error"), script_element)).unwrap();
     }
 
