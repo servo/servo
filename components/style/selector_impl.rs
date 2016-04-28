@@ -18,6 +18,24 @@ pub trait SelectorImplExt : SelectorImpl + Sized {
     fn each_pseudo_element<F>(mut fun: F)
         where F: FnMut(<Self as SelectorImpl>::PseudoElement);
 
+    /// This function determines if a pseudo-element is eagerly cascaded or not.
+    ///
+    /// Eagerly cascaded pseudo-elements are "normal" pseudo-elements (i.e.
+    /// `::before` and `::after`). They inherit styles normally as another
+    /// selector would do.
+    ///
+    /// Non-eagerly cascaded ones skip the cascade process entirely, mostly as
+    /// an optimisation since they are private pseudo-elements (like
+    /// `::-servo-details-content`). This pseudo-elements are resolved on the
+    /// fly using global rules (rules of the form `*|*`), and applying them to
+    /// the parent style.
+    ///
+    /// If you're implementing a public selector that the end-user might
+    /// customize, then you probably need doing the whole cascading process and
+    /// return true in this function for that pseudo.
+    ///
+    /// But if you are implementing a private pseudo-element, please consider if
+    /// it might be possible to skip the cascade for it.
     fn is_eagerly_cascaded_pseudo_element(pseudo: &<Self as SelectorImpl>::PseudoElement) -> bool;
 
     #[inline]
