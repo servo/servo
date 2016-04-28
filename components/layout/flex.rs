@@ -99,7 +99,9 @@ pub struct FlexFlow {
     /// The available cross axis size
     available_cross_size: AxisSize,
     /// List of flex-items that belong to this flex-container
-    items: Vec<FlexItem>
+    items: Vec<FlexItem>,
+    /// True if the flex-direction is *-reversed
+    is_reverse: bool
 }
 
 impl FlexFlow {
@@ -112,12 +114,18 @@ impl FlexFlow {
             flex_direction::T::column_reverse | flex_direction::T::column => Mode::Block
         };
 
+        let is_reverse = match fragment.style.get_position().flex_direction {
+            flex_direction::T::row_reverse | flex_direction::T::column_reverse => true,
+            flex_direction::T::row | flex_direction::T::column => false
+        };
+
         FlexFlow {
             block_flow: BlockFlow::from_fragment(fragment, flotation),
             main_mode: main_mode,
             available_main_size: AxisSize::Infinite,
             available_cross_size: AxisSize::Infinite,
-            items: Vec::new()
+            items: Vec::new(),
+            is_reverse: is_reverse
         }
     }
 
@@ -251,25 +259,47 @@ impl FlexFlow {
         self.block_flow.base.position.size.inline = inline_size;
 
         let block_container_explicit_block_size = self.block_flow.base.block_container_explicit_block_size;
-        let mut inline_child_start = inline_start_content_edge;
-        for kid in &mut self.items {
-            let base = flow::mut_base(flow_ref::deref_mut(&mut kid.flow));
+        if !self.is_reverse {
+            let mut inline_child_start = inline_start_content_edge;
+            for kid in &mut self.items {
+                let base = flow::mut_base(flow_ref::deref_mut(&mut kid.flow));
 
-            base.block_container_inline_size = even_content_inline_size;
-            base.block_container_writing_mode = container_mode;
-            base.block_container_explicit_block_size = block_container_explicit_block_size;
-            base.position.start.i = inline_child_start;
-            inline_child_start = inline_child_start + even_content_inline_size;
+                base.block_container_inline_size = even_content_inline_size;
+                base.block_container_writing_mode = container_mode;
+                base.block_container_explicit_block_size = block_container_explicit_block_size;
+                base.position.start.i = inline_child_start;
+                inline_child_start = inline_child_start + even_content_inline_size;
+            }
+        } else {
+            let mut inline_child_start = self.block_flow.fragment.border_box.size.inline;
+            for kid in &mut self.items {
+                let base = flow::mut_base(flow_ref::deref_mut(&mut kid.flow));
+
+                base.block_container_inline_size = even_content_inline_size;
+                base.block_container_writing_mode = container_mode;
+                base.block_container_explicit_block_size = block_container_explicit_block_size;
+                base.position.start.i = inline_child_start - base.intrinsic_inline_sizes.preferred_inline_size;
+                inline_child_start = inline_child_start - even_content_inline_size;
+            }
         }
     }
 
     // TODO(zentner): This function should actually flex elements!
     fn block_mode_assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
-        let mut cur_b = self.block_flow.fragment.border_padding.block_start;
-        for kid in &mut self.items {
-            let base = flow::mut_base(flow_ref::deref_mut(&mut kid.flow));
-            base.position.start.b = cur_b;
-            cur_b = cur_b + base.position.size.block;
+        if !self.is_reverse {
+            let mut cur_b = self.block_flow.fragment.border_padding.block_start;
+            for kid in &mut self.items {
+                let base = flow::mut_base(flow_ref::deref_mut(&mut kid.flow));
+                base.position.start.b = cur_b;
+                cur_b = cur_b + base.position.size.block;
+            }
+        } else {
+            let mut cur_b = self.block_flow.fragment.border_box.size.block;
+            for kid in &mut self.items {
+                let base = flow::mut_base(flow_ref::deref_mut(&mut kid.flow));
+                cur_b = cur_b - base.position.size.block;
+                base.position.start.b = cur_b;
+            }
         }
         self.block_flow.assign_block_size(layout_context)
     }
