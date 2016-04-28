@@ -35,7 +35,7 @@ style = {path = "../../components/style"}
 style_traits = {path = "../../components/style_traits"}
 devtools = {path = "../../components/devtools"}
 azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
-js = {git = "https://github.com/servo/rust-mozjs"}
+js = {git = "https://github.com/servo/rust-mozjs", branch = "smup"}
 layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
 
 [target.'cfg(target_os="macos")'.dependencies]

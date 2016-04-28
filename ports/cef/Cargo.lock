@@ -14,7 +14,7 @@ dependencies = [
  "gfx 0.0.1",
  "gleam 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin_app 0.0.1",
- "js 0.1.2 (git+https://github.com/servo/rust-mozjs)",
+ "js 0.1.2 (git+https://github.com/servo/rust-mozjs?branch=smup)",
  "layers 0.2.4 (git+https://github.com/servo/rust-layers)",
  "libc 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -940,12 +940,12 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.2"
-source = "git+https://github.com/servo/rust-mozjs#ceaf6d82a33b95a5a7749e319484f2eecd6cf683"
+source = "git+https://github.com/servo/rust-mozjs?branch=smup#e2e8c33faf8b90795ab05b707db54db5379e46b8"
 dependencies = [
  "heapsize 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "mozjs_sys 0.0.0 (git+https://github.com/servo/mozjs)",
+ "mozjs_sys 0.0.0 (git+https://github.com/servo/mozjs?branch=smup)",
  "num-traits 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1184,7 +1184,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.0.0"
-source = "git+https://github.com/servo/mozjs#8d9893a68775fdf7a61dbace330ce6276ee836b1"
+source = "git+https://github.com/servo/mozjs?branch=smup#aa5ddaf758997fe7ab1ddb457108866d2b3ac376"
 dependencies = [
  "libc 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "libz-sys 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1679,7 +1679,7 @@ dependencies = [
  "hyper 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.2 (git+https://github.com/servo/ipc-channel)",
- "js 0.1.2 (git+https://github.com/servo/rust-mozjs)",
+ "js 0.1.2 (git+https://github.com/servo/rust-mozjs?branch=smup)",
  "libc 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mime 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2188,7 +2188,7 @@ dependencies = [
  "heapsize 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.2 (git+https://github.com/servo/ipc-channel)",
- "js 0.1.2 (git+https://github.com/servo/rust-mozjs)",
+ "js 0.1.2 (git+https://github.com/servo/rust-mozjs?branch=smup)",
  "kernel32-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
