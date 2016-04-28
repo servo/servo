@@ -59,7 +59,7 @@ use script_thread::SendableMainThreadScriptChan;
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
 use script_traits::{ConstellationControlMsg, UntrustedNodeAddress};
 use script_traits::{DocumentState, MsDuration, ScriptToCompositorMsg, TimerEvent, TimerEventId};
-use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource};
+use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;

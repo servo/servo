@@ -101,6 +101,7 @@ use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
 use time::Tm;
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 use tinyfiledialogs;
 use url::{Url, Position};
 use util::opts;
@@ -1951,8 +1952,14 @@ impl ScriptThread {
         }
     }
 
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
     fn handle_alert(&self, message: String) {
         tinyfiledialogs::message_box("Alert!", &message, "ok", "warning", 2);
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+    fn handle_alert(&self, _message: String) {
+        // tinyfiledialogs not supported on Windows
     }
 }
 
