@@ -81,7 +81,7 @@ extern "C" {
     pub fn Servo_StyleSheetHasRules(sheet: *mut RawServoStyleSheet) -> bool;
     pub fn Servo_InitStyleSet() -> *mut RawServoStyleSet;
     pub fn Servo_DropStyleSet(set: *mut RawServoStyleSet);
-    pub fn Servo_GetComputedValues(element: *mut RawGeckoElement)
+    pub fn Servo_GetComputedValues(node: *mut RawGeckoNode)
      -> *mut ServoComputedValues;
     pub fn Servo_GetComputedValuesForAnonymousBox(parentStyleOrNull:
                                                       *mut ServoComputedValues,

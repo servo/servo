@@ -5,7 +5,7 @@
 #![allow(unsafe_code)]
 
 use app_units::Au;
-use bindings::{RawGeckoDocument, RawGeckoElement};
+use bindings::{RawGeckoDocument, RawGeckoNode};
 use bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues, ServoNodeData};
 use bindings::{nsIAtom};
 use data::PerDocumentStyleData;
@@ -173,9 +173,9 @@ pub extern "C" fn Servo_ReleaseStyleSheet(sheet: *mut RawServoStyleSheet) -> () 
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_GetComputedValues(element: *mut RawGeckoElement)
+pub extern "C" fn Servo_GetComputedValues(node: *mut RawGeckoNode)
      -> *mut ServoComputedValues {
-    let node = unsafe { GeckoElement::from_raw(element).as_node() };
+    let node = unsafe { GeckoNode::from_raw(node) };
     let arc_cv = node.borrow_data().map(|data| data.style.clone());
     arc_cv.map_or(ptr::null_mut(), |arc| unsafe { transmute(arc) })
 }
