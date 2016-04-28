@@ -2104,6 +2104,7 @@ dependencies = [
  "euclid 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "plugins 0.0.1",
+ "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "selectors 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.2.12 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",

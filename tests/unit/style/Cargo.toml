@@ -20,3 +20,4 @@ euclid = {version = "0.6.4", features = ["plugins"]}
 selectors = {version = "0.5", features = ["heap_size"]}
 string_cache = {version = "0.2.12", features = ["heap_size"]}
 url = {version = "1.0.0", features = ["heap_size"]}
+rustc-serialize = "0.3"
