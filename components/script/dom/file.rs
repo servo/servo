@@ -23,6 +23,10 @@ impl File {
     fn new_inherited(file_bits: &Blob, name: DOMString) -> File {
         let mime_type = guess_mime_type(Path::new(&*name));
         let mut bytes = Vec::new();
+
+        // TODO: Normalization of the name
+
+        // Copying over the bytes
         bytes.extend_from_slice(file_bits.get_data().get_bytes_vec().as_slice());
 
         File {
