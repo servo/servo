@@ -31,13 +31,13 @@ use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
-use range::Range;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::InputEvent;
 use script_thread::Runnable;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::ops::Range;
 use string_cache::Atom;
 use style::element_state::*;
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
@@ -245,12 +245,11 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
                 let sel = textinput.get_absolute_selection_range();
 
                 // Translate indices from the raw value to indices in the replacement value.
-                let char_start = text[.. sel.begin()].chars().count();
-                let char_count = text[sel.begin() .. sel.end()].chars().count();
+                let char_start = text[.. sel.start].chars().count();
+                let char_end = char_start + text[sel].chars().count();
 
                 let bytes_per_char = PASSWORD_REPLACEMENT_CHAR.len_utf8();
-                Some(Range::new(char_start * bytes_per_char,
-                                char_count * bytes_per_char))
+                Some(char_start * bytes_per_char .. char_end * bytes_per_char)
             }
             InputType::InputText => Some(textinput.get_absolute_selection_range()),
             _ => None

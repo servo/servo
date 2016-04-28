@@ -1087,8 +1087,8 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         } else {
             return None;
         };
-        selection.map(|range| Range::new(ByteIndex(range.begin() as isize),
-                                         ByteIndex(range.length() as isize)))
+        selection.map(|range| Range::new(ByteIndex(range.start as isize),
+                                         ByteIndex(range.len() as isize)))
     }
 
     fn image_url(&self) -> Option<Url> {
