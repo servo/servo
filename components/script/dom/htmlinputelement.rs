@@ -17,10 +17,12 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
+use dom::blob::Blob;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers, LayoutElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::file::File as File_;
 use dom::filelist::FileList;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
@@ -39,6 +41,8 @@ use script_thread::Runnable;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::fs::File;
+use std::io::prelude::*;
 use std::ops::Range;
 use string_cache::Atom;
 use style::element_state::*;
@@ -79,7 +83,7 @@ pub struct HTMLInputElement {
     htmlelement: HTMLElement,
     input_type: Cell<InputType>,
     checked_changed: Cell<bool>,
-    filelist: DOMRefCell<Option<FileList>>,
+    filelist: DOMRefCell<Option<JS<FileList>>>,
     placeholder: DOMRefCell<DOMString>,
     value_changed: Cell<bool>,
     size: Cell<u32>,
@@ -1079,6 +1083,36 @@ impl Activatable for HTMLInputElement {
                                   EventBubbles::Bubbles,
                                   EventCancelable::NotCancelable);
             },
+            InputType::InputFile => {
+                let filepaths = vec![""]; // TODO: bind dialog and get selected filepaths
+                let window = window_from_node(self);
+                let window = window.r();
+                let mut files = vec![]; // Rooted list of file DOM objects
+
+                for path in filepaths {
+                    match File::open(path) {
+                        Ok(mut f) => {
+                            // Read *everything*
+                            let mut buffer = vec![];
+                            let _ = f.read_to_end(&mut buffer);
+
+                            // Create Blob
+                            let blob = Blob::new(GlobalRef::Window(window), buffer, "");
+                            let mut path_str = DOMString::new();
+                            path_str.push_str(path);
+
+                            // Create File
+                            let file = File_::new(GlobalRef::Window(window), blob.r(), path_str);
+                            files.push(file);
+                        },
+                        Err(_) => panic!(""),
+                    }
+                }
+
+                // Create FileList
+                let fl = FileList::new(window, files);
+                *self.filelist.borrow_mut() = Some(JS::from_rooted(&fl));
+            }
             _ => ()
         }
     }

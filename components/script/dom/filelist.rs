@@ -19,7 +19,7 @@ pub struct FileList {
 
 impl FileList {
     #[allow(unrooted_must_root)]
-    fn new_inherited(files: Vec<JS<File>>) -> FileList {
+    pub fn new_inherited(files: Vec<JS<File>>) -> FileList {
         FileList {
             reflector_: Reflector::new(),
             list: files
@@ -27,8 +27,10 @@ impl FileList {
     }
 
     #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, files: Vec<JS<File>>) -> Root<FileList> {
-        reflect_dom_object(box FileList::new_inherited(files), GlobalRef::Window(window), FileListBinding::Wrap)
+    pub fn new(window: &Window, files: Vec<Root<File>>) -> Root<FileList> {
+        reflect_dom_object(box FileList::new_inherited(files.iter().map(|r| JS::from_rooted(&r)).collect()),
+                           GlobalRef::Window(window),
+                           FileListBinding::Wrap)
     }
 }
 
