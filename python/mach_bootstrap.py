@@ -23,6 +23,7 @@ MACH_MODULES = [
     os.path.join('python', 'servo', 'build_commands.py'),
     os.path.join('python', 'servo', 'testing_commands.py'),
     os.path.join('python', 'servo', 'post_build_commands.py'),
+    os.path.join('python', 'servo', 'package_commands.py'),
     os.path.join('python', 'servo', 'devenv_commands.py'),
 ]
 
@@ -57,6 +58,11 @@ CATEGORIES = {
         'short': 'Low-level Build System Interaction',
         'long': 'Interact with specific parts of the build system.',
         'priority': 20,
+    },
+    'package': {
+        'short': 'Package',
+        'long': 'Create objects to distribute',
+        'priority': 15,
     },
     'misc': {
         'short': 'Potpourri',
