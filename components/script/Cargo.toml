@@ -13,6 +13,9 @@ path = "lib.rs"
 [features]
 debugmozjs = ['js/debugmozjs']
 
+[target.'cfg(any(target_os = "macos", target_os = "linux"))'.dependencies]
+tinyfiledialogs = {git = "https://github.com/jdm/tinyfiledialogs"}
+
 [dependencies]
 plugins = {path = "../plugins"}
 util = {path = "../util"}
@@ -58,7 +61,6 @@ serde = "0.7"
 smallvec = "0.1"
 string_cache = {version = "0.2.12", features = ["heap_size", "unstable"]}
 time = "0.1.12"
-tinyfiledialogs = {git = "https://github.com/jdm/tinyfiledialogs"}
 unicase = "1.0"
 url = {version = "1.0.0", features = ["heap_size"]}
 uuid = { version = "0.2", features = ["v4"] }
