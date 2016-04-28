@@ -10,6 +10,7 @@ use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::CanPlayTypeResult
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementConstants::*;
 use dom::bindings::codegen::Bindings::HTMLMediaElementBinding::HTMLMediaElementMethods;
 use dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorConstants::*;
+use dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, MutNullableHeap, JS};
@@ -31,8 +32,8 @@ use script_thread::{Runnable, ScriptThread};
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
-use task_source::dom_manipulation::DOMManipulationTask;
 use task_source::TaskSource;
+use task_source::dom_manipulation::DOMManipulationTask;
 use time::{self, Timespec, Duration};
 use url::Url;
 use util::str::DOMString;
@@ -56,7 +57,6 @@ struct HTMLMediaElementContext {
     ignore_response: bool,
 }
 
-// https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
 impl AsyncResponseListener for HTMLMediaElementContext {
     // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
     fn headers_available(&mut self, metadata: Result<Metadata, NetworkError>) {
@@ -83,14 +83,20 @@ impl AsyncResponseListener for HTMLMediaElementContext {
 
         let elem = self.elem.root();
 
+        // https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list
+        // => "Once enough of the media data has been fetched to determine the duration..."
         if !self.have_metadata {
             //TODO: actually check if the payload contains the full metadata
+
+            // Step 6
             elem.change_ready_state(HAVE_METADATA);
             self.have_metadata = true;
         } else {
             elem.change_ready_state(HAVE_CURRENT_DATA);
         }
 
+        // https://html.spec.whatwg.org/multipage/#concept-media-load-resource step 4,
+        // => "If mode is remote" step 2
         if time::get_time() > self.next_progress_event {
             elem.queue_fire_simple_event("progress");
             self.next_progress_event = time::get_time() + Duration::milliseconds(350);
@@ -101,6 +107,7 @@ impl AsyncResponseListener for HTMLMediaElementContext {
     fn response_complete(&mut self, status: Result<(), NetworkError>) {
         let elem = self.elem.root();
 
+        // => "Once the entire media resource has been fetched..."
         if status.is_ok() {
             elem.change_ready_state(HAVE_ENOUGH_DATA);
 
@@ -109,16 +116,23 @@ impl AsyncResponseListener for HTMLMediaElementContext {
             elem.network_state.set(NETWORK_IDLE);
 
             elem.fire_simple_event("suspend");
-        } else if elem.ready_state.get() != HAVE_NOTHING {
+        }
+        // => "If the connection is interrupted after some media data has been received..."
+        else if elem.ready_state.get() != HAVE_NOTHING {
+            // Step 2
             elem.error.set(Some(&*MediaError::new(&*window_from_node(&*elem),
                                                   MEDIA_ERR_NETWORK)));
 
+            // Step 3
             elem.network_state.set(NETWORK_IDLE);
 
-            // TODO: update delay load flag
+            // TODO: Step 4 - update delay load flag
 
+            // Step 5
             elem.fire_simple_event("error");
-        } else {
+        }
+        // => "If the media data cannot be fetched at all..."
+        else {
             elem.queue_dedicated_media_source_failure_steps();
         }
 
@@ -185,7 +199,7 @@ impl HTMLMediaElement {
         &self.htmlelement
     }
 
-    // https://html.spec.whatwg.org/multipage/#playing-the-media-resource:internal-pause-steps
+    // https://html.spec.whatwg.org/multipage/#internal-pause-steps
     fn internal_pause_steps(&self) {
         // Step 1
         self.autoplaying.set(false);
@@ -196,15 +210,61 @@ impl HTMLMediaElement {
             self.paused.set(true);
 
             // 2.2
-            self.queue_fire_simple_event("timeupdate");
+            self.queue_internal_pause_steps_task();
 
-            // 2.3
-            self.queue_fire_simple_event("pause");
-
-            // TODO 2.4 (official playback position)
+            // TODO 2.3 (official playback position)
         }
 
         // TODO step 3 (media controller)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#notify-about-playing
+    fn notify_about_playing(&self) {
+        // Step 1
+        self.fire_simple_event("playing");
+        // TODO Step 2
+    }
+
+    fn queue_notify_about_playing(&self) {
+        struct Task {
+            elem: Trusted<HTMLMediaElement>,
+        }
+
+        impl Runnable for Task {
+            fn handler(self: Box<Task>) {
+                self.elem.root().notify_about_playing();
+            }
+        }
+
+        let task = Task {
+            elem: Trusted::new(self),
+        };
+        let win = window_from_node(self);
+        let _ = win.dom_manipulation_task_source().queue(DOMManipulationTask::MediaTask(box task));
+    }
+
+    // https://html.spec.whatwg.org/multipage/#internal-pause-steps step 2.2
+    fn queue_internal_pause_steps_task(&self) {
+        struct Task {
+            elem: Trusted<HTMLMediaElement>,
+        }
+
+        impl Runnable for Task {
+            fn handler(self: Box<Task>) {
+                let elem = self.elem.root();
+                // 2.2.1
+                elem.fire_simple_event("timeupdate");
+                // 2.2.2
+                elem.fire_simple_event("pause");
+                // TODO 2.2.3
+            }
+        }
+
+        let task = Task {
+            elem: Trusted::new(self),
+        };
+        let win = window_from_node(self);
+        let _ = win.dom_manipulation_task_source().queue(DOMManipulationTask::MediaTask(box task));
     }
 
     fn queue_fire_simple_event(&self, type_: &'static str) {
@@ -231,6 +291,7 @@ impl HTMLMediaElement {
             return;
         }
 
+        // Step 1
         match (old_ready_state, ready_state) {
             // previous ready state was HAVE_NOTHING, and the new ready state is
             // HAVE_METADATA
@@ -263,6 +324,7 @@ impl HTMLMediaElement {
             _ => (),
         }
 
+        // Step 1
         // If the new ready state is HAVE_FUTURE_DATA or HAVE_ENOUGH_DATA,
         // then the relevant steps below must then be run also.
         match (old_ready_state, ready_state) {
@@ -273,8 +335,9 @@ impl HTMLMediaElement {
             (HAVE_NOTHING, HAVE_FUTURE_DATA) => {
                 self.queue_fire_simple_event("canplay");
 
-                // TODO: check paused state
-                self.queue_fire_simple_event("playing");
+                if !self.Paused() {
+                    self.queue_notify_about_playing();
+                }
             }
 
             // new ready state is HAVE_ENOUGH_DATA
@@ -283,17 +346,23 @@ impl HTMLMediaElement {
                     self.queue_fire_simple_event("canplay");
 
                     if !self.Paused() {
-                        self.queue_fire_simple_event("playing");
+                        self.queue_notify_about_playing();
                     }
                 }
 
+                //TODO: check sandboxed automatic features browsing context flag
                 if self.autoplaying.get() &&
                    self.Paused() &&
                    self.Autoplay() {
+                    // Step 1
                     self.paused.set(false);
-                    // TODO: show poster
+                    // TODO step 2: show poster
+                    // Step 3
                     self.queue_fire_simple_event("play");
-                    self.queue_fire_simple_event("playing");
+                    // Step 4
+                    self.queue_notify_about_playing();
+                    // Step 5
+                    self.autoplaying.set(false);
                 }
 
                 self.queue_fire_simple_event("canplaythrough");
@@ -301,6 +370,8 @@ impl HTMLMediaElement {
 
             _ => (),
         }
+
+        // TODO Step 2: media controller
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-media-load-algorithm
@@ -443,7 +514,8 @@ impl HTMLMediaElement {
         // Step 5
         self.fire_simple_event("error");
 
-        // TODO step 6 (delay load event)
+        // TODO step 6 (resolve pending play promises)
+        // TODO step 7 (delay load event)
     }
 
     // https://html.spec.whatwg.org/multipage/#media-element-load-algorithm
@@ -454,15 +526,12 @@ impl HTMLMediaElement {
 
         // Step 2
         self.generation_id.set(self.generation_id.get() + 1);
+        // TODO reject pending play promises
 
         // Step 3
         let network_state = self.NetworkState();
-        match network_state {
-            NETWORK_LOADING |
-            NETWORK_IDLE => {
-                self.queue_fire_simple_event("abort");
-            }
-            _ => (),
+        if network_state == NETWORK_LOADING || network_state == NETWORK_IDLE {
+            self.queue_fire_simple_event("abort");
         }
 
         // Step 4
@@ -472,18 +541,22 @@ impl HTMLMediaElement {
 
             // TODO 4.2 (abort in-progress fetch)
 
-            // TODO 4.3 (forget resource tracks)
+            // TODO 4.3 (detach media provider object)
+            // TODO 4.4 (forget resource tracks)
 
-            // 4.4
-            self.change_ready_state(HAVE_NOTHING);
+            // 4.5
+            if self.ready_state.get() != HAVE_NOTHING {
+                self.change_ready_state(HAVE_NOTHING);
+            }
 
+            // 4.6
             if !self.Paused() {
                 self.paused.set(true);
             }
-            // TODO 4.6 (seeking)
-            // TODO 4.7 (playback position)
-            // TODO 4.8 (timeline offset)
-            // TODO 4.9 (duration)
+            // TODO 4.7 (seeking)
+            // TODO 4.8 (playback position)
+            // TODO 4.9 (timeline offset)
+            // TODO 4.10 (duration)
         }
 
         // TODO step 5 (playback rate)
@@ -548,40 +621,57 @@ impl HTMLMediaElementMethods for HTMLMediaElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-media-play
     fn Play(&self) {
-        // Step 1
+        // TODO step 1
+
+        // Step 2
+        if self.error.get().map_or(false, |e| e.Code() == MEDIA_ERR_SRC_NOT_SUPPORTED) {
+            // TODO return rejected promise
+            return;
+        }
+
+        // TODO step 3
+
+        // Step 4
         if self.network_state.get() == NETWORK_EMPTY {
             self.invoke_resource_selection_algorithm();
         }
 
-        // TODO step 2 (seek backwards)
+        // TODO step 5 (seek backwards)
 
-        // TODO step 3 (media controller)
+        // TODO step 6 (media controller)
 
-        // Step 4
+        let state = self.ready_state.get();
+
+        // Step 7
         if self.Paused() {
-            // 4.1
+            // 7.1
             self.paused.set(false);
 
-            // TODO 4.2 (show poster)
+            // TODO 7.2 (show poster)
 
-            // 4.3
+            // 7.3
             self.queue_fire_simple_event("play");
 
-            // 4.4
-            let state = self.ready_state.get();
+            // 7.4
             if state == HAVE_NOTHING ||
                state == HAVE_METADATA ||
                state == HAVE_CURRENT_DATA {
                 self.queue_fire_simple_event("waiting");
             } else {
-                self.queue_fire_simple_event("playing");
+                self.queue_notify_about_playing();
             }
-
-            // 4.5
-            self.autoplaying.set(false);
-
-            // TODO 4.6 (media controller)
         }
+        // Step 8
+        else if state == HAVE_FUTURE_DATA || state == HAVE_ENOUGH_DATA {
+            // TODO resolve pending play promises
+        }
+
+        // Step 9
+        self.autoplaying.set(false);
+
+        // TODO step 10 (media controller)
+
+        // TODO return promise
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-media-pause
@@ -619,7 +709,7 @@ impl VirtualMethods for HTMLMediaElement {
         };
     }
 
-    // https://html.spec.whatwg.org/multipage/#playing-the-media-resource:media-element-75
+    // https://html.spec.whatwg.org/multipage/#playing-the-media-resource:remove-an-element-from-a-document
     fn unbind_from_tree(&self, context: &UnbindContext) {
         self.super_type().unwrap().unbind_from_tree(context);
 
