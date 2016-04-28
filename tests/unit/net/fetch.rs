@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use hyper::header::{AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowOrigin};
-use hyper::header::{AccessControlAllowMethods, AccessControlRequestHeaders, AccessControlRequestMethod};
+use hyper::header::{AccessControlAllowMethods, AccessControlMaxAge};
+use hyper::header::{AccessControlRequestHeaders, AccessControlRequestMethod};
 use hyper::header::{CacheControl, ContentLanguage, ContentType, Expires, LastModified};
 use hyper::header::{Headers, HttpDate, Location, SetCookie, Pragma};
 use hyper::method::Method;
@@ -12,7 +13,8 @@ use hyper::server::{Handler, Listening, Server};
 use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
-use net::fetch::methods::{fetch, fetch_async};
+use net::fetch::cors_cache::{CacheRequestDetails, CORSCache};
+use net::fetch::methods::{fetch, fetch_async, fetch_with_cors_cache};
 use net_traits::AsyncFetchListener;
 use net_traits::request::{Origin, RedirectMode, Referer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
@@ -169,6 +171,61 @@ fn test_cors_preflight_fetch() {
     assert!(!fetch_response.is_network_error());
 
     match *fetch_response.body.lock().unwrap() {
+        ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
+        _ => panic!()
+    };
+}
+
+#[test]
+fn test_cors_preflight_cache_fetch() {
+    static ACK: &'static [u8] = b"ACK";
+    let state = Arc::new(AtomicUsize::new(0));
+    let counter = state.clone();
+    let mut cache = CORSCache::new();
+    let handler = move |request: HyperRequest, mut response: HyperResponse| {
+        if request.method == Method::Options && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
+            assert!(request.headers.has::<AccessControlRequestMethod>());
+            assert!(request.headers.has::<AccessControlRequestHeaders>());
+            response.headers_mut().set(AccessControlAllowOrigin::Any);
+            response.headers_mut().set(AccessControlAllowCredentials);
+            response.headers_mut().set(AccessControlAllowMethods(vec![Method::Get]));
+            response.headers_mut().set(AccessControlMaxAge(6000));
+        } else {
+            response.headers_mut().set(AccessControlAllowOrigin::Any);
+            response.send(ACK).unwrap();
+        }
+    };
+    let (mut server, url) = make_server(handler);
+
+    let origin = Origin::Origin(UrlOrigin::new_opaque());
+    let mut request = Request::new(url.clone(), Some(origin.clone()), false);
+    request.referer = Referer::NoReferer;
+    request.use_cors_preflight = true;
+    request.mode = RequestMode::CORSMode;
+    let wrapped_request0 = Rc::new(request.clone());
+    let wrapped_request1 = Rc::new(request);
+
+    let fetch_response0 = fetch_with_cors_cache(wrapped_request0, &mut cache);
+    let fetch_response1 = fetch_with_cors_cache(wrapped_request1, &mut cache);
+    let _ = server.close();
+
+    assert!(!fetch_response0.is_network_error() && !fetch_response1.is_network_error());
+
+    // The response from the CORS-preflight cache was used
+    assert_eq!(1, counter.load(Ordering::SeqCst));
+
+    // The entry exists in the CORS-preflight cache
+    assert_eq!(true, cache.match_method(CacheRequestDetails {
+        origin: origin,
+        destination: url,
+        credentials: false
+    }, Method::Get));
+
+    match *fetch_response0.body.lock().unwrap() {
+        ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
+        _ => panic!()
+    };
+    match *fetch_response1.body.lock().unwrap() {
         ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
         _ => panic!()
     };
