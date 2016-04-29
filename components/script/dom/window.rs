@@ -1234,24 +1234,24 @@ impl Window {
         (*self.resource_thread).clone()
     }
 
-    pub fn mem_profiler_chan(&self) -> mem::ProfilerChan {
-        self.mem_profiler_chan.clone()
+    pub fn mem_profiler_chan(&self) -> &mem::ProfilerChan {
+        &self.mem_profiler_chan
     }
 
     pub fn devtools_chan(&self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
         self.devtools_chan.clone()
     }
 
-    pub fn layout_chan(&self) -> LayoutChan {
-        self.layout_chan.clone()
+    pub fn layout_chan(&self) -> &LayoutChan {
+        &self.layout_chan
     }
 
-    pub fn constellation_chan(&self) -> ConstellationChan<ConstellationMsg> {
-        self.constellation_chan.clone()
+    pub fn constellation_chan(&self) -> &ConstellationChan<ConstellationMsg> {
+        &self.constellation_chan
     }
 
-    pub fn scheduler_chan(&self) -> IpcSender<TimerEventRequest> {
-        self.scheduler_chan.clone()
+    pub fn scheduler_chan(&self) -> &IpcSender<TimerEventRequest> {
+        &self.scheduler_chan
     }
 
     pub fn schedule_callback(&self, callback: OneshotTimerCallback, duration: MsDuration) -> OneshotTimerHandle {

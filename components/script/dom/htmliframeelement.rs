@@ -124,7 +124,7 @@ impl HTMLIFrameElement {
         let new_pipeline_id = self.pipeline_id.get().unwrap();
         let private_iframe = self.privatebrowsing();
 
-        let ConstellationChan(ref chan) = window.constellation_chan();
+        let ConstellationChan(ref chan) = *window.constellation_chan();
         let load_info = IFrameLoadInfo {
             url: url,
             containing_pipeline_id: window.pipeline(),
@@ -144,7 +144,7 @@ impl HTMLIFrameElement {
 
     pub fn process_the_iframe_attributes(&self) {
         let url = match self.get_url() {
-            Some(url) => url.clone(),
+            Some(url) => url,
             None => Url::parse("about:blank").unwrap(),
         };
 
@@ -371,7 +371,7 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> E
 
             let pipeline_info = Some((window.pipeline(),
                                       iframe.subpage_id().unwrap()));
-            let ConstellationChan(ref chan) = window.constellation_chan();
+            let ConstellationChan(ref chan) = *window.constellation_chan();
             let msg = ConstellationMsg::Navigate(pipeline_info, direction);
             chan.send(msg).unwrap();
         }
@@ -575,7 +575,7 @@ impl VirtualMethods for HTMLIFrameElement {
             //
             // Since most of this cleanup doesn't happen on same-origin
             // iframes, and since that would cause a deadlock, don't do it.
-            let ConstellationChan(ref chan) = window.constellation_chan();
+            let ConstellationChan(ref chan) = *window.constellation_chan();
             let same_origin = if let Some(self_url) = self.get_url() {
                 let win_url = window_from_node(self).get_url();
                 UrlHelper::SameOrigin(&self_url, &win_url)

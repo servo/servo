@@ -401,7 +401,7 @@ impl Document {
         self.quirks_mode.set(mode);
 
         if mode == Quirks {
-            let LayoutChan(ref layout_chan) = self.window.layout_chan();
+            let LayoutChan(ref layout_chan) = *self.window.layout_chan();
             layout_chan.send(Msg::SetQuirksMode).unwrap();
         }
     }
@@ -615,7 +615,7 @@ impl Document {
             // Update the focus state for all elements in the focus chain.
             // https://html.spec.whatwg.org/multipage/#focus-chain
             if focus_type == FocusType::Element {
-                let ConstellationChan(ref chan) = self.window.constellation_chan();
+                let ConstellationChan(ref chan) = *self.window.constellation_chan();
                 let event = ConstellationMsg::Focus(self.window.pipeline());
                 chan.send(event).unwrap();
             }
@@ -1260,7 +1260,7 @@ impl Document {
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
         if htmliframeelement::mozbrowser_enabled() {
             if let Some((containing_pipeline_id, subpage_id)) = self.window.parent_info() {
-                let ConstellationChan(ref chan) = self.window.constellation_chan();
+                let ConstellationChan(ref chan) = *self.window.constellation_chan();
                 let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
                                                               subpage_id,
                                                               event);
@@ -1277,7 +1277,7 @@ impl Document {
         self.animation_frame_list.borrow_mut().insert(ident, callback);
 
         // TODO: Should tick animation only when document is visible
-        let ConstellationChan(ref chan) = self.window.constellation_chan();
+        let ConstellationChan(ref chan) = *self.window.constellation_chan();
         let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
                                                                    AnimationState::AnimationCallbacksPresent);
         chan.send(event).unwrap();
@@ -1289,7 +1289,7 @@ impl Document {
     pub fn cancel_animation_frame(&self, ident: u32) {
         self.animation_frame_list.borrow_mut().remove(&ident);
         if self.animation_frame_list.borrow().is_empty() {
-            let ConstellationChan(ref chan) = self.window.constellation_chan();
+            let ConstellationChan(ref chan) = *self.window.constellation_chan();
             let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
                                                                        AnimationState::NoAnimationCallbacksPresent);
             chan.send(event).unwrap();
@@ -1313,7 +1313,7 @@ impl Document {
         // the next frame (which is the common case), we won't send a NoAnimationCallbacksPresent
         // message quickly followed by an AnimationCallbacksPresent message.
         if self.animation_frame_list.borrow().is_empty() {
-            let ConstellationChan(ref chan) = self.window.constellation_chan();
+            let ConstellationChan(ref chan) = *self.window.constellation_chan();
             let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
                                                                        AnimationState::NoAnimationCallbacksPresent);
             chan.send(event).unwrap();
@@ -1344,7 +1344,7 @@ impl Document {
         // The parser might need the loader, so restrict the lifetime of the borrow.
         {
             let mut loader = self.loader.borrow_mut();
-            loader.finish_load(load.clone());
+            loader.finish_load(&load);
         }
 
         if let LoadType::Script(_) = load {
@@ -1473,7 +1473,7 @@ impl Document {
 
     pub fn notify_constellation_load(&self) {
         let pipeline_id = self.window.pipeline();
-        let ConstellationChan(ref chan) = self.window.constellation_chan();
+        let ConstellationChan(ref chan) = *self.window.constellation_chan();
         let event = ConstellationMsg::DOMLoad(pipeline_id);
         chan.send(event).unwrap();
 

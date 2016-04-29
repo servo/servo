@@ -195,7 +195,7 @@ impl OpaqueStyleAndLayoutData {
     pub fn dispose(self, node: &Node) {
         debug_assert!(thread_state::get().is_script());
         let win = window_from_node(node);
-        let LayoutChan(chan) = win.layout_chan();
+        let LayoutChan(ref chan) = *win.layout_chan();
         node.style_and_layout_data.set(None);
         chan.send(Msg::ReapStyleAndLayoutData(self)).unwrap();
     }
