@@ -6088,12 +6088,6 @@
             "url": "/_mozilla/mozilla/document_activeElement.html"
           }
         ],
-        "mozilla/document_body.html": [
-          {
-            "path": "mozilla/document_body.html",
-            "url": "/_mozilla/mozilla/document_body.html"
-          }
-        ],
         "mozilla/document_characterSet.html": [
           {
             "path": "mozilla/document_characterSet.html",

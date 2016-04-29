@@ -119,6 +119,12 @@ test(function() {
   assert_equals(doc.body, null);
 }, "Non-HTML frameset as the root node");
 
+test(function() {
+  assert_not_equals(document.body, null);
+  assert_true(document.body instanceof HTMLBodyElement, "should be HTMLBodyElement");
+  assert_equals(document.body.tagName, "BODY");
+}, "existing document's body");
+
 
 var originalBody = document.body;
 test(function() {
@@ -140,4 +146,24 @@ test(function() {
   })
   assert_equals(doc.body, null);
 }, "Setting document.body when there's no root element.")
+test(function() {
+  var doc = document.implementation.createHTMLDocument();
+
+  var new_body = doc.createElement("body");
+  assert_true(new_body instanceof HTMLBodyElement, "should be HTMLBodyElement");
+  assert_equals(new_body.tagName, "BODY");
+
+  doc.body = new_body;
+  assert_equals(doc.body, new_body);
+}, "Setting document.body to a new body element.");
+test(function() {
+  var doc = document.implementation.createHTMLDocument();
+
+  var new_frameset = doc.createElement("frameset");
+  assert_true(new_frameset instanceof HTMLFrameSetElement, "should be HTMLFrameSetElement");
+  assert_equals(new_frameset.tagName, "FRAMESET");
+
+  doc.body = new_frameset;
+  assert_equals(doc.body, new_frameset, "test6-3, append frameset to a new document");
+}, "Setting document.body to a new frameset element.");
 </script>
