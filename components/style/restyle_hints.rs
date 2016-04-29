@@ -136,7 +136,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     fn get_local_name(&self) -> &Atom {
         self.element.get_local_name()
     }
-    fn get_namespace<'b>(&self) -> &Namespace {
+    fn get_namespace(&self) -> &Namespace {
         self.element.get_namespace()
     }
     fn get_id(&self) -> Option<Atom> {
