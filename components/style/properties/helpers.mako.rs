@@ -189,3 +189,82 @@
         }
     </%call>
 </%def>
+
+<%def name="shorthand(name, sub_properties, experimental=False)">
+<%
+    shorthand = data.declare_shorthand(name, sub_properties.split(), experimental=experimental)
+%>
+    pub mod ${shorthand.ident} {
+        use cssparser::Parser;
+        use parser::ParserContext;
+        use properties::{longhands, PropertyDeclaration, DeclaredValue, Shorthand};
+
+        pub struct Longhands {
+            % for sub_property in shorthand.sub_properties:
+                pub ${sub_property.ident}:
+                    Option<longhands::${sub_property.ident}::SpecifiedValue>,
+            % endfor
+        }
+
+        pub fn parse(context: &ParserContext, input: &mut Parser,
+                     declarations: &mut Vec<PropertyDeclaration>)
+                     -> Result<(), ()> {
+            input.look_for_var_functions();
+            let start = input.position();
+            let value = input.parse_entirely(|input| parse_value(context, input));
+            if value.is_err() {
+                while let Ok(_) = input.next() {}  // Look for var() after the error.
+            }
+            let var = input.seen_var_functions();
+            if let Ok(value) = value {
+                % for sub_property in shorthand.sub_properties:
+                    declarations.push(PropertyDeclaration::${sub_property.camel_case}(
+                        match value.${sub_property.ident} {
+                            Some(value) => DeclaredValue::Value(value),
+                            None => DeclaredValue::Initial,
+                        }
+                    ));
+                % endfor
+                Ok(())
+            } else if var {
+                input.reset(start);
+                let (first_token_type, css) = try!(
+                    ::custom_properties::parse_non_custom_with_var(input));
+                % for sub_property in shorthand.sub_properties:
+                    declarations.push(PropertyDeclaration::${sub_property.camel_case}(
+                        DeclaredValue::WithVariables {
+                            css: css.clone().into_owned(),
+                            first_token_type: first_token_type,
+                            base_url: context.base_url.clone(),
+                            from_shorthand: Some(Shorthand::${shorthand.camel_case}),
+                        }
+                    ));
+                % endfor
+                Ok(())
+            } else {
+                Err(())
+            }
+        }
+
+        #[allow(unused_variables)]
+        pub fn parse_value(context: &ParserContext, input: &mut Parser) -> Result<Longhands, ()> {
+            ${caller.body()}
+        }
+    }
+</%def>
+
+<%def name="four_sides_shorthand(name, sub_property_pattern, parser_function)">
+    <%self:shorthand name="${name}" sub_properties="${
+            ' '.join(sub_property_pattern % side
+                     for side in ['top', 'right', 'bottom', 'left'])}">
+        use super::parse_four_sides;
+        use values::specified;
+        let _unused = context;
+        let (top, right, bottom, left) = try!(parse_four_sides(input, ${parser_function}));
+        Ok(Longhands {
+            % for side in ["top", "right", "bottom", "left"]:
+                ${to_rust_ident(sub_property_pattern % side)}: Some(${side}),
+            % endfor
+        })
+    </%self:shorthand>
+</%def>
