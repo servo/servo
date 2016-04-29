@@ -144,7 +144,7 @@ impl HTMLIFrameElement {
 
     pub fn process_the_iframe_attributes(&self) {
         let url = match self.get_url() {
-            Some(url) => url.clone(),
+            Some(url) => url,
             None => Url::parse("about:blank").unwrap(),
         };
 

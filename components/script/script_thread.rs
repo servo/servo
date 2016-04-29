@@ -493,7 +493,7 @@ pub unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
 }
 
 impl ScriptThread {
-    pub fn page_fetch_complete(id: PipelineId, subpage: Option<SubpageId>, metadata: Option<Metadata>)
+    pub fn page_fetch_complete(id: &PipelineId, subpage: Option<&SubpageId>, metadata: Option<Metadata>)
                                -> Option<ParserRoot> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.borrow().unwrap() };
@@ -1122,8 +1122,7 @@ impl ScriptThread {
         doc.mut_loader().inhibit_events();
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
-        let addr: Trusted<Document> = Trusted::new(doc);
-        let handler = box DocumentProgressHandler::new(addr.clone());
+        let handler = box DocumentProgressHandler::new(Trusted::new(doc));
         self.dom_manipulation_task_source.queue(DOMManipulationTask::DocumentProgress(handler)).unwrap();
 
         let ConstellationChan(ref chan) = self.constellation_chan;
@@ -1285,10 +1284,10 @@ impl ScriptThread {
 
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
-    fn handle_page_fetch_complete(&self, id: PipelineId, subpage: Option<SubpageId>,
+    fn handle_page_fetch_complete(&self, id: &PipelineId, subpage: Option<&SubpageId>,
                                   metadata: Option<Metadata>) -> Option<ParserRoot> {
         let idx = self.incomplete_loads.borrow().iter().position(|load| {
-            load.pipeline_id == id && load.parent_info.map(|info| info.1) == subpage
+            load.pipeline_id == *id && load.parent_info.as_ref().map(|info| &info.1) == subpage
         });
         // The matching in progress load structure may not exist if
         // the pipeline exited before the page load completed.
@@ -1298,7 +1297,7 @@ impl ScriptThread {
                 metadata.map(|meta| self.load(meta, load))
             }
             None => {
-                assert!(self.closed_pipelines.borrow().contains(&id));
+                assert!(self.closed_pipelines.borrow().contains(id));
                 None
             }
         }
@@ -1868,14 +1867,11 @@ impl ScriptThread {
         let id = incomplete.pipeline_id.clone();
         let subpage = incomplete.parent_info.clone().map(|p| p.1);
 
-        let script_chan = self.chan.clone();
-        let resource_thread = self.resource_thread.clone();
-
         let context = Arc::new(Mutex::new(ParserContext::new(id, subpage, load_data.url.clone())));
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let listener = NetworkListener {
             context: context,
-            script_chan: script_chan.clone(),
+            script_chan: self.chan.clone(),
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify(message.to().unwrap());
@@ -1888,7 +1884,7 @@ impl ScriptThread {
             load_data.url = Url::parse("about:blank").unwrap();
         }
 
-        resource_thread.send(ControlMsg::Load(NetLoadData {
+        self.resource_thread.send(ControlMsg::Load(NetLoadData {
             context: LoadContext::Browsing,
             url: load_data.url,
             method: load_data.method,

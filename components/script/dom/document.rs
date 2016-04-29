@@ -1344,7 +1344,7 @@ impl Document {
         // The parser might need the loader, so restrict the lifetime of the borrow.
         {
             let mut loader = self.loader.borrow_mut();
-            loader.finish_load(load.clone());
+            loader.finish_load(&load);
         }
 
         if let LoadType::Script(_) = load {

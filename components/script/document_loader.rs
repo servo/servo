@@ -146,8 +146,8 @@ impl DocumentLoader {
     }
 
     /// Mark an in-progress network request complete.
-    pub fn finish_load(&mut self, load: LoadType) {
-        let idx = self.blocking_loads.iter().position(|unfinished| *unfinished == load);
+    pub fn finish_load(&mut self, load: &LoadType) {
+        let idx = self.blocking_loads.iter().position(|unfinished| *unfinished == *load);
         self.blocking_loads.remove(idx.expect(&format!("unknown completed load {:?}", load)));
     }
 
