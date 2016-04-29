@@ -3,17 +3,15 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use document_loader::DocumentLoader;
-use dom::bindings::codegen::Bindings::DOMParserBinding;
-use dom::bindings::codegen::Bindings::DOMParserBinding::DOMParserMethods;
 use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedType::{Text_html, Text_xml};
+use dom::bindings::codegen::Bindings::DOMParserBinding::{self, DOMParserMethods};
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentReadyState;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::document::DocumentSource;
-use dom::document::{Document, IsHTMLDocument};
+use dom::document::{Document,  DocumentSource, IsHTMLDocument};
 use dom::window::Window;
 use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
@@ -71,14 +69,13 @@ impl DOMParserMethods for DOMParser {
                 Ok(document)
             }
             Text_xml => {
-                // FIXME: this should probably be FromParser when we actually parse the string (#3756).
                 let document = Document::new(&self.window,
                                              None,
                                              Some(url.clone()),
                                              IsHTMLDocument::NonHTMLDocument,
                                              Some(content_type),
                                              None,
-                                             DocumentSource::NotFromParser,
+                                             DocumentSource::FromParser,
                                              loader);
                 parse_xml(document.r(), s, url, xml::ParseContext::Owner(None));
                 Ok(document)
