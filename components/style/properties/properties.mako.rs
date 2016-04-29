@@ -1496,6 +1496,8 @@ pub trait ComputedValues : Clone + Send + Sync + 'static {
         % endfor
         ) -> Self;
 
+        fn style_for_child_text_node(parent: &Arc<Self>) -> Arc<Self>;
+
         fn initial_values() -> &'static Self;
 
         fn do_cascade_property<F: FnOnce(&Vec<Option<CascadePropertyFn<Self>>>)>(f: F);
@@ -1552,6 +1554,18 @@ impl ComputedValues for ServoComputedValues {
                 ${style_struct.ident}: ${style_struct.ident},
             % endfor
             }
+        }
+
+        fn style_for_child_text_node(parent: &Arc<Self>) -> Arc<Self> {
+            // Text nodes get a copy of the parent style. Inheriting all non-
+            // inherited properties into the text node is odd from a CSS
+            // perspective, but makes fragment construction easier (by making
+            // properties like vertical-align on fragments have values that
+            // match the parent element). This is an implementation detail of
+            // Servo layout that is not central to how fragment construction
+            // works, but would be difficult to change. (Text node style is
+            // also not visible to script.)
+            parent.clone()
         }
 
         fn initial_values() -> &'static Self { &*INITIAL_SERVO_VALUES }
