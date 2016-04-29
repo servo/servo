@@ -297,14 +297,6 @@ impl ScriptChan for MainThreadScriptChan {
     }
 }
 
-impl MainThreadScriptChan {
-    /// Creates a new script chan.
-    pub fn new() -> (Receiver<MainThreadScriptMsg>, Box<MainThreadScriptChan>) {
-        let (chan, port) = channel();
-        (port, box MainThreadScriptChan(chan))
-    }
-}
-
 /// Information for an entire page. Pages are top-level browsing contexts and can contain multiple
 /// frames.
 #[derive(JSTraceable)]
