@@ -1077,6 +1077,8 @@ pub mod specified {
             match try!(input.next()) {
                 Token::Dimension(ref value, ref unit) if context.is_ok(value.value) =>
                     Length::parse_dimension(value.value, unit).map(LengthOrPercentageOrAutoOrContent::Length),
+                Token::Percentage(ref value) if value.int_value == Some(0) =>
+                    Ok(LengthOrPercentageOrAutoOrContent::Length(Length::Absolute(Au(0)))),
                 Token::Percentage(ref value) if context.is_ok(value.unit_value) =>
                     Ok(LengthOrPercentageOrAutoOrContent::Percentage(Percentage(value.unit_value))),
                 Token::Number(ref value) if value.value == 0. =>
