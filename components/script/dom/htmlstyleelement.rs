@@ -66,7 +66,7 @@ impl HTMLStyleElement {
         sheet.set_media(Some(media));
         let sheet = Arc::new(sheet);
 
-        let LayoutChan(ref layout_chan) = win.layout_chan();
+        let LayoutChan(ref layout_chan) = *win.layout_chan();
         layout_chan.send(Msg::AddStylesheet(sheet.clone())).unwrap();
         *self.stylesheet.borrow_mut() = Some(sheet);
         let doc = document_from_node(self);

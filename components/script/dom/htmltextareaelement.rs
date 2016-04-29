@@ -100,7 +100,7 @@ impl HTMLTextAreaElement {
     fn new_inherited(localName: Atom,
                      prefix: Option<DOMString>,
                      document: &Document) -> HTMLTextAreaElement {
-        let chan = document.window().constellation_chan();
+        let chan = document.window().constellation_chan().clone();
         HTMLTextAreaElement {
             htmlelement:
                 HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,

@@ -242,7 +242,7 @@ impl HTMLLinkElement {
         let document = document_from_node(self);
         match document.base_url().join(href) {
             Ok(url) => {
-                let ConstellationChan(ref chan) = document.window().constellation_chan();
+                let ConstellationChan(ref chan) = *document.window().constellation_chan();
                 let event = ConstellationMsg::NewFavicon(url.clone());
                 chan.send(event).unwrap();
 
@@ -318,7 +318,7 @@ impl AsyncResponseListener for StylesheetContext {
         let document = document.r();
 
         let win = window_from_node(elem);
-        let LayoutChan(ref layout_chan) = win.r().layout_chan();
+        let LayoutChan(ref layout_chan) = *win.layout_chan();
         layout_chan.send(Msg::AddStylesheet(sheet.clone())).unwrap();
 
         *elem.stylesheet.borrow_mut() = Some(sheet);

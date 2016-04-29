@@ -75,8 +75,8 @@ impl Worker {
         };
 
         let resource_thread = global.resource_thread();
-        let constellation_chan = global.constellation_chan();
-        let scheduler_chan = global.scheduler_chan();
+        let constellation_chan = global.constellation_chan().clone();
+        let scheduler_chan = global.scheduler_chan().clone();
 
         let (sender, receiver) = channel();
         let closing = Arc::new(AtomicBool::new(false));
@@ -103,7 +103,7 @@ impl Worker {
 
         let init = WorkerGlobalScopeInit {
             resource_thread: resource_thread,
-            mem_profiler_chan: global.mem_profiler_chan(),
+            mem_profiler_chan: global.mem_profiler_chan().clone(),
             to_devtools_sender: global.devtools_chan(),
             from_devtools_sender: optional_sender,
             constellation_chan: constellation_chan,

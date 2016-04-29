@@ -1966,7 +1966,7 @@ fn shut_down_layout(page_tree: &Rc<Page>) {
         // processed this message.
         let (response_chan, response_port) = channel();
         let window = page.window();
-        let LayoutChan(chan) = window.layout_chan();
+        let LayoutChan(chan) = window.layout_chan().clone();
         if chan.send(layout_interface::Msg::PrepareToExit(response_chan)).is_ok() {
             channels.push(chan);
             response_port.recv().unwrap();
