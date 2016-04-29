@@ -109,15 +109,17 @@ impl TestProvider {
     }
 }
 impl UIProvider for TestProvider {
-    fn input_username_and_password(&self) -> (Option<String>, Option<String>) {
+    fn input_username_and_password(&self, _prompt: &str) -> (Option<String>, Option<String>) {
         (Some(self.username.to_owned()),
         Some(self.password.to_owned()))
     }
 }
 
 fn basic_auth() -> MockResponse {
+    let mut headers = Headers::new();
+    headers.set_raw("WWW-Authenticate", vec![b"Basic realm=\"Test realm\"".to_vec()]);
     MockResponse::new(
-        Headers::new(),
+        headers,
         StatusCode::Unauthorized,
         RawStatus(401, Cow::Borrowed("Unauthorized")),
         b"".to_vec()

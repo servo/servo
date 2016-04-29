@@ -768,18 +768,18 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
 }
 
 pub trait UIProvider {
-    fn input_username_and_password(&self) -> (Option<String>, Option<String>);
+    fn input_username_and_password(&self, prompt: &str) -> (Option<String>, Option<String>);
 }
 
 impl UIProvider for TFDProvider {
     #[cfg(any(target_os = "macos", target_os = "linux"))]
-    fn input_username_and_password(&self) -> (Option<String>, Option<String>) {
-        (tinyfiledialogs::input_box("Enter username", "Username:", ""),
-        tinyfiledialogs::input_box("Enter password", "Password:", ""))
+    fn input_username_and_password(&self, prompt: &str) -> (Option<String>, Option<String>) {
+        (tinyfiledialogs::input_box(prompt, "Username:", ""),
+        tinyfiledialogs::input_box(prompt, "Password:", ""))
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "linux")))]
-    fn input_username_and_password(&self) -> (Option<String>, Option<String>) {
+    fn input_username_and_password(&self, _prompt: &str) -> (Option<String>, Option<String>) {
         (None, None)
     }
 }
@@ -870,8 +870,10 @@ pub fn load<A, B>(load_data: &LoadData,
         process_response_headers(&response, &doc_url, &http_state.cookie_jar, &http_state.hsts_list, &load_data);
 
         //if response status is unauthorized then prompt user for username and password
-        if response.status() == StatusCode::Unauthorized {
-            let (username_option, password_option) = ui_provider.input_username_and_password();
+        if response.status() == StatusCode::Unauthorized &&
+           response.headers().get_raw("WWW-Authenticate").is_some() {
+            let (username_option, password_option) =
+                ui_provider.input_username_and_password(doc_url.as_str());
 
             match username_option {
                 Some(name) => {
