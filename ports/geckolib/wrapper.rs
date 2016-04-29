@@ -454,8 +454,10 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         self.get_attr(&ns!(), &atom!("id")).map(|s| Atom::from(s))
     }
 
-    fn has_class(&self, _name: &Atom) -> bool {
-        unimplemented!()
+    fn has_class(&self, name: &Atom) -> bool {
+        // FIXME(bholley): Do this smarter.
+        self.get_attr(&ns!(), &atom!("class"))
+            .map_or(false, |classes| classes.split(" ").any(|n| &Atom::from(n) == name))
     }
 
     fn each_class<F>(&self, mut callback: F) where F: FnMut(&Atom) {
