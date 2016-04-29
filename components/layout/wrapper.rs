@@ -71,7 +71,7 @@ use style::element_state::*;
 use style::properties::{ComputedValues, ServoComputedValues};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::restyle_hints::ElementSnapshot;
-use style::selector_impl::{NonTSPseudoClass, PseudoElement, ServoSelectorImpl};
+use style::selector_impl::{NonTSPseudoClass, PseudoElement, PseudoElementCascadeType, ServoSelectorImpl};
 use style::servo::{PrivateStyleData, SharedStyleContext};
 use url::Url;
 use util::str::is_whitespace;
@@ -774,13 +774,41 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
                 // Precompute non-eagerly-cascaded pseudo-element styles if not
                 // cached before.
                 let style_pseudo = other.style_pseudo_element();
-                if !style_pseudo.is_eagerly_cascaded() &&
-                   !self.borrow_layout_data().unwrap().style_data.per_pseudo.contains_key(&style_pseudo) {
-                    let mut data = self.mutate_layout_data().unwrap();
-                    let new_style = context.stylist
-                                           .computed_values_for_pseudo(&style_pseudo,
-                                                                       data.style_data.style.as_ref());
-                    data.style_data.per_pseudo.insert(style_pseudo.clone(), new_style.unwrap());
+                match style_pseudo.cascade_type() {
+                    // Already computed during the cascade.
+                    PseudoElementCascadeType::Eager => {},
+                    PseudoElementCascadeType::Precomputed => {
+                        if !self.borrow_layout_data()
+                                .unwrap().style_data
+                                .per_pseudo.contains_key(&style_pseudo) {
+                            let mut data = self.mutate_layout_data().unwrap();
+                            let new_style =
+                                context.stylist
+                                       .precomputed_values_for_pseudo(&style_pseudo,
+                                                                      data.style_data.style.as_ref());
+                            data.style_data.per_pseudo
+                                .insert(style_pseudo.clone(), new_style.unwrap());
+                        }
+                    }
+                    PseudoElementCascadeType::Lazy => {
+                        panic!("Lazy pseudo-elements can't be used in Servo \
+                               since accessing the DOM tree during layout \
+                               could be unsafe.")
+                        // debug_assert!(self.is_element());
+                        // if !self.borrow_layout_data()
+                        //         .unwrap().style_data
+                        //         .per_pseudo.contains_key(&style_pseudo) {
+                        //     let mut data = self.mutate_layout_data().unwrap();
+                        //     let new_style =
+                        //         context.stylist
+                        //                .lazily_compute_pseudo_element_style(
+                        //                    &self.as_element(),
+                        //                    &style_pseudo,
+                        //                    data.style_data.style.as_ref().unwrap());
+                        //     data.style_data.per_pseudo
+                        //         .insert(style_pseudo.clone(), new_style.unwrap())
+                        // }
+                    }
                 }
 
                 Ref::map(self.borrow_layout_data().unwrap(), |data| {
@@ -1252,8 +1280,8 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
     }
 }
 
-/// A wrapper around elements that ensures layout can only ever access safe properties and cannot
-/// race on elements.
+/// A wrapper around elements that ensures layout can only
+/// ever access safe properties and cannot race on elements.
 #[derive(Copy, Clone)]
 pub struct ServoThreadSafeLayoutElement<'le> {
     element: &'le Element,

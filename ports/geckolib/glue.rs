@@ -267,7 +267,7 @@ pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(parent_style_or_null: *
     type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
 
     Helpers::maybe_with(parent_style_or_null, |maybe_parent| {
-        let new_computed = data.stylist.computed_values_for_pseudo(&pseudo, maybe_parent);
+        let new_computed = data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent);
         new_computed.map_or(ptr::null_mut(), |c| Helpers::from(c))
     })
 }
