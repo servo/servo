@@ -76,6 +76,9 @@ extern "C" {
                                   set: *mut RawServoStyleSet);
     pub fn Servo_PrependStyleSheet(sheet: *mut RawServoStyleSheet,
                                    set: *mut RawServoStyleSet);
+    pub fn Servo_InsertStyleSheetBefore(sheet: *mut RawServoStyleSheet,
+                                        reference: *mut RawServoStyleSheet,
+                                        set: *mut RawServoStyleSet);
     pub fn Servo_RemoveStyleSheet(sheet: *mut RawServoStyleSheet,
                                   set: *mut RawServoStyleSet);
     pub fn Servo_StyleSheetHasRules(sheet: *mut RawServoStyleSheet) -> bool;

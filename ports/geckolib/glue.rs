@@ -144,6 +144,22 @@ pub extern "C" fn Servo_PrependStyleSheet(raw_sheet: *mut RawServoStyleSheet,
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_InsertStyleSheetBefore(raw_sheet: *mut RawServoStyleSheet,
+                                               raw_reference: *mut RawServoStyleSheet,
+                                               raw_data: *mut RawServoStyleSet) {
+    type Helpers = ArcHelpers<RawServoStyleSheet, Stylesheet>;
+    let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
+    Helpers::with(raw_sheet, |sheet| {
+        Helpers::with(raw_reference, |reference| {
+            data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
+            let index = data.stylesheets.iter().position(|x| arc_ptr_eq(x, reference)).unwrap();
+            data.stylesheets.insert(index, sheet.clone());
+            data.stylesheets_changed = true;
+        })
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_RemoveStyleSheet(raw_sheet: *mut RawServoStyleSheet,
                                          raw_data: *mut RawServoStyleSet) {
     type Helpers = ArcHelpers<RawServoStyleSheet, Stylesheet>;
