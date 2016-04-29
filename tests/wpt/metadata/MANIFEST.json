@@ -35238,7 +35238,10 @@
     "wdspec": []
   },
   "local_changes": {
-    "deleted": [],
+    "deleted": [
+      "html/dom/documents/dom-tree-accessors/document.body-getter.html",
+      "html/dom/documents/dom-tree-accessors/document.body-setter-01.html"
+    ],
     "deleted_reftests": {},
     "items": {
       "reftest": {
@@ -35252,6 +35255,14 @@
               ]
             ],
             "url": "/html/rendering/replaced-elements/embedded-content-rendering-rules/canvas_without_context_a.html"
+          }
+        ]
+      },
+      "testharness": {
+        "html/dom/documents/dom-tree-accessors/Document.body.html": [
+          {
+            "path": "html/dom/documents/dom-tree-accessors/Document.body.html",
+            "url": "/html/dom/documents/dom-tree-accessors/Document.body.html"
           }
         ]
       }
