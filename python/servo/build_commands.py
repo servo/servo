@@ -202,9 +202,13 @@ class MachCommands(CommandBase):
 
         build_start = time()
         env = self.build_env()
+
+        # Ensure Rust uses hard floats and SIMD on ARM devices
+        if len(targets):
+            if targets[0].startswith('arm') or targets[0].startswith('aarch64'):
+                env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
+
         if android:
-            # Ensure Rust uses hard floats on Android
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
             # Build OpenSSL for android
             make_cmd = ["make"]
             if jobs is not None:
