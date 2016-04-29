@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf8" />
+<title>Private browsing</title>
+</head>
+<body>
+<iframe src="iframe_privateContent_inner.html" id="private_iframe"></iframe>
+<iframe src="iframe_contentDocument_inner.html" id="frame"></iframe>
+</body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  async_test(function(t) {
+    var privateFrame = document.getElementById("private_iframe");
+    privateFrame.mozbrowser = "true";
+    privateFrame.mozprivatebrowsing = "true";
+
+    var privateDoc = privateFrame.contentDocument;
+    privateDoc.cookie = "private=active;path=/";
+
+    var frame = document.getElementById("frame");
+    frame.mozbrowser = "true";
+    assert_equals(frame.contentDocument.cookie.indexOf("private") == -1)
+  });
+</script>
+</html>
