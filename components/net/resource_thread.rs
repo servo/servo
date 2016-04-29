@@ -399,12 +399,10 @@ impl ResourceManager {
             hsts_list: Arc::new(RwLock::new(hsts_list.clone())),
             connector: create_http_connector(),
         };
-        let auth_cache = AuthCache::new();
-        let cookie_jar = CookieStorage::new();
         let private_resource_group = ResourceGroup {
-            cookie_jar: Arc::new(RwLock::new(cookie_jar)),
-            auth_cache: Arc::new(RwLock::new(auth_cache)),
-            hsts_list: Arc::new(RwLock::new(hsts_list.clone())),
+            cookie_jar: Arc::new(RwLock::new(CookieStorage::new())),
+            auth_cache: Arc::new(RwLock::new(AuthCache::new())),
+            hsts_list: Arc::new(RwLock::new(HstsList::new())),
             connector: create_http_connector(),
         };
         ResourceManager {
