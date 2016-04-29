@@ -186,7 +186,7 @@ class MachCommands(CommandBase):
         if verbose:
             opts += ["-v"]
         if android:
-            target = "arm-linux-androideabi"
+            target = self.config["android"]["target"]]
 
         if target:
             opts += ["--target", target]
