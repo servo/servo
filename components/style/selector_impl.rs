@@ -8,6 +8,50 @@ use selectors::Element;
 use selectors::parser::{ParserContext, SelectorImpl};
 use stylesheets::Stylesheet;
 
+/// This function determines if a pseudo-element is eagerly cascaded or not.
+///
+/// Eagerly cascaded pseudo-elements are "normal" pseudo-elements (i.e.
+/// `::before` and `::after`). They inherit styles normally as another
+/// selector would do, and they're part of the cascade.
+///
+/// Lazy pseudo-elements are affected by selector matching, but they're only
+/// computed when needed, and not before. They're useful for general
+/// pseudo-elements that are not very common.
+///
+/// Precomputed ones skip the cascade process entirely, mostly as an
+/// optimisation since they are private pseudo-elements (like
+/// `::-servo-details-content`).
+///
+/// This pseudo-elements are resolved on the fly using *only* global rules
+/// (rules of the form `*|*`), and applying them to the parent style.
+///
+/// If you're implementing a public selector that the end-user might customize,
+/// then you probably need doing the whole cascading process and return true in
+/// this function for that pseudo (either as Eager or Lazy).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PseudoElementCascadeType {
+    Eager,
+    Lazy,
+    Precomputed,
+}
+
+impl PseudoElementCascadeType {
+    #[inline]
+    pub fn is_eager(&self) -> bool {
+        *self == PseudoElementCascadeType::Eager
+    }
+
+    #[inline]
+    pub fn is_lazy(&self) -> bool {
+        *self == PseudoElementCascadeType::Lazy
+    }
+
+    #[inline]
+    pub fn is_precomputed(&self) -> bool {
+        *self == PseudoElementCascadeType::Precomputed
+    }
+}
+
 pub trait ElementExt: Element {
     fn is_link(&self) -> bool;
 }
@@ -15,48 +59,31 @@ pub trait ElementExt: Element {
 pub trait SelectorImplExt : SelectorImpl + Sized {
     type ComputedValues: properties::ComputedValues;
 
-    fn each_pseudo_element<F>(mut fun: F)
-        where F: FnMut(<Self as SelectorImpl>::PseudoElement);
+    fn pseudo_element_cascade_type(pseudo: &Self::PseudoElement) -> PseudoElementCascadeType;
 
-    /// This function determines if a pseudo-element is eagerly cascaded or not.
-    ///
-    /// Eagerly cascaded pseudo-elements are "normal" pseudo-elements (i.e.
-    /// `::before` and `::after`). They inherit styles normally as another
-    /// selector would do.
-    ///
-    /// Non-eagerly cascaded ones skip the cascade process entirely, mostly as
-    /// an optimisation since they are private pseudo-elements (like
-    /// `::-servo-details-content`). This pseudo-elements are resolved on the
-    /// fly using global rules (rules of the form `*|*`), and applying them to
-    /// the parent style.
-    ///
-    /// If you're implementing a public selector that the end-user might
-    /// customize, then you probably need doing the whole cascading process and
-    /// return true in this function for that pseudo.
-    ///
-    /// But if you are implementing a private pseudo-element, please consider if
-    /// it might be possible to skip the cascade for it.
-    fn is_eagerly_cascaded_pseudo_element(pseudo: &<Self as SelectorImpl>::PseudoElement) -> bool;
+    fn each_pseudo_element<F>(mut fun: F)
+        where F: FnMut(Self::PseudoElement);
 
     #[inline]
     fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
         where F: FnMut(<Self as SelectorImpl>::PseudoElement) {
         Self::each_pseudo_element(|pseudo| {
-            if Self::is_eagerly_cascaded_pseudo_element(&pseudo) {
+            if Self::pseudo_element_cascade_type(&pseudo).is_eager() {
                 fun(pseudo)
             }
         })
     }
 
     #[inline]
-    fn each_non_eagerly_cascaded_pseudo_element<F>(mut fun: F)
+    fn each_precomputed_pseudo_element<F>(mut fun: F)
         where F: FnMut(<Self as SelectorImpl>::PseudoElement) {
         Self::each_pseudo_element(|pseudo| {
-            if !Self::is_eagerly_cascaded_pseudo_element(&pseudo) {
+            if Self::pseudo_element_cascade_type(&pseudo).is_precomputed() {
                 fun(pseudo)
             }
         })
     }
+
 
     fn pseudo_class_state_flag(pc: &Self::NonTSPseudoClass) -> ElementState;
 
@@ -76,13 +103,21 @@ pub enum PseudoElement {
 
 impl PseudoElement {
     #[inline]
-    pub fn is_eagerly_cascaded(&self) -> bool {
+    pub fn cascade_type(&self) -> PseudoElementCascadeType {
+        // TODO: Make PseudoElementCascadeType::Lazy work for Servo.
+        //
+        // This can't be done right now since it would require
+        // ServoThreadSafeLayoutElement to implement ::selectors::Element,
+        // and it might not be thread-safe.
+        //
+        // After that, we'd probably want ::selection and
+        // ::-servo-details-summary to be lazy.
         match *self {
             PseudoElement::Before |
             PseudoElement::After |
             PseudoElement::Selection |
-            PseudoElement::DetailsSummary => true,
-            PseudoElement::DetailsContent => false,
+            PseudoElement::DetailsSummary => PseudoElementCascadeType::Eager,
+            PseudoElement::DetailsContent => PseudoElementCascadeType::Precomputed,
         }
     }
 }
@@ -191,8 +226,8 @@ impl SelectorImplExt for ServoSelectorImpl {
     type ComputedValues = ServoComputedValues;
 
     #[inline]
-    fn is_eagerly_cascaded_pseudo_element(pseudo: &PseudoElement) -> bool {
-        pseudo.is_eagerly_cascaded()
+    fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
+        pseudo.cascade_type()
     }
 
     #[inline]

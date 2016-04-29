@@ -540,7 +540,7 @@ pub trait ElementMatchMethods : TElement
             stylist.push_applicable_declarations(self,
                                                  parent_bf,
                                                  None,
-                                                 Some(pseudo.clone()),
+                                                 Some(&pseudo.clone()),
                                                  applicable_declarations.per_pseudo.entry(pseudo).or_insert(vec![]));
         });
 
