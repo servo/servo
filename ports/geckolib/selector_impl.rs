@@ -22,7 +22,13 @@ pub enum PseudoElement {
     FirstLine,
     // TODO: Probably a few more are missing here
 
-    // https://mxr.mozilla.org/mozilla-central/source/layout/style/nsCSSAnonBoxList.h
+    AnonBox(AnonBoxPseudoElement),
+
+}
+
+// https://mxr.mozilla.org/mozilla-central/source/layout/style/nsCSSAnonBoxList.h
+#[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
+pub enum AnonBoxPseudoElement {
     MozNonElement,
     MozAnonymousBlock,
     MozAnonymousPositionedBlock,
@@ -89,36 +95,6 @@ pub enum PseudoElement {
     MozSVGText,
 }
 
-impl PseudoElement {
-    fn is_anon_box_pseudo(&self) -> bool {
-        use self::PseudoElement::*;
-        match *self {
-            MozNonElement | MozAnonymousBlock | MozAnonymousPositionedBlock |
-            MozMathMLAnonymousBlock | MozXULAnonymousBlock |
-            MozHorizontalFramesetBorder | MozVerticalFramesetBorder |
-            MozLineFrame | MozButtonContent | MozButtonLabel | MozCellContent |
-            MozDropdownList | MozFieldsetContent | MozFramesetBlank |
-            MozDisplayComboboxControlFrame |
-            MozHTMLCanvasContent | MozInlineTable | MozTable | MozTableCell |
-            MozTableColumnGroup | MozTableColumn | MozTableOuter |
-            MozTableRowGroup | MozTableRow | MozCanvas | MozPageBreak |
-            MozPage | MozPageContent | MozPageSequence | MozScrolledContent |
-            MozScrolledCanvas | MozScrolledPageSequence | MozColumnContent |
-            MozViewport | MozViewportScroll | MozAnonymousFlexItem |
-            MozAnonymousGridItem | MozRuby | MozRubyBase |
-            MozRubyBaseContainer | MozRubyText | MozRubyTextContainer |
-            MozTreeColumn | MozTreeRow | MozTreeSeparator | MozTreeCell |
-            MozTreeIndentation | MozTreeLine | MozTreeTwisty | MozTreeImage |
-            MozTreeCellText | MozTreeCheckbox | MozTreeProgressMeter |
-            MozTreeDropFeedback | MozSVGMarkerAnonChild |
-            MozSVGOuterSVGAnonChild | MozSVGForeignContent |
-            MozSVGText => true,
-            _ => false,
-        }
-    }
-}
-
-
 #[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
 pub enum NonTSPseudoClass {
     AnyLink,
@@ -183,6 +159,7 @@ impl SelectorImpl for GeckoSelectorImpl {
 
     fn parse_pseudo_element(context: &ParserContext,
                             name: &str) -> Result<PseudoElement, ()> {
+        use self::AnonBoxPseudoElement::*;
         use self::PseudoElement::*;
 
         // The braces here are unfortunate, but they're needed for
@@ -198,7 +175,7 @@ impl SelectorImpl for GeckoSelectorImpl {
             return Err(())
         }
 
-        Ok(match_ignore_ascii_case! { name,
+        Ok(AnonBox(match_ignore_ascii_case! { name,
             "-moz-non-element" => MozNonElement,
 
             "-moz-anonymous-block" => MozAnonymousBlock,
@@ -265,7 +242,7 @@ impl SelectorImpl for GeckoSelectorImpl {
             "-moz-svg-text" => MozSVGText,
 
             _ => return Err(())
-        })
+        }))
     }
 }
 
@@ -277,87 +254,85 @@ impl SelectorImplExt for GeckoSelectorImpl {
         match *pseudo {
             PseudoElement::Before |
             PseudoElement::After => PseudoElementCascadeType::Eager,
-            _ => {
-                if pseudo.is_anon_box_pseudo() {
-                    PseudoElementCascadeType::Precomputed
-                } else {
-                    PseudoElementCascadeType::Lazy
-                }
-            }
+            PseudoElement::AnonBox(_) => PseudoElementCascadeType::Precomputed,
+            _ => PseudoElementCascadeType::Lazy,
         }
     }
 
     #[inline]
     fn each_pseudo_element<F>(mut fun: F)
         where F: FnMut(PseudoElement) {
-        fun(PseudoElement::Before);
-        fun(PseudoElement::After);
-        fun(PseudoElement::FirstLine);
+        use self::PseudoElement::*;
+        use self::AnonBoxPseudoElement::*;
 
-        fun(PseudoElement::MozNonElement);
-        fun(PseudoElement::MozAnonymousBlock);
-        fun(PseudoElement::MozAnonymousPositionedBlock);
-        fun(PseudoElement::MozMathMLAnonymousBlock);
-        fun(PseudoElement::MozXULAnonymousBlock);
+        fun(Before);
+        fun(After);
+        fun(FirstLine);
 
-        fun(PseudoElement::MozHorizontalFramesetBorder);
-        fun(PseudoElement::MozVerticalFramesetBorder);
-        fun(PseudoElement::MozLineFrame);
-        fun(PseudoElement::MozButtonContent);
-        fun(PseudoElement::MozButtonLabel);
-        fun(PseudoElement::MozCellContent);
-        fun(PseudoElement::MozDropdownList);
-        fun(PseudoElement::MozFieldsetContent);
-        fun(PseudoElement::MozFramesetBlank);
-        fun(PseudoElement::MozDisplayComboboxControlFrame);
+        fun(AnonBox(MozNonElement));
+        fun(AnonBox(MozAnonymousBlock));
+        fun(AnonBox(MozAnonymousPositionedBlock));
+        fun(AnonBox(MozMathMLAnonymousBlock));
+        fun(AnonBox(MozXULAnonymousBlock));
 
-        fun(PseudoElement::MozHTMLCanvasContent);
-        fun(PseudoElement::MozInlineTable);
-        fun(PseudoElement::MozTable);
-        fun(PseudoElement::MozTableCell);
-        fun(PseudoElement::MozTableColumnGroup);
-        fun(PseudoElement::MozTableColumn);
-        fun(PseudoElement::MozTableOuter);
-        fun(PseudoElement::MozTableRowGroup);
-        fun(PseudoElement::MozTableRow);
+        fun(AnonBox(MozHorizontalFramesetBorder));
+        fun(AnonBox(MozVerticalFramesetBorder));
+        fun(AnonBox(MozLineFrame));
+        fun(AnonBox(MozButtonContent));
+        fun(AnonBox(MozButtonLabel));
+        fun(AnonBox(MozCellContent));
+        fun(AnonBox(MozDropdownList));
+        fun(AnonBox(MozFieldsetContent));
+        fun(AnonBox(MozFramesetBlank));
+        fun(AnonBox(MozDisplayComboboxControlFrame));
 
-        fun(PseudoElement::MozCanvas);
-        fun(PseudoElement::MozPageBreak);
-        fun(PseudoElement::MozPage);
-        fun(PseudoElement::MozPageContent);
-        fun(PseudoElement::MozPageSequence);
-        fun(PseudoElement::MozScrolledContent);
-        fun(PseudoElement::MozScrolledCanvas);
-        fun(PseudoElement::MozScrolledPageSequence);
-        fun(PseudoElement::MozColumnContent);
-        fun(PseudoElement::MozViewport);
-        fun(PseudoElement::MozViewportScroll);
-        fun(PseudoElement::MozAnonymousFlexItem);
-        fun(PseudoElement::MozAnonymousGridItem);
+        fun(AnonBox(MozHTMLCanvasContent));
+        fun(AnonBox(MozInlineTable));
+        fun(AnonBox(MozTable));
+        fun(AnonBox(MozTableCell));
+        fun(AnonBox(MozTableColumnGroup));
+        fun(AnonBox(MozTableColumn));
+        fun(AnonBox(MozTableOuter));
+        fun(AnonBox(MozTableRowGroup));
+        fun(AnonBox(MozTableRow));
 
-        fun(PseudoElement::MozRuby);
-        fun(PseudoElement::MozRubyBase);
-        fun(PseudoElement::MozRubyBaseContainer);
-        fun(PseudoElement::MozRubyText);
-        fun(PseudoElement::MozRubyTextContainer);
+        fun(AnonBox(MozCanvas));
+        fun(AnonBox(MozPageBreak));
+        fun(AnonBox(MozPage));
+        fun(AnonBox(MozPageContent));
+        fun(AnonBox(MozPageSequence));
+        fun(AnonBox(MozScrolledContent));
+        fun(AnonBox(MozScrolledCanvas));
+        fun(AnonBox(MozScrolledPageSequence));
+        fun(AnonBox(MozColumnContent));
+        fun(AnonBox(MozViewport));
+        fun(AnonBox(MozViewportScroll));
+        fun(AnonBox(MozAnonymousFlexItem));
+        fun(AnonBox(MozAnonymousGridItem));
 
-        fun(PseudoElement::MozTreeColumn);
-        fun(PseudoElement::MozTreeRow);
-        fun(PseudoElement::MozTreeSeparator);
-        fun(PseudoElement::MozTreeCell);
-        fun(PseudoElement::MozTreeIndentation);
-        fun(PseudoElement::MozTreeLine);
-        fun(PseudoElement::MozTreeTwisty);
-        fun(PseudoElement::MozTreeImage);
-        fun(PseudoElement::MozTreeCellText);
-        fun(PseudoElement::MozTreeCheckbox);
-        fun(PseudoElement::MozTreeProgressMeter);
-        fun(PseudoElement::MozTreeDropFeedback);
+        fun(AnonBox(MozRuby));
+        fun(AnonBox(MozRubyBase));
+        fun(AnonBox(MozRubyBaseContainer));
+        fun(AnonBox(MozRubyText));
+        fun(AnonBox(MozRubyTextContainer));
 
-        fun(PseudoElement::MozSVGMarkerAnonChild);
-        fun(PseudoElement::MozSVGOuterSVGAnonChild);
-        fun(PseudoElement::MozSVGForeignContent);
-        fun(PseudoElement::MozSVGText);
+        fun(AnonBox(MozTreeColumn));
+        fun(AnonBox(MozTreeRow));
+        fun(AnonBox(MozTreeSeparator));
+        fun(AnonBox(MozTreeCell));
+        fun(AnonBox(MozTreeIndentation));
+        fun(AnonBox(MozTreeLine));
+        fun(AnonBox(MozTreeTwisty));
+        fun(AnonBox(MozTreeImage));
+        fun(AnonBox(MozTreeCellText));
+        fun(AnonBox(MozTreeCheckbox));
+        fun(AnonBox(MozTreeProgressMeter));
+        fun(AnonBox(MozTreeDropFeedback));
+
+        fun(AnonBox(MozSVGMarkerAnonChild));
+        fun(AnonBox(MozSVGOuterSVGAnonChild));
+        fun(AnonBox(MozSVGForeignContent));
+        fun(AnonBox(MozSVGText));
     }
 
     #[inline]
