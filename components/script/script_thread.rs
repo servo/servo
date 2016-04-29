@@ -275,14 +275,6 @@ impl ScriptChan for SendableMainThreadScriptChan {
     }
 }
 
-impl SendableMainThreadScriptChan {
-    /// Creates a new script chan.
-    pub fn new() -> (Receiver<CommonScriptMsg>, Box<SendableMainThreadScriptChan>) {
-        let (chan, port) = channel();
-        (port, box SendableMainThreadScriptChan(chan))
-    }
-}
-
 /// Encapsulates internal communication of main thread messages within the script thread.
 #[derive(JSTraceable)]
 pub struct MainThreadScriptChan(pub Sender<MainThreadScriptMsg>);
