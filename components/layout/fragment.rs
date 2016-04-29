@@ -319,9 +319,9 @@ pub struct CanvasFragmentInfo {
 }
 
 impl CanvasFragmentInfo {
-    pub fn new<N: ThreadSafeLayoutNode>(node: &N, data: HTMLCanvasData) -> CanvasFragmentInfo {
+    pub fn new<N: ThreadSafeLayoutNode>(node: &N, data: HTMLCanvasData, ctx: &LayoutContext) -> CanvasFragmentInfo {
         CanvasFragmentInfo {
-            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node),
+            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node, ctx),
             ipc_renderer: data.ipc_renderer
                               .map(|renderer| Arc::new(Mutex::new(renderer))),
             dom_width: Au::from_px(data.width as i32),
@@ -382,7 +382,7 @@ impl ImageFragmentInfo {
         };
 
         ImageFragmentInfo {
-            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node),
+            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node, layout_context),
             image: image,
             metadata: metadata,
         }
@@ -441,9 +441,9 @@ pub struct ReplacedImageFragmentInfo {
 }
 
 impl ReplacedImageFragmentInfo {
-    pub fn new<N>(node: &N) -> ReplacedImageFragmentInfo
+    pub fn new<N>(node: &N, ctx: &LayoutContext) -> ReplacedImageFragmentInfo
             where N: ThreadSafeLayoutNode {
-        let is_vertical = node.style().writing_mode.is_vertical();
+        let is_vertical = node.style(ctx.style_context()).writing_mode.is_vertical();
         ReplacedImageFragmentInfo {
             computed_inline_size: None,
             computed_block_size: None,
@@ -789,8 +789,9 @@ impl TableColumnFragmentInfo {
 
 impl Fragment {
     /// Constructs a new `Fragment` instance.
-    pub fn new<N: ThreadSafeLayoutNode>(node: &N, specific: SpecificFragmentInfo) -> Fragment {
-        let style = node.style().clone();
+    pub fn new<N: ThreadSafeLayoutNode>(node: &N, specific: SpecificFragmentInfo, ctx: &LayoutContext) -> Fragment {
+        let style_context = ctx.style_context();
+        let style = node.style(style_context).clone();
         let writing_mode = style.writing_mode;
 
         let mut restyle_damage = node.restyle_damage();
@@ -799,7 +800,7 @@ impl Fragment {
         Fragment {
             node: node.opaque(),
             style: style,
-            selected_style: node.selected_style().clone(),
+            selected_style: node.selected_style(style_context).clone(),
             restyle_damage: restyle_damage,
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),

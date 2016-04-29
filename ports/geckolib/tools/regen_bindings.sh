@@ -28,17 +28,17 @@ else
   LIBCLANG_PATH=`brew --prefix llvm38`/lib/llvm-3.8/lib;
 fi
 
-# Prevent bindgen from generating opaque types for the gecko style structs.
-export MAP_GECKO_STRUCTS=""
-for STRUCT in nsStyleFont nsStyleColor nsStyleList nsStyleText \
+# Prevent bindgen from generating opaque types for common gecko types
+export MAP_GECKO_TYPES=""
+for STRUCT in SheetParsingMode nsStyleFont nsStyleColor nsStyleList nsStyleText \
               nsStyleVisibility nsStyleUserInterface nsStyleTableBorder \
               nsStyleSVG nsStyleVariables nsStyleBackground nsStylePosition \
               nsStyleTextReset nsStyleDisplay nsStyleContent nsStyleUIReset \
               nsStyleTable nsStyleMargin nsStylePadding nsStyleBorder \
               nsStyleOutline nsStyleXUL nsStyleSVGReset nsStyleColumn nsStyleEffects
 do
-  MAP_GECKO_STRUCTS=$MAP_GECKO_STRUCTS"-blacklist-type $STRUCT "
-  MAP_GECKO_STRUCTS=$MAP_GECKO_STRUCTS"-raw-line 'use gecko_style_structs::$STRUCT;' "
+  MAP_GECKO_TYPES=$MAP_GECKO_TYPES"-blacklist-type $STRUCT "
+  MAP_GECKO_TYPES=$MAP_GECKO_TYPES"-raw-line 'use gecko_style_structs::$STRUCT;' "
 done
 
 # Check for the include directory.
@@ -50,7 +50,7 @@ fi
 
 export RUST_BACKTRACE=1
 
-# We need to use 'eval' here to make MAP_GECKO_STRUCTS evaluate properly as
+# We need to use 'eval' here to make MAP_GECKO_TYPES evaluate properly as
 # multiple arguments.
 eval ./rust-bindgen/target/debug/bindgen           \
   -x c++ -std=gnu++0x                              \
@@ -61,4 +61,4 @@ eval ./rust-bindgen/target/debug/bindgen           \
   "$DIST_INCLUDE/mozilla/ServoBindings.h"          \
   -match "ServoBindings.h"                         \
   -match "nsStyleStructList.h"                     \
-  $MAP_GECKO_STRUCTS
+  $MAP_GECKO_TYPES

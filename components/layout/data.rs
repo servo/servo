@@ -17,8 +17,9 @@ pub struct PrivateLayoutData {
     /// Description of how to account for recent style changes.
     pub restyle_damage: RestyleDamage,
 
-    /// The current results of flow construction for this node. This is either a flow or a
-    /// `ConstructionItem`. See comments in `construct.rs` for more details.
+    /// The current results of flow construction for this node. This is either a
+    /// flow or a `ConstructionItem`. See comments in `construct.rs` for more
+    /// details.
     pub flow_construction_result: ConstructionResult,
 
     pub before_flow_construction_result: ConstructionResult,

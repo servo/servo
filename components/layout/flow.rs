@@ -483,7 +483,7 @@ pub trait ImmutableFlowUtils {
     fn need_anonymous_flow(self, child: &Flow) -> bool;
 
     /// Generates missing child flow of this flow.
-    fn generate_missing_child_flow<N: ThreadSafeLayoutNode>(self, node: &N) -> FlowRef;
+    fn generate_missing_child_flow<N: ThreadSafeLayoutNode>(self, node: &N, ctx: &LayoutContext) -> FlowRef;
 
     /// Returns true if this flow contains fragments that are roots of an absolute flow tree.
     fn contains_roots_of_absolute_flow_tree(&self) -> bool;
@@ -1275,8 +1275,9 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     /// FIXME(pcwalton): This duplicates some logic in
     /// `generate_anonymous_table_flows_if_necessary()`. We should remove this function eventually,
     /// as it's harder to understand.
-    fn generate_missing_child_flow<N: ThreadSafeLayoutNode>(self, node: &N) -> FlowRef {
-        let mut style = node.style().clone();
+    fn generate_missing_child_flow<N: ThreadSafeLayoutNode>(self, node: &N, ctx: &LayoutContext) -> FlowRef {
+        let style_context = ctx.style_context();
+        let mut style = node.style(style_context).clone();
         match self.class() {
             FlowClass::Table | FlowClass::TableRowGroup => {
                 properties::modify_style_for_anonymous_table_object(
@@ -1286,7 +1287,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                     node.opaque(),
                     PseudoElementType::Normal,
                     style,
-                    node.selected_style().clone(),
+                    node.selected_style(style_context).clone(),
                     node.restyle_damage(),
                     SpecificFragmentInfo::TableRow);
                 Arc::new(TableRowFlow::from_fragment(fragment))
@@ -1299,10 +1300,10 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                     node.opaque(),
                     PseudoElementType::Normal,
                     style,
-                    node.selected_style().clone(),
+                    node.selected_style(style_context).clone(),
                     node.restyle_damage(),
                     SpecificFragmentInfo::TableCell);
-                let hide = node.style().get_inheritedtable().empty_cells == empty_cells::T::hide;
+                let hide = node.style(style_context).get_inheritedtable().empty_cells == empty_cells::T::hide;
                 Arc::new(TableCellFlow::from_node_fragment_and_visibility_flag(node, fragment, !hide))
             },
             FlowClass::Flex => {
@@ -1310,7 +1311,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                     Fragment::from_opaque_node_and_style(node.opaque(),
                                                          PseudoElementType::Normal,
                                                          style,
-                                                         node.selected_style().clone(),
+                                                         node.selected_style(style_context).clone(),
                                                          node.restyle_damage(),
                                                          SpecificFragmentInfo::Generic);
                 Arc::new(BlockFlow::from_fragment(fragment, None))
