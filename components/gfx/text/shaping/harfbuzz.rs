@@ -35,7 +35,7 @@ use harfbuzz::{hb_position_t, hb_tag_t};
 use libc::{c_char, c_int, c_uint, c_void};
 use platform::font::FontTable;
 use std::{char, cmp, ptr};
-use text::glyph::{CharIndex, GlyphData, GlyphId, GlyphStore};
+use text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use text::shaping::ShaperMethods;
 use text::util::{fixed_to_float, float_to_fixed, is_bidi_control};
 
@@ -45,8 +45,7 @@ macro_rules! hb_tag {
     );
 }
 
-static NO_GLYPH: i32 = -1;
-static CONTINUATION_BYTE: i32 = -2;
+const NO_GLYPH: i32 = -1;
 
 static KERN: u32 = hb_tag!('k', 'e', 'r', 'n');
 static LIGA: u32 = hb_tag!('l', 'i', 'g', 'a');
@@ -258,44 +257,18 @@ impl Shaper {
         let glyph_data = ShapedGlyphData::new(buffer);
         let glyph_count = glyph_data.len();
         let byte_max = text.len();
-        let char_max = text.chars().count();
 
-        // GlyphStore records are indexed by character, not byte offset.
-        // so, we must be careful to increment this when saving glyph entries.
-        let (mut char_idx, char_step) = if options.flags.contains(RTL_FLAG) {
-            (CharIndex(char_max as isize - 1), CharIndex(-1))
-        } else {
-            (CharIndex(0), CharIndex(1))
-        };
-
-        debug!("Shaped text[char count={}], got back {} glyph info records.",
-               char_max,
+        debug!("Shaped text[byte count={}], got back {} glyph info records.",
+               byte_max,
                glyph_count);
 
-        if char_max != glyph_count {
-            debug!("NOTE: Since these are not equal, we probably have been given some complex \
-                    glyphs.");
-        }
-
         // make map of what chars have glyphs
-        let mut byte_to_glyph: Vec<i32>;
-
-        // fast path: all chars are single-byte.
-        if byte_max == char_max {
-            byte_to_glyph = vec![NO_GLYPH; byte_max];
-        } else {
-            byte_to_glyph = vec![CONTINUATION_BYTE; byte_max];
-            for (i, _) in text.char_indices() {
-                byte_to_glyph[i] = NO_GLYPH;
-            }
-        }
+        let mut byte_to_glyph = vec![NO_GLYPH; byte_max];
 
         debug!("(glyph idx) -> (text byte offset)");
         for i in 0..glyph_data.len() {
-            // loc refers to a *byte* offset within the utf8 string.
             let loc = glyph_data.byte_offset_of_glyph(i) as usize;
             if loc < byte_max {
-                assert!(byte_to_glyph[loc] != CONTINUATION_BYTE);
                 byte_to_glyph[loc] = i as i32;
             } else {
                 debug!("ERROR: tried to set out of range byte_to_glyph: idx={}, glyph idx={}",
@@ -312,10 +285,7 @@ impl Shaper {
         }
 
         let mut glyph_span = 0..0;
-
-        // This span contains first byte of first char, to last byte of last char in range.
-        // So, char_byte_span.end points to first byte of last+1 char, if it's less than byte_max.
-        let mut char_byte_span;
+        let mut byte_range = 0..0;
 
         let mut y_pos = Au(0);
 
@@ -323,48 +293,28 @@ impl Shaper {
         // in cases with complex glyph-character associations, 2+ glyphs and 1+ chars can be
         // processed.
         while glyph_span.start < glyph_count {
-            // start by looking at just one glyph.
-            glyph_span.end += 1;
             debug!("Processing glyph at idx={}", glyph_span.start);
+            glyph_span.end = glyph_span.start;
+            byte_range.end = glyph_data.byte_offset_of_glyph(glyph_span.start) as usize;
 
-            let char_byte_start = glyph_data.byte_offset_of_glyph(glyph_span.start) as usize;
-            char_byte_span = char_byte_start..char_byte_start;
-            let mut glyph_spans_multiple_characters = false;
-
-            // find a range of chars corresponding to this glyph, plus
-            // any trailing chars that do not have associated glyphs.
-            while char_byte_span.end < byte_max {
-                let ch = text[char_byte_span.end..].chars().next().unwrap();
-                char_byte_span.end += ch.len_utf8();
-
-                debug!("Processing char byte span: off={}, len={} for glyph idx={}",
-                       char_byte_span.start, char_byte_span.len(), glyph_span.start);
-
-                while char_byte_span.end != byte_max &&
-                        byte_to_glyph[char_byte_span.end] == NO_GLYPH {
-                    debug!("Extending char byte span to include byte offset={} with no associated \
-                            glyph", char_byte_span.end);
-                    let ch = text[char_byte_span.end..].chars().next().unwrap();
-                    char_byte_span.end += ch.len_utf8();
-                    glyph_spans_multiple_characters = true;
+            while byte_range.end < byte_max {
+                byte_range.end += 1;
+                // Extend the byte range to include any following byte without its own glyph.
+                while byte_range.end < byte_max && byte_to_glyph[byte_range.end] == NO_GLYPH {
+                    byte_range.end += 1;
                 }
 
-                // extend glyph range to max glyph index covered by char_span,
-                // in cases where one char made several glyphs and left some unassociated chars.
+                // Extend the glyph range to include all glyphs covered by bytes processed so far.
                 let mut max_glyph_idx = glyph_span.end;
-                for i in char_byte_span.clone() {
-                    if byte_to_glyph[i] > NO_GLYPH {
-                        max_glyph_idx = cmp::max(byte_to_glyph[i] as usize + 1, max_glyph_idx);
+                for glyph_idx in &byte_to_glyph[byte_range.clone()] {
+                    if *glyph_idx != NO_GLYPH {
+                        max_glyph_idx = cmp::max(*glyph_idx as usize + 1, max_glyph_idx);
                     }
                 }
-
                 if max_glyph_idx > glyph_span.end {
                     glyph_span.end = max_glyph_idx;
-                    debug!("Extended glyph span (off={}, len={}) to cover char byte span's max \
-                            glyph index",
-                           glyph_span.start, glyph_span.len());
+                    debug!("Extended glyph span to {:?}", glyph_span);
                 }
-
 
                 // if there's just one glyph, then we don't need further checks.
                 if glyph_span.len() == 1 { break; }
@@ -372,60 +322,35 @@ impl Shaper {
                 // if no glyphs were found yet, extend the char byte range more.
                 if glyph_span.len() == 0 { continue; }
 
-                debug!("Complex (multi-glyph to multi-char) association found. This case \
-                        probably doesn't work.");
-
+                // If byte_range now includes all the byte offsets found in glyph_span, then we
+                // have found a contiguous "cluster" and can stop extending it.
                 let mut all_glyphs_are_within_cluster: bool = true;
                 for j in glyph_span.clone() {
                     let loc = glyph_data.byte_offset_of_glyph(j);
-                    if !char_byte_span.contains(loc as usize) {
+                    if !byte_range.contains(loc as usize) {
                         all_glyphs_are_within_cluster = false;
                         break
                     }
                 }
-
-                debug!("All glyphs within char_byte_span cluster?: {}",
-                       all_glyphs_are_within_cluster);
-
-                // found a valid range; stop extending char_span.
                 if all_glyphs_are_within_cluster {
                     break
                 }
+
+                // Otherwise, the bytes we have seen so far correspond to a non-contiguous set of
+                // glyphs.  Keep extending byte_range until we fill in all the holes in the glyph
+                // span or reach the end of the text.
             }
 
-            // character/glyph clump must contain characters.
-            assert!(char_byte_span.len() > 0);
-            // character/glyph clump must contain glyphs.
+            assert!(byte_range.len() > 0);
             assert!(glyph_span.len() > 0);
 
-            // now char_span is a ligature clump, formed by the glyphs in glyph_span.
-            // we need to find the chars that correspond to actual glyphs (char_extended_span),
-            //and set glyph info for those and empty infos for the chars that are continuations.
+            // Now byte_range is the ligature clump formed by the glyphs in glyph_span.
+            // We will save these glyphs to the glyph store at the index of the first byte.
+            let byte_idx = ByteIndex(byte_range.start as isize);
 
-            // a simple example:
-            // chars:  'f'     't'   't'
-            // glyphs: 'ftt'   ''    ''
-            // cgmap:  t        f     f
-            // gspan:  [-]
-            // cspan:  [-]
-            // covsp:  [---------------]
-
-            let mut covered_byte_span = char_byte_span.clone();
-            // extend, clipping at end of text range.
-            while covered_byte_span.end < byte_max &&
-                    byte_to_glyph[covered_byte_span.end] == NO_GLYPH {
-                let ch = text[covered_byte_span.end..].chars().next().unwrap();
-                covered_byte_span.end += ch.len_utf8();
-            }
-
-            if covered_byte_span.start >= byte_max {
-                // oops, out of range. clip and forget this clump.
-                glyph_span.start = glyph_span.end;
-                char_byte_span.start = char_byte_span.end;
-            }
-
-            // fast path: 1-to-1 mapping of single char and single glyph.
-            if glyph_span.len() == 1 && !glyph_spans_multiple_characters {
+            if glyph_span.len() == 1 {
+                // Fast path: 1-to-1 mapping of byte offset to single glyph.
+                //
                 // TODO(Issue #214): cluster ranges need to be computed before
                 // shaping, and then consulted here.
                 // for now, just pretend that every character is a cluster start.
@@ -434,9 +359,9 @@ impl Shaper {
                 //
                 // NB: When we acquire the ability to handle ligatures that cross word boundaries,
                 // we'll need to do something special to handle `word-spacing` properly.
-                let character = text[char_byte_span.clone()].chars().next().unwrap();
+                let character = text[byte_range.clone()].chars().next().unwrap();
                 if is_bidi_control(character) {
-                    glyphs.add_nonglyph_for_char_index(char_idx, false, false);
+                    // Don't add any glyphs for bidi control chars
                 } else if character == '\t' {
                     // Treat tabs in pre-formatted text as a fixed number of spaces.
                     //
@@ -450,7 +375,7 @@ impl Shaper {
                                               Default::default(),
                                               true,
                                               true);
-                    glyphs.add_glyph_for_char_index(char_idx, character, &data);
+                    glyphs.add_glyph_for_byte_index(byte_idx, character, &data);
                 } else {
                     let shape = glyph_data.entry_for_glyph(glyph_span.start, &mut y_pos);
                     let advance = self.advance_for_shaped_glyph(shape.advance, character, options);
@@ -459,7 +384,7 @@ impl Shaper {
                                               shape.offset,
                                               true,
                                               true);
-                    glyphs.add_glyph_for_char_index(char_idx, character, &data);
+                    glyphs.add_glyph_for_byte_index(byte_idx, character, &data);
                 }
             } else {
                 // collect all glyphs to be assigned to the first character.
@@ -474,21 +399,12 @@ impl Shaper {
                                               glyph_i > glyph_span.start));
                                               // all but first are ligature continuations
                 }
-
                 // now add the detailed glyph entry.
-                glyphs.add_glyphs_for_char_index(char_idx, &datas);
-
-                // set the other chars, who have no glyphs
-                for _ in text[covered_byte_span].chars().skip(1) {
-                    char_idx = char_idx + char_step;
-                    glyphs.add_nonglyph_for_char_index(char_idx, false, false);
-                }
+                glyphs.add_glyphs_for_byte_index(byte_idx, &datas);
             }
 
-            // shift up our working spans past things we just handled.
             glyph_span.start = glyph_span.end;
-            char_byte_span.start = char_byte_span.end;
-            char_idx = char_idx + char_step;
+            byte_range.start = byte_range.end;
         }
 
         // this must be called after adding all glyph data; it sorts the

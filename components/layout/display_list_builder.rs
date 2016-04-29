@@ -31,7 +31,7 @@ use gfx::display_list::{LineDisplayItem, OpaqueNode, SolidColorDisplayItem};
 use gfx::display_list::{StackingContext, StackingContextId, StackingContextType};
 use gfx::display_list::{TextDisplayItem, TextOrientation, WebRenderImageInfo};
 use gfx::paint_thread::THREAD_TINT_COLORS;
-use gfx::text::glyph::CharIndex;
+use gfx::text::glyph::ByteIndex;
 use gfx_traits::{color, ScrollPolicy};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::{self};
@@ -965,7 +965,7 @@ impl FragmentDisplayListBuilding for Fragment {
             Some(insertion_point_index) => insertion_point_index,
             None => return,
         };
-        let range = Range::new(CharIndex(0), insertion_point_index);
+        let range = Range::new(ByteIndex(0), insertion_point_index);
         let advance = scanned_text_fragment_info.run.advance_for_range(&range);
 
         let insertion_point_bounds;

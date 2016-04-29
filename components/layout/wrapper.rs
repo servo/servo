@@ -33,7 +33,7 @@
 use core::nonzero::NonZero;
 use data::{LayoutDataFlags, PrivateLayoutData};
 use gfx::display_list::OpaqueNode;
-use gfx::text::glyph::CharIndex;
+use gfx::text::glyph::ByteIndex;
 use gfx_traits::{LayerId, LayerType};
 use incremental::RestyleDamage;
 use msg::constellation_msg::PipelineId;
@@ -74,7 +74,7 @@ use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::{NonTSPseudoClass, PseudoElement, ServoSelectorImpl};
 use style::servo::PrivateStyleData;
 use url::Url;
-use util::str::{is_whitespace, search_index};
+use util::str::is_whitespace;
 
 pub type NonOpaqueStyleAndLayoutData = *mut RefCell<PrivateLayoutData>;
 
@@ -838,7 +838,7 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
     fn text_content(&self) -> TextContent;
 
     /// If the insertion point is within this node, returns it. Otherwise, returns `None`.
-    fn selection(&self) -> Option<Range<CharIndex>>;
+    fn selection(&self) -> Option<Range<ByteIndex>>;
 
     /// If this is an image element, returns its URL. If this is not an image element, fails.
     ///
@@ -1077,27 +1077,18 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         panic!("not text!")
     }
 
-    fn selection(&self) -> Option<Range<CharIndex>> {
-        let this = unsafe {
-            self.get_jsmanaged()
-        };
+    fn selection(&self) -> Option<Range<ByteIndex>> {
+        let this = unsafe { self.get_jsmanaged() };
 
-        if let Some(area) = this.downcast::<HTMLTextAreaElement>() {
-            if let Some(selection) = unsafe { area.get_absolute_selection_for_layout() } {
-                let text = unsafe { area.get_value_for_layout() };
-                let begin_byte = selection.begin();
-                let begin = search_index(begin_byte, text.char_indices());
-                let length = search_index(selection.length(), text[begin_byte..].char_indices());
-                return Some(Range::new(CharIndex(begin), CharIndex(length)));
-            }
-        }
-        if let Some(input) = this.downcast::<HTMLInputElement>() {
-            if let Some(selection) = unsafe { input.selection_for_layout() } {
-                return Some(Range::new(CharIndex(selection.begin()),
-                                       CharIndex(selection.length())));
-            }
-        }
-        None
+        let selection = if let Some(area) = this.downcast::<HTMLTextAreaElement>() {
+            unsafe { area.selection_for_layout() }
+        } else if let Some(input) = this.downcast::<HTMLInputElement>() {
+            unsafe { input.selection_for_layout() }
+        } else {
+            return None;
+        };
+        selection.map(|range| Range::new(ByteIndex(range.start as isize),
+                                         ByteIndex(range.len() as isize)))
     }
 
     fn image_url(&self) -> Option<Url> {

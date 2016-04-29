@@ -31,22 +31,23 @@ use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
-use range::Range;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::InputEvent;
 use script_thread::Runnable;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::ops::Range;
 use string_cache::Atom;
 use style::element_state::*;
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
 use textinput::{TextInput, SelectionDirection};
-use util::str::{DOMString, search_index};
+use util::str::{DOMString};
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
+const PASSWORD_REPLACEMENT_CHAR: char = '●';
 
 #[derive(JSTraceable, PartialEq, Copy, Clone)]
 #[allow(dead_code)]
@@ -174,7 +175,7 @@ pub trait LayoutHTMLInputElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn size_for_layout(self) -> u32;
     #[allow(unsafe_code)]
-    unsafe fn selection_for_layout(self) -> Option<Range<isize>>;
+    unsafe fn selection_for_layout(self) -> Option<Range<usize>>;
     #[allow(unsafe_code)]
     unsafe fn checked_state_for_layout(self) -> bool;
     #[allow(unsafe_code)]
@@ -207,8 +208,7 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
             InputType::InputPassword => {
                 let text = get_raw_textinput_value(self);
                 if !text.is_empty() {
-                    // The implementation of selection_for_layout expects a 1:1 mapping of chars.
-                    text.chars().map(|_| '●').collect()
+                    text.chars().map(|_| PASSWORD_REPLACEMENT_CHAR).collect()
                 } else {
                     String::from((*self.unsafe_get()).placeholder.borrow_for_layout().clone())
                 }
@@ -216,7 +216,6 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
             _ => {
                 let text = get_raw_textinput_value(self);
                 if !text.is_empty() {
-                    // The implementation of selection_for_layout expects a 1:1 mapping of chars.
                     String::from(text)
                 } else {
                     String::from((*self.unsafe_get()).placeholder.borrow_for_layout().clone())
@@ -233,24 +232,28 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn selection_for_layout(self) -> Option<Range<isize>> {
+    unsafe fn selection_for_layout(self) -> Option<Range<usize>> {
         if !(*self.unsafe_get()).upcast::<Element>().focus_state() {
             return None;
         }
 
-        // Use the raw textinput to get the index as long as we use a 1:1 char mapping
-        // in value_for_layout.
-        let raw = match (*self.unsafe_get()).input_type.get() {
-            InputType::InputText |
-            InputType::InputPassword => get_raw_textinput_value(self),
-            _ => return None
-        };
         let textinput = (*self.unsafe_get()).textinput.borrow_for_layout();
-        let selection = textinput.get_absolute_selection_range();
-        let begin_byte = selection.begin();
-        let begin = search_index(begin_byte, raw.char_indices());
-        let length = search_index(selection.length(), raw[begin_byte..].char_indices());
-        Some(Range::new(begin, length))
+
+        match (*self.unsafe_get()).input_type.get() {
+            InputType::InputPassword => {
+                let text = get_raw_textinput_value(self);
+                let sel = textinput.get_absolute_selection_range();
+
+                // Translate indices from the raw value to indices in the replacement value.
+                let char_start = text[.. sel.start].chars().count();
+                let char_end = char_start + text[sel].chars().count();
+
+                let bytes_per_char = PASSWORD_REPLACEMENT_CHAR.len_utf8();
+                Some(char_start * bytes_per_char .. char_end * bytes_per_char)
+            }
+            InputType::InputText => Some(textinput.get_absolute_selection_range()),
+            _ => None
+        }
     }
 
     #[allow(unrooted_must_root)]
