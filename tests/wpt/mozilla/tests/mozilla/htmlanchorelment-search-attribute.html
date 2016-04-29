@@ -2,15 +2,145 @@
 <meta charset="utf-8">
 <html>
 <head>
-<title>HTMLAnchorElement search setter crashes</title>
+<title>HTMLAnchorElement getters and setters</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <a>anchor</a>
 <script>
+// hash
+test(function() {
+  var a = document.querySelector('a');
+  a.href = "http://google.com/index.html#somehash";
+  var r1 = a.hash;
+  assert_equals(r1,"#somehash");
+  var newval = "#someother";
+  a.hash = newval;
+  var r2 = a.hash;
+  assert_equals(r2,newval);
+});
+
+// host
+test(function() {
+  var a = document.querySelector('a');
+  a.href = "http://google.com:1234/somedir";
+  var r1 = a.host;
+  assert_equals(r1,"google.com:1234");
+  var newval = "github.com:4444";
+  a.host = newval;
+  var r2 = a.host;
+  assert_equals(r2,newval);
+  var r3 = a.href;
+  assert_equals(r3,"http://github.com:4444/somedir");
+});
+
+// hostname
+test(function() {
+  var a = document.querySelector('a');
+  a.href = "http://google.com:1234/somedir";
+  var r1 = a.hostname;
+  assert_equals(r1,"google.com");
+  var newval = "github.com";
+  a.hostname = newval;
+  var r2 = a.hostname;
+  assert_equals(r2,newval);
+  var r3 = a.href;
+  assert_equals(r3,"http://github.com:1234/somedir");
+});
+
+// href
+test(function() {
+  var a = document.querySelector('a');
+  a.href = "http://google.com:1234/somedir";
+  var r1 = a.href;
+  assert_equals(r1,"http://google.com:1234/somedir");
+  var newval = "http://goo-gle.com:1234/someotherdir/x.html";
+  a.href = newval;
+  var r2 = a.href;
+  assert_equals(r2,newval);
+  var r3 = a.href;
+  assert_equals(r3,"http://goo-gle.com:1234/someotherdir/x.html");
+});
+
+// password
+test(function() {
+  var a = document.querySelector('a');
+  a.href = "https://anonymous:flabada@developer.mozilla.org/en-US/docs/";
+  var r1 = a.password;
+  assert_equals(r1,"flabada");
+  var newval = "blubb";
+  a.password = newval;
+  var r2 = a.password;
+  assert_equals(r2,newval);
+  var r3 = a.href;
+  assert_equals(r3,"https://anonymous:blubb@developer.mozilla.org/en-US/docs/");
+});
+
+// pathname
+test(function() {
+  var a = document.querySelector('a');
+  a.href = "http://google.com:1234/somedir/someotherdir/index.html";
+  var r1 = a.pathname;
+  assert_equals(r1,"/somedir/someotherdir/index.html");
+  var newval = "/newpath/x.txt";
+  a.pathname = newval;
+  var r2 = a.pathname;
+  assert_equals(r2,newval);
+  var r3 = a.href;
+  assert_equals(r3,"http://google.com:1234/newpath/x.txt");
+});
+
+// port
+test(function() {
+  var a = document.querySelector('a');
+  a.href = "http://google.com:1234/somedir";
+  var r1 = a.port;
+  assert_equals(r1,"1234");
+  var newval = "4444";
+  a.port = newval;
+  var r2 = a.port;
+  assert_equals(r2,newval);
+  var r3 = a.href;
+  assert_equals(r3,"http://google.com:4444/somedir");
+});
+
+// protocol
+test(function() {
+  var a = document.querySelector('a');
+  a.href = "http://google.com:1234/somedir";
+  var r1 = a.protocol;
+  assert_equals(r1,"http:");
+  var newval = "ftp:";
+  a.protocol = newval;
+  var r2 = a.protocol;
+  assert_equals(r2,newval);
+  var r3 = a.href;
+  assert_equals(r3,"ftp://google.com:1234/somedir");
+});
+
+// search
 test(function() {
   var a = document.querySelector('a');
   a.href = "http://google.com?ho";
-  a.search = "?hi";
+  var r1 = a.search;
+  assert_equals(r1,"?ho");
+  var newval = "?hi";
+  a.search = newval;
+  var r2 = a.search;
+  assert_equals(r2,newval);
+});
+
+// username
+test(function() {
+  var a = document.querySelector('a');
+  a.href = "https://anonymous:flabada@developer.mozilla.org/en-US/docs/";
+  var r1 = a.username;
+  assert_equals(r1,"anonymous");
+  var newval = "wellknown";
+  a.username = newval;
+  var r2 = a.username;
+  assert_equals(r2,newval);
+  var r3 = a.href;
+  assert_equals(r3,"https://wellknown:flabada@developer.mozilla.org/en-US/docs/");
 });
 </script>
 </head>
