@@ -109,15 +109,15 @@ impl TestProvider {
     }
 }
 impl UIProvider for TestProvider {
-    fn input_username_and_password(&self) -> (Option<String>, Option<String>) {
+    fn input_username_and_password(&self, _prompt: &str) -> (Option<String>, Option<String>) {
         (Some(self.username.to_owned()),
         Some(self.password.to_owned()))
     }
 }
 
-fn basic_auth() -> MockResponse {
+fn basic_auth(headers: Headers) -> MockResponse {
     MockResponse::new(
-        Headers::new(),
+        headers,
         StatusCode::Unauthorized,
         RawStatus(401, Cow::Borrowed("Unauthorized")),
         b"".to_vec()
@@ -140,7 +140,7 @@ enum ResponseType {
     RedirectWithHeaders(String, Headers),
     Text(Vec<u8>),
     WithHeaders(Vec<u8>, Headers),
-    NeedsAuth,
+    NeedsAuth(Headers),
 }
 
 struct MockRequest {
@@ -167,8 +167,8 @@ fn response_for_request_type(t: ResponseType) -> Result<MockResponse, LoadError>
         ResponseType::WithHeaders(b, h) => {
             Ok(respond_with_headers(b, h))
         },
-        ResponseType::NeedsAuth => {
-            Ok(basic_auth())
+        ResponseType::NeedsAuth(h) => {
+            Ok(basic_auth(h))
         }
     }
 }
@@ -208,7 +208,9 @@ impl HttpRequestFactory for AssertAuthHeaderRequestFactory {
             assert_headers_included(&self.expected_headers, &headers);
             MockRequest::new(ResponseType::Text(self.body.clone()))
         } else {
-            MockRequest::new(ResponseType::NeedsAuth)
+            let mut headers = Headers::new();
+            headers.set_raw("WWW-Authenticate", vec![b"Basic realm=\"Test realm\"".to_vec()]);
+            MockRequest::new(ResponseType::NeedsAuth(headers))
         };
 
         Ok(request)
@@ -1438,6 +1440,40 @@ fn test_auth_ui_sets_header_on_401() {
         Err(e) => panic!("response contained error {:?}", e),
         Ok(response) => {
             assert_eq!(response.metadata.status, Some(RawStatus(200, Cow::Borrowed("Ok"))));
+        }
+    }
+}
+
+#[test]
+fn test_auth_ui_needs_www_auth() {
+    let url = Url::parse("http://mozilla.com").unwrap();
+    let http_state = HttpState::new();
+    struct AuthProvider;
+    impl UIProvider for AuthProvider {
+        fn input_username_and_password(&self, _prompt: &str) -> (Option<String>, Option<String>) {
+            panic!("shouldn't be invoked")
+        }
+    }
+
+    struct Factory;
+
+    impl HttpRequestFactory for Factory {
+        type R = MockRequest;
+
+        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+            Ok(MockRequest::new(ResponseType::NeedsAuth(Headers::new())))
+        }
+    }
+
+    let load_data = LoadData::new(LoadContext::Browsing, url, None, None, None);
+
+    let response = load(&load_data, &AuthProvider, &http_state,
+                        None, &Factory, DEFAULT_USER_AGENT.to_owned(),
+                        &CancellationListener::new(None));
+    match response {
+        Err(e) => panic!("response contained error {:?}", e),
+        Ok(response) => {
+            assert_eq!(response.metadata.status, Some(RawStatus(401, Cow::Borrowed("Unauthorized"))));
         }
     }
 }
