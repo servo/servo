@@ -804,7 +804,9 @@ impl ToCss for PropertyDeclaration {
                 % endif
             % endfor
             PropertyDeclaration::Custom(_, ref value) => value.to_css(dest),
-            _ => Err(fmt::Error),
+            % if any(property.derived_from for property in data.longhands):
+                _ => Err(fmt::Error),
+            % endif
         }
     }
 }
