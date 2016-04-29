@@ -20,7 +20,7 @@ use std::slice;
 use std::str::from_utf8_unchecked;
 use std::sync::{Arc, Mutex};
 use style::context::{ReflowGoal};
-use style::dom::{TDocument, TElement, TNode};
+use style::dom::{TDocument, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::parallel;
 use style::properties::ComputedValues;
@@ -28,7 +28,7 @@ use style::stylesheets::Origin;
 use traversal::RecalcStyleOnly;
 use url::Url;
 use util::arc_ptr_eq;
-use wrapper::{GeckoDocument, GeckoElement, GeckoNode, NonOpaqueStyleData};
+use wrapper::{GeckoDocument, GeckoNode, NonOpaqueStyleData};
 
 // TODO: This is ugly and should go away once we get an atom back-end.
 pub fn pseudo_element_from_atom(pseudo: *mut nsIAtom,
@@ -159,8 +159,8 @@ impl<GeckoType, ServoType> ArcHelpers<GeckoType, ServoType> {
         transmute(ptr)
     }
 
-    pub unsafe fn from(owned: Arc<ServoType>) -> *mut GeckoType {
-        transmute(owned)
+    pub fn from(owned: Arc<ServoType>) -> *mut GeckoType {
+        unsafe { transmute(owned) }
     }
 
     pub unsafe fn addref(ptr: *mut GeckoType) {
@@ -268,7 +268,7 @@ pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(parent_style_or_null: *
 
     Helpers::maybe_with(parent_style_or_null, |maybe_parent| {
         let new_computed = data.stylist.computed_values_for_pseudo(&pseudo, maybe_parent);
-        new_computed.map_or(ptr::null_mut(), |c| unsafe { Helpers::from(c) })
+        new_computed.map_or(ptr::null_mut(), |c| Helpers::from(c))
     })
 }
 
