@@ -204,7 +204,7 @@ class MachCommands(CommandBase):
         env = self.build_env()
 
         # Ensure Rust uses hard floats and SIMD on ARM devices
-        if len(targets):
+        if targets:
             if targets[0].startswith('arm') or targets[0].startswith('aarch64'):
                 env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
 
