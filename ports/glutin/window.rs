@@ -13,6 +13,7 @@ use euclid::size::TypedSize2D;
 use euclid::{Size2D, Point2D};
 use gleam::gl;
 use glutin;
+use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
 use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode, MouseScrollDelta};
 use glutin::{TouchPhase};
 use layers::geometry::DevicePixel;
@@ -65,6 +66,22 @@ const LINE_HEIGHT: f32 = 38.0;
 
 const MULTISAMPLES: u16 = 16;
 
+#[cfg(target_os = "macos")]
+fn builder_with_platform_options(mut builder: glutin::WindowBuilder)-> glutin::WindowBuilder {
+    if opts::get().headless || opts::get().output_file.is_some() {
+        // Prevent the window from showing in Dock.app, stealing focus,
+        // or appearing at all when running in headless mode or generating an
+        // output file.
+        builder = builder.with_activation_policy(ActivationPolicy::Prohibited)
+    }
+    builder
+}
+
+#[cfg(not(target_os = "macos"))]
+fn builder_with_platform_options(builder: glutin::WindowBuilder) -> glutin::WindowBuilder {
+    builder
+}
+
 /// The type of a window.
 pub struct Window {
     window: glutin::Window,
@@ -112,6 +129,8 @@ impl Window {
         if opts::get().use_msaa {
             builder = builder.with_multisampling(MULTISAMPLES)
         }
+
+        builder = builder_with_platform_options(builder);
 
         let mut glutin_window = builder.build().unwrap();
 
