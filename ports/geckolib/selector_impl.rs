@@ -6,7 +6,7 @@ use properties::GeckoComputedValues;
 use selectors::parser::{ParserContext, SelectorImpl};
 use style;
 use style::element_state::ElementState;
-use style::selector_impl::SelectorImplExt;
+use style::selector_impl::{PseudoElementCascadeType, SelectorImplExt};
 
 pub type Stylist = style::selector_matching::Stylist<GeckoSelectorImpl>;
 pub type Stylesheet = style::stylesheets::Stylesheet<GeckoSelectorImpl>;
@@ -88,6 +88,36 @@ pub enum PseudoElement {
     MozSVGForeignContent,
     MozSVGText,
 }
+
+impl PseudoElement {
+    fn is_anon_box_pseudo(&self) -> bool {
+        use self::PseudoElement::*;
+        match *self {
+            MozNonElement | MozAnonymousBlock | MozAnonymousPositionedBlock |
+            MozMathMLAnonymousBlock | MozXULAnonymousBlock |
+            MozHorizontalFramesetBorder | MozVerticalFramesetBorder |
+            MozLineFrame | MozButtonContent | MozButtonLabel | MozCellContent |
+            MozDropdownList | MozFieldsetContent | MozFramesetBlank |
+            MozDisplayComboboxControlFrame |
+            MozHTMLCanvasContent | MozInlineTable | MozTable | MozTableCell |
+            MozTableColumnGroup | MozTableColumn | MozTableOuter |
+            MozTableRowGroup | MozTableRow | MozCanvas | MozPageBreak |
+            MozPage | MozPageContent | MozPageSequence | MozScrolledContent |
+            MozScrolledCanvas | MozScrolledPageSequence | MozColumnContent |
+            MozViewport | MozViewportScroll | MozAnonymousFlexItem |
+            MozAnonymousGridItem | MozRuby | MozRubyBase |
+            MozRubyBaseContainer | MozRubyText | MozRubyTextContainer |
+            MozTreeColumn | MozTreeRow | MozTreeSeparator | MozTreeCell |
+            MozTreeIndentation | MozTreeLine | MozTreeTwisty | MozTreeImage |
+            MozTreeCellText | MozTreeCheckbox | MozTreeProgressMeter |
+            MozTreeDropFeedback | MozSVGMarkerAnonChild |
+            MozSVGOuterSVGAnonChild | MozSVGForeignContent |
+            MozSVGText => true,
+            _ => false,
+        }
+    }
+}
+
 
 #[derive(Clone, Debug, PartialEq, Eq, HeapSizeOf, Hash)]
 pub enum NonTSPseudoClass {
@@ -243,12 +273,17 @@ impl SelectorImplExt for GeckoSelectorImpl {
     type ComputedValues = GeckoComputedValues;
 
     #[inline]
-    fn is_eagerly_cascaded_pseudo_element(pseudo: &PseudoElement) -> bool {
+    fn pseudo_element_cascade_type(pseudo: &PseudoElement) -> PseudoElementCascadeType {
         match *pseudo {
             PseudoElement::Before |
-            PseudoElement::After |
-            PseudoElement::FirstLine => true,
-            _ => false,
+            PseudoElement::After => PseudoElementCascadeType::Eager,
+            _ => {
+                if pseudo.is_anon_box_pseudo() {
+                    PseudoElementCascadeType::Precomputed
+                } else {
+                    PseudoElementCascadeType::Lazy
+                }
+            }
         }
     }
 

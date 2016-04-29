@@ -117,6 +117,13 @@ impl Device {
             viewport_size: viewport_size,
         }
     }
+
+    #[inline]
+    pub fn au_viewport_size(&self) -> Size2D<Au> {
+        Size2D::new(Au::from_f32_px(self.viewport_size.width.get()),
+                    Au::from_f32_px(self.viewport_size.height.get()))
+    }
+
 }
 
 impl Expression {
@@ -203,8 +210,7 @@ pub fn parse_media_query_list(input: &mut Parser) -> MediaQueryList {
 
 impl MediaQueryList {
     pub fn evaluate(&self, device: &Device) -> bool {
-        let viewport_size = Size2D::new(Au::from_f32_px(device.viewport_size.width.get()),
-                                        Au::from_f32_px(device.viewport_size.height.get()));
+        let viewport_size = device.au_viewport_size();
 
         // Check if any queries match (OR condition)
         self.media_queries.iter().any(|mq| {
