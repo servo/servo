@@ -4,6 +4,7 @@
 
 #![allow(unrooted_must_root)]
 
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root, RootedReference};
@@ -33,6 +34,17 @@ impl<'a> TreeSink for servoxmlparser::Sink {
 
     fn parse_error(&mut self, msg: Cow<'static, str>) {
         debug!("Parse error: {}", msg);
+
+        // Remove all elements from document
+        while let Some(node) = self.document.GetDocumentElement() {
+            self.document.upcast::<Node>().RemoveChild(node.r().upcast()).expect("Failed to remove element from document.");
+        }
+
+        let root = Element::new(Atom::from("parsererror"),
+                                Namespace(Atom::from("http://www.mozilla.org/newlayout/xml/parsererror.xml")),
+                                None,
+                                &self.document);
+        self.document.upcast::<Node>().AppendChild(root.upcast()).expect("Appending parsererror root element failed");
     }
 
     fn get_document(&mut self) -> JS<Node> {
