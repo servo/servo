@@ -289,6 +289,12 @@ impl ScriptChan for MainThreadScriptChan {
     }
 }
 
+impl OpaqueSender<CommonScriptMsg> for Sender<MainThreadScriptMsg> {
+    fn send(&self, msg: CommonScriptMsg) {
+        self.send(MainThreadScriptMsg::Common(msg)).unwrap()
+    }
+}
+
 /// Information for an entire page. Pages are top-level browsing contexts and can contain multiple
 /// frames.
 #[derive(JSTraceable)]
@@ -437,15 +443,13 @@ impl ScriptThreadFactory for ScriptThread {
             PipelineNamespace::install(state.pipeline_namespace_id);
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
-            let chan = MainThreadScriptChan(script_chan.clone());
-            let channel_for_reporter = chan.clone();
             let id = state.id;
             let parent_info = state.parent_info;
             let mem_profiler_chan = state.mem_profiler_chan.clone();
             let window_size = state.window_size;
             let script_thread = ScriptThread::new(state,
                                               script_port,
-                                              script_chan);
+                                              script_chan.clone());
 
             SCRIPT_THREAD_ROOT.with(|root| {
                 *root.borrow_mut() = Some(&script_thread as *const _);
@@ -462,7 +466,7 @@ impl ScriptThreadFactory for ScriptThread {
                 script_thread.start();
                 let _ = script_thread.compositor.borrow_mut().send(ScriptToCompositorMsg::Exited);
                 let _ = script_thread.content_process_shutdown_chan.send(());
-            }, reporter_name, channel_for_reporter, CommonScriptMsg::CollectReports);
+            }, reporter_name, script_chan, CommonScriptMsg::CollectReports);
 
             // This must always be the very last operation performed before the thread completes
             failsafe.neuter();
