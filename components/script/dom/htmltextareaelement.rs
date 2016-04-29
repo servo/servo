@@ -103,7 +103,7 @@ impl HTMLTextAreaElement {
         let chan = document.window().constellation_chan().clone();
         HTMLTextAreaElement {
             htmlelement:
-                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
+                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE | IN_READ_WRITE_STATE,
                                                       localName, prefix, document),
             textinput: DOMRefCell::new(TextInput::new(
                     Lines::Multiple, DOMString::new(), chan, None, SelectionDirection::None)),
@@ -289,14 +289,31 @@ impl VirtualMethods for HTMLTextAreaElement {
                     AttributeMutation::Set(_) => {
                         el.set_disabled_state(true);
                         el.set_enabled_state(false);
+
+                        el.set_read_write_state(false);
                     },
                     AttributeMutation::Removed => {
                         el.set_disabled_state(false);
                         el.set_enabled_state(true);
                         el.check_ancestors_disabled_state_for_form_control();
+
+                        if !el.disabled_state() && !el.read_write_state() {
+                            el.set_read_write_state(true);
+                        }
                     }
                 }
             },
+            atom!("readonly") => {
+                let el = self.upcast::<Element>();
+                match mutation {
+                    AttributeMutation::Set(_) => {
+                        el.set_read_write_state(false);
+                    },
+                    AttributeMutation::Removed => {
+                        el.set_read_write_state(!el.disabled_state());
+                    }
+                }
+            }
             _ => {},
         }
     }
