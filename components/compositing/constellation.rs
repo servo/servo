@@ -795,9 +795,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 debug!("constellation got SetDocumentState message");
                 self.document_states.insert(pipeline_id, state);
             }
-            Request::Script(FromScriptMsg::Alert(pipeline_id, message)) => {
+            Request::Script(FromScriptMsg::Alert(pipeline_id, message, sender)) => {
                 debug!("constellation got Alert message");
-                self.handle_alert(pipeline_id, message);
+                self.handle_alert(pipeline_id, message, sender);
             }
 
 
@@ -1065,32 +1065,34 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
     }
 
-    fn handle_alert(&mut self, pipeline_id: PipelineId, message: String) {
-        match self.pipelines.get(&pipeline_id).and_then(|source| source.parent_info) {
-            Some((parent_pipeline_id, subpage_id)) => {
-                let pipeline = self.pipelines.get(&parent_pipeline_id);
-                if prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) {
-                    match pipeline {
-                        Some(pipeline) => {
-                            // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsershowmodalprompt
-                            let event = MozBrowserEvent::ShowModalPrompt("alert".to_owned(), "Alert".to_owned(),
-                                                                         String::from(message), "".to_owned());
-                            pipeline.trigger_mozbrowser_event(subpage_id, event);
-                        }
-                        None => return warn!("Pipeline {:?} got script tick after closure.", pipeline_id),
+    fn handle_alert(&mut self, pipeline_id: PipelineId, message: String, sender: IpcSender<bool>) {
+        let display_alert_dialog = if prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) {
+            let parent_pipeline_info = self.pipelines.get(&pipeline_id).and_then(|source| source.parent_info);
+            if let Some((_, subpage_id)) = parent_pipeline_info {
+                let root_pipeline_id = self.root_frame_id
+                    .and_then(|root_frame_id| self.frames.get(&root_frame_id))
+                    .map(|root_frame| root_frame.current);
+
+                match root_pipeline_id.and_then(|pipeline_id| self.pipelines.get(&pipeline_id)) {
+                    Some(root_pipeline) => {
+                        // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsershowmodalprompt
+                        let event = MozBrowserEvent::ShowModalPrompt("alert".to_owned(), "Alert".to_owned(),
+                                                                     String::from(message), "".to_owned());
+                        root_pipeline.trigger_mozbrowser_event(subpage_id, event);
                     }
+                    None => return warn!("Alert sent to Pipeline {:?} after closure.", root_pipeline_id),
                 }
-            },
-            None => {
-                let msg = ConstellationControlMsg::Alert(message);
-                let result = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.script_chan.send(msg),
-                    None => return warn!("Pipeline {:?} got script tick after closure.", pipeline_id),
-                };
-                if let Err(e) = result {
-                    self.handle_send_error(pipeline_id, e);
-                }
+                false
+            } else {
+                true
             }
+        } else {
+            true
+        };
+
+        let result = sender.send(display_alert_dialog);
+        if let Err(e) = result {
+            self.handle_send_error(pipeline_id, e);
         }
     }
 

@@ -85,6 +85,8 @@ use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
 use time;
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback};
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+use tinyfiledialogs;
 use url::Url;
 use util::geometry::{self, MAX_RECT};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
@@ -341,6 +343,16 @@ impl Window {
     pub fn css_error_reporter(&self) -> Box<ParseErrorReporter + Send> {
         self.error_reporter.clone()
     }
+
+    #[cfg(any(target_os = "macos", target_os = "linux"))]
+    fn display_alert_dialog(&self, message: &str) {
+        tinyfiledialogs::message_box("Alert!", message, "ok", "warning", 2);
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+    fn display_alert_dialog(&self, _message: &str) {
+        // tinyfiledialogs not supported on Windows
+    }
 }
 
 // https://html.spec.whatwg.org/multipage/#atob
@@ -425,7 +437,13 @@ impl WindowMethods for Window {
         stdout.flush().unwrap();
         stderr.flush().unwrap();
 
-        self.constellation_chan().0.send(ConstellationMsg::Alert(self.pipeline(), s.to_string())).unwrap();
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.constellation_chan().0.send(ConstellationMsg::Alert(self.pipeline(), s.to_string(), sender)).unwrap();
+
+        let display_alert_dialog = receiver.recv().unwrap();
+        if display_alert_dialog {
+            self.display_alert_dialog(&s);
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-close
