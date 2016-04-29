@@ -11,7 +11,7 @@
 pub use self::imp::{enter, exit, get, initialize};
 
 bitflags! {
-    flags ThreadState: u32 {
+    pub flags ThreadState: u32 {
         const SCRIPT          = 0x01,
         const LAYOUT          = 0x02,
         const PAINT           = 0x04,

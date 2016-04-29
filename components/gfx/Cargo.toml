@@ -11,7 +11,7 @@ path = "lib.rs"
 
 [dependencies]
 app_units = {version = "0.2.3", features = ["plugins"]}
-bitflags = "0.3"
+bitflags = "0.6.0"
 euclid = {version = "0.6.4", features = ["plugins"]}
 fnv = "1.0"
 harfbuzz-sys = "0.1"

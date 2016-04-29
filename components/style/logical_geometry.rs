@@ -23,7 +23,7 @@ pub enum InlineBaseDirection {
 
 bitflags!(
     #[derive(HeapSizeOf, RustcEncodable)]
-    flags WritingMode: u8 {
+    pub flags WritingMode: u8 {
         const FLAG_RTL = 1 << 0,
         const FLAG_VERTICAL = 1 << 1,
         const FLAG_VERTICAL_LR = 1 << 2,

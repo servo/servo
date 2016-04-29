@@ -14,8 +14,6 @@
 
 extern crate app_units;
 #[macro_use]
-extern crate bitflags;
-#[macro_use]
 extern crate cssparser;
 extern crate euclid;
 extern crate heapsize;
