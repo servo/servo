@@ -907,48 +907,48 @@ impl RangeMethods for Range {
         let win = window_from_node(start_node.r());
 
         fn push_rects(node: Option<Root<Node>>, rects: &mut Vec<Root<DOMRect>>, range: &Range) {
-            match node {
-                Some(node) => {
-                    if let Some(element) = node.downcast::<Element>() {
-                        let element_rects = element.GetClientRects();
+            let node = match node {
+                Some(node) => node,
+                None => return
+            };
 
-                        for i in 0..element_rects.r().Length() {
-                            match element_rects.r().Item(i) {
-                                Some(rect) => rects.push(rect),
-                                None => ()
-                            }
-                        }
+            if let Some(element) = node.downcast::<Element>() {
+                let element_rects = element.GetClientRects();
+
+                for i in 0..element_rects.r().Length() {
+                    match element_rects.r().Item(i) {
+                        Some(rect) => rects.push(rect),
+                        None => ()
                     }
+                }
+            }
 
-                    if let Some(text) = node.downcast::<Text>() {
-                        let start_node = range.StartContainer();
-                        let end_node = range.EndContainer();
-                        let win = window_from_node(start_node.r());
+            if let Some(text) = node.downcast::<Text>() {
+                let start_node = range.StartContainer();
+                let end_node = range.EndContainer();
+                let win = window_from_node(start_node.r());
 
-                        let cut_text = if node == start_node {
-                            let text = start_node.downcast::<Text>().unwrap();
-                            text.SplitText(range.StartOffset()).unwrap()
-                        } else if node == end_node {
-                            let text = end_node.downcast::<Text>().unwrap();
-                            text.SplitText(range.EndOffset()).unwrap()
-                        } else {
-                            Root::from_ref(text)
-                        };
+                let cut_text = if node == start_node {
+                    let text = start_node.downcast::<Text>().unwrap();
+                    text.SplitText(range.StartOffset()).unwrap()
+                } else if node == end_node {
+                    let text = end_node.downcast::<Text>().unwrap();
+                    text.SplitText(range.EndOffset()).unwrap()
+                } else {
+                    Root::from_ref(text)
+                };
 
-                        let node = cut_text.upcast::<Node>();
-                        let node_rects = node.content_boxes();
-                        for rect in &node_rects {
-                            rects.push(DOMRect::new(GlobalRef::Window(win.r()),
-                                                    rect.origin.x.to_f64_px(),
-                                                    rect.origin.y.to_f64_px(),
-                                                    rect.size.width.to_f64_px(),
-                                                    rect.size.height.to_f64_px()))
-                        }
+                let node = cut_text.upcast::<Node>();
+                let node_rects = node.content_boxes();
+                for rect in &node_rects {
+                    rects.push(DOMRect::new(GlobalRef::Window(win.r()),
+                                            rect.origin.x.to_f64_px(),
+                                            rect.origin.y.to_f64_px(),
+                                            rect.size.width.to_f64_px(),
+                                            rect.size.height.to_f64_px()))
+                }
 
-                        debug!("Some text received {:?}", text.WholeText());
-                    }
-                },
-                None => ()
+                debug!("Some text received {:?}", text.WholeText());
             }
         }
 
