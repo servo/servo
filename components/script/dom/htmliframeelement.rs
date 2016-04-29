@@ -5,6 +5,7 @@
 use document_loader::{LoadType, LoadBlocker};
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementErrorEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementIconChangeEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementLocationChangeEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementSecurityChangeDetail;
@@ -313,11 +314,18 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
                                             rval: MutableHandleValue) {
         match event {
             MozBrowserEvent::AsyncScroll | MozBrowserEvent::Close | MozBrowserEvent::ContextMenu |
-            MozBrowserEvent::Error | MozBrowserEvent::LoadEnd | MozBrowserEvent::LoadStart |
+            MozBrowserEvent::LoadEnd | MozBrowserEvent::LoadStart |
             MozBrowserEvent::Connected | MozBrowserEvent::OpenWindow | MozBrowserEvent::OpenSearch  |
             MozBrowserEvent::UsernameAndPasswordRequired => {
                 rval.set(NullValue());
             }
+            MozBrowserEvent::Error(error_type, description, report) => {
+                BrowserElementErrorEventDetail {
+                    type_: Some(DOMString::from(error_type.name())),
+                    description: description.map(DOMString::from),
+                    report: report.map(DOMString::from),
+                }.to_jsval(cx, rval);
+            },
             MozBrowserEvent::SecurityChange(https_state) => {
                 BrowserElementSecurityChangeDetail {
                     // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsersecuritychange

@@ -48,8 +48,9 @@ use rand::{random, Rng, SeedableRng, StdRng};
 use sandboxing;
 use script_traits::{AnimationState, CompositorEvent, ConstellationControlMsg};
 use script_traits::{DocumentState, LayoutControlMsg};
-use script_traits::{IFrameLoadInfo, IFrameSandboxState, MozBrowserEvent, TimerEventRequest};
+use script_traits::{IFrameLoadInfo, IFrameSandboxState, TimerEventRequest};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
+use script_traits::{MozBrowserEvent, MozBrowserErrorType};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::env;
@@ -1979,7 +1980,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                             None => return warn!("Mozbrowsererror via closed pipeline {:?}.", ancestor_info.0),
                         };
                     }
-                    let event = MozBrowserEvent::Error;
+                    let event = MozBrowserEvent::Error(MozBrowserErrorType::Fatal, None, None);
                     ancestor.trigger_mozbrowser_event(ancestor_info.1, event);
                 }
             }
