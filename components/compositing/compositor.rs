@@ -631,7 +631,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 debug!("delayed composition timeout!");
                 if let CompositionRequest::DelayedComposite(this_timestamp) =
                     self.composition_request {
-                    if timestamp == this_timestamp {
+                    if timestamp == this_timestamp && !opts::get().use_webrender {
                         self.composition_request = CompositionRequest::CompositeNow(
                             CompositingReason::DelayedCompositeTimeout)
                     }
@@ -750,7 +750,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match animation_state {
             AnimationState::AnimationsPresent => {
                 self.pipeline_details(pipeline_id).animations_running = true;
-                self.composite_if_necessary(CompositingReason::Animation);
+                self.composite_if_necessary_if_not_using_webrender(CompositingReason::Animation);
             }
             AnimationState::AnimationCallbacksPresent => {
                 if !self.pipeline_details(pipeline_id).animation_callbacks_running {
@@ -832,7 +832,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.send_window_size(WindowSizeType::Initial);
 
         self.frame_tree_id.next();
-        self.composite_if_necessary(CompositingReason::NewFrameTree);
+        self.composite_if_necessary_if_not_using_webrender(CompositingReason::NewFrameTree);
     }
 
     fn create_root_layer_for_pipeline_and_size(&mut self,
@@ -1184,7 +1184,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // FIXME(pcwalton): This is going to cause problems with inconsistent frames since
         // we only composite one layer at a time.
         layer.add_buffers(self, new_layer_buffer_set, epoch);
-        self.composite_if_necessary(CompositingReason::NewPaintedBuffers);
+        self.composite_if_necessary_if_not_using_webrender(CompositingReason::NewPaintedBuffers);
     }
 
     fn scroll_fragment_to_point(&mut self,
@@ -1447,7 +1447,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     cursor: cursor,
                     phase: ScrollEventPhase::Move(true),
                 });
-                self.composite_if_necessary(CompositingReason::Zoom);
+                self.composite_if_necessary_if_not_using_webrender(CompositingReason::Zoom);
             }
             TouchAction::DispatchEvent => {
                 if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
@@ -1501,7 +1501,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             cursor: cursor,
             phase: ScrollEventPhase::Move(self.scroll_in_progress),
         });
-        self.composite_if_necessary(CompositingReason::Scroll);
+        self.composite_if_necessary_if_not_using_webrender(CompositingReason::Scroll);
     }
 
     fn on_scroll_start_window_event(&mut self,
@@ -1514,7 +1514,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             cursor: cursor,
             phase: ScrollEventPhase::Start,
         });
-        self.composite_if_necessary(CompositingReason::Scroll);
+        self.composite_if_necessary_if_not_using_webrender(CompositingReason::Scroll);
     }
 
     fn on_scroll_end_window_event(&mut self,
@@ -1527,7 +1527,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             cursor: cursor,
             phase: ScrollEventPhase::End,
         });
-        self.composite_if_necessary(CompositingReason::Scroll);
+        self.composite_if_necessary_if_not_using_webrender(CompositingReason::Scroll);
     }
 
     fn process_pending_scroll_events(&mut self) {
@@ -1658,7 +1658,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.send_updated_display_ports_to_layout();
         if self.send_buffer_requests_for_all_layers() {
             self.schedule_delayed_composite_if_necessary();
-        } else {
+        } else if !opts::get().use_webrender {
             self.channel_to_self.send(Msg::Recomposite(CompositingReason::ContinueScroll));
         }
     }
@@ -1750,7 +1750,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             cursor:  Point2D::typed(-1, -1), // Make sure this hits the base layer.
             phase: ScrollEventPhase::Move(true),
         });
-        self.composite_if_necessary(CompositingReason::Zoom);
+        self.composite_if_necessary_if_not_using_webrender(CompositingReason::Zoom);
     }
 
     fn on_navigation_window_event(&self, direction: WindowNavigateMsg) {
@@ -2176,7 +2176,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.last_composite_time = precise_time_ns();
 
         self.composition_request = CompositionRequest::NoCompositingNecessary;
-        self.process_pending_scroll_events();
+
+        if !opts::get().use_webrender {
+            self.process_pending_scroll_events();
+        }
+
         self.process_animations();
         self.start_scrolling_bounce_if_necessary();
 
@@ -2221,6 +2225,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             self.composition_request = CompositionRequest::CompositeNow(reason)
         } else if opts::get().is_running_problem_test {
             println!("composition_request is already {:?}", self.composition_request);
+        }
+    }
+
+    fn composite_if_necessary_if_not_using_webrender(&mut self, reason: CompositingReason) {
+        if !opts::get().use_webrender {
+            self.composite_if_necessary(reason)
         }
     }
 
@@ -2449,6 +2459,10 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
             self.zoom_action = false;
             self.scene.mark_layer_contents_as_changed_recursively();
             self.send_buffer_requests_for_all_layers();
+        }
+
+        if !self.pending_scroll_zoom_events.is_empty() && opts::get().use_webrender {
+            self.process_pending_scroll_events()
         }
 
         match self.composition_request {
