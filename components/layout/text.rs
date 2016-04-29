@@ -339,15 +339,15 @@ impl TextRunScanner {
                         break;
                     }
                 };
-                let mut mapping = mappings.next().unwrap();
+                let mapping = mappings.next().unwrap();
                 let scanned_run = runs[mapping.text_run_index].clone();
 
                 let mut byte_range = Range::new(ByteIndex(mapping.byte_range.begin() as isize),
                                                 ByteIndex(mapping.byte_range.length() as isize));
 
                 let requires_line_break_afterward_if_wrapping_on_newlines =
-                    !mapping.byte_range.is_empty() &&
-                    scanned_run.run.text.char_at_reverse(mapping.byte_range.end()) == '\n';
+                    scanned_run.run.text[mapping.byte_range.begin()..mapping.byte_range.end()]
+                    .ends_with('\n');
                 if requires_line_break_afterward_if_wrapping_on_newlines {
                     byte_range.extend_by(ByteIndex(-1)); // Trim the '\n'
                 }
