@@ -169,6 +169,9 @@ class MachCommands(CommandBase):
             target.append(host_target)
 
         for target_triple in target:
+            if target_triple is None:
+                continue
+
             target_lib_dir = path.join(lib_dir, target_triple)
             if path.exists(target_lib_dir):
                 # No need to check for force. If --force the directory is already deleted
