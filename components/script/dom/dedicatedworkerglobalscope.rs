@@ -16,7 +16,8 @@ use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::messageevent::MessageEvent;
-use dom::worker::{SimpleWorkerErrorHandler, SharedRt, TrustedWorkerAddress, WorkerMessageHandler};
+use dom::worker::{SimpleWorkerErrorHandler, SharedRt, TrustedWorkerAddress};
+use dom::worker::{WorkerScriptLoadOrigin, WorkerMessageHandler};
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom::workerglobalscope::WorkerGlobalScopeInit;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -216,18 +217,18 @@ impl DedicatedWorkerGlobalScope {
                             worker: TrustedWorkerAddress,
                             parent_sender: Box<ScriptChan + Send>,
                             own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
-                            receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>) {
+                            receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>,
+                            worker_load_origin: WorkerScriptLoadOrigin) {
         let serialized_worker_url = worker_url.to_string();
         spawn_named(format!("WebWorker for {}", serialized_worker_url), move || {
             thread_state::initialize(SCRIPT | IN_WORKER);
 
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
-
             let (url, source) = match load_whole_resource(LoadContext::Script,
                                                           &init.resource_thread,
                                                           worker_url,
-                                                          None) {
+                                                          &worker_load_origin) {
                 Err(_) => {
                     println!("error loading script {}", serialized_worker_url);
                     parent_sender.send(CommonScriptMsg::RunnableMsg(WorkerEvent,
