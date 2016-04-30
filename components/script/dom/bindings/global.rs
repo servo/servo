@@ -19,7 +19,7 @@ use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use msg::constellation_msg::{ConstellationChan, PipelineId};
-use net_traits::ResourceThread;
+use net_traits::{ResourceThread, RequestSource};
 use profile_traits::mem;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::{MainThreadScriptChan, ScriptThread};
@@ -62,6 +62,14 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(window) => window,
             GlobalRef::Worker(_) => panic!("expected a Window scope"),
+        }
+    }
+
+    /// gets the custom message channel associated with global object
+    pub fn request_source(&self) -> RequestSource {
+        match *self {
+            GlobalRef::Window(ref window) => RequestSource::Window(window.custom_message_chan()),
+            GlobalRef::Worker(ref worker) => RequestSource::Worker(worker.custom_message_chan()),
         }
     }
 

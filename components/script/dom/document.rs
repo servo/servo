@@ -1338,12 +1338,16 @@ impl Document {
 
     pub fn prepare_async_load(&self, load: LoadType) -> PendingAsyncLoad {
         let mut loader = self.loader.borrow_mut();
-        loader.prepare_async_load(load, self)
+        let window = self.window();
+        let msg_chan = window.custom_message_chan();
+        loader.prepare_async_load(load, self, msg_chan)
     }
 
     pub fn load_async(&self, load: LoadType, listener: AsyncResponseTarget) {
         let mut loader = self.loader.borrow_mut();
-        loader.load_async(load, listener, self)
+        let window = self.window();
+        let msg_chan = window.custom_message_chan();
+        loader.load_async(load, listener, self, msg_chan);
     }
 
     pub fn finish_load(&self, load: LoadType) {

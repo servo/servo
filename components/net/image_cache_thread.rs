@@ -9,7 +9,7 @@ use net_traits::image::base::{Image, ImageMetadata, load_from_memory, PixelForma
 use net_traits::image_cache_thread::ImageResponder;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheCommand, ImageCacheThread, ImageState};
 use net_traits::image_cache_thread::{ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
-use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadData, ResourceThread};
+use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadData, ResourceThread, LoadOrigin};
 use net_traits::{ResponseAction, LoadContext, NetworkError};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
@@ -304,6 +304,9 @@ fn convert_format(format: PixelFormat) -> webrender_traits::ImageFormat {
     }
 }
 
+struct ImageCacheOrigin;
+impl LoadOrigin for ImageCacheOrigin {}
+
 impl ImageCache {
     fn run(resource_thread: ResourceThread,
            webrender_api: Option<webrender_traits::RenderApi>,
@@ -520,7 +523,9 @@ impl ImageCache {
                     CacheResult::Miss => {
                         // A new load request! Request the load from
                         // the resource thread.
-                        let load_data = LoadData::new(LoadContext::Image, (*ref_url).clone(), None, None, None);
+                        let load_data = LoadData::new(LoadContext::Image,
+                                                        (*ref_url).clone(),
+                                                        &ImageCacheOrigin);
                         let (action_sender, action_receiver) = ipc::channel().unwrap();
                         let response_target = AsyncResponseTarget {
                             sender: action_sender,
