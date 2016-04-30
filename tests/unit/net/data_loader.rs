@@ -5,11 +5,30 @@
 extern crate hyper;
 
 use ipc_channel::ipc;
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::LoadConsumer::Channel;
 use net_traits::ProgressMsg::{Payload, Done};
-use net_traits::{LoadData, LoadContext, NetworkError};
+use net_traits::{LoadData, LoadContext, NetworkError, LoadOrigin, RequestSource};
 use self::hyper::header::ContentType;
 use self::hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
+use url::Url;
+
+struct DataLoadTest;
+
+impl LoadOrigin for DataLoadTest {
+    fn referrer_url(&self) -> Option<Url> {
+        None
+    }
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        None
+    }
+    fn request_source(&self) -> RequestSource {
+        RequestSource::None
+    }
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        None
+    }
+}
 
 #[cfg(test)]
 fn assert_parse(url:          &'static str,
@@ -20,11 +39,10 @@ fn assert_parse(url:          &'static str,
     use net::mime_classifier::MIMEClassifier;
     use net::resource_thread::CancellationListener;
     use std::sync::Arc;
-    use url::Url;
 
     let (start_chan, start_port) = ipc::channel().unwrap();
     let classifier = Arc::new(MIMEClassifier::new());
-    load(LoadData::new(LoadContext::Browsing, Url::parse(url).unwrap(), None, None, None),
+    load(LoadData::new(LoadContext::Browsing, Url::parse(url).unwrap(), &DataLoadTest),
          Channel(start_chan),
          classifier, CancellationListener::new(None));
 
