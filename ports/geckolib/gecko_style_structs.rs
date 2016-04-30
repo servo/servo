@@ -4153,7 +4153,7 @@ pub enum LogicalSide {
 }
 pub const eStyleUnit_MAX: nsStyleUnit = nsStyleUnit::eStyleUnit_Calc;
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum nsStyleUnit {
     eStyleUnit_Null = 0,
     eStyleUnit_Normal = 1,

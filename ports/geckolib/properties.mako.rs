@@ -28,6 +28,8 @@ use style::properties::{CascadePropertyFn, ServoComputedValues, ComputedValues};
 use style::properties::longhands;
 use style::properties::make_cascade_vec;
 use style::properties::style_struct_traits::*;
+use gecko_style_structs::{nsStyleUnion, nsStyleUnit};
+use values::ToGeckoStyleCoord;
 
 #[derive(Clone)]
 pub struct GeckoComputedValues {
@@ -196,6 +198,20 @@ def set_gecko_property(ffi_name, expr):
 % endif
 </%def>
 
+<%def name="impl_style_coord(ident, unit_ffi_name, union_ffi_name)">
+    fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        v.to_gecko_style_coord(&mut self.gecko.${unit_ffi_name},
+                               &mut self.gecko.${union_ffi_name});
+    }
+    fn copy_${ident}_from(&mut self, other: &Self) {
+        use gecko_style_structs::nsStyleUnit::eStyleUnit_Calc;
+        assert!(self.gecko.${unit_ffi_name} != eStyleUnit_Calc,
+                "stylo: Can't yet handle refcounted Calc");
+        self.gecko.${unit_ffi_name} =  other.gecko.${unit_ffi_name};
+        self.gecko.${union_ffi_name} = other.gecko.${union_ffi_name};
+    }
+</%def>
+
 <%def name="impl_style_struct(style_struct)">
 impl ${style_struct.gecko_struct_name} {
     #[allow(dead_code, unused_variables)]
@@ -359,6 +375,36 @@ for side in SIDES:
     fn border_${side.ident}_has_nonzero_width(&self) -> bool {
         self.gecko.mComputedBorder.${side.ident} != 0
     }
+    % endfor
+</%self:impl_trait>
+
+<%
+skip_margin_longhands = ""
+for side in SIDES:
+    skip_margin_longhands += "margin-{0} ".format(side.ident)
+%>
+
+<%self:impl_trait style_struct_name="Margin"
+                  skip_longhands="${skip_margin_longhands}">
+
+    % for side in SIDES:
+    <% impl_style_coord("margin_%s" % side.ident,
+                        "mMargin.mUnits[%s]" % side.index, "mMargin.mValues[%s]" % side.index) %>
+    % endfor
+</%self:impl_trait>
+
+<%
+skip_padding_longhands = ""
+for side in SIDES:
+    skip_padding_longhands += "padding-{0} ".format(side.ident)
+%>
+
+<%self:impl_trait style_struct_name="Padding"
+                  skip_longhands="${skip_padding_longhands}">
+
+    % for side in SIDES:
+    <% impl_style_coord("padding_%s" % side.ident,
+                        "mPadding.mUnits[%s]" % side.index, "mPadding.mValues[%s]" % side.index) %>
     % endfor
 </%self:impl_trait>
 
