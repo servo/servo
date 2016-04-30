@@ -1359,7 +1359,7 @@ impl Document {
 
     pub fn load_async(&self, load: LoadType, listener: AsyncResponseTarget) {
         let mut loader = self.loader.borrow_mut();
-        loader.load_async(load, listener, self)
+        loader.load_async(load, listener, self);
     }
 
     pub fn finish_load(&self, load: LoadType) {
