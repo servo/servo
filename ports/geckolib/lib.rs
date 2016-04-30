@@ -42,6 +42,7 @@ mod gecko_style_structs;
 pub mod glue;
 mod selector_impl;
 mod traversal;
+mod values;
 mod wrapper;
 
 // Generated from the properties.mako.rs template by build.rs
