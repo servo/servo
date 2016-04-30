@@ -404,7 +404,7 @@ enum AppendableValue<'a, I>
 where I: Iterator<Item=&'a PropertyDeclaration> {
     Declaration(&'a PropertyDeclaration),
     DeclarationsForShorthand(I),
-    Css(&'a str, bool)
+    Css(&'a str)
 }
 
 fn append_property_name<W>(dest: &mut W,
@@ -430,7 +430,7 @@ fn append_declaration_value<'a, W, I>
                             -> fmt::Result
                             where W: fmt::Write, I: Iterator<Item=&'a PropertyDeclaration> {
   match appendable_value {
-      AppendableValue::Css(css, _) => {
+      AppendableValue::Css(css) => {
           try!(write!(dest, "{}", css))
       },
       AppendableValue::Declaration(decl) => {
@@ -468,10 +468,8 @@ fn append_serialization<'a, W, I>(dest: &mut W,
 
     // for normal parsed values, add a space between key: and value
     match &appendable_value {
-        &AppendableValue::Css(_, is_unparsed) => {
-            if !is_unparsed {
-                try!(write!(dest, " "))
-            }
+        &AppendableValue::Css(_) => {
+            try!(write!(dest, " "))
         },
         &AppendableValue::Declaration(decl) => {
             if !decl.value_is_unparsed() {
@@ -705,8 +703,7 @@ impl Shorthand {
             // https://drafts.csswg.org/css-variables/#variables-in-shorthands
             if let Some(css) = first_declaration.with_variables_from_shorthand(self) {
                 if declarations2.all(|d| d.with_variables_from_shorthand(self) == Some(css)) {
-                   let is_unparsed = first_declaration.value_is_unparsed();
-                   return Some(AppendableValue::Css(css, is_unparsed));
+                   return Some(AppendableValue::Css(css));
                }
                else {
                    return None;
