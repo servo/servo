@@ -35264,6 +35264,12 @@
             "path": "html/dom/documents/dom-tree-accessors/Document.body.html",
             "url": "/html/dom/documents/dom-tree-accessors/Document.body.html"
           }
+        ],
+        "html/semantics/scripting-1/the-script-element/scripting-enabled.html": [
+          {
+            "path": "html/semantics/scripting-1/the-script-element/scripting-enabled.html",
+            "url": "/html/semantics/scripting-1/the-script-element/scripting-enabled.html"
+          }
         ]
       }
     },
