@@ -8,8 +8,8 @@
 use dom::bindings::js::JS;
 use dom::document::Document;
 use msg::constellation_msg::PipelineId;
-use net_traits::AsyncResponseTarget;
 use net_traits::{PendingAsyncLoad, ResourceThread, LoadContext};
+use net_traits::{RequestSource, AsyncResponseTarget};
 use std::sync::Arc;
 use std::thread;
 use url::Url;
@@ -130,20 +130,27 @@ impl DocumentLoader {
 
     /// Create a new pending network request, which can be initiated at some point in
     /// the future.
-    pub fn prepare_async_load(&mut self, load: LoadType, referrer: &Document) -> PendingAsyncLoad {
+    pub fn prepare_async_load(&mut self,
+                              load: LoadType,
+                              referrer: &Document) -> PendingAsyncLoad {
         let context = load.to_load_context();
         let url = load.url().clone();
         self.add_blocking_load(load);
+        let client_chan = referrer.window().custom_message_chan();
         PendingAsyncLoad::new(context,
                               (*self.resource_thread).clone(),
                               url,
                               self.pipeline,
                               referrer.get_referrer_policy(),
-                              Some(referrer.url().clone()))
+                              Some(referrer.url().clone()),
+                              RequestSource::Window(client_chan))
     }
 
     /// Create and initiate a new network request.
-    pub fn load_async(&mut self, load: LoadType, listener: AsyncResponseTarget, referrer: &Document) {
+    pub fn load_async(&mut self,
+                      load: LoadType,
+                      listener: AsyncResponseTarget,
+                      referrer: &Document) {
         let pending = self.prepare_async_load(load, referrer);
         pending.load_async(listener)
     }

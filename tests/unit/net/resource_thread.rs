@@ -3,9 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc;
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net::resource_thread::new_resource_thread;
 use net_traits::hosts::{parse_hostsfile, host_replacement};
-use net_traits::{ControlMsg, LoadData, LoadConsumer, LoadContext, NetworkError, ProgressMsg};
+use net_traits::{ControlMsg, LoadData, LoadConsumer, LoadContext};
+use net_traits::{NetworkError, ProgressMsg, LoadOrigin, RequestSource};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::net::IpAddr;
@@ -14,6 +16,23 @@ use url::Url;
 
 fn ip(s: &str) -> IpAddr {
     s.parse().unwrap()
+}
+
+struct ResourceTest;
+
+impl LoadOrigin for ResourceTest {
+    fn referrer_url(&self) -> Option<Url> {
+        None
+    }
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        None
+    }
+    fn request_source(&self) -> RequestSource {
+        RequestSource::None
+    }
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        None
+    }
 }
 
 #[test]
@@ -27,7 +46,7 @@ fn test_bad_scheme() {
     let resource_thread = new_resource_thread("".to_owned(), None);
     let (start_chan, start) = ipc::channel().unwrap();
     let url = Url::parse("bogus://whatever").unwrap();
-    resource_thread.send(ControlMsg::Load(LoadData::new(LoadContext::Browsing, url, None, None, None),
+    resource_thread.send(ControlMsg::Load(LoadData::new(LoadContext::Browsing, url, &ResourceTest),
 
     LoadConsumer::Channel(start_chan), None)).unwrap();
     let response = start.recv().unwrap();
@@ -206,7 +225,7 @@ fn test_cancelled_listener() {
     let (sync_sender, sync_receiver) = ipc::channel().unwrap();
     let url = Url::parse(&format!("http://127.0.0.1:{}", port)).unwrap();
 
-    resource_thread.send(ControlMsg::Load(LoadData::new(LoadContext::Browsing, url, None, None, None),
+    resource_thread.send(ControlMsg::Load(LoadData::new(LoadContext::Browsing, url, &ResourceTest),
                                         LoadConsumer::Channel(sender),
                                         Some(id_sender))).unwrap();
     // get the `ResourceId` and send a cancel message, which should stop the loading loop
