@@ -15,7 +15,6 @@ use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::structuredclone::StructuredCloneData;
-use dom::bindings::trace::JSTraceable;
 use dom::messageevent::MessageEvent;
 use dom::worker::{SimpleWorkerErrorHandler, SharedRt, TrustedWorkerAddress, WorkerMessageHandler};
 use dom::workerglobalscope::WorkerGlobalScope;
@@ -26,8 +25,8 @@ use js::jsapi::{HandleValue, JS_SetInterruptCallback};
 use js::jsapi::{JSAutoCompartment, JSContext, RootedValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use msg::constellation_msg::PipelineId;
-use net_traits::{LoadContext, load_whole_resource};
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use net_traits::{LoadContext, load_whole_resource, LoadOrigin, RequestSource};
 use rand::random;
 use script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
@@ -155,6 +154,21 @@ pub struct DedicatedWorkerGlobalScope {
     parent_sender: Box<ScriptChan + Send>,
 }
 
+impl LoadOrigin for TrustedWorkerAddress {
+    fn referrer_url(&self) -> Option<Url> {
+        None
+    }
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        None
+    }
+    fn request_source(&self) -> RequestSource {
+        RequestSource::None
+    }
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        None
+    }
+}
+
 impl DedicatedWorkerGlobalScope {
     fn new_inherited(init: WorkerGlobalScopeInit,
                      worker_url: Url,
@@ -224,11 +238,10 @@ impl DedicatedWorkerGlobalScope {
 
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
-
             let (url, source) = match load_whole_resource(LoadContext::Script,
                                                           &init.resource_thread,
                                                           worker_url,
-                                                          None) {
+                                                          &worker) {
                 Err(_) => {
                     println!("error loading script {}", serialized_worker_url);
                     parent_sender.send(CommonScriptMsg::RunnableMsg(WorkerEvent,
