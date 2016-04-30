@@ -29,13 +29,16 @@ extern crate util;
 extern crate uuid;
 extern crate websocket;
 
+use hyper::header::{ContentEncoding, Encoding};
 use hyper::header::{ContentType, Headers};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Attr, Mime};
+use hyper::status::StatusCode;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use serde::{Deserializer, Serializer};
+use std::io::{self, Cursor, Read};
 use std::sync::mpsc::Sender;
 use std::thread;
 use url::Url;
@@ -75,6 +78,85 @@ pub enum LoadContext {
     CacheManifest,
 }
 
+pub trait HttpResponse: Read {
+    fn headers(&self) -> &Headers;
+    fn status(&self) -> StatusCode;
+    fn status_raw(&self) -> &RawStatus;
+    fn http_version(&self) -> String {
+        "HTTP/1.1".to_owned()
+    }
+    fn content_encoding(&self) -> Option<Encoding> {
+        let encodings = match self.headers().get::<ContentEncoding>() {
+            Some(&ContentEncoding(ref encodings)) => encodings,
+            None => return None,
+        };
+        if encodings.contains(&Encoding::Gzip) {
+            Some(Encoding::Gzip)
+        } else if encodings.contains(&Encoding::Deflate) {
+            Some(Encoding::Deflate)
+        } else if encodings.contains(&Encoding::EncodingExt("br".to_owned())) {
+            Some(Encoding::EncodingExt("br".to_owned()))
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub struct CustomResponse {
+    #[ignore_heap_size_of = "Defined in hyper"]
+    headers: Headers,
+    #[ignore_heap_size_of = "Defined in hyper"]
+    raw_status: RawStatus,
+    body: Vec<u8>
+}
+
+impl CustomResponse {
+    pub fn new(headers: Headers, raw_status: RawStatus, body: Vec<u8>) -> CustomResponse {
+        CustomResponse { headers: headers, raw_status: raw_status, body: body }
+    }
+}
+
+impl CustomResponse {
+    pub fn to_readable_response(self) -> ReadableCustomResponse {
+        ReadableCustomResponse {
+            headers: self.headers,
+            raw_status: self.raw_status,
+            body: Cursor::new(self.body)
+        }
+    }
+}
+
+pub struct ReadableCustomResponse {
+    headers: Headers,
+    raw_status: RawStatus,
+    body: Cursor<Vec<u8>>
+}
+
+impl HttpResponse for ReadableCustomResponse {
+    fn headers(&self) -> &Headers { &self.headers }
+    fn status(&self) -> StatusCode {
+        StatusCode::Ok
+    }
+    fn status_raw(&self) -> &RawStatus { &self.raw_status }
+}
+
+impl Read for ReadableCustomResponse {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.body.read(buf)
+    }
+}
+
+pub type CustomResponseSender = IpcSender<IpcSender<Option<CustomResponse>>>;
+pub type CustomResponseReceiver = IpcReceiver<IpcReceiver<Option<CustomResponse>>>;
+
+#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
+pub enum RequestSource {
+    Window(#[ignore_heap_size_of = "Defined in Std"] CustomResponseSender),
+    Worker(#[ignore_heap_size_of = "Defined in Std"] CustomResponseSender),
+    None
+}
+
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct LoadData {
     pub url: Url,
@@ -95,6 +177,7 @@ pub struct LoadData {
     /// The policy and referring URL for the originator of this request
     pub referrer_policy: Option<ReferrerPolicy>,
     pub referrer_url: Option<Url>,
+    pub source: RequestSource,
 
 }
 
@@ -115,8 +198,13 @@ impl LoadData {
             credentials_flag: true,
             context: context,
             referrer_policy: referrer_policy,
-            referrer_url: referrer_url
+            referrer_url: referrer_url,
+            source: RequestSource::None
         }
+    }
+
+    pub fn set_load_source(&mut self, req_src: RequestSource) {
+        self.source = req_src;
     }
 }
 

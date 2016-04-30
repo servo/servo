@@ -21,13 +21,14 @@ use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net::hsts::HstsEntry;
 use net::http_loader::LoadErrorType;
-use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpResponse, UIProvider, HttpState};
+use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, UIProvider, HttpState};
 use net::resource_thread::{AuthCacheEntry, CancellationListener};
-use net_traits::{LoadData, CookieSource, LoadContext, IncludeSubdomains};
+use net_traits::{LoadData, CookieSource, LoadContext, IncludeSubdomains, CustomResponse, HttpResponse, RequestSource};
 use std::borrow::Cow;
 use std::io::{self, Write, Read, Cursor};
 use std::sync::mpsc::Receiver;
 use std::sync::{Arc, mpsc, RwLock};
+use std::thread;
 use url::Url;
 use util::prefs;
 
@@ -1661,4 +1662,78 @@ fn test_no_referer_set_with_noreferrer_policy() {
     let referrer_policy = Some(ReferrerPolicy::NoReferrer);
 
     assert_referer_header_not_included(request_url, referrer_url, referrer_policy)
+}
+
+#[test]
+fn test_custom_response_from_worker() {
+    use ipc_channel::ipc;
+
+    let mock_response = CustomResponse::new(
+        Headers::new(),
+        RawStatus(200, Cow::Borrowed("Ok")),
+        Vec::<u8>::new()
+    );
+
+    let url = Url::parse("http://mozilla.com").unwrap();
+
+    let http_state = HttpState::new();
+    let ui_provider = TestProvider::new();
+
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    load_data.data = None;
+    load_data.method = Method::Get;
+    let mut content_length = Headers::new();
+    content_length.set(ContentLength(0));
+
+    let (sender, receiver) = ipc::channel().unwrap();
+    load_data.set_load_source(RequestSource::Worker(sender.clone()));
+
+    thread::spawn(move || {
+        let _ = load(
+        &load_data.clone(), &ui_provider, &http_state,
+        None, &AssertMustIncludeHeadersRequestFactory {
+            expected_headers: content_length,
+            body: <[_]>::to_vec(&[])
+        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+    });
+
+    let from_network_sender = receiver.recv().unwrap();
+    from_network_sender.send(Some(mock_response)).unwrap();
+}
+
+#[test]
+fn test_custom_response_from_window() {
+    use ipc_channel::ipc;
+
+    let mock_response = CustomResponse::new(
+        Headers::new(),
+        RawStatus(200, Cow::Borrowed("Ok")),
+        Vec::<u8>::new()
+    );
+
+    let url = Url::parse("http://mozilla.com").unwrap();
+
+    let http_state = HttpState::new();
+    let ui_provider = TestProvider::new();
+
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    load_data.data = None;
+    load_data.method = Method::Get;
+    let mut content_length = Headers::new();
+    content_length.set(ContentLength(0));
+
+    let (sender, receiver) = ipc::channel().unwrap();
+    load_data.set_load_source(RequestSource::Window(sender.clone()));
+
+    thread::spawn(move || {
+        let _ = load(
+        &load_data.clone(), &ui_provider, &http_state,
+        None, &AssertMustIncludeHeadersRequestFactory {
+            expected_headers: content_length,
+            body: <[_]>::to_vec(&[])
+        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+    });
+
+    let from_network_sender = receiver.recv().unwrap();
+    from_network_sender.send(Some(mock_response)).unwrap();
 }
