@@ -20,7 +20,7 @@ use string_cache::{Atom, Namespace};
 /// short-circuit work we know is unnecessary.
 
 bitflags! {
-    flags RestyleHint: u8 {
+    pub flags RestyleHint: u8 {
         #[doc = "Rerun selector matching on the element."]
         const RESTYLE_SELF = 0x01,
         #[doc = "Rerun selector matching on all of the element's descendants."]

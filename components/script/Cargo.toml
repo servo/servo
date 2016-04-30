@@ -31,7 +31,7 @@ xml5ever = {version = "0.1.2", features = ["unstable"]}
 gfx_traits = {path = "../gfx_traits"}
 webrender_traits = {git = "https://github.com/servo/webrender_traits"}
 app_units = {version = "0.2.3", features = ["plugins"]}
-bitflags = "0.3"
+bitflags = "0.6.0"
 caseless = "0.1.0"
 cssparser = {version = "0.5.4", features = ["heap_size", "serde-serialization"]}
 encoding = "0.2"

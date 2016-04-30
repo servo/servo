@@ -3,7 +3,6 @@ name = "geckoservo"
 version = "0.0.1"
 dependencies = [
  "app_units 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "bitflags 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -13,7 +12,7 @@ dependencies = [
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "num_cpus 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
- "selectors 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "selectors 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "string_cache 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "style 0.0.1",
@@ -62,28 +61,18 @@ dependencies = [
 
 [[package]]
 name = "bincode"
-version = "0.5.3"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "byteorder 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "num 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num-traits 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "bitflags"
-version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "bitflags"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-
-[[package]]
-name = "bitflags"
-version = "0.5.0"
+version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -207,7 +196,7 @@ dependencies = [
 
 [[package]]
 name = "fnv"
-version = "1.0.0"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
@@ -243,7 +232,7 @@ name = "ipc-channel"
 version = "0.2.2"
 source = "git+https://github.com/servo/ipc-channel#e43fb22c431740a9bc54ce96caebd0e67d1a0586"
 dependencies = [
- "bincode 0.5.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bincode 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -424,12 +413,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "selectors"
-version = "0.5.5"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "bitflags 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fnv 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -485,11 +474,11 @@ name = "style"
 version = "0.0.1"
 dependencies = [
  "app_units 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "fnv 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "fnv 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.1.16 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -498,7 +487,7 @@ dependencies = [
  "num-traits 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "selectors 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -521,7 +510,7 @@ dependencies = [
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
- "selectors 0.5.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "selectors 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -583,7 +572,7 @@ version = "0.0.1"
 dependencies = [
  "app_units 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "backtrace 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "bitflags 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "deque 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "getopts 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",

@@ -105,7 +105,7 @@ pub struct Font {
 }
 
 bitflags! {
-    flags ShapingFlags: u8 {
+    pub flags ShapingFlags: u8 {
         #[doc = "Set if the text is entirely whitespace."]
         const IS_WHITESPACE_SHAPING_FLAG = 0x01,
         #[doc = "Set if we are to ignore ligatures."]
