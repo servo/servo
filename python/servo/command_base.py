@@ -430,7 +430,7 @@ class CommandBase(object):
         if (not self.config['tools']['system-rust'] and
                 (not rustc_binary_exists or not target_exists)):
             print("looking for rustc at %s" % (rustc_path))
-            Registrar.dispatch("bootstrap-rust", context=self.context, target=[target])
+            Registrar.dispatch("bootstrap-rust", context=self.context, target=filter(None, [target]))
 
         cargo_path = path.join(self.config["tools"]["cargo-root"], "cargo", "bin",
                                "cargo" + BIN_SUFFIX)
