@@ -1518,8 +1518,6 @@ impl BlockFlow {
                     }
                 }
             }
-
-            flags.union_floated_descendants_flags(child_base.flags);
         }
 
         // FIXME(pcwalton): This should consider all float descendants, not just children.
