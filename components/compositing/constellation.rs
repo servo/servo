@@ -1070,19 +1070,22 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     fn handle_alert(&mut self, pipeline_id: PipelineId, message: String, sender: IpcSender<bool>) {
         let display_alert_dialog = if prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) {
             let parent_pipeline_info = self.pipelines.get(&pipeline_id).and_then(|source| source.parent_info);
-            if let Some((_, subpage_id)) = parent_pipeline_info {
+            if let Some(_) = parent_pipeline_info {
                 let root_pipeline_id = self.root_frame_id
                     .and_then(|root_frame_id| self.frames.get(&root_frame_id))
                     .map(|root_frame| root_frame.current);
 
-                match root_pipeline_id.and_then(|pipeline_id| self.pipelines.get(&pipeline_id)) {
-                    Some(root_pipeline) => {
-                        // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsershowmodalprompt
-                        let event = MozBrowserEvent::ShowModalPrompt("alert".to_owned(), "Alert".to_owned(),
-                                                                     String::from(message), "".to_owned());
-                        root_pipeline.trigger_mozbrowser_event(subpage_id, event);
+                let ancestor_info = self.get_ancestor_info(&pipeline_id);
+                if let Some(ancestor_info) = ancestor_info {
+                    match root_pipeline_id.and_then(|pipeline_id| self.pipelines.get(&pipeline_id)) {
+                        Some(root_pipeline) => {
+                            // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsershowmodalprompt
+                            let event = MozBrowserEvent::ShowModalPrompt("alert".to_owned(), "Alert".to_owned(),
+                                                                         String::from(message), "".to_owned());
+                            root_pipeline.trigger_mozbrowser_event(ancestor_info.1, event);
+                        }
+                        None => return warn!("Alert sent to Pipeline {:?} after closure.", root_pipeline_id),
                     }
-                    None => return warn!("Alert sent to Pipeline {:?} after closure.", root_pipeline_id),
                 }
                 false
             } else {
@@ -1974,6 +1977,27 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
     }
 
+    fn get_ancestor_info(&self, pipeline_id: &PipelineId) -> Option<(PipelineId, SubpageId)> {
+        if let Some(pipeline) = self.pipelines.get(pipeline_id) {
+            if let Some(mut ancestor_info) = pipeline.parent_info {
+                if let Some(mut ancestor) = self.pipelines.get(&ancestor_info.0) {
+                    while let Some(next_info) = ancestor.parent_info {
+                        ancestor_info = next_info;
+                        ancestor = match self.pipelines.get(&ancestor_info.0) {
+                            Some(ancestor) => ancestor,
+                            None => {
+                                warn!("Get parent pipeline before root via closed pipeline {:?}.", ancestor_info.0);
+                                return None;
+                            },
+                        };
+                    }
+                    return Some(ancestor_info);
+                }
+            }
+        }
+        None
+    }
+
     // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserlocationchange
     // Note that this is a no-op if the pipeline is not an immediate child iframe of the root
     fn trigger_mozbrowserlocationchange(&self, pipeline_id: PipelineId) {
@@ -2006,19 +2030,15 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     fn trigger_mozbrowsererror(&self, pipeline_id: PipelineId) {
         if !prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) { return; }
 
-        if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
-            if let Some(mut ancestor_info) = pipeline.parent_info {
-                if let Some(mut ancestor) = self.pipelines.get(&ancestor_info.0) {
-                    while let Some(next_info) = ancestor.parent_info {
-                        ancestor_info = next_info;
-                        ancestor = match self.pipelines.get(&ancestor_info.0) {
-                            Some(ancestor) => ancestor,
-                            None => return warn!("Mozbrowsererror via closed pipeline {:?}.", ancestor_info.0),
-                        };
-                    }
+        let ancestor_info = self.get_ancestor_info(&pipeline_id);
+
+        if let Some(ancestor_info) = ancestor_info {
+            match self.pipelines.get(&ancestor_info.0) {
+                Some(ancestor) => {
                     let event = MozBrowserEvent::Error(MozBrowserErrorType::Fatal, None, None);
                     ancestor.trigger_mozbrowser_event(ancestor_info.1, event);
-                }
+                },
+                None => return warn!("Mozbrowsererror via closed pipeline {:?}.", ancestor_info.0),
             }
         }
     }

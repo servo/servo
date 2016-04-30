@@ -343,16 +343,16 @@ impl Window {
     pub fn css_error_reporter(&self) -> Box<ParseErrorReporter + Send> {
         self.error_reporter.clone()
     }
+}
 
-    #[cfg(any(target_os = "macos", target_os = "linux"))]
-    fn display_alert_dialog(&self, message: &str) {
-        tinyfiledialogs::message_box("Alert!", message, "ok", "warning", 2);
-    }
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+fn display_alert_dialog(message: &str) {
+    tinyfiledialogs::message_box("Alert!", message, "ok", "warning", 2);
+}
 
-    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
-    fn display_alert_dialog(&self, _message: &str) {
-        // tinyfiledialogs not supported on Windows
-    }
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+fn display_alert_dialog(_message: &str) {
+    // tinyfiledialogs not supported on Windows
 }
 
 // https://html.spec.whatwg.org/multipage/#atob
@@ -440,9 +440,9 @@ impl WindowMethods for Window {
         let (sender, receiver) = ipc::channel().unwrap();
         self.constellation_chan().0.send(ConstellationMsg::Alert(self.pipeline(), s.to_string(), sender)).unwrap();
 
-        let display_alert_dialog = receiver.recv().unwrap();
-        if display_alert_dialog {
-            self.display_alert_dialog(&s);
+        let should_display_alert_dialog = receiver.recv().unwrap();
+        if should_display_alert_dialog {
+            display_alert_dialog(&s);
         }
     }
 
