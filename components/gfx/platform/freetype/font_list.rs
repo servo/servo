@@ -157,3 +157,10 @@ pub fn last_resort_font_families() -> Vec<String> {
         "Arial".to_owned()
     )
 }
+
+#[cfg(target_os = "linux")]
+pub static SANS_SERIF_FONT_FAMILY: &'static str = "DejaVu Sans";
+
+#[cfg(target_os = "windows")]
+pub static SANS_SERIF_FONT_FAMILY: &'static str = "Arial";
+
