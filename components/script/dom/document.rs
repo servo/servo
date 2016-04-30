@@ -1668,7 +1668,7 @@ impl Document {
             deferred_scripts: DOMRefCell::new(vec![]),
             asap_in_order_scripts_list: DOMRefCell::new(vec![]),
             asap_scripts_set: DOMRefCell::new(vec![]),
-            scripting_enabled: Cell::new(true),
+            scripting_enabled: Cell::new(browsing_context.is_some()),
             animation_frame_ident: Cell::new(0),
             animation_frame_list: DOMRefCell::new(BTreeMap::new()),
             loader: DOMRefCell::new(doc_loader),
