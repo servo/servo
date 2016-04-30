@@ -14,13 +14,14 @@ use hyper::Error as HttpError;
 use hyper::client::{Pool, Request, Response};
 use hyper::header::{Accept, AcceptEncoding, ContentLength, ContentType, Host, Referer};
 use hyper::header::{Authorization, Basic};
-use hyper::header::{ContentEncoding, Encoding, Header, Headers, Quality, QualityItem};
+use hyper::header::{Encoding, Header, Headers, Quality, QualityItem};
 use hyper::header::{Location, SetCookie, StrictTransportSecurity, UserAgent, qitem};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::net::{Fresh, HttpsConnector, Openssl};
 use hyper::status::{StatusClass, StatusCode};
+use ipc_channel::ipc;
 use log;
 use mime_classifier::MIMEClassifier;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
@@ -29,6 +30,7 @@ use net_traits::hosts::replace_hosts;
 use net_traits::response::HttpsState;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, LoadData};
 use net_traits::{Metadata, NetworkError};
+use net_traits::{RequestSource, HttpResponse};
 use openssl::ssl::error::{SslError, OpensslError};
 use openssl::ssl::{SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER, SslContext, SslMethod};
 use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt, AuthCache, AuthCacheEntry};
@@ -170,31 +172,6 @@ fn load_for_consumer(load_data: LoadData,
         }
     }
 }
-
-pub trait HttpResponse: Read {
-    fn headers(&self) -> &Headers;
-    fn status(&self) -> StatusCode;
-    fn status_raw(&self) -> &RawStatus;
-    fn http_version(&self) -> String {
-        "HTTP/1.1".to_owned()
-    }
-    fn content_encoding(&self) -> Option<Encoding> {
-        let encodings = match self.headers().get::<ContentEncoding>() {
-            Some(&ContentEncoding(ref encodings)) => encodings,
-            None => return None,
-        };
-        if encodings.contains(&Encoding::Gzip) {
-            Some(Encoding::Gzip)
-        } else if encodings.contains(&Encoding::Deflate) {
-            Some(Encoding::Deflate)
-        } else if encodings.contains(&Encoding::EncodingExt("br".to_owned())) {
-            Some(Encoding::EncodingExt("br".to_owned()))
-        } else {
-            None
-        }
-    }
-}
-
 
 pub struct WrappedHttpResponse {
     pub response: Response
@@ -488,13 +465,13 @@ fn update_sts_list_from_response(url: &Url, response: &HttpResponse, hsts_list: 
     }
 }
 
-pub struct StreamedResponse<R: HttpResponse> {
-    decoder: Decoder<R>,
+pub struct StreamedResponse {
+    decoder: Decoder,
     pub metadata: Metadata
 }
 
 
-impl<R: HttpResponse> Read for StreamedResponse<R> {
+impl Read for StreamedResponse {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self.decoder {
@@ -506,12 +483,12 @@ impl<R: HttpResponse> Read for StreamedResponse<R> {
     }
 }
 
-impl<R: HttpResponse> StreamedResponse<R> {
-    fn new(m: Metadata, d: Decoder<R>) -> StreamedResponse<R> {
+impl StreamedResponse {
+    fn new(m: Metadata, d: Decoder) -> StreamedResponse {
         StreamedResponse { metadata: m, decoder: d }
     }
 
-    fn from_http_response(response: R, m: Metadata) -> Result<StreamedResponse<R>, LoadError> {
+    fn from_http_response(response: Box<HttpResponse>, m: Metadata) -> Result<StreamedResponse, LoadError> {
         let decoder = match response.content_encoding() {
             Some(Encoding::Gzip) => {
                 let result = GzDecoder::new(response);
@@ -535,13 +512,17 @@ impl<R: HttpResponse> StreamedResponse<R> {
         };
         Ok(StreamedResponse::new(m, decoder))
     }
+
+    fn custom_response(response: Box<HttpResponse>, m: Metadata) -> StreamedResponse {
+        StreamedResponse { metadata: m, decoder: Decoder::Plain(response) }
+    }
 }
 
-enum Decoder<R: Read> {
-    Gzip(GzDecoder<R>),
-    Deflate(DeflateDecoder<R>),
-    Brotli(Decompressor<R>),
-    Plain(R)
+enum Decoder {
+    Gzip(GzDecoder<Box<HttpResponse>>),
+    Deflate(DeflateDecoder<Box<HttpResponse>>),
+    Brotli(Decompressor<Box<HttpResponse>>),
+    Plain(Box<HttpResponse>)
 }
 
 fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
@@ -793,7 +774,7 @@ pub fn load<A, B>(load_data: &LoadData,
                   request_factory: &HttpRequestFactory<R=A>,
                   user_agent: String,
                   cancel_listener: &CancellationListener)
-                  -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static, B: UIProvider {
+                  -> Result<StreamedResponse, LoadError> where A: HttpRequest + 'static, B: UIProvider {
     let max_redirects = prefs::get_pref("network.http.redirection-limit").as_i64().unwrap() as u32;
     let mut iters = 0;
     // URL of the document being loaded, as seen by all the higher-level code.
@@ -805,6 +786,26 @@ pub fn load<A, B>(load_data: &LoadData,
 
     if cancel_listener.is_cancelled() {
         return Err(LoadError::new(doc_url, LoadErrorType::Cancelled));
+    }
+
+
+    // Cases when the client wants to send custom response
+    // if its controlled by a service worker.
+    let (msg_sender, msg_receiver) = ipc::channel().unwrap();
+    match load_data.source {
+        RequestSource::Window(ref sender) => {
+            sender.send(msg_sender.clone()).unwrap();
+            let received_response = msg_receiver.recv().unwrap();
+            let metadata = Metadata::default(doc_url.clone());
+            return Ok(StreamedResponse::custom_response(box received_response.unwrap(), metadata));
+        }
+        RequestSource::Worker(ref sender) => {
+            sender.send(msg_sender.clone()).unwrap();
+            let received_response = msg_receiver.recv().unwrap();
+            let metadata = Metadata::default(doc_url.clone());
+            return Ok(StreamedResponse::custom_response(box received_response.unwrap(), metadata));
+        }
+        RequestSource::None => {}
     }
 
     // If the URL is a view-source scheme then the scheme data contains the
@@ -962,7 +963,7 @@ pub fn load<A, B>(load_data: &LoadData,
                     metadata.headers.clone(), metadata.status.clone(),
                     pipeline_id);
          }
-        return StreamedResponse::from_http_response(response, metadata)
+        return StreamedResponse::from_http_response(box response, metadata)
     }
 }
 

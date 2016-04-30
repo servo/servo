@@ -66,7 +66,7 @@ use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use net_traits::storage_thread::StorageThread;
-use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadContext, Metadata, ResourceThread};
+use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadContext, Metadata, ResourceThread, RequestSource};
 use network_listener::NetworkListener;
 use page::{Frame, IterablePage, Page};
 use parse::ParserRoot;
@@ -1884,6 +1884,7 @@ impl ScriptThread {
             credentials_flag: true,
             referrer_policy: load_data.referrer_policy,
             referrer_url: load_data.referrer_url,
+            source: RequestSource::None
         }, LoadConsumer::Listener(response_target), None)).unwrap();
 
         self.incomplete_loads.borrow_mut().push(incomplete);
