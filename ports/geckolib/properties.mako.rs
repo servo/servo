@@ -375,8 +375,20 @@ for side in SIDES:
 
 <%self:impl_trait style_struct_name="Font" skip_longhands="font-size" skip_additionals="*">
 
-    // FIXME(bholley): This doesn't handle zooming properly.
-    <% impl_app_units("font_size", "mSize", need_clone=True) %>
+    // FIXME(bholley): Gecko has two different sizes, one of which (mSize) is the
+    // actual computed size, and the other of which (mFont.size) is the 'display
+    // size' which takes font zooming into account. We don't handle font zooming yet.
+    fn set_font_size(&mut self, v: longhands::font_size::computed_value::T) {
+        self.gecko.mFont.size = v.0;
+        self.gecko.mSize = v.0;
+    }
+    fn copy_font_size_from(&mut self, other: &Self) {
+        self.gecko.mFont.size = other.gecko.mFont.size;
+        self.gecko.mSize = other.gecko.mSize;
+    }
+    fn clone_font_size(&self) -> longhands::font_size::computed_value::T {
+        Au(self.gecko.mSize)
+    }
 
     // This is used for PartialEq, which we don't implement for gecko style structs.
     fn compute_font_hash(&mut self) {}
