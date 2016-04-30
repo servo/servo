@@ -319,7 +319,10 @@ class MachCommands(CommandBase):
                     name = path.join(base, name)
                     if force:
                         print("Removing " + name)
-                        shutil.rmtree(name)
+                        if os.path.isdir(name):
+                            shutil.rmtree(name)
+                        else:
+                            os.remove(name)
                     else:
                         print("Would remove " + name)
         if not removing_anything:
