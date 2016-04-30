@@ -2021,8 +2021,7 @@ impl Fragment {
                     return false
                 }
 
-                let length = first_unscanned_text.text.len();
-                if length != 0 && first_unscanned_text.text.char_at_reverse(length) == '\n' {
+                if first_unscanned_text.text.ends_with('\n') {
                     return false
                 }
 
