@@ -6,7 +6,7 @@ use font_template::{FontTemplate, FontTemplateDescriptor};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use mime::{TopLevel, SubLevel};
-use net_traits::{AsyncResponseTarget, LoadContext, PendingAsyncLoad, CoreResourceThread, ResponseAction};
+use net_traits::{AsyncResponseTarget, LoadContext, PendingAsyncLoad, CoreResourceThread, ResponseAction, RequestSource};
 use platform::font_context::FontContextHandle;
 use platform::font_list::SANS_SERIF_FONT_FAMILY;
 use platform::font_list::for_each_available_family;
@@ -186,7 +186,8 @@ impl FontCache {
                                                              url.clone(),
                                                              None,
                                                              None,
-                                                             None);
+                                                             None,
+                                                             RequestSource::None);
                             let (data_sender, data_receiver) = ipc::channel().unwrap();
                             let data_target = AsyncResponseTarget {
                                 sender: data_sender,
