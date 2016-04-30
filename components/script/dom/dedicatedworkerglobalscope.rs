@@ -16,7 +16,8 @@ use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::messageevent::MessageEvent;
-use dom::worker::{SimpleWorkerErrorHandler, SharedRt, TrustedWorkerAddress, WorkerMessageHandler};
+use dom::worker::{SimpleWorkerErrorHandler, SharedRt, TrustedWorkerAddress};
+use dom::worker::{WorkerScriptLoadOrigin, WorkerMessageHandler};
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom::workerglobalscope::WorkerGlobalScopeInit;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -26,7 +27,7 @@ use js::jsapi::{JSAutoCompartment, JSContext, RootedValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
-use net_traits::{LoadContext, load_whole_resource};
+use net_traits::{LoadContext, load_whole_resource, CustomResponse};
 use rand::random;
 use script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
@@ -134,6 +135,7 @@ enum MixedMessage {
     FromWorker((TrustedWorkerAddress, WorkerScriptMsg)),
     FromScheduler((TrustedWorkerAddress, TimerEvent)),
     FromDevtools(DevtoolScriptControlMsg),
+    FromNetwork(IpcSender<Option<CustomResponse>>),
 }
 
 // https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope
@@ -216,18 +218,18 @@ impl DedicatedWorkerGlobalScope {
                             worker: TrustedWorkerAddress,
                             parent_sender: Box<ScriptChan + Send>,
                             own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
-                            receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>) {
+                            receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>,
+                            worker_load_origin: WorkerScriptLoadOrigin) {
         let serialized_worker_url = worker_url.to_string();
         spawn_named(format!("WebWorker for {}", serialized_worker_url), move || {
             thread_state::initialize(SCRIPT | IN_WORKER);
 
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
-
             let (url, source) = match load_whole_resource(LoadContext::Script,
                                                           &init.resource_thread,
                                                           worker_url,
-                                                          None) {
+                                                          &worker_load_origin) {
                 Err(_) => {
                     println!("error loading script {}", serialized_worker_url);
                     parent_sender.send(CommonScriptMsg::RunnableMsg(WorkerEvent,
@@ -317,17 +319,20 @@ impl DedicatedWorkerGlobalScope {
         let worker_port = &self.receiver;
         let timer_event_port = &self.timer_event_port;
         let devtools_port = scope.from_devtools_receiver();
+        let msg_port = scope.custom_message_port();
 
         let sel = Select::new();
         let mut worker_handle = sel.handle(worker_port);
         let mut timer_event_handle = sel.handle(timer_event_port);
         let mut devtools_handle = sel.handle(devtools_port);
+        let mut msg_port_handle = sel.handle(msg_port);
         unsafe {
             worker_handle.add();
             timer_event_handle.add();
             if scope.from_devtools_sender().is_some() {
                 devtools_handle.add();
             }
+            msg_port_handle.add();
         }
         let ret = sel.wait();
         if ret == worker_handle.id() {
@@ -336,6 +341,8 @@ impl DedicatedWorkerGlobalScope {
             Ok(MixedMessage::FromScheduler(try!(timer_event_port.recv())))
         } else if ret == devtools_handle.id() {
             Ok(MixedMessage::FromDevtools(try!(devtools_port.recv())))
+        } else if ret == msg_port_handle.id() {
+            Ok(MixedMessage::FromNetwork(try!(msg_port.recv())))
         } else {
             panic!("unexpected select result!")
         }
@@ -398,6 +405,10 @@ impl DedicatedWorkerGlobalScope {
                 let _ar = AutoWorkerReset::new(self, linked_worker);
                 self.handle_script_event(msg);
             },
+            MixedMessage::FromNetwork(network_sender) => {
+                // We send None as of now
+                let _ = network_sender.send(None);
+            }
         }
     }
 }

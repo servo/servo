@@ -17,12 +17,13 @@ use dom::eventtarget::EventTarget;
 use dom::window::{base64_atob, base64_btoa};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
 use js::jsapi::{HandleValue, JSContext, JSRuntime, RootedValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use msg::constellation_msg::{ConstellationChan, PipelineId};
-use net_traits::{LoadContext, ResourceThread, load_whole_resource};
+use msg::constellation_msg::{ConstellationChan, PipelineId, ReferrerPolicy};
+use net_traits::{LoadContext, ResourceThread, load_whole_resource, RequestSource, LoadOrigin, CustomResponseSender};
 use profile_traits::mem;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_traits::ScriptMsg as ConstellationMsg;
@@ -94,6 +95,12 @@ pub struct WorkerGlobalScope {
 
     #[ignore_heap_size_of = "Defined in std"]
     scheduler_chan: IpcSender<TimerEventRequest>,
+
+    #[ignore_heap_size_of = "Defined in ipc-channel"]
+    custom_msg_chan: IpcSender<CustomResponseSender>,
+
+    #[ignore_heap_size_of = "Defined in std"]
+    custom_msg_port: Receiver<CustomResponseSender>,
 }
 
 impl WorkerGlobalScope {
@@ -103,7 +110,8 @@ impl WorkerGlobalScope {
                          from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                          timer_event_chan: IpcSender<TimerEvent>)
                          -> WorkerGlobalScope {
-
+        let (msg_chan, msg_port) = ipc::channel().unwrap();
+        let custom_msg_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(msg_port);
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(),
             next_worker_id: Cell::new(WorkerId(0)),
@@ -124,6 +132,8 @@ impl WorkerGlobalScope {
             devtools_wants_updates: Cell::new(false),
             constellation_chan: init.constellation_chan,
             scheduler_chan: init.scheduler_chan,
+            custom_msg_chan: msg_chan,
+            custom_msg_port: custom_msg_port
         }
     }
 
@@ -169,6 +179,14 @@ impl WorkerGlobalScope {
         self.runtime.cx()
     }
 
+    pub fn custom_message_chan(&self) -> IpcSender<CustomResponseSender> {
+        self.custom_msg_chan.clone()
+    }
+
+    pub fn custom_message_port(&self) -> &Receiver<CustomResponseSender> {
+        &self.custom_msg_port
+    }
+
     pub fn is_closing(&self) -> bool {
         self.closing.load(Ordering::SeqCst)
     }
@@ -190,6 +208,21 @@ impl WorkerGlobalScope {
         let WorkerId(id_num) = worker_id;
         self.next_worker_id.set(WorkerId(id_num + 1));
         worker_id
+    }
+}
+
+impl LoadOrigin for WorkerGlobalScope {
+    fn referrer_url(&self) -> Option<Url> {
+        None
+    }
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        None
+    }
+    fn request_source(&self) -> RequestSource {
+        RequestSource::Worker(self.custom_message_chan())
+    }
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        Some(self.pipeline())
     }
 }
 
@@ -219,7 +252,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
         let mut rval = RootedValue::new(self.runtime.cx(), UndefinedValue());
         for url in urls {
-            let (url, source) = match load_whole_resource(LoadContext::Script, &self.resource_thread, url, None) {
+            let (url, source) = match load_whole_resource(LoadContext::Script, &self.resource_thread, url, self) {
                 Err(_) => return Err(Error::Network),
                 Ok((metadata, bytes)) => {
                     (metadata.final_url, String::from_utf8(bytes).unwrap())

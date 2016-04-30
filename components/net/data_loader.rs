@@ -3,10 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
+use ipc_channel::ipc;
 use mime_classifier::MIMEClassifier;
 use net_traits::LoadConsumer;
 use net_traits::ProgressMsg::{Payload, Done};
-use net_traits::{LoadData, Metadata, NetworkError};
+use net_traits::{LoadData, Metadata, NetworkError, RequestSource};
 use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt};
 use rustc_serialize::base64::FromBase64;
 use std::sync::Arc;
@@ -79,6 +80,15 @@ pub fn load(load_data: LoadData,
     if cancel_listener.is_cancelled() {
         return;
     }
+
+    let (msg_sender, msg_receiver) = ipc::channel().unwrap();
+        match load_data.source {
+            RequestSource::Window(ref sender) | RequestSource::Worker(ref sender) => {
+                sender.send(msg_sender.clone()).unwrap();
+                let _ = msg_receiver.recv().unwrap();
+            }
+            RequestSource::None => {}
+        }
 
     match decode(&url) {
         Ok((content_type, bytes)) => {

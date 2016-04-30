@@ -3,10 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use about_loader;
+use ipc_channel::ipc;
 use mime_classifier::MIMEClassifier;
 use mime_guess::guess_mime_type;
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::ProgressMsg::{Done, Payload};
-use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError};
+use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError, LoadOrigin, RequestSource};
 use resource_thread::{CancellationListener, ProgressSender};
 use resource_thread::{send_error, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
@@ -28,6 +30,22 @@ enum ReadStatus {
 enum LoadResult {
     Cancelled,
     Finished,
+}
+
+struct FileLoadOrigin;
+impl LoadOrigin for FileLoadOrigin {
+    fn referrer_url(&self) -> Option<Url> {
+        None
+    }
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        None
+    }
+    fn request_source(&self) -> RequestSource {
+        RequestSource::None
+    }
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        None
+    }
 }
 
 fn read_block(reader: &mut File) -> Result<ReadStatus, String> {
@@ -84,11 +102,21 @@ pub fn factory(load_data: LoadData,
                 // http://doc.rust-lang.org/std/fs/struct.OpenOptions.html#method.open
                 // but, we'll go for a "file not found!"
                 let url = Url::parse("about:not-found").unwrap();
-                let load_data_404 = LoadData::new(load_data.context, url, None, None, None);
+                let load_data_404 = LoadData::new(load_data.context, url, &FileLoadOrigin);
                 about_loader::factory(load_data_404, senders, classifier, cancel_listener);
                 return;
             }
         };
+
+        let (msg_sender, msg_receiver) = ipc::channel().unwrap();
+        match load_data.source {
+            RequestSource::Window(ref sender) | RequestSource::Worker(ref sender) => {
+                sender.send(msg_sender.clone()).unwrap();
+                let _ = msg_receiver.recv().unwrap();
+            }
+            RequestSource::None => {}
+        }
+
         if cancel_listener.is_cancelled() {
             if let Ok(progress_chan) = get_progress_chan(load_data, file_path,
                                                          senders, classifier, &[]) {
@@ -96,6 +124,7 @@ pub fn factory(load_data: LoadData,
             }
             return;
         }
+        
         match read_block(reader) {
             Ok(ReadStatus::Partial(buf)) => {
                 let progress_chan = get_progress_chan(load_data, file_path,
