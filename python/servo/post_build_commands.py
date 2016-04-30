@@ -14,6 +14,7 @@ import os
 import os.path as path
 import subprocess
 from shutil import copytree, rmtree, copy2
+import sys
 
 from mach.registrar import Registrar
 
@@ -23,7 +24,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, call, check_call, BuildNotFound
+from servo.command_base import CommandBase, cd, call, check_call, BuildNotFound, is_windows
 
 
 def read_file(filename, if_exists=False):
@@ -130,7 +131,13 @@ class PostBuildCommands(CommandBase):
             if browserhtml_path is None:
                 print("Could not find browserhtml package; perhaps you haven't built Servo.")
                 return 1
-            args = args + ['-w', '-b', '--pref', 'dom.mozbrowser.enabled',
+
+            if not is_windows():
+                args = args + ['-w']
+            else:
+                print("Webrender not enabled as Windows support is experimental. To force webrender: pass -w")
+
+            args = args + ['-b', '--pref', 'dom.mozbrowser.enabled',
                            path.join(browserhtml_path, 'out', 'index.html')]
             args = args + params
         else:
