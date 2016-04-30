@@ -27,7 +27,7 @@ use js::jsapi::{JSAutoCompartment, JSContext, RootedValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
-use net_traits::{LoadContext, load_whole_resource};
+use net_traits::{LoadContext, load_whole_resource, LoadOrigin, CustomResponseSender};
 use rand::random;
 use script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
@@ -155,6 +155,8 @@ pub struct DedicatedWorkerGlobalScope {
     parent_sender: Box<ScriptChan + Send>,
 }
 
+impl LoadOrigin for TrustedWorkerAddress {}
+
 impl DedicatedWorkerGlobalScope {
     fn new_inherited(init: WorkerGlobalScopeInit,
                      worker_url: Url,
@@ -165,7 +167,9 @@ impl DedicatedWorkerGlobalScope {
                      own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
                      receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>,
                      timer_event_chan: IpcSender<TimerEvent>,
-                     timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>)
+                     timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>,
+                     msg_chan: IpcSender<CustomResponseSender>,
+                     msg_port: IpcReceiver<CustomResponseSender>)
                      -> DedicatedWorkerGlobalScope {
 
         DedicatedWorkerGlobalScope {
@@ -173,7 +177,9 @@ impl DedicatedWorkerGlobalScope {
                                                                 worker_url,
                                                                 runtime,
                                                                 from_devtools_receiver,
-                                                                timer_event_chan),
+                                                                timer_event_chan,
+                                                                msg_chan,
+                                                                msg_port),
             id: id,
             receiver: receiver,
             own_sender: own_sender,
@@ -192,7 +198,9 @@ impl DedicatedWorkerGlobalScope {
                own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
                receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>,
                timer_event_chan: IpcSender<TimerEvent>,
-               timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>)
+               timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>,
+               msg_chan: IpcSender<CustomResponseSender>,
+               msg_port: IpcReceiver<CustomResponseSender>)
                -> Root<DedicatedWorkerGlobalScope> {
         let cx = runtime.cx();
         let scope = box DedicatedWorkerGlobalScope::new_inherited(init,
@@ -204,7 +212,9 @@ impl DedicatedWorkerGlobalScope {
                                                                   own_sender,
                                                                   receiver,
                                                                   timer_event_chan,
-                                                                  timer_event_port);
+                                                                  timer_event_port,
+                                                                  msg_chan,
+                                                                  msg_port);
         DedicatedWorkerGlobalScopeBinding::Wrap(cx, scope)
     }
 
@@ -224,11 +234,10 @@ impl DedicatedWorkerGlobalScope {
 
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
-
             let (url, source) = match load_whole_resource(LoadContext::Script,
                                                           &init.resource_thread,
                                                           worker_url,
-                                                          None) {
+                                                          &worker) {
                 Err(_) => {
                     println!("error loading script {}", serialized_worker_url);
                     parent_sender.send(CommonScriptMsg::RunnableMsg(WorkerEvent,
@@ -242,6 +251,8 @@ impl DedicatedWorkerGlobalScope {
 
             let runtime = unsafe { new_rt_and_cx() };
             *main_thread_rt.lock().unwrap() = Some(SharedRt::new(&runtime));
+
+            let (msg_chan, msg_port) = ipc::channel().unwrap();
 
             let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
             ROUTER.route_ipc_receiver_to_mpsc_sender(from_devtools_receiver, devtools_mpsc_chan);
@@ -257,7 +268,7 @@ impl DedicatedWorkerGlobalScope {
             let global = DedicatedWorkerGlobalScope::new(
                 init, url, id, devtools_mpsc_port, runtime,
                 parent_sender.clone(), own_sender, receiver,
-                timer_ipc_chan, timer_rx);
+                timer_ipc_chan, timer_rx, msg_chan.clone(), msg_port);
             // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
             // registration (#6631), so we instead use a random number and cross our fingers.
             let scope = global.upcast::<WorkerGlobalScope>();

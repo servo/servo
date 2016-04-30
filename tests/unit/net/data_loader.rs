@@ -7,9 +7,13 @@ extern crate hyper;
 use ipc_channel::ipc;
 use net_traits::LoadConsumer::Channel;
 use net_traits::ProgressMsg::{Payload, Done};
-use net_traits::{LoadData, LoadContext, NetworkError};
+use net_traits::{LoadData, LoadContext, NetworkError, LoadOrigin};
 use self::hyper::header::ContentType;
 use self::hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
+
+struct DataLoadTest;
+
+impl LoadOrigin for DataLoadTest {}
 
 #[cfg(test)]
 fn assert_parse(url:          &'static str,
@@ -24,7 +28,7 @@ fn assert_parse(url:          &'static str,
 
     let (start_chan, start_port) = ipc::channel().unwrap();
     let classifier = Arc::new(MIMEClassifier::new());
-    load(LoadData::new(LoadContext::Browsing, Url::parse(url).unwrap(), None, None, None),
+    load(LoadData::new(LoadContext::Browsing, Url::parse(url).unwrap(), &DataLoadTest),
          Channel(start_chan),
          classifier, CancellationListener::new(None));
 

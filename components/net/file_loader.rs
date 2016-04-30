@@ -6,7 +6,7 @@ use about_loader;
 use mime_classifier::MIMEClassifier;
 use mime_guess::guess_mime_type;
 use net_traits::ProgressMsg::{Done, Payload};
-use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError};
+use net_traits::{LoadConsumer, LoadData, Metadata, NetworkError, LoadOrigin};
 use resource_thread::{CancellationListener, ProgressSender};
 use resource_thread::{send_error, start_sending_sniffed_opt};
 use std::borrow::ToOwned;
@@ -29,6 +29,10 @@ enum LoadResult {
     Cancelled,
     Finished,
 }
+
+// This is just to represent a trait object to LoadData
+struct FileLoadOrigin;
+impl LoadOrigin for FileLoadOrigin {}
 
 fn read_block(reader: &mut File) -> Result<ReadStatus, String> {
     let mut buf = vec![0; READ_SIZE];
@@ -84,7 +88,7 @@ pub fn factory(load_data: LoadData,
                 // http://doc.rust-lang.org/std/fs/struct.OpenOptions.html#method.open
                 // but, we'll go for a "file not found!"
                 let url = Url::parse("about:not-found").unwrap();
-                let load_data_404 = LoadData::new(load_data.context, url, None, None, None);
+                let load_data_404 = LoadData::new(load_data.context, url, &FileLoadOrigin);
                 about_loader::factory(load_data_404, senders, classifier, cancel_listener);
                 return;
             }
