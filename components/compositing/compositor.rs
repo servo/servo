@@ -504,8 +504,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn handle_browser_message(&mut self, msg: Msg) -> bool {
         match (msg, self.shutdown_state) {
-            (_, ShutdownState::FinishedShuttingDown) =>
-                panic!("compositor shouldn't be handling messages after shutting down"),
+            (_, ShutdownState::FinishedShuttingDown) => {
+                error!("compositor shouldn't be handling messages after shutting down");
+                return false
+            }
 
             (Msg::Exit(channel), _) => {
                 self.start_shutting_down();
@@ -780,7 +782,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     pub fn pipeline(&self, pipeline_id: PipelineId) -> Option<&CompositionPipeline> {
         match self.pipeline_details.get(&pipeline_id) {
             Some(ref details) => details.pipeline.as_ref(),
-            None => panic!("Compositor layer has an unknown pipeline ({:?}).", pipeline_id),
+            None => {
+                warn!("Compositor layer has an unknown pipeline ({:?}).", pipeline_id);
+                None
+            }
         }
     }
 
@@ -881,7 +886,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn find_pipeline_root_layer(&self, pipeline_id: PipelineId)
                                 -> Option<Rc<Layer<CompositorData>>> {
         if !self.pipeline_details.contains_key(&pipeline_id) {
-            panic!("Tried to create or update layer for unknown pipeline")
+            warn!("Tried to create or update layer for unknown pipeline");
+            return None;
         }
         self.find_layer_with_pipeline_and_layer_id(pipeline_id, LayerId::null())
     }
@@ -1119,7 +1125,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                    layer_id: LayerId) {
         if let Some(point) = self.fragment_point.take() {
             if !self.move_layer(pipeline_id, layer_id, Point2D::from_untyped(&point)) {
-                panic!("Compositor: Tried to scroll to fragment with unknown layer.");
+                return warn!("Compositor: Tried to scroll to fragment with unknown layer.");
             }
 
             self.perform_updates_after_scroll();

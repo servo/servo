@@ -505,7 +505,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
     #[cfg(target_os = "windows")]
     fn spawn_multiprocess(&mut self, _: PipelineId, _: UnprivilegedPipelineContent) {
-        panic!("Multiprocess is not supported on Windows.");
+        error!("Multiprocess is not supported on Windows.");
+        process::exit(1);
     }
 
     // Push a new (loading) pipeline to the list of pending frame changes
