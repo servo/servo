@@ -46,10 +46,10 @@ use libc;
 use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId};
 use msg::constellation_msg::{WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
-use net_traits::ResourceThread;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::storage_thread::{StorageThread, StorageType};
+use net_traits::{ResourceThread, CustomResponseSender};
 use num_traits::ToPrimitive;
 use page::Page;
 use profile_traits::mem;
@@ -148,6 +148,8 @@ pub struct Window {
     image_cache_thread: ImageCacheThread,
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_chan: ImageCacheChan,
+    #[ignore_heap_size_of = "channels are hard"]
+    custom_message_chan: CustomResponseSender,
     #[ignore_heap_size_of = "TODO(#6911) newtypes containing unmeasurable types are hard"]
     compositor: IpcSender<ScriptToCompositorMsg>,
     browsing_context: MutNullableHeap<JS<BrowsingContext>>,
@@ -299,6 +301,10 @@ impl Window {
 
     pub fn image_cache_chan(&self) -> ImageCacheChan {
         self.image_cache_chan.clone()
+    }
+
+    pub fn custom_message_chan(&self) -> CustomResponseSender {
+        self.custom_message_chan.clone()
     }
 
     pub fn get_next_worker_id(&self) -> WorkerId {
@@ -1428,6 +1434,7 @@ impl Window {
                history_task_source: HistoryTraversalTaskSource,
                file_task_source: FileReadingTaskSource,
                image_cache_chan: ImageCacheChan,
+               custom_message_chan: CustomResponseSender,
                compositor: IpcSender<ScriptToCompositorMsg>,
                image_cache_thread: ImageCacheThread,
                resource_thread: Arc<ResourceThread>,
@@ -1464,6 +1471,7 @@ impl Window {
             history_traversal_task_source: history_task_source,
             file_reading_task_source: file_task_source,
             image_cache_chan: image_cache_chan,
+            custom_message_chan: custom_message_chan,
             console: Default::default(),
             crypto: Default::default(),
             compositor: compositor,

@@ -10,7 +10,7 @@
 #![feature(plugin)]
 #![plugin(plugins)]
 
-#![deny(unsafe_code)]
+//#![deny(unsafe_code)]
 
 #[macro_use]
 extern crate bitflags;

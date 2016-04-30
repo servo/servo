@@ -11,8 +11,6 @@
 #![feature(custom_attribute)]
 #![plugin(heapsize_plugin, serde_macros)]
 
-#![deny(unsafe_code)]
-
 extern crate heapsize;
 extern crate hyper;
 extern crate image as piston_image;
@@ -75,6 +73,31 @@ pub enum LoadContext {
     CacheManifest,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub struct CustomResponse {
+    #[ignore_heap_size_of = "Defined in hyper"]
+    pub headers: Headers,
+    #[ignore_heap_size_of = "Defined in hyper"]
+    pub raw_status: RawStatus,
+    pub body: Vec<u8>
+}
+
+impl CustomResponse {
+    pub fn new(headers: Headers, raw_status: RawStatus, body: Vec<u8>) -> CustomResponse {
+        CustomResponse { headers: headers, raw_status: raw_status, body: body }
+    }
+}
+
+pub type CustomResponseSender = IpcSender<IpcSender<Option<CustomResponse>>>;
+pub type CustomResponseReceiver = IpcReceiver<IpcReceiver<Option<CustomResponse>>>;
+
+#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
+pub enum RequestSource {
+    Window(#[ignore_heap_size_of = "Defined in ipc-channel"] CustomResponseSender),
+    Worker(#[ignore_heap_size_of = "Defined in ipc-channel"] CustomResponseSender),
+    None
+}
+
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct LoadData {
     pub url: Url,
@@ -95,6 +118,7 @@ pub struct LoadData {
     /// The policy and referring URL for the originator of this request
     pub referrer_policy: Option<ReferrerPolicy>,
     pub referrer_url: Option<Url>,
+    pub source: RequestSource,
 
 }
 
@@ -115,7 +139,8 @@ impl LoadData {
             credentials_flag: true,
             context: context,
             referrer_policy: referrer_policy,
-            referrer_url: referrer_url
+            referrer_url: referrer_url,
+            source: RequestSource::None
         }
     }
 }
@@ -251,6 +276,7 @@ pub struct PendingAsyncLoad {
     context: LoadContext,
     referrer_policy: Option<ReferrerPolicy>,
     referrer_url: Option<Url>,
+    source: RequestSource
 }
 
 struct PendingLoadGuard {
@@ -277,7 +303,8 @@ impl PendingAsyncLoad {
                url: Url,
                pipeline: Option<PipelineId>,
                referrer_policy: Option<ReferrerPolicy>,
-               referrer_url: Option<Url>)
+               referrer_url: Option<Url>,
+               source: RequestSource)
                -> PendingAsyncLoad {
         PendingAsyncLoad {
             resource_thread: resource_thread,
@@ -286,14 +313,19 @@ impl PendingAsyncLoad {
             guard: PendingLoadGuard { loaded: false, },
             context: context,
             referrer_policy: referrer_policy,
-            referrer_url: referrer_url
+            referrer_url: referrer_url,
+            source: source
         }
     }
 
     /// Initiate the network request associated with this pending load, using the provided target.
     pub fn load_async(mut self, listener: AsyncResponseTarget) {
         self.guard.neuter();
-        let load_data = LoadData::new(self.context, self.url, self.pipeline, self.referrer_policy, self.referrer_url);
+        let load_data = LoadData::new(self.context,
+                                        self.url,
+                                        self.pipeline,
+                                        self.referrer_policy,
+                                        self.referrer_url);
         let consumer = LoadConsumer::Listener(listener);
         self.resource_thread.send(ControlMsg::Load(load_data, consumer, None)).unwrap();
     }

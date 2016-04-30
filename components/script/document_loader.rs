@@ -9,7 +9,7 @@ use dom::bindings::js::JS;
 use dom::document::Document;
 use msg::constellation_msg::PipelineId;
 use net_traits::AsyncResponseTarget;
-use net_traits::{PendingAsyncLoad, ResourceThread, LoadContext};
+use net_traits::{PendingAsyncLoad, ResourceThread, LoadContext, RequestSource};
 use std::sync::Arc;
 use std::thread;
 use url::Url;
@@ -139,7 +139,8 @@ impl DocumentLoader {
                               url,
                               self.pipeline,
                               referrer.get_referrer_policy(),
-                              Some(referrer.url().clone()))
+                              Some(referrer.url().clone()),
+                              RequestSource::None)
     }
 
     /// Create and initiate a new network request.

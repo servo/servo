@@ -20,14 +20,15 @@ use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net::hsts::HstsEntry;
-use net::http_loader::LoadErrorType;
-use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpResponse, UIProvider, HttpState};
+use net::http_loader::{LoadErrorType, HttpResponse};
+use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, UIProvider, HttpState};
 use net::resource_thread::{AuthCacheEntry, CancellationListener};
-use net_traits::{LoadData, CookieSource, LoadContext, IncludeSubdomains};
+use net_traits::{LoadData, CookieSource, LoadContext, IncludeSubdomains, CustomResponse, RequestSource};
 use std::borrow::Cow;
 use std::io::{self, Write, Read, Cursor};
 use std::sync::mpsc::Receiver;
 use std::sync::{Arc, mpsc, RwLock};
+use std::thread;
 use url::Url;
 use util::prefs;
 
@@ -135,12 +136,27 @@ fn redirect_with_headers(host: String, mut headers: Headers) -> MockResponse {
     )
 }
 
+enum Source {
+    Window,
+    Worker
+}
+
+fn respond_404() -> MockResponse {
+    MockResponse::new(
+        Headers::new(),
+        StatusCode::NotFound,
+        RawStatus(404, Cow::Borrowed("Not Found")),
+        b"".to_vec()
+    )
+}
+
 enum ResponseType {
     Redirect(String),
     RedirectWithHeaders(String, Headers),
     Text(Vec<u8>),
     WithHeaders(Vec<u8>, Headers),
     NeedsAuth(Headers),
+    Dummy404
 }
 
 struct MockRequest {
@@ -169,6 +185,9 @@ fn response_for_request_type(t: ResponseType) -> Result<MockResponse, LoadError>
         },
         ResponseType::NeedsAuth(h) => {
             Ok(basic_auth(h))
+        },
+        ResponseType::Dummy404 => {
+            Ok(respond_404())
         }
     }
 }
@@ -1661,4 +1680,57 @@ fn test_no_referer_set_with_noreferrer_policy() {
     let referrer_policy = Some(ReferrerPolicy::NoReferrer);
 
     assert_referer_header_not_included(request_url, referrer_url, referrer_policy)
+}
+
+fn load_request_with_source(source: Source, expected_body: Vec<u8>) -> String {
+    use ipc_channel::ipc;
+    let (sender, receiver) = ipc::channel().unwrap();
+
+    struct Factory;
+    impl HttpRequestFactory for Factory {
+        type R = MockRequest;
+        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+            Ok(MockRequest::new(ResponseType::Dummy404))
+        }
+    }
+
+    let mock_response = CustomResponse::new(
+        Headers::new(),
+        RawStatus(200, Cow::Borrowed("Ok")),
+        expected_body
+    );
+    let url = Url::parse("http://mozilla.com").unwrap();
+    let http_state = HttpState::new();
+    let ui_provider = TestProvider::new();
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+
+    match source {
+        Source::Window => load_data.source = RequestSource::Window(sender.clone()),
+        Source::Worker => load_data.source = RequestSource::Worker(sender.clone()),
+    }
+
+    let join_handle = thread::spawn(move || {
+        load(
+        &load_data.clone(), &ui_provider, &http_state,
+        None, &Factory, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None))
+    });
+
+    let network_sender = receiver.recv().unwrap();
+    network_sender.send(Some(mock_response)).unwrap();
+    let mut streamed_response = join_handle.join().unwrap().unwrap();
+    read_response(&mut streamed_response)
+}
+
+#[test]
+fn test_custom_response_from_window() {
+    let expected_body = <[_]>::to_vec("Yay! From Window".as_bytes());
+    let actual_body = load_request_with_source(Source::Window, expected_body.clone());
+    assert_eq!(actual_body, String::from_utf8(expected_body).unwrap());
+}
+
+#[test]
+fn test_custom_response_from_worker() {
+    let expected_body = <[_]>::to_vec("Yay! From Worker".as_bytes());
+    let actual_body = load_request_with_source(Source::Worker, expected_body.clone());
+    assert_eq!(actual_body, String::from_utf8(expected_body).unwrap());
 }
