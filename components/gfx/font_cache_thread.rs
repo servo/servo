@@ -8,6 +8,7 @@ use ipc_channel::router::ROUTER;
 use mime::{TopLevel, SubLevel};
 use net_traits::{AsyncResponseTarget, LoadContext, PendingAsyncLoad, ResourceThread, ResponseAction};
 use platform::font_context::FontContextHandle;
+use platform::font_list::SANS_SERIF_FONT_FAMILY;
 use platform::font_list::for_each_available_family;
 use platform::font_list::for_each_variation;
 use platform::font_list::last_resort_font_families;
@@ -120,7 +121,7 @@ fn populate_generic_fonts() -> HashMap<FontFamily, LowercaseString> {
     let mut generic_fonts = HashMap::with_capacity(5);
 
     append_map(&mut generic_fonts, FontFamily::Serif, "Times New Roman");
-    append_map(&mut generic_fonts, FontFamily::SansSerif, "Arial");
+    append_map(&mut generic_fonts, FontFamily::SansSerif, SANS_SERIF_FONT_FAMILY);
     append_map(&mut generic_fonts, FontFamily::Cursive, "Apple Chancery");
     append_map(&mut generic_fonts, FontFamily::Fantasy, "Papyrus");
     append_map(&mut generic_fonts, FontFamily::Monospace, "Menlo");
