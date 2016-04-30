@@ -20,18 +20,57 @@ use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net::hsts::HstsEntry;
-use net::http_loader::LoadErrorType;
-use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, HttpResponse, UIProvider, HttpState};
+use net::http_loader::{LoadErrorType, HttpResponse};
+use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, UIProvider, HttpState};
 use net::resource_thread::{AuthCacheEntry, CancellationListener};
+use net_traits::{CustomResponse, RequestSource, Metadata, LoadOrigin};
 use net_traits::{LoadData, CookieSource, LoadContext, IncludeSubdomains};
 use std::borrow::Cow;
 use std::io::{self, Write, Read, Cursor};
 use std::sync::mpsc::Receiver;
 use std::sync::{Arc, mpsc, RwLock};
+use std::thread;
 use url::Url;
 use util::prefs;
 
 const DEFAULT_USER_AGENT: &'static str = "Test-agent";
+
+struct HttpTest;
+
+impl LoadOrigin for HttpTest {
+    fn referrer_url(&self) -> Option<Url> {
+        None
+    }
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        None
+    }
+    fn request_source(&self) -> RequestSource {
+        RequestSource::None
+    }
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        Some(PipelineId::fake_root_pipeline_id())
+    }
+}
+
+struct LoadOriginInfo<'a> {
+    referrer_url: &'a str,
+    referrer_policy: Option<ReferrerPolicy>,
+}
+
+impl<'a> LoadOrigin for LoadOriginInfo<'a> {
+    fn referrer_url(&self) -> Option<Url> {
+        Some(Url::parse(self.referrer_url).unwrap())
+    }
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        self.referrer_policy.clone()
+    }
+    fn request_source(&self) -> RequestSource {
+        RequestSource::None
+    }
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        None
+    }
+}
 
 fn respond_with(body: Vec<u8>) -> MockResponse {
     let headers = Headers::new();
@@ -135,12 +174,27 @@ fn redirect_with_headers(host: String, mut headers: Headers) -> MockResponse {
     )
 }
 
+enum Source {
+    Window,
+    Worker
+}
+
+fn respond_404() -> MockResponse {
+    MockResponse::new(
+        Headers::new(),
+        StatusCode::NotFound,
+        RawStatus(404, Cow::Borrowed("Not Found")),
+        b"".to_vec()
+    )
+}
+
 enum ResponseType {
     Redirect(String),
     RedirectWithHeaders(String, Headers),
     Text(Vec<u8>),
     WithHeaders(Vec<u8>, Headers),
     NeedsAuth(Headers),
+    Dummy404
 }
 
 struct MockRequest {
@@ -169,6 +223,9 @@ fn response_for_request_type(t: ResponseType) -> Result<MockResponse, LoadError>
         },
         ResponseType::NeedsAuth(h) => {
             Ok(basic_auth(h))
+        },
+        ResponseType::Dummy404 => {
+            Ok(respond_404())
         }
     }
 }
@@ -330,7 +387,7 @@ fn test_check_default_headers_loaded_in_every_request() {
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
 
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
     load_data.data = None;
     load_data.method = Method::Get;
 
@@ -374,7 +431,7 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
 
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
     load_data.data = None;
     load_data.method = Method::Post;
 
@@ -412,7 +469,7 @@ fn test_request_and_response_data_with_network_messages() {
     let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
     // This will probably have to be changed as it uses fake_root_pipeline_id which is marked for removal.
     let pipeline_id = PipelineId::fake_root_pipeline_id();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), Some(pipeline_id), None, None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
     let mut request_headers = Headers::new();
     request_headers.set(Host { hostname: "bar.foo".to_owned(), port: None });
     load_data.headers = request_headers.clone();
@@ -464,6 +521,22 @@ fn test_request_and_response_data_with_network_messages() {
     assert_eq!(devhttpresponse, httpresponse);
 }
 
+struct HttpTestNoPipeline;
+impl LoadOrigin for HttpTestNoPipeline {
+    fn referrer_url(&self) -> Option<Url> {
+        None
+    }
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        None
+    }
+    fn request_source(&self) -> RequestSource {
+        RequestSource::None
+    }
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        None
+    }
+}
+
 #[test]
 fn test_request_and_response_message_from_devtool_without_pipeline_id() {
     struct Factory;
@@ -485,7 +558,7 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
 
     let url = Url::parse("https://mozilla.com").unwrap();
     let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTestNoPipeline);
     let _ = load(&load_data, &ui_provider, &http_state, Some(devtools_chan), &Factory,
                  DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
 
@@ -514,7 +587,7 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
     load_data.method = Method::Post;
 
@@ -544,7 +617,7 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
@@ -578,7 +651,7 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
@@ -621,7 +694,7 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
     load_data.data = Some(<[_]>::to_vec("Body on POST!".as_bytes()));
 
@@ -653,7 +726,7 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
 
     let url = Url::parse("http://mozilla.com").unwrap();
 
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
@@ -685,7 +758,7 @@ fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present
 
     let url = Url::parse("https://mozilla.com").unwrap();
 
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
@@ -722,7 +795,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
 
     assert_cookie_for_domain(http_state.cookie_jar.clone(), "http://mozilla.com", "");
 
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
     let _ = load(&load_data,
                  &ui_provider, &http_state,
@@ -738,7 +811,7 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
 fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_resource_manager() {
     let url = Url::parse("http://mozilla.com").unwrap();
 
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
     let http_state = HttpState::new();
@@ -794,7 +867,7 @@ fn test_load_sends_secure_cookie_if_http_changed_to_https_due_to_entry_in_hsts_s
         cookie_jar.push(cookie, CookieSource::HTTP);
     }
 
-    let mut load_data = LoadData::new(LoadContext::Browsing, url, None, None, None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url, &HttpTest);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
     let mut headers = Headers::new();
@@ -826,7 +899,7 @@ fn test_load_sends_cookie_if_nonhttp() {
         cookie_jar.push(cookie, CookieSource::HTTP);
     }
 
-    let mut load_data = LoadData::new(LoadContext::Browsing, url, None, None, None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url, &HttpTest);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
     let mut headers = Headers::new();
@@ -860,7 +933,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
 
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
     let _ = load(&load_data,
                  &ui_provider, &http_state,
                  None,
@@ -890,7 +963,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
 
-    let load_data = LoadData::new(LoadContext::Browsing, Url::parse("http://mozilla.com").unwrap(), None, None, None);
+    let load_data = LoadData::new(LoadContext::Browsing, Url::parse("http://mozilla.com").unwrap(), &HttpTest);
     let _ = load(&load_data,
                  &ui_provider, &http_state,
                  None,
@@ -921,7 +994,7 @@ fn test_when_cookie_set_marked_httpsonly_secure_isnt_sent_on_http_request() {
         cookie_jar.push(cookie, CookieSource::HTTP);
     }
 
-    let mut load_data = LoadData::new(LoadContext::Browsing, url, None, None, None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url, &HttpTest);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
     assert_cookie_for_domain(http_state.cookie_jar.clone(), "https://mozilla.com", "mozillaIs=theBest");
@@ -939,7 +1012,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
     let content = "This is a request body";
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
     load_data.data = Some(<[_]>::to_vec(content.as_bytes()));
 
@@ -965,7 +1038,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
     accept_headers.set(Accept(vec![text_html.clone()]));
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
     load_data.headers.set(Accept(vec![text_html.clone()]));
@@ -994,7 +1067,7 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
     ]));
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
@@ -1017,7 +1090,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
     accept_encoding_headers.set(AcceptEncoding(vec![qitem(Encoding::Chunked)]));
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
     load_data.headers.set(AcceptEncoding(vec![qitem(Encoding::Chunked)]));
 
@@ -1042,7 +1115,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
                                                     qitem(Encoding::EncodingExt("br".to_owned()))]));
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
     load_data.data = Some(<[_]>::to_vec("Yay!".as_bytes()));
 
     let http_state = HttpState::new();
@@ -1077,7 +1150,7 @@ fn test_load_errors_when_there_a_redirect_loop() {
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
@@ -1106,7 +1179,7 @@ fn test_load_errors_when_there_is_too_many_redirects() {
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
@@ -1153,7 +1226,7 @@ fn test_load_follows_a_redirect() {
     }
 
     let url = Url::parse("http://mozilla.com").unwrap();
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
 
@@ -1180,7 +1253,7 @@ impl HttpRequestFactory for DontConnectFactory {
 #[test]
 fn test_load_errors_when_scheme_is_not_http_or_https() {
     let url = Url::parse("ftp://not-supported").unwrap();
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
@@ -1199,7 +1272,7 @@ fn test_load_errors_when_scheme_is_not_http_or_https() {
 #[test]
 fn test_load_errors_when_viewing_source_and_inner_url_scheme_is_not_http_or_https() {
     let url = Url::parse("view-source:ftp://not-supported").unwrap();
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
@@ -1242,7 +1315,7 @@ fn test_load_errors_when_cancelled() {
     cancel_sender.send(()).unwrap();
 
     let url = Url::parse("https://mozilla.com").unwrap();
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
 
@@ -1291,7 +1364,7 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
         }
     }
 
-    let load_data = LoadData::new(LoadContext::Browsing, url_x.clone(), None, None, None);
+    let load_data = LoadData::new(LoadContext::Browsing, url_x.clone(), &HttpTest);
 
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
@@ -1357,7 +1430,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
         }
     }
 
-    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), None, None, None);
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
@@ -1390,7 +1463,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
 
     http_state.auth_cache.write().unwrap().entries.insert(url.clone(), auth_entry);
 
-    let mut load_data = LoadData::new(LoadContext::Browsing, url, None, None, None);
+    let mut load_data = LoadData::new(LoadContext::Browsing, url, &HttpTest);
     load_data.credentials_flag = true;
 
     let mut auth_header = Headers::new();
@@ -1429,7 +1502,7 @@ fn test_auth_ui_sets_header_on_401() {
        )
     );
 
-    let load_data = LoadData::new(LoadContext::Browsing, url, None, None, None);
+    let load_data = LoadData::new(LoadContext::Browsing, url, &HttpTest);
 
     match load(
         &load_data, &ui_provider, &http_state,
@@ -1465,7 +1538,7 @@ fn test_auth_ui_needs_www_auth() {
         }
     }
 
-    let load_data = LoadData::new(LoadContext::Browsing, url, None, None, None);
+    let load_data = LoadData::new(LoadContext::Browsing, url, &HttpTest);
 
     let response = load(&load_data, &AuthProvider, &http_state,
                         None, &Factory, DEFAULT_USER_AGENT.to_owned(),
@@ -1478,19 +1551,15 @@ fn test_auth_ui_needs_www_auth() {
     }
 }
 
-fn assert_referer_header_matches(request_url: &str,
-                                 referrer_url: &str,
-                                 referrer_policy: Option<ReferrerPolicy>,
+fn assert_referer_header_matches(origin_info: &LoadOrigin,
+                                 request_url: &str,
                                  expected_referrer: &str) {
-    let ref_url = Url::parse(referrer_url).unwrap();
     let url = Url::parse(request_url).unwrap();
     let ui_provider = TestProvider::new();
 
     let load_data = LoadData::new(LoadContext::Browsing,
                                   url.clone(),
-                                  None,
-                                  referrer_policy,
-                                  Some(ref_url));
+                                  origin_info);
 
     let mut referer_headers = Headers::new();
     referer_headers.set(Referer(expected_referrer.to_owned()));
@@ -1505,16 +1574,13 @@ fn assert_referer_header_matches(request_url: &str,
                  &CancellationListener::new(None));
 }
 
-fn assert_referer_header_not_included(request_url: &str, referrer_url: &str, referrer_policy: Option<ReferrerPolicy>) {
-    let ref_url = Url::parse(referrer_url).unwrap();
+fn assert_referer_header_not_included(origin_info: &LoadOrigin, request_url: &str) {
     let url = Url::parse(request_url).unwrap();
     let ui_provider = TestProvider::new();
 
     let load_data = LoadData::new(LoadContext::Browsing,
                                   url.clone(),
-                                  None,
-                                  referrer_policy,
-                                  Some(ref_url));
+                                  origin_info);
 
     let http_state = HttpState::new();
 
@@ -1533,17 +1599,27 @@ fn test_referer_set_to_origin_with_originonly_policy() {
     let referrer_policy = Some(ReferrerPolicy::OriginOnly);
     let expected_referrer = "http://someurl.com/";
 
-    assert_referer_header_matches(request_url, referrer_url, referrer_policy, expected_referrer);
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
 fn test_referer_set_to_stripped_url_with_unsafeurl_policy() {
+
     let request_url = "http://mozilla.com";
     let referrer_url = "http://username:password@someurl.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::UnsafeUrl);
     let expected_referrer = "http://someurl.com/some/path";
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
 
-    assert_referer_header_matches(request_url, referrer_url, referrer_policy, expected_referrer);
+    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
@@ -1553,7 +1629,12 @@ fn test_referer_with_originwhencrossorigin_policy_cross_orig() {
     let referrer_policy = Some(ReferrerPolicy::OriginWhenCrossOrigin);
     let expected_referrer = "http://someurl.com/";
 
-    assert_referer_header_matches(request_url, referrer_url, referrer_policy, expected_referrer);
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
@@ -1563,7 +1644,12 @@ fn test_referer_with_originwhencrossorigin_policy_same_orig() {
     let referrer_policy = Some(ReferrerPolicy::OriginWhenCrossOrigin);
     let expected_referrer = "http://mozilla.com/some/path";
 
-    assert_referer_header_matches(request_url, referrer_url, referrer_policy, expected_referrer);
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
@@ -1573,7 +1659,12 @@ fn test_http_to_https_considered_cross_origin_for_referer_header_logic() {
     let referrer_policy = Some(ReferrerPolicy::OriginWhenCrossOrigin);
     let expected_referrer = "http://mozilla.com/";
 
-    assert_referer_header_matches(request_url, referrer_url, referrer_policy, expected_referrer);
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
@@ -1583,7 +1674,12 @@ fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_https_to_http
     let referrer_policy = Some(ReferrerPolicy::NoRefWhenDowngrade);
     let expected_referrer = "https://mozilla.com/some/path";
 
-    assert_referer_header_matches(request_url, referrer_url, referrer_policy, expected_referrer);
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy,
+    };
+
+    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
@@ -1592,7 +1688,12 @@ fn test_no_referer_set_with_noreferrerwhendowngrade_policy_https_to_http() {
     let referrer_url = "https://username:password@mozilla.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::NoRefWhenDowngrade);
 
-    assert_referer_header_not_included(request_url, referrer_url, referrer_policy)
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referer_header_not_included(&origin_info, request_url)
 }
 
 #[test]
@@ -1602,7 +1703,12 @@ fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_https
     let referrer_policy = Some(ReferrerPolicy::NoRefWhenDowngrade);
     let expected_referrer = "http://mozilla.com/some/path";
 
-    assert_referer_header_matches(request_url, referrer_url, referrer_policy, expected_referrer);
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
@@ -1612,7 +1718,12 @@ fn test_referer_set_to_ref_url_with_noreferrerwhendowngrade_policy_http_to_http(
     let referrer_policy = Some(ReferrerPolicy::NoRefWhenDowngrade);
     let expected_referrer = "http://mozilla.com/some/path";
 
-    assert_referer_header_matches(request_url, referrer_url, referrer_policy, expected_referrer);
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
@@ -1622,7 +1733,12 @@ fn test_no_referrer_policy_follows_noreferrerwhendowngrade_https_to_https() {
     let referrer_policy = None;
     let expected_referrer = "https://mozilla.com/some/path";
 
-    assert_referer_header_matches(request_url, referrer_url, referrer_policy, expected_referrer);
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
@@ -1631,7 +1747,12 @@ fn test_no_referrer_policy_follows_noreferrerwhendowngrade_https_to_http() {
     let referrer_url = "https://username:password@mozilla.com/some/path#fragment";
     let referrer_policy = None;
 
-    assert_referer_header_not_included(request_url, referrer_url, referrer_policy);
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referer_header_not_included(&origin_info, request_url);
 }
 
 #[test]
@@ -1641,7 +1762,12 @@ fn test_no_referrer_policy_follows_noreferrerwhendowngrade_http_to_https() {
     let referrer_policy = None;
     let expected_referrer = "http://mozilla.com/some/path";
 
-    assert_referer_header_matches(request_url, referrer_url, referrer_policy, expected_referrer);
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
@@ -1651,14 +1777,87 @@ fn test_no_referrer_policy_follows_noreferrerwhendowngrade_http_to_http() {
     let referrer_policy = None;
     let expected_referrer = "http://mozilla.com/some/path";
 
-    assert_referer_header_matches(request_url, referrer_url, referrer_policy, expected_referrer);
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy
+    };
+
+    assert_referer_header_matches(&origin_info, request_url, expected_referrer);
 }
 
 #[test]
 fn test_no_referer_set_with_noreferrer_policy() {
+
     let request_url = "http://mozilla.com";
     let referrer_url = "http://someurl.com";
     let referrer_policy = Some(ReferrerPolicy::NoReferrer);
 
-    assert_referer_header_not_included(request_url, referrer_url, referrer_policy)
+    let origin_info = LoadOriginInfo {
+        referrer_url: referrer_url,
+        referrer_policy: referrer_policy,
+    };
+
+    assert_referer_header_not_included(&origin_info, request_url)
+}
+
+fn load_request_with_source(source: Source, expected_body: Vec<u8>) -> (Metadata, String) {
+    use ipc_channel::ipc;
+    let (sender, receiver) = ipc::channel().unwrap();
+
+    struct Factory;
+    impl HttpRequestFactory for Factory {
+        type R = MockRequest;
+        fn create(&self, _: Url, _: Method, _: Headers) -> Result<MockRequest, LoadError> {
+            Ok(MockRequest::new(ResponseType::Dummy404))
+        }
+    }
+
+    let mock_response = CustomResponse::new(
+        Headers::new(),
+        RawStatus(200, Cow::Borrowed("OK")),
+        expected_body
+    );
+    let url = Url::parse("http://mozilla.com").unwrap();
+    let http_state = HttpState::new();
+    let ui_provider = TestProvider::new();
+    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
+
+    match source {
+        Source::Window => load_data.source = RequestSource::Window(sender.clone()),
+        Source::Worker => load_data.source = RequestSource::Worker(sender.clone()),
+    }
+
+    let join_handle = thread::spawn(move || {
+        let response = load(&load_data.clone(), &ui_provider, &http_state,
+        None, &Factory, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+        match response {
+            Ok(mut response) => {
+                let metadata = response.metadata.clone();
+                let body = read_response(&mut response);
+                (metadata, body)
+            }
+            Err(e) => panic!("Error Getting Response: {:?}", e)
+        }
+    });
+
+    let network_sender = receiver.recv().unwrap();
+    network_sender.send(Some(mock_response)).unwrap();
+    let (metadata, body) = join_handle.join().unwrap();
+    (metadata, body)
+}
+
+#[test]
+fn test_custom_response_from_window() {
+    let expected_body = b"Yay! From Window".to_vec();
+    let (metadata, body) = load_request_with_source(Source::Window, expected_body.clone());
+    assert_eq!(metadata.status, Some(RawStatus(200, Cow::Borrowed("OK"))));
+    assert_eq!(body, String::from_utf8(expected_body).unwrap());
+}
+
+#[test]
+fn test_custom_response_from_worker() {
+    let expected_body = b"Yay! From Worker".to_vec();
+    let (metadata, body) = load_request_with_source(Source::Worker, expected_body.clone());
+    assert_eq!(metadata.status, Some(RawStatus(200, Cow::Borrowed("OK"))));
+    assert_eq!(body, String::from_utf8(expected_body).unwrap());
 }
