@@ -24,10 +24,13 @@ use js::jsapi::{HandleValue, JSContext, JSRuntime, RootedValue};
 use js::jsapi::{JSAutoCompartment, JS_RequestInterruptCallback};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use net_traits::{RequestSource, LoadOrigin};
 use script_thread::Runnable;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Sender, channel};
 use std::sync::{Arc, Mutex};
+use url::Url;
 use util::str::DOMString;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
@@ -43,6 +46,29 @@ pub struct Worker {
     closing: Arc<AtomicBool>,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
     runtime: Arc<Mutex<Option<SharedRt>>>
+}
+
+#[derive(Clone)]
+pub struct WorkerScriptLoadOrigin {
+    referrer_url: Option<Url>,
+    referrer_policy: Option<ReferrerPolicy>,
+    request_source: RequestSource,
+    pipeline_id: Option<PipelineId>
+}
+
+impl LoadOrigin for WorkerScriptLoadOrigin {
+    fn referrer_url(&self) -> Option<Url> {
+        self.referrer_url.clone()
+    }
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        self.referrer_policy.clone()
+    }
+    fn request_source(&self) -> RequestSource {
+        self.request_source.clone()
+    }
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        self.pipeline_id.clone()
+    }
 }
 
 impl Worker {
@@ -82,6 +108,13 @@ impl Worker {
         let worker_ref = Trusted::new(worker.r());
         let worker_id = global.get_next_worker_id();
 
+        let worker_load_origin = WorkerScriptLoadOrigin {
+            referrer_url: None,
+            referrer_policy: None,
+            request_source: global.request_source(),
+            pipeline_id: Some(global.pipeline())
+        };
+
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
         let optional_sender = match global.devtools_chan() {
             Some(ref chan) => {
@@ -114,7 +147,7 @@ impl Worker {
 
         DedicatedWorkerGlobalScope::run_worker_scope(
             init, worker_url, global.pipeline(), devtools_receiver, worker.runtime.clone(), worker_ref,
-            global.script_chan(), sender, receiver);
+            global.script_chan(), sender, receiver, worker_load_origin);
 
         Ok(worker)
     }
