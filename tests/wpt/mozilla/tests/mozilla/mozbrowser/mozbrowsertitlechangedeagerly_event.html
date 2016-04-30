@@ -1,0 +1,23 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Check if title_changed is too eager (issue #10782)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body></body>
+<script>
+    async_test(function(t) {
+        var iframe = document.createElement("iframe");
+        iframe.mozbrowser = "true";
+        iframe.src = "mozbrowsertitlechangedeagerly_event_iframe.html";
+        iframe.addEventListener("mozbrowsertitlechange", t.step_func(e => {
+            assert_equals(e.type, "mozbrowsertitlechange");
+            assert_not_equals(e.detail, "Bar");
+        }));
+        iframe.addEventListener("mozbrowsershowmodalprompt", t.step_func(e => {
+            assert_equals(e.detail.promptType, "alert");
+            assert_equals(e.detail.message, "done");
+            t.done();
+        }));
+        document.body.appendChild(iframe);
+    });
+</script>

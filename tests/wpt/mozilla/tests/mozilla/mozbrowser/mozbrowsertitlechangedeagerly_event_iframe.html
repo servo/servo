@@ -1,0 +1,22 @@
+<html>
+    <head>
+        <title>Foo</title>
+        <script>
+            setTimeout(() => {
+                var text =
+                        '<html xmlns="http://www.w3.org/1999/xhtml">' +
+                        '  <head>' +
+                        '    <title>Bar</title>' +
+                        '  </head>' +
+                        '</html>';
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(text, "text/xml");
+                //window.alert("done");
+            }, 100);
+            setTimeout(() => {
+                window.alert("done");
+            }, 1000);
+        </script>
+    </head>
+    <body>Hello world</body>
+</html>
