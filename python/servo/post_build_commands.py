@@ -14,7 +14,6 @@ import os
 import os.path as path
 import subprocess
 from shutil import copytree, rmtree, copy2
-import sys
 
 from mach.registrar import Registrar
 
@@ -136,6 +135,8 @@ class PostBuildCommands(CommandBase):
                 args = args + ['-w']
             else:
                 print("Webrender not enabled as Windows support is experimental. To force webrender: pass -w")
+                # Convert to a relative path to avoid mingw -> Windows path conversions
+                browserhtml_path = path.relpath(browserhtml_path, os.getcwd())
 
             args = args + ['-b', '--pref', 'dom.mozbrowser.enabled',
                            path.join(browserhtml_path, 'out', 'index.html')]
