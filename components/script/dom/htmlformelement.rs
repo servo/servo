@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::AttrValue;
+use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
@@ -15,10 +16,12 @@ use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, Nod
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::Reflectable;
+use dom::blob::Blob;
 use dom::document::Document;
 use dom::element::Element;
 use dom::event::{EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::file::File;
 use dom::htmlbuttonelement::HTMLButtonElement;
 use dom::htmlcollection::CollectionFilter;
 use dom::htmldatalistelement::HTMLDataListElement;
@@ -33,19 +36,23 @@ use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
-use hyper::header::ContentType;
+use encoding::EncodingRef;
+use encoding::all::UTF_8;
+use encoding::label::encoding_from_whatwg_label;
+use hyper::header::{Charset, ContentDisposition, ContentType, DispositionParam, DispositionType};
 use hyper::method::Method;
-use hyper::mime;
 use msg::constellation_msg::{LoadData, PipelineId};
+use rand::random;
 use script_runtime::ScriptChan;
 use script_thread::{MainThreadScriptMsg, Runnable};
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::str::from_utf8;
 use std::sync::mpsc::Sender;
 use string_cache::Atom;
 use task_source::dom_manipulation::DOMManipulationTask;
 use url::form_urlencoded;
-use util::str::DOMString;
+use util::str::{DOMString, split_html_space_chars};
 
 #[derive(JSTraceable, PartialEq, Clone, Copy, HeapSizeOf)]
 pub struct GenerationId(u32);
@@ -237,6 +244,86 @@ pub enum ResetFrom {
 
 
 impl HTMLFormElement {
+    fn generate_boundary(&self) -> String {
+        let i1 = random::<u32>();
+        let i2 = random::<u32>();
+
+        format!("---------------------------{0}{1}", i1, i2)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#picking-an-encoding-for-the-form
+    fn pick_encoding(&self) -> EncodingRef {
+        // Step 2
+        if self.upcast::<Element>().has_attribute(&atom!("accept-charset")) {
+            // Substep 1
+            let input = self.upcast::<Element>().get_string_attribute(&atom!("accept-charset"));
+
+            // Substep 2, 3, 4
+            let mut candidate_encodings = split_html_space_chars(&*input).filter_map(encoding_from_whatwg_label);
+
+            // Substep 5, 6
+            return candidate_encodings.next().unwrap_or(UTF_8);
+        }
+
+        // Step 1, 3
+        document_from_node(self).encoding()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm
+    fn encode_form_data(&self, form_data: &mut Vec<FormDatum>,
+                               encoding: Option<EncodingRef>,
+                               boundary: String) -> String {
+        // Step 1
+        let mut result = "".to_owned();
+
+        // Step 2
+        // (maybe take encoding as input)
+        let encoding = encoding.unwrap_or(self.pick_encoding());
+
+        //  Step 3
+        let charset = &*encoding.whatwg_name().unwrap();
+
+        // Step 4
+        for entry in form_data.iter_mut() {
+            // Substep 1
+            if entry.name == "_charset_" && entry.ty == "hidden" {
+                entry.value = FormDatumValue::String(DOMString::from(charset.clone()));
+            }
+            // TODO: Substep 2
+
+            // Step 5
+            // https://tools.ietf.org/html/rfc7578#section-4
+            result.push_str(&*format!("\r\n--{}\r\n", boundary));
+            let mut content_disposition = ContentDisposition {
+                disposition: DispositionType::Ext("form-data".to_owned()),
+                parameters: vec![DispositionParam::Ext("name".to_owned(), String::from(entry.name.clone()))]
+            };
+
+            match entry.value {
+                FormDatumValue::String(ref s) =>
+                    result.push_str(&*format!("Content-Disposition: {}\r\n\r\n{}",
+                        content_disposition,
+                        s)),
+                FormDatumValue::File(ref f) => {
+                    content_disposition.parameters.push(
+                        DispositionParam::Filename(Charset::Ext(String::from(charset.clone())),
+                                                   None,
+                                                   f.name().clone().into()));
+                    let content_type = ContentType(f.upcast::<Blob>().Type().parse().unwrap());
+                    result.push_str(&*format!("Content-Disposition: {}\r\n{}\r\n\r\n",
+                        content_disposition,
+                        content_type));
+
+                    result.push_str(from_utf8(&f.upcast::<Blob>().get_data().get_bytes()).unwrap());
+                }
+            }
+        }
+
+        result.push_str(&*format!("\r\n--{}--", boundary));
+
+        return result;
+    }
+
     /// [Form submission](https://html.spec.whatwg.org/multipage/#concept-form-submit)
     pub fn submit(&self, submit_method_flag: SubmittedFrom, submitter: FormSubmitter) {
         // Step 1
@@ -264,7 +351,7 @@ impl HTMLFormElement {
             }
         }
         // Step 6
-        let form_data = self.get_form_dataset(Some(submitter));
+        let mut form_data = self.get_form_dataset(Some(submitter));
         // Step 7
         let mut action = submitter.action();
         // Step 8
@@ -287,13 +374,21 @@ impl HTMLFormElement {
 
         let parsed_data = match enctype {
             FormEncType::UrlEncoded => {
-                let mime: mime::Mime = "application/x-www-form-urlencoded".parse().unwrap();
-                load_data.headers.set(ContentType(mime));
+                load_data.headers.set(ContentType::form_url_encoded());
+
                 form_urlencoded::Serializer::new(String::new())
-                    .extend_pairs(form_data.into_iter().map(|field| (field.name, field.value)))
+                    .extend_pairs(form_data.into_iter().map(|field| (field.name.clone(), field.value_str())))
                     .finish()
             }
-            _ => "".to_owned() // TODO: Add serializers for the other encoding types
+            FormEncType::FormDataEncoded => {
+                let boundary = self.generate_boundary();
+                let mime = mime!(Multipart / FormData; Boundary =(&boundary));
+                load_data.headers.set(ContentType(mime));
+
+                self.encode_form_data(&mut form_data, None, boundary)
+            }
+            // TODO: Support plain text encoding
+            FormEncType::TextPlainEncoded => "".to_owned()
         };
 
         // Step 18
@@ -311,6 +406,7 @@ impl HTMLFormElement {
             ("http", FormMethod::FormPost) | ("https", FormMethod::FormPost) => {
                 load_data.method = Method::Post;
                 load_data.data = Some(parsed_data.into_bytes());
+                self.plan_to_navigate(load_data, &win);
             }
             // https://html.spec.whatwg.org/multipage/#submit-get-action
             ("file", _) | ("about", _) | ("data", FormMethod::FormGet) |
@@ -435,7 +531,7 @@ impl HTMLFormElement {
                             data_set.push(FormDatum {
                                 ty: textarea.Type(),
                                 name: name,
-                                value: textarea.Value()
+                                value: FormDatumValue::String(textarea.Value())
                             });
                         }
                     }
@@ -489,7 +585,10 @@ impl HTMLFormElement {
                 "file" | "textarea" => (),
                 _ => {
                     datum.name = clean_crlf(&datum.name);
-                    datum.value = clean_crlf(&datum.value);
+                    datum.value = FormDatumValue::String(clean_crlf( match datum.value {
+                        FormDatumValue::String(ref s) => s,
+                        FormDatumValue::File(_) => unreachable!()
+                    }));
                 }
             }
         };
@@ -544,12 +643,25 @@ impl HTMLFormElement {
 
 }
 
-// TODO: add file support
-#[derive(HeapSizeOf)]
+pub enum FormDatumValue {
+    File(Root<File>),
+    String(DOMString)
+}
+
+// #[derive(HeapSizeOf)]
 pub struct FormDatum {
     pub ty: DOMString,
     pub name: DOMString,
-    pub value: DOMString
+    pub value: FormDatumValue
+}
+
+impl FormDatum {
+    pub fn value_str(&self) -> String {
+        match self.value {
+            FormDatumValue::String(ref s) => String::from(s.clone()),
+            FormDatumValue::File(ref f) => String::from(f.name().clone())
+        }
+    }
 }
 
 #[derive(Copy, Clone, HeapSizeOf)]
