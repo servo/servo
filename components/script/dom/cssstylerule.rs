@@ -9,9 +9,9 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::cssrule::CSSRule;
 use dom::window::Window;
+use std::string::String;
 use style::stylesheets;
 use util::str::DOMString;
-use std::string::String;
 
 #[dom_struct]
 pub struct CSSStyleRule {
