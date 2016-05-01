@@ -162,12 +162,12 @@ impl AttrValue {
     // https://html.spec.whatwg.org/multipage/#reflecting-content-attributes-in-idl-attributes:idl-double
     pub fn from_double(string: DOMString, default: f64) -> AttrValue {
         let result = parse_double(&string).unwrap_or(default);
-        let result = if result.is_infinite() {
-            default
+
+        if result.is_normal() {
+            AttrValue::Double(string, result)
         } else {
-            result
-        };
-        AttrValue::Double(string, result)
+            AttrValue::Double(string, default)
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#limited-to-only-non-negative-numbers
@@ -190,6 +190,17 @@ impl AttrValue {
             result
         };
         AttrValue::UInt(string, result)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#limited-to-numbers-greater-than-zero
+    pub fn from_limited_double(string: DOMString, default: f64) -> AttrValue {
+        let result = parse_double(&string).unwrap_or(default);
+
+        if result > 0.0 && result.is_normal() {
+            AttrValue::Double(string, result)
+        } else {
+            AttrValue::Double(string, default)
+        }
     }
 
     pub fn from_atomic(string: DOMString) -> AttrValue {
