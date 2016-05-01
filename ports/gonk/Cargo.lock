@@ -672,6 +672,7 @@ dependencies = [
  "url 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "webrender_traits 0.1.0 (git+https://github.com/servo/webrender_traits)",
+ "xi-unicode 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2340,6 +2341,11 @@ dependencies = [
  "dylib 0.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "xi-unicode"
+version = "0.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "xml-rs"
