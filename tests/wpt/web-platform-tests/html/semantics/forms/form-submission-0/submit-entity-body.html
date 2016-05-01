@@ -19,6 +19,13 @@ var simple_tests = [
     submitaction: function(doc) { doc.getElementById("testform").submit(); }
   },
   {
+    name: "form submission from form should navigate to url with text/plain",
+    input: "<textarea name=qux>baz</textarea>",
+    enctype: "text/plain",
+    submitelement: "",
+    submitaction: function(doc) { doc.getElementById("testform").submit(); }
+  },
+  {
     name: "form submission from button should navigate to url with x-www-form-urlencoded",
     input: "<input name=foo value=bara>",
     enctype: "application/x-www-form-urlencoded",
@@ -29,6 +36,13 @@ var simple_tests = [
     name: "form submission from button should navigate to url with multipart/form-data",
     input: "<textarea name=foo>bar</textarea>",
     enctype: "multipart/form-data",
+    submitelement: "<button id=buttonsubmit type=\"submit\">Submit</button>",
+    submitaction: function(doc) { doc.getElementById("buttonsubmit").click(); }
+  },
+  {
+    name: "form submission from button should navigate to url with text/plain",
+    input: "<textarea name=qux>baz</textarea>",
+    enctype: "text/plain",
     submitelement: "<button id=buttonsubmit type=\"submit\">Submit</button>",
     submitaction: function(doc) { doc.getElementById("buttonsubmit").click(); }
   },
@@ -46,6 +60,13 @@ var simple_tests = [
     submitelement: "<input id=inputsubmit type=\"submit\">Submit</input>",
     submitaction: function(doc) { doc.getElementById("inputsubmit").click(); }
   },
+  {
+    name: "form submission from input should navigate to url with text/plain",
+    input: "<input name=qux value=baz>",
+    enctype: "text/plain",
+    submitelement: "<input id=inputsubmit type=\"submit\">Submit</input>",
+    submitaction: function(doc) { doc.getElementById("inputsubmit").click(); }
+  }
 ];
 simple_tests.forEach(function(test_obj) {
   test_obj.test = async_test(test_obj.name);

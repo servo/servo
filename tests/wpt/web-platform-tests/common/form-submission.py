@@ -4,6 +4,11 @@ def main(request, response):
             return 'OK'
         else:
             return 'FAIL'
+    elif request.headers.get('Content-Type') == 'text/plain':
+        if request.body == 'qux=baz\r\n':
+            return 'OK'
+        else:
+            return 'FAIL'
     else:
         if request.POST.first('foo') == 'bar':
             return 'OK'
