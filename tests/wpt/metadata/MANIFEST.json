@@ -35238,10 +35238,7 @@
     "wdspec": []
   },
   "local_changes": {
-    "deleted": [
-      "html/dom/documents/dom-tree-accessors/document.body-getter.html",
-      "html/dom/documents/dom-tree-accessors/document.body-setter-01.html"
-    ],
+    "deleted": [],
     "deleted_reftests": {},
     "items": {
       "reftest": {
@@ -35275,6 +35272,12 @@
           {
             "path": "html/semantics/scripting-1/the-script-element/scripting-enabled.html",
             "url": "/html/semantics/scripting-1/the-script-element/scripting-enabled.html"
+          }
+        ],
+        "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html": [
+          {
+            "path": "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html",
+            "url": "/html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html"
           }
         ]
       }
