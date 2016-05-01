@@ -39,6 +39,7 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ops::Range;
 use string_cache::Atom;
+use style::attr;
 use style::element_state::*;
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
@@ -119,6 +120,9 @@ impl InputActivationState {
 
 static DEFAULT_INPUT_SIZE: u32 = 20;
 static DEFAULT_MAX_LENGTH: i32 = -1;
+static DEFAULT_MAX_FOR_RANGE: f64 = 100.0;
+static DEFAULT_MIN_FOR_RANGE: f64 = 0.0;
+static DEFAULT_DOUBLE: f64 = 0.0;
 
 impl HTMLInputElement {
     fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
@@ -446,7 +450,16 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_getter!(Max, "max");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-max
-    make_setter!(SetMax, "max");
+    fn SetMax(&self, value: DOMString) {
+        let element = self.upcast::<Element>();
+        if let Ok(val) = attr::parse_double(&value) {
+            element.set_double_attribute(&atom!("max"), val);
+        } else {
+            if self.type_() == atom!("range") {
+                element.set_double_attribute(&atom!("max"), DEFAULT_MAX_FOR_RANGE);
+            }
+        }
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-maxlength
     make_int_getter!(MaxLength, "maxlength", DEFAULT_MAX_LENGTH);
@@ -458,7 +471,16 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_getter!(Min, "min");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-min
-    make_setter!(SetMin, "min");
+    fn SetMin(&self, value: DOMString) {
+        let element = self.upcast::<Element>();
+        if let Ok(val) = attr::parse_double(&value) {
+            element.set_double_attribute(&atom!("min"), val);
+        } else {
+            if self.type_() == atom!("range") {
+                element.set_double_attribute(&atom!("min"), DEFAULT_MIN_FOR_RANGE);
+            }
+        }
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-multiple
     make_bool_getter!(Multiple, "multiple");
@@ -864,6 +886,8 @@ impl VirtualMethods for HTMLInputElement {
             &atom!("accept") => AttrValue::from_comma_separated_tokenlist(value),
             &atom!("alt") |
             &atom!("dirname") => AttrValue::String(value),
+            &atom!("max") => AttrValue::from_double(value, DEFAULT_DOUBLE),
+            &atom!("min") => AttrValue::from_double(value, DEFAULT_DOUBLE),
             &atom!("name") => AttrValue::from_atomic(value),
             &atom!("size") => AttrValue::from_limited_u32(value, DEFAULT_INPUT_SIZE),
             &atom!("type") => AttrValue::from_atomic(value),
