@@ -321,7 +321,7 @@ impl HTMLFormElement {
 
         result.push_str(&*format!("\r\n--{}--", boundary));
 
-        return result;
+        result
     }
 
     /// [Form submission](https://html.spec.whatwg.org/multipage/#concept-form-submit)
@@ -377,6 +377,7 @@ impl HTMLFormElement {
                 load_data.headers.set(ContentType::form_url_encoded());
 
                 form_urlencoded::Serializer::new(String::new())
+                    .encoding_override(Some(self.pick_encoding()))
                     .extend_pairs(form_data.into_iter().map(|field| (field.name.clone(), field.value_str())))
                     .finish()
             }
