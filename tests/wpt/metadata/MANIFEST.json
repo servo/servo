@@ -35259,6 +35259,12 @@
         ]
       },
       "testharness": {
+        "html/browsers/browsing-the-web/navigating-across-documents/empty_fragment.html": [
+          {
+            "path": "html/browsers/browsing-the-web/navigating-across-documents/empty_fragment.html",
+            "url": "/html/browsers/browsing-the-web/navigating-across-documents/empty_fragment.html"
+          }
+        ],
         "html/dom/documents/dom-tree-accessors/Document.body.html": [
           {
             "path": "html/dom/documents/dom-tree-accessors/Document.body.html",
