@@ -40,7 +40,7 @@ impl CSSRuleList {
 impl CSSRuleListMethods for CSSRuleList {
     // https://drafts.csswg.org/cssom/#dom-stylesheetlist-length
     fn Length(&self) -> u32 {
-       (self.stylesheet).deref().CssRules().Length()
+       (self.stylesheet).deref().get_cssstylesheet().rules.len() as u32
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheetlist-item
