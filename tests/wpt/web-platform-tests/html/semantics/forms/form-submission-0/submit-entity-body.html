@@ -14,6 +14,11 @@ var simple_tests = [
     input: "<textarea name=foo>bar</textarea>",
     enctype: "multipart/form-data"
   },
+  {
+    name: "form submission should navigate to url with text/plain",
+    input: "<input name=qux value=baz>",
+    enctype: "text/plain"
+  }
 ];
 simple_tests.forEach(function(test_obj) {
   test_obj.test = async_test(test_obj.name);
