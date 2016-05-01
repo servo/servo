@@ -32,12 +32,15 @@ use script_runtime::{CommonScriptMsg, ScriptChan};
 use script_thread::Runnable;
 use std::sync::Arc;
 use string_cache::Atom;
+use style::computed_values::white_space;
 use style::font_face;
 use style::parser::{ParserContext, log_css_error};
 use style::media_queries::Expression;
 use style::values::specified::Length;
 use url::Url;
+use util;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
+use util::str::slice_chars;
 
 #[derive(JSTraceable, HeapSizeOf)]
 #[allow(dead_code)]
@@ -419,7 +422,22 @@ fn parse_a_sizes_attribute(input: &mut Parser, width: Option<u32>)-> Result<Size
                 Ok((try!(input.expect_string())).into_owned())
             });
     for unparsed_size in unparsed_sizes_list{
-        
+        let mut trailing_whitespace_character_count = 0;
+        let len = unparsed_size.len();
+        for ch in unparsed_size.chars().rev() {
+            if util::str::char_is_whitespace(ch) {
+                trailing_whitespace_character_count += 1
+            } else {
+                break
+            }
+        }
+        let new_len = len-trailing_whitespace_character_count;
+        if new_len!=0{
+
+        }
+        else {
+            
+        }
     }
 
    // let unparsed_sizes_list = try!(input.parse_comma_separated(input));
