@@ -1477,6 +1477,43 @@ pub mod specified {
     }
 
     #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, HeapSizeOf)]
+    pub struct Number(pub CSSFloat);
+
+    impl Number {
+        pub fn parse(input: &mut Parser) -> Result<Number, ()> {
+            parse_number(input).map(Number)
+        }
+
+        fn parse_with_minimum(input: &mut Parser, min: CSSFloat) -> Result<Number, ()> {
+            match parse_number(input) {
+                Ok(value) if value < min => Err(()),
+                value => value.map(Number),
+            }
+        }
+
+        pub fn parse_non_negative(input: &mut Parser) -> Result<Number, ()> {
+            Number::parse_with_minimum(input, 0.0)
+        }
+
+        pub fn parse_at_least_one(input: &mut Parser) -> Result<Number, ()> {
+            Number::parse_with_minimum(input, 1.0)
+        }
+    }
+
+    impl ToComputedValue for Number {
+        type ComputedValue = CSSFloat;
+
+        #[inline]
+        fn to_computed_value<Cx: TContext>(&self, _: &Cx) -> CSSFloat { self.0 }
+    }
+
+    impl ToCss for Number {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.0.to_css(dest)
+        }
+    }
+
+    #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, HeapSizeOf)]
     pub struct Opacity(pub CSSFloat);
 
     impl Opacity {
@@ -2117,5 +2154,6 @@ pub mod computed {
         }
     }
     pub type Length = Au;
+    pub type Number = CSSFloat;
     pub type Opacity = CSSFloat;
 }
