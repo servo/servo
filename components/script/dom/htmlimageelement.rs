@@ -56,7 +56,7 @@ struct ImageRequest {
 }
 
 struct Size{
-    expression: Expression,
+    expression: Option<Expression>,
     length: Length,
 }
 #[dom_struct]
@@ -409,12 +409,18 @@ fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
     element.set_attribute(&attr, value);
 }
 
-fn parse_a_sizes_attribute(size: String, width: Option<u32>)-> Size{
+fn parse_a_sizes_attribute(input: &mut Parser, width: Option<u32>)-> Result<Size,()>{
     let s_Size : Size;
    // s_Size:Length=0;
    // s_Size:Expression:width = 100 ;
     //parse comma separated
-    let mut input = &mut Parser::new(&size);
+    //let mut input = &mut Parser::new(&size);
+ let unparsed_sizes_list = input.parse_comma_separated(|input| {
+                Ok((try!(input.expect_string())).into_owned())
+            });
+    for unparsed_size in unparsed_sizes_list{
+        
+    }
 
    // let unparsed_sizes_list = try!(input.parse_comma_separated(input));
   // let unparsed_sizes_list = 
@@ -427,8 +433,9 @@ fn parse_a_sizes_attribute(size: String, width: Option<u32>)-> Size{
     if()
    }*/
 
-
-    return s_Size;
+ /*   Ok(Size::length {
+        width:
+    }))*/
 
 }
     
