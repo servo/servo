@@ -1,5 +1,6 @@
-input                   { background: white; min-height: 1.0em; padding: 0em; padding-left: 0.25em; padding-right: 0.25em; border: solid lightgrey 1px; color: black; white-space: nowrap; text-align: left; }
-textarea                { background: white; min-height: 1.0em; padding: 0em; padding-left: 0.25em; padding-right: 0.25em; border: solid lightgrey 1px; color: black; white-space: pre; }
+button,
+input                   { background: white; min-height: 1.0em; padding: 0em; padding-left: 0.25em; padding-right: 0.25em; border: solid lightgrey 1px; color: black; font-family: sans-serif; font-size: 0.7em; white-space: nowrap; text-align: left; line-height: 1.8; }
+textarea                { background: white; min-height: 1.0em; padding: 0em; padding-left: 0.25em; padding-right: 0.25em; border: solid lightgrey 1px; color: black; font-family: sans-serif; font-size: 0.7em; white-space: pre; }
 input::selection,
 textarea::selection     { background: rgba(176, 214, 255, 1.0); color: black; }
 button,
