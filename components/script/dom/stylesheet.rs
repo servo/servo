@@ -12,6 +12,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::element::Element;
 use dom::node::Node;
+use dom::processinginstruction::ProcessingInstruction;
 use dom::window::Window;
 use util::str::DOMString;
 
@@ -68,8 +69,23 @@ impl StyleSheetMethods for StyleSheet {
         self.title.clone()
     }
 
+<<<<<<< ff9a6e7df127f956a80b5e0c9859d00b8db0d4dc
     // https://drafts.csswg.org/cssom/#dom-stylesheet-title
     fn GetOwnerNode(&self) -> Option<UnionTypes::ElementOrProcessingInstruction>{
         None
     }   
+=======
+    // https://drafts.csswg.org/cssom/#dom-stylesheet-ownernode
+   /* fn GetOwnerNode(&self) -> Option<UnionTypes::ElementOrProcessingInstruction>{
+        //None
+        if let Some(Element) = Some(Root::downcast::<Element>(Root::from_ref(self.owner.unwrap().deref()))){
+          let x = Root::downcast::<Element>(Root::from_ref(self.owner.unwrap().deref()));
+          UnionTypes::ElementOrProcessingInstruction::Element(x.unwrap());
+         }
+        else{
+          let x = Root::downcast::<ProcessingInstruction>(Root::from_ref(self.owner.unwrap().deref()));
+          UnionTypes::ElementOrProcessingInstruction::ProcessingInstruction(x.unwrap());
+        }
+    }*/
+>>>>>>> tried to fix review comments
 }
