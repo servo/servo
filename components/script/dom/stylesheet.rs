@@ -5,7 +5,7 @@
 use core::ops::Deref;
 use dom::bindings::codegen::Bindings::StyleSheetBinding;
 use dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
-use dom::bindings::codegen::UnionTypes;
+use dom::bindings::codegen::UnionTypes;//::ElementOrProcessingInstruction::{Element, Pr};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
@@ -37,7 +37,9 @@ impl StyleSheet {
             type_: type_,
             href: href,
             title: title,
-            owner: Some(JS::from_ref(owner.unwrap()))
+            owner: owner.map(|node: &Node| {
+              JS::from_ref(node)
+            })
         }
     }
 
@@ -70,16 +72,16 @@ impl StyleSheetMethods for StyleSheet {
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-ownernode
-   /* fn GetOwnerNode(&self) -> Option<UnionTypes::ElementOrProcessingInstruction>{
-        //None
-        if let Some(Element) = Some(Root::downcast::<Element>(Root::from_ref(self.owner.unwrap().deref()))){
-          let x = Root::downcast::<Element>(Root::from_ref(self.owner.unwrap().deref()));
-          UnionTypes::ElementOrProcessingInstruction::Element(x.unwrap());
-         }
-        else{
-          let x = Root::downcast::<ProcessingInstruction>(Root::from_ref(self.owner.unwrap().deref()));
-          UnionTypes::ElementOrProcessingInstruction::ProcessingInstruction(x.unwrap());
-        }
-    }*/
+    fn GetOwnerNode(&self) -> Option<UnionTypes::ElementOrProcessingInstruction>{
+        
+        self.owner.as_ref().map(|owner: &JS<Node>| {
+          if let Some(elem) = Root::downcast::<Element>(Root::from_ref(owner.deref())) {
+            UnionTypes::ElementOrProcessingInstruction::Element(elem)  
+          } else {
+            let instr: Option<Root<ProcessingInstruction>> = Root::downcast::<ProcessingInstruction>(Root::from_ref(owner.deref()));
+            UnionTypes::ElementOrProcessingInstruction::ProcessingInstruction(instr.unwrap())
+          }
+        })
+    }
 }
 
