@@ -36263,7 +36263,16 @@
   "local_changes": {
     "deleted": [],
     "deleted_reftests": {},
-    "items": {},
+    "items": {
+      "testharness": {
+        "html/browsers/browsing-the-web/navigating-across-documents/empty_fragment.html": [
+          {
+            "path": "html/browsers/browsing-the-web/navigating-across-documents/empty_fragment.html",
+            "url": "/html/browsers/browsing-the-web/navigating-across-documents/empty_fragment.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
