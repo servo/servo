@@ -1188,11 +1188,31 @@ impl Element {
             None => default,
         }
     }
+
     pub fn set_uint_attribute(&self, local_name: &Atom, value: u32) {
         assert!(*local_name == local_name.to_ascii_lowercase());
         // FIXME(ajeffrey): Directly convert u32 to DOMString
         self.set_attribute(local_name,
                            AttrValue::UInt(DOMString::from(value.to_string()), value));
+    }
+
+    pub fn set_double_attribute(&self, local_name: &Atom, value: f64) {
+        assert!(*local_name == local_name.to_ascii_lowercase());
+        self.set_attribute(local_name,
+                           AttrValue::Double(DOMString::from(value.to_string()), value));
+    }
+
+    pub fn get_double_attribute(&self, local_name: &Atom, default: f64) -> f64 {
+        let attribute = self.get_attribute(&ns!(), local_name);
+        match attribute {
+            Some(ref attribute) => {
+                match *attribute.value() {
+                    AttrValue::Double(_, value) => value,
+                    _ => panic!("Expected an AttrValue::Double: implement parse_plain_attribute"),
+                }
+            }
+            None => default,
+        }
     }
 
     pub fn will_mutate_attr(&self) {
