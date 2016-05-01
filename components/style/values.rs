@@ -1475,6 +1475,36 @@ pub mod specified {
             write!(dest, "{}s", self.0)
         }
     }
+
+    #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, HeapSizeOf)]
+    pub struct Opacity(pub CSSFloat);
+
+    impl Opacity {
+        pub fn parse(input: &mut Parser) -> Result<Opacity, ()> {
+            parse_number(input).map(Opacity)
+        }
+    }
+
+    impl ToComputedValue for Opacity {
+        type ComputedValue = CSSFloat;
+
+        #[inline]
+        fn to_computed_value<Cx: TContext>(&self, _: &Cx) -> CSSFloat {
+            if self.0 < 0.0 {
+                0.0
+            } else if self.0 > 1.0 {
+                1.0
+            } else {
+                self.0
+            }
+        }
+    }
+
+    impl ToCss for Opacity {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            self.0.to_css(dest)
+        }
+    }
 }
 
 pub mod computed {
@@ -2087,4 +2117,5 @@ pub mod computed {
         }
     }
     pub type Length = Au;
+    pub type Opacity = CSSFloat;
 }

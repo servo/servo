@@ -7,46 +7,9 @@
 // Box-shadow, etc.
 <% data.new_style_struct("Effects", inherited=False) %>
 
-<%helpers:longhand name="opacity">
-    use cssparser::ToCss;
-    use std::fmt;
-    use values::CSSFloat;
-
-    impl ToCss for SpecifiedValue {
-        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-            self.0.to_css(dest)
-        }
-    }
-
-    #[derive(Debug, Clone, PartialEq, HeapSizeOf)]
-    pub struct SpecifiedValue(pub CSSFloat);
-    pub mod computed_value {
-        use values::CSSFloat;
-        pub type T = CSSFloat;
-    }
-    #[inline]
-    pub fn get_initial_value() -> computed_value::T {
-        1.0
-    }
-
-    impl ToComputedValue for SpecifiedValue {
-        type ComputedValue = computed_value::T;
-
-        #[inline]
-        fn to_computed_value<Cx: TContext>(&self, _context: &Cx) -> computed_value::T {
-            if self.0 < 0.0 {
-                0.0
-            } else if self.0 > 1.0 {
-                1.0
-            } else {
-                self.0
-            }
-        }
-    }
-    fn parse(_context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
-        specified::parse_number(input).map(SpecifiedValue)
-    }
-</%helpers:longhand>
+${helpers.predefined_type("opacity",
+                          "Opacity",
+                          "1.0")}
 
 <%helpers:longhand name="box-shadow">
     use cssparser::{self, ToCss};

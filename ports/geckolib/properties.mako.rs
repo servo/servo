@@ -295,7 +295,7 @@ impl Debug for ${style_struct.gecko_ffi_name} {
    # These are booleans.
    force_stub += ["page-break-after", "page-break-before"]
 
-   simple_types = []
+   simple_types = ["Opacity"]
 
    keyword_longhands = [x for x in longhands if x.keyword and not x.name in force_stub]
    simple_longhands = [x for x in longhands
