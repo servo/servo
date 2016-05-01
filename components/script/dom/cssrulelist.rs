@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use core::ops::Deref;
 use dom::bindings::codegen::Bindings::CSSRuleListBinding;
 use dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
+use dom::bindings::codegen::Bindings::CSSStyleSheetBinding::CSSStyleSheetMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -38,7 +40,7 @@ impl CSSRuleList {
 impl CSSRuleListMethods for CSSRuleList {
     // https://drafts.csswg.org/cssom/#dom-stylesheetlist-length
     fn Length(&self) -> u32 {
-       self.stylesheet.get_cssstylesheet().heap_size_of_children() as u32
+       (self.stylesheet).deref().CssRules().Length()
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheetlist-item

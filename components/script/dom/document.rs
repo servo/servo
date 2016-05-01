@@ -1830,6 +1830,7 @@ impl Document {
 
         let mut stylesheets = self.stylesheets.borrow_mut();
         let (ref mut node, ref mut sheet) = (*self.stylesheets.borrow()).unwrap()[index as usize];
+        //let (ref mut node, ref mut sheet) = self.stylesheets.clone();
         CSSStyleSheet::new(&self.window, *sheet)
     }*/
 }

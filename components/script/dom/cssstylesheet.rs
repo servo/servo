@@ -19,7 +19,6 @@ use util::str::DOMString;
 pub struct CSSStyleSheet {
     ss: StyleSheet,
     stylesheet: Arc<Stylesheet>,
-        //node: Node,
 }
 
 impl CSSStyleSheet {
@@ -28,7 +27,6 @@ impl CSSStyleSheet {
         CSSStyleSheet {
             ss: StyleSheet::new_inherited(DOMString::from_string(String::from("text/css")), None, None, None),
             stylesheet: stylesheet,
-            //node: *node,
         }
     }
 
