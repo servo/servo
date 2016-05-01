@@ -324,6 +324,36 @@ impl HTMLFormElement {
         result
     }
 
+    // https://html.spec.whatwg.org/multipage/#text/plain-encoding-algorithm
+    fn encode_plaintext(&self, form_data: &mut Vec<FormDatum>) -> String {
+        // Step 1
+        let mut result = String::new();
+
+        // Step 2
+        let encoding = self.pick_encoding();
+
+        // Step 3
+        let charset = &*encoding.whatwg_name().unwrap();
+
+        for entry in form_data.iter_mut() {
+            // Step 4
+            if entry.name == "_charset_" && entry.ty == "hidden" {
+                entry.value = FormDatumValue::String(DOMString::from(charset.clone()));
+            }
+
+            // Step 5
+            if entry.ty == "file" {
+                entry.value = FormDatumValue::String(DOMString::from(entry.value_str()));
+            }
+
+            // Step 6
+            result.push_str(&*format!("{}={}\r\n", entry.name, entry.value_str()));
+        }
+
+        // Step 7
+        result
+    }
+
     /// [Form submission](https://html.spec.whatwg.org/multipage/#concept-form-submit)
     pub fn submit(&self, submit_method_flag: SubmittedFrom, submitter: FormSubmitter) {
         // Step 1
@@ -388,8 +418,11 @@ impl HTMLFormElement {
 
                 self.encode_multipart_form_data(&mut form_data, None, boundary)
             }
-            // TODO: Support plain text encoding
-            FormEncType::TextPlainEncoded => "".to_owned()
+            FormEncType::TextPlainEncoded => {
+                load_data.headers.set(ContentType(mime!(Text / Plain)));
+
+                self.encode_plaintext(&mut form_data)
+            }
         };
 
         // Step 18
