@@ -9,8 +9,9 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::cssrule::CSSRule;
 use dom::window::Window;
+use style::stylesheets;
 use util::str::DOMString;
-
+use std::string::String;
 
 #[dom_struct]
 pub struct CSSStyleRule {
@@ -20,19 +21,19 @@ pub struct CSSStyleRule {
 
 impl CSSStyleRule {
     #[allow(unrooted_must_root)]
-    fn new_inherited(cssrule: CSSRule, selectortext: DOMString) -> CSSStyleRule {
+    fn new_inherited(selectortext: DOMString) -> CSSStyleRule {
         CSSStyleRule {
-            cssrule: cssrule,
+            cssrule: CSSRule::new_inherited(stylesheets::CSSRule::Charset(String::from(selectortext.clone()))),
             selectortext: selectortext,
         }
     }
 
-    /*#[allow(unrooted_must_root)]
-    pub fn new(window: &Window, cssrule: CSSRule, selectortext: DOMString) -> Root<CSSStyleRule> {
-        reflect_dom_object(box CSSStyleRule::new_inherited(cssrule, selectortext),
+    #[allow(unrooted_must_root)]
+    pub fn new(window: &Window, selectortext: DOMString) -> Root<CSSStyleRule> {
+        reflect_dom_object(box CSSStyleRule::new_inherited(selectortext),
                            GlobalRef::Window(window),
                            CSSStyleRuleBinding::Wrap)
-    }*/
+    }
 }
 
 impl CSSStyleRuleMethods for CSSStyleRule {
