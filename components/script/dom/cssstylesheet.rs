@@ -43,7 +43,7 @@ impl CSSStyleSheet {
 }
 
 impl CSSStyleSheetMethods for CSSStyleSheet {
-        // https://drafts.csswg.org/cssom/#dom-stylesheetlist-cssrules
+    // https://drafts.csswg.org/cssom/#dom-stylesheetlist-cssrules
     fn CssRules(&self) -> Root<CSSRuleList>  {
     // TODO: step 1
         Root::from_ref(&CSSRuleList::new_inherited(&self))
