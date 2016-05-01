@@ -69,13 +69,14 @@ impl DOMParserMethods for DOMParser {
                 Ok(document)
             }
             Text_xml => {
+                // FIXME: this should probably be FromParser when we actually parse the string (#3756).
                 let document = Document::new(&self.window,
                                              None,
                                              Some(url.clone()),
                                              IsHTMLDocument::NonHTMLDocument,
                                              Some(content_type),
                                              None,
-                                             DocumentSource::FromParser,
+                                             DocumentSource::NotFromParser,
                                              loader);
                 parse_xml(document.r(), s, url, xml::ParseContext::Owner(None));
                 Ok(document)
