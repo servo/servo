@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
 set -o errexit
 set -o nounset
 set -o pipefail
@@ -11,6 +12,6 @@ set -o pipefail
 # Adding "--binary=" to skip looking for a compiled servo binary.
 ./mach test-wpt --manifest-update --binary= SKIP_TESTS > /dev/null
 
-diff=$(git diff -- tests/*/MANIFEST.json)
+diff="$(git diff -- tests/*/MANIFEST.json)"
 echo "$diff"
 [[ ! $diff ]]
