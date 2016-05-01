@@ -270,9 +270,9 @@ impl HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm
-    fn encode_form_data(&self, form_data: &mut Vec<FormDatum>,
-                               encoding: Option<EncodingRef>,
-                               boundary: String) -> String {
+    fn encode_multipart_form_data(&self, form_data: &mut Vec<FormDatum>,
+                                  encoding: Option<EncodingRef>,
+                                  boundary: String) -> String {
         // Step 1
         let mut result = "".to_owned();
 
@@ -385,7 +385,7 @@ impl HTMLFormElement {
                 let mime = mime!(Multipart / FormData; Boundary =(&boundary));
                 load_data.headers.set(ContentType(mime));
 
-                self.encode_form_data(&mut form_data, None, boundary)
+                self.encode_multipart_form_data(&mut form_data, None, boundary)
             }
             // TODO: Support plain text encoding
             FormEncType::TextPlainEncoded => "".to_owned()
