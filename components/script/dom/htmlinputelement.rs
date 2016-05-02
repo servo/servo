@@ -29,6 +29,7 @@ use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc::IpcSender;
 use script_traits::ScriptMsg as ConstellationMsg;
+use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ops::Range;
@@ -491,16 +492,33 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_bool_setter!(SetRequired, "required");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-src
-    make_getter!(Src, "src");
+    make_url_getter!(Src, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-src
-    make_setter!(SetSrc, "src");
+    make_url_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-step
     make_getter!(Step, "step");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-step
-    make_setter!(SetStep, "step");
+    fn SetStep(&self, value: DOMString) {
+        let element = self.upcast::<Element>();
+        if value.eq_ignore_ascii_case("any") {
+            element.set_string_attribute(&atom!("step"), value);
+            return;
+        }
+
+        let value = match self.type_() {
+            atom!("date") | atom!("month") | atom!("week") => {
+                AttrValue::from_limited_double(value, 1.0)
+            }
+            atom!("time") => {
+                AttrValue::from_limited_double(value, 60.0)
+            }
+            _ => return
+        };
+        element.set_string_attribute(&atom!("step"), DOMString::from(&*value));
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
     fn Indeterminate(&self) -> bool {
@@ -884,6 +902,7 @@ impl VirtualMethods for HTMLInputElement {
             &atom!("min") => AttrValue::from_double(value, DEFAULT_DOUBLE),
             &atom!("name") => AttrValue::from_atomic(value),
             &atom!("size") => AttrValue::from_limited_u32(value, DEFAULT_INPUT_SIZE),
+            &atom!("src") => AttrValue::from_url(document_from_node(self).url(), value),
             &atom!("type") => AttrValue::from_atomic(value),
             &atom!("maxlength") => AttrValue::from_limited_i32(value, DEFAULT_MAX_LENGTH),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
