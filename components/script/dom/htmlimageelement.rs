@@ -426,17 +426,30 @@ fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
 // }
 
 fn parse_a_sizes_attribute(input: DOMString, width: Option<u32>)-> Result<Size,()>{
-    let s_Size : Size;
+    
 
   //  let mut iter = Parser::new(input);
 
     let unparsed_sizes_list = input.deref().split(',').collect::<Vec<_>>();
 
-
+    let last_component = unparsed_sizes_list[unparsed_sizes_list.len()-1];
+    let mut parser_last = Parser::new(last_component);
+    let size_length = parser_last.try(Length::parse_non_negative);
+    match size_length {
+        Ok(len) => {
+            let s_Size = Size{
+                length: len,
+                expression: None 
+            };
+        },
+        Err(e) => {}
+    }
     for unparsed_size in unparsed_sizes_list{
         let whitespace = unparsed_size.chars().rev().take_while(|c| util::str::char_is_whitespace(*c)).count();
         let trimmed = unparsed_size.chars().take(unparsed_size.chars().count() - whitespace);
+        
     }
+    Ok(s_Size)
 
    // let unparsed_sizes_list = try!(input.parse_comma_separated(input));
   // let unparsed_sizes_list = 
