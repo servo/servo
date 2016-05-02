@@ -76,7 +76,7 @@ impl StyleSheetMethods for StyleSheet {
         
         self.owner.as_ref().map(|owner: &JS<Node>| {
           if let Some(elem) = Root::downcast::<Element>(Root::from_ref(owner.deref())) {
-            UnionTypes::ElementOrProcessingInstruction::Element(elem)  
+            UnionTypes::ElementOrProcessingInstruction::Element(elem)
           } else {
             let instr: Option<Root<ProcessingInstruction>> = Root::downcast::<ProcessingInstruction>(Root::from_ref(owner.deref()));
             UnionTypes::ElementOrProcessingInstruction::ProcessingInstruction(instr.unwrap())
@@ -84,4 +84,3 @@ impl StyleSheetMethods for StyleSheet {
         })
     }
 }
-
