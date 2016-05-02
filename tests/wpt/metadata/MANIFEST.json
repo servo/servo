@@ -35270,6 +35270,12 @@
             "path": "html/semantics/forms/form-submission-0/submit-entity-body.html",
             "url": "/html/semantics/forms/form-submission-0/submit-entity-body.html"
           }
+        ],
+        "html/semantics/scripting-1/the-script-element/scripting-enabled.html": [
+          {
+            "path": "html/semantics/scripting-1/the-script-element/scripting-enabled.html",
+            "url": "/html/semantics/scripting-1/the-script-element/scripting-enabled.html"
+          }
         ]
       }
     },
