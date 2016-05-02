@@ -891,7 +891,7 @@ pub const NS_ERROR_XPATH_INVALID_ARG: nsresult =
     nsresult::NS_ERROR_ILLEGAL_VALUE;
 pub const NS_SUCCESS_RESTART_APP: nsresult = nsresult::NS_SUCCESS_DONT_FIXUP;
 #[repr(i32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsresult {
     NS_OK = 0,
     NS_ERROR_BASE = -1041039360,
@@ -1322,9 +1322,8 @@ pub enum nsresult {
     NS_ERROR_DOM_BLUETOOTH_AUTH_REJECTED = -2140536821,
     NS_ERROR_SIGNED_APP_MANIFEST_INVALID = -2140471295,
     NS_ERROR_DOM_ANIM_MISSING_PROPS_ERR = -2140405759,
-    NS_ERROR_DOM_ANIM_NO_TARGET_ERR = -2140405758,
-    NS_ERROR_DOM_ANIM_NO_TIMELINE_ERR = -2140405757,
-    NS_ERROR_DOM_ANIM_NO_EFFECT_ERR = -2140405756,
+    NS_ERROR_DOM_ANIM_NO_TIMELINE_ERR = -2140405758,
+    NS_ERROR_DOM_ANIM_NO_EFFECT_ERR = -2140405757,
     NS_ERROR_DOM_PUSH_INVALID_REGISTRATION_ERR = -2140340223,
     NS_ERROR_DOM_PUSH_DENIED_ERR = -2140340222,
     NS_ERROR_DOM_PUSH_ABORT_ERR = -2140340221,
@@ -1394,7 +1393,7 @@ pub struct nsAString_internal {
     pub mFlags: u32,
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsAString_internal_nsTSubstring_h_unnamed_1 {
     F_NONE = 0,
     F_TERMINATED = 1,
@@ -1432,7 +1431,7 @@ pub struct nsACString_internal {
     pub mFlags: u32,
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsACString_internal_nsTSubstring_h_unnamed_2 {
     F_NONE = 0,
     F_TERMINATED = 1,
@@ -1538,7 +1537,7 @@ pub struct nsAutoString {
     pub mStorage: [::std::os::raw::c_ushort; 64usize],
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsAutoString_nsTString_h_unnamed_3 { kDefaultStorageSize = 64, }
 #[test]
 fn bindgen_test_layout_nsAutoString() {
@@ -1624,7 +1623,7 @@ pub struct nsAutoCString {
     pub mStorage: [::std::os::raw::c_char; 64usize],
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsAutoCString_nsTString_h_unnamed_4 { kDefaultStorageSize = 64, }
 #[test]
 fn bindgen_test_layout_nsAutoCString() {
@@ -1709,7 +1708,7 @@ fn bindgen_test_layout_NS_ConvertUTF8toUTF16() {
 pub type nsVoidableString = nsAutoString;
 pub enum ErrorReporter { }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsCSSTokenType {
     eCSSToken_Whitespace = 0,
     eCSSToken_Comment = 1,
@@ -1735,7 +1734,7 @@ pub enum nsCSSTokenType {
     eCSSToken_HTMLComment = 21,
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsCSSTokenSerializationType {
     eCSSTokenSerialization_Nothing = 0,
     eCSSTokenSerialization_Whitespace = 1,
@@ -1799,7 +1798,7 @@ fn bindgen_test_layout_nsCSSScannerPosition() {
     assert_eq!(::std::mem::align_of::<nsCSSScannerPosition>() , 4usize);
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsCSSScannerExclude {
     eCSSScannerExclude_None = 0,
     eCSSScannerExclude_Comments = 1,
@@ -1825,7 +1824,7 @@ pub struct nsCSSScanner {
     pub mSeenVariableReference: bool,
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsCSSScanner_EOFCharacters {
     eEOFCharacters_None = 0,
     eEOFCharacters_DropBackslash = 1,
@@ -2260,7 +2259,7 @@ fn bindgen_test_layout_PLDHashTable_Iterator() {
     assert_eq!(::std::mem::align_of::<PLDHashTable_Iterator>() , 8usize);
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum PLDHashTable_SearchReason { ForSearchOrRemove = 0, ForAdd = 1, }
 #[test]
 fn bindgen_test_layout_PLDHashTable() {
@@ -2407,7 +2406,7 @@ fn bindgen_test_layout_CSSVariableValues() {
     assert_eq!(::std::mem::align_of::<CSSVariableValues>() , 8usize);
 }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum SheetType {
     Agent = 0,
     User = 1,
@@ -2454,14 +2453,14 @@ pub type gfxFloat = f64;
  * @see nsLineLayout::NotifyOptionalBreakPosition
  */
 #[repr(i32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum gfxBreakPriority {
     eNoBreak = 0,
     eWordWrapBreak = 1,
     eNormalBreak = 2,
 }
 #[repr(i32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum gfxSurfaceType {
     Image = 0,
     PDF = 1,
@@ -2490,7 +2489,7 @@ pub enum gfxSurfaceType {
     Max = 24,
 }
 #[repr(i32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum gfxContentType {
     COLOR = 4096,
     ALPHA = 8192,
@@ -2499,7 +2498,7 @@ pub enum gfxContentType {
 }
 pub type Float = f32;
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum SurfaceType {
     DATA = 0,
     D2D1_BITMAP = 1,
@@ -2517,7 +2516,7 @@ pub enum SurfaceType {
 pub const A8R8G8B8_UINT32: SurfaceFormat = SurfaceFormat::B8G8R8A8;
 pub const X8R8G8B8_UINT32: SurfaceFormat = SurfaceFormat::B8G8R8X8;
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum SurfaceFormat {
     B8G8R8A8 = 0,
     B8G8R8X8 = 1,
@@ -2533,7 +2532,7 @@ pub enum SurfaceFormat {
     UNKNOWN = 11,
 }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum FilterType {
     BLEND = 0,
     TRANSFORM = 1,
@@ -2563,14 +2562,14 @@ pub enum FilterType {
     UNPREMULTIPLY = 25,
 }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum DrawTargetType {
     SOFTWARE_RASTER = 0,
     HARDWARE_RASTER = 1,
     VECTOR = 2,
 }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum BackendType {
     NONE = 0,
     DIRECT2D = 1,
@@ -2582,7 +2581,7 @@ pub enum BackendType {
     DIRECT2D1_1 = 7,
 }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum FontType {
     DWRITE = 0,
     GDI = 1,
@@ -2592,7 +2591,7 @@ pub enum FontType {
     COREGRAPHICS = 5,
 }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum NativeSurfaceType {
     D3D10_TEXTURE = 0,
     CAIRO_CONTEXT = 1,
@@ -2601,7 +2600,7 @@ pub enum NativeSurfaceType {
     OPENGL_TEXTURE = 4,
 }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum NativeFontType {
     DWRITE_FONT_FACE = 0,
     GDI_FONT_FACE = 1,
@@ -2610,13 +2609,13 @@ pub enum NativeFontType {
     CAIRO_FONT_FACE = 4,
 }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum FontStyle { NORMAL = 0, ITALIC = 1, BOLD = 2, BOLD_ITALIC = 3, }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum FontHinting { NONE = 0, LIGHT = 1, NORMAL = 2, FULL = 3, }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum CompositionOp {
     OP_OVER = 0,
     OP_ADD = 1,
@@ -2647,10 +2646,10 @@ pub enum CompositionOp {
     OP_COUNT = 26,
 }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum Axis { X_AXIS = 0, Y_AXIS = 1, BOTH = 2, }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum ExtendMode {
     CLAMP = 0,
     REPEAT = 1,
@@ -2659,16 +2658,16 @@ pub enum ExtendMode {
     REFLECT = 4,
 }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum FillRule { FILL_WINDING = 0, FILL_EVEN_ODD = 1, }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum AntialiasMode { NONE = 0, GRAY = 1, SUBPIXEL = 2, DEFAULT = 3, }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum Filter { GOOD = 0, LINEAR = 1, POINT = 2, SENTINEL = 3, }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum PatternType {
     COLOR = 0,
     SURFACE = 1,
@@ -2676,13 +2675,13 @@ pub enum PatternType {
     RADIAL_GRADIENT = 3,
 }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum JoinStyle { BEVEL = 0, ROUND = 1, MITER = 2, MITER_OR_BEVEL = 3, }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum CapStyle { BUTT = 0, ROUND = 1, SQUARE = 2, }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum SamplingBounds { UNBOUNDED = 0, BOUNDED = 1, }
 #[repr(C)]
 #[derive(Debug, Copy)]
@@ -2715,14 +2714,14 @@ fn bindgen_test_layout_GradientStop() {
     assert_eq!(::std::mem::align_of::<GradientStop>() , 4usize);
 }
 #[repr(i32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum JobStatus { Complete = 0, Wait = 1, Yield = 2, Error = 3, }
 pub type gfxImageFormat = SurfaceFormat;
 #[repr(C)]
 #[derive(Debug, Copy)]
 pub struct RectCorner;
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum RectCorner_Types_h_unnamed_5 {
     TopLeft = 0,
     TopRight = 1,
@@ -2734,7 +2733,7 @@ impl ::std::clone::Clone for RectCorner {
     fn clone(&self) -> Self { *self }
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum Side {
     eSideTop = 0,
     eSideRight = 1,
@@ -2742,7 +2741,7 @@ pub enum Side {
     eSideLeft = 3,
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum SideBits {
     eSideBitsNone = 0,
     eSideBitsTop = 1,
@@ -2854,7 +2853,7 @@ pub const eFamily_generic_count: FontFamilyType =
  * between unquoted and quoted names for serializaiton
  */
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum FontFamilyType {
     eFamily_none = 0,
     eFamily_named = 1,
@@ -2868,7 +2867,7 @@ pub enum FontFamilyType {
     eFamily_moz_fixed = 9,
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum QuotedName { eQuotedName = 0, eUnquotedName = 1, }
 /**
  * font family name, a string for the name if not a generic and
@@ -2971,13 +2970,13 @@ fn bindgen_test_layout_nsFont() {
     assert_eq!(::std::mem::align_of::<nsFont>() , 8usize);
 }
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum StyleBoxSizing { Content = 0, Padding = 1, Border = 2, }
 #[repr(i32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum PlaybackDirection { _BindgenOpaqueEnum = 0, }
 #[repr(i32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum FillMode { _BindgenOpaqueEnum = 0, }
 pub enum nsIContentSecurityPolicy { }
 pub enum nsIDOMDocument { }
@@ -3027,7 +3026,7 @@ pub const eCSSProperty_COUNT_DUMMY3: nsCSSProperty =
 pub const eCSSPropertyExtra_no_properties: nsCSSProperty =
     nsCSSProperty::eCSSProperty_COUNT_with_aliases;
 #[repr(i32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsCSSProperty {
     eCSSProperty_UNKNOWN = -1,
     eCSSProperty_align_content = 0,
@@ -3459,7 +3458,7 @@ pub enum nsCSSProperty {
     eCSSPropertyExtra_variable = 426,
 }
 #[repr(i32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsCSSFontDesc {
     eCSSFontDesc_UNKNOWN = -1,
     eCSSFontDesc_Family = 0,
@@ -3474,7 +3473,7 @@ pub enum nsCSSFontDesc {
     eCSSFontDesc_COUNT = 9,
 }
 #[repr(i32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsCSSCounterDesc {
     eCSSCounterDesc_UNKNOWN = -1,
     eCSSCounterDesc_System = 0,
@@ -3490,7 +3489,7 @@ pub enum nsCSSCounterDesc {
     eCSSCounterDesc_COUNT = 10,
 }
 #[repr(i32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsCSSPropertyLogicalGroup {
     eCSSPropertyLogicalGroup_UNKNOWN = -1,
     eCSSPropertyLogicalGroup_BorderColor = 0,
@@ -3583,7 +3582,7 @@ fn bindgen_test_layout_FontFamilyListRefCnt() {
     assert_eq!(::std::mem::align_of::<FontFamilyListRefCnt>() , 8usize);
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsCSSUnit {
     eCSSUnit_Null = 0,
     eCSSUnit_Auto = 1,
@@ -3674,7 +3673,7 @@ pub struct nsCSSValue {
     pub mValue: nsCSSValue_nsCSSValue_h_unnamed_8,
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsCSSValue_Serialization { eNormalized = 0, eAuthorSpecified = 1, }
 #[repr(C)]
 #[derive(Debug, Copy)]
@@ -4008,7 +4007,7 @@ fn bindgen_test_layout_CounterStyleManager() {
  * invariants.
  */
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum SheetParsingMode {
     eAuthorSheetFeatures = 0,
     eUserSheetFeatures = 1,
@@ -4025,7 +4024,7 @@ pub struct _vftable_nsIRequest {
     pub _base: _vftable_nsISupports,
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsIRequest_nsIRequest_h_unnamed_9 {
     LOAD_REQUESTMASK = 65535,
     LOAD_NORMAL = 0,
@@ -4138,13 +4137,13 @@ pub struct ArenaRefPtr<T> {
     pub _phantom0: ::std::marker::PhantomData<T>,
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum LogicalAxis { eLogicalAxisBlock = 0, eLogicalAxisInline = 1, }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum LogicalEdge { eLogicalEdgeStart = 0, eLogicalEdgeEnd = 1, }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum LogicalSide {
     eLogicalSideBStart = 0,
     eLogicalSideBEnd = 1,
@@ -4153,7 +4152,7 @@ pub enum LogicalSide {
 }
 pub const eStyleUnit_MAX: nsStyleUnit = nsStyleUnit::eStyleUnit_Calc;
 #[repr(i8)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsStyleUnit {
     eStyleUnit_Null = 0,
     eStyleUnit_Normal = 1,
@@ -4231,7 +4230,7 @@ fn bindgen_test_layout_nsStyleCoord_Calc() {
     assert_eq!(::std::mem::align_of::<nsStyleCoord_Calc>() , 8usize);
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsStyleCoord_CoordConstructorType { CoordConstructor = 0, }
 #[test]
 fn bindgen_test_layout_nsStyleCoord() {
@@ -4361,7 +4360,7 @@ fn bindgen_test_layout_nsStyleGradient() {
     assert_eq!(::std::mem::align_of::<nsStyleGradient>() , 8usize);
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsStyleImageType {
     eStyleImageType_Null = 0,
     eStyleImageType_Image = 1,
@@ -4437,7 +4436,7 @@ pub struct nsStyleImageLayers {
     pub mLayers: [u64; 15usize],
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsStyleImageLayers_nsStyleStruct_h_unnamed_14 {
     shorthand = 0,
     color = 1,
@@ -4491,7 +4490,7 @@ fn bindgen_test_layout_nsStyleImageLayers_Size_Dimension() {
                4usize);
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsStyleImageLayers_Size_DimensionType {
     eContain = 0,
     eCover = 1,
@@ -4840,14 +4839,14 @@ pub struct nsStyleImageOrientation {
     pub mOrientation: u8,
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsStyleImageOrientation_Bits {
     ORIENTATION_MASK = 3,
     FLIP_MASK = 4,
     FROM_IMAGE_MASK = 8,
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsStyleImageOrientation_Angles {
     ANGLE_0 = 0,
     ANGLE_90 = 1,
@@ -4885,7 +4884,7 @@ pub struct nsTimingFunction {
     pub nsTimingFunction_nsStyleStruct_h_unnamed_15: nsTimingFunction_nsStyleStruct_h_unnamed_15,
 }
 #[repr(i32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsTimingFunction_Type {
     Ease = 0,
     Linear = 1,
@@ -4897,7 +4896,7 @@ pub enum nsTimingFunction_Type {
     CubicBezier = 7,
 }
 #[repr(i32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsTimingFunction_StepSyntax {
     Keyword = 0,
     FunctionalWithoutKeyword = 1,
@@ -4905,7 +4904,7 @@ pub enum nsTimingFunction_StepSyntax {
     FunctionalWithEndKeyword = 3,
 }
 #[repr(i32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsTimingFunction_Keyword { Implicit = 0, Explicit = 1, }
 #[repr(C)]
 #[derive(Debug, Copy)]
@@ -5085,7 +5084,7 @@ fn bindgen_test_layout_nsStyleTableBorder() {
     assert_eq!(::std::mem::align_of::<nsStyleTableBorder>() , 4usize);
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsStyleContentType {
     eStyleContentType_String = 1,
     eStyleContentType_Image = 10,
@@ -5234,7 +5233,7 @@ fn bindgen_test_layout_nsStyleColumn() {
     assert_eq!(::std::mem::align_of::<nsStyleColumn>() , 8usize);
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsStyleSVGPaintType {
     eStyleSVGPaintType_None = 1,
     eStyleSVGPaintType_Color = 2,
@@ -5243,7 +5242,7 @@ pub enum nsStyleSVGPaintType {
     eStyleSVGPaintType_ContextStroke = 5,
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsStyleSVGOpacitySource {
     eStyleSVGOpacitySource_Normal = 0,
     eStyleSVGOpacitySource_ContextFillOpacity = 1,
@@ -5321,7 +5320,7 @@ pub struct nsStyleBasicShape {
     pub mRadius: nsStyleCorners,
 }
 #[repr(u32)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsStyleBasicShape_Type {
     eInset = 0,
     eCircle = 1,
