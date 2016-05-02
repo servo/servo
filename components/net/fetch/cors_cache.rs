@@ -67,7 +67,7 @@ impl CORSCacheEntry {
 }
 
 fn match_headers(cors_cache: &CORSCacheEntry, cors_req: &Request) -> bool {
-    cors_cache.origin == cors_req.origin.borrow().clone() &&
+    cors_cache.origin == *cors_req.origin.borrow() &&
         cors_cache.url == cors_req.current_url() &&
         (cors_cache.credentials || cors_req.credentials_mode != CredentialsMode::Include)
 }
@@ -99,7 +99,7 @@ impl CORSCache {
     pub fn clear (&mut self, request: Request) {
         let CORSCache(buf) = self.clone();
         let new_buf: Vec<CORSCacheEntry> =
-            buf.into_iter().filter(|e| e.origin == request.origin.borrow().clone() &&
+            buf.into_iter().filter(|e| e.origin == *request.origin.borrow() &&
                                        request.current_url() == e.url).collect();
         *self = CORSCache(new_buf);
     }
