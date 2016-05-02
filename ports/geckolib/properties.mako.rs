@@ -184,6 +184,79 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
+<%def name="convert_rgba_to_nscolor(rgba)">
+    {
+        let rgba = ${rgba};
+        (((rgba.alpha * 255.0).round() as u32) << 24) |
+        (((rgba.blue  * 255.0).round() as u32) << 16) |
+        (((rgba.green * 255.0).round() as u32) << 8) |
+         ((rgba.red   * 255.0).round() as u32)
+    }
+</%def>
+
+<%def name="convert_nscolor_to_rgba(color)">
+    {
+        use cssparser::RGBA;
+        let color = ${color};
+        RGBA {
+            red:    ((color        & 0xff) as f32) / 255.0,
+            green: (((color >>  8) & 0xff) as f32) / 255.0,
+            blue:  (((color >> 16) & 0xff) as f32) / 255.0,
+            alpha: (((color >> 24) & 0xff) as f32) / 255.0,
+        }
+    }
+</%def>
+
+<%def name="impl_color_setter(ident, gecko_ffi_name, gecko_currentcolor_mask_ffi_name=None)">
+    fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        use cssparser::Color;
+        use gecko_style_structs as gss;
+        % if gecko_currentcolor_mask_ffi_name:
+        self.gecko.${gecko_currentcolor_mask_ffi_name} &= !(gss::BORDER_COLOR_SPECIAL as u8);
+        % endif
+        let result = match v {
+            Color::CurrentColor => {
+                % if gecko_currentcolor_mask_ffi_name:
+                self.gecko.${gecko_currentcolor_mask_ffi_name} |= gss::BORDER_COLOR_FOREGROUND as u8;
+                % else:
+                // FIXME(heycam): To handle this, we would need to get the
+                // current value of the color property.
+                println!("can't handle currentColor for ${ident}");
+                % endif
+                0
+            },
+            Color::RGBA(rgba) => ${convert_rgba_to_nscolor("rgba")},
+        };
+        ${set_gecko_property(gecko_ffi_name, "result")}
+    }
+</%def>
+
+<%def name="impl_color_copy(ident, gecko_ffi_name, gecko_currentcolor_mask_ffi_name=None)">
+    fn copy_${ident}_from(&mut self, other: &Self) {
+        use gecko_style_structs as gss;
+        % if gecko_currentcolor_mask_ffi_name:
+        self.gecko.${gecko_currentcolor_mask_ffi_name} &= !(gss::BORDER_COLOR_SPECIAL as u8);
+        self.gecko.${gecko_currentcolor_mask_ffi_name} |=
+            other.gecko.${gecko_currentcolor_mask_ffi_name} & (gss::BORDER_COLOR_FOREGROUND as u8);
+        % endif
+        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name};
+    }
+</%def>
+
+<%def name="impl_color_clone(ident, gecko_ffi_name, gecko_currentcolor_mask_ffi_name)">
+    fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
+        use cssparser::{Color, RGBA};
+        use gecko_style_structs as gss;
+        % if gecko_currentcolor_mask_ffi_name:
+        if (self.gecko.${gecko_currentcolor_mask_ffi_name} & (gss::BORDER_COLOR_FOREGROUND as u8)) != 0 {
+            return Color::CurrentColor
+        }
+        % endif
+        let color = ${get_gecko_property(gecko_ffi_name)} as u32;
+        Color::RGBA(${convert_rgba_to_nscolor("color")})
+    }
+</%def>
+
 <%def name="impl_keyword(ident, gecko_ffi_name, keyword, need_clone)">
 <%call expr="impl_keyword_setter(ident, gecko_ffi_name, keyword)"></%call>
 <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
@@ -195,6 +268,14 @@ def set_gecko_property(ffi_name, expr):
 <%def name="impl_simple(ident, gecko_ffi_name)">
 <%call expr="impl_simple_setter(ident, gecko_ffi_name)"></%call>
 <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
+</%def>
+
+<%def name="impl_color(ident, gecko_ffi_name, gecko_currentcolor_mask_ffi_name=None, need_clone=False)">
+<%call expr="impl_color_setter(ident, gecko_ffi_name, gecko_currentcolor_mask_ffi_name)"></%call>
+<%call expr="impl_color_copy(ident, gecko_ffi_name, gecko_currentcolor_mask_ffi_name)"></%call>
+%if need_clone:
+<%call expr="impl_color_clone(ident, gecko_ffi_name, gecko_currentcolor_mask_ffi_name)"></%call>
+% endif
 </%def>
 
 <%def name="impl_app_units(ident, gecko_ffi_name, need_clone)">
