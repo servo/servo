@@ -476,10 +476,12 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Outline"
-                  skip_longhands="outline-style"
+                  skip_longhands="outline-color outline-style"
                   skip_additionals="*">
 
     <% impl_keyword("outline_style", "mOutlineStyle", border_style_keyword, need_clone=True) %>
+
+    <% impl_color("outline_color", "mOutlineColor", color_flags_ffi_name="mOutlineStyle") %>
 
     fn outline_has_nonzero_width(&self) -> bool {
         self.gecko.mCachedOutlineWidth != 0
@@ -543,6 +545,12 @@ fn static_assert() {
             x => panic!("Found unexpected value in style struct for overflow_y property: {}", x),
         }
     }
+
+</%self:impl_trait>
+
+<%self:impl_trait style_struct_name="Background" skip_longhands="background-color" skip_additionals="*">
+
+    <% impl_color("background_color", "mBackgroundColor") %>
 
 </%self:impl_trait>
 
