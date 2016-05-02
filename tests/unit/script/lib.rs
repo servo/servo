@@ -4,6 +4,12 @@
 
 #![feature(plugin)]
 #![plugin(plugins)]
+use script::dom::htmlimageelement::parse_a_sizes_attribute;
+#[test]
+fn some_parse_sizes_test() {
+    let result = parse_a_sizes_attribute(...);
+    assert!("/* something about result that is boolean */");
+}
 
 extern crate msg;
 extern crate script;
