@@ -568,6 +568,39 @@ fn static_assert() {
 
 </%self:impl_trait>
 
+<%self:impl_trait style_struct_name="Text"
+                  skip_longhands="text-decoration-color"
+                  skip_additionals="*">
+
+    <% impl_color("text_decoration_color", "mTextDecorationColor",
+                  gecko_currentcolor_mask_ffi_name="mTextDecorationStyle", need_clone=False) %>
+
+    fn has_underline(&self) -> bool {
+        use gecko_style_structs as gss;
+        (self.gecko.mTextDecorationStyle & (gss::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8)) != 0
+    }
+    fn has_overline(&self) -> bool {
+        use gecko_style_structs as gss;
+        (self.gecko.mTextDecorationStyle & (gss::NS_STYLE_TEXT_DECORATION_LINE_OVERLINE as u8)) != 0
+    }
+    fn has_line_through(&self) -> bool {
+        use gecko_style_structs as gss;
+        (self.gecko.mTextDecorationStyle & (gss::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8)) != 0
+    }
+</%self:impl_trait>
+
+<%self:impl_trait style_struct_name="SVG"
+                  skip_longhands="flood-color lighting-color stop-color"
+                  skip_additionals="*">
+
+    <% impl_color("flood_color", "mFloodColor", need_clone=False) %>
+
+    <% impl_color("lighting_color", "mLightingColor", need_clone=False) %>
+
+    <% impl_color("stop_color", "mStopColor", need_clone=False) %>
+
+</%self:impl_trait>
+
 <%def name="define_ffi_struct_accessor(style_struct)">
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
