@@ -11,7 +11,7 @@ path = "lib.rs"
 
 [dependencies]
 app_units = {version = "0.2.3", features = ["plugins"]}
-bitflags = "0.3"
+bitflags = "0.6.0"
 euclid = {version = "0.6.4", features = ["plugins"]}
 fnv = "1.0"
 harfbuzz-sys = "0.1"
@@ -44,6 +44,7 @@ azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
 layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 webrender_traits = {git = "https://github.com/servo/webrender_traits"}
+xi-unicode = "0.0.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 core-foundation = "0.2"

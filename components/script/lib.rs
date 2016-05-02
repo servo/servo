@@ -51,6 +51,8 @@ extern crate js;
 extern crate libc;
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate mime;
 extern crate msg;
 extern crate net_traits;
 extern crate num_traits;

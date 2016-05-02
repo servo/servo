@@ -1859,7 +1859,7 @@ pub struct InlineFragmentNodeInfo {
 }
 
 bitflags! {
-    flags InlineFragmentNodeFlags: u8 {
+    pub flags InlineFragmentNodeFlags: u8 {
         const FIRST_FRAGMENT_OF_ELEMENT = 0x01,
         const LAST_FRAGMENT_OF_ELEMENT = 0x02,
     }

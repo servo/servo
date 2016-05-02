@@ -520,7 +520,7 @@ pub struct BlockFlow {
     pub float: Option<Box<FloatedBlockInfo>>,
 
     /// Various flags.
-    pub flags: BlockFlowFlags,
+    flags: BlockFlowFlags,
 }
 
 bitflags! {
@@ -1518,8 +1518,6 @@ impl BlockFlow {
                     }
                 }
             }
-
-            flags.union_floated_descendants_flags(child_base.flags);
         }
 
         // FIXME(pcwalton): This should consider all float descendants, not just children.

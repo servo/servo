@@ -8,7 +8,7 @@ name = "glutin_app"
 path = "lib.rs"
 
 [dependencies]
-bitflags = "0.4"
+bitflags = "0.6.0"
 url = {version = "1.0.0", features = ["heap_size"]}
 gleam = "0.2.8"
 euclid = {version = "0.6.4", features = ["plugins"]}

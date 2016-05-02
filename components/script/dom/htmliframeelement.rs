@@ -33,7 +33,7 @@ use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, JSAutoRequest, RootedValue, JSContext, MutableHandleValue};
 use js::jsval::{UndefinedValue, NullValue};
 use layout_interface::ReflowQueryType;
-use msg::constellation_msg::{ConstellationChan};
+use msg::constellation_msg::{ConstellationChan, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
 use net_traits::response::HttpsState;
 use page::IterablePage;
@@ -98,7 +98,7 @@ impl HTMLIFrameElement {
         (subpage_id, old_subpage_id)
     }
 
-    pub fn navigate_or_reload_child_browsing_context(&self, url: Option<Url>) {
+    pub fn navigate_or_reload_child_browsing_context(&self, load_data: Option<LoadData>) {
         let sandboxed = if self.is_sandboxed() {
             IFrameSandboxed
         } else {
@@ -115,8 +115,8 @@ impl HTMLIFrameElement {
         //TODO(#9592): Deal with the case where an iframe is being reloaded so url is None.
         //      The iframe should always have access to the nested context's active
         //      document URL through the browsing context.
-        if let Some(ref url) = url {
-            *load_blocker = Some(LoadBlocker::new(&*document, LoadType::Subframe(url.clone())));
+        if let Some(ref load_data) = load_data {
+            *load_blocker = Some(LoadBlocker::new(&*document, LoadType::Subframe(load_data.url.clone())));
         }
 
         let window = window_from_node(self);
@@ -127,7 +127,7 @@ impl HTMLIFrameElement {
 
         let ConstellationChan(ref chan) = *window.constellation_chan();
         let load_info = IFrameLoadInfo {
-            url: url,
+            load_data: load_data,
             containing_pipeline_id: window.pipeline(),
             new_subpage_id: new_subpage_id,
             old_subpage_id: old_subpage_id,
@@ -149,7 +149,8 @@ impl HTMLIFrameElement {
             None => Url::parse("about:blank").unwrap(),
         };
 
-        self.navigate_or_reload_child_browsing_context(Some(url));
+        // TODO - loaddata here should have referrer info (not None, None)
+        self.navigate_or_reload_child_browsing_context(Some(LoadData::new(url, None, None)));
     }
 
     #[allow(unsafe_code)]

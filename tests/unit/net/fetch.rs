@@ -18,6 +18,8 @@ use net::fetch::methods::{fetch, fetch_async, fetch_with_cors_cache};
 use net_traits::AsyncFetchListener;
 use net_traits::request::{Origin, RedirectMode, Referer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
+use std::fs::File;
+use std::io::Read;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Sender, channel};
@@ -25,6 +27,7 @@ use std::sync::{Arc, Mutex};
 use time::{self, Duration};
 use unicase::UniCase;
 use url::{Origin as UrlOrigin, Url};
+use util::resource_files::resources_dir_path;
 
 // TODO write a struct that impls Handler for storing test values
 
@@ -137,6 +140,36 @@ fn test_fetch_data() {
             panic!();
         },
         ResponseBody::Empty => panic!(),
+    }
+}
+
+#[test]
+fn test_fetch_file() {
+
+    let mut path = resources_dir_path();
+    path.push("servo.css");
+
+    let url = Url::from_file_path(path.clone()).unwrap();
+    let origin = Origin::Origin(url.origin());
+    let request = Request::new(url, Some(origin), false);
+    request.same_origin_data.set(true);
+
+    let fetch_response = fetch(Rc::new(request));
+    assert!(!fetch_response.is_network_error());
+    assert_eq!(fetch_response.headers.len(), 1);
+    let content_type: &ContentType = fetch_response.headers.get().unwrap();
+    assert!(**content_type == Mime(TopLevel::Text, SubLevel::Css, vec![]));
+
+    let resp_body = fetch_response.body.lock().unwrap();
+    let mut file = File::open(path).unwrap();
+    let mut bytes = vec![];
+    let _ = file.read_to_end(&mut bytes);
+
+    match *resp_body {
+        ResponseBody::Done(ref val) => {
+            assert_eq!(val, &bytes);
+        },
+        _ => panic!()
     }
 }
 

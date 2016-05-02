@@ -194,7 +194,7 @@ pub enum Key {
 
 bitflags! {
     #[derive(Deserialize, Serialize)]
-    flags KeyModifiers: u8 {
+    pub flags KeyModifiers: u8 {
         const NONE = 0x00,
         const SHIFT = 0x01,
         const CONTROL = 0x02,

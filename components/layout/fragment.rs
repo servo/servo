@@ -666,7 +666,7 @@ pub struct ScannedTextFragmentInfo {
 }
 
 bitflags! {
-    flags ScannedTextFlags: u8 {
+    pub flags ScannedTextFlags: u8 {
         /// Whether a line break is required after this fragment if wrapping on newlines (e.g. if
         /// `white-space: pre` is in effect).
         const REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES = 0x01,
@@ -2021,8 +2021,7 @@ impl Fragment {
                     return false
                 }
 
-                let length = first_unscanned_text.text.len();
-                if length != 0 && first_unscanned_text.text.char_at_reverse(length) == '\n' {
+                if first_unscanned_text.text.ends_with('\n') {
                     return false
                 }
 
@@ -2708,7 +2707,7 @@ impl Overflow {
 }
 
 bitflags! {
-    flags FragmentFlags: u8 {
+    pub flags FragmentFlags: u8 {
         /// Whether this fragment has a layer.
         const HAS_LAYER = 0x01,
     }

@@ -10,8 +10,8 @@ fn test_byte_string_move() {
     let mut byte_vec = byte_str.bytes();
 
     assert_eq!(byte_vec, "servo".as_bytes());
-    assert_eq!(*byte_str, []);
+    assert_eq!(&*byte_str, &*Vec::<u8>::new());
 
     byte_vec = byte_str.into();
-    assert_eq!(byte_vec, Vec::new());
+    assert_eq!(byte_vec, Vec::<u8>::new());
 }

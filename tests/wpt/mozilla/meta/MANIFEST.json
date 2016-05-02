@@ -2700,6 +2700,18 @@
             "url": "/_mozilla/css/input_insertion_point_empty_a.html"
           }
         ],
+        "css/input_line_height.html": [
+          {
+            "path": "css/input_line_height.html",
+            "references": [
+              [
+                "/_mozilla/css/input_line_height_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/input_line_height.html"
+          }
+        ],
         "css/input_placeholder.html": [
           {
             "path": "css/input_placeholder.html",
@@ -9444,6 +9456,18 @@
             ]
           ],
           "url": "/_mozilla/css/input_insertion_point_empty_a.html"
+        }
+      ],
+      "css/input_line_height.html": [
+        {
+          "path": "css/input_line_height.html",
+          "references": [
+            [
+              "/_mozilla/css/input_line_height_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/input_line_height.html"
         }
       ],
       "css/input_placeholder.html": [

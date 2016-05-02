@@ -874,7 +874,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             let window_size = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.size);
 
             // Notify the browser chrome that the pipeline has failed
-            self.trigger_mozbrowsererror(pipeline_id);
+            self.trigger_mozbrowsererror(pipeline_id, reason, backtrace);
 
             self.close_pipeline(pipeline_id, ExitPipelineMode::Force);
 
@@ -982,7 +982,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             };
 
             // If no url is specified, reload.
-            let new_url = load_info.url.clone()
+            let new_url = load_info.load_data.clone().map(|data| data.url)
                 .or_else(|| old_pipeline.map(|old_pipeline| old_pipeline.url.clone()))
                 .unwrap_or_else(|| Url::parse("about:blank").expect("infallible"));
 
@@ -1016,13 +1016,20 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
         };
 
+        let load_data = if let Some(mut data) = load_info.load_data {
+            data.url = new_url;
+            data
+        } else {
+            // TODO - loaddata here should have referrer info (not None, None)
+            LoadData::new(new_url, None, None)
+        };
+
         // Create the new pipeline, attached to the parent and push to pending frames
-        // TODO - loaddata here should have referrer info (not None, None)
         self.new_pipeline(load_info.new_pipeline_id,
                           Some((load_info.containing_pipeline_id, load_info.new_subpage_id)),
                           window_size,
                           script_chan,
-                          LoadData::new(new_url, None, None));
+                          load_data);
 
         self.subpage_map.insert((load_info.containing_pipeline_id, load_info.new_subpage_id),
                                 load_info.new_pipeline_id);
@@ -1967,8 +1974,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
     // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsererror
     // Note that this does not require the pipeline to be an immediate child of the root
-    // TODO: propagate more error information, e.g. a backtrace
-    fn trigger_mozbrowsererror(&self, pipeline_id: PipelineId) {
+    fn trigger_mozbrowsererror(&self, pipeline_id: PipelineId, reason: String, backtrace: String) {
         if !prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) { return; }
 
         if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
@@ -1981,7 +1987,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                             None => return warn!("Mozbrowsererror via closed pipeline {:?}.", ancestor_info.0),
                         };
                     }
-                    let event = MozBrowserEvent::Error(MozBrowserErrorType::Fatal, None, None);
+                    let event = MozBrowserEvent::Error(MozBrowserErrorType::Fatal, Some(reason), Some(backtrace));
                     ancestor.trigger_mozbrowser_event(ancestor_info.1, event);
                 }
             }
