@@ -473,10 +473,10 @@ impl HTMLInputElementMethods for HTMLInputElement {
     make_bool_setter!(SetRequired, "required");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-src
-    make_getter!(Src, "src");
+    make_url_getter!(Src, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-src
-    make_setter!(SetSrc, "src");
+    make_url_setter!(SetSrc, "src");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-step
     make_getter!(Step, "step");
@@ -864,6 +864,7 @@ impl VirtualMethods for HTMLInputElement {
             &atom!("accept") => AttrValue::from_comma_separated_tokenlist(value),
             &atom!("name") => AttrValue::from_atomic(value),
             &atom!("size") => AttrValue::from_limited_u32(value, DEFAULT_INPUT_SIZE),
+            &atom!("src") => AttrValue::from_url(document_from_node(self).url(), value),
             &atom!("type") => AttrValue::from_atomic(value),
             &atom!("maxlength") => AttrValue::from_limited_i32(value, DEFAULT_MAX_LENGTH),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
