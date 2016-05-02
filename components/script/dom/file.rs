@@ -8,6 +8,8 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::blob::Blob;
+use mime_guess::guess_mime_type;
+use std::path::Path;
 use std::sync::Arc;
 use util::str::DOMString;
 
@@ -18,14 +20,15 @@ pub struct File {
 }
 
 impl File {
-    fn new_inherited(_file_bits: &Blob, name: DOMString) -> File {
+    fn new_inherited(file_bits: &Blob, name: DOMString) -> File {
+       let mime_type = guess_mime_type(Path::new(&*name));
+       let mut bytes = Vec::new();
+       bytes.extend_from_slice(file_bits.get_data().get_all_bytes().as_slice());
+
         File {
-            //TODO: get type from the underlying filesystem instead of "".to_string()
-            blob: Blob::new_inherited(Arc::new(Vec::new()), None, None, ""),
+            blob: Blob::new_inherited(Arc::new(bytes), None, None, &format!("{}", mime_type)),
             name: name,
         }
-        // XXXManishearth Once Blob is able to store data
-        // the relevant subfields of file_bits should be copied over
     }
 
     pub fn new(global: GlobalRef, file_bits: &Blob, name: DOMString) -> Root<File> {
