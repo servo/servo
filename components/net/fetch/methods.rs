@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use data_loader::decode;
-use fetch::cors_cache::{CORSCache, CacheRequestDetails};
+use fetch::cors_cache::CORSCache;
 use http_loader::{NetworkHttpRequestFactory, create_http_connector, obtain_response};
 use hyper::header::{Accept, AcceptLanguage, Authorization, AccessControlAllowCredentials};
 use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
@@ -402,23 +402,13 @@ fn http_fetch(request: Rc<Request>,
 
         // Substep 1
         if cors_preflight_flag {
-            let origin = request.origin.borrow().clone();
-            let url = request.current_url();
-            let credentials = request.credentials_mode == CredentialsMode::Include;
-            let method_cache_match = cache.match_method(CacheRequestDetails {
-                origin: origin.clone(),
-                destination: url.clone(),
-                credentials: credentials
-            }, request.method.borrow().clone());
+            let method_cache_match = cache.match_method(request.as_ref().clone(),
+                                                        request.method.borrow().clone());
 
             let method_mismatch = !method_cache_match && (!is_simple_method(&request.method.borrow()) ||
                                                           request.use_cors_preflight);
             let header_mismatch = request.headers.borrow().iter().any(|view|
-                !cache.match_header(CacheRequestDetails {
-                    origin: origin.clone(),
-                    destination: url.clone(),
-                    credentials: credentials
-                }, view.name()) && !is_simple_header(&view)
+                !cache.match_header(request.as_ref().clone(), view.name()) && !is_simple_header(&view)
             );
 
             // Sub-substep 1
@@ -1027,20 +1017,12 @@ fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache) -> Response
 
         // Substep 11, 12
         for method in &methods {
-            cache.match_method_and_update(CacheRequestDetails {
-                origin: request.origin.borrow().clone(),
-                destination: request.current_url(),
-                credentials: request.credentials_mode == CredentialsMode::Include
-            }, method.clone(), max_age);
+            cache.match_method_and_update(request.as_ref().clone(), method.clone(), max_age);
         }
 
         // Substep 13, 14
         for header_name in &header_names {
-            cache.match_header_and_update(CacheRequestDetails {
-                origin: request.origin.borrow().clone(),
-                destination: request.current_url(),
-                credentials: request.credentials_mode == CredentialsMode::Include
-            }, &*header_name, max_age);
+            cache.match_header_and_update(request.as_ref().clone(), &*header_name, max_age);
         }
 
         // Substep 15
