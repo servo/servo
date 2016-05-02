@@ -38,6 +38,7 @@ use style::computed_values::white_space;
 use style::font_face;
 use style::parser::{ParserContext, log_css_error};
 use style::media_queries::Expression;
+use style::media_queries::MediaQuery;
 use style::values::specified::Length;
 use url::Url;
 use util;
@@ -426,45 +427,45 @@ fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
 // }
 
 fn parse_a_sizes_attribute(input: DOMString, width: Option<u32>)-> Result<Size,()>{
-    
-
-  //  let mut iter = Parser::new(input);
-
+   
+/*    let s_Size = Size{
+        length: Au,
+        expression:None
+    };*/
+    //extracting each media element from the string 
     let unparsed_sizes_list = input.deref().split(',').collect::<Vec<_>>();
-
+    //computing the last element calc() 
     let last_component = unparsed_sizes_list[unparsed_sizes_list.len()-1];
     let mut parser_last = Parser::new(last_component);
     let size_length = parser_last.try(Length::parse_non_negative);
-    match size_length {
+
+    //removing last element 
+    unparsed_sizes_list.remove(unparsed_sizes_list.len()-1);
+/*    match size_length {
         Ok(len) => {
-            let s_Size = Size{
+             s_Size{
                 length: len,
                 expression: None 
             };
         },
         Err(e) => {}
-    }
+    }*/
+
+    //checking other media elements to obtain expression
     for unparsed_size in unparsed_sizes_list{
         let whitespace = unparsed_size.chars().rev().take_while(|c| util::str::char_is_whitespace(*c)).count();
-        let trimmed = unparsed_size.chars().take(unparsed_size.chars().count() - whitespace);
+        let trimmed: String = unparsed_size.chars().take(unparsed_size.chars().count() - whitespace).collect();
         
+        let mut parse_each = Parser::new(&trimmed);
+        let each_media_query = parse_each.try(MediaQuery::parse);
+        match each_media_query{
+            Ok(mq)=>{
+                let media_quer_expr = mq.expressions;
+            }
+            Err(e)=>{}
+        }
     }
-    Ok(s_Size)
-
-   // let unparsed_sizes_list = try!(input.parse_comma_separated(input));
-  // let unparsed_sizes_list = 
-// loop through the unparsed_sizes_list
-   /*for val in (unparsed_sizes_list) {
-
-    // remove whitespace token 
-
-
-    if()
-   }*/
-
- /*   Ok(Size::length {
-        width:
-    }))*/
+   // Ok(s_Size)
 
 }
     
