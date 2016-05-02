@@ -73,7 +73,6 @@ impl StyleSheetMethods for StyleSheet {
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-ownernode
     fn GetOwnerNode(&self) -> Option<UnionTypes::ElementOrProcessingInstruction>{
-        
         self.owner.as_ref().map(|owner: &JS<Node>| {
           if let Some(elem) = Root::downcast::<Element>(Root::from_ref(owner.deref())) {
             UnionTypes::ElementOrProcessingInstruction::Element(elem)

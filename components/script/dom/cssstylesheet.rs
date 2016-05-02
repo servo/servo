@@ -7,9 +7,8 @@ use dom::bindings::codegen::Bindings::CSSStyleSheetBinding;
 use dom::bindings::codegen::Bindings::CSSStyleSheetBinding::CSSStyleSheetMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::{reflect_dom_object};
 use dom::cssrulelist::CSSRuleList;
-use dom::node::Node;
 use dom::stylesheet::StyleSheet;
 use dom::window::Window;
 use std::sync::Arc;
@@ -48,7 +47,6 @@ impl CSSStyleSheet {
 impl CSSStyleSheetMethods for CSSStyleSheet {
     // https://drafts.csswg.org/cssom/#dom-stylesheetlist-cssrules
     fn CssRules(&self) -> Root<CSSRuleList>  {
-    
         Root::from_ref(&CSSRuleList::new(self.window.deref(), &self))
     }
 }

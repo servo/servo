@@ -5,7 +5,6 @@
 use core::ops::Deref;
 use dom::bindings::codegen::Bindings::CSSRuleListBinding;
 use dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
-use dom::bindings::codegen::Bindings::CSSStyleSheetBinding::CSSStyleSheetMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -13,7 +12,6 @@ use dom::cssrule::CSSRule;
 use dom::cssstylesheet::CSSStyleSheet;
 use dom::window::Window;
 use heapsize::HeapSizeOf;
-use style::stylesheets;
 
 #[dom_struct]
 pub struct CSSRuleList {
