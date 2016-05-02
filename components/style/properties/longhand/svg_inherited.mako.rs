@@ -34,6 +34,9 @@ ${helpers.single_keyword("stroke-linecap", "butt round square", products="gecko"
 
 ${helpers.single_keyword("stroke-linejoin", "miter round bevel", products="gecko")}
 
+${helpers.predefined_type("stroke-miterlimit", "Number", "4.0", "parse_at_least_one",
+                          products="gecko")}
+
 ${helpers.predefined_type("stroke-opacity", "Opacity", "1.0", products="gecko")}
 
 // Section 14 - Clipping, Masking and Compositing

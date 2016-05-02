@@ -63,6 +63,11 @@
 // Flex container properties
 ${helpers.single_keyword("flex-direction", "row row-reverse column column-reverse", experimental=True)}
 
+// Flex item properties
+${helpers.predefined_type("flex-grow", "Number", "0.0", "parse_non_negative", products="gecko")}
+
+${helpers.predefined_type("flex-shrink", "Number", "1.0", "parse_non_negative", products="gecko")}
+
 // https://drafts.csswg.org/css-flexbox/#propdef-order
 <%helpers:longhand name="order">
     use values::computed::ComputedValueAsSpecified;
