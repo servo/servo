@@ -15,11 +15,26 @@ ${helpers.single_keyword("vector-effect", "none non-scaling-stroke", products="g
 
 // Section 13 - Gradients and Patterns
 
+${helpers.predefined_type(
+    "stop-color", "CSSColor",
+    "CSSParserColor::RGBA(RGBA { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+    products="gecko")}
+
 ${helpers.predefined_type("stop-opacity", "Opacity", "1.0", products="gecko")}
 
 // Section 15 - Filter Effects
 
+${helpers.predefined_type(
+    "flood-color", "CSSColor",
+    "CSSParserColor::RGBA(RGBA { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+    products="gecko")}
+
 ${helpers.predefined_type("flood-opacity", "Opacity", "1.0", products="gecko")}
+
+${helpers.predefined_type(
+    "lighting-color", "CSSColor",
+    "CSSParserColor::RGBA(RGBA { red: 1.0, green: 1.0, blue: 1.0, alpha: 1.0 })",
+    products="gecko")}
 
 // CSS Masking Module Level 1
 // https://www.w3.org/TR/css-masking-1/

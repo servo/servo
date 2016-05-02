@@ -107,3 +107,8 @@ ${helpers.single_keyword("unicode-bidi", "normal embed isolate bidi-override iso
 ${helpers.single_keyword("text-decoration-style",
                          "-moz-none solid double dotted dashed wavy",
                          products="gecko")}
+
+${helpers.predefined_type(
+    "text-decoration-color", "CSSColor",
+    "CSSParserColor::RGBA(RGBA { red: 0.0, green: 0.0, blue: 0.0, alpha: 1.0 })",
+    products="gecko")}
