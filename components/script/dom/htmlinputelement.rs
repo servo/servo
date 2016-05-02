@@ -31,7 +31,7 @@ use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
-use range::Range;
+//use range::Range;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::InputEvent;
 use script_thread::Runnable;
