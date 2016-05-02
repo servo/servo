@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use core::ops::Deref;
 use cssparser::{AtRuleParser,CssStringWriter, DeclarationListParser, DeclarationParser, Parser,ToCss, Token};
 use dom::attr::Attr;
 use dom::attr::AttrValue;
@@ -413,19 +414,28 @@ fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
     element.set_attribute(&attr, value);
 }
 
-fn parse_a_sizes_attribute(input: &mut Parser, width: Option<u32>)-> Result<Size,()>{
+// impl Iterator for DOMString{
+//     type item = str;
+//     fn next(&mut self) -> Option<str> {
+//         let result = match self.index {
+//             _ => return None,
+//         };
+//         self.index += 1;
+//         result
+//     }
+// }
+
+fn parse_a_sizes_attribute(input: DOMString, width: Option<u32>)-> Result<Size,()>{
     let s_Size : Size;
-   // s_Size:Length=0;
-   // s_Size:Expression:width = 100 ;
-    //parse comma separated
-    //let mut input = &mut Parser::new(&size);
- let mut iter = Parser::new(input);
- let unparsed_sizes_list = input.iter().split(',').collect::<Vec<_>>();
+
+  //  let mut iter = Parser::new(input);
+
+    let unparsed_sizes_list = input.deref().split(',').collect::<Vec<_>>();
 
 
     for unparsed_size in unparsed_sizes_list{
-        let whitespace = unparsed_size.chars().rev().take_while(|c| util::str::char_is_whitespace(c)).count();
-        let trimmed = unparsed_size.chars().take(unparsed_size.chars().count() - whitespace).as_str();
+        let whitespace = unparsed_size.chars().rev().take_while(|c| util::str::char_is_whitespace(*c)).count();
+        let trimmed = unparsed_size.chars().take(unparsed_size.chars().count() - whitespace);
     }
 
    // let unparsed_sizes_list = try!(input.parse_comma_separated(input));
