@@ -5,8 +5,7 @@
 <title>Private browsing</title>
 </head>
 <body>
-<iframe src="iframe_privateContent_inner.html" id="private_iframe"></iframe>
-<iframe src="iframe_contentDocument_inner.html" id="frame"></iframe>
+<iframe id="private_iframe"></iframe>
 </body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -16,12 +15,22 @@
     privateFrame.mozbrowser = "true";
     privateFrame.mozprivatebrowsing = "true";
 
-    var privateDoc = privateFrame.contentDocument;
-    privateDoc.cookie = "private=active;path=/";
+    privateFrame.onload = t.step_func(function() {
+      var parent = privateFrame.parentNode;
+      parent.removeChild(privateFrame);
 
-    var frame = document.getElementById("frame");
-    frame.mozbrowser = "true";
-    assert_equals(frame.contentDocument.cookie.indexOf("private"), -1);
+      var iframe = document.createElement("iframe");
+      iframe.mozbrowser = "true";
+      iframe.onload = t.step_func(function() {
+        t.done();
+      });
+      iframe.addEventListener("mozbrowsershowmodalprompt", e => {
+        assert_equals(e.detail.message, "");
+      });
+      iframe.src = "iframe_contentDocument_inner.html";
+      parent.appendChild(iframe);
+    });
+    privateFrame.src = "iframe_privateContent_inner.html";
   });
 </script>
 </html>
