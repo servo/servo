@@ -40,7 +40,11 @@ impl FileListMethods for FileList {
 
     // https://w3c.github.io/FileAPI/#dfn-item
     fn Item(&self, index: u32) -> Option<Root<File>> {
-        Some(Root::from_ref(&*(self.list[index as usize])))
+        if (index as usize) < self.list.len() {
+            Some(Root::from_ref(&*(self.list[index as usize])))
+        } else {
+            None
+        }
     }
 
     // check-tidy: no specs after this line
