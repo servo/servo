@@ -291,7 +291,7 @@ struct PipelineDetails {
     /// Whether there are animation callbacks
     animation_callbacks_running: bool,
 
-    /// Whether current pipeline is visible
+    /// Whether this pipeline is visible
     visible: bool,
 }
 
@@ -1727,9 +1727,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         let mut pipeline_ids = vec![];
         for (pipeline_id, pipeline_details) in &self.pipeline_details {
             if (pipeline_details.animations_running ||
-               pipeline_details.animation_callbacks_running) &&
+                pipeline_details.animation_callbacks_running) &&
                pipeline_details.visible {
-                pipeline_ids.push(*pipeline_id);
+                   pipeline_ids.push(*pipeline_id);
             }
         }
         for pipeline_id in &pipeline_ids {

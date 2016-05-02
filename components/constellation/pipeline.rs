@@ -114,6 +114,8 @@ pub struct InitialPipelineState {
     pub load_data: LoadData,
     /// The ID of the pipeline namespace for this script thread.
     pub pipeline_namespace_id: PipelineNamespaceId,
+    /// Pipeline visibility is inherited from parent
+    pub parent_visibility: Option<bool>,
     /// Optional webrender api (if enabled).
     pub webrender_api_sender: Option<webrender_traits::RenderApiSender>,
 }
@@ -252,7 +254,8 @@ impl Pipeline {
                                      state.compositor_proxy,
                                      chrome_to_paint_chan,
                                      state.load_data.url,
-                                     state.window_size);
+                                     state.window_size,
+                                     state.parent_visibility.unwrap_or(true));
 
         Ok((pipeline, child_process))
     }
@@ -264,8 +267,10 @@ impl Pipeline {
            compositor_proxy: Box<CompositorProxy + 'static + Send>,
            chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
            url: Url,
-           size: Option<TypedSize2D<PagePx, f32>>)
+           size: Option<TypedSize2D<PagePx, f32>>,
+           visible: bool,)
            -> Pipeline {
+
         Pipeline {
             id: id,
             parent_info: parent_info,
@@ -279,7 +284,7 @@ impl Pipeline {
             size: size,
             running_animations: false,
             is_private: false,
-            visible: true,
+            visible: visible,
         }
     }
 
@@ -371,16 +376,17 @@ impl Pipeline {
         }
     }
 
-    pub fn change_visibility(&mut self, containing_id: PipelineId, visible: bool) -> bool {
+    pub fn change_visibility(&mut self, visible: bool) -> bool {
         if visible == self.visible {
             return false; //No changes
         }
 
+        let (parent_id, _) = self.parent_info.unwrap(); //TODO: handle this
         self.visible = visible;
         if visible {
-            self.script_chan.send(ConstellationControlMsg::SetVisible(containing_id, self.id)).unwrap();
+            self.script_chan.send(ConstellationControlMsg::SetVisible(parent_id, self.id)).expect("Pipeline script chan");
         } else {
-            self.script_chan.send(ConstellationControlMsg::SetNonVisible(containing_id, self.id)).unwrap();
+            self.script_chan.send(ConstellationControlMsg::SetNonVisible(parent_id, self.id)).expect("Pipeline script chan");
         }
 
         self.compositor_proxy.send(CompositorMsg::PipelineVisibilityChanged(self.id, visible));
