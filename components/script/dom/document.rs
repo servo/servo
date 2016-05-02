@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use core::ops::Deref;
 use devtools_traits::CSSError;
 use document_loader::{DocumentLoader, LoadType};
 use dom::activation::{ActivationSource, synthetic_click_activation};
@@ -75,7 +76,6 @@ use dom::range::Range;
 use dom::servohtmlparser::{ParserRoot, ParserRef, MutNullableParserField};
 use dom::storageevent::StorageEvent;
 use dom::stylesheetlist::StyleSheetList;
-use dom::cssstylesheet::CSSStyleSheet;
 use dom::text::Text;
 use dom::touch::Touch;
 use dom::touchevent::TouchEvent;
@@ -1828,12 +1828,11 @@ impl Document {
         return self.referrer_policy.clone();
     }
 
-    /*pub fn get_nth_cssstylesheet(&self, index: u32) -> Root<CSSStyleSheet> {
-
-        let mut stylesheets = self.stylesheets.borrow_mut();
-        let (ref mut node, ref mut sheet) = (*self.stylesheets.borrow()).unwrap()[index as usize];
-        CSSStyleSheet::new(&self.window, *sheet, ? )
-    }*/
+    pub fn get_nth_cssstylesheet(&self, index: u32) -> Root<CSSStyleSheet> {
+        let (ref mut node, ref mut sheet) = (self.stylesheets.borrow().clone()).unwrap()[index as usize];
+        let x = sheet.clone();
+        CSSStyleSheet::new(&self.window, x)
+    }
 }
 
 

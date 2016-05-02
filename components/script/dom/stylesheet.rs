@@ -16,7 +16,6 @@ use dom::processinginstruction::ProcessingInstruction;
 use dom::window::Window;
 use util::str::DOMString;
 
-
 #[dom_struct]
 pub struct StyleSheet {
     reflector_: Reflector,
@@ -37,7 +36,9 @@ impl StyleSheet {
             type_: type_,
             href: href,
             title: title,
-            owner: Some(JS::from_ref(owner.unwrap()))
+            owner: owner.map(|node: &Node| {
+              JS::from_ref(node)
+            })
         }
     }
 
@@ -69,23 +70,15 @@ impl StyleSheetMethods for StyleSheet {
         self.title.clone()
     }
 
-<<<<<<< ff9a6e7df127f956a80b5e0c9859d00b8db0d4dc
-    // https://drafts.csswg.org/cssom/#dom-stylesheet-title
-    fn GetOwnerNode(&self) -> Option<UnionTypes::ElementOrProcessingInstruction>{
-        None
-    }   
-=======
     // https://drafts.csswg.org/cssom/#dom-stylesheet-ownernode
-   /* fn GetOwnerNode(&self) -> Option<UnionTypes::ElementOrProcessingInstruction>{
-        //None
-        if let Some(Element) = Some(Root::downcast::<Element>(Root::from_ref(self.owner.unwrap().deref()))){
-          let x = Root::downcast::<Element>(Root::from_ref(self.owner.unwrap().deref()));
-          UnionTypes::ElementOrProcessingInstruction::Element(x.unwrap());
-         }
-        else{
-          let x = Root::downcast::<ProcessingInstruction>(Root::from_ref(self.owner.unwrap().deref()));
-          UnionTypes::ElementOrProcessingInstruction::ProcessingInstruction(x.unwrap());
-        }
-    }*/
->>>>>>> tried to fix review comments
+    fn GetOwnerNode(&self) -> Option<UnionTypes::ElementOrProcessingInstruction>{
+        self.owner.as_ref().map(|owner: &JS<Node>| {
+          if let Some(elem) = Root::downcast::<Element>(Root::from_ref(owner.deref())) {
+            UnionTypes::ElementOrProcessingInstruction::Element(elem)
+          } else {
+            let instr: Option<Root<ProcessingInstruction>> = Root::downcast::<ProcessingInstruction>(Root::from_ref(owner.deref()));
+            UnionTypes::ElementOrProcessingInstruction::ProcessingInstruction(instr.unwrap())
+          }
+        })
+    }
 }
