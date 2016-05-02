@@ -429,6 +429,8 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
     fn GetContentDocument(&self) -> Option<Root<Document>> {
         self.GetContentWindow().and_then(|window| {
+            // FIXME(#10964): this should use the Document's origin and the
+            //                origin of the incumbent settings object.
             let self_url = self.get_url();
             let win_url = window_from_node(self).get_url();
 
@@ -582,6 +584,8 @@ impl VirtualMethods for HTMLIFrameElement {
             // iframes, and since that would cause a deadlock, don't do it.
             let ConstellationChan(ref chan) = *window.constellation_chan();
             let same_origin = {
+                // FIXME(#10968): this should probably match the origin check in
+                //                HTMLIFrameElement::contentDocument.
                 let self_url = self.get_url();
                 let win_url = window_from_node(self).get_url();
                 UrlHelper::SameOrigin(&self_url, &win_url)

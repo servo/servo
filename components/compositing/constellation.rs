@@ -990,11 +990,12 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             // then reuse the script thread in creating the new pipeline
             let source_url = &source_pipeline.url;
 
+            // FIXME(#10968): this should probably match the origin check in
+            //                HTMLIFrameElement::contentDocument.
             let same_script = source_url.host() == new_url.host() &&
                               source_url.port() == new_url.port() &&
                               load_info.sandbox == IFrameSandboxState::IFrameUnsandboxed;
 
-            // FIXME(tkuehn): Need to follow the standardized spec for checking same-origin
             // Reuse the script thread if the URL is same-origin
             let script_chan = if same_script {
                 debug!("Constellation: loading same-origin iframe, \
