@@ -971,7 +971,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             .and_then(|old_subpage_id| self.subpage_map.get(&(load_info.containing_pipeline_id, old_subpage_id)))
             .cloned();
 
-        let (new_url, script_chan, window_size) = {
+        let (load_data, script_chan, window_size) = {
 
             let old_pipeline = old_pipeline_id
                 .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
@@ -982,9 +982,13 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             };
 
             // If no url is specified, reload.
-            let new_url = load_info.load_data.clone().map(|data| data.url)
-                .or_else(|| old_pipeline.map(|old_pipeline| old_pipeline.url.clone()))
-                .unwrap_or_else(|| Url::parse("about:blank").expect("infallible"));
+            let load_data = load_info.load_data.unwrap_or_else(|| {
+                let url = match old_pipeline {
+                    Some(old_pipeline) => old_pipeline.url.clone(),
+                    None => Url::parse("about:blank").expect("infallible"),
+                };
+                LoadData::new(url, None, None)
+            });
 
             // Compare the pipeline's url to the new url. If the origin is the same,
             // then reuse the script thread in creating the new pipeline
@@ -992,18 +996,18 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
             // FIXME(#10968): this should probably match the origin check in
             //                HTMLIFrameElement::contentDocument.
-            let same_script = source_url.host() == new_url.host() &&
-                              source_url.port() == new_url.port() &&
+            let same_script = source_url.host() == load_data.url.host() &&
+                              source_url.port() == load_data.url.port() &&
                               load_info.sandbox == IFrameSandboxState::IFrameUnsandboxed;
 
             // Reuse the script thread if the URL is same-origin
             let script_chan = if same_script {
                 debug!("Constellation: loading same-origin iframe, \
-                        parent url {:?}, iframe url {:?}", source_url, new_url);
+                        parent url {:?}, iframe url {:?}", source_url, load_data.url);
                 Some(source_pipeline.script_chan.clone())
             } else {
                 debug!("Constellation: loading cross-origin iframe, \
-                        parent url {:?}, iframe url {:?}", source_url, new_url);
+                        parent url {:?}, iframe url {:?}", source_url, load_data.url);
                 None
             };
 
@@ -1013,16 +1017,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 old_pipeline.freeze();
             }
 
-            (new_url, script_chan, window_size)
+            (load_data, script_chan, window_size)
 
-        };
-
-        let load_data = if let Some(mut data) = load_info.load_data {
-            data.url = new_url;
-            data
-        } else {
-            // TODO - loaddata here should have referrer info (not None, None)
-            LoadData::new(new_url, None, None)
         };
 
         // Create the new pipeline, attached to the parent and push to pending frames
