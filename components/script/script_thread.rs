@@ -138,8 +138,8 @@ struct InProgressLoad {
     clip_rect: Option<Rect<f32>>,
     /// Window is frozen (navigated away while loading for example).
     is_frozen: bool,
-    /// Window is not visible.
-    is_hidden: bool,
+    /// Window is visible.
+    is_visible: bool,
     /// The requested URL of the load.
     url: Url,
 }
@@ -158,7 +158,7 @@ impl InProgressLoad {
             window_size: window_size,
             clip_rect: None,
             is_frozen: false,
-            is_hidden: false,
+            is_visible: true,
             url: url,
         }
     }
@@ -1180,10 +1180,6 @@ impl ScriptThread {
                 } else {
                     window.slow_down_timers();
                 }
-                let document = inner_page.document();
-                for iframe in &document.collect_descendant_iframes() {
-                    iframe.set_visible(visible);
-                }
                 return true;
             }
         }
@@ -1205,14 +1201,14 @@ impl ScriptThread {
         if !changed_loaded_page_visibility {
             let mut loads = self.incomplete_loads.borrow_mut();
             if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
-                load.is_hidden = !visible;
+                load.is_visible = visible;
                 return;
             }
         } else {
             return;
         }
 
-        panic!("change visibility message sent to nonexistent pipeline");
+        warn!("change visibility message sent to nonexistent pipeline");
     }
 
     /// Handles freeze message
@@ -1675,7 +1671,7 @@ impl ScriptThread {
             window.freeze();
         }
 
-        if incomplete.is_hidden {
+        if !incomplete.is_visible {
             self.change_loaded_page_visibility(page.pipeline(), false);
         }
 

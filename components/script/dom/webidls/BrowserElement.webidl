@@ -93,12 +93,12 @@ BrowserElement implements BrowserElementPrivileged;
 [NoInterfaceObject]
 interface BrowserElementCommon {
   [Throws,
-   Pref="dom.mozBrowserFramesEnabled",
+   Pref="dom.mozbrowser.enabled",
    CheckAnyPermissions="browser embed-widgets"]
   void setVisible(boolean visible);
 
   [Throws,
-   Pref="dom.mozBrowserFramesEnabled",
+   Pref="dom.mozbrowser.enabled",
    CheckAnyPermissions="browser embed-widgets"]
   boolean getVisible();
 
