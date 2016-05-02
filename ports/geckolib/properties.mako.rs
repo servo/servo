@@ -588,6 +588,22 @@ fn static_assert() {
 
 </%self:impl_trait>
 
+<%self:impl_trait style_struct_name="Color"
+                  skip_longhands="*">
+
+    fn set_color(&mut self, v: longhands::color::computed_value::T) {
+        let result = convert_rgba_to_nscolor(&v);
+        ${set_gecko_property("mColor", "result")}
+    }
+
+    <%call expr="impl_simple_copy('color', 'mColor')"></%call>
+
+    fn clone_color(&self) -> longhands::color::computed_value::T {
+        let color = ${get_gecko_property("mColor")} as u32;
+        convert_nscolor_to_rgba(color)
+    }
+</%self:impl_trait>
+
 <%def name="define_ffi_struct_accessor(style_struct)">
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
