@@ -66,6 +66,10 @@ impl DataSlice {
         &self.bytes[self.bytes_start..self.bytes_end]
     }
 
+    pub fn get_all_bytes(&self) -> Arc<Vec<u8>> {
+        self.bytes.clone()
+    }
+
     pub fn size(&self) -> u64 {
         (self.bytes_end as u64) - (self.bytes_start as u64)
     }
