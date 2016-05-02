@@ -29,7 +29,7 @@ dependencies = [
  "style_traits 0.0.1",
  "url 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
- "x11 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x11 2.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -98,7 +98,7 @@ dependencies = [
  "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-freetype-sys 2.4.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-skia 0.20130412.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "x11 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x11 2.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -231,16 +231,16 @@ name = "clipboard"
 version = "0.1.2"
 source = "git+https://github.com/aweinstock314/rust-clipboard#4fe9892d7bf8bac075aa60493c6eee7a83e24b7f"
 dependencies = [
- "clipboard-win 1.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "clipboard-win 1.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "objc 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "objc-foundation 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "objc_id 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "x11 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x11 2.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "clipboard-win"
-version = "1.6.2"
+version = "1.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "kernel32-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -736,7 +736,7 @@ dependencies = [
  "style_traits 0.0.1",
  "url 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
- "x11 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x11 2.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -988,7 +988,7 @@ dependencies = [
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-egl 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-skia 0.20130412.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "x11 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x11 2.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1093,7 +1093,7 @@ dependencies = [
 
 [[package]]
 name = "libz-sys"
-version = "1.0.0"
+version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "gcc 0.3.26 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1187,7 +1187,7 @@ version = "0.0.0"
 source = "git+https://github.com/servo/mozjs#3122a1e1a80b78377ae1ce8e7edd4ad3bcbb3d65"
 dependencies = [
  "libc 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
- "libz-sys 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libz-sys 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1403,7 +1403,7 @@ dependencies = [
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "x11 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x11 2.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1906,7 +1906,7 @@ dependencies = [
  "servo-fontconfig 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-freetype-sys 2.4.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "servo-glutin 0.4.16 (registry+https://github.com/rust-lang/crates.io-index)",
- "x11 2.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "x11 2.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2375,7 +2375,7 @@ dependencies = [
 
 [[package]]
 name = "x11"
-version = "2.3.0"
+version = "2.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "libc 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
