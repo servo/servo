@@ -1546,6 +1546,7 @@ pub mod specified {
 
 pub mod computed {
     use app_units::Au;
+    use cssparser::RGBA;
     use euclid::size::Size2D;
     use properties::ComputedValues;
     use properties::style_struct_traits::Font;
@@ -2156,4 +2157,20 @@ pub mod computed {
     pub type Length = Au;
     pub type Number = CSSFloat;
     pub type Opacity = CSSFloat;
+
+    pub fn convert_rgba_to_nscolor(rgba: &RGBA) -> u32 {
+        (((rgba.alpha * 255.0).round() as u32) << 24) |
+        (((rgba.blue  * 255.0).round() as u32) << 16) |
+        (((rgba.green * 255.0).round() as u32) << 8) |
+         ((rgba.red   * 255.0).round() as u32)
+    }
+
+    pub fn convert_nscolor_to_rgba(color: u32) -> RGBA {
+        RGBA {
+            red:    ((color        & 0xff) as f32) / 255.0,
+            green: (((color >>  8) & 0xff) as f32) / 255.0,
+            blue:  (((color >> 16) & 0xff) as f32) / 255.0,
+            alpha: (((color >> 24) & 0xff) as f32) / 255.0,
+        }
+    }
 }

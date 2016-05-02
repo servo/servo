@@ -28,6 +28,7 @@ use style::properties::{CascadePropertyFn, ServoComputedValues, ComputedValues};
 use style::properties::longhands;
 use style::properties::make_cascade_vec;
 use style::properties::style_struct_traits::*;
+use style::values::computed;
 use gecko_style_structs::{nsStyleUnion, nsStyleUnit};
 use values::ToGeckoStyleCoord;
 
@@ -184,6 +185,54 @@ def set_gecko_property(ffi_name, expr):
     }
 </%def>
 
+<%def name="clear_color_flags(color_flags_ffi_name)">
+    % if color_flags_ffi_name:
+    self.gecko.${color_flags_ffi_name} &= !(gecko_style_structs::BORDER_COLOR_SPECIAL as u8);
+    % endif
+</%def>
+
+<%def name="set_current_color_flag(color_flags_ffi_name)">
+    % if color_flags_ffi_name:
+    self.gecko.${color_flags_ffi_name} |= gecko_style_structs::BORDER_COLOR_FOREGROUND as u8;
+    % else:
+    // FIXME(heycam): To handle this, we would need to get the
+    // current value of the color property.
+    unimplemented!();
+    % endif
+</%def>
+
+<%def name="get_current_color_flag_from(field)">
+    (${field} & (gecko_style_structs::BORDER_COLOR_FOREGROUND as u8)) != 0
+</%def>
+
+<%def name="impl_color_setter(ident, gecko_ffi_name, color_flags_ffi_name=None)">
+    #[allow(unreachable_code)]
+    fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        use cssparser::Color;
+        ${clear_color_flags(color_flags_ffi_name)}
+        let result = match v {
+            Color::CurrentColor => {
+                ${set_current_color_flag(color_flags_ffi_name)}
+                0
+            },
+            Color::RGBA(rgba) => computed::convert_rgba_to_nscolor(&rgba),
+        };
+        ${set_gecko_property(gecko_ffi_name, "result")}
+    }
+</%def>
+
+<%def name="impl_color_copy(ident, gecko_ffi_name, color_flags_ffi_name=None)">
+    fn copy_${ident}_from(&mut self, other: &Self) {
+        % if color_flags_ffi_name:
+        ${clear_color_flags(color_flags_ffi_name)}
+        if ${get_current_color_flag_from("other.gecko." + color_flags_ffi_name)} {
+            ${set_current_color_flag(color_flags_ffi_name)}
+        }
+        % endif
+        self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name};
+    }
+</%def>
+
 <%def name="impl_keyword(ident, gecko_ffi_name, keyword, need_clone)">
 <%call expr="impl_keyword_setter(ident, gecko_ffi_name, keyword)"></%call>
 <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
@@ -195,6 +244,11 @@ def set_gecko_property(ffi_name, expr):
 <%def name="impl_simple(ident, gecko_ffi_name)">
 <%call expr="impl_simple_setter(ident, gecko_ffi_name)"></%call>
 <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
+</%def>
+
+<%def name="impl_color(ident, gecko_ffi_name, color_flags_ffi_name=None)">
+<%call expr="impl_color_setter(ident, gecko_ffi_name, color_flags_ffi_name)"></%call>
+<%call expr="impl_color_copy(ident, gecko_ffi_name, color_flags_ffi_name)"></%call>
 </%def>
 
 <%def name="impl_app_units(ident, gecko_ffi_name, need_clone)">
