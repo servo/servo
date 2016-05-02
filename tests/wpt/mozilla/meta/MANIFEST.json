@@ -6424,6 +6424,12 @@
             "url": "/_mozilla/mozilla/innerHTML.html"
           }
         ],
+        "mozilla/interface_member_exposed.html": [
+          {
+            "path": "mozilla/interface_member_exposed.html",
+            "url": "/_mozilla/mozilla/interface_member_exposed.html"
+          }
+        ],
         "mozilla/interfaces.html": [
           {
             "path": "mozilla/interfaces.html",

@@ -72,7 +72,8 @@ dictionary TestDictionaryDefaults {
 
 [Constructor,
  Constructor(sequence<unrestricted double> numberSequence),
-  Constructor(unrestricted double num)]
+ Constructor(unrestricted double num),
+ Pref="dom.testbinding.enabled"]
 interface TestBinding {
            attribute boolean booleanAttribute;
            attribute byte byteAttribute;
@@ -401,4 +402,26 @@ interface TestBinding {
   static void receiveVoidStatic();
   boolean BooleanMozPreference(DOMString pref_name);
   DOMString StringMozPreference(DOMString pref_name);
+
+  [Pref="dom.testbinding.prefcontrolled.enabled"]
+  readonly attribute boolean prefControlledAttributeDisabled;
+  [Pref="dom.testbinding.prefcontrolled.enabled"]
+  static readonly attribute boolean prefControlledStaticAttributeDisabled;
+  [Pref="dom.testbinding.prefcontrolled.enabled"]
+  void prefControlledMethodDisabled();
+  [Pref="dom.testbinding.prefcontrolled.enabled"]
+  static void prefControlledStaticMethodDisabled();
+  [Pref="dom.testbinding.prefcontrolled.enabled"]
+  const unsigned short prefControlledConstDisabled = 0;
+
+  [Pref="dom.testbinding.prefcontrolled2.enabled"]
+  readonly attribute boolean prefControlledAttributeEnabled;
+  [Pref="dom.testbinding.prefcontrolled2.enabled"]
+  static readonly attribute boolean prefControlledStaticAttributeEnabled;
+  [Pref="dom.testbinding.prefcontrolled2.enabled"]
+  void prefControlledMethodEnabled();
+  [Pref="dom.testbinding.prefcontrolled2.enabled"]
+  static void prefControlledStaticMethodEnabled();
+  [Pref="dom.testbinding.prefcontrolled2.enabled"]
+  const unsigned short prefControlledConstEnabled = 0;
 };

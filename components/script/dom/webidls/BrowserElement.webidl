@@ -147,22 +147,22 @@ interface BrowserElementPrivileged {
   //                    unsigned long modifiers);
 
   [Throws,
-   Pref="dom.mozBrowserFramesEnabled",
+   Pref="dom.mozbrowser.enabled",
    CheckAnyPermissions="browser"]
   void goBack();
 
   [Throws,
-   Pref="dom.mozBrowserFramesEnabled",
+   Pref="dom.mozbrowser.enabled",
    CheckAnyPermissions="browser"]
   void goForward();
 
   [Throws,
-   Pref="dom.mozBrowserFramesEnabled",
+   Pref="dom.mozbrowser.enabled",
    CheckAnyPermissions="browser"]
   void reload(optional boolean hardReload = false);
 
   [Throws,
-   Pref="dom.mozBrowserFramesEnabled",
+   Pref="dom.mozbrowser.enabled",
    CheckAnyPermissions="browser"]
   void stop();
 

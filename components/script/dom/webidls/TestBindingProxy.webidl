@@ -11,6 +11,7 @@
 // This interface is entirely internal to Servo, and should not be accessible to
 // web pages.
 
+[Pref="dom.testbinding.enabled"]
 interface TestBindingProxy : TestBinding {
   readonly attribute unsigned long length;
 

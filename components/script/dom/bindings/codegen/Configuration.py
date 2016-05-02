@@ -165,6 +165,12 @@ class Descriptor(DescriptorProvider):
         DescriptorProvider.__init__(self, config)
         self.interface = interface
 
+        if not self.isExposedConditionally():
+            if interface.parent and interface.parent.isExposedConditionally():
+                raise TypeError("%s is not conditionally exposed but inherits from "
+                                "%s which is" %
+                                (interface.identifier.name, interface.parent.identifier.name))
+
         # Read the desc, and fill in the relevant defaults.
         ifaceName = self.interface.identifier.name
 
@@ -350,6 +356,9 @@ class Descriptor(DescriptorProvider):
     def shouldHaveGetConstructorObjectMethod(self):
         assert self.interface.hasInterfaceObject()
         return self.interface.isCallback() or self.hasDescendants()
+
+    def isExposedConditionally(self):
+        return self.interface.isExposedConditionally()
 
     def isGlobal(self):
         """
