@@ -22,8 +22,8 @@ interface HTMLFormElement : HTMLElement {
 
   void submit();
   void reset();
-  //boolean checkValidity();
-  //boolean reportValidity();
+  boolean check_validity();
+  boolean report_validity();
 
   //void requestAutocomplete();
 };

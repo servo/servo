@@ -231,7 +231,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
         self.Elements().Length() as u32
     }
 
-    fn check_validity(&self) -> bool {
+    fn Check_validity(&self) -> bool {
          let _unhandled_invalid_controls = match self.static_validation() {
             Ok(()) => return true,
             Err(err) => {
@@ -241,7 +241,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
         };
     }
 
-    fn report_validity(&self) -> bool {
+    fn Report_validity(&self) -> bool {
         if self.interactive_validation().is_err() {
            return false;
         } else {
