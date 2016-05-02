@@ -12,7 +12,6 @@ from distutils.spawn import find_executable
 from pipes import quote
 
 SEARCH_PATHS = [
-    os.path.join("python", "mach"),
     os.path.join("python", "tidy"),
     os.path.join("tests", "wpt"),
     os.path.join("tests", "wpt", "harness"),
