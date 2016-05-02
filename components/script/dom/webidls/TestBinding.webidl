@@ -70,6 +70,8 @@ dictionary TestDictionaryDefaults {
   object? nullableObjectValue = null;
 };
 
+typedef (Blob or HTMLElement or FormData) TypedefTest;
+
 [Constructor,
  Constructor(sequence<unrestricted double> numberSequence),
   Constructor(unrestricted double num)]
@@ -401,4 +403,6 @@ interface TestBinding {
   static void receiveVoidStatic();
   boolean BooleanMozPreference(DOMString pref_name);
   DOMString StringMozPreference(DOMString pref_name);
+
+  void documentOrTypedef(optional (Document or TypedefTest)? qux);
 };

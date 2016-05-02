@@ -1965,7 +1965,7 @@ class CGCallbackTempRoot(CGGeneric):
         CGGeneric.__init__(self, "%s::new(${val}.get().to_object())" % name)
 
 
-def getAllTypes(descriptors, dictionaries, callbacks):
+def getAllTypes(descriptors, dictionaries, typedefs, callbacks):
     """
     Generate all the types we're dealing with.  For each type, a tuple
     containing type, descriptor, dictionary is yielded.  The
@@ -1981,9 +1981,11 @@ def getAllTypes(descriptors, dictionaries, callbacks):
     for callback in callbacks:
         for t in getTypesFromCallback(callback):
             yield (t, None, None)
+    for typedef in typedefs:
+        yield (typedef.innerType, None, None)
 
 
-def UnionTypes(descriptors, dictionaries, callbacks, config):
+def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
     """
     Returns a CGList containing CGUnionStructs for every union.
     """
@@ -2008,7 +2010,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
     # Now find all the things we'll need as arguments and return values because
     # we need to wrap or unwrap them.
     unionStructs = dict()
-    for (t, descriptor, dictionary) in getAllTypes(descriptors, dictionaries, callbacks):
+    for (t, descriptor, dictionary) in getAllTypes(descriptors, dictionaries, typedefs, callbacks):
         assert not descriptor or not dictionary
         t = t.unroll()
         if not t.isUnion():
@@ -6247,6 +6249,7 @@ impl %(base)s {
         curr = UnionTypes(config.getDescriptors(),
                           config.getDictionaries(),
                           config.getCallbacks(),
+                          config.typedefs,
                           config)
 
         # Add the auto-generated comment.

@@ -7,6 +7,7 @@
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::TestBindingBinding::{self, TestBindingMethods, TestEnum};
+use dom::bindings::codegen::UnionTypes::DocumentOrBlobOrHTMLElementOrFormData;
 use dom::bindings::codegen::UnionTypes::{BlobOrBoolean, BlobOrBlobSequence};
 use dom::bindings::codegen::UnionTypes::{BlobOrString, BlobOrUnsignedLong, EventOrString};
 use dom::bindings::codegen::UnionTypes::{EventOrUSVString, HTMLElementOrLong};
@@ -493,6 +494,8 @@ impl TestBindingMethods for TestBinding {
     fn StringMozPreference(&self, pref_name: DOMString) -> DOMString {
         get_pref(pref_name.as_ref()).as_string().map(|s| DOMString::from(s)).unwrap_or_else(|| DOMString::new())
     }
+
+    fn DocumentOrTypedef(&self, _: Option<Option<DocumentOrBlobOrHTMLElementOrFormData >>) -> () {}
 }
 
 impl TestBinding {
