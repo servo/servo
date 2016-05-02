@@ -125,6 +125,7 @@ use time;
 use url::Url;
 use url::percent_encoding::percent_decode;
 use util::str::{DOMString, split_html_space_chars, str_join};
+use core::ops::Deref;
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
 pub enum IsHTMLDocument {
@@ -1826,13 +1827,13 @@ impl Document {
         return self.referrer_policy.clone();
     }
 
-    /*pub fn get_nth_cssstylesheet(&self, index: u32) -> Root<CSSStyleSheet> {
+    pub fn get_nth_cssstylesheet(&self, index: u32) -> Root<CSSStyleSheet> {
 
         let mut stylesheets = self.stylesheets.borrow_mut();
         let (ref mut node, ref mut sheet) = (*self.stylesheets.borrow()).unwrap()[index as usize];
         //let (ref mut node, ref mut sheet) = self.stylesheets.clone();
-        CSSStyleSheet::new(&self.window, *sheet)
-    }*/
+        CSSStyleSheet::new(&self.window, sheet.deref())
+    }
 }
 
 
