@@ -13,7 +13,7 @@ use hyper::server::{Handler, Listening, Server};
 use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
-use net::fetch::cors_cache::{CacheRequestDetails, CORSCache};
+use net::fetch::cors_cache::CORSCache;
 use net::fetch::methods::{fetch, fetch_async, fetch_with_cors_cache};
 use net_traits::AsyncFetchListener;
 use net_traits::request::{Origin, RedirectMode, Referer, Request, RequestMode};
@@ -238,8 +238,8 @@ fn test_cors_preflight_cache_fetch() {
     let wrapped_request0 = Rc::new(request.clone());
     let wrapped_request1 = Rc::new(request);
 
-    let fetch_response0 = fetch_with_cors_cache(wrapped_request0, &mut cache);
-    let fetch_response1 = fetch_with_cors_cache(wrapped_request1, &mut cache);
+    let fetch_response0 = fetch_with_cors_cache(wrapped_request0.clone(), &mut cache);
+    let fetch_response1 = fetch_with_cors_cache(wrapped_request1.clone(), &mut cache);
     let _ = server.close();
 
     assert!(!fetch_response0.is_network_error() && !fetch_response1.is_network_error());
@@ -248,11 +248,8 @@ fn test_cors_preflight_cache_fetch() {
     assert_eq!(1, counter.load(Ordering::SeqCst));
 
     // The entry exists in the CORS-preflight cache
-    assert_eq!(true, cache.match_method(CacheRequestDetails {
-        origin: origin,
-        destination: url,
-        credentials: false
-    }, Method::Get));
+    assert_eq!(true, cache.match_method(&*wrapped_request0, Method::Get));
+    assert_eq!(true, cache.match_method(&*wrapped_request1, Method::Get));
 
     match *fetch_response0.body.lock().unwrap() {
         ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
