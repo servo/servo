@@ -7,7 +7,7 @@ use style::attr::{AttrValue, parse_length};
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
 #[test]
-fn test_parse_double() {
+fn test_from_double() {
     let value = DOMString::from("432.5e2");
     match AttrValue::from_double(value, 0.0) {
         AttrValue::Double(_, num) => assert_eq!(num, 43250f64),

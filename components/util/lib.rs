@@ -42,6 +42,7 @@ extern crate serde;
 extern crate smallvec;
 extern crate string_cache;
 extern crate url;
+extern crate itertools;
 
 use std::sync::Arc;
 

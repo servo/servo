@@ -14,6 +14,7 @@ use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto, HTML_SPACE_CHARACTERS};
 use util::str::{read_exponent, read_fraction, read_numbers, split_html_space_chars, str_join};
 use values::specified::{Length};
+use itertools::Itertools;
 
 // Duplicated from script::dom::values.
 const UNSIGNED_LONG_MAX: u32 = 2147483647;
@@ -32,13 +33,11 @@ pub enum AttrValue {
     Url(DOMString, Option<Url>),
 }
 
-/// Shared implementation to parse an integer according to
-/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-integers> or
-/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-negative-integers>
-fn do_parse_integer<T: Iterator<Item=char>>(input: T) -> Result<i64, ()> {
-    let mut input = input.skip_while(|c| {
-        HTML_SPACE_CHARACTERS.iter().any(|s| s == c)
-    }).peekable();
+fn do_parse_integer<T>(input: T) -> Result<i64, ()>
+    where T: Iterator<Item=char> + Clone {
+
+    let mut input = input.peekable();
+    input.take_while_ref(|c| HTML_SPACE_CHARACTERS.iter().any(|s| s == c));
 
     let sign = match input.peek() {
         None => return Err(()),
@@ -53,14 +52,16 @@ fn do_parse_integer<T: Iterator<Item=char>>(input: T) -> Result<i64, ()> {
         Some(_) => 1,
     };
 
-    let (value, _) = read_numbers(input);
+    let value = read_numbers(&mut input);
 
     value.and_then(|value| value.checked_mul(sign)).ok_or(())
 }
 
 /// Parse an integer according to
 /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-integers>.
-pub fn parse_integer<T: Iterator<Item=char>>(input: T) -> Result<i32, ()> {
+pub fn parse_integer<T>(input: T) -> Result<i32, ()>
+    where T: Iterator<Item=char> + Clone {
+    
     do_parse_integer(input).and_then(|result| {
         result.to_i32().ok_or(())
     })
@@ -68,7 +69,9 @@ pub fn parse_integer<T: Iterator<Item=char>>(input: T) -> Result<i32, ()> {
 
 /// Parse an integer according to
 /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-negative-integers>
-pub fn parse_unsigned_integer<T: Iterator<Item=char>>(input: T) -> Result<u32, ()> {
+pub fn parse_unsigned_integer<T>(input: T) -> Result<u32, ()>
+    where T: Iterator<Item=char> + Clone {
+    
     do_parse_integer(input).and_then(|result| {
         result.to_u32().ok_or(())
     })
@@ -77,10 +80,10 @@ pub fn parse_unsigned_integer<T: Iterator<Item=char>>(input: T) -> Result<u32, (
 /// Parse a floating-point number according to
 /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-floating-point-number-values>
 pub fn parse_double(string: &DOMString) -> Result<f64, ()> {
-    let trimmed = string.trim_matches(HTML_SPACE_CHARACTERS);
-    let mut input = trimmed.chars().peekable();
-
-    let (value, divisor) = match input.peek() {
+    let mut input = string.trim_matches(HTML_SPACE_CHARACTERS)
+        .chars().peekable();
+    
+    let (mut value, divisor) = match input.peek() {
         None => return Err(()),
         Some(&'-') => {
             input.next();
@@ -92,21 +95,16 @@ pub fn parse_double(string: &DOMString) -> Result<f64, ()> {
         }
         _ => (1f64, 1f64)
     };
-
-    let (value, value_digits) = if let Some(&'.') = input.peek() {
-        (0f64, 0)
+    
+    value = if let Some(&'.') = input.peek() {
+        0f64
     } else {
-        let (read_val, read_digits) = read_numbers(input);
-        (value * read_val.and_then(|result| result.to_f64()).unwrap_or(1f64), read_digits)
+        value * read_numbers(&mut input).and_then(|result| result.to_f64()).unwrap_or(1f64)
     };
+    
+    read_fraction(&mut input, divisor, &mut value);
 
-    let input = trimmed.chars().skip(value_digits).peekable();
-
-    let (mut value, fraction_digits) = read_fraction(input, divisor, value);
-
-    let input = trimmed.chars().skip(value_digits + fraction_digits).peekable();
-
-    if let Some(exp) = read_exponent(input) {
+    if let Some(exp) = read_exponent(&mut input) {
         value *= 10f64.powi(exp)
     };
 
@@ -149,12 +147,11 @@ impl AttrValue {
 
     // https://html.spec.whatwg.org/multipage/#reflecting-content-attributes-in-idl-attributes:idl-double
     pub fn from_double(string: DOMString, default: f64) -> AttrValue {
-        let result = parse_double(&string).unwrap_or(default);
-        let result = if result.is_infinite() {
-            default
-        } else {
-            result
-        };
+        let mut result = parse_double(&string).unwrap_or(default);
+        if result.is_infinite() {
+            result = default;
+        }
+        
         AttrValue::Double(string, result)
     }
 

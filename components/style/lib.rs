@@ -48,6 +48,7 @@ extern crate style_traits;
 extern crate time;
 extern crate url;
 extern crate util;
+extern crate itertools;
 
 pub mod animation;
 pub mod attr;
