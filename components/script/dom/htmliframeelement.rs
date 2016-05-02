@@ -76,7 +76,9 @@ impl HTMLIFrameElement {
         self.sandbox.get().is_some()
     }
 
-    pub fn get_url(&self) -> Option<Url> {
+    /// <https://html.spec.whatwg.org/multipage/#otherwise-steps-for-iframe-or-frame-elements>,
+    /// step 1.
+    fn get_url(&self) -> Url {
         let element = self.upcast::<Element>();
         element.get_attribute(&ns!(), &atom!("src")).and_then(|src| {
             let url = src.value();
@@ -85,7 +87,7 @@ impl HTMLIFrameElement {
             } else {
                 document_from_node(self).base_url().join(&url).ok()
             }
-        })
+        }).unwrap_or_else(|| Url::parse("about:blank").unwrap())
     }
 
     pub fn generate_new_subpage_id(&self) -> (SubpageId, Option<SubpageId>) {
@@ -144,10 +146,7 @@ impl HTMLIFrameElement {
     }
 
     pub fn process_the_iframe_attributes(&self) {
-        let url = match self.get_url() {
-            Some(url) => url,
-            None => Url::parse("about:blank").unwrap(),
-        };
+        let url = self.get_url();
 
         // TODO - loaddata here should have referrer info (not None, None)
         self.navigate_or_reload_child_browsing_context(Some(LoadData::new(url, None, None)));
@@ -430,10 +429,9 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
     fn GetContentDocument(&self) -> Option<Root<Document>> {
         self.GetContentWindow().and_then(|window| {
-            let self_url = match self.get_url() {
-                Some(self_url) => self_url,
-                None => return None,
-            };
+            // FIXME(#10964): this should use the Document's origin and the
+            //                origin of the incumbent settings object.
+            let self_url = self.get_url();
             let win_url = window_from_node(self).get_url();
 
             if UrlHelper::SameOrigin(&self_url, &win_url) {
@@ -585,11 +583,12 @@ impl VirtualMethods for HTMLIFrameElement {
             // Since most of this cleanup doesn't happen on same-origin
             // iframes, and since that would cause a deadlock, don't do it.
             let ConstellationChan(ref chan) = *window.constellation_chan();
-            let same_origin = if let Some(self_url) = self.get_url() {
+            let same_origin = {
+                // FIXME(#10968): this should probably match the origin check in
+                //                HTMLIFrameElement::contentDocument.
+                let self_url = self.get_url();
                 let win_url = window_from_node(self).get_url();
                 UrlHelper::SameOrigin(&self_url, &win_url)
-            } else {
-                false
             };
             let (sender, receiver) = if same_origin {
                 (None, None)
