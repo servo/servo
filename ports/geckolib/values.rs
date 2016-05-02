@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use cssparser::RGBA;
 use gecko_style_structs::{nsStyleUnion, nsStyleUnit};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
 
@@ -42,5 +43,21 @@ impl ToGeckoStyleCoord for LengthOrPercentageOrAuto {
             },
             LengthOrPercentageOrAuto::Calc(_) => unimplemented!(),
         };
+    }
+}
+
+pub fn convert_rgba_to_nscolor(rgba: &RGBA) -> u32 {
+    (((rgba.alpha * 255.0).round() as u32) << 24) |
+    (((rgba.blue  * 255.0).round() as u32) << 16) |
+    (((rgba.green * 255.0).round() as u32) << 8) |
+     ((rgba.red   * 255.0).round() as u32)
+}
+
+pub fn convert_nscolor_to_rgba(color: u32) -> RGBA {
+    RGBA {
+        red:    ((color        & 0xff) as f32) / 255.0,
+        green: (((color >>  8) & 0xff) as f32) / 255.0,
+        blue:  (((color >> 16) & 0xff) as f32) / 255.0,
+        alpha: (((color >> 24) & 0xff) as f32) / 255.0,
     }
 }
