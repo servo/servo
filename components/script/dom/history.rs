@@ -1,0 +1,53 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+use dom::bindings::codegen::Bindings::HistoryBinding::{self, HistoryMethods};
+use dom::bindings::global::GlobalRef;
+use dom::bindings::js::{JS, Root};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::window::Window;
+use msg::constellation_msg::NavigationDirection;
+use script_traits::ScriptMsg as ConstellationMsg;
+
+// https://html.spec.whatwg.org/multipage/#the-history-interface
+#[dom_struct]
+pub struct History {
+    reflector_: Reflector,
+    window: JS<Window>,
+}
+
+impl History {
+    fn new_inherited(window: &Window) -> History {
+        History {
+            reflector_: Reflector::new(),
+            window: JS::from_ref(window),
+        }
+    }
+
+    pub fn new(window: &Window) -> Root<History> {
+        reflect_dom_object(box History::new_inherited(window),
+                           GlobalRef::Window(window),
+                           HistoryBinding::Wrap)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#traverse-the-history-by-a-delta
+    fn traverse_history_by_delta(&self, direction: NavigationDirection) {
+        let chan = self.window.constellation_chan();
+        let parent_info = self.window.parent_info();
+        let msg = ConstellationMsg::Navigate(parent_info, direction);
+        chan.0.send(msg).unwrap();
+    }
+}
+
+impl<'a> HistoryMethods for &'a History {
+    // https://html.spec.whatwg.org/multipage/#dom-history-back
+    fn Back(&self) {
+        self.traverse_history_by_delta(NavigationDirection::Back)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-history-forward
+    fn Forward(&self) {
+        self.traverse_history_by_delta(NavigationDirection::Forward)
+    }
+}
