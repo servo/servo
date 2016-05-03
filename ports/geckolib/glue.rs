@@ -9,6 +9,7 @@ use bindings::{RawGeckoDocument, RawGeckoNode};
 use bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues, ServoNodeData};
 use bindings::{nsIAtom};
 use data::PerDocumentStyleData;
+use env_logger;
 use euclid::Size2D;
 use gecko_style_structs::SheetParsingMode;
 use properties::GeckoComputedValues;
@@ -63,6 +64,10 @@ pub fn pseudo_element_from_atom(pseudo: *mut nsIAtom,
 
 #[no_mangle]
 pub extern "C" fn Servo_Initialize() -> () {
+    // Enable standard Rust logging.
+    //
+    // See https://doc.rust-lang.org/log/env_logger/index.html for instructions.
+    env_logger::init().unwrap();
 }
 
 #[no_mangle]
