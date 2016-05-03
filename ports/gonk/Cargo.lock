@@ -922,13 +922,13 @@ dependencies = [
 [[package]]
 name = "js"
 version = "0.1.2"
-source = "git+https://github.com/servo/rust-mozjs#efe805affa75d776316e9ea6113f85cdad1e82ed"
+source = "git+https://github.com/servo/rust-mozjs#8ad6c1148fd77e5b9dc2ce0f0ab40d4f455f6f4e"
 dependencies = [
  "heapsize 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mozjs_sys 0.0.0 (git+https://github.com/servo/mozjs)",
- "num 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num-traits 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1171,7 +1171,7 @@ dependencies = [
 [[package]]
 name = "mozjs_sys"
 version = "0.0.0"
-source = "git+https://github.com/servo/mozjs#3122a1e1a80b78377ae1ce8e7edd4ad3bcbb3d65"
+source = "git+https://github.com/servo/mozjs#2af5849a97a9f18acd482940ba3fa0c6797ed7eb"
 dependencies = [
  "libc 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "libz-sys 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
