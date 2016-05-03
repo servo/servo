@@ -5,7 +5,7 @@
 // For lazy_static
 #![allow(unsafe_code)]
 
-use dom::TElement;
+use dom::PresentationalHintsSynthetiser;
 use element_state::*;
 use error_reporting::{ParseErrorReporter, StdoutErrorReporter};
 use media_queries::{Device, MediaType};
@@ -281,7 +281,8 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                                                   pseudo: &Impl::PseudoElement,
                                                   parent: &Arc<Impl::ComputedValues>)
                                                   -> Option<Arc<Impl::ComputedValues>>
-                                                  where E: Element<Impl=Impl> + TElement {
+                                                  where E: Element<Impl=Impl> +
+                                                        PresentationalHintsSynthetiser {
         debug_assert!(Impl::pseudo_element_cascade_type(pseudo).is_lazy());
         if self.pseudos_map.get(pseudo).is_none() {
             return None;
@@ -358,7 +359,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                                         pseudo_element: Option<&Impl::PseudoElement>,
                                         applicable_declarations: &mut V)
                                         -> bool
-                                        where E: Element<Impl=Impl> + TElement,
+                                        where E: Element<Impl=Impl> + PresentationalHintsSynthetiser,
                                               V: VecLike<DeclarationBlock> {
         assert!(!self.is_device_dirty);
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
