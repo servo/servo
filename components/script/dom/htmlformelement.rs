@@ -7,11 +7,11 @@ use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
+use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFormElementBinding::HTMLFormElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
-use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use dom::bindings::conversions::DerivedFrom;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{JS, MutNullableHeap, Root};
@@ -35,7 +35,6 @@ use dom::htmloutputelement::HTMLOutputElement;
 use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::{Node, document_from_node, window_from_node};
-use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use encoding::EncodingRef;
@@ -463,12 +462,11 @@ impl HTMLFormElement {
     /// Interactively validate the constraints of form elements
     /// https://html.spec.whatwg.org/multipage/#interactively-validate-the-constraints
     fn interactive_validation(&self) -> Result<(), ()> {
-        let doc = document_from_node(self);
         // Step 1-3
         let _unhandled_invalid_controls = match self.static_validation() {
             Ok(()) => return Ok(()),
             Err(err) => {
-                doc.request_focus(err[0].as_event_target().downcast::<Element>().unwrap());
+                err[0].as_event_target().downcast::<HTMLElement>().unwrap().Focus();
                 err
             }
         };

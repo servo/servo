@@ -154,14 +154,11 @@ impl VirtualMethods for HTMLFieldSetElement {
 
 impl FormControl for HTMLFieldSetElement {
     fn candidate_for_validation(&self, element: &Element) -> bool {
-        match element.as_maybe_validatable() {
-            Some(x) => {
-                //  println!("retun true" );
-                return true
-            },
-            None => { //println!("retun false" );
-                return false 
-            }
+        if element.as_maybe_validatable().is_some(){
+            return true
+        }
+        else {
+           return false 
         }
     }
 

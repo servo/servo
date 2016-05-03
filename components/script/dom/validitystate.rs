@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
-use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::codegen::Bindings::ValidityStateBinding;
 use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
@@ -12,12 +11,7 @@ use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, Nod
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::element::Element;
-use dom::htmlbuttonelement::HTMLButtonElement;
-use dom::htmlelement::HTMLElement;
-use dom::htmlformelement::{FormControl, FormDatum, FormSubmitter, HTMLFormElement};
 use dom::htmlinputelement::HTMLInputElement;
-use dom::htmlobjectelement::HTMLObjectElement;
-use dom::htmloptionelement::HTMLOptionElement;
 use dom::htmlselectelement::HTMLSelectElement;
 use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::node::Node;
@@ -71,27 +65,24 @@ impl ValidityStateMethods for ValidityState {
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-valuemissing
     fn ValueMissing(&self) -> bool {
-        let element = match self.element.upcast::<Node>().type_id() {
+       match self.element.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                 let attr_value_check = self.element.get_attribute_by_name(DOMString::from("required"))
                     .map(|s| s.Value());
-                match attr_value_check {
-                    Some(attr_value) => {
+                if attr_value_check.is_some() {
                         let html_input_element = self.element.downcast::<HTMLInputElement>().unwrap();
                         let input_value_check = html_input_element.get_value_for_validation();
-                        match input_value_check {
-                            Some(input_value) => {
-                                return false;
-                            },
-                            None => {
+                        if input_value_check.is_some() {
+                            return false;
+                        }
+                        else {
                                 println!("Error - Value missing in html input element");
                                 return true;
-                            }
                         }
-                    },
-                    None => {
-                        return false;
-                    }
+                        
+                }
+                else {
+                    return false;
                 }
                 //let data = element1.form_datum(Some(FormSubmitter::InputElement(element1)));
             },
@@ -104,46 +95,45 @@ impl ValidityStateMethods for ValidityState {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
                let attr_value_check = self.element.get_attribute_by_name(DOMString::from("required"))
                 .map(|s| s.Value());
-                match attr_value_check {
-                    Some(attr_value) => {
-                        let html_select_element = self.element.downcast::<HTMLSelectElement>().unwrap();
-                        let input_value_check = html_select_element.get_value_for_validation();
-                        match input_value_check {
-                            Some(input_value) => {
-                                return false;
-                            },
-                            None => {
-                                println!("Error - Value missing in html select area element");
-                                return true;
-                            }
-                        }
-                    },
-                    None => {
+                if attr_value_check.is_some() {
+                    let html_select_element = self.element.downcast::<HTMLSelectElement>().unwrap();
+                    let input_value_check = html_select_element.get_value_for_validation();
+                    if input_value_check.is_some() {
                         return false;
                     }
+                    else {
+                            println!("Error - Value missing in html select area element");
+                            return true;
+                    }
+                    
                 }
+                else {
+                    return false;
+                }
+                
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
                 let attr_value_check = self.element.get_attribute_by_name(DOMString::from("required"))
                     .map(|s| s.Value());
-                match attr_value_check {
-                    Some(attr_value) => {
+
+                if attr_value_check.is_some() {
+                    
                         let html_textarea_element = self.element.downcast::<HTMLTextAreaElement>().unwrap();
                         let input_value_check = html_textarea_element.get_value_for_validation();
-                        match input_value_check {
-                            Some(input_value) => {
-                                return false;
-                            },
-                            None => {
+                        if input_value_check.is_some() {
+                            return false;
+                        }
+                        else {
                                 println!("Error - Value missing in html text area element");
                                 return true;
-                            }
                         }
-                    },
-                    None => {
+                        
+                   }
+                   else {
                         return false;
-                    }
-                }
+                   }
+                   
+                
             },
             NodeTypeId::Element(_)  => {
             }
@@ -161,7 +151,7 @@ impl ValidityStateMethods for ValidityState {
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-typemismatch
     fn TypeMismatch(&self) -> bool {
-        let element = match self.element.upcast::<Node>().type_id() {
+        match self.element.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                 //let regex_email: Regex = Regex::new(r"/^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-] \
                 //    {0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/").unwrap();
@@ -233,7 +223,7 @@ impl ValidityStateMethods for ValidityState {
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-patternmismatch
     fn PatternMismatch(&self) -> bool {
-        let element = match self.element.upcast::<Node>().type_id() {
+        match self.element.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                 let attr_value_check = self.element.get_attribute_by_name(DOMString::from("pattern"))
                     .map(|s| s.Value());
@@ -283,7 +273,7 @@ impl ValidityStateMethods for ValidityState {
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-toolong
     fn TooLong(&self) -> bool {
-        let element = match self.element.upcast::<Node>().type_id() {
+        match self.element.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                 let attr_value_check = self.element.get_attribute_by_name(DOMString::from("maxlength"))
                     .map(|s| s.Value());
@@ -362,7 +352,7 @@ impl ValidityStateMethods for ValidityState {
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-tooshort
     fn TooShort(&self) -> bool {
-        let element = match self.element.upcast::<Node>().type_id() {
+        match self.element.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                 let attr_value_check = self.element.get_attribute_by_name(DOMString::from("minlength"))
                     .map(|s| s.Value());
@@ -441,7 +431,7 @@ impl ValidityStateMethods for ValidityState {
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-rangeunderflow
     fn RangeUnderflow(&self) -> bool {
-        let element = match self.element.upcast::<Node>().type_id() {
+        match self.element.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                 let attr_value_check = self.element.get_attribute_by_name(DOMString::from("min"))
                     .map(|s| s.Value());
@@ -495,7 +485,7 @@ impl ValidityStateMethods for ValidityState {
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-rangeoverflow
     fn RangeOverflow(&self) -> bool {
-        let element = match self.element.upcast::<Node>().type_id() {
+        match self.element.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                 let attr_value_check = self.element.get_attribute_by_name(DOMString::from("max"))
                     .map(|s| s.Value());
@@ -549,7 +539,7 @@ impl ValidityStateMethods for ValidityState {
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-stepmismatch
     fn StepMismatch(&self) -> bool {
-        let element = match self.element.upcast::<Node>().type_id() {
+        match self.element.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                 let attr_value_check = self.element.get_attribute_by_name(DOMString::from("step"))
                     .map(|s| s.Value());
@@ -603,7 +593,7 @@ impl ValidityStateMethods for ValidityState {
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-badinput
     fn BadInput(&self) -> bool {
-        let element = match self.element.upcast::<Node>().type_id() {
+        match self.element.upcast::<Node>().type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) => {
@@ -632,15 +622,14 @@ impl ValidityStateMethods for ValidityState {
     fn CustomError(&self) -> bool {
         let attr_value_check = self.element.get_attribute_by_name(DOMString::from("validationMessage"))
                     .map(|s| s.Value());
-                match attr_value_check {
-                    Some(attr_value) => {
-                        return true;
-                    },
-                    None => {
-                        return false;
-                    }
-                }
-        false
+
+
+        if attr_value_check.is_some() {
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-validitystate-valid

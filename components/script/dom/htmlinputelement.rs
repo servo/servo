@@ -935,22 +935,17 @@ impl VirtualMethods for HTMLInputElement {
                         Nothing => (),
                     }
                 }
-        } else if event.type_() == atom!("invalid") && !event.DefaultPrevented() {
-            document_from_node(self).request_focus(self.upcast());
-        }
+        } 
     }
 }
 
 impl FormControl for HTMLInputElement {
     fn candidate_for_validation(&self, element: &Element) -> bool {
-        match element.as_maybe_validatable() {
-            Some(x) => {
-                //  println!("retun true" );
-                return true
-            },
-            None => { //println!("retun false" );
-                return false 
-            }
+        if element.as_maybe_validatable().is_some(){
+            return true
+        }
+        else {
+           return false 
         }
     }
 

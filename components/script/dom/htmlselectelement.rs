@@ -13,7 +13,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
-use dom::event::{Event, EventBubbles, EventCancelable};
+use dom::event::Event;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormDatumValue, FormControl, FormDatum, HTMLFormElement};
@@ -246,22 +246,17 @@ impl VirtualMethods for HTMLSelectElement {
             //TODO: set the editing position for text inputs
 
             document_from_node(self).request_focus(self.upcast());
-        } else if event.type_() == atom!("invalid") && !event.DefaultPrevented() {
-            document_from_node(self).request_focus(self.upcast());
-        }
+        } 
     }
 }
 
 impl FormControl for HTMLSelectElement {
     fn candidate_for_validation(&self, element: &Element) -> bool {
-        match element.as_maybe_validatable() {
-            Some(x) => {
-                //  println!("retun true" );
-                return true
-            },
-            None => { //println!("retun false" );
-                return false 
-            }
+        if element.as_maybe_validatable().is_some(){
+            return true
+        }
+        else {
+           return false 
         }
     }
 
