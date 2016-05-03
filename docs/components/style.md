@@ -118,8 +118,8 @@ Lazy cascading allows to compute pseudo-element styles lazily, that is, just
 when needed.
 
 Currently (for Servo, not that much for stylo), **selectors supported for this
-kind of pseudo-elements are only a subset of selectors that can be computed
-in a thread-safe way in layout**.
+kind of pseudo-elements are only a subset of selectors that can be matched on
+the layout tree, which does not hold all data from the DOM tree**.
 
 This subset includes tags and attribute selectors, enough for making
 `::-servo-details-summary` a lazy pseudo-element (that only needs to know
