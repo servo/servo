@@ -402,13 +402,13 @@ fn http_fetch(request: Rc<Request>,
 
         // Substep 1
         if cors_preflight_flag {
-            let method_cache_match = cache.match_method(request.as_ref().clone(),
+            let method_cache_match = cache.match_method(request.as_ref(),
                                                         request.method.borrow().clone());
 
             let method_mismatch = !method_cache_match && (!is_simple_method(&request.method.borrow()) ||
                                                           request.use_cors_preflight);
             let header_mismatch = request.headers.borrow().iter().any(|view|
-                !cache.match_header(request.as_ref().clone(), view.name()) && !is_simple_header(&view)
+                !cache.match_header(request.as_ref(), view.name()) && !is_simple_header(&view)
             );
 
             // Sub-substep 1
@@ -1017,12 +1017,12 @@ fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache) -> Response
 
         // Substep 11, 12
         for method in &methods {
-            cache.match_method_and_update(request.as_ref().clone(), method.clone(), max_age);
+            cache.match_method_and_update(request.as_ref(), method.clone(), max_age);
         }
 
         // Substep 13, 14
         for header_name in &header_names {
-            cache.match_header_and_update(request.as_ref().clone(), &*header_name, max_age);
+            cache.match_header_and_update(request.as_ref(), &*header_name, max_age);
         }
 
         // Substep 15

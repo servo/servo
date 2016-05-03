@@ -96,7 +96,7 @@ impl CORSCache {
     }
 
     /// [Clear the cache](https://fetch.spec.whatwg.org/#concept-cache-clear)
-    pub fn clear (&mut self, request: Request) {
+    pub fn clear (&mut self, request: &Request) {
         let CORSCache(buf) = self.clone();
         let new_buf: Vec<CORSCacheEntry> =
             buf.into_iter().filter(|e| e.origin == *request.origin.borrow() &&
@@ -116,7 +116,7 @@ impl CORSCache {
 
     /// Returns true if an entry with a
     /// [matching header](https://fetch.spec.whatwg.org/#concept-cache-match-header) is found
-    pub fn match_header(&mut self, request: Request, header_name: &str) -> bool {
+    pub fn match_header(&mut self, request: &Request, header_name: &str) -> bool {
         self.find_entry_by_header(&request, header_name).is_some()
     }
 
@@ -124,7 +124,7 @@ impl CORSCache {
     /// [matching header](https://fetch.spec.whatwg.org/#concept-cache-match-header) is found.
     ///
     /// If not, it will insert an equivalent entry
-    pub fn match_header_and_update(&mut self, request: Request,
+    pub fn match_header_and_update(&mut self, request: &Request,
                                    header_name: &str, new_max_age: u32) -> bool {
         match self.find_entry_by_header(&request, header_name).map(|e| e.max_age = new_max_age) {
             Some(_) => true,
@@ -139,7 +139,7 @@ impl CORSCache {
 
     /// Returns true if an entry with a
     /// [matching method](https://fetch.spec.whatwg.org/#concept-cache-match-method) is found
-    pub fn match_method(&mut self, request: Request, method: Method) -> bool {
+    pub fn match_method(&mut self, request: &Request, method: Method) -> bool {
         self.find_entry_by_method(&request, method).is_some()
     }
 
@@ -147,7 +147,7 @@ impl CORSCache {
     /// [a matching method](https://fetch.spec.whatwg.org/#concept-cache-match-method) is found.
     ///
     /// If not, it will insert an equivalent entry
-    pub fn match_method_and_update(&mut self, request: Request, method: Method, new_max_age: u32) -> bool {
+    pub fn match_method_and_update(&mut self, request: &Request, method: Method, new_max_age: u32) -> bool {
         match self.find_entry_by_method(&request, method.clone()).map(|e| e.max_age = new_max_age) {
             Some(_) => true,
             None => {

@@ -248,8 +248,8 @@ fn test_cors_preflight_cache_fetch() {
     assert_eq!(1, counter.load(Ordering::SeqCst));
 
     // The entry exists in the CORS-preflight cache
-    assert_eq!(true, cache.match_method(wrapped_request0.as_ref().clone(), Method::Get));
-    assert_eq!(true, cache.match_method(wrapped_request1.as_ref().clone(), Method::Get));
+    assert_eq!(true, cache.match_method(wrapped_request0.as_ref(), Method::Get));
+    assert_eq!(true, cache.match_method(wrapped_request1.as_ref(), Method::Get));
 
     match *fetch_response0.body.lock().unwrap() {
         ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
