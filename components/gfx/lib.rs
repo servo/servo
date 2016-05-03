@@ -61,6 +61,7 @@ extern crate msg;
 extern crate net_traits;
 #[macro_use]
 extern crate profile_traits;
+extern crate quickersort;
 extern crate rand;
 #[macro_use]
 extern crate range;

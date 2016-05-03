@@ -28,6 +28,7 @@ use ipc_channel::ipc::IpcSharedMemory;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, PixelFormat};
 use paint_context::PaintContext;
+use quickersort;
 use range::Range;
 use serde::de::{self, Deserialize, Deserializer, MapVisitor, Visitor};
 use serde::ser::impls::MapIteratorVisitor;
@@ -37,6 +38,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::hash::{BuildHasherDefault, Hash};
 use std::marker::PhantomData;
+use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use style::computed_values::{border_style, filter, image_rendering, mix_blend_mode};
@@ -246,17 +248,16 @@ impl DisplayList {
     }
 
     fn sort(&mut self) {
-        let mut list = Vec::new();
-        list.append(&mut self.list);
+        let mut list = mem::replace(&mut self.list, Vec::new());
 
-        list.sort_by(|a, b| {
+        quickersort::sort_by(&mut list, &|a, b| {
             if a.base().stacking_context_id == b.base().stacking_context_id {
                 return a.base().section.cmp(&b.base().section);
             }
             self.get_offset_for_item(a).cmp(&self.get_offset_for_item(b))
         });
 
-        self.list.append(&mut list);
+        mem::replace(&mut self.list, list);
     }
 
     pub fn print(&self) {
@@ -271,7 +272,7 @@ impl DisplayList {
                                   BuildHasherDefault<FnvHasher>>,
             mut current_offset: u32)
             -> u32 {
-        stacking_context.children.sort();
+        quickersort::sort(&mut stacking_context.children);
 
         let start_offset = current_offset;
         let mut block_backgrounds_and_borders_offset = None;

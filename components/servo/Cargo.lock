@@ -721,6 +721,7 @@ dependencies = [
  "net_traits 0.0.1",
  "plugins 0.0.1",
  "profile_traits 0.0.1",
+ "quickersort 2.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "range 0.0.1",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
