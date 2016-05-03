@@ -1341,6 +1341,18 @@ impl TextContent {
     }
 }
 
+/// This implementation of `::selectors::Element` is used for implementing lazy
+/// pseudo-elements.
+///
+/// Lazy pseudo-elements in Servo only allows selectors using safe properties,
+/// i.e., local_name, attributes, so they can only be used for **private**
+/// pseudo-elements (like `::-servo-details-content`).
+///
+/// Probably a few more of this functions can be implemented (like `has_class`,
+/// `each_class`, etc), but they have no use right now.
+///
+/// Note that the element implementation is needed only for selector matching,
+/// not for inheritance (styles are inherited appropiately).
 impl <'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     type Impl = ServoSelectorImpl;
 
