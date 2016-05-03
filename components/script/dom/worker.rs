@@ -69,19 +69,19 @@ impl Worker {
     // https://html.spec.whatwg.org/multipage/#dom-worker
     pub fn Constructor(global: GlobalRef, script_url: DOMString) -> Fallible<Root<Worker>> {
         // Step 2-4.
-        let worker_url = match global.get_url().join(&script_url) {
+        let worker_url = match global.api_base_url().join(&script_url) {
             Ok(url) => url,
             Err(_) => return Err(Error::Syntax),
         };
 
         let resource_thread = global.resource_thread();
-        let constellation_chan = global.constellation_chan();
-        let scheduler_chan = global.scheduler_chan();
+        let constellation_chan = global.constellation_chan().clone();
+        let scheduler_chan = global.scheduler_chan().clone();
 
         let (sender, receiver) = channel();
         let closing = Arc::new(AtomicBool::new(false));
         let worker = Worker::new(global, sender.clone(), closing.clone());
-        let worker_ref = Trusted::new(worker.r(), global.script_chan());
+        let worker_ref = Trusted::new(worker.r());
         let worker_id = global.get_next_worker_id();
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
@@ -103,7 +103,7 @@ impl Worker {
 
         let init = WorkerGlobalScopeInit {
             resource_thread: resource_thread,
-            mem_profiler_chan: global.mem_profiler_chan(),
+            mem_profiler_chan: global.mem_profiler_chan().clone(),
             to_devtools_sender: global.devtools_chan(),
             from_devtools_sender: optional_sender,
             constellation_chan: constellation_chan,
@@ -166,7 +166,7 @@ impl WorkerMethods for Worker {
     // https://html.spec.whatwg.org/multipage/#dom-worker-postmessage
     fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
-        let address = Trusted::new(self, self.global().r().script_chan());
+        let address = Trusted::new(self);
         self.sender.send((address, WorkerScriptMsg::DOMMessage(data))).unwrap();
         Ok(())
     }

@@ -19,6 +19,16 @@ self.templatedRSEmpty = (label, factory) => {
     assert_equals(typeof rs.tee, 'function', 'has a tee method');
 
   }, 'instances have the correct methods and properties');
+
+  test(() => {
+    const rs = factory();
+
+    assert_throws(new RangeError(), () => rs.getReader({ mode: '' }), 'empty string mode should throw');
+    assert_throws(new RangeError(), () => rs.getReader({ mode: null }), 'null mode should throw');
+    assert_throws(new RangeError(), () => rs.getReader({ mode: 'asdf' }), 'asdf mode should throw');
+    assert_throws(new TypeError(), () => rs.getReader(null), 'null should throw');
+
+  }, 'calling getReader with invalid arguments should throw appropriate errors');
 };
 
 self.templatedRSClosed = (label, factory) => {

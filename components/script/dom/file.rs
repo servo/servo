@@ -18,14 +18,15 @@ pub struct File {
 }
 
 impl File {
-    fn new_inherited(_file_bits: &Blob, name: DOMString) -> File {
+    fn new_inherited(file_bits: &Blob, name: DOMString) -> File {
+      // TODO: FilePropertyBag
+       let mut bytes = Vec::new();
+       bytes.extend_from_slice(file_bits.get_data().get_all_bytes().as_slice());
+
         File {
-            //TODO: get type from the underlying filesystem instead of "".to_string()
-            blob: Blob::new_inherited(Arc::new(Vec::new()), None, None, ""),
+            blob: Blob::new_inherited(Arc::new(bytes), None, None, ""),
             name: name,
         }
-        // XXXManishearth Once Blob is able to store data
-        // the relevant subfields of file_bits should be copied over
     }
 
     pub fn new(global: GlobalRef, file_bits: &Blob, name: DOMString) -> Root<File> {

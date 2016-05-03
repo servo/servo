@@ -23,6 +23,7 @@ pub struct WebGLProgram {
     webgl_object: WebGLObject,
     id: u32,
     is_deleted: Cell<bool>,
+    linked: Cell<bool>,
     fragment_shader: MutNullableHeap<JS<WebGLShader>>,
     vertex_shader: MutNullableHeap<JS<WebGLShader>>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
@@ -35,6 +36,7 @@ impl WebGLProgram {
             webgl_object: WebGLObject::new_inherited(),
             id: id,
             is_deleted: Cell::new(false),
+            linked: Cell::new(false),
             fragment_shader: Default::default(),
             vertex_shader: Default::default(),
             renderer: renderer,
@@ -71,19 +73,27 @@ impl WebGLProgram {
 
     /// glLinkProgram
     pub fn link(&self) {
+        self.linked.set(false);
+
+        match self.fragment_shader.get() {
+            Some(ref shader) if shader.successfully_compiled() => {},
+            _ => return,
+        }
+
+        match self.vertex_shader.get() {
+            Some(ref shader) if shader.successfully_compiled() => {},
+            _ => return,
+        }
+
+        self.linked.set(true);
+
         self.renderer.send(CanvasMsg::WebGL(WebGLCommand::LinkProgram(self.id))).unwrap();
     }
 
     /// glUseProgram
     pub fn use_program(&self) -> WebGLResult<()> {
-        match self.fragment_shader.get() {
-            Some(ref shader) if shader.successfully_compiled() => {},
-            _ => return Err(WebGLError::InvalidOperation),
-        }
-
-        match self.vertex_shader.get() {
-            Some(ref shader) if shader.successfully_compiled() => {},
-            _ => return Err(WebGLError::InvalidOperation),
+        if !self.linked.get() {
+            return Err(WebGLError::InvalidOperation);
         }
 
         self.renderer.send(CanvasMsg::WebGL(WebGLCommand::UseProgram(self.id))).unwrap();

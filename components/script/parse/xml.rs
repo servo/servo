@@ -11,11 +11,13 @@ use dom::comment::Comment;
 use dom::document::Document;
 use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementCreator};
+use dom::htmlscriptelement::HTMLScriptElement;
 use dom::node::Node;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::servoxmlparser;
 use dom::servoxmlparser::ServoXMLParser;
 use dom::text::Text;
+use html5ever;
 use msg::constellation_msg::PipelineId;
 use parse::Parser;
 use std::borrow::Cow;
@@ -24,7 +26,7 @@ use url::Url;
 use util::str::DOMString;
 use xml5ever::tendril::StrTendril;
 use xml5ever::tokenizer::{Attribute, QName};
-use xml5ever::tree_builder::{NodeOrText, TreeSink};
+use xml5ever::tree_builder::{NextParserState, NodeOrText, TreeSink};
 
 impl<'a> TreeSink for servoxmlparser::Sink {
     type Handle = JS<Node>;
@@ -101,6 +103,24 @@ impl<'a> TreeSink for servoxmlparser::Sink {
             doc);
         JS::from_ref(pi.upcast())
     }
+
+    fn mark_script_already_started(&mut self, node: Self::Handle) {
+        let script = node.downcast::<HTMLScriptElement>();
+        if let Some(script) = script {
+            script.mark_already_started();
+        }
+    }
+
+    fn complete_script(&mut self, node: Self::Handle) -> NextParserState {
+        let script = node.downcast::<HTMLScriptElement>();
+        if let Some(script) = script {
+            return match script.prepare() {
+                html5ever::tree_builder::NextParserState::Continue => NextParserState::Continue,
+                html5ever::tree_builder::NextParserState::Suspend => NextParserState::Suspend
+            };
+        }
+        NextParserState::Continue
+    }
 }
 
 
@@ -119,4 +139,3 @@ pub fn parse_xml(document: &Document,
     };
     parser.parse_chunk(String::from(input));
 }
-

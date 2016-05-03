@@ -12,7 +12,7 @@ use fragment::{ScannedTextFragmentInfo, SELECTED, SpecificFragmentInfo, Unscanne
 use gfx::font::{DISABLE_KERNING_SHAPING_FLAG, FontMetrics, IGNORE_LIGATURES_SHAPING_FLAG};
 use gfx::font::{RTL_FLAG, RunMetrics, ShapingFlags, ShapingOptions};
 use gfx::font_context::FontContext;
-use gfx::text::glyph::CharIndex;
+use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFragments, LAST_FRAGMENT_OF_ELEMENT};
@@ -174,7 +174,7 @@ impl TextRunScanner {
 
             for (fragment_index, in_fragment) in self.clump.iter().enumerate() {
                 debug!("  flushing {:?}", in_fragment);
-                let mut mapping = RunMapping::new(&run_info_list[..], &run_info, fragment_index);
+                let mut mapping = RunMapping::new(&run_info_list[..], fragment_index);
                 let text;
                 let selection;
                 match in_fragment.specific {
@@ -188,13 +188,13 @@ impl TextRunScanner {
                     Some(range) if range.is_empty() => {
                         // `range` is the range within the current fragment. To get the range
                         // within the text run, offset it by the length of the preceding fragments.
-                        Some(range.begin() + CharIndex(run_info.character_length as isize))
+                        Some(range.begin() + ByteIndex(run_info.text.len() as isize))
                     }
                     _ => None
                 };
 
                 let (mut start_position, mut end_position) = (0, 0);
-                for (char_index, character) in text.chars().enumerate() {
+                for (byte_index, character) in text.char_indices() {
                     // Search for the first font in this font group that contains a glyph for this
                     // character.
                     let mut font_index = 0;
@@ -226,7 +226,7 @@ impl TextRunScanner {
                     }
 
                     let selected = match selection {
-                        Some(range) => range.contains(CharIndex(char_index as isize)),
+                        Some(range) => range.contains(ByteIndex(byte_index as isize)),
                         None => false
                     };
 
@@ -251,7 +251,6 @@ impl TextRunScanner {
                                 run_info = RunInfo::new();
                             }
                             mapping = RunMapping::new(&run_info_list[..],
-                                                      &run_info,
                                                       fragment_index);
                         }
                         run_info.font_index = font_index;
@@ -340,14 +339,17 @@ impl TextRunScanner {
                         break;
                     }
                 };
-                let mut mapping = mappings.next().unwrap();
+                let mapping = mappings.next().unwrap();
                 let scanned_run = runs[mapping.text_run_index].clone();
 
+                let mut byte_range = Range::new(ByteIndex(mapping.byte_range.begin() as isize),
+                                                ByteIndex(mapping.byte_range.length() as isize));
+
                 let requires_line_break_afterward_if_wrapping_on_newlines =
-                    !mapping.byte_range.is_empty() &&
-                    scanned_run.run.text.char_at_reverse(mapping.byte_range.end()) == '\n';
+                    scanned_run.run.text[mapping.byte_range.begin()..mapping.byte_range.end()]
+                    .ends_with('\n');
                 if requires_line_break_afterward_if_wrapping_on_newlines {
-                    mapping.char_range.extend_by(CharIndex(-1));
+                    byte_range.extend_by(ByteIndex(-1)); // Trim the '\n'
                 }
 
                 let text_size = old_fragment.border_box.size;
@@ -368,12 +370,12 @@ impl TextRunScanner {
 
                 let mut new_text_fragment_info = box ScannedTextFragmentInfo::new(
                     scanned_run.run,
-                    mapping.char_range,
+                    byte_range,
                     text_size,
                     insertion_point,
                     flags);
 
-                let new_metrics = new_text_fragment_info.run.metrics_for_range(&mapping.char_range);
+                let new_metrics = new_text_fragment_info.run.metrics_for_range(&byte_range);
                 let writing_mode = old_fragment.style.writing_mode;
                 let bounding_box_size = bounding_box_for_run_metrics(&new_metrics, writing_mode);
                 new_text_fragment_info.content_size = bounding_box_size;
@@ -490,7 +492,7 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
                 unscanned_text_fragment_info.text[..(position + 1)].to_owned();
             unscanned_text_fragment_info.text =
                 unscanned_text_fragment_info.text[(position + 1)..].to_owned().into_boxed_str();
-            let offset = CharIndex(string_before.char_indices().count() as isize);
+            let offset = ByteIndex(string_before.len() as isize);
             match unscanned_text_fragment_info.selection {
                 Some(ref mut selection) if selection.begin() >= offset => {
                     // Selection is entirely in the second fragment.
@@ -500,7 +502,7 @@ fn split_first_fragment_at_newline_if_necessary(fragments: &mut LinkedList<Fragm
                 Some(ref mut selection) if selection.end() > offset => {
                     // Selection is split across two fragments.
                     selection_before = Some(Range::new(selection.begin(), offset));
-                    *selection = Range::new(CharIndex(0), selection.end() - offset);
+                    *selection = Range::new(ByteIndex(0), selection.end() - offset);
                 }
                 _ => {
                     // Selection is entirely in the first fragment.
@@ -523,11 +525,9 @@ struct RunInfo {
     /// The text that will go in this text run.
     text: String,
     /// The insertion point in this text run, if applicable.
-    insertion_point: Option<CharIndex>,
+    insertion_point: Option<ByteIndex>,
     /// The index of the applicable font in the font group.
     font_index: usize,
-    /// A cached copy of the number of Unicode characters in the text run.
-    character_length: usize,
     /// The bidirection embedding level of this text run.
     bidi_level: u8,
     /// The Unicode script property of this text run.
@@ -540,7 +540,6 @@ impl RunInfo {
             text: String::new(),
             insertion_point: None,
             font_index: 0,
-            character_length: 0,
             bidi_level: 0,
             script: Script::Common,
         }
@@ -552,9 +551,9 @@ impl RunInfo {
     ///   of this text run.
     fn flush(mut self,
              list: &mut Vec<RunInfo>,
-             insertion_point: &mut Option<CharIndex>) {
+             insertion_point: &mut Option<ByteIndex>) {
         if let Some(idx) = *insertion_point {
-            let char_len = CharIndex(self.character_length as isize);
+            let char_len = ByteIndex(self.text.len() as isize);
             if idx <= char_len {
                 // The insertion point is in this text run.
                 self.insertion_point = insertion_point.take()
@@ -571,8 +570,6 @@ impl RunInfo {
 /// for it.
 #[derive(Copy, Clone, Debug)]
 struct RunMapping {
-    /// The range of characters within the text fragment.
-    char_range: Range<CharIndex>,
     /// The range of byte indices within the text fragment.
     byte_range: Range<usize>,
     /// The index of the unscanned text fragment that this mapping corresponds to.
@@ -585,13 +582,10 @@ struct RunMapping {
 
 impl RunMapping {
     /// Given the current set of text runs, creates a run mapping for the next fragment.
-    /// `run_info_list` describes the set of runs we've seen already, and `current_run_info`
-    /// describes the run we just finished processing.
-    fn new(run_info_list: &[RunInfo], current_run_info: &RunInfo, fragment_index: usize)
+    /// `run_info_list` describes the set of runs we've seen already.
+    fn new(run_info_list: &[RunInfo], fragment_index: usize)
            -> RunMapping {
         RunMapping {
-            char_range: Range::new(CharIndex(current_run_info.character_length as isize),
-                                   CharIndex(0)),
             byte_range: Range::new(0, 0),
             old_fragment_index: fragment_index,
             text_run_index: run_info_list.len(),
@@ -620,26 +614,21 @@ impl RunMapping {
         // Account for `text-transform`. (Confusingly, this is not handled in "text
         // transformation" above, but we follow Gecko in the naming.)
         let is_first_run = *start_position == 0;
-        let character_count = apply_style_transform_if_necessary(&mut run_info.text,
-                                                                 old_byte_length,
-                                                                 text_transform,
-                                                                 *last_whitespace,
-                                                                 is_first_run);
-
-        run_info.character_length = run_info.character_length + character_count;
+        apply_style_transform_if_necessary(&mut run_info.text, old_byte_length, text_transform,
+                                           *last_whitespace, is_first_run);
         *start_position = end_position;
+
+        let new_byte_length = run_info.text.len();
+        let is_empty = new_byte_length == old_byte_length;
 
         // Don't save mappings that contain only discarded characters.
         // (But keep ones that contained no characters to begin with, since they might have been
         // generated by an empty flow to draw its borders/padding/insertion point.)
-        let is_empty = character_count == 0;
         if is_empty && !was_empty {
             return;
         }
 
-        let new_byte_length = run_info.text.len();
         self.byte_range = Range::new(old_byte_length, new_byte_length - old_byte_length);
-        self.char_range.extend_by(CharIndex(character_count as isize));
         mappings.push(self)
     }
 
@@ -648,10 +637,10 @@ impl RunMapping {
     /// NOTE: We treat the range as inclusive at both ends, since the insertion point can lie
     /// before the first character *or* after the last character, and should be drawn even if the
     /// text is empty.
-    fn contains_insertion_point(&self, insertion_point: Option<CharIndex>) -> bool {
-        match insertion_point {
+    fn contains_insertion_point(&self, insertion_point: Option<ByteIndex>) -> bool {
+        match insertion_point.map(ByteIndex::to_usize) {
             None => false,
-            Some(idx) => self.char_range.begin() <= idx && idx <= self.char_range.end()
+            Some(idx) => self.byte_range.begin() <= idx && idx <= self.byte_range.end()
         }
     }
 }
@@ -666,39 +655,29 @@ fn apply_style_transform_if_necessary(string: &mut String,
                                       first_character_position: usize,
                                       text_transform: text_transform::T,
                                       last_whitespace: bool,
-                                      is_first_run: bool)
-                                      -> usize {
+                                      is_first_run: bool) {
     match text_transform {
-        text_transform::T::none => string[first_character_position..].chars().count(),
+        text_transform::T::none => {}
         text_transform::T::uppercase => {
             let original = string[first_character_position..].to_owned();
             string.truncate(first_character_position);
-            let mut count = 0;
             for ch in original.chars().flat_map(|ch| ch.to_uppercase()) {
                 string.push(ch);
-                count += 1;
             }
-            count
         }
         text_transform::T::lowercase => {
             let original = string[first_character_position..].to_owned();
             string.truncate(first_character_position);
-            let mut count = 0;
             for ch in original.chars().flat_map(|ch| ch.to_lowercase()) {
                 string.push(ch);
-                count += 1;
             }
-            count
         }
         text_transform::T::capitalize => {
             let original = string[first_character_position..].to_owned();
             string.truncate(first_character_position);
 
             let mut capitalize_next_letter = is_first_run || last_whitespace;
-            let mut count = 0;
             for character in original.chars() {
-                count += 1;
-
                 // FIXME(#4311, pcwalton): Should be the CSS/Unicode notion of a *typographic
                 // letter unit*, not an *alphabetic* character:
                 //
@@ -716,8 +695,6 @@ fn apply_style_transform_if_necessary(string: &mut String,
                     capitalize_next_letter = true
                 }
             }
-
-            count
         }
     }
 }
@@ -725,7 +702,7 @@ fn apply_style_transform_if_necessary(string: &mut String,
 #[derive(Clone)]
 struct ScannedTextRun {
     run: Arc<TextRun>,
-    insertion_point: Option<CharIndex>,
+    insertion_point: Option<ByteIndex>,
 }
 
 /// Can a character with script `b` continue a text run with script `a`?

@@ -24,7 +24,7 @@ fn assert_parse(url:          &'static str,
 
     let (start_chan, start_port) = ipc::channel().unwrap();
     let classifier = Arc::new(MIMEClassifier::new());
-    load(LoadData::new(LoadContext::Browsing, Url::parse(url).unwrap(), None),
+    load(LoadData::new(LoadContext::Browsing, Url::parse(url).unwrap(), None, None, None),
          Channel(start_chan),
          classifier, CancellationListener::new(None));
 

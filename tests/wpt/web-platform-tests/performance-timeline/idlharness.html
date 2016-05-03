@@ -22,20 +22,51 @@ interface Performance {
 </pre>
 
 <pre id='idl'>
+[Exposed=(Window,Worker)]
 interface PerformanceEntry {
-  readonly attribute DOMString name;
-  readonly attribute DOMString entryType;
-  readonly attribute DOMHighResTimeStamp startTime;
-  readonly attribute DOMHighResTimeStamp duration;
+    readonly attribute DOMString           name;
+    readonly attribute DOMString           entryType;
+    readonly attribute DOMHighResTimeStamp startTime;
+    readonly attribute DOMHighResTimeStamp duration;
+    serializer = {attribute};
+};
+
+dictionary PerformanceEntryFilterOptions {
+    DOMString name;
+    DOMString entryType;
+    DOMString initiatorType;
 };
 
 partial interface Performance {
-  PerformanceEntryList getEntries();
-  PerformanceEntryList getEntriesByType(DOMString entryType);
-  PerformanceEntryList getEntriesByName(DOMString name, optional DOMString entryType);
+    PerformanceEntryList getEntries(optional PerformanceEntryFilterOptions filter);
+    PerformanceEntryList getEntriesByType(DOMString type);
+    PerformanceEntryList getEntriesByName(DOMString name,
+                                          optional DOMString type);
 };
 
 typedef sequence &lt;PerformanceEntry> PerformanceEntryList;
+
+dictionary PerformanceObserverInit {
+    required sequence&lt;DOMString> entryTypes;
+};
+
+[Exposed=(Window,Worker)]
+interface PerformanceObserverEntryList {
+    PerformanceEntryList getEntries(optional PerformanceEntryFilterOptions filter);
+    PerformanceEntryList getEntriesByType(DOMString type);
+    PerformanceEntryList getEntriesByName(DOMString name,
+                                          optional DOMString type);
+};
+
+callback PerformanceObserverCallback = void (PerformanceObserverEntryList entries,
+                                             PerformanceObserver observer);
+
+[Constructor(PerformanceObserverCallback callback),
+ Exposed=(Window,Worker)]
+interface PerformanceObserver {
+    void observe(PerformanceObserverInit options);
+    void disconnect();
+};
 </pre>
 
 <script>

@@ -31,6 +31,12 @@ impl FocusEvent {
         }
     }
 
+    pub fn new_uninitialized(global: GlobalRef) -> Root<FocusEvent> {
+        reflect_dom_object(box FocusEvent::new_inherited(),
+                           global,
+                           FocusEventBinding::Wrap)
+    }
+
     pub fn new(window: &Window,
                type_: DOMString,
                can_bubble: EventBubbles,

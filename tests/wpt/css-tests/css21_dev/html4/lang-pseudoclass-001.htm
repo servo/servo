@@ -1,12 +1,11 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
-  <head>
+<!DOCTYPE html>
+<html><head>
     <title>CSS Test: :lang pseudoclass</title>
-    <link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org">
-    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com">
-    <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#lang">
-    <meta name="flags" content="HTMLonly">
-    <meta name="assert" content=":lang pseudoclass in HTML should not be case-sensitive, and match a substring">
+    <link href="mailto:ishida@w3.org" rel="author" title="Richard Ishida">
+    <link href="mailto:public-testsuites@opera.com" rel="author" title="Eira Monstad, Opera Software ASA">
+    <link href="http://www.w3.org/TR/CSS21/selector.html#lang" rel="help">
+    <meta content="HTMLonly" name="flags">
+    <meta content=":lang pseudoclass in HTML should not be case-sensitive, and match a substring" name="assert">
     <style type="text/css">
       div:lang(es) { color:white;background-color:green; }
       p:lang(es) { color:white;background-color:green; }
@@ -31,5 +30,6 @@
     <div lang="MX-es">This line should NOT be green</div>
     <div lang="en-US">This line should NOT be green</div>
     <div lang="en">This line should NOT be green</div>
-  </body>
-</html>
+  
+
+</body></html>

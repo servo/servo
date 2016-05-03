@@ -33,7 +33,8 @@ form-action 'none'; script-src 'self' 'unsafe-inline'; connect-src 'self';
         <input type="text" name="fieldname" value="fieldvalue">
         <input type="submit" id="submit" value="submit">
     </form>
-    <p>Tests that allowed form actions work correctly. If this test passes, you will see a page indicating a form was POSTed.</p>
+    <p>Tests that disallowed form actions are blocked
+        with GET and redirects.</p>
     <div id="log"></div>
     <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=form-action%20&apos;none&apos;
 "></script>

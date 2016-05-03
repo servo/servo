@@ -8,7 +8,7 @@ use energy::read_energy_uj;
 use ipc_channel::ipc::IpcSender;
 use self::std_time::precise_time_ns;
 
-#[derive(PartialEq, Clone, PartialOrd, Eq, Ord, Deserialize, Serialize)]
+#[derive(PartialEq, Clone, PartialOrd, Eq, Ord, Debug, Deserialize, Serialize)]
 pub struct TimerMetadata {
     pub url:         String,
     pub iframe:      TimerMetadataFrameType,
@@ -35,7 +35,7 @@ pub enum ProfilerMsg {
 }
 
 #[repr(u32)]
-#[derive(PartialEq, Clone, PartialOrd, Eq, Ord, Deserialize, Serialize, Debug, Hash)]
+#[derive(PartialEq, Clone, Copy, PartialOrd, Eq, Ord, Deserialize, Serialize, Debug, Hash)]
 pub enum ProfilerCategory {
     Compositing,
     LayoutPerform,
@@ -78,13 +78,13 @@ pub enum ProfilerCategory {
     ApplicationHeartbeat,
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
 pub enum TimerMetadataFrameType {
     RootWindow,
     IFrame,
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Deserialize, Serialize)]
 pub enum TimerMetadataReflowType {
     Incremental,
     FirstReflow,
@@ -123,4 +123,3 @@ pub fn send_profile_data(category: ProfilerCategory,
                                          (start_time, end_time),
                                          (start_energy, end_energy)));
 }
-

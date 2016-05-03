@@ -66,6 +66,10 @@ impl DataSlice {
         &self.bytes[self.bytes_start..self.bytes_end]
     }
 
+    pub fn get_all_bytes(&self) -> Arc<Vec<u8>> {
+        self.bytes.clone()
+    }
+
     pub fn size(&self) -> u64 {
         (self.bytes_end as u64) - (self.bytes_start as u64)
     }
@@ -117,29 +121,28 @@ impl Blob {
     }
 
     // https://w3c.github.io/FileAPI/#constructorBlob
-    pub fn Constructor(global: GlobalRef) -> Fallible<Root<Blob>> {
-        Ok(Blob::new(global, Vec::new(), ""))
-    }
-
-    // https://w3c.github.io/FileAPI/#constructorBlob
-    pub fn Constructor_(global: GlobalRef,
-                        blobParts: Vec<BlobOrString>,
-                        blobPropertyBag: &BlobBinding::BlobPropertyBag)
-                        -> Fallible<Root<Blob>> {
+    pub fn Constructor(global: GlobalRef,
+                       blobParts: Option<Vec<BlobOrString>>,
+                       blobPropertyBag: &BlobBinding::BlobPropertyBag)
+                       -> Fallible<Root<Blob>> {
 
         // TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView
-        let bytes: Vec<u8> = blobParts.iter()
-                                .flat_map(|bPart| {
-                                    match bPart {
-                                        &BlobOrString::String(ref s) => {
-                                            UTF_8.encode(s, EncoderTrap::Replace).unwrap()
-                                        },
-                                        &BlobOrString::Blob(ref b) => {
-                                            b.get_data().get_bytes().to_vec()
-                                        },
-                                    }
-                                })
-                                .collect();
+        let bytes: Vec<u8> = match blobParts {
+            None => Vec::new(),
+            Some(blobs) => {
+                blobs.iter().flat_map(|bPart| {
+                    match bPart {
+                        &BlobOrString::String(ref s) => {
+                            UTF_8.encode(s, EncoderTrap::Replace).unwrap()
+                        },
+                        &BlobOrString::Blob(ref b) => {
+                            b.get_data().get_bytes().to_vec()
+                        },
+                    }
+                })
+                .collect()
+            }
+        };
         let typeString = if is_ascii_printable(&blobPropertyBag.type_) {
             &*blobPropertyBag.type_
         } else {

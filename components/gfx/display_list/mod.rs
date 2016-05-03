@@ -39,12 +39,11 @@ use std::hash::{BuildHasherDefault, Hash};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
-use style::computed_values::{border_style, cursor, filter, image_rendering, mix_blend_mode};
-use style::computed_values::{pointer_events};
-use style::properties::{ComputedValues, ServoComputedValues};
+use style::computed_values::{border_style, filter, image_rendering, mix_blend_mode};
+use style::properties::{ComputedValues};
 use style_traits::cursor::Cursor;
 use text::TextRun;
-use text::glyph::CharIndex;
+use text::glyph::ByteIndex;
 use util::geometry::{self, MAX_RECT, ScreenPx};
 use util::print_tree::PrintTree;
 use webrender_traits::{self, WebGLContextId};
@@ -97,13 +96,6 @@ impl LayerInfo {
     }
 }
 
-#[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
-pub struct DisplayListEntry {
-    pub stacking_context_id: StackingContextId,
-    pub section: DisplayListSection,
-    pub item: DisplayItem,
-}
-
 pub struct DisplayListTraversal<'a> {
     pub display_list: &'a DisplayList,
     pub current_item_index: usize,
@@ -115,11 +107,11 @@ impl<'a> DisplayListTraversal<'a> {
        index <= self.last_item_index && index < self.display_list.list.len()
     }
 
-    pub fn advance(&mut self, context: &StackingContext) -> Option<&'a DisplayListEntry> {
+    pub fn advance(&mut self, context: &StackingContext) -> Option<&'a DisplayItem> {
         if !self.can_draw_item_at_index(self.current_item_index) {
             return None
         }
-        if self.display_list.list[self.current_item_index].stacking_context_id != context.id {
+        if self.display_list.list[self.current_item_index].base().stacking_context_id != context.id {
             return None
         }
 
@@ -216,14 +208,14 @@ impl<K, V> Visitor for FnvHashMapVisitor<K, V> where K: Eq + Hash + Deserialize,
 
 #[derive(HeapSizeOf, Deserialize, Serialize)]
 pub struct DisplayList {
-    pub list: Vec<DisplayListEntry>,
+    pub list: Vec<DisplayItem>,
     pub offsets: FnvHashMap<StackingContextId, StackingContextOffsets>,
     pub root_stacking_context: StackingContext,
 }
 
 impl DisplayList {
     pub fn new(mut root_stacking_context: StackingContext,
-               items: &mut Option<Vec<DisplayListEntry>>)
+               items: &mut Option<Vec<DisplayItem>>)
                -> DisplayList {
         let items = match items.take() {
             Some(items) => items,
@@ -242,9 +234,9 @@ impl DisplayList {
         display_list
     }
 
-    pub fn get_offset_for_item(&self, item: &DisplayListEntry) -> u32 {
-        let offsets = &self.offsets[&item.stacking_context_id];
-        match item.section {
+    pub fn get_offset_for_item(&self, item: &DisplayItem) -> u32 {
+        let offsets = &self.offsets[&item.base().stacking_context_id];
+        match item.base().section {
             DisplayListSection::BackgroundAndBorders => offsets.start,
             DisplayListSection::BlockBackgroundsAndBorders =>
                 offsets.block_backgrounds_and_borders,
@@ -258,8 +250,8 @@ impl DisplayList {
         list.append(&mut self.list);
 
         list.sort_by(|a, b| {
-            if a.stacking_context_id == b.stacking_context_id {
-                return a.section.cmp(&b.section);
+            if a.base().stacking_context_id == b.base().stacking_context_id {
+                return a.base().section.cmp(&b.base().section);
             }
             self.get_offset_for_item(a).cmp(&self.get_offset_for_item(b))
         });
@@ -333,8 +325,8 @@ impl DisplayList {
         print_tree.new_level("Items".to_owned());
         for item in &self.list {
             print_tree.add_item(format!("{:?} StackingContext: {:?}",
-                                        item.item,
-                                        item.stacking_context_id));
+                                        item,
+                                        item.base().stacking_context_id));
         }
         print_tree.end_level();
 
@@ -354,8 +346,8 @@ impl DisplayList {
                            transform.m21, transform.m22,
                            transform.m41, transform.m42));
 
-        let entry = &self.list[index];
-        entry.item.draw_into_context(paint_context);
+        let item = &self.list[index];
+        item.draw_into_context(paint_context);
 
         paint_context.draw_target.set_transform(&old_transform);
     }
@@ -407,8 +399,8 @@ impl DisplayList {
                                           tile_rect: Option<Rect<Au>>) {
         for child in stacking_context.children.iter() {
             while let Some(item) = traversal.advance(stacking_context) {
-                if item.item.intersects_rect_in_parent_context(tile_rect) {
-                    item.item.draw_into_context(paint_context);
+                if item.intersects_rect_in_parent_context(tile_rect) {
+                    item.draw_into_context(paint_context);
                 }
             }
 
@@ -420,8 +412,8 @@ impl DisplayList {
         }
 
         while let Some(item) = traversal.advance(stacking_context) {
-            if item.item.intersects_rect_in_parent_context(tile_rect) {
-                item.item.draw_into_context(paint_context);
+            if item.intersects_rect_in_parent_context(tile_rect) {
+                item.draw_into_context(paint_context);
             }
         }
     }
@@ -636,13 +628,13 @@ impl StackingContext {
 
         for child in self.children.iter() {
             while let Some(item) = traversal.advance(self) {
-                item.item.hit_test(point, result);
+                item.hit_test(point, result);
             }
             child.hit_test(traversal, point, result);
         }
 
         while let Some(item) = traversal.advance(self) {
-            item.item.hit_test(point, result);
+            item.hit_test(point, result);
         }
     }
 
@@ -766,11 +758,21 @@ pub struct BaseDisplayItem {
 
     /// The region to clip to.
     pub clip: ClippingRegion,
+
+    /// The section of the display list that this item belongs to.
+    pub section: DisplayListSection,
+
+    /// The id of the stacking context this item belongs to.
+    pub stacking_context_id: StackingContextId,
 }
 
 impl BaseDisplayItem {
     #[inline(always)]
-    pub fn new(bounds: &Rect<Au>, metadata: DisplayItemMetadata, clip: &ClippingRegion)
+    pub fn new(bounds: &Rect<Au>,
+               metadata: DisplayItemMetadata,
+               clip: &ClippingRegion,
+               section: DisplayListSection,
+               stacking_context_id: StackingContextId)
                -> BaseDisplayItem {
         // Detect useless clipping regions here and optimize them to `ClippingRegion::max()`.
         // The painting backend may want to optimize out clipping regions and this makes it easier
@@ -782,7 +784,9 @@ impl BaseDisplayItem {
                 ClippingRegion::max()
             } else {
                 (*clip).clone()
-            }
+            },
+            section: section,
+            stacking_context_id: stacking_context_id,
         }
     }
 }
@@ -964,25 +968,6 @@ pub struct DisplayItemMetadata {
     pub pointing: Option<Cursor>,
 }
 
-impl DisplayItemMetadata {
-    /// Creates a new set of display metadata for a display item constributed by a DOM node.
-    /// `default_cursor` specifies the cursor to use if `cursor` is `auto`. Typically, this will
-    /// be `PointerCursor`, but for text display items it may be `TextCursor` or
-    /// `VerticalTextCursor`.
-    #[inline]
-    pub fn new(node: OpaqueNode, style: &ServoComputedValues, default_cursor: Cursor)
-               -> DisplayItemMetadata {
-        DisplayItemMetadata {
-            node: node,
-            pointing: match (style.get_pointing().pointer_events, style.get_pointing().cursor) {
-                (pointer_events::T::none, _) => None,
-                (pointer_events::T::auto, cursor::T::AutoCursor) => Some(default_cursor),
-                (pointer_events::T::auto, cursor::T::SpecifiedCursor(cursor)) => Some(cursor),
-            },
-        }
-    }
-}
-
 /// Paints a solid color.
 #[derive(Clone, HeapSizeOf, Deserialize, Serialize)]
 pub struct SolidColorDisplayItem {
@@ -1004,7 +989,7 @@ pub struct TextDisplayItem {
     pub text_run: Arc<TextRun>,
 
     /// The range of text within the text run.
-    pub range: Range<CharIndex>,
+    pub range: Range<ByteIndex>,
 
     /// The color of the text.
     pub text_color: Color,

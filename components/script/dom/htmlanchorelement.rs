@@ -28,7 +28,7 @@ use dom::virtualmethods::VirtualMethods;
 use num_traits::ToPrimitive;
 use std::default::Default;
 use string_cache::Atom;
-use url::{Url, UrlParser};
+use url::Url;
 use util::str::DOMString;
 
 #[dom_struct]
@@ -63,9 +63,7 @@ impl HTMLAnchorElement {
         let attribute = self.upcast::<Element>().get_attribute(&ns!(), &atom!("href"));
         *self.url.borrow_mut() = attribute.and_then(|attribute| {
             let document = document_from_node(self);
-            let mut parser = UrlParser::new();
-            parser.base_url(document.url());
-            parser.parse(&attribute.value()).ok()
+            document.url().join(&attribute.value()).ok()
         });
     }
 
@@ -74,8 +72,7 @@ impl HTMLAnchorElement {
         // Step 1.
         match *self.url.borrow() {
             None => return,
-            Some(ref url) if url.scheme == "blob" &&
-                             url.non_relative_scheme_data().is_some() => return,
+            Some(ref url) if url.scheme() == "blob" && url.cannot_be_a_base() => return,
             _ => (),
         }
 
@@ -86,7 +83,7 @@ impl HTMLAnchorElement {
     // https://html.spec.whatwg.org/multipage/#update-href
     fn update_href(&self) {
         self.upcast::<Element>().set_string_attribute(&atom!("href"),
-            self.url.borrow().as_ref().unwrap().serialize().into());
+            self.url.borrow().as_ref().unwrap().as_str().into());
     }
 }
 
@@ -167,7 +164,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
 
         // Step 3.
         if let Some(url) = self.url.borrow_mut().as_mut() {
-            if url.scheme == "javascript" { return; }
+            if url.scheme() == "javascript" { return; }
             // Steps 4-5.
             UrlHelper::SetHash(url, value);
             // Step 6.
@@ -201,7 +198,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
 
         // Step 3.
         if let Some(url) = self.url.borrow_mut().as_mut() {
-            if url.non_relative_scheme_data().is_some() {
+            if url.cannot_be_a_base() {
                 return;
             }
             // Step 4.
@@ -233,7 +230,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
 
         // Step 3.
         if let Some(url) = self.url.borrow_mut().as_mut() {
-            if url.non_relative_scheme_data().is_some() {
+            if url.cannot_be_a_base() {
                 return;
             }
             // Step 4.
@@ -258,7 +255,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
                 }
             },
             // Step 5.
-            Some(ref url) => url.serialize(),
+            Some(ref url) => url.as_str().to_owned(),
         })
     }
 
@@ -289,7 +286,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
 
         // Step 3.
         if let Some(url) = self.url.borrow_mut().as_mut() {
-            if url.host().is_none() || url.non_relative_scheme_data().is_some() {
+            if url.host().is_none() || url.cannot_be_a_base() {
                 return;
             }
             // Step 4.
@@ -319,7 +316,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
 
         // Step 3.
         if let Some(url) = self.url.borrow_mut().as_mut() {
-            if url.non_relative_scheme_data().is_some() { return; }
+            if url.cannot_be_a_base() { return; }
             // Step 5.
             UrlHelper::SetPathname(url, value);
             // Step 6.
@@ -348,8 +345,8 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
         // Step 3.
         if let Some(url) = self.url.borrow_mut().as_mut() {
             if url.host().is_none() ||
-                url.non_relative_scheme_data().is_some() ||
-                url.scheme == "file" {
+                url.cannot_be_a_base() ||
+                url.scheme() == "file" {
                     return;
                 }
             // Step 4.
@@ -435,7 +432,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
 
         // Step 3.
         if let Some(url) = self.url.borrow_mut().as_mut() {
-            if url.host().is_none() || url.non_relative_scheme_data().is_some() {
+            if url.host().is_none() || url.cannot_be_a_base() {
                 return;
             }
 
@@ -535,7 +532,7 @@ fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
     };
 
     // Step 7.
-    debug!("following hyperlink to {}", url.serialize());
+    debug!("following hyperlink to {}", url);
     let window = document.window();
     window.load_url(url);
 }

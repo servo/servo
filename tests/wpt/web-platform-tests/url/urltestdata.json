@@ -4163,6 +4163,22 @@
     "search": "",
     "hash": ""
   },
+  "# unknown scheme with path looking like a password",
+  {
+    "input": "sc::a@example.net",
+    "base": "about:blank",
+    "href": "sc::a@example.net",
+    "origin": "null",
+    "protocol": "sc:",
+    "username": "",
+    "password": "",
+    "host": "",
+    "hostname": "",
+    "port": "",
+    "pathname": ":a@example.net",
+    "search": "",
+    "hash": ""
+  },
   "# tests from jsdom/whatwg-url designed for code coverage",
   {
     "input": "http://127.0.0.1:10100/relative_import.html",

@@ -161,8 +161,8 @@ impl HTMLCollection {
         }
         impl CollectionFilter for TagNameNSFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                    ((self.qname.ns == Namespace(atom!("*"))) || (self.qname.ns == *elem.namespace()))
-                &&  ((self.qname.local == atom!("*")) || (self.qname.local == *elem.local_name()))
+                    ((self.qname.ns == Namespace(atom!("*"))) || (self.qname.ns == *elem.namespace())) &&
+                    ((self.qname.local == atom!("*")) || (self.qname.local == *elem.local_name()))
             }
         }
         let filter = TagNameNSFilter {

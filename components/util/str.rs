@@ -4,13 +4,14 @@
 
 use app_units::Au;
 use libc::c_char;
+use num::ToPrimitive;
 use std::borrow::ToOwned;
 use std::convert::AsRef;
 use std::ffi::CStr;
 use std::fmt;
 use std::iter::{Filter, Peekable};
 use std::ops::{Deref, DerefMut};
-use std::str::{Bytes, CharIndices, Split, from_utf8};
+use std::str::{Bytes, Split, from_utf8};
 use string_cache::Atom;
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
@@ -158,22 +159,72 @@ fn is_ascii_digit(c: &char) -> bool {
     }
 }
 
+fn is_decimal_point(c: char) -> bool {
+    c == '.'
+}
 
-pub fn read_numbers<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> Option<i64> {
+fn is_exponent_char(c: char) -> bool {
+    match c {
+        'e' | 'E' => true,
+        _ => false,
+    }
+}
+
+pub fn read_numbers<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> (Option<i64>, usize) {
     match iter.peek() {
         Some(c) if is_ascii_digit(c) => (),
-        _ => return None,
+        _ => return (None, 0),
     }
 
     iter.take_while(is_ascii_digit).map(|d| {
         d as i64 - '0' as i64
-    }).fold(Some(0i64), |accumulator, d| {
-        accumulator.and_then(|accumulator| {
+    }).fold((Some(0i64), 0), |accumulator, d| {
+        let digits = accumulator.0.and_then(|accumulator| {
             accumulator.checked_mul(10)
         }).and_then(|accumulator| {
             accumulator.checked_add(d)
-        })
+        });
+        (digits, accumulator.1 + 1)
     })
+}
+
+pub fn read_fraction<I: Iterator<Item=char>>(mut iter: Peekable<I>,
+                                             mut divisor: f64,
+                                             value: f64) -> (f64, usize) {
+    match iter.peek() {
+        Some(c) if is_decimal_point(*c) => (),
+        _ => return (value, 0),
+    }
+    iter.next();
+
+    iter.take_while(is_ascii_digit).map(|d|
+        d as i64 - '0' as i64
+    ).fold((value, 1), |accumulator, d| {
+        divisor *= 10f64;
+        (accumulator.0 + d as f64 / divisor,
+            accumulator.1 + 1)
+    })
+}
+
+pub fn read_exponent<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> Option<i32> {
+    match iter.peek() {
+        Some(c) if is_exponent_char(*c) => (),
+        _ => return None,
+    }
+    iter.next();
+
+    match iter.peek() {
+        None => None,
+        Some(&'-') => {
+            iter.next();
+            read_numbers(iter).0.map(|exp| -exp.to_i32().unwrap_or(0))
+        }
+        Some(&'+') => {
+            iter.next();
+            read_numbers(iter).0.map(|exp| exp.to_i32().unwrap_or(0))
+        }
+        Some(_) => read_numbers(iter).0.map(|exp| exp.to_i32().unwrap_or(0))
+    }
 }
 
 #[derive(Clone, Copy, Debug, HeapSizeOf, PartialEq)]
@@ -219,41 +270,4 @@ pub fn str_join<I, T>(strs: I, join: &str) -> String
         acc.push_str(s.as_ref());
         acc
     })
-}
-
-// Lifted from Rust's StrExt implementation, which is being removed.
-pub fn slice_chars(s: &str, begin: usize, end: usize) -> &str {
-    assert!(begin <= end);
-    let mut count = 0;
-    let mut begin_byte = None;
-    let mut end_byte = None;
-
-    // This could be even more efficient by not decoding,
-    // only finding the char boundaries
-    for (idx, _) in s.char_indices() {
-        if count == begin { begin_byte = Some(idx); }
-        if count == end { end_byte = Some(idx); break; }
-        count += 1;
-    }
-    if begin_byte.is_none() && count == begin { begin_byte = Some(s.len()) }
-    if end_byte.is_none() && count == end { end_byte = Some(s.len()) }
-
-    match (begin_byte, end_byte) {
-        (None, _) => panic!("slice_chars: `begin` is beyond end of string"),
-        (_, None) => panic!("slice_chars: `end` is beyond end of string"),
-        (Some(a), Some(b)) => unsafe { s.slice_unchecked(a, b) }
-    }
-}
-
-// searches a character index in CharIndices
-// returns indices.count if not found
-pub fn search_index(index: usize, indices: CharIndices) -> isize {
-    let mut character_count = 0;
-    for (character_index, _) in indices {
-        if character_index == index {
-            return character_count;
-        }
-        character_count += 1
-    }
-    character_count
 }

@@ -3,12 +3,12 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use canvas_traits::{CanvasCommonMsg, CanvasMsg};
-use dom::bindings::codegen::Bindings::WebGLActiveInfoBinding::WebGLActiveInfoMethods;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{WebGLRenderingContextMethods};
 use dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::{self, WebGLContextAttributes};
 use dom::bindings::codegen::UnionTypes::ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement;
-use dom::bindings::conversions::{ToJSValConvertible, array_buffer_view_to_vec_checked, array_buffer_view_to_vec};
+use dom::bindings::conversions::{ToJSValConvertible, array_buffer_view_data_checked};
+use dom::bindings::conversions::{array_buffer_view_to_vec_checked, array_buffer_view_to_vec};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
@@ -64,45 +64,6 @@ bitflags! {
         const FLIP_Y_AXIS = 0x01,
         const PREMULTIPLY_ALPHA = 0x02,
         const CONVERT_COLORSPACE = 0x04,
-    }
-}
-
-pub enum UniformType {
-    Int,
-    IntVec2,
-    IntVec3,
-    IntVec4,
-    Float,
-    FloatVec2,
-    FloatVec3,
-    FloatVec4,
-}
-
-impl UniformType {
-    fn element_count(&self) -> usize {
-        match *self {
-            UniformType::Int => 1,
-            UniformType::IntVec2 => 2,
-            UniformType::IntVec3 => 3,
-            UniformType::IntVec4 => 4,
-            UniformType::Float => 1,
-            UniformType::FloatVec2 => 2,
-            UniformType::FloatVec3 => 3,
-            UniformType::FloatVec4 => 4,
-        }
-    }
-
-    fn as_gl_constant(&self) -> u32 {
-        match *self {
-            UniformType::Int => constants::INT,
-            UniformType::IntVec2 => constants::INT_VEC2,
-            UniformType::IntVec3 => constants::INT_VEC3,
-            UniformType::IntVec4 => constants::INT_VEC4,
-            UniformType::Float => constants::FLOAT,
-            UniformType::FloatVec2 => constants::FLOAT_VEC2,
-            UniformType::FloatVec3 => constants::FLOAT_VEC3,
-            UniformType::FloatVec4 => constants::FLOAT_VEC4,
-        }
     }
 }
 
@@ -219,21 +180,29 @@ impl WebGLRenderingContext {
             .unwrap();
     }
 
+    fn validate_stencil_actions(&self, action: u32) -> bool {
+        match action {
+            0 | constants::KEEP | constants::REPLACE | constants::INCR | constants::DECR |
+            constants::INVERT | constants::INCR_WRAP | constants::DECR_WRAP => true,
+            _ => false,
+        }
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
     // https://www.khronos.org/opengles/sdk/docs/man/xhtml/glUniform.xml
     // https://www.khronos.org/registry/gles/specs/2.0/es_full_spec_2.0.25.pdf#nameddest=section-2.10.4
     fn validate_uniform_parameters<T>(&self,
-                                   uniform: Option<&WebGLUniformLocation>,
-                                   type_: UniformType,
-                                   data: Option<&[T]>) -> bool {
+                                      uniform: Option<&WebGLUniformLocation>,
+                                      uniform_type: UniformSetterType,
+                                      data: Option<&[T]>) -> bool {
         let uniform = match uniform {
             Some(uniform) => uniform,
             None => return false,
         };
 
         let program = self.current_program.get();
-        let program = match program {
-            Some(ref program) if program.id() == uniform.program_id() => program,
+        match program {
+            Some(ref program) if program.id() == uniform.program_id() => {},
             _ => {
                 self.webgl_error(InvalidOperation);
                 return false;
@@ -248,28 +217,200 @@ impl WebGLRenderingContext {
             },
         };
 
-        // TODO(autrilla): Don't request this every time, cache it
-        let active_uniform = match program.get_active_uniform(
-            uniform.id() as u32) {
-            Ok(active_uniform) => active_uniform,
-            Err(_) => {
-                self.webgl_error(InvalidOperation);
-                return false;
-            },
-        };
-
-        if data.len() % type_.element_count() != 0 ||
-            (data.len() / type_.element_count() > active_uniform.Size() as usize) {
-                self.webgl_error(InvalidOperation);
-                return false;
-        }
-
-        if type_.as_gl_constant() != active_uniform.Type() {
+        // TODO(emilio): Get more complex uniform info from ANGLE, and use it to
+        // properly validate that the uniform setter type is compatible with the
+        // uniform type, and that the uniform size matches.
+        if data.len() % uniform_type.element_count() != 0 {
             self.webgl_error(InvalidOperation);
             return false;
         }
 
-        return true;
+        true
+    }
+
+    fn validate_tex_image_parameters(&self,
+                                     target: u32,
+                                     level: i32,
+                                     internal_format: u32,
+                                     width: i32,
+                                     height: i32,
+                                     border: i32,
+                                     format: u32,
+                                     data_type: u32) -> bool {
+        // GL_INVALID_ENUM is generated if target is not GL_TEXTURE_2D,
+        // GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+        // GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+        // GL_TEXTURE_CUBE_MAP_POSITIVE_Z, or GL_TEXTURE_CUBE_MAP_NEGATIVE_Z.
+        let texture = match target {
+            constants::TEXTURE_2D
+                => self.bound_texture_2d.get(),
+            constants::TEXTURE_CUBE_MAP_POSITIVE_X |
+            constants::TEXTURE_CUBE_MAP_NEGATIVE_X |
+            constants::TEXTURE_CUBE_MAP_POSITIVE_Y |
+            constants::TEXTURE_CUBE_MAP_NEGATIVE_Y |
+            constants::TEXTURE_CUBE_MAP_POSITIVE_Z |
+            constants::TEXTURE_CUBE_MAP_NEGATIVE_Z
+                => self.bound_texture_cube_map.get(),
+            _ => {
+                self.webgl_error(InvalidEnum);
+                return false;
+            },
+        };
+
+        //  If an attempt is made to call this function with no
+        //  WebGLTexture bound, an INVALID_OPERATION error is generated.
+        if texture.is_none() {
+            self.webgl_error(InvalidOperation);
+            return false;
+        }
+
+        // GL_INVALID_ENUM is generated if data_type is not an accepted value.
+        match data_type {
+            constants::UNSIGNED_BYTE |
+            constants::UNSIGNED_SHORT_4_4_4_4 |
+            constants::UNSIGNED_SHORT_5_5_5_1 |
+            constants::UNSIGNED_SHORT_5_6_5 => {},
+            _ => {
+                self.webgl_error(InvalidEnum);
+                return false;
+            },
+        }
+
+
+        // TODO(emilio): GL_INVALID_VALUE may be generated if
+        // level is greater than log_2(max), where max is
+        // the returned value of GL_MAX_TEXTURE_SIZE when
+        // target is GL_TEXTURE_2D or GL_MAX_CUBE_MAP_TEXTURE_SIZE
+        // when target is not GL_TEXTURE_2D.
+        let is_cubic = target != constants::TEXTURE_2D;
+
+        // GL_INVALID_VALUE is generated if target is one of the
+        // six cube map 2D image targets and the width and height
+        // parameters are not equal.
+        if is_cubic && width != height {
+            self.webgl_error(InvalidValue);
+            return false;
+        }
+
+        // GL_INVALID_VALUE is generated if internal_format is not an
+        // accepted format.
+        match internal_format {
+            constants::DEPTH_COMPONENT |
+            constants::ALPHA |
+            constants::RGB |
+            constants::RGBA |
+            constants::LUMINANCE |
+            constants::LUMINANCE_ALPHA => {},
+
+            _ => {
+                self.webgl_error(InvalidValue);
+                return false;
+            },
+        }
+
+        // GL_INVALID_OPERATION is generated if format does not
+        // match internal_format.
+        if format != internal_format {
+            self.webgl_error(InvalidOperation);
+            return false;
+        }
+
+        // GL_INVALID_VALUE is generated if level is less than 0.
+        //
+        // GL_INVALID_VALUE is generated if width or height is less than 0
+        // or greater than GL_MAX_TEXTURE_SIZE when target is GL_TEXTURE_2D or
+        // GL_MAX_CUBE_MAP_TEXTURE_SIZE when target is not GL_TEXTURE_2D.
+        //
+        // TODO(emilio): Check limits
+        if width < 0 || height < 0 || level < 0 {
+            self.webgl_error(InvalidValue);
+            return false;
+        }
+
+        // GL_INVALID_VALUE is generated if level is greater than zero and the
+        // texture is not power of two.
+        if level > 0 &&
+           (!(width as u32).is_power_of_two() ||
+            !(height as u32).is_power_of_two()) {
+            self.webgl_error(InvalidValue);
+            return false;
+        }
+
+        // GL_INVALID_VALUE is generated if border is not 0.
+        if border != 0 {
+            self.webgl_error(InvalidValue);
+            return false;
+        }
+
+        // GL_INVALID_OPERATION is generated if type is GL_UNSIGNED_SHORT_4_4_4_4 or
+        // GL_UNSIGNED_SHORT_5_5_5_1 and format is not GL_RGBA.
+        //
+        // GL_INVALID_OPERATION is generated if type is
+        // GL_UNSIGNED_SHORT_5_6_5 and format is not GL_RGB.
+        match data_type {
+            constants::UNSIGNED_SHORT_4_4_4_4 |
+            constants::UNSIGNED_SHORT_5_5_5_1 if format != constants::RGBA => {
+                self.webgl_error(InvalidOperation);
+                return false;
+            },
+            constants::UNSIGNED_SHORT_5_6_5 if format != constants::RGB => {
+                self.webgl_error(InvalidOperation);
+                return false;
+            },
+            _ => {},
+        }
+
+        true
+    }
+
+    fn tex_image_2d(&self,
+                    target: u32,
+                    level: i32,
+                    internal_format: u32,
+                    width: i32,
+                    height: i32,
+                    border: i32,
+                    format: u32,
+                    data_type: u32,
+                    pixels: Vec<u8>) { // NB: pixels should NOT be premultipied
+        // This should be validated before reaching this function
+        debug_assert!(self.validate_tex_image_parameters(target, level,
+                                                         internal_format,
+                                                         width, height,
+                                                         border, format,
+                                                         data_type));
+
+        let slot = match target {
+            constants::TEXTURE_2D
+                => self.bound_texture_2d.get(),
+            _   => self.bound_texture_cube_map.get(),
+        };
+
+        let texture = slot.as_ref().expect("No bound texture found after validation");
+
+        if format == constants::RGBA &&
+           data_type == constants::UNSIGNED_BYTE &&
+           self.texture_unpacking_settings.get().contains(PREMULTIPLY_ALPHA) {
+            // TODO(emilio): premultiply here.
+        }
+
+        // TODO(emilio): Flip Y axis if necessary here
+
+        // TexImage2D depth is always equal to 1
+        handle_potential_webgl_error!(self, texture.initialize(target,
+                                                               width as u32,
+                                                               height as u32, 1,
+                                                               internal_format,
+                                                               level as u32));
+
+
+        // TODO(emilio): Invert axis, convert colorspace, premultiply alpha if requested
+        let msg = WebGLCommand::TexImage2D(target, level, internal_format as i32,
+                                           width, height, format, data_type, pixels);
+
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(msg))
+            .unwrap()
     }
 }
 
@@ -483,6 +624,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 Err(e) => return self.webgl_error(e),
             }
         } else {
+            slot.set(None);
             // Unbind the current buffer
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::BindBuffer(target, 0)))
@@ -526,7 +668,6 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let slot = match target {
             constants::TEXTURE_2D => &self.bound_texture_2d,
             constants::TEXTURE_CUBE_MAP => &self.bound_texture_cube_map,
-
             _ => return self.webgl_error(InvalidEnum),
         };
 
@@ -566,20 +707,24 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
             _ => return self.webgl_error(InvalidEnum),
         };
+
         let bound_buffer = match bound_buffer {
             Some(bound_buffer) => bound_buffer,
             None => return self.webgl_error(InvalidValue),
         };
+
         match usage {
             constants::STREAM_DRAW |
             constants::STATIC_DRAW |
             constants::DYNAMIC_DRAW => (),
             _ => return self.webgl_error(InvalidEnum),
         }
+
         let data = match data {
             Some(data) => data,
             None => return self.webgl_error(InvalidValue),
         };
+
         if let Some(data_vec) = array_buffer_view_to_vec::<u8>(data) {
             handle_potential_webgl_error!(self, bound_buffer.buffer_data(target, &data_vec, usage));
         } else {
@@ -1082,6 +1227,82 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             .unwrap()
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn StencilFunc(&self, func: u32, ref_: i32, mask: u32) {
+        match func {
+            constants::NEVER | constants::LESS | constants::EQUAL | constants::LEQUAL |
+            constants::GREATER | constants::NOTEQUAL | constants::GEQUAL | constants::ALWAYS =>
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(WebGLCommand::StencilFunc(func, ref_, mask)))
+                    .unwrap(),
+            _ => self.webgl_error(InvalidEnum),
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn StencilFuncSeparate(&self, face: u32, func: u32, ref_: i32, mask: u32) {
+        match face {
+            constants::FRONT | constants::BACK | constants::FRONT_AND_BACK => (),
+            _ => return self.webgl_error(InvalidEnum),
+        }
+
+        match func {
+            constants::NEVER | constants::LESS | constants::EQUAL | constants::LEQUAL |
+            constants::GREATER | constants::NOTEQUAL | constants::GEQUAL | constants::ALWAYS =>
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(WebGLCommand::StencilFuncSeparate(face, func, ref_, mask)))
+                    .unwrap(),
+            _ => self.webgl_error(InvalidEnum),
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn StencilMask(&self, mask: u32) {
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(WebGLCommand::StencilMask(mask)))
+            .unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn StencilMaskSeparate(&self, face: u32, mask: u32) {
+        match face {
+            constants::FRONT | constants::BACK | constants::FRONT_AND_BACK =>
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(WebGLCommand::StencilMaskSeparate(face, mask)))
+                    .unwrap(),
+            _ => return self.webgl_error(InvalidEnum),
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn StencilOp(&self, fail: u32, zfail: u32, zpass: u32) {
+        if self.validate_stencil_actions(fail) && self.validate_stencil_actions(zfail) &&
+           self.validate_stencil_actions(zpass) {
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(WebGLCommand::StencilOp(fail, zfail, zpass)))
+                    .unwrap()
+        } else {
+            self.webgl_error(InvalidEnum)
+        }
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
+    fn StencilOpSeparate(&self, face: u32, fail: u32, zfail: u32, zpass: u32) {
+        match face {
+            constants::FRONT | constants::BACK | constants::FRONT_AND_BACK => (),
+            _ => return self.webgl_error(InvalidEnum),
+        }
+
+        if self.validate_stencil_actions(fail) && self.validate_stencil_actions(zfail) &&
+           self.validate_stencil_actions(zpass) {
+                self.ipc_renderer
+                    .send(CanvasMsg::WebGL(WebGLCommand::StencilOpSeparate(face, fail, zfail, zpass)))
+                    .unwrap()
+        } else {
+            self.webgl_error(InvalidEnum)
+        }
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn LinkProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
@@ -1109,7 +1330,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform1f(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   val: f32) {
-        if self.validate_uniform_parameters(uniform, UniformType::Float, Some(&[val])) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::Float, Some(&[val])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform1f(uniform.unwrap().id(), val)))
                 .unwrap()
@@ -1120,7 +1341,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform1i(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   val: i32) {
-        if self.validate_uniform_parameters(uniform, UniformType::Int, Some(&[val])) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::Int, Some(&[val])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform1i(uniform.unwrap().id(), val)))
                 .unwrap()
@@ -1133,7 +1354,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
         let data_vec = data.and_then(|d| array_buffer_view_to_vec::<i32>(d));
-        if self.validate_uniform_parameters(uniform, UniformType::Int, data_vec.as_ref().map(Vec::as_slice)) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::Int, data_vec.as_ref().map(Vec::as_slice)) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform1iv(uniform.unwrap().id(), data_vec.unwrap())))
                 .unwrap()
@@ -1146,7 +1367,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
         let data_vec = data.and_then(|d| array_buffer_view_to_vec::<f32>(d));
-        if self.validate_uniform_parameters(uniform, UniformType::Float, data_vec.as_ref().map(Vec::as_slice)) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::Float, data_vec.as_ref().map(Vec::as_slice)) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform1fv(uniform.unwrap().id(), data_vec.unwrap())))
                 .unwrap()
@@ -1157,7 +1378,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform2f(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: f32, y: f32) {
-        if self.validate_uniform_parameters(uniform, UniformType::FloatVec2, Some(&[x, y])) {
+        if self.validate_uniform_parameters(uniform, UniformSetterType::FloatVec2, Some(&[x, y])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform2f(uniform.unwrap().id(), x, y)))
                 .unwrap()
@@ -1170,7 +1391,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
         let data_vec = data.and_then(|d| array_buffer_view_to_vec::<f32>(d));
-        if self.validate_uniform_parameters(uniform, UniformType::FloatVec2, data_vec.as_ref().map(Vec::as_slice)) {
+        if self.validate_uniform_parameters(uniform,
+                                            UniformSetterType::FloatVec2,
+                                            data_vec.as_ref().map(Vec::as_slice)) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform2fv(uniform.unwrap().id(), data_vec.unwrap())))
                 .unwrap()
@@ -1181,7 +1404,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform2i(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: i32, y: i32) {
-        if self.validate_uniform_parameters(uniform, UniformType::IntVec2, Some(&[x, y])) {
+        if self.validate_uniform_parameters(uniform,
+                                            UniformSetterType::IntVec2,
+                                            Some(&[x, y])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform2i(uniform.unwrap().id(), x, y)))
                 .unwrap()
@@ -1194,7 +1419,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
         let data_vec = data.and_then(|d| array_buffer_view_to_vec::<i32>(d));
-        if self.validate_uniform_parameters(uniform, UniformType::IntVec2, data_vec.as_ref().map(Vec::as_slice)) {
+        if self.validate_uniform_parameters(uniform,
+                                            UniformSetterType::IntVec2,
+                                            data_vec.as_ref().map(Vec::as_slice)) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform2iv(uniform.unwrap().id(), data_vec.unwrap())))
                 .unwrap()
@@ -1205,7 +1432,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform3f(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: f32, y: f32, z: f32) {
-        if self.validate_uniform_parameters(uniform, UniformType::FloatVec3, Some(&[x, y, z])) {
+        if self.validate_uniform_parameters(uniform,
+                                            UniformSetterType::FloatVec3,
+                                            Some(&[x, y, z])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform3f(uniform.unwrap().id(), x, y, z)))
                 .unwrap()
@@ -1218,7 +1447,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
         let data_vec = data.and_then(|d| array_buffer_view_to_vec::<f32>(d));
-        if self.validate_uniform_parameters(uniform, UniformType::FloatVec3, data_vec.as_ref().map(Vec::as_slice)) {
+        if self.validate_uniform_parameters(uniform,
+                                            UniformSetterType::FloatVec3,
+                                            data_vec.as_ref().map(Vec::as_slice)) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform3fv(uniform.unwrap().id(), data_vec.unwrap())))
                 .unwrap()
@@ -1229,7 +1460,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform3i(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: i32, y: i32, z: i32) {
-        if self.validate_uniform_parameters(uniform, UniformType::IntVec3, Some(&[x, y, z])) {
+        if self.validate_uniform_parameters(uniform,
+                                            UniformSetterType::IntVec3,
+                                            Some(&[x, y, z])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform3i(uniform.unwrap().id(), x, y, z)))
                 .unwrap()
@@ -1242,7 +1475,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
         let data_vec = data.and_then(|d| array_buffer_view_to_vec::<i32>(d));
-        if self.validate_uniform_parameters(uniform, UniformType::IntVec3, data_vec.as_ref().map(Vec::as_slice)) {
+        if self.validate_uniform_parameters(uniform,
+                                            UniformSetterType::IntVec3,
+                                            data_vec.as_ref().map(Vec::as_slice)) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform3iv(uniform.unwrap().id(), data_vec.unwrap())))
                 .unwrap()
@@ -1253,7 +1488,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform4i(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: i32, y: i32, z: i32, w: i32) {
-        if self.validate_uniform_parameters(uniform, UniformType::IntVec4, Some(&[x, y, z, w])) {
+        if self.validate_uniform_parameters(uniform,
+                                            UniformSetterType::IntVec4,
+                                            Some(&[x, y, z, w])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform4i(uniform.unwrap().id(), x, y, z, w)))
                 .unwrap()
@@ -1267,7 +1504,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
         let data_vec = data.and_then(|d| array_buffer_view_to_vec::<i32>(d));
-        if self.validate_uniform_parameters(uniform, UniformType::IntVec4, data_vec.as_ref().map(Vec::as_slice)) {
+        if self.validate_uniform_parameters(uniform,
+                                            UniformSetterType::IntVec4,
+                                            data_vec.as_ref().map(Vec::as_slice)) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform4iv(uniform.unwrap().id(), data_vec.unwrap())))
                 .unwrap()
@@ -1278,7 +1517,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn Uniform4f(&self,
                   uniform: Option<&WebGLUniformLocation>,
                   x: f32, y: f32, z: f32, w: f32) {
-        if self.validate_uniform_parameters(uniform, UniformType::FloatVec4, Some(&[x, y, z, w])) {
+        if self.validate_uniform_parameters(uniform,
+                                            UniformSetterType::FloatVec4,
+                                            Some(&[x, y, z, w])) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform4f(uniform.unwrap().id(), x, y, z, w)))
                 .unwrap()
@@ -1291,7 +1532,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
         let data_vec = data.and_then(|d| array_buffer_view_to_vec::<f32>(d));
-        if self.validate_uniform_parameters(uniform, UniformType::FloatVec4, data_vec.as_ref().map(Vec::as_slice)) {
+        if self.validate_uniform_parameters(uniform,
+                                            UniformSetterType::FloatVec4,
+                                            data_vec.as_ref().map(Vec::as_slice)) {
             self.ipc_renderer
                 .send(CanvasMsg::WebGL(WebGLCommand::Uniform4fv(uniform.unwrap().id(), data_vec.unwrap())))
                 .unwrap()
@@ -1400,28 +1643,112 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             .unwrap()
     }
 
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn TexImage2D(&self,
+                  _cx: *mut JSContext,
                   target: u32,
                   level: i32,
                   internal_format: u32,
+                  width: i32,
+                  height: i32,
+                  border: i32,
                   format: u32,
                   data_type: u32,
-                  source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement>) {
-        let texture = match target {
-            constants::TEXTURE_2D => self.bound_texture_2d.get(),
-            constants::TEXTURE_CUBE_MAP => self.bound_texture_cube_map.get(),
-            _ => return self.webgl_error(InvalidEnum),
+                  data: Option<*mut JSObject>) {
+        if !self.validate_tex_image_parameters(target,
+                                               level,
+                                               internal_format,
+                                               width, height,
+                                               border,
+                                               format,
+                                               data_type) {
+            return; // Error handled in validate()
+        }
+
+        // TODO(emilio, #10693): Add type-safe wrappers to validations
+        let (element_size, components_per_element) = match data_type {
+            constants::UNSIGNED_BYTE => (1, 1),
+            constants::UNSIGNED_SHORT_5_6_5 => (2, 3),
+            constants::UNSIGNED_SHORT_5_5_5_1 |
+            constants::UNSIGNED_SHORT_4_4_4_4 => (2, 4),
+            _ => unreachable!(), // previously validated
         };
-        if texture.is_none() {
+
+        let components = match format {
+            constants::DEPTH_COMPONENT => 1,
+            constants::ALPHA => 1,
+            constants::LUMINANCE => 1,
+            constants::LUMINANCE_ALPHA => 2,
+            constants::RGB => 3,
+            constants::RGBA => 4,
+            _ => unreachable!(), // previously validated
+        };
+
+        // If data is non-null, the type of pixels must match the type of the
+        // data to be read.
+        // If it is UNSIGNED_BYTE, a Uint8Array must be supplied;
+        // if it is UNSIGNED_SHORT_5_6_5, UNSIGNED_SHORT_4_4_4_4,
+        // or UNSIGNED_SHORT_5_5_5_1, a Uint16Array must be supplied.
+        // If the types do not match, an INVALID_OPERATION error is generated.
+        let received_size = if let Some(data) = data {
+            if unsafe { array_buffer_view_data_checked::<u16>(data).is_some() } {
+                2
+            } else if unsafe { array_buffer_view_data_checked::<u8>(data).is_some() } {
+                1
+            } else {
+                return self.webgl_error(InvalidOperation);
+            }
+        } else {
+            element_size
+        };
+
+        if received_size != element_size {
             return self.webgl_error(InvalidOperation);
         }
-        // TODO(emilio): Validate more parameters
+
+        // NOTE: width and height are positive or zero due to validate()
+        let expected_byte_length = width * height * element_size * components / components_per_element;
+
+
+        // If data is null, a buffer of sufficient size
+        // initialized to 0 is passed.
+        let buff = if let Some(data) = data {
+            array_buffer_view_to_vec::<u8>(data)
+                .expect("Can't reach here without being an ArrayBufferView!")
+        } else {
+            vec![0u8; expected_byte_length as usize]
+        };
+
+        if buff.len() != expected_byte_length as usize {
+            return self.webgl_error(InvalidOperation);
+        }
+
+        self.tex_image_2d(target, level,
+                          internal_format,
+                          width, height, border,
+                          format, data_type, buff)
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn TexImage2D_(&self,
+                   target: u32,
+                   level: i32,
+                   internal_format: u32,
+                   format: u32,
+                   data_type: u32,
+                   source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement>) {
         let source = match source {
             Some(s) => s,
             None => return,
         };
 
+
+        // NOTE: Getting the pixels probably can be short-circuited if some
+        // parameter is invalid.
+        //
+        // Nontheless, since it's the error case, I'm not totally sure the
+        // complexity is worth it.
         let (pixels, size) = match source {
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::ImageData(image_data) => {
                 let global = self.global();
@@ -1443,7 +1770,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 };
 
                 let size = Size2D::new(img.width as i32, img.height as i32);
-                // TODO(emilio): Validate that the format argument is coherent with the image.
+
+                // TODO(emilio): Validate that the format argument
+                // is coherent with the image.
+                //
                 // RGB8 should be easy to support too
                 let mut data = match img.format {
                     PixelFormat::RGBA8 => img.bytes.to_vec(),
@@ -1454,8 +1784,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
                 (data, size)
             },
-            // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D, but
-            // we need to refactor it moving it to `HTMLCanvasElement` and supporting WebGLContext
+            // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D,
+            // but we need to refactor it moving it to `HTMLCanvasElement` and support
+            // WebGLContext (probably via GetPixels()).
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLCanvasElement(canvas) => {
                 let canvas = canvas.r();
                 if let Some((mut data, size)) = canvas.fetch_all_data() {
@@ -1469,25 +1800,17 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 => unimplemented!(),
         };
 
-        if size.width < 0 || size.height < 0 || level < 0 {
-            self.webgl_error(WebGLError::InvalidOperation);
+        // NB: Border must be zero
+        if !self.validate_tex_image_parameters(target, level, internal_format,
+                                               size.width, size.height, 0,
+                                               format, data_type) {
+            return; // Error handled in validate()
         }
 
-        // TODO(emilio): Invert axis, convert colorspace, premultiply alpha if requested
-        let msg = WebGLCommand::TexImage2D(target, level, internal_format as i32,
-                                             size.width, size.height,
-                                             format, data_type, pixels);
-
-        // depth is always 1 when coming from html elements
-        handle_potential_webgl_error!(self, texture.unwrap().initialize(size.width as u32,
-                                                                        size.height as u32,
-                                                                        1,
-                                                                        internal_format,
-                                                                        level as u32));
-
-        self.ipc_renderer
-            .send(CanvasMsg::WebGL(msg))
-            .unwrap()
+        self.tex_image_2d(target, level,
+                          internal_format,
+                          size.width, size.height, 0,
+                          format, data_type, pixels)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -1510,5 +1833,64 @@ impl LayoutCanvasWebGLRenderingContextHelpers for LayoutJS<WebGLRenderingContext
     #[allow(unsafe_code)]
     unsafe fn get_ipc_renderer(&self) -> IpcSender<CanvasMsg> {
         (*self.unsafe_get()).ipc_renderer.clone()
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum UniformSetterType {
+    Int,
+    IntVec2,
+    IntVec3,
+    IntVec4,
+    Float,
+    FloatVec2,
+    FloatVec3,
+    FloatVec4,
+}
+
+impl UniformSetterType {
+    pub fn element_count(&self) -> usize {
+        match *self {
+            UniformSetterType::Int => 1,
+            UniformSetterType::IntVec2 => 2,
+            UniformSetterType::IntVec3 => 3,
+            UniformSetterType::IntVec4 => 4,
+            UniformSetterType::Float => 1,
+            UniformSetterType::FloatVec2 => 2,
+            UniformSetterType::FloatVec3 => 3,
+            UniformSetterType::FloatVec4 => 4,
+        }
+    }
+
+    pub fn is_compatible_with(&self, gl_type: u32) -> bool {
+        gl_type == self.as_gl_constant() || match *self {
+            // Sampler uniform variables have an index value (the index of the
+            // texture), and as such they have to be set as ints
+            UniformSetterType::Int => gl_type == constants::SAMPLER_2D ||
+                                gl_type == constants::SAMPLER_CUBE,
+            // Don't ask me why, but it seems we must allow setting bool
+            // uniforms with uniform1f.
+            //
+            // See the WebGL conformance test
+            //   conformance/uniforms/gl-uniform-bool.html
+            UniformSetterType::Float => gl_type == constants::BOOL,
+            UniformSetterType::FloatVec2 => gl_type == constants::BOOL_VEC2,
+            UniformSetterType::FloatVec3 => gl_type == constants::BOOL_VEC3,
+            UniformSetterType::FloatVec4 => gl_type == constants::BOOL_VEC4,
+            _ => false,
+        }
+    }
+
+    fn as_gl_constant(&self) -> u32 {
+        match *self {
+            UniformSetterType::Int => constants::INT,
+            UniformSetterType::IntVec2 => constants::INT_VEC2,
+            UniformSetterType::IntVec3 => constants::INT_VEC3,
+            UniformSetterType::IntVec4 => constants::INT_VEC4,
+            UniformSetterType::Float => constants::FLOAT,
+            UniformSetterType::FloatVec2 => constants::FLOAT_VEC2,
+            UniformSetterType::FloatVec3 => constants::FLOAT_VEC3,
+            UniformSetterType::FloatVec4 => constants::FLOAT_VEC4,
+        }
     }
 }

@@ -15,7 +15,7 @@ use flow::{self, Flow, ImmutableFlowUtils, InorderFlowTraversal, MutableFlowUtil
 use flow_ref::{self, FlowRef};
 use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
-use gfx::display_list::{DisplayListEntry, StackingContext};
+use gfx::display_list::{DisplayItem, StackingContext};
 use incremental::{REFLOW, STORE_OVERFLOW};
 use style::dom::TNode;
 use style::traversal::DomTraversalContext;
@@ -82,7 +82,7 @@ pub fn traverse_flow_tree_preorder(root: &mut FlowRef,
 pub fn build_display_list_for_subtree(root: &mut FlowRef,
                                       root_stacking_context: &mut StackingContext,
                                       shared_layout_context: &SharedLayoutContext)
-                                      -> Vec<DisplayListEntry> {
+                                      -> Vec<DisplayItem> {
     let flow_root = flow_ref::deref_mut(root);
     let layout_context = LayoutContext::new(shared_layout_context);
     flow_root.traverse_preorder(&ComputeAbsolutePositions { layout_context: &layout_context });

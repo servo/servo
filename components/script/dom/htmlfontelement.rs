@@ -150,8 +150,8 @@ pub fn parse_legacy_font_size(mut input: &str) -> Option<&'static str> {
 
     // Steps 6, 7, 8
     let mut value = match read_numbers(input_chars) {
-        Some(v) => v,
-        None => return None,
+        (Some(v), _) => v,
+        (None, _) => return None,
     };
 
     // Step 9

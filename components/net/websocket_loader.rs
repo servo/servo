@@ -32,8 +32,8 @@ fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, 
     -> WebSocketResult<(Headers, Sender<WebSocketStream>, Receiver<WebSocketStream>)> {
 
     let host = Host {
-        hostname: resource_url.serialize_host().unwrap(),
-        port: resource_url.port_or_default()
+        hostname: resource_url.host_str().unwrap().to_owned(),
+        port: resource_url.port_or_known_default(),
     };
 
     let mut request = try!(Client::connect(net_url));

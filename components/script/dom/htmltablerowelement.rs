@@ -29,8 +29,8 @@ use util::str::DOMString;
 struct CellsFilter;
 impl CollectionFilter for CellsFilter {
     fn filter(&self, elem: &Element, root: &Node) -> bool {
-        (elem.is::<HTMLTableHeaderCellElement>() || elem.is::<HTMLTableDataCellElement>())
-            && elem.upcast::<Node>().GetParentNode().r() == Some(root)
+        (elem.is::<HTMLTableHeaderCellElement>() || elem.is::<HTMLTableDataCellElement>()) &&
+            elem.upcast::<Node>().GetParentNode().r() == Some(root)
     }
 }
 

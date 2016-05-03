@@ -38,7 +38,7 @@ use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::node::{Node, NodeDamage, window_from_node};
-use dom::servohtmlparser::{ParserContext, ParserRoot};
+use dom::servohtmlparser::ParserContext;
 use dom::uievent::UIEvent;
 use dom::window::{ReflowReason, ScriptHelpers, Window};
 use dom::worker::TrustedWorkerAddress;
@@ -61,7 +61,7 @@ use layout_interface::{self, LayoutChan, NewLayoutThreadInfo, ScriptLayoutChan};
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{ConstellationChan, LoadData};
 use msg::constellation_msg::{PipelineId, PipelineNamespace};
-use msg::constellation_msg::{SubpageId, WindowSizeData};
+use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
@@ -69,6 +69,7 @@ use net_traits::storage_thread::StorageThread;
 use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadContext, Metadata, ResourceThread};
 use network_listener::NetworkListener;
 use page::{Frame, IterablePage, Page};
+use parse::ParserRoot;
 use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
@@ -100,7 +101,7 @@ use task_source::history_traversal::HistoryTraversalTaskSource;
 use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
 use time::Tm;
-use url::Url;
+use url::{Url, Position};
 use util::opts;
 use util::str::DOMString;
 use util::thread;
@@ -274,14 +275,6 @@ impl ScriptChan for SendableMainThreadScriptChan {
     }
 }
 
-impl SendableMainThreadScriptChan {
-    /// Creates a new script chan.
-    pub fn new() -> (Receiver<CommonScriptMsg>, Box<SendableMainThreadScriptChan>) {
-        let (chan, port) = channel();
-        (port, box SendableMainThreadScriptChan(chan))
-    }
-}
-
 /// Encapsulates internal communication of main thread messages within the script thread.
 #[derive(JSTraceable)]
 pub struct MainThreadScriptChan(pub Sender<MainThreadScriptMsg>);
@@ -296,11 +289,9 @@ impl ScriptChan for MainThreadScriptChan {
     }
 }
 
-impl MainThreadScriptChan {
-    /// Creates a new script chan.
-    pub fn new() -> (Receiver<MainThreadScriptMsg>, Box<MainThreadScriptChan>) {
-        let (chan, port) = channel();
-        (port, box MainThreadScriptChan(chan))
+impl OpaqueSender<CommonScriptMsg> for Sender<MainThreadScriptMsg> {
+    fn send(&self, msg: CommonScriptMsg) {
+        self.send(MainThreadScriptMsg::Common(msg)).unwrap()
     }
 }
 
@@ -452,15 +443,13 @@ impl ScriptThreadFactory for ScriptThread {
             PipelineNamespace::install(state.pipeline_namespace_id);
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
-            let chan = MainThreadScriptChan(script_chan.clone());
-            let channel_for_reporter = chan.clone();
             let id = state.id;
             let parent_info = state.parent_info;
             let mem_profiler_chan = state.mem_profiler_chan.clone();
             let window_size = state.window_size;
             let script_thread = ScriptThread::new(state,
                                               script_port,
-                                              script_chan);
+                                              script_chan.clone());
 
             SCRIPT_THREAD_ROOT.with(|root| {
                 *root.borrow_mut() = Some(&script_thread as *const _);
@@ -477,7 +466,7 @@ impl ScriptThreadFactory for ScriptThread {
                 script_thread.start();
                 let _ = script_thread.compositor.borrow_mut().send(ScriptToCompositorMsg::Exited);
                 let _ = script_thread.content_process_shutdown_chan.send(());
-            }, reporter_name, channel_for_reporter, CommonScriptMsg::CollectReports);
+            }, reporter_name, script_chan, CommonScriptMsg::CollectReports);
 
             // This must always be the very last operation performed before the thread completes
             failsafe.neuter();
@@ -492,7 +481,7 @@ pub unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
 }
 
 impl ScriptThread {
-    pub fn page_fetch_complete(id: PipelineId, subpage: Option<SubpageId>, metadata: Option<Metadata>)
+    pub fn page_fetch_complete(id: &PipelineId, subpage: Option<&SubpageId>, metadata: Option<Metadata>)
                                -> Option<ParserRoot> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.borrow().unwrap() };
@@ -521,7 +510,7 @@ impl ScriptThread {
                port: Receiver<MainThreadScriptMsg>,
                chan: Sender<MainThreadScriptMsg>)
                -> ScriptThread {
-        let runtime = new_rt_and_cx();
+        let runtime = unsafe { new_rt_and_cx() };
 
         unsafe {
             JS_SetWrapObjectCallbacks(runtime.rt(),
@@ -635,8 +624,8 @@ impl ScriptThread {
             }
         }
 
-        for (id, size) in resizes {
-            self.handle_event(id, ResizeEvent(size));
+        for (id, (size, size_type)) in resizes {
+            self.handle_event(id, ResizeEvent(size, size_type));
         }
 
         // Store new resizes, and gather all other events.
@@ -689,9 +678,9 @@ impl ScriptThread {
                         self.handle_new_layout(new_layout_info);
                     })
                 }
-                FromConstellation(ConstellationControlMsg::Resize(id, size)) => {
+                FromConstellation(ConstellationControlMsg::Resize(id, size, size_type)) => {
                     self.profile_event(ScriptThreadEventCategory::Resize, || {
-                        self.handle_resize(id, size);
+                        self.handle_resize(id, size, size_type);
                     })
                 }
                 FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => {
@@ -882,8 +871,12 @@ impl ScriptThread {
                                                  event),
             ConstellationControlMsg::UpdateSubpageId(containing_pipeline_id,
                                                      old_subpage_id,
-                                                     new_subpage_id) =>
-                self.handle_update_subpage_id(containing_pipeline_id, old_subpage_id, new_subpage_id),
+                                                     new_subpage_id,
+                                                     new_pipeline_id) =>
+                self.handle_update_subpage_id(containing_pipeline_id,
+                                              old_subpage_id,
+                                              new_subpage_id,
+                                              new_pipeline_id),
             ConstellationControlMsg::FocusIFrame(containing_pipeline_id, subpage_id) =>
                 self.handle_focus_iframe_msg(containing_pipeline_id, subpage_id),
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) =>
@@ -1020,10 +1013,10 @@ impl ScriptThread {
         }
     }
 
-    fn handle_resize(&self, id: PipelineId, size: WindowSizeData) {
+    fn handle_resize(&self, id: PipelineId, size: WindowSizeData, size_type: WindowSizeType) {
         if let Some(ref page) = self.find_subpage(id) {
             let window = page.window();
-            window.set_resize_event(size);
+            window.set_resize_event(size, size_type);
             return;
         }
         let mut loads = self.incomplete_loads.borrow_mut();
@@ -1117,8 +1110,7 @@ impl ScriptThread {
         doc.mut_loader().inhibit_events();
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
-        let addr: Trusted<Document> = Trusted::new(doc, self.chan.clone());
-        let handler = box DocumentProgressHandler::new(addr.clone());
+        let handler = box DocumentProgressHandler::new(Trusted::new(doc));
         self.dom_manipulation_task_source.queue(DOMManipulationTask::DocumentProgress(handler)).unwrap();
 
         let ConstellationChan(ref chan) = self.constellation_chan;
@@ -1132,8 +1124,7 @@ impl ScriptThread {
 
         if let Some(root_page) = self.page.borrow().as_ref() {
             for it_page in root_page.iter() {
-                let current_url = it_page.document().url().serialize();
-                urls.push(current_url.clone());
+                let current_url = it_page.document().url().to_string();
 
                 for child in it_page.document().upcast::<Node>().traverse_preorder() {
                     dom_tree_size += heap_size_of_self_and_children(&*child);
@@ -1145,7 +1136,8 @@ impl ScriptThread {
                     path: path![format!("url({})", current_url), "dom-tree"],
                     kind: ReportKind::ExplicitJemallocHeapSize,
                     size: dom_tree_size,
-                })
+                });
+                urls.push(current_url);
             }
         }
         let path_seg = format!("url({})", urls.join(", "));
@@ -1242,7 +1234,8 @@ impl ScriptThread {
     fn handle_update_subpage_id(&self,
                                 containing_pipeline_id: PipelineId,
                                 old_subpage_id: SubpageId,
-                                new_subpage_id: SubpageId) {
+                                new_subpage_id: SubpageId,
+                                new_pipeline_id: PipelineId) {
         let borrowed_page = self.root_page();
 
         let frame_element = borrowed_page.find(containing_pipeline_id).and_then(|page| {
@@ -1250,7 +1243,7 @@ impl ScriptThread {
             doc.find_iframe(old_subpage_id)
         });
 
-        frame_element.unwrap().update_subpage_id(new_subpage_id);
+        frame_element.unwrap().update_subpage_id(new_subpage_id, new_pipeline_id);
     }
 
     /// Window was resized, but this script was not active, so don't reflow yet
@@ -1279,10 +1272,10 @@ impl ScriptThread {
 
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
-    fn handle_page_fetch_complete(&self, id: PipelineId, subpage: Option<SubpageId>,
+    fn handle_page_fetch_complete(&self, id: &PipelineId, subpage: Option<&SubpageId>,
                                   metadata: Option<Metadata>) -> Option<ParserRoot> {
         let idx = self.incomplete_loads.borrow().iter().position(|load| {
-            load.pipeline_id == id && load.parent_info.map(|info| info.1) == subpage
+            load.pipeline_id == *id && load.parent_info.as_ref().map(|info| &info.1) == subpage
         });
         // The matching in progress load structure may not exist if
         // the pipeline exited before the page load completed.
@@ -1292,7 +1285,7 @@ impl ScriptThread {
                 metadata.map(|meta| self.load(meta, load))
             }
             None => {
-                assert!(self.closed_pipelines.borrow().contains(&id));
+                assert!(self.closed_pipelines.borrow().contains(id));
                 None
             }
         }
@@ -1387,7 +1380,7 @@ impl ScriptThread {
             let ConstellationChan(ref chan) = self.constellation_chan;
             chan.send(ConstellationMsg::SetFinalUrl(incomplete.pipeline_id, final_url.clone())).unwrap();
         }
-        debug!("ScriptThread: loading {} on page {:?}", incomplete.url.serialize(), incomplete.pipeline_id);
+        debug!("ScriptThread: loading {} on page {:?}", incomplete.url, incomplete.pipeline_id);
 
         let frame_element = incomplete.parent_info.and_then(|(parent_id, subpage_id)| {
             // The root page may not exist yet, if the parent of this frame
@@ -1509,23 +1502,22 @@ impl ScriptThread {
             headers.get().map(|&LastModified(HttpDate(ref tm))| dom_last_modified(tm))
         });
 
-        let content_type = match metadata.content_type {
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {
-                Some(DOMString::from("text/xml"))
+        let content_type = metadata.content_type.as_ref().and_then(|&ContentType(ref mimetype)| {
+            match *mimetype {
+                Mime(TopLevel::Application, SubLevel::Xml, _) |
+                Mime(TopLevel::Application, SubLevel::Ext(_), _) |
+                Mime(TopLevel::Text, SubLevel::Xml, _) |
+                Mime(TopLevel::Text, SubLevel::Plain, _) => Some(DOMString::from(mimetype.to_string())),
+                _ => None,
             }
-
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Plain, _))) => {
-                Some(DOMString::from("text/plain"))
-            }
-
-            _ => None
-        };
+        });
 
         let loader = DocumentLoader::new_with_thread(self.resource_thread.clone(),
                                                    Some(page.pipeline()),
                                                    Some(incomplete.url.clone()));
 
         let is_html_document = match metadata.content_type {
+            Some(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _))) |
             Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) =>
                 IsHTMLDocument::NonHTMLDocument,
             _ => IsHTMLDocument::HTMLDocument,
@@ -1554,30 +1546,22 @@ impl ScriptThread {
         // Notify devtools that a new script global exists.
         self.notify_devtools(document.Title(), final_url.clone(), (page.pipeline(), None));
 
-        let is_javascript = incomplete.url.scheme == "javascript";
+        let is_javascript = incomplete.url.scheme() == "javascript";
         let parse_input = if is_javascript {
-            use url::percent_encoding::percent_decode_to;
+            use url::percent_encoding::percent_decode;
 
             // Turn javascript: URL into JS code to eval, according to the steps in
             // https://html.spec.whatwg.org/multipage/#javascript-protocol
             let _ar = JSAutoRequest::new(self.get_cx());
-            let mut script_source_bytes = Vec::new();
-            // Start with the scheme data of the parsed URL (5.), while percent-decoding (8.)
-            percent_decode_to(incomplete.url.non_relative_scheme_data().unwrap().as_bytes(),
-                              &mut script_source_bytes);
-            // Append question mark and query component, if any (6.), while percent-decoding (8.)
-            if let Some(ref query) = incomplete.url.query {
-                script_source_bytes.push(b'?');
-                percent_decode_to(query.as_bytes(), &mut script_source_bytes);
-            }
-            // Append number sign and fragment component if any (7.), while percent-decoding (8.)
-            if let Some(ref fragment) = incomplete.url.fragment {
-                script_source_bytes.push(b'#');
-                percent_decode_to(fragment.as_bytes(), &mut script_source_bytes);
-            }
 
-            // UTF-8 decode (9.)
-            let script_source = String::from_utf8_lossy(&script_source_bytes);
+            // This slice of the URL’s serialization is equivalent to (5.) to (7.):
+            // Start with the scheme data of the parsed URL;
+            // append question mark and query component, if any;
+            // append number sign and fragment component if any.
+            let encoded = &incomplete.url[Position::BeforePath..];
+
+            // Percent-decode (8.) and UTF-8 decode (9.)
+            let script_source = percent_decode(encoded.as_bytes()).decode_utf8_lossy();
 
             // Script source is ready to be evaluated (11.)
             unsafe {
@@ -1594,19 +1578,26 @@ impl ScriptThread {
 
         document.set_https_state(metadata.https_state);
 
-        match metadata.content_type {
-            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => {
-                parse_xml(document.r(),
-                          parse_input,
-                          final_url,
-                          xml::ParseContext::Owner(Some(incomplete.pipeline_id)));
-            }
-            _ => {
-                parse_html(document.r(),
-                           parse_input,
-                           final_url,
-                           ParseContext::Owner(Some(incomplete.pipeline_id)));
-            }
+        let is_xml = match metadata.content_type {
+            Some(ContentType(Mime(TopLevel::Application, SubLevel::Ext(ref sub_level), _)))
+                if sub_level.ends_with("+xml") => true,
+
+            Some(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _))) |
+            Some(ContentType(Mime(TopLevel::Text, SubLevel::Xml, _))) => true,
+
+            _ => false,
+        };
+
+        if is_xml {
+            parse_xml(document.r(),
+                      parse_input,
+                      final_url,
+                      xml::ParseContext::Owner(Some(incomplete.pipeline_id)));
+        } else {
+            parse_html(document.r(),
+                       parse_input,
+                       final_url,
+                       ParseContext::Owner(Some(incomplete.pipeline_id)));
         }
 
         if incomplete.is_frozen {
@@ -1670,8 +1661,8 @@ impl ScriptThread {
         }
 
         match event {
-            ResizeEvent(new_size) => {
-                self.handle_resize_event(pipeline_id, new_size);
+            ResizeEvent(new_size, size_type) => {
+                self.handle_resize_event(pipeline_id, new_size, size_type);
             }
 
             MouseButtonEvent(event_type, button, point) => {
@@ -1706,7 +1697,7 @@ impl ScriptThread {
                                            .and_then(|href| {
                                                let value = href.value();
                                                let url = document.url();
-                                               url.join(&value).map(|url| url.serialize()).ok()
+                                               url.join(&value).map(|url| url.to_string()).ok()
                                            });
 
                         let event = ConstellationMsg::NodeStatus(status);
@@ -1795,14 +1786,14 @@ impl ScriptThread {
         // Step 8.
         {
             let nurl = &load_data.url;
-            if let Some(ref fragment) = nurl.fragment {
+            if let Some(fragment) = nurl.fragment() {
                 let page = get_page(&self.root_page(), pipeline_id);
                 let document = page.document();
                 let document = document.r();
                 let url = document.url();
-                if url.scheme == nurl.scheme && url.scheme_data == nurl.scheme_data &&
-                    url.query == nurl.query && load_data.method == Method::Get {
-                    match document.find_fragment_node(&*fragment) {
+                if &url[..Position::AfterQuery] == &nurl[..Position::AfterQuery] &&
+                    load_data.method == Method::Get {
+                    match document.find_fragment_node(fragment) {
                         Some(ref node) => {
                             self.scroll_fragment_point(pipeline_id, node.r());
                         }
@@ -1821,7 +1812,7 @@ impl ScriptThread {
                     doc.find_iframe(subpage_id)
                 });
                 if let Some(iframe) = iframe.r() {
-                    iframe.navigate_or_reload_child_browsing_context(Some(load_data.url));
+                    iframe.navigate_or_reload_child_browsing_context(Some(load_data));
                 }
             }
             None => {
@@ -1831,7 +1822,7 @@ impl ScriptThread {
         }
     }
 
-    fn handle_resize_event(&self, pipeline_id: PipelineId, new_size: WindowSizeData) {
+    fn handle_resize_event(&self, pipeline_id: PipelineId, new_size: WindowSizeData, size_type: WindowSizeType) {
         let page = get_page(&self.root_page(), pipeline_id);
         let window = page.window();
         window.set_window_size(new_size);
@@ -1849,11 +1840,13 @@ impl ScriptThread {
 
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
-        let uievent = UIEvent::new(window.r(),
-                                   DOMString::from("resize"), EventBubbles::DoesNotBubble,
-                                   EventCancelable::NotCancelable, Some(window.r()),
-                                   0i32);
-        uievent.upcast::<Event>().fire(window.upcast());
+        if size_type == WindowSizeType::Resize {
+            let uievent = UIEvent::new(window.r(),
+                                       DOMString::from("resize"), EventBubbles::DoesNotBubble,
+                                       EventCancelable::NotCancelable, Some(window.r()),
+                                       0i32);
+            uievent.upcast::<Event>().fire(window.upcast());
+        }
     }
 
     /// Initiate a non-blocking fetch for a specified resource. Stores the InProgressLoad
@@ -1862,15 +1855,11 @@ impl ScriptThread {
         let id = incomplete.pipeline_id.clone();
         let subpage = incomplete.parent_info.clone().map(|p| p.1);
 
-        let script_chan = self.chan.clone();
-        let resource_thread = self.resource_thread.clone();
-
-        let context = Arc::new(Mutex::new(ParserContext::new(id, subpage, script_chan.clone(),
-                                                             load_data.url.clone())));
+        let context = Arc::new(Mutex::new(ParserContext::new(id, subpage, load_data.url.clone())));
         let (action_sender, action_receiver) = ipc::channel().unwrap();
         let listener = NetworkListener {
             context: context,
-            script_chan: script_chan.clone(),
+            script_chan: self.chan.clone(),
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify(message.to().unwrap());
@@ -1879,11 +1868,11 @@ impl ScriptThread {
             sender: action_sender,
         };
 
-        if load_data.url.scheme == "javascript" {
+        if load_data.url.scheme() == "javascript" {
             load_data.url = Url::parse("about:blank").unwrap();
         }
 
-        resource_thread.send(ControlMsg::Load(NetLoadData {
+        self.resource_thread.send(ControlMsg::Load(NetLoadData {
             context: LoadContext::Browsing,
             url: load_data.url,
             method: load_data.method,
@@ -1893,6 +1882,8 @@ impl ScriptThread {
             cors: None,
             pipeline_id: Some(id),
             credentials_flag: true,
+            referrer_policy: load_data.referrer_policy,
+            referrer_url: load_data.referrer_url,
         }, LoadConsumer::Listener(response_target), None)).unwrap();
 
         self.incomplete_loads.borrow_mut().push(incomplete);
@@ -1926,7 +1917,7 @@ impl ScriptThread {
         // https://html.spec.whatwg.org/multipage/#the-end steps 3-4.
         document.process_deferred_scripts();
 
-        window.set_fragment_name(final_url.fragment.clone());
+        window.set_fragment_name(final_url.fragment().map(str::to_owned));
     }
 
     fn handle_css_error_reporting(&self, pipeline_id: PipelineId, filename: String,
@@ -1975,7 +1966,7 @@ fn shut_down_layout(page_tree: &Rc<Page>) {
         // processed this message.
         let (response_chan, response_port) = channel();
         let window = page.window();
-        let LayoutChan(chan) = window.layout_chan();
+        let LayoutChan(chan) = window.layout_chan().clone();
         if chan.send(layout_interface::Msg::PrepareToExit(response_chan)).is_ok() {
             channels.push(chan);
             response_port.recv().unwrap();

@@ -153,11 +153,11 @@ promise_test(() => {
   });
 
   rs.cancel();
-  controller.enqueue('a'); // Calling enqueue after canceling should not throw anything.
+  assert_throws(new TypeError, () => controller.enqueue('a'), 'Calling enqueue after canceling should throw');
 
   return rs.getReader().closed;
 
-}, 'Underlying source: calling enqueue on an empty canceled stream should not throw');
+}, 'Underlying source: calling enqueue on an empty canceled stream should throw');
 
 promise_test(() => {
 
@@ -171,11 +171,11 @@ promise_test(() => {
   });
 
   rs.cancel();
-  controller.enqueue('c'); // Calling enqueue after canceling should not throw anything.
+  assert_throws(new TypeError, () => controller.enqueue('c'), 'Calling enqueue after canceling should throw');
 
   return rs.getReader().closed;
 
-}, 'Underlying source: calling enqueue on a non-empty canceled stream should not throw');
+}, 'Underlying source: calling enqueue on a non-empty canceled stream should throw');
 
 promise_test(() => {
 
@@ -194,7 +194,7 @@ promise_test(t => {
   const closed = new ReadableStream({
     start(c) {
       c.error(theError);
-      assert_throws(theError, () => c.enqueue('a'), 'call to enqueue should throw the error');
+      assert_throws(new TypeError(), () => c.enqueue('a'), 'call to enqueue should throw the error');
     }
   }).getReader().closed;
 
@@ -251,13 +251,13 @@ promise_test(() => {
   });
 
   rs.cancel();
-  controller.close(); // Calling close after canceling should not throw anything.
+  assert_throws(new TypeError(), () => controller.close(), 'Calling close after canceling should throw');
 
   return rs.getReader().closed.then(() => {
     assert_true(startCalled);
   });
 
-}, 'Underlying source: calling close on an empty canceled stream should not throw');
+}, 'Underlying source: calling close on an empty canceled stream should throw');
 
 promise_test(() => {
 
@@ -272,13 +272,13 @@ promise_test(() => {
   });
 
   rs.cancel();
-  controller.close(); // Calling close after canceling should not throw anything.
+  assert_throws(new TypeError(), () => controller.close(), 'Calling close after canceling should throw');
 
   return rs.getReader().closed.then(() => {
     assert_true(startCalled);
   });
 
-}, 'Underlying source: calling close on a non-empty canceled stream should not throw');
+}, 'Underlying source: calling close on a non-empty canceled stream should throw');
 
 promise_test(() => {
 

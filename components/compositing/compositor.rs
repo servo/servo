@@ -31,7 +31,7 @@ use layers::scene::Scene;
 use layout_traits::LayoutControlChan;
 use msg::constellation_msg::{ConvertPipelineIdFromWebRender, ConvertPipelineIdToWebRender, Image, PixelFormat};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{NavigationDirection, PipelineId, WindowSizeData};
+use msg::constellation_msg::{NavigationDirection, PipelineId, WindowSizeData, WindowSizeType};
 use pipeline::CompositionPipeline;
 use profile_traits::mem::{self, ReportKind, Reporter, ReporterRequest};
 use profile_traits::time::{self, ProfilerCategory, profile};
@@ -93,8 +93,8 @@ pub struct IOCompositor<Window: WindowMethods> {
     /// The application window.
     window: Rc<Window>,
 
-    /// The display this compositor targets.
-    native_display: NativeDisplay,
+    /// The display this compositor targets. Will be None when using webrender.
+    native_display: Option<NativeDisplay>,
 
     /// The port on which we receive messages.
     port: Box<CompositorReceiver>,
@@ -401,7 +401,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             sender.create_api()
         });
 
-        let native_display = window.native_display();
+        let native_display = if state.webrender.is_some() {
+            None
+        } else {
+            Some(window.native_display())
+        };
+
         IOCompositor {
             window: window,
             native_display: native_display,
@@ -461,7 +466,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         compositor.update_zoom_transform();
 
         // Tell the constellation about the initial window size.
-        compositor.send_window_size();
+        compositor.send_window_size(WindowSizeType::Initial);
 
         compositor
     }
@@ -499,8 +504,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn handle_browser_message(&mut self, msg: Msg) -> bool {
         match (msg, self.shutdown_state) {
-            (_, ShutdownState::FinishedShuttingDown) =>
-                panic!("compositor shouldn't be handling messages after shutting down"),
+            (_, ShutdownState::FinishedShuttingDown) => {
+                error!("compositor shouldn't be handling messages after shutting down");
+                return false
+            }
 
             (Msg::Exit(channel), _) => {
                 self.start_shutting_down();
@@ -572,7 +579,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::ReturnUnusedNativeSurfaces(native_surfaces),
              ShutdownState::NotShuttingDown) => {
-                self.surface_map.insert_surfaces(&self.native_display, native_surfaces);
+                if let Some(ref native_display) = self.native_display {
+                    self.surface_map.insert_surfaces(native_display, native_surfaces);
+                }
             }
 
             (Msg::ScrollFragmentPoint(pipeline_id, layer_id, point, _),
@@ -624,7 +633,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 debug!("delayed composition timeout!");
                 if let CompositionRequest::DelayedComposite(this_timestamp) =
                     self.composition_request {
-                    if timestamp == this_timestamp {
+                    if timestamp == this_timestamp && !opts::get().use_webrender {
                         self.composition_request = CompositionRequest::CompositeNow(
                             CompositingReason::DelayedCompositeTimeout)
                     }
@@ -743,7 +752,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match animation_state {
             AnimationState::AnimationsPresent => {
                 self.pipeline_details(pipeline_id).animations_running = true;
-                self.composite_if_necessary(CompositingReason::Animation);
+                self.composite_if_necessary_if_not_using_webrender(CompositingReason::Animation);
             }
             AnimationState::AnimationCallbacksPresent => {
                 if !self.pipeline_details(pipeline_id).animation_callbacks_running {
@@ -773,7 +782,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     pub fn pipeline(&self, pipeline_id: PipelineId) -> Option<&CompositionPipeline> {
         match self.pipeline_details.get(&pipeline_id) {
             Some(ref details) => details.pipeline.as_ref(),
-            None => panic!("Compositor layer has an unknown pipeline ({:?}).", pipeline_id),
+            None => {
+                warn!("Compositor layer has an unknown pipeline ({:?}).", pipeline_id);
+                None
+            }
         }
     }
 
@@ -822,10 +834,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         // Initialize the new constellation channel by sending it the root window size.
         self.constellation_chan = new_constellation_chan;
-        self.send_window_size();
+        self.send_window_size(WindowSizeType::Initial);
 
         self.frame_tree_id.next();
-        self.composite_if_necessary(CompositingReason::NewFrameTree);
+        self.composite_if_necessary_if_not_using_webrender(CompositingReason::NewFrameTree);
     }
 
     fn create_root_layer_for_pipeline_and_size(&mut self,
@@ -874,7 +886,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn find_pipeline_root_layer(&self, pipeline_id: PipelineId)
                                 -> Option<Rc<Layer<CompositorData>>> {
         if !self.pipeline_details.contains_key(&pipeline_id) {
-            panic!("Tried to create or update layer for unknown pipeline")
+            warn!("Tried to create or update layer for unknown pipeline");
+            return None;
         }
         self.find_layer_with_pipeline_and_layer_id(pipeline_id, LayerId::null())
     }
@@ -1062,15 +1075,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.pending_subpages.insert(subpage_pipeline_id);
     }
 
-    fn send_window_size(&self) {
+    fn send_window_size(&self, size_type: WindowSizeType) {
         let dppx = self.page_zoom * self.device_pixels_per_screen_px();
         let initial_viewport = self.window_size.as_f32() / dppx;
         let visible_viewport = initial_viewport / self.viewport_zoom;
-        let msg = ConstellationMsg::ResizedWindow(WindowSizeData {
+        let msg = ConstellationMsg::WindowSize(WindowSizeData {
             device_pixel_ratio: dppx,
             initial_viewport: initial_viewport,
             visible_viewport: visible_viewport,
-        });
+        }, size_type);
 
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Sending window resize to constellation failed ({}).", e);
@@ -1112,7 +1125,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                                                    layer_id: LayerId) {
         if let Some(point) = self.fragment_point.take() {
             if !self.move_layer(pipeline_id, layer_id, Point2D::from_untyped(&point)) {
-                panic!("Compositor: Tried to scroll to fragment with unknown layer.");
+                return warn!("Compositor: Tried to scroll to fragment with unknown layer.");
             }
 
             self.perform_updates_after_scroll();
@@ -1177,7 +1190,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // FIXME(pcwalton): This is going to cause problems with inconsistent frames since
         // we only composite one layer at a time.
         layer.add_buffers(self, new_layer_buffer_set, epoch);
-        self.composite_if_necessary(CompositingReason::NewPaintedBuffers);
+        self.composite_if_necessary_if_not_using_webrender(CompositingReason::NewPaintedBuffers);
     }
 
     fn scroll_fragment_to_point(&mut self,
@@ -1295,7 +1308,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.window_size = new_size;
 
         self.scene.set_root_layer_size(new_size.as_f32());
-        self.send_window_size();
+        self.send_window_size(WindowSizeType::Resize);
     }
 
     fn on_load_url_window_event(&mut self, url_string: String) {
@@ -1305,7 +1318,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             Ok(url) => {
                 self.window.set_page_url(url.clone());
                 let msg = match self.scene.root {
-                    Some(ref layer) => ConstellationMsg::LoadUrl(layer.pipeline_id(), LoadData::new(url)),
+                    Some(ref layer) => ConstellationMsg::LoadUrl(layer.pipeline_id(), LoadData::new(url, None, None)),
                     None => ConstellationMsg::InitLoadUrl(url)
                 };
                 if let Err(e) = self.constellation_chan.send(msg) {
@@ -1440,7 +1453,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     cursor: cursor,
                     phase: ScrollEventPhase::Move(true),
                 });
-                self.composite_if_necessary(CompositingReason::Zoom);
+                self.composite_if_necessary_if_not_using_webrender(CompositingReason::Zoom);
             }
             TouchAction::DispatchEvent => {
                 if let Some(result) = self.find_topmost_layer_at_point(point / self.scene.scale) {
@@ -1494,7 +1507,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             cursor: cursor,
             phase: ScrollEventPhase::Move(self.scroll_in_progress),
         });
-        self.composite_if_necessary(CompositingReason::Scroll);
+        self.composite_if_necessary_if_not_using_webrender(CompositingReason::Scroll);
     }
 
     fn on_scroll_start_window_event(&mut self,
@@ -1507,7 +1520,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             cursor: cursor,
             phase: ScrollEventPhase::Start,
         });
-        self.composite_if_necessary(CompositingReason::Scroll);
+        self.composite_if_necessary_if_not_using_webrender(CompositingReason::Scroll);
     }
 
     fn on_scroll_end_window_event(&mut self,
@@ -1520,7 +1533,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             cursor: cursor,
             phase: ScrollEventPhase::End,
         });
-        self.composite_if_necessary(CompositingReason::Scroll);
+        self.composite_if_necessary_if_not_using_webrender(CompositingReason::Scroll);
     }
 
     fn process_pending_scroll_events(&mut self) {
@@ -1651,7 +1664,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.send_updated_display_ports_to_layout();
         if self.send_buffer_requests_for_all_layers() {
             self.schedule_delayed_composite_if_necessary();
-        } else {
+        } else if !opts::get().use_webrender {
             self.channel_to_self.send(Msg::Recomposite(CompositingReason::ContinueScroll));
         }
     }
@@ -1725,14 +1738,14 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn on_zoom_reset_window_event(&mut self) {
         self.page_zoom = ScaleFactor::new(1.0);
         self.update_zoom_transform();
-        self.send_window_size();
+        self.send_window_size(WindowSizeType::Resize);
     }
 
     fn on_zoom_window_event(&mut self, magnification: f32) {
         self.page_zoom = ScaleFactor::new((self.page_zoom.get() * magnification)
                                           .max(MIN_ZOOM).min(MAX_ZOOM));
         self.update_zoom_transform();
-        self.send_window_size();
+        self.send_window_size(WindowSizeType::Resize);
     }
 
     /// Simulate a pinch zoom
@@ -1743,7 +1756,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             cursor:  Point2D::typed(-1, -1), // Make sure this hits the base layer.
             phase: ScrollEventPhase::Move(true),
         });
-        self.composite_if_necessary(CompositingReason::Zoom);
+        self.composite_if_necessary_if_not_using_webrender(CompositingReason::Zoom);
     }
 
     fn on_navigation_window_event(&self, direction: WindowNavigateMsg) {
@@ -2169,7 +2182,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.last_composite_time = precise_time_ns();
 
         self.composition_request = CompositionRequest::NoCompositingNecessary;
-        self.process_pending_scroll_events();
+
+        if !opts::get().use_webrender {
+            self.process_pending_scroll_events();
+        }
+
         self.process_animations();
         self.start_scrolling_bounce_if_necessary();
 
@@ -2217,10 +2234,18 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
+    fn composite_if_necessary_if_not_using_webrender(&mut self, reason: CompositingReason) {
+        if !opts::get().use_webrender {
+            self.composite_if_necessary(reason)
+        }
+    }
+
     fn initialize_compositing(&mut self) {
         if self.webrender.is_none() {
             let show_debug_borders = opts::get().show_debug_borders;
-            self.context = Some(rendergl::RenderContext::new(self.native_display.clone(),
+            // We can unwrap native_display because it's only None when using webrender.
+            self.context = Some(rendergl::RenderContext::new(self.native_display
+                                                             .expect("n_d should be Some when not using wr").clone(),
                                                              show_debug_borders,
                                                              opts::get().output_file.is_some()))
         }
@@ -2309,7 +2334,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         where B: IntoIterator<Item=Box<LayerBuffer>>
     {
         let surfaces = buffers.into_iter().map(|buffer| buffer.native_surface);
-        self.surface_map.insert_surfaces(&self.native_display, surfaces);
+        if let Some(ref native_display) = self.native_display {
+            self.surface_map.insert_surfaces(native_display, surfaces);
+        }
     }
 
     fn get_root_pipeline_id(&self) -> Option<PipelineId> {
@@ -2438,6 +2465,10 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
             self.zoom_action = false;
             self.scene.mark_layer_contents_as_changed_recursively();
             self.send_buffer_requests_for_all_layers();
+        }
+
+        if !self.pending_scroll_zoom_events.is_empty() && opts::get().use_webrender {
+            self.process_pending_scroll_events()
         }
 
         match self.composition_request {

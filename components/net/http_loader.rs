@@ -12,7 +12,7 @@ use flate2::read::{DeflateDecoder, GzDecoder};
 use hsts::{HstsEntry, HstsList, secure_url};
 use hyper::Error as HttpError;
 use hyper::client::{Pool, Request, Response};
-use hyper::header::{Accept, AcceptEncoding, ContentLength, ContentType, Host};
+use hyper::header::{Accept, AcceptEncoding, ContentLength, ContentType, Host, Referer};
 use hyper::header::{Authorization, Basic};
 use hyper::header::{ContentEncoding, Encoding, Header, Headers, Quality, QualityItem};
 use hyper::header::{Location, SetCookie, StrictTransportSecurity, UserAgent, qitem};
@@ -23,7 +23,7 @@ use hyper::net::{Fresh, HttpsConnector, Openssl};
 use hyper::status::{StatusClass, StatusCode};
 use log;
 use mime_classifier::MIMEClassifier;
-use msg::constellation_msg::{PipelineId};
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::response::HttpsState;
@@ -31,11 +31,12 @@ use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, Loa
 use net_traits::{Metadata, NetworkError};
 use openssl::ssl::error::{SslError, OpensslError};
 use openssl::ssl::{SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER, SslContext, SslMethod};
-use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt, AuthCacheEntry};
+use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt, AuthCache, AuthCacheEntry};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::error::Error;
+use std::fmt;
 use std::io::{self, Read, Write};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
@@ -43,7 +44,7 @@ use time;
 use time::Tm;
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 use tinyfiledialogs;
-use url::Url;
+use url::{Url, Position};
 use util::prefs;
 use util::resource_files::resources_dir_path;
 use util::thread::spawn_named;
@@ -89,7 +90,7 @@ pub fn factory(user_agent: String,
                             Arc<MIMEClassifier>,
                             CancellationListener) + Send> {
     box move |load_data: LoadData, senders, classifier, cancel_listener| {
-        spawn_named(format!("http_loader for {}", load_data.url.serialize()), move || {
+        spawn_named(format!("http_loader for {}", load_data.url), move || {
             load_for_consumer(load_data,
                               senders,
                               classifier,
@@ -120,15 +121,10 @@ pub fn read_block<R: Read>(reader: &mut R) -> Result<ReadResult, ()> {
     }
 }
 
-fn inner_url(url: &Url) -> Url {
-    let inner_url = url.non_relative_scheme_data().unwrap();
-    Url::parse(inner_url).unwrap()
-}
-
 pub struct HttpState {
     pub hsts_list: Arc<RwLock<HstsList>>,
     pub cookie_jar: Arc<RwLock<CookieStorage>>,
-    pub auth_cache: Arc<RwLock<HashMap<Url, AuthCacheEntry>>>,
+    pub auth_cache: Arc<RwLock<AuthCache>>,
 }
 
 impl HttpState {
@@ -136,7 +132,7 @@ impl HttpState {
         HttpState {
             hsts_list: Arc::new(RwLock::new(HstsList::new())),
             cookie_jar: Arc::new(RwLock::new(CookieStorage::new())),
-            auth_cache: Arc::new(RwLock::new(HashMap::new())),
+            auth_cache: Arc::new(RwLock::new(AuthCache::new())),
         }
     }
 }
@@ -160,11 +156,12 @@ fn load_for_consumer(load_data: LoadData,
                user_agent, &cancel_listener) {
         Err(error) => {
             match error.error {
-                LoadErrorType::ConnectionAborted => unreachable!(),
-                LoadErrorType::Ssl => send_error(error.url.clone(),
-                                                 NetworkError::SslValidation(error.url),
-                                                 start_chan),
-                _ => send_error(error.url, NetworkError::Internal(error.reason), start_chan)
+                LoadErrorType::ConnectionAborted { .. } => unreachable!(),
+                LoadErrorType::Ssl { .. } => send_error(error.url.clone(),
+                                                        NetworkError::SslValidation(error.url),
+                                                        start_chan),
+                LoadErrorType::Cancelled => send_error(error.url, NetworkError::LoadCancelled, start_chan),
+                _ => send_error(error.url, NetworkError::Internal(error.error.description().to_owned()), start_chan)
             }
         }
         Ok(mut load_response) => {
@@ -252,14 +249,15 @@ impl HttpRequestFactory for NetworkHttpRequestFactory {
             if let Some(&SslError::OpenSslErrors(ref errors)) = error.downcast_ref::<SslError>() {
                 if errors.iter().any(is_cert_verify_error) {
                     let msg = format!("ssl error: {:?} {:?}", error.description(), error.cause());
-                    return Err(LoadError::new(url, LoadErrorType::Ssl, msg));
+                    return Err(LoadError::new(url, LoadErrorType::Ssl { reason: msg }));
                 }
             }
         }
 
         let mut request = match connection {
             Ok(req) => req,
-            Err(e) => return Err(LoadError::new(url, LoadErrorType::Connection, e.description().to_owned())),
+            Err(e) => return Err(
+                LoadError::new(url, LoadErrorType::Connection { reason: e.description().to_owned() })),
         };
         *request.headers_mut() = headers;
 
@@ -284,23 +282,22 @@ impl HttpRequest for WrappedHttpRequest {
         let url = self.request.url.clone();
         let mut request_writer = match self.request.start() {
             Ok(streaming) => streaming,
-            Err(e) => return Err(LoadError::new(url, LoadErrorType::Connection, e.description().to_owned())),
+            Err(e) => return Err(LoadError::new(url, LoadErrorType::Connection { reason: e.description().to_owned() })),
         };
 
         if let Some(ref data) = *body {
             if let Err(e) = request_writer.write_all(&data) {
-                return Err(LoadError::new(url, LoadErrorType::Connection, e.description().to_owned()))
+                return Err(LoadError::new(url, LoadErrorType::Connection { reason: e.description().to_owned() }))
             }
         }
 
         let response = match request_writer.send() {
             Ok(w) => w,
             Err(HttpError::Io(ref io_error)) if io_error.kind() == io::ErrorKind::ConnectionAborted => {
-                return Err(LoadError::new(url, LoadErrorType::ConnectionAborted,
-                                          io_error.description().to_owned()));
+                let error_type = LoadErrorType::ConnectionAborted { reason: io_error.description().to_owned() };
+                return Err(LoadError::new(url, error_type));
             },
-            Err(e) => return Err(LoadError::new(url, LoadErrorType::Connection,
-                                                e.description().to_owned())),
+            Err(e) => return Err(LoadError::new(url, LoadErrorType::Connection { reason: e.description().to_owned() })),
         };
 
         Ok(WrappedHttpResponse { response: response })
@@ -311,15 +308,13 @@ impl HttpRequest for WrappedHttpRequest {
 pub struct LoadError {
     pub url: Url,
     pub error: LoadErrorType,
-    pub reason: String,
 }
 
 impl LoadError {
-    pub fn new(url: Url, error: LoadErrorType, reason: String) -> LoadError {
+    pub fn new(url: Url, error: LoadErrorType) -> LoadError {
         LoadError {
             url: url,
             error: error,
-            reason: reason,
         }
     }
 }
@@ -327,14 +322,39 @@ impl LoadError {
 #[derive(Eq, PartialEq, Debug)]
 pub enum LoadErrorType {
     Cancelled,
-    Connection,
-    ConnectionAborted,
-    Cors,
-    Decoding,
-    InvalidRedirect,
+    Connection { reason: String },
+    ConnectionAborted { reason: String },
+    // Preflight fetch inconsistent with main fetch
+    CorsPreflightFetchInconsistent,
+    Decoding { reason: String },
+    InvalidRedirect { reason: String },
     MaxRedirects(u32), // u32 indicates number of redirects that occurred
-    Ssl,
-    UnsupportedScheme,
+    RedirectLoop,
+    Ssl { reason: String },
+    UnsupportedScheme { scheme: String },
+}
+
+impl fmt::Display for LoadErrorType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.description())
+    }
+}
+
+impl Error for LoadErrorType {
+    fn description(&self) -> &str {
+        match *self {
+            LoadErrorType::Cancelled => "load cancelled",
+            LoadErrorType::Connection { ref reason } => reason,
+            LoadErrorType::ConnectionAborted { ref reason } => reason,
+            LoadErrorType::CorsPreflightFetchInconsistent => "preflight fetch inconsistent with main fetch",
+            LoadErrorType::Decoding { ref reason } => reason,
+            LoadErrorType::InvalidRedirect { ref reason } => reason,
+            LoadErrorType::MaxRedirects(_) => "too many redirects",
+            LoadErrorType::RedirectLoop => "redirect loop",
+            LoadErrorType::Ssl { ref reason } => reason,
+            LoadErrorType::UnsupportedScheme { .. } => "unsupported url scheme",
+        }
+    }
 }
 
 fn set_default_accept_encoding(headers: &mut Headers) {
@@ -359,6 +379,49 @@ fn set_default_accept(headers: &mut Headers) {
                             ]);
         headers.set(accept);
     }
+}
+
+/// https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-state-no-referrer-when-downgrade
+fn no_ref_when_downgrade_header(referrer_url: Url, url: Url) -> Option<Url> {
+    if referrer_url.scheme() == "https" && url.scheme() != "https" {
+        return None;
+    }
+    return strip_url(referrer_url, false);
+}
+
+/// https://w3c.github.io/webappsec-referrer-policy/#strip-url
+fn strip_url(mut referrer_url: Url, origin_only: bool) -> Option<Url> {
+    if referrer_url.scheme() == "https" || referrer_url.scheme() == "http" {
+        referrer_url.set_username("").unwrap();
+        referrer_url.set_password(None).unwrap();
+        referrer_url.set_fragment(None);
+        if origin_only {
+            referrer_url.set_path("");
+            referrer_url.set_query(None);
+        }
+        return Some(referrer_url);
+    }
+    return None;
+}
+
+/// https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer
+fn determine_request_referrer(headers: &mut Headers,
+                              referrer_policy: Option<ReferrerPolicy>,
+                              referrer_url: Option<Url>,
+                              url: Url) -> Option<Url> {
+    //TODO - algorithm step 2 not addressed
+    assert!(!headers.has::<Referer>());
+    if let Some(ref_url) = referrer_url {
+        let cross_origin = ref_url.origin() != url.origin();
+        return match referrer_policy {
+            Some(ReferrerPolicy::NoReferrer) => None,
+            Some(ReferrerPolicy::OriginOnly) => strip_url(ref_url, true),
+            Some(ReferrerPolicy::UnsafeUrl) => strip_url(ref_url, false),
+            Some(ReferrerPolicy::OriginWhenCrossOrigin) => strip_url(ref_url, cross_origin),
+            Some(ReferrerPolicy::NoRefWhenDowngrade) | None => no_ref_when_downgrade_header(ref_url, url),
+        };
+    }
+    return None;
 }
 
 pub fn set_request_cookies(url: Url, headers: &mut Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
@@ -399,7 +462,7 @@ fn set_cookies_from_response(url: Url, response: &HttpResponse, cookie_jar: &Arc
 }
 
 fn update_sts_list_from_response(url: &Url, response: &HttpResponse, hsts_list: &Arc<RwLock<HstsList>>) {
-    if url.scheme != "https" {
+    if url.scheme() != "https" {
         return;
     }
 
@@ -449,26 +512,28 @@ impl<R: HttpResponse> StreamedResponse<R> {
     }
 
     fn from_http_response(response: R, m: Metadata) -> Result<StreamedResponse<R>, LoadError> {
-        match response.content_encoding() {
+        let decoder = match response.content_encoding() {
             Some(Encoding::Gzip) => {
                 let result = GzDecoder::new(response);
                 match result {
-                    Ok(response_decoding) => Ok(StreamedResponse::new(m, Decoder::Gzip(response_decoding))),
-                    Err(err) => Err(LoadError::new(m.final_url, LoadErrorType::Decoding, err.to_string())),
+                    Ok(response_decoding) => Decoder::Gzip(response_decoding),
+                    Err(err) => {
+                        return Err(
+                            LoadError::new(m.final_url, LoadErrorType::Decoding { reason: err.to_string() }))
+                    }
                 }
             }
             Some(Encoding::Deflate) => {
-                let response_decoding = DeflateDecoder::new(response);
-                Ok(StreamedResponse::new(m, Decoder::Deflate(response_decoding)))
+                Decoder::Deflate(DeflateDecoder::new(response))
             }
             Some(Encoding::EncodingExt(ref ext)) if ext == "br" => {
-                let response_decoding = Decompressor::new(response);
-                Ok(StreamedResponse::new(m, Decoder::Brotli(response_decoding)))
+                Decoder::Brotli(Decompressor::new(response))
             }
             _ => {
-                Ok(StreamedResponse::new(m, Decoder::Plain(response)))
+                Decoder::Plain(response)
             }
-        }
+        };
+        Ok(StreamedResponse::new(m, decoder))
     }
 }
 
@@ -522,12 +587,12 @@ pub fn modify_request_headers(headers: &mut Headers,
                               url: &Url,
                               user_agent: &str,
                               cookie_jar: &Arc<RwLock<CookieStorage>>,
-                              auth_cache: &Arc<RwLock<HashMap<Url, AuthCacheEntry>>>,
+                              auth_cache: &Arc<RwLock<AuthCache>>,
                               load_data: &LoadData) {
     // Ensure that the host header is set from the original url
     let host = Host {
-        hostname: url.serialize_host().unwrap(),
-        port: url.port_or_default()
+        hostname: url.host_str().unwrap().to_owned(),
+        port: url.port_or_known_default()
     };
     headers.set(host);
 
@@ -544,6 +609,13 @@ pub fn modify_request_headers(headers: &mut Headers,
     set_default_accept(headers);
     set_default_accept_encoding(headers);
 
+    if let Some(referer_val) = determine_request_referrer(headers,
+                                                          load_data.referrer_policy.clone(),
+                                                          load_data.referrer_url.clone(),
+                                                          url.clone()) {
+        headers.set(Referer(referer_val.into_string()));
+    }
+
     // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
     if load_data.credentials_flag {
         set_request_cookies(url.clone(), headers, cookie_jar);
@@ -555,13 +627,13 @@ pub fn modify_request_headers(headers: &mut Headers,
 
 fn set_auth_header(headers: &mut Headers,
                    url: &Url,
-                   auth_cache: &Arc<RwLock<HashMap<Url, AuthCacheEntry>>>) {
+                   auth_cache: &Arc<RwLock<AuthCache>>) {
 
     if !headers.has::<Authorization<Basic>>() {
         if let Some(auth) = auth_from_url(url) {
             headers.set(auth);
         } else {
-            if let Some(ref auth_entry) = auth_cache.read().unwrap().get(url) {
+            if let Some(ref auth_entry) = auth_cache.read().unwrap().entries.get(url) {
                 auth_from_entry(&auth_entry, headers);
             }
         }
@@ -576,14 +648,14 @@ fn auth_from_entry(auth_entry: &AuthCacheEntry, headers: &mut Headers) {
 }
 
 fn auth_from_url(doc_url: &Url) -> Option<Authorization<Basic>> {
-    match doc_url.username() {
-        Some(username) if username != "" => {
-            Some(Authorization(Basic {
-                username: username.to_owned(),
-                password: Some(doc_url.password().unwrap_or("").to_owned())
-            }))
-        },
-        _ => None
+    let username = doc_url.username();
+    if username != "" {
+        Some(Authorization(Basic {
+            username: username.to_owned(),
+            password: Some(doc_url.password().unwrap_or("").to_owned())
+        }))
+    } else {
+        None
     }
 }
 
@@ -663,7 +735,7 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
                                               headers.clone()));
 
         if cancel_listener.is_cancelled() {
-            return Err(LoadError::new(connection_url.clone(), LoadErrorType::Cancelled, "load cancelled".to_owned()));
+            return Err(LoadError::new(connection_url.clone(), LoadErrorType::Cancelled));
         }
 
         let maybe_response = req.send(request_body);
@@ -679,8 +751,8 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
         response = match maybe_response {
             Ok(r) => r,
             Err(e) => {
-                if let LoadErrorType::ConnectionAborted = e.error {
-                    debug!("connection aborted ({:?}), possibly stale, trying new connection", e.reason);
+                if let LoadErrorType::ConnectionAborted { reason } = e.error {
+                    debug!("connection aborted ({:?}), possibly stale, trying new connection", reason);
                     continue;
                 } else {
                     return Err(e)
@@ -732,42 +804,41 @@ pub fn load<A, B>(load_data: &LoadData,
     let mut new_auth_header: Option<Authorization<Basic>> = None;
 
     if cancel_listener.is_cancelled() {
-        return Err(LoadError::new(doc_url, LoadErrorType::Cancelled, "load cancelled".to_owned()));
+        return Err(LoadError::new(doc_url, LoadErrorType::Cancelled));
     }
 
     // If the URL is a view-source scheme then the scheme data contains the
     // real URL that should be used for which the source is to be viewed.
     // Change our existing URL to that and keep note that we are viewing
     // the source rather than rendering the contents of the URL.
-    let viewing_source = doc_url.scheme == "view-source";
+    let viewing_source = doc_url.scheme() == "view-source";
     if viewing_source {
-        doc_url = inner_url(&load_data.url);
+        doc_url = Url::parse(&load_data.url[Position::BeforeUsername..]).unwrap();
     }
 
     // Loop to handle redirects.
     loop {
         iters = iters + 1;
 
-        if &*doc_url.scheme == "http" && request_must_be_secured(&doc_url, &http_state.hsts_list) {
+        if doc_url.scheme() == "http" && request_must_be_secured(&doc_url, &http_state.hsts_list) {
             info!("{} is in the strict transport security list, requesting secure host", doc_url);
             doc_url = secure_url(&doc_url);
         }
 
         if iters > max_redirects {
-            return Err(LoadError::new(doc_url, LoadErrorType::MaxRedirects(iters - 1),
-                                      "too many redirects".to_owned()));
+            return Err(LoadError::new(doc_url, LoadErrorType::MaxRedirects(iters - 1)));
         }
 
-        if &*doc_url.scheme != "http" && &*doc_url.scheme != "https" {
-            let s = format!("{} request, but we don't support that scheme", &*doc_url.scheme);
-            return Err(LoadError::new(doc_url, LoadErrorType::UnsupportedScheme, s));
+        if !matches!(doc_url.scheme(), "http" | "https") {
+            let scheme = doc_url.scheme().to_owned();
+            return Err(LoadError::new(doc_url, LoadErrorType::UnsupportedScheme { scheme: scheme }));
         }
 
         if cancel_listener.is_cancelled() {
-            return Err(LoadError::new(doc_url, LoadErrorType::Cancelled, "load cancelled".to_owned()));
+            return Err(LoadError::new(doc_url, LoadErrorType::Cancelled));
         }
 
-        info!("requesting {}", doc_url.serialize());
+        info!("requesting {}", doc_url);
 
         // Avoid automatically preserving request headers when redirects occur.
         // See https://bugzilla.mozilla.org/show_bug.cgi?id=401564 and
@@ -820,7 +891,7 @@ pub fn load<A, B>(load_data: &LoadData,
                     password: auth_header.password.to_owned().unwrap(),
                 };
 
-                http_state.auth_cache.write().unwrap().insert(doc_url.clone(), auth_entry);
+                http_state.auth_cache.write().unwrap().entries.insert(doc_url.clone(), auth_entry);
             }
         }
 
@@ -830,9 +901,7 @@ pub fn load<A, B>(load_data: &LoadData,
                 // CORS (https://fetch.spec.whatwg.org/#http-fetch, status section, point 9, 10)
                 if let Some(ref c) = load_data.cors {
                     if c.preflight {
-                        return Err(LoadError::new(doc_url,
-                                                  LoadErrorType::Cors,
-                                                  "Preflight fetch inconsistent with main fetch".to_owned()));
+                        return Err(LoadError::new(doc_url, LoadErrorType::CorsPreflightFetchInconsistent));
                     } else {
                         // XXXManishearth There are some CORS-related steps here,
                         // but they don't seem necessary until credentials are implemented
@@ -841,7 +910,8 @@ pub fn load<A, B>(load_data: &LoadData,
 
                 let new_doc_url = match doc_url.join(&new_url) {
                     Ok(u) => u,
-                    Err(e) => return Err(LoadError::new(doc_url, LoadErrorType::InvalidRedirect, e.to_string())),
+                    Err(e) => return Err(
+                        LoadError::new(doc_url, LoadErrorType::InvalidRedirect { reason: e.to_string() })),
                 };
 
                 // According to https://tools.ietf.org/html/rfc7231#section-6.4.2,
@@ -853,7 +923,7 @@ pub fn load<A, B>(load_data: &LoadData,
                 }
 
                 if redirected_to.contains(&new_doc_url) {
-                    return Err(LoadError::new(doc_url, LoadErrorType::InvalidRedirect, "redirect loop".to_owned()));
+                    return Err(LoadError::new(doc_url, LoadErrorType::RedirectLoop));
                 }
 
                 info!("redirecting to {}", new_doc_url);
@@ -877,7 +947,7 @@ pub fn load<A, B>(load_data: &LoadData,
         });
         metadata.headers = Some(adjusted_headers);
         metadata.status = Some(response.status_raw().clone());
-        metadata.https_state = if doc_url.scheme == "https" {
+        metadata.https_state = if doc_url.scheme() == "https" {
             HttpsState::Modern
         } else {
             HttpsState::None
@@ -916,7 +986,7 @@ fn send_data<R: Read>(context: LoadContext,
 
     loop {
         if cancel_listener.is_cancelled() {
-            let _ = progress_chan.send(Done(Err(NetworkError::Internal("load cancelled".to_owned()))));
+            let _ = progress_chan.send(Done(Err(NetworkError::LoadCancelled)));
             return;
         }
 

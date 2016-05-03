@@ -5,7 +5,6 @@
 #![feature(box_syntax)]
 #![feature(core_intrinsics)]
 #![feature(custom_derive)]
-#![cfg_attr(feature = "non-geckolib", feature(decode_utf16))]
 #![feature(fnbox)]
 #![feature(optin_builtin_traits)]
 #![feature(plugin)]
@@ -18,6 +17,8 @@
 #![deny(unsafe_code)]
 
 extern crate app_units;
+extern crate backtrace;
+#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
 extern crate deque;
@@ -27,11 +28,13 @@ extern crate heapsize;
 extern crate ipc_channel;
 #[cfg(feature = "non-geckolib")]
 extern crate js;
+#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
 extern crate libc;
 #[macro_use]
 extern crate log;
+extern crate num;
 extern crate num_cpus;
 extern crate rand;
 extern crate rustc_serialize;

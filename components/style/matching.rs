@@ -662,13 +662,9 @@ pub trait MatchMethods : TNode {
 
         let damage;
         if self.is_text_node() {
-            // Text nodes get a copy of the parent style. This ensures
-            // that during fragment construction any non-inherited
-            // CSS properties (such as vertical-align) are correctly
-            // set on the fragment(s).
             let mut data_ref = self.mutate_data().unwrap();
             let mut data = &mut *data_ref;
-            let cloned_parent_style = parent_style.unwrap().clone();
+            let cloned_parent_style = Self::ConcreteComputedValues::style_for_child_text_node(parent_style.unwrap());
             damage = Self::ConcreteRestyleDamage::compute(data.style.as_ref(),
                                                           &*cloned_parent_style);
             data.style = Some(cloned_parent_style);

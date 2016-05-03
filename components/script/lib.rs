@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(ascii)]
 #![feature(as_unsafe_cell)]
 #![feature(borrow_state)]
 #![feature(box_syntax)]
@@ -30,6 +29,7 @@
 
 extern crate angle;
 extern crate app_units;
+#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
 extern crate canvas;
@@ -51,6 +51,8 @@ extern crate js;
 extern crate libc;
 #[macro_use]
 extern crate log;
+#[macro_use]
+extern crate mime;
 extern crate msg;
 extern crate net_traits;
 extern crate num_traits;
@@ -59,7 +61,6 @@ extern crate phf;
 #[macro_use]
 extern crate profile_traits;
 extern crate rand;
-extern crate range;
 extern crate ref_filter_map;
 extern crate ref_slice;
 extern crate regex;

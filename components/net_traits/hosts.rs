@@ -8,14 +8,14 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::{BufReader, Read};
-use std::net::{Ipv4Addr, Ipv6Addr};
+use std::net::IpAddr;
 use url::Url;
 
 lazy_static! {
-    static ref HOST_TABLE: Option<HashMap<String, String>> = create_host_table();
+    static ref HOST_TABLE: Option<HashMap<String, IpAddr>> = create_host_table();
 }
 
-fn create_host_table() -> Option<HashMap<String, String>> {
+fn create_host_table() -> Option<HashMap<String, IpAddr>> {
     //TODO: handle bad file path
     let path = match env::var("HOST_FILE") {
         Ok(host_file_path) => host_file_path,
@@ -36,21 +36,18 @@ fn create_host_table() -> Option<HashMap<String, String>> {
     return Some(parse_hostsfile(&lines));
 }
 
-pub fn parse_hostsfile(hostsfile_content: &str) -> HashMap<String, String> {
+pub fn parse_hostsfile(hostsfile_content: &str) -> HashMap<String, IpAddr> {
     let mut host_table = HashMap::new();
     for line in hostsfile_content.split('\n') {
         let ip_host: Vec<&str> = line.trim().split(|c: char| c == ' ' || c == '\t').collect();
         if ip_host.len() > 1 {
-            if ip_host[0].parse::<Ipv4Addr>().is_err() && ip_host[0].parse::<Ipv6Addr>().is_err() {
-                continue
-            }
-            let address = ip_host[0].to_owned();
-
-            for token in ip_host.iter().skip(1) {
-                if token.as_bytes()[0] == b'#' {
-                    break;
+            if let Ok(address) = ip_host[0].parse::<IpAddr>() {
+                for token in ip_host.iter().skip(1) {
+                    if token.as_bytes()[0] == b'#' {
+                        break;
+                    }
+                    host_table.insert((*token).to_owned(), address);
                 }
-                host_table.insert((*token).to_owned(), address.clone());
             }
         }
     }
@@ -63,12 +60,11 @@ pub fn replace_hosts(url: &Url) -> Url {
     })
 }
 
-pub fn host_replacement(host_table: &HashMap<String, String>,
+pub fn host_replacement(host_table: &HashMap<String, IpAddr>,
                         url: &Url) -> Url {
-    url.domain().and_then(|domain|
-                          host_table.get(domain).map(|ip| {
-                              let mut net_url = url.clone();
-                              *net_url.domain_mut().unwrap() = ip.clone();
-                              net_url
-                          })).unwrap_or(url.clone())
+    url.domain().and_then(|domain| host_table.get(domain).map(|ip| {
+        let mut new_url = url.clone();
+        new_url.set_ip_host(*ip).unwrap();
+        new_url
+    })).unwrap_or_else(|| url.clone())
 }

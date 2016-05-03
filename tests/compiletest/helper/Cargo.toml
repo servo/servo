@@ -8,5 +8,5 @@ name = "compiletest_helper"
 path = "lib.rs"
 doctest = false
 
-[dependencies.compiletest_rs]
-compiletest_rs = "0.11"
+[dependencies]
+compiletest_rs = "0.1.1"

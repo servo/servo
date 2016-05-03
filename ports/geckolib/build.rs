@@ -3,10 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::env;
-use std::fs::File;
-use std::io::Write;
 use std::path::Path;
-use std::process::{Command, Stdio, exit};
+use std::process::{Command, exit};
 
 #[cfg(windows)]
 fn find_python() -> String {
@@ -31,32 +29,25 @@ fn find_python() -> String {
 }
 
 fn main() {
-    let python = match env::var("PYTHON") {
-        Ok(python_path) => python_path,
-        Err(_) => find_python(),
-    };
+    let python = env::var("PYTHON").ok().unwrap_or_else(find_python);
 
     // Mako refuses to load templates outside the scope of the current working directory,
     // so we need to run it from the top source directory.
     let geckolib_dir = Path::new(file!()).parent().unwrap();
     let top_dir = geckolib_dir.join("..").join("..");
 
-    let style_template = Path::new("components/style/properties.mako.rs");
-    let geckolib_template = Path::new("ports/geckolib/properties.mako.rs");
-    let mako = Path::new("components/style/Mako-0.9.1.zip");
+    let properties_dir = Path::new("components").join("style").join("properties");
+    println!("cargo:rerun-if-changed={}", top_dir.join(&properties_dir).to_str().unwrap());
+    println!("cargo:rerun-if-changed={}", geckolib_dir.join("properties.mako.rs").to_str().unwrap());
 
-    let result = Command::new(python)
-        .current_dir(top_dir)
-        .env("PYTHONPATH", &mako)
-        .env("STYLE_TEMPLATE", &style_template)
-        .env("GECKOLIB_TEMPLATE", &geckolib_template)
-        .arg("ports/geckolib/generate_properties_rs.py")
-        .stderr(Stdio::inherit())
-        .output()
+    let status = Command::new(python)
+        .current_dir(&top_dir)
+        .arg(&properties_dir.join("build.py"))
+        .arg("gecko")
+        .arg("geckolib")
+        .status()
         .unwrap();
-    if !result.status.success() {
+    if !status.success() {
         exit(1)
     }
-    let out = env::var("OUT_DIR").unwrap();
-    File::create(&Path::new(&out).join("properties.rs")).unwrap().write_all(&result.stdout).unwrap();
 }

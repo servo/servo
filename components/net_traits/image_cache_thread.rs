@@ -92,7 +92,7 @@ pub enum ImageCacheCommand {
     /// state and but its metadata has been made available, it will be sent as a response.
     GetImageOrMetadataIfAvailable(Url, UsePlaceholder, IpcSender<Result<ImageOrMetadataAvailable, ImageState>>),
 
-    /// Instruct the cache to store this data as a newly-complete network request and continue 
+    /// Instruct the cache to store this data as a newly-complete network request and continue
     /// decoding the result into pixel data
     StoreDecodeImage(Url, Vec<u8>),
 
@@ -161,10 +161,9 @@ impl ImageCacheThread {
         receiver.recv().unwrap()
     }
 
-    /// Get the vector of bytess .... 
-    /// See ImageCacheCommand::StoreDecodeImage.
-    pub fn find_store_decode_image(&self, 
-                                   url: Url, 
+    /// Decode the given image bytes and cache the result for the given URL.
+    pub fn store_complete_image_bytes(&self,
+                                   url: Url,
                                    image_data: Vec<u8>) {
         let msg = ImageCacheCommand::StoreDecodeImage(url, image_data);
         self.chan.send(msg).unwrap();
@@ -177,4 +176,3 @@ impl ImageCacheThread {
         response_port.recv().unwrap();
     }
 }
-

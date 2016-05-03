@@ -7,7 +7,7 @@
 use app_units::Au;
 use azure::AzFloat;
 use azure::azure_hl::{BackendType, Color, DrawTarget, SurfaceFormat};
-use display_list::{DisplayItem, DisplayList, DisplayListEntry, DisplayListTraversal};
+use display_list::{DisplayItem, DisplayList, DisplayListTraversal};
 use display_list::{LayerInfo, StackingContext, StackingContextId, StackingContextType};
 use euclid::Matrix4D;
 use euclid::point::Point2D;
@@ -159,7 +159,7 @@ struct LayerCreator {
     layers: Vec<PaintLayer>,
     layer_details_stack: Vec<PaintLayer>,
     current_layer: Option<PaintLayer>,
-    current_entry_index: usize,
+    current_item_index: usize,
 }
 
 impl LayerCreator {
@@ -168,7 +168,7 @@ impl LayerCreator {
             layers: Vec::new(),
             layer_details_stack: Vec::new(),
             current_layer: None,
-            current_entry_index: 0,
+            current_item_index: 0,
         };
         let mut traversal = DisplayListTraversal {
             display_list: display_list,
@@ -279,12 +279,12 @@ impl LayerCreator {
 
 
     fn create_layers_for_item<'a>(&mut self,
-                                  item: &DisplayListEntry,
+                                  item: &DisplayItem,
                                   parent_origin: &Point2D<Au>,
                                   transform: &Matrix4D<f32>,
                                   perspective: &Matrix4D<f32>) {
-        if let DisplayItem::LayeredItemClass(ref layered_item) = item.item {
-            // We need to finalize the last layer here before incrementing the entry
+        if let &DisplayItem::LayeredItemClass(ref layered_item) = item {
+            // We need to finalize the last layer here before incrementing the item
             // index, otherwise this item will be placed into the parent layer.
             self.finalize_current_layer();
             let layer = PaintLayer::new_for_display_item(
@@ -295,9 +295,9 @@ impl LayerCreator {
                 perspective,
                 self.current_parent_layer_id(),
                 self.current_parent_stacking_context_id(),
-                self.current_entry_index);
+                self.current_item_index);
             self.layers.push(layer);
-            self.current_entry_index += 1;
+            self.current_item_index += 1;
             return;
         }
 
@@ -319,9 +319,9 @@ impl LayerCreator {
         }
 
         if let Some(ref mut current_layer) = self.current_layer {
-            current_layer.add_item(self.current_entry_index);
+            current_layer.add_item(self.current_item_index);
         }
-        self.current_entry_index += 1;
+        self.current_item_index += 1;
     }
 }
 

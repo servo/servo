@@ -218,7 +218,7 @@ impl DedicatedWorkerGlobalScope {
                             parent_sender: Box<ScriptChan + Send>,
                             own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
                             receiver: Receiver<(TrustedWorkerAddress, WorkerScriptMsg)>) {
-        let serialized_worker_url = worker_url.serialize();
+        let serialized_worker_url = worker_url.to_string();
         spawn_named(format!("WebWorker for {}", serialized_worker_url), move || {
             thread_state::initialize(SCRIPT | IN_WORKER);
 
@@ -240,7 +240,7 @@ impl DedicatedWorkerGlobalScope {
                 }
             };
 
-            let runtime = new_rt_and_cx();
+            let runtime = unsafe { new_rt_and_cx() };
             *main_thread_rt.lock().unwrap() = Some(SharedRt::new(&runtime));
 
             let (devtools_mpsc_chan, devtools_mpsc_port) = channel();

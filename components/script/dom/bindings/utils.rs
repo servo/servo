@@ -16,7 +16,6 @@ use dom::browsingcontext;
 use dom::window;
 use heapsize::HeapSizeOf;
 use js;
-use js::error::throw_type_error;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
 use js::glue::{GetCrossCompartmentWrapper, WrapperNew};
 use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING};
@@ -35,13 +34,14 @@ use js::jsval::{JSVal};
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::rust::{GCMethods, ToString};
 use js::{JS_CALLEE};
-use libc::{self, c_uint};
+use libc;
 use std::default::Default;
 use std::ffi::CString;
 use std::os::raw::c_void;
 use std::ptr;
 use std::slice;
 use util::non_geckolib::jsstring_to_str;
+use util::prefs;
 
 /// Proxy handler for a WindowProxy.
 pub struct WindowProxyHandler(pub *const libc::c_void);
@@ -121,16 +121,6 @@ pub fn get_proto_or_iface_array(global: *mut JSObject) -> *mut ProtoOrIfaceArray
         assert!(((*JS_GetClass(global)).flags & JSCLASS_DOM_GLOBAL) != 0);
         JS_GetReservedSlot(global, DOM_PROTOTYPE_SLOT).to_private() as *mut ProtoOrIfaceArray
     }
-}
-
-/// A throwing constructor, for those interfaces that have neither
-/// `NoInterfaceObject` nor `Constructor`.
-pub unsafe extern "C" fn throwing_constructor(cx: *mut JSContext,
-                                              _argc: c_uint,
-                                              _vp: *mut JSVal)
-                                              -> bool {
-    throw_type_error(cx, "Illegal constructor.");
-    false
 }
 
 /// An array of *mut JSObject of size PROTO_OR_IFACE_LENGTH.
@@ -568,3 +558,31 @@ unsafe extern "C" fn instance_class_has_proto_at_depth(clasp: *const js::jsapi::
 pub const DOM_CALLBACKS: DOMCallbacks = DOMCallbacks {
     instanceClassMatchesProto: Some(instance_class_has_proto_at_depth),
 };
+
+/// A container around JS member specifications that are conditionally enabled.
+pub struct Prefable<T: 'static> {
+    /// If present, the name of the preference used to conditionally enable these specs.
+    pub pref: Option<&'static str>,
+    /// The underlying slice of specifications.
+    pub specs: &'static [T],
+    /// Whether the specifications contain special terminating entries that should be
+    /// included or not.
+    pub terminator: bool,
+}
+
+impl<T> Prefable<T> {
+    /// Retrieve the slice represented by this container, unless the condition
+    /// guarding it is false.
+    pub fn specs(&self) -> &'static [T] {
+        if let Some(pref) = self.pref {
+            if !prefs::get_pref(pref).as_boolean().unwrap_or(false) {
+                return if self.terminator {
+                    &self.specs[self.specs.len() - 1..]
+                } else {
+                    &[]
+                };
+            }
+        }
+        self.specs
+    }
+}

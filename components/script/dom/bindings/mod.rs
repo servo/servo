@@ -112,11 +112,6 @@
 //!
 //! Legacy callers are not yet implemented.
 //!
-//! Rust reflections of getters and setters
-//! ---------------------------------------
-//!
-//! *To be written.*
-//!
 //! Throwing exceptions
 //! ===================
 //!

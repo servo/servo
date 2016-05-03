@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Tests for not animatable properties</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#not-animatable-section">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ display: [ 'inline', 'inline-block' ] }, 1000);
+
+  assert_equals(anim.effect.getFrames().length, 0,
+                'Animation specified using property-indexed notation but'
+                + ' consisting of only non-animatable properties should not'
+                + ' contain any keyframes');
+}, '\'display\' property cannot be animated using property-indexed notation');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate([ { display: 'inline' }, { display: 'inline-block' } ],
+                         1000);
+
+  assert_equals(anim.effect.getFrames().length, 2,
+                'Animation specified using a keyframe sequence where each'
+                + ' keyframe contains only non-animatable properties should'
+                + ' return an equal number of (empty) keyframes');
+  assert_false(anim.effect.getFrames()[0].hasOwnProperty('display'),
+               'Initial keyframe should not have the \'display\' property');
+  assert_false(anim.effect.getFrames()[1].hasOwnProperty('display'),
+               'Final keyframe should not have the \'display\' property');
+}, '\'display\' property cannot be animated using a keyframe sequence');
+
+test(function(t) {
+  var properties = {
+    // CSS Animations properties
+    animation:                [ 'anim 1s', 'anim 2s' ],
+    animationName:            [ 'abc', 'xyz' ],
+    animationTimingFunction:  [ 'ease', 'steps(2)' ],
+    animationDelay:           [ '1s', '2s' ],
+    animationIterationCount:  [ 1, 2 ],
+    animationDirection:       [ 'normal', 'reverse' ],
+    animationFillMode:        [ 'forwards', 'backwards' ],
+    animationPlayState:       [ 'paused', 'running' ],
+
+    // CSS Transitions properties
+    transition:               [ 'all 1s', 'all 2s' ],
+    transitionDelay:          [ '1s', '2s' ],
+    transitionDuration:       [ '1s', '2s' ],
+    transitionProperty:       [ 'all', 'opacity' ],
+    transitionTimingFunction: [ 'ease', 'ease-out' ]
+  };
+
+  var div = createDiv(t);
+  var anim = div.animate(properties, 1000);
+
+  assert_equals(anim.effect.getFrames().length, 0,
+                'Animation specified using property-indexed notation but'
+                + ' consisting of only non-animatable properties should not'
+                + ' contain any keyframes');
+}, 'CSS animations and CSS transitions properties cannot be animated using'
+   + ' property-indexed notation');
+
+test(function(t) {
+  var frames = [
+    {
+      animation:                'anim 1s',
+      animationName:            'abc',
+      animationTimingFunction:  'ease',
+      animationDelay:           '1s',
+      animationIterationCount:  1,
+      animationDirection:       'normal',
+      animationFillMode:        'forwards',
+      animationPlayState:       'paused',
+      transition:               'all 1s',
+      transitionDelay:          '1s',
+      transitionDuration:       '1s',
+      transitionProperty:       'opacity',
+      transitionTimingFunction: 'ease'
+    },
+    {
+      animation:                'anim 2s',
+      animationName:            'xyz',
+      animationTimingFunction:  'steps(2)',
+      animationDelay:           '2s',
+      animationIterationCount:  2,
+      animationDirection:       'reverse',
+      animationFillMode:        'backwards',
+      animationPlayState:       'running',
+      transition:               'all 2s',
+      transitionDelay:          '2s',
+      transitionDuration:       '2s',
+      transitionProperty:       'all',
+      transitionTimingFunction: 'ease-out'
+    }
+  ];
+  var defaultKeyframeProperties = [ 'computedOffset', 'easing', 'offset' ];
+
+  var div = createDiv(t);
+  var anim = div.animate(frames, 1000);
+
+  assert_equals(anim.effect.getFrames().length, 2,
+                'Animation specified using a keyframe sequence where each'
+                + ' keyframe contains only non-animatable properties should'
+                + ' return an equal number of (empty) keyframes');
+  assert_array_equals(Object.keys(anim.effect.getFrames()[0]),
+                      defaultKeyframeProperties,
+                      'Initial keyframe should not contain any properties other'
+                      + ' than the default keyframe properties');
+  assert_array_equals(Object.keys(anim.effect.getFrames()[1]),
+                      defaultKeyframeProperties,
+                      'Final keyframe should not contain any properties other'
+                      + ' than the default keyframe properties');
+}, 'CSS animations and CSS transitions properties cannot be animated using'
+   + ' a sequence of keyframes');
+</script>

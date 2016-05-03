@@ -3,7 +3,7 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 from .base import Browser, ExecutorBrowser, require_arg
-from .webdriver import ChromedriverLocalServer
+from ..webdriver_server import ChromeDriverServer
 from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executorselenium import (SeleniumTestharnessExecutor,
                                           SeleniumRefTestExecutor)
@@ -49,32 +49,33 @@ def env_options():
 
 class ChromeBrowser(Browser):
     """Chrome is backed by chromedriver, which is supplied through
-    ``browsers.webdriver.ChromedriverLocalServer``."""
+    ``wptrunner.webdriver.ChromeDriverServer``.
+    """
 
     def __init__(self, logger, binary, webdriver_binary="chromedriver"):
         """Creates a new representation of Chrome.  The `binary` argument gives
         the browser binary to use for testing."""
         Browser.__init__(self, logger)
         self.binary = binary
-        self.driver = ChromedriverLocalServer(self.logger, binary=webdriver_binary)
+        self.server = ChromeDriverServer(self.logger, binary=webdriver_binary)
 
     def start(self):
-        self.driver.start()
+        self.server.start(block=False)
 
     def stop(self):
-        self.driver.stop()
+        self.server.stop()
 
     def pid(self):
-        return self.driver.pid
+        return self.server.pid
 
     def is_alive(self):
         # TODO(ato): This only indicates the driver is alive,
         # and doesn't say anything about whether a browser session
         # is active.
-        return self.driver.is_alive()
+        return self.server.is_alive()
 
     def cleanup(self):
         self.stop()
 
     def executor_browser(self):
-        return ExecutorBrowser, {"webdriver_url": self.driver.url}
+        return ExecutorBrowser, {"webdriver_url": self.server.url}

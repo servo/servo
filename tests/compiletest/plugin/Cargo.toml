@@ -8,11 +8,7 @@ name = "plugin_compiletest"
 path = "lib.rs"
 doctest = false
 
-[dependencies.compiletest_helper]
-path = "../helper"
-
-[dependencies.plugins]
-path = "../../../components/plugins"
-
-[dependencies.script]
-path = "../../../components/script"
+[dependencies]
+compiletest_helper = {path = "../helper"}
+plugins = {path = "../../../components/plugins"}
+script = {path = "../../../components/script"}

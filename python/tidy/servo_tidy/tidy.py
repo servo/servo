@@ -133,6 +133,14 @@ def check_license(file_name, lines):
         yield (1, "incorrect license")
 
 
+def check_modeline(file_name, lines):
+    for idx, line in enumerate(lines[:5]):
+        if re.search('^.*[ \t](vi:|vim:|ex:)[ \t]', line):
+            yield (idx + 1, "vi modeline present")
+        elif re.search('-\*-.*-\*-', line, re.IGNORECASE):
+            yield (idx + 1, "emacs file variables present")
+
+
 def check_length(file_name, idx, line):
     if file_name.endswith(".lock") or file_name.endswith(".json"):
         raise StopIteration
@@ -223,7 +231,7 @@ def check_lock(file_name, contents):
         raise StopIteration
 
     # package names to be neglected (as named by cargo)
-    exceptions = ["bitflags", "xml-rs", "byteorder"]
+    exceptions = ["bitflags", "xml-rs", "lazy_static"]
 
     import toml
     content = toml.loads(contents)
@@ -277,7 +285,7 @@ def check_toml(file_name, lines):
 
 def check_rust(file_name, lines):
     if not file_name.endswith(".rs") or \
-       file_name.endswith("properties.mako.rs") or \
+       file_name.endswith(".mako.rs") or \
        file_name.endswith(os.path.join("style", "build.rs")) or \
        file_name.endswith(os.path.join("geckolib", "build.rs")) or \
        file_name.endswith(os.path.join("unit", "style", "stylesheets.rs")):
@@ -378,6 +386,7 @@ def check_rust(file_name, lines):
             (r": &Vec<", "use &[T] instead of &Vec<T>", no_filter),
             # No benefit over using &str
             (r": &String", "use &str instead of &String", no_filter),
+            (r"^&&", "operators should go at the end of the first line", no_filter),
         ]
 
         for pattern, message, filter_func in regex_rules:
@@ -568,11 +577,12 @@ def check_spec(file_name, lines):
                 brace_count -= 1
 
 
-def collect_errors_for_files(files_to_check, checking_functions, line_checking_functions):
+def collect_errors_for_files(files_to_check, checking_functions, line_checking_functions, print_text=True):
     (has_element, files_to_check) = is_iter_empty(files_to_check)
     if not has_element:
         raise StopIteration
-    print '\rChecking files for tidiness...'
+    if print_text:
+        print '\rChecking files for tidiness...'
     for filename in files_to_check:
         with open(filename, "r") as f:
             contents = f.read()
@@ -638,7 +648,7 @@ def scan(faster=False, progress=True):
     # standard checks
     files_to_check = filter_files('.', faster, progress)
     checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
-    line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec)
+    line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec, check_modeline)
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
     # wpt lint checks
     wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(faster, progress))
@@ -647,6 +657,7 @@ def scan(faster=False, progress=True):
     error = None
     for error in errors:
         print "\r\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error)
+    print
     if error is None:
-        print "\n\033[92mtidy reported no errors.\033[0m"
+        print "\033[92mtidy reported no errors.\033[0m"
     return int(error is not None)

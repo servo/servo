@@ -16,12 +16,6 @@ use std::collections::HashMap;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex, RwLock};
 
-pub struct StylistWrapper<Impl: SelectorImplExt>(pub *const Stylist<Impl>);
-
-// FIXME(#6569) This implementation is unsound.
-#[allow(unsafe_code)]
-unsafe impl<Impl: SelectorImplExt> Sync for StylistWrapper<Impl> {}
-
 pub struct SharedStyleContext<Impl: SelectorImplExt> {
     /// The current viewport size.
     pub viewport_size: Size2D<Au>,
@@ -30,9 +24,7 @@ pub struct SharedStyleContext<Impl: SelectorImplExt> {
     pub screen_size_changed: bool,
 
     /// The CSS selector stylist.
-    ///
-    /// FIXME(#2604): Make this no longer an unsafe pointer once we have fast `RWArc`s.
-    pub stylist: StylistWrapper<Impl>,
+    pub stylist: Arc<Stylist<Impl>>,
 
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
@@ -60,10 +52,9 @@ pub struct LocalStyleContext<C: ComputedValues> {
     pub style_sharing_candidate_cache: RefCell<StyleSharingCandidateCache<C>>,
 }
 
-pub trait StyleContext<'a, Impl: SelectorImplExt, C: ComputedValues> {
-
+pub trait StyleContext<'a, Impl: SelectorImplExt> {
     fn shared_context(&self) -> &'a SharedStyleContext<Impl>;
-    fn local_context(&self) -> &LocalStyleContext<C>;
+    fn local_context(&self) -> &LocalStyleContext<Impl::ComputedValues>;
 }
 
 /// Why we're doing reflow.
@@ -74,4 +65,3 @@ pub enum ReflowGoal {
     /// We're reflowing in order to satisfy a script query. No display list will be created.
     ForScriptQuery,
 }
-

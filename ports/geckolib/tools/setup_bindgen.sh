@@ -4,16 +4,20 @@
 cd "$(dirname $0)"
 
 # Setup and build bindgen.
-export LIBCLANG_PATH="$(pwd)/llvm/build/lib"
-export LD_LIBRARY_PATH="$(pwd)/llvm/build/lib"
-export DYLD_LIBRARY_PATH="$(pwd)/llvm/build/lib"
-
-
-# Make sure we have a custom clang set up.
-if [ ! -d "$LIBCLANG_PATH" ]; then
-  echo "Custom LLVM/Clang not found. Run build_custom_clang.sh first."
-  exit 1
+if [ "$(uname)" == "Linux" ]; then
+  LIBCLANG_PATH=/usr/lib/llvm-3.8/lib;
+else
+  LIBCLANG_PATH=`brew --prefix llvm38`/lib/llvm-3.8/lib;
 fi
+
+# Make sure we have llvm38.
+if [ ! -x "$(command -v clang++-3.8)" ]; then
+    echo "llmv38 must be installed. Mac users should |brew install llvm38|, Linux varies by distro."
+    exit 1
+fi
+
+export LD_LIBRARY_PATH=$LIBCLANG_PATH
+export DYLD_LIBRARY_PATH=$LIBCLANG_PATH
 
 # Check for multirust
 if [ ! -x "$(command -v multirust)" ]; then

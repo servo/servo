@@ -1,4 +1,3 @@
-/* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -32,6 +31,8 @@ interface Node : EventTarget {
   [Pure]
   readonly attribute Document? ownerDocument;
   [Pure]
+  readonly attribute Node rootNode;
+  [Pure]
   readonly attribute Node? parentNode;
   [Pure]
   readonly attribute Element? parentElement;
@@ -57,6 +58,8 @@ interface Node : EventTarget {
   Node cloneNode(optional boolean deep = false);
   [Pure]
   boolean isEqualNode(Node? node);
+  [Pure]
+  boolean isSameNode(Node? otherNode); // historical alias of ===
 
   const unsigned short DOCUMENT_POSITION_DISCONNECTED = 0x01;
   const unsigned short DOCUMENT_POSITION_PRECEDING = 0x02;

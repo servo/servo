@@ -8,6 +8,7 @@
   },
   "local_changes": {
     "deleted": [],
+    "deleted_reftests": {},
     "items": {
       "reftest": {
         "css/abs-overflow-stackingcontext.html": [
@@ -1607,6 +1608,18 @@
             "url": "/_mozilla/css/floated_table_with_margin_a.html"
           }
         ],
+        "css/floats_inline_margins_a.html": [
+          {
+            "path": "css/floats_inline_margins_a.html",
+            "references": [
+              [
+                "/_mozilla/css/floats_inline_margins_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/floats_inline_margins_a.html"
+          }
+        ],
         "css/floats_margin_collapse_a.html": [
           {
             "path": "css/floats_margin_collapse_a.html",
@@ -1785,6 +1798,18 @@
               ]
             ],
             "url": "/_mozilla/css/iframe/hide_layers2.html"
+          }
+        ],
+        "css/iframe/mozbrowser_navigation.html": [
+          {
+            "path": "css/iframe/mozbrowser_navigation.html",
+            "references": [
+              [
+                "/_mozilla/css/iframe/mozbrowser_navigation_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/iframe/mozbrowser_navigation.html"
           }
         ],
         "css/iframe/multiple_external.html": [
@@ -2673,6 +2698,18 @@
               ]
             ],
             "url": "/_mozilla/css/input_insertion_point_empty_a.html"
+          }
+        ],
+        "css/input_line_height.html": [
+          {
+            "path": "css/input_line_height.html",
+            "references": [
+              [
+                "/_mozilla/css/input_line_height_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/input_line_height.html"
           }
         ],
         "css/input_placeholder.html": [
@@ -4587,6 +4624,18 @@
             "url": "/_mozilla/css/submit_focus_a.html"
           }
         ],
+        "css/svg_children.html": [
+          {
+            "path": "css/svg_children.html",
+            "references": [
+              [
+                "/_mozilla/css/svg_children_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/svg_children.html"
+          }
+        ],
         "css/table_auto_width.html": [
           {
             "path": "css/table_auto_width.html",
@@ -5791,6 +5840,30 @@
             "url": "/_mozilla/mozilla/sslfail.html"
           }
         ],
+        "mozilla/table_valign_bottom.html": [
+          {
+            "path": "mozilla/table_valign_bottom.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/table_valign_bottom_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/table_valign_bottom.html"
+          }
+        ],
+        "mozilla/table_valign_middle.html": [
+          {
+            "path": "mozilla/table_valign_middle.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/table_valign_middle_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/table_valign_middle.html"
+          }
+        ],
         "mozilla/webgl/clearcolor.html": [
           {
             "path": "mozilla/webgl/clearcolor.html",
@@ -5813,6 +5886,18 @@
               ]
             ],
             "url": "/_mozilla/mozilla/webgl/draw_arrays_simple.html"
+          }
+        ],
+        "mozilla/webgl/tex_image_2d_abv.html": [
+          {
+            "path": "mozilla/webgl/tex_image_2d_abv.html",
+            "references": [
+              [
+                "/_mozilla/mozilla/webgl/tex_image_2d_abv_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/mozilla/webgl/tex_image_2d_abv.html"
           }
         ],
         "mozilla/webgl/tex_image_2d_canvas.html": [
@@ -6013,12 +6098,6 @@
           {
             "path": "mozilla/document_activeElement.html",
             "url": "/_mozilla/mozilla/document_activeElement.html"
-          }
-        ],
-        "mozilla/document_body.html": [
-          {
-            "path": "mozilla/document_body.html",
-            "url": "/_mozilla/mozilla/document_body.html"
           }
         ],
         "mozilla/document_characterSet.html": [
@@ -6345,6 +6424,12 @@
             "url": "/_mozilla/mozilla/innerHTML.html"
           }
         ],
+        "mozilla/interface_member_exposed.html": [
+          {
+            "path": "mozilla/interface_member_exposed.html",
+            "url": "/_mozilla/mozilla/interface_member_exposed.html"
+          }
+        ],
         "mozilla/interfaces.html": [
           {
             "path": "mozilla/interfaces.html",
@@ -6667,6 +6752,12 @@
           {
             "path": "mozilla/window_requestAnimationFrame2.html",
             "url": "/_mozilla/mozilla/window_requestAnimationFrame2.html"
+          }
+        ],
+        "mozilla/window_resize_not_triggered_on_load.html": [
+          {
+            "path": "mozilla/window_resize_not_triggered_on_load.html",
+            "url": "/_mozilla/mozilla/window_resize_not_triggered_on_load.html"
           }
         ],
         "mozilla/window_setInterval.html": [
@@ -8281,6 +8372,18 @@
           "url": "/_mozilla/css/floated_table_with_margin_a.html"
         }
       ],
+      "css/floats_inline_margins_a.html": [
+        {
+          "path": "css/floats_inline_margins_a.html",
+          "references": [
+            [
+              "/_mozilla/css/floats_inline_margins_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/floats_inline_margins_a.html"
+        }
+      ],
       "css/floats_margin_collapse_a.html": [
         {
           "path": "css/floats_margin_collapse_a.html",
@@ -8459,6 +8562,18 @@
             ]
           ],
           "url": "/_mozilla/css/iframe/hide_layers2.html"
+        }
+      ],
+      "css/iframe/mozbrowser_navigation.html": [
+        {
+          "path": "css/iframe/mozbrowser_navigation.html",
+          "references": [
+            [
+              "/_mozilla/css/iframe/mozbrowser_navigation_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/iframe/mozbrowser_navigation.html"
         }
       ],
       "css/iframe/multiple_external.html": [
@@ -9347,6 +9462,18 @@
             ]
           ],
           "url": "/_mozilla/css/input_insertion_point_empty_a.html"
+        }
+      ],
+      "css/input_line_height.html": [
+        {
+          "path": "css/input_line_height.html",
+          "references": [
+            [
+              "/_mozilla/css/input_line_height_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/input_line_height.html"
         }
       ],
       "css/input_placeholder.html": [
@@ -11261,6 +11388,18 @@
           "url": "/_mozilla/css/submit_focus_a.html"
         }
       ],
+      "css/svg_children.html": [
+        {
+          "path": "css/svg_children.html",
+          "references": [
+            [
+              "/_mozilla/css/svg_children_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/svg_children.html"
+        }
+      ],
       "css/table_auto_width.html": [
         {
           "path": "css/table_auto_width.html",
@@ -12465,6 +12604,30 @@
           "url": "/_mozilla/mozilla/sslfail.html"
         }
       ],
+      "mozilla/table_valign_bottom.html": [
+        {
+          "path": "mozilla/table_valign_bottom.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/table_valign_bottom_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/table_valign_bottom.html"
+        }
+      ],
+      "mozilla/table_valign_middle.html": [
+        {
+          "path": "mozilla/table_valign_middle.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/table_valign_middle_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/table_valign_middle.html"
+        }
+      ],
       "mozilla/webgl/clearcolor.html": [
         {
           "path": "mozilla/webgl/clearcolor.html",
@@ -12487,6 +12650,18 @@
             ]
           ],
           "url": "/_mozilla/mozilla/webgl/draw_arrays_simple.html"
+        }
+      ],
+      "mozilla/webgl/tex_image_2d_abv.html": [
+        {
+          "path": "mozilla/webgl/tex_image_2d_abv.html",
+          "references": [
+            [
+              "/_mozilla/mozilla/webgl/tex_image_2d_abv_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/mozilla/webgl/tex_image_2d_abv.html"
         }
       ],
       "mozilla/webgl/tex_image_2d_canvas.html": [

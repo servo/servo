@@ -28,10 +28,7 @@ impl WebGLUniformLocation {
         reflect_dom_object(
             box WebGLUniformLocation::new_inherited(id, program_id), global, WebGLUniformLocationBinding::Wrap)
     }
-}
 
-
-impl WebGLUniformLocation {
     pub fn id(&self) -> i32 {
         self.id
     }

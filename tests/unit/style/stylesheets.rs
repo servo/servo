@@ -8,7 +8,7 @@ use selectors::parser::*;
 use std::borrow::ToOwned;
 use std::sync::Arc;
 use std::sync::Mutex;
-use string_cache::Atom;
+use string_cache::{Atom, Namespace};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, DeclaredValue, longhands};
 use style::stylesheets::{CSSRule, StyleRule, Origin};
 use style::error_reporting::ParseErrorReporter;
@@ -32,13 +32,13 @@ fn test_parse_stylesheet() {
         media: None,
         dirty_on_viewport_size_change: false,
         rules: vec![
-            CSSRule::Namespace(None, ns!(html)),
+            CSSRule::Namespace(None, Namespace(Atom::from("http://www.w3.org/1999/xhtml"))),
             CSSRule::Style(StyleRule {
                 selectors: vec![
                     Selector {
                         compound_selectors: Arc::new(CompoundSelector {
                             simple_selectors: vec![
-                                SimpleSelector::Namespace(ns!(html)),
+                                SimpleSelector::Namespace(Namespace(Atom::from("http://www.w3.org/1999/xhtml"))),
                                 SimpleSelector::LocalName(LocalName {
                                     name: atom!("input"),
                                     lower_name: atom!("input"),
@@ -68,7 +68,7 @@ fn test_parse_stylesheet() {
                     Selector {
                         compound_selectors: Arc::new(CompoundSelector {
                             simple_selectors: vec![
-                                SimpleSelector::Namespace(ns!(html)),
+                                SimpleSelector::Namespace(Namespace(Atom::from("http://www.w3.org/1999/xhtml"))),
                                 SimpleSelector::LocalName(LocalName {
                                     name: atom!("html"),
                                     lower_name: atom!("html"),
@@ -82,7 +82,7 @@ fn test_parse_stylesheet() {
                     Selector {
                         compound_selectors: Arc::new(CompoundSelector {
                             simple_selectors: vec![
-                                SimpleSelector::Namespace(ns!(html)),
+                                SimpleSelector::Namespace(Namespace(Atom::from("http://www.w3.org/1999/xhtml"))),
                                 SimpleSelector::LocalName(LocalName {
                                     name: atom!("body"),
                                     lower_name: atom!("body"),
@@ -107,10 +107,12 @@ fn test_parse_stylesheet() {
                     Selector {
                         compound_selectors: Arc::new(CompoundSelector {
                             simple_selectors: vec![
+                                SimpleSelector::Namespace(Namespace(Atom::from("http://www.w3.org/1999/xhtml"))),
                                 SimpleSelector::Class(Atom::from("ok")),
                             ],
                             next: Some((Arc::new(CompoundSelector {
                                 simple_selectors: vec![
+                                    SimpleSelector::Namespace(Namespace(Atom::from("http://www.w3.org/1999/xhtml"))),
                                     SimpleSelector::ID(Atom::from("d1")),
                                 ],
                                 next: None,
@@ -144,7 +146,6 @@ fn test_parse_stylesheet() {
         ],
     });
 }
-
 
 struct CSSError {
     pub line: usize,

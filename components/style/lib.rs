@@ -19,6 +19,7 @@
 #![recursion_limit = "500"]  // For match_ignore_ascii_case in PropertyDeclaration::parse
 
 extern crate app_units;
+#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
 extern crate core;
@@ -28,10 +29,12 @@ extern crate encoding;
 extern crate euclid;
 extern crate fnv;
 extern crate heapsize;
+#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
 extern crate log;
+#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate matches;
 extern crate num_traits;

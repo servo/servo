@@ -67,14 +67,13 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::{Arc, Mutex, MutexGuard, RwLock};
 use style::animation::Animation;
 use style::computed_values::{filter, mix_blend_mode};
-use style::context::{ReflowGoal, StylistWrapper};
+use style::context::{ReflowGoal};
 use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::ParseErrorReporter;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaType};
 use style::parallel::WorkQueueData;
 use style::properties::ComputedValues;
-use style::selector_impl::ServoSelectorImpl;
 use style::selector_matching::USER_OR_USER_AGENT_STYLESHEETS;
 use style::servo::{SharedStyleContext, Stylesheet, Stylist};
 use style::stylesheets::CSSRuleIteratorExt;
@@ -107,7 +106,7 @@ pub struct LayoutThreadData {
     pub display_list: Option<Arc<DisplayList>>,
 
     /// Performs CSS selector matching and style resolution.
-    pub stylist: Box<Stylist>,
+    pub stylist: Arc<Stylist>,
 
     /// A queued response for the union of the content boxes of a node.
     pub content_box_response: Rect<Au>,
@@ -421,7 +420,7 @@ impl LayoutThread {
         let font_cache_receiver =
             ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_font_cache_receiver);
 
-        let stylist = box Stylist::new(device);
+        let stylist = Arc::new(Stylist::new(device));
         let outstanding_web_fonts_counter = Arc::new(AtomicUsize::new(0));
         for stylesheet in &*USER_OR_USER_AGENT_STYLESHEETS {
             add_font_face_rules(stylesheet,
@@ -510,7 +509,7 @@ impl LayoutThread {
             style_context: SharedStyleContext {
                 viewport_size: self.viewport_size.clone(),
                 screen_size_changed: screen_size_changed,
-                stylist: StylistWrapper::<ServoSelectorImpl>(&*rw_data.stylist),
+                stylist: rw_data.stylist.clone(),
                 generation: self.generation,
                 goal: goal,
                 new_animations_sender: Mutex::new(self.new_animations_sender.clone()),
@@ -809,7 +808,7 @@ impl LayoutThread {
     /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
     fn handle_set_quirks_mode<'a, 'b>(&self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
         let mut rw_data = possibly_locked_rw_data.lock();
-        rw_data.stylist.set_quirks_mode(true);
+        Arc::get_mut(&mut rw_data.stylist).unwrap().set_quirks_mode(true);
         possibly_locked_rw_data.block(rw_data);
     }
 
@@ -1002,7 +1001,7 @@ impl LayoutThread {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
 
-        debug!("layout: received layout request for: {}", self.url.borrow().serialize());
+        debug!("layout: received layout request for: {}", *self.url.borrow());
 
         let mut rw_data = possibly_locked_rw_data.lock();
 
@@ -1048,8 +1047,7 @@ impl LayoutThread {
             Some(x) => x,
         };
 
-        debug!("layout: received layout request for: {}",
-            self.url.borrow().serialize());
+        debug!("layout: received layout request for: {}", *self.url.borrow());
         if log_enabled!(log::LogLevel::Debug) {
             node.dump();
         }
@@ -1061,7 +1059,7 @@ impl LayoutThread {
 
         // Calculate the actual viewport as per DEVICE-ADAPT § 6
         let device = Device::new(MediaType::Screen, initial_viewport);
-        rw_data.stylist.set_device(device, &data.document_stylesheets);
+        Arc::get_mut(&mut rw_data.stylist).unwrap().set_device(device, &data.document_stylesheets);
 
         let constraints = rw_data.stylist.viewport_constraints().clone();
         self.viewport_size = match constraints {
@@ -1093,8 +1091,8 @@ impl LayoutThread {
         }
 
         // If the entire flow tree is invalid, then it will be reflowed anyhow.
-        needs_dirtying |= rw_data.stylist.update(&data.document_stylesheets,
-                                                 data.stylesheets_changed);
+        needs_dirtying |= Arc::get_mut(&mut rw_data.stylist).unwrap().update(&data.document_stylesheets,
+                                                                             data.stylesheets_changed);
         let needs_reflow = viewport_size_changed && !needs_dirtying;
         unsafe {
             if needs_dirtying {
@@ -1463,7 +1461,7 @@ impl LayoutThread {
     /// Returns profiling information which is passed to the time profiler.
     fn profiler_metadata(&self) -> Option<TimerMetadata> {
         Some(TimerMetadata {
-            url: self.url.borrow().serialize(),
+            url: self.url.borrow().to_string(),
             iframe: if self.is_iframe {
                 TimerMetadataFrameType::IFrame
             } else {

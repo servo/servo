@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Focus-related events should fire in the correct order</title>
+    <link rel="author" title="Chris Rebert" href="http://chrisrebert.com">
+    <link rel="help" href="https://w3c.github.io/uievents/#events-focusevent-event-order">
+    <meta name="flags" content="interact">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <ol>
+      <li>Click into the first text input.</li>
+      <li>Click into the second text input.</li>
+      <li>Click the "Done" button.</li>
+    </ol>
+
+    <input type="text" id="a" value="First">
+    <br>
+    <input type="text" id="b" value="Second">
+    <br>
+    <button type="button" id="done">Done</button>
+
+    <script>
+setup({explicit_timeout: true});
+var done = false;
+var events = [];
+var targets = [];
+function record(e) {
+  if (done) {
+    return;
+  }
+  events.push(e.type);
+  targets.push(e.target.id);
+}
+function finish() {
+  done = true;
+}
+var relevantEvents = [
+  'focus',
+  'blur',
+  'focusin',
+  'focusout'
+];
+window.onload = function () {
+  var a = document.getElementById('a');
+  var b = document.getElementById('b');
+  var inputs = [a, b];
+
+  b.addEventListener('blur', finish, false);
+  b.addEventListener('focusout', finish, false);
+
+  for (var i = 0; i < inputs.length; i++) {
+    for (var k = 0; k < relevantEvents.length; k++) {
+      inputs[i].addEventListener(relevantEvents[k], record, false);
+    }
+  }
+
+  async_test(function(t) {
+    document.getElementById('done').addEventListener('click', function () {
+      finish();
+      t.step(function () {
+        assert_array_equals(
+          events,
+          ['focusin', 'focus', 'focusout', 'focusin', 'blur', 'focus'],
+          'Focus-related events should fire in this order: focusin, focus, focusout, focusin, blur, focus'
+        );
+        assert_array_equals(
+          targets,
+          [      'a',     'a',        'a',       'b',    'a',     'b'],
+          'Focus-related events should fire at the correct targets'
+        );
+        t.done();
+      });
+    }, false);
+  }, 'Focus-related events should fire in the correct order');
+};
+    </script>
+  </body>
+</html>

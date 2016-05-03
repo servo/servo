@@ -29,6 +29,10 @@ impl FlowList {
         self.flows.push_back(new_tail);
     }
 
+    pub fn back(&self) -> Option<&Flow> {
+        self.flows.back().map(|x| &**x)
+    }
+
     /// Add an element first in the list
     ///
     /// O(1)
@@ -38,6 +42,10 @@ impl FlowList {
 
     pub fn pop_front(&mut self) -> Option<FlowRef> {
         self.flows.pop_front()
+    }
+
+    pub fn front(&self) -> Option<&Flow> {
+        self.flows.front().map(|x| &**x)
     }
 
     /// Create an empty list

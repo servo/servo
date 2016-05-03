@@ -267,7 +267,7 @@ fn test_secure_url_does_not_affect_non_http_schemas() {
     let url = Url::parse("file://mozilla.org").unwrap();
     let secure = secure_url(&url);
 
-    assert_eq!(&secure.scheme, "file");
+    assert_eq!(secure.scheme(), "file");
 }
 
 #[test]
@@ -275,5 +275,5 @@ fn test_secure_url_forces_an_http_host_in_list_to_https() {
     let url = Url::parse("http://mozilla.org").unwrap();
     let secure = secure_url(&url);
 
-    assert_eq!(&secure.scheme, "https");
+    assert_eq!(secure.scheme(), "https");
 }

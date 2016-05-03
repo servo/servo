@@ -520,7 +520,7 @@ pub struct BlockFlow {
     pub float: Option<Box<FloatedBlockInfo>>,
 
     /// Various flags.
-    pub flags: BlockFlowFlags,
+    flags: BlockFlowFlags,
 }
 
 bitflags! {
@@ -1020,8 +1020,12 @@ impl BlockFlow {
                 self.base.position.size.block = cur_b;
             }
 
-            // Store the current set of floats in the flow so that flows that come later in the
+            // Translate the current set of floats back into the parent coordinate system in the
+            // inline direction, and store them in the flow so that flows that come later in the
             // document can access them.
+            floats.translate(LogicalSize::new(writing_mode,
+                                              self.fragment.inline_start_offset(),
+                                              Au(0)));
             self.base.floats = floats.clone();
             self.adjust_fragments_for_collapsed_margins_if_root(layout_context);
         } else {
@@ -1473,7 +1477,7 @@ impl BlockFlow {
     pub fn bubble_inline_sizes_for_block(&mut self, consult_children: bool) {
         let _scope = layout_debug_scope!("block::bubble_inline_sizes {:x}", self.base.debug_id());
 
-        let mut flags = self.base.flags;
+        let flags = self.base.flags;
 
         // Find the maximum inline-size from children.
         let mut computation = self.fragment.compute_intrinsic_inline_sizes();
@@ -1514,8 +1518,6 @@ impl BlockFlow {
                     }
                 }
             }
-
-            flags.union_floated_descendants_flags(child_base.flags);
         }
 
         // FIXME(pcwalton): This should consider all float descendants, not just children.

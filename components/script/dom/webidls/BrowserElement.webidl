@@ -1,4 +1,3 @@
-/* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -52,6 +51,16 @@ dictionary BrowserElementSecurityChangeDetail {
   boolean extendedValidation;
   boolean trackingContent;
   boolean mixedContent;
+};
+
+dictionary BrowserElementErrorEventDetail {
+  // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsererror
+  // just requires a "type" field, but we also provide
+  // an optional human-readable description, and
+  // an optional machine-readable report (e.g. a backtrace for panics)
+  DOMString type;
+  DOMString description;
+  DOMString report;
 };
 
 dictionary BrowserElementLocationChangeEventDetail {
@@ -138,22 +147,22 @@ interface BrowserElementPrivileged {
   //                    unsigned long modifiers);
 
   [Throws,
-   Pref="dom.mozBrowserFramesEnabled",
+   Pref="dom.mozbrowser.enabled",
    CheckAnyPermissions="browser"]
   void goBack();
 
   [Throws,
-   Pref="dom.mozBrowserFramesEnabled",
+   Pref="dom.mozbrowser.enabled",
    CheckAnyPermissions="browser"]
   void goForward();
 
   [Throws,
-   Pref="dom.mozBrowserFramesEnabled",
+   Pref="dom.mozbrowser.enabled",
    CheckAnyPermissions="browser"]
   void reload(optional boolean hardReload = false);
 
   [Throws,
-   Pref="dom.mozBrowserFramesEnabled",
+   Pref="dom.mozbrowser.enabled",
    CheckAnyPermissions="browser"]
   void stop();
 

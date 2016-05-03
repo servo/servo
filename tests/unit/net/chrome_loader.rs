@@ -5,42 +5,40 @@
 use net::chrome_loader::resolve_chrome_url;
 use url::Url;
 
-#[test]
-fn test_relative() {
-    let url = Url::parse("chrome://../something").unwrap();
-    assert!(resolve_chrome_url(&url).is_err());
+fn c(s: &str) -> Result<Url, ()> {
+    resolve_chrome_url(&Url::parse(s).unwrap())
 }
 
 #[test]
-fn test_relative_2() {
-    let url = Url::parse("chrome://subdir/../something").unwrap();
-    assert!(resolve_chrome_url(&url).is_err());
-}
+fn test_resolve_chrome_url() {
+    assert_eq!(c("chrome://resources/nonexistent.jpg"), Err(()));
+    assert_eq!(c("chrome://not-resources/badcert.jpg"), Err(()));
+    assert_eq!(c("chrome://resources/badcert.jpg").unwrap().scheme(), "file");
+    assert_eq!(c("chrome://resources/subdir/../badcert.jpg").unwrap().scheme(), "file");
+    assert_eq!(c("chrome://resources/subdir/../../badcert.jpg").unwrap().scheme(), "file");
+    assert_eq!(c("chrome://resources/../badcert.jpg").unwrap().scheme(), "file");
+    assert_eq!(c("chrome://resources/../README.md"), Err(()));
+    assert_eq!(c("chrome://resources/%2e%2e/README.md"), Err(()));
 
-#[test]
-#[cfg(not(target_os = "windows"))]
-fn test_absolute() {
-    let url = Url::parse("chrome:///etc/passwd").unwrap();
-    assert!(resolve_chrome_url(&url).is_err());
-}
+    assert_eq!(c("chrome://resources/etc/passwd"), Err(()));
+    assert_eq!(c("chrome://resources//etc/passwd"), Err(()));
+    assert_eq!(c("chrome://resources/%2Fetc%2Fpasswd"), Err(()));
 
-#[test]
-#[cfg(target_os = "windows")]
-fn test_absolute_2() {
-    let url = Url::parse("chrome://C:\\Windows").unwrap();
-    assert!(resolve_chrome_url(&url).is_err());
-}
+    assert_eq!(c("chrome://resources/C:/Windows/notepad.exe"), Err(()));
+    assert_eq!(c("chrome://resources/C:\\Windows\\notepad.exe"), Err(()));
 
-#[test]
-#[cfg(target_os = "windows")]
-fn test_absolute_3() {
-    let url = Url::parse("chrome://\\\\server/C$").unwrap();
-    assert!(resolve_chrome_url(&url).is_err());
-}
+    assert_eq!(c("chrome://resources/localhost/C:/Windows/notepad.exe"), Err(()));
+    assert_eq!(c("chrome://resources//localhost/C:/Windows/notepad.exe"), Err(()));
+    assert_eq!(c("chrome://resources///localhost/C:/Windows/notepad.exe"), Err(()));
+    assert_eq!(c("chrome://resources/\\\\localhost\\C:\\Windows\\notepad.exe"), Err(()));
 
-#[test]
-fn test_valid() {
-    let url = Url::parse("chrome://badcert.jpg").unwrap();
-    let resolved = resolve_chrome_url(&url).unwrap();
-    assert_eq!(resolved.scheme, "file");
+    assert_eq!(c("chrome://resources/%3F/C:/Windows/notepad.exe"), Err(()));
+    assert_eq!(c("chrome://resources//%3F/C:/Windows/notepad.exe"), Err(()));
+    assert_eq!(c("chrome://resources///%3F/C:/Windows/notepad.exe"), Err(()));
+    assert_eq!(c("chrome://resources/\\\\%3F\\C:\\Windows\\notepad.exe"), Err(()));
+
+    assert_eq!(c("chrome://resources/%3F/UNC/localhost/C:/Windows/notepad.exe"), Err(()));
+    assert_eq!(c("chrome://resources//%3F/UNC/localhost/C:/Windows/notepad.exe"), Err(()));
+    assert_eq!(c("chrome://resources///%3F/UNC/localhost/C:/Windows/notepad.exe"), Err(()));
+    assert_eq!(c("chrome://resources/\\\\%3F\\UNC\\localhost\\C:\\Windows\\notepad.exe"), Err(()));
 }

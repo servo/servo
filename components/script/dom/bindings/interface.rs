@@ -6,11 +6,12 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::conversions::get_dom_class;
-use dom::bindings::utils::get_proto_or_iface_array;
+use dom::bindings::utils::{get_proto_or_iface_array, Prefable};
+use js::error::throw_type_error;
 use js::glue::UncheckedUnwrapObject;
 use js::jsapi::{Class, ClassExtension, ClassSpec, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{HandleObject, HandleValue, JSClass, JSContext, JSFunctionSpec};
-use js::jsapi::{JSPropertySpec, JSString, JS_DefineProperty1, JS_DefineProperty2};
+use js::jsapi::{JSNative, JSPropertySpec, JSString, JS_DefineProperty1, JS_DefineProperty2};
 use js::jsapi::{JS_DefineProperty4, JS_GetClass, JS_GetFunctionObject, JS_GetPrototype};
 use js::jsapi::{JS_InternString, JS_LinkConstructorAndPrototype, JS_NewFunction, JS_NewObject};
 use js::jsapi::{JS_NewObjectWithUniqueType, JS_NewStringCopyZ, JS_DefineProperty};
@@ -93,10 +94,6 @@ unsafe extern "C" fn fun_to_string_hook(cx: *mut JSContext,
     ret
 }
 
-/// A constructor class hook.
-pub type ConstructorClassHook =
-    unsafe extern "C" fn(cx: *mut JSContext, argc: u32, vp: *mut Value) -> bool;
-
 /// The class of a non-callback interface object.
 #[derive(Copy, Clone)]
 pub struct NonCallbackInterfaceObjectClass {
@@ -114,8 +111,8 @@ unsafe impl Sync for NonCallbackInterfaceObjectClass {}
 
 impl NonCallbackInterfaceObjectClass {
     /// Create a new `NonCallbackInterfaceObjectClass` structure.
-    pub const fn new(
-            constructor: ConstructorClassHook,
+    pub const unsafe fn new(
+            constructor_behavior: InterfaceConstructorBehavior,
             string_rep: &'static [u8],
             proto_id: PrototypeList::ID,
             proto_depth: u16)
@@ -132,8 +129,8 @@ impl NonCallbackInterfaceObjectClass {
                 resolve: None,
                 convert: None,
                 finalize: None,
-                call: Some(constructor),
-                construct: Some(constructor),
+                call: constructor_behavior.call,
+                construct: constructor_behavior.construct,
                 hasInstance: Some(has_instance_hook),
                 trace: None,
                 spec: ClassSpec {
@@ -183,17 +180,47 @@ impl NonCallbackInterfaceObjectClass {
     }
 }
 
+/// A constructor class hook.
+pub type ConstructorClassHook =
+    unsafe extern "C" fn(cx: *mut JSContext, argc: u32, vp: *mut Value) -> bool;
+
+/// The constructor behavior of a non-callback interface object.
+pub struct InterfaceConstructorBehavior {
+    call: JSNative,
+    construct: JSNative,
+}
+
+impl InterfaceConstructorBehavior {
+    /// An interface constructor that unconditionally throws a type error.
+    pub const fn throw() -> InterfaceConstructorBehavior {
+        InterfaceConstructorBehavior {
+            call: Some(invalid_constructor),
+            construct: Some(invalid_constructor),
+        }
+    }
+
+    /// An interface constructor that calls a native Rust function.
+    pub const fn call(hook: ConstructorClassHook) -> InterfaceConstructorBehavior {
+        InterfaceConstructorBehavior {
+            call: Some(non_new_constructor),
+            construct: Some(hook),
+        }
+    }
+}
+
 /// Create and define the interface object of a callback interface.
 pub unsafe fn create_callback_interface_object(
         cx: *mut JSContext,
         receiver: HandleObject,
-        constants: &'static [ConstantSpec],
+        constants: &'static [Prefable<ConstantSpec>],
         name: &'static [u8],
         rval: MutableHandleObject) {
     assert!(!constants.is_empty());
     rval.set(JS_NewObject(cx, ptr::null()));
     assert!(!rval.ptr.is_null());
-    define_constants(cx, rval.handle(), constants);
+    for prefable in constants {
+        define_constants(cx, rval.handle(), prefable.specs());
+    }
     define_name(cx, rval.handle(), name);
     define_on_global_object(cx, receiver, name, rval.handle());
 }
@@ -203,9 +230,9 @@ pub unsafe fn create_interface_prototype_object(
         cx: *mut JSContext,
         proto: HandleObject,
         class: &'static JSClass,
-        regular_methods: Option<&'static [JSFunctionSpec]>,
-        regular_properties: Option<&'static [JSPropertySpec]>,
-        constants: &'static [ConstantSpec],
+        regular_methods: Option<&'static [Prefable<JSFunctionSpec>]>,
+        regular_properties: Option<&'static [Prefable<JSPropertySpec>]>,
+        constants: &'static [Prefable<ConstantSpec>],
         rval: MutableHandleObject) {
     create_object(cx, proto, class, regular_methods, regular_properties, constants, rval);
 }
@@ -216,9 +243,9 @@ pub unsafe fn create_noncallback_interface_object(
         receiver: HandleObject,
         proto: HandleObject,
         class: &'static NonCallbackInterfaceObjectClass,
-        static_methods: Option<&'static [JSFunctionSpec]>,
-        static_properties: Option<&'static [JSPropertySpec]>,
-        constants: &'static [ConstantSpec],
+        static_methods: Option<&'static [Prefable<JSFunctionSpec>]>,
+        static_properties: Option<&'static [Prefable<JSPropertySpec>]>,
+        constants: &'static [Prefable<ConstantSpec>],
         interface_prototype_object: HandleObject,
         name: &'static [u8],
         length: u32,
@@ -330,19 +357,39 @@ unsafe fn create_object(
         cx: *mut JSContext,
         proto: HandleObject,
         class: &'static JSClass,
-        methods: Option<&'static [JSFunctionSpec]>,
-        properties: Option<&'static [JSPropertySpec]>,
-        constants: &'static [ConstantSpec],
+        methods: Option<&'static [Prefable<JSFunctionSpec>]>,
+        properties: Option<&'static [Prefable<JSPropertySpec>]>,
+        constants: &'static [Prefable<ConstantSpec>],
         rval: MutableHandleObject) {
     rval.set(JS_NewObjectWithUniqueType(cx, class, proto));
     assert!(!rval.ptr.is_null());
     if let Some(methods) = methods {
-        define_methods(cx, rval.handle(), methods).unwrap();
+        define_prefable_methods(cx, rval.handle(), methods);
     }
     if let Some(properties) = properties {
-        define_properties(cx, rval.handle(), properties).unwrap();
+        define_prefable_properties(cx, rval.handle(), properties);
     }
-    define_constants(cx, rval.handle(), constants);
+    for prefable in constants {
+        define_constants(cx, rval.handle(), prefable.specs());
+    }
+}
+
+/// Conditionally define methods on an object.
+pub unsafe fn define_prefable_methods(cx: *mut JSContext,
+                                      obj: HandleObject,
+                                      methods: &'static [Prefable<JSFunctionSpec>]) {
+    for prefable in methods {
+        define_methods(cx, obj, prefable.specs()).unwrap();
+    }
+}
+
+/// Conditionally define properties on an object.
+pub unsafe fn define_prefable_properties(cx: *mut JSContext,
+                                         obj: HandleObject,
+                                         properties: &'static [Prefable<JSPropertySpec>]) {
+    for prefable in properties {
+        define_properties(cx, obj, prefable.specs()).unwrap();
+    }
 }
 
 unsafe fn define_name(cx: *mut JSContext, obj: HandleObject, name: &'static [u8]) {
@@ -379,4 +426,22 @@ unsafe fn define_on_global_object(
                                obj,
                                0,
                                None, None));
+}
+
+unsafe extern "C" fn invalid_constructor(
+        cx: *mut JSContext,
+        _argc: libc::c_uint,
+        _vp: *mut JSVal)
+        -> bool {
+    throw_type_error(cx, "Illegal constructor.");
+    false
+}
+
+unsafe extern "C" fn non_new_constructor(
+        cx: *mut JSContext,
+        _argc: libc::c_uint,
+        _vp: *mut JSVal)
+        -> bool {
+    throw_type_error(cx, "This constructor needs to be called with `new`.");
+    false
 }

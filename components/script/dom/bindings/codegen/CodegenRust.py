@@ -1317,6 +1317,33 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
                     returnType)
 
 
+class MemberCondition:
+    """
+    An object representing the condition for a member to actually be
+    exposed.  Any of the arguments can be None.  If not
+    None, they should have the following types:
+
+    pref: The name of the preference.
+    func: The name of the function.
+    """
+    def __init__(self, pref=None, func=None):
+        assert pref is None or isinstance(pref, str)
+        assert func is None or isinstance(func, str)
+        self.pref = pref
+
+        def toFuncPtr(val):
+            if val is None:
+                return "None"
+            return "Some(%s)" % val
+        self.func = toFuncPtr(func)
+
+    def __eq__(self, other):
+        return (self.pref == other.pref and self.func == other.func)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+
 class PropertyDefiner:
     """
     A common superclass for defining things on prototype objects.
@@ -1340,8 +1367,26 @@ class PropertyDefiner:
         # up used via ResolveProperty or EnumerateProperties.
         return self.generateArray(self.regular, self.variableName())
 
+    @staticmethod
+    def getStringAttr(member, name):
+        attr = member.getExtendedAttribute(name)
+        if attr is None:
+            return None
+        # It's a list of strings
+        assert len(attr) == 1
+        assert attr[0] is not None
+        return attr[0]
+
+    @staticmethod
+    def getControllingCondition(interfaceMember, descriptor):
+        return MemberCondition(
+            PropertyDefiner.getStringAttr(interfaceMember,
+                                          "Pref"),
+            PropertyDefiner.getStringAttr(interfaceMember,
+                                          "Func"))
+
     def generatePrefableArray(self, array, name, specTemplate, specTerminator,
-                              specType, getDataTuple):
+                              specType, getCondition, getDataTuple):
         """
         This method generates our various arrays.
 
@@ -1360,17 +1405,53 @@ class PropertyDefiner:
           returns a tuple suitable for substitution into specTemplate.
         """
 
+        # We generate an all-encompassing list of lists of specs, with each sublist
+        # representing a group of members that share a common pref name. That will
+        # make sure the order of the properties as exposed on the interface and
+        # interface prototype objects does not change when pref control is added to
+        # members while still allowing us to define all the members in the smallest
+        # number of JSAPI calls.
         assert len(array) != 0
+        # So we won't put a specTerminator at the very front of the list:
+        lastCondition = getCondition(array[0], self.descriptor)
         specs = []
+        currentSpecs = []
+        prefableSpecs = []
+
+        prefableTemplate = '    Prefable { pref: %s, specs: %s[%d], terminator: %s }'
+
+        def switchToCondition(props, condition):
+            prefableSpecs.append(prefableTemplate %
+                                 ('Some("%s")' % condition.pref if condition.pref else 'None',
+                                  name + "_specs",
+                                  len(specs),
+                                  'true' if specTerminator else 'false'))
+            specs.append("&[\n" + ",\n".join(currentSpecs) + "]\n")
+            del currentSpecs[:]
 
         for member in array:
-            specs.append(specTemplate % getDataTuple(member))
+            curCondition = getCondition(member, self.descriptor)
+            if lastCondition != curCondition:
+                # Terminate previous list
+                if specTerminator:
+                    currentSpecs.append(specTerminator)
+                # And switch to our new pref
+                switchToCondition(self, lastCondition)
+                lastCondition = curCondition
+            # And the actual spec
+            currentSpecs.append(specTemplate % getDataTuple(member))
         if specTerminator:
-            specs.append(specTerminator)
+            currentSpecs.append(specTerminator)
+        switchToCondition(self, lastCondition)
 
-        return (("const %s: &'static [%s] = &[\n" +
-                 ",\n".join(specs) + "\n" +
-                 "];\n") % (name, specType))
+        specsArray = ("const %s_specs: &'static [&'static[%s]] = &[\n" +
+                      ",\n".join(specs) + "\n" +
+                      "];\n") % (name, specType)
+
+        prefArray = ("const %s: &'static [Prefable<%s>] = &[\n" +
+                     ",\n".join(prefableSpecs) + "\n" +
+                     "];\n") % (name, specType)
+        return specsArray + prefArray
 
 
 # The length of a method is the minimum of the lengths of the
@@ -1404,14 +1485,17 @@ class MethodDefiner(PropertyDefiner):
             methods = []
         self.regular = [{"name": m.identifier.name,
                          "methodInfo": not m.isStatic(),
-                         "length": methodLength(m)} for m in methods]
+                         "length": methodLength(m),
+                         "condition": PropertyDefiner.getControllingCondition(m, descriptor)}
+                        for m in methods]
 
         # FIXME Check for an existing iterator on the interface first.
         if any(m.isGetter() and m.isIndexed() for m in methods):
             self.regular.append({"name": '@@iterator',
                                  "methodInfo": False,
                                  "selfHostedName": "ArrayValues",
-                                 "length": 0})
+                                 "length": 0,
+                                 "condition": MemberCondition()})
 
         isUnforgeableInterface = bool(descriptor.interface.getExtendedAttribute("Unforgeable"))
         if not static and unforgeable == isUnforgeableInterface:
@@ -1421,12 +1505,16 @@ class MethodDefiner(PropertyDefiner):
                     "name": "toString",
                     "nativeName": stringifier.identifier.name,
                     "length": 0,
+                    "condition": PropertyDefiner.getControllingCondition(stringifier, descriptor)
                 })
         self.unforgeable = unforgeable
 
     def generateArray(self, array, name):
         if len(array) == 0:
             return ""
+
+        def condition(m, d):
+            return m["condition"]
 
         flags = "JSPROP_ENUMERATE"
         if self.unforgeable:
@@ -1475,7 +1563,7 @@ class MethodDefiner(PropertyDefiner):
             '        selfHostedName: 0 as *const libc::c_char\n'
             '    }',
             'JSFunctionSpec',
-            specData)
+            condition, specData)
 
 
 class AttrDefiner(PropertyDefiner):
@@ -1553,7 +1641,7 @@ class AttrDefiner(PropertyDefiner):
             '        setter: JSNativeWrapper { op: None, info: 0 as *const JSJitInfo }\n'
             '    }',
             'JSPropertySpec',
-            specData)
+            PropertyDefiner.getControllingCondition, specData)
 
 
 class ConstDefiner(PropertyDefiner):
@@ -1578,7 +1666,7 @@ class ConstDefiner(PropertyDefiner):
             '    ConstantSpec { name: %s, value: %s }',
             None,
             'ConstantSpec',
-            specData)
+            PropertyDefiner.getControllingCondition, specData)
 
 # We'll want to insert the indent at the beginnings of lines, but we
 # don't want to indent empty lines.  So only indent lines that have a
@@ -1897,20 +1985,24 @@ class CGInterfaceObjectJSClass(CGThing):
 
     def define(self):
         if self.descriptor.interface.ctor():
-            constructor = CONSTRUCT_HOOK_NAME
+            constructorBehavior = "InterfaceConstructorBehavior::call(%s)" % CONSTRUCT_HOOK_NAME
         else:
-            constructor = "throwing_constructor"
+            constructorBehavior = "InterfaceConstructorBehavior::throw()"
         name = self.descriptor.interface.identifier.name
         args = {
-            "constructor": constructor,
+            "constructorBehavior": constructorBehavior,
             "id": name,
             "representation": str_to_const_array("function %s() {\\n    [native code]\\n}" % name),
             "depth": self.descriptor.prototypeDepth
         }
         return """\
-static InterfaceObjectClass: NonCallbackInterfaceObjectClass =
-    NonCallbackInterfaceObjectClass::new(%(constructor)s, %(representation)s,
-                                         PrototypeList::ID::%(id)s, %(depth)s);
+static InterfaceObjectClass: NonCallbackInterfaceObjectClass = unsafe {
+    NonCallbackInterfaceObjectClass::new(
+        %(constructorBehavior)s,
+        %(representation)s,
+        PrototypeList::ID::%(id)s,
+        %(depth)s)
+};
 """ % args
 
 
@@ -1921,7 +2013,10 @@ class CGList(CGThing):
     """
     def __init__(self, children, joiner=""):
         CGThing.__init__(self)
-        self.children = children
+        # Make a copy of the kids into a list, because if someone passes in a
+        # generator we won't be able to both declare and define ourselves, or
+        # define ourselves more than once!
+        self.children = list(children)
         self.joiner = joiner
 
     def append(self, child):
@@ -1930,11 +2025,14 @@ class CGList(CGThing):
     def prepend(self, child):
         self.children.insert(0, child)
 
-    def join(self, generator):
-        return self.joiner.join(filter(lambda s: len(s) > 0, (child for child in generator)))
+    def join(self, iterable):
+        return self.joiner.join(s for s in iterable if len(s) > 0)
 
     def define(self):
         return self.join(child.define() for child in self.children if child is not None)
+
+    def __len__(self):
+        return len(self.children)
 
 
 class CGIfElseWrapper(CGList):
@@ -2141,6 +2239,49 @@ class CGAbstractMethod(CGThing):
         raise NotImplementedError  # Override me!
 
 
+class CGConstructorEnabled(CGAbstractMethod):
+    """
+    A method for testing whether we should be exposing this interface
+    object or navigator property.  This can perform various tests
+    depending on what conditions are specified on the interface.
+    """
+    def __init__(self, descriptor):
+        CGAbstractMethod.__init__(self, descriptor,
+                                  'ConstructorEnabled', 'bool',
+                                  [Argument("*mut JSContext", "aCx"),
+                                   Argument("HandleObject", "aObj")])
+
+    def definition_body(self):
+        body = CGList([], "\n")
+
+        conditions = []
+        iface = self.descriptor.interface
+
+        pref = iface.getExtendedAttribute("Pref")
+        if pref:
+            assert isinstance(pref, list) and len(pref) == 1
+            conditions.append('prefs::get_pref("%s").as_boolean().unwrap_or(false)' % pref[0])
+        func = iface.getExtendedAttribute("Func")
+        if func:
+            assert isinstance(func, list) and len(func) == 1
+            conditions.append("%s(aCx, aObj)" % func[0])
+        # We should really have some conditions
+        assert len(body) or len(conditions)
+
+        conditionsWrapper = ""
+        if len(conditions):
+            conditionsWrapper = CGWrapper(CGList((CGGeneric(cond) for cond in conditions),
+                                                 " &&\n"),
+                                          pre="return ",
+                                          post=";\n",
+                                          reindent=True)
+        else:
+            conditionsWrapper = CGGeneric("return true;\n")
+
+        body.append(conditionsWrapper)
+        return body
+
+
 def CreateBindingJSObject(descriptor, parent=None):
     create = "let raw = Box::into_raw(object);\nlet _rt = RootedTraceable::new(&*raw);\n"
     if descriptor.proxy:
@@ -2187,8 +2328,8 @@ def InitUnforgeablePropertiesOnHolder(descriptor, properties):
     """
     unforgeables = []
 
-    defineUnforgeableAttrs = "define_properties(cx, unforgeable_holder.handle(), %s).unwrap();"
-    defineUnforgeableMethods = "define_methods(cx, unforgeable_holder.handle(), %s).unwrap();"
+    defineUnforgeableAttrs = "define_prefable_properties(cx, unforgeable_holder.handle(), %s);"
+    defineUnforgeableMethods = "define_prefable_methods(cx, unforgeable_holder.handle(), %s);"
 
     unforgeableMembers = [
         (defineUnforgeableAttrs, properties.unforgeable_attrs),
@@ -2449,10 +2590,8 @@ if <*mut JSObject>::needs_post_barrier(prototype.ptr) {
         if self.descriptor.interface.hasInterfaceObject():
             properties["name"] = str_to_const_array(name)
             if self.descriptor.interface.ctor():
-                properties["constructor"] = CONSTRUCT_HOOK_NAME
                 properties["length"] = methodLength(self.descriptor.interface.ctor())
             else:
-                properties["constructor"] = "throwing_constructor"
                 properties["length"] = 0
             if self.descriptor.interface.parent:
                 parentName = toBindingNamespace(self.descriptor.getParentName())
@@ -2682,15 +2821,21 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         return CGAbstractMethod.define(self)
 
     def definition_body(self):
+        def getCheck(desc):
+            if not desc.isExposedConditionally():
+                return ""
+            else:
+                return "if !ConstructorEnabled(cx, global) { return; }"
         if self.descriptor.interface.isCallback():
             function = "GetConstructorObject"
         else:
             function = "GetProtoObject"
         return CGGeneric("""\
 assert!(!global.get().is_null());
+%s
 let mut proto = RootedObject::new(cx, ptr::null_mut());
 %s(cx, global, proto.handle_mut());
-assert!(!proto.ptr.is_null());""" % function)
+assert!(!proto.ptr.is_null());""" % (getCheck(self.descriptor), function))
 
 
 def needCx(returnType, arguments, considerTypes):
@@ -5001,6 +5146,8 @@ class CGDescriptor(CGThing):
 
         if descriptor.interface.hasInterfaceObject():
             cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
+            if descriptor.isExposedConditionally():
+                cgThings.append(CGConstructorEnabled(descriptor))
 
         if descriptor.proxy:
             cgThings.append(CGDefineProxyHandler(descriptor))
@@ -5400,15 +5547,16 @@ class CGBindingRoot(CGThing):
             'js::rust::{GCMethods, define_methods, define_properties}',
             'dom::bindings',
             'dom::bindings::global::{GlobalRef, global_root_from_object, global_root_from_reflector}',
-            'dom::bindings::interface::{NonCallbackInterfaceObjectClass, create_callback_interface_object}',
-            'dom::bindings::interface::{create_interface_prototype_object, create_named_constructors}',
-            'dom::bindings::interface::{create_noncallback_interface_object}',
+            'dom::bindings::interface::{InterfaceConstructorBehavior, NonCallbackInterfaceObjectClass}',
+            'dom::bindings::interface::{create_callback_interface_object, create_interface_prototype_object}',
+            'dom::bindings::interface::{create_named_constructors, create_noncallback_interface_object}',
+            'dom::bindings::interface::{define_prefable_methods, define_prefable_properties}',
             'dom::bindings::interface::{ConstantSpec, NonNullJSNative}',
             'dom::bindings::interface::ConstantVal::{IntVal, UintVal}',
             'dom::bindings::js::{JS, Root, RootedReference}',
             'dom::bindings::js::{OptionalRootedReference}',
             'dom::bindings::reflector::{Reflectable}',
-            'dom::bindings::utils::{DOMClass, DOMJSClass}',
+            'dom::bindings::utils::{DOMClass, DOMJSClass, Prefable}',
             'dom::bindings::utils::{DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, JSCLASS_DOM_GLOBAL}',
             'dom::bindings::utils::{ProtoOrIfaceArray, create_dom_global}',
             'dom::bindings::utils::{enumerate_global, finalize_global, find_enum_string_index}',
@@ -5416,8 +5564,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::utils::{generic_method, generic_setter, get_array_index_from_id}',
             'dom::bindings::utils::{get_dictionary_property, get_property_on_prototype}',
             'dom::bindings::utils::{get_proto_or_iface_array, has_property_on_prototype}',
-            'dom::bindings::utils::{is_platform_object, resolve_global, set_dictionary_property}',
-            'dom::bindings::utils::{throwing_constructor, trace_global}',
+            'dom::bindings::utils::{is_platform_object, resolve_global, set_dictionary_property, trace_global}',
             'dom::bindings::trace::{JSTraceable, RootedTraceable}',
             'dom::bindings::callback::{CallbackContainer,CallbackInterface,CallbackFunction}',
             'dom::bindings::callback::{CallSetup,ExceptionHandling}',
@@ -5443,6 +5590,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::weakref::{DOM_WEAK_SLOT, WeakBox, WeakReferenceable}',
             'mem::heap_size_of_raw_self_and_children',
             'libc',
+            'util::prefs',
             'util::str::DOMString',
             'std::borrow::ToOwned',
             'std::cmp',

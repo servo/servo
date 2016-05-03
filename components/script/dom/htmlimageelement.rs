@@ -4,7 +4,11 @@
 
 use app_units::Au;
 use core::ops::Deref;
+<<<<<<< HEAD
 use cssparser::{AtRuleParser,CssStringWriter, DeclarationListParser, DeclarationParser, Parser,ToCss, Token};
+=======
+use cssparser::Parser;
+>>>>>>> e34d977937e8a31f2ea405b4bef7c1ef22c3f144
 use dom::attr::Attr;
 use dom::attr::AttrValue;
 use dom::bindings::cell::DOMRefCell;
@@ -34,12 +38,18 @@ use script_thread::Runnable;
 use std::iter::Iterator;
 use std::sync::Arc;
 use string_cache::Atom;
+<<<<<<< HEAD
 use style::computed_values::white_space;
 use style::font_face;
 use style::parser::{ParserContext, log_css_error};
 use style::media_queries::Expression;
 use style::media_queries::MediaQuery;
 use style::values::specified::Length;
+=======
+use style::media_queries::MediaQuery;
+use style::values::CSSFloat;
+use style::values::specified::{Length, ViewportPercentageLength};
+>>>>>>> e34d977937e8a31f2ea405b4bef7c1ef22c3f144
 use url::Url;
 use util;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
@@ -60,10 +70,17 @@ struct ImageRequest {
     image: Option<Arc<Image>>,
     metadata: Option<ImageMetadata>,
 }
+<<<<<<< HEAD
 
 struct Size{
     expression: Option<Expression>,
     length: Length,
+=======
+#[allow(dead_code)]
+pub struct Size {
+    pub query: Option<MediaQuery>,
+    pub length: Length,
+>>>>>>> e34d977937e8a31f2ea405b4bef7c1ef22c3f144
 }
 #[dom_struct]
 pub struct HTMLImageElement {
@@ -144,7 +161,7 @@ impl HTMLImageElement {
                 let img_url = img_url.unwrap();
                 self.current_request.borrow_mut().url = Some(img_url.clone());
 
-                let trusted_node = Trusted::new(self, window.networking_task_source());
+                let trusted_node = Trusted::new(self);
                 let (responder_sender, responder_receiver) = ipc::channel().unwrap();
                 let script_chan = window.networking_task_source();
                 let wrapper = window.get_runnable_wrapper();
@@ -332,7 +349,7 @@ impl HTMLImageElementMethods for HTMLImageElement {
     fn CurrentSrc(&self) -> DOMString {
         let ref url = self.current_request.borrow().url;
         match *url {
-            Some(ref url) => DOMString::from(url.serialize()),
+            Some(ref url) => DOMString::from(url.as_str()),
             None => DOMString::from(""),
         }
     }
@@ -415,56 +432,59 @@ fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
     element.set_attribute(&attr, value);
 }
 
-pub fn parse_a_sizes_attribute(input: DOMString, width: Option<u32>)-> Result<Size,()>{
-   
-/*    let s_Size = Size{
-        length: Au,
-        expression:None
-    };*/
-    //extracting each media element from the string 
-    let mut unparsed_sizes_list = input.deref().split(',').collect::<Vec<_>>();
-    //let length = unparsed_sizes_list.len();
-    //computing the last element calc()
-    let last_component = unparsed_sizes_list.last();
-    // match last_component {
-    //     Some(comp) => {
+pub fn parse_a_sizes_attribute(input: DOMString, width: Option<u32>) -> Vec<Size> {
+    let mut sizes = Vec::<Size>::new();
+    let unparsed_sizes = input.deref().split(',').collect::<Vec<_>>();
 
-    //     }, 
-    //     None => 
-    // }
-    let mut parser_last = Parser::new(last_component.unwrap());
-    let size_length = parser_last.try(Length::parse_non_negative);
-
-    //removing last element 
-    //unparsed_sizes_list.pop();
-
-
-    let s = match size_length {
-        Ok(len) => {
-            Ok(Size{
-                length: len,
-                expression: None 
-            })
-        },
-        Err(e) => Err(e)
-    };
-    s
-    //checking other media elements to obtain expression
-  /*  for unparsed_size in unparsed_sizes_list{
-        let whitespace = unparsed_size.chars().rev().take_while(|c| util::str::char_is_whitespace(*c)).count();
-        let trimmed: String = unparsed_size.chars().take(unparsed_size.chars().count() - whitespace).collect();
-        
-        let mut parse_each = Parser::new(&trimmed);
-        let each_media_query = parse_each.try(MediaQuery::parse);
-        match each_media_query{
-            Ok(mq)=>{
-                let media_quer_expr = mq.expressions;
-            }
-            Err(e)=>{}
+    for unparsed_size in &unparsed_sizes {
+        let temp = *unparsed_size;
+        let whitespace = temp.chars().rev().take_while(|c| util::str::char_is_whitespace(*c)).count();
+        let trimmed: String = unparsed_size.chars().take(temp.chars().count() - whitespace).collect();
+        // TODO: do we need to throw/assert
+        if trimmed.is_empty() {
+            warn!("parse error while parsing sizes attribute");
+            continue;
         }
-    } */
-   // Ok(s_Size)
-
+        let length = Parser::new(&trimmed).try(Length::parse_non_negative);
+        match length {
+            Ok(len) => sizes.push(Size {
+                length: len,
+                query: None
+            }),
+            Err(_) => {
+                println!("Starts with media expression and not length");
+                let mut media_query_parser = Parser::new(&trimmed);
+                let media_query = media_query_parser.try(MediaQuery::parse);
+                match media_query {
+                    Ok(query) => {
+                        let length = media_query_parser.try(Length::parse_non_negative);
+                        if length.is_ok() {
+                            sizes.push (Size {
+                                length: length.unwrap(),
+                                query: Some(query)
+                            })
+                        }
+                    },
+                    Err(_) => {
+                        println!("Could not convert to MediaQuery/Length");
+                        continue;
+                    },
+                }
+            },
+        }
+    }
+    if sizes.len() == 0 {
+        let size = match width {
+            Some(w) => Size {
+                length: Length::from_px(w as f32),
+                query: None
+            },
+            None => Size {
+                length: Length::ViewportPercentage(ViewportPercentageLength::Vw(100 as f32)),
+                query: None
+            },
+        };
+        sizes.push(size);
+    }
+    sizes
 }
-    
-

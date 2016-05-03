@@ -10,6 +10,7 @@ focus-within-shadow-002.xht == reference/focus-within-shadow-001-ref.xht
 focus-within-shadow-003.xht == reference/focus-within-shadow-001-ref.xht
 focus-within-shadow-004.xht == reference/focus-within-shadow-001-ref.xht
 focus-within-shadow-005.xht == reference/focus-within-shadow-001-ref.xht
+of-type-selectors.xht == reference/of-type-selectors-ref.xht
 selector-required.xht == reference/selector-required-ref.xht
 selectors-dir-selector-ltr-001.xht == reference/selectors-dir-selector-ref.xht
 selectors-dir-selector-rtl-001.xht == reference/selectors-dir-selector-ref.xht

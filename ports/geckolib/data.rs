@@ -22,7 +22,7 @@ use util::workqueue::WorkQueue;
 pub struct PerDocumentStyleData {
 
     /// Rule processor.
-    pub stylist: Stylist,
+    pub stylist: Arc<Stylist>,
 
     /// List of stylesheets, mirrored from Gecko.
     pub stylesheets: Vec<Arc<Stylesheet>>,
@@ -50,8 +50,8 @@ impl PerDocumentStyleData {
         let num_threads = cmp::max(num_cpus::get() * 3 / 4, 1);
 
         PerDocumentStyleData {
-            stylist: Stylist::new(device),
-            stylesheets: Vec::new(),
+            stylist: Arc::new(Stylist::new(device)),
+            stylesheets: vec![],
             stylesheets_changed: true,
             new_animations_sender: new_anims_sender,
             new_animations_receiver: new_anims_receiver,

@@ -33,7 +33,7 @@ use msg::constellation_msg::WebDriverCommandMsg;
 use msg::constellation_msg::{FrameId, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, NavigationDirection};
-use msg::constellation_msg::{SubpageId, WindowSizeData};
+use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
 use msg::constellation_msg::{self, ConstellationChan, PanicMsg};
 use msg::webdriver_msg;
 use net_traits::image_cache_thread::ImageCacheThread;
@@ -48,13 +48,13 @@ use rand::{random, Rng, SeedableRng, StdRng};
 use sandboxing;
 use script_traits::{AnimationState, CompositorEvent, ConstellationControlMsg};
 use script_traits::{DocumentState, LayoutControlMsg};
-use script_traits::{IFrameLoadInfo, IFrameSandboxState, MozBrowserEvent, TimerEventRequest};
+use script_traits::{IFrameLoadInfo, IFrameSandboxState, TimerEventRequest};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
+use script_traits::{MozBrowserEvent, MozBrowserErrorType};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::env;
 use std::io::Error as IOError;
-use std::io::{self, Write};
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::process;
@@ -182,6 +182,9 @@ pub struct Constellation<LTF, STF> {
 
     // Webrender interface, if enabled.
     webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+
+    /// Have we seen any panics? Hopefully always false!
+    handled_panic: bool,
 
     /// The random number generator and probability for closing pipelines.
     /// This is for testing the hardening of the constellation.
@@ -369,6 +372,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 child_processes: Vec::new(),
                 document_states: HashMap::new(),
                 webrender_api_sender: state.webrender_api_sender,
+                handled_panic: false,
                 random_pipeline_closure: opts::get().random_pipeline_closure_probability.map(|prob| {
                     let seed = opts::get().random_pipeline_closure_seed.unwrap_or_else(random);
                     let rng = StdRng::from_seed(&[seed]);
@@ -501,7 +505,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
     #[cfg(target_os = "windows")]
     fn spawn_multiprocess(&mut self, _: PipelineId, _: UnprivilegedPipelineContent) {
-        panic!("Multiprocess is not supported on Windows.");
+        error!("Multiprocess is not supported on Windows.");
+        process::exit(1);
     }
 
     // Push a new (loading) pipeline to the list of pending frame changes
@@ -639,9 +644,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 debug!("constellation got navigation message from compositor");
                 self.handle_navigate_msg(pipeline_info, direction);
             }
-            Request::Compositor(FromCompositorMsg::ResizedWindow(new_size)) => {
+            Request::Compositor(FromCompositorMsg::WindowSize(new_size, size_type)) => {
                 debug!("constellation got window resize message");
-                self.handle_resized_window_msg(new_size);
+                self.handle_window_size_msg(new_size, size_type);
             }
             Request::Compositor(FromCompositorMsg::TickAnimation(pipeline_id, tick_type)) => {
                 self.handle_tick_animation(pipeline_id, tick_type)
@@ -810,9 +815,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
             // Panic messages
 
-            Request::Panic((pipeline_id, panic_reason)) => {
+            Request::Panic((pipeline_id, panic_reason, backtrace)) => {
                 debug!("handling panic message ({:?})", pipeline_id);
-                self.handle_panic(pipeline_id, panic_reason);
+                self.handle_panic(pipeline_id, panic_reason, backtrace);
             }
         }
         true
@@ -842,62 +847,65 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     fn handle_send_error(&mut self, pipeline_id: PipelineId, err: IOError) {
         // Treat send error the same as receiving a panic message
         debug!("Pipeline {:?} send error ({}).", pipeline_id, err);
-        self.handle_panic(Some(pipeline_id), format!("Send failed ({})", err));
+        self.handle_panic(Some(pipeline_id), format!("Send failed ({})", err), String::from("<none>"));
     }
 
-    fn handle_panic(&mut self, pipeline_id: Option<PipelineId>, reason: String) {
+    fn handle_panic(&mut self, pipeline_id: Option<PipelineId>, reason: String, backtrace: String) {
+        error!("Panic: {}", reason);
+        if !self.handled_panic || opts::get().full_backtraces {
+            // For the first panic, we print the full backtrace
+            error!("Backtrace:\n{}", backtrace);
+        } else {
+            error!("Backtrace skipped (run with -Z full-backtraces to see every backtrace).");
+        }
+
         if opts::get().hard_fail {
             // It's quite difficult to make Servo exit cleanly if some threads have failed.
             // Hard fail exists for test runners so we crash and that's good enough.
-            let mut stderr = io::stderr();
-            stderr.write_all("Pipeline failed in hard-fail mode.  Crashing!\n".as_bytes())
-                .expect("Failed to write to stderr!");
+            error!("Pipeline failed in hard-fail mode.  Crashing!");
             process::exit(1);
         }
 
         debug!("Panic handler for pipeline {:?}: {}.", pipeline_id, reason);
 
         if let Some(pipeline_id) = pipeline_id {
-            self.replace_pipeline_with_about_failure(pipeline_id);
+
+            let parent_info = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.parent_info);
+            let window_size = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.size);
+
+            // Notify the browser chrome that the pipeline has failed
+            self.trigger_mozbrowsererror(pipeline_id, reason, backtrace);
+
+            self.close_pipeline(pipeline_id, ExitPipelineMode::Force);
+
+            while let Some(pending_pipeline_id) = self.pending_frames.iter().find(|pending| {
+                pending.old_pipeline_id == Some(pipeline_id)
+            }).map(|frame| frame.new_pipeline_id) {
+                warn!("removing pending frame change for failed pipeline");
+                self.close_pipeline(pending_pipeline_id, ExitPipelineMode::Force);
+            }
+
+            warn!("creating replacement pipeline for about:failure");
+
+            let new_pipeline_id = PipelineId::new();
+            self.new_pipeline(new_pipeline_id,
+                              parent_info,
+                              window_size,
+                              None,
+                              LoadData::new(Url::parse("about:failure").expect("infallible"), None, None));
+
+            self.push_pending_frame(new_pipeline_id, Some(pipeline_id));
+
         }
 
-    }
-
-    fn replace_pipeline_with_about_failure(&mut self, pipeline_id: PipelineId) {
-
-        let parent_info = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.parent_info);
-        let window_size = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.size);
-
-        // Notify the browser chrome that the pipeline has failed
-        self.trigger_mozbrowsererror(pipeline_id);
-
-        self.close_pipeline(pipeline_id, ExitPipelineMode::Force);
-
-        while let Some(pending_pipeline_id) = self.pending_frames.iter().find(|pending| {
-            pending.old_pipeline_id == Some(pipeline_id)
-        }).map(|frame| frame.new_pipeline_id) {
-            warn!("removing pending frame change for failed pipeline");
-            self.close_pipeline(pending_pipeline_id, ExitPipelineMode::Force);
-        }
-
-        warn!("creating replacement pipeline for about:failure");
-
-        let new_pipeline_id = PipelineId::new();
-        self.new_pipeline(new_pipeline_id,
-                          parent_info,
-                          window_size,
-                          None,
-                          LoadData::new(Url::parse("about:failure").expect("infallible")));
-
-        self.push_pending_frame(new_pipeline_id, Some(pipeline_id));
-
+        self.handled_panic = true;
     }
 
     fn handle_init_load(&mut self, url: Url) {
         let window_size = self.window_size.visible_viewport;
         let root_pipeline_id = PipelineId::new();
         debug_assert!(PipelineId::fake_root_pipeline_id() == root_pipeline_id);
-        self.new_pipeline(root_pipeline_id, None, Some(window_size), None, LoadData::new(url.clone()));
+        self.new_pipeline(root_pipeline_id, None, Some(window_size), None, LoadData::new(url.clone(), None, None));
         self.handle_load_start_msg(&root_pipeline_id);
         self.push_pending_frame(root_pipeline_id, None);
         self.compositor_proxy.send(ToCompositorMsg::ChangePageUrl(root_pipeline_id, url));
@@ -910,7 +918,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             visible_viewport: *size,
             initial_viewport: *size * ScaleFactor::new(1.0),
             device_pixel_ratio: self.window_size.device_pixel_ratio,
-        });
+        }, WindowSizeType::Initial);
 
         // Store the new rect inside the pipeline
         let result = {
@@ -963,7 +971,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             .and_then(|old_subpage_id| self.subpage_map.get(&(load_info.containing_pipeline_id, old_subpage_id)))
             .cloned();
 
-        let (new_url, script_chan, window_size) = {
+        let (load_data, script_chan, window_size) = {
 
             let old_pipeline = old_pipeline_id
                 .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
@@ -974,27 +982,34 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             };
 
             // If no url is specified, reload.
-            let new_url = load_info.url.clone()
-                .or_else(|| old_pipeline.map(|old_pipeline| old_pipeline.url.clone()))
-                .unwrap_or_else(|| Url::parse("about:blank").expect("infallible"));
+            let load_data = load_info.load_data.unwrap_or_else(|| {
+                let url = match old_pipeline {
+                    Some(old_pipeline) => old_pipeline.url.clone(),
+                    None => Url::parse("about:blank").expect("infallible"),
+                };
+
+                // TODO - loaddata here should have referrer info (not None, None)
+                LoadData::new(url, None, None)
+            });
 
             // Compare the pipeline's url to the new url. If the origin is the same,
             // then reuse the script thread in creating the new pipeline
             let source_url = &source_pipeline.url;
 
-            let same_script = source_url.host() == new_url.host() &&
-                              source_url.port() == new_url.port() &&
+            // FIXME(#10968): this should probably match the origin check in
+            //                HTMLIFrameElement::contentDocument.
+            let same_script = source_url.host() == load_data.url.host() &&
+                              source_url.port() == load_data.url.port() &&
                               load_info.sandbox == IFrameSandboxState::IFrameUnsandboxed;
 
-            // FIXME(tkuehn): Need to follow the standardized spec for checking same-origin
             // Reuse the script thread if the URL is same-origin
             let script_chan = if same_script {
                 debug!("Constellation: loading same-origin iframe, \
-                        parent url {:?}, iframe url {:?}", source_url, new_url);
+                        parent url {:?}, iframe url {:?}", source_url, load_data.url);
                 Some(source_pipeline.script_chan.clone())
             } else {
                 debug!("Constellation: loading cross-origin iframe, \
-                        parent url {:?}, iframe url {:?}", source_url, new_url);
+                        parent url {:?}, iframe url {:?}", source_url, load_data.url);
                 None
             };
 
@@ -1004,7 +1019,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 old_pipeline.freeze();
             }
 
-            (new_url, script_chan, window_size)
+            (load_data, script_chan, window_size)
 
         };
 
@@ -1013,7 +1028,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                           Some((load_info.containing_pipeline_id, load_info.new_subpage_id)),
                           window_size,
                           script_chan,
-                          LoadData::new(new_url));
+                          load_data);
 
         self.subpage_map.insert((load_info.containing_pipeline_id, load_info.new_subpage_id),
                                 load_info.new_pipeline_id);
@@ -1249,7 +1264,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     Some((_, new_subpage_id)) => new_subpage_id,
                 },
             };
-            let msg = ConstellationControlMsg::UpdateSubpageId(parent_pipeline_id, subpage_id, new_subpage_id);
+            let msg = ConstellationControlMsg::UpdateSubpageId(parent_pipeline_id,
+                                                               subpage_id,
+                                                               new_subpage_id,
+                                                               next_pipeline_id);
             let result = match self.pipelines.get(&parent_pipeline_id) {
                 None => return warn!("Pipeline {:?} child navigated after closure.", parent_pipeline_id),
                 Some(pipeline) => pipeline.script_chan.send(msg),
@@ -1419,7 +1437,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             },
             WebDriverCommandMsg::Refresh(pipeline_id, reply) => {
                 let load_data = match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => LoadData::new(pipeline.url.clone()),
+                    Some(pipeline) => LoadData::new(pipeline.url.clone(), None, None),
                     None => return warn!("Pipeline {:?} Refresh after closure.", pipeline_id),
                 };
                 self.load_url_for_webdriver(pipeline_id, load_data, reply);
@@ -1581,8 +1599,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     }
 
     /// Called when the window is resized.
-    fn handle_resized_window_msg(&mut self, new_size: WindowSizeData) {
-        debug!("handle_resized_window_msg: {:?} {:?}", new_size.initial_viewport.to_untyped(),
+    fn handle_window_size_msg(&mut self, new_size: WindowSizeData, size_type: WindowSizeType) {
+        debug!("handle_window_size_msg: {:?} {:?}", new_size.initial_viewport.to_untyped(),
                                                        new_size.visible_viewport.to_untyped());
 
         if let Some(root_frame_id) = self.root_frame_id {
@@ -1597,14 +1615,23 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 None => return warn!("Pipeline {:?} resized after closing.", pipeline_id),
                 Some(pipeline) => pipeline,
             };
-            let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(pipeline.id, new_size));
+            let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(
+                pipeline.id,
+                new_size,
+                size_type
+            ));
             for pipeline_id in frame.prev.iter().chain(&frame.next) {
                 let pipeline = match self.pipelines.get(&pipeline_id) {
-                    None => { warn!("Inactive pipeline {:?} resized after closing.", pipeline_id); continue; },
+                    None => {
+                        warn!("Inactive pipeline {:?} resized after closing.", pipeline_id);
+                        continue;
+                    },
                     Some(pipeline) => pipeline,
                 };
-                let _ = pipeline.script_chan.send(ConstellationControlMsg::ResizeInactive(pipeline.id,
-                                                                                          new_size));
+                let _ = pipeline.script_chan.send(ConstellationControlMsg::ResizeInactive(
+                    pipeline.id,
+                    new_size
+                ));
             }
         }
 
@@ -1616,8 +1643,11 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 Some(pipeline) => pipeline,
             };
             if pipeline.parent_info.is_none() {
-                let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(pipeline.id,
-                                                                                  new_size));
+                let _ = pipeline.script_chan.send(ConstellationControlMsg::Resize(
+                    pipeline.id,
+                    new_size,
+                    size_type
+                ));
             }
         }
 
@@ -1850,6 +1880,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         if let Some((ref mut rng, _)) = self.random_pipeline_closure {
             if let Some(pipeline_id) = rng.choose(&*pipeline_ids) {
                 if let Some(pipeline) = self.pipelines.get(pipeline_id) {
+                    // Don't kill the root pipeline
+                    if pipeline.parent_info.is_none() { return; }
                     // Note that we deliberately do not do any of the tidying up
                     // associated with closing a pipeline. The constellation should cope!
                     info!("Randomly closing pipeline {}.", pipeline_id);
@@ -1920,7 +1952,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
         let event_info = self.pipelines.get(&pipeline_id).and_then(|pipeline| {
             pipeline.parent_info.map(|(containing_pipeline_id, subpage_id)| {
-                (containing_pipeline_id, subpage_id, pipeline.url.serialize())
+                (containing_pipeline_id, subpage_id, pipeline.url.to_string())
             })
         });
 
@@ -1941,8 +1973,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
     // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsererror
     // Note that this does not require the pipeline to be an immediate child of the root
-    // TODO: propagate more error information, e.g. a backtrace
-    fn trigger_mozbrowsererror(&self, pipeline_id: PipelineId) {
+    fn trigger_mozbrowsererror(&self, pipeline_id: PipelineId, reason: String, backtrace: String) {
         if !prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) { return; }
 
         if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
@@ -1955,7 +1986,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                             None => return warn!("Mozbrowsererror via closed pipeline {:?}.", ancestor_info.0),
                         };
                     }
-                    let event = MozBrowserEvent::Error;
+                    let event = MozBrowserEvent::Error(MozBrowserErrorType::Fatal, Some(reason), Some(backtrace));
                     ancestor.trigger_mozbrowser_event(ancestor_info.1, event);
                 }
             }

@@ -18,8 +18,8 @@ test(function() {
   assert_true("initEvent" in ev)
 }, "Default event values.")
 test(function() {
-  assert_throws("NotSupportedError", function() {
-    document.createEvent("ProgressEvent")
-  })
-}, "document.createEvent() should not work with ProgressEvent.")
+  var e = document.createEvent("ProgressEvent");
+  var eProto = Object.getPrototypeOf(e);
+  assert_equals(eProto, ProgressEvent.prototype);
+}, "document.createEvent() should work with ProgressEvent.");
 </script>

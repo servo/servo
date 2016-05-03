@@ -23,7 +23,7 @@ script-src 'self' 'unsafe-inline' 'unsafe-eval' 'unsafe-inline' 127.0.0.1:8000; 
             worker.onmessage = function(event) {
                 result = event.data;
                 test(function() {
-                    assert_equals(result, 'importScripts blocked: NetworkError: Failed to execute \'importScripts\' on \'WorkerGlobalScope\': The script at \'http://{{host}}:{{ports[http][0]}}/content-security-policy/blink-contrib/resources/post-message.js\' failed to load.')
+                    assert_equals(result, 'importScripts blocked')
                 });
                 log("TEST COMPLETE");
             };

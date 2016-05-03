@@ -12,7 +12,7 @@ use std::str::FromStr;
 use string_cache::{Atom, Namespace};
 use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto, HTML_SPACE_CHARACTERS};
-use util::str::{read_numbers, split_html_space_chars, str_join};
+use util::str::{read_exponent, read_fraction, read_numbers, split_html_space_chars, str_join};
 use values::specified::{Length};
 
 // Duplicated from script::dom::values.
@@ -24,6 +24,7 @@ pub enum AttrValue {
     TokenList(DOMString, Vec<Atom>),
     UInt(DOMString, u32),
     Int(DOMString, i32),
+    Double(DOMString, f64),
     Atom(Atom),
     Length(DOMString, Option<Length>),
     Color(DOMString, Option<RGBA>),
@@ -34,13 +35,13 @@ pub enum AttrValue {
 /// Shared implementation to parse an integer according to
 /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-integers> or
 /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-negative-integers>
-fn do_parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i64> {
+fn do_parse_integer<T: Iterator<Item=char>>(input: T) -> Result<i64, ()> {
     let mut input = input.skip_while(|c| {
         HTML_SPACE_CHARACTERS.iter().any(|s| s == c)
     }).peekable();
 
     let sign = match input.peek() {
-        None => return None,
+        None => return Err(()),
         Some(&'-') => {
             input.next();
             -1
@@ -52,25 +53,64 @@ fn do_parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i64> {
         Some(_) => 1,
     };
 
-    let value = read_numbers(input);
+    let (value, _) = read_numbers(input);
 
-    value.and_then(|value| value.checked_mul(sign))
+    value.and_then(|value| value.checked_mul(sign)).ok_or(())
 }
 
 /// Parse an integer according to
 /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-integers>.
-pub fn parse_integer<T: Iterator<Item=char>>(input: T) -> Option<i32> {
+pub fn parse_integer<T: Iterator<Item=char>>(input: T) -> Result<i32, ()> {
     do_parse_integer(input).and_then(|result| {
-        result.to_i32()
+        result.to_i32().ok_or(())
     })
 }
 
 /// Parse an integer according to
 /// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-non-negative-integers>
-pub fn parse_unsigned_integer<T: Iterator<Item=char>>(input: T) -> Option<u32> {
+pub fn parse_unsigned_integer<T: Iterator<Item=char>>(input: T) -> Result<u32, ()> {
     do_parse_integer(input).and_then(|result| {
-        result.to_u32()
+        result.to_u32().ok_or(())
     })
+}
+
+/// Parse a floating-point number according to
+/// <https://html.spec.whatwg.org/multipage/#rules-for-parsing-floating-point-number-values>
+pub fn parse_double(string: &DOMString) -> Result<f64, ()> {
+    let trimmed = string.trim_matches(HTML_SPACE_CHARACTERS);
+    let mut input = trimmed.chars().peekable();
+
+    let (value, divisor) = match input.peek() {
+        None => return Err(()),
+        Some(&'-') => {
+            input.next();
+            (-1f64, -1f64)
+        }
+        Some(&'+') => {
+            input.next();
+            (1f64, 1f64)
+        }
+        _ => (1f64, 1f64)
+    };
+
+    let (value, value_digits) = if let Some(&'.') = input.peek() {
+        (0f64, 0)
+    } else {
+        let (read_val, read_digits) = read_numbers(input);
+        (value * read_val.and_then(|result| result.to_f64()).unwrap_or(1f64), read_digits)
+    };
+
+    let input = trimmed.chars().skip(value_digits).peekable();
+
+    let (mut value, fraction_digits) = read_fraction(input, divisor, value);
+
+    let input = trimmed.chars().skip(value_digits + fraction_digits).peekable();
+
+    if let Some(exp) = read_exponent(input) {
+        value *= 10f64.powi(exp)
+    };
+
+    Ok(value)
 }
 
 impl AttrValue {
@@ -105,6 +145,17 @@ impl AttrValue {
     pub fn from_i32(string: DOMString, default: i32) -> AttrValue {
         let result = parse_integer(string.chars()).unwrap_or(default);
         AttrValue::Int(string, result)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#reflecting-content-attributes-in-idl-attributes:idl-double
+    pub fn from_double(string: DOMString, default: f64) -> AttrValue {
+        let result = parse_double(&string).unwrap_or(default);
+        let result = if result.is_infinite() {
+            default
+        } else {
+            result
+        };
+        AttrValue::Double(string, result)
     }
 
     // https://html.spec.whatwg.org/multipage/#limited-to-only-non-negative-numbers
@@ -250,6 +301,7 @@ impl Deref for AttrValue {
             AttrValue::String(ref value) |
                 AttrValue::TokenList(ref value, _) |
                 AttrValue::UInt(ref value, _) |
+                AttrValue::Double(ref value, _) |
                 AttrValue::Length(ref value, _) |
                 AttrValue::Color(ref value, _) |
                 AttrValue::Int(ref value, _) |

@@ -7,16 +7,20 @@
 
 use cookie::Cookie;
 use net_traits::CookieSource;
+use rustc_serialize::Encoder;
 use std::cmp::Ordering;
 use url::Url;
 
+#[derive(Clone, RustcDecodable, RustcEncodable)]
 pub struct CookieStorage {
+    version: u32,
     cookies: Vec<Cookie>
 }
 
 impl CookieStorage {
     pub fn new() -> CookieStorage {
         CookieStorage {
+            version: 1,
             cookies: Vec::new()
         }
     }

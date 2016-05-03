@@ -14,8 +14,6 @@
 
 extern crate app_units;
 #[macro_use]
-extern crate bitflags;
-#[macro_use]
 extern crate cssparser;
 extern crate euclid;
 extern crate heapsize;
@@ -42,6 +40,7 @@ mod gecko_style_structs;
 pub mod glue;
 mod selector_impl;
 mod traversal;
+mod values;
 mod wrapper;
 
 // Generated from the properties.mako.rs template by build.rs

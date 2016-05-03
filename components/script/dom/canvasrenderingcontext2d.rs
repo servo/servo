@@ -486,11 +486,29 @@ impl CanvasRenderingContext2D {
             match color {
                 Ok(CSSColor::RGBA(rgba)) => Ok(rgba),
                 Ok(CSSColor::CurrentColor) => {
+                    // TODO: https://github.com/whatwg/html/issues/1099
+                    // Reconsider how to calculate currentColor in a display:none canvas
+
                     // TODO: will need to check that the context bitmap mode is fixed
                     // once we implement CanvasProxy
                     let window = window_from_node(&*self.canvas);
+
                     let style = window.GetComputedStyle(&*self.canvas.upcast(), None);
-                    self.parse_color(&style.GetPropertyValue(DOMString::from("color")))
+
+                    let element_not_rendered =
+                        !self.canvas.upcast::<Node>().is_in_doc() ||
+                        style.GetPropertyValue(DOMString::from("display")) == "none";
+
+                    if element_not_rendered {
+                        Ok(RGBA {
+                            red: 0.0,
+                            green: 0.0,
+                            blue: 0.0,
+                            alpha: 1.0,
+                        })
+                    } else {
+                        self.parse_color(&style.GetPropertyValue(DOMString::from("color")))
+                    }
                 },
                 _ => Err(())
             }

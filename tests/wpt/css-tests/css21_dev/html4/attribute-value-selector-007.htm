@@ -1,12 +1,11 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
-  <head>
+<!DOCTYPE html>
+<html><head>
     <title>CSS Test: lang attribute selector - att=val</title>
-    <link rel="author" title="Richard Ishida" href="mailto:ishida@w3.org">
-    <link rel="author" title="Eira Monstad, Opera Software ASA" href="mailto:public-testsuites@opera.com">
-    <link rel="help" href="http://www.w3.org/TR/CSS21/selector.html#attribute-selectors">
-    <meta name="flags" content="HTMLonly">
-    <meta name="assert" content="lang attribute selector with att=val in HTML should not be case sensitive, and should only match when att is exactly val">
+    <link href="mailto:ishida@w3.org" rel="author" title="Richard Ishida">
+    <link href="mailto:public-testsuites@opera.com" rel="author" title="Eira Monstad, Opera Software ASA">
+    <link href="http://www.w3.org/TR/CSS21/selector.html#attribute-selectors" rel="help">
+    <meta content="HTMLonly" name="flags">
+    <meta content="lang attribute selector with att=val in HTML should not be case sensitive, and should only match when att is exactly val" name="assert">
     <style type="text/css">
       div[lang = "es"] { color:white;background-color:green; }
       p[lang = "es"] { color:white;background-color:green; }
@@ -37,5 +36,6 @@
     <p lang="de">This line should NOT be green <em>and this should not be green either</em></p>
 
 
-</body>
-</html>
+
+
+</body></html>

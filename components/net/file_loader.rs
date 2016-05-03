@@ -50,7 +50,7 @@ fn read_all(reader: &mut File, progress_chan: &ProgressSender, cancel_listener: 
             ReadStatus::EOF => return Ok(LoadResult::Finished),
         }
     }
-    let _ = progress_chan.send(Done(Err(NetworkError::Internal("load cancelled".to_owned()))));
+    let _ = progress_chan.send(Done(Err(NetworkError::LoadCancelled)));
     Ok(LoadResult::Cancelled)
 }
 
@@ -67,7 +67,7 @@ pub fn factory(load_data: LoadData,
                senders: LoadConsumer,
                classifier: Arc<MIMEClassifier>,
                cancel_listener: CancellationListener) {
-    assert!(&*load_data.url.scheme == "file");
+    assert!(load_data.url.scheme() == "file");
     spawn_named("file_loader".to_owned(), move || {
         let file_path = match load_data.url.to_file_path() {
             Ok(file_path) => file_path,
@@ -84,7 +84,7 @@ pub fn factory(load_data: LoadData,
                 // http://doc.rust-lang.org/std/fs/struct.OpenOptions.html#method.open
                 // but, we'll go for a "file not found!"
                 let url = Url::parse("about:not-found").unwrap();
-                let load_data_404 = LoadData::new(load_data.context, url, None);
+                let load_data_404 = LoadData::new(load_data.context, url, None, None, None);
                 about_loader::factory(load_data_404, senders, classifier, cancel_listener);
                 return;
             }
@@ -92,7 +92,7 @@ pub fn factory(load_data: LoadData,
         if cancel_listener.is_cancelled() {
             if let Ok(progress_chan) = get_progress_chan(load_data, file_path,
                                                          senders, classifier, &[]) {
-                let _ = progress_chan.send(Done(Err(NetworkError::Internal("load cancelled".to_owned()))));
+                let _ = progress_chan.send(Done(Err(NetworkError::LoadCancelled)));
             }
             return;
         }

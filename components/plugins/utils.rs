@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use rustc::hir::def_id::DefId;
-use rustc::hir::map as ast_map;
 use rustc::hir::{self, def};
 use rustc::lint::{LateContext, LintContext};
 use syntax::ast;
@@ -71,30 +70,6 @@ pub fn match_lang_did(cx: &LateContext, did: DefId, value: &str) -> bool {
             _ => false,
         }
     })
-}
-
-// Determines if a block is in an unsafe context so that an unhelpful
-// lint can be aborted.
-pub fn unsafe_context(map: &ast_map::Map, id: ast::NodeId) -> bool {
-    match map.find(map.get_parent(id)) {
-        Some(ast_map::NodeImplItem(itm)) => {
-            match itm.node {
-                hir::ImplItemKind::Method(ref sig, _) => sig.unsafety == hir::Unsafety::Unsafe,
-                _ => false
-            }
-        },
-        Some(ast_map::NodeItem(itm)) => {
-            match itm.node {
-                hir::ItemFn(_, style, _, _, _, _) => match style {
-                    hir::Unsafety::Unsafe => true,
-                    _ => false,
-                },
-                _ => false,
-            }
-        }
-        _ => false // There are probably a couple of other unsafe cases we don't care to lint, those will need
-                   // to be added.
-    }
 }
 
 /// check if a DefId's path matches the given absolute type path

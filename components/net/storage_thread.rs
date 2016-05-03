@@ -4,10 +4,12 @@
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use net_traits::storage_thread::{StorageThread, StorageThreadMsg, StorageType};
+use resource_thread;
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::collections::HashMap;
 use url::Url;
+use util::opts;
 use util::thread::spawn_named;
 
 const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
@@ -35,10 +37,14 @@ struct StorageManager {
 
 impl StorageManager {
     fn new(port: IpcReceiver<StorageThreadMsg>) -> StorageManager {
+        let mut local_data = HashMap::new();
+        if let Some(ref profile_dir) = opts::get().profile_dir {
+            resource_thread::read_json_from_file(&mut local_data, profile_dir, "local_data.json");
+        }
         StorageManager {
             port: port,
             session_data: HashMap::new(),
-            local_data: HashMap::new(),
+            local_data: local_data,
         }
     }
 }
@@ -69,6 +75,9 @@ impl StorageManager {
                     self.clear(sender, url, storage_type)
                 }
                 StorageThreadMsg::Exit => {
+                    if let Some(ref profile_dir) = opts::get().profile_dir {
+                        resource_thread::write_json_to_file(&self.local_data, profile_dir, "local_data.json");
+                    }
                     break
                 }
             }
@@ -216,15 +225,6 @@ impl StorageManager {
     }
 
     fn origin_as_string(&self, url: Url) -> String {
-        let mut origin = "".to_owned();
-        origin.push_str(&url.scheme);
-        origin.push_str("://");
-        url.domain().map(|domain| origin.push_str(&domain));
-        url.port().map(|port| {
-            origin.push_str(":");
-            origin.push_str(&port.to_string());
-        });
-        origin.push_str("/");
-        origin
+        url.origin().ascii_serialization()
     }
 }

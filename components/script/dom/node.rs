@@ -131,7 +131,7 @@ pub struct Node {
 bitflags! {
     #[doc = "Flags for node items."]
     #[derive(JSTraceable, HeapSizeOf)]
-    flags NodeFlags: u8 {
+    pub flags NodeFlags: u8 {
         #[doc = "Specifies whether this node is in a document."]
         const IS_IN_DOC = 0x01,
         #[doc = "Specifies whether this node _must_ be reflowed regardless of style differences."]
@@ -195,7 +195,7 @@ impl OpaqueStyleAndLayoutData {
     pub fn dispose(self, node: &Node) {
         debug_assert!(thread_state::get().is_script());
         let win = window_from_node(node);
-        let LayoutChan(chan) = win.layout_chan();
+        let LayoutChan(ref chan) = *win.layout_chan();
         node.style_and_layout_data.set(None);
         chan.send(Msg::ReapStyleAndLayoutData(self)).unwrap();
     }
@@ -1858,6 +1858,11 @@ impl NodeMethods for Node {
         }
     }
 
+    // https://dom.spec.whatwg.org/#dom-node-rootnode
+    fn RootNode(&self) -> Root<Node> {
+        self.inclusive_ancestors().last().unwrap()
+    }
+
     // https://dom.spec.whatwg.org/#dom-node-parentnode
     fn GetParentNode(&self) -> Option<Root<Node>> {
         self.parent_node.get()
@@ -2222,6 +2227,14 @@ impl NodeMethods for Node {
             None => false,
             // Step 2-6.
             Some(node) => is_equal_node(self, node)
+        }
+    }
+
+    // https://dom.spec.whatwg.org/#dom-node-issamenode
+    fn IsSameNode(&self, otherNode: Option<&Node>) -> bool {
+        match otherNode {
+            Some(node) => self == node,
+            None => false,
         }
     }
 

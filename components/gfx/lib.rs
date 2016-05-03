@@ -11,7 +11,7 @@
 #![feature(custom_derive)]
 #![feature(mpsc_select)]
 #![feature(plugin)]
-#![feature(str_char)]
+#![feature(range_contains)]
 #![feature(unique)]
 
 #![plugin(heapsize_plugin)]
@@ -23,6 +23,7 @@
 extern crate alloc;
 extern crate app_units;
 extern crate azure;
+#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate bitflags;
 
@@ -49,6 +50,7 @@ extern crate harfbuzz_sys as harfbuzz;
 extern crate heapsize;
 extern crate ipc_channel;
 extern crate layers;
+#[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
 extern crate libc;
@@ -78,6 +80,7 @@ extern crate unicode_script;
 extern crate url;
 extern crate util;
 extern crate webrender_traits;
+extern crate xi_unicode;
 
 pub use paint_context::PaintContext;
 

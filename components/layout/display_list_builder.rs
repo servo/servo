@@ -13,7 +13,7 @@
 use app_units::{Au, AU_PER_PX};
 use azure::azure_hl::Color;
 use block::{BlockFlow, BlockStackingContextType};
-use canvas_traits::{CanvasMsg, CanvasPixelData, CanvasData, FromLayoutMsg};
+use canvas_traits::{CanvasMsg, CanvasData, FromLayoutMsg};
 use context::LayoutContext;
 use euclid::num::Zero;
 use euclid::{Matrix4D, Point2D, Point3D, Rect, SideOffsets2D, Size2D};
@@ -29,12 +29,12 @@ use gfx::display_list::{GradientDisplayItem};
 use gfx::display_list::{GradientStop, IframeDisplayItem, ImageDisplayItem, WebGLDisplayItem, LayeredItem, LayerInfo};
 use gfx::display_list::{LineDisplayItem, OpaqueNode, SolidColorDisplayItem};
 use gfx::display_list::{StackingContext, StackingContextId, StackingContextType};
-use gfx::display_list::{TextDisplayItem, TextOrientation, DisplayListEntry, WebRenderImageInfo};
+use gfx::display_list::{TextDisplayItem, TextOrientation, WebRenderImageInfo};
 use gfx::paint_thread::THREAD_TINT_COLORS;
-use gfx::text::glyph::CharIndex;
+use gfx::text::glyph::ByteIndex;
 use gfx_traits::{color, ScrollPolicy};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
-use ipc_channel::ipc::{self, IpcSharedMemory};
+use ipc_channel::ipc::{self};
 use list_item::ListItemFlow;
 use model::{self, MaybeAuto, ToGfxMatrix};
 use net_traits::image::base::PixelFormat;
@@ -46,8 +46,8 @@ use std::{cmp, f32};
 use style::computed_values::filter::Filter;
 use style::computed_values::{_servo_overflow_clip_box as overflow_clip_box};
 use style::computed_values::{background_attachment, background_clip, background_origin};
-use style::computed_values::{background_repeat, background_size};
-use style::computed_values::{border_style, image_rendering, overflow_x, position};
+use style::computed_values::{background_repeat, background_size, border_style};
+use style::computed_values::{cursor, image_rendering, overflow_x, pointer_events, position};
 use style::computed_values::{transform, transform_style, visibility};
 use style::logical_geometry::{LogicalPoint, LogicalRect, LogicalSize, WritingMode};
 use style::properties::style_structs::ServoBorder;
@@ -63,7 +63,7 @@ use util::opts;
 
 pub struct DisplayListBuildState<'a> {
     pub layout_context: &'a LayoutContext<'a>,
-    pub items: Vec<DisplayListEntry>,
+    pub items: Vec<DisplayItem>,
     pub stacking_context_id_stack: Vec<StackingContextId>,
 }
 
@@ -77,14 +77,8 @@ impl<'a> DisplayListBuildState<'a> {
         }
     }
 
-    fn add_display_item(&mut self, display_item: DisplayItem, section: DisplayListSection) {
-        let stacking_context_id = self.stacking_context_id();
-        self.items.push(
-            DisplayListEntry {
-                stacking_context_id: stacking_context_id,
-                section: section,
-                item: display_item
-            });
+    fn add_display_item(&mut self, display_item: DisplayItem) {
+        self.items.push(display_item);
     }
 
     fn stacking_context_id(&self) -> StackingContextId {
@@ -98,6 +92,23 @@ impl<'a> DisplayListBuildState<'a> {
     pub fn pop_stacking_context_id(&mut self) {
         self.stacking_context_id_stack.pop();
         assert!(!self.stacking_context_id_stack.is_empty());
+    }
+
+    fn create_base_display_item(&self,
+                                bounds: &Rect<Au>,
+                                clip: &ClippingRegion,
+                                node: OpaqueNode,
+                                cursor: Option<Cursor>,
+                                section: DisplayListSection)
+                                -> BaseDisplayItem {
+        BaseDisplayItem::new(&bounds,
+                             DisplayItemMetadata {
+                                 node: node,
+                                 pointing: cursor,
+                             },
+                             &clip,
+                             section,
+                             self.stacking_context_id())
     }
 }
 
@@ -365,15 +376,16 @@ impl FragmentDisplayListBuilding for Fragment {
             }
         }
 
+        let base = state.create_base_display_item(&bounds,
+                                                  &clip,
+                                                  self.node,
+                                                  style.get_cursor(Cursor::DefaultCursor),
+                                                  display_list_section);
         state.add_display_item(
             DisplayItem::SolidColorClass(box SolidColorDisplayItem {
-                base: BaseDisplayItem::new(&bounds,
-                                           DisplayItemMetadata::new(self.node,
-                                                                    style,
-                                                                    Cursor::DefaultCursor),
-                                           &clip),
+                base: base,
                 color: background_color.to_gfx_color(),
-            }), display_list_section);
+            }));
 
         // The background image is painted on top of the background color.
         // Implements background image, per spec:
@@ -556,17 +568,18 @@ impl FragmentDisplayListBuilding for Fragment {
             };
 
             // Create the image display item.
+            let base = state.create_base_display_item(&bounds,
+                                                      &clip,
+                                                      self.node,
+                                                      style.get_cursor(Cursor::DefaultCursor),
+                                                      display_list_section);
             state.add_display_item(DisplayItem::ImageClass(box ImageDisplayItem {
-                base: BaseDisplayItem::new(&bounds,
-                                           DisplayItemMetadata::new(self.node,
-                                                                    style,
-                                                                    Cursor::DefaultCursor),
-                                           &clip),
+                base: base,
                 webrender_image: webrender_image,
                 image_data: image_data.map(Arc::new),
                 stretch_size: Size2D::new(image_size.width, image_size.height),
                 image_rendering: style.get_inheritedbox().image_rendering.clone(),
-            }), display_list_section);
+            }));
         }
     }
 
@@ -676,18 +689,19 @@ impl FragmentDisplayListBuilding for Fragment {
         let center = Point2D::new(absolute_bounds.origin.x + absolute_bounds.size.width / 2,
                                   absolute_bounds.origin.y + absolute_bounds.size.height / 2);
 
+        let base = state.create_base_display_item(absolute_bounds,
+                                                  &clip,
+                                                  self.node,
+                                                  style.get_cursor(Cursor::DefaultCursor),
+                                                  display_list_section);
         let gradient_display_item = DisplayItem::GradientClass(box GradientDisplayItem {
-            base: BaseDisplayItem::new(absolute_bounds,
-                                       DisplayItemMetadata::new(self.node,
-                                                                style,
-                                                                Cursor::DefaultCursor),
-                                       &clip),
+            base: base,
             start_point: center - delta,
             end_point: center + delta,
             stops: stops,
         });
 
-        state.add_display_item(gradient_display_item, display_list_section);
+        state.add_display_item(gradient_display_item);
     }
 
     fn build_display_list_for_box_shadow_if_applicable(&self,
@@ -705,12 +719,13 @@ impl FragmentDisplayListBuilding for Fragment {
                               box_shadow.spread_radius);
 
             // TODO(pcwalton): Multiple border radii; elliptical border radii.
+            let base = state.create_base_display_item(&bounds,
+                                                      &clip,
+                                                      self.node,
+                                                      style.get_cursor(Cursor::DefaultCursor),
+                                                      display_list_section);
             state.add_display_item(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
-                base: BaseDisplayItem::new(&bounds,
-                                           DisplayItemMetadata::new(self.node,
-                                                                    style,
-                                                                    Cursor::DefaultCursor),
-                                           clip),
+                base: base,
                 box_bounds: *absolute_bounds,
                 color: style.resolve_color(box_shadow.color).to_gfx_color(),
                 offset: Point2D::new(box_shadow.offset_x, box_shadow.offset_y),
@@ -724,7 +739,7 @@ impl FragmentDisplayListBuilding for Fragment {
                 } else {
                     BoxShadowClipMode::Outset
                 },
-            }), display_list_section);
+            }));
         }
     }
 
@@ -776,12 +791,13 @@ impl FragmentDisplayListBuilding for Fragment {
         }
 
         // Append the border to the display list.
+        let base = state.create_base_display_item(&bounds,
+                                                  &clip,
+                                                  self.node,
+                                                  style.get_cursor(Cursor::DefaultCursor),
+                                                  display_list_section);
         state.add_display_item(DisplayItem::BorderClass(box BorderDisplayItem {
-            base: BaseDisplayItem::new(&bounds,
-                                       DisplayItemMetadata::new(self.node,
-                                                                style,
-                                                                Cursor::DefaultCursor),
-                                       clip),
+            base: base,
             border_widths: border.to_physical(style.writing_mode),
             color: SideOffsets2D::new(colors.top.to_gfx_color(),
                                       colors.right.to_gfx_color(),
@@ -789,7 +805,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                       colors.left.to_gfx_color()),
             style: border_style,
             radius: build_border_radius(&bounds, border_style_struct),
-        }), display_list_section);
+        }));
     }
 
     fn build_display_list_for_outline_if_applicable(&self,
@@ -818,17 +834,18 @@ impl FragmentDisplayListBuilding for Fragment {
 
         // Append the outline to the display list.
         let color = style.resolve_color(style.get_outline().outline_color).to_gfx_color();
+        let base = state.create_base_display_item(&bounds,
+                                                  &clip,
+                                                  self.node,
+                                                  style.get_cursor(Cursor::DefaultCursor),
+                                                  DisplayListSection::Outlines);
         state.add_display_item(DisplayItem::BorderClass(box BorderDisplayItem {
-            base: BaseDisplayItem::new(&bounds,
-                                       DisplayItemMetadata::new(self.node,
-                                                                style,
-                                                                Cursor::DefaultCursor),
-                                       clip),
+            base: base,
             border_widths: SideOffsets2D::new_all_same(width),
             color: SideOffsets2D::new_all_same(color),
             style: SideOffsets2D::new_all_same(outline_style),
             radius: Default::default(),
-        }), DisplayListSection::Outlines);
+        }));
     }
 
     fn build_debug_borders_around_text_fragments(&self,
@@ -842,17 +859,18 @@ impl FragmentDisplayListBuilding for Fragment {
         let container_size = Size2D::zero();
 
         // Compute the text fragment bounds and draw a border surrounding them.
+        let base = state.create_base_display_item(stacking_relative_border_box,
+                                                  clip,
+                                                  self.node,
+                                                  style.get_cursor(Cursor::DefaultCursor),
+                                                  DisplayListSection::Content);
         state.add_display_item(DisplayItem::BorderClass(box BorderDisplayItem {
-            base: BaseDisplayItem::new(stacking_relative_border_box,
-                                       DisplayItemMetadata::new(self.node,
-                                                                style,
-                                                                Cursor::DefaultCursor),
-                                       clip),
+            base: base,
             border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
             color: SideOffsets2D::new_all_same(color::rgb(0, 0, 200)),
             style: SideOffsets2D::new_all_same(border_style::T::solid),
             radius: Default::default(),
-        }), DisplayListSection::Content);
+        }));
 
         // Draw a rectangle representing the baselines.
         let mut baseline = LogicalRect::from_physical(self.style.writing_mode,
@@ -862,15 +880,16 @@ impl FragmentDisplayListBuilding for Fragment {
         baseline.size.block = Au(0);
         let baseline = baseline.to_physical(self.style.writing_mode, container_size);
 
+        let base = state.create_base_display_item(&baseline,
+                                                  clip,
+                                                  self.node,
+                                                  style.get_cursor(Cursor::DefaultCursor),
+                                                  DisplayListSection::Content);
         state.add_display_item(DisplayItem::LineClass(box LineDisplayItem {
-            base: BaseDisplayItem::new(&baseline,
-                                       DisplayItemMetadata::new(self.node,
-                                                                style,
-                                                                Cursor::DefaultCursor),
-                                       clip),
+            base: base,
             color: color::rgb(0, 200, 0),
             style: border_style::T::dashed,
-        }), DisplayListSection::Content);
+        }));
     }
 
     fn build_debug_borders_around_fragment(&self,
@@ -878,17 +897,18 @@ impl FragmentDisplayListBuilding for Fragment {
                                            stacking_relative_border_box: &Rect<Au>,
                                            clip: &ClippingRegion) {
         // This prints a debug border around the border of this fragment.
+        let base = state.create_base_display_item(stacking_relative_border_box,
+                                                  clip,
+                                                  self.node,
+                                                  self.style.get_cursor(Cursor::DefaultCursor),
+                                                  DisplayListSection::Content);
         state.add_display_item(DisplayItem::BorderClass(box BorderDisplayItem {
-            base: BaseDisplayItem::new(stacking_relative_border_box,
-                                       DisplayItemMetadata::new(self.node,
-                                                                &*self.style,
-                                                                Cursor::DefaultCursor),
-                                       clip),
+            base: base,
             border_widths: SideOffsets2D::new_all_same(Au::from_px(1)),
             color: SideOffsets2D::new_all_same(color::rgb(0, 0, 200)),
             style: SideOffsets2D::new_all_same(border_style::T::solid),
             radius: Default::default(),
-        }), DisplayListSection::Content);
+        }));
     }
 
     fn adjust_clip_for_style(&self,
@@ -928,15 +948,16 @@ impl FragmentDisplayListBuilding for Fragment {
         if scanned_text_fragment_info.selected() {
             let style = self.selected_style();
             let background_color = style.resolve_color(style.get_background().background_color);
+            let base = state.create_base_display_item(stacking_relative_border_box,
+                                                      &clip,
+                                                      self.node,
+                                                      self.style.get_cursor(Cursor::DefaultCursor),
+                                                      display_list_section);
             state.add_display_item(
                 DisplayItem::SolidColorClass(box SolidColorDisplayItem {
-                    base: BaseDisplayItem::new(stacking_relative_border_box,
-                                               DisplayItemMetadata::new(self.node,
-                                                                        &*self.style,
-                                                                        Cursor::DefaultCursor),
-                                               &clip),
+                    base: base,
                     color: background_color.to_gfx_color(),
-            }), display_list_section);
+            }));
         }
 
         // Draw a caret at the insertion point.
@@ -944,7 +965,7 @@ impl FragmentDisplayListBuilding for Fragment {
             Some(insertion_point_index) => insertion_point_index,
             None => return,
         };
-        let range = Range::new(CharIndex(0), insertion_point_index);
+        let range = Range::new(ByteIndex(0), insertion_point_index);
         let advance = scanned_text_fragment_info.run.advance_for_range(&range);
 
         let insertion_point_bounds;
@@ -965,12 +986,15 @@ impl FragmentDisplayListBuilding for Fragment {
             cursor = Cursor::VerticalTextCursor;
         };
 
+        let base = state.create_base_display_item(&insertion_point_bounds,
+                                                  &clip,
+                                                  self.node,
+                                                  self.style.get_cursor(cursor),
+                                                  display_list_section);
         state.add_display_item(DisplayItem::SolidColorClass(box SolidColorDisplayItem {
-            base: BaseDisplayItem::new(&insertion_point_bounds,
-                                       DisplayItemMetadata::new(self.node, &*self.style, cursor),
-                                       &clip),
+            base: base,
             color: self.style().get_color().color.to_gfx_color(),
-        }), display_list_section);
+        }));
     }
 
     fn build_display_list(&mut self,
@@ -1175,18 +1199,19 @@ impl FragmentDisplayListBuilding for Fragment {
             }
             SpecificFragmentInfo::Iframe(ref fragment_info) => {
                 if !stacking_relative_content_box.is_empty() {
+                    let base = state.create_base_display_item(
+                        &stacking_relative_content_box,
+                        clip,
+                        self.node,
+                        self.style.get_cursor(Cursor::DefaultCursor),
+                        DisplayListSection::Content);
                     let item = DisplayItem::IframeClass(box IframeDisplayItem {
-                        base: BaseDisplayItem::new(
-                            &stacking_relative_content_box,
-                            DisplayItemMetadata::new(self.node,
-                                                     &*self.style,
-                                                     Cursor::DefaultCursor),
-                            clip),
+                        base: base,
                         iframe: fragment_info.pipeline_id,
                     });
 
                     if opts::get().use_webrender {
-                        state.add_display_item(item, DisplayListSection::Content);
+                        state.add_display_item(item);
                     } else {
                         state.add_display_item(DisplayItem::LayeredItemClass(box LayeredItem {
                             item: item,
@@ -1194,24 +1219,26 @@ impl FragmentDisplayListBuilding for Fragment {
                                                        ScrollPolicy::Scrollable,
                                                        Some(fragment_info.pipeline_id),
                                                        color::transparent()),
-                        }), DisplayListSection::Content);
+                        }));
                     }
                 }
             }
             SpecificFragmentInfo::Image(ref mut image_fragment) => {
                 // Place the image into the display list.
                 if let Some(ref image) = image_fragment.image {
+                    let base = state.create_base_display_item(
+                        &stacking_relative_content_box,
+                        clip,
+                        self.node,
+                        self.style.get_cursor(Cursor::DefaultCursor),
+                        DisplayListSection::Content);
                     state.add_display_item(DisplayItem::ImageClass(box ImageDisplayItem {
-                        base: BaseDisplayItem::new(&stacking_relative_content_box,
-                                                   DisplayItemMetadata::new(self.node,
-                                                                            &*self.style,
-                                                                            Cursor::DefaultCursor),
-                                                   clip),
+                        base: base,
                         webrender_image: WebRenderImageInfo::from_image(image),
                         image_data: Some(Arc::new(image.bytes.clone())),
                         stretch_size: stacking_relative_content_box.size,
                         image_rendering: self.style.get_inheritedbox().image_rendering.clone(),
-                    }), DisplayListSection::Content);
+                    }));
                 }
             }
             SpecificFragmentInfo::Canvas(ref canvas_fragment_info) => {
@@ -1220,6 +1247,9 @@ impl FragmentDisplayListBuilding for Fragment {
                 let height = canvas_fragment_info.replaced_image_fragment_info
                     .computed_block_size.map_or(0, |h| h.to_px() as usize);
                 if width > 0 && height > 0 {
+                    let computed_width = canvas_fragment_info.canvas_inline_size().to_px();
+                    let computed_height = canvas_fragment_info.canvas_block_size().to_px();
+
                     let layer_id = self.layer_id();
                     let canvas_data = match canvas_fragment_info.ipc_renderer {
                         Some(ref ipc_renderer) => {
@@ -1229,24 +1259,23 @@ impl FragmentDisplayListBuilding for Fragment {
                                 FromLayoutMsg::SendData(sender))).unwrap();
                             receiver.recv().unwrap()
                         },
-                        None => CanvasData::Pixels(CanvasPixelData {
-                            image_data: IpcSharedMemory::from_byte(0xFFu8, width * height * 4),
-                            image_key: None,
-                        }),
+                        None => return,
                     };
 
+                    let base = state.create_base_display_item(
+                        &stacking_relative_content_box,
+                        clip,
+                        self.node,
+                        self.style.get_cursor(Cursor::DefaultCursor),
+                        DisplayListSection::Content);
                     let display_item = match canvas_data {
                         CanvasData::Pixels(canvas_data) => {
                             DisplayItem::ImageClass(box ImageDisplayItem {
-                                base: BaseDisplayItem::new(&stacking_relative_content_box,
-                                                           DisplayItemMetadata::new(self.node,
-                                                                                    &*self.style,
-                                                                                    Cursor::DefaultCursor),
-                                                           clip),
+                                base: base,
                                 image_data: Some(Arc::new(canvas_data.image_data)),
                                 webrender_image: WebRenderImageInfo {
-                                    width: width as u32,
-                                    height: height as u32,
+                                    width: computed_width as u32,
+                                    height: computed_height as u32,
                                     format: PixelFormat::RGBA8,
                                     key: canvas_data.image_key,
                                 },
@@ -1256,18 +1285,14 @@ impl FragmentDisplayListBuilding for Fragment {
                         }
                         CanvasData::WebGL(context_id) => {
                             DisplayItem::WebGLClass(box WebGLDisplayItem {
-                                base: BaseDisplayItem::new(&stacking_relative_content_box,
-                                                           DisplayItemMetadata::new(self.node,
-                                                                                    &*self.style,
-                                                                                    Cursor::DefaultCursor),
-                                                           clip),
+                                base: base,
                                 context_id: context_id,
                             })
                         }
                     };
 
                     if opts::get().use_webrender {
-                        state.add_display_item(display_item, DisplayListSection::Content);
+                        state.add_display_item(display_item);
                     } else {
                         state.add_display_item(DisplayItem::LayeredItemClass(box LayeredItem {
                             item: display_item,
@@ -1275,7 +1300,7 @@ impl FragmentDisplayListBuilding for Fragment {
                                                        ScrollPolicy::Scrollable,
                                                        None,
                                                        color::transparent()),
-                        }), DisplayListSection::Content);
+                        }));
                     }
                 }
             }
@@ -1536,17 +1561,20 @@ impl FragmentDisplayListBuilding for Fragment {
                                                           container_size);
 
         // Create the text display item.
+        let base = state.create_base_display_item(&stacking_relative_content_box,
+                                                  clip,
+                                                  self.node,
+                                                  self.style().get_cursor(cursor),
+                                                  DisplayListSection::Content);
         state.add_display_item(DisplayItem::TextClass(box TextDisplayItem {
-            base: BaseDisplayItem::new(&stacking_relative_content_box,
-                                       DisplayItemMetadata::new(self.node, self.style(), cursor),
-                                       clip),
+            base: base,
             text_run: text_fragment.run.clone(),
             range: text_fragment.range,
             text_color: text_color.to_gfx_color(),
             orientation: orientation,
             baseline_origin: baseline_origin,
             blur_radius: shadow_blur_radius.unwrap_or(Au(0)),
-        }), DisplayListSection::Content);
+        }));
 
         // Create display items for text decorations.
         let mut text_decorations = self.style()
@@ -1612,11 +1640,14 @@ impl FragmentDisplayListBuilding for Fragment {
         let container_size = Size2D::zero();
         let stacking_relative_box = stacking_relative_box.to_physical(self.style.writing_mode,
                                                                       container_size);
-        let metadata = DisplayItemMetadata::new(self.node, &*self.style, Cursor::DefaultCursor);
+        let base = state.create_base_display_item(
+            &shadow_bounds(&stacking_relative_box, blur_radius, Au(0)),
+            clip,
+            self.node,
+            self.style.get_cursor(Cursor::DefaultCursor),
+            DisplayListSection::Content);
         state.add_display_item(DisplayItem::BoxShadowClass(box BoxShadowDisplayItem {
-            base: BaseDisplayItem::new(&shadow_bounds(&stacking_relative_box, blur_radius, Au(0)),
-                                       metadata,
-                                       clip),
+            base: base,
             box_bounds: stacking_relative_box,
             color: color.to_gfx_color(),
             offset: Point2D::zero(),
@@ -1624,7 +1655,7 @@ impl FragmentDisplayListBuilding for Fragment {
             spread_radius: Au(0),
             border_radius: Au(0),
             clip_mode: BoxShadowClipMode::None,
-        }), DisplayListSection::Content);
+        }));
     }
 }
 
@@ -1931,19 +1962,37 @@ impl BaseFlowDisplayListBuilding for BaseFlow {
 
         let mut color = THREAD_TINT_COLORS[thread_id as usize % THREAD_TINT_COLORS.len()];
         color.a = 1.0;
+        let base = state.create_base_display_item(
+            &stacking_context_relative_bounds.inflate(Au::from_px(2), Au::from_px(2)),
+            &self.clip,
+            node,
+            None,
+            DisplayListSection::Content);
         state.add_display_item(DisplayItem::BorderClass(box BorderDisplayItem {
-            base: BaseDisplayItem::new(&stacking_context_relative_bounds.inflate(Au::from_px(2),
-                                                                                Au::from_px(2)),
-                                       DisplayItemMetadata {
-                                           node: node,
-                                           pointing: None,
-                                       },
-                                       &self.clip),
+            base: base,
             border_widths: SideOffsets2D::new_all_same(Au::from_px(2)),
             color: SideOffsets2D::new_all_same(color),
             style: SideOffsets2D::new_all_same(border_style::T::solid),
             radius: BorderRadii::all_same(Au(0)),
-        }), DisplayListSection::Content);
+        }));
+    }
+}
+
+trait ServoComputedValuesCursorUtility {
+    fn get_cursor(&self, default_cursor: Cursor) -> Option<Cursor>;
+}
+
+impl ServoComputedValuesCursorUtility for ServoComputedValues {
+    /// Gets the cursor to use given the specific ServoComputedValues.  `default_cursor` specifies
+    /// the cursor to use if `cursor` is `auto`. Typically, this will be `PointerCursor`, but for
+    /// text display items it may be `TextCursor` or `VerticalTextCursor`.
+    #[inline]
+    fn get_cursor(&self, default_cursor: Cursor) -> Option<Cursor> {
+        match (self.get_pointing().pointer_events, self.get_pointing().cursor) {
+            (pointer_events::T::none, _) => None,
+            (pointer_events::T::auto, cursor::T::AutoCursor) => Some(default_cursor),
+            (pointer_events::T::auto, cursor::T::SpecifiedCursor(cursor)) => Some(cursor),
+        }
     }
 }
 

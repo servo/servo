@@ -11,11 +11,13 @@ use std::cell::Cell;
 use std::cmp::{Ordering, max};
 use std::slice::Iter;
 use std::sync::Arc;
-use text::glyph::{CharIndex, GlyphStore};
+use text::glyph::{ByteIndex, GlyphStore};
+use util::str::char_is_whitespace;
 use webrender_traits;
+use xi_unicode::LineBreakIterator;
 
 thread_local! {
-    static INDEX_OF_FIRST_GLYPH_RUN_CACHE: Cell<Option<(*const TextRun, CharIndex, usize)>> =
+    static INDEX_OF_FIRST_GLYPH_RUN_CACHE: Cell<Option<(*const TextRun, ByteIndex, usize)>> =
         Cell::new(None)
 }
 
@@ -51,19 +53,19 @@ impl Drop for TextRun {
 pub struct GlyphRun {
     /// The glyphs.
     pub glyph_store: Arc<GlyphStore>,
-    /// The range of characters in the containing run.
-    pub range: Range<CharIndex>,
+    /// The byte range of characters in the containing run.
+    pub range: Range<ByteIndex>,
 }
 
 pub struct NaturalWordSliceIterator<'a> {
     glyphs: &'a [GlyphRun],
     index: usize,
-    range: Range<CharIndex>,
+    range: Range<ByteIndex>,
     reverse: bool,
 }
 
 impl GlyphRun {
-    fn compare(&self, key: &CharIndex) -> Ordering {
+    fn compare(&self, key: &ByteIndex) -> Ordering {
         if *key < self.range.begin() {
             Ordering::Greater
         } else if *key >= self.range.end() {
@@ -79,16 +81,16 @@ impl GlyphRun {
 pub struct TextRunSlice<'a> {
     /// The glyph store that the glyphs in this slice belong to.
     pub glyphs: &'a GlyphStore,
-    /// The character index that this slice begins at, relative to the start of the *text run*.
-    pub offset: CharIndex,
+    /// The byte index that this slice begins at, relative to the start of the *text run*.
+    pub offset: ByteIndex,
     /// The range that these glyphs encompass, relative to the start of the *glyph store*.
-    pub range: Range<CharIndex>,
+    pub range: Range<ByteIndex>,
 }
 
 impl<'a> TextRunSlice<'a> {
     /// Returns the range that these glyphs encompass, relative to the start of the *text run*.
     #[inline]
-    pub fn text_run_range(&self) -> Range<CharIndex> {
+    pub fn text_run_range(&self) -> Range<ByteIndex> {
         let mut range = self.range;
         range.shift_by(self.offset);
         range
@@ -116,15 +118,15 @@ impl<'a> Iterator for NaturalWordSliceIterator<'a> {
             self.index += 1;
         }
 
-        let mut char_range = self.range.intersect(&slice_glyphs.range);
+        let mut byte_range = self.range.intersect(&slice_glyphs.range);
         let slice_range_begin = slice_glyphs.range.begin();
-        char_range.shift_by(-slice_range_begin);
+        byte_range.shift_by(-slice_range_begin);
 
-        if !char_range.is_empty() {
+        if !byte_range.is_empty() {
             Some(TextRunSlice {
                 glyphs: &*slice_glyphs.glyph_store,
                 offset: slice_range_begin,
-                range: char_range,
+                range: byte_range,
             })
         } else {
             None
@@ -133,9 +135,10 @@ impl<'a> Iterator for NaturalWordSliceIterator<'a> {
 }
 
 pub struct CharacterSliceIterator<'a> {
+    text: &'a str,
     glyph_run: Option<&'a GlyphRun>,
     glyph_run_iter: Iter<'a, GlyphRun>,
-    range: Range<CharIndex>,
+    range: Range<ByteIndex>,
 }
 
 impl<'a> Iterator for CharacterSliceIterator<'a> {
@@ -150,8 +153,13 @@ impl<'a> Iterator for CharacterSliceIterator<'a> {
         };
 
         debug_assert!(!self.range.is_empty());
-        let index_to_return = self.range.begin();
-        self.range.adjust_by(CharIndex(1), CharIndex(-1));
+        let byte_start = self.range.begin();
+        let byte_len = match self.text[byte_start.to_usize()..].chars().next() {
+            Some(ch) => ByteIndex(ch.len_utf8() as isize),
+            None => unreachable!() // XXX refactor?
+        };
+
+        self.range.adjust_by(byte_len, -byte_len);
         if self.range.is_empty() {
             // We're done.
             self.glyph_run = None
@@ -160,11 +168,11 @@ impl<'a> Iterator for CharacterSliceIterator<'a> {
             self.glyph_run = self.glyph_run_iter.next();
         }
 
-        let index_within_glyph_run = index_to_return - glyph_run.range.begin();
+        let index_within_glyph_run = byte_start - glyph_run.range.begin();
         Some(TextRunSlice {
             glyphs: &*glyph_run.glyph_store,
             offset: glyph_run.range.begin(),
-            range: Range::new(index_within_glyph_run, CharIndex(1)),
+            range: Range::new(index_within_glyph_run, byte_len),
         })
     }
 }
@@ -185,76 +193,40 @@ impl<'a> TextRun {
 
     pub fn break_and_shape(font: &mut Font, text: &str, options: &ShapingOptions)
                            -> Vec<GlyphRun> {
-        // TODO(Issue #230): do a better job. See Gecko's LineBreaker.
         let mut glyphs = vec!();
-        let (mut byte_i, mut char_i) = (0, CharIndex(0));
-        let mut cur_slice_is_whitespace = false;
-        let (mut byte_last_boundary, mut char_last_boundary) = (0, CharIndex(0));
-        while byte_i < text.len() {
-            let range = text.char_range_at(byte_i);
-            let ch = range.ch;
-            let next = range.next;
+        let mut slice = 0..0;
 
-            // Slices alternate between whitespace and non-whitespace,
-            // representing line break opportunities.
-            let can_break_before = if cur_slice_is_whitespace {
-                match ch {
-                    ' ' | '\t' | '\n' => false,
-                    _ => {
-                        cur_slice_is_whitespace = false;
-                        true
-                    }
-                }
-            } else {
-                match ch {
-                    ' ' | '\t' | '\n' => {
-                        cur_slice_is_whitespace = true;
-                        true
-                    },
-                    _ => false
-                }
-            };
+        for (idx, _is_hard_break) in LineBreakIterator::new(text) {
+            // Extend the slice to the next UAX#14 line break opportunity.
+            slice.end = idx;
+            let word = &text[slice.clone()];
 
-            // Create a glyph store for this slice if it's nonempty.
-            if can_break_before && byte_i > byte_last_boundary {
-                let slice = &text[byte_last_boundary .. byte_i];
-                debug!("creating glyph store for slice {} (ws? {}), {} - {} in run {}",
-                        slice, !cur_slice_is_whitespace, byte_last_boundary, byte_i, text);
+            // Split off any trailing whitespace into a separate glyph run.
+            let mut whitespace = slice.end..slice.end;
+            if let Some((i, _)) = word.char_indices().rev()
+                                     .take_while(|&(_, c)| char_is_whitespace(c)).last() {
+                whitespace.start = slice.start + i;
+                slice.end = whitespace.start;
+            }
 
-                let mut options = *options;
-                if !cur_slice_is_whitespace {
-                    options.flags.insert(IS_WHITESPACE_SHAPING_FLAG);
-                }
-
+            if slice.len() > 0 {
                 glyphs.push(GlyphRun {
-                    glyph_store: font.shape_text(slice, &options),
-                    range: Range::new(char_last_boundary, char_i - char_last_boundary),
+                    glyph_store: font.shape_text(&text[slice.clone()], options),
+                    range: Range::new(ByteIndex(slice.start as isize),
+                                      ByteIndex(slice.len() as isize)),
                 });
-                byte_last_boundary = byte_i;
-                char_last_boundary = char_i;
             }
-
-            byte_i = next;
-            char_i = char_i + CharIndex(1);
-        }
-
-        // Create a glyph store for the final slice if it's nonempty.
-        if byte_i > byte_last_boundary {
-            let slice = &text[byte_last_boundary..];
-            debug!("creating glyph store for final slice {} (ws? {}), {} - {} in run {}",
-                slice, cur_slice_is_whitespace, byte_last_boundary, text.len(), text);
-
-            let mut options = *options;
-            if cur_slice_is_whitespace {
+            if whitespace.len() > 0 {
+                let mut options = options.clone();
                 options.flags.insert(IS_WHITESPACE_SHAPING_FLAG);
+                glyphs.push(GlyphRun {
+                    glyph_store: font.shape_text(&text[whitespace.clone()], &options),
+                    range: Range::new(ByteIndex(whitespace.start as isize),
+                                      ByteIndex(whitespace.len() as isize)),
+                });
             }
-
-            glyphs.push(GlyphRun {
-                glyph_store: font.shape_text(slice, &options),
-                range: Range::new(char_last_boundary, char_i - char_last_boundary),
-            });
+            slice.start = whitespace.end;
         }
-
         glyphs
     }
 
@@ -266,7 +238,7 @@ impl<'a> TextRun {
         self.font_metrics.descent
     }
 
-    pub fn advance_for_range(&self, range: &Range<CharIndex>) -> Au {
+    pub fn advance_for_range(&self, range: &Range<ByteIndex>) -> Au {
         if range.is_empty() {
             return Au(0)
         }
@@ -275,24 +247,24 @@ impl<'a> TextRun {
         // TODO(Issue #98): using inter-char and inter-word spacing settings when measuring text
         self.natural_word_slices_in_range(range)
             .fold(Au(0), |advance, slice| {
-                advance + slice.glyphs.advance_for_char_range(&slice.range)
+                advance + slice.glyphs.advance_for_byte_range(&slice.range)
             })
     }
 
-    pub fn metrics_for_range(&self, range: &Range<CharIndex>) -> RunMetrics {
+    pub fn metrics_for_range(&self, range: &Range<ByteIndex>) -> RunMetrics {
         RunMetrics::new(self.advance_for_range(range),
                         self.font_metrics.ascent,
                         self.font_metrics.descent)
     }
 
-    pub fn metrics_for_slice(&self, glyphs: &GlyphStore, slice_range: &Range<CharIndex>)
+    pub fn metrics_for_slice(&self, glyphs: &GlyphStore, slice_range: &Range<ByteIndex>)
                              -> RunMetrics {
-        RunMetrics::new(glyphs.advance_for_char_range(slice_range),
+        RunMetrics::new(glyphs.advance_for_byte_range(slice_range),
                         self.font_metrics.ascent,
                         self.font_metrics.descent)
     }
 
-    pub fn min_width_for_range(&self, range: &Range<CharIndex>) -> Au {
+    pub fn min_width_for_range(&self, range: &Range<ByteIndex>) -> Au {
         debug!("iterating outer range {:?}", range);
         self.natural_word_slices_in_range(range).fold(Au(0), |max_piece_width, slice| {
             debug!("iterated on {:?}[{:?}]", slice.offset, slice.range);
@@ -300,8 +272,8 @@ impl<'a> TextRun {
         })
     }
 
-    /// Returns the index of the first glyph run containing the given character index.
-    fn index_of_first_glyph_run_containing(&self, index: CharIndex) -> Option<usize> {
+    /// Returns the index of the first glyph run containing the given byte index.
+    fn index_of_first_glyph_run_containing(&self, index: ByteIndex) -> Option<usize> {
         let self_ptr = self as *const TextRun;
         INDEX_OF_FIRST_GLYPH_RUN_CACHE.with(|index_of_first_glyph_run_cache| {
             if let Some((last_text_run, last_index, last_result)) =
@@ -322,7 +294,7 @@ impl<'a> TextRun {
 
     /// Returns an iterator that will iterate over all slices of glyphs that represent natural
     /// words in the given range.
-    pub fn natural_word_slices_in_range(&'a self, range: &Range<CharIndex>)
+    pub fn natural_word_slices_in_range(&'a self, range: &Range<ByteIndex>)
                                         -> NaturalWordSliceIterator<'a> {
         let index = match self.index_of_first_glyph_run_containing(range.begin()) {
             None => self.glyphs.len(),
@@ -338,13 +310,13 @@ impl<'a> TextRun {
 
     /// Returns an iterator that over natural word slices in visual order (left to right or
     /// right to left, depending on the bidirectional embedding level).
-    pub fn natural_word_slices_in_visual_order(&'a self, range: &Range<CharIndex>)
+    pub fn natural_word_slices_in_visual_order(&'a self, range: &Range<ByteIndex>)
                                         -> NaturalWordSliceIterator<'a> {
         // Iterate in reverse order if bidi level is RTL.
         let reverse = self.bidi_level % 2 == 1;
 
         let index = if reverse {
-            match self.index_of_first_glyph_run_containing(range.end() - CharIndex(1)) {
+            match self.index_of_first_glyph_run_containing(range.end() - ByteIndex(1)) {
                 Some(i) => i + 1, // In reverse mode, index points one past the next element.
                 None => 0
             }
@@ -364,7 +336,7 @@ impl<'a> TextRun {
 
     /// Returns an iterator that will iterate over all slices of glyphs that represent individual
     /// characters in the given range.
-    pub fn character_slices_in_range(&'a self, range: &Range<CharIndex>)
+    pub fn character_slices_in_range(&'a self, range: &Range<ByteIndex>)
                                      -> CharacterSliceIterator<'a> {
         let index = match self.index_of_first_glyph_run_containing(range.begin()) {
             None => self.glyphs.len(),
@@ -373,6 +345,7 @@ impl<'a> TextRun {
         let mut glyph_run_iter = self.glyphs[index..].iter();
         let first_glyph_run = glyph_run_iter.next();
         CharacterSliceIterator {
+            text: &self.text,
             glyph_run: first_glyph_run,
             glyph_run_iter: glyph_run_iter,
             range: *range,

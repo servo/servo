@@ -126,8 +126,8 @@ impl WorkerGlobalScope {
         }
     }
 
-    pub fn mem_profiler_chan(&self) -> mem::ProfilerChan {
-        self.mem_profiler_chan.clone()
+    pub fn mem_profiler_chan(&self) -> &mem::ProfilerChan {
+        &self.mem_profiler_chan
     }
 
     pub fn devtools_chan(&self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
@@ -142,12 +142,12 @@ impl WorkerGlobalScope {
         &self.from_devtools_receiver
     }
 
-    pub fn constellation_chan(&self) -> ConstellationChan<ConstellationMsg> {
-        self.constellation_chan.clone()
+    pub fn constellation_chan(&self) -> &ConstellationChan<ConstellationMsg> {
+        &self.constellation_chan
     }
 
-    pub fn scheduler_chan(&self) -> IpcSender<TimerEventRequest> {
-        self.scheduler_chan.clone()
+    pub fn scheduler_chan(&self) -> &IpcSender<TimerEventRequest> {
+        &self.scheduler_chan
     }
 
     pub fn schedule_callback(&self, callback: OneshotTimerCallback, duration: MsDuration) -> OneshotTimerHandle {
@@ -225,7 +225,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
             };
 
             match self.runtime.evaluate_script(
-                self.reflector().get_jsobject(), source, url.serialize(), 1) {
+                self.reflector().get_jsobject(), source, url.to_string(), 1) {
                 Ok(_) => (),
                 Err(_) => {
                     println!("evaluate_script failed");
@@ -317,7 +317,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 impl WorkerGlobalScope {
     pub fn execute_script(&self, source: DOMString) {
         match self.runtime.evaluate_script(
-            self.reflector().get_jsobject(), String::from(source), self.worker_url.serialize(), 1) {
+            self.reflector().get_jsobject(), String::from(source), self.worker_url.to_string(), 1) {
             Ok(_) => (),
             Err(_) => {
                 if self.is_closing() {

@@ -38,6 +38,7 @@ use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
 use dom::domimplementation::DOMImplementation;
 use dom::element::{Element, ElementCreator};
+use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::focusevent::FocusEvent;
@@ -68,8 +69,9 @@ use dom::node::{self, CloneChildrenFlag, Node, NodeDamage, window_from_node};
 use dom::nodeiterator::NodeIterator;
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
+use dom::progressevent::ProgressEvent;
 use dom::range::Range;
-use dom::servohtmlparser::{ParserRoot, ParserRef, MutNullableParserField};
+use dom::storageevent::StorageEvent;
 use dom::stylesheetlist::StyleSheetList;
 use dom::text::Text;
 use dom::touch::Touch;
@@ -77,6 +79,7 @@ use dom::touchevent::TouchEvent;
 use dom::touchlist::TouchList;
 use dom::treewalker::TreeWalker;
 use dom::uievent::UIEvent;
+use dom::webglcontextevent::WebGLContextEvent;
 use dom::window::{ReflowReason, Window};
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
@@ -88,15 +91,16 @@ use js::jsapi::{JSContext, JSObject, JSRuntime};
 use layout_interface::{LayoutChan, Msg, ReflowQueryType};
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{ConstellationChan, Key, KeyModifiers, KeyState};
-use msg::constellation_msg::{PipelineId, SubpageId};
+use msg::constellation_msg::{PipelineId, ReferrerPolicy, SubpageId};
 use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::response::HttpsState;
 use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num_traits::ToPrimitive;
 use origin::Origin;
+use parse::{ParserRoot, ParserRef, MutNullableParserField};
 use script_runtime::ScriptChan;
-use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, Runnable};
+use script_thread::{MainThreadScriptMsg, Runnable};
 use script_traits::UntrustedNodeAddress;
 use script_traits::{AnimationState, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{ScriptMsg as ConstellationMsg, ScriptToCompositorMsg};
@@ -226,6 +230,8 @@ pub struct Document {
     touchpad_pressure_phase: Cell<TouchpadPressurePhase>,
     /// The document's origin.
     origin: Origin,
+    ///  https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states
+    referrer_policy: Option<ReferrerPolicy>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -395,7 +401,7 @@ impl Document {
         self.quirks_mode.set(mode);
 
         if mode == Quirks {
-            let LayoutChan(ref layout_chan) = self.window.layout_chan();
+            let LayoutChan(ref layout_chan) = *self.window.layout_chan();
             layout_chan.send(Msg::SetQuirksMode).unwrap();
         }
     }
@@ -515,7 +521,7 @@ impl Document {
             self.GetDocumentElement()
         } else {
             // Step 3 & 4
-            String::from_utf8(percent_decode(fragid.as_bytes())).ok()
+            percent_decode(fragid.as_bytes()).decode_utf8().ok()
                 // Step 5
                 .and_then(|decoded_fragid| self.get_element_by_id(&Atom::from(decoded_fragid)))
                 // Step 6
@@ -609,7 +615,7 @@ impl Document {
             // Update the focus state for all elements in the focus chain.
             // https://html.spec.whatwg.org/multipage/#focus-chain
             if focus_type == FocusType::Element {
-                let ConstellationChan(ref chan) = self.window.constellation_chan();
+                let ConstellationChan(ref chan) = *self.window.constellation_chan();
                 let event = ConstellationMsg::Focus(self.window.pipeline());
                 chan.send(event).unwrap();
             }
@@ -1254,7 +1260,7 @@ impl Document {
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
         if htmliframeelement::mozbrowser_enabled() {
             if let Some((containing_pipeline_id, subpage_id)) = self.window.parent_info() {
-                let ConstellationChan(ref chan) = self.window.constellation_chan();
+                let ConstellationChan(ref chan) = *self.window.constellation_chan();
                 let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
                                                               subpage_id,
                                                               event);
@@ -1271,7 +1277,7 @@ impl Document {
         self.animation_frame_list.borrow_mut().insert(ident, callback);
 
         // TODO: Should tick animation only when document is visible
-        let ConstellationChan(ref chan) = self.window.constellation_chan();
+        let ConstellationChan(ref chan) = *self.window.constellation_chan();
         let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
                                                                    AnimationState::AnimationCallbacksPresent);
         chan.send(event).unwrap();
@@ -1283,7 +1289,7 @@ impl Document {
     pub fn cancel_animation_frame(&self, ident: u32) {
         self.animation_frame_list.borrow_mut().remove(&ident);
         if self.animation_frame_list.borrow().is_empty() {
-            let ConstellationChan(ref chan) = self.window.constellation_chan();
+            let ConstellationChan(ref chan) = *self.window.constellation_chan();
             let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
                                                                        AnimationState::NoAnimationCallbacksPresent);
             chan.send(event).unwrap();
@@ -1307,7 +1313,7 @@ impl Document {
         // the next frame (which is the common case), we won't send a NoAnimationCallbacksPresent
         // message quickly followed by an AnimationCallbacksPresent message.
         if self.animation_frame_list.borrow().is_empty() {
-            let ConstellationChan(ref chan) = self.window.constellation_chan();
+            let ConstellationChan(ref chan) = *self.window.constellation_chan();
             let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
                                                                        AnimationState::NoAnimationCallbacksPresent);
             chan.send(event).unwrap();
@@ -1326,19 +1332,19 @@ impl Document {
 
     pub fn prepare_async_load(&self, load: LoadType) -> PendingAsyncLoad {
         let mut loader = self.loader.borrow_mut();
-        loader.prepare_async_load(load)
+        loader.prepare_async_load(load, self)
     }
 
     pub fn load_async(&self, load: LoadType, listener: AsyncResponseTarget) {
         let mut loader = self.loader.borrow_mut();
-        loader.load_async(load, listener)
+        loader.load_async(load, listener, self)
     }
 
     pub fn finish_load(&self, load: LoadType) {
         // The parser might need the loader, so restrict the lifetime of the borrow.
         {
             let mut loader = self.loader.borrow_mut();
-            loader.finish_load(load.clone());
+            loader.finish_load(&load);
         }
 
         if let LoadType::Script(_) = load {
@@ -1454,8 +1460,7 @@ impl Document {
 
         update_with_current_time_ms(&self.dom_content_loaded_event_start);
 
-        let chan = MainThreadScriptChan(self.window().main_thread_script_chan().clone()).clone();
-        let doctarget = Trusted::new(self.upcast::<EventTarget>(), chan);
+        let doctarget = Trusted::new(self.upcast::<EventTarget>());
         let task_source = self.window().dom_manipulation_task_source();
         let _ = task_source.queue(DOMManipulationTask::FireEvent(
             atom!("DOMContentLoaded"), doctarget, EventBubbles::Bubbles, EventCancelable::NotCancelable));
@@ -1468,7 +1473,7 @@ impl Document {
 
     pub fn notify_constellation_load(&self) {
         let pipeline_id = self.window.pipeline();
-        let ConstellationChan(ref chan) = self.window.constellation_chan();
+        let ConstellationChan(ref chan) = *self.window.constellation_chan();
         let event = ConstellationMsg::DOMLoad(pipeline_id);
         chan.send(event).unwrap();
 
@@ -1585,7 +1590,7 @@ impl LayoutDocumentHelpers for LayoutJS<Document> {
 
 /// https://url.spec.whatwg.org/#network-scheme
 fn url_has_network_scheme(url: &Url) -> bool {
-    match &*url.scheme {
+    match url.scheme() {
         "ftp" | "http" | "https" => true,
         _ => false,
     }
@@ -1663,7 +1668,7 @@ impl Document {
             deferred_scripts: DOMRefCell::new(vec![]),
             asap_in_order_scripts_list: DOMRefCell::new(vec![]),
             asap_scripts_set: DOMRefCell::new(vec![]),
-            scripting_enabled: Cell::new(true),
+            scripting_enabled: Cell::new(browsing_context.is_some()),
             animation_frame_ident: Cell::new(0),
             animation_frame_list: DOMRefCell::new(BTreeMap::new()),
             loader: DOMRefCell::new(doc_loader),
@@ -1684,6 +1689,8 @@ impl Document {
             https_state: Cell::new(HttpsState::None),
             touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
             origin: origin,
+            //TODO - setting this for now so no Referer header set
+            referrer_policy: Some(ReferrerPolicy::NoReferrer),
         }
     }
 
@@ -1812,6 +1819,11 @@ impl Document {
             snapshot.attrs = Some(attrs);
         }
     }
+
+    //TODO - for now, returns no-referrer for all until reading in the value
+    pub fn get_referrer_policy(&self) -> Option<ReferrerPolicy> {
+        return self.referrer_policy.clone();
+    }
 }
 
 
@@ -1844,7 +1856,7 @@ impl DocumentMethods for Document {
 
     // https://dom.spec.whatwg.org/#dom-document-url
     fn URL(&self) -> DOMString {
-        DOMString::from(self.url().serialize())
+        DOMString::from(self.url().as_str())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-activeelement
@@ -1886,7 +1898,7 @@ impl DocumentMethods for Document {
 
         if let Some(host) = self.origin.host() {
             // Step 4.
-            DOMString::from(host.serialize())
+            DOMString::from(host.to_string())
         } else {
             // Step 3.
             DOMString::new()
@@ -2154,9 +2166,9 @@ impl DocumentMethods for Document {
                 Ok(Root::upcast(MouseEvent::new_uninitialized(&self.window))),
             "customevent" =>
                 Ok(Root::upcast(CustomEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
-            "htmlevents" | "events" | "event" =>
+            "htmlevents" | "events" | "event" | "svgevents" =>
                 Ok(Event::new_uninitialized(GlobalRef::Window(&self.window))),
-            "keyboardevent" | "keyevents" =>
+            "keyboardevent" =>
                 Ok(Root::upcast(KeyboardEvent::new_uninitialized(&self.window))),
             "messageevent" =>
                 Ok(Root::upcast(MessageEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
@@ -2168,6 +2180,16 @@ impl DocumentMethods for Document {
                         &TouchList::new(&self.window, &[]),
                     )
                 )),
+            "webglcontextevent" =>
+                Ok(Root::upcast(WebGLContextEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+            "storageevent" =>
+                Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, self.URL()))),
+            "progressevent" =>
+                Ok(Root::upcast(ProgressEvent::new_uninitialized(&self.window))),
+            "focusevent" =>
+                Ok(Root::upcast(FocusEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+            "errorevent" =>
+                Ok(Root::upcast(ErrorEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
             _ =>
                 Err(Error::NotSupported),
         }

@@ -23,22 +23,28 @@ test(function() {
   assert_equals(String(blob), '[object Blob]');
   assert_equals(blob.size, 0);
   assert_equals(blob.type, "");
-}, "no-argument Blob constructor");
+}, "Blob constructor with no arguments");
 test(function() {
   assert_throws(new TypeError(), function() { var blob = Blob(); });
-}, "no-argument Blob constructor without 'new'");
+}, "Blob constructor with no arguments, without 'new'");
 test(function() {
   var blob = new Blob;
   assert_true(blob instanceof Blob);
   assert_equals(blob.size, 0);
   assert_equals(blob.type, "");
-}, "no-argument Blob constructor without brackets");
+}, "Blob constructor without brackets");
+test(function() {
+  var blob = new Blob(undefined);
+  assert_true(blob instanceof Blob);
+  assert_equals(String(blob), '[object Blob]');
+  assert_equals(blob.size, 0);
+  assert_equals(blob.type, "");
+}, "Blob constructor with undefined as first argument");
 
 // blobParts argument (WebIDL).
 test(function() {
   var args = [
     null,
-    undefined,
     true,
     false,
     0,

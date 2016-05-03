@@ -8,10 +8,6 @@ work.
 
 You can see a description of them below.
 
-## `build_custom_clang.sh`
-
-Download a patched LLVM which is needed to use bindgen properly with C++.
-
 ## `setup_bindgen.sh`
 
 This uses downloads a custom version of bindgen, up to date to generate the

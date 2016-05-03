@@ -41,7 +41,7 @@ use gfx_traits::Epoch;
 use gfx_traits::LayerId;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
-use msg::constellation_msg::{ConstellationChan, PanicMsg, PipelineId, WindowSizeData};
+use msg::constellation_msg::{ConstellationChan, PanicMsg, PipelineId, WindowSizeData, WindowSizeType};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineNamespaceId, SubpageId};
 use msg::webdriver_msg::WebDriverScriptCommand;
@@ -51,7 +51,6 @@ use net_traits::response::HttpsState;
 use net_traits::storage_thread::StorageThread;
 use profile_traits::mem;
 use std::any::Any;
-use url::Url;
 use util::ipc::OptionalOpaqueIpcSender;
 
 pub use script_msg::{LayoutMsg, ScriptMsg};
@@ -109,7 +108,7 @@ pub enum ConstellationControlMsg {
     /// Gives a channel and ID to a layout thread, as well as the ID of that layout's parent
     AttachLayout(NewLayoutInfo),
     /// Window resized.  Sends a DOM event eventually, but first we combine events.
-    Resize(PipelineId, WindowSizeData),
+    Resize(PipelineId, WindowSizeData, WindowSizeType),
     /// Notifies script that window has been resized but to not take immediate action.
     ResizeInactive(PipelineId, WindowSizeData),
     /// Notifies the script that a pipeline should be closed.
@@ -128,8 +127,8 @@ pub enum ConstellationControlMsg {
     Navigate(PipelineId, SubpageId, LoadData),
     /// Requests the script thread forward a mozbrowser event to an iframe it owns
     MozBrowserEvent(PipelineId, SubpageId, MozBrowserEvent),
-    /// Updates the current subpage id of a given iframe
-    UpdateSubpageId(PipelineId, SubpageId, SubpageId),
+    /// Updates the current subpage and pipeline IDs of a given iframe
+    UpdateSubpageId(PipelineId, SubpageId, SubpageId, PipelineId),
     /// Set an iframe to be focused. Used when an element in an iframe gains focus.
     FocusIFrame(PipelineId, SubpageId),
     /// Passes a webdriver command to the script thread for execution
@@ -220,7 +219,7 @@ pub enum MouseEventType {
 #[derive(Deserialize, Serialize)]
 pub enum CompositorEvent {
     /// The window was resized.
-    ResizeEvent(WindowSizeData),
+    ResizeEvent(WindowSizeData, WindowSizeType),
     /// A mouse button state changed.
     MouseButtonEvent(MouseEventType, MouseButton, Point2D<f32>),
     /// The mouse was moved over a point (or was moved out of the recognizable region).
@@ -405,8 +404,8 @@ pub enum IFrameSandboxState {
 /// Specifies the information required to load a URL in an iframe.
 #[derive(Deserialize, Serialize)]
 pub struct IFrameLoadInfo {
-    /// Url to load
-    pub url: Option<Url>,
+    /// Load data containing the url to load
+    pub load_data: Option<LoadData>,
     /// Pipeline ID of the parent of this iframe
     pub containing_pipeline_id: PipelineId,
     /// The new subpage ID for this load
@@ -433,7 +432,7 @@ pub enum MozBrowserEvent {
     /// handling `<menuitem>` element available within the browser `<iframe>`'s content.
     ContextMenu,
     /// Sent when an error occurred while trying to load content within a browser `<iframe>`.
-    Error,
+    Error(MozBrowserErrorType, Option<String>, Option<String>),
     /// Sent when the favicon of a browser `<iframe>` changes.
     IconChange(String, String, String),
     /// Sent when the browser `<iframe>` has reached the server.
@@ -466,7 +465,7 @@ impl MozBrowserEvent {
             MozBrowserEvent::Close => "mozbrowserclose",
             MozBrowserEvent::Connected => "mozbrowserconnected",
             MozBrowserEvent::ContextMenu => "mozbrowsercontextmenu",
-            MozBrowserEvent::Error => "mozbrowsererror",
+            MozBrowserEvent::Error(_, _, _) => "mozbrowsererror",
             MozBrowserEvent::IconChange(_, _, _) => "mozbrowsericonchange",
             MozBrowserEvent::LoadEnd => "mozbrowserloadend",
             MozBrowserEvent::LoadStart => "mozbrowserloadstart",
@@ -477,6 +476,24 @@ impl MozBrowserEvent {
             MozBrowserEvent::TitleChange(_) => "mozbrowsertitlechange",
             MozBrowserEvent::UsernameAndPasswordRequired => "mozbrowserusernameandpasswordrequired",
             MozBrowserEvent::OpenSearch => "mozbrowseropensearch"
+        }
+    }
+}
+
+// https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsererror
+/// The different types of Browser error events
+#[derive(Deserialize, Serialize)]
+pub enum MozBrowserErrorType {
+    // For the moment, we are just reporting panics, using the "fatal" type.
+    /// A fatal error
+    Fatal,
+}
+
+impl MozBrowserErrorType {
+    /// Get the name of the error type as a `& str`
+    pub fn name(&self) -> &'static str {
+        match *self {
+            MozBrowserErrorType::Fatal => "fatal",
         }
     }
 }

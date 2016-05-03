@@ -17,9 +17,7 @@ extern crate euclid;
 extern crate gfx_traits;
 extern crate heapsize;
 extern crate ipc_channel;
-extern crate offscreen_gl_context;
 extern crate serde;
-extern crate util;
 extern crate webrender_traits;
 
 use azure::azure::{AzColor, AzFloat};

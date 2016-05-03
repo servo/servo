@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use data_loader::decode;
-use fetch::cors_cache::{BasicCORSCache, CORSCache, CacheRequestDetails};
+use fetch::cors_cache::CORSCache;
 use http_loader::{NetworkHttpRequestFactory, create_http_connector, obtain_response};
 use hyper::header::{Accept, AcceptLanguage, Authorization, AccessControlAllowCredentials};
 use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
@@ -14,6 +14,7 @@ use hyper::header::{IfNoneMatch, Pragma, Location, QualityItem, Referer as Refer
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
+use mime_guess::guess_mime_type;
 use net_traits::AsyncFetchListener;
 use net_traits::request::{CacheMode, CredentialsMode, Type, Origin, Window};
 use net_traits::request::{RedirectMode, Referer, Request, RequestMode, ResponseTainting};
@@ -21,13 +22,13 @@ use net_traits::response::{HttpsState, TerminationReason};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use resource_thread::CancellationListener;
 use std::collections::HashSet;
+use std::fs::File;
 use std::io::Read;
 use std::iter::FromIterator;
 use std::rc::Rc;
 use std::thread;
 use unicase::UniCase;
-use url::idna::domain_to_ascii;
-use url::{Origin as UrlOrigin, OpaqueOrigin, Url, UrlParser, whatwg_scheme_type_mapper};
+use url::{Origin as UrlOrigin, Url};
 use util::thread::spawn_named;
 
 pub fn fetch_async(request: Request, listener: Box<AsyncFetchListener + Send>) {
@@ -41,6 +42,10 @@ pub fn fetch_async(request: Request, listener: Box<AsyncFetchListener + Send>) {
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
 pub fn fetch(request: Rc<Request>) -> Response {
+    fetch_with_cors_cache(request, &mut CORSCache::new())
+}
+
+pub fn fetch_with_cors_cache(request: Rc<Request>, cache: &mut CORSCache) -> Response {
 
     // Step 1
     if request.window.get() == Window::Client {
@@ -103,11 +108,11 @@ pub fn fetch(request: Rc<Request>) -> Response {
         // TODO: create a fetch record and append it to request's client's fetch group list
     }
     // Step 7
-    main_fetch(request, false, false)
+    main_fetch(request, cache, false, false)
 }
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
-fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Response {
+fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool, recursive_flag: bool) -> Response {
     // TODO: Implement main fetch spec
 
     // Step 1
@@ -115,7 +120,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
 
     // Step 2
     if request.local_urls_only {
-        match &*request.current_url().scheme {
+        match request.current_url().scheme() {
             "about" | "blob" | "data" | "filesystem" => (), // Ok, the URL is local.
             _ => response = Some(Response::network_error())
         }
@@ -153,20 +158,21 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
             };
 
             if (same_origin && !cors_flag ) ||
-                (current_url.scheme == "data" && request.same_origin_data.get()) ||
-                current_url.scheme == "about" ||
+                (current_url.scheme() == "data" && request.same_origin_data.get()) ||
+                (current_url.scheme() == "file" && request.same_origin_data.get()) ||
+                current_url.scheme() == "about" ||
                 request.mode == RequestMode::Navigate {
 
-                basic_fetch(request.clone())
+                basic_fetch(request.clone(), cache)
 
             } else if request.mode == RequestMode::SameOrigin {
                 Response::network_error()
 
             } else if request.mode == RequestMode::NoCORS {
                 request.response_tainting.set(ResponseTainting::Opaque);
-                basic_fetch(request.clone())
+                basic_fetch(request.clone(), cache)
 
-            } else if current_url.scheme != "http" && current_url.scheme != "https" {
+            } else if !matches!(current_url.scheme(), "http" | "https") {
                 Response::network_error()
 
             } else if request.use_cors_preflight ||
@@ -176,7 +182,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
 
                 request.response_tainting.set(ResponseTainting::CORSTainting);
                 request.redirect_mode.set(RedirectMode::Error);
-                let response = http_fetch(request.clone(), BasicCORSCache::new(), true, true, false);
+                let response = http_fetch(request.clone(), cache, true, true, false);
                 if response.is_network_error() {
                     // TODO clear cache entries using request
                 }
@@ -184,7 +190,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
 
             } else {
                 request.response_tainting.set(ResponseTainting::CORSTainting);
-                http_fetch(request.clone(), BasicCORSCache::new(), true, false, false)
+                http_fetch(request.clone(), cache, true, false, false)
             }
         }
     };
@@ -253,10 +259,7 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
     }
 
     // Step 17
-    if request.body.borrow().is_some() && match &*request.current_url().scheme {
-        "http" | "https" => true,
-        _ => false }
-        {
+    if request.body.borrow().is_some() && matches!(request.current_url().scheme(), "http" | "https") {
         // TODO queue a fetch task on request to process end-of-file
     }
 
@@ -284,27 +287,21 @@ fn main_fetch(request: Rc<Request>, cors_flag: bool, recursive_flag: bool) -> Re
 }
 
 /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
-fn basic_fetch(request: Rc<Request>) -> Response {
+fn basic_fetch(request: Rc<Request>, cache: &mut CORSCache) -> Response {
 
     let url = request.current_url();
-    let scheme = url.scheme.clone();
 
-    match &*scheme {
+    match url.scheme() {
 
-        "about" => {
-            match url.non_relative_scheme_data() {
-                Some(s) if &*s == "blank" => {
-                    let mut response = Response::new();
-                    response.headers.set(ContentType(mime!(Text / Html; Charset = Utf8)));
-                    *response.body.lock().unwrap() = ResponseBody::Done(vec![]);
-                    response
-                },
-                _ => Response::network_error()
-            }
+        "about" if url.path() == "blank" => {
+            let mut response = Response::new();
+            response.headers.set(ContentType(mime!(Text / Html; Charset = Utf8)));
+            *response.body.lock().unwrap() = ResponseBody::Done(vec![]);
+            response
         },
 
         "http" | "https" => {
-            http_fetch(request.clone(), BasicCORSCache::new(), false, false, false)
+            http_fetch(request.clone(), cache, false, false, false)
         },
 
         "data" => {
@@ -323,7 +320,29 @@ fn basic_fetch(request: Rc<Request>) -> Response {
             }
         },
 
-        "blob" | "file" | "ftp" => {
+        "file" => {
+            if *request.method.borrow() == Method::Get {
+                match url.to_file_path() {
+                    Ok(file_path) => {
+                        File::open(file_path.clone()).ok().map_or(Response::network_error(), |mut file| {
+                            let mut bytes = vec![];
+                            let _ = file.read_to_end(&mut bytes);
+                            let mime = guess_mime_type(file_path);
+
+                            let mut response = Response::new();
+                            *response.body.lock().unwrap() = ResponseBody::Done(bytes);
+                            response.headers.set(ContentType(mime));
+                            response
+                        })
+                    },
+                    _ => Response::network_error()
+                }
+            } else {
+                Response::network_error()
+            }
+        },
+
+        "blob" | "ftp" => {
             // XXXManishearth handle these
             panic!("Unimplemented scheme for Fetch")
         },
@@ -334,7 +353,7 @@ fn basic_fetch(request: Rc<Request>) -> Response {
 
 /// [HTTP fetch](https://fetch.spec.whatwg.org#http-fetch)
 fn http_fetch(request: Rc<Request>,
-              mut cache: BasicCORSCache,
+              cache: &mut CORSCache,
               cors_flag: bool,
               cors_preflight_flag: bool,
               authentication_fetch_flag: bool) -> Response {
@@ -383,28 +402,18 @@ fn http_fetch(request: Rc<Request>,
 
         // Substep 1
         if cors_preflight_flag {
-            let origin = request.origin.borrow().clone();
-            let url = request.current_url();
-            let credentials = request.credentials_mode == CredentialsMode::Include;
-            let method_cache_match = cache.match_method(CacheRequestDetails {
-                origin: origin.clone(),
-                destination: url.clone(),
-                credentials: credentials
-            }, request.method.borrow().clone());
+            let method_cache_match = cache.match_method(&*request,
+                                                        request.method.borrow().clone());
 
             let method_mismatch = !method_cache_match && (!is_simple_method(&request.method.borrow()) ||
                                                           request.use_cors_preflight);
             let header_mismatch = request.headers.borrow().iter().any(|view|
-                !cache.match_header(CacheRequestDetails {
-                    origin: origin.clone(),
-                    destination: url.clone(),
-                    credentials: credentials
-                }, view.name()) && !is_simple_header(&view)
+                !cache.match_header(&*request, view.name()) && !is_simple_header(&view)
             );
 
             // Sub-substep 1
             if method_mismatch || header_mismatch {
-                let preflight_result = cors_preflight_fetch(request.clone(), Some(cache));
+                let preflight_result = cors_preflight_fetch(request.clone(), cache);
                 // Sub-substep 2
                 if preflight_result.response_type == ResponseType::Error {
                     return Response::network_error();
@@ -453,7 +462,7 @@ fn http_fetch(request: Rc<Request>,
                 RedirectMode::Follow => {
                     // set back to default
                     response.return_internal.set(true);
-                    http_redirect_fetch(request, Rc::new(response), cors_flag)
+                    http_redirect_fetch(request, cache, Rc::new(response), cors_flag)
                 }
             }
         },
@@ -476,7 +485,7 @@ fn http_fetch(request: Rc<Request>,
             }
 
             // Step 4
-            return http_fetch(request, BasicCORSCache::new(), cors_flag, cors_preflight_flag, true);
+            return http_fetch(request, cache, cors_flag, cors_preflight_flag, true);
         }
 
         // Code 407
@@ -492,7 +501,7 @@ fn http_fetch(request: Rc<Request>,
             // TODO: Prompt the user for proxy authentication credentials
 
             // Step 4
-            return http_fetch(request, BasicCORSCache::new(),
+            return http_fetch(request, cache,
                               cors_flag, cors_preflight_flag,
                               authentication_fetch_flag);
         }
@@ -513,6 +522,7 @@ fn http_fetch(request: Rc<Request>,
 
 /// [HTTP redirect fetch](https://fetch.spec.whatwg.org#http-redirect-fetch)
 fn http_redirect_fetch(request: Rc<Request>,
+                       cache: &mut CORSCache,
                        response: Rc<Response>,
                        cors_flag: bool) -> Response {
 
@@ -535,7 +545,7 @@ fn http_redirect_fetch(request: Rc<Request>,
 
     // Step 5
     let response_url = response.actual_response().url.as_ref().unwrap();
-    let location_url = UrlParser::new().base_url(response_url).parse(&*location);
+    let location_url = response_url.join(&*location);
 
     // Step 6
     let location_url = match location_url {
@@ -573,7 +583,7 @@ fn http_redirect_fetch(request: Rc<Request>,
 
     // Step 12
     if cors_flag && !same_origin {
-        *request.origin.borrow_mut() = Origin::Origin(UrlOrigin::UID(OpaqueOrigin::new()));
+        *request.origin.borrow_mut() = Origin::Origin(UrlOrigin::new_opaque());
     }
 
     // Step 13
@@ -590,7 +600,7 @@ fn http_redirect_fetch(request: Rc<Request>,
     request.url_list.borrow_mut().push(location_url);
 
     // Step 15
-    main_fetch(request, cors_flag, true)
+    main_fetch(request, cache, cors_flag, true)
 }
 
 /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
@@ -632,7 +642,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         Referer::NoReferer =>
             http_request.headers.borrow_mut().set(RefererHeader("".to_owned())),
         Referer::RefererUrl(ref http_request_referer) =>
-            http_request.headers.borrow_mut().set(RefererHeader(http_request_referer.serialize())),
+            http_request.headers.borrow_mut().set(RefererHeader(http_request_referer.to_string())),
         Referer::Client =>
             // it should be impossible for referer to be anything else during fetching
             // https://fetch.spec.whatwg.org/#concept-request-referrer
@@ -702,9 +712,9 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 
                 let current_url = http_request.current_url();
 
-                authorization_value = if includes_credentials(&current_url) {
+                authorization_value = if has_credentials(&current_url) {
                     Some(Basic {
-                        username: current_url.username().unwrap_or("").to_owned(),
+                        username: current_url.username().to_owned(),
                         password: current_url.password().map(str::to_owned)
                     })
                 } else {
@@ -927,7 +937,7 @@ fn http_network_fetch(request: Rc<Request>,
 }
 
 /// [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
-fn cors_preflight_fetch(request: Rc<Request>, cache: Option<BasicCORSCache>) -> Response {
+fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache) -> Response {
     // Step 1
     let mut preflight = Request::new(request.current_url(), Some(request.origin.borrow().clone()), false);
     *preflight.method.borrow_mut() = Method::Options;
@@ -1005,28 +1015,14 @@ fn cors_preflight_fetch(request: Rc<Request>, cache: Option<BasicCORSCache>) -> 
 
         // TODO: Substep 9 - Need to define what an imposed limit on max-age is
 
-        // Substep 10
-        let mut cache = match cache {
-            Some(c) => c,
-            None => return response
-        };
-
         // Substep 11, 12
         for method in &methods {
-            cache.match_method_and_update(CacheRequestDetails {
-                origin: request.origin.borrow().clone(),
-                destination: request.current_url(),
-                credentials: request.credentials_mode == CredentialsMode::Include
-            }, method.clone(), max_age);
+            cache.match_method_and_update(&*request, method.clone(), max_age);
         }
 
         // Substep 13, 14
         for header_name in &header_names {
-            cache.match_header_and_update(CacheRequestDetails {
-                origin: request.origin.borrow().clone(),
-                destination: request.current_url(),
-                credentials: request.credentials_mode == CredentialsMode::Include
-            }, &*header_name, max_age);
+            cache.match_header_and_update(&*request, &*header_name, max_age);
         }
 
         // Substep 15
@@ -1059,13 +1055,8 @@ fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
         _ => return Err(())
     };
 
-    // strings are already utf-8 encoded, so there's no need to re-encode origin for this step
-    match ascii_serialise_origin(&request.origin.borrow()) {
-        Ok(request_origin) => {
-            if request_origin != origin {
-                return Err(());
-            }
-        },
+    match *request.origin.borrow() {
+        Origin::Origin(ref o) if o.ascii_serialization() == origin => {},
         _ => return Err(())
     }
 
@@ -1086,39 +1077,6 @@ fn cors_check(request: Rc<Request>, response: &Response) -> Result<(), ()> {
     Err(())
 }
 
-/// [ASCII serialisation of an origin](https://html.spec.whatwg.org/multipage/#ascii-serialisation-of-an-origin)
-fn ascii_serialise_origin(origin: &Origin) -> Result<String, ()> {
-
-    // Step 6
-    match *origin {
-
-        // Step 1
-        Origin::Origin(UrlOrigin::UID(_)) => Ok("null".to_owned()),
-
-        // Step 2
-        Origin::Origin(UrlOrigin::Tuple(ref scheme, ref host, ref port)) => {
-
-            // Step 3
-            // this step is handled by the format!()s later in the function
-
-            // Step 4
-            // TODO throw a SecurityError in a meaningful way
-            // let host = host.as_str();
-            let host = try!(domain_to_ascii(host.serialize().as_str()).or(Err(())));
-
-            // Step 5
-            let default_port = whatwg_scheme_type_mapper(scheme).default_port();
-
-            if Some(*port) == default_port {
-                Ok(format!("{}://{}", scheme, host))
-            } else {
-                Ok(format!("{}://{}{}", scheme, host, port))
-            }
-        }
-        _ => Err(())
-    }
-}
-
 fn global_user_agent() -> String {
     // TODO have a better useragent string
     const USER_AGENT_STRING: &'static str = "Servo";
@@ -1126,7 +1084,7 @@ fn global_user_agent() -> String {
 }
 
 fn has_credentials(url: &Url) -> bool {
-    !url.username().unwrap_or("").is_empty() || url.password().is_some()
+    !url.username().is_empty() || url.password().is_some()
 }
 
 fn is_no_store_cache(headers: &Headers) -> bool {
@@ -1154,19 +1112,6 @@ fn is_simple_method(m: &Method) -> bool {
         Method::Get | Method::Head | Method::Post => true,
         _ => false
     }
-}
-
-fn includes_credentials(url: &Url) -> bool {
-
-    if url.password().is_some() {
-        return true
-    }
-
-    if let Some(name) = url.username() {
-        return name.len() > 0
-    }
-
-    false
 }
 
 fn response_needs_revalidation(_response: &Response) -> bool {

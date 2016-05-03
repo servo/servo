@@ -33,7 +33,7 @@ pub enum Destination {
 }
 
 /// A request [origin](https://fetch.spec.whatwg.org/#concept-request-origin)
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum Origin {
     Client,
     Origin(UrlOrigin)
@@ -241,7 +241,7 @@ impl Request {
     }
 
     pub fn current_url_string(&self) -> String {
-        self.url_list.borrow().last().unwrap().serialize()
+        self.url_list.borrow().last().unwrap().to_string()
     }
 
     pub fn is_navigation_request(&self) -> bool {

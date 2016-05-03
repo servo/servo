@@ -8,5 +8,5 @@ name = "layout_tests"
 path = "lib.rs"
 doctest = false
 
-[dependencies.layout]
-path = "../../../components/layout"
+[dependencies]
+layout = {path = "../../../components/layout"}

@@ -524,7 +524,8 @@ class TestRunnerManager(threading.Thread):
 
         self.test = None
 
-        restart_before_next = (file_result.status in ("CRASH", "EXTERNAL-TIMEOUT") or
+        restart_before_next = (test.restart_after or
+                               file_result.status in ("CRASH", "EXTERNAL-TIMEOUT") or
                                subtest_unexpected or is_unexpected)
 
         if (self.pause_after_test or

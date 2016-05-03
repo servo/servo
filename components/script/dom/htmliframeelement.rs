@@ -5,6 +5,7 @@
 use document_loader::{LoadType, LoadBlocker};
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementErrorEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementIconChangeEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementLocationChangeEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementSecurityChangeDetail;
@@ -24,7 +25,7 @@ use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, UnbindContext, window_from_node, document_from_node};
+use dom::node::{Node, NodeDamage, UnbindContext, window_from_node, document_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use dom::window::{ReflowReason, Window};
@@ -32,7 +33,7 @@ use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, JSAutoRequest, RootedValue, JSContext, MutableHandleValue};
 use js::jsval::{UndefinedValue, NullValue};
 use layout_interface::ReflowQueryType;
-use msg::constellation_msg::{ConstellationChan};
+use msg::constellation_msg::{ConstellationChan, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
 use net_traits::response::HttpsState;
 use page::IterablePage;
@@ -75,7 +76,9 @@ impl HTMLIFrameElement {
         self.sandbox.get().is_some()
     }
 
-    pub fn get_url(&self) -> Option<Url> {
+    /// <https://html.spec.whatwg.org/multipage/#otherwise-steps-for-iframe-or-frame-elements>,
+    /// step 1.
+    fn get_url(&self) -> Url {
         let element = self.upcast::<Element>();
         element.get_attribute(&ns!(), &atom!("src")).and_then(|src| {
             let url = src.value();
@@ -84,7 +87,7 @@ impl HTMLIFrameElement {
             } else {
                 document_from_node(self).base_url().join(&url).ok()
             }
-        })
+        }).unwrap_or_else(|| Url::parse("about:blank").unwrap())
     }
 
     pub fn generate_new_subpage_id(&self) -> (SubpageId, Option<SubpageId>) {
@@ -97,7 +100,7 @@ impl HTMLIFrameElement {
         (subpage_id, old_subpage_id)
     }
 
-    pub fn navigate_or_reload_child_browsing_context(&self, url: Option<Url>) {
+    pub fn navigate_or_reload_child_browsing_context(&self, load_data: Option<LoadData>) {
         let sandboxed = if self.is_sandboxed() {
             IFrameSandboxed
         } else {
@@ -114,8 +117,8 @@ impl HTMLIFrameElement {
         //TODO(#9592): Deal with the case where an iframe is being reloaded so url is None.
         //      The iframe should always have access to the nested context's active
         //      document URL through the browsing context.
-        if let Some(ref url) = url {
-            *load_blocker = Some(LoadBlocker::new(&*document, LoadType::Subframe(url.clone())));
+        if let Some(ref load_data) = load_data {
+            *load_blocker = Some(LoadBlocker::new(&*document, LoadType::Subframe(load_data.url.clone())));
         }
 
         let window = window_from_node(self);
@@ -124,9 +127,9 @@ impl HTMLIFrameElement {
         let new_pipeline_id = self.pipeline_id.get().unwrap();
         let private_iframe = self.privatebrowsing();
 
-        let ConstellationChan(ref chan) = window.constellation_chan();
+        let ConstellationChan(ref chan) = *window.constellation_chan();
         let load_info = IFrameLoadInfo {
-            url: url,
+            load_data: load_data,
             containing_pipeline_id: window.pipeline(),
             new_subpage_id: new_subpage_id,
             old_subpage_id: old_subpage_id,
@@ -143,12 +146,10 @@ impl HTMLIFrameElement {
     }
 
     pub fn process_the_iframe_attributes(&self) {
-        let url = match self.get_url() {
-            Some(url) => url.clone(),
-            None => Url::parse("about:blank").unwrap(),
-        };
+        let url = self.get_url();
 
-        self.navigate_or_reload_child_browsing_context(Some(url));
+        // TODO - loaddata here should have referrer info (not None, None)
+        self.navigate_or_reload_child_browsing_context(Some(LoadData::new(url, None, None)));
     }
 
     #[allow(unsafe_code)]
@@ -177,8 +178,14 @@ impl HTMLIFrameElement {
         }
     }
 
-    pub fn update_subpage_id(&self, new_subpage_id: SubpageId) {
+    pub fn update_subpage_id(&self, new_subpage_id: SubpageId, new_pipeline_id: PipelineId) {
         self.subpage_id.set(Some(new_subpage_id));
+        self.pipeline_id.set(Some(new_pipeline_id));
+
+        let mut blocker = self.load_blocker.borrow_mut();
+        LoadBlocker::terminate(&mut blocker);
+
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
     fn new_inherited(localName: Atom,
@@ -307,11 +314,18 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
                                             rval: MutableHandleValue) {
         match event {
             MozBrowserEvent::AsyncScroll | MozBrowserEvent::Close | MozBrowserEvent::ContextMenu |
-            MozBrowserEvent::Error | MozBrowserEvent::LoadEnd | MozBrowserEvent::LoadStart |
+            MozBrowserEvent::LoadEnd | MozBrowserEvent::LoadStart |
             MozBrowserEvent::Connected | MozBrowserEvent::OpenWindow | MozBrowserEvent::OpenSearch  |
             MozBrowserEvent::UsernameAndPasswordRequired => {
                 rval.set(NullValue());
             }
+            MozBrowserEvent::Error(error_type, description, report) => {
+                BrowserElementErrorEventDetail {
+                    type_: Some(DOMString::from(error_type.name())),
+                    description: description.map(DOMString::from),
+                    report: report.map(DOMString::from),
+                }.to_jsval(cx, rval);
+            },
             MozBrowserEvent::SecurityChange(https_state) => {
                 BrowserElementSecurityChangeDetail {
                     // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsersecuritychange
@@ -365,7 +379,7 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> E
 
             let pipeline_info = Some((window.pipeline(),
                                       iframe.subpage_id().unwrap()));
-            let ConstellationChan(ref chan) = window.constellation_chan();
+            let ConstellationChan(ref chan) = *window.constellation_chan();
             let msg = ConstellationMsg::Navigate(pipeline_info, direction);
             chan.send(msg).unwrap();
         }
@@ -415,10 +429,9 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
     fn GetContentDocument(&self) -> Option<Root<Document>> {
         self.GetContentWindow().and_then(|window| {
-            let self_url = match self.get_url() {
-                Some(self_url) => self_url,
-                None => return None,
-            };
+            // FIXME(#10964): this should use the Document's origin and the
+            //                origin of the incumbent settings object.
+            let self_url = self.get_url();
             let win_url = window_from_node(self).get_url();
 
             if UrlHelper::SameOrigin(&self_url, &win_url) {
@@ -569,12 +582,13 @@ impl VirtualMethods for HTMLIFrameElement {
             //
             // Since most of this cleanup doesn't happen on same-origin
             // iframes, and since that would cause a deadlock, don't do it.
-            let ConstellationChan(ref chan) = window.constellation_chan();
-            let same_origin = if let Some(self_url) = self.get_url() {
+            let ConstellationChan(ref chan) = *window.constellation_chan();
+            let same_origin = {
+                // FIXME(#10968): this should probably match the origin check in
+                //                HTMLIFrameElement::contentDocument.
+                let self_url = self.get_url();
                 let win_url = window_from_node(self).get_url();
                 UrlHelper::SameOrigin(&self_url, &win_url)
-            } else {
-                false
             };
             let (sender, receiver) = if same_origin {
                 (None, None)

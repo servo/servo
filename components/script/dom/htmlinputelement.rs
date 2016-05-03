@@ -22,7 +22,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
-use dom::htmlformelement::{FormControl, FormDatum, FormSubmitter, HTMLFormElement};
+use dom::htmlformelement::{FormDatumValue, FormControl, FormDatum, FormSubmitter, HTMLFormElement};
 use dom::htmlformelement::{ResetFrom, SubmittedFrom};
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{Node, NodeDamage, UnbindContext};
@@ -31,22 +31,23 @@ use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
-use range::Range;
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::InputEvent;
 use script_thread::Runnable;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use std::ops::Range;
 use string_cache::Atom;
 use style::element_state::*;
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
 use textinput::{TextInput, SelectionDirection};
-use util::str::{DOMString, search_index};
+use util::str::{DOMString};
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
+const PASSWORD_REPLACEMENT_CHAR: char = '●';
 
 #[derive(JSTraceable, PartialEq, Copy, Clone)]
 #[allow(dead_code)]
@@ -121,10 +122,10 @@ static DEFAULT_MAX_LENGTH: i32 = -1;
 
 impl HTMLInputElement {
     fn new_inherited(localName: Atom, prefix: Option<DOMString>, document: &Document) -> HTMLInputElement {
-        let chan = document.window().constellation_chan();
+        let chan = document.window().constellation_chan().clone();
         HTMLInputElement {
             htmlelement:
-                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE,
+                HTMLElement::new_inherited_with_state(IN_ENABLED_STATE | IN_READ_WRITE_STATE,
                                                       localName, prefix, document),
             input_type: Cell::new(InputType::InputText),
             placeholder: DOMRefCell::new(DOMString::new()),
@@ -174,7 +175,7 @@ pub trait LayoutHTMLInputElementHelpers {
     #[allow(unsafe_code)]
     unsafe fn size_for_layout(self) -> u32;
     #[allow(unsafe_code)]
-    unsafe fn selection_for_layout(self) -> Option<Range<isize>>;
+    unsafe fn selection_for_layout(self) -> Option<Range<usize>>;
     #[allow(unsafe_code)]
     unsafe fn checked_state_for_layout(self) -> bool;
     #[allow(unsafe_code)]
@@ -207,8 +208,7 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
             InputType::InputPassword => {
                 let text = get_raw_textinput_value(self);
                 if !text.is_empty() {
-                    // The implementation of selection_for_layout expects a 1:1 mapping of chars.
-                    text.chars().map(|_| '●').collect()
+                    text.chars().map(|_| PASSWORD_REPLACEMENT_CHAR).collect()
                 } else {
                     String::from((*self.unsafe_get()).placeholder.borrow_for_layout().clone())
                 }
@@ -216,7 +216,6 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
             _ => {
                 let text = get_raw_textinput_value(self);
                 if !text.is_empty() {
-                    // The implementation of selection_for_layout expects a 1:1 mapping of chars.
                     String::from(text)
                 } else {
                     String::from((*self.unsafe_get()).placeholder.borrow_for_layout().clone())
@@ -233,24 +232,28 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
 
     #[allow(unrooted_must_root)]
     #[allow(unsafe_code)]
-    unsafe fn selection_for_layout(self) -> Option<Range<isize>> {
+    unsafe fn selection_for_layout(self) -> Option<Range<usize>> {
         if !(*self.unsafe_get()).upcast::<Element>().focus_state() {
             return None;
         }
 
-        // Use the raw textinput to get the index as long as we use a 1:1 char mapping
-        // in value_for_layout.
-        let raw = match (*self.unsafe_get()).input_type.get() {
-            InputType::InputText |
-            InputType::InputPassword => get_raw_textinput_value(self),
-            _ => return None
-        };
         let textinput = (*self.unsafe_get()).textinput.borrow_for_layout();
-        let selection = textinput.get_absolute_selection_range();
-        let begin_byte = selection.begin();
-        let begin = search_index(begin_byte, raw.char_indices());
-        let length = search_index(selection.length(), raw[begin_byte..].char_indices());
-        Some(Range::new(begin, length))
+
+        match (*self.unsafe_get()).input_type.get() {
+            InputType::InputPassword => {
+                let text = get_raw_textinput_value(self);
+                let sel = textinput.get_absolute_selection_range();
+
+                // Translate indices from the raw value to indices in the replacement value.
+                let char_start = text[.. sel.start].chars().count();
+                let char_end = char_start + text[sel].chars().count();
+
+                let bytes_per_char = PASSWORD_REPLACEMENT_CHAR.len_utf8();
+                Some(char_start * bytes_per_char .. char_end * bytes_per_char)
+            }
+            InputType::InputText => Some(textinput.get_absolute_selection_range()),
+            _ => None
+        }
     }
 
     #[allow(unrooted_must_root)]
@@ -622,6 +625,7 @@ impl HTMLInputElement {
             atom!("radio") | atom!("checkbox") => if !self.Checked() || name.is_empty() {
                 return None;
             },
+
             atom!("image") | atom!("file") => return None, // Unimplemented
             // Step 3.1: it's not the "Image Button" and doesn't have a name attribute.
             _ => if name.is_empty() {
@@ -634,7 +638,7 @@ impl HTMLInputElement {
         Some(FormDatum {
             ty: DOMString::from(&*ty), // FIXME(ajeffrey): Convert directly from Atoms to DOMStrings
             name: name,
-            value: self.Value()
+            value: FormDatumValue::String(self.Value())
         })
     }
 
@@ -710,6 +714,11 @@ impl VirtualMethods for HTMLInputElement {
                 el.set_disabled_state(disabled_state);
                 el.set_enabled_state(!disabled_state);
                 el.check_ancestors_disabled_state_for_form_control();
+
+                if self.input_type.get() == InputType::InputText {
+                    let read_write = !(self.ReadOnly() || el.disabled_state());
+                    el.set_read_write_state(read_write);
+                }
             },
             &atom!("checked") if !self.checked_changed.get() => {
                 let checked_state = match mutation {
@@ -745,6 +754,15 @@ impl VirtualMethods for HTMLInputElement {
                         // https://html.spec.whatwg.org/multipage/#input-type-change
                         let (old_value_mode, old_idl_value) = (self.value_mode(), self.Value());
                         self.input_type.set(new_type);
+
+                        let el = self.upcast::<Element>();
+                        if new_type == InputType::InputText {
+                            let read_write = !(self.ReadOnly() || el.disabled_state());
+                            el.set_read_write_state(read_write);
+                        } else {
+                            el.set_read_write_state(false);
+                        }
+
                         let new_value_mode = self.value_mode();
 
                         match (&old_value_mode, old_idl_value.is_empty(), new_value_mode) {
@@ -789,6 +807,10 @@ impl VirtualMethods for HTMLInputElement {
                                 self.radio_group_name().as_ref());
                         }
                         self.input_type.set(InputType::InputText);
+                        let el = self.upcast::<Element>();
+
+                        let read_write = !(self.ReadOnly() || el.disabled_state());
+                        el.set_read_write_state(read_write);
                     }
                 }
             },
@@ -822,6 +844,17 @@ impl VirtualMethods for HTMLInputElement {
                         attr.value().chars().filter(|&c| c != '\n' && c != '\r'));
                 }
             },
+            &atom!("readonly") if self.input_type.get() == InputType::InputText => {
+                let el = self.upcast::<Element>();
+                match mutation {
+                    AttributeMutation::Set(_) => {
+                        el.set_read_write_state(false);
+                    },
+                    AttributeMutation::Removed => {
+                        el.set_read_write_state(!el.disabled_state());
+                    }
+                }
+            }
             _ => {},
         }
     }
@@ -1122,13 +1155,11 @@ pub struct ChangeEventRunnable {
 
 impl ChangeEventRunnable {
     pub fn send(node: &Node) {
-        let window = window_from_node(node);
-        let window = window.r();
-        let chan = window.user_interaction_task_source();
-        let handler = Trusted::new(node, chan.clone());
+        let handler = Trusted::new(node);
         let dispatcher = ChangeEventRunnable {
             element: handler,
         };
+        let chan = window_from_node(node).user_interaction_task_source();
         let _ = chan.send(CommonScriptMsg::RunnableMsg(InputEvent, box dispatcher));
     }
 }

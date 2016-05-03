@@ -10,9 +10,8 @@
 //! with CORSRequest being expanded into FetchRequest (etc)
 
 use hyper::method::Method;
-use net_traits::request::Origin;
+use net_traits::request::{CredentialsMode, Origin, Request};
 use std::ascii::AsciiExt;
-use std::sync::mpsc::{Sender, Receiver, channel};
 use time;
 use time::{now, Timespec};
 use url::Url;
@@ -20,7 +19,7 @@ use url::Url;
 /// Union type for CORS cache entries
 ///
 /// Each entry might pertain to a header or method
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum HeaderOrMethod {
     HeaderData(String),
     MethodData(Method)
@@ -43,7 +42,7 @@ impl HeaderOrMethod {
 }
 
 /// An entry in the CORS cache
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CORSCacheEntry {
     pub origin: Origin,
     pub url: Url,
@@ -67,257 +66,102 @@ impl CORSCacheEntry {
     }
 }
 
-/// Properties of Request required to cache match.
-pub struct CacheRequestDetails {
-    pub origin: Origin,
-    pub destination: Url,
-    pub credentials: bool
-}
-
-/// Trait for a generic CORS Cache
-pub trait CORSCache {
-    /// [Clear the cache](https://fetch.spec.whatwg.org/#concept-cache-clear)
-    fn clear (&mut self, request: CacheRequestDetails);
-
-    /// Remove old entries
-    fn cleanup(&mut self);
-
-    /// Returns true if an entry with a
-    /// [matching header](https://fetch.spec.whatwg.org/#concept-cache-match-header) is found
-    fn match_header(&mut self, request: CacheRequestDetails, header_name: &str) -> bool;
-
-    /// Updates max age if an entry for a
-    /// [matching header](https://fetch.spec.whatwg.org/#concept-cache-match-header) is found.
-    ///
-    /// If not, it will insert an equivalent entry
-    fn match_header_and_update(&mut self, request: CacheRequestDetails, header_name: &str, new_max_age: u32) -> bool;
-
-    /// Returns true if an entry with a
-    /// [matching method](https://fetch.spec.whatwg.org/#concept-cache-match-method) is found
-    fn match_method(&mut self, request: CacheRequestDetails, method: Method) -> bool;
-
-    /// Updates max age if an entry for
-    /// [a matching method](https://fetch.spec.whatwg.org/#concept-cache-match-method) is found.
-    ///
-    /// If not, it will insert an equivalent entry
-    fn match_method_and_update(&mut self, request: CacheRequestDetails, method: Method, new_max_age: u32) -> bool;
-    /// Insert an entry
-    fn insert(&mut self, entry: CORSCacheEntry);
+fn match_headers(cors_cache: &CORSCacheEntry, cors_req: &Request) -> bool {
+    cors_cache.origin == *cors_req.origin.borrow() &&
+        cors_cache.url == cors_req.current_url() &&
+        (cors_cache.credentials || cors_req.credentials_mode != CredentialsMode::Include)
 }
 
 /// A simple, vector-based CORS Cache
 #[derive(Clone)]
-pub struct BasicCORSCache(Vec<CORSCacheEntry>);
+pub struct CORSCache(Vec<CORSCacheEntry>);
 
-fn match_headers(cors_cache: &CORSCacheEntry, cors_req: &CacheRequestDetails) -> bool {
-    cors_cache.origin == cors_req.origin &&
-        cors_cache.url == cors_req.destination &&
-        cors_cache.credentials == cors_req.credentials
-}
+impl CORSCache {
 
-impl BasicCORSCache {
-
-    pub fn new() -> BasicCORSCache {
-        BasicCORSCache(vec![])
+    pub fn new() -> CORSCache {
+        CORSCache(vec![])
     }
 
-    fn find_entry_by_header<'a>(&'a mut self, request: &CacheRequestDetails,
+    fn find_entry_by_header<'a>(&'a mut self, request: &Request,
                                 header_name: &str) -> Option<&'a mut CORSCacheEntry> {
         self.cleanup();
         self.0.iter_mut().find(|e| match_headers(e, request) && e.header_or_method.match_header(header_name))
     }
 
-    fn find_entry_by_method<'a>(&'a mut self, request: &CacheRequestDetails,
+    fn find_entry_by_method<'a>(&'a mut self, request: &Request,
                                 method: Method) -> Option<&'a mut CORSCacheEntry> {
         // we can take the method from CORSRequest itself
         self.cleanup();
         self.0.iter_mut().find(|e| match_headers(e, request) && e.header_or_method.match_method(&method))
     }
-}
 
-impl CORSCache for BasicCORSCache {
-    /// https://fetch.spec.whatwg.org/#concept-cache-clear
-    #[allow(dead_code)]
-    fn clear (&mut self, request: CacheRequestDetails) {
-        let BasicCORSCache(buf) = self.clone();
+    /// [Clear the cache](https://fetch.spec.whatwg.org/#concept-cache-clear)
+    pub fn clear (&mut self, request: &Request) {
+        let CORSCache(buf) = self.clone();
         let new_buf: Vec<CORSCacheEntry> =
-            buf.into_iter().filter(|e| e.origin == request.origin && request.destination == e.url).collect();
-        *self = BasicCORSCache(new_buf);
+            buf.into_iter().filter(|e| e.origin == *request.origin.borrow() &&
+                                       request.current_url() == e.url).collect();
+        *self = CORSCache(new_buf);
     }
 
-    // Remove old entries
-    fn cleanup(&mut self) {
-        let BasicCORSCache(buf) = self.clone();
+    /// Remove old entries
+    pub fn cleanup(&mut self) {
+        let CORSCache(buf) = self.clone();
         let now = time::now().to_timespec();
         let new_buf: Vec<CORSCacheEntry> = buf.into_iter()
-                                              .filter(|e| now.sec > e.created.sec + e.max_age as i64)
+                                              .filter(|e| now.sec < e.created.sec + e.max_age as i64)
                                               .collect();
-        *self = BasicCORSCache(new_buf);
+        *self = CORSCache(new_buf);
     }
 
-    fn match_header(&mut self, request: CacheRequestDetails, header_name: &str) -> bool {
+    /// Returns true if an entry with a
+    /// [matching header](https://fetch.spec.whatwg.org/#concept-cache-match-header) is found
+    pub fn match_header(&mut self, request: &Request, header_name: &str) -> bool {
         self.find_entry_by_header(&request, header_name).is_some()
     }
 
-    fn match_header_and_update(&mut self, request: CacheRequestDetails, header_name: &str, new_max_age: u32) -> bool {
+    /// Updates max age if an entry for a
+    /// [matching header](https://fetch.spec.whatwg.org/#concept-cache-match-header) is found.
+    ///
+    /// If not, it will insert an equivalent entry
+    pub fn match_header_and_update(&mut self, request: &Request,
+                                   header_name: &str, new_max_age: u32) -> bool {
         match self.find_entry_by_header(&request, header_name).map(|e| e.max_age = new_max_age) {
             Some(_) => true,
             None => {
-                self.insert(CORSCacheEntry::new(request.origin, request.destination, new_max_age,
-                                                request.credentials,
+                self.insert(CORSCacheEntry::new(request.origin.borrow().clone(), request.current_url(), new_max_age,
+                                                request.credentials_mode == CredentialsMode::Include,
                                                 HeaderOrMethod::HeaderData(header_name.to_owned())));
                 false
             }
         }
     }
 
-    fn match_method(&mut self, request: CacheRequestDetails, method: Method) -> bool {
+    /// Returns true if an entry with a
+    /// [matching method](https://fetch.spec.whatwg.org/#concept-cache-match-method) is found
+    pub fn match_method(&mut self, request: &Request, method: Method) -> bool {
         self.find_entry_by_method(&request, method).is_some()
     }
 
-    fn match_method_and_update(&mut self, request: CacheRequestDetails, method: Method, new_max_age: u32) -> bool {
+    /// Updates max age if an entry for
+    /// [a matching method](https://fetch.spec.whatwg.org/#concept-cache-match-method) is found.
+    ///
+    /// If not, it will insert an equivalent entry
+    pub fn match_method_and_update(&mut self, request: &Request, method: Method, new_max_age: u32) -> bool {
         match self.find_entry_by_method(&request, method.clone()).map(|e| e.max_age = new_max_age) {
             Some(_) => true,
             None => {
-                self.insert(CORSCacheEntry::new(request.origin, request.destination, new_max_age,
-                                                request.credentials, HeaderOrMethod::MethodData(method)));
+                self.insert(CORSCacheEntry::new(request.origin.borrow().clone(), request.current_url(), new_max_age,
+                                                request.credentials_mode == CredentialsMode::Include,
+                                                HeaderOrMethod::MethodData(method)));
                 false
             }
         }
     }
 
-    fn insert(&mut self, entry: CORSCacheEntry) {
+    /// Insert an entry
+    pub fn insert(&mut self, entry: CORSCacheEntry) {
         self.cleanup();
         self.0.push(entry);
-    }
-}
-
-/// Various messages that can be sent to a CORSCacheThread
-pub enum CORSCacheThreadMsg {
-    Clear(CacheRequestDetails, Sender<()>),
-    Cleanup(Sender<()>),
-    MatchHeader(CacheRequestDetails, String, Sender<bool>),
-    MatchHeaderUpdate(CacheRequestDetails, String, u32, Sender<bool>),
-    MatchMethod(CacheRequestDetails, Method, Sender<bool>),
-    MatchMethodUpdate(CacheRequestDetails, Method, u32, Sender<bool>),
-    Insert(CORSCacheEntry, Sender<()>),
-    ExitMsg
-}
-
-/// A Sender to a CORSCacheThread
-///
-/// This can be used as a CORS Cache.
-/// The methods on this type block until they can run, and it behaves similar to a mutex
-pub type CORSCacheSender = Sender<CORSCacheThreadMsg>;
-
-impl CORSCache for CORSCacheSender {
-    fn clear (&mut self, request: CacheRequestDetails) {
-        let (tx, rx) = channel();
-        let _ = self.send(CORSCacheThreadMsg::Clear(request, tx));
-        let _ = rx.recv();
-    }
-
-    fn cleanup(&mut self) {
-        let (tx, rx) = channel();
-        let _ = self.send(CORSCacheThreadMsg::Cleanup(tx));
-        let _ = rx.recv();
-    }
-
-    fn match_header(&mut self, request: CacheRequestDetails, header_name: &str) -> bool {
-        let (tx, rx) = channel();
-        let _ = self.send(CORSCacheThreadMsg::MatchHeader(request, header_name.to_owned(), tx));
-        rx.recv().unwrap_or(false)
-    }
-
-    fn match_header_and_update(&mut self, request: CacheRequestDetails, header_name: &str, new_max_age: u32) -> bool {
-        let (tx, rx) = channel();
-        let _ = self.send(CORSCacheThreadMsg::MatchHeaderUpdate(request, header_name.to_owned(), new_max_age, tx));
-        rx.recv().unwrap_or(false)
-    }
-
-    fn match_method(&mut self, request: CacheRequestDetails, method: Method) -> bool {
-        let (tx, rx) = channel();
-        let _ = self.send(CORSCacheThreadMsg::MatchMethod(request, method, tx));
-        rx.recv().unwrap_or(false)
-    }
-
-    fn match_method_and_update(&mut self, request: CacheRequestDetails, method: Method, new_max_age: u32) -> bool {
-        let (tx, rx) = channel();
-        let _ = self.send(CORSCacheThreadMsg::MatchMethodUpdate(request, method, new_max_age, tx));
-        rx.recv().unwrap_or(false)
-    }
-
-    fn insert(&mut self, entry: CORSCacheEntry) {
-        let (tx, rx) = channel();
-        let _ = self.send(CORSCacheThreadMsg::Insert(entry, tx));
-        let _ = rx.recv();
-    }
-}
-
-/// A simple thread-based CORS Cache that can be sent messages
-///
-/// #Example
-/// ```ignore
-/// let thread = CORSCacheThread::new();
-/// let builder = ThreadBuilder::new().named("XHRThread");
-/// let mut sender = thread.sender();
-/// builder.spawn(move || { thread.run() });
-/// sender.insert(CORSCacheEntry::new(/* parameters here */));
-/// ```
-pub struct CORSCacheThread {
-    receiver: Receiver<CORSCacheThreadMsg>,
-    cache: BasicCORSCache,
-    sender: CORSCacheSender
-}
-
-impl CORSCacheThread {
-    pub fn new() -> CORSCacheThread {
-        let (tx, rx) = channel();
-        CORSCacheThread {
-            receiver: rx,
-            cache: BasicCORSCache(vec![]),
-            sender: tx
-        }
-    }
-
-    /// Provides a sender to the cache thread
-    pub fn sender(&self) -> CORSCacheSender {
-        self.sender.clone()
-    }
-
-    /// Runs the cache thread
-    /// This blocks the current thread, so it is advised
-    /// to spawn a new thread for this
-    /// Send ExitMsg to the associated Sender to exit
-    pub fn run(&mut self) {
-        loop {
-            match self.receiver.recv().unwrap() {
-                CORSCacheThreadMsg::Clear(request, tx) => {
-                    self.cache.clear(request);
-                    let _ = tx.send(());
-                },
-                CORSCacheThreadMsg::Cleanup(tx) => {
-                    self.cache.cleanup();
-                    let _ = tx.send(());
-                },
-                CORSCacheThreadMsg::MatchHeader(request, header, tx) => {
-                    let _ = tx.send(self.cache.match_header(request, &header));
-                },
-                CORSCacheThreadMsg::MatchHeaderUpdate(request, header, new_max_age, tx) => {
-                    let _ = tx.send(self.cache.match_header_and_update(request, &header, new_max_age));
-                },
-                CORSCacheThreadMsg::MatchMethod(request, method, tx) => {
-                    let _ = tx.send(self.cache.match_method(request, method));
-                },
-                CORSCacheThreadMsg::MatchMethodUpdate(request, method, new_max_age, tx) => {
-                    let _ = tx.send(self.cache.match_method_and_update(request, method, new_max_age));
-                },
-                CORSCacheThreadMsg::Insert(entry, tx) => {
-                    self.cache.insert(entry);
-                    let _ = tx.send(());
-                },
-                CORSCacheThreadMsg::ExitMsg => break
-            }
-        }
     }
 }

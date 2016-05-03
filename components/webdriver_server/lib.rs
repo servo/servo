@@ -14,8 +14,6 @@ extern crate compositing;
 extern crate hyper;
 extern crate image;
 extern crate ipc_channel;
-#[macro_use]
-extern crate log;
 extern crate msg;
 extern crate regex;
 extern crate rustc_serialize;
@@ -324,7 +322,7 @@ impl Handler {
 
         let (sender, receiver) = ipc::channel().unwrap();
 
-        let load_data = LoadData::new(url);
+        let load_data = LoadData::new(url, None, None);
         let cmd_msg = WebDriverCommandMsg::LoadUrl(pipeline_id, load_data, sender.clone());
         self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
@@ -355,7 +353,7 @@ impl Handler {
 
         let url = receiver.recv().unwrap();
 
-        Ok(WebDriverResponse::Generic(ValueResponse::new(url.serialize().to_json())))
+        Ok(WebDriverResponse::Generic(ValueResponse::new(url.as_str().to_json())))
     }
 
     fn handle_window_size(&self) -> WebDriverResult<WebDriverResponse> {

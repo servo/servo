@@ -16,7 +16,6 @@ extern crate heapsize;
 extern crate layers;
 extern crate msg;
 extern crate serde;
-extern crate util;
 
 pub mod color;
 mod paint_listener;

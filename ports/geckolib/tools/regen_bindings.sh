@@ -14,45 +14,51 @@ if [ ! -d rust-bindgen ]; then
   exit 1
 fi
 
-export RUST_BACKTRACE=1
-export LIBCLANG_PATH="$(pwd)/llvm/build/Release+Asserts/lib"
-export DYLD_LIBRARY_PATH="$(pwd)/llvm/build/Release+Asserts/lib"
-export LD_LIBRARY_PATH="$(pwd)/llvm/build/Release+Asserts/lib"
-export DIST_INCLUDE="$1/dist/include"
+# Check for /usr/include
+if [ ! -d /usr/include ]; then
+  echo "/usr/include doesn't exist. Mac users may need to run xcode-select --install."
+  exit 1
+fi
 
-# Prevent bindgen from generating opaque types for the gecko style structs.
-export MAP_GECKO_STRUCTS=""
-for STRUCT in nsStyleFont nsStyleColor nsStyleList nsStyleText \
+if [ "$(uname)" == "Linux" ]; then
+  PLATFORM_DEPENDENT_DEFINES+="-DOS_LINUX";
+  LIBCLANG_PATH=/usr/lib/llvm-3.8/lib;
+else
+  PLATFORM_DEPENDENT_DEFINES+="-DOS_MACOSX";
+  LIBCLANG_PATH=`brew --prefix llvm38`/lib/llvm-3.8/lib;
+fi
+
+# Prevent bindgen from generating opaque types for common gecko types
+export MAP_GECKO_TYPES=""
+for STRUCT in SheetParsingMode nsStyleFont nsStyleColor nsStyleList nsStyleText \
               nsStyleVisibility nsStyleUserInterface nsStyleTableBorder \
               nsStyleSVG nsStyleVariables nsStyleBackground nsStylePosition \
               nsStyleTextReset nsStyleDisplay nsStyleContent nsStyleUIReset \
               nsStyleTable nsStyleMargin nsStylePadding nsStyleBorder \
               nsStyleOutline nsStyleXUL nsStyleSVGReset nsStyleColumn nsStyleEffects
 do
-  MAP_GECKO_STRUCTS=$MAP_GECKO_STRUCTS"-blacklist-type $STRUCT "
-  MAP_GECKO_STRUCTS=$MAP_GECKO_STRUCTS"-raw-line 'use gecko_style_structs::$STRUCT;'$'\n' "
+  MAP_GECKO_TYPES=$MAP_GECKO_TYPES"-blacklist-type $STRUCT "
+  MAP_GECKO_TYPES=$MAP_GECKO_TYPES"-raw-line 'use gecko_style_structs::$STRUCT;' "
 done
 
 # Check for the include directory.
+export DIST_INCLUDE="$1/dist/include"
 if [ ! -d "$DIST_INCLUDE" ]; then
   echo "$DIST_INCLUDE: directory not found"
   exit 1
 fi
 
-# We need to use 'eval' here to make MAP_GECKO_STRUCTS evaluate properly as
+export RUST_BACKTRACE=1
+
+# We need to use 'eval' here to make MAP_GECKO_TYPES evaluate properly as
 # multiple arguments.
-#
-# Uncomment the following line to run rust-bindgen in a debugger on mac.
-# The absolute path is required to allow launching lldb with an untrusted
-# library in DYLD_LIBRARY_PATH.
-#
-# /Applications/Xcode.app/Contents/Developer/usr/bin/lldb --
 eval ./rust-bindgen/target/debug/bindgen           \
   -x c++ -std=gnu++0x                              \
   "-I$DIST_INCLUDE"                                \
+  $PLATFORM_DEPENDENT_DEFINES                      \
   -o ../bindings.rs                                \
   -no-type-renaming                                \
   "$DIST_INCLUDE/mozilla/ServoBindings.h"          \
   -match "ServoBindings.h"                         \
   -match "nsStyleStructList.h"                     \
-  $MAP_GECKO_STRUCTS
+  $MAP_GECKO_TYPES

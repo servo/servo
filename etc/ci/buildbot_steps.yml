@@ -1,0 +1,67 @@
+mac-rel-wpt:
+  - ./mach build --release
+  - ./mach test-wpt-failure
+  - ./mach test-wpt --release --processes 4 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log
+  - ./mach test-wpt --release --binary-arg=--multiprocess --processes 4 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
+  - ./mach build-cef --release
+  - bash ./etc/ci/lockfile_changed.sh
+  - bash ./etc/ci/manifest_changed.sh
+
+mac-dev-unit:
+  - ./mach build --dev
+  - ./mach test-unit
+  - ./mach build-cef
+  - ./mach build-geckolib
+  - bash ./etc/ci/lockfile_changed.sh
+  - bash ./etc/ci/manifest_changed.sh
+
+mac-rel-css:
+  - ./mach build --release
+  - ./mach test-css --release --processes 4 --log-raw test-css.log --log-errorsummary css-errorsummary.log
+  - ./mach build-geckolib --release
+  - bash ./etc/ci/lockfile_changed.sh
+  - bash ./etc/ci/manifest_changed.sh
+
+linux-dev:
+  - ./mach test-tidy --no-progress
+  - ./mach test-tidy --no-progress --self-test
+  - ./mach build --dev
+  - ./mach test-compiletest
+  - ./mach test-unit
+  - ./mach build-cef
+  - ./mach build-geckolib
+  - bash ./etc/ci/lockfile_changed.sh
+  - bash ./etc/ci/manifest_changed.sh
+  - bash ./etc/ci/check_no_unwrap.sh
+
+linux-rel:
+  - ./mach build --release
+  - ./mach test-wpt-failure
+  - ./mach test-wpt --release --processes 24 --log-raw test-wpt.log --log-errorsummary wpt-errorsummary.log
+  - ./mach test-wpt --release --binary-arg=--multiprocess --processes 24 --log-raw test-wpt-mp.log --log-errorsummary wpt-mp-errorsummary.log eventsource
+  - ./mach test-css --release --processes 16 --log-raw test-css.log --log-errorsummary css-errorsummary.log
+  - ./mach build-cef --release
+  - ./mach build-geckolib --release
+  - bash ./etc/ci/lockfile_changed.sh
+  - bash ./etc/ci/manifest_changed.sh
+
+android:
+  - ./mach build --android --dev
+  - bash ./etc/ci/lockfile_changed.sh
+  - bash ./etc/ci/manifest_changed.sh
+  - python ./etc/ci/check_dynamic_symbols.py
+
+android-nightly:
+  - ./mach build --android --release
+  - ./mach package -r
+  - s3cmd put target/arm-linux-androideabi/release/servo.apk s3://servo-rust/nightly/servo.apk
+
+arm32:
+  - ./mach build --rel --target=arm-unknown-linux-gnueabihf
+  - bash ./etc/ci/lockfile_changed.sh
+  - bash ./etc/ci/manifest_changed.sh
+
+arm64:
+  - ./mach build --rel --target=aarch64-unknown-linux-gnu
+  - bash ./etc/ci/lockfile_changed.sh
+  - bash ./etc/ci/manifest_changed.sh

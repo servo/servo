@@ -33,7 +33,7 @@ use std::default::Default;
 use std::{f32, mem, ptr};
 use style::computed_values::{border_style, filter, image_rendering, mix_blend_mode};
 use text::TextRun;
-use text::glyph::CharIndex;
+use text::glyph::ByteIndex;
 use util::geometry::{self, MAX_RECT, PagePx, ScreenPx};
 use util::opts;
 
@@ -1768,7 +1768,7 @@ trait ScaledFontExtensionMethods {
     fn draw_text(&self,
                  draw_target: &DrawTarget,
                  run: &TextRun,
-                 range: &Range<CharIndex>,
+                 range: &Range<ByteIndex>,
                  baseline_origin: Point2D<Au>,
                  color: Color,
                  antialias: bool);
@@ -1779,7 +1779,7 @@ impl ScaledFontExtensionMethods for ScaledFont {
     fn draw_text(&self,
                  draw_target: &DrawTarget,
                  run: &TextRun,
-                 range: &Range<CharIndex>,
+                 range: &Range<ByteIndex>,
                  baseline_origin: Point2D<Au>,
                  color: Color,
                  antialias: bool) {
@@ -1795,11 +1795,10 @@ impl ScaledFontExtensionMethods for ScaledFont {
         };
 
         let mut origin = baseline_origin.clone();
-        let mut azglyphs = vec!();
-        azglyphs.reserve(range.length().to_usize());
+        let mut azglyphs = Vec::with_capacity(range.length().to_usize());
 
         for slice in run.natural_word_slices_in_visual_order(range) {
-            for glyph in slice.glyphs.iter_glyphs_for_char_range(&slice.range) {
+            for glyph in slice.glyphs.iter_glyphs_for_byte_range(&slice.range) {
                 let glyph_advance = glyph.advance();
                 let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                 let azglyph = struct__AzGlyph {

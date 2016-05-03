@@ -25,9 +25,9 @@ async_test(function(t) {
 });
 
 test(function() {
-  assert_throws("NotSupportedError", function() {
-    document.createEvent("ErrorEvent");
-  }, "should not be supported");
+  var e = document.createEvent("ErrorEvent");
+  var eProto = Object.getPrototypeOf(e);
+  assert_equals(eProto, ErrorEvent.prototype);
 }, "document.createEvent('ErrorEvent')");
 
 test(function() {

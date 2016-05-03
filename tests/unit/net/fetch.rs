@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use hyper::header::{AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowOrigin};
-use hyper::header::{AccessControlAllowMethods, AccessControlRequestHeaders, AccessControlRequestMethod};
+use hyper::header::{AccessControlAllowMethods, AccessControlMaxAge};
+use hyper::header::{AccessControlRequestHeaders, AccessControlRequestMethod};
 use hyper::header::{CacheControl, ContentLanguage, ContentType, Expires, LastModified};
 use hyper::header::{Headers, HttpDate, Location, SetCookie, Pragma};
 use hyper::method::Method;
@@ -12,17 +13,21 @@ use hyper::server::{Handler, Listening, Server};
 use hyper::server::{Request as HyperRequest, Response as HyperResponse};
 use hyper::status::StatusCode;
 use hyper::uri::RequestUri;
-use net::fetch::methods::{fetch, fetch_async};
+use net::fetch::cors_cache::CORSCache;
+use net::fetch::methods::{fetch, fetch_async, fetch_with_cors_cache};
 use net_traits::AsyncFetchListener;
 use net_traits::request::{Origin, RedirectMode, Referer, Request, RequestMode};
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
+use std::fs::File;
+use std::io::Read;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{Sender, channel};
 use std::sync::{Arc, Mutex};
 use time::{self, Duration};
 use unicase::UniCase;
-use url::{Origin as UrlOrigin, OpaqueOrigin, Url};
+use url::{Origin as UrlOrigin, Url};
+use util::resource_files::resources_dir_path;
 
 // TODO write a struct that impls Handler for storing test values
 
@@ -139,6 +144,36 @@ fn test_fetch_data() {
 }
 
 #[test]
+fn test_fetch_file() {
+
+    let mut path = resources_dir_path();
+    path.push("servo.css");
+
+    let url = Url::from_file_path(path.clone()).unwrap();
+    let origin = Origin::Origin(url.origin());
+    let request = Request::new(url, Some(origin), false);
+    request.same_origin_data.set(true);
+
+    let fetch_response = fetch(Rc::new(request));
+    assert!(!fetch_response.is_network_error());
+    assert_eq!(fetch_response.headers.len(), 1);
+    let content_type: &ContentType = fetch_response.headers.get().unwrap();
+    assert!(**content_type == Mime(TopLevel::Text, SubLevel::Css, vec![]));
+
+    let resp_body = fetch_response.body.lock().unwrap();
+    let mut file = File::open(path).unwrap();
+    let mut bytes = vec![];
+    let _ = file.read_to_end(&mut bytes);
+
+    match *resp_body {
+        ResponseBody::Done(ref val) => {
+            assert_eq!(val, &bytes);
+        },
+        _ => panic!()
+    }
+}
+
+#[test]
 fn test_cors_preflight_fetch() {
     static ACK: &'static [u8] = b"ACK";
     let state = Arc::new(AtomicUsize::new(0));
@@ -156,7 +191,7 @@ fn test_cors_preflight_fetch() {
     };
     let (mut server, url) = make_server(handler);
 
-    let origin = Origin::Origin(UrlOrigin::UID(OpaqueOrigin::new()));
+    let origin = Origin::Origin(UrlOrigin::new_opaque());
     let mut request = Request::new(url, Some(origin), false);
     request.referer = Referer::NoReferer;
     request.use_cors_preflight = true;
@@ -169,6 +204,58 @@ fn test_cors_preflight_fetch() {
     assert!(!fetch_response.is_network_error());
 
     match *fetch_response.body.lock().unwrap() {
+        ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
+        _ => panic!()
+    };
+}
+
+#[test]
+fn test_cors_preflight_cache_fetch() {
+    static ACK: &'static [u8] = b"ACK";
+    let state = Arc::new(AtomicUsize::new(0));
+    let counter = state.clone();
+    let mut cache = CORSCache::new();
+    let handler = move |request: HyperRequest, mut response: HyperResponse| {
+        if request.method == Method::Options && state.clone().fetch_add(1, Ordering::SeqCst) == 0 {
+            assert!(request.headers.has::<AccessControlRequestMethod>());
+            assert!(request.headers.has::<AccessControlRequestHeaders>());
+            response.headers_mut().set(AccessControlAllowOrigin::Any);
+            response.headers_mut().set(AccessControlAllowCredentials);
+            response.headers_mut().set(AccessControlAllowMethods(vec![Method::Get]));
+            response.headers_mut().set(AccessControlMaxAge(6000));
+        } else {
+            response.headers_mut().set(AccessControlAllowOrigin::Any);
+            response.send(ACK).unwrap();
+        }
+    };
+    let (mut server, url) = make_server(handler);
+
+    let origin = Origin::Origin(UrlOrigin::new_opaque());
+    let mut request = Request::new(url.clone(), Some(origin.clone()), false);
+    request.referer = Referer::NoReferer;
+    request.use_cors_preflight = true;
+    request.mode = RequestMode::CORSMode;
+    let wrapped_request0 = Rc::new(request.clone());
+    let wrapped_request1 = Rc::new(request);
+
+    let fetch_response0 = fetch_with_cors_cache(wrapped_request0.clone(), &mut cache);
+    let fetch_response1 = fetch_with_cors_cache(wrapped_request1.clone(), &mut cache);
+    let _ = server.close();
+
+    assert!(!fetch_response0.is_network_error() && !fetch_response1.is_network_error());
+
+    // The response from the CORS-preflight cache was used
+    assert_eq!(1, counter.load(Ordering::SeqCst));
+
+    // The entry exists in the CORS-preflight cache
+    assert_eq!(true, cache.match_method(&*wrapped_request0, Method::Get));
+    assert_eq!(true, cache.match_method(&*wrapped_request1, Method::Get));
+
+    match *fetch_response0.body.lock().unwrap() {
+        ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
+        _ => panic!()
+    };
+    match *fetch_response1.body.lock().unwrap() {
         ResponseBody::Done(ref body) => assert_eq!(&**body, ACK),
         _ => panic!()
     };
@@ -192,7 +279,7 @@ fn test_cors_preflight_fetch_network_error() {
     };
     let (mut server, url) = make_server(handler);
 
-    let origin = Origin::Origin(UrlOrigin::UID(OpaqueOrigin::new()));
+    let origin = Origin::Origin(UrlOrigin::new_opaque());
     let mut request = Request::new(url, Some(origin), false);
     *request.method.borrow_mut() = Method::Extension("CHICKEN".to_owned());
     request.referer = Referer::NoReferer;
@@ -269,7 +356,7 @@ fn test_fetch_response_is_cors_filtered() {
     let (mut server, url) = make_server(handler);
 
     // an origin mis-match will stop it from defaulting to a basic filtered response
-    let origin = Origin::Origin(UrlOrigin::UID(OpaqueOrigin::new()));
+    let origin = Origin::Origin(UrlOrigin::new_opaque());
     let mut request = Request::new(url, Some(origin), false);
     request.referer = Referer::NoReferer;
     request.mode = RequestMode::CORSMode;
@@ -304,7 +391,7 @@ fn test_fetch_response_is_opaque_filtered() {
     let (mut server, url) = make_server(handler);
 
     // an origin mis-match will fall through to an Opaque filtered response
-    let origin = Origin::Origin(UrlOrigin::UID(OpaqueOrigin::new()));
+    let origin = Origin::Origin(UrlOrigin::new_opaque());
     let mut request = Request::new(url, Some(origin), false);
     request.referer = Referer::NoReferer;
     let wrapped_request = Rc::new(request);
@@ -340,7 +427,7 @@ fn test_fetch_response_is_opaque_redirect_filtered() {
             RequestUri::AbsolutePath(url) =>
                 url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
             RequestUri::AbsoluteUri(url) =>
-                url.path().unwrap().last().unwrap().split("/").collect::<String>().parse::<u32>().unwrap_or(0),
+                url.path_segments().unwrap().next_back().unwrap().parse::<u32>().unwrap_or(0),
             _ => panic!()
         };
 
@@ -420,7 +507,7 @@ fn setup_server_and_fetch(message: &'static [u8], redirect_cap: u32) -> Response
             RequestUri::AbsolutePath(url) =>
                 url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
             RequestUri::AbsoluteUri(url) =>
-                url.path().unwrap().last().unwrap().split("/").collect::<String>().parse::<u32>().unwrap_or(0),
+                url.path_segments().unwrap().next_back().unwrap().parse::<u32>().unwrap_or(0),
             _ => panic!()
         };
 
@@ -493,7 +580,7 @@ fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: Stat
             RequestUri::AbsolutePath(url) =>
                 url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
             RequestUri::AbsoluteUri(url) =>
-                url.path().unwrap().last().unwrap().split("/").collect::<String>().parse::<u32>().unwrap_or(0),
+                url.path_segments().unwrap().next_back().unwrap().parse::<u32>().unwrap_or(0),
             _ => panic!()
         };
 
@@ -631,7 +718,7 @@ fn test_opaque_filtered_fetch_async_returns_complete_response() {
     let (mut server, url) = make_server(handler);
 
     // an origin mis-match will fall through to an Opaque filtered response
-    let origin = Origin::Origin(UrlOrigin::UID(OpaqueOrigin::new()));
+    let origin = Origin::Origin(UrlOrigin::new_opaque());
     let mut request = Request::new(url, Some(origin), false);
     request.referer = Referer::NoReferer;
 
@@ -658,7 +745,7 @@ fn test_opaque_redirect_filtered_fetch_async_returns_complete_response() {
             RequestUri::AbsolutePath(url) =>
                 url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
             RequestUri::AbsoluteUri(url) =>
-                url.path().unwrap().last().unwrap().split("/").collect::<String>().parse::<u32>().unwrap_or(0),
+                url.path_segments().unwrap().last().unwrap().parse::<u32>().unwrap_or(0),
             _ => panic!()
         };
 

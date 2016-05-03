@@ -60,8 +60,7 @@ use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use time;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
-use url::Url;
-use url::percent_encoding::{utf8_percent_encode, USERNAME_ENCODE_SET, PASSWORD_ENCODE_SET};
+use url::{Url, Position};
 use util::prefs;
 use util::str::DOMString;
 
@@ -360,23 +359,17 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
                 // Step 9
                 if parsed_url.host().is_some() {
-                    if let Some(scheme_data) = parsed_url.relative_scheme_data_mut() {
-                        if let Some(user_str) = username {
-                            scheme_data.username = utf8_percent_encode(&user_str.0, USERNAME_ENCODE_SET);
-
-                            // ensure that the password is mutated when a username is provided
-                            scheme_data.password = password.map(|pass_str| {
-                                utf8_percent_encode(&pass_str.0, PASSWORD_ENCODE_SET)
-                            });
-                        }
+                    if let Some(user_str) = username {
+                        parsed_url.set_username(&user_str.0).unwrap();
+                        let password = password.as_ref().map(|pass_str| &*pass_str.0);
+                        parsed_url.set_password(password).unwrap();
                     }
                 }
 
                 // Step 10
                 if !async {
                     // FIXME: This should only happen if the global environment is a document environment
-                    if self.timeout.get() != 0 || self.with_credentials.get() ||
-                       self.response_type.get() != XMLHttpRequestResponseType::_empty {
+                    if self.timeout.get() != 0 || self.response_type.get() != XMLHttpRequestResponseType::_empty {
                         return Err(Error::InvalidAccess)
                     }
                 }
@@ -513,8 +506,6 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             // Step 2
             _ if self.send_flag.get() => Err(Error::InvalidState),
             // Step 3
-            _ if self.sync_in_window() => Err(Error::InvalidAccess),
-            // Step 4
             _ => {
                 self.with_credentials.set(with_credentials);
                 Ok(())
@@ -582,10 +573,13 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         // Step 5
         let global = self.global();
         let pipeline_id = global.r().pipeline();
+        //TODO - set referrer_policy/referrer_url in load_data
         let mut load_data =
             LoadData::new(LoadContext::Browsing,
                           self.request_url.borrow().clone().unwrap(),
-                          Some(pipeline_id));
+                          Some(pipeline_id),
+                          None,
+                          None);
         if load_data.url.origin().ne(&global.r().get_url().origin()) {
             load_data.credentials_flag = self.WithCredentials();
         }
@@ -628,24 +622,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                                                   true);
         match cors_request {
             Ok(None) => {
-                let mut buf = String::new();
-                buf.push_str(&referer_url.scheme);
-                buf.push_str("://");
-
-                if let Some(ref h) = referer_url.serialize_host() {
-                    buf.push_str(h);
-                }
-
-                if let Some(ref p) = referer_url.port().as_ref() {
-                    buf.push_str(":");
-                    buf.push_str(&p.to_string());
-                }
-
-                if let Some(ref h) = referer_url.serialize_path() {
-                    buf.push_str(h);
-                }
-
-                self.request_headers.borrow_mut().set_raw("Referer".to_owned(), vec![buf.into_bytes()]);
+                let bytes = referer_url[..Position::AfterPath].as_bytes().to_vec();
+                self.request_headers.borrow_mut().set_raw("Referer".to_owned(), vec![bytes]);
             },
             Ok(Some(ref req)) => self.insert_trusted_header("origin".to_owned(),
                                                             req.origin.to_string()),
@@ -728,7 +706,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         // Step 2
         let override_mime = try!(mime.parse::<Mime>().map_err(|_| Error::Syntax));
         // Step 3
-        *self.override_mime_type.borrow_mut() = Some(override_mime.clone());
+        let mime_no_params = Mime(override_mime.clone().0, override_mime.clone().1, vec![]);
+        *self.override_mime_type.borrow_mut() = Some(mime_no_params);
         // Step 4
         let value = override_mime.get_param(mime::Attr::Charset);
         *self.override_charset.borrow_mut() = value.and_then(|value| {
@@ -909,7 +888,7 @@ impl XMLHttpRequest {
             debug!("Bypassing cross origin check");
         }
 
-        *self.response_url.borrow_mut() = metadata.final_url.serialize_no_fragment();
+        *self.response_url.borrow_mut() = metadata.final_url[..Position::AfterQuery].to_owned();
 
         // XXXManishearth Clear cache entries in case of a network error
         self.process_partial_response(XHRProgress::HeadersReceived(gen_id, metadata.headers, metadata.status));
@@ -1100,11 +1079,11 @@ impl XMLHttpRequest {
     fn set_timeout(&self, duration_ms: u32) {
         // Sets up the object to timeout in a given number of milliseconds
         // This will cancel all previous timeouts
-        let global = self.global();
         let callback = OneshotTimerCallback::XhrTimeout(XHRTimeoutCallback {
-            xhr: Trusted::new(self, global.r().networking_task_source()),
+            xhr: Trusted::new(self),
             generation_id: self.generation_id.get(),
         });
+        let global = self.global();
         let duration = Length::new(duration_ms as u64);
         *self.timeout_cancel.borrow_mut() = Some(global.r().schedule_callback(callback, duration));
     }
@@ -1321,7 +1300,7 @@ impl XMLHttpRequest {
             Ok(req) => req,
         };
 
-        let xhr = Trusted::new(self, global.networking_task_source());
+        let xhr = Trusted::new(self);
 
         let context = Arc::new(Mutex::new(XHRContext {
             xhr: xhr,

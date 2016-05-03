@@ -116,7 +116,8 @@ impl Browser {
         let (compositor_proxy, compositor_receiver) =
             window.create_compositor_channel();
         let supports_clipboard = window.supports_clipboard();
-        let time_profiler_chan = profile_time::Profiler::create(opts.time_profiler_period);
+        let time_profiler_chan = profile_time::Profiler::create(opts.time_profiler_period,
+                                                                opts.time_profiler_trace_path.clone());
         let mem_profiler_chan = profile_mem::Profiler::create(opts.mem_profiler_period);
         let devtools_chan = opts.devtools_port.map(|port| {
             devtools::start_server(port)

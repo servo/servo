@@ -58,7 +58,7 @@ pub struct GeckoNode<'ln> {
 }
 
 impl<'ln> GeckoNode<'ln> {
-    unsafe fn from_raw(n: *mut RawGeckoNode) -> GeckoNode<'ln> {
+    pub unsafe fn from_raw(n: *mut RawGeckoNode) -> GeckoNode<'ln> {
         GeckoNode {
             node: n,
             chain: PhantomData,
@@ -437,9 +437,13 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::Enabled |
             NonTSPseudoClass::Disabled |
             NonTSPseudoClass::Checked |
+            NonTSPseudoClass::ReadWrite |
             NonTSPseudoClass::Indeterminate => {
                 self.get_state().contains(pseudo_class.state_flag())
             },
+            NonTSPseudoClass::ReadOnly => {
+                !self.get_state().contains(pseudo_class.state_flag())
+            }
         }
     }
 
@@ -450,8 +454,10 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         self.get_attr(&ns!(), &atom!("id")).map(|s| Atom::from(s))
     }
 
-    fn has_class(&self, _name: &Atom) -> bool {
-        unimplemented!()
+    fn has_class(&self, name: &Atom) -> bool {
+        // FIXME(bholley): Do this smarter.
+        self.get_attr(&ns!(), &atom!("class"))
+            .map_or(false, |classes| classes.split(" ").any(|n| &Atom::from(n) == name))
     }
 
     fn each_class<F>(&self, mut callback: F) where F: FnMut(&Atom) {

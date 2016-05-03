@@ -15,7 +15,7 @@ use flow::{self, Flow};
 use flow_ref::{self, FlowRef};
 use gfx;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, FragmentType, OpaqueNode, StackingContextId};
-use gfx::text::glyph::CharIndex;
+use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
 use gfx_traits::{LayerId, LayerType};
 use incremental::{RECONSTRUCT_FLOW, RestyleDamage};
@@ -48,7 +48,6 @@ use text;
 use text::TextRunScanner;
 use url::Url;
 use util;
-use util::str::slice_chars;
 use wrapper::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position
@@ -227,13 +226,8 @@ impl SpecificFragmentInfo {
 impl fmt::Debug for SpecificFragmentInfo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            SpecificFragmentInfo::ScannedText(ref info) => {
-                write!(f, "{:?}", slice_chars(&*info.run.text, info.range.begin().get() as usize,
-                                                 info.range.end().get() as usize))
-            }
-            SpecificFragmentInfo::UnscannedText(ref info) => {
-                write!(f, "{:?}", info.text)
-            }
+            SpecificFragmentInfo::ScannedText(ref info) => write!(f, "{:?}", info.text()),
+            SpecificFragmentInfo::UnscannedText(ref info) => write!(f, "{:?}", info.text),
             _ => Ok(())
         }
     }
@@ -325,9 +319,9 @@ pub struct CanvasFragmentInfo {
 }
 
 impl CanvasFragmentInfo {
-    pub fn new<N: ThreadSafeLayoutNode>(node: &N, data: HTMLCanvasData) -> CanvasFragmentInfo {
+    pub fn new<N: ThreadSafeLayoutNode>(node: &N, data: HTMLCanvasData, ctx: &LayoutContext) -> CanvasFragmentInfo {
         CanvasFragmentInfo {
-            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node),
+            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node, ctx),
             ipc_renderer: data.ipc_renderer
                               .map(|renderer| Arc::new(Mutex::new(renderer))),
             dom_width: Au::from_px(data.width as i32),
@@ -388,7 +382,7 @@ impl ImageFragmentInfo {
         };
 
         ImageFragmentInfo {
-            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node),
+            replaced_image_fragment_info: ReplacedImageFragmentInfo::new(node, layout_context),
             image: image,
             metadata: metadata,
         }
@@ -447,9 +441,9 @@ pub struct ReplacedImageFragmentInfo {
 }
 
 impl ReplacedImageFragmentInfo {
-    pub fn new<N>(node: &N) -> ReplacedImageFragmentInfo
+    pub fn new<N>(node: &N, ctx: &LayoutContext) -> ReplacedImageFragmentInfo
             where N: ThreadSafeLayoutNode {
-        let is_vertical = node.style().writing_mode.is_vertical();
+        let is_vertical = node.style(ctx.style_context()).writing_mode.is_vertical();
         ReplacedImageFragmentInfo {
             computed_inline_size: None,
             computed_block_size: None,
@@ -657,22 +651,22 @@ pub struct ScannedTextFragmentInfo {
     /// The intrinsic size of the text fragment.
     pub content_size: LogicalSize<Au>,
 
-    /// The position of the insertion point in characters, if any.
-    pub insertion_point: Option<CharIndex>,
+    /// The byte offset of the insertion point, if any.
+    pub insertion_point: Option<ByteIndex>,
 
     /// The range within the above text run that this represents.
-    pub range: Range<CharIndex>,
+    pub range: Range<ByteIndex>,
 
     /// The endpoint of the above range, including whitespace that was stripped out. This exists
     /// so that we can restore the range to its original value (before line breaking occurred) when
     /// performing incremental reflow.
-    pub range_end_including_stripped_whitespace: CharIndex,
+    pub range_end_including_stripped_whitespace: ByteIndex,
 
     pub flags: ScannedTextFlags,
 }
 
 bitflags! {
-    flags ScannedTextFlags: u8 {
+    pub flags ScannedTextFlags: u8 {
         /// Whether a line break is required after this fragment if wrapping on newlines (e.g. if
         /// `white-space: pre` is in effect).
         const REQUIRES_LINE_BREAK_AFTERWARD_IF_WRAPPING_ON_NEWLINES = 0x01,
@@ -685,9 +679,9 @@ bitflags! {
 impl ScannedTextFragmentInfo {
     /// Creates the information specific to a scanned text fragment from a range and a text run.
     pub fn new(run: Arc<TextRun>,
-               range: Range<CharIndex>,
+               range: Range<ByteIndex>,
                content_size: LogicalSize<Au>,
-               insertion_point: Option<CharIndex>,
+               insertion_point: Option<ByteIndex>,
                flags: ScannedTextFlags)
                -> ScannedTextFragmentInfo {
         ScannedTextFragmentInfo {
@@ -698,6 +692,10 @@ impl ScannedTextFragmentInfo {
             range_end_including_stripped_whitespace: range.end(),
             flags: flags,
         }
+    }
+
+    pub fn text(&self) -> &str {
+        &self.run.text[self.range.begin().to_usize() .. self.range.end().to_usize()]
     }
 
     pub fn requires_line_break_afterward_if_wrapping_on_newlines(&self) -> bool {
@@ -715,12 +713,12 @@ impl ScannedTextFragmentInfo {
 pub struct SplitInfo {
     // TODO(bjz): this should only need to be a single character index, but both values are
     // currently needed for splitting in the `inline::try_append_*` functions.
-    pub range: Range<CharIndex>,
+    pub range: Range<ByteIndex>,
     pub inline_size: Au,
 }
 
 impl SplitInfo {
-    fn new(range: Range<CharIndex>, info: &ScannedTextFragmentInfo) -> SplitInfo {
+    fn new(range: Range<ByteIndex>, info: &ScannedTextFragmentInfo) -> SplitInfo {
         let inline_size = info.run.advance_for_range(&range);
         SplitInfo {
             range: range,
@@ -755,13 +753,13 @@ pub struct UnscannedTextFragmentInfo {
     pub text: Box<str>,
 
     /// The selected text range.  An empty range represents the insertion point.
-    pub selection: Option<Range<CharIndex>>,
+    pub selection: Option<Range<ByteIndex>>,
 }
 
 impl UnscannedTextFragmentInfo {
     /// Creates a new instance of `UnscannedTextFragmentInfo` from the given text.
     #[inline]
-    pub fn new(text: String, selection: Option<Range<CharIndex>>) -> UnscannedTextFragmentInfo {
+    pub fn new(text: String, selection: Option<Range<ByteIndex>>) -> UnscannedTextFragmentInfo {
         UnscannedTextFragmentInfo {
             text: text.into_boxed_str(),
             selection: selection,
@@ -791,8 +789,9 @@ impl TableColumnFragmentInfo {
 
 impl Fragment {
     /// Constructs a new `Fragment` instance.
-    pub fn new<N: ThreadSafeLayoutNode>(node: &N, specific: SpecificFragmentInfo) -> Fragment {
-        let style = node.style().clone();
+    pub fn new<N: ThreadSafeLayoutNode>(node: &N, specific: SpecificFragmentInfo, ctx: &LayoutContext) -> Fragment {
+        let style_context = ctx.style_context();
+        let style = node.style(style_context).clone();
         let writing_mode = style.writing_mode;
 
         let mut restyle_damage = node.restyle_damage();
@@ -801,7 +800,7 @@ impl Fragment {
         Fragment {
             node: node.opaque(),
             style: style,
-            selected_style: node.selected_style().clone(),
+            selected_style: node.selected_style(style_context).clone(),
             restyle_damage: restyle_damage,
             border_box: LogicalRect::zero(writing_mode),
             border_padding: LogicalMargin::zero(writing_mode),
@@ -1611,7 +1610,7 @@ impl Fragment {
             };
 
         let mut remaining_inline_size = max_inline_size;
-        let mut inline_start_range = Range::new(text_fragment_info.range.begin(), CharIndex(0));
+        let mut inline_start_range = Range::new(text_fragment_info.range.begin(), ByteIndex(0));
         let mut inline_end_range = None;
         let mut overflowing = false;
 
@@ -1651,7 +1650,7 @@ impl Fragment {
                 // We're going to overflow the line.
                 overflowing = true;
                 inline_start_range = slice.text_run_range();
-                remaining_range = Range::new(slice.text_run_range().end(), CharIndex(0));
+                remaining_range = Range::new(slice.text_run_range().end(), ByteIndex(0));
                 remaining_range.extend_to(text_fragment_info.range.end());
             }
 
@@ -2022,8 +2021,7 @@ impl Fragment {
                     return false
                 }
 
-                let length = first_unscanned_text.text.len();
-                if length != 0 && first_unscanned_text.text.char_at_reverse(length) == '\n' {
+                if first_unscanned_text.text.ends_with('\n') {
                     return false
                 }
 
@@ -2322,32 +2320,20 @@ impl Fragment {
 
         match self.specific {
             SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) => {
-                let mut leading_whitespace_character_count = 0;
-                {
-                    let text = slice_chars(
-                        &*scanned_text_fragment_info.run.text,
-                        scanned_text_fragment_info.range.begin().to_usize(),
-                        scanned_text_fragment_info.range.end().to_usize());
-                    for character in text.chars() {
-                        if util::str::char_is_whitespace(character) {
-                            leading_whitespace_character_count += 1
-                        } else {
-                            break
-                        }
-                    }
-                }
+                let leading_whitespace_byte_count = scanned_text_fragment_info.text()
+                    .find(|c| !util::str::char_is_whitespace(c))
+                    .unwrap_or(scanned_text_fragment_info.text().len());
 
+                let whitespace_len = ByteIndex(leading_whitespace_byte_count as isize);
                 let whitespace_range = Range::new(scanned_text_fragment_info.range.begin(),
-                                                  CharIndex(leading_whitespace_character_count));
+                                                  whitespace_len);
                 let text_bounds =
                     scanned_text_fragment_info.run.metrics_for_range(&whitespace_range).bounding_box;
                 self.border_box.size.inline = self.border_box.size.inline - text_bounds.size.width;
                 scanned_text_fragment_info.content_size.inline =
                     scanned_text_fragment_info.content_size.inline - text_bounds.size.width;
 
-                scanned_text_fragment_info.range.adjust_by(
-                    CharIndex(leading_whitespace_character_count),
-                    -CharIndex(leading_whitespace_character_count));
+                scanned_text_fragment_info.range.adjust_by(whitespace_len, -whitespace_len);
 
                 WhitespaceStrippingResult::RetainFragment
             }
@@ -2388,43 +2374,29 @@ impl Fragment {
 
         match self.specific {
             SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) => {
-                // FIXME(pcwalton): Is there a more clever (i.e. faster) way to do this?
-                debug!("stripping trailing whitespace: range={:?}, len={}",
-                       scanned_text_fragment_info.range,
-                       scanned_text_fragment_info.run.text.chars().count());
-                let mut trailing_whitespace_character_count = 0;
-                let text_bounds;
-                {
-                    let text = slice_chars(&*scanned_text_fragment_info.run.text,
-                                           scanned_text_fragment_info.range.begin().to_usize(),
-                                           scanned_text_fragment_info.range.end().to_usize());
-                    for ch in text.chars().rev() {
-                        if util::str::char_is_whitespace(ch) {
-                            trailing_whitespace_character_count += 1
-                        } else {
-                            break
-                        }
+                let mut trailing_whitespace_start_byte = 0;
+                for (i, c) in scanned_text_fragment_info.text().char_indices().rev() {
+                    if !util::str::char_is_whitespace(c) {
+                        trailing_whitespace_start_byte = i + c.len_utf8();
+                        break;
                     }
-
-                    let whitespace_range =
-                        Range::new(scanned_text_fragment_info.range.end() -
-                                   CharIndex(trailing_whitespace_character_count),
-                                   CharIndex(trailing_whitespace_character_count));
-                    text_bounds = scanned_text_fragment_info.run
-                                                            .metrics_for_range(&whitespace_range)
-                                                            .bounding_box;
-                    self.border_box.size.inline = self.border_box.size.inline -
-                        text_bounds.size.width;
                 }
+                let whitespace_start = ByteIndex(trailing_whitespace_start_byte as isize);
+                let whitespace_len = scanned_text_fragment_info.range.length() - whitespace_start;
+                let whitespace_range = Range::new(whitespace_start, whitespace_len);
+
+                // FIXME: This may be unnecessary because these metrics will be recomputed in
+                // LineBreaker::strip_trailing_whitespace_from_pending_line_if_necessary
+                let text_bounds = scanned_text_fragment_info.run
+                                                        .metrics_for_range(&whitespace_range)
+                                                        .bounding_box;
+                self.border_box.size.inline = self.border_box.size.inline -
+                    text_bounds.size.width;
 
                 scanned_text_fragment_info.content_size.inline =
                     scanned_text_fragment_info.content_size.inline - text_bounds.size.width;
 
-                if trailing_whitespace_character_count != 0 {
-                    scanned_text_fragment_info.range.extend_by(
-                        CharIndex(-trailing_whitespace_character_count));
-                }
-
+                scanned_text_fragment_info.range.extend_by(-whitespace_len);
                 WhitespaceStrippingResult::RetainFragment
             }
             SpecificFragmentInfo::UnscannedText(ref mut unscanned_text_fragment_info) => {
@@ -2735,7 +2707,7 @@ impl Overflow {
 }
 
 bitflags! {
-    flags FragmentFlags: u8 {
+    pub flags FragmentFlags: u8 {
         /// Whether this fragment has a layer.
         const HAS_LAYER = 0x01,
     }

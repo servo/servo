@@ -35,7 +35,7 @@ impl<T: Serialize + Deserialize> Clone for ConstellationChan<T> {
     }
 }
 
-pub type PanicMsg = (Option<PipelineId>, String);
+pub type PanicMsg = (Option<PipelineId>, String, String);
 
 #[derive(Copy, Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct WindowSizeData {
@@ -48,6 +48,12 @@ pub struct WindowSizeData {
 
     /// The resolution of the window in dppx, not including any "pinch zoom" factor.
     pub device_pixel_ratio: ScaleFactor<ViewportPx, DevicePixel, f32>,
+}
+
+#[derive(Deserialize, Eq, PartialEq, Serialize, Copy, Clone, HeapSizeOf)]
+pub enum WindowSizeType {
+    Initial,
+    Resize,
 }
 
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Deserialize, Serialize)]
@@ -188,7 +194,7 @@ pub enum Key {
 
 bitflags! {
     #[derive(Deserialize, Serialize)]
-    flags KeyModifiers: u8 {
+    pub flags KeyModifiers: u8 {
         const NONE = 0x00,
         const SHIFT = 0x01,
         const CONTROL = 0x02,
@@ -240,15 +246,19 @@ pub struct LoadData {
     pub method: Method,
     pub headers: Headers,
     pub data: Option<Vec<u8>>,
+    pub referrer_policy: Option<ReferrerPolicy>,
+    pub referrer_url: Option<Url>,
 }
 
 impl LoadData {
-    pub fn new(url: Url) -> LoadData {
+    pub fn new(url: Url, referrer_policy: Option<ReferrerPolicy>, referrer_url: Option<Url>) -> LoadData {
         LoadData {
             url: url,
             method: Method::Get,
             headers: Headers::new(),
             data: None,
+            referrer_policy: referrer_policy,
+            referrer_url: referrer_url,
         }
     }
 }
@@ -378,4 +388,15 @@ impl ConvertPipelineIdFromWebRender for webrender_traits::PipelineId {
             index: PipelineIndex(self.1),
         }
     }
+}
+
+/// [Policies](https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states)
+/// for providing a referrer header for a request
+#[derive(HeapSizeOf, Clone, Deserialize, Serialize)]
+pub enum ReferrerPolicy {
+    NoReferrer,
+    NoRefWhenDowngrade,
+    OriginOnly,
+    OriginWhenCrossOrigin,
+    UnsafeUrl,
 }

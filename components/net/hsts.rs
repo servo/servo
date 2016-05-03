@@ -122,13 +122,11 @@ impl HstsList {
 }
 
 pub fn secure_url(url: &Url) -> Url {
-    if &*url.scheme == "http" {
+    if url.scheme() == "http" {
         let mut secure_url = url.clone();
-        secure_url.scheme = "https".to_owned();
-        secure_url.relative_scheme_data_mut()
-            .map(|scheme_data| {
-                scheme_data.default_port = Some(443);
-            });
+        secure_url.set_scheme("https").unwrap();
+        // .set_port(Some(443)) would set the port to None,
+        // and should only be done when it was already None.
         secure_url
     } else {
         url.clone()

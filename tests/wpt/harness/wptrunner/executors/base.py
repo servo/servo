@@ -63,6 +63,7 @@ class TestharnessResultConverter(object):
                 [test.subtest_result_cls(name, self.test_codes[status], message, stack)
                  for name, status, message, stack in subtest_results])
 
+
 testharness_result_converter = TestharnessResultConverter()
 
 
@@ -71,10 +72,23 @@ def reftest_result_converter(self, test, result):
                             extra=result.get("extra")), [])
 
 
+def pytest_result_converter(self, test, data):
+    harness_data, subtest_data = data
+
+    if subtest_data is None:
+        subtest_data = []
+
+    harness_result = test.result_cls(*harness_data)
+    subtest_results = [test.subtest_result_cls(*item) for item in subtest_data]
+
+    return (harness_result, subtest_results)
+
+
 class ExecutorException(Exception):
     def __init__(self, status, message):
         self.status = status
         self.message = message
+
 
 class TestExecutor(object):
     __metaclass__ = ABCMeta
@@ -116,11 +130,13 @@ class TestExecutor(object):
 
         :param runner: TestRunner instance that is going to run the tests"""
         self.runner = runner
-        self.protocol.setup(runner)
+        if self.protocol is not None:
+            self.protocol.setup(runner)
 
     def teardown(self):
         """Run cleanup steps after tests have finished"""
-        self.protocol.teardown()
+        if self.protocol is not None:
+            self.protocol.teardown()
 
     def run_test(self, test):
         """Run a particular test.
@@ -137,13 +153,13 @@ class TestExecutor(object):
         if result is Stop:
             return result
 
+        # log result of parent test
         if result[0].status == "ERROR":
             self.logger.debug(result[0].message)
 
         self.last_environment = test.environment
 
         self.runner.send_message("test_ended", test, result)
-
 
     def server_url(self, protocol):
         return "%s://%s:%s" % (protocol,
@@ -190,6 +206,7 @@ class RefTestExecutor(TestExecutor):
                               debug_info=debug_info)
 
         self.screenshot_cache = screenshot_cache
+
 
 class RefTestImplementation(object):
     def __init__(self, executor):
@@ -287,6 +304,11 @@ class RefTestImplementation(object):
         hash_val, _ = self.screenshot_cache[key]
         self.screenshot_cache[key] = hash_val, data
         return True, data
+
+
+class WdspecExecutor(TestExecutor):
+    convert_result = pytest_result_converter
+
 
 class Protocol(object):
     def __init__(self, executor, browser):

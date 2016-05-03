@@ -203,6 +203,10 @@ When used for expectation data, manifests have the following format:
    the (sub)test is disabled and should either not be run (for tests)
    or that its results should be ignored (subtests).
 
+ * A key ``restart-after`` which can be set to any value to indicate that
+   the runner should restart the browser after running this test (e.g. to
+   clear out unwanted state).
+
  * Variables ``debug``, ``os``, ``version``, ``processor`` and
    ``bits`` that describe the configuration of the browser under
    test. ``debug`` is a boolean indicating whether a build is a debug

@@ -33,7 +33,6 @@ pub struct WebGLTexture {
     /// The target to which this texture was bound the first time
     target: Cell<Option<u32>>,
     is_deleted: Cell<bool>,
-    is_initialized: Cell<bool>,
     /// Stores information about mipmap levels and cubemap faces.
     #[ignore_heap_size_of = "Arrays are cumbersome"]
     image_info_array: DOMRefCell<[ImageInfo; MAX_LEVEL_COUNT * MAX_FACE_COUNT]>,
@@ -51,7 +50,6 @@ impl WebGLTexture {
             id: id,
             target: Cell::new(None),
             is_deleted: Cell::new(false),
-            is_initialized: Cell::new(false),
             face_count: Cell::new(0),
             base_mipmap_level: 0,
             image_info_array: DOMRefCell::new([ImageInfo::new(); MAX_LEVEL_COUNT * MAX_FACE_COUNT]),
@@ -105,7 +103,13 @@ impl WebGLTexture {
         Ok(())
     }
 
-    pub fn initialize(&self, width: u32, height: u32, depth: u32, internal_format: u32, level: u32) -> WebGLResult<()> {
+    pub fn initialize(&self,
+                      target: u32,
+                      width: u32,
+                      height: u32,
+                      depth: u32,
+                      internal_format: u32,
+                      level: u32) -> WebGLResult<()> {
         let image_info = ImageInfo {
             width: width,
             height: height,
@@ -113,10 +117,18 @@ impl WebGLTexture {
             internal_format: Some(internal_format),
             is_initialized: true,
         };
-        self.set_image_infos_at_level(level, image_info);
 
-        self.is_initialized.set(true);
+        let face = match target {
+            constants::TEXTURE_2D | constants::TEXTURE_CUBE_MAP_POSITIVE_X => 0,
+            constants::TEXTURE_CUBE_MAP_NEGATIVE_X => 1,
+            constants::TEXTURE_CUBE_MAP_POSITIVE_Y => 2,
+            constants::TEXTURE_CUBE_MAP_NEGATIVE_Y => 3,
+            constants::TEXTURE_CUBE_MAP_POSITIVE_Z => 4,
+            constants::TEXTURE_CUBE_MAP_NEGATIVE_Z => 5,
+            _ => unreachable!(),
+        };
 
+        self.set_image_infos_at_level_and_face(level, face, image_info);
         Ok(())
     }
 
@@ -130,12 +142,12 @@ impl WebGLTexture {
         };
 
         let base_image_info = self.base_image_info().unwrap();
-
         if !base_image_info.is_initialized() {
             return Err(WebGLError::InvalidOperation);
         }
 
-        if target == constants::TEXTURE_CUBE_MAP && !self.is_cube_complete() {
+        let is_cubic = target == constants::TEXTURE_CUBE_MAP;
+        if is_cubic && !self.is_cube_complete() {
             return Err(WebGLError::InvalidOperation);
         }
 
@@ -262,6 +274,8 @@ impl WebGLTexture {
     }
 
     fn is_cube_complete(&self) -> bool {
+        debug_assert!(self.face_count.get() == 6);
+
         let image_info = self.base_image_info().unwrap();
         if !image_info.is_defined() {
             return false;
@@ -294,9 +308,14 @@ impl WebGLTexture {
 
     fn set_image_infos_at_level(&self, level: u32, image_info: ImageInfo) {
         for face in 0..self.face_count.get() {
-            let pos = (level * self.face_count.get() as u32) + face as u32;
-            self.image_info_array.borrow_mut()[pos as usize] = image_info;
+            self.set_image_infos_at_level_and_face(level, face, image_info);
         }
+    }
+
+    fn set_image_infos_at_level_and_face(&self, level: u32, face: u8, image_info: ImageInfo) {
+        debug_assert!(face < self.face_count.get());
+        let pos = (level * self.face_count.get() as u32) + face as u32;
+        self.image_info_array.borrow_mut()[pos as usize] = image_info;
     }
 
     fn base_image_info(&self) -> Option<ImageInfo> {
@@ -341,7 +360,7 @@ impl ImageInfo {
     }
 
     fn is_defined(&self) -> bool {
-        !self.internal_format.is_none()
+        self.internal_format.is_some()
     }
 
     fn get_max_mimap_levels(&self) -> u32 {

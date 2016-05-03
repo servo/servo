@@ -17,7 +17,7 @@ use ipc_channel::ipc;
 use net_traits::storage_thread::{StorageThread, StorageThreadMsg, StorageType};
 use page::IterablePage;
 use script_runtime::ScriptChan;
-use script_thread::{MainThreadRunnable, MainThreadScriptChan, ScriptThread};
+use script_thread::{MainThreadRunnable, ScriptThread};
 use task_source::dom_manipulation::DOMManipulationTask;
 use url::Url;
 use util::str::DOMString;
@@ -129,7 +129,11 @@ impl StorageMethods for Storage {
         let (sender, receiver) = ipc::channel().unwrap();
 
         self.get_storage_thread().send(StorageThreadMsg::Keys(sender, self.get_url(), self.storage_type)).unwrap();
-        receiver.recv().unwrap().iter().cloned().map(DOMString::from).collect() // FIXME: inefficient?
+        receiver.recv()
+                .unwrap()
+                .into_iter()
+                .map(DOMString::from)
+                .collect()
     }
 
     // check-tidy: no specs after this line
@@ -156,8 +160,7 @@ impl Storage {
         let global_root = self.global();
         let global_ref = global_root.r();
         let task_source = global_ref.as_window().dom_manipulation_task_source();
-        let chan = MainThreadScriptChan(global_ref.as_window().main_thread_script_chan().clone()).clone();
-        let trusted_storage = Trusted::new(self, chan);
+        let trusted_storage = Trusted::new(self);
         task_source.queue(DOMManipulationTask::SendStorageNotification(
             box StorageEventRunnable::new(trusted_storage, key, old_value, new_value))).unwrap();
     }

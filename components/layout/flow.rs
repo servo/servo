@@ -483,7 +483,7 @@ pub trait ImmutableFlowUtils {
     fn need_anonymous_flow(self, child: &Flow) -> bool;
 
     /// Generates missing child flow of this flow.
-    fn generate_missing_child_flow<N: ThreadSafeLayoutNode>(self, node: &N) -> FlowRef;
+    fn generate_missing_child_flow<N: ThreadSafeLayoutNode>(self, node: &N, ctx: &LayoutContext) -> FlowRef;
 
     /// Returns true if this flow contains fragments that are roots of an absolute flow tree.
     fn contains_roots_of_absolute_flow_tree(&self) -> bool;
@@ -629,7 +629,7 @@ pub trait InorderFlowTraversal {
 
 bitflags! {
     #[doc = "Flags used in flows."]
-    flags FlowFlags: u32 {
+    pub flags FlowFlags: u32 {
         // text align flags
         #[doc = "Whether this flow must have its own layer. Even if this flag is not set, it might"]
         #[doc = "get its own layer if it's deemed to be likely to overlap flows with their own"]
@@ -676,12 +676,6 @@ bitflags! {
     }
 }
 
-// NB: If you update this field, you must update the the floated descendants flags.
-/// The bitmask of flags that represent the `has_left_floated_descendants` and
-/// `has_right_floated_descendants` fields.
-
-static HAS_FLOATED_DESCENDANTS_BITMASK: FlowFlags = FlowFlags { bits: 0b0000_0011 };
-
 /// The number of bits we must shift off to handle the text alignment field.
 ///
 /// NB: If you update this, update `TEXT_ALIGN` above.
@@ -697,11 +691,6 @@ impl FlowFlags {
     pub fn set_text_align(&mut self, value: text_align::T) {
         *self = (*self & !TEXT_ALIGN) |
                 FlowFlags::from_bits(value.to_u32() << TEXT_ALIGN_SHIFT).unwrap();
-    }
-
-    #[inline]
-    pub fn union_floated_descendants_flags(&mut self, other: FlowFlags) {
-        self.insert(other & HAS_FLOATED_DESCENDANTS_BITMASK);
     }
 
     #[inline]
@@ -1275,8 +1264,9 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
     /// FIXME(pcwalton): This duplicates some logic in
     /// `generate_anonymous_table_flows_if_necessary()`. We should remove this function eventually,
     /// as it's harder to understand.
-    fn generate_missing_child_flow<N: ThreadSafeLayoutNode>(self, node: &N) -> FlowRef {
-        let mut style = node.style().clone();
+    fn generate_missing_child_flow<N: ThreadSafeLayoutNode>(self, node: &N, ctx: &LayoutContext) -> FlowRef {
+        let style_context = ctx.style_context();
+        let mut style = node.style(style_context).clone();
         match self.class() {
             FlowClass::Table | FlowClass::TableRowGroup => {
                 properties::modify_style_for_anonymous_table_object(
@@ -1286,7 +1276,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                     node.opaque(),
                     PseudoElementType::Normal,
                     style,
-                    node.selected_style().clone(),
+                    node.selected_style(style_context).clone(),
                     node.restyle_damage(),
                     SpecificFragmentInfo::TableRow);
                 Arc::new(TableRowFlow::from_fragment(fragment))
@@ -1299,10 +1289,10 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                     node.opaque(),
                     PseudoElementType::Normal,
                     style,
-                    node.selected_style().clone(),
+                    node.selected_style(style_context).clone(),
                     node.restyle_damage(),
                     SpecificFragmentInfo::TableCell);
-                let hide = node.style().get_inheritedtable().empty_cells == empty_cells::T::hide;
+                let hide = node.style(style_context).get_inheritedtable().empty_cells == empty_cells::T::hide;
                 Arc::new(TableCellFlow::from_node_fragment_and_visibility_flag(node, fragment, !hide))
             },
             FlowClass::Flex => {
@@ -1310,7 +1300,7 @@ impl<'a> ImmutableFlowUtils for &'a Flow {
                     Fragment::from_opaque_node_and_style(node.opaque(),
                                                          PseudoElementType::Normal,
                                                          style,
-                                                         node.selected_style().clone(),
+                                                         node.selected_style(style_context).clone(),
                                                          node.restyle_damage(),
                                                          SpecificFragmentInfo::Generic);
                 Arc::new(BlockFlow::from_fragment(fragment, None))

@@ -5,7 +5,7 @@
 bitflags! {
     #[doc = "Event-based element states."]
     #[derive(HeapSizeOf)]
-    flags ElementState: u8 {
+    pub flags ElementState: u8 {
         #[doc = "The mouse is down on this element. \
                  https://html.spec.whatwg.org/multipage/#selector-active \
                  FIXME(#7333): set/unset this when appropriate"]
@@ -27,5 +27,7 @@ bitflags! {
         const IN_CHECKED_STATE = 0x20,
         #[doc = "https://html.spec.whatwg.org/multipage/#selector-indeterminate"]
         const IN_INDETERMINATE_STATE = 0x40,
+        #[doc = "https://html.spec.whatwg.org/multipage/#selector-read-write"]
+        const IN_READ_WRITE_STATE = 0x80,
     }
 }

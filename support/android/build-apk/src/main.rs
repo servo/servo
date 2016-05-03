@@ -274,9 +274,9 @@ fn find_native_libs(args: &Args) -> HashMap<String, PathBuf> {
             (Some(file_name), Some(extension)) => {
                 let file_name = file_name.to_str().unwrap();
 
-                if file_name.starts_with("lib")
-                    && extension == "so"
-                    && args.shared_libraries.contains(file_name) {
+                if file_name.starts_with("lib") &&
+                    extension == "so" &&
+                    args.shared_libraries.contains(file_name) {
                         println!("Adding the file {:?}", file_name);
                         native_shared_libs.insert(file_name.to_string(), path.to_path_buf().clone());
                         break;

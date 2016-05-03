@@ -13,6 +13,8 @@ use euclid::size::TypedSize2D;
 use euclid::{Size2D, Point2D};
 use gleam::gl;
 use glutin;
+#[cfg(target_os = "macos")]
+use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
 use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode, MouseScrollDelta};
 use glutin::{TouchPhase};
 use layers::geometry::DevicePixel;
@@ -22,13 +24,16 @@ use msg::constellation_msg::{self, Key};
 use net_traits::net_error_list::NetError;
 use script_traits::{TouchEventType, TouchpadPressurePhase};
 use std::cell::{Cell, RefCell};
+#[cfg(not(target_os = "android"))]
 use std::os::raw::c_void;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender};
 use style_traits::cursor::Cursor;
 use url::Url;
 use util::geometry::ScreenPx;
-use util::opts::{self, RenderApi};
+use util::opts;
+#[cfg(not(target_os = "android"))]
+use util::opts::RenderApi;
 
 static mut g_nested_event_loop_listener: Option<*mut (NestedEventLoopListener + 'static)> = None;
 
@@ -61,6 +66,22 @@ const CMD_OR_ALT: constellation_msg::KeyModifiers = ALT;
 const LINE_HEIGHT: f32 = 38.0;
 
 const MULTISAMPLES: u16 = 16;
+
+#[cfg(target_os = "macos")]
+fn builder_with_platform_options(mut builder: glutin::WindowBuilder) -> glutin::WindowBuilder {
+    if opts::get().headless || opts::get().output_file.is_some() {
+        // Prevent the window from showing in Dock.app, stealing focus,
+        // or appearing at all when running in headless mode or generating an
+        // output file.
+        builder = builder.with_activation_policy(ActivationPolicy::Prohibited)
+    }
+    builder
+}
+
+#[cfg(not(target_os = "macos"))]
+fn builder_with_platform_options(builder: glutin::WindowBuilder) -> glutin::WindowBuilder {
+    builder
+}
 
 /// The type of a window.
 pub struct Window {
@@ -109,6 +130,8 @@ impl Window {
         if opts::get().use_msaa {
             builder = builder.with_multisampling(MULTISAMPLES)
         }
+
+        builder = builder_with_platform_options(builder);
 
         let mut glutin_window = builder.build().unwrap();
 

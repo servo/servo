@@ -14,7 +14,6 @@ extern crate euclid;
 extern crate gfx_traits;
 extern crate gleam;
 extern crate ipc_channel;
-extern crate layers;
 #[macro_use]
 extern crate log;
 extern crate num_traits;

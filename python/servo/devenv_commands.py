@@ -152,11 +152,17 @@ class MachCommands(CommandBase):
             code = call(["git", "init"], env=self.build_env())
             if code:
                 return code
-            call(
+            code = call(
                 ["git", "remote", "add", "upstream", "https://github.com/w3c/wptrunner.git"], env=self.build_env())
+            if code:
+                return code
             code = call(["git", "fetch", "upstream"], env=self.build_env())
             if code:
                 return code
-            code = call(["git", "reset", '--', "hard", "remotes/upstream/master"], env=self.build_env())
+            code = call(["git", "reset", "--hard", "remotes/upstream/master"], env=self.build_env())
             if code:
                 return code
+            code = call(["rm", "-rf", ".git"], env=self.build_env())
+            if code:
+                return code
+            return 0

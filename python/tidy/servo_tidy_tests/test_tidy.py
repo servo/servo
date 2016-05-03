@@ -19,28 +19,37 @@ def iterFile(name):
 
 
 class CheckTidiness(unittest.TestCase):
+    def assertNoMoreErrors(self, errors):
+        with self.assertRaises(StopIteration):
+            errors.next()
+
     def test_spaces_correctnes(self):
-        errors = tidy.collect_errors_for_files(iterFile('wrong_space.rs'), [], [tidy.check_by_line])
+        errors = tidy.collect_errors_for_files(iterFile('wrong_space.rs'), [], [tidy.check_by_line], print_text=False)
         self.assertEqual('trailing whitespace', errors.next()[2])
         self.assertEqual('no newline at EOF', errors.next()[2])
         self.assertEqual('tab on line', errors.next()[2])
         self.assertEqual('CR on line', errors.next()[2])
+        self.assertEqual('no newline at EOF', errors.next()[2])
+        self.assertNoMoreErrors(errors)
 
     def test_long_line(self):
-        errors = tidy.collect_errors_for_files(iterFile('long_line.rs'), [], [tidy.check_by_line])
+        errors = tidy.collect_errors_for_files(iterFile('long_line.rs'), [], [tidy.check_by_line], print_text=False)
         self.assertEqual('Line is longer than 120 characters', errors.next()[2])
+        self.assertNoMoreErrors(errors)
 
     def test_whatwg_link(self):
-        errors = tidy.collect_errors_for_files(iterFile('whatwg_link.rs'), [], [tidy.check_by_line])
+        errors = tidy.collect_errors_for_files(iterFile('whatwg_link.rs'), [], [tidy.check_by_line], print_text=False)
         self.assertTrue('link to WHATWG may break in the future, use this format instead:' in errors.next()[2])
         self.assertTrue('links to WHATWG single-page url, change to multi page:' in errors.next()[2])
+        self.assertNoMoreErrors(errors)
 
     def test_licence(self):
-        errors = tidy.collect_errors_for_files(iterFile('incorrect_license.rs'), [], [tidy.check_license])
+        errors = tidy.collect_errors_for_files(iterFile('incorrect_license.rs'), [], [tidy.check_license], print_text=False)
         self.assertEqual('incorrect license', errors.next()[2])
+        self.assertNoMoreErrors(errors)
 
     def test_rust(self):
-        errors = tidy.collect_errors_for_files(iterFile('rust_tidy.rs'), [], [tidy.check_rust])
+        errors = tidy.collect_errors_for_files(iterFile('rust_tidy.rs'), [], [tidy.check_rust], print_text=False)
         self.assertEqual('use statement spans multiple lines', errors.next()[2])
         self.assertEqual('missing space before }', errors.next()[2])
         self.assertTrue('use statement is not in alphabetical order' in errors.next()[2])
@@ -61,19 +70,44 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('extra space before :', errors.next()[2])
         self.assertEqual('use &[T] instead of &Vec<T>', errors.next()[2])
         self.assertEqual('use &str instead of &String', errors.next()[2])
+        self.assertEqual('operators should go at the end of the first line', errors.next()[2])
+        self.assertNoMoreErrors(errors)
 
     def test_spec_link(self):
         tidy.spec_base_path = base_path
-        errors = tidy.collect_errors_for_files(iterFile('speclink.rs'), [], [tidy.check_spec])
+        errors = tidy.collect_errors_for_files(iterFile('speclink.rs'), [], [tidy.check_spec], print_text=False)
         self.assertEqual('method declared in webidl is missing a comment with a specification link', errors.next()[2])
+        self.assertNoMoreErrors(errors)
 
     def test_webidl(self):
-        errors = tidy.collect_errors_for_files(iterFile('spec.webidl'), [tidy.check_webidl_spec], [])
+        errors = tidy.collect_errors_for_files(iterFile('spec.webidl'), [tidy.check_webidl_spec], [], print_text=False)
         self.assertEqual('No specification link found.', errors.next()[2])
+        self.assertNoMoreErrors(errors)
 
     def test_toml(self):
-        errors = tidy.collect_errors_for_files(iterFile('test.toml'), [tidy.check_toml], [])
+        errors = tidy.collect_errors_for_files(iterFile('test.toml'), [tidy.check_toml], [], print_text=False)
         self.assertEqual('found asterisk instead of minimum version number', errors.next()[2])
+        self.assertNoMoreErrors(errors)
+
+    def test_modeline(self):
+        errors = tidy.collect_errors_for_files(iterFile('modeline.txt'), [], [tidy.check_modeline], print_text=False)
+        self.assertEqual('vi modeline present', errors.next()[2])
+        self.assertEqual('vi modeline present', errors.next()[2])
+        self.assertEqual('vi modeline present', errors.next()[2])
+        self.assertEqual('emacs file variables present', errors.next()[2])
+        self.assertEqual('emacs file variables present', errors.next()[2])
+        self.assertNoMoreErrors(errors)
+
+    def test_lock(self):
+        errors = tidy.collect_errors_for_files(iterFile('duplicated_package.lock'), [tidy.check_lock], [], print_text=False)
+        msg = """duplicate versions for package "test"
+\t\033[93mfound dependency on version 0.4.9\033[0m
+\t\033[91mbut highest version is 0.5.1\033[0m
+\t\033[93mtry upgrading with\033[0m \033[96m./mach cargo-update -p test:0.4.9\033[0m
+\tThe following packages depend on version 0.4.9:
+\t\ttest2"""
+        self.assertEqual(msg, errors.next()[2])
+        self.assertNoMoreErrors(errors)
 
 
 def do_tests():

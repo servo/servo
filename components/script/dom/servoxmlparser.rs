@@ -10,11 +10,10 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
 use dom::document::Document;
 use dom::node::Node;
-use dom::servohtmlparser::ParserRef;
 use dom::window::Window;
 use js::jsapi::JSTracer;
 use msg::constellation_msg::PipelineId;
-use parse::Parser;
+use parse::{Parser, ParserRef};
 use script_thread::ScriptThread;
 use std::cell::Cell;
 use url::Url;
@@ -128,6 +127,8 @@ impl ServoXMLParser {
             if !pending_input.is_empty() {
                 let chunk = pending_input.remove(0);
                 self.tokenizer.borrow_mut().feed(chunk.into());
+            } else {
+                self.tokenizer.borrow_mut().run();
             }
 
             // Document parsing is blocked on an external resource.

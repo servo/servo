@@ -101,6 +101,8 @@ pub enum NonTSPseudoClass {
     Disabled,
     Checked,
     Indeterminate,
+    ReadWrite,
+    ReadOnly,
 }
 
 impl NonTSPseudoClass {
@@ -115,6 +117,7 @@ impl NonTSPseudoClass {
             Disabled => IN_DISABLED_STATE,
             Checked => IN_CHECKED_STATE,
             Indeterminate => IN_INDETERMINATE_STATE,
+            ReadOnly | ReadWrite => IN_READ_WRITE_STATE,
 
             AnyLink |
             Link |
@@ -140,20 +143,32 @@ impl SelectorImpl for GeckoSelectorImpl {
             "disabled" => Disabled,
             "checked" => Checked,
             "indeterminate" => Indeterminate,
+            "read-write" => ReadWrite,
+            "read-only" => ReadOnly,
             _ => return Err(())
         };
 
         Ok(pseudo_class)
     }
 
-    fn parse_pseudo_element(_context: &ParserContext,
+    fn parse_pseudo_element(context: &ParserContext,
                             name: &str) -> Result<PseudoElement, ()> {
         use self::PseudoElement::*;
-        let pseudo_element = match_ignore_ascii_case! { name,
-            "before" => Before,
-            "after" => After,
-            "first-line" => FirstLine,
 
+        // The braces here are unfortunate, but they're needed for
+        // match_ignore_ascii_case! to work as expected.
+        match_ignore_ascii_case! { name,
+            "before" => { return Ok(Before) },
+            "after" => { return Ok(After) },
+            "first-line" => { return Ok(FirstLine) },
+            _ => {}
+        }
+
+        if !context.in_user_agent_stylesheet {
+            return Err(())
+        }
+
+        Ok(match_ignore_ascii_case! { name,
             "-moz-non-element" => MozNonElement,
 
             "-moz-anonymous-block" => MozAnonymousBlock,
@@ -220,19 +235,94 @@ impl SelectorImpl for GeckoSelectorImpl {
             "-moz-svg-text" => MozSVGText,
 
             _ => return Err(())
-        };
-
-        Ok(pseudo_element)
+        })
     }
 }
 
 impl SelectorImplExt for GeckoSelectorImpl {
+    type ComputedValues = GeckoComputedValues;
+
     #[inline]
-    fn each_eagerly_cascaded_pseudo_element<F>(mut fun: F)
+    fn is_eagerly_cascaded_pseudo_element(pseudo: &PseudoElement) -> bool {
+        match *pseudo {
+            PseudoElement::Before |
+            PseudoElement::After |
+            PseudoElement::FirstLine => true,
+            _ => false,
+        }
+    }
+
+    #[inline]
+    fn each_pseudo_element<F>(mut fun: F)
         where F: FnMut(PseudoElement) {
         fun(PseudoElement::Before);
         fun(PseudoElement::After);
-        // TODO: probably a lot more are missing here
+        fun(PseudoElement::FirstLine);
+
+        fun(PseudoElement::MozNonElement);
+        fun(PseudoElement::MozAnonymousBlock);
+        fun(PseudoElement::MozAnonymousPositionedBlock);
+        fun(PseudoElement::MozMathMLAnonymousBlock);
+        fun(PseudoElement::MozXULAnonymousBlock);
+
+        fun(PseudoElement::MozHorizontalFramesetBorder);
+        fun(PseudoElement::MozVerticalFramesetBorder);
+        fun(PseudoElement::MozLineFrame);
+        fun(PseudoElement::MozButtonContent);
+        fun(PseudoElement::MozButtonLabel);
+        fun(PseudoElement::MozCellContent);
+        fun(PseudoElement::MozDropdownList);
+        fun(PseudoElement::MozFieldsetContent);
+        fun(PseudoElement::MozFramesetBlank);
+        fun(PseudoElement::MozDisplayComboboxControlFrame);
+
+        fun(PseudoElement::MozHTMLCanvasContent);
+        fun(PseudoElement::MozInlineTable);
+        fun(PseudoElement::MozTable);
+        fun(PseudoElement::MozTableCell);
+        fun(PseudoElement::MozTableColumnGroup);
+        fun(PseudoElement::MozTableColumn);
+        fun(PseudoElement::MozTableOuter);
+        fun(PseudoElement::MozTableRowGroup);
+        fun(PseudoElement::MozTableRow);
+
+        fun(PseudoElement::MozCanvas);
+        fun(PseudoElement::MozPageBreak);
+        fun(PseudoElement::MozPage);
+        fun(PseudoElement::MozPageContent);
+        fun(PseudoElement::MozPageSequence);
+        fun(PseudoElement::MozScrolledContent);
+        fun(PseudoElement::MozScrolledCanvas);
+        fun(PseudoElement::MozScrolledPageSequence);
+        fun(PseudoElement::MozColumnContent);
+        fun(PseudoElement::MozViewport);
+        fun(PseudoElement::MozViewportScroll);
+        fun(PseudoElement::MozAnonymousFlexItem);
+        fun(PseudoElement::MozAnonymousGridItem);
+
+        fun(PseudoElement::MozRuby);
+        fun(PseudoElement::MozRubyBase);
+        fun(PseudoElement::MozRubyBaseContainer);
+        fun(PseudoElement::MozRubyText);
+        fun(PseudoElement::MozRubyTextContainer);
+
+        fun(PseudoElement::MozTreeColumn);
+        fun(PseudoElement::MozTreeRow);
+        fun(PseudoElement::MozTreeSeparator);
+        fun(PseudoElement::MozTreeCell);
+        fun(PseudoElement::MozTreeIndentation);
+        fun(PseudoElement::MozTreeLine);
+        fun(PseudoElement::MozTreeTwisty);
+        fun(PseudoElement::MozTreeImage);
+        fun(PseudoElement::MozTreeCellText);
+        fun(PseudoElement::MozTreeCheckbox);
+        fun(PseudoElement::MozTreeProgressMeter);
+        fun(PseudoElement::MozTreeDropFeedback);
+
+        fun(PseudoElement::MozSVGMarkerAnonChild);
+        fun(PseudoElement::MozSVGOuterSVGAnonChild);
+        fun(PseudoElement::MozSVGForeignContent);
+        fun(PseudoElement::MozSVGText);
     }
 
     #[inline]

@@ -39,7 +39,7 @@ pub mod lints;
 /// Autogenerates implementations of Reflectable on DOM structs
 pub mod reflector;
 /// Utilities for writing plugins
-pub mod utils;
+mod utils;
 
 #[plugin_registrar]
 pub fn plugin_registrar(reg: &mut Registry) {

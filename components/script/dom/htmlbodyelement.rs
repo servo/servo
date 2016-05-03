@@ -154,7 +154,7 @@ impl VirtualMethods for HTMLBodyElement {
         let window = window_from_node(self);
         let document = window.Document();
         document.set_reflow_timeout(time::precise_time_ns() + INITIAL_REFLOW_DELAY);
-        let ConstellationChan(ref chan) = window.constellation_chan();
+        let ConstellationChan(ref chan) = *window.constellation_chan();
         let event = ConstellationMsg::HeadParsed;
         chan.send(event).unwrap();
     }

@@ -9,13 +9,13 @@ name = "plugins"
 path = "lib.rs"
 plugin = true
 
+[dependencies]
+tenacious = "0.2.0"
+
 [dependencies.clippy]
 git = "https://github.com/Manishearth/rust-clippy"
 rev = "9dca15de3e8ea266d3e7e868c0f358ed4fa5f195"
 optional = true
-
-[dependencies]
-tenacious = "0.2.0"
 
 [features]
 default = []

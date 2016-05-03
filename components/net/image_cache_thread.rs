@@ -395,7 +395,7 @@ impl ImageCache {
                 consumer.send(result).unwrap();
             }
             ImageCacheCommand::StoreDecodeImage(url, image_vector) => {
-                let result = self.store_decode_image(url, image_vector);
+                self.store_decode_image(url, image_vector);
             }
         };
 
@@ -520,7 +520,7 @@ impl ImageCache {
                     CacheResult::Miss => {
                         // A new load request! Request the load from
                         // the resource thread.
-                        let load_data = LoadData::new(LoadContext::Image, (*ref_url).clone(), None);
+                        let load_data = LoadData::new(LoadContext::Image, (*ref_url).clone(), None, None, None);
                         let (action_sender, action_receiver) = ipc::channel().unwrap();
                         let response_target = AsyncResponseTarget {
                             sender: action_sender,
@@ -595,11 +595,15 @@ impl ImageCache {
     fn store_decode_image(&mut self,
                           ref_url: Url,
                           loaded_bytes: Vec<u8>) {
-        let (cache_result, load_key, mut pending_load) = self.pending_loads.get_cached(Arc::new(ref_url.clone()));
-
-        let progress_sender = self.progress_sender.clone();
-        let action: ResponseAction = ResponseAction::DataAvailable(loaded_bytes);
-        progress_sender.send(ResourceLoadInfo {
+        let (cache_result, load_key, _) = self.pending_loads.get_cached(Arc::new(ref_url));
+        assert!(cache_result == CacheResult::Miss);
+        let action = ResponseAction::DataAvailable(loaded_bytes);
+        let _ = self.progress_sender.send(ResourceLoadInfo {
+            action: action,
+            key: load_key,
+        });
+        let action = ResponseAction::ResponseComplete(Ok(()));
+        let _ = self.progress_sender.send(ResourceLoadInfo {
             action: action,
             key: load_key,
         });

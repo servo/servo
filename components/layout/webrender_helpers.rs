@@ -264,7 +264,7 @@ impl WebRenderStackingContextConverter for StackingContext {
                                          _force_positioned_stacking_level: bool) {
         for child in self.children.iter() {
             while let Some(item) = traversal.advance(self) {
-                item.item.convert_to_webrender(builder, frame_builder);
+                item.convert_to_webrender(builder, frame_builder);
             }
 
             if child.context_type == StackingContextType::Real {
@@ -295,7 +295,7 @@ impl WebRenderStackingContextConverter for StackingContext {
         }
 
         while let Some(item) = traversal.advance(self) {
-            item.item.convert_to_webrender(builder, frame_builder);
+            item.convert_to_webrender(builder, frame_builder);
         }
     }
 
@@ -392,7 +392,7 @@ impl WebRenderDisplayItemConverter for DisplayItem {
                 let mut glyphs = vec!();
 
                 for slice in item.text_run.natural_word_slices_in_visual_order(&item.range) {
-                    for glyph in slice.glyphs.iter_glyphs_for_char_range(&slice.range) {
+                    for glyph in slice.glyphs.iter_glyphs_for_byte_range(&slice.range) {
                         let glyph_advance = glyph.advance();
                         let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                         let glyph = webrender_traits::GlyphInstance {

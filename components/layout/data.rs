@@ -17,8 +17,9 @@ pub struct PrivateLayoutData {
     /// Description of how to account for recent style changes.
     pub restyle_damage: RestyleDamage,
 
-    /// The current results of flow construction for this node. This is either a flow or a
-    /// `ConstructionItem`. See comments in `construct.rs` for more details.
+    /// The current results of flow construction for this node. This is either a
+    /// flow or a `ConstructionItem`. See comments in `construct.rs` for more
+    /// details.
     pub flow_construction_result: ConstructionResult,
 
     pub before_flow_construction_result: ConstructionResult,
@@ -50,7 +51,7 @@ impl PrivateLayoutData {
 }
 
 bitflags! {
-    flags LayoutDataFlags: u8 {
+    pub flags LayoutDataFlags: u8 {
         #[doc = "Whether a flow has been newly constructed."]
         const HAS_NEWLY_CONSTRUCTED_FLOW = 0x01
     }

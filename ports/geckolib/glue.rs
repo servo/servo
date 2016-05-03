@@ -5,21 +5,22 @@
 #![allow(unsafe_code)]
 
 use app_units::Au;
-use bindings::{RawGeckoDocument, RawGeckoElement};
+use bindings::{RawGeckoDocument, RawGeckoNode};
 use bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues, ServoNodeData};
 use bindings::{nsIAtom};
 use data::PerDocumentStyleData;
 use euclid::Size2D;
+use gecko_style_structs::SheetParsingMode;
 use properties::GeckoComputedValues;
-use selector_impl::{SharedStyleContext, Stylesheet};
+use selector_impl::{GeckoSelectorImpl, PseudoElement, SharedStyleContext, Stylesheet};
 use std::marker::PhantomData;
 use std::mem::{forget, transmute};
 use std::ptr;
 use std::slice;
 use std::str::from_utf8_unchecked;
 use std::sync::{Arc, Mutex};
-use style::context::{ReflowGoal, StylistWrapper};
-use style::dom::{TDocument, TElement, TNode};
+use style::context::{ReflowGoal};
+use style::dom::{TDocument, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::parallel;
 use style::properties::ComputedValues;
@@ -27,7 +28,30 @@ use style::stylesheets::Origin;
 use traversal::RecalcStyleOnly;
 use url::Url;
 use util::arc_ptr_eq;
-use wrapper::{GeckoDocument, GeckoElement, GeckoNode, NonOpaqueStyleData};
+use wrapper::{GeckoDocument, GeckoNode, NonOpaqueStyleData};
+
+// TODO: This is ugly and should go away once we get an atom back-end.
+pub fn pseudo_element_from_atom(pseudo: *mut nsIAtom,
+                                in_ua_stylesheet: bool) -> Result<PseudoElement, String> {
+    use bindings::Gecko_GetAtomAsUTF16;
+    use selectors::parser::{ParserContext, SelectorImpl};
+
+    let pseudo_string = unsafe {
+        let mut length = 0;
+        let mut buff = Gecko_GetAtomAsUTF16(pseudo, &mut length);
+
+        // Handle the annoying preceding colon in front of everything in nsCSSAnonBoxList.h.
+        debug_assert!(length >= 2 && *buff == ':' as u16 && *buff.offset(1) != ':' as u16);
+        buff = buff.offset(1);
+        length -= 1;
+
+        String::from_utf16(slice::from_raw_parts(buff, length as usize)).unwrap()
+    };
+
+    let mut context = ParserContext::new();
+    context.in_user_agent_stylesheet = in_ua_stylesheet;
+    GeckoSelectorImpl::parse_pseudo_element(&context, &pseudo_string).map_err(|_| pseudo_string)
+}
 
 /*
  * For Gecko->Servo function calls, we need to redeclare the same signature that was declared in
@@ -51,7 +75,8 @@ pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *m
     // into a runtime-wide init hook at some point.
     GeckoComputedValues::initial_values();
 
-    let _needs_dirtying = data.stylist.update(&data.stylesheets, data.stylesheets_changed);
+    let _needs_dirtying = Arc::get_mut(&mut data.stylist).unwrap()
+                              .update(&data.stylesheets, data.stylesheets_changed);
     data.stylesheets_changed = false;
 
     let shared_style_context = SharedStyleContext {
@@ -59,7 +84,7 @@ pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *m
         screen_size_changed: false,
         generation: 0,
         goal: ReflowGoal::ForScriptQuery,
-        stylist: StylistWrapper(&data.stylist),
+        stylist: data.stylist.clone(),
         new_animations_sender: Mutex::new(data.new_animations_sender.clone()),
         running_animations: data.running_animations.clone(),
         expired_animations: data.expired_animations.clone(),
@@ -80,41 +105,69 @@ pub extern "C" fn Servo_DropNodeData(data: *mut ServoNodeData) -> () {
 
 #[no_mangle]
 pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8,
-                                                length: u32) -> *mut RawServoStyleSheet {
+                                                length: u32,
+                                                mode: SheetParsingMode) -> *mut RawServoStyleSheet {
 
     let input = unsafe { from_utf8_unchecked(slice::from_raw_parts(bytes, length as usize)) };
 
-    // FIXME(heycam): Pass in the real base URL and sheet origin to use.
+    let origin = match mode {
+        SheetParsingMode::eAuthorSheetFeatures => Origin::Author,
+        SheetParsingMode::eUserSheetFeatures => Origin::User,
+        SheetParsingMode::eAgentSheetFeatures => Origin::UserAgent,
+    };
+
+    // FIXME(heycam): Pass in the real base URL.
     let url = Url::parse("about:none").unwrap();
-    let sheet = Arc::new(Stylesheet::from_str(input, url, Origin::Author, Box::new(StdoutErrorReporter)));
+    let sheet = Arc::new(Stylesheet::from_str(input, url, origin, Box::new(StdoutErrorReporter)));
     unsafe {
         transmute(sheet)
     }
 }
 
-struct ArcHelpers<GeckoType, ServoType> {
+pub struct ArcHelpers<GeckoType, ServoType> {
     phantom1: PhantomData<GeckoType>,
     phantom2: PhantomData<ServoType>,
 }
 
+
 impl<GeckoType, ServoType> ArcHelpers<GeckoType, ServoType> {
-    fn with<F, Output>(raw: *mut GeckoType, cb: F) -> Output
-                       where F: FnOnce(&Arc<ServoType>) -> Output {
+    pub fn with<F, Output>(raw: *mut GeckoType, cb: F) -> Output
+                           where F: FnOnce(&Arc<ServoType>) -> Output {
+        debug_assert!(!raw.is_null());
+
         let owned = unsafe { Self::into(raw) };
         let result = cb(&owned);
         forget(owned);
         result
     }
 
-    unsafe fn into(ptr: *mut GeckoType) -> Arc<ServoType> {
+    pub fn maybe_with<F, Output>(maybe_raw: *mut GeckoType, cb: F) -> Output
+                                 where F: FnOnce(Option<&Arc<ServoType>>) -> Output {
+        let owned = if maybe_raw.is_null() {
+            None
+        } else {
+            Some(unsafe { Self::into(maybe_raw) })
+        };
+
+        let result = cb(owned.as_ref());
+        forget(owned);
+
+        result
+    }
+
+    pub unsafe fn into(ptr: *mut GeckoType) -> Arc<ServoType> {
         transmute(ptr)
     }
 
-    unsafe fn addref(ptr: *mut GeckoType) {
+    pub fn from(owned: Arc<ServoType>) -> *mut GeckoType {
+        unsafe { transmute(owned) }
+    }
+
+    pub unsafe fn addref(ptr: *mut GeckoType) {
         Self::with(ptr, |arc| forget(arc.clone()));
     }
 
-    unsafe fn release(ptr: *mut GeckoType) {
+    pub unsafe fn release(ptr: *mut GeckoType) {
         let _ = Self::into(ptr);
     }
 }
@@ -140,6 +193,22 @@ pub extern "C" fn Servo_PrependStyleSheet(raw_sheet: *mut RawServoStyleSheet,
         data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
         data.stylesheets.insert(0, sheet.clone());
         data.stylesheets_changed = true;
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_InsertStyleSheetBefore(raw_sheet: *mut RawServoStyleSheet,
+                                               raw_reference: *mut RawServoStyleSheet,
+                                               raw_data: *mut RawServoStyleSet) {
+    type Helpers = ArcHelpers<RawServoStyleSheet, Stylesheet>;
+    let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
+    Helpers::with(raw_sheet, |sheet| {
+        Helpers::with(raw_reference, |reference| {
+            data.stylesheets.retain(|x| !arc_ptr_eq(x, sheet));
+            let index = data.stylesheets.iter().position(|x| arc_ptr_eq(x, reference)).unwrap();
+            data.stylesheets.insert(index, sheet.clone());
+            data.stylesheets_changed = true;
+        })
     })
 }
 
@@ -173,18 +242,34 @@ pub extern "C" fn Servo_ReleaseStyleSheet(sheet: *mut RawServoStyleSheet) -> () 
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_GetComputedValues(element: *mut RawGeckoElement)
+pub extern "C" fn Servo_GetComputedValues(node: *mut RawGeckoNode)
      -> *mut ServoComputedValues {
-    let node = unsafe { GeckoElement::from_raw(element).as_node() };
+    let node = unsafe { GeckoNode::from_raw(node) };
     let arc_cv = node.borrow_data().map(|data| data.style.clone());
     arc_cv.map_or(ptr::null_mut(), |arc| unsafe { transmute(arc) })
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(_parentStyleOrNull: *mut ServoComputedValues,
-                                                         _pseudoTag: *mut nsIAtom)
+pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(parent_style_or_null: *mut ServoComputedValues,
+                                                         pseudo_tag: *mut nsIAtom,
+                                                         raw_data: *mut RawServoStyleSet)
      -> *mut ServoComputedValues {
-    unimplemented!();
+    let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
+
+    let pseudo = match pseudo_element_from_atom(pseudo_tag, true) {
+        Ok(pseudo) => pseudo,
+        Err(pseudo) => {
+            warn!("stylo: Unable to parse anonymous-box pseudo-element: {}", pseudo);
+            return ptr::null_mut();
+        }
+    };
+
+    type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
+
+    Helpers::maybe_with(parent_style_or_null, |maybe_parent| {
+        let new_computed = data.stylist.computed_values_for_pseudo(&pseudo, maybe_parent);
+        new_computed.map_or(ptr::null_mut(), |c| Helpers::from(c))
+    })
 }
 
 #[no_mangle]

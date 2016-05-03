@@ -140,7 +140,7 @@ impl Expression {
 }
 
 impl MediaQuery {
-  pub fn parse(input: &mut Parser) -> Result<MediaQuery, ()> {
+    pub fn parse(input: &mut Parser) -> Result<MediaQuery, ()> {
         let mut expressions = vec![];
 
         let qualifier = if input.try(|input| input.expect_ident_matching("only")).is_ok() {

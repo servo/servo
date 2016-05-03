@@ -4,16 +4,16 @@
         <link href="mailto:pwx.frontend@gmail.com" rel="author" title="Chris Wu" />
         <link href="http://www.w3.org/TR/cssom-view/#the-mediaquerylist-interface" rel="help" />
         <meta content="dom" name="flags" />
-        <script src="/resources/testharness.js" type="text/javascript">
-        &lt;script src="/resources/testharnessreport.js" type="text/javascript" /&gt;
-        &lt;style type="text/css"&gt;
+        <script src="/resources/testharness.js" type="text/javascript"></script>
+        <script src="/resources/testharnessreport.js" type="text/javascript"></script>
+        <style type="text/css">
             iframe { border: none; }
-        &lt;/style&gt;
-    &lt;/head&gt;
-    &lt;body&gt;
-        &lt;div id="log"&gt;&lt;/div&gt;
-        &lt;iframe width="200" height="100" id="iframe1" &gt;&lt;/iframe&gt;
-        &lt;script&gt;
+        </style>
+    </head>
+    <body>
+        <div id="log"></div>
+        <iframe width="200" id="iframe1" height="100"></iframe>
+        <script>
             function reflow(doc) {
                 doc.body.offsetWidth;
             }
@@ -59,9 +59,7 @@
             };
 
             changeFrameWidth(width_list[0]);
-
-
         </script>
-    </head><body>
+    
 
 </body></html>
