@@ -29,6 +29,7 @@ extern crate encoding;
 extern crate euclid;
 extern crate fnv;
 extern crate heapsize;
+extern crate itertools;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
