@@ -5,7 +5,7 @@
 #![allow(unsafe_code)]
 
 use app_units::Au;
-use bindings::{RawGeckoDocument, RawGeckoNode};
+use bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues, ServoNodeData};
 use bindings::{nsIAtom};
 use data::PerDocumentStyleData;
@@ -20,15 +20,16 @@ use std::slice;
 use std::str::from_utf8_unchecked;
 use std::sync::{Arc, Mutex};
 use style::context::{ReflowGoal};
-use style::dom::{TDocument, TNode};
+use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::parallel;
 use style::properties::ComputedValues;
+use style::selector_impl::{SelectorImplExt, PseudoElementCascadeType};
 use style::stylesheets::Origin;
 use traversal::RecalcStyleOnly;
 use url::Url;
 use util::arc_ptr_eq;
-use wrapper::{GeckoDocument, GeckoNode, NonOpaqueStyleData};
+use wrapper::{GeckoDocument, GeckoElement, GeckoNode, NonOpaqueStyleData};
 
 // TODO: This is ugly and should go away once we get an atom back-end.
 pub fn pseudo_element_from_atom(pseudo: *mut nsIAtom,
@@ -256,7 +257,7 @@ pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(parent_style_or_null: *
      -> *mut ServoComputedValues {
     let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
 
-    let pseudo = match pseudo_element_from_atom(pseudo_tag, true) {
+    let pseudo = match pseudo_element_from_atom(pseudo_tag, /* ua_stylesheet = */ true) {
         Ok(pseudo) => pseudo,
         Err(pseudo) => {
             warn!("stylo: Unable to parse anonymous-box pseudo-element: {}", pseudo);
@@ -270,6 +271,62 @@ pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(parent_style_or_null: *
         let new_computed = data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent);
         new_computed.map_or(ptr::null_mut(), |c| Helpers::from(c))
     })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut ServoComputedValues,
+                                                          match_element: *mut RawGeckoElement,
+                                                          pseudo_tag: *mut nsIAtom,
+                                                          raw_data: *mut RawServoStyleSet,
+                                                          is_probe: bool)
+     -> *mut ServoComputedValues {
+    debug_assert!(!match_element.is_null());
+
+    let parent_or_null = || {
+        if is_probe {
+            ptr::null_mut()
+        } else {
+            Servo_AddRefComputedValues(parent_style);
+            parent_style
+        }
+    };
+
+    let pseudo = match pseudo_element_from_atom(pseudo_tag, /* ua_stylesheet = */ true) {
+        Ok(pseudo) => pseudo,
+        Err(pseudo) => {
+            warn!("stylo: Unable to parse anonymous-box pseudo-element: {}", pseudo);
+            return parent_or_null();
+        }
+    };
+
+
+    let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
+
+    let element = unsafe { GeckoElement::from_raw(match_element) };
+
+    type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
+
+    match GeckoSelectorImpl::pseudo_element_cascade_type(&pseudo) {
+        PseudoElementCascadeType::Eager => {
+            let node = element.as_node();
+            let maybe_computed = node.borrow_data()
+                                     .and_then(|data| {
+                                         data.per_pseudo.get(&pseudo).map(|c| c.clone())
+                                     });
+            maybe_computed.map_or_else(parent_or_null, Helpers::from)
+        }
+        PseudoElementCascadeType::Lazy => {
+            Helpers::with(parent_style, |parent| {
+                data.stylist
+                    .lazily_compute_pseudo_element_style(&element, &pseudo, parent)
+                    .map_or_else(parent_or_null, Helpers::from)
+            })
+        }
+        PseudoElementCascadeType::Precomputed => {
+            unreachable!("Anonymous pseudo found in \
+                         Servo_GetComputedValuesForPseudoElement");
+        }
+    }
 }
 
 #[no_mangle]
