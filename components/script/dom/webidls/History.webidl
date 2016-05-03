@@ -4,10 +4,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/#the-history-interface
+enum ScrollRestoration { "auto", "manual" };
+
 interface History {
-  // readonly attribute long length;
+  // readonly attribute unsigned long length;
+  // attribute ScrollRestoration scrollRestoration;
   // readonly attribute any state;
-  // void go(optional long delta);
+  // void go(optional long delta = 0);
   void back();
   void forward();
   // void pushState(any data, DOMString title, optional DOMString? url = null);

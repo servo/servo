@@ -30,23 +30,24 @@ impl History {
                            GlobalRef::Window(window),
                            HistoryBinding::Wrap)
     }
-}
 
-// https://html.spec.whatwg.org/multipage/#traverse-the-history-by-a-delta
-fn traverse_history_by_delta(window: &Window, direction: NavigationDirection) {
-    let chan = window.constellation_chan();
-    let msg = ConstellationMsg::Navigate(None, direction);
-    chan.0.send(msg).unwrap();
+    // https://html.spec.whatwg.org/multipage/#traverse-the-history-by-a-delta
+    fn traverse_history_by_delta(&self, direction: NavigationDirection) {
+        let chan = self.window.constellation_chan();
+        let parent_info = self.window.parent_info();
+        let msg = ConstellationMsg::Navigate(parent_info, direction);
+        chan.0.send(msg).unwrap();
+    }
 }
 
 impl<'a> HistoryMethods for &'a History {
     // https://html.spec.whatwg.org/multipage/#dom-history-back
     fn Back(&self) {
-        traverse_history_by_delta(&self.window, NavigationDirection::Back)
+        self.traverse_history_by_delta(NavigationDirection::Back)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-forward
     fn Forward(&self) {
-        traverse_history_by_delta(&self.window, NavigationDirection::Forward)
+        self.traverse_history_by_delta(NavigationDirection::Forward)
     }
 }
