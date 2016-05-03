@@ -415,44 +415,42 @@ fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
     element.set_attribute(&attr, value);
 }
 
-// impl Iterator for DOMString{
-//     type item = str;
-//     fn next(&mut self) -> Option<str> {
-//         let result = match self.index {
-//             _ => return None,
-//         };
-//         self.index += 1;
-//         result
-//     }
-// }
-
-fn parse_a_sizes_attribute(input: DOMString, width: Option<u32>)-> Result<Size,()>{
+pub fn parse_a_sizes_attribute(input: DOMString, width: Option<u32>)-> Result<Size,()>{
    
 /*    let s_Size = Size{
         length: Au,
         expression:None
     };*/
     //extracting each media element from the string 
-    let unparsed_sizes_list = input.deref().split(',').collect::<Vec<_>>();
-    //computing the last element calc() 
-    let last_component = unparsed_sizes_list[unparsed_sizes_list.len()-1];
-    let mut parser_last = Parser::new(last_component);
+    let mut unparsed_sizes_list = input.deref().split(',').collect::<Vec<_>>();
+    //let length = unparsed_sizes_list.len();
+    //computing the last element calc()
+    let last_component = unparsed_sizes_list.last();
+    // match last_component {
+    //     Some(comp) => {
+
+    //     }, 
+    //     None => 
+    // }
+    let mut parser_last = Parser::new(last_component.unwrap());
     let size_length = parser_last.try(Length::parse_non_negative);
 
     //removing last element 
-    unparsed_sizes_list.remove(unparsed_sizes_list.len()-1);
-/*    match size_length {
+    //unparsed_sizes_list.pop();
+
+
+    let s = match size_length {
         Ok(len) => {
-             s_Size{
+            Ok(Size{
                 length: len,
                 expression: None 
-            };
+            })
         },
-        Err(e) => {}
-    }*/
-
+        Err(e) => Err(e)
+    };
+    s
     //checking other media elements to obtain expression
-    for unparsed_size in unparsed_sizes_list{
+  /*  for unparsed_size in unparsed_sizes_list{
         let whitespace = unparsed_size.chars().rev().take_while(|c| util::str::char_is_whitespace(*c)).count();
         let trimmed: String = unparsed_size.chars().take(unparsed_size.chars().count() - whitespace).collect();
         
@@ -464,7 +462,7 @@ fn parse_a_sizes_attribute(input: DOMString, width: Option<u32>)-> Result<Size,(
             }
             Err(e)=>{}
         }
-    }
+    } */
    // Ok(s_Size)
 
 }

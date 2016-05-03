@@ -7,7 +7,8 @@
 use script::dom::htmlimageelement::parse_a_sizes_attribute;
 #[test]
 fn some_parse_sizes_test() {
-    let result = parse_a_sizes_attribute(...);
+    let result = parse_a_sizes_attribute("(min-width: 900px) 1000px,
+            (max-width: 900px) and (min-width: 400px) 50em,calc(33vw - 100px)        ",None);
     assert!("/* something about result that is boolean */");
 }
 
