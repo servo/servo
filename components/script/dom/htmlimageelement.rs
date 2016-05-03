@@ -24,7 +24,7 @@ use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::VirtualMethods;
 use heapsize::HeapSizeOf;
 use hyper::http::RawStatus;
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageResponder, ImageResponse};
@@ -125,7 +125,9 @@ struct ImageContext {
     /// The initial URL requested.
     url: Url,
     /// Indicates whether the request failed, and why
-    status: Result<(), NetworkError>
+    status: Result<(), NetworkError>,
+    ///
+    responder: IpcSender<ImageResponse>,
 }
 
 impl AsyncResponseListener for ImageContext {
@@ -159,6 +161,10 @@ impl AsyncResponseListener for ImageContext {
         let window = document.window();
         let image_cache = window.image_cache_thread();
         image_cache.store_complete_image_bytes(self.url.clone(), self.data.clone());
+        let responder = self.responder.clone();
+        image_cache.request_image_and_metadata(self.url.clone(),
+                                               window.image_cache_chan(),
+                                               Some(ImageResponder::new(responder)));
         document.finish_load(LoadType::Image(self.url.clone()));
     }
 }
@@ -184,10 +190,10 @@ impl HTMLImageElement {
                 self.current_request.borrow_mut().url = Some(img_url.clone());
 
                 let trusted_node = Trusted::new(self);
-                //let (_, responder_receiver) = ipc::channel().unwrap();
+                let (responder_sender, responder_receiver) = ipc::channel().unwrap();
                 let script_chan = window.networking_task_source();
-                //let wrapper = window.get_runnable_wrapper();
-                /*ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
+                let wrapper = window.get_runnable_wrapper();
+                ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
                     // Return the image via a message to the script thread, which marks the element
                     // as dirty and triggers a reflow.
                     let image_response = message.to().unwrap();
@@ -196,23 +202,23 @@ impl HTMLImageElement {
                     let runnable = wrapper.wrap_runnable(runnable);
                     let _ = script_chan.send(CommonScriptMsg::RunnableMsg(
                         UpdateReplacedElement, runnable));
-                });*/
+                });
 
-                /*image_cache.request_image_and_metadata(img_url,
-                                          window.image_cache_chan(),
-                                          Some(ImageResponder::new(responder_sender)));*/
+                let trusted_node = Trusted::new(self);
+                let script_chan = window.networking_task_source();
                 let context = Arc::new(Mutex::new(ImageContext {
                     elem: trusted_node,
                     data: vec!(),
                     metadata: None,
                     url: img_url.clone(),
-                    status: Ok(())
+                    status: Ok(()),
+                    responder: responder_sender,
                 }));
 
                 let (action_sender, action_receiver) = ipc::channel().unwrap();
                 let listener = NetworkListener {
                     context: context,
-                    script_chan: script_chan,//script_chan.clone()
+                    script_chan: script_chan,
                 };
                 let response_target = AsyncResponseTarget {
                     sender: action_sender,
