@@ -1075,16 +1075,20 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     .and_then(|root_frame_id| self.frames.get(&root_frame_id))
                     .map(|root_frame| root_frame.current);
 
-                let ancestor_info = self.get_ancestor_info(&pipeline_id);
+                let ancestor_info = self.get_root_pipeline_and_containing_parent(&pipeline_id);
                 if let Some(ancestor_info) = ancestor_info {
-                    match root_pipeline_id.and_then(|pipeline_id| self.pipelines.get(&pipeline_id)) {
-                        Some(root_pipeline) => {
-                            // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsershowmodalprompt
-                            let event = MozBrowserEvent::ShowModalPrompt("alert".to_owned(), "Alert".to_owned(),
-                                                                         String::from(message), "".to_owned());
-                            root_pipeline.trigger_mozbrowser_event(ancestor_info.1, event);
+                    if root_pipeline_id == ancestor_info.0 {
+                        match root_pipeline_id.and_then(|pipeline_id| self.pipelines.get(&pipeline_id)) {
+                            Some(root_pipeline) => {
+                                // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsershowmodalprompt
+                                let event = MozBrowserEvent::ShowModalPrompt("alert".to_owned(), "Alert".to_owned(),
+                                                                             String::from(message), "".to_owned());
+                                root_pipeline.trigger_mozbrowser_event(ancestor_info.1, event);
+                            }
+                            None => return warn!("Alert sent to Pipeline {:?} after closure.", root_pipeline_id),
                         }
-                        None => return warn!("Alert sent to Pipeline {:?} after closure.", root_pipeline_id),
+                    } else {
+                        warn!("A non-current frame is trying to show an alert.")
                     }
                 }
                 false
@@ -1977,7 +1981,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
     }
 
-    fn get_ancestor_info(&self, pipeline_id: &PipelineId) -> Option<(PipelineId, SubpageId)> {
+    /// For a given pipeline, determine the iframe in the root pipeline that transitively contains
+    /// it. There could be arbitrary levels of nested iframes in between them.
+    fn get_root_pipeline_and_containing_parent(&self, pipeline_id: &PipelineId) -> Option<(PipelineId, SubpageId)> {
         if let Some(pipeline) = self.pipelines.get(pipeline_id) {
             if let Some(mut ancestor_info) = pipeline.parent_info {
                 if let Some(mut ancestor) = self.pipelines.get(&ancestor_info.0) {
@@ -2029,7 +2035,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     fn trigger_mozbrowsererror(&self, pipeline_id: PipelineId, reason: String, backtrace: String) {
         if !prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) { return; }
 
-        let ancestor_info = self.get_ancestor_info(&pipeline_id);
+        let ancestor_info = self.get_root_pipeline_and_containing_parent(&pipeline_id);
 
         if let Some(ancestor_info) = ancestor_info {
             match self.pipelines.get(&ancestor_info.0) {
