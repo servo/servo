@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use document_loader::LoadType;
 use dom::attr::Attr;
 use dom::attr::AttrValue;
 use dom::bindings::cell::DOMRefCell;
@@ -22,14 +23,17 @@ use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::VirtualMethods;
 use heapsize::HeapSizeOf;
+use hyper::http::RawStatus;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageResponder, ImageResponse};
+use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
+use network_listener::{NetworkListener, PreInvoke};
 use script_runtime::ScriptThreadEventCategory::UpdateReplacedElement;
 use script_runtime::{CommonScriptMsg, ScriptChan};
 use script_thread::Runnable;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
@@ -110,7 +114,7 @@ impl Runnable for ImageResponseHandlerRunnable {
     }
 }
 
-/*/// The context required for asynchronously loading an external image.
+/// The context required for asynchronously loading an external image.
 struct ImageContext {
     /// The element that initiated the request.
     elem: Trusted<HTMLImageElement>,
@@ -150,19 +154,16 @@ impl AsyncResponseListener for ImageContext {
     }
 
     fn response_complete(&mut self, status: Result<(), NetworkError>) {
-        let load = status.and(self.status.clone()).map(|_| {
-            let data = mem::replace(&mut self.data, vec!());
-            let metadata = self.metadata.take().unwrap();
-            (metadata, data)
-        });
         let elem = self.elem.root();
-
         let document = document_from_node(elem.r());
+        let window = document.window();
+        let image_cache = window.image_cache_thread();
+        image_cache.store_complete_image_bytes(self.url.clone(), self.data.clone());
         document.finish_load(LoadType::Image(self.url.clone()));
     }
 }
 
-impl PreInvoke for ImageContext {}*/
+impl PreInvoke for ImageContext {}
 
 impl HTMLImageElement {
     /// Makes the local `image` member match the status of the `src` attribute and starts
@@ -183,10 +184,10 @@ impl HTMLImageElement {
                 self.current_request.borrow_mut().url = Some(img_url.clone());
 
                 let trusted_node = Trusted::new(self);
-                let (responder_sender, responder_receiver) = ipc::channel().unwrap();
+                //let (_, responder_receiver) = ipc::channel().unwrap();
                 let script_chan = window.networking_task_source();
-                let wrapper = window.get_runnable_wrapper();
-                ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
+                //let wrapper = window.get_runnable_wrapper();
+                /*ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
                     // Return the image via a message to the script thread, which marks the element
                     // as dirty and triggers a reflow.
                     let image_response = message.to().unwrap();
@@ -195,32 +196,23 @@ impl HTMLImageElement {
                     let runnable = wrapper.wrap_runnable(runnable);
                     let _ = script_chan.send(CommonScriptMsg::RunnableMsg(
                         UpdateReplacedElement, runnable));
-                });
+                });*/
 
-                /// srm912: This needs to be replaced by the commented code below
-                ///         A new ImageContext needs to be created for the NetworkListener
-                ///         which needs to implement the AsyncResponseListener and PreInvoke
-                ///         traits 
-                ///         OR 
-                ///         Do we need to use the ImageRequest struct that was created earlier
-                ///         since it also has the relevant attributes such as data vector, state and URL
-                image_cache.request_image_and_metadata(img_url,
+                /*image_cache.request_image_and_metadata(img_url,
                                           window.image_cache_chan(),
-                                          Some(ImageResponder::new(responder_sender)));
-                /*let elem = Trusted::new(self);
-
+                                          Some(ImageResponder::new(responder_sender)));*/
                 let context = Arc::new(Mutex::new(ImageContext {
-                    elem: elem,
-                    media: Some(media),
+                    elem: trusted_node,
                     data: vec!(),
                     metadata: None,
-                    url: url.clone(),
+                    url: img_url.clone(),
+                    status: Ok(())
                 }));
 
                 let (action_sender, action_receiver) = ipc::channel().unwrap();
                 let listener = NetworkListener {
                     context: context,
-                    script_chan: document.window().networking_task_source(),
+                    script_chan: script_chan,//script_chan.clone()
                 };
                 let response_target = AsyncResponseTarget {
                     sender: action_sender,
@@ -228,11 +220,7 @@ impl HTMLImageElement {
                 ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
                     listener.notify(message.to().unwrap());
                 });
-
-                if self.parser_inserted.get() {
-                    document.increment_script_blocking_stylesheet_count();
-                }
-                document.load_async(LoadType::Stylesheet(url), response_target);*/
+                document.load_async(LoadType::Image(img_url), response_target);
             }
         }
     }
