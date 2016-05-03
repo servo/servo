@@ -23,7 +23,6 @@ pub enum PseudoElement {
     // TODO: Probably a few more are missing here
 
     AnonBox(AnonBoxPseudoElement),
-
 }
 
 // https://mxr.mozilla.org/mozilla-central/source/layout/style/nsCSSAnonBoxList.h
@@ -262,8 +261,8 @@ impl SelectorImplExt for GeckoSelectorImpl {
     #[inline]
     fn each_pseudo_element<F>(mut fun: F)
         where F: FnMut(PseudoElement) {
-        use self::PseudoElement::*;
         use self::AnonBoxPseudoElement::*;
+        use self::PseudoElement::*;
 
         fun(Before);
         fun(After);
