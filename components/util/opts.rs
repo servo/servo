@@ -48,7 +48,7 @@ pub struct Opts {
 
     /// `None` to disable the time profiler or `Some` with an interval in seconds to enable it and
     /// cause it to produce output on that interval (`-p`).
-    pub time_profiler_period: Option<f64>,
+    pub time_profiling: Option<OutputOptions>,
 
     /// When the profiler is enabled, this is an optional path to dump a self-contained HTML file
     /// visualizing the traces as a timeline.
@@ -383,6 +383,12 @@ pub fn print_debug_usage(app: &str) -> ! {
     process::exit(0)
 }
 
+#[derive(Clone, Deserialize, Serialize)]
+pub enum OutputOptions {
+    FileName(String),
+    Stdout(f64)
+}
+
 fn args_fail(msg: &str) -> ! {
     let mut stderr = io::stderr();
     stderr.write_all(msg.as_bytes()).unwrap();
@@ -472,7 +478,7 @@ pub fn default_opts() -> Opts {
         gpu_painting: false,
         tile_size: 512,
         device_pixels_per_px: None,
-        time_profiler_period: None,
+        time_profiling: None,
         time_profiler_trace_path: None,
         mem_profiler_period: None,
         layout_threads: 1,
@@ -533,7 +539,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optopt("s", "size", "Size of tiles", "512");
     opts.optopt("", "device-pixel-ratio", "Device pixels per px", "");
     opts.optopt("t", "threads", "Number of paint threads", "1");
-    opts.optflagopt("p", "profile", "Profiler flag and output interval", "10");
+    opts.optflagopt("p", "profile", "Time profiler flag and either a CSV output filename OR an interval for output to Stdout (blank for Stdout with interval of 5s)", "10 OR time.csv");
     opts.optflagopt("", "profiler-trace-path",
                     "Path to dump a self-contained HTML timeline of profiler traces",
                     "");
@@ -659,10 +665,19 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         None => cmp::max(num_cpus::get() * 3 / 4, 1),
     };
 
-    // If only the flag is present, default to a 5 second period for both profilers.
-    let time_profiler_period = opt_match.opt_default("p", "5").map(|period| {
-        period.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: -p ({})", err)))
-    });
+    // If only the flag is present, default to a 5 second period for both profilers
+    let time_profiling = if opt_match.opt_present("p") {
+        match opt_match.opt_str("p") {
+            Some(argument) => match argument.parse::<f64>() {
+                Ok(interval) => Some(OutputOptions::Stdout(interval)) ,
+                Err(_) => Some(OutputOptions::FileName(argument)),
+            },
+            None => Some(OutputOptions::Stdout(5 as f64)),
+        }
+    } else{
+        // if the p option doesn't exist:
+        None
+    };
 
     if let Some(ref time_profiler_trace_path) = opt_match.opt_str("profiler-trace-path") {
         let mut path = PathBuf::from(time_profiler_trace_path);
@@ -771,7 +786,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         gpu_painting: gpu_painting,
         tile_size: tile_size,
         device_pixels_per_px: device_pixels_per_px,
-        time_profiler_period: time_profiler_period,
+        time_profiling: time_profiling,
         time_profiler_trace_path: opt_match.opt_str("profiler-trace-path"),
         mem_profiler_period: mem_profiler_period,
         layout_threads: layout_threads,
