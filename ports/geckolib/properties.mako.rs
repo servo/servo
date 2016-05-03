@@ -332,7 +332,8 @@ impl Debug for ${style_struct.gecko_ffi_name} {
 
 <%def name="raw_impl_trait(style_struct, skip_longhands='', skip_additionals='')">
 <%
-   longhands = [x for x in style_struct.longhands if not x.name in skip_longhands.split()]
+   longhands = [x for x in style_struct.longhands
+                if not (skip_longhands == "*" or x.name in skip_longhands.split())]
 
    #
    # Make a list of types we can't auto-generate.
