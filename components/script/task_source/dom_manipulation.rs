@@ -33,6 +33,8 @@ pub enum DOMManipulationTask {
     FireSimpleEvent(Atom, Trusted<EventTarget>),
     // https://html.spec.whatwg.org/multipage/#details-notification-task-steps
     FireToggleEvent(Box<Runnable + Send>),
+    // Placeholder until there's a real media element task queue implementation
+    MediaTask(Box<Runnable + Send>),
     // https://html.spec.whatwg.org/multipage/#planned-navigation
     PlannedNavigation(Box<Runnable + Send>),
     // https://html.spec.whatwg.org/multipage/#send-a-storage-notification
@@ -54,6 +56,7 @@ impl DOMManipulationTask {
                 target.fire_simple_event(&*name);
             }
             FireToggleEvent(runnable) => runnable.handler(),
+            MediaTask(runnable) => runnable.handler(),
             PlannedNavigation(runnable) => runnable.handler(),
             SendStorageNotification(runnable) => runnable.handler(script_thread)
         }

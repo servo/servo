@@ -505,6 +505,19 @@ impl ScriptThread {
         });
     }
 
+    // https://html.spec.whatwg.org/multipage/#await-a-stable-state
+    pub fn await_stable_state<T: Runnable + Send + 'static>(task: T) {
+        //TODO use microtasks when they exist
+        SCRIPT_THREAD_ROOT.with(|root| {
+            if let Some(script_thread) = *root.borrow() {
+                let script_thread = unsafe { &*script_thread };
+                let _ = script_thread.chan.send(CommonScriptMsg::RunnableMsg(
+                    ScriptThreadEventCategory::DomEvent,
+                    box task));
+            }
+        });
+    }
+
     /// Creates a new script thread.
     pub fn new(state: InitialScriptState,
                port: Receiver<MainThreadScriptMsg>,
