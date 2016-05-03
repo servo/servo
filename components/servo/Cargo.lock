@@ -1407,6 +1407,7 @@ dependencies = [
  "serde_macros 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
+ "uuid 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "websocket 0.17.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -2374,6 +2375,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
