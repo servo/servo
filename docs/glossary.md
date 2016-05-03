@@ -7,7 +7,7 @@ If there is a word or phrase used in Servo's code, issue tracker, mailing list, 
 # Glossary
 
 ### Compositor ###
-    
+
 The thread that receives input events from the operating system and forwards them to the constellation. It is also in charge of compositing complete renders of web content and displaying them on the screen as fast as possible.
 
 ### Constellation ###
