@@ -4,11 +4,7 @@
 
 use app_units::Au;
 use core::ops::Deref;
-<<<<<<< HEAD
-use cssparser::{AtRuleParser,CssStringWriter, DeclarationListParser, DeclarationParser, Parser,ToCss, Token};
-=======
 use cssparser::Parser;
->>>>>>> e34d977937e8a31f2ea405b4bef7c1ef22c3f144
 use dom::attr::Attr;
 use dom::attr::AttrValue;
 use dom::bindings::cell::DOMRefCell;
@@ -35,25 +31,14 @@ use net_traits::image_cache_thread::{ImageResponder, ImageResponse};
 use script_runtime::ScriptThreadEventCategory::UpdateReplacedElement;
 use script_runtime::{CommonScriptMsg, ScriptChan};
 use script_thread::Runnable;
-use std::iter::Iterator;
 use std::sync::Arc;
 use string_cache::Atom;
-<<<<<<< HEAD
-use style::computed_values::white_space;
-use style::font_face;
-use style::parser::{ParserContext, log_css_error};
-use style::media_queries::Expression;
-use style::media_queries::MediaQuery;
-use style::values::specified::Length;
-=======
 use style::media_queries::MediaQuery;
 use style::values::CSSFloat;
 use style::values::specified::{Length, ViewportPercentageLength};
->>>>>>> e34d977937e8a31f2ea405b4bef7c1ef22c3f144
 use url::Url;
 use util;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
-use util::str::slice_chars;
 
 #[derive(JSTraceable, HeapSizeOf)]
 #[allow(dead_code)]
@@ -70,17 +55,10 @@ struct ImageRequest {
     image: Option<Arc<Image>>,
     metadata: Option<ImageMetadata>,
 }
-<<<<<<< HEAD
-
-struct Size{
-    expression: Option<Expression>,
-    length: Length,
-=======
 #[allow(dead_code)]
 pub struct Size {
     pub query: Option<MediaQuery>,
     pub length: Length,
->>>>>>> e34d977937e8a31f2ea405b4bef7c1ef22c3f144
 }
 #[dom_struct]
 pub struct HTMLImageElement {
