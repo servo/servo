@@ -104,19 +104,11 @@ pub enum PseudoElement {
 impl PseudoElement {
     #[inline]
     pub fn cascade_type(&self) -> PseudoElementCascadeType {
-        // TODO: Make PseudoElementCascadeType::Lazy work for Servo.
-        //
-        // This can't be done right now since it would require
-        // ServoThreadSafeLayoutElement to implement ::selectors::Element,
-        // and it might not be thread-safe.
-        //
-        // After that, we'd probably want ::selection and
-        // ::-servo-details-summary to be lazy.
         match *self {
             PseudoElement::Before |
             PseudoElement::After |
-            PseudoElement::Selection |
-            PseudoElement::DetailsSummary => PseudoElementCascadeType::Eager,
+            PseudoElement::Selection => PseudoElementCascadeType::Eager,
+            PseudoElement::DetailsSummary => PseudoElementCascadeType::Lazy,
             PseudoElement::DetailsContent => PseudoElementCascadeType::Precomputed,
         }
     }
