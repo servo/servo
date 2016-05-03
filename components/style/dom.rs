@@ -195,7 +195,12 @@ pub trait TDocument : Sized + Copy + Clone {
     fn drain_modified_elements(&self) -> Vec<(Self::ConcreteElement, ElementSnapshot)>;
 }
 
-pub trait TElement : Sized + Copy + Clone + ElementExt {
+pub trait PresentationalHintsSynthetizer {
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
+        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
+}
+
+pub trait TElement : Sized + Copy + Clone + ElementExt + PresentationalHintsSynthetizer {
     type ConcreteNode: TNode<ConcreteElement = Self, ConcreteDocument = Self::ConcreteDocument>;
     type ConcreteDocument: TDocument<ConcreteNode = Self::ConcreteNode, ConcreteElement = Self>;
 
@@ -204,9 +209,6 @@ pub trait TElement : Sized + Copy + Clone + ElementExt {
     fn style_attribute(&self) -> &Option<PropertyDeclarationBlock>;
 
     fn get_state(&self) -> ElementState;
-
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, &mut V)
-        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>;
 
     fn get_attr<'a>(&'a self, namespace: &Namespace, attr: &Atom) -> Option<&'a str>;
     fn get_attrs<'a>(&'a self, attr: &Atom) -> Vec<&'a str>;

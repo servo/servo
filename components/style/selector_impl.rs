@@ -115,8 +115,8 @@ impl PseudoElement {
         match *self {
             PseudoElement::Before |
             PseudoElement::After |
-            PseudoElement::Selection |
-            PseudoElement::DetailsSummary => PseudoElementCascadeType::Eager,
+            PseudoElement::Selection => PseudoElementCascadeType::Eager,
+            PseudoElement::DetailsSummary => PseudoElementCascadeType::Lazy,
             PseudoElement::DetailsContent => PseudoElementCascadeType::Precomputed,
         }
     }
