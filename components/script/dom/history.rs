@@ -2,15 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::codegen::Bindings::HistoryBinding::{self, HistoryMethods};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
+use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::window::Window;
-use script_traits::ScriptMsg as ConstellationMsg;
 use msg::constellation_msg::NavigationDirection;
+use script_traits::ScriptMsg as ConstellationMsg;
 
-// https://developer.mozilla.org/en-US/docs/Web/API/History
+// https://html.spec.whatwg.org/multipage/#the-history-interface
 #[dom_struct]
 pub struct History {
     reflector_: Reflector,
