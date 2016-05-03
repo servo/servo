@@ -110,6 +110,60 @@ impl Runnable for ImageResponseHandlerRunnable {
     }
 }
 
+/*/// The context required for asynchronously loading an external image.
+struct ImageContext {
+    /// The element that initiated the request.
+    elem: Trusted<HTMLImageElement>,
+    /// The response body received to date.
+    data: Vec<u8>,
+    /// The response metadata received to date.
+    metadata: Option<Metadata>,
+    /// The initial URL requested.
+    url: Url,
+    /// Indicates whether the request failed, and why
+    status: Result<(), NetworkError>
+}
+
+impl AsyncResponseListener for ImageContext {
+    fn headers_available(&mut self, metadata: Result<Metadata, NetworkError>) {
+        self.metadata = metadata.ok();
+
+        let status_code = self.metadata.as_ref().and_then(|m| {
+            match m.status {
+                Some(RawStatus(c, _)) => Some(c),
+                _ => None,
+            }
+        }).unwrap_or(0);
+
+        self.status = match status_code {
+            0 => Err(NetworkError::Internal("No http status code received".to_owned())),
+            200...299 => Ok(()), // HTTP ok status codes
+            _ => Err(NetworkError::Internal(format!("HTTP error code {}", status_code)))
+        };
+    }
+
+    fn data_available(&mut self, payload: Vec<u8>) {
+        if self.status.is_ok() {
+            let mut payload = payload;
+            self.data.append(&mut payload);
+        }
+    }
+
+    fn response_complete(&mut self, status: Result<(), NetworkError>) {
+        let load = status.and(self.status.clone()).map(|_| {
+            let data = mem::replace(&mut self.data, vec!());
+            let metadata = self.metadata.take().unwrap();
+            (metadata, data)
+        });
+        let elem = self.elem.root();
+
+        let document = document_from_node(elem.r());
+        document.finish_load(LoadType::Image(self.url.clone()));
+    }
+}
+
+impl PreInvoke for ImageContext {}*/
+
 impl HTMLImageElement {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
@@ -143,9 +197,42 @@ impl HTMLImageElement {
                         UpdateReplacedElement, runnable));
                 });
 
+                /// srm912: This needs to be replaced by the commented code below
+                ///         A new ImageContext needs to be created for the NetworkListener
+                ///         which needs to implement the AsyncResponseListener and PreInvoke
+                ///         traits 
+                ///         OR 
+                ///         Do we need to use the ImageRequest struct that was created earlier
+                ///         since it also has the relevant attributes such as data vector, state and URL
                 image_cache.request_image_and_metadata(img_url,
                                           window.image_cache_chan(),
                                           Some(ImageResponder::new(responder_sender)));
+                /*let elem = Trusted::new(self);
+
+                let context = Arc::new(Mutex::new(ImageContext {
+                    elem: elem,
+                    media: Some(media),
+                    data: vec!(),
+                    metadata: None,
+                    url: url.clone(),
+                }));
+
+                let (action_sender, action_receiver) = ipc::channel().unwrap();
+                let listener = NetworkListener {
+                    context: context,
+                    script_chan: document.window().networking_task_source(),
+                };
+                let response_target = AsyncResponseTarget {
+                    sender: action_sender,
+                };
+                ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+                    listener.notify(message.to().unwrap());
+                });
+
+                if self.parser_inserted.get() {
+                    document.increment_script_blocking_stylesheet_count();
+                }
+                document.load_async(LoadType::Stylesheet(url), response_target);*/
             }
         }
     }
