@@ -18,7 +18,7 @@ use flow::{INLINE_POSITION_IS_STATIC, IS_ABSOLUTELY_POSITIONED};
 use flow_ref::{self, FlowRef};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
 use gfx::display_list::{StackingContext, StackingContextId};
-use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
+use incremental::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::{IntrinsicISizes, MaybeAuto, MinMaxConstraint};
 use std::cmp::max;
@@ -26,7 +26,8 @@ use std::sync::Arc;
 use style::computed_values::flex_direction;
 use style::logical_geometry::LogicalSize;
 use style::properties::{ComputedValues, ServoComputedValues};
-use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
+use style::values::computed::{LengthOrPercentageOrAutoOrContent, LengthOrPercentageOrNone};
 
 /// The size of an axis. May be a specified size, a min/max
 /// constraint, or an unlimited size
@@ -42,22 +43,27 @@ impl AxisSize {
     /// containing block size, min constraint, and max constraint
     pub fn new(size: LengthOrPercentageOrAuto, content_size: Option<Au>, min: LengthOrPercentage,
                max: LengthOrPercentageOrNone) -> AxisSize {
+        let constraint = MinMaxConstraint::new(content_size, min, max);
         match size {
-            LengthOrPercentageOrAuto::Length(length) => AxisSize::Definite(length),
+            LengthOrPercentageOrAuto::Length(length) => AxisSize::Definite(constraint.clamp(length)),
             LengthOrPercentageOrAuto::Percentage(percent) => {
                 match content_size {
-                    Some(size) => AxisSize::Definite(size.scale_by(percent)),
-                    None => AxisSize::Infinite
+                    Some(size) => AxisSize::Definite(constraint.clamp(size.scale_by(percent))),
+                    None => AxisSize::new(LengthOrPercentageOrAuto::Auto, content_size, min, max)
                 }
             },
             LengthOrPercentageOrAuto::Calc(calc) => {
                 match content_size {
-                    Some(size) => AxisSize::Definite(size.scale_by(calc.percentage())),
-                    None => AxisSize::Infinite
+                    Some(size) => AxisSize::Definite(constraint.clamp(size.scale_by(calc.percentage()))),
+                    None => AxisSize::new(LengthOrPercentageOrAuto::Auto, content_size, min, max)
                 }
             },
             LengthOrPercentageOrAuto::Auto => {
-                AxisSize::MinMax(MinMaxConstraint::new(content_size, min, max))
+                if constraint.is_specified() {
+                    AxisSize::MinMax(MinMaxConstraint::new(content_size, min, max))
+                } else {
+                    AxisSize::Infinite
+                }
             }
         }
     }
@@ -82,6 +88,32 @@ impl FlexItem {
     fn new(flow: FlowRef) -> FlexItem {
         FlexItem {
             flow: flow
+        }
+    }
+
+    /// [Determine the hypothetical main size of an item](https://drafts.csswg.org/css-flexbox/#algo-main-item)
+    fn determine_flex_basis(&self, available_size: &AxisSize, parent_mode: bool, content_size: Au) -> Au {
+        let block_flow = self.flow.as_block();
+        let child_wm = block_flow.base.writing_mode.is_vertical();
+        let basis = block_flow.fragment.style.get_position().flex_basis;
+        match (basis, available_size) {
+            // Step A
+            (LengthOrPercentageOrAutoOrContent::Length(len), _) => len,
+            (LengthOrPercentageOrAutoOrContent::Percentage(perc), &AxisSize::Definite(len)) =>
+                len.scale_by(perc),
+            (LengthOrPercentageOrAutoOrContent::Calc(calc), &AxisSize::Definite(len)) =>
+                len.scale_by(calc.percentage()),
+            // TODO(dlr): handle instances in which the item has a intrinsic aspect ratio,
+            // used flex basis of `content`, and definite cross size. See
+            // https://drafts.csswg.org/css-flexbox/#algo-main-item 9.2.2.B
+            // Step B
+            // TODO(dlr): This doesn't correctly handle orthognal flow
+            // https://www.w3.org/TR/css-writing-modes-3/#orthogonal-flows
+            // Step D
+            (_, &AxisSize::Infinite) if child_wm == parent_mode => content_size,
+            // TODO(dlr): handle step E
+            // Step E
+            (_, _) => content_size,
         }
     }
 }
@@ -131,20 +163,26 @@ impl FlexFlow {
         };
 
         let mut computation = self.block_flow.fragment.compute_intrinsic_inline_sizes();
-        if !fixed_width {
-            for kid in &mut self.items {
-                let base = flow::mut_base(flow_ref::deref_mut(&mut kid.flow));
-                let is_absolutely_positioned = base.flags.contains(IS_ABSOLUTELY_POSITIONED);
-                if !is_absolutely_positioned {
-                    let flex_item_inline_sizes = IntrinsicISizes {
-                        minimum_inline_size: base.intrinsic_inline_sizes.minimum_inline_size,
-                        preferred_inline_size: base.intrinsic_inline_sizes.preferred_inline_size,
-                    };
+        for kid in &mut self.items {
+            let base = flow::mut_base(flow_ref::deref_mut(&mut kid.flow));
+            let is_absolutely_positioned = base.flags.contains(IS_ABSOLUTELY_POSITIONED);
+            if !is_absolutely_positioned {
+                let is_vertical = self.block_flow.base.writing_mode.is_vertical();
+                let flex_item_inline_sizes = IntrinsicISizes {
+                    minimum_inline_size: kid.determine_flex_basis(&self.available_main_size, is_vertical,
+                                                                  base.intrinsic_inline_sizes.minimum_inline_size),
+                    preferred_inline_size: kid.determine_flex_basis(&self.available_main_size, is_vertical,
+                                                                    base.intrinsic_inline_sizes.preferred_inline_size),
+                };
+                base.intrinsic_inline_sizes = flex_item_inline_sizes;
+                if !fixed_width {
                     computation.union_nonbreaking_inline(&flex_item_inline_sizes);
                 }
             }
         }
-        self.block_flow.base.intrinsic_inline_sizes = computation.finish();
+        if !fixed_width {
+            self.block_flow.base.intrinsic_inline_sizes = computation.finish();
+        }
     }
 
     // TODO(zentner): This function should use flex-basis.
@@ -245,8 +283,6 @@ impl FlexFlow {
             AxisSize::Infinite => content_inline_size,
         };
 
-        let even_content_inline_size = inline_size / child_count;
-
         let container_mode = self.block_flow.base.block_container_writing_mode;
         self.block_flow.base.position.size.inline = inline_size;
 
@@ -254,12 +290,15 @@ impl FlexFlow {
         let mut inline_child_start = inline_start_content_edge;
         for kid in &mut self.items {
             let base = flow::mut_base(flow_ref::deref_mut(&mut kid.flow));
+            let size = base.intrinsic_inline_sizes.preferred_inline_size;
 
-            base.block_container_inline_size = even_content_inline_size;
+            base.block_container_inline_size = size;
+
             base.block_container_writing_mode = container_mode;
             base.block_container_explicit_block_size = block_container_explicit_block_size;
             base.position.start.i = inline_child_start;
-            inline_child_start = inline_child_start + even_content_inline_size;
+
+            inline_child_start = inline_child_start + size;
         }
     }
 
@@ -267,9 +306,13 @@ impl FlexFlow {
     fn block_mode_assign_block_size<'a>(&mut self, layout_context: &'a LayoutContext<'a>) {
         let mut cur_b = self.block_flow.fragment.border_padding.block_start;
         for kid in &mut self.items {
-            let base = flow::mut_base(flow_ref::deref_mut(&mut kid.flow));
-            base.position.start.b = cur_b;
-            cur_b = cur_b + base.position.size.block;
+            let is_vertical = self.block_flow.base.writing_mode.is_vertical();
+            let size = kid.determine_flex_basis(&self.available_main_size, is_vertical,
+                                                flow::base(&*kid.flow).position.size.block);
+            let block_flow = flow_ref::deref_mut(&mut kid.flow).as_mut_block();
+            block_flow.base.position.start.b = cur_b;
+            block_flow.fragment.border_box.size.block = size;
+            cur_b = cur_b + size;
         }
         self.block_flow.assign_block_size(layout_context)
     }
@@ -373,28 +416,6 @@ impl Flow for FlexFlow {
 
         self.items = items;
 
-        match self.main_mode {
-            Mode::Inline => self.inline_mode_bubble_inline_sizes(),
-            Mode::Block  => self.block_mode_bubble_inline_sizes()
-        }
-    }
-
-    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
-        let _scope = layout_debug_scope!("flex::assign_inline_sizes {:x}", self.block_flow.base.debug_id());
-        debug!("assign_inline_sizes");
-
-        if !self.block_flow.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
-            return
-        }
-
-        // Our inline-size was set to the inline-size of the containing block by the flow's parent.
-        // Now compute the real value.
-        let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
-        self.block_flow.compute_used_inline_size(layout_context, containing_block_inline_size);
-        if self.block_flow.base.flags.is_float() {
-            self.block_flow.float.as_mut().unwrap().containing_inline_size = containing_block_inline_size
-        }
-
         let (available_block_size, available_inline_size) = {
             let style = &self.block_flow.fragment.style;
             let (specified_block_size, specified_inline_size) = if style.writing_mode.is_vertical() {
@@ -415,6 +436,38 @@ impl Flow for FlexFlow {
             (available_block_size, available_inline_size)
         };
 
+
+        match self.main_mode {
+            Mode::Inline => {
+                self.available_main_size = available_inline_size;
+                self.available_cross_size = available_block_size;
+                self.inline_mode_bubble_inline_sizes()
+            },
+            Mode::Block  => {
+                self.available_main_size = available_block_size;
+                self.available_cross_size = available_inline_size;
+                self.block_mode_bubble_inline_sizes()
+            }
+        }
+        self.block_flow.fragment.restyle_damage.remove(BUBBLE_ISIZES);
+    }
+
+    fn assign_inline_sizes(&mut self, layout_context: &LayoutContext) {
+        let _scope = layout_debug_scope!("flex::assign_inline_sizes {:x}", self.block_flow.base.debug_id());
+        debug!("assign_inline_sizes");
+
+        if !self.block_flow.base.restyle_damage.intersects(REFLOW_OUT_OF_FLOW | REFLOW) {
+            return
+        }
+
+        // Our inline-size was set to the inline-size of the containing block by the flow's parent.
+        // Now compute the real value.
+        let containing_block_inline_size = self.block_flow.base.block_container_inline_size;
+        self.block_flow.compute_used_inline_size(layout_context, containing_block_inline_size);
+        if self.block_flow.base.flags.is_float() {
+            self.block_flow.float.as_mut().unwrap().containing_inline_size = containing_block_inline_size
+        }
+
         // Move in from the inline-start border edge.
         let inline_start_content_edge = self.block_flow.fragment.border_box.start.i +
             self.block_flow.fragment.border_padding.inline_start;
@@ -434,22 +487,14 @@ impl Flow for FlexFlow {
         let content_inline_size = self.block_flow.fragment.border_box.size.inline - padding_and_borders;
 
         match self.main_mode {
-            Mode::Inline => {
-                self.available_main_size = available_inline_size;
-                self.available_cross_size = available_block_size;
-                self.inline_mode_assign_inline_sizes(layout_context,
-                                                     inline_start_content_edge,
-                                                     inline_end_content_edge,
-                                                     content_inline_size)
-            },
-            Mode::Block  => {
-                self.available_main_size = available_block_size;
-                self.available_cross_size = available_inline_size;
-                self.block_mode_assign_inline_sizes(layout_context,
-                                                    inline_start_content_edge,
-                                                    inline_end_content_edge,
-                                                    content_inline_size)
-            }
+            Mode::Inline => self.inline_mode_assign_inline_sizes(layout_context,
+                                                                 inline_start_content_edge,
+                                                                 inline_end_content_edge,
+                                                                 content_inline_size),
+            Mode::Block  => self.block_mode_assign_inline_sizes(layout_context,
+                                                                inline_start_content_edge,
+                                                                inline_end_content_edge,
+                                                                content_inline_size)
         }
     }
 
