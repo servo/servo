@@ -17,7 +17,7 @@
 </%def>
 
 <%def name="predefined_type(name, type, initial_value, parse_method='parse', **kwargs)">
-    <%call expr="longhand(name, **kwargs)">
+    <%call expr="longhand(name, predefined_type=type, **kwargs)">
         #[allow(unused_imports)]
         use app_units::Au;
         pub type SpecifiedValue = specified::${type};

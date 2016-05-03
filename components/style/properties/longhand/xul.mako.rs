@@ -10,3 +10,6 @@
 
 ${helpers.single_keyword("-moz-box-align", "stretch start center baseline end", products="gecko",
                          gecko_ffi_name="mBoxAlign", gecko_constant_prefix="NS_STYLE_BOX_ALIGN")}
+
+${helpers.predefined_type("-moz-box-flex", "Number", "0.0", "parse_non_negative", products="gecko",
+                          gecko_ffi_name="mBoxFlex")}

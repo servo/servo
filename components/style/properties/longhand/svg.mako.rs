@@ -13,6 +13,14 @@ ${helpers.single_keyword("dominant-baseline",
 
 ${helpers.single_keyword("vector-effect", "none non-scaling-stroke", products="gecko")}
 
+// Section 13 - Gradients and Patterns
+
+${helpers.predefined_type("stop-opacity", "Opacity", "1.0", products="gecko")}
+
+// Section 15 - Filter Effects
+
+${helpers.predefined_type("flood-opacity", "Opacity", "1.0", products="gecko")}
+
 // CSS Masking Module Level 1
 // https://www.w3.org/TR/css-masking-1/
 ${helpers.single_keyword("mask-type", "luminance alpha", products="gecko")}

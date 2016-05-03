@@ -46,10 +46,11 @@ class Keyword(object):
 
 class Longhand(object):
     def __init__(self, style_struct, name, derived_from=None, keyword=None,
-                 custom_cascade=False, experimental=False, internal=False,
+                 predefined_type=None, custom_cascade=False, experimental=False, internal=False,
                  need_clone=False, gecko_ffi_name=None):
         self.name = name
         self.keyword = keyword
+        self.predefined_type = predefined_type
         self.ident = to_rust_ident(name)
         self.camel_case = to_camel_case(self.ident)
         self.style_struct = style_struct

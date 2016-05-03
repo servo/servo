@@ -22,6 +22,8 @@ ${helpers.single_keyword("color-interpolation-filters",
                          products="gecko",
                          gecko_constant_prefix="NS_STYLE_COLOR_INTERPOLATION")}
 
+${helpers.predefined_type("fill-opacity", "Opacity", "1.0", products="gecko")}
+
 ${helpers.single_keyword("fill-rule", "nonzero evenodd", products="gecko")}
 
 ${helpers.single_keyword("shape-rendering",
@@ -31,6 +33,11 @@ ${helpers.single_keyword("shape-rendering",
 ${helpers.single_keyword("stroke-linecap", "butt round square", products="gecko")}
 
 ${helpers.single_keyword("stroke-linejoin", "miter round bevel", products="gecko")}
+
+${helpers.predefined_type("stroke-miterlimit", "Number", "4.0", "parse_at_least_one",
+                          products="gecko")}
+
+${helpers.predefined_type("stroke-opacity", "Opacity", "1.0", products="gecko")}
 
 // Section 14 - Clipping, Masking and Compositing
 ${helpers.single_keyword("clip-rule", "nonzero evenodd",
