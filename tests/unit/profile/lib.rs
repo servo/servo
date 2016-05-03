@@ -4,6 +4,7 @@
 
 extern crate profile;
 extern crate profile_traits;
+extern crate ipc_channel;
 
 #[cfg(test)]
 mod time;
