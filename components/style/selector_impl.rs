@@ -18,6 +18,10 @@ use stylesheets::Stylesheet;
 /// computed when needed, and not before. They're useful for general
 /// pseudo-elements that are not very common.
 ///
+/// Note that in Servo lazy pseudo-elements are restricted to a subset of
+/// selectors, so you can't use it for public pseudo-elements. This is not the
+/// case with Gecko though.
+///
 /// Precomputed ones skip the cascade process entirely, mostly as an
 /// optimisation since they are private pseudo-elements (like
 /// `::-servo-details-content`).
@@ -26,8 +30,7 @@ use stylesheets::Stylesheet;
 /// (rules of the form `*|*`), and applying them to the parent style.
 ///
 /// If you're implementing a public selector that the end-user might customize,
-/// then you probably need doing the whole cascading process and return true in
-/// this function for that pseudo (either as Eager or Lazy).
+/// then you probably need to make it eager.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PseudoElementCascadeType {
     Eager,
