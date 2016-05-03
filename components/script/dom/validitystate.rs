@@ -53,7 +53,7 @@ impl ValidityState {
             state: ValidityStates::Valid
         }
     }
-    
+
     pub fn new(window: &Window, element: &Element) -> Root<ValidityState> {
         reflect_dom_object(box ValidityState::new_inherited(element),
                            GlobalRef::Window(window),
@@ -79,7 +79,6 @@ impl ValidityStateMethods for ValidityState {
                                 println!("Error - Value missing in html input element");
                                 return true;
                         }
-                        
                 }
                 else {
                     return false;
@@ -105,19 +104,15 @@ impl ValidityStateMethods for ValidityState {
                             println!("Error - Value missing in html select area element");
                             return true;
                     }
-                    
                 }
                 else {
                     return false;
                 }
-                
             },
             NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
                 let attr_value_check = self.element.get_attribute_by_name(DOMString::from("required"))
                     .map(|s| s.Value());
-
                 if attr_value_check.is_some() {
-                    
                         let html_textarea_element = self.element.downcast::<HTMLTextAreaElement>().unwrap();
                         let input_value_check = html_textarea_element.get_value_for_validation();
                         if input_value_check.is_some() {
@@ -127,13 +122,10 @@ impl ValidityStateMethods for ValidityState {
                                 println!("Error - Value missing in html text area element");
                                 return true;
                         }
-                        
                    }
                    else {
                         return false;
                    }
-                   
-                
             },
             NodeTypeId::Element(_)  => {
             }

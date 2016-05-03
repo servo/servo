@@ -6,6 +6,7 @@ use dom::activation::{Activatable, ActivationSource, synthetic_click_activation}
 use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
+use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
@@ -15,12 +16,12 @@ use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{document_from_node, Node};
+use dom::node::{window_from_node};
+use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
 use util::str::DOMString;
-use dom::validitystate::ValidityState;
-use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
-use dom::node::{window_from_node};
+
 
 
 #[dom_struct]
@@ -144,11 +145,11 @@ impl HTMLLabelElement {
 
 impl FormControl for HTMLLabelElement {
     fn candidate_for_validation(&self, element: &Element) -> bool {
-        if element.as_maybe_validatable().is_some(){
+        if element.as_maybe_validatable().is_some() {
             return true
         }
         else {
-           return false 
+           return false
         }
     }
 

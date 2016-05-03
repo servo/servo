@@ -8,6 +8,7 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::reflector::{Reflectable};
@@ -22,8 +23,10 @@ use dom::htmlinputelement::ChangeEventRunnable;
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{ChildrenMutation, Node, NodeDamage, UnbindContext};
 use dom::node::{document_from_node};
+use dom::node::{window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
+use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 use script_traits::ScriptMsg as ConstellationMsg;
@@ -33,9 +36,8 @@ use string_cache::Atom;
 use style::element_state::*;
 use textinput::{KeyReaction, Lines, TextInput, SelectionDirection};
 use util::str::DOMString;
-use dom::validitystate::ValidityState;
-use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
-use dom::node::{window_from_node};
+
+
 
 #[dom_struct]
 pub struct HTMLTextAreaElement {
@@ -395,11 +397,11 @@ impl VirtualMethods for HTMLTextAreaElement {
 
 impl FormControl for HTMLTextAreaElement {
     fn candidate_for_validation(&self, element: &Element) -> bool {
-        if element.as_maybe_validatable().is_some(){
+        if element.as_maybe_validatable().is_some() {
             return true
         }
         else {
-           return false 
+           return false
         }
     }
 

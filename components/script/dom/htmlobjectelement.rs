@@ -6,6 +6,7 @@ use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
+use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
@@ -20,7 +21,7 @@ use net_traits::image::base::Image;
 use std::sync::Arc;
 use string_cache::Atom;
 use util::str::DOMString;
-use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
+
 
 #[dom_struct]
 pub struct HTMLObjectElement {
@@ -118,11 +119,11 @@ impl VirtualMethods for HTMLObjectElement {
 
 impl FormControl for HTMLObjectElement {
     fn candidate_for_validation(&self, element: &Element) -> bool {
-        if element.as_maybe_validatable().is_some(){
+        if element.as_maybe_validatable().is_some() {
             return true
         }
         else {
-           return false 
+           return false
         }
     }
 

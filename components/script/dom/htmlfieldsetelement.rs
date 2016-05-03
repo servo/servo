@@ -5,6 +5,7 @@
 use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
+use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
@@ -19,7 +20,7 @@ use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
 use style::element_state::*;
 use util::str::DOMString;
-use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
+
 
 #[dom_struct]
 pub struct HTMLFieldSetElement {
@@ -154,11 +155,11 @@ impl VirtualMethods for HTMLFieldSetElement {
 
 impl FormControl for HTMLFieldSetElement {
     fn candidate_for_validation(&self, element: &Element) -> bool {
-        if element.as_maybe_validatable().is_some(){
+        if element.as_maybe_validatable().is_some() {
             return true
         }
         else {
-           return false 
+           return false
         }
     }
 

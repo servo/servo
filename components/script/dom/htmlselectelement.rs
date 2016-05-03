@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding::HTMLSelectElementMethods;
+use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use dom::bindings::codegen::UnionTypes::HTMLElementOrLong;
 use dom::bindings::codegen::UnionTypes::HTMLOptionElementOrHTMLOptGroupElement;
 use dom::bindings::inheritance::Castable;
@@ -26,7 +27,7 @@ use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
 use style::element_state::*;
 use util::str::DOMString;
-use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
+
 
 #[dom_struct]
 pub struct HTMLSelectElement {
@@ -242,21 +243,19 @@ impl VirtualMethods for HTMLSelectElement {
         if event.type_() == atom!("click") && !event.DefaultPrevented() {
             // TODO: Dispatch events for non activatable inputs
             // https://html.spec.whatwg.org/multipage/#common-input-element-events
-
             //TODO: set the editing position for text inputs
-
             document_from_node(self).request_focus(self.upcast());
-        } 
+        }
     }
 }
 
 impl FormControl for HTMLSelectElement {
     fn candidate_for_validation(&self, element: &Element) -> bool {
-        if element.as_maybe_validatable().is_some(){
+        if element.as_maybe_validatable().is_some() {
             return true
         }
         else {
-           return false 
+           return false
         }
     }
 

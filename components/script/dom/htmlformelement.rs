@@ -229,7 +229,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
     fn Length(&self) -> u32 {
         self.Elements().Length() as u32
     }
-
+    // https://html.spec.whatwg.org/multipage/#the-form-element:statically-validate-the-constraints
     fn Check_validity(&self) -> bool {
          let _unhandled_invalid_controls = match self.static_validation() {
             Ok(()) => return true,
@@ -239,7 +239,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
             }
         };
     }
-
+    // https://html.spec.whatwg.org/multipage/#the-form-element:interactively-validate-the-constraints
     fn Report_validity(&self) -> bool {
         if self.interactive_validation().is_err() {
            return false;
@@ -488,38 +488,43 @@ impl HTMLFormElement {
                 match _el.upcast::<Node>().type_id() {
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLInputElement)) => {
                         let html_input_element = _el.downcast::<HTMLInputElement>().unwrap();
-                        if html_input_element.candidate_for_validation(_el) & !html_input_element.satisfies_constraints(_el) {
+                        if html_input_element.candidate_for_validation(_el)
+                        & !html_input_element.satisfies_constraints(_el) {
                             return Some(FormSubmittableElement::InputElement(
                                 Root::from_ref(_el.downcast::<HTMLInputElement>().unwrap())))
-                        } 
+                        }
                     }
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLButtonElement)) => {
                         let html_button_element = _el.downcast::<HTMLButtonElement>().unwrap();
-                        if html_button_element.candidate_for_validation(_el) & !html_button_element.satisfies_constraints(_el) {
+                        if html_button_element.candidate_for_validation(_el)
+                        & !html_button_element.satisfies_constraints(_el) {
                             return Some(FormSubmittableElement::ButtonElement(
                                 Root::from_ref(_el.downcast::<HTMLButtonElement>().unwrap())))
-                        }                         
+                        }
                     }
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLSelectElement)) => {
                         let html_select_element = _el.downcast::<HTMLSelectElement>().unwrap();
-                        if html_select_element.candidate_for_validation(_el) & !html_select_element.satisfies_constraints(_el) {
+                        if html_select_element.candidate_for_validation(_el)
+                        & !html_select_element.satisfies_constraints(_el) {
                             return Some(FormSubmittableElement::SelectElement(
                                 Root::from_ref(_el.downcast::<HTMLSelectElement>().unwrap())))
-                        }                         
+                        }
                     }
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLTextAreaElement)) => {
                         let html_textarea_element = _el.downcast::<HTMLTextAreaElement>().unwrap();
-                        if html_textarea_element.candidate_for_validation(_el) & !html_textarea_element.satisfies_constraints(_el) {
+                        if html_textarea_element.candidate_for_validation(_el)
+                        & !html_textarea_element.satisfies_constraints(_el) {
                             return Some(FormSubmittableElement::TextAreaElement(
                                 Root::from_ref(_el.downcast::<HTMLTextAreaElement>().unwrap())))
-                        }                          
+                        }
                     }
                     NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLObjectElement)) => {
                         let html_object_element = _el.downcast::<HTMLObjectElement>().unwrap();
-                        if html_object_element.candidate_for_validation(_el) & !html_object_element.satisfies_constraints(_el) {
+                        if html_object_element.candidate_for_validation(_el)
+                        & !html_object_element.satisfies_constraints(_el) {
                             return Some(FormSubmittableElement::ObjectElement(
                                 Root::from_ref(_el.downcast::<HTMLObjectElement>().unwrap())))
-                        }                          
+                        }
                     }
                     _ => { }
                 }
@@ -536,7 +541,7 @@ impl HTMLFormElement {
         // Step 4
         if invalid_controls.is_empty() {
             println!("Invalid Controls is Empty");
-            return Ok(()); 
+            return Ok(());
         }
         // Step 5-6
         let unhandled_invalid_controls = invalid_controls.into_iter().filter_map(|field| {

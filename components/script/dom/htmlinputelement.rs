@@ -11,6 +11,7 @@ use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
+use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
@@ -29,6 +30,7 @@ use dom::node::{Node, NodeDamage, UnbindContext};
 use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
+use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
 //use range::Range;
@@ -45,8 +47,6 @@ use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDef
 use textinput::Lines::Single;
 use textinput::{TextInput, SelectionDirection};
 use util::str::{DOMString};
-use dom::validitystate::ValidityState;
-use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -89,7 +89,6 @@ pub struct HTMLInputElement {
     activation_state: DOMRefCell<InputActivationState>,
     // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag
     value_dirty: Cell<bool>,
-
     // TODO: selected files for file input
 }
 
@@ -935,17 +934,17 @@ impl VirtualMethods for HTMLInputElement {
                         Nothing => (),
                     }
                 }
-        } 
+        }
     }
 }
 
 impl FormControl for HTMLInputElement {
     fn candidate_for_validation(&self, element: &Element) -> bool {
-        if element.as_maybe_validatable().is_some(){
+        if element.as_maybe_validatable().is_some() {
             return true
         }
         else {
-           return false 
+           return false
         }
     }
 
