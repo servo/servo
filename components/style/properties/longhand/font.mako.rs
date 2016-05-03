@@ -173,6 +173,7 @@ ${helpers.single_keyword("font-variant", "normal small-caps")}
     pub mod computed_value {
         use std::fmt;
         #[derive(PartialEq, Eq, Copy, Clone, Hash, Deserialize, Serialize, HeapSizeOf, Debug)]
+        #[repr(u16)]
         pub enum T {
             % for weight in range(100, 901, 100):
                 Weight${weight} = ${weight},
