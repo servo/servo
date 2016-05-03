@@ -26,6 +26,7 @@ extern crate euclid;
 extern crate getopts;
 extern crate heapsize;
 extern crate ipc_channel;
+extern crate itertools;
 #[cfg(feature = "non-geckolib")]
 extern crate js;
 #[allow(unused_extern_crates)]
