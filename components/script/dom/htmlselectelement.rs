@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::attr::{Attr, AttrValue};
+use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::HTMLSelectElementBinding;
@@ -263,6 +264,52 @@ impl FormControl for HTMLSelectElement {
         let vs = ValidityState::new(window_from_node(self).r(), element);
         return  vs.Valid()
     }
+    fn ValueMissing(&self) -> bool {
+       let attr_value_check = self.upcast::<Element>().get_attribute_by_name(DOMString::from("required"))
+        .map(|s| s.Value());
+        if attr_value_check.is_some() {
+           // let html_select_element = self.element.downcast::<HTMLSelectElement>().unwrap();
+            let input_value_check = self.get_value_for_validation();
+            if input_value_check.is_some() {
+                return false;
+            }
+            else {
+                    println!("Error - Value missing in html select area element");
+                    return true;
+            }
+        }
+        else {
+            return false;
+        }
+    }
+    fn TypeMismatch(&self) -> bool {
+            return false;
+    }
+    fn PatternMismatch(&self) -> bool {
+            return false;
+    }
+    fn TooLong(&self) -> bool {
+            return false;
+    }
+    fn TooShort(&self) -> bool {
+            return false;
+    }
+    fn RangeUnderflow(&self) -> bool {
+            return false;
+    }
+    fn RangeOverflow(&self) -> bool {
+            return false;
+    }
+    fn StepMismatch(&self) -> bool {
+            return false;
+    }
+    fn BadInput(&self) -> bool {
+            return false;
+    }
+    fn CustomError(&self) -> bool {
+            return false;
+    }
+
 }
 
 impl Validatable for HTMLSelectElement {

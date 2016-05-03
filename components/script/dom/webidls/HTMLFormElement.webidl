@@ -24,7 +24,7 @@ interface HTMLFormElement : HTMLElement {
   void reset();
   // https://html.spec.whatwg.org/multipage/#the-form-element:statically-validate-the-constraints
   boolean check_validity();
-  // https://html.spec.whatwg.org/multipage/#the-form-element:interactively-validate-the-constraints
+  //  https://html.spec.whatwg.org/multipage/#the-form-element:interactively-validate-the-constraints
   boolean report_validity();
 
   //void requestAutocomplete();

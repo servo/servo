@@ -167,4 +167,35 @@ impl FormControl for HTMLFieldSetElement {
         let vs = ValidityState::new(window_from_node(self).r(), element);
         return  vs.Valid()
     }
+    fn ValueMissing(&self) -> bool {
+            return false;
+    }
+    fn TypeMismatch(&self) -> bool {
+            return false;
+    }
+    fn PatternMismatch(&self) -> bool {
+            return false;
+    }
+    fn TooLong(&self) -> bool {
+            return false;
+    }
+    fn TooShort(&self) -> bool {
+            return false;
+    }
+    fn RangeUnderflow(&self) -> bool {
+            return false;
+    }
+    fn RangeOverflow(&self) -> bool {
+            return false;
+    }
+    fn StepMismatch(&self) -> bool {
+            return false;
+    }
+    fn BadInput(&self) -> bool {
+            return false;
+    }
+    fn CustomError(&self) -> bool {
+            return false;
+    }
+
 }

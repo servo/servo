@@ -929,6 +929,18 @@ pub trait FormControl: DerivedFrom<Element> + Reflectable {
     // XXXKiChjang: Implement these on inheritors
     fn candidate_for_validation(&self, element: &Element) -> bool;
     fn satisfies_constraints(&self, element: &Element) -> bool;
+    // Implement these on htmlinputelement, htmlselectelement, etc
+    fn ValueMissing(&self) -> bool;
+    fn TypeMismatch(&self) -> bool;
+    fn PatternMismatch(&self) -> bool;
+    fn TooLong(&self) -> bool;
+    fn TooShort(&self) -> bool;
+    fn RangeUnderflow(&self) -> bool;
+    fn RangeOverflow(&self) -> bool;
+    fn StepMismatch(&self) -> bool;
+    fn BadInput(&self) -> bool;
+    fn CustomError(&self) -> bool;
+
 }
 
 impl VirtualMethods for HTMLFormElement {
