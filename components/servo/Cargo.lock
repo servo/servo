@@ -419,7 +419,7 @@ name = "debug_unreachable"
 version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "unreachable 0.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unreachable 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -2257,14 +2257,6 @@ dependencies = [
 
 [[package]]
 name = "unreachable"
-version = "0.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "void 0.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
-name = "unreachable"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
@@ -2355,11 +2347,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
-
-[[package]]
-name = "void"
-version = "0.0.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "void"
