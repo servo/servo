@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use core::ops::Deref;
+use cssparser::Parser;
 use dom::attr::Attr;
 use dom::attr::AttrValue;
 use dom::bindings::cell::DOMRefCell;
@@ -31,7 +33,11 @@ use script_runtime::{CommonScriptMsg, ScriptChan};
 use script_thread::Runnable;
 use std::sync::Arc;
 use string_cache::Atom;
+use style::media_queries::MediaQuery;
+use style::values::CSSFloat;
+use style::values::specified::{Length, ViewportPercentageLength};
 use url::Url;
+use util;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -48,6 +54,11 @@ struct ImageRequest {
     url: Option<Url>,
     image: Option<Arc<Image>>,
     metadata: Option<ImageMetadata>,
+}
+#[allow(dead_code)]
+pub struct Size {
+    pub query: Option<MediaQuery>,
+    pub length: Length,
 }
 #[dom_struct]
 pub struct HTMLImageElement {
@@ -397,4 +408,61 @@ fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
     let dim = LengthOrPercentageOrAuto::Length(Au::from_px(value as i32));
     let value = AttrValue::Dimension(DOMString::from(value.to_string()), dim);
     element.set_attribute(&attr, value);
+}
+
+pub fn parse_a_sizes_attribute(input: DOMString, width: Option<u32>) -> Vec<Size> {
+    let mut sizes = Vec::<Size>::new();
+    let unparsed_sizes = input.deref().split(',').collect::<Vec<_>>();
+
+    for unparsed_size in &unparsed_sizes {
+        let temp = *unparsed_size;
+        let whitespace = temp.chars().rev().take_while(|c| util::str::char_is_whitespace(*c)).count();
+        let trimmed: String = unparsed_size.chars().take(temp.chars().count() - whitespace).collect();
+        // TODO: do we need to throw/assert
+        if trimmed.is_empty() {
+            warn!("parse error while parsing sizes attribute");
+            continue;
+        }
+        let length = Parser::new(&trimmed).try(Length::parse_non_negative);
+        match length {
+            Ok(len) => sizes.push(Size {
+                length: len,
+                query: None
+            }),
+            Err(_) => {
+                println!("Starts with media expression and not length");
+                let mut media_query_parser = Parser::new(&trimmed);
+                let media_query = media_query_parser.try(MediaQuery::parse);
+                match media_query {
+                    Ok(query) => {
+                        let length = media_query_parser.try(Length::parse_non_negative);
+                        if length.is_ok() {
+                            sizes.push (Size {
+                                length: length.unwrap(),
+                                query: Some(query)
+                            })
+                        }
+                    },
+                    Err(_) => {
+                        println!("Could not convert to MediaQuery/Length");
+                        continue;
+                    },
+                }
+            },
+        }
+    }
+    if sizes.len() == 0 {
+        let size = match width {
+            Some(w) => Size {
+                length: Length::from_px(w as f32),
+                query: None
+            },
+            None => Size {
+                length: Length::ViewportPercentage(ViewportPercentageLength::Vw(100 as f32)),
+                query: None
+            },
+        };
+        sizes.push(size);
+    }
+    sizes
 }

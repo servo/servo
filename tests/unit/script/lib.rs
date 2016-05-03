@@ -4,6 +4,17 @@
 
 #![feature(plugin)]
 #![plugin(plugins)]
+use script::dom::htmlimageelement::parse_a_sizes_attribute;
+use util::str::DOMString;
+
+#[test]
+fn some_parse_sizes_test() {
+    let result = parse_a_sizes_attribute(DOMString::from("(min-width: 900px) 1000px,
+            (max-width: 900px) and (min-width: 400px) 50em,
+            100vw"),
+            None);
+    assert_eq!(result.len(), 3);
+}
 
 extern crate msg;
 extern crate script;
