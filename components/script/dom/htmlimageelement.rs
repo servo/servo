@@ -34,6 +34,7 @@ use string_cache::Atom;
 use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 use style::values::specified::Length;
+use std::collections::LinkedList;
 
 #[derive(JSTraceable, HeapSizeOf)]
 #[allow(dead_code)]
@@ -422,19 +423,24 @@ fn collect_sequence_characters<'a, P>(s: &'a str, predicate: P)
     return (s, "");
 }
 
-impl ImageSource{
-    fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
+fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
         let position = &input;
         let candidate: Vec<ImageSource> = Vec::new();
-        //let position1 = &s;
         let(spaces, position) = collect_sequence_characters(position, |c| c ==',' || c == ' ');
         println!("{} {}", spaces, position);
         let x = spaces.find(',');
         match x {
-            Some(val) => println!("{}", val), // can do assert here
-            None => println!("Parse error"),    
+            Some(val) => println!("Parse Error"),
+            None => println!("No commas"),    
         }
-        candidate
+        if position == "" {
+            //Does something need to be asserted here? The algorithm says abort the steps is this condition exists
+            return candidate;
+        }
+        let (url, spaces) = collect_sequence_characters(position, |c| c != ' ');
+        let mut descriptor = LinkedList::<String>::new();
+        return candidate;
     
-    }    
-}
+}    
+
+ 
