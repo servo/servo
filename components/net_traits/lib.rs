@@ -26,6 +26,7 @@ extern crate msg;
 extern crate serde;
 extern crate url;
 extern crate util;
+extern crate uuid;
 extern crate websocket;
 
 use hyper::header::{ContentType, Headers};
@@ -42,6 +43,7 @@ use websocket::header;
 
 pub mod bluetooth_scanfilter;
 pub mod bluetooth_thread;
+pub mod filemanager_thread;
 pub mod hosts;
 pub mod image_cache_thread;
 pub mod net_error_list;
