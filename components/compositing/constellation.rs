@@ -987,6 +987,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     Some(old_pipeline) => old_pipeline.url.clone(),
                     None => Url::parse("about:blank").expect("infallible"),
                 };
+
+                // TODO - loaddata here should have referrer info (not None, None)
                 LoadData::new(url, None, None)
             });
 
