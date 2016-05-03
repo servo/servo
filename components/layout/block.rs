@@ -1477,7 +1477,7 @@ impl BlockFlow {
     pub fn bubble_inline_sizes_for_block(&mut self, consult_children: bool) {
         let _scope = layout_debug_scope!("block::bubble_inline_sizes {:x}", self.base.debug_id());
 
-        let mut flags = self.base.flags;
+        let flags = self.base.flags;
 
         // Find the maximum inline-size from children.
         let mut computation = self.fragment.compute_intrinsic_inline_sizes();
