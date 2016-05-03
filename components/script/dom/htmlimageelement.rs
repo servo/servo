@@ -45,6 +45,13 @@ enum State {
     Broken,
 }
 #[derive(JSTraceable, HeapSizeOf)]
+#[allow(dead_code)]
+enum ParseState {
+    InDescriptor,
+    InParens,
+    AfterDescriptor,
+}
+#[derive(JSTraceable, HeapSizeOf)]
 struct ImageRequest {
     state: State,
     url: Option<Url>,
@@ -438,7 +445,15 @@ fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
             return candidate;
         }
         let (url, spaces) = collect_sequence_characters(position, |c| c != ' ');
+        
+        let comma_count = url.chars().rev().take_while(|c| *c==',').count();
+        let url: String = url.chars().take(url.chars().count() - comma_count).collect();
+        if comma_count > 1 {
+            println!("Parse Error (trailing commas)")
+        }
+
         let mut descriptor = LinkedList::<String>::new();
+        let mut state = ParseState::InDescriptor;
         return candidate;
     
 }    
