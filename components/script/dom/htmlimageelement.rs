@@ -410,6 +410,7 @@ fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
     element.set_attribute(&attr, value);
 }
 
+
 pub fn parse_a_sizes_attribute(input: DOMString, width: Option<u32>) -> Vec<Size> {
     let mut sizes = Vec::<Size>::new();
     let unparsed_sizes = input.deref().split(',').collect::<Vec<_>>();

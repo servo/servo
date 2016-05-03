@@ -4,7 +4,11 @@
 
 #![feature(plugin)]
 #![plugin(plugins)]
+
+//use cssparser::Parser;
 use script::dom::htmlimageelement::parse_a_sizes_attribute;
+//use style::values::specified::{Length, ViewportPercentageLength};
+use script::dom::htmlimageelement::Size;
 use util::str::DOMString;
 
 #[test]
@@ -16,6 +20,24 @@ fn some_parse_sizes_test() {
     assert_eq!(result.len(), 3);
 }
 
+//testing the second element which has two expressions
+#[test]
+fn some_parse_sizes_1_test() {
+    let mut result = parse_a_sizes_attribute(DOMString::from("(min-width: 900px) 1000px,
+            (max-width: 900px) and (min-width: 400px) 50em,
+            100vw     "),
+            None);
+    let trimmed = "100vw";
+    let mut component = result.pop();
+    let mut component_secondlast = result.pop();
+    if component_secondlast.is_some() {
+        let component_query = component_secondlast.unwrap().query;
+        if component_query.is_some(){
+            let component_query_expr = component_query.unwrap().expressions;
+            assert_eq!(component_query_expr.len() , 2);
+        }   
+    }
+}
 extern crate msg;
 extern crate script;
 extern crate url;
