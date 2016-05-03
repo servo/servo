@@ -1385,7 +1385,7 @@ impl <'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     }
 
     fn is_html_element_in_html_document(&self) -> bool {
-        warn!("ServoThreadSafeLayoutElement::is_html_element_in_html_document called");
+        debug!("ServoThreadSafeLayoutElement::is_html_element_in_html_document called");
         true
     }
 
@@ -1406,12 +1406,12 @@ impl <'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     }
 
     fn get_id(&self) -> Option<Atom> {
-        warn!("ServoThreadSafeLayoutElement::get_id called");
+        debug!("ServoThreadSafeLayoutElement::get_id called");
         None
     }
 
     fn has_class(&self, _name: &Atom) -> bool {
-        warn!("ServoThreadSafeLayoutElement::has_class called");
+        debug!("ServoThreadSafeLayoutElement::has_class called");
         false
     }
 
