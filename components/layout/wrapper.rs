@@ -66,12 +66,12 @@ use std::sync::Arc;
 use string_cache::{Atom, Namespace};
 use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display};
-use style::dom::{TDocument, TElement, TNode, UnsafeNode};
+use style::dom::{PresentationalHintsSynthetizer, TDocument, TElement, TNode, UnsafeNode};
 use style::element_state::*;
 use style::properties::{ComputedValues, ServoComputedValues};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::restyle_hints::ElementSnapshot;
-use style::selector_impl::{NonTSPseudoClass, PseudoElement, ServoSelectorImpl};
+use style::selector_impl::{NonTSPseudoClass, PseudoElement, PseudoElementCascadeType, ServoSelectorImpl};
 use style::servo::{PrivateStyleData, SharedStyleContext};
 use url::Url;
 use util::str::is_whitespace;
@@ -81,7 +81,7 @@ pub type NonOpaqueStyleAndLayoutData = *mut RefCell<PrivateLayoutData>;
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `LayoutJS`.
 
-pub trait LayoutNode : TNode {
+pub trait LayoutNode: TNode {
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode;
     fn to_threadsafe(&self) -> Self::ConcreteThreadSafeLayoutNode;
 
@@ -401,6 +401,16 @@ pub struct ServoLayoutElement<'le> {
     chain: PhantomData<&'le ()>,
 }
 
+impl<'le> PresentationalHintsSynthetizer for ServoLayoutElement<'le> {
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
+        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
+    {
+        unsafe {
+            self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
+        }
+    }
+}
+
 impl<'le> TElement for ServoLayoutElement<'le> {
     type ConcreteNode = ServoLayoutNode<'le>;
     type ConcreteDocument = ServoLayoutDocument<'le>;
@@ -417,14 +427,6 @@ impl<'le> TElement for ServoLayoutElement<'le> {
 
     fn get_state(&self) -> ElementState {
         self.element.get_state_for_layout()
-    }
-
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, hints: &mut V)
-        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
-    {
-        unsafe {
-            self.element.synthesize_presentational_hints_for_legacy_attributes(hints);
-        }
     }
 
     #[inline]
@@ -665,8 +667,10 @@ impl<T> PseudoElementType<T> {
 /// A thread-safe version of `LayoutNode`, used during flow construction. This type of layout
 /// node does not allow any parents or siblings of nodes to be accessed, to avoid races.
 
-pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
-    type ConcreteThreadSafeLayoutElement: ThreadSafeLayoutElement<ConcreteThreadSafeLayoutNode = Self>;
+pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
+    type ConcreteThreadSafeLayoutElement:
+        ThreadSafeLayoutElement<ConcreteThreadSafeLayoutNode = Self>
+        + ::selectors::Element<Impl=ServoSelectorImpl>;
     type ChildrenIterator: Iterator<Item = Self> + Sized;
 
     /// Creates a new `ThreadSafeLayoutNode` for the same `LayoutNode`
@@ -679,6 +683,18 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
     /// Returns the type ID of this node.
     /// Returns `None` if this is a pseudo-element; otherwise, returns `Some`.
     fn type_id(&self) -> Option<NodeTypeId>;
+
+    /// Returns the type ID of this node, without discarding pseudo-elements as
+    /// `type_id` does.
+    fn type_id_without_excluding_pseudo_elements(&self) -> NodeTypeId;
+
+    #[inline]
+    fn is_element_or_elements_pseudo(&self) -> bool {
+        match self.type_id_without_excluding_pseudo_elements() {
+            NodeTypeId::Element(..) => true,
+            _ => false,
+        }
+    }
 
     fn debug_id(self) -> usize;
 
@@ -774,13 +790,38 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
                 // Precompute non-eagerly-cascaded pseudo-element styles if not
                 // cached before.
                 let style_pseudo = other.style_pseudo_element();
-                if !style_pseudo.is_eagerly_cascaded() &&
-                   !self.borrow_layout_data().unwrap().style_data.per_pseudo.contains_key(&style_pseudo) {
-                    let mut data = self.mutate_layout_data().unwrap();
-                    let new_style = context.stylist
-                                           .computed_values_for_pseudo(&style_pseudo,
-                                                                       data.style_data.style.as_ref());
-                    data.style_data.per_pseudo.insert(style_pseudo.clone(), new_style.unwrap());
+                match style_pseudo.cascade_type() {
+                    // Already computed during the cascade.
+                    PseudoElementCascadeType::Eager => {},
+                    PseudoElementCascadeType::Precomputed => {
+                        if !self.borrow_layout_data()
+                                .unwrap().style_data
+                                .per_pseudo.contains_key(&style_pseudo) {
+                            let mut data = self.mutate_layout_data().unwrap();
+                            let new_style =
+                                context.stylist
+                                       .precomputed_values_for_pseudo(&style_pseudo,
+                                                                      data.style_data.style.as_ref());
+                            data.style_data.per_pseudo
+                                .insert(style_pseudo.clone(), new_style.unwrap());
+                        }
+                    }
+                    PseudoElementCascadeType::Lazy => {
+                        debug_assert!(self.is_element_or_elements_pseudo());
+                        if !self.borrow_layout_data()
+                                .unwrap().style_data
+                                .per_pseudo.contains_key(&style_pseudo) {
+                            let mut data = self.mutate_layout_data().unwrap();
+                            let new_style =
+                                context.stylist
+                                       .lazily_compute_pseudo_element_style(
+                                           &self.as_element(),
+                                           &style_pseudo,
+                                           data.style_data.style.as_ref().unwrap());
+                            data.style_data.per_pseudo
+                                .insert(style_pseudo.clone(), new_style.unwrap());
+                        }
+                    }
                 }
 
                 Ref::map(self.borrow_layout_data().unwrap(), |data| {
@@ -904,12 +945,14 @@ pub trait ThreadSafeLayoutNode : Clone + Copy + Sized + PartialEq {
 
 // This trait is only public so that it can be implemented by the gecko wrapper.
 // It can be used to violate thread-safety, so don't use it elsewhere in layout!
-pub trait DangerousThreadSafeLayoutNode : ThreadSafeLayoutNode {
+pub trait DangerousThreadSafeLayoutNode: ThreadSafeLayoutNode {
     unsafe fn dangerous_first_child(&self) -> Option<Self>;
     unsafe fn dangerous_next_sibling(&self) -> Option<Self>;
 }
 
-pub trait ThreadSafeLayoutElement: Clone + Copy + Sized {
+pub trait ThreadSafeLayoutElement: Clone + Copy + Sized +
+                                   ::selectors::Element<Impl=ServoSelectorImpl> +
+                                   PresentationalHintsSynthetizer {
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<ConcreteThreadSafeLayoutElement = Self>;
 
     #[inline]
@@ -997,6 +1040,11 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         }
 
         Some(self.node.type_id())
+    }
+
+    #[inline]
+    fn type_id_without_excluding_pseudo_elements(&self) -> NodeTypeId {
+        self.node.type_id()
     }
 
     fn debug_id(self) -> usize {
@@ -1252,8 +1300,8 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
     }
 }
 
-/// A wrapper around elements that ensures layout can only ever access safe properties and cannot
-/// race on elements.
+/// A wrapper around elements that ensures layout can only
+/// ever access safe properties and cannot race on elements.
 #[derive(Copy, Clone)]
 pub struct ServoThreadSafeLayoutElement<'le> {
     element: &'le Element,
@@ -1291,4 +1339,114 @@ impl TextContent {
             TextContent::GeneratedContent(ref content) => content.is_empty(),
         }
     }
+}
+
+/// This implementation of `::selectors::Element` is used for implementing lazy
+/// pseudo-elements.
+///
+/// Lazy pseudo-elements in Servo only allows selectors using safe properties,
+/// i.e., local_name, attributes, so they can only be used for **private**
+/// pseudo-elements (like `::-servo-details-content`).
+///
+/// Probably a few more of this functions can be implemented (like `has_class`,
+/// `each_class`, etc), but they have no use right now.
+///
+/// Note that the element implementation is needed only for selector matching,
+/// not for inheritance (styles are inherited appropiately).
+impl <'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
+    type Impl = ServoSelectorImpl;
+
+    fn parent_element(&self) -> Option<Self> {
+        warn!("ServoThreadSafeLayoutElement::parent_element called");
+        None
+    }
+
+    fn first_child_element(&self) -> Option<Self> {
+        warn!("ServoThreadSafeLayoutElement::first_child_element called");
+        None
+    }
+
+    // Skips non-element nodes
+    fn last_child_element(&self) -> Option<Self> {
+        warn!("ServoThreadSafeLayoutElement::last_child_element called");
+        None
+    }
+
+    // Skips non-element nodes
+    fn prev_sibling_element(&self) -> Option<Self> {
+        warn!("ServoThreadSafeLayoutElement::prev_sibling_element called");
+        None
+    }
+
+    // Skips non-element nodes
+    fn next_sibling_element(&self) -> Option<Self> {
+        warn!("ServoThreadSafeLayoutElement::next_sibling_element called");
+        None
+    }
+
+    fn is_html_element_in_html_document(&self) -> bool {
+        debug!("ServoThreadSafeLayoutElement::is_html_element_in_html_document called");
+        true
+    }
+
+    #[inline]
+    fn get_local_name(&self) -> &Atom {
+        ThreadSafeLayoutElement::get_local_name(self)
+    }
+
+    #[inline]
+    fn get_namespace(&self) -> &Namespace {
+        ThreadSafeLayoutElement::get_namespace(self)
+    }
+
+    fn match_non_ts_pseudo_class(&self, _: NonTSPseudoClass) -> bool {
+        // NB: This could maybe be implemented
+        warn!("ServoThreadSafeLayoutElement::match_non_ts_pseudo_class called");
+        false
+    }
+
+    fn get_id(&self) -> Option<Atom> {
+        debug!("ServoThreadSafeLayoutElement::get_id called");
+        None
+    }
+
+    fn has_class(&self, _name: &Atom) -> bool {
+        debug!("ServoThreadSafeLayoutElement::has_class called");
+        false
+    }
+
+    fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
+        where F: Fn(&str) -> bool {
+        match attr.namespace {
+            NamespaceConstraint::Specific(ref ns) => {
+                self.get_attr(ns, &attr.name).map_or(false, |attr| test(attr))
+            },
+            NamespaceConstraint::Any => {
+                unsafe {
+                    self.element.get_attr_vals_for_layout(&attr.name).iter()
+                        .any(|attr| test(*attr))
+                }
+            }
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        warn!("ServoThreadSafeLayoutElement::is_empty called");
+        false
+    }
+
+    fn is_root(&self) -> bool {
+        warn!("ServoThreadSafeLayoutElement::is_root called");
+        false
+    }
+
+    fn each_class<F>(&self, _callback: F)
+        where F: FnMut(&Atom) {
+        warn!("ServoThreadSafeLayoutElement::each_class called");
+    }
+}
+
+impl<'le> PresentationalHintsSynthetizer for ServoThreadSafeLayoutElement<'le> {
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _hints: &mut V)
+        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>> {}
 }

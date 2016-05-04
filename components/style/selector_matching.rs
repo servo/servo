@@ -5,10 +5,9 @@
 // For lazy_static
 #![allow(unsafe_code)]
 
-use dom::TElement;
+use dom::PresentationalHintsSynthetizer;
 use element_state::*;
 use error_reporting::{ParseErrorReporter, StdoutErrorReporter};
-use euclid::Size2D;
 use media_queries::{Device, MediaType};
 use properties::{self, ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RestyleHint, DependencySet};
@@ -127,9 +126,9 @@ pub struct Stylist<Impl: SelectorImplExt> {
     /// Applicable declarations for a given non-eagerly cascaded pseudo-element.
     /// These are eagerly computed once, and then used to resolve the new
     /// computed values on the fly on layout.
-    non_eagerly_cascaded_pseudo_element_decls: HashMap<Impl::PseudoElement,
-                                                       Vec<DeclarationBlock>,
-                                                       BuildHasherDefault<::fnv::FnvHasher>>,
+    precomputed_pseudo_element_decls: HashMap<Impl::PseudoElement,
+                                              Vec<DeclarationBlock>,
+                                              BuildHasherDefault<::fnv::FnvHasher>>,
 
     rules_source_order: usize,
 
@@ -148,7 +147,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
 
             element_map: PerPseudoElementSelectorMap::new(),
             pseudos_map: HashMap::with_hasher(Default::default()),
-            non_eagerly_cascaded_pseudo_element_decls: HashMap::with_hasher(Default::default()),
+            precomputed_pseudo_element_decls: HashMap::with_hasher(Default::default()),
             rules_source_order: 0,
             state_deps: DependencySet::new(),
         };
@@ -175,7 +174,7 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
             self.pseudos_map.insert(pseudo, PerPseudoElementSelectorMap::new());
         });
 
-        self.non_eagerly_cascaded_pseudo_element_decls = HashMap::with_hasher(Default::default());
+        self.precomputed_pseudo_element_decls = HashMap::with_hasher(Default::default());
         self.rules_source_order = 0;
         self.state_deps.clear();
 
@@ -242,37 +241,69 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
 
         self.rules_source_order = rules_source_order;
 
-        Impl::each_non_eagerly_cascaded_pseudo_element(|pseudo| {
-            // TODO: Don't precompute this, compute it on demand instead and
-            // cache it.
-            //
-            // This is actually kind of hard, because the stylist is shared
-            // between threads.
+        Impl::each_precomputed_pseudo_element(|pseudo| {
+            // TODO: Consider not doing this and just getting the rules on the
+            // fly. It should be a bit slower, but we'd take rid of the
+            // extra field, and avoid this precomputation entirely.
             if let Some(map) = self.pseudos_map.remove(&pseudo) {
                 let mut declarations = vec![];
 
                 map.user_agent.normal.get_universal_rules(&mut declarations);
                 map.user_agent.important.get_universal_rules(&mut declarations);
 
-                self.non_eagerly_cascaded_pseudo_element_decls.insert(pseudo, declarations);
+                self.precomputed_pseudo_element_decls.insert(pseudo, declarations);
             }
         })
     }
 
-    pub fn computed_values_for_pseudo(&self,
-                                      pseudo: &Impl::PseudoElement,
-                                      parent: Option<&Arc<Impl::ComputedValues>>) -> Option<Arc<Impl::ComputedValues>> {
-        debug_assert!(!Impl::is_eagerly_cascaded_pseudo_element(pseudo));
-        if let Some(declarations) = self.non_eagerly_cascaded_pseudo_element_decls.get(pseudo) {
+    /// Computes the style for a given "precomputed" pseudo-element, taking the
+    /// universal rules and applying them.
+    pub fn precomputed_values_for_pseudo(&self,
+                                         pseudo: &Impl::PseudoElement,
+                                         parent: Option<&Arc<Impl::ComputedValues>>)
+                                         -> Option<Arc<Impl::ComputedValues>> {
+        debug_assert!(Impl::pseudo_element_cascade_type(pseudo).is_precomputed());
+        if let Some(declarations) = self.precomputed_pseudo_element_decls.get(pseudo) {
+
             let (computed, _) =
-                properties::cascade::<Impl::ComputedValues>(Size2D::zero(),
-                                                            &declarations, false,
-                                                            parent.map(|p| &**p), None,
-                                                            box StdoutErrorReporter);
+                properties::cascade(self.device.au_viewport_size(),
+                                    &declarations, false,
+                                    parent.map(|p| &**p), None,
+                                    box StdoutErrorReporter);
             Some(Arc::new(computed))
         } else {
             parent.map(|p| p.clone())
         }
+    }
+
+    pub fn lazily_compute_pseudo_element_style<E>(&self,
+                                                  element: &E,
+                                                  pseudo: &Impl::PseudoElement,
+                                                  parent: &Arc<Impl::ComputedValues>)
+                                                  -> Option<Arc<Impl::ComputedValues>>
+                                                  where E: Element<Impl=Impl> +
+                                                        PresentationalHintsSynthetizer {
+        debug_assert!(Impl::pseudo_element_cascade_type(pseudo).is_lazy());
+        if self.pseudos_map.get(pseudo).is_none() {
+            return None;
+        }
+
+        let mut declarations = vec![];
+
+        // NB: This being cached could be worth it, maybe allow an optional
+        // ApplicableDeclarationsCache?.
+        self.push_applicable_declarations(element,
+                                          None,
+                                          None,
+                                          Some(pseudo),
+                                          &mut declarations);
+
+        let (computed, _) =
+            properties::cascade(self.device.au_viewport_size(),
+                                &declarations, false,
+                                Some(&**parent), None,
+                                box StdoutErrorReporter);
+        Some(Arc::new(computed))
     }
 
     pub fn compute_restyle_hint<E>(&self, element: &E,
@@ -325,16 +356,16 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                                         element: &E,
                                         parent_bf: Option<&BloomFilter>,
                                         style_attribute: Option<&PropertyDeclarationBlock>,
-                                        pseudo_element: Option<Impl::PseudoElement>,
+                                        pseudo_element: Option<&Impl::PseudoElement>,
                                         applicable_declarations: &mut V)
                                         -> bool
-                                        where E: Element<Impl=Impl> + TElement,
+                                        where E: Element<Impl=Impl> + PresentationalHintsSynthetizer,
                                               V: VecLike<DeclarationBlock> {
         assert!(!self.is_device_dirty);
         assert!(style_attribute.is_none() || pseudo_element.is_none(),
                 "Style attributes do not apply to pseudo-elements");
         debug_assert!(pseudo_element.is_none() ||
-                      Impl::is_eagerly_cascaded_pseudo_element(pseudo_element.as_ref().unwrap()));
+                      !Impl::pseudo_element_cascade_type(pseudo_element.as_ref().unwrap()).is_precomputed());
 
         let map = match pseudo_element {
             Some(ref pseudo) => self.pseudos_map.get(pseudo).unwrap(),
