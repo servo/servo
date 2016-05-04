@@ -1355,7 +1355,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 None => return,
             };
 
-            let translated_point =
+            let (translated_point, translated_pipeline_id) =
                 webrender_api.translate_point_to_layer_space(&point.to_untyped());
             let event_to_send = match mouse_window_event {
                 MouseWindowEvent::Click(button, _) => {
@@ -1368,9 +1368,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     MouseButtonEvent(MouseEventType::MouseUp, button, translated_point)
                 }
             };
-            let msg = ConstellationControlMsg::SendEvent(root_pipeline_id, event_to_send);
-            if let Err(e) = root_pipeline.script_chan.send(msg) {
-                warn!("Sending control event to root script failed ({}).", e);
+            let translated_pipeline_id = translated_pipeline_id.from_webrender();
+            let msg = ConstellationControlMsg::SendEvent(translated_pipeline_id, event_to_send);
+            if let Some(pipeline) = self.pipeline(translated_pipeline_id) {
+                if let Err(e) = pipeline.script_chan.send(msg) {
+                    warn!("Sending control event to script failed ({}).", e);
+                }
             }
             return
         }
@@ -1397,12 +1400,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 None => return,
             };
 
-            let translated_point =
+            let (translated_point, translated_pipeline_id) =
                 webrender_api.translate_point_to_layer_space(&cursor.to_untyped());
+            let translated_pipeline_id = translated_pipeline_id.from_webrender();
             let event_to_send = MouseMoveEvent(Some(translated_point));
-            let msg = ConstellationControlMsg::SendEvent(root_pipeline_id, event_to_send);
-            if let Err(e) = root_pipeline.script_chan.send(msg) {
-                warn!("Sending mouse control event to root script failed ({}).", e);
+            let msg = ConstellationControlMsg::SendEvent(translated_pipeline_id, event_to_send);
+            if let Some(pipeline) = self.pipeline(translated_pipeline_id) {
+                if let Err(e) = pipeline.script_chan.send(msg) {
+                    warn!("Sending mouse control event to script failed ({}).", e);
+                }
             }
             return
         }
