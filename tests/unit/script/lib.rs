@@ -31,7 +31,7 @@ fn some_parse_sizes_1_test() {
             (max-width: 900px) and (min-width: 400px) 50em,
             100vw     "),
             None);
-    let mut component = result.pop();
+    result.pop();
     let mut component_secondlast = result.pop();
     if component_secondlast.is_some() {
         let component_query = component_secondlast.unwrap().query;
@@ -48,8 +48,8 @@ fn some_parse_sizes_2_test() {
             (max-width: 900px) and (min-width: 400px) 50em,
             100vw     "),
             None);
-    let mut component = result.pop();
-    let mut component_secondlast_1 = result.pop();
+    result.pop();
+    result.pop();
     let mut component_first = result.pop();
     if component_first.is_some() {
       let component_query = component_first.unwrap().query;
@@ -66,10 +66,10 @@ fn some_parse_sizes_2_test() {
 #[test]
 fn some_parse_sizes_3_test() {
     let mut result = parse_a_sizes_attribute(DOMString::from("(min-width: 900px) 1000px,
-            (max-width: 900px) and (min-width: 400px) 50em,
+            (max-width: 900px) and (min-width: 400px) 50em      ,
             100vw     "),
             None);
-    let mut component = result.pop();
+    result.pop();
     let mut component_secondlast = result.pop();
     if component_secondlast.is_some() {
       let component_query = component_secondlast.unwrap().query;
