@@ -60,7 +60,7 @@ use script_thread::SendableMainThreadScriptChan;
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
 use script_traits::{ConstellationControlMsg, UntrustedNodeAddress};
 use script_traits::{DocumentState, MsDuration, ScriptToCompositorMsg, TimerEvent, TimerEventId};
-use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource};
+use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -86,6 +86,8 @@ use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
 use time;
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback};
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Url;
 use util::geometry::{self, MAX_RECT};
 use util::str::{DOMString, HTML_SPACE_CHARACTERS};
@@ -352,6 +354,16 @@ impl Window {
     }
 }
 
+#[cfg(any(target_os = "macos", target_os = "linux"))]
+fn display_alert_dialog(message: &str) {
+    tinyfiledialogs::message_box_ok("Alert!", message, MessageBoxIcon::Warning);
+}
+
+#[cfg(not(any(target_os = "macos", target_os = "linux")))]
+fn display_alert_dialog(_message: &str) {
+    // tinyfiledialogs not supported on Windows
+}
+
 // https://html.spec.whatwg.org/multipage/#atob
 pub fn base64_btoa(input: DOMString) -> Fallible<DOMString> {
     // "The btoa() method must throw an InvalidCharacterError exception if
@@ -434,10 +446,13 @@ impl WindowMethods for Window {
         stdout.flush().unwrap();
         stderr.flush().unwrap();
 
-        // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsershowmodalprompt
-        let event = MozBrowserEvent::ShowModalPrompt("alert".to_owned(), "Alert".to_owned(),
-                                                     String::from(s), "".to_owned());
-        self.Document().trigger_mozbrowser_event(event);
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.constellation_chan().0.send(ConstellationMsg::Alert(self.pipeline(), s.to_string(), sender)).unwrap();
+
+        let should_display_alert_dialog = receiver.recv().unwrap();
+        if should_display_alert_dialog {
+            display_alert_dialog(&s);
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-close
