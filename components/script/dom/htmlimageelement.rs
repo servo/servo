@@ -29,13 +29,13 @@ use net_traits::image_cache_thread::{ImageResponder, ImageResponse};
 use script_runtime::ScriptThreadEventCategory::UpdateReplacedElement;
 use script_runtime::{CommonScriptMsg, ScriptChan};
 use script_thread::Runnable;
+use std::collections::LinkedList;
 use std::sync::Arc;
 use string_cache::Atom;
-use url::Url;
-use util::str::{DOMString, LengthOrPercentageOrAuto};
 use style::values::specified::Length;
-use std::collections::LinkedList;
+use url::Url;
 use util;
+use util::str::{DOMString, LengthOrPercentageOrAuto};
 
 #[derive(JSTraceable, HeapSizeOf)]
 #[allow(dead_code)]
@@ -413,7 +413,7 @@ fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
     let value = AttrValue::Dimension(DOMString::from(value.to_string()), dim);
     element.set_attribute(&attr, value);
 }
- 
+
 
 struct ImageSource {
     candidate: String,
@@ -439,15 +439,14 @@ fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
         let x = spaces.find(',');
         match x {
             Some(val) => println!("Parse Error"),
-            None => println!("No commas"),    
+            None => println!("No commas"),
         }
         if position == "" {
             //Does something need to be asserted here? The algorithm says abort the steps is this condition exists
             return candidate;
         }
         let (url, spaces) = collect_sequence_characters(position, |c| !util::str::char_is_whitespace(c));
-        
-        let comma_count = url.chars().rev().take_while(|c| *c==',').count();
+        let comma_count = url.chars().rev().take_while(|c| *c == ',').count();
         let url: String = url.chars().take(url.chars().count() - comma_count).collect();
         if comma_count > 1 {
             println!("Parse Error (trailing commas)")
@@ -456,46 +455,77 @@ fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
         let mut descriptor = LinkedList::<String>::new();
         // Descriptor Tokeniser: whitespace
         let (space, position) = collect_sequence_characters(position, |c| util::str::char_is_whitespace(c));
-        
         let mut current_descriptor = String::new();
         let mut state = ParseState::InDescriptor;
-       
-        for (i,c) in position.chars().enumerate() { 
-            match c {
-             ' ' => {
-                        if current_descriptor != "" {
-                            descriptor.push_back(current_descriptor.clone());
-                            state = ParseState::AfterDescriptor;
+        for (i, c) in position.chars().enumerate() {
+            match state {
+                ParseState::InDescriptor => {
+                    match c {
+                     ' ' => {
+                                if current_descriptor != "" {
+                                    descriptor.push_back(current_descriptor.clone());
+                                    state = ParseState::AfterDescriptor;
+                                }
+                            },
+                     ',' => {   position.chars().enumerate();
+                                if current_descriptor != "" {
+                                    descriptor.push_back(current_descriptor.clone());
+                                    state = ParseState::AfterDescriptor;
+                                }
+                            }
+                     '(' => {
+                                current_descriptor.push(c);
+                                state = ParseState::InParens;
+                            }
+                    //Matching EOF
+                     /*''  => {   if current_descriptor != "" {
+                                    descriptor.push_back(current_descriptor.clone());
+                                    state = ParseState::AfterDescriptor;
+                                }
+                            }
+                    */
+                      _  => {
+                                current_descriptor.push(c);
+                            }
+                    }
+                }
+                ParseState::InParens =>{
+                    match c {
+                     '(' => {
+                                current_descriptor.push(c);
+                                state = ParseState::InDescriptor;
+                            }
+                    //Matching EOF
+                     /*''  => {   if current_descriptor != "" {
+                                    descriptor.push_back(current_descriptor.clone());
+                                    state = ParseState::AfterDescriptor;
+                                }
+                            }
+                    */
+                      _  => {
+                                current_descriptor.push(c);
+                            }
+                    }
+                }
+                ParseState::AfterDescriptor => {
+                    match c {
+                         ' ' => {
+                                        state = ParseState::AfterDescriptor;
+                                }
+                        //Matching EOF
+                         /*''  => {   if current_descriptor != "" {
+                                        descriptor.push_back(current_descriptor.clone());
+                                        state = ParseState::AfterDescriptor;
+                                    }
+                                }
+                        */
+                          _  => {
+                                    state = ParseState::InDescriptor;
+                                }
                         }
-                    },
-             ',' => {   position.chars().enumerate();
-                        if current_descriptor != "" {
-                            descriptor.push_back(current_descriptor.clone());
-                            state = ParseState::AfterDescriptor;
-                        }
-                    }
-             '(' => {
-                        current_descriptor.push(c);
-                        state = ParseState::InParens;
-                    }
-            //Matching EOF        
-             /*''  => {   if current_descriptor != "" {
-                            descriptor.push_back(current_descriptor.clone());
-                            state = ParseState::AfterDescriptor;
-                        }
-                    }
-            */    
-              _  => {
-                        current_descriptor.push(c);
-                    }
-             
-             
+                }
+            }
         }
-        }
-        
-        
         return candidate;
-    
-}    
+}
 
- 
