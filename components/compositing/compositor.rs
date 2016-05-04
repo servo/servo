@@ -633,7 +633,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 debug!("delayed composition timeout!");
                 if let CompositionRequest::DelayedComposite(this_timestamp) =
                     self.composition_request {
-                    if timestamp == this_timestamp && !opts::get().use_webrender {
+                    if timestamp == this_timestamp {
                         self.composition_request = CompositionRequest::CompositeNow(
                             CompositingReason::DelayedCompositeTimeout)
                     }
@@ -752,7 +752,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match animation_state {
             AnimationState::AnimationsPresent => {
                 self.pipeline_details(pipeline_id).animations_running = true;
-                self.composite_if_necessary_if_not_using_webrender(CompositingReason::Animation);
+                self.composite_if_necessary(CompositingReason::Animation);
             }
             AnimationState::AnimationCallbacksPresent => {
                 if !self.pipeline_details(pipeline_id).animation_callbacks_running {
@@ -1668,9 +1668,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     /// necessary.
     fn perform_updates_after_scroll(&mut self) {
         self.send_updated_display_ports_to_layout();
+        if opts::get().use_webrender {
+            return
+        }
         if self.send_buffer_requests_for_all_layers() {
             self.schedule_delayed_composite_if_necessary();
-        } else if !opts::get().use_webrender {
+        } else {
             self.channel_to_self.send(Msg::Recomposite(CompositingReason::ContinueScroll));
         }
     }
