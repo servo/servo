@@ -29,6 +29,7 @@ mime = "0.2.0"
 mime_guess = "1.6.0"
 openssl = "0.7.6"
 openssl-verify = "0.1"
+profile_traits = {path = "../profile_traits"}
 rustc-serialize = "0.3"
 threadpool = "1.0"
 time = "0.1.17"
