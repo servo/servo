@@ -13,6 +13,7 @@ extern crate ipc_channel;
 extern crate msg;
 extern crate net;
 extern crate net_traits;
+extern crate profile_traits;
 extern crate time;
 extern crate unicase;
 extern crate url;

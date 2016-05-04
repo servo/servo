@@ -6,6 +6,7 @@ use ipc_channel::ipc;
 use net::resource_thread::new_resource_thread;
 use net_traits::hosts::{parse_hostsfile, host_replacement};
 use net_traits::{ControlMsg, LoadData, LoadConsumer, LoadContext, NetworkError, ProgressMsg};
+use profile_traits::time::ProfilerChan;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::net::IpAddr;
@@ -18,13 +19,15 @@ fn ip(s: &str) -> IpAddr {
 
 #[test]
 fn test_exit() {
-    let resource_thread = new_resource_thread("".to_owned(), None);
+    let (tx, _rx) = ipc::channel().unwrap();
+    let resource_thread = new_resource_thread("".to_owned(), None, ProfilerChan(tx));
     resource_thread.send(ControlMsg::Exit).unwrap();
 }
 
 #[test]
 fn test_bad_scheme() {
-    let resource_thread = new_resource_thread("".to_owned(), None);
+    let (tx, _rx) = ipc::channel().unwrap();
+    let resource_thread = new_resource_thread("".to_owned(), None, ProfilerChan(tx));
     let (start_chan, start) = ipc::channel().unwrap();
     let url = Url::parse("bogus://whatever").unwrap();
     resource_thread.send(ControlMsg::Load(LoadData::new(LoadContext::Browsing, url, None, None, None),
@@ -200,7 +203,8 @@ fn test_cancelled_listener() {
         }
     });
 
-    let resource_thread = new_resource_thread("".to_owned(), None);
+    let (tx, _rx) = ipc::channel().unwrap();
+    let resource_thread = new_resource_thread("".to_owned(), None, ProfilerChan(tx));
     let (sender, receiver) = ipc::channel().unwrap();
     let (id_sender, id_receiver) = ipc::channel().unwrap();
     let (sync_sender, sync_receiver) = ipc::channel().unwrap();

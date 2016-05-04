@@ -27,6 +27,7 @@ net_traits = {path = "../net_traits"}
 openssl = "0.7.6"
 openssl-verify = "0.1"
 plugins = {path = "../plugins"}
+profile_traits = {path = "../profile_traits"}
 rustc-serialize = "0.3"
 threadpool = "1.0"
 time = "0.1.17"
