@@ -698,6 +698,8 @@ impl Element {
         }
     }
 
+    // this sync method is called upon modification of the style_attribute property,
+    // therefore, it should not trigger subsequent mutation events
     fn sync_property_with_attrs_style(&self) {
         let style_str = if let &Some(ref declarations) = &*self.style_attribute().borrow() {
             declarations.to_css_string()
@@ -705,20 +707,26 @@ impl Element {
             String::new()
         };
 
-        let new_style = AttrValue::String(style_str);
+        let mut new_style = AttrValue::String(style_str);
 
         if let Some(style_attr) = self.attrs.borrow().iter().find(|a| a.name() == &atom!("style")) {
-            style_attr.set_value(new_style, self);
+            style_attr.swap_value(&mut new_style);
             return;
         }
 
-        self.push_new_attribute(
-            atom!("style"),
-            new_style,
-            atom!("style"),
-            ns!(),
-            Some(atom!("style"))
-        );
+        // explicitly not calling the push_new_attribute convenience method
+        // in order to avoid triggering mutation events
+        let window = window_from_node(self);
+        let attr = Attr::new(&window,
+                             atom!("style"),
+                             new_style,
+                             atom!("style"),
+                             ns!(),
+                             Some(atom!("style")),
+                             Some(self));
+
+         assert!(attr.GetOwnerElement().r() == Some(self));
+         self.attrs.borrow_mut().push(JS::from_ref(&attr));
     }
 
     pub fn remove_inline_style_property(&self, property: &str) {

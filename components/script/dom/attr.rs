@@ -173,11 +173,16 @@ impl Attr {
     pub fn set_value(&self, mut value: AttrValue, owner: &Element) {
         assert!(Some(owner) == self.owner().r());
         owner.will_mutate_attr();
-        mem::swap(&mut *self.value.borrow_mut(), &mut value);
+        self.swap_value(&mut value);
         if self.identifier.namespace == ns!() {
             vtable_for(owner.upcast())
                 .attribute_mutated(self, AttributeMutation::Set(Some(&value)));
         }
+    }
+
+    /// Used to swap the attribute's value without triggering mutation events
+    pub fn swap_value(&self, value: &mut AttrValue) {
+        mem::swap(&mut *self.value.borrow_mut(), value);
     }
 
     pub fn identifier(&self) -> &AttrIdentifier {
