@@ -472,6 +472,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             WebGLParameter::Bool(_) => panic!("Buffer parameter should not be bool"),
             WebGLParameter::Float(_) => panic!("Buffer parameter should not be float"),
             WebGLParameter::String(_) => panic!("Buffer parameter should not be string"),
+            WebGLParameter::FloatArray(_) => panic!("Buffer parameter should not be float array"),
             WebGLParameter::Invalid => NullValue(),
         }
     }
@@ -487,6 +488,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             WebGLParameter::Int(val) => Int32Value(val),
             WebGLParameter::Bool(val) => BooleanValue(val),
             WebGLParameter::Float(val) => DoubleValue(val as f64),
+            WebGLParameter::FloatArray(_) => panic!("Parameter should not be float array"),
             WebGLParameter::String(val) => {
                 let mut rval = RootedValue::new(cx, UndefinedValue());
                 unsafe {
@@ -1093,6 +1095,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 WebGLParameter::Bool(val) => BooleanValue(val),
                 WebGLParameter::String(_) => panic!("Program parameter should not be string"),
                 WebGLParameter::Float(_) => panic!("Program parameter should not be float"),
+                WebGLParameter::FloatArray(_) => {
+                    panic!("Program paramenter should not be float array")
+                }
                 WebGLParameter::Invalid => NullValue(),
             }
         } else {
@@ -1113,6 +1118,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 WebGLParameter::Bool(val) => BooleanValue(val),
                 WebGLParameter::String(_) => panic!("Shader parameter should not be string"),
                 WebGLParameter::Float(_) => panic!("Shader parameter should not be float"),
+                WebGLParameter::FloatArray(_) => {
+                    panic!("Shader paramenter should not be float array")
+                }
                 WebGLParameter::Invalid => NullValue(),
             }
         } else {
