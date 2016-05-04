@@ -457,9 +457,43 @@ fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
         // Descriptor Tokeniser: whitespace
         let (space, position) = collect_sequence_characters(position, |c| util::str::char_is_whitespace(c));
         
-        let current_descriptor = String::new();
+        let mut current_descriptor = String::new();
         let mut state = ParseState::InDescriptor;
-
+       
+        for (i,c) in position.chars().enumerate() { 
+            match c {
+             ' ' => {
+                        if current_descriptor != "" {
+                            descriptor.push_back(current_descriptor.clone());
+                            state = ParseState::AfterDescriptor;
+                        }
+                    },
+             ',' => {   position.chars().enumerate();
+                        if current_descriptor != "" {
+                            descriptor.push_back(current_descriptor.clone());
+                            state = ParseState::AfterDescriptor;
+                        }
+                    }
+             '(' => {
+                        current_descriptor.push(c);
+                        state = ParseState::InParens;
+                    }
+            //Matching EOF        
+             /*''  => {   if current_descriptor != "" {
+                            descriptor.push_back(current_descriptor.clone());
+                            state = ParseState::AfterDescriptor;
+                        }
+                    }
+            */    
+              _  => {
+                        current_descriptor.push(c);
+                    }
+             
+             
+        }
+        }
+        
+        
         return candidate;
     
 }    
