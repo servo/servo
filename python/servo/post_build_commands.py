@@ -118,9 +118,10 @@ class PostBuildCommands(CommandBase):
                 rustCommand = 'rust-' + debugger
                 try:
                     subprocess.check_call([rustCommand, '--version'], env=env, stdout=open(os.devnull, 'w'))
-                    command = rustCommand
                 except (OSError, subprocess.CalledProcessError):
                     pass
+                else:
+                    command = rustCommand
 
             # Prepend the debugger args.
             args = ([command] + self.debuggerInfo.args +
