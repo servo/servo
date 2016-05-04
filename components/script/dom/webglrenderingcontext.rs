@@ -469,10 +469,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             .unwrap();
         match handle_potential_webgl_error!(self, receiver.recv().unwrap(), WebGLParameter::Invalid) {
             WebGLParameter::Int(val) => Int32Value(val),
-            WebGLParameter::Bool(_) => panic!("Buffer parameter should not be bool"),
-            WebGLParameter::Float(_) => panic!("Buffer parameter should not be float"),
-            WebGLParameter::String(_) => panic!("Buffer parameter should not be string"),
             WebGLParameter::Invalid => NullValue(),
+            _ => unreachable!("Invalid WebGL buffer parameter"),
         }
     }
 
@@ -495,6 +493,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 rval.ptr
             }
             WebGLParameter::Invalid => NullValue(),
+            _ => unreachable!("Invalid WebGL parameter"),
         }
     }
 
@@ -1091,9 +1090,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             match handle_potential_webgl_error!(self, program.parameter(param_id), WebGLParameter::Invalid) {
                 WebGLParameter::Int(val) => Int32Value(val),
                 WebGLParameter::Bool(val) => BooleanValue(val),
-                WebGLParameter::String(_) => panic!("Program parameter should not be string"),
-                WebGLParameter::Float(_) => panic!("Program parameter should not be float"),
                 WebGLParameter::Invalid => NullValue(),
+                _ => unreachable!("Invalid WebGL buffer parameter"),
             }
         } else {
             NullValue()
@@ -1111,9 +1109,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             match handle_potential_webgl_error!(self, shader.parameter(param_id), WebGLParameter::Invalid) {
                 WebGLParameter::Int(val) => Int32Value(val),
                 WebGLParameter::Bool(val) => BooleanValue(val),
-                WebGLParameter::String(_) => panic!("Shader parameter should not be string"),
-                WebGLParameter::Float(_) => panic!("Shader parameter should not be float"),
                 WebGLParameter::Invalid => NullValue(),
+                _ => unreachable!("Invalid WebGL shader parameter"),
             }
         } else {
             NullValue()
