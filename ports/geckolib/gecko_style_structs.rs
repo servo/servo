@@ -64,6 +64,7 @@ pub const NS_ERROR_MODULE_BASE_OFFSET: ::std::os::raw::c_uint = 69;
 pub const MOZ_STRING_WITH_OBSOLETE_API: ::std::os::raw::c_uint = 1;
 pub const NSID_LENGTH: ::std::os::raw::c_uint = 39;
 pub const NS_NUMBER_OF_FLAGS_IN_REFCNT: ::std::os::raw::c_uint = 2;
+pub const _STL_PAIR_H: ::std::os::raw::c_uint = 1;
 pub const TWIPS_PER_POINT_INT: ::std::os::raw::c_uint = 20;
 pub const POINTS_PER_INCH_INT: ::std::os::raw::c_uint = 72;
 pub const NS_FONT_VARIANT_NORMAL: ::std::os::raw::c_uint = 0;
@@ -1547,8 +1548,10 @@ fn bindgen_test_layout_nsAutoString() {
 pub enum Dont_Instantiate_nsTArray_of { }
 pub enum Instead_Use_nsTArray_of { }
 #[repr(C)]
-pub struct nsTArrayElementTraits<> {
-    pub _phantom0: ::std::marker::PhantomData<nsAutoString>,
+#[derive(Debug, Copy)]
+pub struct nsTArrayElementTraits;
+impl ::std::clone::Clone for nsTArrayElementTraits {
+    fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -2231,7 +2234,7 @@ pub struct PLDHashTable {
     pub mEntryCount: u32,
     pub mRemovedCount: u32,
     pub mEntryStore: [u64; 2usize],
-    pub mChecker: Checker,
+    pub mChecker: ::std::cell::UnsafeCell<Checker>,
 }
 #[repr(C)]
 pub struct PLDHashTable_EntryStore {
@@ -2385,7 +2388,10 @@ pub enum CSSVariableResolver { }
 #[repr(C)]
 pub struct CSSVariableValues {
     pub mVariableIDs: [u64; 6usize],
-    pub mVariables: u64,
+    /**
+   * Array of variables, indexed by variable ID.
+   */
+    pub mVariables: nsTArray<CSSVariableValues_Variable>,
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -2495,6 +2501,19 @@ pub enum gfxContentType {
     ALPHA = 8192,
     COLOR_ALPHA = 12288,
     SENTINEL = 65535,
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct piecewise_construct_t;
+impl ::std::clone::Clone for piecewise_construct_t {
+    fn clone(&self) -> Self { *self }
+}
+pub enum tuple { }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct pair<_T1, _T2> {
+    pub first: _T1,
+    pub second: _T2,
 }
 pub type Float = f32;
 #[repr(i8)]
@@ -2890,8 +2909,9 @@ fn bindgen_test_layout_FontFamilyName() {
  * font type is used to preserve the variable font fallback behavior
  */
 #[repr(C)]
+#[derive(Debug)]
 pub struct FontFamilyList {
-    pub mFontlist: u64,
+    pub mFontlist: nsTArray<FontFamilyName>,
     pub mDefaultFontType: FontFamilyType,
 }
 #[test]
@@ -2959,9 +2979,9 @@ pub struct nsFont {
     pub synthesis: u8,
     pub size: nscoord,
     pub sizeAdjust: f32,
-    pub alternateValues: u64,
+    pub alternateValues: nsTArray<gfxAlternateValue>,
     pub featureValueLookup: RefPtr<gfxFontFeatureValueSet>,
-    pub fontFeatureSettings: u64,
+    pub fontFeatureSettings: nsTArray<gfxFontFeature>,
     pub languageOverride: nsString,
 }
 #[test]
@@ -3558,9 +3578,10 @@ fn bindgen_test_layout_GridNamedArea() {
     assert_eq!(::std::mem::align_of::<GridNamedArea>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct GridTemplateAreasValue {
-    pub mNamedAreas: u64,
-    pub mTemplates: u64,
+    pub mNamedAreas: nsTArray<GridNamedArea>,
+    pub mTemplates: nsTArray<nsString>,
     pub mNColumns: u32,
     pub mRefCnt: nsAutoRefCnt,
     pub _mOwningThread: nsAutoOwningThread,
@@ -3571,6 +3592,7 @@ fn bindgen_test_layout_GridTemplateAreasValue() {
     assert_eq!(::std::mem::align_of::<GridTemplateAreasValue>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct FontFamilyListRefCnt {
     pub _base: FontFamilyList,
     pub mRefCnt: nsAutoRefCnt,
@@ -3872,6 +3894,7 @@ fn bindgen_test_layout_nsCSSValueGradientStop() {
     assert_eq!(::std::mem::align_of::<nsCSSValueGradientStop>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct nsCSSValueGradient {
     pub mIsRadial: bool,
     pub mIsRepeating: bool,
@@ -3880,7 +3903,7 @@ pub struct nsCSSValueGradient {
     pub mBgPos: nsCSSValuePair,
     pub mAngle: nsCSSValue,
     pub mRadialValues: [nsCSSValue; 2usize],
-    pub mStops: u64,
+    pub mStops: nsTArray<nsCSSValueGradientStop>,
     pub mRefCnt: nsAutoRefCnt,
     pub _mOwningThread: nsAutoOwningThread,
 }
@@ -3959,13 +3982,14 @@ fn bindgen_test_layout_CounterStyle() {
     assert_eq!(::std::mem::align_of::<CounterStyle>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct AnonymousCounterStyle {
     pub _base: CounterStyle,
     pub mRefCnt: nsAutoRefCnt,
     pub _mOwningThread: nsAutoOwningThread,
     pub mSingleString: bool,
     pub mSystem: u8,
-    pub mSymbols: u64,
+    pub mSymbols: nsTArray<nsString>,
 }
 #[repr(C)]
 pub struct _vftable_AnonymousCounterStyle {
@@ -4340,6 +4364,7 @@ fn bindgen_test_layout_nsStyleGradientStop() {
     assert_eq!(::std::mem::align_of::<nsStyleGradientStop>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct nsStyleGradient {
     pub mShape: u8,
     pub mSize: u8,
@@ -4350,7 +4375,7 @@ pub struct nsStyleGradient {
     pub mAngle: nsStyleCoord,
     pub mRadiusX: nsStyleCoord,
     pub mRadiusY: nsStyleCoord,
-    pub mStops: u64,
+    pub mStops: nsTArray<nsStyleGradientStop>,
     pub mRefCnt: nsAutoRefCnt,
     pub _mOwningThread: nsAutoOwningThread,
 }
@@ -4419,8 +4444,21 @@ fn bindgen_test_layout_nsStyleColor() {
     assert_eq!(::std::mem::size_of::<nsStyleColor>() , 4usize);
     assert_eq!(::std::mem::align_of::<nsStyleColor>() , 4usize);
 }
+/**
+ * An array of objects, similar to AutoTArray<T,1> but which is memmovable. It
+ * always has length >= 1.
+ */
 #[repr(C)]
-pub struct nsStyleAutoArray;
+#[derive(Debug)]
+pub struct nsStyleAutoArray<T> {
+    pub mFirstElement: T,
+    pub mOtherElements: nsTArray<T>,
+}
+#[repr(i32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum nsStyleAutoArray_WithSingleInitialElement {
+    WITH_SINGLE_INITIAL_ELEMENT = 0,
+}
 #[repr(C)]
 pub struct nsStyleImageLayers {
     pub mAttachmentCount: u32,
@@ -4433,7 +4471,7 @@ pub struct nsStyleImageLayers {
     pub mMaskModeCount: u32,
     pub mBlendModeCount: u32,
     pub mCompositeCount: u32,
-    pub mLayers: [u64; 15usize],
+    pub mLayers: nsStyleAutoArray<nsStyleImageLayers_Layer>,
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -4664,10 +4702,11 @@ fn bindgen_test_layout_nsStyleOutline() {
  * to share the same 'quotes' value with a parent style context.
  */
 #[repr(C)]
+#[derive(Debug)]
 pub struct nsStyleQuoteValues {
     pub mRefCnt: nsAutoRefCnt,
     pub _mOwningThread: nsAutoOwningThread,
-    pub mQuotePairs: u64,
+    pub mQuotePairs: nsTArray<pair<nsString, nsString>>,
 }
 #[test]
 fn bindgen_test_layout_nsStyleQuoteValues() {
@@ -4701,12 +4740,13 @@ fn bindgen_test_layout_nsStyleGridLine() {
     assert_eq!(::std::mem::align_of::<nsStyleGridLine>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct nsStyleGridTemplate {
-    pub mLineNameLists: u64,
-    pub mMinTrackSizingFunctions: u64,
-    pub mMaxTrackSizingFunctions: u64,
-    pub mRepeatAutoLineNameListBefore: u64,
-    pub mRepeatAutoLineNameListAfter: u64,
+    pub mLineNameLists: nsTArray<nsTArray<nsString>>,
+    pub mMinTrackSizingFunctions: nsTArray<nsStyleCoord>,
+    pub mMaxTrackSizingFunctions: nsTArray<nsStyleCoord>,
+    pub mRepeatAutoLineNameListBefore: nsTArray<nsString>,
+    pub mRepeatAutoLineNameListAfter: nsTArray<nsString>,
     pub mRepeatAutoIndex: i16,
     pub _bitfield_1: u8,
 }
@@ -4716,6 +4756,7 @@ fn bindgen_test_layout_nsStyleGridTemplate() {
     assert_eq!(::std::mem::align_of::<nsStyleGridTemplate>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct nsStylePosition {
     pub mObjectPosition: nsStyleImageLayers_Position,
     pub mOffset: nsStyleSides,
@@ -5021,7 +5062,7 @@ pub struct nsStyleDisplay {
     pub mIsolation: u8,
     pub mTopLayer: u8,
     pub mWillChangeBitField: u8,
-    pub mWillChange: u64,
+    pub mWillChange: nsTArray<nsString>,
     pub mTouchAction: u8,
     pub mScrollBehavior: u8,
     pub mScrollSnapTypeX: u8,
@@ -5029,7 +5070,7 @@ pub struct nsStyleDisplay {
     pub mScrollSnapPointsX: nsStyleCoord,
     pub mScrollSnapPointsY: nsStyleCoord,
     pub mScrollSnapDestination: nsStyleImageLayers_Position,
-    pub mScrollSnapCoordinate: u64,
+    pub mScrollSnapCoordinate: nsTArray<nsStyleImageLayers_Position>,
     pub mBackfaceVisibility: u8,
     pub mTransformStyle: u8,
     pub mTransformBox: u8,
@@ -5038,12 +5079,12 @@ pub struct nsStyleDisplay {
     pub mChildPerspective: nsStyleCoord,
     pub mPerspectiveOrigin: [nsStyleCoord; 2usize],
     pub mVerticalAlign: nsStyleCoord,
-    pub mTransitions: [u64; 6usize],
+    pub mTransitions: nsStyleAutoArray<StyleTransition>,
     pub mTransitionTimingFunctionCount: u32,
     pub mTransitionDurationCount: u32,
     pub mTransitionDelayCount: u32,
     pub mTransitionPropertyCount: u32,
-    pub mAnimations: [u64; 9usize],
+    pub mAnimations: nsStyleAutoArray<StyleAnimation>,
     pub mAnimationTimingFunctionCount: u32,
     pub mAnimationDurationCount: u32,
     pub mAnimationDelayCount: u32,
@@ -5310,12 +5351,13 @@ fn bindgen_test_layout_nsStyleSVG() {
     assert_eq!(::std::mem::align_of::<nsStyleSVG>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct nsStyleBasicShape {
     pub mRefCnt: nsAutoRefCnt,
     pub _mOwningThread: nsAutoOwningThread,
     pub mType: nsStyleBasicShape_Type,
     pub mFillRule: i32,
-    pub mCoordinates: u64,
+    pub mCoordinates: nsTArray<nsStyleCoord>,
     pub mPosition: nsStyleImageLayers_Position,
     pub mRadius: nsStyleCorners,
 }
@@ -5426,8 +5468,9 @@ fn bindgen_test_layout_nsStyleVariables() {
     assert_eq!(::std::mem::align_of::<nsStyleVariables>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct nsStyleEffects {
-    pub mFilters: u64,
+    pub mFilters: nsTArray<nsStyleFilter>,
     pub mBoxShadow: RefPtr<nsCSSShadowArray>,
     pub mClip: nsRect,
     pub mOpacity: f32,
@@ -5438,4 +5481,18 @@ pub struct nsStyleEffects {
 fn bindgen_test_layout_nsStyleEffects() {
     assert_eq!(::std::mem::size_of::<nsStyleEffects>() , 40usize);
     assert_eq!(::std::mem::align_of::<nsStyleEffects>() , 8usize);
+}
+/**
+ * This class is used to replace nsTArray in order to allow generating rust
+ * bindings for it, and for related classes.
+ *
+ * If this class or some of the following asserts have to change, please ping
+ * bholley, heycam, or emilio first.
+ *
+ * <div rustbindgen replaces="nsTArray"></div>
+ */
+#[repr(C)]
+#[derive(Debug)]
+pub struct nsTArray<T> {
+    pub mBuffer: *mut T,
 }
