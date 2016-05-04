@@ -686,7 +686,7 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
     /// FIXME(pcwalton): It is not clear to me that there isn't a cleaner way to handle
     /// `<textarea>`.
     fn build_flow_for_block_like(&mut self, flow: FlowRef, node: &ConcreteThreadSafeLayoutNode)
-                            -> ConstructionResult {
+                                 -> ConstructionResult {
         let mut initial_fragments = IntermediateInlineFragments::new();
         let node_is_input_or_text_area =
            node.type_id() == Some(NodeTypeId::Element(ElementTypeId::HTMLElement(
@@ -1023,7 +1023,8 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
 
     /// This is an annoying case, because the computed `display` value is `block`, but the
     /// hypothetical box is inline.
-    fn build_fragment_for_absolutely_positioned_inline(&mut self, node: &ConcreteThreadSafeLayoutNode)
+    fn build_fragment_for_absolutely_positioned_inline(&mut self,
+                                                       node: &ConcreteThreadSafeLayoutNode)
                                                        -> ConstructionResult {
         let block_flow_result = self.build_flow_for_block(node, None);
         let (block_flow, abs_descendants) = match block_flow_result {
@@ -1519,11 +1520,10 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
             }
             Some(NodeTypeId::Element(_)) => {
                 let style = node.style(self.style_context());
-                let munged_display = if style.get_box()._servo_display_for_hypothetical_box ==
-                        display::T::inline {
-                    display::T::inline
-                } else {
-                    style.get_box().display
+                let original_display = style.get_box()._servo_display_for_hypothetical_box;
+                let munged_display = match original_display {
+                    display::T::inline | display::T::inline_block => original_display,
+                    _ => style.get_box().display,
                 };
                 (munged_display, style.get_box().float, style.get_box().position)
             }
@@ -1577,7 +1577,8 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
 
             // Inline items that are absolutely-positioned contribute inline fragment construction
             // results with a hypothetical fragment.
-            (display::T::inline, _, position::T::absolute) => {
+            (display::T::inline, _, position::T::absolute) |
+            (display::T::inline_block, _, position::T::absolute) => {
                 let construction_result =
                     self.build_fragment_for_absolutely_positioned_inline(node);
                 self.set_flow_construction_result(node, construction_result)

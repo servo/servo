@@ -33,7 +33,8 @@ use display_list_builder::BlockFlowDisplayListBuilding;
 use display_list_builder::{BorderPaintingMode, DisplayListBuildState, FragmentDisplayListBuilding};
 use euclid::{Point2D, Rect, Size2D};
 use floats::{ClearType, FloatKind, Floats, PlacementInfo};
-use flow::{BLOCK_POSITION_IS_STATIC, CLEARS_LEFT, CLEARS_RIGHT, INLINE_POSITION_IS_STATIC};
+use flow::{BLOCK_POSITION_IS_STATIC, CLEARS_LEFT, CLEARS_RIGHT};
+use flow::{CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, INLINE_POSITION_IS_STATIC};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
 use flow::{NEEDS_LAYER, PostorderFlowTraversal, PreorderFlowTraversal, FragmentationContext};
@@ -1473,61 +1474,89 @@ impl BlockFlow {
         }
     }
 
-    /// Computes intrinsic widths for a block.
+    /// Computes intrinsic inline sizes for a block.
     pub fn bubble_inline_sizes_for_block(&mut self, consult_children: bool) {
         let _scope = layout_debug_scope!("block::bubble_inline_sizes {:x}", self.base.debug_id());
 
-        let flags = self.base.flags;
-
-        // Find the maximum inline-size from children.
-        let mut computation = self.fragment.compute_intrinsic_inline_sizes();
-        let (mut left_float_width, mut right_float_width) = (Au(0), Au(0));
-        let (mut left_float_width_accumulator, mut right_float_width_accumulator) = (Au(0), Au(0));
-        for kid in self.base.child_iter_mut() {
-            let is_absolutely_positioned =
-                flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
-            let child_base = flow::mut_base(kid);
-            let float_kind = child_base.flags.float_kind();
-            if !is_absolutely_positioned && consult_children {
-                computation.content_intrinsic_sizes.minimum_inline_size =
-                    max(computation.content_intrinsic_sizes.minimum_inline_size,
-                        child_base.intrinsic_inline_sizes.minimum_inline_size);
-
-                if child_base.flags.contains(CLEARS_LEFT) {
-                    left_float_width = max(left_float_width, left_float_width_accumulator);
-                    left_float_width_accumulator = Au(0)
-                }
-                if child_base.flags.contains(CLEARS_RIGHT) {
-                    right_float_width = max(right_float_width, right_float_width_accumulator);
-                    right_float_width_accumulator = Au(0)
-                }
-
-                match float_kind {
-                    float::T::none => {
-                        computation.content_intrinsic_sizes.preferred_inline_size =
-                            max(computation.content_intrinsic_sizes.preferred_inline_size,
-                                child_base.intrinsic_inline_sizes.preferred_inline_size);
-                    }
-                    float::T::left => {
-                        left_float_width_accumulator = left_float_width_accumulator +
-                            child_base.intrinsic_inline_sizes.preferred_inline_size;
-                    }
-                    float::T::right => {
-                        right_float_width_accumulator = right_float_width_accumulator +
-                            child_base.intrinsic_inline_sizes.preferred_inline_size;
-                    }
+        let mut flags = self.base.flags;
+        if self.definitely_has_zero_block_size() {
+            // This is kind of a hack for Acid2. But it's a harmless one, because (a) this behavior
+            // is unspecified; (b) it matches the behavior one would intuitively expect, since
+            // floats don't flow around blocks that take up no space in the block direction.
+            flags.remove(CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
+        } else if self.fragment.is_text_or_replaced() {
+            flags.insert(CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
+        } else {
+            flags.remove(CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
+            for kid in self.base.children.iter() {
+                if flow::base(kid).flags.contains(CONTAINS_TEXT_OR_REPLACED_FRAGMENTS) {
+                    flags.insert(CONTAINS_TEXT_OR_REPLACED_FRAGMENTS);
+                    break
                 }
             }
         }
 
+        // Find the maximum inline-size from children.
+        //
+        // See: https://lists.w3.org/Archives/Public/www-style/2014Nov/0085.html
+        //
+        // FIXME(pcwalton): This doesn't exactly follow that algorithm at the moment.
         // FIXME(pcwalton): This should consider all float descendants, not just children.
-        // FIXME(pcwalton): This is not well-spec'd; INTRINSIC specifies to do this, but CSS-SIZING
-        // says not to. In practice, Gecko and WebKit both do this.
+        let mut computation = self.fragment.compute_intrinsic_inline_sizes();
+        let (mut left_float_width, mut right_float_width) = (Au(0), Au(0));
+        let (mut left_float_width_accumulator, mut right_float_width_accumulator) = (Au(0), Au(0));
+        let mut preferred_inline_size_of_children_without_text_or_replaced_fragments = Au(0);
+        for kid in self.base.child_iter_mut() {
+            if flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED) || !consult_children {
+                continue
+            }
+
+            let child_base = flow::mut_base(kid);
+            let float_kind = child_base.flags.float_kind();
+            computation.content_intrinsic_sizes.minimum_inline_size =
+                max(computation.content_intrinsic_sizes.minimum_inline_size,
+                    child_base.intrinsic_inline_sizes.minimum_inline_size);
+
+            if child_base.flags.contains(CLEARS_LEFT) {
+                left_float_width = max(left_float_width, left_float_width_accumulator);
+                left_float_width_accumulator = Au(0)
+            }
+            if child_base.flags.contains(CLEARS_RIGHT) {
+                right_float_width = max(right_float_width, right_float_width_accumulator);
+                right_float_width_accumulator = Au(0)
+            }
+
+            match (float_kind, child_base.flags.contains(CONTAINS_TEXT_OR_REPLACED_FRAGMENTS)) {
+                (float::T::none, true) => {
+                    computation.content_intrinsic_sizes.preferred_inline_size =
+                        max(computation.content_intrinsic_sizes.preferred_inline_size,
+                            child_base.intrinsic_inline_sizes.preferred_inline_size);
+                }
+                (float::T::none, false) => {
+                    preferred_inline_size_of_children_without_text_or_replaced_fragments = max(
+                        preferred_inline_size_of_children_without_text_or_replaced_fragments,
+                        child_base.intrinsic_inline_sizes.preferred_inline_size)
+                }
+                (float::T::left, _) => {
+                    left_float_width_accumulator = left_float_width_accumulator +
+                        child_base.intrinsic_inline_sizes.preferred_inline_size;
+                }
+                (float::T::right, _) => {
+                    right_float_width_accumulator = right_float_width_accumulator +
+                        child_base.intrinsic_inline_sizes.preferred_inline_size;
+                }
+            }
+        }
+
         left_float_width = max(left_float_width, left_float_width_accumulator);
         right_float_width = max(right_float_width, right_float_width_accumulator);
+
+        computation.content_intrinsic_sizes.preferred_inline_size =
+            computation.content_intrinsic_sizes.preferred_inline_size + left_float_width +
+            right_float_width;
         computation.content_intrinsic_sizes.preferred_inline_size =
             max(computation.content_intrinsic_sizes.preferred_inline_size,
-                left_float_width + right_float_width);
+                preferred_inline_size_of_children_without_text_or_replaced_fragments);
 
         self.base.intrinsic_inline_sizes = computation.finish();
         self.base.flags = flags
@@ -1629,6 +1658,18 @@ impl BlockFlow {
             }
             FormattingContextType::None | FormattingContextType::Other => {}
         }
+    }
+
+    fn definitely_has_zero_block_size(&self) -> bool {
+        if !self.fragment.style.content_block_size().is_definitely_zero() {
+            return false
+        }
+        let border_width = self.fragment.border_width();
+        if border_width.block_start != Au(0) || border_width.block_end != Au(0) {
+            return false
+        }
+        let padding = self.fragment.style.logical_padding();
+        padding.block_start.is_definitely_zero() && padding.block_end.is_definitely_zero()
     }
 }
 

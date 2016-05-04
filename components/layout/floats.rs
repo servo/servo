@@ -11,6 +11,7 @@ use std::fmt;
 use std::i32;
 use style::computed_values::float;
 use style::logical_geometry::{LogicalRect, LogicalSize, WritingMode};
+use style::values::computed::LengthOrPercentageOrAuto;
 
 /// The kind of float: left or right.
 #[derive(Clone, RustcEncodable, Debug, Copy)]
@@ -78,7 +79,11 @@ impl FloatList {
 
 impl fmt::Debug for FloatList {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "max_block_start={:?} floats={}", self.max_block_start, self.floats.len())
+        try!(write!(f, "max_block_start={:?} floats={}", self.max_block_start, self.floats.len()));
+        for float in self.floats.iter() {
+            try!(write!(f, " {:?}", float));
+        }
+        Ok(())
     }
 }
 
@@ -490,14 +495,30 @@ impl SpeculatedFloatPlacement {
         }
 
         let base_flow = flow::base(flow);
+        if !base_flow.flags.is_float() {
+            return
+        }
+
+        let mut float_inline_size = base_flow.intrinsic_inline_sizes.preferred_inline_size;
+        if float_inline_size == Au(0) {
+            if flow.is_block_like() {
+                // Hack: If the size of the float is a percentage, then there's no way we can guess
+                // at its size now. So just pick an arbitrary nonzero value (in this case, 1px) so
+                // that the layout traversal logic will know that objects later in the document
+                // might flow around this float.
+                if let LengthOrPercentageOrAuto::Percentage(percentage) =
+                        flow.as_block().fragment.style.content_inline_size() {
+                    if percentage > 0.0 {
+                        float_inline_size = Au::from_px(1)
+                    }
+                }
+            }
+        }
+
         match base_flow.flags.float_kind() {
             float::T::none => {}
-            float::T::left => {
-                self.left = self.left + base_flow.intrinsic_inline_sizes.preferred_inline_size
-            }
-            float::T::right => {
-                self.right = self.right + base_flow.intrinsic_inline_sizes.preferred_inline_size
-            }
+            float::T::left => self.left = self.left + float_inline_size,
+            float::T::right => self.right = self.right + float_inline_size,
         }
     }
 
