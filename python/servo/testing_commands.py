@@ -245,7 +245,7 @@ class MachCommands(CommandBase):
         result = call(args, env=env, cwd=self.servo_crate())
         if result != 0:
             return result
-    
+
     @Command('test-webdriver',
              description='Run the webdriver tests',
              category='testing')

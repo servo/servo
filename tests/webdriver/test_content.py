@@ -11,6 +11,7 @@ import webdriver
 import server
 from ServoProcess import ServoProcess
 
+
 def handler(self):
     return 200, [('Content-Type', 'text/html')], '<html><body>hi there</body></html>'
 
@@ -23,7 +24,6 @@ with ServoProcess():
     try:
         assert resp['value'] == "hi there"
     except AssertionError, e:
-        raise Exception("Content not equal!") 
-#    session.end()
+        raise Exception("Content not equal!")
+    # session.end()
     server.stop()
-        

@@ -12,6 +12,7 @@ import server
 from ServoProcess import ServoProcess
 import time
 
+
 def handler(self):
     import time
     time.sleep(3)
@@ -27,6 +28,6 @@ with ServoProcess():
     try:
         assert time.time() - starttime < timeout
     except AssertionError, e:
-        raise Exception("Loads slow than the timeout!") 
-#    session.end()
+        raise Exception("Loads slow than the timeout!")
+    # session.end()
     server.stop()

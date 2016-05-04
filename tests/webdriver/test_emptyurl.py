@@ -10,7 +10,7 @@
 import webdriver
 import server
 from ServoProcess import ServoProcess
-import time
+
 
 def handler(self):
     return 200, [('Content-Type', 'text/html')], '<html><body>hi there</body></html>'
@@ -21,12 +21,12 @@ with ServoProcess():
     session.start()
     try:
         session.url = ""
-    except Exception e:
-        raise Exception("URL is empty")    
-        
-#     try:
-#         assert type(session.url) is StringType, "name is not a string: %r" % name
-#     except AssertionError, e:
-#         raise Exception("URL is not a string!") 
-# #    session.end()
+    except Exception, e:
+        raise Exception("URL is empty")
+
+    # try:
+    #     assert type(session.url) is StringType, "name is not a string: %r" % name
+    #     except AssertionError, e:
+    #         raise Exception("URL is not a string!")
+    # session.end()
     server.stop()
