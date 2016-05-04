@@ -125,7 +125,7 @@ impl FlexFlow {
     // Currently, this is the core of BlockFlow::bubble_inline_sizes() with all float logic
     // stripped out, and max replaced with union_nonbreaking_inline.
     fn inline_mode_bubble_inline_sizes(&mut self) {
-        let fixed_width = match self.block_flow.fragment.style().get_box().width {
+        let fixed_width = match self.block_flow.fragment.style().get_position().width {
             LengthOrPercentageOrAuto::Length(_) => true,
             _ => false,
         };
@@ -151,7 +151,7 @@ impl FlexFlow {
     // Currently, this is the core of BlockFlow::bubble_inline_sizes() with all float logic
     // stripped out.
     fn block_mode_bubble_inline_sizes(&mut self) {
-        let fixed_width = match self.block_flow.fragment.style().get_box().width {
+        let fixed_width = match self.block_flow.fragment.style().get_position().width {
             LengthOrPercentageOrAuto::Length(_) => true,
             _ => false,
         };
@@ -398,9 +398,9 @@ impl Flow for FlexFlow {
         let (available_block_size, available_inline_size) = {
             let style = &self.block_flow.fragment.style;
             let (specified_block_size, specified_inline_size) = if style.writing_mode.is_vertical() {
-                (style.get_box().width, style.get_box().height)
+                (style.get_position().width, style.get_position().height)
             } else {
-                (style.get_box().height, style.get_box().width)
+                (style.get_position().height, style.get_position().width)
             };
 
             let available_inline_size = AxisSize::new(specified_inline_size,

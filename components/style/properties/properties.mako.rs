@@ -972,18 +972,18 @@ impl ServoComputedValues {
 
     #[inline]
     pub fn content_inline_size(&self) -> computed::LengthOrPercentageOrAuto {
-        let box_style = self.get_box();
+        let position_style = self.get_position();
         if self.writing_mode.is_vertical() {
-            box_style.height
+            position_style.height
         } else {
-            box_style.width
+            position_style.width
         }
     }
 
     #[inline]
     pub fn content_block_size(&self) -> computed::LengthOrPercentageOrAuto {
-        let box_style = self.get_box();
-        if self.writing_mode.is_vertical() { box_style.width } else { box_style.height }
+        let position_style = self.get_position();
+        if self.writing_mode.is_vertical() { position_style.width } else { position_style.height }
     }
 
     #[inline]
