@@ -69,6 +69,9 @@ extern "C" {
     pub fn Gecko_SetNodeData(node: *mut RawGeckoNode,
                              data: *mut ServoNodeData);
     pub fn Servo_DropNodeData(data: *mut ServoNodeData);
+    pub fn Gecko_SetListStyleType(style_struct: *mut nsStyleList, type_: u32);
+    pub fn Gecko_CopyListStyleTypeFrom(dst: *mut nsStyleList,
+                                       src: *const nsStyleList);
     pub fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8, length: u32,
                                          parsing_mode: SheetParsingMode)
      -> *mut RawServoStyleSheet;
