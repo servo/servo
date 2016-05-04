@@ -23,7 +23,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, call, check_call, BuildNotFound
+from servo.command_base import CommandBase, cd, call, check_call, BuildNotFound, is_windows, is_macosx
 
 
 def read_file(filename, if_exists=False):
@@ -130,7 +130,15 @@ class PostBuildCommands(CommandBase):
             if browserhtml_path is None:
                 print("Could not find browserhtml package; perhaps you haven't built Servo.")
                 return 1
-            args = args + ['-w', '-b', '--pref', 'dom.mozbrowser.enabled',
+
+            if is_macosx():
+                # Enable borderless on OSX
+                args = args + ['-b']
+            elif is_windows():
+                # Convert to a relative path to avoid mingw -> Windows path conversions
+                browserhtml_path = path.relpath(browserhtml_path, os.getcwd())
+
+            args = args + ['-w', '--pref', 'dom.mozbrowser.enabled',
                            path.join(browserhtml_path, 'out', 'index.html')]
             args = args + params
         else:
