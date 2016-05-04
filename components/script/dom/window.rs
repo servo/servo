@@ -51,6 +51,8 @@ use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::storage_thread::{StorageThread, StorageType};
 use num_traits::ToPrimitive;
 use profile_traits::mem;
+use profile_traits::time::{ProfilerCategory, TimerMetadata, TimerMetadataFrameType};
+use profile_traits::time::{ProfilerChan, TimerMetadataReflowType, profile};
 use reporter::CSSErrorReporter;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_runtime::{ScriptChan, ScriptPort};
@@ -164,6 +166,10 @@ pub struct Window {
     /// For sending messages to the memory profiler.
     #[ignore_heap_size_of = "channels are hard"]
     mem_profiler_chan: mem::ProfilerChan,
+
+    /// For sending messages to the memory profiler.
+    #[ignore_heap_size_of = "channels are hard"]
+    time_profiler_chan: ProfilerChan,
 
     /// For providing instructions to an optional devtools server.
     #[ignore_heap_size_of = "channels are hard"]
@@ -841,21 +847,37 @@ impl<'a, T: Reflectable> ScriptHelpers for &'a T {
     fn evaluate_script_on_global_with_result(self, code: &str, filename: &str,
                                              rval: MutableHandleValue) {
         let global = self.global();
-        let cx = global.r().get_cx();
-        let globalhandle = global.r().reflector().get_jsobject();
-        let code: Vec<u16> = code.encode_utf16().collect();
-        let filename = CString::new(filename).unwrap();
+        let metadata = TimerMetadata {
+            url: if filename.is_empty() {
+                global.r().get_url().as_str().into()
+            } else {
+                filename.into()
+            },
+            iframe: TimerMetadataFrameType::RootWindow,
+            incremental: TimerMetadataReflowType::FirstReflow,
+        };
+        profile(
+            ProfilerCategory::ScriptEvaluate,
+            Some(metadata),
+            global.r().time_profiler_chan().clone(),
+            || {
+                let cx = global.r().get_cx();
+                let globalhandle = global.r().reflector().get_jsobject();
+                let code: Vec<u16> = code.encode_utf16().collect();
+                let filename = CString::new(filename).unwrap();
 
-        let _ac = JSAutoCompartment::new(cx, globalhandle.get());
-        let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), 0);
-        unsafe {
-            if !Evaluate2(cx, options.ptr, code.as_ptr(),
-                          code.len() as libc::size_t,
-                          rval) {
-                debug!("error evaluating JS string");
-                report_pending_exception(cx, globalhandle.get());
+                let _ac = JSAutoCompartment::new(cx, globalhandle.get());
+                let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), 0);
+                unsafe {
+                    if !Evaluate2(cx, options.ptr, code.as_ptr(),
+                                  code.len() as libc::size_t,
+                                  rval) {
+                        debug!("error evaluating JS string");
+                        report_pending_exception(cx, globalhandle.get());
+                    }
+                }
             }
-        }
+        )
     }
 }
 
@@ -1259,6 +1281,10 @@ impl Window {
         &self.mem_profiler_chan
     }
 
+    pub fn time_profiler_chan(&self) -> &ProfilerChan {
+        &self.time_profiler_chan
+    }
+
     pub fn devtools_chan(&self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
         self.devtools_chan.clone()
     }
@@ -1424,6 +1450,7 @@ impl Window {
                bluetooth_thread: IpcSender<BluetoothMethodMsg>,
                storage_thread: StorageThread,
                mem_profiler_chan: mem::ProfilerChan,
+               time_profiler_chan: ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
                constellation_chan: ConstellationChan<ConstellationMsg>,
                control_chan: IpcSender<ConstellationControlMsg>,
@@ -1460,6 +1487,7 @@ impl Window {
             navigator: Default::default(),
             image_cache_thread: image_cache_thread,
             mem_profiler_chan: mem_profiler_chan,
+            time_profiler_chan: time_profiler_chan,
             devtools_chan: devtools_chan,
             browsing_context: Default::default(),
             performance: Default::default(),

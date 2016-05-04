@@ -28,6 +28,8 @@ use msg::constellation_msg::{PipelineId, SubpageId};
 use net_traits::{AsyncResponseListener, Metadata, NetworkError};
 use network_listener::PreInvoke;
 use parse::{TrustedParser, ParserRef, Parser};
+use profile_traits::time::ProfilerCategory;
+use profile_traits::time::{profile, TimerMetadata, TimerMetadataReflowType, TimerMetadataFrameType};
 use script_thread::ScriptThread;
 use std::cell::Cell;
 use std::default::Default;
@@ -315,6 +317,18 @@ impl ServoHTMLParser {
 
 impl ServoHTMLParser {
     pub fn parse_sync(&self) {
+        let metadata = TimerMetadata {
+            url: self.document.url().as_str().into(),
+            iframe: TimerMetadataFrameType::RootWindow,
+            incremental: TimerMetadataReflowType::FirstReflow,
+        };
+        profile(ProfilerCategory::ScriptParseHTML,
+                Some(metadata),
+                self.document.window().time_profiler_chan().clone(),
+                || self.do_parse_sync())
+    }
+
+    fn do_parse_sync(&self) {
         // This parser will continue to parse while there is either pending input or
         // the parser remains unsuspended.
         loop {
