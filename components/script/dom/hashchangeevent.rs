@@ -59,7 +59,6 @@ impl HashChangeEvent {
         ev
     }
 
-    #[allow(unsafe_code)]
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &HashChangeEventBinding::HashChangeEventInit)

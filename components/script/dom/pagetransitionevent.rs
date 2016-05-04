@@ -51,7 +51,6 @@ impl PageTransitionEvent {
         ev
     }
 
-    #[allow(unsafe_code)]
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &PageTransitionEventBinding::PageTransitionEventInit)
