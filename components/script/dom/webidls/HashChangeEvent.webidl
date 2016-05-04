@@ -10,6 +10,6 @@ interface HashChangeEvent : Event {
 };
 
 dictionary HashChangeEventInit : EventInit {
-  USVString? oldURL = null;
-  USVString? newURL = null;
+  USVString oldURL = "";
+  USVString newURL = "";
 };

@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::HashChangeEventBinding;
 use dom::bindings::codegen::Bindings::HashChangeEventBinding::HashChangeEventMethods;
-use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::URLBinding::URLMethods;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
@@ -23,21 +22,24 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct HashChangeEvent {
     event: Event,
-    old_url: DOMRefCell<Option<Url>>,
-    new_url: DOMRefCell<Option<Url>>,
+    old_url: Url,
+    new_url: Url,
 }
 
 impl HashChangeEvent {
-    fn new_inherited() -> HashChangeEvent {
+    fn new_inherited(old_url: Url, new_url: Url) -> HashChangeEvent {
         HashChangeEvent {
             event: Event::new_inherited(),
-            old_url: DOMRefCell::new(None),
-            new_url: DOMRefCell::new(None),
+            old_url: old_url,
+            new_url: new_url,
         }
     }
 
-    pub fn new_uninitialized(global: GlobalRef) -> Root<HashChangeEvent> {
-        reflect_dom_object(box HashChangeEvent::new_inherited(),
+    pub fn new_uninitialized(global: GlobalRef,
+                             old_url: Url,
+                             new_url: Url)
+                             -> Root<HashChangeEvent> {
+        reflect_dom_object(box HashChangeEvent::new_inherited(old_url, new_url),
                            global,
                            HashChangeEventBinding::Wrap)
     }
@@ -46,12 +48,10 @@ impl HashChangeEvent {
                type_: Atom,
                bubbles: bool,
                cancelable: bool,
-               old_url: Option<Url>,
-               new_url: Option<Url>)
+               old_url: Url,
+               new_url: Url)
                -> Root<HashChangeEvent> {
-        let ev = HashChangeEvent::new_uninitialized(global);
-        *ev.old_url.borrow_mut() = old_url;
-        *ev.new_url.borrow_mut() = new_url;
+        let ev = HashChangeEvent::new_uninitialized(global, old_url, new_url);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
@@ -64,8 +64,14 @@ impl HashChangeEvent {
                        type_: DOMString,
                        init: &HashChangeEventBinding::HashChangeEventInit)
                        -> Fallible<Root<HashChangeEvent>> {
-        let old_url = init.oldURL.as_ref().and_then(|ref old_url| Url::parse(&old_url.0).ok());
-        let new_url = init.newURL.as_ref().and_then(|ref new_url| Url::parse(&new_url.0).ok());
+        let old_url = match Url::parse(&init.oldURL.0) {
+            Ok(old_url) => old_url,
+            Err(error) => return Err(Error::Type(format!("could not parse URL: {}", error))),
+        };
+        let new_url = match Url::parse(&init.newURL.0) {
+            Ok(new_url) => new_url,
+            Err(error) => return Err(Error::Type(format!("could not parse URL: {}", error))),
+        };
         Ok(HashChangeEvent::new(global,
                                 Atom::from(type_),
                                 init.parent.bubbles,
@@ -78,18 +84,12 @@ impl HashChangeEvent {
 impl HashChangeEventMethods for HashChangeEvent {
     // https://html.spec.whatwg.org/multipage/#dom-hashchangeevent-oldurl
     fn OldURL(&self) -> USVString {
-        match *self.old_url.borrow() {
-            Some(ref old_url) => UrlHelper::Href(old_url),
-            None => USVString(String::new()),
-        }
+        UrlHelper::Href(&self.old_url)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hashchangeevent-newurl
     fn NewURL(&self) -> USVString {
-        match *self.new_url.borrow() {
-            Some(ref new_url) => UrlHelper::Href(new_url),
-            None => USVString(String::new()),
-        }
+        UrlHelper::Href(&self.new_url)
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted
