@@ -122,16 +122,6 @@ ${helpers.single_keyword("clear", "none left right both", gecko_ffi_name="mBreak
 
 </%helpers:longhand>
 
-${helpers.predefined_type("width",
-                          "LengthOrPercentageOrAuto",
-                          "computed::LengthOrPercentageOrAuto::Auto",
-                          "parse_non_negative")}
-
-${helpers.predefined_type("height",
-                          "LengthOrPercentageOrAuto",
-                          "computed::LengthOrPercentageOrAuto::Auto",
-                          "parse_non_negative")}
-
 <%helpers:longhand name="vertical-align">
   use cssparser::ToCss;
   use std::fmt;
