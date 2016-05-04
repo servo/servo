@@ -64,6 +64,7 @@ use msg::constellation_msg::{PipelineId, PipelineNamespace};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
+use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use net_traits::storage_thread::StorageThread;
 use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadContext, Metadata, ResourceThread};
@@ -310,6 +311,8 @@ pub struct ScriptThread {
     /// A handle to the resource thread. This is an `Arc` to avoid running out of file descriptors if
     /// there are many iframes.
     resource_thread: Arc<ResourceThread>,
+    /// A handle to the bluetooth thread.
+    bluetooth_thread: IpcSender<BluetoothMethodMsg>,
     /// A handle to the storage thread.
     storage_thread: StorageThread,
 
@@ -554,6 +557,7 @@ impl ScriptThread {
             image_cache_port: image_cache_port,
 
             resource_thread: Arc::new(state.resource_thread),
+            bluetooth_thread: state.bluetooth_thread,
             storage_thread: state.storage_thread,
 
             port: port,
@@ -1496,6 +1500,7 @@ impl ScriptThread {
                                  self.compositor.borrow_mut().clone(),
                                  self.image_cache_thread.clone(),
                                  self.resource_thread.clone(),
+                                 self.bluetooth_thread.clone(),
                                  self.storage_thread.clone(),
                                  self.mem_profiler_chan.clone(),
                                  self.devtools_chan.clone(),

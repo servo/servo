@@ -11,8 +11,11 @@
 
 #![deny(unsafe_code)]
 
+#[macro_use]
+extern crate bitflags;
 extern crate brotli;
 extern crate cookie as cookie_rs;
+extern crate device;
 extern crate devtools_traits;
 extern crate flate2;
 extern crate hyper;
@@ -39,6 +42,7 @@ extern crate webrender_traits;
 extern crate websocket;
 
 pub mod about_loader;
+pub mod bluetooth_thread;
 pub mod chrome_loader;
 pub mod cookie;
 pub mod cookie_storage;

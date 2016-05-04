@@ -1,0 +1,75 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+use bluetooth_scanfilter::RequestDeviceoptions;
+use ipc_channel::ipc::IpcSender;
+
+#[derive(Deserialize, Serialize)]
+pub struct BluetoothDeviceMsg {
+    // Bluetooth Device properties
+    pub id: String,
+    pub name: Option<String>,
+    pub device_class: Option<u32>,
+    pub vendor_id_source: Option<String>,
+    pub vendor_id: Option<u32>,
+    pub product_id: Option<u32>,
+    pub product_version: Option<u32>,
+    // Advertisiong Data properties
+    pub appearance: Option<u16>,
+    pub tx_power: Option<i8>,
+    pub rssi: Option<i8>,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct BluetoothServiceMsg {
+    pub uuid: String,
+    pub is_primary: bool,
+    pub instance_id: String,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct BluetoothCharacteristicMsg {
+    // Characteristic
+    pub uuid: String,
+    pub instance_id: String,
+    // Characteristic properties
+    pub broadcast: bool,
+    pub read: bool,
+    pub write_without_response: bool,
+    pub write: bool,
+    pub notify: bool,
+    pub indicate: bool,
+    pub authenticated_signed_writes: bool,
+    pub reliable_write: bool,
+    pub writable_auxiliaries: bool,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct BluetoothDescriptorMsg {
+    pub uuid: String,
+    pub instance_id: String,
+}
+
+pub type BluetoothServicesMsg = Vec<BluetoothServiceMsg>;
+
+pub type BluetoothCharacteristicsMsg = Vec<BluetoothCharacteristicMsg>;
+
+pub type BluetoothDescriptorsMsg = Vec<BluetoothDescriptorMsg>;
+
+pub type BluetoothResult<T> = Result<T, String>;
+
+#[derive(Deserialize, Serialize)]
+pub enum BluetoothMethodMsg {
+    RequestDevice(RequestDeviceoptions, IpcSender<BluetoothResult<BluetoothDeviceMsg>>),
+    GATTServerConnect(String, IpcSender<BluetoothResult<bool>>),
+    GATTServerDisconnect(String, IpcSender<BluetoothResult<bool>>),
+    GetPrimaryService(String, String, IpcSender<BluetoothResult<BluetoothServiceMsg>>),
+    GetPrimaryServices(String, Option<String>, IpcSender<BluetoothResult<BluetoothServicesMsg>>),
+    GetCharacteristic(String, String, IpcSender<BluetoothResult<BluetoothCharacteristicMsg>>),
+    GetCharacteristics(String, Option<String>, IpcSender<BluetoothResult<BluetoothCharacteristicsMsg>>),
+    GetDescriptor(String, String, IpcSender<BluetoothResult<BluetoothDescriptorMsg>>),
+    GetDescriptors(String, Option<String>, IpcSender<BluetoothResult<BluetoothDescriptorsMsg>>),
+    ReadValue(String, IpcSender<BluetoothResult<Vec<u8>>>),
+    WriteValue(String, Vec<u8>, IpcSender<BluetoothResult<bool>>),
+    Exit,
+}

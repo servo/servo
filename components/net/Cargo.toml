@@ -17,6 +17,8 @@ plugins = {path = "../plugins"}
 msg = {path = "../msg"}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 webrender_traits = {git = "https://github.com/servo/webrender_traits"}
+device = {git = "https://github.com/servo/devices"}
+bitflags = "0.6.0"
 cookie = { version = "0.2.4", features = [ "serialize-rustc" ] }
 flate2 = "0.2.0"
 hyper = { version = "0.9", features = [ "serde-serialization" ] }
