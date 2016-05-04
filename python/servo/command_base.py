@@ -105,6 +105,15 @@ def check_call(*args, **kwargs):
     return subprocess.check_call(*args, shell=sys.platform == 'win32', **kwargs)
 
 
+def is_windows():
+    """ Detect windows, mingw, cygwin """
+    return sys.platform == 'win32' or sys.platform == 'msys' or sys.platform == 'cygwin'
+
+
+def is_macosx():
+    return sys.platform == 'darwin'
+
+
 class BuildNotFound(Exception):
     def __init__(self, message):
         self.message = message
