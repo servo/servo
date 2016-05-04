@@ -736,8 +736,8 @@ impl<'a> FormSubmitter<'a> {
             },
             FormSubmitter::ButtonElement(button_element) => {
                 button_element.get_form_attribute(&atom!("formenctype"),
-                                                  |i| i.FormAction(),
-                                                  |f| f.Action())
+                                                  |i| i.FormEnctype(),
+                                                  |f| f.Enctype())
             }
         };
         match &*attr {
@@ -759,8 +759,8 @@ impl<'a> FormSubmitter<'a> {
             },
             FormSubmitter::ButtonElement(button_element) => {
                 button_element.get_form_attribute(&atom!("formmethod"),
-                                                  |i| i.FormAction(),
-                                                  |f| f.Action())
+                                                  |i| i.FormMethod(),
+                                                  |f| f.Method())
             }
         };
         match &*attr {
@@ -780,8 +780,8 @@ impl<'a> FormSubmitter<'a> {
             },
             FormSubmitter::ButtonElement(button_element) => {
                 button_element.get_form_attribute(&atom!("formtarget"),
-                                                  |i| i.FormAction(),
-                                                  |f| f.Action())
+                                                  |i| i.FormTarget(),
+                                                  |f| f.Target())
             }
         }
     }
