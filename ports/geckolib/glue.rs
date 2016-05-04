@@ -258,9 +258,20 @@ pub extern "C" fn Servo_ReleaseStyleSheet(sheet: *mut RawServoStyleSheet) -> () 
 #[no_mangle]
 pub extern "C" fn Servo_GetComputedValues(node: *mut RawGeckoNode)
      -> *mut ServoComputedValues {
+    use selectors::Element;
     let node = unsafe { GeckoNode::from_raw(node) };
-    let arc_cv = node.borrow_data().map(|data| data.style.clone());
-    arc_cv.map_or(ptr::null_mut(), |arc| unsafe { transmute(arc) })
+    let arc_cv = match node.borrow_data().map_or(None, |data| data.style.clone()) {
+        Some(style) => style,
+        None => {
+            // FIXME(bholley): This case subverts the intended semantics of this
+            // function, and exists only to make stylo builds more robust corner-
+            // cases where Gecko wants the style for a node that Servo never
+            // traversed. We should remove this as soon as possible.
+            error!("stylo: encountered unstyled node, substituting default values.");
+            Arc::new(GeckoComputedValues::initial_values().clone())
+        },
+    };
+    unsafe { transmute(arc_cv) }
 }
 
 #[no_mangle]
