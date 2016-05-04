@@ -35,6 +35,7 @@ use url::Url;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
 use style::values::specified::Length;
 use std::collections::LinkedList;
+use util;
 
 #[derive(JSTraceable, HeapSizeOf)]
 #[allow(dead_code)]
@@ -433,7 +434,7 @@ fn collect_sequence_characters<'a, P>(s: &'a str, predicate: P)
 fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
         let position = &input;
         let candidate: Vec<ImageSource> = Vec::new();
-        let(spaces, position) = collect_sequence_characters(position, |c| c ==',' || c == ' ');
+        let(spaces, position) = collect_sequence_characters(position, |c| c ==',' || util::str::char_is_whitespace(c));
         println!("{} {}", spaces, position);
         let x = spaces.find(',');
         match x {
@@ -444,7 +445,7 @@ fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
             //Does something need to be asserted here? The algorithm says abort the steps is this condition exists
             return candidate;
         }
-        let (url, spaces) = collect_sequence_characters(position, |c| c != ' ');
+        let (url, spaces) = collect_sequence_characters(position, |c| !util::str::char_is_whitespace(c));
         
         let comma_count = url.chars().rev().take_while(|c| *c==',').count();
         let url: String = url.chars().take(url.chars().count() - comma_count).collect();
@@ -453,7 +454,12 @@ fn parse_a_srcset_attribute(input: String) -> Vec<ImageSource> {
         }
 
         let mut descriptor = LinkedList::<String>::new();
+        // Descriptor Tokeniser: whitespace
+        let (space, position) = collect_sequence_characters(position, |c| util::str::char_is_whitespace(c));
+        
+        let current_descriptor = String::new();
         let mut state = ParseState::InDescriptor;
+
         return candidate;
     
 }    
