@@ -96,6 +96,16 @@ ${helpers.predefined_type("flex-basis",
 
 ${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse", products="gecko")}
 
+${helpers.predefined_type("width",
+                          "LengthOrPercentageOrAuto",
+                          "computed::LengthOrPercentageOrAuto::Auto",
+                          "parse_non_negative")}
+
+${helpers.predefined_type("height",
+                          "LengthOrPercentageOrAuto",
+                          "computed::LengthOrPercentageOrAuto::Auto",
+                          "parse_non_negative")}
+
 ${helpers.predefined_type("min-width",
                           "LengthOrPercentage",
                           "computed::LengthOrPercentage::Length(Au(0))",

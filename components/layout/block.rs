@@ -1695,7 +1695,7 @@ impl Flow for BlockFlow {
     fn bubble_inline_sizes(&mut self) {
         // If this block has a fixed width, just use that for the minimum and preferred width,
         // rather than bubbling up children inline width.
-        let consult_children = match self.fragment.style().get_box().width {
+        let consult_children = match self.fragment.style().get_position().width {
             LengthOrPercentageOrAuto::Length(_) => false,
             _ => true,
         };
