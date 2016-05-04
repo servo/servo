@@ -5,10 +5,6 @@
 #![feature(plugin)]
 #![plugin(plugins)]
 
-extern crate app_units;
-extern crate cssparser;
-extern crate style;
-
 use app_units::Au;
 use cssparser::{Parser, SourcePosition};
 use script::dom::htmlimageelement::{parse_a_sizes_attribute, Size};
@@ -86,8 +82,11 @@ fn some_parse_sizes_3_test() {
     }
     }
 }
+extern crate app_units;
+extern crate cssparser;
 extern crate msg;
 extern crate script;
+extern crate style;
 extern crate url;
 extern crate util;
 
