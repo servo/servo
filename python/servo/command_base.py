@@ -403,7 +403,7 @@ class CommandBase(object):
         return env
 
     def servo_crate(self):
-        return path.join(self.context.topdir, "components", "servo")
+        return path.join(self.context.topdir, "ports", "servo")
 
     def android_support_dir(self):
         return path.join(self.context.topdir, "support", "android")
