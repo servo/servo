@@ -1,49 +1,23 @@
 [root]
-name = "servo"
+name = "servo_app"
 version = "0.0.1"
 dependencies = [
  "android_glue 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "browserhtml 0.1.4 (git+https://github.com/browserhtml/browserhtml?branch=gh-pages)",
- "canvas 0.0.1",
- "canvas_traits 0.0.1",
  "compiletest_helper 0.0.1",
- "compositing 0.0.1",
- "devtools 0.0.1",
- "devtools_traits 0.0.1",
  "env_logger 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "euclid 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "gaol 0.0.1 (git+https://github.com/servo/gaol)",
- "gfx 0.0.1",
  "gfx_tests 0.0.1",
- "gleam 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin_app 0.0.1",
- "image 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "ipc-channel 0.2.2 (git+https://github.com/servo/ipc-channel)",
- "layers 0.2.4 (git+https://github.com/servo/rust-layers)",
- "layout 0.0.1",
  "layout_tests 0.0.1",
  "libc 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
- "msg 0.0.1",
- "net 0.0.1",
  "net_tests 0.0.1",
- "net_traits 0.0.1",
  "net_traits_tests 0.0.1",
  "plugin_compiletest 0.0.1",
- "profile 0.0.1",
  "profile_tests 0.0.1",
- "profile_traits 0.0.1",
- "script 0.0.1",
  "script_tests 0.0.1",
- "script_traits 0.0.1",
- "style 0.0.1",
+ "servo 0.0.1",
  "style_tests 0.0.1",
- "url 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "util 0.0.1",
  "util_tests 0.0.1",
- "webdriver_server 0.0.1",
- "webrender 0.1.0 (git+https://github.com/servo/webrender)",
- "webrender_traits 0.1.0 (git+https://github.com/servo/webrender_traits)",
 ]
 
 [[package]]
@@ -1934,6 +1908,39 @@ version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "serde_codegen 0.7.2 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "servo"
+version = "0.0.1"
+dependencies = [
+ "browserhtml 0.1.4 (git+https://github.com/browserhtml/browserhtml?branch=gh-pages)",
+ "canvas 0.0.1",
+ "canvas_traits 0.0.1",
+ "compositing 0.0.1",
+ "devtools 0.0.1",
+ "devtools_traits 0.0.1",
+ "euclid 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "gaol 0.0.1 (git+https://github.com/servo/gaol)",
+ "gfx 0.0.1",
+ "gleam 0.2.15 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ipc-channel 0.2.2 (git+https://github.com/servo/ipc-channel)",
+ "layers 0.2.4 (git+https://github.com/servo/rust-layers)",
+ "layout 0.0.1",
+ "libc 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "msg 0.0.1",
+ "net 0.0.1",
+ "net_traits 0.0.1",
+ "profile 0.0.1",
+ "profile_traits 0.0.1",
+ "script 0.0.1",
+ "script_traits 0.0.1",
+ "style 0.0.1",
+ "url 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "util 0.0.1",
+ "webdriver_server 0.0.1",
+ "webrender 0.1.0 (git+https://github.com/servo/webrender)",
+ "webrender_traits 0.1.0 (git+https://github.com/servo/webrender_traits)",
 ]
 
 [[package]]

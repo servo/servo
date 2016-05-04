@@ -3,23 +3,14 @@
 name = "servo"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
-build = "build.rs"
 publish = false
 
 [lib]
 name = "servo"
 path = "lib.rs"
-crate-type = ["rlib"]
-
-[[bin]]
-name = "servo"
-path = "main.rs"
-test = false
-doc = false
-bench = false
 
 [features]
-default = ["glutin_app", "webdriver"]
+default = ["webdriver"]
 webdriver = ["webdriver_server"]
 energy-profiling = ["profile_traits/energy-profiling"]
 
@@ -29,19 +20,6 @@ codegen-units = 4
 # Uncomment to profile on Linux:
 # debug = true
 # lto = false
-
-[dev-dependencies]
-image = "0.9"
-gfx_tests = {path = "../../tests/unit/gfx"}
-layout_tests = {path = "../../tests/unit/layout"}
-net_tests = {path = "../../tests/unit/net"}
-net_traits_tests = {path = "../../tests/unit/net_traits"}
-profile_tests = {path = "../../tests/unit/profile"}
-script_tests = {path = "../../tests/unit/script"}
-style_tests = {path = "../../tests/unit/style"}
-util_tests = {path = "../../tests/unit/util"}
-compiletest_helper = {path = "../../tests/compiletest/helper"}
-plugin_compiletest = {path = "../../tests/compiletest/plugin"}
 
 [dependencies]
 webrender_traits = {git = "https://github.com/servo/webrender_traits"}
@@ -69,13 +47,9 @@ ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
 gleam = "0.2"
 browserhtml = {git = "https://github.com/browserhtml/browserhtml", branch = "gh-pages"}
-env_logger = "0.3"
 euclid = {version = "0.6.4", features = ["plugins"]}
 libc = "0.2"
 url = {version = "1.0.0", features = ["heap_size", "serde", "query_encoding"]}
-
-[target.'cfg(target_os = "android")'.dependencies]
-log = {version = "0.3", features = ["release_max_level_info"]}
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}

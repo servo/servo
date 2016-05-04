@@ -11,7 +11,7 @@
 //! of [glutin], the cross-platform OpenGL utility and windowing
 //! library.
 //!
-//! For the engine itself look next door in lib.rs.
+//! For the engine itself look next door in `components/servo/lib.rs`.
 //!
 //! [glutin]: https://github.com/tomaka/glutin
 
