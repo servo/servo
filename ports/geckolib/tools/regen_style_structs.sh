@@ -95,14 +95,13 @@ export RUST_BACKTRACE=1
   -match "nsDataHashtable.h"                                        \
   -match "nsCSSScanner.h"                                           \
   -match "Types.h"                                                  \
+  -match "pair"                                                     \
   -match "SheetParsingMode.h"                                       \
   -blacklist-type "IsDestructibleFallbackImpl"                      \
   -blacklist-type "IsDestructibleFallback"                          \
   -opaque-type "nsIntMargin"                                        \
   -opaque-type "nsIntPoint"                                         \
   -opaque-type "nsIntRect"                                          \
-  -opaque-type "nsTArray"                                           \
-  -opaque-type "nsStyleAutoArray"                                   \
   -opaque-type "nsCOMArray"                                         \
   -opaque-type "nsDependentString"                                  \
   -opaque-type "EntryStore"                                         \
