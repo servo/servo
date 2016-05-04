@@ -363,6 +363,7 @@ impl Debug for ${style_struct.gecko_ffi_name} {
 
    # Types used with predefined_type()-defined properties that we can auto-generate.
    predefined_types = {
+       "LengthOrPercentage": impl_style_coord,
        "LengthOrPercentageOrAuto": impl_style_coord,
        "Number": impl_simple,
        "Opacity": impl_simple,
