@@ -193,7 +193,7 @@ impl Window {
 
     #[cfg(target_os = "android")]
     fn gl_version() -> GlRequest {
-        GlRequest::Specific(Api::OpenGlEs, (2, 0))
+        GlRequest::Specific(Api::OpenGlEs, (3, 0))
     }
 
     #[cfg(not(target_os = "android"))]
