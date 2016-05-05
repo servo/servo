@@ -19,8 +19,28 @@ pub struct GeckoSelectorImpl;
 pub enum PseudoElement {
     Before,
     After,
+
+    Backdrop,
+    FirstLetter,
     FirstLine,
-    // TODO: Probably a few more are missing here
+    MozSelection,
+    MozFocusInner,
+    MozFocusOuter,
+    MozListBullet,
+    MozListNumber,
+    MozMathAnonymous,
+    MozNumberWrapper,
+    MozNumberText,
+    MozNumberSpinBox,
+    MozNumberSpinUp,
+    MozNumberSpinDown,
+    MozProgressBar,
+    MozRangeTrack,
+    MozRangeProgress,
+    MozRangeThumb,
+    MozMeterBar,
+    MozPlaceholder,
+    MozColorSwatch,
 
     AnonBox(AnonBoxPseudoElement),
 }
@@ -167,6 +187,28 @@ impl SelectorImpl for GeckoSelectorImpl {
             "before" => { return Ok(Before) },
             "after" => { return Ok(After) },
             "first-line" => { return Ok(FirstLine) },
+            "backdrop" => { return Ok(Backdrop) },
+            "first-letter" => { return Ok(FirstLetter) },
+            "first-line" => { return Ok(FirstLine) },
+            "-moz-selection" => { return Ok(MozSelection) },
+            "-moz-focus-inner" => { return Ok(MozFocusInner) },
+            "-moz-focus-outer" => { return Ok(MozFocusOuter) },
+            "-moz-list-bullet" => { return Ok(MozListBullet) },
+            "-moz-list-number" => { return Ok(MozListNumber) },
+            "-moz-math-anonymous" => { return Ok(MozMathAnonymous) },
+            "-moz-number-wrapper" => { return Ok(MozNumberWrapper) },
+            "-moz-number-text" => { return Ok(MozNumberText) },
+            "-moz-number-spin-box" => { return Ok(MozNumberSpinBox) },
+            "-moz-number-spin-up" => { return Ok(MozNumberSpinUp) },
+            "-moz-number-spin-down" => { return Ok(MozNumberSpinDown) },
+            "-moz-progress-bar" => { return Ok(MozProgressBar) },
+            "-moz-range-track" => { return Ok(MozRangeTrack) },
+            "-moz-range-progress" => { return Ok(MozRangeProgress) },
+            "-moz-range-thumb" => { return Ok(MozRangeThumb) },
+            "-moz-metter-bar" => { return Ok(MozMeterBar) },
+            "-moz-placeholder" => { return Ok(MozPlaceholder) },
+            "-moz-color-swatch" => { return Ok(MozColorSwatch) },
+
             _ => {}
         }
 
