@@ -2207,6 +2207,13 @@ impl Fragment {
 
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
     pub fn establishes_stacking_context(&self) -> bool {
+        // Text fragments shouldn't create stacking contexts.
+        match self.specific {
+            SpecificFragmentInfo::ScannedText(_) |
+            SpecificFragmentInfo::UnscannedText(_) => return false,
+            _ => {}
+        }
+
         if self.flags.contains(HAS_LAYER) {
             return true
         }
