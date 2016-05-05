@@ -323,8 +323,8 @@ impl HeapSizeOf for ${style_struct.gecko_ffi_name} {
 }
 
 // FIXME(bholley): Make bindgen generate Debug for all types.
-%if style_struct.gecko_ffi_name in "nsStyleBorder nsStylePosition nsStyleDisplay nsStyleList nsStyleBackground "\
-                                    "nsStyleFont nsStyleEffects nsStyleSVGReset".split():
+%if style_struct.gecko_ffi_name in "nsStyleBorder nsStyleDisplay nsStyleList nsStyleBackground "\
+                                    "nsStyleFont nsStyleSVGReset".split():
 impl Debug for ${style_struct.gecko_ffi_name} {
     // FIXME(bholley): Generate this.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
