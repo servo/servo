@@ -109,14 +109,11 @@ impl FlexFlow {
                          flotation: Option<FloatKind>)
                          -> FlexFlow {
 
-        let main_mode = match fragment.style.get_position().flex_direction {
-            flex_direction::T::row_reverse | flex_direction::T::row => Mode::Inline,
-            flex_direction::T::column_reverse | flex_direction::T::column => Mode::Block
-        };
-
-        let is_reverse = match fragment.style.get_position().flex_direction {
-            flex_direction::T::row_reverse | flex_direction::T::column_reverse => true,
-            flex_direction::T::row | flex_direction::T::column => false
+        let (main_mode, is_reverse) = match fragment.style.get_position().flex_direction {
+            flex_direction::T::row            => (Mode::Inline, false),
+            flex_direction::T::row_reverse    => (Mode::Inline, true),
+            flex_direction::T::column         => (Mode::Block, false),
+            flex_direction::T::column_reverse => (Mode::Block, true),
         };
 
         FlexFlow {
