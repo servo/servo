@@ -368,11 +368,6 @@ impl BluetoothManager {
                 let message = Ok(BluetoothDeviceMsg {
                                      id: address,
                                      name: device.get_name().ok(),
-                                     device_class: device.get_class().ok(),
-                                     vendor_id_source: device.get_vendor_id_source().ok(),
-                                     vendor_id: device.get_vendor_id().ok(),
-                                     product_id: device.get_product_id().ok(),
-                                     product_version: device.get_device_id().ok(),
                                      appearance: device.get_appearance().ok(),
                                      tx_power: device.get_tx_power().ok().map(|p| p as i8),
                                      rssi: device.get_rssi().ok().map(|p| p as i8),
