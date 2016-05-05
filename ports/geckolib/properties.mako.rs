@@ -353,8 +353,6 @@ impl Debug for ${style_struct.gecko_ffi_name} {
    force_stub += ["list-style-type", "text-overflow"]
    # Enum class instead of NS_STYLE_...
    force_stub += ["box-sizing"]
-   # Inconsistent constant naming in gecko
-   force_stub += ["text-transform"]
    # These are booleans.
    force_stub += ["page-break-after", "page-break-before"]
 
