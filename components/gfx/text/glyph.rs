@@ -109,6 +109,7 @@ impl GlyphEntry {
         Au(((self.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT) as i32)
     }
 
+    #[inline]
     fn id(&self) -> GlyphId {
         self.value & GLYPH_ID_MASK
     }
@@ -361,6 +362,7 @@ impl<'a> GlyphInfo<'a> {
         }
     }
 
+    #[inline]
     pub fn offset(self) -> Option<Point2D<Au>> {
         match self {
             GlyphInfo::Simple(_, _) => None,
@@ -436,10 +438,12 @@ impl<'a> GlyphStore {
         }
     }
 
+    #[inline]
     pub fn len(&self) -> ByteIndex {
         ByteIndex(self.entry_buffer.len() as isize)
     }
 
+    #[inline]
     pub fn is_whitespace(&self) -> bool {
         self.is_whitespace
     }
