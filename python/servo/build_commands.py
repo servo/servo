@@ -176,21 +176,23 @@ class MachCommands(CommandBase):
             print("Please specify either --dev or --release.")
             sys.exit(1)
 
-        targets = []
+        if target and android:
+            print("Please specify either --target or --android.")
+            sys.exit(1)
+
         if release:
             opts += ["--release"]
-        if target:
-            opts += ["--target", target]
-            targets.append(target)
         if jobs is not None:
             opts += ["-j", jobs]
         if verbose:
             opts += ["-v"]
         if android:
-            opts += ["--target", self.config["android"]["target"]]
-            targets.append("arm-linux-androideabi")
+            target = self.config["android"]["target"]
 
-        self.ensure_bootstrapped(targets=targets)
+        if target:
+            opts += ["--target", target]
+
+        self.ensure_bootstrapped(target=target)
 
         if debug_mozjs or self.config["build"]["debug-mozjs"]:
             features += ["script/debugmozjs"]
@@ -203,9 +205,13 @@ class MachCommands(CommandBase):
 
         build_start = time()
         env = self.build_env()
+
+        # Ensure Rust uses hard floats and SIMD on ARM devices
+        if target:
+            if target.startswith('arm') or target.startswith('aarch64'):
+                env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
+
         if android:
-            # Ensure Rust uses hard floats on Android
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
             # Build OpenSSL for android
             make_cmd = ["make"]
             if jobs is not None:
@@ -331,8 +337,8 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Build in release mode')
     def build_gonk(self, jobs=None, verbose=False, release=False):
-        targets = ["arm-linux-androideabi"]
-        self.ensure_bootstrapped(targets=targets)
+        target = "arm-linux-androideabi"
+        self.ensure_bootstrapped(target=target)
 
         opts = []
         if jobs is not None:
