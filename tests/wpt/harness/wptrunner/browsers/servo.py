@@ -64,7 +64,7 @@ def render_arg(render_backend):
 
 class ServoBrowser(NullBrowser):
     def __init__(self, logger, binary, debug_info=None, binary_args=None,
-                 user_stylesheets=None, render_backend="cpu"):
+                 user_stylesheets=None, render_backend="webrender"):
         NullBrowser.__init__(self, logger)
         self.binary = binary
         self.debug_info = debug_info

@@ -80,7 +80,7 @@ class ServoWebDriverBrowser(Browser):
     used_ports = set()
 
     def __init__(self, logger, binary, debug_info=None, webdriver_host="127.0.0.1",
-                 user_stylesheets=None, render_backend="cpu"):
+                 user_stylesheets=None, render_backend="webrender"):
         Browser.__init__(self, logger)
         self.binary = binary
         self.webdriver_host = webdriver_host

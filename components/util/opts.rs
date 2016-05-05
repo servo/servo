@@ -504,7 +504,7 @@ pub fn default_opts() -> Opts {
         exit_after_load: false,
         no_native_titlebar: false,
         enable_vsync: true,
-        use_webrender: false,
+        use_webrender: true,
         webrender_stats: false,
         use_msaa: false,
         render_api: DEFAULT_RENDER_API,
@@ -518,7 +518,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     let (app_name, args) = args.split_first().unwrap();
 
     let mut opts = Options::new();
-    opts.optflag("c", "cpu", "CPU painting (default)");
+    opts.optflag("c", "cpu", "CPU painting");
     opts.optflag("g", "gpu", "GPU painting");
     opts.optopt("o", "output", "Output file", "output.png");
     opts.optopt("s", "size", "Size of tiles", "512");
@@ -564,7 +564,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optmulti("", "pref",
                   "A preference to set to enable", "dom.mozbrowser.enabled");
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
-    opts.optflag("w", "webrender", "Use webrender backend");
+    opts.optflag("w", "webrender", "Use webrender backend (default)");
     opts.optopt("G", "graphics", "Select graphics backend (gl or es2)", "gl");
     opts.optopt("", "config-dir",
                     "config directory following xdg spec on linux platform", "");
@@ -747,9 +747,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         opt_match.opt_present("b") ||
         !PREFS.get("shell.native-titlebar.enabled").as_boolean().unwrap();
 
-    let use_webrender =
-        (PREFS.get("gfx.webrender.enabled").as_boolean().unwrap() || opt_match.opt_present("w")) &&
-        !opt_match.opt_present("z");
+    let use_webrender = !opt_match.opt_present("c");
 
     let render_api = match opt_match.opt_str("G") {
         Some(ref ga) if ga == "gl" => RenderApi::GL,
