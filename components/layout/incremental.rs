@@ -211,7 +211,7 @@ pub fn compute_damage(old: Option<&Arc<ServoComputedValues>>, new: &ServoCompute
         get_margin.margin_bottom, get_margin.margin_left,
         get_padding.padding_top, get_padding.padding_right,
         get_padding.padding_bottom, get_padding.padding_left,
-        get_box.width, get_box.height,
+        get_position.width, get_position.height,
         get_inheritedtext.line_height,
         get_inheritedtext.text_align, get_inheritedtext.text_indent,
         get_table.table_layout,
