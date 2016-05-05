@@ -34,27 +34,35 @@ class PackageCommands(CommandBase):
                      help='Package the release build')
     @CommandArgument('--dev', '-d', action='store_true',
                      help='Package the dev build')
-    def package(self, release=False, dev=False, debug=False, debugger=None):
+    @CommandArgument('--android',
+                     default=None,
+                     action='store_true',
+                     help='Package Android')
+    def package(self, release=False, dev=False, android=None, debug=False, debugger=None):
         env = self.build_env()
-        binary_path = self.get_binary_path(release, dev, android=True)
+        if android is None:
+            android = self.config["build"]["android"]
+        binary_path = self.get_binary_path(release, dev, android=android)
+        if android:
+            if dev:
+                env["NDK_DEBUG"] = "1"
+                env["ANT_FLAVOR"] = "debug"
+                dev_flag = "-d"
+            else:
+                env["ANT_FLAVOR"] = "release"
+                dev_flag = ""
 
-        if dev:
-            env["NDK_DEBUG"] = "1"
-            env["ANT_FLAVOR"] = "debug"
-            dev_flag = "-d"
+            target_dir = os.path.dirname(binary_path)
+            output_apk = "{}.apk".format(binary_path)
+            try:
+                with cd(path.join("support", "android", "build-apk")):
+                    subprocess.check_call(["cargo", "run", "--", dev_flag, "-o", output_apk, "-t", target_dir,
+                                           "-r", self.get_top_dir()], env=env)
+            except subprocess.CalledProcessError as e:
+                print("Packaging Android exited with return value %d" % e.returncode)
+                return e.returncode
         else:
-            env["ANT_FLAVOR"] = "release"
-            dev_flag = ""
-
-        target_dir = os.path.dirname(binary_path)
-        output_apk = "{}.apk".format(binary_path)
-        try:
-            with cd(path.join("support", "android", "build-apk")):
-                subprocess.check_call(["cargo", "run", "--", dev_flag, "-o", output_apk, "-t", target_dir,
-                                       "-r", self.get_top_dir()], env=env)
-        except subprocess.CalledProcessError as e:
-            print("Packaging Android exited with return value %d" % e.returncode)
-            return e.returncode
+            print(binary_path)
 
     @Command('install',
              description='Install Servo (currently, Android only)',
