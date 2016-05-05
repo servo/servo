@@ -16,6 +16,7 @@ use bindings::Gecko_Construct_${style_struct.gecko_ffi_name};
 use bindings::Gecko_CopyConstruct_${style_struct.gecko_ffi_name};
 use bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
 % endfor
+use bindings::{Gecko_CopyListStyleTypeFrom, Gecko_SetListStyleType};
 use gecko_style_structs;
 use glue::ArcHelpers;
 use heapsize::HeapSizeOf;
@@ -153,6 +154,8 @@ def set_gecko_property(ffi_name, expr):
     if is_border_style_masked(ffi_name):
         return "self.gecko.%s &= !(gecko_style_structs::BORDER_STYLE_MASK as u8);" % ffi_name + \
                "self.gecko.%s |= %s as u8;" % (ffi_name, expr)
+    elif ffi_name == "__LIST_STYLE_TYPE__":
+        return "unsafe { Gecko_SetListStyleType(&mut self.gecko, %s as u32); }" % expr
     return "self.gecko.%s = %s;" % (ffi_name, expr)
 %>
 
@@ -585,6 +588,18 @@ fn static_assert() {
 <%self:impl_trait style_struct_name="Background" skip_longhands="background-color" skip_additionals="*">
 
     <% impl_color("background_color", "mBackgroundColor") %>
+
+</%self:impl_trait>
+
+<%self:impl_trait style_struct_name="List" skip_longhands="list-style-type" skip_additionals="*">
+
+    <% impl_keyword_setter("list_style_type", "__LIST_STYLE_TYPE__",
+                           data.longhands_by_name["list-style-type"].keyword) %>
+    fn copy_list_style_type_from(&mut self, other: &Self) {
+        unsafe {
+            Gecko_CopyListStyleTypeFrom(&mut self.gecko, &other.gecko);
+        }
+    }
 
 </%self:impl_trait>
 

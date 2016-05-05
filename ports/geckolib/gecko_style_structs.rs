@@ -4716,7 +4716,6 @@ fn bindgen_test_layout_nsStyleQuoteValues() {
 #[repr(C)]
 pub struct nsStyleList {
     pub mListStylePosition: u8,
-    pub mListStyleType: nsString,
     pub mCounterStyle: RefPtr<CounterStyle>,
     pub mListStyleImage: RefPtr<imgRequestProxy>,
     pub mQuotes: RefPtr<nsStyleQuoteValues>,
@@ -4724,7 +4723,7 @@ pub struct nsStyleList {
 }
 #[test]
 fn bindgen_test_layout_nsStyleList() {
-    assert_eq!(::std::mem::size_of::<nsStyleList>() , 64usize);
+    assert_eq!(::std::mem::size_of::<nsStyleList>() , 48usize);
     assert_eq!(::std::mem::align_of::<nsStyleList>() , 8usize);
 }
 #[repr(C)]

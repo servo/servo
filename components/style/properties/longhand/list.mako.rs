@@ -13,13 +13,17 @@ ${helpers.single_keyword("list-style-position", "outside inside")}
 //     decimal-leading-zero, armenian, upper-armenian, lower-armenian, georgian, lower-roman,
 //     upper-roman
 //
+// TODO(bholley): Missing quite a few gecko properties here as well.
+//
 // [1]: http://dev.w3.org/csswg/css-counter-styles/
 ${helpers.single_keyword("list-style-type", """
-    disc none circle square decimal arabic-indic bengali cambodian cjk-decimal devanagari
-    gujarati gurmukhi kannada khmer lao malayalam mongolian myanmar oriya persian telugu thai
-    tibetan lower-alpha upper-alpha cjk-earthly-branch cjk-heavenly-stem lower-greek hiragana
-    hiragana-iroha katakana katakana-iroha disclosure-open disclosure-closed
-""")}
+    disc none circle square decimal lower-alpha upper-alpha  disclosure-open disclosure-closed
+""", extra_servo_values="""arabic-indic bengali cambodian cjk-decimal devanagari
+                           gujarati gurmukhi kannada khmer lao malayalam mongolian
+                           myanmar oriya persian telugu thai tibetan cjk-earthly-branch
+                           cjk-heavenly-stem lower-greek hiragana hiragana-iroha katakana
+                           katakana-iroha""",
+    gecko_constant_prefix="NS_STYLE_LIST_STYLE")}
 
 <%helpers:longhand name="list-style-image">
     use cssparser::{ToCss, Token};
