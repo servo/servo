@@ -392,27 +392,12 @@ impl LineBreaker {
         let last_fragment_index = self.pending_line.range.end() - FragmentIndex(1);
         let mut fragment = &mut self.new_fragments[last_fragment_index.get() as usize];
 
-        let mut old_fragment_inline_size = None;
-        if let SpecificFragmentInfo::ScannedText(_) = fragment.specific {
-            old_fragment_inline_size = Some(fragment.border_box.size.inline +
-                                            fragment.margin.inline_start_end());
-        }
+        let old_fragment_inline_size = fragment.border_box.size.inline;
 
         fragment.strip_trailing_whitespace_if_necessary();
 
-        if let SpecificFragmentInfo::ScannedText(ref mut scanned_text_fragment_info) =
-                fragment.specific {
-            let scanned_text_fragment_info = &mut **scanned_text_fragment_info;
-            let range = &mut scanned_text_fragment_info.range;
-
-            scanned_text_fragment_info.content_size.inline =
-                scanned_text_fragment_info.run.metrics_for_range(range).advance_width;
-            fragment.border_box.size.inline = scanned_text_fragment_info.content_size.inline +
-                fragment.border_padding.inline_start_end();
-            self.pending_line.bounds.size.inline = self.pending_line.bounds.size.inline -
-                (old_fragment_inline_size.unwrap() -
-                 (fragment.border_box.size.inline + fragment.margin.inline_start_end()));
-        }
+        self.pending_line.bounds.size.inline +=
+            fragment.border_box.size.inline - old_fragment_inline_size;
     }
 
     // FIXME(eatkinson): this assumes that the tallest fragment in the line determines the line
