@@ -489,7 +489,7 @@ fn static_assert() {
     }
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Font" skip_longhands="font-size" skip_additionals="*">
+<%self:impl_trait style_struct_name="Font" skip_longhands="font-size font-weight" skip_additionals="*">
 
     // FIXME(bholley): Gecko has two different sizes, one of which (mSize) is the
     // actual computed size, and the other of which (mFont.size) is the 'display
@@ -504,6 +504,18 @@ fn static_assert() {
     }
     fn clone_font_size(&self) -> longhands::font_size::computed_value::T {
         Au(self.gecko.mSize)
+    }
+
+    fn set_font_weight(&mut self, v: longhands::font_weight::computed_value::T) {
+        self.gecko.mFont.weight = v as u16;
+    }
+    <%call expr="impl_simple_copy('font_weight', 'mFont.weight')"></%call>
+
+    fn clone_font_weight(&self) -> longhands::font_weight::computed_value::T {
+        debug_assert!(self.gecko.mFont.weight >= 100);
+        debug_assert!(self.gecko.mFont.weight <= 900);
+        debug_assert!(self.gecko.mFont.weight % 10 == 0);
+        unsafe { transmute(self.gecko.mFont.weight) }
     }
 
     // This is used for PartialEq, which we don't implement for gecko style structs.

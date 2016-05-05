@@ -9,6 +9,7 @@ use bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues, ServoNodeData};
 use bindings::{nsIAtom};
 use data::PerDocumentStyleData;
+use env_logger;
 use euclid::Size2D;
 use gecko_style_structs::SheetParsingMode;
 use properties::GeckoComputedValues;
@@ -63,6 +64,14 @@ pub fn pseudo_element_from_atom(pseudo: *mut nsIAtom,
  */
 
 #[no_mangle]
+pub extern "C" fn Servo_Initialize() -> () {
+    // Enable standard Rust logging.
+    //
+    // See https://doc.rust-lang.org/log/env_logger/index.html for instructions.
+    env_logger::init().unwrap();
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *mut RawServoStyleSet) -> () {
     let document = unsafe { GeckoDocument::from_raw(doc) };
     let node = match document.root_node() {
@@ -72,8 +81,12 @@ pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *m
     let data = unsafe { &mut *(raw_data as *mut PerDocumentStyleData) };
 
     // Force the creation of our lazily-constructed initial computed values on
-    // the main thread, since it's not safe to call elsewhere. This should move
-    // into a runtime-wide init hook at some point.
+    // the main thread, since it's not safe to call elsewhere.
+    //
+    // FIXME(bholley): this should move into Servo_Initialize as soon as we get
+    // rid of the HackilyFindSomeDeviceContext stuff that happens during
+    // initial_values computation, since that stuff needs to be called further
+    // along in startup than the sensible place to call Servo_Initialize.
     GeckoComputedValues::initial_values();
 
     let _needs_dirtying = Arc::get_mut(&mut data.stylist).unwrap()

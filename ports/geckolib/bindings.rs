@@ -112,6 +112,7 @@ extern "C" {
      -> *const u16;
     pub fn Gecko_Namespace(element: *mut RawGeckoElement, length: *mut u32)
      -> *const u16;
+    pub fn Servo_Initialize();
     pub fn Servo_RestyleDocument(doc: *mut RawGeckoDocument,
                                  set: *mut RawServoStyleSet);
     pub fn Gecko_Construct_nsStyleFont(ptr: *mut nsStyleFont);
