@@ -9,6 +9,7 @@
 
 from __future__ import print_function, unicode_literals
 
+import datetime
 import os
 import os.path as path
 import sys
@@ -85,7 +86,7 @@ def notify_build_done(elapsed):
     """Generate desktop notification when build is complete and the
     elapsed build time was longer than 30 seconds."""
     if elapsed > 30:
-        notify("Servo build", "Completed in %0.2fs" % elapsed)
+        notify("Servo build", "Completed in %s" % str(datetime.timedelta(seconds=elapsed)))
 
 
 def notify(title, text):
@@ -240,7 +241,7 @@ class MachCommands(CommandBase):
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify_build_done(elapsed)
 
-        print("Build completed in %0.2fs" % elapsed)
+        print("Build completed in %s" % str(datetime.timedelta(seconds=elapsed)))
         return status
 
     @Command('build-cef',
@@ -276,7 +277,7 @@ class MachCommands(CommandBase):
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify_build_done(elapsed)
 
-        print("CEF build completed in %0.2fs" % elapsed)
+        print("CEF build completed in %s" % str(datetime.timedelta(seconds=elapsed)))
 
         return ret
 
@@ -313,7 +314,7 @@ class MachCommands(CommandBase):
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify_build_done(elapsed)
 
-        print("GeckoLib build completed in %0.2fs" % elapsed)
+        print("GeckoLib build completed in %s" % str(datetime.timedelta(seconds=elapsed)))
 
         return ret
 
@@ -351,7 +352,7 @@ class MachCommands(CommandBase):
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify_build_done(elapsed)
 
-        print("Gonk build completed in %0.2fs" % elapsed)
+        print("Gonk build completed in %s" % str(datetime.timedelta(seconds=elapsed)))
 
         return ret
 
