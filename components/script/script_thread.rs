@@ -1454,12 +1454,14 @@ impl ScriptThread {
                                  incomplete.window_size);
 
         let frame_element = frame_element.r().map(Castable::upcast);
+
+        let mut using_new_context = true;
+
         let browsing_context = if !self.root_browsing_context_exists() {
             // Create a new context tree entry. This will become the root context
             let new_context = BrowsingContext::new(&window, frame_element, incomplete.pipeline_id);
             // We have a new root frame tree.
             self.browsing_context.set(Some(&new_context));
-
             new_context
         } else if let Some((parent, _)) = incomplete.parent_info {
             // Create a new context tree entry. This will be a child context.
@@ -1471,11 +1473,13 @@ impl ScriptThread {
             let parent_context = parent_context.find(parent)
                                              .expect("received load for child context with missing parent");
             parent_context.push_child_context(Root::from_ref(&new_context));
-
             new_context
         } else {
+            using_new_context = false;
             self.root_browsing_context()
         };
+
+        window.init_browsing_context(&browsing_context);
 
         enum ContextToRemove {
             Root,
@@ -1522,8 +1526,6 @@ impl ScriptThread {
         };
         let mut context_remover = AutoContextRemover::new(self, context_to_remove);
 
-        window.init_browsing_context(&browsing_context);
-
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
             headers.get().map(|&LastModified(HttpDate(ref tm))| dom_last_modified(tm))
         });
@@ -1557,7 +1559,11 @@ impl ScriptThread {
                                      last_modified,
                                      DocumentSource::FromParser,
                                      loader);
-        browsing_context.init(&document);
+        if using_new_context {
+            browsing_context.init(&document);
+        } else {
+            browsing_context.push_history(&document);
+        }
         document.set_ready_state(DocumentReadyState::Loading);
 
         let ConstellationChan(ref chan) = self.constellation_chan;
