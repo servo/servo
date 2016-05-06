@@ -1,0 +1,17 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Historical touch events features</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="touch-support.js"></script>
+<body>
+<script>
+test(function() {
+  assert_false("identifiedTouch" in TouchList.prototype,
+               "Should not be supported on the prototype");
+
+  var touchList = document.createTouchList();
+  assert_false("identifiedTouch" in touchList,
+               "Should not be supported on the instance");
+}, "TouchList::identifiedTouch");
+</script>

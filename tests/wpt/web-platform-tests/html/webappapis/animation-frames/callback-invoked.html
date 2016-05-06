@@ -10,12 +10,8 @@
     <div id="log"></div>
     <script>
       async_test(function (t) {
-        t.step(function() {
-          assert_false(document.hidden, "document.hidden must be exist and be false to run this test properly");
-        });
-        window.requestAnimationFrame(function () {
-          t.step(function() { assert_true(true); t.done(); });
-        });
+        assert_false(document.hidden, "document.hidden must exist and be false to run this test properly");
+        window.requestAnimationFrame(t.step_func_done());
       }, "requestAnimationFrame callback is invoked at least once before the timeout");
     </script>
   </body>
