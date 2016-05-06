@@ -64,7 +64,6 @@ pub const NS_ERROR_MODULE_BASE_OFFSET: ::std::os::raw::c_uint = 69;
 pub const MOZ_STRING_WITH_OBSOLETE_API: ::std::os::raw::c_uint = 1;
 pub const NSID_LENGTH: ::std::os::raw::c_uint = 39;
 pub const NS_NUMBER_OF_FLAGS_IN_REFCNT: ::std::os::raw::c_uint = 2;
-pub const _STL_PAIR_H: ::std::os::raw::c_uint = 1;
 pub const TWIPS_PER_POINT_INT: ::std::os::raw::c_uint = 20;
 pub const POINTS_PER_INCH_INT: ::std::os::raw::c_uint = 72;
 pub const NS_FONT_VARIANT_NORMAL: ::std::os::raw::c_uint = 0;
@@ -2508,12 +2507,27 @@ pub struct piecewise_construct_t;
 impl ::std::clone::Clone for piecewise_construct_t {
     fn clone(&self) -> Self { *self }
 }
-pub enum tuple { }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct pair<_T1, _T2> {
     pub first: _T1,
     pub second: _T2,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct __make_pair_return_impl<_Tp> {
+    pub _phantom0: ::std::marker::PhantomData<_Tp>,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct __make_pair_return<_Tp> {
+    pub _phantom0: ::std::marker::PhantomData<_Tp>,
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct __get_pair;
+impl ::std::clone::Clone for __get_pair {
+    fn clone(&self) -> Self { *self }
 }
 pub type Float = f32;
 #[repr(i8)]
