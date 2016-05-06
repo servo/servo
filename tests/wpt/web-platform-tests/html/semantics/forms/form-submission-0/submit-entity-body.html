@@ -5,14 +5,46 @@
 <script>
 var simple_tests = [
   {
-    name: "form submission should navigate to url with x-www-form-urlencoded",
+    name: "form submission from form should navigate to url with x-www-form-urlencoded",
     input: "<input name=foo value=bara>",
-    enctype: "application/x-www-form-urlencoded"
+    enctype: "application/x-www-form-urlencoded",
+    submitelement: "",
+    submitaction: function(doc) { doc.getElementById("testform").submit(); }
   },
   {
-    name: "form submission should navigate to url with multipart/form-data",
+    name: "form submission from form  should navigate to url with multipart/form-data",
     input: "<textarea name=foo>bar</textarea>",
-    enctype: "multipart/form-data"
+    enctype: "multipart/form-data",
+    submitelement: "",
+    submitaction: function(doc) { doc.getElementById("testform").submit(); }
+  },
+  {
+    name: "form submission from button should navigate to url with x-www-form-urlencoded",
+    input: "<input name=foo value=bara>",
+    enctype: "application/x-www-form-urlencoded",
+    submitelement: "<button id=buttonsubmit type=\"submit\">Submit</button>",
+    submitaction: function(doc) { doc.getElementById("buttonsubmit").click(); }
+  },
+  {
+    name: "form submission from button should navigate to url with multipart/form-data",
+    input: "<textarea name=foo>bar</textarea>",
+    enctype: "multipart/form-data",
+    submitelement: "<button id=buttonsubmit type=\"submit\">Submit</button>",
+    submitaction: function(doc) { doc.getElementById("buttonsubmit").click(); }
+  },
+  {
+    name: "form submission from input should navigate to url with x-www-form-urlencoded",
+    input: "<input name=foo value=bara>",
+    enctype: "application/x-www-form-urlencoded",
+    submitelement: "<input id=inputsubmit type=\"submit\">Submit</input>",
+    submitaction: function(doc) { doc.getElementById("inputsubmit").click(); }
+  },
+  {
+    name: "form submission from input should navigate to url with multipart/form-data",
+    input: "<textarea name=foo>bar</textarea>",
+    enctype: "multipart/form-data",
+    submitelement: "<input id=inputsubmit type=\"submit\">Submit</input>",
+    submitaction: function(doc) { doc.getElementById("inputsubmit").click(); }
   },
 ];
 simple_tests.forEach(function(test_obj) {
@@ -29,6 +61,7 @@ function run_simple_test() {
   testdocument.body.innerHTML =
     "<form id=testform method=post action=\"form-submission.py\" enctype=\"" + test_obj.enctype + "\">" +
     test_obj.input +
+    test_obj.submitelement +
     "</form>";
   testframe.onload = function() {
     t.step(function (){
@@ -38,7 +71,7 @@ function run_simple_test() {
     t.done();
     run_simple_test();
   };
-  testdocument.getElementById("testform").submit();
+  test_obj.submitaction(testdocument);
 }
 </script>
 <iframe id=testframe src="/common/blank.html" onload="run_simple_test();"></iframe>
