@@ -11,7 +11,7 @@ You can see a description of them below.
 ## `setup_bindgen.sh`
 
 This uses downloads a custom version of bindgen, up to date to generate the
-bindings, and uses the custom `clang` to build it.
+bindings, and uses the required `llvm38` to build it.
 
 It will also rebuild it if it's already downloaded.
 
