@@ -1350,10 +1350,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 Some(root_pipeline_id) => root_pipeline_id,
                 None => return,
             };
-            let root_pipeline = match self.pipeline(root_pipeline_id) {
-                Some(root_pipeline) => root_pipeline,
-                None => return,
-            };
+            if self.pipeline(root_pipeline_id).is_none() {
+                return;
+            }
 
             let (translated_point, translated_pipeline_id) =
                 webrender_api.translate_point_to_layer_space(&point.to_untyped());
@@ -1395,10 +1394,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 Some(root_pipeline_id) => root_pipeline_id,
                 None => return,
             };
-            let root_pipeline = match self.pipeline(root_pipeline_id) {
-                Some(root_pipeline) => root_pipeline,
-                None => return,
-            };
+            if self.pipeline(root_pipeline_id).is_none() {
+                return;
+            }
 
             let (translated_point, translated_pipeline_id) =
                 webrender_api.translate_point_to_layer_space(&cursor.to_untyped());
