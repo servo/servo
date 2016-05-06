@@ -19,6 +19,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, LayoutJS};
 use dom::bindings::reflector::Reflectable;
+use dom::browsingcontext::IterableContext;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -36,7 +37,6 @@ use layout_interface::ReflowQueryType;
 use msg::constellation_msg::{ConstellationChan, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
 use net_traits::response::HttpsState;
-use page::IterablePage;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{IFrameLoadInfo, MozBrowserEvent, ScriptMsg as ConstellationMsg};
 use std::ascii::AsciiExt;
@@ -418,11 +418,11 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
         self.subpage_id.get().and_then(|subpage_id| {
             let window = window_from_node(self);
             let window = window.r();
-            let children = window.page().children.borrow();
-            children.iter().find(|page| {
-                let window = page.window();
+            let parent_context = window.browsing_context();
+            parent_context.iter().find(|context| {
+                let window = context.active_window();
                 window.subpage() == Some(subpage_id)
-            }).map(|page| page.window())
+            }).map(|context| context.active_window())
         })
     }
 

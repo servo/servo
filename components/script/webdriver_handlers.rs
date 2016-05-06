@@ -15,6 +15,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{FromJSValConvertible, StringificationBehavior};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
+use dom::browsingcontext::BrowsingContext;
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;
 use dom::htmliframeelement::HTMLIFrameElement;
@@ -31,15 +32,16 @@ use js::jsapi::{HandleValue, RootedValue};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::{PipelineId, WindowSizeData};
 use msg::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
-use page::Page;
-use script_thread::get_page;
-use std::rc::Rc;
+use script_thread::get_browsing_context;
 use url::Url;
 use util::str::DOMString;
 
-fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String) -> Option<Root<Node>> {
-    let page = get_page(&*page, pipeline);
-    let document = page.document();
+fn find_node_by_unique_id(context: &Root<BrowsingContext>,
+                          pipeline: PipelineId,
+                          node_id: String)
+                          -> Option<Root<Node>> {
+    let context = get_browsing_context(&context, pipeline);
+    let document = context.active_document();
     document.upcast::<Node>().traverse_preorder().find(|candidate| candidate.unique_id() == node_id)
 }
 
@@ -63,12 +65,12 @@ pub unsafe fn jsval_to_webdriver(cx: *mut JSContext, val: HandleValue) -> WebDri
 }
 
 #[allow(unsafe_code)]
-pub fn handle_execute_script(page: &Rc<Page>,
+pub fn handle_execute_script(context: &Root<BrowsingContext>,
                              pipeline: PipelineId,
                              eval: String,
                              reply: IpcSender<WebDriverJSResult>) {
-    let page = get_page(&*page, pipeline);
-    let window = page.window();
+    let context = get_browsing_context(&context, pipeline);
+    let window = context.active_window();
     let result = unsafe {
         let cx = window.get_cx();
         let mut rval = RootedValue::new(cx, UndefinedValue());
@@ -78,19 +80,19 @@ pub fn handle_execute_script(page: &Rc<Page>,
     reply.send(result).unwrap();
 }
 
-pub fn handle_execute_async_script(page: &Rc<Page>,
+pub fn handle_execute_async_script(context: &Root<BrowsingContext>,
                                    pipeline: PipelineId,
                                    eval: String,
                                    reply: IpcSender<WebDriverJSResult>) {
-    let page = get_page(&*page, pipeline);
-    let window = page.window();
+    let context = get_browsing_context(&context, pipeline);
+    let window = context.active_window();
     let cx = window.get_cx();
     window.set_webdriver_script_chan(Some(reply));
     let mut rval = RootedValue::new(cx, UndefinedValue());
     window.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 }
 
-pub fn handle_get_frame_id(page: &Rc<Page>,
+pub fn handle_get_frame_id(context: &Root<BrowsingContext>,
                            pipeline: PipelineId,
                            webdriver_frame_id: WebDriverFrameId,
                            reply: IpcSender<Result<Option<PipelineId>, ()>>) {
@@ -100,7 +102,7 @@ pub fn handle_get_frame_id(page: &Rc<Page>,
             Ok(None)
         },
         WebDriverFrameId::Element(x) => {
-            match find_node_by_unique_id(page, pipeline, x) {
+            match find_node_by_unique_id(&context, pipeline, x) {
                 Some(ref node) => {
                     match node.downcast::<HTMLIFrameElement>() {
                         Some(ref elem) => Ok(elem.GetContentWindow()),
@@ -111,7 +113,7 @@ pub fn handle_get_frame_id(page: &Rc<Page>,
             }
         },
         WebDriverFrameId::Parent => {
-            let window = page.window();
+            let window = context.active_window();
             Ok(window.parent())
         }
     };
@@ -120,9 +122,9 @@ pub fn handle_get_frame_id(page: &Rc<Page>,
     reply.send(frame_id).unwrap()
 }
 
-pub fn handle_find_element_css(page: &Rc<Page>, _pipeline: PipelineId, selector: String,
+pub fn handle_find_element_css(context: &Root<BrowsingContext>, _pipeline: PipelineId, selector: String,
                                reply: IpcSender<Result<Option<String>, ()>>) {
-    reply.send(match page.document().QuerySelector(DOMString::from(selector)) {
+    reply.send(match context.active_document().QuerySelector(DOMString::from(selector)) {
         Ok(node) => {
             Ok(node.map(|x| x.upcast::<Node>().unique_id()))
         }
@@ -130,11 +132,11 @@ pub fn handle_find_element_css(page: &Rc<Page>, _pipeline: PipelineId, selector:
     }).unwrap();
 }
 
-pub fn handle_find_elements_css(page: &Rc<Page>,
+pub fn handle_find_elements_css(context: &Root<BrowsingContext>,
                                 _pipeline: PipelineId,
                                 selector: String,
                                 reply: IpcSender<Result<Vec<String>, ()>>) {
-    reply.send(match page.document().QuerySelectorAll(DOMString::from(selector)) {
+    reply.send(match context.active_document().QuerySelectorAll(DOMString::from(selector)) {
         Ok(ref nodes) => {
             let mut result = Vec::with_capacity(nodes.Length() as usize);
             for i in 0..nodes.Length() {
@@ -150,11 +152,11 @@ pub fn handle_find_elements_css(page: &Rc<Page>,
     }).unwrap();
 }
 
-pub fn handle_focus_element(page: &Rc<Page>,
+pub fn handle_focus_element(context: &Root<BrowsingContext>,
                             pipeline: PipelineId,
                             element_id: String,
                             reply: IpcSender<Result<(), ()>>) {
-    reply.send(match find_node_by_unique_id(page, pipeline, element_id) {
+    reply.send(match find_node_by_unique_id(&context, pipeline, element_id) {
         Some(ref node) => {
             match node.downcast::<HTMLElement>() {
                 Some(ref elem) => {
@@ -169,22 +171,22 @@ pub fn handle_focus_element(page: &Rc<Page>,
     }).unwrap();
 }
 
-pub fn handle_get_active_element(page: &Rc<Page>,
+pub fn handle_get_active_element(context: &Root<BrowsingContext>,
                                  _pipeline: PipelineId,
                                  reply: IpcSender<Option<String>>) {
-    reply.send(page.document().GetActiveElement().map(
+    reply.send(context.active_document().GetActiveElement().map(
         |elem| elem.upcast::<Node>().unique_id())).unwrap();
 }
 
-pub fn handle_get_title(page: &Rc<Page>, _pipeline: PipelineId, reply: IpcSender<String>) {
-    reply.send(String::from(page.document().Title())).unwrap();
+pub fn handle_get_title(context: &Root<BrowsingContext>, _pipeline: PipelineId, reply: IpcSender<String>) {
+    reply.send(String::from(context.active_document().Title())).unwrap();
 }
 
-pub fn handle_get_rect(page: &Rc<Page>,
+pub fn handle_get_rect(context: &Root<BrowsingContext>,
                        pipeline: PipelineId,
                        element_id: String,
                        reply: IpcSender<Result<Rect<f64>, ()>>) {
-    reply.send(match find_node_by_unique_id(&*page, pipeline, element_id) {
+    reply.send(match find_node_by_unique_id(&context, pipeline, element_id) {
         Some(elem) => {
             // https://w3c.github.io/webdriver/webdriver-spec.html#dfn-calculate-the-absolute-position
             match elem.downcast::<HTMLElement>() {
@@ -218,11 +220,11 @@ pub fn handle_get_rect(page: &Rc<Page>,
     }).unwrap();
 }
 
-pub fn handle_get_text(page: &Rc<Page>,
+pub fn handle_get_text(context: &Root<BrowsingContext>,
                        pipeline: PipelineId,
                        node_id: String,
                        reply: IpcSender<Result<String, ()>>) {
-    reply.send(match find_node_by_unique_id(&*page, pipeline, node_id) {
+    reply.send(match find_node_by_unique_id(&context, pipeline, node_id) {
         Some(ref node) => {
             Ok(node.GetTextContent().map_or("".to_owned(), String::from))
         },
@@ -230,11 +232,11 @@ pub fn handle_get_text(page: &Rc<Page>,
     }).unwrap();
 }
 
-pub fn handle_get_name(page: &Rc<Page>,
+pub fn handle_get_name(context: &Root<BrowsingContext>,
                        pipeline: PipelineId,
                        node_id: String,
                        reply: IpcSender<Result<String, ()>>) {
-    reply.send(match find_node_by_unique_id(&*page, pipeline, node_id) {
+    reply.send(match find_node_by_unique_id(&context, pipeline, node_id) {
         Some(node) => {
             Ok(String::from(node.downcast::<Element>().unwrap().TagName()))
         },
@@ -242,12 +244,12 @@ pub fn handle_get_name(page: &Rc<Page>,
     }).unwrap();
 }
 
-pub fn handle_get_attribute(page: &Rc<Page>,
+pub fn handle_get_attribute(context: &Root<BrowsingContext>,
                             pipeline: PipelineId,
                             node_id: String,
                             name: String,
                             reply: IpcSender<Result<Option<String>, ()>>) {
-    reply.send(match find_node_by_unique_id(&*page, pipeline, node_id) {
+    reply.send(match find_node_by_unique_id(&context, pipeline, node_id) {
         Some(node) => {
             Ok(node.downcast::<Element>().unwrap().GetAttribute(DOMString::from(name))
                .map(String::from))
@@ -256,14 +258,14 @@ pub fn handle_get_attribute(page: &Rc<Page>,
     }).unwrap();
 }
 
-pub fn handle_get_css(page: &Rc<Page>,
+pub fn handle_get_css(context: &Root<BrowsingContext>,
                       pipeline: PipelineId,
                       node_id: String,
                       name: String,
                       reply: IpcSender<Result<String, ()>>) {
-    reply.send(match find_node_by_unique_id(&*page, pipeline, node_id) {
+    reply.send(match find_node_by_unique_id(&context, pipeline, node_id) {
         Some(node) => {
-            let window = page.window();
+            let window = context.active_window();
             let elem = node.downcast::<Element>().unwrap();
             Ok(String::from(
                 window.GetComputedStyle(&elem, None).GetPropertyValue(DOMString::from(name))))
@@ -272,27 +274,27 @@ pub fn handle_get_css(page: &Rc<Page>,
     }).unwrap();
 }
 
-pub fn handle_get_url(page: &Rc<Page>,
+pub fn handle_get_url(context: &Root<BrowsingContext>,
                       _pipeline: PipelineId,
                       reply: IpcSender<Url>) {
-    let document = page.document();
+    let document = context.active_document();
     let url = document.url();
     reply.send((*url).clone()).unwrap();
 }
 
-pub fn handle_get_window_size(page: &Rc<Page>,
+pub fn handle_get_window_size(context: &Root<BrowsingContext>,
                               _pipeline: PipelineId,
                               reply: IpcSender<Option<WindowSizeData>>) {
-    let window = page.window();
+    let window = context.active_window();
     let size = window.window_size();
     reply.send(size).unwrap();
 }
 
-pub fn handle_is_enabled(page: &Rc<Page>,
+pub fn handle_is_enabled(context: &Root<BrowsingContext>,
                          pipeline: PipelineId,
                          element_id: String,
                          reply: IpcSender<Result<bool, ()>>) {
-    reply.send(match find_node_by_unique_id(page, pipeline, element_id) {
+    reply.send(match find_node_by_unique_id(&context, pipeline, element_id) {
         Some(ref node) => {
             match node.downcast::<Element>() {
                 Some(elem) => Ok(elem.enabled_state()),
@@ -303,11 +305,11 @@ pub fn handle_is_enabled(page: &Rc<Page>,
     }).unwrap();
 }
 
-pub fn handle_is_selected(page: &Rc<Page>,
+pub fn handle_is_selected(context: &Root<BrowsingContext>,
                           pipeline: PipelineId,
                           element_id: String,
                           reply: IpcSender<Result<bool, ()>>) {
-    reply.send(match find_node_by_unique_id(page, pipeline, element_id) {
+    reply.send(match find_node_by_unique_id(&context, pipeline, element_id) {
         Some(ref node) => {
             if let Some(input_element) = node.downcast::<HTMLInputElement>() {
                 Ok(input_element.Checked())
