@@ -61,12 +61,22 @@
 // http://www.w3.org/TR/css3-flexbox/
 
 // Flex container properties
-${helpers.single_keyword("flex-direction", "row row-reverse column column-reverse", experimental=True)}
+${helpers.single_keyword("flex-direction", "row row-reverse column column-reverse")}
+
+${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse")}
+
+${helpers.single_keyword("justify-content", "flex-start flex-end center space-between space-around")}
+
+${helpers.single_keyword("align-items", "stretch flex-start flex-end center baseline")}
+
+${helpers.single_keyword("align-content", "stretch flex-start flex-end center space-between space-around")}
 
 // Flex item properties
-${helpers.predefined_type("flex-grow", "Number", "0.0", "parse_non_negative", products="gecko")}
+${helpers.predefined_type("flex-grow", "Number", "0.0", "parse_non_negative")}
 
-${helpers.predefined_type("flex-shrink", "Number", "1.0", "parse_non_negative", products="gecko")}
+${helpers.predefined_type("flex-shrink", "Number", "1.0", "parse_non_negative")}
+
+${helpers.single_keyword("align-self", "auto stretch flex-start flex-end center baseline")}
 
 // https://drafts.csswg.org/css-flexbox/#propdef-order
 <%helpers:longhand name="order">
@@ -93,8 +103,6 @@ ${helpers.predefined_type("flex-shrink", "Number", "1.0", "parse_non_negative", 
 ${helpers.predefined_type("flex-basis",
                           "LengthOrPercentageOrAutoOrContent",
                           "computed::LengthOrPercentageOrAutoOrContent::Auto")}
-
-${helpers.single_keyword("flex-wrap", "nowrap wrap wrap-reverse", products="gecko")}
 
 ${helpers.predefined_type("width",
                           "LengthOrPercentageOrAuto",
