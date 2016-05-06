@@ -343,6 +343,16 @@ pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut Ser
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_InheritComputedValues(parent_style: *mut ServoComputedValues)
+     -> *mut ServoComputedValues {
+    type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
+    Helpers::with(parent_style, |parent| {
+        let style = GeckoComputedValues::inherit_from(parent);
+        Helpers::from(style)
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_AddRefComputedValues(ptr: *mut ServoComputedValues) -> () {
     type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
     unsafe { Helpers::addref(ptr) };
