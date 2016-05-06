@@ -1,5 +1,5 @@
 <!doctype html>
-<title>document.characterSet and inputEncoding normalization tests</title>
+<title>document.characterSet (inputEncoding and charset as aliases) normalization tests</title>
 <link rel=author title="Aryeh Gregor" href=ayg@aryeh.name>
 <meta name=timeout content=long>
 <div id=log></div>
@@ -11,7 +11,7 @@
 
 // Taken straight from https://encoding.spec.whatwg.org/
 var encodingMap = {
-  "utf-8": [
+  "UTF-8": [
     "unicode-1-1-utf-8",
     "utf-8",
     "utf8",
@@ -21,13 +21,13 @@ var encodingMap = {
     "utf-16le",
     "utf-16be",
   ],
-  "ibm866": [
+  "IBM866": [
     "866",
     "cp866",
     "csibm866",
     "ibm866",
   ],
-  "iso-8859-2": [
+  "ISO-8859-2": [
     "csisolatin2",
     "iso-8859-2",
     "iso-ir-101",
@@ -38,7 +38,7 @@ var encodingMap = {
     "l2",
     "latin2",
   ],
-  "iso-8859-3": [
+  "ISO-8859-3": [
     "csisolatin3",
     "iso-8859-3",
     "iso-ir-109",
@@ -49,7 +49,7 @@ var encodingMap = {
     "l3",
     "latin3",
   ],
-  "iso-8859-4": [
+  "ISO-8859-4": [
     "csisolatin4",
     "iso-8859-4",
     "iso-ir-110",
@@ -60,7 +60,7 @@ var encodingMap = {
     "l4",
     "latin4",
   ],
-  "iso-8859-5": [
+  "ISO-8859-5": [
     "csisolatincyrillic",
     "cyrillic",
     "iso-8859-5",
@@ -70,7 +70,7 @@ var encodingMap = {
     "iso_8859-5",
     "iso_8859-5:1988",
   ],
-  "iso-8859-6": [
+  "ISO-8859-6": [
     "arabic",
     "asmo-708",
     "csiso88596e",
@@ -86,7 +86,7 @@ var encodingMap = {
     "iso_8859-6",
     "iso_8859-6:1987",
   ],
-  "iso-8859-7": [
+  "ISO-8859-7": [
     "csisolatingreek",
     "ecma-118",
     "elot_928",
@@ -100,7 +100,7 @@ var encodingMap = {
     "iso_8859-7:1987",
     "sun_eu_greek",
   ],
-  "iso-8859-8": [
+  "ISO-8859-8": [
     "csiso88598e",
     "csisolatinhebrew",
     "hebrew",
@@ -113,12 +113,12 @@ var encodingMap = {
     "iso_8859-8:1988",
     "visual",
   ],
-  "iso-8859-8-i": [
+  "ISO-8859-8-I": [
     "csiso88598i",
     "iso-8859-8-i",
     "logical",
   ],
-  "iso-8859-10": [
+  "ISO-8859-10": [
     "csisolatin6",
     "iso-8859-10",
     "iso-ir-157",
@@ -127,17 +127,17 @@ var encodingMap = {
     "l6",
     "latin6",
   ],
-  "iso-8859-13": [
+  "ISO-8859-13": [
     "iso-8859-13",
     "iso8859-13",
     "iso885913",
   ],
-  "iso-8859-14": [
+  "ISO-8859-14": [
     "iso-8859-14",
     "iso8859-14",
     "iso885914",
   ],
-  "iso-8859-15": [
+  "ISO-8859-15": [
     "csisolatin9",
     "iso-8859-15",
     "iso8859-15",
@@ -145,17 +145,18 @@ var encodingMap = {
     "iso_8859-15",
     "l9",
   ],
-  "iso-8859-16": [
+  "ISO-8859-16": [
     "iso-8859-16",
   ],
-  "koi8-r": [
+  "KOI8-R": [
     "cskoi8r",
     "koi",
     "koi8",
     "koi8-r",
     "koi8_r",
   ],
-  "koi8-u": [
+  "KOI8-U": [
+    "koi8-ru",
     "koi8-u",
   ],
   "macintosh": [
@@ -247,7 +248,7 @@ var encodingMap = {
     "x-mac-cyrillic",
     "x-mac-ukrainian",
   ],
-  "gbk": [
+  "GBK": [
     "chinese",
     "csgb2312",
     "csiso58gb231280",
@@ -261,26 +262,23 @@ var encodingMap = {
   "gb18030": [
     "gb18030",
   ],
-  "hz-gb-2312": [
-    "hz-gb-2312",
-  ],
-  "big5": [
+  "Big5": [
     "big5",
     "big5-hkscs",
     "cn-big5",
     "csbig5",
     "x-x-big5",
   ],
-  "euc-jp": [
+  "EUC-JP": [
     "cseucpkdfmtjapanese",
     "euc-jp",
     "x-euc-jp",
   ],
-  "iso-2022-jp": [
+  "ISO-2022-JP": [
     "csiso2022jp",
     "iso-2022-jp",
   ],
-  "shift_jis": [
+  "Shift_JIS": [
     "csshiftjis",
     "ms932",
     "ms_kanji",
@@ -290,7 +288,7 @@ var encodingMap = {
     "windows-31j",
     "x-sjis",
   ],
-  "euc-kr": [
+  "EUC-KR": [
     "cseuckr",
     "csksc56011987",
     "euc-kr",
@@ -304,6 +302,7 @@ var encodingMap = {
   ],
   "replacement": [
     "csiso2022kr",
+    "hz-gb-2312",
     "iso-2022-cn",
     "iso-2022-cn-ext",
     "iso-2022-kr",
@@ -342,16 +341,6 @@ Object.keys(encodingMap).forEach(function(name) {
   }
 });
 
-function expected_case(encoding_label) {
-  if (encoding_label === 'big5') {
-    return 'Big5';
-  }
-  if (encoding_label === 'shift_jis') {
-    return 'Shift_JIS';
-  }
-  return encoding_label.toUpperCase();
-}
-
 Object.keys(encodingMap).forEach(function(name) {
   encodingMap[name].forEach(function(label) {
     var iframe = document.createElement("iframe");
@@ -361,20 +350,16 @@ Object.keys(encodingMap).forEach(function(name) {
                        " has label " + format_value(label) + " (inputEncoding)");
     var t3 = async_test("Name " + format_value(name) +
                        " has label " + format_value(label) + " (charset)");
-    /*
-    iframe.src = "data:text/html,<!doctype html>" +
-                 '<meta charset="' + label + '">';
-    */
     iframe.src = "encoding.py?label=" + label;
     iframe.onload = function() {
       t.step(function() {
-        assert_equals(iframe.contentDocument.characterSet, expected_case(name));
+        assert_equals(iframe.contentDocument.characterSet, name);
       });
       t2.step(function() {
-        assert_equals(iframe.contentDocument.inputEncoding, expected_case(name));
+        assert_equals(iframe.contentDocument.inputEncoding, name);
       });
       t3.step(function() {
-        assert_equals(iframe.contentDocument.charset, expected_case(name));
+        assert_equals(iframe.contentDocument.charset, name);
       });
       document.body.removeChild(iframe);
       t.done();

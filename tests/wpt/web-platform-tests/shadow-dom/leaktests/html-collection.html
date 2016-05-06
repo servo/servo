@@ -20,7 +20,8 @@
   <script></script>
 </template>
 <div id='doc'></div>
-<div id='host'></div>
+<div id='host-open'></div>
+<div id='host-closed'></div>
 </body>
 <script>
 'use strict';
@@ -41,9 +42,13 @@ var doc = document.getElementById('doc');
 fillTemplate(doc, 'doc-');
 
 // Construct shadow subtree with 'shadow-*' ids.
-var host = document.getElementById('host');
+var host = document.getElementById('host-open');
 var shadow = host.attachShadow({mode: 'open'});
-fillTemplate(shadow, 'shadow-');
+fillTemplate(shadow, 'shadow-open-');
+
+host = document.getElementById('host-closed');
+shadow = host.attachShadow({mode: 'closed'});
+fillTemplate(shadow, 'shadow-closed-');
 
 function testCollection(collection) {
     var elements = document[collection];
