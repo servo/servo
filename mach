@@ -6,7 +6,11 @@
 # The beginning of this script is both valid shell and valid python,
 # such that the script starts with the shell and is reexecuted with
 # the right python.
-'''which' python2.7 > /dev/null && exec python2.7 "$0" "$@" || exec python "$0" "$@"
+'''true'
+HERE=`readlink -f $0`
+HERE=`dirname $HERE`
+export PYTHONUSERBASE=$HERE/python/_virtualenv
+which python2.7 > /dev/null && exec python2.7 "$0" "$@" || exec python "$0" "$@"
 '''
 
 from __future__ import print_function, unicode_literals
@@ -15,11 +19,19 @@ import os
 import sys
 
 def main(args):
-    topdir = os.path.dirname(sys.argv[0])
+    topdir = os.path.dirname(args[0])
+    try:
+        import mach.main as _dummy
+    except ImportError:
+        import pip
+        requirements = os.path.join(topdir, 'python', 'requirements.txt')
+        pip.main(['install', '--user', '-r', requirements])
+        python = sys.executable
+        os.execl(python, python, *sys.argv)
     sys.path.insert(0, os.path.join(topdir, "python"))
     import mach_bootstrap
     mach = mach_bootstrap.bootstrap(topdir)
-    sys.exit(mach.run(sys.argv[1:]))
+    sys.exit(mach.run(args[1:]))
 
 if __name__ == '__main__':
     main(sys.argv)
