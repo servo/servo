@@ -96,6 +96,7 @@ export RUST_BACKTRACE=1
   -match "nsCSSScanner.h"                                           \
   -match "Types.h"                                                  \
   -match "utility"                                                  \
+  -match "pair"                                                     \
   -match "SheetParsingMode.h"                                       \
   -blacklist-type "IsDestructibleFallbackImpl"                      \
   -blacklist-type "IsDestructibleFallback"                          \
