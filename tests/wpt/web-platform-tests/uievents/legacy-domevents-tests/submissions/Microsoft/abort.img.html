@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title> W3C DOM Level 3 Event: abort </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+                window.localStorage.TestResult = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+                window.localStorage.TestResult = "FAIL";
+            }
+
+            function TestCapture(evt)
+            {
+                if ((evt.currentTarget == TARGET) && (evt.type == EVENT))
+                {
+                    PassTest();
+                }
+                else
+                {
+                    FailTest();
+                }
+            }
+
+            function ReloadPage()
+            {
+                var LINK = document.getElementById("link");
+                LINK.href = "abort.img.html";
+                LINK.firstChild.data = "Click here to reload the page and test again.";
+                PARENT.firstChild.data = "Image loaded below. The above link should be clicked before image loads."
+            }
+        </script>
+    </head>
+    <body>
+        <h4>
+            Test Description:
+            The abort event fires when the loading of a resource has been aborted.
+        </h4>
+
+        <h3><a id="link" href="abort.testresult.html">Before image is loaded below, click here.</a></h3>
+
+        <div id="parent">Loading...<br></div>
+
+        <p>Test passes if the word "PASS" appears below.</p>
+           <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+
+        <script type="text/javascript">
+            try
+            {
+                window.localStorage.clear();
+
+                var EVENT = "abort";
+                var PARENT = document.getElementById("parent");
+                var TARGET = document.createElement("img");
+                TARGET.width = "400";
+                TARGET.height = "400";
+                TARGET.src = "./support/iepreview10mb.png?" + (new Date()).valueOf();
+                PARENT.appendChild(TARGET);
+                TARGET.onload = ReloadPage;
+                TARGET.addEventListener(EVENT, TestCapture, true);
+            }
+            catch(ex)
+            {
+                FailTest();
+            }
+        </script>
+    </body>
+</html>

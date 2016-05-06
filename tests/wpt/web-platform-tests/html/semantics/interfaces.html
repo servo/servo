@@ -9,9 +9,16 @@
 <script src=interfaces.js></script>
 <div id="log"></div>
 <script>
-function do_test(local_name, iface) {
+function do_test(local_name, iface, variant) {
   test(function() {
-    var e = document.createElement(local_name), i = "HTML" + iface + "Element";
+    var e;
+    var i = "HTML" + iface + "Element";
+    if (variant === "useNS") {
+      // Use createElementNS here to preserve the case of local_name.
+      e = document.createElementNS("http://www.w3.org/1999/xhtml", local_name);
+    } else {
+      e = document.createElement(local_name);
+    }
     assert_class_string(e, i,
                         "Element " + local_name + " should have " + i +
                         " as its primary interface.");
@@ -27,7 +34,13 @@ function do_test(local_name, iface) {
 }
 
 elements.forEach(function(a) {
-  do_test(a[0], a[1]);
-  do_test(a[0].toUpperCase(), a[1]);
+  do_test(a[0], a[1], "useNS");
+
+  // Only run the createElement variant if the input is all-lowercase, because createElement
+  // case-folds to lowercase. Custom elements are required to use all-lowercase to implement
+  // HTMLElement, otherwise they use HTMLUnknownElement per spec. Example: "foo-BAR".
+  if (a[0] === a[0].toLowerCase()) {
+    do_test(a[0].toUpperCase(), a[1]);
+  }
 })
 </script>
