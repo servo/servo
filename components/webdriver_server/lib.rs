@@ -14,6 +14,8 @@ extern crate compositing;
 extern crate hyper;
 extern crate image;
 extern crate ipc_channel;
+#[macro_use]
+extern crate log;
 extern crate msg;
 extern crate regex;
 extern crate rustc_serialize;
@@ -297,6 +299,14 @@ impl Handler {
             Err(WebDriverError::new(ErrorStatus::UnknownError,
                                     "Session already created"))
         }
+    }
+
+    fn handle_delete_session(&mut self) -> WebDriverResult<WebDriverResponse> {
+        if let Err(e) = self.constellation_chan.send(ConstellationMsg::Exit) {
+            warn!("Webdriver failed to send exit message ({}).", e);
+        }
+        self.session = None;
+        Ok(WebDriverResponse::Void)
     }
 
     #[inline]
@@ -767,6 +777,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
 
         match msg.command {
             WebDriverCommand::NewSession => self.handle_new_session(),
+            WebDriverCommand::DeleteSession => self.handle_delete_session(),
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
             WebDriverCommand::GetCurrentUrl => self.handle_current_url(),
             WebDriverCommand::GetWindowSize => self.handle_window_size(),
