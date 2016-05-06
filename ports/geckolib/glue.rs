@@ -343,6 +343,19 @@ pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut Ser
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_GetComputedValuesForOtherNonElement(parent_style: *mut ServoComputedValues)
+     -> *mut ServoComputedValues {
+    type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
+    Helpers::with(parent_style, |parent| {
+        // Non-elements such as placeholder frames, like text nodes, don't match
+        // any rules, and so just inherit all inherited properties and have
+        // initial values for non-inherited properties.
+        let style = GeckoComputedValues::style_for_child_text_node(parent);
+        Helpers::from(style)
+    })
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_AddRefComputedValues(ptr: *mut ServoComputedValues) -> () {
     type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
     unsafe { Helpers::addref(ptr) };
