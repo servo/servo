@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
@@ -22,27 +23,48 @@ use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass, J
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHandle};
 use js::jsapi::{MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
 use js::jsval::{UndefinedValue, PrivateValue};
+use msg::constellation_msg::{PipelineId, SubpageId};
+use std::cell::Cell;
+use url::Url;
+use util::str::DOMString;
 
 #[dom_struct]
 pub struct BrowsingContext {
     reflector: Reflector,
+
+    /// Pipeline id associated with this context.
+    id: PipelineId,
+
+    /// Indicates if reflow is required when reloading.
+    needs_reflow: Cell<bool>,
+
+    /// Stores this context's session history
     history: DOMRefCell<Vec<SessionHistoryEntry>>,
-    active_index: usize,
+
+    /// The index of the active session history entry
+    active_index: Cell<usize>,
+
+    /// Stores the child browsing contexts (ex. iframe browsing context)
+    children: DOMRefCell<Vec<JS<BrowsingContext>>>,
+
     frame_element: Option<JS<Element>>,
 }
 
 impl BrowsingContext {
-    pub fn new_inherited(frame_element: Option<&Element>) -> BrowsingContext {
+    pub fn new_inherited(frame_element: Option<&Element>, id: PipelineId) -> BrowsingContext {
         BrowsingContext {
             reflector: Reflector::new(),
+            id: id,
+            needs_reflow: Cell::new(true),
             history: DOMRefCell::new(vec![]),
-            active_index: 0,
+            active_index: Cell::new(0),
+            children: DOMRefCell::new(vec![]),
             frame_element: frame_element.map(JS::from_ref),
         }
     }
 
     #[allow(unsafe_code)]
-    pub fn new(window: &Window, frame_element: Option<&Element>) -> Root<BrowsingContext> {
+    pub fn new(window: &Window, frame_element: Option<&Element>, id: PipelineId) -> Root<BrowsingContext> {
         unsafe {
             let WindowProxyHandler(handler) = window.windowproxy_handler();
             assert!(!handler.is_null());
@@ -57,7 +79,7 @@ impl BrowsingContext {
                 NewWindowProxy(cx, parent, handler));
             assert!(!window_proxy.ptr.is_null());
 
-            let object = box BrowsingContext::new_inherited(frame_element);
+            let object = box BrowsingContext::new_inherited(frame_element, id);
 
             let raw = Box::into_raw(object);
             SetProxyExtra(window_proxy.ptr, 0, &PrivateValue(raw as *const _));
@@ -70,12 +92,20 @@ impl BrowsingContext {
 
     pub fn init(&self, document: &Document) {
         assert!(self.history.borrow().is_empty());
-        assert_eq!(self.active_index, 0);
-        self.history.borrow_mut().push(SessionHistoryEntry::new(document));
+        assert_eq!(self.active_index.get(), 0);
+        self.history.borrow_mut().push(SessionHistoryEntry::new(document, document.url().clone(), document.Title()));
+    }
+
+    pub fn push_history(&self, document: &Document) {
+        let mut history = self.history.borrow_mut();
+        // Clear all session history entries after the active index
+        history.drain((self.active_index.get() + 1)..);
+        history.push(SessionHistoryEntry::new(document, document.url().clone(), document.Title()));
+        self.active_index.set(self.active_index.get() + 1);
     }
 
     pub fn active_document(&self) -> Root<Document> {
-        Root::from_ref(&*self.history.borrow()[self.active_index].document)
+        Root::from_ref(&self.history.borrow()[self.active_index.get()].document)
     }
 
     pub fn active_window(&self) -> Root<Window> {
@@ -91,6 +121,92 @@ impl BrowsingContext {
         assert!(!window_proxy.get().is_null());
         window_proxy.get()
     }
+
+    pub fn remove(&self, id: PipelineId) -> Option<Root<BrowsingContext>> {
+        let remove_idx = self.children
+                             .borrow()
+                             .iter()
+                             .position(|context| context.id == id);
+        match remove_idx {
+            Some(idx) => Some(Root::from_ref(&*self.children.borrow_mut().remove(idx))),
+            None => {
+                self.children
+                    .borrow_mut()
+                    .iter_mut()
+                    .filter_map(|context| context.remove(id))
+                    .next()
+            }
+        }
+    }
+
+    pub fn set_reflow_status(&self, status: bool) -> bool {
+        let old = self.needs_reflow.get();
+        self.needs_reflow.set(status);
+        old
+    }
+
+    pub fn pipeline(&self) -> PipelineId {
+        self.id
+    }
+
+    pub fn push_child_context(&self, context: &BrowsingContext) {
+        self.children.borrow_mut().push(JS::from_ref(&context));
+    }
+
+    pub fn find_child_by_subpage(&self, subpage_id: SubpageId) -> Option<Root<Window>> {
+        self.children.borrow().iter().find(|context| {
+            let window = context.active_window();
+            window.subpage() == Some(subpage_id)
+        }).map(|context| context.active_window())
+    }
+
+    pub fn clear_session_history(&self) {
+        self.active_index.set(0);
+        self.history.borrow_mut().clear();
+    }
+}
+
+pub struct ContextIterator {
+    stack: Vec<Root<BrowsingContext>>,
+}
+
+pub trait IterableContext {
+    fn iter(&self) -> ContextIterator;
+    fn find(&self, id: PipelineId) -> Option<Root<BrowsingContext>>;
+}
+
+impl IterableContext for BrowsingContext {
+    fn iter(&self) -> ContextIterator {
+        ContextIterator {
+            stack: vec!(Root::from_ref(self)),
+        }
+    }
+
+    fn find(&self, id: PipelineId) -> Option<Root<BrowsingContext>> {
+        if self.id == id {
+            return Some(Root::from_ref(self));
+        }
+
+        self.children.borrow()
+                     .iter()
+                     .filter_map(|c| c.find(id))
+                     .next()
+    }
+}
+
+impl Iterator for ContextIterator {
+    type Item = Root<BrowsingContext>;
+
+    fn next(&mut self) -> Option<Root<BrowsingContext>> {
+        let popped = self.stack.pop();
+        if let Some(ref context) = popped {
+            self.stack.extend(context.children.borrow()
+                                              .iter()
+                                              .cloned()
+                                              .map(|ref c| Root::from_ref(&**c)));
+        }
+        popped
+    }
 }
 
 // This isn't a DOM struct, just a convenience struct
@@ -100,14 +216,16 @@ impl BrowsingContext {
 #[derive(JSTraceable, HeapSizeOf)]
 pub struct SessionHistoryEntry {
     document: JS<Document>,
-    children: Vec<JS<BrowsingContext>>,
+    url: Url,
+    title: DOMString,
 }
 
 impl SessionHistoryEntry {
-    fn new(document: &Document) -> SessionHistoryEntry {
+    fn new(document: &Document, url: Url, title: DOMString) -> SessionHistoryEntry {
         SessionHistoryEntry {
             document: JS::from_ref(document),
-            children: vec![],
+            url: url,
+            title: title,
         }
     }
 }

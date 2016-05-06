@@ -51,7 +51,6 @@ use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::storage_thread::{StorageThread, StorageType};
 use num_traits::ToPrimitive;
-use page::Page;
 use profile_traits::mem;
 use reporter::CSSErrorReporter;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
@@ -151,7 +150,6 @@ pub struct Window {
     #[ignore_heap_size_of = "TODO(#6911) newtypes containing unmeasurable types are hard"]
     compositor: IpcSender<ScriptToCompositorMsg>,
     browsing_context: MutNullableHeap<JS<BrowsingContext>>,
-    page: Rc<Page>,
     performance: MutNullableHeap<JS<Performance>>,
     navigation_start: u64,
     navigation_start_precise: f64,
@@ -335,10 +333,6 @@ impl Window {
 
     pub fn browsing_context(&self) -> Root<BrowsingContext> {
         self.browsing_context.get().unwrap()
-    }
-
-    pub fn page(&self) -> &Page {
-        &*self.page
     }
 
     pub fn bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
@@ -1420,7 +1414,6 @@ impl Window {
 
 impl Window {
     pub fn new(runtime: Rc<Runtime>,
-               page: Rc<Page>,
                script_chan: MainThreadScriptChan,
                dom_task_source: DOMManipulationTaskSource,
                user_task_source: UserInteractionTaskSource,
@@ -1467,7 +1460,6 @@ impl Window {
             console: Default::default(),
             crypto: Default::default(),
             compositor: compositor,
-            page: page,
             navigator: Default::default(),
             image_cache_thread: image_cache_thread,
             mem_profiler_chan: mem_profiler_chan,
