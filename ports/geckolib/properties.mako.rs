@@ -44,6 +44,24 @@ pub struct GeckoComputedValues {
     pub root_font_size: Au,
 }
 
+impl GeckoComputedValues {
+    pub fn inherit_from(parent: &Arc<Self>) -> Arc<Self> {
+        Arc::new(GeckoComputedValues {
+            custom_properties: parent.custom_properties.clone(),
+            shareable: parent.shareable,
+            writing_mode: parent.writing_mode,
+            root_font_size: parent.root_font_size,
+            % for style_struct in data.style_structs:
+            % if style_struct.inherited:
+            ${style_struct.ident}: parent.${style_struct.ident}.clone(),
+            % else:
+            ${style_struct.ident}: Self::initial_values().${style_struct.ident}.clone(),
+            % endif
+            % endfor
+        })
+    }
+}
+
 impl ComputedValues for GeckoComputedValues {
 % for style_struct in data.style_structs:
     type Concrete${style_struct.trait_name} = ${style_struct.gecko_struct_name};
@@ -76,19 +94,7 @@ impl ComputedValues for GeckoComputedValues {
         // Gecko expects text nodes to be styled as if they were elements that
         // matched no rules (that is, inherited style structs are inherited and
         // non-inherited style structs are set to their initial values).
-        Arc::new(GeckoComputedValues {
-            custom_properties: parent.custom_properties.clone(),
-            shareable: parent.shareable,
-            writing_mode: parent.writing_mode,
-            root_font_size: parent.root_font_size,
-            % for style_struct in data.style_structs:
-            % if style_struct.inherited:
-            ${style_struct.ident}: parent.${style_struct.ident}.clone(),
-            % else:
-            ${style_struct.ident}: Self::initial_values().${style_struct.ident}.clone(),
-            % endif
-            % endfor
-        })
+        GeckoComputedValues::inherit_from(parent)
     }
 
     fn initial_values() -> &'static Self { &*INITIAL_GECKO_VALUES }

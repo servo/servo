@@ -104,6 +104,8 @@ extern "C" {
                                                    set: *mut RawServoStyleSet,
                                                    is_probe: bool)
      -> *mut ServoComputedValues;
+    pub fn Servo_InheritComputedValues(parent_style: *mut ServoComputedValues)
+     -> *mut ServoComputedValues;
     pub fn Servo_AddRefComputedValues(arg1: *mut ServoComputedValues);
     pub fn Servo_ReleaseComputedValues(arg1: *mut ServoComputedValues);
     pub fn Gecko_GetAttrAsUTF8(element: *mut RawGeckoElement, ns: *const u8, nslen: u32,
