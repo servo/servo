@@ -33,6 +33,12 @@ impl CloseEvent {
         }
     }
 
+    pub fn new_uninitialized(global: GlobalRef) -> Root<CloseEvent> {
+        reflect_dom_object(box CloseEvent::new_inherited(false, 0, DOMString::new()),
+                           global,
+                           CloseEventBinding::Wrap)
+    }
+
     pub fn new(global: GlobalRef,
                type_: Atom,
                bubbles: EventBubbles,
@@ -66,6 +72,7 @@ impl CloseEvent {
                            init.code,
                            init.reason.clone()))
     }
+
 }
 
 impl CloseEventMethods for CloseEvent {
