@@ -299,6 +299,11 @@ impl Handler {
         }
     }
 
+    fn handle_delete_session(&mut self) -> WebDriverResult<WebDriverResponse> {
+        self.session = None;
+        Ok(WebDriverResponse::Void)
+    }
+
     #[inline]
     fn frame_script_command(&self, cmd_msg: WebDriverScriptCommand) -> WebDriverResult<()> {
         Ok(self.constellation_chan.send(ConstellationMsg::WebDriverCommand(
@@ -312,11 +317,7 @@ impl Handler {
     }
 
     fn handle_get(&self, parameters: &GetParameters) -> WebDriverResult<WebDriverResponse> {
-        let url = match Url::parse(&parameters.url[..]) {
-            Ok(url) => url,
-            Err(_) => return Err(WebDriverError::new(ErrorStatus::InvalidArgument,
-                                               "Invalid URL"))
-        };
+        let url = Url::parse(&parameters.url[..]).or(Url::parse("about:blank")).unwrap();
 
         let pipeline_id = try!(self.root_pipeline());
 
@@ -767,6 +768,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
 
         match msg.command {
             WebDriverCommand::NewSession => self.handle_new_session(),
+            WebDriverCommand::DeleteSession => self.handle_delete_session(),
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
             WebDriverCommand::GetCurrentUrl => self.handle_current_url(),
             WebDriverCommand::GetWindowSize => self.handle_window_size(),
@@ -809,6 +811,8 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
     }
 
     fn delete_session(&mut self, _session: &Option<Session>) {
+        // Servo doesn't support multiple sessions, so we exit on session deletion
+        let _ = self.constellation_chan.send(ConstellationMsg::Exit);
         self.session = None;
     }
 }
