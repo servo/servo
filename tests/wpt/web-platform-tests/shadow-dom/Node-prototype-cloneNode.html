@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>DOM: cloneNode(deep)</title>
+<meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
+<meta name="assert" content="If context object is a shadow root, then it must throw a NotSupportedError.">
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-node-clonenode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script>
+
+function testCloneNode(mode) {
+    test(function () {
+        assert_throws({'name': 'NotSupportedError'}, function () {
+            var element = document.createElement('div');
+            var shadowRoot = element.attachShadow({mode: mode});
+            shadowRoot.cloneNode(false);
+        }, 'cloneNode(false) on a shadow root in ' + mode + ' mode must throw a NotSupportedError');
+
+        assert_throws({'name': 'NotSupportedError'}, function () {
+            var element = document.createElement('div');
+            var shadowRoot = element.attachShadow({mode: mode});
+            shadowRoot.cloneNode(false);
+        }, 'cloneNode(true) on a closed shadow root must throw a NotSupportedError');
+
+    }, 'cloneNode on a shadow root in ' + mode + ' mode must throw a NotSupportedError');
+}
+
+testCloneNode('open');
+testCloneNode('closed');
+
+test(function () {
+    var element = document.createElement('div');
+    var shadowRoot = element.attachShadow({mode: 'open'});
+
+    assert_equals(element.cloneNode(false).shadowRoot, null, 'cloneNode(false) on an element with an open shadow root should not clone its shadow root');
+    assert_equals(element.cloneNode(true).shadowRoot, null, 'cloneNode(true) on an element with an open shadow root should not clone its shadow root');
+}, 'cloneNode on an element with an open shadow root should not clone its shadow root');
+
+test(function () {
+    var element = document.createElement('div');
+    var shadowRoot = element.attachShadow({mode: 'closed'});
+
+    assert_true(element.cloneNode(false).attachShadow({mode: 'closed'}) instanceof ShadowRoot,
+        'An element returned by cloneNode(false) on an element with a closed shadow root should allow attachShadow');
+
+    assert_true(element.cloneNode(true).attachShadow({mode: 'closed'}) instanceof ShadowRoot,
+        'An element returned by cloneNode(true) on an element with a closed shadow root should allow attachShadow');
+
+}, 'cloneNode on an element with a closed shadow root should not clone its shadow root');
+
+</script>
+</body>
+</html>

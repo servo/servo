@@ -1,0 +1,82 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title> W3C DOM Level 3 Event: load </title>
+        <script type="text/javascript">
+            var PassTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "PASS";
+            }
+
+            var FailTest = function()
+            {
+                document.getElementById("testresult").firstChild.data = "FAIL";
+            }
+
+            function TestCapture(evt)
+            {
+                if (evt.target.tagName == "IMG")
+                {
+                    TARGET = document.getElementById("target");
+
+                    if ((evt.type == EVENT) && (evt.currentTarget == document) && (evt.target == TARGET))
+                    {
+                        TestResult = true;
+                    }
+                    else
+                    {
+                        TestResult = false;
+                    }
+                }
+            }
+
+            var EVENT = "load";
+            var TARGET;
+            var TestResult = false;
+
+            try
+            {
+                document.addEventListener(EVENT, TestCapture, true);
+            }
+            catch(ex)
+            {
+                TestResult = false;
+            }
+
+            window.onload = function()
+            {
+                if (true == TestResult)
+                {
+                    PassTest();
+                }
+                else
+                {
+                    FailTest();
+                }
+            }
+
+            function ReloadPage()
+            {
+                var LINK = document.getElementById("link");
+                LINK.href = "load.image.html";
+                LINK.appendChild(document.createTextNode("Image loading error. Click here to test again."));
+            }
+        </script>
+    </head>
+    <body>
+        <h4>
+            Test Description:
+            load event fires when the DOM implementation finishes loading the resource (such as the document)
+            and any dependent resources (such as images, style sheets, or scripts).
+        </h4>
+
+        <p><a id="link" href=""></a></p>
+
+        <img id="target" src="./support/iepreview.png" width="300" height="300" onerror="ReloadPage()">
+
+        <p>Test passes if the word "PASS" appears below after the above image is loaded.</p>
+           <div>Test result: </div>
+        <div id='testresult'>FAIL</div>
+
+    </body>
+</html>

@@ -30,17 +30,28 @@
           assert_throws("SyntaxError", function() { client.setRequestHeader(name, 'x-value') })
         }, "setRequestHeader should throw with header name " + format_value(invalid_headers[i]) + ".")
       }
+      function try_byte_string(name) {
+        test(function() {
+          var client = new XMLHttpRequest()
+          client.open("GET", "...")
+          assert_throws(new TypeError(), function() { client.setRequestHeader(name, 'x-value') })
+        }, "setRequestHeader should throw with header name " + format_value(invalid_byte_strings[i]) + ".")
+      }
       var invalid_headers = ["(", ")", "<", ">", "@", ",", ";", ":", "\\",
                              "\"", "/", "[", "]", "?", "=", "{", "}", " ",
                              /* HT already tested in the loop below */
-                             "\u007f", "ﾃｽﾄ", "", "t\rt", "t\nt", "t: t", "t:t",
+                             "\u007f", "", "t\rt", "t\nt", "t: t", "t:t",
                              "t<t", "t t", " tt", ":tt", "\ttt", "\vtt", "t\0t",
-                             "t\"t", "t,t", "t;t", "()[]{}", "a?B", "X-ﾃｽﾄ", "a=B"]
+                             "t\"t", "t,t", "t;t", "()[]{}", "a?B", "a=B"]
+      var invalid_byte_strings = ["ﾃｽﾄ", "X-ﾃｽﾄ"]
       for (var i = 0; i < 32; ++i) {
         invalid_headers.push(String.fromCharCode(i))
       }
       for (var i = 0; i < invalid_headers.length; ++i) {
         try_name(invalid_headers[i])
+      }
+      for (var i = 0; i < invalid_byte_strings.length; ++i) {
+        try_byte_string(invalid_byte_strings[i])
       }
 
     </script>

@@ -11,8 +11,6 @@
 <script>
 "use strict";
 
-var keyFrames = { 'marginLeft': ['100px', '200px'] };
-
 function assert_playbackrate(animation,
                              previousAnimationCurrentTime,
                              previousTimelineCurrentTime,
@@ -31,7 +29,7 @@ function assert_playbackrate(animation,
 
 promise_test(function(t) {
   var div = createDiv(t);
-  var animation = div.animate({keyFrames}, 100 * MS_PER_SEC);
+  var animation = div.animate(null, 100 * MS_PER_SEC);
   return animation.ready.then(function() {
     animation.currentTime = 7 * MS_PER_SEC; // ms
     animation.playbackRate = 0.5;
@@ -48,7 +46,7 @@ promise_test(function(t) {
 
 promise_test(function(t) {
   var div = createDiv(t);
-  var animation = div.animate({keyFrames}, 100 * MS_PER_SEC);
+  var animation = div.animate(null, 100 * MS_PER_SEC);
   animation.playbackRate = 2;
   var previousTimelineCurrentTime;
   var previousAnimationCurrentTime;
@@ -66,7 +64,7 @@ promise_test(function(t) {
 
 promise_test(function(t) {
   var div = createDiv(t);
-  var animation = div.animate({keyFrames}, 100 * MS_PER_SEC);
+  var animation = div.animate(null, 100 * MS_PER_SEC);
   animation.playbackRate = 2;
   var previousTimelineCurrentTime;
   var previousAnimationCurrentTime;

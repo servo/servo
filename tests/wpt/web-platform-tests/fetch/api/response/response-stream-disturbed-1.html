@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Consuming Response body after getting a ReadableStream</title>
+    <meta name="help" href="https://fetch.spec.whatwg.org/#response">
+    <meta name="help" href="https://fetch.spec.whatwg.org/#body-mixin">
+    <meta name="author" title="Canon Research France" href="https://www.crf.canon.fr">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+
+function createResponseWithReadableStream(callback) {
+    return fetch("../resources/data.json").then(function(response) {
+        var reader = response.body.getReader();
+        reader.releaseLock();
+        return callback(response);
+    });
+}
+
+promise_test(function() {
+    return createResponseWithReadableStream(function(response) {
+        return response.blob().then(function(blob) {
+            assert_true(blob instanceof Blob);
+        });
+    });
+}, "Getting blob after getting the Response body - not disturbed, not locked");
+
+promise_test(function() {
+    return createResponseWithReadableStream(function(response) {
+        return response.text().then(function(text) {
+            assert_true(text.length > 0);
+        });
+    });
+}, "Getting text after getting the Response body - not disturbed, not locked");
+
+promise_test(function() {
+    return createResponseWithReadableStream(function(response) {
+        return response.json().then(function(json) {
+            assert_true(typeof json === "object");
+        });
+    });
+}, "Getting json after getting the Response body - not disturbed, not locked");
+
+promise_test(function() {
+    return createResponseWithReadableStream(function(response) {
+        return response.arrayBuffer().then(function(arrayBuffer) {
+            assert_true(arrayBuffer.byteLength > 0);
+        });
+    });
+}, "Getting arrayBuffer after getting the Response body - not disturbed, not locked");
+
+    </script>
+  </body>
+</html>

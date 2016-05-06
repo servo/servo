@@ -1557,22 +1557,14 @@ interface HTMLTableRowElement : HTMLElement {
   // also has obsolete members
 };
 
-interface HTMLTableDataCellElement : HTMLTableCellElement {
-  // also has obsolete members
-};
-
-interface HTMLTableHeaderCellElement : HTMLTableCellElement {
-           attribute DOMString scope;
-           attribute DOMString abbr;
-           attribute DOMString sorted;
-  void sort();
-};
-
 interface HTMLTableCellElement : HTMLElement {
-           attribute unsigned long colSpan;
-           attribute unsigned long rowSpan;
-  [PutForwards=value] readonly attribute DOMTokenList headers;
+  [CEReactions] attribute unsigned long colSpan;
+  [CEReactions] attribute unsigned long rowSpan;
+  [CEReactions, SameObject, PutForwards=value] readonly attribute DOMTokenList headers;
   readonly attribute long cellIndex;
+
+  [CEReactions] attribute DOMString scope; // only conforming for th elements
+  [CEReactions] attribute DOMString abbr;  // only conforming for th elements
 
   // also has obsolete members
 };
@@ -1958,6 +1950,15 @@ interface HTMLScriptElement : HTMLElement {
 
 interface HTMLTemplateElement : HTMLElement {
   readonly attribute DocumentFragment content;
+};
+
+interface HTMLSlotElement : HTMLElement {
+  /*[CEReactions]*/ attribute DOMString name;
+  sequence<Node> assignedNodes(optional AssignedNodesOptions options);
+};
+
+dictionary AssignedNodesOptions {
+  boolean flatten = false;
 };
 
 typedef (CanvasRenderingContext2D or WebGLRenderingContext) RenderingContext;
@@ -3128,10 +3129,6 @@ partial interface HTMLTableCellElement {
   [TreatNullAs=EmptyString] attribute DOMString bgColor;
 };
 
-partial interface HTMLTableDataCellElement {
-           attribute DOMString abbr;
-};
-
 partial interface HTMLTableRowElement {
            attribute DOMString align;
            attribute DOMString ch;
@@ -3204,59 +3201,8 @@ window.onload = function() {
     Transferable: [],
     Document: ['iframe.contentDocument', 'new Document()'],
     XMLDocument: ['document.implementation.createDocument(null, "", null)'],
-    HTMLElement: [
-      'document.createElement("noscript")',
-      'document.createElement("section")',
-      'document.createElement("nav")',
-      'document.createElement("article")',
-      'document.createElement("aside")',
-      'document.createElement("hgroup")',
-      'document.createElement("header")',
-      'document.createElement("footer")',
-      'document.createElement("address")',
-      'document.createElement("dt")',
-      'document.createElement("dd")',
-      'document.createElement("figure")',
-      'document.createElement("figcaption")',
-      'document.createElement("em")',
-      'document.createElement("strong")',
-      'document.createElement("small")',
-      'document.createElement("s")',
-      'document.createElement("cite")',
-      'document.createElement("dfn")',
-      'document.createElement("abbr")',
-      'document.createElement("code")',
-      'document.createElement("var")',
-      'document.createElement("samp")',
-      'document.createElement("kbd")',
-      'document.createElement("sub")',
-      'document.createElement("sup")',
-      'document.createElement("i")',
-      'document.createElement("b")',
-      'document.createElement("u")',
-      'document.createElement("mark")',
-      'document.createElement("ruby")',
-      'document.createElement("rt")',
-      'document.createElement("rp")',
-      'document.createElement("bdi")',
-      'document.createElement("bdo")',
-      'document.createElement("wbr")',
-      'document.createElement("summary")',
-      'document.createElement("acronym")',
-    ],
-    HTMLUnknownElement: [
-      'document.createElement("blink")',
-      'document.createElement("quasit")',
-      'document.createElement("bgsound")',
-      'document.createElement("isindex")',
-      'document.createElement("multicol")',
-      'document.createElement("nextid")',
-      'document.createElement("rb")',
-      'document.createElement("spacer")',
-      'document.createElement("basefont")',
-      'document.createElement("directory")',
-      'document.createElement("mod")',
-    ],
+    HTMLElement: ['document.createElement("noscript")'], // more tests in html/semantics/interfaces.js
+    HTMLUnknownElement: ['document.createElement("bgsound")'], // more tests in html/semantics/interfaces.js
     HTMLHtmlElement: ['document.createElement("html")'],
     HTMLHeadElement: ['document.createElement("head")'],
     HTMLTitleElement: ['document.createElement("title")'],
@@ -3266,22 +3212,10 @@ window.onload = function() {
     HTMLStyleElement: ['document.createElement("style")'],
     HTMLScriptElement: ['document.createElement("script")'],
     HTMLBodyElement: ['document.createElement("body")'],
-    HTMLHeadingElement: [
-      'document.createElement("h1")',
-      'document.createElement("h2")',
-      'document.createElement("h3")',
-      'document.createElement("h4")',
-      'document.createElement("h5")',
-      'document.createElement("h6")',
-    ],
+    HTMLHeadingElement: ['document.createElement("h1")'],
     HTMLParagraphElement: ['document.createElement("p")'],
     HTMLHRElement: ['document.createElement("hr")'],
-    HTMLPreElement: [
-      'document.createElement("pre")',
-      'document.createElement("listing")',
-      'document.createElement("plaintext")',
-      'document.createElement("xmp")',
-    ],
+    HTMLPreElement: ['document.createElement("pre")'],
     HTMLQuoteElement: [
       'document.createElement("blockquote")',
       'document.createElement("q")',
@@ -3324,6 +3258,8 @@ window.onload = function() {
     DataCue: [],
     TimeRanges: ['document.createElement("video").buffered'],
     TrackEvent: ['new TrackEvent("addtrack"; {track:document.createElement("track").track})'],
+    HTMLTemplateElement: ['document.createElement("template")'],
+    HTMLSlotElement: ['document.createElement("slot")'],
     HTMLCanvasElement: ['document.createElement("canvas")'],
     CanvasRenderingContext2D: ['document.createElement("canvas").getContext("2d")'],
     CanvasGradient: [],
@@ -3344,9 +3280,10 @@ window.onload = function() {
       'document.createElement("tfoot")',
     ],
     HTMLTableRowElement: ['document.createElement("tr")'],
-    HTMLTableDataCellElement: ['document.createElement("td")'],
-    HTMLTableHeaderCellElement: ['document.createElement("th")'],
-    HTMLTableCellElement: [],
+    HTMLTableCellElement: [
+      'document.createElement("td")',
+      'document.createElement("th")',
+    ],
     HTMLFormElement: ['document.createElement("form")'],
     HTMLFieldsetElement: ['document.createElement("fieldset")'],
     HTMLLegendElement: ['document.createElement("legend")'],
@@ -3364,7 +3301,6 @@ window.onload = function() {
     HTMLMeterElement: ['document.createElement("meter")'],
     ValidityState: ['document.createElement("input").validity'],
     HTMLDetailsElement: ['document.createElement("details")'],
-    HTMLCommandElement: ['document.createElement("command")'],
     HTMLMenuElement: ['document.createElement("menu")'],
     Window: ['window'],
     BarProp: [],
