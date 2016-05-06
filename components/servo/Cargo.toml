@@ -19,7 +19,8 @@ doc = false
 bench = false
 
 [features]
-default = ["glutin_app", "webdriver"]
+default = ["glutin_app", "webdriver", "max_log_level"]
+max_log_level = ["env_logger/log/release_max_level_info"]
 webdriver = ["webdriver_server"]
 energy-profiling = ["profile_traits/energy-profiling"]
 
@@ -75,7 +76,7 @@ libc = "0.2"
 url = {version = "1.0.0", features = ["heap_size", "serde", "query_encoding"]}
 
 [target.'cfg(target_os = "android")'.dependencies]
-log = {version = "0.3", features = ["release_max_level_info"]}
+log = "0.3"
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}
