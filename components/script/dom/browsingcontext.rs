@@ -41,7 +41,7 @@ pub struct BrowsingContext {
     history: DOMRefCell<Vec<SessionHistoryEntry>>,
 
     /// The index of the active session history entry
-    active_index: usize,
+    active_index: Cell<usize>,
 
     /// Stores the child browsing contexts (ex. iframe browsing context)
     children: DOMRefCell<Vec<JS<BrowsingContext>>>,
@@ -56,7 +56,7 @@ impl BrowsingContext {
             id: id,
             needs_reflow: Cell::new(true),
             history: DOMRefCell::new(vec![]),
-            active_index: 0,
+            active_index: Cell::new(0),
             children: DOMRefCell::new(vec![]),
             frame_element: frame_element.map(JS::from_ref),
         }
@@ -91,13 +91,18 @@ impl BrowsingContext {
 
     pub fn init(&self, document: &Document) {
         assert!(self.history.borrow().is_empty());
-        assert_eq!(self.active_index, 0);
+        assert_eq!(self.active_index.get(), 0);
+        self.history.borrow_mut().push(SessionHistoryEntry::new(document, document.url().clone(), document.Title()));
+    }
+
+    pub fn push_history(&self, document: &Document) {
+        self.active_index.set(self.active_index.get() + 1);
         self.history.borrow_mut().push(SessionHistoryEntry::new(document, document.url().clone(), document.Title()));
     }
 
     pub fn active_document(&self) -> Root<Document> {
         self.history.borrow()
-                    .get(self.active_index)
+                    .get(self.active_index.get())
                     .and_then(|ref entry| entry.document.as_ref())
                     .map(|doc| Root::from_ref(&**doc))
                     .expect("There is no active document.")
