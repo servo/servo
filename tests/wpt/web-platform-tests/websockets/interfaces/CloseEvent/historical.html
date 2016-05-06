@@ -6,12 +6,6 @@
 <div id=log></div>
 <script>
 test(function() {
-  assert_throws("NotSupportedError", function() {
-    document.createEvent("CloseEvent")
-  });
-}, "createEvent(\"CloseEvent\")");
-
-test(function() {
   assert_false("initCloseEvent" in CloseEvent.prototype);
   assert_false("initCloseEvent" in new CloseEvent('close'));
 }, "initCloseEvent");
