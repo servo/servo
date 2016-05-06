@@ -310,7 +310,21 @@ partial interface CSSStyleDeclaration {
 
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexDirection;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flex-direction;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexWrap;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flex-wrap;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString justifyContent;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString justify-content;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString alignItems;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString align-items;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString alignContent;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString align-content;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString order;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexBasis;
   [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flex-basis;
-  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString order;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexGrow;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flex-grow;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flexShrink;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString flex-shrink;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString alignSelf;
+  [SetterThrows, TreatNullAs=EmptyString] attribute DOMString align-self;
 };
