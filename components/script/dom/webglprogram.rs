@@ -68,6 +68,16 @@ impl WebGLProgram {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
             let _ = self.renderer.send(CanvasMsg::WebGL(WebGLCommand::DeleteProgram(self.id)));
+
+            match self.fragment_shader.get() {
+                Some(ref shader) => shader.decrement_attached_counter(),
+                _ => {},
+            }
+
+            match self.vertex_shader.get() {
+                Some(ref shader) => shader.decrement_attached_counter(),
+                _ => {},
+            }
         }
     }
 
@@ -118,6 +128,7 @@ impl WebGLProgram {
         }
 
         shader_slot.set(Some(shader));
+        shader.increment_attached_counter();
 
         self.renderer.send(CanvasMsg::WebGL(WebGLCommand::AttachShader(self.id, shader.id()))).unwrap();
 
@@ -144,6 +155,7 @@ impl WebGLProgram {
         }
 
         shader_slot.set(None);
+        shader.decrement_attached_counter();
 
         self.renderer.send(CanvasMsg::WebGL(WebGLCommand::DetachShader(self.id, shader.id()))).unwrap();
 
