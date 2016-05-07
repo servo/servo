@@ -118,6 +118,7 @@ impl WebGLProgram {
         }
 
         shader_slot.set(Some(shader));
+        shader.increment_attached_counter();
 
         self.renderer.send(CanvasMsg::WebGL(WebGLCommand::AttachShader(self.id, shader.id()))).unwrap();
 
@@ -144,6 +145,7 @@ impl WebGLProgram {
         }
 
         shader_slot.set(None);
+        shader.decrement_attached_counter();
 
         self.renderer.send(CanvasMsg::WebGL(WebGLCommand::DetachShader(self.id, shader.id()))).unwrap();
 

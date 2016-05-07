@@ -605,8 +605,8 @@ interface WebGLRenderingContextBase
     //[WebGLHandlesContextLoss] GLboolean isFramebuffer(WebGLFramebuffer? framebuffer);
     //[WebGLHandlesContextLoss] GLboolean isProgram(WebGLProgram? program);
     //[WebGLHandlesContextLoss] GLboolean isRenderbuffer(WebGLRenderbuffer? renderbuffer);
-    //[WebGLHandlesContextLoss] GLboolean isShader(WebGLShader? shader);
-    //[WebGLHandlesContextLoss] GLboolean isTexture(WebGLTexture? texture);
+    [WebGLHandlesContextLoss] GLboolean isShader(WebGLShader? shader);
+    [WebGLHandlesContextLoss] GLboolean isTexture(WebGLTexture? texture);
     void lineWidth(GLfloat width);
     void linkProgram(WebGLProgram? program);
     void pixelStorei(GLenum pname, GLint param);

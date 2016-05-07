@@ -1157,6 +1157,16 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             .unwrap()
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
+    fn IsShader(&self, shader: Option<&WebGLShader>) -> bool {
+        shader.map_or(false, |s| !s.is_deleted() || s.is_attached())
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn IsTexture(&self, texture: Option<&WebGLTexture>) -> bool {
+        texture.map_or(false, |tex| tex.target().is_some() && !tex.is_deleted())
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
     fn LineWidth(&self, width: f32) {
         if width.is_nan() || width <= 0f32 {
