@@ -47,3 +47,20 @@
         Err(())
     }
 </%helpers:shorthand>
+
+<%helpers:shorthand name="-moz-outline-radius" sub_properties="${' '.join(
+    '-moz-outline-radius-%s' % corner
+    for corner in ['topleft', 'topright', 'bottomright', 'bottomleft']
+)}" products="gecko">
+    use properties::shorthands;
+
+    // Re-use border-radius parsing.
+    shorthands::border_radius::parse_value(context, input).map(|longhands| {
+        Longhands {
+            _moz_outline_radius_topleft: longhands.border_top_left_radius,
+            _moz_outline_radius_topright: longhands.border_top_right_radius,
+            _moz_outline_radius_bottomright: longhands.border_bottom_right_radius,
+            _moz_outline_radius_bottomleft: longhands.border_bottom_left_radius,
+        }
+    })
+</%helpers:shorthand>
