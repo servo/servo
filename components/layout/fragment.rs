@@ -2403,16 +2403,11 @@ impl Fragment {
                 let whitespace_len = scanned_text_fragment_info.range.length() - whitespace_start;
                 let whitespace_range = Range::new(whitespace_start, whitespace_len);
 
-                // FIXME: This may be unnecessary because these metrics will be recomputed in
-                // LineBreaker::strip_trailing_whitespace_from_pending_line_if_necessary
                 let text_bounds = scanned_text_fragment_info.run
                                                         .metrics_for_range(&whitespace_range)
                                                         .bounding_box;
-                self.border_box.size.inline = self.border_box.size.inline -
-                    text_bounds.size.width;
-
-                scanned_text_fragment_info.content_size.inline =
-                    scanned_text_fragment_info.content_size.inline - text_bounds.size.width;
+                self.border_box.size.inline -= text_bounds.size.width;
+                scanned_text_fragment_info.content_size.inline -= text_bounds.size.width;
 
                 scanned_text_fragment_info.range.extend_by(-whitespace_len);
                 WhitespaceStrippingResult::RetainFragment
