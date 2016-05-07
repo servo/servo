@@ -106,10 +106,14 @@ def _activate_virtualenv(topdir):
         if virtualenv is None:
             sys.exit("Python virtualenv is not installed. Please install it prior to running mach.")
 
-        try:
-            subprocess.check_call([virtualenv, "-p", python, virtualenv_path])
-        except (subprocess.CalledProcessError, OSError):
-            sys.exit("Python virtualenv failed to execute properly.")
+        process = subprocess.Popen(
+            [virtualenv, "-p", python, virtualenv_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        process.wait()
+        if process.returncode:
+            sys.exit("Python virtualenv failed to execute properly: {}"
+                     .format(process.communicate()[1]))
 
     execfile(activate_path, dict(__file__=quote(activate_path)))
 
@@ -138,10 +142,14 @@ def _activate_virtualenv(topdir):
         if pip is None:
             sys.exit("Python pip is not installed. Please install it prior to running mach.")
 
-        try:
-            subprocess.check_call([pip, "install", "-q", "-r", req_path])
-        except (subprocess.CalledProcessError, OSError):
-            sys.exit("Pip failed to execute properly.")
+        process = subprocess.Popen(
+            [pip, "install", "-q", "-r", req_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        process.wait()
+        if process.returncode:
+            sys.exit("Pip failed to execute properly: {}"
+                     .format(process.communicate()[1]))
 
         open(marker_path, 'w').close()
 
