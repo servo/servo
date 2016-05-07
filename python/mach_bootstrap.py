@@ -6,10 +6,7 @@ from __future__ import print_function, unicode_literals
 
 import os
 import platform
-import subprocess
 import sys
-from distutils.spawn import find_executable
-from pipes import quote
 
 SEARCH_PATHS = [
     os.path.join("python", "tidy"),
@@ -72,80 +69,6 @@ CATEGORIES = {
 }
 
 
-def _get_exec(*names):
-    for name in names:
-        path = find_executable(name)
-        if path is not None:
-            return path
-    return None
-
-
-def _get_virtualenv_script_dir():
-    # Virtualenv calls its scripts folder "bin" on linux/OSX/MSYS64 but "Scripts" on Windows
-    if os.name == "nt" and os.path.sep != "/":
-        return "Scripts"
-    return "bin"
-
-
-# Possible names of executables, sorted from most to least specific
-PYTHON_NAMES = ["python-2.7", "python2.7", "python2", "python"]
-VIRTUALENV_NAMES = ["virtualenv-2.7", "virtualenv2.7", "virtualenv2", "virtualenv"]
-PIP_NAMES = ["pip-2.7", "pip2.7", "pip2", "pip"]
-
-
-def _activate_virtualenv(topdir):
-    virtualenv_path = os.path.join(topdir, "python", "_virtualenv")
-    python = _get_exec(*PYTHON_NAMES)
-    if python is None:
-        sys.exit("Python is not installed. Please install it prior to running mach.")
-
-    script_dir = _get_virtualenv_script_dir()
-    activate_path = os.path.join(virtualenv_path, script_dir, "activate_this.py")
-    if not (os.path.exists(virtualenv_path) and os.path.exists(activate_path)):
-        virtualenv = _get_exec(*VIRTUALENV_NAMES)
-        if virtualenv is None:
-            sys.exit("Python virtualenv is not installed. Please install it prior to running mach.")
-
-        try:
-            subprocess.check_call([virtualenv, "-p", python, virtualenv_path])
-        except (subprocess.CalledProcessError, OSError):
-            sys.exit("Python virtualenv failed to execute properly.")
-
-    execfile(activate_path, dict(__file__=quote(activate_path)))
-
-    # TODO: Right now, we iteratively install all the requirements by invoking
-    # `pip install` each time. If it were the case that there were conflicting
-    # requirements, we wouldn't know about them. Once
-    # https://github.com/pypa/pip/issues/988 is addressed, then we can just
-    # chain each of the requirements files into the same `pip install` call
-    # and it will check for conflicts.
-    requirements_paths = [
-        os.path.join("python", "requirements.txt"),
-        os.path.join("tests", "wpt", "harness", "requirements.txt"),
-        os.path.join("tests", "wpt", "harness", "requirements_servo.txt"),
-    ]
-    for req_rel_path in requirements_paths:
-        req_path = os.path.join(topdir, req_rel_path)
-        marker_file = req_rel_path.replace(os.path.sep, '-')
-        marker_path = os.path.join(virtualenv_path, marker_file)
-        try:
-            if os.path.getmtime(req_path) + 10 < os.path.getmtime(marker_path):
-                continue
-        except OSError:
-            pass
-
-        pip = _get_exec(*PIP_NAMES)
-        if pip is None:
-            sys.exit("Python pip is not installed. Please install it prior to running mach.")
-
-        try:
-            subprocess.check_call([pip, "install", "-q", "-r", req_path])
-        except (subprocess.CalledProcessError, OSError):
-            sys.exit("Pip failed to execute properly.")
-
-        open(marker_path, 'w').close()
-
-
 def bootstrap(topdir):
     topdir = os.path.abspath(topdir)
 
@@ -172,8 +95,6 @@ def bootstrap(topdir):
         print('Python 2.7 or above (but not Python 3) is required to run mach.')
         print('You are running Python', platform.python_version())
         sys.exit(1)
-
-    _activate_virtualenv(topdir)
 
     def populate_context(context, key=None):
         if key is None:
