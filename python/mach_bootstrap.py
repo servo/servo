@@ -8,7 +8,6 @@ import os
 import platform
 import sys
 
-
 SEARCH_PATHS = [
     os.path.join("python", "tidy"),
     os.path.join("tests", "wpt"),
@@ -96,7 +95,6 @@ def bootstrap(topdir):
         print('Python 2.7 or above (but not Python 3) is required to run mach.')
         print('You are running Python', platform.python_version())
         sys.exit(1)
-
 
     def populate_context(context, key=None):
         if key is None:
