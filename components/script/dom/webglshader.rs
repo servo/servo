@@ -133,6 +133,10 @@ impl WebGLShader {
         }
     }
 
+    pub fn get_is_deleted(&self) -> bool {
+        self.is_deleted.get()
+    }
+
     /// glGetShaderInfoLog
     pub fn info_log(&self) -> Option<String> {
         self.info_log.borrow().clone()
