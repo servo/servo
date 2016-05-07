@@ -5,6 +5,7 @@ matrix:
   include:
     - sudo: false
       script:
+         - pip install -r python/requirements.txt
          - ./mach test-tidy --self-test
          - ./mach test-tidy --no-progress
       cache: false
