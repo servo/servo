@@ -32,6 +32,7 @@ pub struct WebGLShader {
     source: DOMRefCell<Option<DOMString>>,
     info_log: DOMRefCell<Option<String>>,
     is_deleted: Cell<bool>,
+    is_attached: Cell<bool>,
     compilation_status: Cell<ShaderCompilationStatus>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     renderer: IpcSender<CanvasMsg>,
@@ -55,6 +56,7 @@ impl WebGLShader {
             source: DOMRefCell::new(None),
             info_log: DOMRefCell::new(None),
             is_deleted: Cell::new(false),
+            is_attached: Cell::new(false),
             compilation_status: Cell::new(ShaderCompilationStatus::NotCompiled),
             renderer: renderer,
         }
@@ -131,6 +133,18 @@ impl WebGLShader {
             self.is_deleted.set(true);
             let _ = self.renderer.send(CanvasMsg::WebGL(WebGLCommand::DeleteShader(self.id)));
         }
+    }
+
+    pub fn is_deleted(&self) -> bool {
+        self.is_deleted.get()
+    }
+
+    pub fn is_attached(&self) -> bool {
+        self.is_attached.get()
+    }
+
+    pub fn set_is_attached(&self, state: bool) {
+        self.is_attached.set(state);
     }
 
     /// glGetShaderInfoLog

@@ -118,6 +118,7 @@ impl WebGLProgram {
         }
 
         shader_slot.set(Some(shader));
+        shader.set_is_attached(true);
 
         self.renderer.send(CanvasMsg::WebGL(WebGLCommand::AttachShader(self.id, shader.id()))).unwrap();
 
@@ -144,6 +145,9 @@ impl WebGLProgram {
         }
 
         shader_slot.set(None);
+        // TODO: This is not complete because shaders can be attached to multple programs
+        // Was not sure were we should check if the shader is attached to other programs.
+        shader.set_is_attached(false);
 
         self.renderer.send(CanvasMsg::WebGL(WebGLCommand::DetachShader(self.id, shader.id()))).unwrap();
 
