@@ -19,7 +19,6 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, LayoutJS};
 use dom::bindings::reflector::Reflectable;
-use dom::browsingcontext::IterableContext;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -418,8 +417,8 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
         self.subpage_id.get().and_then(|subpage_id| {
             let window = window_from_node(self);
             let window = window.r();
-            let parent_context = window.browsing_context();
-            parent_context.find_child_by_subpage(subpage_id)
+            let browsing_context = window.browsing_context();
+            browsing_context.find_child_by_subpage(subpage_id)
         })
     }
 
