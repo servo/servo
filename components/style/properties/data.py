@@ -145,7 +145,11 @@ class PropertiesData(object):
 
         return longand
 
-    def declare_shorthand(self, name, sub_properties, *args, **kwargs):
+    def declare_shorthand(self, name, sub_properties, products="gecko servo", *args, **kwargs):
+        products = products.split()
+        if self.product not in products:
+            return
+
         sub_properties = [self.longhands_by_name[s] for s in sub_properties]
         shorthand = Shorthand(name, sub_properties, *args, **kwargs)
         self.shorthands.append(shorthand)
