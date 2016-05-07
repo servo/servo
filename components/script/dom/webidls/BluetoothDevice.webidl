@@ -4,23 +4,11 @@
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdevice
 
-// Allocation authorities for Vendor IDs:
-enum VendorIDSource {
-    "bluetooth",
-    "usb",
-    "unknown"
-};
-
 [Pref="dom.bluetooth.enabled"]
 interface BluetoothDevice {
     readonly attribute DOMString id;
     readonly attribute DOMString? name;
     readonly attribute BluetoothAdvertisingData adData;
-    readonly attribute unsigned long? deviceClass;
-    readonly attribute VendorIDSource? vendorIDSource;
-    readonly attribute unsigned long? vendorID;
-    readonly attribute unsigned long? productID;
-    readonly attribute unsigned long? productVersion;
     readonly attribute BluetoothRemoteGATTServer gatt;
     // readonly attribute FrozenArray[] uuids;
 };

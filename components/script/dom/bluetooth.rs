@@ -6,7 +6,6 @@ use core::clone::Clone;
 use dom::bindings::codegen::Bindings::BluetoothBinding;
 use dom::bindings::codegen::Bindings::BluetoothBinding::RequestDeviceOptions;
 use dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothScanFilter, BluetoothMethods};
-use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::VendorIDSource;
 use dom::bindings::error::Error::Type;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
@@ -142,20 +141,10 @@ impl BluetoothMethods for Bluetooth {
                                                             device.appearance,
                                                             device.tx_power,
                                                             device.rssi);
-                let vendor_id_source = device.vendor_id_source.map(|vid| match vid.as_str() {
-                    "bluetooth" => VendorIDSource::Bluetooth,
-                    "usb" => VendorIDSource::Usb,
-                    _ => VendorIDSource::Unknown,
-                });
                 Ok(BluetoothDevice::new(self.global().r(),
                                         DOMString::from(device.id),
                                         device.name.map(DOMString::from),
-                                        &ad_data,
-                                        device.device_class,
-                                        vendor_id_source,
-                                        device.vendor_id,
-                                        device.product_id,
-                                        device.product_version))
+                                        &ad_data))
             },
             Err(error) => {
                 Err(Type(error))
