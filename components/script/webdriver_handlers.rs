@@ -102,7 +102,7 @@ pub fn handle_get_frame_id(context: &Root<BrowsingContext>,
             Ok(None)
         },
         WebDriverFrameId::Element(x) => {
-            match find_node_by_unique_id(&context, pipeline, x) {
+            match find_node_by_unique_id(context, pipeline, x) {
                 Some(ref node) => {
                     match node.downcast::<HTMLIFrameElement>() {
                         Some(ref elem) => Ok(elem.GetContentWindow()),
@@ -156,7 +156,7 @@ pub fn handle_focus_element(context: &Root<BrowsingContext>,
                             pipeline: PipelineId,
                             element_id: String,
                             reply: IpcSender<Result<(), ()>>) {
-    reply.send(match find_node_by_unique_id(&context, pipeline, element_id) {
+    reply.send(match find_node_by_unique_id(context, pipeline, element_id) {
         Some(ref node) => {
             match node.downcast::<HTMLElement>() {
                 Some(ref elem) => {
@@ -186,7 +186,7 @@ pub fn handle_get_rect(context: &Root<BrowsingContext>,
                        pipeline: PipelineId,
                        element_id: String,
                        reply: IpcSender<Result<Rect<f64>, ()>>) {
-    reply.send(match find_node_by_unique_id(&context, pipeline, element_id) {
+    reply.send(match find_node_by_unique_id(context, pipeline, element_id) {
         Some(elem) => {
             // https://w3c.github.io/webdriver/webdriver-spec.html#dfn-calculate-the-absolute-position
             match elem.downcast::<HTMLElement>() {
@@ -224,7 +224,7 @@ pub fn handle_get_text(context: &Root<BrowsingContext>,
                        pipeline: PipelineId,
                        node_id: String,
                        reply: IpcSender<Result<String, ()>>) {
-    reply.send(match find_node_by_unique_id(&context, pipeline, node_id) {
+    reply.send(match find_node_by_unique_id(context, pipeline, node_id) {
         Some(ref node) => {
             Ok(node.GetTextContent().map_or("".to_owned(), String::from))
         },
@@ -236,7 +236,7 @@ pub fn handle_get_name(context: &Root<BrowsingContext>,
                        pipeline: PipelineId,
                        node_id: String,
                        reply: IpcSender<Result<String, ()>>) {
-    reply.send(match find_node_by_unique_id(&context, pipeline, node_id) {
+    reply.send(match find_node_by_unique_id(context, pipeline, node_id) {
         Some(node) => {
             Ok(String::from(node.downcast::<Element>().unwrap().TagName()))
         },
@@ -249,7 +249,7 @@ pub fn handle_get_attribute(context: &Root<BrowsingContext>,
                             node_id: String,
                             name: String,
                             reply: IpcSender<Result<Option<String>, ()>>) {
-    reply.send(match find_node_by_unique_id(&context, pipeline, node_id) {
+    reply.send(match find_node_by_unique_id(context, pipeline, node_id) {
         Some(node) => {
             Ok(node.downcast::<Element>().unwrap().GetAttribute(DOMString::from(name))
                .map(String::from))
@@ -263,7 +263,7 @@ pub fn handle_get_css(context: &Root<BrowsingContext>,
                       node_id: String,
                       name: String,
                       reply: IpcSender<Result<String, ()>>) {
-    reply.send(match find_node_by_unique_id(&context, pipeline, node_id) {
+    reply.send(match find_node_by_unique_id(context, pipeline, node_id) {
         Some(node) => {
             let window = context.active_window();
             let elem = node.downcast::<Element>().unwrap();
@@ -309,7 +309,7 @@ pub fn handle_is_selected(context: &Root<BrowsingContext>,
                           pipeline: PipelineId,
                           element_id: String,
                           reply: IpcSender<Result<bool, ()>>) {
-    reply.send(match find_node_by_unique_id(&context, pipeline, element_id) {
+    reply.send(match find_node_by_unique_id(context, pipeline, element_id) {
         Some(ref node) => {
             if let Some(input_element) = node.downcast::<HTMLInputElement>() {
                 Ok(input_element.Checked())

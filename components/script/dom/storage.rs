@@ -200,8 +200,8 @@ impl MainThreadRunnable for StorageEventRunnable {
         );
 
         let root_context = script_thread.root_browsing_context();
-        for it_page in root_context.iter() {
-            let it_window_root = it_page.active_window();
+        for it_context in root_context.iter() {
+            let it_window_root = it_context.active_window();
             let it_window = it_window_root.r();
             assert!(UrlHelper::SameOrigin(&ev_url, &it_window.get_url()));
             // TODO: Such a Document object is not necessarily fully active, but events fired on such

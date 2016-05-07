@@ -66,7 +66,7 @@ pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<Eva
 }
 
 pub fn handle_get_root_node(context: &Root<BrowsingContext>, pipeline: PipelineId, reply: IpcSender<NodeInfo>) {
-    let context = get_browsing_context(&context, pipeline);
+    let context = get_browsing_context(context, pipeline);
     let document = context.active_document();
 
     let node = document.upcast::<Node>();
@@ -76,7 +76,7 @@ pub fn handle_get_root_node(context: &Root<BrowsingContext>, pipeline: PipelineI
 pub fn handle_get_document_element(context: &Root<BrowsingContext>,
                                    pipeline: PipelineId,
                                    reply: IpcSender<NodeInfo>) {
-    let context = get_browsing_context(&context, pipeline);
+    let context = get_browsing_context(context, pipeline);
     let document = context.active_document();
     let document_element = document.GetDocumentElement().unwrap();
 
@@ -88,7 +88,7 @@ fn find_node_by_unique_id(context: &Root<BrowsingContext>,
                           pipeline: PipelineId,
                           node_id: String)
                           -> Root<Node> {
-    let context = get_browsing_context(&context, pipeline);
+    let context = get_browsing_context(context, pipeline);
     let document = context.active_document();
     let node = document.upcast::<Node>();
 
@@ -105,7 +105,7 @@ pub fn handle_get_children(context: &Root<BrowsingContext>,
                            pipeline: PipelineId,
                            node_id: String,
                            reply: IpcSender<Vec<NodeInfo>>) {
-    let parent = find_node_by_unique_id(&context, pipeline, node_id);
+    let parent = find_node_by_unique_id(context, pipeline, node_id);
     let children = parent.children()
                          .map(|child| child.summarize())
                          .collect();
@@ -116,7 +116,7 @@ pub fn handle_get_layout(context: &Root<BrowsingContext>,
                          pipeline: PipelineId,
                          node_id: String,
                          reply: IpcSender<ComputedNodeLayout>) {
-    let node = find_node_by_unique_id(&context, pipeline, node_id);
+    let node = find_node_by_unique_id(context, pipeline, node_id);
 
     let elem = node.downcast::<Element>().expect("should be getting layout of element");
     let rect = elem.GetBoundingClientRect();
@@ -206,7 +206,7 @@ pub fn handle_modify_attribute(context: &Root<BrowsingContext>,
                                pipeline: PipelineId,
                                node_id: String,
                                modifications: Vec<Modification>) {
-    let node = find_node_by_unique_id(&context, pipeline, node_id);
+    let node = find_node_by_unique_id(context, pipeline, node_id);
     let elem = node.downcast::<Element>().expect("should be getting layout of element");
 
     for modification in modifications {
@@ -240,7 +240,7 @@ pub fn handle_drop_timeline_markers(context: &Root<BrowsingContext>,
 pub fn handle_request_animation_frame(context: &Root<BrowsingContext>,
                                       id: PipelineId,
                                       actor_name: String) {
-    let context = context.find(id).expect("There is no such page");
+    let context = context.find(id).expect("There is no such context");
     let doc = context.active_document();
     let devtools_sender = context.active_window().devtools_chan().unwrap();
     doc.request_animation_frame(box move |time| {

@@ -1347,7 +1347,7 @@ impl ScriptThread {
         let context = self.root_browsing_context();
         let window = context.active_window();
         if window.pipeline() == id {
-            debug!("shutting down layout for root page {:?}", id);
+            debug!("shutting down layout for root context {:?}", id);
             shut_down_layout(&context);
             return true
         }
@@ -1409,7 +1409,7 @@ impl ScriptThread {
             // case, which is wrong. We should be returning an object that
             // denies access to most properties (per
             // https://github.com/servo/servo/issues/3939#issuecomment-62287025).
-            root_context.as_ref().and_then(|root_context| {
+            root_context.and_then(|root_context| {
                 root_context.find(parent_id).and_then(|context| {
                     let doc = context.active_document();
                     doc.find_iframe(subpage_id)
@@ -1452,38 +1452,12 @@ impl ScriptThread {
                                  incomplete.pipeline_id,
                                  incomplete.parent_info,
                                  incomplete.window_size);
-
         let frame_element = frame_element.r().map(Castable::upcast);
-
-        let mut using_new_context = true;
-
-        let browsing_context = if !self.root_browsing_context_exists() {
-            // Create a new context tree entry. This will become the root context.
-            let new_context = BrowsingContext::new(&window, frame_element, incomplete.pipeline_id);
-            // We have a new root frame tree.
-            self.browsing_context.set(Some(&JS::from_rooted(&new_context)));
-            new_context
-        } else if let Some((parent, _)) = incomplete.parent_info {
-            // Create a new context tree entry. This will be a child context.
-            let new_context = BrowsingContext::new(&window, frame_element, incomplete.pipeline_id);
-
-            let root_context = self.root_browsing_context();
-            // TODO(gw): This find will fail when we are sharing script threads
-            // between cross origin iframes in the same TLD.
-            let parent_context = root_context.find(parent)
-                                             .expect("received load for child context with missing parent");
-            parent_context.push_child_context(new_context.clone());
-            new_context
-        } else {
-            using_new_context = false;
-            self.root_browsing_context()
-        };
-
-        window.init_browsing_context(&browsing_context);
 
         enum ContextToRemove {
             Root,
             Child(PipelineId),
+            None,
         }
         struct AutoContextRemover<'a> {
             context: ContextToRemove,
@@ -1513,17 +1487,38 @@ impl ScriptThread {
                         },
                         ContextToRemove::Child(id) => {
                             self.script_thread.root_browsing_context().remove(id).unwrap();
-                        }
+                        },
+                        ContextToRemove::None => {},
                     }
                 }
             }
         }
 
-        let context_to_remove = if !self.root_browsing_context_exists() {
-            ContextToRemove::Root
+        let mut using_new_context = true;
+
+        let (browsing_context, context_to_remove) = if !self.root_browsing_context_exists() {
+            // Create a new context tree entry. This will become the root context.
+            let new_context = BrowsingContext::new(&window, frame_element, incomplete.pipeline_id);
+            // We have a new root frame tree.
+            self.browsing_context.set(Some(&new_context));
+            (new_context, ContextToRemove::Root)
+        } else if let Some((parent, _)) = incomplete.parent_info {
+            // Create a new context tree entry. This will be a child context.
+            let new_context = BrowsingContext::new(&window, frame_element, incomplete.pipeline_id);
+
+            let root_context = self.root_browsing_context();
+            // TODO(gw): This find will fail when we are sharing script threads
+            // between cross origin iframes in the same TLD.
+            let parent_context = root_context.find(parent)
+                                             .expect("received load for child context with missing parent");
+            parent_context.push_child_context(&*new_context);
+            (new_context, ContextToRemove::Child(incomplete.pipeline_id))
         } else {
-            ContextToRemove::Child(incomplete.pipeline_id)
+            using_new_context = false;
+            (self.root_browsing_context(), ContextToRemove::None)
         };
+
+        window.init_browsing_context(&browsing_context);
         let mut context_remover = AutoContextRemover::new(self, context_to_remove);
 
         let last_modified = metadata.headers.as_ref().and_then(|headers| {
@@ -2003,6 +1998,9 @@ fn shut_down_layout(context_tree: &Root<BrowsingContext>) {
     for context in context_tree.iter() {
         let window = context.active_window();
         window.clear_js_runtime();
+
+        // Sever the connection between the global and the DOM tree
+        context.clear_session_history();
     }
 
     // Destroy the layout thread. If there were node leaks, layout will now crash safely.

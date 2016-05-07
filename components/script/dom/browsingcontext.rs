@@ -31,7 +31,7 @@ use util::str::DOMString;
 pub struct BrowsingContext {
     reflector: Reflector,
 
-    /// Pipeline id associated with this page.
+    /// Pipeline id associated with this context.
     id: PipelineId,
 
     /// Indicates if reflow is required when reloading.
@@ -96,16 +96,15 @@ impl BrowsingContext {
     }
 
     pub fn push_history(&self, document: &Document) {
+        let mut history = self.history.borrow_mut();
+        // Clear all session history entries after the active index
+        history.drain((self.active_index.get() + 1)..);
+        history.push(SessionHistoryEntry::new(document, document.url().clone(), document.Title()));
         self.active_index.set(self.active_index.get() + 1);
-        self.history.borrow_mut().push(SessionHistoryEntry::new(document, document.url().clone(), document.Title()));
     }
 
     pub fn active_document(&self) -> Root<Document> {
-        self.history.borrow()
-                    .get(self.active_index.get())
-                    .and_then(|ref entry| entry.document.as_ref())
-                    .map(|doc| Root::from_ref(&**doc))
-                    .expect("There is no active document.")
+        Root::from_ref(&self.history.borrow()[self.active_index.get()].document)
     }
 
     pub fn active_window(&self) -> Root<Window> {
@@ -123,14 +122,12 @@ impl BrowsingContext {
     }
 
     pub fn remove(&self, id: PipelineId) -> Option<Root<BrowsingContext>> {
-        let remove_idx = {
-            self.children
-                .borrow()
-                .iter()
-                .position(|context| context.id == id)
-        };
+        let remove_idx = self.children
+                             .borrow()
+                             .iter()
+                             .position(|context| context.id == id);
         match remove_idx {
-            Some(idx) => Some(Root::from_ref(&self.children.borrow_mut().remove(idx))),
+            Some(idx) => Some(Root::from_ref(&*self.children.borrow_mut().remove(idx))),
             None => {
                 self.children
                     .borrow_mut()
@@ -151,8 +148,8 @@ impl BrowsingContext {
         self.id
     }
 
-    pub fn push_child_context(&self, context: Root<BrowsingContext>) {
-        self.children.borrow_mut().push(JS::from_rooted(&context));
+    pub fn push_child_context(&self, context: &BrowsingContext) {
+        self.children.borrow_mut().push(JS::from_ref(&context));
     }
 
     pub fn find_child_by_subpage(&self, subpage_id: SubpageId) -> Option<Root<Window>> {
@@ -160,6 +157,11 @@ impl BrowsingContext {
             let window = context.active_window();
             window.subpage() == Some(subpage_id)
         }).map(|context| context.active_window())
+    }
+
+    pub fn clear_session_history(&self) {
+        self.active_index.set(0);
+        self.history.borrow_mut().clear();
     }
 }
 
@@ -212,7 +214,7 @@ impl Iterator for ContextIterator {
 #[privatize]
 #[derive(JSTraceable, HeapSizeOf)]
 pub struct SessionHistoryEntry {
-    document: Option<JS<Document>>,
+    document: JS<Document>,
     url: Url,
     title: DOMString,
 }
@@ -220,7 +222,7 @@ pub struct SessionHistoryEntry {
 impl SessionHistoryEntry {
     fn new(document: &Document, url: Url, title: DOMString) -> SessionHistoryEntry {
         SessionHistoryEntry {
-            document: Some(JS::from_ref(document)),
+            document: JS::from_ref(document),
             url: url,
             title: title,
         }
