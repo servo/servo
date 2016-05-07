@@ -11,6 +11,7 @@ matrix:
     - sudo: 9000
       dist: trusty
       script:
+         - pip install -r python/requirements.txt
          - ./mach build -d --verbose
          - ./mach test-unit
          - ./mach test-compiletest
@@ -31,7 +32,6 @@ matrix:
             - gperf
             - libosmesa6-dev
             - libgles2-mesa-dev
-            - python-virtualenv
             - xorg-dev
             - ccache
             - libdbus-glib-1-dev
