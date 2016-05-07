@@ -419,10 +419,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
             let window = window_from_node(self);
             let window = window.r();
             let parent_context = window.browsing_context();
-            parent_context.iter().find(|context| {
-                let window = context.active_window();
-                window.subpage() == Some(subpage_id)
-            }).map(|context| context.active_window())
+            parent_context.find_child_by_subpage(subpage_id)
         })
     }
 

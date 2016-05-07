@@ -1458,21 +1458,21 @@ impl ScriptThread {
         let mut using_new_context = true;
 
         let browsing_context = if !self.root_browsing_context_exists() {
-            // Create a new context tree entry. This will become the root context
+            // Create a new context tree entry. This will become the root context.
             let new_context = BrowsingContext::new(&window, frame_element, incomplete.pipeline_id);
             // We have a new root frame tree.
-            self.browsing_context.set(Some(&new_context));
+            self.browsing_context.set(Some(&JS::from_rooted(&new_context)));
             new_context
         } else if let Some((parent, _)) = incomplete.parent_info {
             // Create a new context tree entry. This will be a child context.
             let new_context = BrowsingContext::new(&window, frame_element, incomplete.pipeline_id);
 
-            let parent_context = self.root_browsing_context();
+            let root_context = self.root_browsing_context();
             // TODO(gw): This find will fail when we are sharing script threads
             // between cross origin iframes in the same TLD.
-            let parent_context = parent_context.find(parent)
+            let parent_context = root_context.find(parent)
                                              .expect("received load for child context with missing parent");
-            parent_context.push_child_context(Root::from_ref(&new_context));
+            parent_context.push_child_context(new_context.clone());
             new_context
         } else {
             using_new_context = false;
@@ -1541,8 +1541,8 @@ impl ScriptThread {
         });
 
         let loader = DocumentLoader::new_with_thread(self.resource_thread.clone(),
-                                                   Some(browsing_context.pipeline()),
-                                                   Some(incomplete.url.clone()));
+                                                     Some(browsing_context.pipeline()),
+                                                     Some(incomplete.url.clone()));
 
         let is_html_document = match metadata.content_type {
             Some(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _))) |

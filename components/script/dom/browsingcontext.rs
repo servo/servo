@@ -22,7 +22,7 @@ use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass};
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHandle};
 use js::jsapi::{MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
 use js::jsval::{UndefinedValue, PrivateValue};
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{PipelineId, SubpageId};
 use std::cell::Cell;
 use url::Url;
 use util::str::DOMString;
@@ -153,6 +153,13 @@ impl BrowsingContext {
 
     pub fn push_child_context(&self, context: Root<BrowsingContext>) {
         self.children.borrow_mut().push(JS::from_rooted(&context));
+    }
+
+    pub fn find_child_by_subpage(&self, subpage_id: SubpageId) -> Option<Root<Window>> {
+        self.children.borrow().iter().find(|context| {
+            let window = context.active_window();
+            window.subpage() == Some(subpage_id)
+        }).map(|context| context.active_window())
     }
 }
 
