@@ -548,13 +548,24 @@ fn static_assert() {
     % endfor
 </%self:impl_trait>
 
+<% skip_outline_longhands = " ".join("outline-color outline-style".split() +
+                                     ["-moz-outline-radius-{0}".format(x.ident.replace("_", ""))
+                                      for x in CORNERS]) %>
 <%self:impl_trait style_struct_name="Outline"
-                  skip_longhands="outline-color outline-style"
+                  skip_longhands="${skip_outline_longhands}"
                   skip_additionals="*">
 
     <% impl_keyword("outline_style", "mOutlineStyle", border_style_keyword, need_clone=True) %>
 
     <% impl_color("outline_color", "mOutlineColor", color_flags_ffi_name="mOutlineStyle") %>
+
+    % for corner in CORNERS:
+    <% impl_corner_style_coord("_moz_outline_radius_%s" % corner.ident.replace("_", ""),
+                               "mOutlineRadius.mUnits[%s]" % corner.x_index,
+                               "mOutlineRadius.mValues[%s]" % corner.x_index,
+                               "mOutlineRadius.mUnits[%s]" % corner.y_index,
+                               "mOutlineRadius.mValues[%s]" % corner.y_index) %>
+    % endfor
 
     fn outline_has_nonzero_width(&self) -> bool {
         self.gecko.mCachedOutlineWidth != 0
