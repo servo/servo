@@ -128,7 +128,7 @@ impl FormData {
             Some(fname) => {
                 let global = self.global();
                 let name = DOMString::from(fname.0);
-                Root::upcast(File::new(global.r(), value, name))
+                Root::upcast(File::new(global.r(), value, name, None))
             }
             None => Root::from_ref(value)
         }

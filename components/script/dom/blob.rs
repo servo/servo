@@ -91,8 +91,13 @@ fn is_ascii_printable(string: &str) -> bool {
     // https://w3c.github.io/FileAPI/#constructorBlob
     string.chars().all(|c| c >= '\x20' && c <= '\x7E')
 }
-
 impl Blob {
+
+    pub fn new(global: GlobalRef, bytes: Vec<u8>, typeString: &str) -> Root<Blob> {
+        let boxed_blob = box Blob::new_inherited(Arc::new(bytes), None, None, typeString);
+        reflect_dom_object(boxed_blob, global, BlobBinding::Wrap)
+    }
+
     pub fn new_inherited(bytes: Arc<Vec<u8>>,
                          bytes_start: Option<i64>,
                          bytes_end: Option<i64>,
@@ -105,26 +110,15 @@ impl Blob {
         }
     }
 
-    pub fn new(global: GlobalRef, bytes: Vec<u8>, typeString: &str) -> Root<Blob> {
-        let boxed_blob = box Blob::new_inherited(Arc::new(bytes), None, None, typeString);
+    pub fn new_(global: GlobalRef,
+                blobParts: Option<Vec<BlobOrString>>,
+                blobPropertyBag: &BlobBinding::BlobPropertyBag) -> Root<Blob> {
+        let boxed_blob = box Blob::new_inherited_(blobParts, blobPropertyBag);
         reflect_dom_object(boxed_blob, global, BlobBinding::Wrap)
     }
 
-    fn new_sliced(global: GlobalRef,
-                  bytes: Arc<Vec<u8>>,
-                  bytes_start: Option<i64>,
-                  bytes_end: Option<i64>,
-                  typeString: &str) -> Root<Blob> {
-
-      let boxed_blob = box Blob::new_inherited(bytes, bytes_start, bytes_end, typeString);
-      reflect_dom_object(boxed_blob, global, BlobBinding::Wrap)
-    }
-
-    // https://w3c.github.io/FileAPI/#constructorBlob
-    pub fn Constructor(global: GlobalRef,
-                       blobParts: Option<Vec<BlobOrString>>,
-                       blobPropertyBag: &BlobBinding::BlobPropertyBag)
-                       -> Fallible<Root<Blob>> {
+    pub fn new_inherited_(blobParts: Option<Vec<BlobOrString>>,
+                          blobPropertyBag: &BlobBinding::BlobPropertyBag) -> Blob {
 
         // TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView
         let bytes: Vec<u8> = match blobParts {
@@ -143,12 +137,38 @@ impl Blob {
                 .collect()
             }
         };
+
         let typeString = if is_ascii_printable(&blobPropertyBag.type_) {
             &*blobPropertyBag.type_
         } else {
             ""
         };
-        Ok(Blob::new(global, bytes, &typeString.to_ascii_lowercase()))
+
+        Blob::new_inherited(Arc::new(bytes), None, None, &typeString.to_ascii_lowercase())
+    }
+
+    fn new_sliced(global: GlobalRef,
+                  bytes: Arc<Vec<u8>>,
+                  bytes_start: Option<i64>,
+                  bytes_end: Option<i64>,
+                  typeString: &str) -> Root<Blob> {
+
+        let boxed_blob = box Blob {
+            reflector_: Reflector::new(),
+            data: DataSlice::new(bytes, bytes_start, bytes_end),
+            typeString: typeString.to_owned(),
+            isClosed_: Cell::new(false),
+        };
+
+        reflect_dom_object(boxed_blob, global, BlobBinding::Wrap)
+    }
+
+    // https://w3c.github.io/FileAPI/#constructorBlob
+    pub fn Constructor(global: GlobalRef,
+                       blobParts: Option<Vec<BlobOrString>>,
+                       blobPropertyBag: &BlobBinding::BlobPropertyBag)
+                       -> Fallible<Root<Blob>> {
+        Ok(Blob::new_(global, blobParts, blobPropertyBag))
     }
 
     pub fn get_data(&self) -> &DataSlice {
