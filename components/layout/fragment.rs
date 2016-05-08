@@ -1751,22 +1751,22 @@ impl Fragment {
     /// Restore any whitespace that was stripped from a text fragment, and recompute inline metrics
     /// if necessary.
     pub fn reset_text_range_and_inline_size(&mut self) {
-        match &mut self.specific {
-            &mut SpecificFragmentInfo::ScannedText(ref mut info) => {
-                // FIXME (mbrubeck): Do we need to restore leading too?
-                let range_end = info.range_end_including_stripped_whitespace;
-                if info.range.end() == range_end {
-                    return
-                }
-                info.range.extend_to(range_end);
-                info.content_size.inline = info.run.metrics_for_range(&info.range).advance_width;
-                self.border_box.size.inline = info.content_size.inline +
-                    self.border_padding.inline_start_end();
+        if let SpecificFragmentInfo::ScannedText(ref mut info) = self.specific {
+            if info.run.extra_word_spacing != Au(0) {
+                Arc::make_mut(&mut info.run).extra_word_spacing = Au(0);
             }
-            _ => {}
+
+            // FIXME (mbrubeck): Do we need to restore leading too?
+            let range_end = info.range_end_including_stripped_whitespace;
+            if info.range.end() == range_end {
+                return
+            }
+            info.range.extend_to(range_end);
+            info.content_size.inline = info.run.metrics_for_range(&info.range).advance_width;
+            self.border_box.size.inline = info.content_size.inline +
+                self.border_padding.inline_start_end();
         }
     }
-
 
     /// Assigns replaced inline-size, padding, and margins for this fragment only if it is replaced
     /// content per CSS 2.1 § 10.3.2.

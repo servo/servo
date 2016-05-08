@@ -71,13 +71,14 @@ pub type GlyphId = u32;
 
 // TODO: make this more type-safe.
 
-const FLAG_CHAR_IS_SPACE: u32      = 0x40000000;
-const FLAG_IS_SIMPLE_GLYPH: u32    = 0x80000000;
+const FLAG_CHAR_IS_SPACE: u32       = 0x40000000;
+const FLAG_CHAR_IS_SPACE_SHIFT: u32 = 30;
+const FLAG_IS_SIMPLE_GLYPH: u32     = 0x80000000;
 
 // glyph advance; in Au's.
-const GLYPH_ADVANCE_MASK: u32      = 0x3FFF0000;
-const GLYPH_ADVANCE_SHIFT: u32     = 16;
-const GLYPH_ID_MASK: u32           = 0x0000FFFF;
+const GLYPH_ADVANCE_MASK: u32       = 0x3FFF0000;
+const GLYPH_ADVANCE_SHIFT: u32      = 16;
+const GLYPH_ID_MASK: u32            = 0x0000FFFF;
 
 // Non-simple glyphs (more than one glyph per char; missing glyph,
 // newline, tab, large advance, or nonzero x/y offsets) may have one
@@ -371,6 +372,15 @@ impl<'a> GlyphInfo<'a> {
             }
         }
     }
+
+    pub fn char_is_space(self) -> bool {
+        let (store, entry_i) = match self {
+            GlyphInfo::Simple(store, entry_i) => (store, entry_i),
+            GlyphInfo::Detail(store, entry_i, _) => (store, entry_i),
+        };
+
+        store.char_is_space(entry_i)
+    }
 }
 
 /// Stores the glyph data belonging to a text run.
@@ -406,6 +416,8 @@ pub struct GlyphStore {
 
     /// A cache of the advance of the entire glyph store.
     total_advance: Au,
+    /// A cache of the number of spaces in the entire glyph store.
+    total_spaces: i32,
 
     /// Used to check if fast path should be used in glyph iteration.
     has_detailed_glyphs: bool,
@@ -432,6 +444,7 @@ impl<'a> GlyphStore {
             entry_buffer: vec![GlyphEntry::initial(); length],
             detail_store: DetailedGlyphStore::new(),
             total_advance: Au(0),
+            total_spaces: 0,
             has_detailed_glyphs: false,
             is_whitespace: is_whitespace,
             is_rtl: is_rtl,
@@ -450,20 +463,21 @@ impl<'a> GlyphStore {
 
     pub fn finalize_changes(&mut self) {
         self.detail_store.ensure_sorted();
-        self.cache_total_advance()
+        self.cache_total_advance_and_spaces()
     }
 
     #[inline(never)]
-    fn cache_total_advance(&mut self) {
+    fn cache_total_advance_and_spaces(&mut self) {
         let mut total_advance = Au(0);
+        let mut total_spaces = 0;
         for glyph in self.iter_glyphs_for_byte_range(&Range::new(ByteIndex(0), self.len())) {
-            total_advance = total_advance + glyph.advance()
+            total_advance = total_advance + glyph.advance();
+            if glyph.char_is_space() {
+                total_spaces += 1;
+            }
         }
-        self.total_advance = total_advance
-    }
-
-    pub fn total_advance(&self) -> Au {
-        self.total_advance
+        self.total_advance = total_advance;
+        self.total_spaces = total_spaces;
     }
 
     /// Adds a single glyph.
@@ -538,27 +552,35 @@ impl<'a> GlyphStore {
     }
 
     #[inline]
-    pub fn advance_for_byte_range(&self, range: &Range<ByteIndex>) -> Au {
+    pub fn advance_for_byte_range(&self, range: &Range<ByteIndex>, extra_word_spacing: Au) -> Au {
         if range.begin() == ByteIndex(0) && range.end() == self.len() {
-            self.total_advance
+            self.total_advance + extra_word_spacing * self.total_spaces
         } else if !self.has_detailed_glyphs {
-            self.advance_for_byte_range_simple_glyphs(range)
+            self.advance_for_byte_range_simple_glyphs(range, extra_word_spacing)
         } else {
-            self.advance_for_byte_range_slow_path(range)
+            self.advance_for_byte_range_slow_path(range, extra_word_spacing)
         }
     }
 
     #[inline]
-    pub fn advance_for_byte_range_slow_path(&self, range: &Range<ByteIndex>) -> Au {
+    pub fn advance_for_byte_range_slow_path(&self, range: &Range<ByteIndex>, extra_word_spacing: Au) -> Au {
         self.iter_glyphs_for_byte_range(range)
-            .fold(Au(0), |advance, glyph| advance + glyph.advance())
+            .fold(Au(0), |advance, glyph| {
+                if glyph.char_is_space() {
+                    advance + glyph.advance() + extra_word_spacing
+                } else {
+                    advance + glyph.advance()
+                }
+            })
     }
 
     #[inline]
     #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
-    fn advance_for_byte_range_simple_glyphs(&self, range: &Range<ByteIndex>) -> Au {
-        let mask = u32x4::splat(GLYPH_ADVANCE_MASK);
+    fn advance_for_byte_range_simple_glyphs(&self, range: &Range<ByteIndex>, extra_word_spacing: Au) -> Au {
+        let advance_mask = u32x4::splat(GLYPH_ADVANCE_MASK);
+        let space_flag_mask = u32x4::splat(FLAG_CHAR_IS_SPACE);
         let mut simd_advance = u32x4::splat(0);
+        let mut simd_spaces = u32x4::splat(0);
         let begin = range.begin().to_usize();
         let len = range.length().to_usize();
         let num_simd_iterations = len / 4;
@@ -566,10 +588,11 @@ impl<'a> GlyphStore {
         let buf = self.transmute_entry_buffer_to_u32_buffer();
 
         for i in 0..num_simd_iterations {
-            let mut v = u32x4::load(buf, begin + i * 4);
-            v = v & mask;
-            v = v >> GLYPH_ADVANCE_SHIFT;
-            simd_advance = simd_advance + v;
+            let v = u32x4::load(buf, begin + i * 4);
+            let advance = (v & advance_mask) >> GLYPH_ADVANCE_SHIFT;
+            let spaces = (v & space_flag_mask) >> FLAG_CHAR_IS_SPACE_SHIFT;
+            simd_advance = simd_advance + advance;
+            simd_spaces = simd_spaces + spaces;
         }
 
         let advance =
@@ -577,18 +600,27 @@ impl<'a> GlyphStore {
              simd_advance.extract(1) +
              simd_advance.extract(2) +
              simd_advance.extract(3)) as i32;
-        let mut leftover = Au(0);
+        let spaces =
+            (simd_spaces.extract(0) +
+             simd_spaces.extract(1) +
+             simd_spaces.extract(2) +
+             simd_spaces.extract(3)) as i32;
+        let mut leftover_advance = Au(0);
+        let mut leftover_spaces = 0;
         for i in leftover_entries..range.end().to_usize() {
-            leftover = leftover + self.entry_buffer[i].advance();
+            leftover_advance = leftover_advance + self.entry_buffer[i].advance();
+            if self.entry_buffer[i].char_is_space() {
+                leftover_spaces += 1;
+            }
         }
-        Au(advance) + leftover
+        Au(advance) + leftover_advance + extra_word_spacing * (spaces + leftover_spaces)
     }
 
     /// When SIMD isn't available (non-x86_x64/aarch64), fallback to the slow path.
     #[inline]
     #[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
-    fn advance_for_byte_range_simple_glyphs(&self, range: &Range<ByteIndex>) -> Au {
-        self.advance_for_byte_range_slow_path(range)
+    fn advance_for_byte_range_simple_glyphs(&self, range: &Range<ByteIndex>, extra_word_spacing: Au) -> Au {
+        self.advance_for_byte_range_slow_path(range, extra_word_spacing)
     }
 
     /// Used for SIMD.
@@ -611,26 +643,6 @@ impl<'a> GlyphStore {
             }
         }
         spaces
-    }
-
-    pub fn distribute_extra_space_in_range(&mut self, range: &Range<ByteIndex>, space: f64) {
-        debug_assert!(space >= 0.0);
-        if range.is_empty() {
-            return
-        }
-        for index in range.each_index() {
-            // TODO(pcwalton): Handle spaces that are detailed glyphs -- these are uncommon but
-            // possible.
-            let entry = &mut self.entry_buffer[index.to_usize()];
-            if entry.is_simple() && entry.char_is_space() {
-                // FIXME(pcwalton): This can overflow for very large font-sizes.
-                let advance =
-                    ((entry.value & GLYPH_ADVANCE_MASK) >> GLYPH_ADVANCE_SHIFT) +
-                    Au::from_f64_px(space).0 as u32;
-                entry.value = (entry.value & !GLYPH_ADVANCE_MASK) |
-                    (advance << GLYPH_ADVANCE_SHIFT);
-            }
-        }
     }
 }
 
