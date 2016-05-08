@@ -803,7 +803,7 @@ pub mod style_structs {
                     self.outline_style.clone()
                 }
                 fn outline_has_nonzero_width(&self) -> bool {
-                    self.outline_width != ::app_units::Au(0)
+                    self.outline_width != longhands::outline_width::computed_value::zero()
                 }
             % elif style_struct.trait_name == "Text":
                 fn has_underline(&self) -> bool {
@@ -862,6 +862,7 @@ pub trait ComputedValues : Clone + Send + Sync + 'static {
     fn set_root_font_size(&mut self, size: Au);
     fn set_writing_mode(&mut self, mode: WritingMode);
     fn is_multicol(&self) -> bool;
+    fn fixup_outline_width(&mut self);
 }
 
 #[derive(Clone, HeapSizeOf)]
@@ -952,6 +953,14 @@ impl ComputedValues for ServoComputedValues {
     fn is_multicol(&self) -> bool {
         let style = self.get_column();
         style.column_count.0.is_some() || style.column_width.0.is_some()
+    }
+
+    fn fixup_outline_width(&mut self) {
+        use properties::style_struct_traits::Outline;
+        if self.get_outline().clone_outline_style().none_or_hidden() &&
+           self.get_outline().outline_has_nonzero_width() {
+            self.mutate_outline().set_outline_width(longhands::outline_width::computed_value::zero());
+        }
     }
 }
 
@@ -1368,7 +1377,7 @@ pub fn cascade<C: ComputedValues>(
                cached_style: Option<<&C>,
                mut error_reporter: StdBox<ParseErrorReporter + Send>)
                -> (C, bool) {
-    use properties::style_struct_traits::{Border, Box, Color, Font, Outline};
+    use properties::style_struct_traits::{Border, Box, Color, Font};
     let initial_values = C::initial_values();
     let (is_root_element, inherited_style) = match parent_style {
         Some(parent_style) => (false, parent_style),
@@ -1540,10 +1549,7 @@ pub fn cascade<C: ComputedValues>(
     % endfor
 
     // The initial value of outline width may be changed at computed value time.
-    if style.get_outline().clone_outline_style().none_or_hidden() &&
-       style.get_outline().outline_has_nonzero_width() {
-        style.mutate_outline().set_outline_width(Au(0));
-    }
+    style.fixup_outline_width();
 
     if is_root_element {
         let s = style.get_font().clone_font_size();

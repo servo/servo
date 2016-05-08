@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::RGBA;
-use gecko_style_structs::{nsStyleUnion, nsStyleUnit};
+use gecko_style_structs::{self as gss, nsStyleUnion, nsStyleUnit};
+use style::properties::longhands::outline_width::computed_value::T as OutlineWidth;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 
 pub trait ToGeckoStyleCoord {
@@ -63,6 +64,27 @@ impl ToGeckoStyleCoord for LengthOrPercentageOrNone {
             },
             LengthOrPercentageOrNone::Calc(_) => unimplemented!(),
         };
+    }
+}
+
+impl ToGeckoStyleCoord for OutlineWidth {
+    fn to_gecko_style_coord(&self, unit: &mut nsStyleUnit, union: &mut nsStyleUnion) {
+        match *self {
+            OutlineWidth::Length(au) => {
+                *unit = nsStyleUnit::eStyleUnit_Coord;
+                unsafe { *union.mInt.as_mut() = au.0; }
+            }
+            _ => {
+                let value = match *self {
+                    OutlineWidth::Thin => gss::NS_STYLE_BORDER_WIDTH_THIN,
+                    OutlineWidth::Medium => gss::NS_STYLE_BORDER_WIDTH_MEDIUM,
+                    OutlineWidth::Thick => gss::NS_STYLE_BORDER_WIDTH_THICK,
+                    _ => unreachable!()
+                };
+                *unit = nsStyleUnit::eStyleUnit_Enumerated;
+                unsafe { *union.mInt.as_mut() = value as i32; }
+            }
+        }
     }
 }
 
