@@ -12,6 +12,7 @@ use properties::longhands::border_spacing::computed_value::T as BorderSpacing;
 use properties::longhands::clip::computed_value::ClipRect;
 use properties::longhands::font_weight::computed_value::T as FontWeight;
 use properties::longhands::line_height::computed_value::T as LineHeight;
+use properties::longhands::outline_width::computed_value::T as OutlineWidth;
 use properties::longhands::text_shadow::computed_value::T as TextShadowList;
 use properties::longhands::text_shadow::computed_value::TextShadow;
 use properties::longhands::transform::computed_value::ComputedMatrix;
@@ -323,7 +324,7 @@ enum AnimatedProperty {
     MinWidth(LengthOrPercentage, LengthOrPercentage),
     Opacity(CSSFloat, CSSFloat),
     OutlineColor(Color, Color),
-    OutlineWidth(Length, Length),
+    OutlineWidth(OutlineWidth, OutlineWidth),
     PaddingBottom(LengthOrPercentage, LengthOrPercentage),
     PaddingLeft(LengthOrPercentage, LengthOrPercentage),
     PaddingRight(LengthOrPercentage, LengthOrPercentage),
@@ -393,7 +394,7 @@ impl AnimatedProperty {
     }
 }
 
-trait Interpolate: Sized {
+pub trait Interpolate: Sized {
     fn interpolate(&self, other: &Self, time: f64) -> Option<Self>;
 }
 

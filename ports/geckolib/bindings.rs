@@ -72,6 +72,7 @@ extern "C" {
     pub fn Gecko_SetListStyleType(style_struct: *mut nsStyleList, type_: u32);
     pub fn Gecko_CopyListStyleTypeFrom(dst: *mut nsStyleList,
                                        src: *const nsStyleList);
+    pub fn Gecko_ComputeCachedOutlineWidth(style_struct: *mut nsStyleOutline);
     pub fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8, length: u32,
                                          parsing_mode: SheetParsingMode)
      -> *mut RawServoStyleSheet;

@@ -16,7 +16,8 @@ use bindings::Gecko_Construct_${style_struct.gecko_ffi_name};
 use bindings::Gecko_CopyConstruct_${style_struct.gecko_ffi_name};
 use bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
 % endfor
-use bindings::{Gecko_CopyListStyleTypeFrom, Gecko_SetListStyleType};
+use bindings::{Gecko_CopyListStyleTypeFrom, Gecko_ComputeCachedOutlineWidth};
+use bindings::Gecko_SetListStyleType;
 use gecko_style_structs;
 use glue::ArcHelpers;
 use heapsize::HeapSizeOf;
@@ -126,6 +127,10 @@ impl ComputedValues for GeckoComputedValues {
     // FIXME(bholley): Implement this properly.
     #[inline]
     fn is_multicol(&self) -> bool { false }
+
+    fn fixup_outline_width(&mut self) {
+        unsafe { Gecko_ComputeCachedOutlineWidth(&mut self.mutate_outline().gecko); }
+    }
 }
 
 <%def name="declare_style_struct(style_struct)">
@@ -548,7 +553,7 @@ fn static_assert() {
     % endfor
 </%self:impl_trait>
 
-<% skip_outline_longhands = " ".join("outline-color outline-style".split() +
+<% skip_outline_longhands = " ".join("outline-color outline-style outline-width".split() +
                                      ["-moz-outline-radius-{0}".format(x.ident.replace("_", ""))
                                       for x in CORNERS]) %>
 <%self:impl_trait style_struct_name="Outline"
@@ -566,6 +571,8 @@ fn static_assert() {
                                "mOutlineRadius.mUnits[%s]" % corner.y_index,
                                "mOutlineRadius.mValues[%s]" % corner.y_index) %>
     % endfor
+
+    <%call expr="impl_style_coord('outline_width', 'mOutlineWidth')"></%call>
 
     fn outline_has_nonzero_width(&self) -> bool {
         self.gecko.mCachedOutlineWidth != 0
