@@ -369,24 +369,11 @@ pub trait ConvertPipelineIdToWebRender {
     fn to_webrender(&self) -> webrender_traits::PipelineId;
 }
 
-pub trait ConvertPipelineIdFromWebRender {
-    fn from_webrender(&self) -> PipelineId;
-}
-
 impl ConvertPipelineIdToWebRender for PipelineId {
     fn to_webrender(&self) -> webrender_traits::PipelineId {
         let PipelineNamespaceId(namespace_id) = self.namespace_id;
         let PipelineIndex(index) = self.index;
         webrender_traits::PipelineId(namespace_id, index)
-    }
-}
-
-impl ConvertPipelineIdFromWebRender for webrender_traits::PipelineId {
-    fn from_webrender(&self) -> PipelineId {
-        PipelineId {
-            namespace_id: PipelineNamespaceId(self.0),
-            index: PipelineIndex(self.1),
-        }
     }
 }
 

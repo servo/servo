@@ -29,9 +29,10 @@ use layers::rendergl;
 use layers::rendergl::RenderContext;
 use layers::scene::Scene;
 use layout_traits::LayoutControlChan;
-use msg::constellation_msg::{ConvertPipelineIdFromWebRender, ConvertPipelineIdToWebRender, Image, PixelFormat};
+use msg::constellation_msg::{ConvertPipelineIdToWebRender, Image, PixelFormat};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{NavigationDirection, PipelineId, WindowSizeData, WindowSizeType};
+use msg::constellation_msg::{NavigationDirection, PipelineId, PipelineIndex, PipelineNamespaceId};
+use msg::constellation_msg::{WindowSizeData, WindowSizeType};
 use pipeline::CompositionPipeline;
 use profile_traits::mem::{self, ReportKind, Reporter, ReporterRequest};
 use profile_traits::time::{self, ProfilerCategory, profile};
@@ -78,6 +79,19 @@ const BUFFER_MAP_SIZE: usize = 10000000;
 // Default viewport constraints
 const MAX_ZOOM: f32 = 8.0;
 const MIN_ZOOM: f32 = 0.1;
+
+pub trait ConvertPipelineIdFromWebRender {
+    fn from_webrender(&self) -> PipelineId;
+}
+
+impl ConvertPipelineIdFromWebRender for webrender_traits::PipelineId {
+    fn from_webrender(&self) -> PipelineId {
+        PipelineId {
+            namespace_id: PipelineNamespaceId(self.0),
+            index: PipelineIndex(self.1),
+        }
+    }
+}
 
 /// Holds the state when running reftests that determines when it is
 /// safe to save the output image.
