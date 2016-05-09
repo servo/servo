@@ -65,7 +65,8 @@ pub struct Pipeline {
     pub running_animations: bool,
     pub children: Vec<FrameId>,
     pub is_private: bool,
-    /// Pipeline visibility is used to aid in managing resources
+    /// Whether this pipeline should be treated as visible for the purposes of scheduling and
+    /// resource management.
     pub visible: bool,
 }
 
@@ -257,6 +258,8 @@ impl Pipeline {
                                      state.window_size,
                                      state.parent_visibility.unwrap_or(true));
 
+        pipeline.notify_visibility();
+
         Ok((pipeline, child_process))
     }
 
@@ -376,21 +379,25 @@ impl Pipeline {
         }
     }
 
-    pub fn change_visibility(&mut self, visible: bool) -> bool {
+    fn notify_visibility(&self) {
+
+        let parent_id = match self.parent_info {
+            Some((parent_id, _)) => parent_id,
+            None => return debug!("Pipeline {:?} has no parent info set", self.id),
+        };
+
+        self.script_chan.send(ConstellationControlMsg::ChangeFrameVisibilityStatus(parent_id, self.id, self.visible))
+                        .expect("Pipeline script chan");
+
+        self.compositor_proxy.send(CompositorMsg::PipelineVisibilityChanged(self.id, self.visible));
+    }
+
+    pub fn change_visibility(&mut self, visible: bool) {
         if visible == self.visible {
-            return false; //No changes
+            return; //No changes
         }
-
-        let (parent_id, _) = self.parent_info.unwrap(); //TODO: handle this
         self.visible = visible;
-        if visible {
-            self.script_chan.send(ConstellationControlMsg::SetVisible(parent_id, self.id)).expect("Pipeline script chan");
-        } else {
-            self.script_chan.send(ConstellationControlMsg::SetNonVisible(parent_id, self.id)).expect("Pipeline script chan");
-        }
-
-        self.compositor_proxy.send(CompositorMsg::PipelineVisibilityChanged(self.id, visible));
-        true
+        self.notify_visibility();
     }
 
 }
