@@ -32,7 +32,7 @@ use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::namespace_from_domstring;
-use dom::characterdata::CharacterData;
+use dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
 use dom::document::{Document, DocumentSource, IsHTMLDocument};
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
@@ -41,6 +41,8 @@ use dom::eventtarget::EventTarget;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
+use dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
+use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use dom::nodelist::NodeList;
 use dom::processinginstruction::ProcessingInstruction;
 use dom::range::WeakRangeVec;
@@ -958,6 +960,8 @@ pub trait LayoutNodeHelpers {
 
     unsafe fn get_style_and_layout_data(&self) -> Option<OpaqueStyleAndLayoutData>;
     unsafe fn init_style_and_layout_data(&self, OpaqueStyleAndLayoutData);
+
+    fn text_content(&self) -> String;
 }
 
 impl LayoutNodeHelpers for LayoutJS<Node> {
@@ -1047,6 +1051,23 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
     unsafe fn init_style_and_layout_data(&self, val: OpaqueStyleAndLayoutData) {
         debug_assert!((*self.unsafe_get()).style_and_layout_data.get().is_none());
         (*self.unsafe_get()).style_and_layout_data.set(Some(val));
+    }
+
+    #[allow(unsafe_code)]
+    fn text_content(&self) -> String {
+        if let Some(text) = self.downcast::<Text>() {
+            return unsafe { text.upcast().data_for_layout().to_owned() };
+        }
+
+        if let Some(input) = self.downcast::<HTMLInputElement>() {
+            return unsafe { input.value_for_layout() };
+        }
+
+        if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
+            return unsafe { area.get_value_for_layout() };
+        }
+
+        panic!("not text!")
     }
 }
 

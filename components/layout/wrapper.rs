@@ -58,7 +58,6 @@ use script::layout_interface::TrustedNodeAddress;
 use selectors::matching::{DeclarationBlock, ElementFlags};
 use selectors::parser::{AttrSelector, NamespaceConstraint};
 use smallvec::VecLike;
-use std::borrow::ToOwned;
 use std::cell::{Ref, RefCell, RefMut};
 use std::marker::PhantomData;
 use std::mem::{transmute, transmute_copy};
@@ -1137,22 +1136,7 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
         }
 
         let this = unsafe { self.get_jsmanaged() };
-        if let Some(text) = this.downcast::<Text>() {
-            let data = unsafe {
-                text.upcast().data_for_layout().to_owned()
-            };
-            return TextContent::Text(data);
-        }
-        if let Some(input) = this.downcast::<HTMLInputElement>() {
-            let data = unsafe { input.value_for_layout() };
-            return TextContent::Text(data);
-        }
-        if let Some(area) = this.downcast::<HTMLTextAreaElement>() {
-            let data = unsafe { area.get_value_for_layout() };
-            return TextContent::Text(data);
-        }
-
-        unreachable!("not text!")
+        return TextContent::Text(this.text_content());
     }
 
     fn selection(&self) -> Option<Range<ByteIndex>> {
