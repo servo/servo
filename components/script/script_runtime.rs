@@ -117,6 +117,8 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
     // Pre barriers aren't working correctly at the moment
     DisableIncrementalGC(runtime.rt());
 
+    set_gc_zeal_options(runtime.cx());
+
     // Enable or disable the JITs.
     let rt_opts = &mut *RuntimeOptionsRef(runtime.rt());
     if let Some(val) = get_pref("js.baseline.enabled").as_boolean() {
@@ -377,3 +379,23 @@ unsafe extern fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_void
     trace_roots(tr);
     debug!("done custom root handler");
 }
+
+#[allow(unsafe_code)]
+#[cfg(feature = "debugmozjs")]
+unsafe fn set_gc_zeal_options(ctx: *mut JSContext) {
+    use js::jsapi::JS_SetGCZeal;
+
+    let level = match get_pref("js.mem.gc.zeal.level").as_i64() {
+        Some(level @ 0...14) => level,
+        _ => return,
+    };
+    let frequency = match get_pref("js.mem.gc.zeal.frequency").as_i64() {
+        Some(frequency) if frequency >= 0 => frequency as u32,
+        _ => JS_DEFAULT_ZEAL_FREQ,
+    };
+    JS_SetGCZeal(ctx, level, frequency);
+}
+
+#[allow(unsafe_code)]
+#[cfg(not(feature = "debugmozjs"))]
+unsafe fn set_gc_zeal_options(_: *mut JSContext) {}
