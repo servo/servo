@@ -1587,7 +1587,7 @@ class AttrDefiner(PropertyDefiner):
 
         flags = "JSPROP_ENUMERATE | JSPROP_SHARED"
         if self.unforgeable:
-            flags += " | JSPROP_READONLY | JSPROP_PERMANENT"
+            flags += " | JSPROP_PERMANENT"
 
         def getter(attr):
             if self.static:
@@ -1630,7 +1630,7 @@ class AttrDefiner(PropertyDefiner):
             array, name,
             '    JSPropertySpec {\n'
             '        name: %s as *const u8 as *const libc::c_char,\n'
-            '        flags: ((%s) & 0xFF) as u8,\n'
+            '        flags: (%s) as u8,\n'
             '        getter: %s,\n'
             '        setter: %s\n'
             '    }',
@@ -1867,7 +1867,6 @@ class CGDOMJSClass(CGThing):
             "finalizeHook": FINALIZE_HOOK_NAME,
             "flags": "0",
             "name": str_to_const_array(self.descriptor.interface.identifier.name),
-            "outerObjectHook": self.descriptor.outerObjectHook,
             "resolveHook": "None",
             "slots": "1",
             "traceHook": TRACE_HOOK_NAME,
@@ -1885,7 +1884,7 @@ class CGDOMJSClass(CGThing):
 static Class: DOMJSClass = DOMJSClass {
     base: js::jsapi::Class {
         name: %(name)s as *const u8 as *const libc::c_char,
-        flags: JSCLASS_IS_DOMJSCLASS | JSCLASS_IMPLEMENTS_BARRIERS | %(flags)s |
+        flags: JSCLASS_IS_DOMJSCLASS | %(flags)s |
                (((%(slots)s) & JSCLASS_RESERVED_SLOTS_MASK) << JSCLASS_RESERVED_SLOTS_SHIFT)
                /* JSCLASS_HAS_RESERVED_SLOTS(%(slots)s) */,
         addProperty: None,
@@ -1894,7 +1893,7 @@ static Class: DOMJSClass = DOMJSClass {
         setProperty: None,
         enumerate: %(enumerateHook)s,
         resolve: %(resolveHook)s,
-        convert: None,
+        mayResolve: None,
         finalize: Some(%(finalizeHook)s),
         call: None,
         hasInstance: None,
@@ -1902,19 +1901,17 @@ static Class: DOMJSClass = DOMJSClass {
         trace: Some(%(traceHook)s),
 
         spec: js::jsapi::ClassSpec {
-            createConstructor: None,
-            createPrototype: None,
-            constructorFunctions: 0 as *const js::jsapi::JSFunctionSpec,
-            constructorProperties: 0 as *const js::jsapi::JSPropertySpec,
-            prototypeFunctions: 0 as *const js::jsapi::JSFunctionSpec,
-            prototypeProperties: 0 as *const js::jsapi::JSPropertySpec,
-            finishInit: None,
+            createConstructor_: None,
+            createPrototype_: None,
+            constructorFunctions_: 0 as *const js::jsapi::JSFunctionSpec,
+            constructorProperties_: 0 as *const js::jsapi::JSPropertySpec,
+            prototypeFunctions_: 0 as *const js::jsapi::JSFunctionSpec,
+            prototypeProperties_: 0 as *const js::jsapi::JSPropertySpec,
+            finishInit_: None,
             flags: 0,
         },
 
         ext: js::jsapi::ClassExtension {
-            outerObject: %(outerObjectHook)s,
-            innerObject: None,
             isWrappedNative: false,
             weakmapKeyDelegateOp: None,
             objectMovedOp: None,
@@ -1932,7 +1929,6 @@ static Class: DOMJSClass = DOMJSClass {
             unwatch: None,
             getElements: None,
             enumerate: None,
-            thisObject: %(outerObjectHook)s,
             funToString: None,
         },
     },
@@ -1966,13 +1962,13 @@ static PrototypeClass: JSClass = JSClass {
     setProperty: None,
     enumerate: None,
     resolve: None,
-    convert: None,
+    mayResolve: None,
     finalize: None,
     call: None,
     hasInstance: None,
     construct: None,
     trace: None,
-    reserved: [0 as *mut libc::c_void; 26]
+    reserved: [0 as *mut os::raw::c_void; 23]
 };
 """ % {'name': name, 'slotCount': slotCount}
 
@@ -2539,10 +2535,11 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 let mut interface = RootedObject::new(cx, ptr::null_mut());
 create_callback_interface_object(cx, global, sConstants, %(name)s, interface.handle_mut());
 assert!(!interface.ptr.is_null());
+assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
 (*cache)[PrototypeList::Constructor::%(id)s as usize] = interface.ptr;
-if <*mut JSObject>::needs_post_barrier(interface.ptr) {
-    <*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::Constructor::%(id)s as isize));
-}
+<*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::Constructor::%(id)s as isize),
+                              ptr::null_mut(),
+                              interface.ptr);
 """ % {"id": name, "name": str_to_const_array(name)})
 
         if len(self.descriptor.prototypeChain) == 1:
@@ -2582,10 +2579,12 @@ create_interface_prototype_object(cx,
                                   %(consts)s,
                                   prototype.handle_mut());
 assert!(!prototype.ptr.is_null());
+assert!((*cache)[PrototypeList::ID::%(id)s as usize].is_null());
 (*cache)[PrototypeList::ID::%(id)s as usize] = prototype.ptr;
-if <*mut JSObject>::needs_post_barrier(prototype.ptr) {
-    <*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::ID::%(id)s as isize));
-}""" % properties))
+<*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::ID::%(id)s as isize),
+                              ptr::null_mut(),
+                              prototype.ptr);
+""" % properties))
 
         if self.descriptor.interface.hasInterfaceObject():
             properties["name"] = str_to_const_array(name)
@@ -2619,10 +2618,12 @@ create_noncallback_interface_object(cx,
 assert!(!interface.ptr.is_null());""" % properties))
             if self.descriptor.hasDescendants():
                 code.append(CGGeneric("""\
+assert!((*cache)[PrototypeList::Constructor::%(id)s as usize].is_null());
 (*cache)[PrototypeList::Constructor::%(id)s as usize] = interface.ptr;
-if <*mut JSObject>::needs_post_barrier(prototype.ptr) {
-    <*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::Constructor::%(id)s as isize));
-}""" % properties))
+<*mut JSObject>::post_barrier((*cache).as_mut_ptr().offset(PrototypeList::Constructor::%(id)s as isize),
+                              ptr::null_mut(),
+                              interface.ptr);
+""" % properties))
 
         constructors = self.descriptor.interface.namedConstructors
         if constructors:
@@ -3310,7 +3311,7 @@ class CGMemberJITInfo(CGThing):
                       aliasSet, alwaysInSlot, lazilyInSlot, slotIndex,
                       returnTypes, args):
         """
-        aliasSet is a JSJitInfo::AliasSet value, without the "JSJitInfo::" bit.
+        aliasSet is a JSJitInfo_AliasSet value, without the "JSJitInfo_AliasSet::" bit.
 
         args is None if we don't want to output argTypes for some
         reason (e.g. we have overloads or we're not a method) and
@@ -3323,16 +3324,17 @@ class CGMemberJITInfo(CGThing):
             initializer = fill(
                 """
                 JSJitInfo {
-                    call: ${opName} as *const ::libc::c_void,
+                    call: ${opName} as *const os::raw::c_void,
                     protoID: PrototypeList::ID::${name} as u16,
                     depth: ${depth},
                     _bitfield_1:
                         JSJitInfo::new_bitfield_1(
-                            OpType::${opType} as u8,
-                            AliasSet::${aliasSet} as u8,
+                            JSJitInfo_OpType::${opType} as u8,
+                            JSJitInfo_AliasSet::${aliasSet} as u8,
                             JSValueType::${returnType} as u8,
                             ${isInfallible},
                             ${isMovable},
+                            ${isEliminatable},
                             ${isAlwaysInSlot},
                             ${isLazilyCachedInSlot},
                             ${isTypedMethod},
@@ -3349,6 +3351,8 @@ class CGMemberJITInfo(CGThing):
                                   ""),
                 isInfallible=toStringBool(infallible),
                 isMovable=toStringBool(movable),
+                # FIXME(nox): https://github.com/servo/servo/issues/10991
+                isEliminatable=toStringBool(False),
                 isAlwaysInSlot=toStringBool(alwaysInSlot),
                 isLazilyCachedInSlot=toStringBool(lazilyInSlot),
                 isTypedMethod=toStringBool(isTypedMethod),
@@ -3358,7 +3362,7 @@ class CGMemberJITInfo(CGThing):
         if args is not None:
             argTypes = "%s_argTypes" % infoName
             args = [CGMemberJITInfo.getJSArgType(arg.type) for arg in args]
-            args.append("ArgType::ArgTypeListEnd as i32")
+            args.append("JSJitInfo_ArgType::ArgTypeListEnd as i32")
             argTypesDecl = (
                 "const %s: [i32; %d] = [ %s ];\n" %
                 (argTypes, len(args), ", ".join(args)))
@@ -3367,7 +3371,7 @@ class CGMemberJITInfo(CGThing):
                 $*{argTypesDecl}
                 const ${infoName}: JSTypedMethodJitInfo = JSTypedMethodJitInfo {
                     base: ${jitInfo},
-                    argTypes: &${argTypes} as *const _ as *const ArgType,
+                    argTypes: &${argTypes} as *const _ as *const JSJitInfo_ArgType,
                 };
                 """,
                 argTypesDecl=argTypesDecl,
@@ -3390,7 +3394,7 @@ class CGMemberJITInfo(CGThing):
             aliasSet = self.aliasSet()
 
             isAlwaysInSlot = self.member.getExtendedAttribute("StoreInSlot")
-            if self.member.slotIndex is not None:
+            if self.member.slotIndices is not None:
                 assert isAlwaysInSlot or self.member.getExtendedAttribute("Cached")
                 isLazilyCachedInSlot = not isAlwaysInSlot
                 slotIndex = memberReservedSlot(self.member)  # noqa:FIXME: memberReservedSlot is not defined
@@ -3581,56 +3585,56 @@ class CGMemberJITInfo(CGThing):
         assert not t.isVoid()
         if t.nullable():
             # Sometimes it might return null, sometimes not
-            return "ArgType::Null as i32 | %s" % CGMemberJITInfo.getJSArgType(t.inner)
+            return "JSJitInfo_ArgType::Null as i32 | %s" % CGMemberJITInfo.getJSArgType(t.inner)
         if t.isArray():
             # No idea yet
             assert False
         if t.isSequence():
-            return "ArgType::Object as i32"
+            return "JSJitInfo_ArgType::Object as i32"
         if t.isGeckoInterface():
-            return "ArgType::Object as i32"
+            return "JSJitInfo_ArgType::Object as i32"
         if t.isString():
-            return "ArgType::String as i32"
+            return "JSJitInfo_ArgType::String as i32"
         if t.isEnum():
-            return "ArgType::String as i32"
+            return "JSJitInfo_ArgType::String as i32"
         if t.isCallback():
-            return "ArgType::Object as i32"
+            return "JSJitInfo_ArgType::Object as i32"
         if t.isAny():
             # The whole point is to return various stuff
-            return "ArgType::Any as i32"
+            return "JSJitInfo_ArgType::Any as i32"
         if t.isObject():
-            return "ArgType::Object as i32"
+            return "JSJitInfo_ArgType::Object as i32"
         if t.isSpiderMonkeyInterface():
-            return "ArgType::Object as i32"
+            return "JSJitInfo_ArgType::Object as i32"
         if t.isUnion():
             u = t.unroll()
             type = "JSJitInfo::Null as i32" if u.hasNullableType else ""
             return reduce(CGMemberJITInfo.getSingleArgType,
                           u.flatMemberTypes, type)
         if t.isDictionary():
-            return "ArgType::Object as i32"
+            return "JSJitInfo_ArgType::Object as i32"
         if t.isDate():
-            return "ArgType::Object as i32"
+            return "JSJitInfo_ArgType::Object as i32"
         if not t.isPrimitive():
             raise TypeError("No idea what type " + str(t) + " is.")
         tag = t.tag()
         if tag == IDLType.Tags.bool:
-            return "ArgType::Boolean as i32"
+            return "JSJitInfo_ArgType::Boolean as i32"
         if tag in [IDLType.Tags.int8, IDLType.Tags.uint8,
                    IDLType.Tags.int16, IDLType.Tags.uint16,
                    IDLType.Tags.int32]:
-            return "ArgType::Integer as i32"
+            return "JSJitInfo_ArgType::Integer as i32"
         if tag in [IDLType.Tags.int64, IDLType.Tags.uint64,
                    IDLType.Tags.unrestricted_float, IDLType.Tags.float,
                    IDLType.Tags.unrestricted_double, IDLType.Tags.double]:
             # These all use JS_NumberValue, which can return int or double.
             # But TI treats "double" as meaning "int or double", so we're
             # good to return JSVAL_TYPE_DOUBLE here.
-            return "ArgType::Double as i32"
+            return "JSJitInfo_ArgType::Double as i32"
         if tag != IDLType.Tags.uint32:
             raise TypeError("No idea what type " + str(t) + " is.")
         # uint32 is sometimes int and sometimes double.
-        return "ArgType::Double as i32"
+        return "JSJitInfo_ArgType::Double as i32"
 
     @staticmethod
     def getSingleArgType(existingType, t):
@@ -4462,7 +4466,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'proxy'),
                 Argument('HandleId', 'id'),
-                Argument('MutableHandle<JSPropertyDescriptor>', 'desc')]
+                Argument('MutableHandle<PropertyDescriptor>', 'desc')]
         CGAbstractExternMethod.__init__(self, descriptor, "getOwnPropertyDescriptor",
                                         "bool", args)
         self.descriptor = descriptor
@@ -4548,7 +4552,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'proxy'),
                 Argument('HandleId', 'id'),
-                Argument('Handle<JSPropertyDescriptor>', 'desc'),
+                Argument('Handle<PropertyDescriptor>', 'desc'),
                 Argument('*mut ObjectOpResult', 'opresult')]
         CGAbstractExternMethod.__init__(self, descriptor, "defineProperty", "bool", args)
         self.descriptor = descriptor
@@ -4654,7 +4658,7 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
                 """
                 for name in (*unwrapped_proxy).SupportedPropertyNames() {
                     let cstring = CString::new(name).unwrap();
-                    let jsstring = JS_InternString(cx, cstring.as_ptr());
+                    let jsstring = JS_AtomizeAndPinString(cx, cstring.as_ptr());
                     let rooted = RootedString::new(cx, jsstring);
                     let jsid = INTERNED_STRING_TO_JSID(cx, rooted.handle().get());
                     let rooted_jsid = RootedId::new(cx, jsid);
@@ -4775,7 +4779,7 @@ return true;"""
 class CGDOMJSProxyHandler_get(CGAbstractExternMethod):
     def __init__(self, descriptor):
         args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'proxy'),
-                Argument('HandleObject', 'receiver'), Argument('HandleId', 'id'),
+                Argument('HandleValue', 'receiver'), Argument('HandleId', 'id'),
                 Argument('MutableHandleValue', 'vp')]
         CGAbstractExternMethod.__init__(self, descriptor, "get", "bool", args)
         self.descriptor = descriptor
@@ -5511,13 +5515,12 @@ class CGBindingRoot(CGThing):
         # Add imports
         curr = CGImports(curr, descriptors + callbackDescriptors, mainCallbacks, [
             'js',
-            'js::{JSCLASS_GLOBAL_SLOT_COUNT, JSCLASS_IMPLEMENTS_BARRIERS}',
+            'js::{JS_CALLEE, JSCLASS_GLOBAL_SLOT_COUNT}',
             'js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL, JSCLASS_RESERVED_SLOTS_MASK}',
-            'js::{JSCLASS_RESERVED_SLOTS_SHIFT, JSITER_HIDDEN, JSITER_OWNONLY}',
-            'js::{JSITER_SYMBOLS, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY}',
-            'js::{JSPROP_SHARED, JS_CALLEE}',
             'js::error::throw_type_error',
-            'js::jsapi::{AliasSet, ArgType, AutoIdVector, CallArgs, FreeOp}',
+            'js::jsapi::{JSJitInfo_AliasSet, JSJitInfo_ArgType, AutoIdVector, CallArgs, FreeOp}',
+            'js::jsapi::{JSITER_SYMBOLS, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_SHARED}',
+            'js::jsapi::{JSCLASS_RESERVED_SLOTS_SHIFT, JSITER_HIDDEN, JSITER_OWNONLY}',
             'js::jsapi::{GetGlobalForObjectCrossCompartment , GetPropertyKeys, Handle}',
             'js::jsapi::{HandleId, HandleObject, HandleValue, HandleValueArray}',
             'js::jsapi::{INTERNED_STRING_TO_JSID, IsCallable, JS_CallFunctionValue}',
@@ -5526,16 +5529,16 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{JS_GetGlobalForObject, JS_GetObjectPrototype, JS_GetProperty}',
             'js::jsapi::{JS_GetPropertyById, JS_GetPropertyDescriptorById, JS_GetReservedSlot}',
             'js::jsapi::{JS_HasProperty, JS_HasPropertyById, JS_InitializePropertiesFromCompatibleNativeObject}',
-            'js::jsapi::{JS_InternString, JS_IsExceptionPending, JS_NewObject, JS_NewObjectWithGivenProto}',
+            'js::jsapi::{JS_AtomizeAndPinString, JS_IsExceptionPending, JS_NewObject, JS_NewObjectWithGivenProto}',
             'js::jsapi::{JS_NewObjectWithoutMetadata, JS_NewStringCopyZ, JS_SetProperty}',
             'js::jsapi::{JS_SetPrototype, JS_SetReservedSlot, JS_WrapValue, JSAutoCompartment}',
             'js::jsapi::{JSAutoRequest, JSContext, JSClass, JSFreeOp, JSFunctionSpec}',
             'js::jsapi::{JSJitGetterCallArgs, JSJitInfo, JSJitMethodCallArgs, JSJitSetterCallArgs}',
-            'js::jsapi::{JSNative, JSObject, JSNativeWrapper, JSPropertyDescriptor, JSPropertySpec}',
+            'js::jsapi::{JSNative, JSObject, JSNativeWrapper, JSPropertySpec}',
             'js::jsapi::{JSString, JSTracer, JSType, JSTypedMethodJitInfo, JSValueType}',
-            'js::jsapi::{ObjectOpResult, OpType, MutableHandle, MutableHandleObject}',
-            'js::jsapi::{MutableHandleValue, RootedId, RootedObject, RootedString}',
-            'js::jsapi::{RootedValue, SymbolCode, jsid}',
+            'js::jsapi::{ObjectOpResult, JSJitInfo_OpType, MutableHandle, MutableHandleObject}',
+            'js::jsapi::{MutableHandleValue, PropertyDescriptor, RootedId, RootedObject}',
+            'js::jsapi::{RootedString, RootedValue, SymbolCode, jsid}',
             'js::jsval::JSVal',
             'js::jsval::{ObjectValue, ObjectOrNullValue, PrivateValue}',
             'js::jsval::{NullValue, UndefinedValue}',
@@ -5596,6 +5599,7 @@ class CGBindingRoot(CGThing):
             'std::cmp',
             'std::mem',
             'std::num',
+            'std::os',
             'std::ptr',
             'std::str',
             'std::rc',

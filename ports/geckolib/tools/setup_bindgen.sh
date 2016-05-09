@@ -5,9 +5,9 @@ cd "$(dirname $0)"
 
 # Setup and build bindgen.
 if [ "$(uname)" == "Linux" ]; then
-  LIBCLANG_PATH=/usr/lib/llvm-3.8/lib;
+  export LIBCLANG_PATH=/usr/lib/llvm-3.8/lib;
 else
-  LIBCLANG_PATH=`brew --prefix llvm38`/lib/llvm-3.8/lib;
+  export LIBCLANG_PATH=`brew --prefix llvm38`/lib/llvm-3.8/lib;
 fi
 
 # Make sure we have llvm38.

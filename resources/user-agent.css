@@ -87,13 +87,23 @@ sub, sup { line-height: normal; font-size: smaller; }
 ruby { display: ruby; }
 rt { display: ruby-text; }
 
-:link { color: #0000EE; }
-:visited { color: #551A8B; }
-:link, :visited { text-decoration: underline; cursor: pointer; }
+/*
+ * All tag names that can be links are listed here, because applying pseudo-class selectors
+ * disables style sharing, so we want to apply pseudo-class selectors to as few elements as
+ * possible.
+ */
+a:link, area:link { color: #0000EE; }
+a:visited, area:visited { color: #551A8B; }
+a:link, a:visited,
+area:link, area:visited { text-decoration: underline; cursor: pointer; }
 a:link[rel~=help], a:visited[rel~=help],
 area:link[rel~=help], area:visited[rel~=help] { cursor: help; }
 
-:focus { outline: thin dotted; }  /* FIXME: 'outline: auto' ? */
+/*
+ * FIXME: use `outline: auto;`
+ */
+a:focus, area:focus,
+input:focus, textarea:focus, button:focus { outline: thin dotted; }
 
 mark { background: yellow; color: black; }
 

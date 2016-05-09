@@ -5,10 +5,11 @@
 #![allow(unsafe_code)]
 
 use app_units::Au;
-use bindings::{RawGeckoDocument, RawGeckoNode};
+use bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues, ServoNodeData};
 use bindings::{nsIAtom};
 use data::PerDocumentStyleData;
+use env_logger;
 use euclid::Size2D;
 use gecko_style_structs::SheetParsingMode;
 use properties::GeckoComputedValues;
@@ -20,15 +21,16 @@ use std::slice;
 use std::str::from_utf8_unchecked;
 use std::sync::{Arc, Mutex};
 use style::context::{ReflowGoal};
-use style::dom::{TDocument, TNode};
+use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::parallel;
 use style::properties::ComputedValues;
+use style::selector_impl::{SelectorImplExt, PseudoElementCascadeType};
 use style::stylesheets::Origin;
 use traversal::RecalcStyleOnly;
 use url::Url;
 use util::arc_ptr_eq;
-use wrapper::{GeckoDocument, GeckoNode, NonOpaqueStyleData};
+use wrapper::{GeckoDocument, GeckoElement, GeckoNode, NonOpaqueStyleData};
 
 // TODO: This is ugly and should go away once we get an atom back-end.
 pub fn pseudo_element_from_atom(pseudo: *mut nsIAtom,
@@ -62,6 +64,14 @@ pub fn pseudo_element_from_atom(pseudo: *mut nsIAtom,
  */
 
 #[no_mangle]
+pub extern "C" fn Servo_Initialize() -> () {
+    // Enable standard Rust logging.
+    //
+    // See https://doc.rust-lang.org/log/env_logger/index.html for instructions.
+    env_logger::init().unwrap();
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *mut RawServoStyleSet) -> () {
     let document = unsafe { GeckoDocument::from_raw(doc) };
     let node = match document.root_node() {
@@ -71,8 +81,12 @@ pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *m
     let data = unsafe { &mut *(raw_data as *mut PerDocumentStyleData) };
 
     // Force the creation of our lazily-constructed initial computed values on
-    // the main thread, since it's not safe to call elsewhere. This should move
-    // into a runtime-wide init hook at some point.
+    // the main thread, since it's not safe to call elsewhere.
+    //
+    // FIXME(bholley): this should move into Servo_Initialize as soon as we get
+    // rid of the HackilyFindSomeDeviceContext stuff that happens during
+    // initial_values computation, since that stuff needs to be called further
+    // along in startup than the sensible place to call Servo_Initialize.
     GeckoComputedValues::initial_values();
 
     let _needs_dirtying = Arc::get_mut(&mut data.stylist).unwrap()
@@ -244,9 +258,20 @@ pub extern "C" fn Servo_ReleaseStyleSheet(sheet: *mut RawServoStyleSheet) -> () 
 #[no_mangle]
 pub extern "C" fn Servo_GetComputedValues(node: *mut RawGeckoNode)
      -> *mut ServoComputedValues {
+    use selectors::Element;
     let node = unsafe { GeckoNode::from_raw(node) };
-    let arc_cv = node.borrow_data().map(|data| data.style.clone());
-    arc_cv.map_or(ptr::null_mut(), |arc| unsafe { transmute(arc) })
+    let arc_cv = match node.borrow_data().map_or(None, |data| data.style.clone()) {
+        Some(style) => style,
+        None => {
+            // FIXME(bholley): This case subverts the intended semantics of this
+            // function, and exists only to make stylo builds more robust corner-
+            // cases where Gecko wants the style for a node that Servo never
+            // traversed. We should remove this as soon as possible.
+            error!("stylo: encountered unstyled node, substituting default values.");
+            Arc::new(GeckoComputedValues::initial_values().clone())
+        },
+    };
+    unsafe { transmute(arc_cv) }
 }
 
 #[no_mangle]
@@ -256,7 +281,7 @@ pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(parent_style_or_null: *
      -> *mut ServoComputedValues {
     let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
 
-    let pseudo = match pseudo_element_from_atom(pseudo_tag, true) {
+    let pseudo = match pseudo_element_from_atom(pseudo_tag, /* ua_stylesheet = */ true) {
         Ok(pseudo) => pseudo,
         Err(pseudo) => {
             warn!("stylo: Unable to parse anonymous-box pseudo-element: {}", pseudo);
@@ -267,8 +292,74 @@ pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(parent_style_or_null: *
     type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
 
     Helpers::maybe_with(parent_style_or_null, |maybe_parent| {
-        let new_computed = data.stylist.computed_values_for_pseudo(&pseudo, maybe_parent);
+        let new_computed = data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent);
         new_computed.map_or(ptr::null_mut(), |c| Helpers::from(c))
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut ServoComputedValues,
+                                                          match_element: *mut RawGeckoElement,
+                                                          pseudo_tag: *mut nsIAtom,
+                                                          raw_data: *mut RawServoStyleSet,
+                                                          is_probe: bool)
+     -> *mut ServoComputedValues {
+    debug_assert!(!match_element.is_null());
+
+    let parent_or_null = || {
+        if is_probe {
+            ptr::null_mut()
+        } else {
+            Servo_AddRefComputedValues(parent_style);
+            parent_style
+        }
+    };
+
+    let pseudo = match pseudo_element_from_atom(pseudo_tag, /* ua_stylesheet = */ true) {
+        Ok(pseudo) => pseudo,
+        Err(pseudo) => {
+            warn!("stylo: Unable to parse anonymous-box pseudo-element: {}", pseudo);
+            return parent_or_null();
+        }
+    };
+
+
+    let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
+
+    let element = unsafe { GeckoElement::from_raw(match_element) };
+
+    type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
+
+    match GeckoSelectorImpl::pseudo_element_cascade_type(&pseudo) {
+        PseudoElementCascadeType::Eager => {
+            let node = element.as_node();
+            let maybe_computed = node.borrow_data()
+                                     .and_then(|data| {
+                                         data.per_pseudo.get(&pseudo).map(|c| c.clone())
+                                     });
+            maybe_computed.map_or_else(parent_or_null, Helpers::from)
+        }
+        PseudoElementCascadeType::Lazy => {
+            Helpers::with(parent_style, |parent| {
+                data.stylist
+                    .lazily_compute_pseudo_element_style(&element, &pseudo, parent)
+                    .map_or_else(parent_or_null, Helpers::from)
+            })
+        }
+        PseudoElementCascadeType::Precomputed => {
+            unreachable!("Anonymous pseudo found in \
+                         Servo_GetComputedValuesForPseudoElement");
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_InheritComputedValues(parent_style: *mut ServoComputedValues)
+     -> *mut ServoComputedValues {
+    type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
+    Helpers::with(parent_style, |parent| {
+        let style = GeckoComputedValues::inherit_from(parent);
+        Helpers::from(style)
     })
 }
 

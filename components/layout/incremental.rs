@@ -211,7 +211,7 @@ pub fn compute_damage(old: Option<&Arc<ServoComputedValues>>, new: &ServoCompute
         get_margin.margin_bottom, get_margin.margin_left,
         get_padding.padding_top, get_padding.padding_right,
         get_padding.padding_bottom, get_padding.padding_left,
-        get_box.width, get_box.height,
+        get_position.width, get_position.height,
         get_inheritedtext.line_height,
         get_inheritedtext.text_align, get_inheritedtext.text_indent,
         get_table.table_layout,
@@ -274,13 +274,15 @@ impl<'a> LayoutDamageComputation for &'a mut Flow {
 
         {
             let self_base = flow::mut_base(self);
+            // Take a snapshot of the parent damage before updating it with damage from children.
+            let parent_damage = self_base.restyle_damage;
+
             for kid in self_base.children.iter_mut() {
                 let child_is_absolutely_positioned =
                     flow::base(kid).flags.contains(IS_ABSOLUTELY_POSITIONED);
-                flow::mut_base(kid).restyle_damage
-                                   .insert(self_base.restyle_damage.damage_for_child(
-                                            is_absolutely_positioned,
-                                            child_is_absolutely_positioned));
+                flow::mut_base(kid).restyle_damage.insert(
+                    parent_damage.damage_for_child(is_absolutely_positioned,
+                                                   child_is_absolutely_positioned));
                 {
                     let kid: &mut Flow = kid;
                     special_damage.insert(kid.compute_layout_damage());

@@ -8,6 +8,11 @@ def WebIDLTest(parser, harness):
           boolean abitharder(TestOverloads foo);
           boolean abitharder(boolean foo);
           void abitharder(ArrayBuffer? foo);
+          void withVariadics(long... numbers);
+          void withVariadics(TestOverloads iface);
+          void withVariadics(long num, TestOverloads iface);
+          void optionalTest();
+          void optionalTest(optional long num1, long num2);
         };
     """)
 
@@ -20,7 +25,7 @@ def WebIDLTest(parser, harness):
                "Should be an IDLInterface")
     harness.check(iface.identifier.QName(), "::TestOverloads", "Interface has the right QName")
     harness.check(iface.identifier.name, "TestOverloads", "Interface has the right name")
-    harness.check(len(iface.members), 2, "Expect %s members" % 2)
+    harness.check(len(iface.members), 4, "Expect %s members" % 4)
 
     member = iface.members[0]
     harness.check(member.identifier.QName(), "::TestOverloads::basic", "Method has the right QName")
@@ -45,3 +50,11 @@ def WebIDLTest(parser, harness):
     harness.check(argument.identifier.QName(), "::TestOverloads::basic::arg1", "Argument has the right QName")
     harness.check(argument.identifier.name, "arg1", "Argument has the right name")
     harness.check(str(argument.type), "Long", "Argument has the right type")
+
+    member = iface.members[3]
+    harness.check(len(member.overloadsForArgCount(0)), 1,
+                  "Only one overload for no args")
+    harness.check(len(member.overloadsForArgCount(1)), 0,
+                  "No overloads for one arg")
+    harness.check(len(member.overloadsForArgCount(2)), 1,
+                  "Only one overload for two args")

@@ -69,6 +69,9 @@ extern "C" {
     pub fn Gecko_SetNodeData(node: *mut RawGeckoNode,
                              data: *mut ServoNodeData);
     pub fn Servo_DropNodeData(data: *mut ServoNodeData);
+    pub fn Gecko_SetListStyleType(style_struct: *mut nsStyleList, type_: u32);
+    pub fn Gecko_CopyListStyleTypeFrom(dst: *mut nsStyleList,
+                                       src: *const nsStyleList);
     pub fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8, length: u32,
                                          parsing_mode: SheetParsingMode)
      -> *mut RawServoStyleSheet;
@@ -78,11 +81,11 @@ extern "C" {
                                   set: *mut RawServoStyleSet);
     pub fn Servo_PrependStyleSheet(sheet: *mut RawServoStyleSheet,
                                    set: *mut RawServoStyleSet);
+    pub fn Servo_RemoveStyleSheet(sheet: *mut RawServoStyleSheet,
+                                  set: *mut RawServoStyleSet);
     pub fn Servo_InsertStyleSheetBefore(sheet: *mut RawServoStyleSheet,
                                         reference: *mut RawServoStyleSheet,
                                         set: *mut RawServoStyleSet);
-    pub fn Servo_RemoveStyleSheet(sheet: *mut RawServoStyleSheet,
-                                  set: *mut RawServoStyleSet);
     pub fn Servo_StyleSheetHasRules(sheet: *mut RawServoStyleSheet) -> bool;
     pub fn Servo_InitStyleSet() -> *mut RawServoStyleSet;
     pub fn Servo_DropStyleSet(set: *mut RawServoStyleSet);
@@ -93,10 +96,20 @@ extern "C" {
                                                   pseudoTag: *mut nsIAtom,
                                                   set: *mut RawServoStyleSet)
      -> *mut ServoComputedValues;
+    pub fn Servo_GetComputedValuesForPseudoElement(parent_style:
+                                                       *mut ServoComputedValues,
+                                                   match_element:
+                                                       *mut RawGeckoElement,
+                                                   pseudo_tag: *mut nsIAtom,
+                                                   set: *mut RawServoStyleSet,
+                                                   is_probe: bool)
+     -> *mut ServoComputedValues;
+    pub fn Servo_InheritComputedValues(parent_style: *mut ServoComputedValues)
+     -> *mut ServoComputedValues;
     pub fn Servo_AddRefComputedValues(arg1: *mut ServoComputedValues);
     pub fn Servo_ReleaseComputedValues(arg1: *mut ServoComputedValues);
-    pub fn Gecko_GetAttrAsUTF8(element: *mut RawGeckoElement, ns: *const u8,
-                               name: *const u8, length: *mut u32)
+    pub fn Gecko_GetAttrAsUTF8(element: *mut RawGeckoElement, ns: *const u8, nslen: u32,
+                               name: *const u8, namelen: u32, length: *mut u32)
      -> *const ::std::os::raw::c_char;
     pub fn Gecko_GetAtomAsUTF16(atom: *mut nsIAtom, length: *mut u32)
      -> *const u16;
@@ -104,6 +117,7 @@ extern "C" {
      -> *const u16;
     pub fn Gecko_Namespace(element: *mut RawGeckoElement, length: *mut u32)
      -> *const u16;
+    pub fn Servo_Initialize();
     pub fn Servo_RestyleDocument(doc: *mut RawGeckoDocument,
                                  set: *mut RawServoStyleSet);
     pub fn Gecko_Construct_nsStyleFont(ptr: *mut nsStyleFont);

@@ -3,34 +3,34 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://html.spec.whatwg.org/multipage/#htmlmediaelement
-//enum CanPlayTypeResult { "" /* empty string */, "maybe", "probably" };
+enum CanPlayTypeResult { "" /* empty string */, "maybe", "probably" };
 [Abstract]
 interface HTMLMediaElement : HTMLElement {
 
   // error state
-  //readonly attribute MediaError? error;
+    readonly attribute MediaError? error;
 
   // network state
-  //         attribute DOMString src;
-  //readonly attribute DOMString currentSrc;
+             attribute DOMString src;
+    readonly attribute DOMString currentSrc;
   //         attribute DOMString crossOrigin;
-  //const unsigned short NETWORK_EMPTY = 0;
-  //const unsigned short NETWORK_IDLE = 1;
-  //const unsigned short NETWORK_LOADING = 2;
-  //const unsigned short NETWORK_NO_SOURCE = 3;
-  //readonly attribute unsigned short networkState;
-  //         attribute DOMString preload;
+    const unsigned short NETWORK_EMPTY = 0;
+    const unsigned short NETWORK_IDLE = 1;
+    const unsigned short NETWORK_LOADING = 2;
+    const unsigned short NETWORK_NO_SOURCE = 3;
+    readonly attribute unsigned short networkState;
+             attribute DOMString preload;
   //readonly attribute TimeRanges buffered;
-  //void load();
-  //CanPlayTypeResult canPlayType(DOMString type);
+    void load();
+    CanPlayTypeResult canPlayType(DOMString type);
 
   // ready state
-  //const unsigned short HAVE_NOTHING = 0;
-  //const unsigned short HAVE_METADATA = 1;
-  //const unsigned short HAVE_CURRENT_DATA = 2;
-  //const unsigned short HAVE_FUTURE_DATA = 3;
-  //const unsigned short HAVE_ENOUGH_DATA = 4;
-  //readonly attribute unsigned short readyState;
+    const unsigned short HAVE_NOTHING = 0;
+    const unsigned short HAVE_METADATA = 1;
+    const unsigned short HAVE_CURRENT_DATA = 2;
+    const unsigned short HAVE_FUTURE_DATA = 3;
+    const unsigned short HAVE_ENOUGH_DATA = 4;
+    readonly attribute unsigned short readyState;
   //readonly attribute boolean seeking;
 
   // playback state
@@ -38,16 +38,16 @@ interface HTMLMediaElement : HTMLElement {
   //void fastSeek(double time);
   //readonly attribute unrestricted double duration;
   //Date getStartDate();
-  //readonly attribute boolean paused;
+    readonly attribute boolean paused;
   //         attribute double defaultPlaybackRate;
   //         attribute double playbackRate;
   //readonly attribute TimeRanges played;
   //readonly attribute TimeRanges seekable;
   //readonly attribute boolean ended;
-  //         attribute boolean autoplay;
+             attribute boolean autoplay;
   //         attribute boolean loop;
-  //void play();
-  //void pause();
+    void play();
+    void pause();
 
   // media controller
   //         attribute DOMString mediaGroup;

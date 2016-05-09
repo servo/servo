@@ -12,7 +12,7 @@ def WebIDLTest(parser, harness):
     results = parser.finish()
 
     harness.ok(True, "TestCallback interface parsed without error.")
-    harness.check(len(results), 2, "Should be one production.")
+    harness.check(len(results), 2, "Should be two productions.")
     iface = results[0]
     harness.ok(isinstance(iface, WebIDL.IDLInterface),
                "Should be an IDLInterface")

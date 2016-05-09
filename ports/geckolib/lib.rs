@@ -15,6 +15,7 @@
 extern crate app_units;
 #[macro_use]
 extern crate cssparser;
+extern crate env_logger;
 extern crate euclid;
 extern crate heapsize;
 #[macro_use]

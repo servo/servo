@@ -9,6 +9,7 @@
 
 from __future__ import print_function, unicode_literals
 
+import datetime
 import os
 import os.path as path
 import sys
@@ -85,7 +86,7 @@ def notify_build_done(elapsed):
     """Generate desktop notification when build is complete and the
     elapsed build time was longer than 30 seconds."""
     if elapsed > 30:
-        notify("Servo build", "Completed in %0.2fs" % elapsed)
+        notify("Servo build", "Completed in %s" % str(datetime.timedelta(seconds=elapsed)))
 
 
 def notify(title, text):
@@ -175,21 +176,23 @@ class MachCommands(CommandBase):
             print("Please specify either --dev or --release.")
             sys.exit(1)
 
-        targets = []
+        if target and android:
+            print("Please specify either --target or --android.")
+            sys.exit(1)
+
         if release:
             opts += ["--release"]
-        if target:
-            opts += ["--target", target]
-            targets.append(target)
         if jobs is not None:
             opts += ["-j", jobs]
         if verbose:
             opts += ["-v"]
         if android:
-            opts += ["--target", self.config["android"]["target"]]
-            targets.append("arm-linux-androideabi")
+            target = self.config["android"]["target"]
 
-        self.ensure_bootstrapped(targets=targets)
+        if target:
+            opts += ["--target", target]
+
+        self.ensure_bootstrapped(target=target)
 
         if debug_mozjs or self.config["build"]["debug-mozjs"]:
             features += ["script/debugmozjs"]
@@ -202,9 +205,13 @@ class MachCommands(CommandBase):
 
         build_start = time()
         env = self.build_env()
+
+        # Ensure Rust uses hard floats and SIMD on ARM devices
+        if target:
+            if target.startswith('arm') or target.startswith('aarch64'):
+                env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
+
         if android:
-            # Ensure Rust uses hard floats on Android
-            env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
             # Build OpenSSL for android
             make_cmd = ["make"]
             if jobs is not None:
@@ -222,7 +229,7 @@ class MachCommands(CommandBase):
                     verbose=verbose)
                 if status:
                     return status
-            openssl_dir = path.join(openssl_dir, "openssl-1.0.1k")
+            openssl_dir = path.join(openssl_dir, "openssl-1.0.1t")
             env['OPENSSL_LIB_DIR'] = openssl_dir
             env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
             env['OPENSSL_STATIC'] = 'TRUE'
@@ -240,7 +247,7 @@ class MachCommands(CommandBase):
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify_build_done(elapsed)
 
-        print("Build completed in %0.2fs" % elapsed)
+        print("Build completed in %s" % str(datetime.timedelta(seconds=elapsed)))
         return status
 
     @Command('build-cef',
@@ -276,7 +283,7 @@ class MachCommands(CommandBase):
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify_build_done(elapsed)
 
-        print("CEF build completed in %0.2fs" % elapsed)
+        print("CEF build completed in %s" % str(datetime.timedelta(seconds=elapsed)))
 
         return ret
 
@@ -313,7 +320,7 @@ class MachCommands(CommandBase):
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify_build_done(elapsed)
 
-        print("GeckoLib build completed in %0.2fs" % elapsed)
+        print("GeckoLib build completed in %s" % str(datetime.timedelta(seconds=elapsed)))
 
         return ret
 
@@ -330,8 +337,8 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Build in release mode')
     def build_gonk(self, jobs=None, verbose=False, release=False):
-        targets = ["arm-linux-androideabi"]
-        self.ensure_bootstrapped(targets=targets)
+        target = "arm-linux-androideabi"
+        self.ensure_bootstrapped(target=target)
 
         opts = []
         if jobs is not None:
@@ -351,7 +358,7 @@ class MachCommands(CommandBase):
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify_build_done(elapsed)
 
-        print("Gonk build completed in %0.2fs" % elapsed)
+        print("Gonk build completed in %s" % str(datetime.timedelta(seconds=elapsed)))
 
         return ret
 

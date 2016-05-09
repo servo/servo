@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::serialize_identifier;
-use dom::bindings::error::{Error, Fallible};
+use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::reflector::Reflector;
 use util::str::DOMString;
@@ -16,9 +16,6 @@ pub struct CSS {
 impl CSS {
     // http://dev.w3.org/csswg/cssom/#serialize-an-identifier
     pub fn Escape(_: GlobalRef, ident: DOMString) -> Fallible<DOMString> {
-        if ident.bytes().any(|b| b == b'\0') {
-            return Err(Error::InvalidCharacter);
-        }
         let mut escaped = String::new();
         serialize_identifier(&ident, &mut escaped).unwrap();
         Ok(DOMString::from(escaped))
