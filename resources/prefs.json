@@ -42,6 +42,8 @@
   "js.mem.gc.decommit_threshold_mb": 32,
   "js.mem.gc.empty_chunk_count_min": 1,
   "js.mem.gc.empty_chunk_count_max": 30,
+  "js.mem.gc.zeal.level": 0,
+  "js.mem.gc.zeal.frequency": 100,
   "layout.columns.enabled": false,
   "layout.column-width.enabled": false,
   "layout.column-count.enabled": false,
