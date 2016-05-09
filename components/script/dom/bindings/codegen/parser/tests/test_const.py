@@ -1,5 +1,30 @@
 import WebIDL
 
+expected = [
+    ("::TestConsts::zero", "zero", "Byte", 0),
+    ("::TestConsts::b", "b", "Byte", -1),
+    ("::TestConsts::o", "o", "Octet", 2),
+    ("::TestConsts::s", "s", "Short", -3),
+    ("::TestConsts::us", "us", "UnsignedShort", 4),
+    ("::TestConsts::l", "l", "Long", -5),
+    ("::TestConsts::ul", "ul", "UnsignedLong", 6),
+    ("::TestConsts::ull", "ull", "UnsignedLongLong", 7),
+    ("::TestConsts::ll", "ll", "LongLong", -8),
+    ("::TestConsts::t", "t", "Boolean", True),
+    ("::TestConsts::f", "f", "Boolean", False),
+    ("::TestConsts::n", "n", "BooleanOrNull", None),
+    ("::TestConsts::nt", "nt", "BooleanOrNull", True),
+    ("::TestConsts::nf", "nf", "BooleanOrNull", False),
+    ("::TestConsts::fl", "fl", "Float", 0.2),
+    ("::TestConsts::db", "db", "Double", 0.2),
+    ("::TestConsts::ufl", "ufl", "UnrestrictedFloat", 0.2),
+    ("::TestConsts::udb", "udb", "UnrestrictedDouble", 0.2),
+    ("::TestConsts::fli", "fli", "Float", 2),
+    ("::TestConsts::dbi", "dbi", "Double", 2),
+    ("::TestConsts::ufli", "ufli", "UnrestrictedFloat", 2),
+    ("::TestConsts::udbi", "udbi", "UnrestrictedDouble", 2),
+]
+
 def WebIDLTest(parser, harness):
     parser.parse("""
         interface TestConsts {
@@ -17,6 +42,14 @@ def WebIDLTest(parser, harness):
           const boolean? n = null;
           const boolean? nt = true;
           const boolean? nf = false;
+          const float fl = 0.2;
+          const double db = 0.2;
+          const unrestricted float ufl = 0.2;
+          const unrestricted double udb = 0.2;
+          const float fli = 2;
+          const double dbi = 2;
+          const unrestricted float ufli = 2;
+          const unrestricted double udbi = 2;
         };
     """)
 
@@ -29,11 +62,9 @@ def WebIDLTest(parser, harness):
                "Should be an IDLInterface")
     harness.check(iface.identifier.QName(), "::TestConsts", "Interface has the right QName")
     harness.check(iface.identifier.name, "TestConsts", "Interface has the right name")
-    harness.check(len(iface.members), 14, "Expect 14 members")
+    harness.check(len(iface.members), len(expected), "Expect %s members" % len(expected))
 
-    consts = iface.members
-
-    def checkConst(const, QName, name, type, value):
+    for (const, (QName, name, type, value)) in zip(iface.members, expected):
         harness.ok(isinstance(const, WebIDL.IDLConst),
                    "Should be an IDLConst")
         harness.ok(const.isConst(), "Const is a const")
@@ -46,19 +77,4 @@ def WebIDLTest(parser, harness):
         harness.check(str(const.value.type), str(const.type),
                       "Const's value has the same type as the type")
         harness.check(const.value.value, value, "Const value has the right value.")
-
-    checkConst(consts[0], "::TestConsts::zero", "zero", "Byte", 0)
-    checkConst(consts[1], "::TestConsts::b", "b", "Byte", -1)
-    checkConst(consts[2], "::TestConsts::o", "o", "Octet", 2)
-    checkConst(consts[3], "::TestConsts::s", "s", "Short", -3)
-    checkConst(consts[4], "::TestConsts::us", "us", "UnsignedShort", 4)
-    checkConst(consts[5], "::TestConsts::l", "l", "Long", -5)
-    checkConst(consts[6], "::TestConsts::ul", "ul", "UnsignedLong", 6)
-    checkConst(consts[7], "::TestConsts::ull", "ull", "UnsignedLongLong", 7)
-    checkConst(consts[8], "::TestConsts::ll", "ll", "LongLong", -8)
-    checkConst(consts[9], "::TestConsts::t", "t", "Boolean", True)
-    checkConst(consts[10], "::TestConsts::f", "f", "Boolean", False)
-    checkConst(consts[11], "::TestConsts::n", "n", "BooleanOrNull", None)
-    checkConst(consts[12], "::TestConsts::nt", "nt", "BooleanOrNull", True)
-    checkConst(consts[13], "::TestConsts::nf", "nf", "BooleanOrNull", False)
 

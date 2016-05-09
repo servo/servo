@@ -158,7 +158,7 @@ impl PropertyAnimation {
             [Color; get_color; color],
             [FontSize; get_font; font_size],
             [FontWeight; get_font; font_weight],
-            [Height; get_box; height],
+            [Height; get_position; height],
             [Left; get_position; left],
             [LineHeight; get_inheritedtext; line_height],
             [MarginBottom; get_margin; margin_bottom],
@@ -181,7 +181,7 @@ impl PropertyAnimation {
             [Top; get_position; top],
             [VerticalAlign; get_box; vertical_align],
             [Visibility; get_inheritedbox; visibility],
-            [Width; get_box; width],
+            [Width; get_position; width],
             [ZIndex; get_position; z_index]);
 
         let property_animation = PropertyAnimation {
@@ -256,7 +256,7 @@ impl PropertyAnimation {
             [Color; mutate_color; color],
             [FontSize; mutate_font; font_size],
             [FontWeight; mutate_font; font_weight],
-            [Height; mutate_box; height],
+            [Height; mutate_position; height],
             [Left; mutate_position; left],
             [LineHeight; mutate_inheritedtext; line_height],
             [MarginBottom; mutate_margin; margin_bottom],
@@ -281,7 +281,7 @@ impl PropertyAnimation {
             [Transform; mutate_effects; transform],
             [VerticalAlign; mutate_box; vertical_align],
             [Visibility; mutate_inheritedbox; visibility],
-            [Width; mutate_box; width],
+            [Width; mutate_position; width],
             [ZIndex; mutate_position; z_index]);
     }
 

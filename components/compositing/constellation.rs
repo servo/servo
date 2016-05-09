@@ -36,6 +36,7 @@ use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, NavigationD
 use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
 use msg::constellation_msg::{self, ConstellationChan, PanicMsg};
 use msg::webdriver_msg;
+use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::{StorageThread, StorageThreadMsg};
 use net_traits::{self, ResourceThread};
@@ -123,6 +124,9 @@ pub struct Constellation<LTF, STF> {
     /// A channel through which messages can be sent to the developer tools.
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 
+    /// A channel through which messages can be sent to the bluetooth thread.
+    bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+
     /// A channel through which messages can be sent to the storage thread.
     storage_thread: StorageThread,
 
@@ -197,6 +201,8 @@ pub struct InitialConstellationState {
     pub compositor_proxy: Box<CompositorProxy + Send>,
     /// A channel to the developer tools, if applicable.
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    /// A channel to the bluetooth thread.
+    pub bluetooth_thread: IpcSender<BluetoothMethodMsg>,
     /// A channel to the image cache thread.
     pub image_cache_thread: ImageCacheThread,
     /// A channel to the font cache thread.
@@ -338,6 +344,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 panic_receiver: panic_receiver,
                 compositor_proxy: state.compositor_proxy,
                 devtools_chan: state.devtools_chan,
+                bluetooth_thread: state.bluetooth_thread,
                 resource_thread: state.resource_thread,
                 image_cache_thread: state.image_cache_thread,
                 font_cache_thread: state.font_cache_thread,
@@ -424,6 +431,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 scheduler_chan: self.scheduler_chan.clone(),
                 compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
                 devtools_chan: self.devtools_chan.clone(),
+                bluetooth_thread: self.bluetooth_thread.clone(),
                 image_cache_thread: self.image_cache_thread.clone(),
                 font_cache_thread: self.font_cache_thread.clone(),
                 resource_thread: self.resource_thread.clone(),
@@ -797,6 +805,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 debug!("constellation got SetDocumentState message");
                 self.document_states.insert(pipeline_id, state);
             }
+            Request::Script(FromScriptMsg::Alert(pipeline_id, message, sender)) => {
+                debug!("constellation got Alert message");
+                self.handle_alert(pipeline_id, message, sender);
+            }
 
 
             // Messages from layout thread
@@ -839,6 +851,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
         if let Err(e) = self.storage_thread.send(StorageThreadMsg::Exit) {
             warn!("Exit storage thread failed ({})", e);
+        }
+        if let Err(e) = self.bluetooth_thread.send(BluetoothMethodMsg::Exit) {
+            warn!("Exit bluetooth thread failed ({})", e);
         }
         self.font_cache_thread.exit();
         self.compositor_proxy.send(ToCompositorMsg::ShutdownComplete);
@@ -1064,6 +1079,44 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 }
             }
         };
+        if let Err(e) = result {
+            self.handle_send_error(pipeline_id, e);
+        }
+    }
+
+    fn handle_alert(&mut self, pipeline_id: PipelineId, message: String, sender: IpcSender<bool>) {
+        let display_alert_dialog = if prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) {
+            let parent_pipeline_info = self.pipelines.get(&pipeline_id).and_then(|source| source.parent_info);
+            if let Some(_) = parent_pipeline_info {
+                let root_pipeline_id = self.root_frame_id
+                    .and_then(|root_frame_id| self.frames.get(&root_frame_id))
+                    .map(|root_frame| root_frame.current);
+
+                let ancestor_info = self.get_root_pipeline_and_containing_parent(&pipeline_id);
+                if let Some(ancestor_info) = ancestor_info {
+                    if root_pipeline_id == Some(ancestor_info.0) {
+                        match root_pipeline_id.and_then(|pipeline_id| self.pipelines.get(&pipeline_id)) {
+                            Some(root_pipeline) => {
+                                // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsershowmodalprompt
+                                let event = MozBrowserEvent::ShowModalPrompt("alert".to_owned(), "Alert".to_owned(),
+                                                                             String::from(message), "".to_owned());
+                                root_pipeline.trigger_mozbrowser_event(ancestor_info.1, event);
+                            }
+                            None => return warn!("Alert sent to Pipeline {:?} after closure.", root_pipeline_id),
+                        }
+                    } else {
+                        warn!("A non-current frame is trying to show an alert.")
+                    }
+                }
+                false
+            } else {
+                true
+            }
+        } else {
+            true
+        };
+
+        let result = sender.send(display_alert_dialog);
         if let Err(e) = result {
             self.handle_send_error(pipeline_id, e);
         }
@@ -1945,6 +1998,29 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
     }
 
+    /// For a given pipeline, determine the iframe in the root pipeline that transitively contains
+    /// it. There could be arbitrary levels of nested iframes in between them.
+    fn get_root_pipeline_and_containing_parent(&self, pipeline_id: &PipelineId) -> Option<(PipelineId, SubpageId)> {
+        if let Some(pipeline) = self.pipelines.get(pipeline_id) {
+            if let Some(mut ancestor_info) = pipeline.parent_info {
+                if let Some(mut ancestor) = self.pipelines.get(&ancestor_info.0) {
+                    while let Some(next_info) = ancestor.parent_info {
+                        ancestor_info = next_info;
+                        ancestor = match self.pipelines.get(&ancestor_info.0) {
+                            Some(ancestor) => ancestor,
+                            None => {
+                                warn!("Get parent pipeline before root via closed pipeline {:?}.", ancestor_info.0);
+                                return None;
+                            },
+                        };
+                    }
+                    return Some(ancestor_info);
+                }
+            }
+        }
+        None
+    }
+
     // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserlocationchange
     // Note that this is a no-op if the pipeline is not an immediate child iframe of the root
     fn trigger_mozbrowserlocationchange(&self, pipeline_id: PipelineId) {
@@ -1976,19 +2052,15 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     fn trigger_mozbrowsererror(&self, pipeline_id: PipelineId, reason: String, backtrace: String) {
         if !prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) { return; }
 
-        if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
-            if let Some(mut ancestor_info) = pipeline.parent_info {
-                if let Some(mut ancestor) = self.pipelines.get(&ancestor_info.0) {
-                    while let Some(next_info) = ancestor.parent_info {
-                        ancestor_info = next_info;
-                        ancestor = match self.pipelines.get(&ancestor_info.0) {
-                            Some(ancestor) => ancestor,
-                            None => return warn!("Mozbrowsererror via closed pipeline {:?}.", ancestor_info.0),
-                        };
-                    }
+        let ancestor_info = self.get_root_pipeline_and_containing_parent(&pipeline_id);
+
+        if let Some(ancestor_info) = ancestor_info {
+            match self.pipelines.get(&ancestor_info.0) {
+                Some(ancestor) => {
                     let event = MozBrowserEvent::Error(MozBrowserErrorType::Fatal, Some(reason), Some(backtrace));
                     ancestor.trigger_mozbrowser_event(ancestor_info.1, event);
-                }
+                },
+                None => return warn!("Mozbrowsererror via closed pipeline {:?}.", ancestor_info.0),
             }
         }
     }

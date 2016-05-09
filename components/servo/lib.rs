@@ -71,9 +71,11 @@ use compositing::{CompositorProxy, CompositorThread, Constellation};
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
+use net::bluetooth_thread::BluetoothThreadFactory;
 use net::image_cache_thread::new_image_cache_thread;
 use net::resource_thread::new_resource_thread;
 use net::storage_thread::StorageThreadFactory;
+use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::storage_thread::StorageThread;
 use profile::mem as profile_mem;
 use profile::time as profile_time;
@@ -208,6 +210,7 @@ fn create_constellation(opts: opts::Opts,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
                         supports_clipboard: bool,
                         webrender_api_sender: Option<webrender_traits::RenderApiSender>) -> Sender<ConstellationMsg> {
+    let bluetooth_thread: IpcSender<BluetoothMethodMsg> = BluetoothThreadFactory::new();
     let resource_thread = new_resource_thread(opts.user_agent.clone(), devtools_chan.clone());
     let image_cache_thread = new_image_cache_thread(resource_thread.clone(),
                                                     webrender_api_sender.as_ref().map(|wr| wr.create_api()));
@@ -218,6 +221,7 @@ fn create_constellation(opts: opts::Opts,
     let initial_state = InitialConstellationState {
         compositor_proxy: compositor_proxy,
         devtools_chan: devtools_chan,
+        bluetooth_thread: bluetooth_thread,
         image_cache_thread: image_cache_thread,
         font_cache_thread: font_cache_thread,
         resource_thread: resource_thread,

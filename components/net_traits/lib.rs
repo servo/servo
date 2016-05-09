@@ -40,6 +40,8 @@ use std::thread;
 use url::Url;
 use websocket::header;
 
+pub mod bluetooth_scanfilter;
+pub mod bluetooth_thread;
 pub mod hosts;
 pub mod image_cache_thread;
 pub mod net_error_list;

@@ -32,7 +32,8 @@ use std::slice;
 use std::str::from_utf8_unchecked;
 use std::sync::Arc;
 use string_cache::{Atom, Namespace};
-use style::dom::{OpaqueNode, TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
+use style::dom::{OpaqueNode, PresentationalHintsSynthetizer};
+use style::dom::{TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use style::element_state::ElementState;
 #[allow(unused_imports)] // Used in commented-out code.
 use style::error_reporting::StdoutErrorReporter;
@@ -339,17 +340,13 @@ impl<'le> TElement for GeckoElement<'le> {
         }
     }
 
-    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _hints: &mut V)
-        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
-    {
-        // FIXME(bholley) - Need to implement this.
-    }
-
     #[inline]
     fn get_attr<'a>(&'a self, namespace: &Namespace, name: &Atom) -> Option<&'a str> {
         unsafe {
             let mut length: u32 = 0;
-            let ptr = Gecko_GetAttrAsUTF8(self.element, namespace.0.as_ptr(), name.as_ptr(), &mut length);
+            let ptr = Gecko_GetAttrAsUTF8(self.element,
+                                          namespace.0.as_ptr(), namespace.0.len() as u32,
+                                          name.as_ptr(), name.len() as u32, &mut length);
             reinterpret_string(ptr, length)
         }
     }
@@ -357,6 +354,14 @@ impl<'le> TElement for GeckoElement<'le> {
     #[inline]
     fn get_attrs<'a>(&'a self, _name: &Atom) -> Vec<&'a str> {
         unimplemented!()
+    }
+}
+
+impl<'le> PresentationalHintsSynthetizer for GeckoElement<'le> {
+    fn synthesize_presentational_hints_for_legacy_attributes<V>(&self, _hints: &mut V)
+        where V: VecLike<DeclarationBlock<Vec<PropertyDeclaration>>>
+    {
+        // FIXME(bholley) - Need to implement this.
     }
 }
 

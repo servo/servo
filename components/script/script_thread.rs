@@ -51,9 +51,9 @@ use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
+use js::glue::GetWindowProxyClass;
 use js::jsapi::{DOMProxyShadowsResult, HandleId, HandleObject, RootedValue};
-use js::jsapi::{JSAutoRequest, JS_SetWrapObjectCallbacks};
-use js::jsapi::{JSContext, JSTracer};
+use js::jsapi::{JSAutoRequest, JSContext, JS_SetWrapObjectCallbacks, JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_interface::{ReflowQueryType};
@@ -64,6 +64,7 @@ use msg::constellation_msg::{PipelineId, PipelineNamespace};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
+use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use net_traits::storage_thread::StorageThread;
 use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadContext, Metadata, ResourceThread};
@@ -310,6 +311,8 @@ pub struct ScriptThread {
     /// A handle to the resource thread. This is an `Arc` to avoid running out of file descriptors if
     /// there are many iframes.
     resource_thread: Arc<ResourceThread>,
+    /// A handle to the bluetooth thread.
+    bluetooth_thread: IpcSender<BluetoothMethodMsg>,
     /// A handle to the storage thread.
     storage_thread: StorageThread,
 
@@ -505,6 +508,19 @@ impl ScriptThread {
         });
     }
 
+    // https://html.spec.whatwg.org/multipage/#await-a-stable-state
+    pub fn await_stable_state<T: Runnable + Send + 'static>(task: T) {
+        //TODO use microtasks when they exist
+        SCRIPT_THREAD_ROOT.with(|root| {
+            if let Some(script_thread) = *root.borrow() {
+                let script_thread = unsafe { &*script_thread };
+                let _ = script_thread.chan.send(CommonScriptMsg::RunnableMsg(
+                    ScriptThreadEventCategory::DomEvent,
+                    box task));
+            }
+        });
+    }
+
     /// Creates a new script thread.
     pub fn new(state: InitialScriptState,
                port: Receiver<MainThreadScriptMsg>,
@@ -515,6 +531,7 @@ impl ScriptThread {
         unsafe {
             JS_SetWrapObjectCallbacks(runtime.rt(),
                                       &WRAP_CALLBACKS);
+            SetWindowProxyClass(runtime.rt(), GetWindowProxyClass());
         }
 
         // Ask the router to proxy IPC messages from the devtools to us.
@@ -540,6 +557,7 @@ impl ScriptThread {
             image_cache_port: image_cache_port,
 
             resource_thread: Arc::new(state.resource_thread),
+            bluetooth_thread: state.bluetooth_thread,
             storage_thread: state.storage_thread,
 
             port: port,
@@ -1482,6 +1500,7 @@ impl ScriptThread {
                                  self.compositor.borrow_mut().clone(),
                                  self.image_cache_thread.clone(),
                                  self.resource_thread.clone(),
+                                 self.bluetooth_thread.clone(),
                                  self.storage_thread.clone(),
                                  self.mem_profiler_chan.clone(),
                                  self.devtools_chan.clone(),

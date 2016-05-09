@@ -28,8 +28,8 @@ use layers::platform::surface::NativeDisplay;
 use layers::rendergl;
 use layers::rendergl::RenderContext;
 use layers::scene::Scene;
-use layout_traits::LayoutControlChan;
-use msg::constellation_msg::{ConvertPipelineIdFromWebRender, ConvertPipelineIdToWebRender, Image, PixelFormat};
+use layout_traits::{ConvertPipelineIdToWebRender, LayoutControlChan};
+use msg::constellation_msg::{ConvertPipelineIdFromWebRender, Image, PixelFormat};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, WindowSizeData, WindowSizeType};
 use pipeline::CompositionPipeline;
@@ -635,7 +635,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 debug!("delayed composition timeout!");
                 if let CompositionRequest::DelayedComposite(this_timestamp) =
                     self.composition_request {
-                    if timestamp == this_timestamp && !opts::get().use_webrender {
+                    if timestamp == this_timestamp {
                         self.composition_request = CompositionRequest::CompositeNow(
                             CompositingReason::DelayedCompositeTimeout)
                     }
@@ -754,7 +754,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match animation_state {
             AnimationState::AnimationsPresent => {
                 self.pipeline_details(pipeline_id).animations_running = true;
-                self.composite_if_necessary_if_not_using_webrender(CompositingReason::Animation);
+                self.composite_if_necessary(CompositingReason::Animation);
             }
             AnimationState::AnimationCallbacksPresent => {
                 if !self.pipeline_details(pipeline_id).animation_callbacks_running {
@@ -1352,12 +1352,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 Some(root_pipeline_id) => root_pipeline_id,
                 None => return,
             };
-            let root_pipeline = match self.pipeline(root_pipeline_id) {
-                Some(root_pipeline) => root_pipeline,
-                None => return,
-            };
+            if self.pipeline(root_pipeline_id).is_none() {
+                return;
+            }
 
-            let translated_point =
+            let (translated_point, translated_pipeline_id) =
                 webrender_api.translate_point_to_layer_space(&point.to_untyped());
             let event_to_send = match mouse_window_event {
                 MouseWindowEvent::Click(button, _) => {
@@ -1370,9 +1369,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     MouseButtonEvent(MouseEventType::MouseUp, button, translated_point)
                 }
             };
-            let msg = ConstellationControlMsg::SendEvent(root_pipeline_id, event_to_send);
-            if let Err(e) = root_pipeline.script_chan.send(msg) {
-                warn!("Sending control event to root script failed ({}).", e);
+            let translated_pipeline_id = translated_pipeline_id.from_webrender();
+            let msg = ConstellationControlMsg::SendEvent(translated_pipeline_id, event_to_send);
+            if let Some(pipeline) = self.pipeline(translated_pipeline_id) {
+                if let Err(e) = pipeline.script_chan.send(msg) {
+                    warn!("Sending control event to script failed ({}).", e);
+                }
             }
             return
         }
@@ -1394,17 +1396,19 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 Some(root_pipeline_id) => root_pipeline_id,
                 None => return,
             };
-            let root_pipeline = match self.pipeline(root_pipeline_id) {
-                Some(root_pipeline) => root_pipeline,
-                None => return,
-            };
+            if self.pipeline(root_pipeline_id).is_none() {
+                return;
+            }
 
-            let translated_point =
+            let (translated_point, translated_pipeline_id) =
                 webrender_api.translate_point_to_layer_space(&cursor.to_untyped());
+            let translated_pipeline_id = translated_pipeline_id.from_webrender();
             let event_to_send = MouseMoveEvent(Some(translated_point));
-            let msg = ConstellationControlMsg::SendEvent(root_pipeline_id, event_to_send);
-            if let Err(e) = root_pipeline.script_chan.send(msg) {
-                warn!("Sending mouse control event to root script failed ({}).", e);
+            let msg = ConstellationControlMsg::SendEvent(translated_pipeline_id, event_to_send);
+            if let Some(pipeline) = self.pipeline(translated_pipeline_id) {
+                if let Err(e) = pipeline.script_chan.send(msg) {
+                    warn!("Sending mouse control event to script failed ({}).", e);
+                }
             }
             return
         }
@@ -1664,9 +1668,12 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     /// necessary.
     fn perform_updates_after_scroll(&mut self) {
         self.send_updated_display_ports_to_layout();
+        if opts::get().use_webrender {
+            return
+        }
         if self.send_buffer_requests_for_all_layers() {
             self.schedule_delayed_composite_if_necessary();
-        } else if !opts::get().use_webrender {
+        } else {
             self.channel_to_self.send(Msg::Recomposite(CompositingReason::ContinueScroll));
         }
     }

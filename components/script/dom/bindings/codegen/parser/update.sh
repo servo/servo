@@ -3,4 +3,8 @@ patch < abstract.patch
 patch < debug.patch
 patch < legacy-unenumerable-named-properties.patch
 
-# TODO: update test files from https://dxr.mozilla.org/mozilla-central/source/dom/bindings/parser/tests
+wget https://hg.mozilla.org/mozilla-central/archive/tip.tar.gz/dom/bindings/parser/tests/ -O tests.tar.gz
+rm -r tests
+mkdir tests
+tar xvpf tests.tar.gz  -C tests --strip-components=5
+rm tests.tar.gz WebIDL.py.orig

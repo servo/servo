@@ -29,6 +29,7 @@ use dom::htmlimageelement::HTMLImageElement;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::htmllabelelement::HTMLLabelElement;
 use dom::htmllinkelement::HTMLLinkElement;
+use dom::htmlmediaelement::HTMLMediaElement;
 use dom::htmlmetaelement::HTMLMetaElement;
 use dom::htmlobjectelement::HTMLObjectElement;
 use dom::htmloptgroupelement::HTMLOptGroupElement;
@@ -180,6 +181,9 @@ pub fn vtable_for(node: &Node) -> &VirtualMethods {
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) => {
             node.downcast::<HTMLLinkElement>().unwrap() as &VirtualMethods
+        }
+        NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMediaElement(_))) => {
+            node.downcast::<HTMLMediaElement>().unwrap() as &VirtualMethods
         }
         NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLMetaElement)) => {
             node.downcast::<HTMLMetaElement>().unwrap() as &VirtualMethods

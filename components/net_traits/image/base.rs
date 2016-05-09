@@ -6,7 +6,13 @@ use ipc_channel::ipc::IpcSharedMemory;
 use piston_image::{self, DynamicImage, GenericImage, ImageFormat};
 use util::opts;
 
-pub use msg::constellation_msg::{Image, ImageMetadata, PixelFormat};
+pub use msg::constellation_msg::{Image, PixelFormat};
+
+#[derive(Clone, Deserialize, Eq, PartialEq, Serialize, HeapSizeOf)]
+pub struct ImageMetadata {
+    pub width: u32,
+    pub height: u32,
+}
 
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.

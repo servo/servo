@@ -1800,16 +1800,18 @@ impl ScaledFontExtensionMethods for ScaledFont {
         for slice in run.natural_word_slices_in_visual_order(range) {
             for glyph in slice.glyphs.iter_glyphs_for_byte_range(&slice.range) {
                 let glyph_advance = glyph.advance();
-                let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
-                let azglyph = struct__AzGlyph {
-                    mIndex: glyph.id() as u32,
-                    mPosition: struct__AzPoint {
-                        x: (origin.x + glyph_offset.x).to_f32_px(),
-                        y: (origin.y + glyph_offset.y).to_f32_px(),
-                    }
-                };
-                origin = Point2D::new(origin.x + glyph_advance, origin.y);
-                azglyphs.push(azglyph)
+                if !slice.glyphs.is_whitespace() {
+                    let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
+                    let azglyph = struct__AzGlyph {
+                        mIndex: glyph.id() as u32,
+                        mPosition: struct__AzPoint {
+                            x: (origin.x + glyph_offset.x).to_f32_px(),
+                            y: (origin.y + glyph_offset.y).to_f32_px(),
+                        }
+                    };
+                    azglyphs.push(azglyph)
+                }
+                origin.x = origin.x + glyph_advance;
             };
         }
 

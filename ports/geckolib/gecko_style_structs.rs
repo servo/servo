@@ -573,7 +573,7 @@ pub const NS_STYLE_TEXT_TRANSFORM_NONE: ::std::os::raw::c_uint = 0;
 pub const NS_STYLE_TEXT_TRANSFORM_CAPITALIZE: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_TEXT_TRANSFORM_LOWERCASE: ::std::os::raw::c_uint = 2;
 pub const NS_STYLE_TEXT_TRANSFORM_UPPERCASE: ::std::os::raw::c_uint = 3;
-pub const NS_STYLE_TEXT_TRANSFORM_FULLWIDTH: ::std::os::raw::c_uint = 4;
+pub const NS_STYLE_TEXT_TRANSFORM_FULL_WIDTH: ::std::os::raw::c_uint = 4;
 pub const NS_STYLE_TOP_LAYER_NONE: ::std::os::raw::c_uint = 0;
 pub const NS_STYLE_TOP_LAYER_TOP: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_TRANSFORM_BOX_BORDER_BOX: ::std::os::raw::c_uint = 0;
@@ -1547,8 +1547,10 @@ fn bindgen_test_layout_nsAutoString() {
 pub enum Dont_Instantiate_nsTArray_of { }
 pub enum Instead_Use_nsTArray_of { }
 #[repr(C)]
-pub struct nsTArrayElementTraits<> {
-    pub _phantom0: ::std::marker::PhantomData<nsAutoString>,
+#[derive(Debug, Copy)]
+pub struct nsTArrayElementTraits;
+impl ::std::clone::Clone for nsTArrayElementTraits {
+    fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -2231,7 +2233,7 @@ pub struct PLDHashTable {
     pub mEntryCount: u32,
     pub mRemovedCount: u32,
     pub mEntryStore: [u64; 2usize],
-    pub mChecker: Checker,
+    pub mChecker: ::std::cell::UnsafeCell<Checker>,
 }
 #[repr(C)]
 pub struct PLDHashTable_EntryStore {
@@ -2385,7 +2387,10 @@ pub enum CSSVariableResolver { }
 #[repr(C)]
 pub struct CSSVariableValues {
     pub mVariableIDs: [u64; 6usize],
-    pub mVariables: u64,
+    /**
+   * Array of variables, indexed by variable ID.
+   */
+    pub mVariables: nsTArray<CSSVariableValues_Variable>,
 }
 #[repr(C)]
 #[derive(Debug)]
@@ -2495,6 +2500,34 @@ pub enum gfxContentType {
     ALPHA = 8192,
     COLOR_ALPHA = 12288,
     SENTINEL = 65535,
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct piecewise_construct_t;
+impl ::std::clone::Clone for piecewise_construct_t {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct pair<_T1, _T2> {
+    pub first: _T1,
+    pub second: _T2,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct __make_pair_return_impl<_Tp> {
+    pub _phantom0: ::std::marker::PhantomData<_Tp>,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct __make_pair_return<_Tp> {
+    pub _phantom0: ::std::marker::PhantomData<_Tp>,
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct __get_pair;
+impl ::std::clone::Clone for __get_pair {
+    fn clone(&self) -> Self { *self }
 }
 pub type Float = f32;
 #[repr(i8)]
@@ -2890,8 +2923,9 @@ fn bindgen_test_layout_FontFamilyName() {
  * font type is used to preserve the variable font fallback behavior
  */
 #[repr(C)]
+#[derive(Debug)]
 pub struct FontFamilyList {
-    pub mFontlist: u64,
+    pub mFontlist: nsTArray<FontFamilyName>,
     pub mDefaultFontType: FontFamilyType,
 }
 #[test]
@@ -2959,9 +2993,9 @@ pub struct nsFont {
     pub synthesis: u8,
     pub size: nscoord,
     pub sizeAdjust: f32,
-    pub alternateValues: u64,
+    pub alternateValues: nsTArray<gfxAlternateValue>,
     pub featureValueLookup: RefPtr<gfxFontFeatureValueSet>,
-    pub fontFeatureSettings: u64,
+    pub fontFeatureSettings: nsTArray<gfxFontFeature>,
     pub languageOverride: nsString,
 }
 #[test]
@@ -3048,414 +3082,416 @@ pub enum nsCSSProperty {
     eCSSProperty_background_color = 16,
     eCSSProperty_background_image = 17,
     eCSSProperty_background_origin = 18,
-    eCSSProperty_background_position = 19,
-    eCSSProperty_background_repeat = 20,
-    eCSSProperty_background_size = 21,
-    eCSSProperty_binding = 22,
-    eCSSProperty_block_size = 23,
-    eCSSProperty_border_block_end_color = 24,
-    eCSSProperty_border_block_end_style = 25,
-    eCSSProperty_border_block_end_width = 26,
-    eCSSProperty_border_block_start_color = 27,
-    eCSSProperty_border_block_start_style = 28,
-    eCSSProperty_border_block_start_width = 29,
-    eCSSProperty_border_bottom_color = 30,
-    eCSSProperty_border_bottom_colors = 31,
-    eCSSProperty_border_bottom_left_radius = 32,
-    eCSSProperty_border_bottom_right_radius = 33,
-    eCSSProperty_border_bottom_style = 34,
-    eCSSProperty_border_bottom_width = 35,
-    eCSSProperty_border_collapse = 36,
-    eCSSProperty_border_image_outset = 37,
-    eCSSProperty_border_image_repeat = 38,
-    eCSSProperty_border_image_slice = 39,
-    eCSSProperty_border_image_source = 40,
-    eCSSProperty_border_image_width = 41,
-    eCSSProperty_border_inline_end_color = 42,
-    eCSSProperty_border_inline_end_style = 43,
-    eCSSProperty_border_inline_end_width = 44,
-    eCSSProperty_border_inline_start_color = 45,
-    eCSSProperty_border_inline_start_style = 46,
-    eCSSProperty_border_inline_start_width = 47,
-    eCSSProperty_border_left_color = 48,
-    eCSSProperty_border_left_colors = 49,
-    eCSSProperty_border_left_style = 50,
-    eCSSProperty_border_left_width = 51,
-    eCSSProperty_border_right_color = 52,
-    eCSSProperty_border_right_colors = 53,
-    eCSSProperty_border_right_style = 54,
-    eCSSProperty_border_right_width = 55,
-    eCSSProperty_border_spacing = 56,
-    eCSSProperty_border_top_color = 57,
-    eCSSProperty_border_top_colors = 58,
-    eCSSProperty_border_top_left_radius = 59,
-    eCSSProperty_border_top_right_radius = 60,
-    eCSSProperty_border_top_style = 61,
-    eCSSProperty_border_top_width = 62,
-    eCSSProperty_bottom = 63,
-    eCSSProperty_box_align = 64,
-    eCSSProperty_box_decoration_break = 65,
-    eCSSProperty_box_direction = 66,
-    eCSSProperty_box_flex = 67,
-    eCSSProperty_box_ordinal_group = 68,
-    eCSSProperty_box_orient = 69,
-    eCSSProperty_box_pack = 70,
-    eCSSProperty_box_shadow = 71,
-    eCSSProperty_box_sizing = 72,
-    eCSSProperty_caption_side = 73,
-    eCSSProperty_clear = 74,
-    eCSSProperty_clip = 75,
-    eCSSProperty_clip_path = 76,
-    eCSSProperty_clip_rule = 77,
-    eCSSProperty_color = 78,
-    eCSSProperty_color_adjust = 79,
-    eCSSProperty_color_interpolation = 80,
-    eCSSProperty_color_interpolation_filters = 81,
-    eCSSProperty__moz_column_count = 82,
-    eCSSProperty__moz_column_fill = 83,
-    eCSSProperty__moz_column_gap = 84,
-    eCSSProperty__moz_column_rule_color = 85,
-    eCSSProperty__moz_column_rule_style = 86,
-    eCSSProperty__moz_column_rule_width = 87,
-    eCSSProperty__moz_column_width = 88,
-    eCSSProperty_contain = 89,
-    eCSSProperty_content = 90,
-    eCSSProperty__moz_control_character_visibility = 91,
-    eCSSProperty_counter_increment = 92,
-    eCSSProperty_counter_reset = 93,
-    eCSSProperty_cursor = 94,
-    eCSSProperty_direction = 95,
-    eCSSProperty_display = 96,
-    eCSSProperty_dominant_baseline = 97,
-    eCSSProperty_empty_cells = 98,
-    eCSSProperty_fill = 99,
-    eCSSProperty_fill_opacity = 100,
-    eCSSProperty_fill_rule = 101,
-    eCSSProperty_filter = 102,
-    eCSSProperty_flex_basis = 103,
-    eCSSProperty_flex_direction = 104,
-    eCSSProperty_flex_grow = 105,
-    eCSSProperty_flex_shrink = 106,
-    eCSSProperty_flex_wrap = 107,
-    eCSSProperty_float = 108,
-    eCSSProperty_float_edge = 109,
-    eCSSProperty_flood_color = 110,
-    eCSSProperty_flood_opacity = 111,
-    eCSSProperty_font_family = 112,
-    eCSSProperty_font_feature_settings = 113,
-    eCSSProperty_font_kerning = 114,
-    eCSSProperty_font_language_override = 115,
-    eCSSProperty_font_size = 116,
-    eCSSProperty_font_size_adjust = 117,
-    eCSSProperty_font_stretch = 118,
-    eCSSProperty_font_style = 119,
-    eCSSProperty_font_synthesis = 120,
-    eCSSProperty_font_variant_alternates = 121,
-    eCSSProperty_font_variant_caps = 122,
-    eCSSProperty_font_variant_east_asian = 123,
-    eCSSProperty_font_variant_ligatures = 124,
-    eCSSProperty_font_variant_numeric = 125,
-    eCSSProperty_font_variant_position = 126,
-    eCSSProperty_font_weight = 127,
-    eCSSProperty_force_broken_image_icon = 128,
-    eCSSProperty_grid_auto_columns = 129,
-    eCSSProperty_grid_auto_flow = 130,
-    eCSSProperty_grid_auto_rows = 131,
-    eCSSProperty_grid_column_end = 132,
-    eCSSProperty_grid_column_gap = 133,
-    eCSSProperty_grid_column_start = 134,
-    eCSSProperty_grid_row_end = 135,
-    eCSSProperty_grid_row_gap = 136,
-    eCSSProperty_grid_row_start = 137,
-    eCSSProperty_grid_template_areas = 138,
-    eCSSProperty_grid_template_columns = 139,
-    eCSSProperty_grid_template_rows = 140,
-    eCSSProperty_height = 141,
-    eCSSProperty_hyphens = 142,
-    eCSSProperty_image_orientation = 143,
-    eCSSProperty_image_region = 144,
-    eCSSProperty_image_rendering = 145,
-    eCSSProperty_ime_mode = 146,
-    eCSSProperty_inline_size = 147,
-    eCSSProperty_isolation = 148,
-    eCSSProperty_justify_content = 149,
-    eCSSProperty_justify_items = 150,
-    eCSSProperty_justify_self = 151,
-    eCSSProperty__x_lang = 152,
-    eCSSProperty_left = 153,
-    eCSSProperty_letter_spacing = 154,
-    eCSSProperty_lighting_color = 155,
-    eCSSProperty_line_height = 156,
-    eCSSProperty_list_style_image = 157,
-    eCSSProperty_list_style_position = 158,
-    eCSSProperty_list_style_type = 159,
-    eCSSProperty_margin_block_end = 160,
-    eCSSProperty_margin_block_start = 161,
-    eCSSProperty_margin_bottom = 162,
-    eCSSProperty_margin_inline_end = 163,
-    eCSSProperty_margin_inline_start = 164,
-    eCSSProperty_margin_left = 165,
-    eCSSProperty_margin_right = 166,
-    eCSSProperty_margin_top = 167,
-    eCSSProperty_marker_end = 168,
-    eCSSProperty_marker_mid = 169,
-    eCSSProperty_marker_offset = 170,
-    eCSSProperty_marker_start = 171,
-    eCSSProperty_mask = 172,
-    eCSSProperty_mask_type = 173,
-    eCSSProperty_math_display = 174,
-    eCSSProperty_math_variant = 175,
-    eCSSProperty_max_block_size = 176,
-    eCSSProperty_max_height = 177,
-    eCSSProperty_max_inline_size = 178,
-    eCSSProperty_max_width = 179,
-    eCSSProperty_min_block_size = 180,
-    eCSSProperty__moz_min_font_size_ratio = 181,
-    eCSSProperty_min_height = 182,
-    eCSSProperty_min_inline_size = 183,
-    eCSSProperty_min_width = 184,
-    eCSSProperty_mix_blend_mode = 185,
-    eCSSProperty_object_fit = 186,
-    eCSSProperty_object_position = 187,
-    eCSSProperty_offset_block_end = 188,
-    eCSSProperty_offset_block_start = 189,
-    eCSSProperty_offset_inline_end = 190,
-    eCSSProperty_offset_inline_start = 191,
-    eCSSProperty_opacity = 192,
-    eCSSProperty_order = 193,
-    eCSSProperty_orient = 194,
-    eCSSProperty_osx_font_smoothing = 195,
-    eCSSProperty_outline_color = 196,
-    eCSSProperty_outline_offset = 197,
-    eCSSProperty__moz_outline_radius_bottomLeft = 198,
-    eCSSProperty__moz_outline_radius_bottomRight = 199,
-    eCSSProperty__moz_outline_radius_topLeft = 200,
-    eCSSProperty__moz_outline_radius_topRight = 201,
-    eCSSProperty_outline_style = 202,
-    eCSSProperty_outline_width = 203,
-    eCSSProperty_overflow_clip_box = 204,
-    eCSSProperty_overflow_x = 205,
-    eCSSProperty_overflow_y = 206,
-    eCSSProperty_padding_block_end = 207,
-    eCSSProperty_padding_block_start = 208,
-    eCSSProperty_padding_bottom = 209,
-    eCSSProperty_padding_inline_end = 210,
-    eCSSProperty_padding_inline_start = 211,
-    eCSSProperty_padding_left = 212,
-    eCSSProperty_padding_right = 213,
-    eCSSProperty_padding_top = 214,
-    eCSSProperty_page_break_after = 215,
-    eCSSProperty_page_break_before = 216,
-    eCSSProperty_page_break_inside = 217,
-    eCSSProperty_paint_order = 218,
-    eCSSProperty_perspective = 219,
-    eCSSProperty_perspective_origin = 220,
-    eCSSProperty_pointer_events = 221,
-    eCSSProperty_position = 222,
-    eCSSProperty_quotes = 223,
-    eCSSProperty_resize = 224,
-    eCSSProperty_right = 225,
-    eCSSProperty_ruby_align = 226,
-    eCSSProperty_ruby_position = 227,
-    eCSSProperty_script_level = 228,
-    eCSSProperty_script_min_size = 229,
-    eCSSProperty_script_size_multiplier = 230,
-    eCSSProperty_scroll_behavior = 231,
-    eCSSProperty_scroll_snap_coordinate = 232,
-    eCSSProperty_scroll_snap_destination = 233,
-    eCSSProperty_scroll_snap_points_x = 234,
-    eCSSProperty_scroll_snap_points_y = 235,
-    eCSSProperty_scroll_snap_type_x = 236,
-    eCSSProperty_scroll_snap_type_y = 237,
-    eCSSProperty_shape_rendering = 238,
-    eCSSProperty__x_span = 239,
-    eCSSProperty_stack_sizing = 240,
-    eCSSProperty_stop_color = 241,
-    eCSSProperty_stop_opacity = 242,
-    eCSSProperty_stroke = 243,
-    eCSSProperty_stroke_dasharray = 244,
-    eCSSProperty_stroke_dashoffset = 245,
-    eCSSProperty_stroke_linecap = 246,
-    eCSSProperty_stroke_linejoin = 247,
-    eCSSProperty_stroke_miterlimit = 248,
-    eCSSProperty_stroke_opacity = 249,
-    eCSSProperty_stroke_width = 250,
-    eCSSProperty__x_system_font = 251,
-    eCSSProperty__moz_tab_size = 252,
-    eCSSProperty_table_layout = 253,
-    eCSSProperty_text_align = 254,
-    eCSSProperty_text_align_last = 255,
-    eCSSProperty_text_anchor = 256,
-    eCSSProperty_text_combine_upright = 257,
-    eCSSProperty_text_decoration_color = 258,
-    eCSSProperty_text_decoration_line = 259,
-    eCSSProperty_text_decoration_style = 260,
-    eCSSProperty_text_emphasis_color = 261,
-    eCSSProperty_text_emphasis_position = 262,
-    eCSSProperty_text_emphasis_style = 263,
-    eCSSProperty__webkit_text_fill_color = 264,
-    eCSSProperty_text_indent = 265,
-    eCSSProperty_text_orientation = 266,
-    eCSSProperty_text_overflow = 267,
-    eCSSProperty_text_rendering = 268,
-    eCSSProperty_text_shadow = 269,
-    eCSSProperty_text_size_adjust = 270,
-    eCSSProperty__webkit_text_stroke_color = 271,
-    eCSSProperty__webkit_text_stroke_width = 272,
-    eCSSProperty_text_transform = 273,
-    eCSSProperty__x_text_zoom = 274,
-    eCSSProperty_top = 275,
-    eCSSProperty__moz_top_layer = 276,
-    eCSSProperty_touch_action = 277,
-    eCSSProperty_transform = 278,
-    eCSSProperty_transform_box = 279,
-    eCSSProperty_transform_origin = 280,
-    eCSSProperty_transform_style = 281,
-    eCSSProperty_transition_delay = 282,
-    eCSSProperty_transition_duration = 283,
-    eCSSProperty_transition_property = 284,
-    eCSSProperty_transition_timing_function = 285,
-    eCSSProperty_unicode_bidi = 286,
-    eCSSProperty_user_focus = 287,
-    eCSSProperty_user_input = 288,
-    eCSSProperty_user_modify = 289,
-    eCSSProperty_user_select = 290,
-    eCSSProperty_vector_effect = 291,
-    eCSSProperty_vertical_align = 292,
-    eCSSProperty_visibility = 293,
-    eCSSProperty_white_space = 294,
-    eCSSProperty_width = 295,
-    eCSSProperty_will_change = 296,
-    eCSSProperty__moz_window_dragging = 297,
-    eCSSProperty__moz_window_shadow = 298,
-    eCSSProperty_word_break = 299,
-    eCSSProperty_word_spacing = 300,
-    eCSSProperty_word_wrap = 301,
-    eCSSProperty_writing_mode = 302,
-    eCSSProperty_z_index = 303,
-    eCSSProperty_COUNT_no_shorthands = 304,
-    eCSSProperty_animation = 305,
-    eCSSProperty_background = 306,
-    eCSSProperty_border = 307,
-    eCSSProperty_border_block_end = 308,
-    eCSSProperty_border_block_start = 309,
-    eCSSProperty_border_bottom = 310,
-    eCSSProperty_border_color = 311,
-    eCSSProperty_border_image = 312,
-    eCSSProperty_border_inline_end = 313,
-    eCSSProperty_border_inline_start = 314,
-    eCSSProperty_border_left = 315,
-    eCSSProperty_border_radius = 316,
-    eCSSProperty_border_right = 317,
-    eCSSProperty_border_style = 318,
-    eCSSProperty_border_top = 319,
-    eCSSProperty_border_width = 320,
-    eCSSProperty__moz_column_rule = 321,
-    eCSSProperty__moz_columns = 322,
-    eCSSProperty_flex = 323,
-    eCSSProperty_flex_flow = 324,
-    eCSSProperty_font = 325,
-    eCSSProperty_font_variant = 326,
-    eCSSProperty_grid = 327,
-    eCSSProperty_grid_area = 328,
-    eCSSProperty_grid_column = 329,
-    eCSSProperty_grid_gap = 330,
-    eCSSProperty_grid_row = 331,
-    eCSSProperty_grid_template = 332,
-    eCSSProperty_list_style = 333,
-    eCSSProperty_margin = 334,
-    eCSSProperty_marker = 335,
-    eCSSProperty_outline = 336,
-    eCSSProperty__moz_outline_radius = 337,
-    eCSSProperty_overflow = 338,
-    eCSSProperty_padding = 339,
-    eCSSProperty_scroll_snap_type = 340,
-    eCSSProperty_text_decoration = 341,
-    eCSSProperty_text_emphasis = 342,
-    eCSSProperty__webkit_text_stroke = 343,
-    eCSSProperty__moz_transform = 344,
-    eCSSProperty_transition = 345,
-    eCSSProperty_COUNT = 346,
-    eCSSPropertyAlias_MozPerspectiveOrigin = 347,
-    eCSSPropertyAlias_MozPerspective = 348,
-    eCSSPropertyAlias_MozTransformStyle = 349,
-    eCSSPropertyAlias_MozBackfaceVisibility = 350,
-    eCSSPropertyAlias_MozBorderImage = 351,
-    eCSSPropertyAlias_MozTransition = 352,
-    eCSSPropertyAlias_MozTransitionDelay = 353,
-    eCSSPropertyAlias_MozTransitionDuration = 354,
-    eCSSPropertyAlias_MozTransitionProperty = 355,
-    eCSSPropertyAlias_MozTransitionTimingFunction = 356,
-    eCSSPropertyAlias_MozAnimation = 357,
-    eCSSPropertyAlias_MozAnimationDelay = 358,
-    eCSSPropertyAlias_MozAnimationDirection = 359,
-    eCSSPropertyAlias_MozAnimationDuration = 360,
-    eCSSPropertyAlias_MozAnimationFillMode = 361,
-    eCSSPropertyAlias_MozAnimationIterationCount = 362,
-    eCSSPropertyAlias_MozAnimationName = 363,
-    eCSSPropertyAlias_MozAnimationPlayState = 364,
-    eCSSPropertyAlias_MozAnimationTimingFunction = 365,
-    eCSSPropertyAlias_MozBoxSizing = 366,
-    eCSSPropertyAlias_MozFontFeatureSettings = 367,
-    eCSSPropertyAlias_MozFontLanguageOverride = 368,
-    eCSSPropertyAlias_MozPaddingEnd = 369,
-    eCSSPropertyAlias_MozPaddingStart = 370,
-    eCSSPropertyAlias_MozMarginEnd = 371,
-    eCSSPropertyAlias_MozMarginStart = 372,
-    eCSSPropertyAlias_MozBorderEnd = 373,
-    eCSSPropertyAlias_MozBorderEndColor = 374,
-    eCSSPropertyAlias_MozBorderEndStyle = 375,
-    eCSSPropertyAlias_MozBorderEndWidth = 376,
-    eCSSPropertyAlias_MozBorderStart = 377,
-    eCSSPropertyAlias_MozBorderStartColor = 378,
-    eCSSPropertyAlias_MozBorderStartStyle = 379,
-    eCSSPropertyAlias_MozBorderStartWidth = 380,
-    eCSSPropertyAlias_MozHyphens = 381,
-    eCSSPropertyAlias_WebkitAnimation = 382,
-    eCSSPropertyAlias_WebkitAnimationDelay = 383,
-    eCSSPropertyAlias_WebkitAnimationDirection = 384,
-    eCSSPropertyAlias_WebkitAnimationDuration = 385,
-    eCSSPropertyAlias_WebkitAnimationFillMode = 386,
-    eCSSPropertyAlias_WebkitAnimationIterationCount = 387,
-    eCSSPropertyAlias_WebkitAnimationName = 388,
-    eCSSPropertyAlias_WebkitAnimationPlayState = 389,
-    eCSSPropertyAlias_WebkitAnimationTimingFunction = 390,
-    eCSSPropertyAlias_WebkitFilter = 391,
-    eCSSPropertyAlias_WebkitTextSizeAdjust = 392,
-    eCSSPropertyAlias_WebkitTransform = 393,
-    eCSSPropertyAlias_WebkitTransformOrigin = 394,
-    eCSSPropertyAlias_WebkitTransformStyle = 395,
-    eCSSPropertyAlias_WebkitBackfaceVisibility = 396,
-    eCSSPropertyAlias_WebkitPerspective = 397,
-    eCSSPropertyAlias_WebkitPerspectiveOrigin = 398,
-    eCSSPropertyAlias_WebkitTransition = 399,
-    eCSSPropertyAlias_WebkitTransitionDelay = 400,
-    eCSSPropertyAlias_WebkitTransitionDuration = 401,
-    eCSSPropertyAlias_WebkitTransitionProperty = 402,
-    eCSSPropertyAlias_WebkitTransitionTimingFunction = 403,
-    eCSSPropertyAlias_WebkitBorderRadius = 404,
-    eCSSPropertyAlias_WebkitBorderTopLeftRadius = 405,
-    eCSSPropertyAlias_WebkitBorderTopRightRadius = 406,
-    eCSSPropertyAlias_WebkitBorderBottomLeftRadius = 407,
-    eCSSPropertyAlias_WebkitBorderBottomRightRadius = 408,
-    eCSSPropertyAlias_WebkitBackgroundClip = 409,
-    eCSSPropertyAlias_WebkitBackgroundOrigin = 410,
-    eCSSPropertyAlias_WebkitBackgroundSize = 411,
-    eCSSPropertyAlias_WebkitBorderImage = 412,
-    eCSSPropertyAlias_WebkitBoxShadow = 413,
-    eCSSPropertyAlias_WebkitBoxSizing = 414,
-    eCSSPropertyAlias_WebkitBoxFlex = 415,
-    eCSSPropertyAlias_WebkitBoxOrdinalGroup = 416,
-    eCSSPropertyAlias_WebkitBoxOrient = 417,
-    eCSSPropertyAlias_WebkitBoxDirection = 418,
-    eCSSPropertyAlias_WebkitBoxAlign = 419,
-    eCSSPropertyAlias_WebkitBoxPack = 420,
-    eCSSPropertyAlias_WebkitUserSelect = 421,
-    eCSSProperty_COUNT_with_aliases = 422,
-    eCSSPropertyExtra_all_properties = 423,
-    eCSSPropertyExtra_x_none_value = 424,
-    eCSSPropertyExtra_x_auto_value = 425,
-    eCSSPropertyExtra_variable = 426,
+    eCSSProperty_background_position_x = 19,
+    eCSSProperty_background_position_y = 20,
+    eCSSProperty_background_repeat = 21,
+    eCSSProperty_background_size = 22,
+    eCSSProperty_binding = 23,
+    eCSSProperty_block_size = 24,
+    eCSSProperty_border_block_end_color = 25,
+    eCSSProperty_border_block_end_style = 26,
+    eCSSProperty_border_block_end_width = 27,
+    eCSSProperty_border_block_start_color = 28,
+    eCSSProperty_border_block_start_style = 29,
+    eCSSProperty_border_block_start_width = 30,
+    eCSSProperty_border_bottom_color = 31,
+    eCSSProperty_border_bottom_colors = 32,
+    eCSSProperty_border_bottom_left_radius = 33,
+    eCSSProperty_border_bottom_right_radius = 34,
+    eCSSProperty_border_bottom_style = 35,
+    eCSSProperty_border_bottom_width = 36,
+    eCSSProperty_border_collapse = 37,
+    eCSSProperty_border_image_outset = 38,
+    eCSSProperty_border_image_repeat = 39,
+    eCSSProperty_border_image_slice = 40,
+    eCSSProperty_border_image_source = 41,
+    eCSSProperty_border_image_width = 42,
+    eCSSProperty_border_inline_end_color = 43,
+    eCSSProperty_border_inline_end_style = 44,
+    eCSSProperty_border_inline_end_width = 45,
+    eCSSProperty_border_inline_start_color = 46,
+    eCSSProperty_border_inline_start_style = 47,
+    eCSSProperty_border_inline_start_width = 48,
+    eCSSProperty_border_left_color = 49,
+    eCSSProperty_border_left_colors = 50,
+    eCSSProperty_border_left_style = 51,
+    eCSSProperty_border_left_width = 52,
+    eCSSProperty_border_right_color = 53,
+    eCSSProperty_border_right_colors = 54,
+    eCSSProperty_border_right_style = 55,
+    eCSSProperty_border_right_width = 56,
+    eCSSProperty_border_spacing = 57,
+    eCSSProperty_border_top_color = 58,
+    eCSSProperty_border_top_colors = 59,
+    eCSSProperty_border_top_left_radius = 60,
+    eCSSProperty_border_top_right_radius = 61,
+    eCSSProperty_border_top_style = 62,
+    eCSSProperty_border_top_width = 63,
+    eCSSProperty_bottom = 64,
+    eCSSProperty_box_align = 65,
+    eCSSProperty_box_decoration_break = 66,
+    eCSSProperty_box_direction = 67,
+    eCSSProperty_box_flex = 68,
+    eCSSProperty_box_ordinal_group = 69,
+    eCSSProperty_box_orient = 70,
+    eCSSProperty_box_pack = 71,
+    eCSSProperty_box_shadow = 72,
+    eCSSProperty_box_sizing = 73,
+    eCSSProperty_caption_side = 74,
+    eCSSProperty_clear = 75,
+    eCSSProperty_clip = 76,
+    eCSSProperty_clip_path = 77,
+    eCSSProperty_clip_rule = 78,
+    eCSSProperty_color = 79,
+    eCSSProperty_color_adjust = 80,
+    eCSSProperty_color_interpolation = 81,
+    eCSSProperty_color_interpolation_filters = 82,
+    eCSSProperty__moz_column_count = 83,
+    eCSSProperty__moz_column_fill = 84,
+    eCSSProperty__moz_column_gap = 85,
+    eCSSProperty__moz_column_rule_color = 86,
+    eCSSProperty__moz_column_rule_style = 87,
+    eCSSProperty__moz_column_rule_width = 88,
+    eCSSProperty__moz_column_width = 89,
+    eCSSProperty_contain = 90,
+    eCSSProperty_content = 91,
+    eCSSProperty__moz_control_character_visibility = 92,
+    eCSSProperty_counter_increment = 93,
+    eCSSProperty_counter_reset = 94,
+    eCSSProperty_cursor = 95,
+    eCSSProperty_direction = 96,
+    eCSSProperty_display = 97,
+    eCSSProperty_dominant_baseline = 98,
+    eCSSProperty_empty_cells = 99,
+    eCSSProperty_fill = 100,
+    eCSSProperty_fill_opacity = 101,
+    eCSSProperty_fill_rule = 102,
+    eCSSProperty_filter = 103,
+    eCSSProperty_flex_basis = 104,
+    eCSSProperty_flex_direction = 105,
+    eCSSProperty_flex_grow = 106,
+    eCSSProperty_flex_shrink = 107,
+    eCSSProperty_flex_wrap = 108,
+    eCSSProperty_float = 109,
+    eCSSProperty_float_edge = 110,
+    eCSSProperty_flood_color = 111,
+    eCSSProperty_flood_opacity = 112,
+    eCSSProperty_font_family = 113,
+    eCSSProperty_font_feature_settings = 114,
+    eCSSProperty_font_kerning = 115,
+    eCSSProperty_font_language_override = 116,
+    eCSSProperty_font_size = 117,
+    eCSSProperty_font_size_adjust = 118,
+    eCSSProperty_font_stretch = 119,
+    eCSSProperty_font_style = 120,
+    eCSSProperty_font_synthesis = 121,
+    eCSSProperty_font_variant_alternates = 122,
+    eCSSProperty_font_variant_caps = 123,
+    eCSSProperty_font_variant_east_asian = 124,
+    eCSSProperty_font_variant_ligatures = 125,
+    eCSSProperty_font_variant_numeric = 126,
+    eCSSProperty_font_variant_position = 127,
+    eCSSProperty_font_weight = 128,
+    eCSSProperty_force_broken_image_icon = 129,
+    eCSSProperty_grid_auto_columns = 130,
+    eCSSProperty_grid_auto_flow = 131,
+    eCSSProperty_grid_auto_rows = 132,
+    eCSSProperty_grid_column_end = 133,
+    eCSSProperty_grid_column_gap = 134,
+    eCSSProperty_grid_column_start = 135,
+    eCSSProperty_grid_row_end = 136,
+    eCSSProperty_grid_row_gap = 137,
+    eCSSProperty_grid_row_start = 138,
+    eCSSProperty_grid_template_areas = 139,
+    eCSSProperty_grid_template_columns = 140,
+    eCSSProperty_grid_template_rows = 141,
+    eCSSProperty_height = 142,
+    eCSSProperty_hyphens = 143,
+    eCSSProperty_image_orientation = 144,
+    eCSSProperty_image_region = 145,
+    eCSSProperty_image_rendering = 146,
+    eCSSProperty_ime_mode = 147,
+    eCSSProperty_inline_size = 148,
+    eCSSProperty_isolation = 149,
+    eCSSProperty_justify_content = 150,
+    eCSSProperty_justify_items = 151,
+    eCSSProperty_justify_self = 152,
+    eCSSProperty__x_lang = 153,
+    eCSSProperty_left = 154,
+    eCSSProperty_letter_spacing = 155,
+    eCSSProperty_lighting_color = 156,
+    eCSSProperty_line_height = 157,
+    eCSSProperty_list_style_image = 158,
+    eCSSProperty_list_style_position = 159,
+    eCSSProperty_list_style_type = 160,
+    eCSSProperty_margin_block_end = 161,
+    eCSSProperty_margin_block_start = 162,
+    eCSSProperty_margin_bottom = 163,
+    eCSSProperty_margin_inline_end = 164,
+    eCSSProperty_margin_inline_start = 165,
+    eCSSProperty_margin_left = 166,
+    eCSSProperty_margin_right = 167,
+    eCSSProperty_margin_top = 168,
+    eCSSProperty_marker_end = 169,
+    eCSSProperty_marker_mid = 170,
+    eCSSProperty_marker_offset = 171,
+    eCSSProperty_marker_start = 172,
+    eCSSProperty_mask = 173,
+    eCSSProperty_mask_type = 174,
+    eCSSProperty_math_display = 175,
+    eCSSProperty_math_variant = 176,
+    eCSSProperty_max_block_size = 177,
+    eCSSProperty_max_height = 178,
+    eCSSProperty_max_inline_size = 179,
+    eCSSProperty_max_width = 180,
+    eCSSProperty_min_block_size = 181,
+    eCSSProperty__moz_min_font_size_ratio = 182,
+    eCSSProperty_min_height = 183,
+    eCSSProperty_min_inline_size = 184,
+    eCSSProperty_min_width = 185,
+    eCSSProperty_mix_blend_mode = 186,
+    eCSSProperty_object_fit = 187,
+    eCSSProperty_object_position = 188,
+    eCSSProperty_offset_block_end = 189,
+    eCSSProperty_offset_block_start = 190,
+    eCSSProperty_offset_inline_end = 191,
+    eCSSProperty_offset_inline_start = 192,
+    eCSSProperty_opacity = 193,
+    eCSSProperty_order = 194,
+    eCSSProperty_orient = 195,
+    eCSSProperty_osx_font_smoothing = 196,
+    eCSSProperty_outline_color = 197,
+    eCSSProperty_outline_offset = 198,
+    eCSSProperty__moz_outline_radius_bottomLeft = 199,
+    eCSSProperty__moz_outline_radius_bottomRight = 200,
+    eCSSProperty__moz_outline_radius_topLeft = 201,
+    eCSSProperty__moz_outline_radius_topRight = 202,
+    eCSSProperty_outline_style = 203,
+    eCSSProperty_outline_width = 204,
+    eCSSProperty_overflow_clip_box = 205,
+    eCSSProperty_overflow_x = 206,
+    eCSSProperty_overflow_y = 207,
+    eCSSProperty_padding_block_end = 208,
+    eCSSProperty_padding_block_start = 209,
+    eCSSProperty_padding_bottom = 210,
+    eCSSProperty_padding_inline_end = 211,
+    eCSSProperty_padding_inline_start = 212,
+    eCSSProperty_padding_left = 213,
+    eCSSProperty_padding_right = 214,
+    eCSSProperty_padding_top = 215,
+    eCSSProperty_page_break_after = 216,
+    eCSSProperty_page_break_before = 217,
+    eCSSProperty_page_break_inside = 218,
+    eCSSProperty_paint_order = 219,
+    eCSSProperty_perspective = 220,
+    eCSSProperty_perspective_origin = 221,
+    eCSSProperty_pointer_events = 222,
+    eCSSProperty_position = 223,
+    eCSSProperty_quotes = 224,
+    eCSSProperty_resize = 225,
+    eCSSProperty_right = 226,
+    eCSSProperty_ruby_align = 227,
+    eCSSProperty_ruby_position = 228,
+    eCSSProperty_script_level = 229,
+    eCSSProperty_script_min_size = 230,
+    eCSSProperty_script_size_multiplier = 231,
+    eCSSProperty_scroll_behavior = 232,
+    eCSSProperty_scroll_snap_coordinate = 233,
+    eCSSProperty_scroll_snap_destination = 234,
+    eCSSProperty_scroll_snap_points_x = 235,
+    eCSSProperty_scroll_snap_points_y = 236,
+    eCSSProperty_scroll_snap_type_x = 237,
+    eCSSProperty_scroll_snap_type_y = 238,
+    eCSSProperty_shape_rendering = 239,
+    eCSSProperty__x_span = 240,
+    eCSSProperty_stack_sizing = 241,
+    eCSSProperty_stop_color = 242,
+    eCSSProperty_stop_opacity = 243,
+    eCSSProperty_stroke = 244,
+    eCSSProperty_stroke_dasharray = 245,
+    eCSSProperty_stroke_dashoffset = 246,
+    eCSSProperty_stroke_linecap = 247,
+    eCSSProperty_stroke_linejoin = 248,
+    eCSSProperty_stroke_miterlimit = 249,
+    eCSSProperty_stroke_opacity = 250,
+    eCSSProperty_stroke_width = 251,
+    eCSSProperty__x_system_font = 252,
+    eCSSProperty__moz_tab_size = 253,
+    eCSSProperty_table_layout = 254,
+    eCSSProperty_text_align = 255,
+    eCSSProperty_text_align_last = 256,
+    eCSSProperty_text_anchor = 257,
+    eCSSProperty_text_combine_upright = 258,
+    eCSSProperty_text_decoration_color = 259,
+    eCSSProperty_text_decoration_line = 260,
+    eCSSProperty_text_decoration_style = 261,
+    eCSSProperty_text_emphasis_color = 262,
+    eCSSProperty_text_emphasis_position = 263,
+    eCSSProperty_text_emphasis_style = 264,
+    eCSSProperty__webkit_text_fill_color = 265,
+    eCSSProperty_text_indent = 266,
+    eCSSProperty_text_orientation = 267,
+    eCSSProperty_text_overflow = 268,
+    eCSSProperty_text_rendering = 269,
+    eCSSProperty_text_shadow = 270,
+    eCSSProperty_text_size_adjust = 271,
+    eCSSProperty__webkit_text_stroke_color = 272,
+    eCSSProperty__webkit_text_stroke_width = 273,
+    eCSSProperty_text_transform = 274,
+    eCSSProperty__x_text_zoom = 275,
+    eCSSProperty_top = 276,
+    eCSSProperty__moz_top_layer = 277,
+    eCSSProperty_touch_action = 278,
+    eCSSProperty_transform = 279,
+    eCSSProperty_transform_box = 280,
+    eCSSProperty_transform_origin = 281,
+    eCSSProperty_transform_style = 282,
+    eCSSProperty_transition_delay = 283,
+    eCSSProperty_transition_duration = 284,
+    eCSSProperty_transition_property = 285,
+    eCSSProperty_transition_timing_function = 286,
+    eCSSProperty_unicode_bidi = 287,
+    eCSSProperty_user_focus = 288,
+    eCSSProperty_user_input = 289,
+    eCSSProperty_user_modify = 290,
+    eCSSProperty_user_select = 291,
+    eCSSProperty_vector_effect = 292,
+    eCSSProperty_vertical_align = 293,
+    eCSSProperty_visibility = 294,
+    eCSSProperty_white_space = 295,
+    eCSSProperty_width = 296,
+    eCSSProperty_will_change = 297,
+    eCSSProperty__moz_window_dragging = 298,
+    eCSSProperty__moz_window_shadow = 299,
+    eCSSProperty_word_break = 300,
+    eCSSProperty_word_spacing = 301,
+    eCSSProperty_word_wrap = 302,
+    eCSSProperty_writing_mode = 303,
+    eCSSProperty_z_index = 304,
+    eCSSProperty_COUNT_no_shorthands = 305,
+    eCSSProperty_animation = 306,
+    eCSSProperty_background = 307,
+    eCSSProperty_background_position = 308,
+    eCSSProperty_border = 309,
+    eCSSProperty_border_block_end = 310,
+    eCSSProperty_border_block_start = 311,
+    eCSSProperty_border_bottom = 312,
+    eCSSProperty_border_color = 313,
+    eCSSProperty_border_image = 314,
+    eCSSProperty_border_inline_end = 315,
+    eCSSProperty_border_inline_start = 316,
+    eCSSProperty_border_left = 317,
+    eCSSProperty_border_radius = 318,
+    eCSSProperty_border_right = 319,
+    eCSSProperty_border_style = 320,
+    eCSSProperty_border_top = 321,
+    eCSSProperty_border_width = 322,
+    eCSSProperty__moz_column_rule = 323,
+    eCSSProperty__moz_columns = 324,
+    eCSSProperty_flex = 325,
+    eCSSProperty_flex_flow = 326,
+    eCSSProperty_font = 327,
+    eCSSProperty_font_variant = 328,
+    eCSSProperty_grid = 329,
+    eCSSProperty_grid_area = 330,
+    eCSSProperty_grid_column = 331,
+    eCSSProperty_grid_gap = 332,
+    eCSSProperty_grid_row = 333,
+    eCSSProperty_grid_template = 334,
+    eCSSProperty_list_style = 335,
+    eCSSProperty_margin = 336,
+    eCSSProperty_marker = 337,
+    eCSSProperty_outline = 338,
+    eCSSProperty__moz_outline_radius = 339,
+    eCSSProperty_overflow = 340,
+    eCSSProperty_padding = 341,
+    eCSSProperty_scroll_snap_type = 342,
+    eCSSProperty_text_decoration = 343,
+    eCSSProperty_text_emphasis = 344,
+    eCSSProperty__webkit_text_stroke = 345,
+    eCSSProperty__moz_transform = 346,
+    eCSSProperty_transition = 347,
+    eCSSProperty_COUNT = 348,
+    eCSSPropertyAlias_MozPerspectiveOrigin = 349,
+    eCSSPropertyAlias_MozPerspective = 350,
+    eCSSPropertyAlias_MozTransformStyle = 351,
+    eCSSPropertyAlias_MozBackfaceVisibility = 352,
+    eCSSPropertyAlias_MozBorderImage = 353,
+    eCSSPropertyAlias_MozTransition = 354,
+    eCSSPropertyAlias_MozTransitionDelay = 355,
+    eCSSPropertyAlias_MozTransitionDuration = 356,
+    eCSSPropertyAlias_MozTransitionProperty = 357,
+    eCSSPropertyAlias_MozTransitionTimingFunction = 358,
+    eCSSPropertyAlias_MozAnimation = 359,
+    eCSSPropertyAlias_MozAnimationDelay = 360,
+    eCSSPropertyAlias_MozAnimationDirection = 361,
+    eCSSPropertyAlias_MozAnimationDuration = 362,
+    eCSSPropertyAlias_MozAnimationFillMode = 363,
+    eCSSPropertyAlias_MozAnimationIterationCount = 364,
+    eCSSPropertyAlias_MozAnimationName = 365,
+    eCSSPropertyAlias_MozAnimationPlayState = 366,
+    eCSSPropertyAlias_MozAnimationTimingFunction = 367,
+    eCSSPropertyAlias_MozBoxSizing = 368,
+    eCSSPropertyAlias_MozFontFeatureSettings = 369,
+    eCSSPropertyAlias_MozFontLanguageOverride = 370,
+    eCSSPropertyAlias_MozPaddingEnd = 371,
+    eCSSPropertyAlias_MozPaddingStart = 372,
+    eCSSPropertyAlias_MozMarginEnd = 373,
+    eCSSPropertyAlias_MozMarginStart = 374,
+    eCSSPropertyAlias_MozBorderEnd = 375,
+    eCSSPropertyAlias_MozBorderEndColor = 376,
+    eCSSPropertyAlias_MozBorderEndStyle = 377,
+    eCSSPropertyAlias_MozBorderEndWidth = 378,
+    eCSSPropertyAlias_MozBorderStart = 379,
+    eCSSPropertyAlias_MozBorderStartColor = 380,
+    eCSSPropertyAlias_MozBorderStartStyle = 381,
+    eCSSPropertyAlias_MozBorderStartWidth = 382,
+    eCSSPropertyAlias_MozHyphens = 383,
+    eCSSPropertyAlias_WebkitAnimation = 384,
+    eCSSPropertyAlias_WebkitAnimationDelay = 385,
+    eCSSPropertyAlias_WebkitAnimationDirection = 386,
+    eCSSPropertyAlias_WebkitAnimationDuration = 387,
+    eCSSPropertyAlias_WebkitAnimationFillMode = 388,
+    eCSSPropertyAlias_WebkitAnimationIterationCount = 389,
+    eCSSPropertyAlias_WebkitAnimationName = 390,
+    eCSSPropertyAlias_WebkitAnimationPlayState = 391,
+    eCSSPropertyAlias_WebkitAnimationTimingFunction = 392,
+    eCSSPropertyAlias_WebkitFilter = 393,
+    eCSSPropertyAlias_WebkitTextSizeAdjust = 394,
+    eCSSPropertyAlias_WebkitTransform = 395,
+    eCSSPropertyAlias_WebkitTransformOrigin = 396,
+    eCSSPropertyAlias_WebkitTransformStyle = 397,
+    eCSSPropertyAlias_WebkitBackfaceVisibility = 398,
+    eCSSPropertyAlias_WebkitPerspective = 399,
+    eCSSPropertyAlias_WebkitPerspectiveOrigin = 400,
+    eCSSPropertyAlias_WebkitTransition = 401,
+    eCSSPropertyAlias_WebkitTransitionDelay = 402,
+    eCSSPropertyAlias_WebkitTransitionDuration = 403,
+    eCSSPropertyAlias_WebkitTransitionProperty = 404,
+    eCSSPropertyAlias_WebkitTransitionTimingFunction = 405,
+    eCSSPropertyAlias_WebkitBorderRadius = 406,
+    eCSSPropertyAlias_WebkitBorderTopLeftRadius = 407,
+    eCSSPropertyAlias_WebkitBorderTopRightRadius = 408,
+    eCSSPropertyAlias_WebkitBorderBottomLeftRadius = 409,
+    eCSSPropertyAlias_WebkitBorderBottomRightRadius = 410,
+    eCSSPropertyAlias_WebkitBackgroundClip = 411,
+    eCSSPropertyAlias_WebkitBackgroundOrigin = 412,
+    eCSSPropertyAlias_WebkitBackgroundSize = 413,
+    eCSSPropertyAlias_WebkitBorderImage = 414,
+    eCSSPropertyAlias_WebkitBoxShadow = 415,
+    eCSSPropertyAlias_WebkitBoxSizing = 416,
+    eCSSPropertyAlias_WebkitBoxFlex = 417,
+    eCSSPropertyAlias_WebkitBoxOrdinalGroup = 418,
+    eCSSPropertyAlias_WebkitBoxOrient = 419,
+    eCSSPropertyAlias_WebkitBoxDirection = 420,
+    eCSSPropertyAlias_WebkitBoxAlign = 421,
+    eCSSPropertyAlias_WebkitBoxPack = 422,
+    eCSSPropertyAlias_WebkitUserSelect = 423,
+    eCSSProperty_COUNT_with_aliases = 424,
+    eCSSPropertyExtra_all_properties = 425,
+    eCSSPropertyExtra_x_none_value = 426,
+    eCSSPropertyExtra_x_auto_value = 427,
+    eCSSPropertyExtra_variable = 428,
 }
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -3558,9 +3594,10 @@ fn bindgen_test_layout_GridNamedArea() {
     assert_eq!(::std::mem::align_of::<GridNamedArea>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct GridTemplateAreasValue {
-    pub mNamedAreas: u64,
-    pub mTemplates: u64,
+    pub mNamedAreas: nsTArray<GridNamedArea>,
+    pub mTemplates: nsTArray<nsString>,
     pub mNColumns: u32,
     pub mRefCnt: nsAutoRefCnt,
     pub _mOwningThread: nsAutoOwningThread,
@@ -3571,6 +3608,7 @@ fn bindgen_test_layout_GridTemplateAreasValue() {
     assert_eq!(::std::mem::align_of::<GridTemplateAreasValue>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct FontFamilyListRefCnt {
     pub _base: FontFamilyList,
     pub mRefCnt: nsAutoRefCnt,
@@ -3872,6 +3910,7 @@ fn bindgen_test_layout_nsCSSValueGradientStop() {
     assert_eq!(::std::mem::align_of::<nsCSSValueGradientStop>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct nsCSSValueGradient {
     pub mIsRadial: bool,
     pub mIsRepeating: bool,
@@ -3880,7 +3919,7 @@ pub struct nsCSSValueGradient {
     pub mBgPos: nsCSSValuePair,
     pub mAngle: nsCSSValue,
     pub mRadialValues: [nsCSSValue; 2usize],
-    pub mStops: u64,
+    pub mStops: nsTArray<nsCSSValueGradientStop>,
     pub mRefCnt: nsAutoRefCnt,
     pub _mOwningThread: nsAutoOwningThread,
 }
@@ -3959,13 +3998,14 @@ fn bindgen_test_layout_CounterStyle() {
     assert_eq!(::std::mem::align_of::<CounterStyle>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct AnonymousCounterStyle {
     pub _base: CounterStyle,
     pub mRefCnt: nsAutoRefCnt,
     pub _mOwningThread: nsAutoOwningThread,
     pub mSingleString: bool,
     pub mSystem: u8,
-    pub mSymbols: u64,
+    pub mSymbols: nsTArray<nsString>,
 }
 #[repr(C)]
 pub struct _vftable_AnonymousCounterStyle {
@@ -4340,6 +4380,7 @@ fn bindgen_test_layout_nsStyleGradientStop() {
     assert_eq!(::std::mem::align_of::<nsStyleGradientStop>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct nsStyleGradient {
     pub mShape: u8,
     pub mSize: u8,
@@ -4350,7 +4391,7 @@ pub struct nsStyleGradient {
     pub mAngle: nsStyleCoord,
     pub mRadiusX: nsStyleCoord,
     pub mRadiusY: nsStyleCoord,
-    pub mStops: u64,
+    pub mStops: nsTArray<nsStyleGradientStop>,
     pub mRefCnt: nsAutoRefCnt,
     pub _mOwningThread: nsAutoOwningThread,
 }
@@ -4419,21 +4460,35 @@ fn bindgen_test_layout_nsStyleColor() {
     assert_eq!(::std::mem::size_of::<nsStyleColor>() , 4usize);
     assert_eq!(::std::mem::align_of::<nsStyleColor>() , 4usize);
 }
+/**
+ * An array of objects, similar to AutoTArray<T,1> but which is memmovable. It
+ * always has length >= 1.
+ */
 #[repr(C)]
-pub struct nsStyleAutoArray;
+#[derive(Debug)]
+pub struct nsStyleAutoArray<T> {
+    pub mFirstElement: T,
+    pub mOtherElements: nsTArray<T>,
+}
+#[repr(i32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum nsStyleAutoArray_WithSingleInitialElement {
+    WITH_SINGLE_INITIAL_ELEMENT = 0,
+}
 #[repr(C)]
 pub struct nsStyleImageLayers {
     pub mAttachmentCount: u32,
     pub mClipCount: u32,
     pub mOriginCount: u32,
     pub mRepeatCount: u32,
-    pub mPositionCount: u32,
+    pub mPositionXCount: u32,
+    pub mPositionYCount: u32,
     pub mImageCount: u32,
     pub mSizeCount: u32,
     pub mMaskModeCount: u32,
     pub mBlendModeCount: u32,
     pub mCompositeCount: u32,
-    pub mLayers: [u64; 15usize],
+    pub mLayers: nsStyleAutoArray<nsStyleImageLayers_Layer>,
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -4442,13 +4497,14 @@ pub enum nsStyleImageLayers_nsStyleStruct_h_unnamed_14 {
     color = 1,
     image = 2,
     repeat = 3,
-    position = 4,
-    clip = 5,
-    origin = 6,
-    size = 7,
-    attachment = 8,
-    maskMode = 9,
-    composite = 10,
+    positionX = 4,
+    positionY = 5,
+    clip = 6,
+    origin = 7,
+    size = 8,
+    attachment = 9,
+    maskMode = 10,
+    composite = 11,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
@@ -4541,7 +4597,7 @@ fn bindgen_test_layout_nsStyleImageLayers_Layer() {
 }
 #[test]
 fn bindgen_test_layout_nsStyleImageLayers() {
-    assert_eq!(::std::mem::size_of::<nsStyleImageLayers>() , 160usize);
+    assert_eq!(::std::mem::size_of::<nsStyleImageLayers>() , 168usize);
     assert_eq!(::std::mem::align_of::<nsStyleImageLayers>() , 8usize);
 }
 #[repr(C)]
@@ -4551,31 +4607,27 @@ pub struct nsStyleBackground {
 }
 #[test]
 fn bindgen_test_layout_nsStyleBackground() {
-    assert_eq!(::std::mem::size_of::<nsStyleBackground>() , 168usize);
+    assert_eq!(::std::mem::size_of::<nsStyleBackground>() , 176usize);
     assert_eq!(::std::mem::align_of::<nsStyleBackground>() , 8usize);
 }
 #[repr(C)]
 #[derive(Debug)]
 pub struct nsStyleMargin {
     pub mMargin: nsStyleSides,
-    pub mHasCachedMargin: bool,
-    pub mCachedMargin: nsMargin,
 }
 #[test]
 fn bindgen_test_layout_nsStyleMargin() {
-    assert_eq!(::std::mem::size_of::<nsStyleMargin>() , 64usize);
+    assert_eq!(::std::mem::size_of::<nsStyleMargin>() , 40usize);
     assert_eq!(::std::mem::align_of::<nsStyleMargin>() , 8usize);
 }
 #[repr(C)]
 #[derive(Debug)]
 pub struct nsStylePadding {
     pub mPadding: nsStyleSides,
-    pub mHasCachedPadding: bool,
-    pub mCachedPadding: nsMargin,
 }
 #[test]
 fn bindgen_test_layout_nsStylePadding() {
-    assert_eq!(::std::mem::size_of::<nsStylePadding>() , 64usize);
+    assert_eq!(::std::mem::size_of::<nsStylePadding>() , 40usize);
     assert_eq!(::std::mem::align_of::<nsStylePadding>() , 8usize);
 }
 #[repr(C)]
@@ -4664,10 +4716,11 @@ fn bindgen_test_layout_nsStyleOutline() {
  * to share the same 'quotes' value with a parent style context.
  */
 #[repr(C)]
+#[derive(Debug)]
 pub struct nsStyleQuoteValues {
     pub mRefCnt: nsAutoRefCnt,
     pub _mOwningThread: nsAutoOwningThread,
-    pub mQuotePairs: u64,
+    pub mQuotePairs: nsTArray<pair<nsString, nsString>>,
 }
 #[test]
 fn bindgen_test_layout_nsStyleQuoteValues() {
@@ -4677,7 +4730,6 @@ fn bindgen_test_layout_nsStyleQuoteValues() {
 #[repr(C)]
 pub struct nsStyleList {
     pub mListStylePosition: u8,
-    pub mListStyleType: nsString,
     pub mCounterStyle: RefPtr<CounterStyle>,
     pub mListStyleImage: RefPtr<imgRequestProxy>,
     pub mQuotes: RefPtr<nsStyleQuoteValues>,
@@ -4685,7 +4737,7 @@ pub struct nsStyleList {
 }
 #[test]
 fn bindgen_test_layout_nsStyleList() {
-    assert_eq!(::std::mem::size_of::<nsStyleList>() , 64usize);
+    assert_eq!(::std::mem::size_of::<nsStyleList>() , 48usize);
     assert_eq!(::std::mem::align_of::<nsStyleList>() , 8usize);
 }
 #[repr(C)]
@@ -4701,12 +4753,13 @@ fn bindgen_test_layout_nsStyleGridLine() {
     assert_eq!(::std::mem::align_of::<nsStyleGridLine>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct nsStyleGridTemplate {
-    pub mLineNameLists: u64,
-    pub mMinTrackSizingFunctions: u64,
-    pub mMaxTrackSizingFunctions: u64,
-    pub mRepeatAutoLineNameListBefore: u64,
-    pub mRepeatAutoLineNameListAfter: u64,
+    pub mLineNameLists: nsTArray<nsTArray<nsString>>,
+    pub mMinTrackSizingFunctions: nsTArray<nsStyleCoord>,
+    pub mMaxTrackSizingFunctions: nsTArray<nsStyleCoord>,
+    pub mRepeatAutoLineNameListBefore: nsTArray<nsString>,
+    pub mRepeatAutoLineNameListAfter: nsTArray<nsString>,
     pub mRepeatAutoIndex: i16,
     pub _bitfield_1: u8,
 }
@@ -4716,6 +4769,7 @@ fn bindgen_test_layout_nsStyleGridTemplate() {
     assert_eq!(::std::mem::align_of::<nsStyleGridTemplate>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct nsStylePosition {
     pub mObjectPosition: nsStyleImageLayers_Position,
     pub mOffset: nsStyleSides,
@@ -5021,7 +5075,7 @@ pub struct nsStyleDisplay {
     pub mIsolation: u8,
     pub mTopLayer: u8,
     pub mWillChangeBitField: u8,
-    pub mWillChange: u64,
+    pub mWillChange: nsTArray<nsString>,
     pub mTouchAction: u8,
     pub mScrollBehavior: u8,
     pub mScrollSnapTypeX: u8,
@@ -5029,7 +5083,7 @@ pub struct nsStyleDisplay {
     pub mScrollSnapPointsX: nsStyleCoord,
     pub mScrollSnapPointsY: nsStyleCoord,
     pub mScrollSnapDestination: nsStyleImageLayers_Position,
-    pub mScrollSnapCoordinate: u64,
+    pub mScrollSnapCoordinate: nsTArray<nsStyleImageLayers_Position>,
     pub mBackfaceVisibility: u8,
     pub mTransformStyle: u8,
     pub mTransformBox: u8,
@@ -5038,12 +5092,12 @@ pub struct nsStyleDisplay {
     pub mChildPerspective: nsStyleCoord,
     pub mPerspectiveOrigin: [nsStyleCoord; 2usize],
     pub mVerticalAlign: nsStyleCoord,
-    pub mTransitions: [u64; 6usize],
+    pub mTransitions: nsStyleAutoArray<StyleTransition>,
     pub mTransitionTimingFunctionCount: u32,
     pub mTransitionDurationCount: u32,
     pub mTransitionDelayCount: u32,
     pub mTransitionPropertyCount: u32,
-    pub mAnimations: [u64; 9usize],
+    pub mAnimations: nsStyleAutoArray<StyleAnimation>,
     pub mAnimationTimingFunctionCount: u32,
     pub mAnimationDurationCount: u32,
     pub mAnimationDelayCount: u32,
@@ -5310,12 +5364,13 @@ fn bindgen_test_layout_nsStyleSVG() {
     assert_eq!(::std::mem::align_of::<nsStyleSVG>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct nsStyleBasicShape {
     pub mRefCnt: nsAutoRefCnt,
     pub _mOwningThread: nsAutoOwningThread,
     pub mType: nsStyleBasicShape_Type,
     pub mFillRule: i32,
-    pub mCoordinates: u64,
+    pub mCoordinates: nsTArray<nsStyleCoord>,
     pub mPosition: nsStyleImageLayers_Position,
     pub mRadius: nsStyleCorners,
 }
@@ -5413,7 +5468,7 @@ pub struct nsStyleSVGReset {
 }
 #[test]
 fn bindgen_test_layout_nsStyleSVGReset() {
-    assert_eq!(::std::mem::size_of::<nsStyleSVGReset>() , 208usize);
+    assert_eq!(::std::mem::size_of::<nsStyleSVGReset>() , 216usize);
     assert_eq!(::std::mem::align_of::<nsStyleSVGReset>() , 8usize);
 }
 #[repr(C)]
@@ -5426,8 +5481,9 @@ fn bindgen_test_layout_nsStyleVariables() {
     assert_eq!(::std::mem::align_of::<nsStyleVariables>() , 8usize);
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct nsStyleEffects {
-    pub mFilters: u64,
+    pub mFilters: nsTArray<nsStyleFilter>,
     pub mBoxShadow: RefPtr<nsCSSShadowArray>,
     pub mClip: nsRect,
     pub mOpacity: f32,
@@ -5438,4 +5494,18 @@ pub struct nsStyleEffects {
 fn bindgen_test_layout_nsStyleEffects() {
     assert_eq!(::std::mem::size_of::<nsStyleEffects>() , 40usize);
     assert_eq!(::std::mem::align_of::<nsStyleEffects>() , 8usize);
+}
+/**
+ * This class is used to replace nsTArray in order to allow generating rust
+ * bindings for it, and for related classes.
+ *
+ * If this class or some of the following asserts have to change, please ping
+ * bholley, heycam, or emilio first.
+ *
+ * <div rustbindgen replaces="nsTArray"></div>
+ */
+#[repr(C)]
+#[derive(Debug)]
+pub struct nsTArray<T> {
+    pub mBuffer: *mut T,
 }

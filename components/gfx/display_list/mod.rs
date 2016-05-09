@@ -37,6 +37,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::hash::{BuildHasherDefault, Hash};
 use std::marker::PhantomData;
+use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::sync::Arc;
 use style::computed_values::{border_style, filter, image_rendering, mix_blend_mode};
@@ -246,8 +247,7 @@ impl DisplayList {
     }
 
     fn sort(&mut self) {
-        let mut list = Vec::new();
-        list.append(&mut self.list);
+        let mut list = mem::replace(&mut self.list, Vec::new());
 
         list.sort_by(|a, b| {
             if a.base().stacking_context_id == b.base().stacking_context_id {
@@ -256,7 +256,7 @@ impl DisplayList {
             self.get_offset_for_item(a).cmp(&self.get_offset_for_item(b))
         });
 
-        self.list.append(&mut list);
+        mem::replace(&mut self.list, list);
     }
 
     pub fn print(&self) {
