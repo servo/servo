@@ -22,9 +22,9 @@ use std::time::Duration;
 use std::{thread, f64};
 use std_time::precise_time_ns;
 use trace_dump::TraceDump;
+use util::opts::OutputOptions;
 use util::thread::spawn_named;
 use util::time::duration_from_seconds;
-use util::opts::OutputOptions;
 
 pub trait Formattable {
     fn format(&self, output: &Option<OutputOptions>) -> String;
@@ -42,7 +42,7 @@ impl Formattable for Option<TimerMetadata> {
                         let incremental = match meta.incremental {
                             TimerMetadataReflowType::Incremental => "yes",
                             TimerMetadataReflowType::FirstReflow => "no",
-                        };                        
+                        };
                         let iframe = match meta.iframe {
                             TimerMetadataFrameType::RootWindow => "yes",
                             TimerMetadataFrameType::IFrame => "no",
@@ -59,7 +59,7 @@ impl Formattable for Option<TimerMetadata> {
                         let incremental = match meta.incremental {
                             TimerMetadataReflowType::Incremental => "    yes",
                             TimerMetadataReflowType::FirstReflow => "    no ",
-                        }; 
+                        };
                         let iframe = match meta.iframe {
                             TimerMetadataFrameType::RootWindow => "  yes",
                             TimerMetadataFrameType::IFrame => "  no ",
@@ -77,7 +77,7 @@ impl Formattable for Option<TimerMetadata> {
                         format!(" {:14} {:9} {:30}", "    N/A", "  N/A", "             N/A")
                     }
                 }
-            }   
+            }
         }
     }
 }
@@ -188,7 +188,7 @@ impl Profiler {
                                 if chan.send(ProfilerMsg::Print).is_err() {
                                     break;
                                 }
-                            }  
+                            }
                         });
                     },
                 }
@@ -320,7 +320,8 @@ impl Profiler {
                                      Error::description(&e)),
                     Ok(file) => file,
                 };
-                write!(file, "_category_, _incremental?_, _iframe?_, _url_, _mean (ms)_, _median (ms)_, _min (ms)_, _max (ms)_, _events_\n");
+                write!(file, "_category_, _incremental?_, _iframe?_, _url_, _mean (ms)_, _median (ms)_, _min (ms)_, \
+                _max (ms)_, _events_\n");
                 for (&(ref category, ref meta), ref mut data) in &mut self.buckets {
                     data.sort_by(|a, b| {
                         if a < b {
@@ -336,8 +337,8 @@ impl Profiler {
                              data[data_len / 2],
                              data.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
                              data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));
-                        write!(file, "{}, {}, {:15.4}, {:15.4}, {:15.4}, {:15.4}, {:15}\n",
-                               category.format(&self.output), meta.format(&self.output), mean, median, min, max, data_len);
+                        write!(file, "{}, {}, {:15.4}, {:15.4}, {:15.4}, {:15.4}, {:15}\n",\
+                            category.format(&self.output), meta.format(&self.output), mean, median, min, max, data_len);
                     }
                 }
             },
