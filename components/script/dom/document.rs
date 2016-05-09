@@ -32,6 +32,7 @@ use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::bindings::xmlname::{validate_and_extract, namespace_from_domstring, xml_name_type};
 use dom::browsingcontext::BrowsingContext;
+use dom::closeevent::CloseEvent;
 use dom::comment::Comment;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
@@ -2192,6 +2193,8 @@ impl DocumentMethods for Document {
                 Ok(Root::upcast(FocusEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
             "errorevent" =>
                 Ok(Root::upcast(ErrorEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
+            "closeevent" =>
+                Ok(Root::upcast(CloseEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
             _ =>
                 Err(Error::NotSupported),
         }
