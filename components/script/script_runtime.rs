@@ -10,7 +10,7 @@ use dom::bindings::refcounted::{LiveDOMReferences, TrustedReference, trace_refco
 use dom::bindings::trace::trace_traceables;
 use dom::bindings::utils::DOM_CALLBACKS;
 use js::glue::CollectServoSizes;
-use js::jsapi::{DisableIncrementalGC, GCDescription, GCProgress};
+use js::jsapi::{GCDescription, GCProgress};
 use js::jsapi::{JSContext, JS_GetRuntime, JSRuntime, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
 use js::jsapi::{JSGCInvocationKind, JSGCStatus, JS_AddExtraGCRootsTracer, JS_SetGCCallback};
 use js::jsapi::{JSGCMode, JSGCParamKey, JS_SetGCParameter, JS_SetGlobalJitCompilerOption};
@@ -114,8 +114,6 @@ pub unsafe fn new_rt_and_cx() -> Runtime {
     unsafe extern "C" fn empty_wrapper_callback(_: *mut JSContext, _: *mut JSObject) -> bool { true }
     SetDOMCallbacks(runtime.rt(), &DOM_CALLBACKS);
     SetPreserveWrapperCallback(runtime.rt(), Some(empty_wrapper_callback));
-    // Pre barriers aren't working correctly at the moment
-    DisableIncrementalGC(runtime.rt());
 
     // Enable or disable the JITs.
     let rt_opts = &mut *RuntimeOptionsRef(runtime.rt());
