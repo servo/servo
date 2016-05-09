@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use ipc_channel::ipc;
 use profile::time;
 use profile_traits::time::ProfilerMsg;
-use ipc_channel::ipc;
 
 #[test]
 fn time_profiler_smoke_test() {
