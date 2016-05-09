@@ -27,7 +27,7 @@
 
         #[derive(Debug, PartialEq, Eq, Clone, Hash, HeapSizeOf, Deserialize, Serialize)]
         pub enum FontFamily {
-            FamilyName(Atom),
+            FamilyName(String),
             // Generic,
             Serif,
             SansSerif,
@@ -49,6 +49,7 @@
             }
 
             pub fn from_atom(input: Atom) -> FontFamily {
+                let input = input.to_string();
                 let option = match_ignore_ascii_case! { &input,
                     super::SERIF => Some(FontFamily::Serif),
                     super::SANS_SERIF => Some(FontFamily::SansSerif),
@@ -96,7 +97,7 @@
     }
     pub fn parse_one_family(input: &mut Parser) -> Result<FontFamily, ()> {
         if let Ok(value) = input.try(|input| input.expect_string()) {
-            return Ok(FontFamily::FamilyName(Atom::from(&*value)))
+            return Ok(FontFamily::FamilyName(value.into_owned()))
         }
         let first_ident = try!(input.expect_ident());
 
@@ -113,7 +114,7 @@
             value.push_str(" ");
             value.push_str(&ident);
         }
-        Ok(FontFamily::FamilyName(Atom::from(value)))
+        Ok(FontFamily::FamilyName(value))
     }
 </%helpers:longhand>
 
