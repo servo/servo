@@ -15,7 +15,7 @@ use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{ToJSValConvertible};
-use dom::bindings::error::{Error, ErrorResult};
+use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, LayoutJS};
@@ -240,7 +240,7 @@ impl HTMLIFrameElement {
         if let Some(pipeline_id) = self.pipeline_id.get() {
             let window = window_from_node(self);
             let window = window.r();
-            let ConstellationChan(ref chan) = window.constellation_chan();
+            let ConstellationChan(ref chan) = *window.constellation_chan();
             chan.send(ConstellationMsg::SetVisible(pipeline_id,
                                                    visible)).unwrap();
         }
@@ -524,7 +524,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/setVisible
-    fn SetVisible(&self, visible: bool) -> Fallible<()> {
+    fn SetVisible(&self, visible: bool) -> ErrorResult {
         if self.Mozbrowser() {
             self.set_visible(visible);
             Ok(())

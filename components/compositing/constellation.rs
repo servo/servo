@@ -1041,7 +1041,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             };
 
             let window_size = old_pipeline.and_then(|old_pipeline| old_pipeline.size);
-            let source_visibility = source_pipeline.map(|pipeline| pipeline.visible);
+            let source_visibility = source_pipeline.visible;
 
             if let Some(old_pipeline) = old_pipeline {
                 old_pipeline.freeze();
@@ -1054,7 +1054,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         // Create the new pipeline, attached to the parent and push to pending frames
         self.new_pipeline(load_info.new_pipeline_id,
                           Some((load_info.containing_pipeline_id, load_info.new_subpage_id)),
-                          source_visibility,
+                          Some(source_visibility),
                           window_size,
                           script_chan,
                           load_data);
