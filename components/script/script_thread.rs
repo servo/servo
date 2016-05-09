@@ -884,10 +884,8 @@ impl ScriptThread {
                 self.handle_freeze_msg(pipeline_id),
             ConstellationControlMsg::Thaw(pipeline_id) =>
                 self.handle_thaw_msg(pipeline_id),
-            ConstellationControlMsg::SetVisible(containing_id, pipeline_id) =>
-                self.handle_visibility_change_msg(containing_id, pipeline_id, true),
-            ConstellationControlMsg::SetNonVisible(containing_id, pipeline_id) =>
-                self.handle_visibility_change_msg(containing_id, pipeline_id, false),
+            ConstellationControlMsg::ChangeFrameVisibilityStatus(containing_id, pipeline_id, visible) =>
+                self.handle_visibility_change_msg(containing_id, pipeline_id, visible),
             ConstellationControlMsg::MozBrowserEvent(parent_pipeline_id,
                                                      subpage_id,
                                                      event) =>
