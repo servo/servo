@@ -7,6 +7,7 @@ use document_loader::{DocumentLoader, LoadType};
 use dom::activation::{ActivationSource, synthetic_click_activation};
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
@@ -231,7 +232,7 @@ pub struct Document {
     /// The document's origin.
     origin: Origin,
     ///  https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states
-    referrer_policy: Option<ReferrerPolicy>,
+    referrer_policy: Cell<Option<ReferrerPolicy>>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1690,7 +1691,7 @@ impl Document {
             touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
             origin: origin,
             //TODO - setting this for now so no Referer header set
-            referrer_policy: Some(ReferrerPolicy::NoReferrer),
+            referrer_policy: Cell::new(Some(ReferrerPolicy::NoReferrer)),
         }
     }
 
@@ -1819,10 +1820,13 @@ impl Document {
             snapshot.attrs = Some(attrs);
         }
     }
+    pub fn set_meta_referrer(&self, content: &str) {
+        self.referrer_policy.set(determine_tokens_policy(String::from(content)));
+    }
 
-    //TODO - for now, returns no-referrer for all until reading in the value
+    //TODO - default still at no-referrer
     pub fn get_referrer_policy(&self) -> Option<ReferrerPolicy> {
-        return self.referrer_policy.clone();
+        return self.referrer_policy.get();
     }
 }
 
@@ -2777,6 +2781,20 @@ fn update_with_current_time_ms(marker: &Cell<u64>) {
         let time = time::get_time();
         let current_time_ms = time.sec * 1000 + time.nsec as i64 / 1000000;
         marker.set(current_time_ms as u64);
+    }
+}
+
+/// https://w3c.github.io/webappsec-referrer-policy/#determine-policy-for-token
+fn determine_tokens_policy(token: String) -> Option<ReferrerPolicy> {
+    let lower = token.trim().to_lowercase();
+    return match lower.as_ref() {
+        "never" | "no-referrer" => Some(ReferrerPolicy::NoReferrer),
+        "default" | "no-referrer-when-downgrade" => Some(ReferrerPolicy::NoRefWhenDowngrade),
+        "origin" => Some(ReferrerPolicy::OriginOnly),
+        "origin-when-cross-origin" => Some(ReferrerPolicy::OriginWhenCrossOrigin),
+        "always" | "unsafe-url" => Some(ReferrerPolicy::UnsafeUrl),
+        "" => Some(ReferrerPolicy::NoReferrer),
+        _ => None,
     }
 }
 

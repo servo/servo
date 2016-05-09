@@ -609,6 +609,8 @@ pub fn modify_request_headers(headers: &mut Headers,
     set_default_accept(headers);
     set_default_accept_encoding(headers);
 
+    println!("POLICY {:?}", load_data.referrer_policy.clone());
+    println!("URL {:?}", load_data.referrer_url.clone());
     if let Some(referer_val) = determine_request_referrer(headers,
                                                           load_data.referrer_policy.clone(),
                                                           load_data.referrer_url.clone(),
