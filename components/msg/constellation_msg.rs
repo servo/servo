@@ -359,19 +359,6 @@ impl fmt::Display for PipelineId {
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct SubpageId(pub u32);
 
-pub trait ConvertPipelineIdFromWebRender {
-    fn from_webrender(&self) -> PipelineId;
-}
-
-impl ConvertPipelineIdFromWebRender for webrender_traits::PipelineId {
-    fn from_webrender(&self) -> PipelineId {
-        PipelineId {
-            namespace_id: PipelineNamespaceId(self.0),
-            index: PipelineIndex(self.1),
-        }
-    }
-}
-
 /// [Policies](https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states)
 /// for providing a referrer header for a request
 #[derive(HeapSizeOf, Clone, Deserialize, Serialize)]
