@@ -57,6 +57,7 @@ pub enum ProfilerCategory {
     PaintingPrepBuff,
     Painting,
     ImageDecoding,
+    ImageSaving,
     ScriptAttachLayout,
     ScriptConstellationMsg,
     ScriptDevtoolsMsg,

@@ -37,6 +37,7 @@ pub fn init() {
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::PaintingPrepBuff);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::Painting);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::ImageDecoding);
+    maybe_create_heartbeat(&mut hbs, ProfilerCategory::ImageSaving);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptAttachLayout);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptConstellationMsg);
     maybe_create_heartbeat(&mut hbs, ProfilerCategory::ScriptDevtoolsMsg);
