@@ -293,8 +293,7 @@ class CommandBase(object):
         if extra_path:
             env["PATH"] = "%s%s%s" % (os.pathsep.join(extra_path), os.pathsep, env["PATH"])
 
-        if "CARGO_HOME" not in env:
-            env["CARGO_HOME"] = self.config["tools"]["cargo-home-dir"]
+        env["CARGO_HOME"] = self.config["tools"]["cargo-home-dir"]
 
         if "CARGO_TARGET_DIR" not in env:
             env["CARGO_TARGET_DIR"] = path.join(self.context.topdir, "target")
