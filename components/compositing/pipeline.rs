@@ -281,7 +281,7 @@ impl Pipeline {
                paint_shutdown_port: IpcReceiver<()>,
                url: Url,
                size: Option<TypedSize2D<PagePx, f32>>,
-               visible: bool,)
+               visible: bool)
                -> Pipeline {
         Pipeline {
             id: id,
