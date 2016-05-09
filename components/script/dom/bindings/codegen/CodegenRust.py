@@ -3394,7 +3394,7 @@ class CGMemberJITInfo(CGThing):
             aliasSet = self.aliasSet()
 
             isAlwaysInSlot = self.member.getExtendedAttribute("StoreInSlot")
-            if self.member.slotIndex is not None:
+            if self.member.slotIndices is not None:
                 assert isAlwaysInSlot or self.member.getExtendedAttribute("Cached")
                 isLazilyCachedInSlot = not isAlwaysInSlot
                 slotIndex = memberReservedSlot(self.member)  # noqa:FIXME: memberReservedSlot is not defined
