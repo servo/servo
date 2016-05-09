@@ -1,23 +1,24 @@
 <!DOCTYPE html>
 <html>
-<title>Primary Service info</title>
+<title>Included Service info</title>
 <body>
     <input id="service" type="text" autofocus placeholder="Bluetooth Service">
     <input id="name" type="text" placeholder="Device Name">
     <input id="namePrefix" type="text" placeholder="Device Name Prefix">
     <button type="button" onclick="onButtonClick()">Get Primary Service Info</button>
     <pre id="log"></pre>
+    <script src="bluetooth_functions.js"></script>
     <script>
     function onButtonClick() {
         clear();
-        var options = {filters: [], optinalServices: []};
+        var options = {filters: [], optionalServices: []};
 
         var filterService = document.getElementById('service').value;
-        if (filterService.startsWith('0x'))
-          filterService = parseInt(filterService, 16);
-
-        if (filterService)
+        if (filterService) {
+            if (filterService.startsWith('0x'))
+                filterService = parseInt(filterService, 16);
             options.filters.push({services: [filterService]});
+        }
 
         var filterName = document.getElementById('name').value;
         if (filterName)
@@ -39,18 +40,15 @@
 
             log('Primary Service found on device: ' + primaryService.device.name);
             log('> UUID:                          ' + primaryService.uuid);
-            log('> Is primary:                    ' + primaryService.isPrimary);
+
+            log('Getting Included Services...');
+            var includedServices = primaryService.getIncludedServices();
+
+            log('> Included Services: ' +
+                includedServices.map(s => s.uuid).join('\n' + ' '.repeat(21)));
         } catch(err) {
             log(err);
         }
-    }
-
-    function clear() {
-        document.getElementById("log").textContent = "";
-    }
-
-    function log(line) {
-        document.getElementById("log").textContent += line + '\n';
     }
     </script>
 </body>
