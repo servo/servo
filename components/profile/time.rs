@@ -97,6 +97,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::PaintingPrepBuff => "Buffer Prep",
             ProfilerCategory::Painting => "Painting",
             ProfilerCategory::ImageDecoding => "Image Decoding",
+            ProfilerCategory::ImageSaving => "Image Saving",
             ProfilerCategory::ScriptAttachLayout => "Script Attach Layout",
             ProfilerCategory::ScriptConstellationMsg => "Script Constellation Msg",
             ProfilerCategory::ScriptDevtoolsMsg => "Script Devtools Msg",

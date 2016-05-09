@@ -2166,19 +2166,21 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 })
             }
             CompositeTarget::PngFile => {
-                let img = self.draw_img(render_target_info,
-                                        width,
-                                        height);
-                match opts::get().output_file.as_ref() {
-                    Some(path) => match File::create(path) {
-                        Ok(mut file) => match DynamicImage::ImageRgb8(img).save(&mut file, ImageFormat::PNG) {
-                            Ok(()) => (),
-                            Err(e) => error!("Failed to save {} ({}).", path, e),
+                profile(ProfilerCategory::ImageSaving, None, self.time_profiler_chan.clone(), || {
+                    match opts::get().output_file.as_ref() {
+                        Some(path) => match File::create(path) {
+                            Ok(mut file) => {
+                                let img = self.draw_img(render_target_info, width, height);
+                                let dynamic_image = DynamicImage::ImageRgb8(img);
+                                if let Err(e) = dynamic_image.save(&mut file, ImageFormat::PNG) {
+                                    error!("Failed to save {} ({}).", path, e);
+                                }
+                            },
+                            Err(e) => error!("Failed to create {} ({}).", path, e),
                         },
-                        Err(e) => error!("Failed to create {} ({}).", path, e),
-                    },
-                    None => error!("No file specified."),
-                }
+                        None => error!("No file specified."),
+                    }
+                });
                 None
             }
         };
