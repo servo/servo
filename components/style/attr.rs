@@ -127,7 +127,7 @@ impl AttrValue {
 
     pub fn from_atomic_tokens(atoms: Vec<Atom>) -> AttrValue {
         // TODO(ajeffrey): effecient conversion of Vec<Atom> to DOMString
-        let tokens = DOMString::from(str_join(&atoms, "\x20"));
+        let tokens = DOMString::from(str_join(atoms.iter().map(Atom::to_string), "\x20"));
         AttrValue::TokenList(tokens, atoms)
     }
 
@@ -291,12 +291,8 @@ impl AttrValue {
             panic!("Uint not found");
         }
     }
-}
 
-impl Deref for AttrValue {
-    type Target = str;
-
-    fn deref(&self) -> &str {
+    pub fn to_string(&self) -> String {
         match *self {
             AttrValue::String(ref value) |
                 AttrValue::TokenList(ref value, _) |
@@ -306,8 +302,8 @@ impl Deref for AttrValue {
                 AttrValue::Color(ref value, _) |
                 AttrValue::Int(ref value, _) |
                 AttrValue::Url(ref value, _) |
-                AttrValue::Dimension(ref value, _) => &value,
-            AttrValue::Atom(ref value) => &value,
+                AttrValue::Dimension(ref value, _) => value.to_string(),
+            AttrValue::Atom(ref value) => value.to_string(),
         }
     }
 }

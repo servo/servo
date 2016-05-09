@@ -161,7 +161,7 @@ impl<'a, E> Element for ElementWrapper<'a, E>
                 match attr.namespace {
                     NamespaceConstraint::Specific(ref ns) => self.snapshot.get_attr(ns, local_name),
                     NamespaceConstraint::Any => self.snapshot.get_attr_ignore_ns(local_name),
-                }.map_or(false, |v| test(v))
+                }.map_or(false, |v| test(&v.to_string()))
             },
             None => self.element.match_attr(attr, test)
         }
