@@ -917,7 +917,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let window_size = self.window_size.visible_viewport;
         let root_pipeline_id = PipelineId::new();
         debug_assert!(PipelineId::fake_root_pipeline_id() == root_pipeline_id);
-        self.new_pipeline(root_pipeline_id, None, None, Some(window_size), None, LoadData::new(url.clone(), None, None));
+        self.new_pipeline(root_pipeline_id, None, None, Some(window_size), None,
+                          LoadData::new(url.clone(), None, None));
         self.handle_load_start_msg(&root_pipeline_id);
         self.push_pending_frame(root_pipeline_id, None);
         self.compositor_proxy.send(ToCompositorMsg::ChangePageUrl(root_pipeline_id, url));
