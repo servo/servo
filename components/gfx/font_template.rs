@@ -6,6 +6,7 @@ use font::FontHandleMethods;
 use platform::font::FontHandle;
 use platform::font_context::FontContextHandle;
 use platform::font_template::FontTemplateData;
+use std::fmt::{Debug, Error, Formatter};
 use std::sync::{Arc, Weak};
 use std::u32;
 use string_cache::Atom;
@@ -64,6 +65,12 @@ pub struct FontTemplate {
     // GWTODO: Add code path to unset the strong_ref for web fonts!
     strong_ref: Option<Arc<FontTemplateData>>,
     is_valid: bool,
+}
+
+impl Debug for FontTemplate {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+        self.identifier.fmt(f)
+    }
 }
 
 /// Holds all of the template information for a font that
