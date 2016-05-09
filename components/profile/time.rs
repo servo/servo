@@ -337,8 +337,8 @@ impl Profiler {
                              data[data_len / 2],
                              data.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
                              data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));
-                        write!(file, "{}, {}, {:15.4}, {:15.4}, {:15.4}, {:15.4}, {:15}\n",\
-                            category.format(&self.output), meta.format(&self.output), mean, median, min, max, data_len);
+                        write!(file, "{}, {}, {:15.4}, {:15.4}, {:15.4}, {:15.4}, {:15\
+                        }\n", category.format(&self.output), meta.format(&self.output), mean, median, min, max, data_len);
                     }
                 }
             },
