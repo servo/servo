@@ -1063,7 +1063,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             };
 
             let window_size = old_pipeline.and_then(|old_pipeline| old_pipeline.size);
-            let source_visibility = source_pipeline.map(|pipeline| pipeline.visible);
+            let source_visibility = source_pipeline.visible;
 
             if let Some(old_pipeline) = old_pipeline {
                 old_pipeline.freeze();
