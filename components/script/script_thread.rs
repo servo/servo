@@ -115,6 +115,7 @@ thread_local!(static SCRIPT_THREAD_ROOT: RefCell<Option<*const ScriptThread>> = 
 pub unsafe fn trace_thread(tr: *mut JSTracer) {
     SCRIPT_THREAD_ROOT.with(|root| {
         if let Some(script_thread) = *root.borrow() {
+            debug!("tracing fields of ScriptThread");
             (*script_thread).trace(tr);
         }
     });
