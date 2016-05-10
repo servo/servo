@@ -7,7 +7,7 @@ use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use ipc_channel::router::ROUTER;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::image::base::{Image, ImageMetadata, load_from_memory, PixelFormat};
-use net_traits::image_cache_thread::ImageResponder;
+use net_traits::image_cache_thread::{ImageResponder, ImageCacheResultResponse};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheCommand, ImageCacheThread, ImageState};
 use net_traits::image_cache_thread::{ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
 use net_traits::{AsyncResponseTarget, CoreResourceMsg, LoadConsumer, LoadData, CoreResourceThread, LoadOrigin};
@@ -210,6 +210,11 @@ impl ImageListener {
         }
     }
 
+    fn initiate_request(&self, responder: Option<ImageResponder>) {
+        let ImageCacheChan(ref sender) = self.sender;
+        let _ = sender.send(ImageCacheResult::InitiateRequest(responder));
+    }
+
     fn notify(&self, image_response: ImageResponse) {
         if !self.send_metadata_msg {
             if let ImageResponse::MetadataLoaded(_) = image_response {
@@ -218,11 +223,11 @@ impl ImageListener {
         }
 
         let ImageCacheChan(ref sender) = self.sender;
-        let msg = ImageCacheResult {
+        let msg = ImageCacheResultResponse {
             responder: self.responder.clone(),
             image_response: image_response,
         };
-        sender.send(msg).ok();
+        sender.send(ImageCacheResult::Response(msg)).ok();
     }
 }
 
@@ -520,7 +525,7 @@ impl ImageCache {
                      result_chan: ImageCacheChan,
                      responder: Option<ImageResponder>,
                      send_metadata_msg: bool) {
-        let image_listener = ImageListener::new(result_chan, responder, send_metadata_msg);
+        let image_listener = ImageListener::new(result_chan, responder.clone(), send_metadata_msg);
         // Let's avoid copying url everywhere.
         let ref_url = Arc::new(url);
 
@@ -533,12 +538,12 @@ impl ImageCache {
             None => {
                 // Check if the load is already pending
                 let (cache_result, load_key, mut pending_load) = self.pending_loads.get_cached(ref_url.clone());
-                pending_load.add_listener(image_listener);
                 match cache_result {
                     CacheResult::Miss => {
+                        image_listener.initiate_request(responder);
                         // A new load request! Request the load from
                         // the resource thread.
-                        let load_data = LoadData::new(LoadContext::Image,
+                        /*let load_data = LoadData::new(LoadContext::Image,
                                                         (*ref_url).clone(),
                                                         &ImageCacheOrigin);
                         let (action_sender, action_receiver) = ipc::channel().unwrap();
@@ -556,12 +561,13 @@ impl ImageCache {
                                 key: load_key,
                             }).unwrap();
                         });
-                        self.core_resource_thread.send(msg).unwrap();
+                        self.core_resource_thread.send(msg).unwrap();*/
                     }
                     CacheResult::Hit => {
                         // Request is already on its way.
                     }
                 }
+                pending_load.add_listener(image_listener);
             }
         }
     }

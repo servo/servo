@@ -996,7 +996,12 @@ impl ScriptThread {
     }
 
     fn handle_msg_from_image_cache(&self, msg: ImageCacheResult) {
-        msg.responder.unwrap().respond(msg.image_response);
+        match msg {
+            ImageCacheResult::InitiateRequest(responder) =>
+                responder.unwrap().initiate_request(),
+            ImageCacheResult::Response(response) =>
+                response.responder.unwrap().respond(response.image_response),
+        }
     }
 
     fn handle_msg_from_network(&self, msg: IpcSender<Option<CustomResponse>>) {
