@@ -555,7 +555,7 @@ fn static_assert() {
     % endfor
 </%self:impl_trait>
 
-<% skip_outline_longhands = " ".join("outline-color outline-style".split() +
+<% skip_outline_longhands = " ".join("outline-color outline-style outline-width".split() +
                                      ["-moz-outline-radius-{0}".format(x.ident.replace("_", ""))
                                       for x in CORNERS]) %>
 <%self:impl_trait style_struct_name="Outline"
@@ -566,6 +566,9 @@ fn static_assert() {
 
     <% impl_color("outline_color", "mOutlineColor", color_flags_ffi_name="mOutlineStyle") %>
 
+    <% impl_app_units("outline_width", "mActualOutlineWidth", need_clone=False,
+                      round_to_pixels=True) %>
+
     % for corner in CORNERS:
     <% impl_corner_style_coord("_moz_outline_radius_%s" % corner.ident.replace("_", ""),
                                "mOutlineRadius.mUnits[%s]" % corner.x_index,
@@ -575,7 +578,7 @@ fn static_assert() {
     % endfor
 
     fn outline_has_nonzero_width(&self) -> bool {
-        self.gecko.mCachedOutlineWidth != 0
+        self.gecko.mActualOutlineWidth != 0
     }
 </%self:impl_trait>
 
