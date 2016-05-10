@@ -3,12 +3,13 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use hyper::client::Pool;
-use hyper::net::{HttpsConnector, Openssl};
-use openssl::ssl::{SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER, SslContext, SslMethod};
+use hyper::net::{HttpStream, HttpsConnector, Openssl, SslClient};
+use openssl::ssl::{SSL_OP_NO_SSLV2, SSL_OP_NO_SSLV3, SSL_VERIFY_PEER};
+use openssl::ssl::{Ssl, SslContext, SslMethod, SslStream};
 use std::sync::Arc;
 use util::resource_files::resources_dir_path;
 
-pub type Connector = HttpsConnector<Openssl>;
+pub type Connector = HttpsConnector<ServoSslClient>;
 
 // The basic logic here is to prefer ciphers with ECDSA certificates, Forward
 // Secrecy, AES GCM ciphers, AES ciphers, and finally 3DES ciphers.
@@ -28,13 +29,28 @@ const DEFAULT_CIPHERS: &'static str = concat!(
 
 pub fn create_http_connector() -> Arc<Pool<Connector>> {
     let mut context = SslContext::new(SslMethod::Sslv23).unwrap();
-    context.set_verify(SSL_VERIFY_PEER, None);
     context.set_CA_file(&resources_dir_path().join("certs")).unwrap();
     context.set_cipher_list(DEFAULT_CIPHERS).unwrap();
     context.set_options(SSL_OP_NO_SSLV2 | SSL_OP_NO_SSLV3);
-    let connector = HttpsConnector::new(Openssl {
+    let connector = HttpsConnector::new(ServoSslClient(Openssl {
         context: Arc::new(context)
-    });
+    }));
 
     Arc::new(Pool::with_connector(Default::default(), connector))
+}
+
+pub struct ServoSslClient(Openssl);
+
+impl SslClient for ServoSslClient {
+    type Stream = <Openssl as SslClient>::Stream;
+
+    fn wrap_client(&self, stream: HttpStream, host: &str) -> Result<Self::Stream, ::hyper::Error> {
+        let mut ssl = try!(Ssl::new(&self.0.context));
+        try!(ssl.set_hostname(host));
+        let host = host.to_owned();
+        ssl.set_verify_callback(SSL_VERIFY_PEER, move |p, x| {
+            ::openssl_verify::verify_callback(&host, p, x)
+        });
+        SslStream::connect(ssl, stream).map_err(From::from)
+    }
 }
