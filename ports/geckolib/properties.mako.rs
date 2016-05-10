@@ -513,12 +513,15 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Outline"
-                  skip_longhands="outline-color outline-style"
+                  skip_longhands="outline-color outline-style outline-width"
                   skip_additionals="*">
 
     <% impl_keyword("outline_style", "mOutlineStyle", border_style_keyword, need_clone=True) %>
 
     <% impl_color("outline_color", "mOutlineColor", color_flags_ffi_name="mOutlineStyle") %>
+
+    <% impl_app_units("outline_width", "mCachedOutlineWidth", need_clone=False,
+                      round_to_pixels=True) %>
 
     fn outline_has_nonzero_width(&self) -> bool {
         self.gecko.mCachedOutlineWidth != 0
