@@ -44,6 +44,7 @@ extern crate websocket;
 pub mod about_loader;
 pub mod bluetooth_thread;
 pub mod chrome_loader;
+pub mod connector;
 pub mod cookie;
 pub mod cookie_storage;
 pub mod data_loader;

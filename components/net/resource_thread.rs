@@ -5,13 +5,14 @@
 //! A thread that takes a URL and streams back the binary data.
 use about_loader;
 use chrome_loader;
+use connector::{Connector, create_http_connector};
 use cookie;
 use cookie_storage::CookieStorage;
 use data_loader;
 use devtools_traits::{DevtoolsControlMsg};
 use file_loader;
 use hsts::HstsList;
-use http_loader::{self, Connector, create_http_connector, HttpState};
+use http_loader::{self, HttpState};
 use hyper::client::pool::Pool;
 use hyper::header::{ContentType, Header, SetCookie};
 use hyper::mime::{Mime, SubLevel, TopLevel};
