@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>no default src doesn't behave exactly like *</title>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src="../support/alertAssert.sub.js?alerts=[]">    </script>
+    <script src='positiveTest.js'></script>
+    <!-- enforcing policy: foobar; report-uri ...
+    -->
+</head>
+<body>
+    <h1>no default src doesn't behave exactly like *</h1>
+    This page has a CSP header but an unknown directive.
+    This should have no impact on an img loaded from a data:
+    uri, or an inline script, although that would be blocked by a default-src policy of *.
+    <br>
+    <img src='data:image/png;base64,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'>
+    <script>
+        var allowedScriptRan = true;
+    </script>
+
+    <div id='log'></div>
+
+    <script async defer src='../support/checkReport.sub.js?reportExists=false'></script>
+</body>
+</html>

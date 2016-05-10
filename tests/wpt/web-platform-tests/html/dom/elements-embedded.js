@@ -115,7 +115,7 @@ var embeddedElements = {
     media: "string"
   },
   track: {
-    kind: {type: "enum", keywords: ["subtitles", "captions", "descriptions", "chapters", "metadata"], defaultVal: "captions"},
+    kind: {type: "enum", keywords: ["subtitles", "captions", "descriptions", "chapters", "metadata"], defaultVal: "subtitles", invalidVal: "metadata"},
     src: "url",
     srclang: "string",
     label: "string",
