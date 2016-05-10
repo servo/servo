@@ -18,7 +18,7 @@ use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{USVString, is_token};
 use dom::bindings::trace::JSTraceable;
-use dom::blob::Blob;
+use dom::blob::{Blob, DataSlice};
 use dom::closeevent::CloseEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
@@ -42,6 +42,7 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr;
+use std::sync::Arc;
 use std::thread;
 use util::str::DOMString;
 use websocket::client::request::Url;
@@ -598,7 +599,8 @@ impl Runnable for MessageReceivedTask {
                 MessageData::Binary(data) => {
                     match ws.binary_type.get() {
                         BinaryType::Blob => {
-                            let blob = Blob::new(global.r(), data, "");
+                            let slice = DataSlice::new(Arc::new(data), None, None);
+                            let blob = Blob::new(global.r(), slice, "");
                             blob.to_jsval(cx, message.handle_mut());
                         }
                         BinaryType::Arraybuffer => {

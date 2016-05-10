@@ -22,7 +22,7 @@ use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{ByteString, USVString, is_token};
-use dom::blob::Blob;
+use dom::blob::{Blob, DataSlice};
 use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -1117,7 +1117,8 @@ impl XMLHttpRequest {
         let mime = self.final_mime_type().as_ref().map(Mime::to_string).unwrap_or("".to_owned());
 
         // Step 3, 4
-        let blob = Blob::new(self.global().r(), self.response.borrow().to_vec(), &mime);
+        let slice = DataSlice::new(Arc::new(self.response.borrow().to_vec()), None, None);
+        let blob = Blob::new(self.global().r(), slice, &mime);
         self.response_blob.set(Some(blob.r()));
         blob
     }
