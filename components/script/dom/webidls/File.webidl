@@ -2,13 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// http://dev.w3.org/2006/webapi/FileAPI/#dfn-file
+// https://w3c.github.io/FileAPI/#file
 
-// [Constructor(sequence<(Blob or DOMString or ArrayBufferView or ArrayBuffer)> fileBits,
-//              [EnsureUTF16] DOMString fileName, optional FilePropertyBag options)]
+[Constructor(sequence<BlobPart> fileBits,
+            DOMString fileName,
+            optional FilePropertyBag options),
+ Exposed=Window/*,Worker*/]
 interface File : Blob {
-
   readonly attribute DOMString name;
-  // readonly attribute Date lastModifiedDate;
+  readonly attribute long long lastModified;
+};
 
+dictionary FilePropertyBag : BlobPropertyBag {
+  long long lastModified;
 };
