@@ -197,9 +197,6 @@ class MachCommands(CommandBase):
         if debug_mozjs or self.config["build"]["debug-mozjs"]:
             features += ["script/debugmozjs"]
 
-        if android:
-            features += ["android_glue"]
-
         if features:
             opts += ["--features", "%s" % ' '.join(features)]
 

@@ -30,7 +30,6 @@ pub extern crate devtools_traits;
 pub extern crate euclid;
 pub extern crate gfx;
 pub extern crate ipc_channel;
-pub extern crate layers;
 pub extern crate layout;
 pub extern crate msg;
 pub extern crate net;
