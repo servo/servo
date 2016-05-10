@@ -1243,6 +1243,7 @@ dependencies = [
  "msg 0.0.1",
  "net_traits 0.0.1",
  "openssl 0.7.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "openssl-verify 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "threadpool 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1450,6 +1451,14 @@ dependencies = [
  "gcc 0.3.28 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "openssl-sys 0.7.11 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "openssl-verify"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "openssl 0.7.11 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
