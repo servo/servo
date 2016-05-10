@@ -31,7 +31,7 @@ impl test {
         let z = &Vec<T>;
         struct Member {
             member_name:"Foo"
-            member_id: 5
+            member_id:5
         }
     }
 
