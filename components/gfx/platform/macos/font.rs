@@ -103,16 +103,20 @@ impl FontHandleMethods for FontHandle {
 
     fn boldness(&self) -> font_weight::T {
         let normalized = self.ctfont.all_traits().normalized_weight();  // [-1.0, 1.0]
-        let normalized = (normalized + 1.0) / 2.0 * 9.0;  // [0.0, 9.0]
-        match normalized {
-            v if v < 1.0 => font_weight::T::Weight100,
-            v if v < 2.0 => font_weight::T::Weight200,
-            v if v < 3.0 => font_weight::T::Weight300,
-            v if v < 4.0 => font_weight::T::Weight400,
-            v if v < 5.0 => font_weight::T::Weight500,
-            v if v < 6.0 => font_weight::T::Weight600,
-            v if v < 7.0 => font_weight::T::Weight700,
-            v if v < 8.0 => font_weight::T::Weight800,
+        let normalized = if normalized <= 0.0 {
+            4.0 + normalized * 3.0  // [1.0, 4.0]
+        } else {
+            4.0 + normalized * 5.0  // [4.0, 9.0]
+        }; // [1.0, 9.0], centered on 4.0
+        match normalized.round() as u32 {
+            1 => font_weight::T::Weight100,
+            2 => font_weight::T::Weight200,
+            3 => font_weight::T::Weight300,
+            4 => font_weight::T::Weight400,
+            5 => font_weight::T::Weight500,
+            6 => font_weight::T::Weight600,
+            7 => font_weight::T::Weight700,
+            8 => font_weight::T::Weight800,
             _ => font_weight::T::Weight900,
         }
     }
