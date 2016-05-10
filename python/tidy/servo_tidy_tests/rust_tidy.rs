@@ -31,13 +31,14 @@ impl test {
         let z = &Vec<T>;
 
         let v = vec![1, 2, 3, 4, 5];
-        //for foo in v.iter() {
-        for foo in &v {
+
+        // should be: for foo in &v {
+        for foo in v.iter() {
             println!("{}", foo);
         }
 
-        //for foo in v.iter_mut()
-        for foo in &mut v {
+        // should be: for foo in &mut v {
+        for foo in v.iter_mut()
             println!("{}", foo);
         }
     }
