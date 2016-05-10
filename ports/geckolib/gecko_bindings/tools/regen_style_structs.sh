@@ -39,7 +39,7 @@ fi
 export RUST_BACKTRACE=1
 
 ./rust-bindgen/target/debug/bindgen                                 \
-  -o ../gecko_style_structs.rs                                      \
+  -o ../structs.rs                                                  \
   -x c++ -std=gnu++0x                                               \
   -allow-unknown-types                                              \
   "-I$DIST_INCLUDE" "-I$DIST_INCLUDE/nspr"                          \
@@ -123,7 +123,7 @@ if [ $? -ne 0 ]; then
 else
   echo -e "\e[34minfo:\e[0m bindgen exited successfully, running tests"
   TESTS_FILE=$(mktemp)
-  rustc ../gecko_style_structs.rs --test -o $TESTS_FILE
+  rustc ../structs.rs --test -o $TESTS_FILE
   $TESTS_FILE
   rm $TESTS_FILE
 fi
