@@ -988,7 +988,12 @@ impl ScriptThread {
     }
 
     fn handle_msg_from_image_cache(&self, msg: ImageCacheResult) {
-        msg.responder.unwrap().respond(msg.image_response);
+        match msg {
+            ImageCacheResult::InitiateRequest(responder) =>
+                responder.unwrap().initiate_request(),
+            ImageCacheResult::Response(response) =>
+                response.responder.unwrap().respond(response.image_response),
+        }
     }
 
     fn handle_webdriver_msg(&self, pipeline_id: PipelineId, msg: WebDriverScriptCommand) {

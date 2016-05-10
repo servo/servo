@@ -18,7 +18,7 @@ use heapsize::HeapSizeOf;
 use ipc_channel::ipc::{self, IpcSharedMemory};
 use net_traits::image::base::Image;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread, ImageResponse, ImageState};
-use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder};
+use net_traits::image_cache_thread::{ImageOrMetadataAvailable, UsePlaceholder, ImageCacheResult};
 use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
@@ -162,7 +162,8 @@ impl<'a> LayoutContext<'a> {
         loop {
             match sync_rx.recv() {
                 Err(_) => return None,
-                Ok(response) => {
+                Ok(ImageCacheResult::InitiateRequest(..)) => panic!("unexpected image requestor"),
+                Ok(ImageCacheResult::Response(response)) => {
                     match response.image_response {
                         ImageResponse::Loaded(image) | ImageResponse::PlaceholderLoaded(image) => {
                             return Some(image)

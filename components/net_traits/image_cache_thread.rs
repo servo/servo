@@ -14,18 +14,28 @@ use url::Url;
 /// and/or repaint.
 #[derive(Clone, Deserialize, Serialize)]
 pub struct ImageResponder {
-    sender: IpcSender<ImageResponse>,
+    sender: IpcSender<ImageListenerResponse>,
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub enum ImageListenerResponse {
+    InitiateRequest,
+    Complete(ImageResponse),
 }
 
 impl ImageResponder {
-    pub fn new(sender: IpcSender<ImageResponse>) -> ImageResponder {
+    pub fn new(sender: IpcSender<ImageListenerResponse>) -> ImageResponder {
         ImageResponder {
             sender: sender,
         }
     }
 
+    pub fn initiate_request(&self) {
+        self.sender.send(ImageListenerResponse::InitiateRequest).unwrap();
+    }
+
     pub fn respond(&self, response: ImageResponse) {
-        self.sender.send(response).unwrap()
+        self.sender.send(ImageListenerResponse::Complete(response)).unwrap()
     }
 }
 
@@ -64,9 +74,15 @@ pub struct ImageCacheChan(pub IpcSender<ImageCacheResult>);
 /// The result of an image cache command that is returned to the
 /// caller.
 #[derive(Deserialize, Serialize)]
-pub struct ImageCacheResult {
+pub struct ImageCacheResultResponse {
     pub responder: Option<ImageResponder>,
     pub image_response: ImageResponse,
+}
+
+#[derive(Deserialize, Serialize)]
+pub enum ImageCacheResult {
+    InitiateRequest(Option<ImageResponder>),
+    Response(ImageCacheResultResponse),
 }
 
 /// Commands that the image cache understands.
