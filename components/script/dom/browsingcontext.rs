@@ -7,6 +7,7 @@ use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
 use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WindowProxyHandler;
 use dom::bindings::utils::get_array_index_from_id;
 use dom::document::Document;
@@ -14,10 +15,10 @@ use dom::element::Element;
 use dom::window::Window;
 use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
-use js::glue::{GetProxyPrivate, SetProxyExtra};
+use js::glue::{GetProxyPrivate, SetProxyExtra, GetProxyExtra};
 use js::jsapi::{Handle, HandleId, HandleObject, HandleValue, JSAutoCompartment, JSAutoRequest};
 use js::jsapi::{JSContext, JSPROP_READONLY, JSErrNum, JSObject, PropertyDescriptor, JS_DefinePropertyById};
-use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass};
+use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass, JSTracer, FreeOp};
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHandle};
 use js::jsapi::{MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
 use js::jsval::{UndefinedValue, PrivateValue};
@@ -261,12 +262,30 @@ static PROXY_HANDLER: ProxyTraps = ProxyTraps {
     fun_toString: None,
     boxedValue_unbox: None,
     defaultValue: None,
-    trace: None,
-    finalize: None,
+    trace: Some(trace),
+    finalize: Some(finalize),
     objectMoved: None,
     isCallable: None,
     isConstructor: None,
 };
+
+#[allow(unsafe_code)]
+unsafe extern fn finalize(_fop: *mut FreeOp, obj: *mut JSObject) {
+    let this = GetProxyExtra(obj, 0).to_private() as *mut BrowsingContext;
+    assert!(!this.is_null());
+    let _ = Box::from_raw(this);
+    debug!("BrowsingContext finalize: {:p}", this);
+}
+
+#[allow(unsafe_code)]
+unsafe extern fn trace(trc: *mut JSTracer, obj: *mut JSObject) {
+    let this = GetProxyExtra(obj, 0).to_private() as *const BrowsingContext;
+    if this.is_null() {
+        // GC during obj creation
+        return;
+    }
+    (*this).trace(trc);
+}
 
 #[allow(unsafe_code)]
 pub fn new_window_proxy_handler() -> WindowProxyHandler {
