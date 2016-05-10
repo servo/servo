@@ -393,7 +393,11 @@ impl WebRenderDisplayItemConverter for DisplayItem {
 
                 for slice in item.text_run.natural_word_slices_in_visual_order(&item.range) {
                     for glyph in slice.glyphs.iter_glyphs_for_byte_range(&slice.range) {
-                        let glyph_advance = glyph.advance();
+                        let glyph_advance = if glyph.char_is_space() {
+                            glyph.advance() + item.text_run.extra_word_spacing
+                        } else {
+                            glyph.advance()
+                        };
                         if !slice.glyphs.is_whitespace() {
                             let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
                             let glyph = webrender_traits::GlyphInstance {

@@ -961,7 +961,7 @@ impl InlineFlow {
         }
 
         // First, calculate the number of expansion opportunities (spaces, normally).
-        let mut expansion_opportunities = 0i32;
+        let mut expansion_opportunities = 0;
         for fragment_index in line.range.each_index() {
             let fragment = fragments.get(fragment_index.to_usize());
             let scanned_text_fragment_info = match fragment.specific {
@@ -971,13 +971,16 @@ impl InlineFlow {
             let fragment_range = scanned_text_fragment_info.range;
 
             for slice in scanned_text_fragment_info.run.character_slices_in_range(&fragment_range) {
-                expansion_opportunities += slice.glyphs.space_count_in_range(&slice.range) as i32
+                expansion_opportunities += slice.glyphs.space_count_in_range(&slice.range)
             }
         }
 
+        if expansion_opportunities == 0 {
+            return
+        }
+
         // Then distribute all the space across the expansion opportunities.
-        let space_per_expansion_opportunity = slack_inline_size.to_f64_px() /
-            (expansion_opportunities as f64);
+        let space_per_expansion_opportunity = slack_inline_size / expansion_opportunities as i32;
         for fragment_index in line.range.each_index() {
             let fragment = fragments.get_mut(fragment_index.to_usize());
             let mut scanned_text_fragment_info = match fragment.specific {
@@ -985,25 +988,8 @@ impl InlineFlow {
                 _ => continue
             };
             let fragment_range = scanned_text_fragment_info.range;
-
-            // FIXME(pcwalton): This is an awful lot of uniqueness making. I don't see any easy way
-            // to get rid of it without regressing the performance of the non-justified case,
-            // though.
             let run = Arc::make_mut(&mut scanned_text_fragment_info.run);
-            {
-                let glyph_runs = Arc::make_mut(&mut run.glyphs);
-                for mut glyph_run in &mut *glyph_runs {
-                    let mut range = glyph_run.range.intersect(&fragment_range);
-                    if range.is_empty() {
-                        continue
-                    }
-                    range.shift_by(-glyph_run.range.begin());
-
-                    let glyph_store = Arc::make_mut(&mut glyph_run.glyph_store);
-                    glyph_store.distribute_extra_space_in_range(&range,
-                                                                space_per_expansion_opportunity);
-                }
-            }
+            run.extra_word_spacing = space_per_expansion_opportunity;
 
             // Recompute the fragment's border box size.
             let new_inline_size = run.advance_for_range(&fragment_range);

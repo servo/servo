@@ -33,6 +33,7 @@ pub struct TextRun {
     /// The glyph runs that make up this text run.
     pub glyphs: Arc<Vec<GlyphRun>>,
     pub bidi_level: u8,
+    pub extra_word_spacing: Au,
 }
 
 impl Drop for TextRun {
@@ -188,6 +189,7 @@ impl<'a> TextRun {
             actual_pt_size: font.actual_pt_size,
             glyphs: Arc::new(glyphs),
             bidi_level: bidi_level,
+            extra_word_spacing: Au(0),
         }
     }
 
@@ -247,7 +249,7 @@ impl<'a> TextRun {
         // TODO(Issue #98): using inter-char and inter-word spacing settings when measuring text
         self.natural_word_slices_in_range(range)
             .fold(Au(0), |advance, slice| {
-                advance + slice.glyphs.advance_for_byte_range(&slice.range)
+                advance + slice.glyphs.advance_for_byte_range(&slice.range, self.extra_word_spacing)
             })
     }
 
@@ -259,7 +261,7 @@ impl<'a> TextRun {
 
     pub fn metrics_for_slice(&self, glyphs: &GlyphStore, slice_range: &Range<ByteIndex>)
                              -> RunMetrics {
-        RunMetrics::new(glyphs.advance_for_byte_range(slice_range),
+        RunMetrics::new(glyphs.advance_for_byte_range(slice_range, self.extra_word_spacing),
                         self.font_metrics.ascent,
                         self.font_metrics.descent)
     }
