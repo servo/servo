@@ -1358,6 +1358,7 @@ impl ScriptThread {
 
         // otherwise find just the matching page and exit all sub-pages
         if let Some(ref mut child_page) = page.remove(id) {
+            debug!("shutting down layout for child context {:?}", id);
             shut_down_layout(&*child_page);
         }
         false
