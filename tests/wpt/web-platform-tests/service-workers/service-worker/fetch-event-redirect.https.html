@@ -65,6 +65,7 @@ function redirect_fetch_test(t, test) {
         url: url,
         request_init: test.request_init,
         redirect_dest: test.redirect_dest,
+        expected_type: test.expected_type,
       }, '*', [channel.port2]);
     });
 
@@ -225,12 +226,10 @@ async_test(function(t) {
       redirect: 'manual',
       mode: 'no-cors'
     },
-    // should reject because only navigations can be intercepted with
-    // opaqueredirect responses
-    should_reject: true
+    should_reject: false
   });
 }, 'Non-navigation, manual redirect, no-cors mode Request redirected to ' +
-   'no-cors without credentials should fail opaqueredirect interception');
+   'no-cors without credentials should succeed interception');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -242,12 +241,10 @@ async_test(function(t) {
       redirect: 'manual',
       mode: 'no-cors'
     },
-    // should reject because only navigations can be intercepted with
-    // opaqueredirect responses
-    should_reject: true
+    should_reject: false
   });
 }, 'Non-navigation, manual redirect, no-cors mode Request redirected to ' +
-   'cors without credentials should fail opaqueredirect interception');
+   'cors without credentials should succeed interception');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -378,12 +375,10 @@ async_test(function(t) {
       redirect: 'manual',
       mode: 'no-cors'
     },
-    // should reject because only navigations can be intercepted with
-    // opaqueredirect responses
-    should_reject: true
+    should_reject: false
   });
 }, 'Non-navigation, manual redirect, no-cors mode Request redirected to ' +
-   'no-cors with credentials should fail opaqueredirect interception');
+   'no-cors with credentials should succeed interception');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -395,12 +390,10 @@ async_test(function(t) {
       redirect: 'manual',
       mode: 'no-cors'
     },
-    // should reject because only navigations can be intercepted with
-    // opaqueredirect responses
-    should_reject: true
+    should_reject: false
   });
 }, 'Non-navigation, manual redirect, no-cors mode Request redirected to ' +
-   'cors with credentials should fail opaqueredirect interception');
+   'cors with credentials should succeed interception');
 
 async_test(function(t) {
   redirect_fetch_test(t, {

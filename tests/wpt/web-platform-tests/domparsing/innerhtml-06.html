@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>math in html: innerHTML</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<h1>math in html: innerHTML</h1>
+<div id="log"></div>
+<div style="display:none">
+<div id="d1"><math><mi>x</mi></math></div>
+</div>
+<script>
+test(function() {
+  var math = document.getElementById("d1").firstChild;
+  assert_equals(math.innerHTML, "<mi>x</mi>");
+},"innerHTML defined on math.");
+</script>

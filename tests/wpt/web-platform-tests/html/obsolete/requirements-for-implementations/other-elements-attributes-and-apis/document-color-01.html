@@ -8,11 +8,46 @@
 <div id="log"></div>
 <script>
 test(function() {
-  document.documentElement.removeChild(document.body);
+  document.fgColor = "green";
+  document.bgColor = "green";
+  document.linkColor = "green";
+  document.vlinkColor = "green";
+  document.alinkColor = "green";
+
+  var body = document.documentElement.removeChild(document.body);
+
+  // When there is no body element, the color attributes return an
+  // empty string upon getting.
   assert_equals(document.fgColor, "");
   assert_equals(document.bgColor, "");
   assert_equals(document.linkColor, "");
   assert_equals(document.vlinkColor, "");
   assert_equals(document.alinkColor, "");
-})
+
+  // Re-add body and reset color attributes.
+  document.body = body;
+  document.fgColor = "";
+  document.bgColor = "";
+  document.linkColor = "";
+  document.vlinkColor = "";
+  document.alinkColor = "";
+}, "getting document color attributes with no body");
+
+test(function() {
+  var body = document.documentElement.removeChild(document.body);
+
+  // When there is no body element, setting the color attributes has no effect.
+  document.fgColor = "red";
+  document.bgColor = "red";
+  document.linkColor = "red";
+  document.vlinkColor = "red";
+  document.alinkColor = "red";
+  assert_equals(document.fgColor, "");
+  assert_equals(document.bgColor, "");
+  assert_equals(document.linkColor, "");
+  assert_equals(document.vlinkColor, "");
+  assert_equals(document.alinkColor, "");
+
+  document.body = body;
+}, "setting document color attributes with no body");
 </script>

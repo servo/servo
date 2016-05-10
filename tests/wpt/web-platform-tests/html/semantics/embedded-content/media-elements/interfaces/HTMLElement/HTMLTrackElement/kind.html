@@ -13,7 +13,7 @@ test(function(){
 test(function(){
     var track = document.createElement('track');
     track.setAttribute('kind', 'invalid');
-    assert_equals(track.kind, 'subtitles');
+    assert_equals(track.kind, 'metadata');
     assert_equals(track.getAttribute('kind'), 'invalid');
 }, document.title + ' invalid value in content attribute');
 
@@ -27,14 +27,14 @@ test(function(){
 test(function(){
     var track = document.createElement('track');
     track.setAttribute('kind', 'CAPT\u0130ONS');
-    assert_equals(track.kind, 'subtitles');
+    assert_equals(track.kind, 'metadata');
     assert_equals(track.getAttribute('kind'), 'CAPT\u0130ONS');
 }, document.title + ' content attribute with uppercase turkish I (with dot)');
 
 test(function(){
     var track = document.createElement('track');
     track.setAttribute('kind', 'capt\u0131ons');
-    assert_equals(track.kind, 'subtitles');
+    assert_equals(track.kind, 'metadata');
     assert_equals(track.getAttribute('kind'), 'capt\u0131ons');
 }, document.title + ' content attribute with lowercase turkish i (dotless)');
 
@@ -76,7 +76,7 @@ test(function(){
 test(function(){
     var track = document.createElement('track');
     track.setAttribute('kind', 'captions\u0000');
-    assert_equals(track.kind, 'subtitles');
+    assert_equals(track.kind, 'metadata');
     assert_equals(track.getAttribute('kind'), 'captions\u0000');
 }, document.title + ' content attribute "captions\\u0000"');
 
@@ -126,21 +126,21 @@ test(function(){
     var track = document.createElement('track');
     track.kind = 'CAPT\u0130ONS';
     assert_equals(track.getAttribute('kind'), 'CAPT\u0130ONS');
-    assert_equals(track.kind, 'subtitles');
+    assert_equals(track.kind, 'metadata');
 }, document.title + ' setting IDL attribute with uppercase turkish I (with dot)');
 
 test(function(){
     var track = document.createElement('track');
     track.kind = 'capt\u0131ons';
     assert_equals(track.getAttribute('kind'), 'capt\u0131ons');
-    assert_equals(track.kind, 'subtitles');
+    assert_equals(track.kind, 'metadata');
 }, document.title + ' setting IDL attribute with lowercase turkish I (dotless)');
 
 test(function(){
     var track = document.createElement('track');
     track.kind = 'captions\u0000';
     assert_equals(track.getAttribute('kind'), 'captions\u0000');
-    assert_equals(track.kind, 'subtitles');
+    assert_equals(track.kind, 'metadata');
 }, document.title + ' setting IDL attribute with \\u0000');
 
 </script>

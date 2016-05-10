@@ -19,5 +19,7 @@ test(function() {
   assert_equals(list.contains(NaN), true); //"NaN"
   assert_equals(list.contains(+Infinity), true); //"Infinity"
   assert_equals(list.contains(-Infinity), false); //"-Infinity"
+  assert_equals(list.supports("stylesheet"), true);
+  assert_equals(list.supports("nosuchrelvalueever"), false);
 });
 </script>

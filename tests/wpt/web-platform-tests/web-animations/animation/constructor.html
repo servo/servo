@@ -55,5 +55,19 @@ gTestArguments.forEach(function(args) {
   }, "Animation can be constructed " + args.description);
 });
 
+test(function(t) {
+  var effect = new KeyframeEffectReadOnly(null,
+                                          { left: ["10px", "20px"] },
+                                          { duration: 10000,
+                                            fill: "forwards" });
+  var anim = new Animation(effect, document.timeline);
+  anim.pause();
+  assert_equals(effect.getComputedTiming().progress, 0.0);
+  anim.currentTime += 5000;
+  assert_equals(effect.getComputedTiming().progress, 0.5);
+  anim.finish();
+  assert_equals(effect.getComputedTiming().progress, 1.0);
+}, "Animation constructed by an effect with null target runs normally");
+
 </script>
 </body>

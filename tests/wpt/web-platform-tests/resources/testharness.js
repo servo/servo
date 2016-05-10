@@ -540,9 +540,9 @@ policies and contribution forms [3].
         });
     }
 
-    function promise_rejects(test, expected, promise) {
-        return promise.then(test.unreached_func("Should have rejected.")).catch(function(e) {
-            assert_throws(expected, function() { throw e });
+    function promise_rejects(test, expected, promise, description) {
+        return promise.then(test.unreached_func("Should have rejected: " + description)).catch(function(e) {
+            assert_throws(expected, function() { throw e }, description);
         });
     }
 

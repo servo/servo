@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>innerHTML and string conversion</title>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com">
+<link rel="help" href="http://domparsing.spec.whatwg.org/#extensions-to-the-element-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(function() {
+  var p = document.createElement("p");
+  p.innerHTML = null;
+  assert_equals(p.innerHTML, "");
+  assert_equals(p.textContent, "");
+}, "innerHTML and string conversion: null.")
+
+test(function() {
+  var p = document.createElement("p");
+  p.innerHTML = undefined;
+  assert_equals(p.innerHTML, "undefined");
+  assert_equals(p.textContent, "undefined");
+}, "innerHTML and string conversion: undefined.")
+
+test(function() {
+  var p = document.createElement("p");
+  p.innerHTML = 42;
+  assert_equals(p.innerHTML, "42");
+  assert_equals(p.textContent, "42");
+}, "innerHTML and string conversion: number.")
+
+test(function() {
+  var p = document.createElement("p");
+  p.innerHTML = {
+    toString: function() { return "pass"; },
+    valueOf: function() { return "fail"; }
+  };
+  assert_equals(p.innerHTML, "pass");
+  assert_equals(p.textContent, "pass");
+}, "innerHTML and string conversion: toString.")
+
+test(function() {
+  var p = document.createElement("p");
+  p.innerHTML = {
+    toString: undefined,
+    valueOf: function() { return "pass"; }
+  };
+  assert_equals(p.innerHTML, "pass");
+  assert_equals(p.textContent, "pass");
+}, "innerHTML and string conversion: valueOf.")
+</script>

@@ -3215,7 +3215,11 @@ window.onload = function() {
     HTMLHeadingElement: ['document.createElement("h1")'],
     HTMLParagraphElement: ['document.createElement("p")'],
     HTMLHRElement: ['document.createElement("hr")'],
-    HTMLPreElement: ['document.createElement("pre")'],
+    HTMLPreElement: [
+      'document.createElement("pre")',
+      'document.createElement("listing")',
+      'document.createElement("xmp")',
+    ],
     HTMLQuoteElement: [
       'document.createElement("blockquote")',
       'document.createElement("q")',
