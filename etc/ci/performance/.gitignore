@@ -1,0 +1,9 @@
+page_load_test/*
+servo/*
+output.png
+output/*
+credential.json
+
+.ropeproject
+__pycache__/
+*.pyc
