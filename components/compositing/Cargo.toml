@@ -31,7 +31,7 @@ webrender = {git = "https://github.com/servo/webrender"}
 app_units = {version = "0.2.3", features = ["plugins"]}
 euclid = {version = "0.6.4", features = ["plugins"]}
 gleam = "0.2.8"
-image = "0.9"
+image = "0.10"
 log = "0.3.5"
 num-traits = "0.1.32"
 offscreen_gl_context = "0.1.2"

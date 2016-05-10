@@ -14,7 +14,7 @@ msg = {path = "../msg"}
 plugins = {path = "../plugins"}
 util = {path = "../util"}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
-image = "0.9"
+image = "0.10"
 log = "0.3.5"
 hyper = "0.9"
 rustc-serialize = "0.3.4"
