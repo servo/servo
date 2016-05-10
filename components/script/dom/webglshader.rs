@@ -32,6 +32,7 @@ pub struct WebGLShader {
     source: DOMRefCell<Option<DOMString>>,
     info_log: DOMRefCell<Option<String>>,
     is_deleted: Cell<bool>,
+    attached_counter: Cell<u32>,
     compilation_status: Cell<ShaderCompilationStatus>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     renderer: IpcSender<CanvasMsg>,
@@ -55,6 +56,7 @@ impl WebGLShader {
             source: DOMRefCell::new(None),
             info_log: DOMRefCell::new(None),
             is_deleted: Cell::new(false),
+            attached_counter: Cell::new(0),
             compilation_status: Cell::new(ShaderCompilationStatus::NotCompiled),
             renderer: renderer,
         }
@@ -126,11 +128,29 @@ impl WebGLShader {
 
     /// Mark this shader as deleted (if it wasn't previously)
     /// and delete it as if calling glDeleteShader.
+    /// Currently does not check if shader is attached
     pub fn delete(&self) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
             let _ = self.renderer.send(CanvasMsg::WebGL(WebGLCommand::DeleteShader(self.id)));
         }
+    }
+
+    pub fn is_deleted(&self) -> bool {
+        self.is_deleted.get()
+    }
+
+    pub fn is_attached(&self) -> bool {
+        self.attached_counter.get() > 0
+    }
+
+    pub fn increment_attached_counter(&self) {
+        self.attached_counter.set(self.attached_counter.get() + 1);
+    }
+
+    pub fn decrement_attached_counter(&self) {
+        assert!(self.attached_counter.get() > 0);
+        self.attached_counter.set(self.attached_counter.get() - 1);
     }
 
     /// glGetShaderInfoLog
@@ -162,6 +182,7 @@ impl WebGLShader {
 
 impl Drop for WebGLShader {
     fn drop(&mut self) {
+        assert!(self.attached_counter.get() == 0);
         self.delete();
     }
 }

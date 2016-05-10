@@ -176,6 +176,14 @@ impl WebGLTexture {
         }
     }
 
+    pub fn is_deleted(&self) -> bool {
+        self.is_deleted.get()
+    }
+
+    pub fn target(&self) -> Option<u32> {
+        self.target.get()
+    }
+
     /// We have to follow the conversion rules for GLES 2.0. See:
     ///   https://www.khronos.org/webgl/public-mailing-list/archives/1008/msg00014.html
     ///
