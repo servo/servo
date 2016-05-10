@@ -5,13 +5,13 @@
 #![allow(unsafe_code)]
 
 use app_units::Au;
-use bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
-use bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues, ServoNodeData};
-use bindings::{nsIAtom};
 use data::PerDocumentStyleData;
 use env_logger;
 use euclid::Size2D;
-use gecko_style_structs::SheetParsingMode;
+use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
+use gecko_bindings::bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues, ServoNodeData};
+use gecko_bindings::bindings::{nsIAtom};
+use gecko_bindings::structs::SheetParsingMode;
 use properties::GeckoComputedValues;
 use selector_impl::{GeckoSelectorImpl, PseudoElement, SharedStyleContext, Stylesheet};
 use std::marker::PhantomData;
@@ -35,7 +35,7 @@ use wrapper::{GeckoDocument, GeckoElement, GeckoNode, NonOpaqueStyleData};
 // TODO: This is ugly and should go away once we get an atom back-end.
 pub fn pseudo_element_from_atom(pseudo: *mut nsIAtom,
                                 in_ua_stylesheet: bool) -> Result<PseudoElement, String> {
-    use bindings::Gecko_GetAtomAsUTF16;
+    use gecko_bindings::bindings::Gecko_GetAtomAsUTF16;
     use selectors::parser::{ParserContext, SelectorImpl};
 
     let pseudo_string = unsafe {

@@ -17,6 +17,7 @@ extern crate app_units;
 extern crate cssparser;
 extern crate env_logger;
 extern crate euclid;
+extern crate gecko_bindings;
 extern crate heapsize;
 #[macro_use]
 extern crate lazy_static;
@@ -32,11 +33,7 @@ extern crate style;
 extern crate url;
 extern crate util;
 
-#[allow(dead_code, non_camel_case_types)]
-mod bindings;
 mod data;
-#[allow(dead_code, non_camel_case_types, non_snake_case, non_upper_case_globals)]
-mod gecko_style_structs;
 #[allow(non_snake_case)]
 pub mod glue;
 mod selector_impl;
