@@ -4,20 +4,20 @@
 
 #![allow(unsafe_code)]
 
-use bindings::{Gecko_ChildrenCount};
-use bindings::{Gecko_ElementState, Gecko_GetAttrAsUTF8, Gecko_GetDocumentElement};
-use bindings::{Gecko_GetFirstChild, Gecko_GetFirstChildElement};
-use bindings::{Gecko_GetLastChild, Gecko_GetLastChildElement};
-use bindings::{Gecko_GetNextSibling, Gecko_GetNextSiblingElement};
-use bindings::{Gecko_GetNodeData};
-use bindings::{Gecko_GetParentElement, Gecko_GetParentNode};
-use bindings::{Gecko_GetPrevSibling, Gecko_GetPrevSiblingElement};
-use bindings::{Gecko_IsHTMLElementInHTMLDocument, Gecko_IsLink, Gecko_IsRootElement, Gecko_IsTextNode};
-use bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink};
+use gecko_bindings::bindings::{Gecko_ChildrenCount};
+use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetAttrAsUTF8, Gecko_GetDocumentElement};
+use gecko_bindings::bindings::{Gecko_GetFirstChild, Gecko_GetFirstChildElement};
+use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetLastChildElement};
+use gecko_bindings::bindings::{Gecko_GetNextSibling, Gecko_GetNextSiblingElement};
+use gecko_bindings::bindings::{Gecko_GetNodeData};
+use gecko_bindings::bindings::{Gecko_GetParentElement, Gecko_GetParentNode};
+use gecko_bindings::bindings::{Gecko_GetPrevSibling, Gecko_GetPrevSiblingElement};
+use gecko_bindings::bindings::{Gecko_IsHTMLElementInHTMLDocument, Gecko_IsLink, Gecko_IsRootElement, Gecko_IsTextNode};
+use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink};
 #[allow(unused_imports)] // Used in commented-out code.
-use bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsElement, Gecko_SetNodeData};
-use bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
-use bindings::{ServoNodeData};
+use gecko_bindings::bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsElement, Gecko_SetNodeData};
+use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
+use gecko_bindings::bindings::{ServoNodeData};
 use libc::uintptr_t;
 use properties::GeckoComputedValues;
 use selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PrivateStyleData};

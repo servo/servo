@@ -4,7 +4,7 @@
 
 use app_units::Au;
 use cssparser::RGBA;
-use gecko_style_structs::{nsStyleUnion, nsStyleUnit};
+use gecko_bindings::structs::{nsStyleUnion, nsStyleUnit};
 use std::cmp::max;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 
