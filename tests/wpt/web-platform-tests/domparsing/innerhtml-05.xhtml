@@ -1,0 +1,26 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>innerHTML in XHTML</title>
+<link rel="author" title="Simon Pieters" href="mailto:simonp@opera.com"/>
+<link rel="author" title="Ms2ger" href="mailto:ms2ger@gmail.com"/>
+<link rel="help" href="http://html5.org/specs/dom-parsing.html#dom-innerhtml"/>
+<link rel="help" href="http://www.whatwg.org/html5/#xml-fragment-serialization-algorithm"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<iframe src="data:text/xml,&lt;html xmlns='http://www.w3.org/1999/xhtml'>&lt;foo--/>&lt;/html>"></iframe>
+<script><![CDATA[
+var t = async_test();
+window.onload = t.step_func(function() {
+  var foo = window[0].document.documentElement.firstChild;
+  assert_throws('SyntaxError', function() {
+    foo.innerHTML = 'x<\/foo--><\!--y';
+    // This is ridiculous.
+  });
+  t.done();
+});
+]]></script>
+</body>
+</html>

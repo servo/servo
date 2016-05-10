@@ -26,6 +26,6 @@ test(function(){
 test(function(){
     var track = document.createElement('track');
     track.kind = 'captions\u0000';
-    assert_equals(track.track.kind, 'subtitles');
+    assert_equals(track.track.kind, 'metadata');
 }, document.title+', \\u0000');
 </script>

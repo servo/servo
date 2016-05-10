@@ -28,12 +28,12 @@ async_test(function() {
   // Check whether the performance.now() method is close to Date() within 30ms (due to inaccuracies)
   var initial_hrt = performance.now();
   var initial_date = Date.now();
-  setTimeout(this.step_func(function() {
+  this.step_timeout(function() {
     var final_hrt = performance.now();
     var final_date = Date.now();
     assert_approx_equals(final_hrt - initial_hrt, final_date - initial_date, 30, 'High resolution time value increased by approximately the same amount as time from date object');
     this.done();
-  }), 2000);
+  }, 2000);
 }, 'High resolution time has approximately the right relative magnitude');
 </script>
 </head>

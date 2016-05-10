@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>progress of KeyframeEffectReadOnly getComputedTiming() tests</title>
-<link rel="help" href="https://w3c.github.io/web-animations/#dom-animationeffectreadonly-getcomputedtiming">
-<link rel="author" title="Daisuke Akatsuka" href="mailto:daisuke@mozilla-japan.org">
+<title>Simple iteration progress tests</title>
+<link rel="help"
+      href="https://w3c.github.io/web-animations/#simple-iteration-progress">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="../testcommon.js"></script>
+<script src="../../testcommon.js"></script>
 <body>
 <div id="log"></div>
 <script>
@@ -33,16 +33,6 @@ function executeTests(tests, description) {
     }, description + testParams);
   });
 }
-
-async_test(function(t) {
-  var div = createDiv(t);
-  var anim = div.animate({ opacity: [ 0, 1 ] }, { delay: 1 });
-  assert_equals(anim.effect.getComputedTiming().progress, null);
-  anim.finished.then(t.step_func(function() {
-    assert_equals(anim.effect.getComputedTiming().progress, null);
-    t.done();
-  }));
-}, 'Test progress during before and after phase when fill is none');
 
 var gTests_zero_iterations = [
   {

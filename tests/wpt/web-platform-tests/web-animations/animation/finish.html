@@ -96,11 +96,10 @@ promise_test(function(t) {
     assert_equals(animation.playState, 'finished',
                   'The play state of a paused animation should become ' +
                   '"finished" after finish() is called');
-    assert_approx_equals(animation.startTime,
-                         animation.timeline.currentTime - 100 * MS_PER_SEC,
-                         0.0001,
-                         'The start time of a paused animation should be set ' +
-                         'after calling finish()');
+    assert_times_equal(animation.startTime,
+                       animation.timeline.currentTime - 100 * MS_PER_SEC,
+                       'The start time of a paused animation should be set ' +
+                       'after calling finish()');
   });
 }, 'Test finish() while paused');
 
@@ -117,11 +116,10 @@ test(function(t) {
   assert_equals(animation.playState, 'finished',
                 'The play state of a pause-pending animation should become ' +
                 '"finished" after finish() is called');
-  assert_approx_equals(animation.startTime,
-                       animation.timeline.currentTime - 100 * MS_PER_SEC / 2,
-                       0.0001,
-                       'The start time of a pause-pending animation should ' +
-                       'be set after calling finish()');
+  assert_times_equal(animation.startTime,
+                     animation.timeline.currentTime - 100 * MS_PER_SEC / 2,
+                     'The start time of a pause-pending animation should ' +
+                     'be set after calling finish()');
 }, 'Test finish() while pause-pending with positive playbackRate');
 
 test(function(t) {
@@ -148,11 +146,10 @@ test(function(t) {
   assert_equals(animation.playState, 'finished',
                 'The play state of a play-pending animation should become ' +
                 '"finished" after finish() is called');
-  assert_approx_equals(animation.startTime,
-                       animation.timeline.currentTime - 100 * MS_PER_SEC / 0.5,
-                       0.0001,
-                       'The start time of a play-pending animation should ' +
-                       'be set after calling finish()');
+  assert_times_equal(animation.startTime,
+                     animation.timeline.currentTime - 100 * MS_PER_SEC / 0.5,
+                     'The start time of a play-pending animation should ' +
+                     'be set after calling finish()');
 }, 'Test finish() while play-pending');
 
 // FIXME: Add a test for when we are play-pending without an active timeline.
@@ -206,5 +203,45 @@ promise_test(function(t) {
       'Animation.finish()');
   });
 }, 'Test finish() resolves finished promise synchronously');
+
+promise_test(function(t) {
+  var effect = new KeyframeEffectReadOnly(null, gKeyFrames, 100 * MS_PER_SEC);
+  var animation = new Animation(effect, document.timeline);
+  var resolvedFinished = false;
+  animation.finished.then(function() {
+    resolvedFinished = true;
+  });
+
+  return animation.ready.then(function() {
+    animation.finish();
+  }).then(function() {
+    assert_true(resolvedFinished,
+                'Animation.finished should be resolved soon after ' +
+                'Animation.finish()');
+  });
+}, 'Test finish() resolves finished promise synchronously with an animation ' +
+   'without a target');
+
+promise_test(function(t) {
+  var effect = new KeyframeEffectReadOnly(null, gKeyFrames, 100 * MS_PER_SEC);
+  var animation = new Animation(effect, document.timeline);
+  animation.play();
+
+  var resolvedFinished = false;
+  animation.finished.then(function() {
+    resolvedFinished = true;
+  });
+
+  return animation.ready.then(function() {
+    animation.currentTime = animation.effect.getComputedTiming().endTime - 1;
+    return waitForAnimationFrames(2);
+  }).then(function() {
+    assert_true(resolvedFinished,
+                'Animation.finished should be resolved soon after ' +
+                'Animation finishes normally');
+  });
+}, 'Test normally finished animation resolves finished promise synchronously ' +
+   'with an animation without a target');
+
 </script>
 </body>

@@ -210,6 +210,14 @@ window.addEventListener('message', function(evt) {
             encodeURIComponent(remote_image_url +
                                '&ACAOrigin=' + host_info['HTTPS_ORIGIN']),
             '',
+            LOAD_ERROR), // We expect LOAD_ERROR since the server doesn't respond
+                         // with an Access-Control-Allow-Credentials header.
+        create_test_promise(
+            image_url +
+            '&mode=cors&credentials=same-origin&url=' +
+            encodeURIComponent(remote_image_url +
+                               '&ACAOrigin=' + host_info['HTTPS_ORIGIN']),
+            '',
             NOT_TAINTED),
         create_test_promise(
             image_url +
@@ -240,9 +248,18 @@ window.addEventListener('message', function(evt) {
             encodeURIComponent(remote_image_url +
                                '&ACAOrigin=' + host_info['HTTPS_ORIGIN']),
             '',
-            TAINTED), // We expect TAINTED since the default origin behavior here
-                      // is taint, and it doesn't matter what kind of fetch the
-                      // SW performs.
+            LOAD_ERROR), // We expect LOAD_ERROR since the server doesn't respond
+                         // with an Access-Control-Allow-Credentials header.
+        create_test_promise(
+            remote_image_url +
+            '&mode=cors&credentials=same-origin&url=' +
+            encodeURIComponent(remote_image_url +
+                               '&ACAOrigin=' + host_info['HTTPS_ORIGIN']),
+            '',
+            TAINTED), // The cross-origin no-cors request is immediately tainted.
+                      // Since this happens before the service worker interception,
+                      // it does not matter what kind of response it returns.
+                      // The result will always be tainted.
         create_test_promise(
             remote_image_url +
             '&mode=cors&url=' +

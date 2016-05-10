@@ -88,7 +88,7 @@ interface IDBDatabase : EventTarget {
 };
 
 interface IDBObjectStore {
-    readonly    attribute DOMString      name;
+    attribute DOMString name;
     readonly    attribute any            keyPath;
     readonly    attribute DOMStringList  indexNames;
     readonly    attribute IDBTransaction transaction;
@@ -106,7 +106,7 @@ interface IDBObjectStore {
 };
 
 interface IDBIndex {
-    readonly    attribute DOMString      name;
+    attribute DOMString name;
     readonly    attribute IDBObjectStore objectStore;
     readonly    attribute any            keyPath;
     readonly    attribute boolean        multiEntry;
