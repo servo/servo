@@ -204,12 +204,7 @@ class MachCommands(CommandBase):
             opts += ["--features", "%s" % ' '.join(features)]
 
         build_start = time()
-        env = self.build_env()
-
-        # Ensure Rust uses hard floats and SIMD on ARM devices
-        if target:
-            if target.startswith('arm') or target.startswith('aarch64'):
-                env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
+        env = self.build_env(target)
 
         if android:
             # Build OpenSSL for android
@@ -225,7 +220,7 @@ class MachCommands(CommandBase):
             with cd(openssl_dir):
                 status = call(
                     make_cmd + ["-f", "openssl.makefile"],
-                    env=self.build_env(),
+                    env=env,
                     verbose=verbose)
                 if status:
                     return status
@@ -233,11 +228,6 @@ class MachCommands(CommandBase):
             env['OPENSSL_LIB_DIR'] = openssl_dir
             env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
             env['OPENSSL_STATIC'] = 'TRUE'
-
-        if not (self.config["build"]["ccache"] == ""):
-            env['CCACHE'] = self.config["build"]["ccache"]
-
-        env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -W unused-extern-crates"
 
         status = call(
             ["cargo", "build"] + opts,
