@@ -22,21 +22,16 @@ extern crate log;
 extern crate servo;
 extern crate compositing;
 
-extern crate azure;
 extern crate euclid;
-extern crate gfx;
 extern crate gleam;
 extern crate glutin_app;
-extern crate js;
 extern crate layers;
 extern crate rustc_unicode;
-extern crate script;
 extern crate script_traits;
 
 extern crate net_traits;
 extern crate msg;
 extern crate util;
-extern crate style;
 extern crate style_traits;
 
 extern crate libc;
