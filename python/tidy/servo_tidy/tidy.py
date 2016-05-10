@@ -328,7 +328,8 @@ def check_rust(file_name, lines):
 
         # get rid of strings and chars because cases like regex expression, keep attributes
         if not line_is_attribute(line):
-            line = re.sub(r'"(\\.|[^\\"])*?"|' + r"'(\\.|[^\\'])*?'", '', line)
+            line = re.sub(r'"(\\.|[^\\"])*?"', '""', line)
+            line = re.sub(r"'(\\.|[^\\'])*?'", "''", line)
 
         # get rid of comments
         line = re.sub('//.*?$|/\*.*?$|^\*.*?$', '', line)
