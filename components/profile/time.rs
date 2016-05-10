@@ -135,39 +135,40 @@ pub struct Profiler {
 impl Profiler {
     pub fn create(period: Option<f64>, file_path: Option<String>) -> ProfilerChan {
         let (chan, port) = ipc::channel().unwrap();
-        match period {
-            Some(period) => {
-                let chan = chan.clone();
-                spawn_named("Time profiler timer".to_owned(), move || {
-                    loop {
-                        thread::sleep(duration_from_seconds(period));
-                        if chan.send(ProfilerMsg::Print).is_err() {
-                            break;
-                        }
+        if let Some(period) = period {
+            let chan = chan.clone();
+            spawn_named("Time profiler timer".to_owned(), move || {
+                loop {
+                    thread::sleep(duration_from_seconds(period));
+                    if chan.send(ProfilerMsg::Print).is_err() {
+                        break;
                     }
-                });
-                // Spawn the time profiler.
-                spawn_named("Time profiler".to_owned(), move || {
-                    let trace = file_path.as_ref()
-                        .map(path::Path::new)
-                        .map(fs::File::create)
-                        .map(|res| TraceDump::new(res.unwrap()));
-                    let mut profiler = Profiler::new(port, trace);
-                    profiler.start();
-                });
-            }
-            None => {
-                // No-op to handle messages when the time profiler is inactive.
-                spawn_named("Time profiler".to_owned(), move || {
-                    loop {
-                        match port.recv() {
-                            Err(_) | Ok(ProfilerMsg::Exit) => break,
-                            _ => {}
-                        }
-                    }
-                });
-            }
+                }
+            });
         }
+
+        if period.is_some() || file_path.is_some() {
+            // Spawn the time profiler.
+            spawn_named("Time profiler".to_owned(), move || {
+                let trace = file_path.as_ref()
+                    .map(path::Path::new)
+                    .map(fs::File::create)
+                    .map(|res| TraceDump::new(res.unwrap()));
+                let mut profiler = Profiler::new(port, trace);
+                profiler.start();
+            });
+        } else {
+            // No-op to handle messages when the time profiler is inactive.
+            spawn_named("Time profiler".to_owned(), move || {
+                loop {
+                    match port.recv() {
+                        Err(_) | Ok(ProfilerMsg::Exit) => break,
+                        _ => {}
+                    }
+                }
+            });
+        }
+
         heartbeats::init();
         let profiler_chan = ProfilerChan(chan);
 
