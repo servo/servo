@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use app_units::Au;
 use cssparser::RGBA;
 use gecko_style_structs::{nsStyleUnion, nsStyleUnit};
+use std::cmp::max;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 
 pub trait ToGeckoStyleCoord {
@@ -79,5 +81,17 @@ pub fn convert_nscolor_to_rgba(color: u32) -> RGBA {
         green: (((color >>  8) & 0xff) as f32) / 255.0,
         blue:  (((color >> 16) & 0xff) as f32) / 255.0,
         alpha: (((color >> 24) & 0xff) as f32) / 255.0,
+    }
+}
+
+#[inline]
+pub fn round_border_to_device_pixels(width: Au, au_per_device_px: Au) -> Au {
+    // Round width down to the nearest device pixel, but any non-zero value that
+    // would round down to zero is clamped to 1 device pixel.  Used for storing
+    // computed values of border-*-width and outline-width.
+    if width == Au(0) {
+        Au(0)
+    } else {
+        max(au_per_device_px, Au(width.0 / au_per_device_px.0 * au_per_device_px.0))
     }
 }
