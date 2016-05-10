@@ -34,8 +34,8 @@ file_patterns_to_ignore = [
 ignored_files = [
     # Generated and upstream code combined with our own. Could use cleanup
     os.path.join(".", "ports", "gonk", "src", "native_window_glue.cpp"),
-    os.path.join(".", "ports", "geckolib", "bindings.rs"),
-    os.path.join(".", "ports", "geckolib", "gecko_style_structs.rs"),
+    os.path.join(".", "ports", "geckolib", "gecko_bindings", "bindings.rs"),
+    os.path.join(".", "ports", "geckolib", "gecko_bindings", "structs.rs"),
     os.path.join(".", "resources", "hsts_preload.json"),
     os.path.join(".", "tests", "wpt", "metadata", "MANIFEST.json"),
     os.path.join(".", "tests", "wpt", "metadata-css", "MANIFEST.json"),
@@ -64,7 +64,7 @@ ignored_dirs = [
     os.path.join(".", "target"),
     os.path.join(".", "ports", "cef"),
     # Tooling, generated locally from external repos.
-    os.path.join(".", "ports", "geckolib", "tools"),
+    os.path.join(".", "ports", "geckolib", "gecko_bindings", "tools"),
     # Hidden directories
     os.path.join(".", "."),
 ]

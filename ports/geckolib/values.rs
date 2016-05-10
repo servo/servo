@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::RGBA;
-use gecko_style_structs::{nsStyleUnion, nsStyleUnit};
+use gecko_bindings::structs::{nsStyleUnion, nsStyleUnit};
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 
 pub trait ToGeckoStyleCoord {
