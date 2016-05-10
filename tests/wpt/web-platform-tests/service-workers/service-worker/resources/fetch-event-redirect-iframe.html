@@ -4,10 +4,11 @@ window.addEventListener('message', function(evt) {
   var data = evt.data;
   fetch(new Request(data.url, data.request_init)).then(function(response) {
     if (data.request_init.mode === 'no-cors' && data.redirect_dest != 'same-origin') {
-      if (response.type === 'opaque') {
+      if (response.type === data.expected_type &&
+          (response.type === 'opaque' || response.type === 'opaqueredirect')) {
         return {result: 'success', detail: ''};
       } else {
-        return {result: 'failure', detail: 'expected opaque response'};
+        return {result: 'failure', detail: 'expected ' + data.expected_type + ' response'};
       }
     }
     return response.json();

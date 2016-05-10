@@ -17,7 +17,7 @@
 
       var initValuesDict = {"method" : "POST",
                             "referrer" : "http://{{host}}:{{ports[http][0]}}/",
-                            "referrerPolicy" : "origin-only",
+                            "referrerPolicy" : "origin",
                             "mode" : "same-origin",
                             "credentials" : "include",
                             "cache" : "no-cache",
@@ -29,7 +29,7 @@
 
       var expectedInitialized = {"method" : "POST",
                                  "referrer" : "http://{{host}}:{{ports[http][0]}}/",
-                                 "referrerPolicy" : "origin-only",
+                                 "referrerPolicy" : "origin",
                                  "mode" : "same-origin",
                                  "credentials" : "include",
                                  "cache" : "no-cache",

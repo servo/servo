@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Active time tests</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#active-time">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+async_test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, { delay: 1 });
+  assert_equals(anim.effect.getComputedTiming().progress, null);
+  anim.finished.then(t.step_func(function() {
+    assert_equals(anim.effect.getComputedTiming().progress, null);
+    t.done();
+  }));
+}, 'Test progress during before and after phase when fill is none');
+
+</script>
+</body>

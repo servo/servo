@@ -15,11 +15,10 @@ test(function(t) {
   var div = createDiv(t);
   var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
   anim.effect.timing.endDelay = 123.45;
-  assert_approx_equals(anim.effect.timing.endDelay, 123.45, 0.000001,
-                       'set endDelay 123.45');
-  assert_approx_equals(anim.effect.getComputedTiming().endDelay, 123.45,
-                       0.000001,
-                       'getComputedTiming() after set endDelay 123.45');
+  assert_times_equal(anim.effect.timing.endDelay, 123.45,
+                     'set endDelay 123.45');
+  assert_times_equal(anim.effect.getComputedTiming().endDelay, 123.45,
+                     'getComputedTiming() after set endDelay 123.45');
 }, 'set endDelay 123.45');
 
 test(function(t) {

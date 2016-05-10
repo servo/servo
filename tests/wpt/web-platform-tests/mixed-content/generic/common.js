@@ -107,10 +107,21 @@ function createElement(tagName, attrs, parent, doBindEvents) {
 
   // We set the attributes after binding to events to catch any
   // event-triggering attribute changes. E.g. form submission.
-  setAttributes(element, attrs);
+  //
+  // But be careful with images: unlike other elements they will start the load
+  // as soon as the attr is set, even if not in the document yet, and sometimes
+  // complete it synchronously, so the append doesn't have the effect we want.
+  // So for images, we want to set the attrs after appending, whereas for other
+  // elements we want to do it before appending.
+  var isImg = (tagName == "img");
+  if (!isImg)
+    setAttributes(element, attrs);
 
   if (parent)
     parent.appendChild(element);
+
+  if (isImg)
+    setAttributes(element, attrs);
 
   return element;
 }

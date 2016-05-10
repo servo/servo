@@ -76,7 +76,7 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
       // Depending on the delivery method, extend the subresource element with
       // these attributes.
       var elementAttributesForDeliveryMethod = {
-        "attr-referrer":  {referrerpolicy: t._scenario.referrer_policy},
+        "attr-referrer":  {referrerPolicy: t._scenario.referrer_policy},
         "rel-noreferrer": {rel: "noreferrer"}
       };
 

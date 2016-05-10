@@ -109,16 +109,14 @@ async_test(function(t) {
       .then(function(f) {
         frame = f;
 
-        // TODO: Disable 'no-cors' tests for image until
-        //       AsyncOpen2 and cookie policy is supported.
-        // image_test(f, LOCAL_URL, '', 'no-cors', 'include');
-        // image_test(f, REMOTE_URL, '', 'no-cors', 'include');
+        image_test(f, LOCAL_URL, '', 'no-cors', 'include');
+        image_test(f, REMOTE_URL, '', 'no-cors', 'include');
         css_test(f, LOCAL_URL, '', 'no-cors', 'include');
         css_test(f, REMOTE_URL, '', 'no-cors', 'include');
 
         image_test(f, LOCAL_URL, 'anonymous', 'cors', 'same-origin');
         image_test(f, LOCAL_URL, 'use-credentials', 'cors', 'include');
-        image_test(f, REMOTE_URL, 'anonymous', 'cors', 'omit');
+        image_test(f, REMOTE_URL, 'anonymous', 'cors', 'same-origin');
         image_test(f, REMOTE_URL, 'use-credentials', 'cors', 'include');
 
         script_test(f, LOCAL_URL, '', 'no-cors', 'include');

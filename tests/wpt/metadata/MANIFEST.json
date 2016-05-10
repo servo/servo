@@ -3770,44 +3770,44 @@
         "url": "/compat/webkit-text-fill-color-property-006.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html",
+        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html",
         "references": [
           [
-            "/custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag-ref.html",
+            "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag-ref.html",
             "=="
           ]
         ],
-        "url": "/custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html"
+        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html",
+        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html",
         "references": [
           [
-            "/custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag-ref.html",
+            "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag-ref.html",
             "=="
           ]
         ],
-        "url": "/custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html"
+        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html",
+        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html",
         "references": [
           [
-            "/custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension-ref.html",
+            "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension-ref.html",
             "=="
           ]
         ],
-        "url": "/custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html"
+        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html",
+        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html",
         "references": [
           [
-            "/custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension-ref.html",
+            "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension-ref.html",
             "=="
           ]
         ],
-        "url": "/custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html"
+        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html"
       },
       {
         "path": "html/dom/elements/global-attributes/dir_auto-EN-L.html",
@@ -11514,6 +11514,10 @@
         "url": "/IndexedDB/idbcursor_update_index7.htm"
       },
       {
+        "path": "IndexedDB/idbcursor_update_index8.htm",
+        "url": "/IndexedDB/idbcursor_update_index8.htm"
+      },
+      {
         "path": "IndexedDB/idbcursor_update_objectstore.htm",
         "url": "/IndexedDB/idbcursor_update_objectstore.htm"
       },
@@ -11544,6 +11548,10 @@
       {
         "path": "IndexedDB/idbcursor_update_objectstore8.htm",
         "url": "/IndexedDB/idbcursor_update_objectstore8.htm"
+      },
+      {
+        "path": "IndexedDB/idbcursor_update_objectstore9.htm",
+        "url": "/IndexedDB/idbcursor_update_objectstore9.htm"
       },
       {
         "path": "IndexedDB/idbdatabase_close.htm",
@@ -12572,6 +12580,10 @@
       {
         "path": "XMLHttpRequest/open-url-multi-window-5.htm",
         "url": "/XMLHttpRequest/open-url-multi-window-5.htm"
+      },
+      {
+        "path": "XMLHttpRequest/open-url-multi-window-6.htm",
+        "url": "/XMLHttpRequest/open-url-multi-window-6.htm"
       },
       {
         "path": "XMLHttpRequest/open-url-multi-window.htm",
@@ -13794,224 +13806,224 @@
         "url": "/cssom-view/scrollingElement.html"
       },
       {
-        "path": "custom-elements/pre-v1/concepts/custom-elements-type-naming.html",
-        "url": "/custom-elements/pre-v1/concepts/custom-elements-type-naming.html"
+        "path": "custom-elements/v0/concepts/custom-elements-type-naming.html",
+        "url": "/custom-elements/v0/concepts/custom-elements-type-naming.html"
       },
       {
-        "path": "custom-elements/pre-v1/creating-and-passing-registries/new-registry-test.html",
-        "url": "/custom-elements/pre-v1/creating-and-passing-registries/new-registry-test.html"
+        "path": "custom-elements/v0/creating-and-passing-registries/new-registry-test.html",
+        "url": "/custom-elements/v0/creating-and-passing-registries/new-registry-test.html"
       },
       {
-        "path": "custom-elements/pre-v1/creating-and-passing-registries/no-registry-test.html",
-        "url": "/custom-elements/pre-v1/creating-and-passing-registries/no-registry-test.html"
+        "path": "custom-elements/v0/creating-and-passing-registries/no-registry-test.html",
+        "url": "/custom-elements/v0/creating-and-passing-registries/no-registry-test.html"
       },
       {
-        "path": "custom-elements/pre-v1/creating-and-passing-registries/share-registry-create-document.html",
-        "url": "/custom-elements/pre-v1/creating-and-passing-registries/share-registry-create-document.html"
+        "path": "custom-elements/v0/creating-and-passing-registries/share-registry-create-document.html",
+        "url": "/custom-elements/v0/creating-and-passing-registries/share-registry-create-document.html"
       },
       {
-        "path": "custom-elements/pre-v1/creating-and-passing-registries/share-registry-import-document.html",
-        "url": "/custom-elements/pre-v1/creating-and-passing-registries/share-registry-import-document.html"
+        "path": "custom-elements/v0/creating-and-passing-registries/share-registry-import-document.html",
+        "url": "/custom-elements/v0/creating-and-passing-registries/share-registry-import-document.html"
       },
       {
-        "path": "custom-elements/pre-v1/custom-element-lifecycle/enqueuing-and-invoking-callbacks/invoke-callbacks.html",
-        "url": "/custom-elements/pre-v1/custom-element-lifecycle/enqueuing-and-invoking-callbacks/invoke-callbacks.html"
+        "path": "custom-elements/v0/custom-element-lifecycle/enqueuing-and-invoking-callbacks/invoke-callbacks.html",
+        "url": "/custom-elements/v0/custom-element-lifecycle/enqueuing-and-invoking-callbacks/invoke-callbacks.html"
       },
       {
-        "path": "custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/attached-callback-move-element-test.html",
-        "url": "/custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/attached-callback-move-element-test.html"
+        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attached-callback-move-element-test.html",
+        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attached-callback-move-element-test.html"
       },
       {
-        "path": "custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-change-attribute-test.html",
-        "url": "/custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-change-attribute-test.html"
+        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-change-attribute-test.html",
+        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-change-attribute-test.html"
       },
       {
-        "path": "custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-remove-attribute-test.html",
-        "url": "/custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-remove-attribute-test.html"
+        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-remove-attribute-test.html",
+        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-remove-attribute-test.html"
       },
       {
-        "path": "custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-set-attribute-test.html",
-        "url": "/custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-set-attribute-test.html"
+        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-set-attribute-test.html",
+        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attribute-changed-callback-set-attribute-test.html"
       },
       {
-        "path": "custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/created-callback-element-prototype-test.html",
-        "url": "/custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/created-callback-element-prototype-test.html"
+        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-element-prototype-test.html",
+        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-element-prototype-test.html"
       },
       {
-        "path": "custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-order-test.html",
-        "url": "/custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-order-test.html"
+        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-order-test.html",
+        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-order-test.html"
       },
       {
-        "path": "custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-test.html",
-        "url": "/custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-test.html"
+        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-test.html",
+        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/created-callback-invocation-test.html"
       },
       {
-        "path": "custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/detached-callback-move-element-test.html",
-        "url": "/custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/detached-callback-move-element-test.html"
+        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-move-element-test.html",
+        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-move-element-test.html"
       },
       {
-        "path": "custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/detached-callback-no-browsing-context-test.html",
-        "url": "/custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/detached-callback-no-browsing-context-test.html"
+        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-no-browsing-context-test.html",
+        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-no-browsing-context-test.html"
       },
       {
-        "path": "custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/detached-callback-with-browsing-context-test.html",
-        "url": "/custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/detached-callback-with-browsing-context-test.html"
+        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-with-browsing-context-test.html",
+        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/detached-callback-with-browsing-context-test.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/changing-is-attribute.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/changing-is-attribute.html"
+        "path": "custom-elements/v0/instantiating/changing-is-attribute.html",
+        "url": "/custom-elements/v0/instantiating/changing-is-attribute.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/custom-element-constructor-is-attribute.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/custom-element-constructor-is-attribute.html"
+        "path": "custom-elements/v0/instantiating/custom-element-constructor-is-attribute.html",
+        "url": "/custom-elements/v0/instantiating/custom-element-constructor-is-attribute.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/custom-element-constructor-local-name.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/custom-element-constructor-local-name.html"
+        "path": "custom-elements/v0/instantiating/custom-element-constructor-local-name.html",
+        "url": "/custom-elements/v0/instantiating/custom-element-constructor-local-name.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/custom-element-constructor-namespace.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/custom-element-constructor-namespace.html"
+        "path": "custom-elements/v0/instantiating/custom-element-constructor-namespace.html",
+        "url": "/custom-elements/v0/instantiating/custom-element-constructor-namespace.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/custom-element-constructor-node-document.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/custom-element-constructor-node-document.html"
+        "path": "custom-elements/v0/instantiating/custom-element-constructor-node-document.html",
+        "url": "/custom-elements/v0/instantiating/custom-element-constructor-node-document.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/custom-element-constructor-prototype.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/custom-element-constructor-prototype.html"
+        "path": "custom-elements/v0/instantiating/custom-element-constructor-prototype.html",
+        "url": "/custom-elements/v0/instantiating/custom-element-constructor-prototype.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/custom-element-prototype.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/custom-element-prototype.html"
+        "path": "custom-elements/v0/instantiating/custom-element-prototype.html",
+        "url": "/custom-elements/v0/instantiating/custom-element-prototype.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/custom-element-type-is-attribute.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/custom-element-type-is-attribute.html"
+        "path": "custom-elements/v0/instantiating/custom-element-type-is-attribute.html",
+        "url": "/custom-elements/v0/instantiating/custom-element-type-is-attribute.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/custom-element-type-local-name-and-is-attribute.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/custom-element-type-local-name-and-is-attribute.html"
+        "path": "custom-elements/v0/instantiating/custom-element-type-local-name-and-is-attribute.html",
+        "url": "/custom-elements/v0/instantiating/custom-element-type-local-name-and-is-attribute.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/custom-element-type-local-name.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/custom-element-type-local-name.html"
+        "path": "custom-elements/v0/instantiating/custom-element-type-local-name.html",
+        "url": "/custom-elements/v0/instantiating/custom-element-type-local-name.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/extensions-to-document-interface/create-element-interface-type-is-a-local-name.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/extensions-to-document-interface/create-element-interface-type-is-a-local-name.html"
+        "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-interface-type-is-a-local-name.html",
+        "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-interface-type-is-a-local-name.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/extensions-to-document-interface/create-element-interface-type-is-a-type-extension.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/extensions-to-document-interface/create-element-interface-type-is-a-type-extension.html"
+        "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-interface-type-is-a-type-extension.html",
+        "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-interface-type-is-a-type-extension.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/extensions-to-document-interface/create-element-is-attribute.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/extensions-to-document-interface/create-element-is-attribute.html"
+        "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-is-attribute.html",
+        "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-is-attribute.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/extensions-to-document-interface/create-element-namespace.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/extensions-to-document-interface/create-element-namespace.html"
+        "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-namespace.html",
+        "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-namespace.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/extensions-to-document-interface/create-element-type-extension-is-a-type.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/extensions-to-document-interface/create-element-type-extension-is-a-type.html"
+        "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-extension-is-a-type.html",
+        "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-extension-is-a-type.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/extensions-to-document-interface/create-element-type-extension-unresolved.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/extensions-to-document-interface/create-element-type-extension-unresolved.html"
+        "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-extension-unresolved.html",
+        "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-extension-unresolved.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/extensions-to-document-interface/create-element-type-is-a-local-name.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/extensions-to-document-interface/create-element-type-is-a-local-name.html"
+        "path": "custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-is-a-local-name.html",
+        "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/create-element-type-is-a-local-name.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/extensions-to-document-interface/created-callback-create-element-ns.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/extensions-to-document-interface/created-callback-create-element-ns.html"
+        "path": "custom-elements/v0/instantiating/extensions-to-document-interface/created-callback-create-element-ns.html",
+        "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/created-callback-create-element-ns.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/extensions-to-document-interface/created-callback-create-element.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/extensions-to-document-interface/created-callback-create-element.html"
+        "path": "custom-elements/v0/instantiating/extensions-to-document-interface/created-callback-create-element.html",
+        "url": "/custom-elements/v0/instantiating/extensions-to-document-interface/created-callback-create-element.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/non-configurable-constructor-property.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/non-configurable-constructor-property.html"
+        "path": "custom-elements/v0/instantiating/non-configurable-constructor-property.html",
+        "url": "/custom-elements/v0/instantiating/non-configurable-constructor-property.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/prototype-is-interface-prototype-object.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/prototype-is-interface-prototype-object.html"
+        "path": "custom-elements/v0/instantiating/prototype-is-interface-prototype-object.html",
+        "url": "/custom-elements/v0/instantiating/prototype-is-interface-prototype-object.html"
       },
       {
-        "path": "custom-elements/pre-v1/instantiating-custom-elements/unchanged-attribute.html",
-        "url": "/custom-elements/pre-v1/instantiating-custom-elements/unchanged-attribute.html"
+        "path": "custom-elements/v0/instantiating/unchanged-attribute.html",
+        "url": "/custom-elements/v0/instantiating/unchanged-attribute.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/definition-construction-algorithm-default-namespace.html",
-        "url": "/custom-elements/pre-v1/registering/definition-construction-algorithm-default-namespace.html"
+        "path": "custom-elements/v0/registering/definition-construction-algorithm-default-namespace.html",
+        "url": "/custom-elements/v0/registering/definition-construction-algorithm-default-namespace.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/definition-construction-algorithm-duplicate-definition.html",
-        "url": "/custom-elements/pre-v1/registering/definition-construction-algorithm-duplicate-definition.html"
+        "path": "custom-elements/v0/registering/definition-construction-algorithm-duplicate-definition.html",
+        "url": "/custom-elements/v0/registering/definition-construction-algorithm-duplicate-definition.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/definition-construction-algorithm-invalid-type.html",
-        "url": "/custom-elements/pre-v1/registering/definition-construction-algorithm-invalid-type.html"
+        "path": "custom-elements/v0/registering/definition-construction-algorithm-invalid-type.html",
+        "url": "/custom-elements/v0/registering/definition-construction-algorithm-invalid-type.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/definition-construction-algorithm-local-name-lowercased.html",
-        "url": "/custom-elements/pre-v1/registering/definition-construction-algorithm-local-name-lowercased.html"
+        "path": "custom-elements/v0/registering/definition-construction-algorithm-local-name-lowercased.html",
+        "url": "/custom-elements/v0/registering/definition-construction-algorithm-local-name-lowercased.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/definition-construction-algorithm-name-is-null.html",
-        "url": "/custom-elements/pre-v1/registering/definition-construction-algorithm-name-is-null.html"
+        "path": "custom-elements/v0/registering/definition-construction-algorithm-name-is-null.html",
+        "url": "/custom-elements/v0/registering/definition-construction-algorithm-name-is-null.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/definition-construction-algorithm-no-interface-for-name.html",
-        "url": "/custom-elements/pre-v1/registering/definition-construction-algorithm-no-interface-for-name.html"
+        "path": "custom-elements/v0/registering/definition-construction-algorithm-no-interface-for-name.html",
+        "url": "/custom-elements/v0/registering/definition-construction-algorithm-no-interface-for-name.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/definition-construction-algorithm-svg-namespace-name-is-null.html",
-        "url": "/custom-elements/pre-v1/registering/definition-construction-algorithm-svg-namespace-name-is-null.html"
+        "path": "custom-elements/v0/registering/definition-construction-algorithm-svg-namespace-name-is-null.html",
+        "url": "/custom-elements/v0/registering/definition-construction-algorithm-svg-namespace-name-is-null.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/definition-construction-algorithm-svg-namespace.html",
-        "url": "/custom-elements/pre-v1/registering/definition-construction-algorithm-svg-namespace.html"
+        "path": "custom-elements/v0/registering/definition-construction-algorithm-svg-namespace.html",
+        "url": "/custom-elements/v0/registering/definition-construction-algorithm-svg-namespace.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/definition-construction-algorithm-type-name-lowercased.html",
-        "url": "/custom-elements/pre-v1/registering/definition-construction-algorithm-type-name-lowercased.html"
+        "path": "custom-elements/v0/registering/definition-construction-algorithm-type-name-lowercased.html",
+        "url": "/custom-elements/v0/registering/definition-construction-algorithm-type-name-lowercased.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/element-registration-algorithm-no-registry.html",
-        "url": "/custom-elements/pre-v1/registering/element-registration-algorithm-no-registry.html"
+        "path": "custom-elements/v0/registering/element-registration-algorithm-no-registry.html",
+        "url": "/custom-elements/v0/registering/element-registration-algorithm-no-registry.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/extensions-to-document-interface/custom-element-name.html",
-        "url": "/custom-elements/pre-v1/registering/extensions-to-document-interface/custom-element-name.html"
+        "path": "custom-elements/v0/registering/extensions-to-document-interface/custom-element-name.html",
+        "url": "/custom-elements/v0/registering/extensions-to-document-interface/custom-element-name.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/extensions-to-document-interface/custom-element-prototype.html",
-        "url": "/custom-elements/pre-v1/registering/extensions-to-document-interface/custom-element-prototype.html"
+        "path": "custom-elements/v0/registering/extensions-to-document-interface/custom-element-prototype.html",
+        "url": "/custom-elements/v0/registering/extensions-to-document-interface/custom-element-prototype.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector-all.html",
-        "url": "/custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector-all.html"
+        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector-all.html",
+        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector-all.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector.html",
-        "url": "/custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector.html"
+        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector.html",
+        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-matching-query-selector.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/unresolved-elements-interface-html-element.html",
-        "url": "/custom-elements/pre-v1/registering/unresolved-elements-interface-html-element.html"
+        "path": "custom-elements/v0/registering/unresolved-elements-interface-html-element.html",
+        "url": "/custom-elements/v0/registering/unresolved-elements-interface-html-element.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/unresolved-elements-interface-html-unknown-element.html",
-        "url": "/custom-elements/pre-v1/registering/unresolved-elements-interface-html-unknown-element.html"
+        "path": "custom-elements/v0/registering/unresolved-elements-interface-html-unknown-element.html",
+        "url": "/custom-elements/v0/registering/unresolved-elements-interface-html-unknown-element.html"
       },
       {
-        "path": "custom-elements/pre-v1/registering/unresolved-elements-interface-svg-element.html",
-        "url": "/custom-elements/pre-v1/registering/unresolved-elements-interface-svg-element.html"
+        "path": "custom-elements/v0/registering/unresolved-elements-interface-svg-element.html",
+        "url": "/custom-elements/v0/registering/unresolved-elements-interface-svg-element.html"
       },
       {
         "path": "dom/collections/HTMLCollection-as-proto-length-get-throws.html",
@@ -14938,8 +14950,56 @@
         "url": "/domparsing/XMLSerializer-serializeToString.html"
       },
       {
+        "path": "domparsing/createContextualFragment.html",
+        "url": "/domparsing/createContextualFragment.html"
+      },
+      {
+        "path": "domparsing/innerhtml-01.xhtml",
+        "url": "/domparsing/innerhtml-01.xhtml"
+      },
+      {
+        "path": "domparsing/innerhtml-03.xhtml",
+        "url": "/domparsing/innerhtml-03.xhtml"
+      },
+      {
+        "path": "domparsing/innerhtml-04.html",
+        "url": "/domparsing/innerhtml-04.html"
+      },
+      {
+        "path": "domparsing/innerhtml-05.xhtml",
+        "url": "/domparsing/innerhtml-05.xhtml"
+      },
+      {
+        "path": "domparsing/innerhtml-06.html",
+        "url": "/domparsing/innerhtml-06.html"
+      },
+      {
+        "path": "domparsing/innerhtml-07.html",
+        "url": "/domparsing/innerhtml-07.html"
+      },
+      {
         "path": "domparsing/insert-adjacent.html",
         "url": "/domparsing/insert-adjacent.html"
+      },
+      {
+        "path": "domparsing/insert_adjacent_html.html",
+        "url": "/domparsing/insert_adjacent_html.html"
+      },
+      {
+        "path": "domparsing/insert_adjacent_html.xhtml",
+        "url": "/domparsing/insert_adjacent_html.xhtml"
+      },
+      {
+        "path": "domparsing/outerhtml-01.html",
+        "url": "/domparsing/outerhtml-01.html"
+      },
+      {
+        "path": "domparsing/outerhtml-02.html",
+        "url": "/domparsing/outerhtml-02.html"
+      },
+      {
+        "path": "domparsing/xml-serialization.xhtml",
+        "url": "/domparsing/xml-serialization.xhtml"
       },
       {
         "path": "domxpath/001.html",
@@ -16342,6 +16402,10 @@
         "url": "/html/browsers/history/the-history-interface/traverse_the_history_write_onload_2.html"
       },
       {
+        "path": "html/browsers/history/the-location-interface/allow_prototype_cycle_through_location.sub.html",
+        "url": "/html/browsers/history/the-location-interface/allow_prototype_cycle_through_location.sub.html"
+      },
+      {
         "path": "html/browsers/history/the-location-interface/assign_after_load.html",
         "url": "/html/browsers/history/the-location-interface/assign_after_load.html"
       },
@@ -17502,8 +17566,16 @@
         "url": "/html/semantics/document-metadata/styling/LinkStyle.html"
       },
       {
+        "path": "html/semantics/document-metadata/the-base-element/base_about_blank.html",
+        "url": "/html/semantics/document-metadata/the-base-element/base_about_blank.html"
+      },
+      {
         "path": "html/semantics/document-metadata/the-base-element/base_href_empty.html",
         "url": "/html/semantics/document-metadata/the-base-element/base_href_empty.html"
+      },
+      {
+        "path": "html/semantics/document-metadata/the-base-element/base_href_invalid.html",
+        "url": "/html/semantics/document-metadata/the-base-element/base_href_invalid.html"
       },
       {
         "path": "html/semantics/document-metadata/the-base-element/base_href_specified.sub.html",
@@ -17516,6 +17588,10 @@
       {
         "path": "html/semantics/document-metadata/the-base-element/base_multiple.html",
         "url": "/html/semantics/document-metadata/the-base-element/base_multiple.html"
+      },
+      {
+        "path": "html/semantics/document-metadata/the-base-element/base_srcdoc.html",
+        "url": "/html/semantics/document-metadata/the-base-element/base_srcdoc.html"
       },
       {
         "path": "html/semantics/document-metadata/the-link-element/link-load-event.html",
@@ -18778,6 +18854,10 @@
         "url": "/html/semantics/embedded-content/the-embed-element/embed-ignored-in-media-element.html"
       },
       {
+        "path": "html/semantics/embedded-content/the-iframe-element/iframe-load-event.html",
+        "url": "/html/semantics/embedded-content/the-iframe-element/iframe-load-event.html"
+      },
+      {
         "path": "html/semantics/embedded-content/the-iframe-element/iframe_javascript_url_01.htm",
         "url": "/html/semantics/embedded-content/the-iframe-element/iframe_javascript_url_01.htm"
       },
@@ -19864,6 +19944,10 @@
       {
         "path": "html/syntax/serializing-html-fragments/outerHTML.html",
         "url": "/html/syntax/serializing-html-fragments/outerHTML.html"
+      },
+      {
+        "path": "html/syntax/serializing-html-fragments/serializing.html",
+        "url": "/html/syntax/serializing-html-fragments/serializing.html"
       },
       {
         "path": "html/syntax/serializing-xml-fragments/outerHTML.html",
@@ -27882,6 +27966,14 @@
         "url": "/screen-orientation/orientation-reading.html"
       },
       {
+        "path": "secure-contexts/basic-popup-and-iframe-tests.html",
+        "url": "/secure-contexts/basic-popup-and-iframe-tests.html"
+      },
+      {
+        "path": "secure-contexts/basic-popup-and-iframe-tests.https.html",
+        "url": "/secure-contexts/basic-popup-and-iframe-tests.https.html"
+      },
+      {
         "path": "selection/Document-open.html",
         "url": "/selection/Document-open.html"
       },
@@ -28122,6 +28214,10 @@
         "url": "/service-workers/service-worker/multiple-update.https.html"
       },
       {
+        "path": "service-workers/service-worker/navigate-window.https.html",
+        "url": "/service-workers/service-worker/navigate-window.https.html"
+      },
+      {
         "path": "service-workers/service-worker/navigation-redirect.https.html",
         "url": "/service-workers/service-worker/navigation-redirect.https.html"
       },
@@ -28276,6 +28372,10 @@
       {
         "path": "service-workers/service-worker/update-after-oneday.https.html",
         "url": "/service-workers/service-worker/update-after-oneday.https.html"
+      },
+      {
+        "path": "service-workers/service-worker/update-recovery.https.html",
+        "url": "/service-workers/service-worker/update-recovery.https.html"
       },
       {
         "path": "service-workers/service-worker/update.https.html",
@@ -29006,6 +29106,14 @@
         "url": "/web-animations/animation/reverse.html"
       },
       {
+        "path": "web-animations/animation/startTime.html",
+        "url": "/web-animations/animation/startTime.html"
+      },
+      {
+        "path": "web-animations/document/getAnimations.html",
+        "url": "/web-animations/document/getAnimations.html"
+      },
+      {
         "path": "web-animations/keyframe-effect/constructor.html",
         "url": "/web-animations/keyframe-effect/constructor.html"
       },
@@ -29014,20 +29122,36 @@
         "url": "/web-animations/keyframe-effect/effect-easing.html"
       },
       {
-        "path": "web-animations/keyframe-effect/getComputedTiming-currentIteration.html",
-        "url": "/web-animations/keyframe-effect/getComputedTiming-currentIteration.html"
-      },
-      {
-        "path": "web-animations/keyframe-effect/getComputedTiming-progress.html",
-        "url": "/web-animations/keyframe-effect/getComputedTiming-progress.html"
-      },
-      {
         "path": "web-animations/keyframe-effect/getComputedTiming.html",
         "url": "/web-animations/keyframe-effect/getComputedTiming.html"
       },
       {
         "path": "web-animations/keyframe-effect/keyframe-handling.html",
         "url": "/web-animations/keyframe-effect/keyframe-handling.html"
+      },
+      {
+        "path": "web-animations/keyframe-effect/setFrames.html",
+        "url": "/web-animations/keyframe-effect/setFrames.html"
+      },
+      {
+        "path": "web-animations/keyframe-effect/setTarget.html",
+        "url": "/web-animations/keyframe-effect/setTarget.html"
+      },
+      {
+        "path": "web-animations/timing-model/animation-effects/active-time.html",
+        "url": "/web-animations/timing-model/animation-effects/active-time.html"
+      },
+      {
+        "path": "web-animations/timing-model/animation-effects/current-iteration.html",
+        "url": "/web-animations/timing-model/animation-effects/current-iteration.html"
+      },
+      {
+        "path": "web-animations/timing-model/animation-effects/simple-iteration-progress.html",
+        "url": "/web-animations/timing-model/animation-effects/simple-iteration-progress.html"
+      },
+      {
+        "path": "web-animations/timing-model/animations/set-the-animation-start-time.html",
+        "url": "/web-animations/timing-model/animations/set-the-animation-start-time.html"
       },
       {
         "path": "webaudio/the-audio-api/the-audiobuffer-interface/idl-test.html",
@@ -34362,19 +34486,19 @@
         "url": "/cors/status-async.htm"
       },
       {
-        "path": "custom-elements/pre-v1/concepts/custom-elements-type-allowed-chars-first-char.html",
+        "path": "custom-elements/v0/concepts/custom-elements-type-allowed-chars-first-char.html",
         "timeout": "long",
-        "url": "/custom-elements/pre-v1/concepts/custom-elements-type-allowed-chars-first-char.html"
+        "url": "/custom-elements/v0/concepts/custom-elements-type-allowed-chars-first-char.html"
       },
       {
-        "path": "custom-elements/pre-v1/concepts/custom-elements-type-allowed-chars.html",
+        "path": "custom-elements/v0/concepts/custom-elements-type-allowed-chars.html",
         "timeout": "long",
-        "url": "/custom-elements/pre-v1/concepts/custom-elements-type-allowed-chars.html"
+        "url": "/custom-elements/v0/concepts/custom-elements-type-allowed-chars.html"
       },
       {
-        "path": "custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/attached-callback-test.html",
+        "path": "custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attached-callback-test.html",
         "timeout": "long",
-        "url": "/custom-elements/pre-v1/custom-element-lifecycle/types-of-callbacks/attached-callback-test.html"
+        "url": "/custom-elements/v0/custom-element-lifecycle/types-of-callbacks/attached-callback-test.html"
       },
       {
         "path": "dom/nodes/Document-characterSet-normalization.html",
@@ -36368,52 +36492,52 @@
         "url": "/compat/webkit-text-fill-color-property-006.html"
       }
     ],
-    "custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html": [
+    "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html": [
       {
-        "path": "custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html",
+        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html",
         "references": [
           [
-            "/custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag-ref.html",
+            "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag-ref.html",
             "=="
           ]
         ],
-        "url": "/custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html"
+        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-custom-tag.html"
       }
     ],
-    "custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html": [
+    "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html": [
       {
-        "path": "custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html",
+        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html",
         "references": [
           [
-            "/custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag-ref.html",
+            "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag-ref.html",
             "=="
           ]
         ],
-        "url": "/custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html"
+        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-custom-tag.html"
       }
     ],
-    "custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html": [
+    "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html": [
       {
-        "path": "custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html",
+        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html",
         "references": [
           [
-            "/custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension-ref.html",
+            "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension-ref.html",
             "=="
           ]
         ],
-        "url": "/custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html"
+        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-registered-type-extension.html"
       }
     ],
-    "custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html": [
+    "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html": [
       {
-        "path": "custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html",
+        "path": "custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html",
         "references": [
           [
-            "/custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension-ref.html",
+            "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension-ref.html",
             "=="
           ]
         ],
-        "url": "/custom-elements/pre-v1/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html"
+        "url": "/custom-elements/v0/registering/unresolved-element-pseudoclass/unresolved-element-pseudoclass-css-test-type-extension.html"
       }
     ],
     "html/dom/elements/global-attributes/dir_auto-EN-L-ref.html": [
@@ -42141,7 +42265,7 @@
       }
     ]
   },
-  "rev": "fab2c513bffb2bd19600d23b495264d123df092f",
+  "rev": "697b971060b2d475a73c1c3755232a4674d61cf5",
   "url_base": "/",
   "version": 3
 }

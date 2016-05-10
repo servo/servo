@@ -114,27 +114,27 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
             'ReferrerPolicy: no-referrer-when-downgrade',
             'Service Worker should respond to fetch with no referrer with ""');
           return frame.contentWindow.fetch('resources/simple.html?referrerFull',
-                                           {referrerPolicy: "origin-only", referrer: referrer});
+                                           {referrerPolicy: "origin", referrer: referrer});
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
           assert_equals(
             response_text,
             'Referrer: ' + origin + '/' + '\n' +
-            'ReferrerPolicy: origin-only',
-            'Service Worker should respond to fetch with the referrer origin with "origin-only" and a same origin request');
+            'ReferrerPolicy: origin',
+            'Service Worker should respond to fetch with the referrer origin with "origin" and a same origin request');
           var http_url = get_host_info()['HTTP_ORIGIN'] + base_path() +
                          '/resources/simple.html?referrerFull';
           return frame.contentWindow.fetch(http_url,
-                                           {referrerPolicy: "origin-only", referrer: referrer});
+                                           {referrerPolicy: "origin", referrer: referrer});
         })
       .then(function(response) { return response.text(); })
       .then(function(response_text) {
           assert_equals(
             response_text,
             'Referrer: ' + origin + '/' + '\n' +
-            'ReferrerPolicy: origin-only',
-            'Service Worker should respond to fetch with the referrer origin with "origin-only" and a cross origin request');
+            'ReferrerPolicy: origin',
+            'Service Worker should respond to fetch with the referrer origin with "origin" and a cross origin request');
           return frame.contentWindow.fetch('resources/simple.html?referrerFull',
                                            {referrerPolicy: "origin-when-cross-origin", referrer: referrer});
         })

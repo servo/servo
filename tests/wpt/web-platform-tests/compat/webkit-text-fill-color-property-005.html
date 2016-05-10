@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>webkit-text-fill-color should take effect while rendering text-decoration underline</title>
+<title>webkit-text-fill-color should not take effect while rendering text-decoration underline</title>
 <link rel="author" title="Jeremy Chen" href="jeremychen@mozilla.com">
 <link rel="author" title="Mozilla" href="https://www.mozilla.org">
 <link rel="help" href="https://compat.spec.whatwg.org/#the-webkit-text-fill-color">
@@ -8,10 +8,12 @@
 <link rel="match" href="webkit-text-fill-color-property-005-ref.html">
 <style type="text/css">
 p {
-  font-size: 50px;
+  color: green;
+}
+p.underline {
   text-decoration: underline;
-  color: red;
-  -webkit-text-fill-color: green;
+  -webkit-text-fill-color: red
 }
 </style>
 <div><p>Pass if text underline is green!!!</p></div>
+<div><p class="underline">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p></div>

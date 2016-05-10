@@ -160,7 +160,7 @@ previous Promise Test finishes.
 `promise_rejects` can be used to test Promises that need to reject:
 
 ```js
-promise_rejects(test_object, code, promise)
+promise_rejects(test_object, code, promise, description)
 ```
 
 The `code` argument is equivalent to the same argument to the `assert_throws`

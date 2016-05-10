@@ -89,8 +89,15 @@
 
 <img src="/images/green-2x2.png" data-desc="inserted/removed children of img">
 
-<picture><img src="/images/green-2x2.png" data-desc="picture is inserted"></picture><span></span>
-<picture><img src="/images/green-2x2.png" data-desc="picture is removed"></picture>
+<picture><img src="/images/green-2x2.png" data-desc="picture is inserted; img has src"></picture><span></span>
+<picture><img srcset="/images/green-2x2.png" data-desc="picture is inserted; img has srcset"></picture><span></span>
+<picture><source srcset="/images/green-2x2.png"><img src="/images/green-2x2.png" data-desc="picture is inserted; img has previous sibling source"></picture><span></span>
+<picture><img src="/images/green-2x2.png" data-desc="picture is inserted; img has following sibling source"><source srcset="/images/green-2x2.png"></picture><span></span>
+
+<picture><img src="/images/green-2x2.png" data-desc="picture is removed; img has src"></picture>
+<picture><img srcset="/images/green-2x2.png" data-desc="picture is removed; img has srcset"></picture>
+<picture><source srcset="/images/green-2x2.png"><img src="/images/green-2x2.png" data-desc="picture is removed; img has previous sibling source"></picture>
+<picture><img src="/images/green-2x2.png" data-desc="picture is removed; img has following sibling source"><source srcset="/images/green-2x2.png"></picture>
 
 <picture><img src="/images/green-2x2.png" data-desc="parent is picture, following img inserted"></picture>
 <picture><img src="/images/green-2x2.png" data-desc="parent is picture, following img removed"><img></picture>
@@ -352,11 +359,35 @@ onload = function() {
     }), 0);
   }, 'timeout');
 
-  t('picture is inserted', function(img) {
+  t('picture is inserted; img has src', function(img) {
     img.parentNode.nextSibling.appendChild(img.parentNode);
   }, 'timeout');
 
-  t('picture is removed', function(img) {
+  t('picture is inserted; img has srcset', function(img) {
+    img.parentNode.nextSibling.appendChild(img.parentNode);
+  }, 'timeout');
+
+  t('picture is inserted; img has previous sibling source', function(img) {
+    img.parentNode.nextSibling.appendChild(img.parentNode);
+  }, 'timeout');
+
+  t('picture is inserted; img has following sibling source', function(img) {
+    img.parentNode.nextSibling.appendChild(img.parentNode);
+  }, 'timeout');
+
+  t('picture is removed; img has src', function(img) {
+    img.parentNode.parentNode.removeChild(img.parentNode);
+  }, 'timeout');
+
+  t('picture is removed; img has srcset', function(img) {
+    img.parentNode.parentNode.removeChild(img.parentNode);
+  }, 'timeout');
+
+  t('picture is removed; img has previous sibling source', function(img) {
+    img.parentNode.parentNode.removeChild(img.parentNode);
+  }, 'timeout');
+
+  t('picture is removed; img has following sibling source', function(img) {
     img.parentNode.parentNode.removeChild(img.parentNode);
   }, 'timeout');
 

@@ -7,7 +7,7 @@
     <meta name="description" content="%(spec_description)s">
     <link rel="author" title="Kristijan Burnik" href="burnik@chromium.org">
     <link rel="help" href="%(spec_specification_url)s">
-    <meta name="assert" content="%(test_description)s">
+    <meta name="assert" content="%(test_description)s">%(meta_opt_in)s
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/mixed-content/generic/common.js"></script>
