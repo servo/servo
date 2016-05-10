@@ -13,21 +13,19 @@ use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::USVString;
 use dom::event::Event;
-use dom::urlhelper::UrlHelper;
 use string_cache::Atom;
-use url::Url;
 use util::str::DOMString;
 
 // https://html.spec.whatwg.org/multipage/#hashchangeevent
 #[dom_struct]
 pub struct HashChangeEvent {
     event: Event,
-    old_url: Url,
-    new_url: Url,
+    old_url: String,
+    new_url: String,
 }
 
 impl HashChangeEvent {
-    fn new_inherited(old_url: Url, new_url: Url) -> HashChangeEvent {
+    fn new_inherited(old_url: String, new_url: String) -> HashChangeEvent {
         HashChangeEvent {
             event: Event::new_inherited(),
             old_url: old_url,
@@ -35,11 +33,9 @@ impl HashChangeEvent {
         }
     }
 
-    pub fn new_uninitialized(global: GlobalRef,
-                             old_url: Url,
-                             new_url: Url)
+    pub fn new_uninitialized(global: GlobalRef)
                              -> Root<HashChangeEvent> {
-        reflect_dom_object(box HashChangeEvent::new_inherited(old_url, new_url),
+        reflect_dom_object(box HashChangeEvent::new_inherited(String::new(), String::new()),
                            global,
                            HashChangeEventBinding::Wrap)
     }
@@ -48,10 +44,12 @@ impl HashChangeEvent {
                type_: Atom,
                bubbles: bool,
                cancelable: bool,
-               old_url: Url,
-               new_url: Url)
+               old_url: String,
+               new_url: String)
                -> Root<HashChangeEvent> {
-        let ev = HashChangeEvent::new_uninitialized(global, old_url, new_url);
+        let ev = reflect_dom_object(box HashChangeEvent::new_inherited(old_url, new_url),
+                                    global,
+                                    HashChangeEventBinding::Wrap);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
@@ -63,32 +61,24 @@ impl HashChangeEvent {
                        type_: DOMString,
                        init: &HashChangeEventBinding::HashChangeEventInit)
                        -> Fallible<Root<HashChangeEvent>> {
-        let old_url = match Url::parse(&init.oldURL.0) {
-            Ok(old_url) => old_url,
-            Err(error) => return Err(Error::Type(format!("could not parse URL: {}", error))),
-        };
-        let new_url = match Url::parse(&init.newURL.0) {
-            Ok(new_url) => new_url,
-            Err(error) => return Err(Error::Type(format!("could not parse URL: {}", error))),
-        };
         Ok(HashChangeEvent::new(global,
                                 Atom::from(type_),
                                 init.parent.bubbles,
                                 init.parent.cancelable,
-                                old_url,
-                                new_url))
+                                init.oldURL.0.clone(),
+                                init.newURL.0.clone()))
     }
 }
 
 impl HashChangeEventMethods for HashChangeEvent {
     // https://html.spec.whatwg.org/multipage/#dom-hashchangeevent-oldurl
     fn OldURL(&self) -> USVString {
-        UrlHelper::Href(&self.old_url)
+        USVString(self.old_url.clone())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hashchangeevent-newurl
     fn NewURL(&self) -> USVString {
-        UrlHelper::Href(&self.new_url)
+        USVString(self.new_url.clone())
     }
 
     // https://dom.spec.whatwg.org/#dom-event-istrusted
