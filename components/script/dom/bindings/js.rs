@@ -38,6 +38,7 @@ use script_thread::STACK_ROOTS;
 use std::cell::UnsafeCell;
 use std::default::Default;
 use std::hash::{Hash, Hasher};
+use std::intrinsics::type_name;
 use std::mem;
 use std::ops::Deref;
 use std::ptr;
@@ -106,7 +107,9 @@ impl<T: Reflectable> Deref for JS<T> {
 
 impl<T: Reflectable> JSTraceable for JS<T> {
     fn trace(&self, trc: *mut JSTracer) {
-        trace_reflector(trc, "", unsafe { (**self.ptr).reflector() });
+        trace_reflector(trc,
+                        &format!("for {} on heap", unsafe { type_name::<T>() }),
+                        unsafe { (**self.ptr).reflector() });
     }
 }
 
@@ -520,11 +523,12 @@ impl RootCollection {
 
 /// SM Callback that traces the rooted reflectors
 pub unsafe fn trace_roots(tracer: *mut JSTracer) {
+    debug!("tracing stack roots");
     STACK_ROOTS.with(|ref collection| {
         let RootCollectionPtr(collection) = collection.get().unwrap();
         let collection = &*(*collection).roots.get();
         for root in collection {
-            trace_reflector(tracer, "reflector", &**root);
+            trace_reflector(tracer, "on stack", &**root);
         }
     });
 }
