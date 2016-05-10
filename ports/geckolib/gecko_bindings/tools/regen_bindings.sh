@@ -28,9 +28,14 @@ else
   LIBCLANG_PATH=`brew --prefix llvm38`/lib/llvm-3.8/lib;
 fi
 
-# Prevent bindgen from generating opaque types for common gecko types
+# Prevent bindgen from generating opaque types for common gecko types.
 export MAP_GECKO_TYPES=""
-for STRUCT in SheetParsingMode nsStyleFont nsStyleColor nsStyleList nsStyleText \
+
+# Extra code we want to generate.
+export EXTRA_CODE="-raw-line 'use heapsize::HeapSizeOf;' "
+
+# Style structs.
+for STRUCT in nsStyleFont nsStyleColor nsStyleList nsStyleText \
               nsStyleVisibility nsStyleUserInterface nsStyleTableBorder \
               nsStyleSVG nsStyleVariables nsStyleBackground nsStylePosition \
               nsStyleTextReset nsStyleDisplay nsStyleContent nsStyleUIReset \
@@ -38,8 +43,20 @@ for STRUCT in SheetParsingMode nsStyleFont nsStyleColor nsStyleList nsStyleText 
               nsStyleOutline nsStyleXUL nsStyleSVGReset nsStyleColumn nsStyleEffects
 do
   MAP_GECKO_TYPES=$MAP_GECKO_TYPES"-blacklist-type $STRUCT "
-  MAP_GECKO_TYPES=$MAP_GECKO_TYPES"-raw-line 'use gecko_style_structs::$STRUCT;' "
+  MAP_GECKO_TYPES=$MAP_GECKO_TYPES"-raw-line 'use structs::$STRUCT;' "
+  EXTRA_CODE=$EXTRA_CODE"-raw-line 'unsafe impl Send for $STRUCT {}' "
+  EXTRA_CODE=$EXTRA_CODE"-raw-line 'unsafe impl Sync for $STRUCT {}' "
+  EXTRA_CODE=$EXTRA_CODE"-raw-line 'impl HeapSizeOf for $STRUCT { fn heap_size_of_children(&self) -> usize { 0 } }' "
 done
+
+# Other mapped types.
+for TYPE in SheetParsingMode
+do
+  MAP_GECKO_TYPES=$MAP_GECKO_TYPES"-blacklist-type $TYPE "
+  MAP_GECKO_TYPES=$MAP_GECKO_TYPES"-raw-line 'use structs::$TYPE;' "
+done
+
+
 
 # Check for the include directory.
 export DIST_INCLUDE="$1/dist/include"
@@ -61,4 +78,5 @@ eval ./rust-bindgen/target/debug/bindgen           \
   "$DIST_INCLUDE/mozilla/ServoBindings.h"          \
   -match "ServoBindings.h"                         \
   -match "nsStyleStructList.h"                     \
-  $MAP_GECKO_TYPES
+  $MAP_GECKO_TYPES                                 \
+  $EXTRA_CODE

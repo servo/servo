@@ -23,4 +23,4 @@ build (which are in `ports/geckolib/bindings.rs`).
 ## `regen_style_structs.sh`
 
 This will generate the bindings for Gecko's style structs. Current bindings are
-actually in `ports/geckolib/gecko_style_structs.rs`.
+actually in `ports/geckolib/structs.rs`.

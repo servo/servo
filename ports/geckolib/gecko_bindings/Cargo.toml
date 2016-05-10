@@ -1,0 +1,12 @@
+[package]
+name = "gecko_bindings"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+publish = false
+
+[lib]
+name = "gecko_bindings"
+path = "lib.rs"
+
+[dependencies]
+heapsize = "0.3.0"
