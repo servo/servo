@@ -371,7 +371,9 @@ unsafe extern "C" fn debug_gc_callback(_rt: *mut JSRuntime, status: JSGCStatus, 
 
 #[allow(unsafe_code)]
 unsafe extern fn trace_rust_roots(tr: *mut JSTracer, _data: *mut os::raw::c_void) {
+    debug!("starting custom root handler");
     trace_thread(tr);
     trace_traceables(tr);
     trace_roots(tr);
+    debug!("done custom root handler");
 }
