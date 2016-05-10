@@ -119,28 +119,29 @@ impl Blob {
         // TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView
         let bytes: Vec<u8> = match blobParts {
             None => Vec::new(),
-            Some(blobs) => {
-                blobs.iter().flat_map(|bPart| {
-                    match bPart {
-                        &BlobOrString::String(ref s) => {
-                            UTF_8.encode(s, EncoderTrap::Replace).unwrap()
-                        },
-                        &BlobOrString::Blob(ref b) => {
-                            b.get_data().get_bytes().to_vec()
-                        },
-                    }
-                })
-                .collect()
-            }
+            Some(blobparts) => blob_parts_to_bytes(blobparts),
         };
 
         let slice = DataSlice::new(Arc::new(bytes), None, None);
-        Ok(Blob::new(global, slice, blobPropertyBag.get_typestring()))
+        Ok(Blob::new(global, slice, &blobPropertyBag.get_typestring()))
     }
 
     pub fn get_data(&self) -> &DataSlice {
         &self.data
     }
+}
+
+pub fn blob_parts_to_bytes(blobparts: Vec<BlobOrString>) -> Vec<u8> {
+    blobparts.iter().flat_map(|blobpart| {
+            match blobpart {
+                &BlobOrString::String(ref s) => {
+                    UTF_8.encode(s, EncoderTrap::Replace).unwrap()
+                },
+                &BlobOrString::Blob(ref b) => {
+                    b.get_data().get_bytes().to_vec()
+                },
+            }
+        }).collect::<Vec<u8>>()
 }
 
 impl BlobMethods for Blob {
@@ -199,11 +200,11 @@ impl BlobMethods for Blob {
 
 
 impl BlobBinding::BlobPropertyBag {
-    pub fn get_typestring(&self) -> &str {
+    pub fn get_typestring(&self) -> String {
         if is_ascii_printable(&self.type_) {
-            &*self.type_
+            self.type_.to_lowercase()
         } else {
-            ""
+            "".to_string()
         }
     }
 }
