@@ -18,9 +18,9 @@ It will also rebuild it if it's already downloaded.
 ## `regen_bindings.sh`
 
 This will regenerate the bindings for the `ServoBindings.h` file in your gecko
-build (which are in `ports/geckolib/bindings.rs`).
+build (which are in `../bindings.rs`).
 
 ## `regen_style_structs.sh`
 
 This will generate the bindings for Gecko's style structs. Current bindings are
-actually in `ports/geckolib/gecko_style_structs.rs`.
+in `../structs.rs`.
