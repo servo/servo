@@ -31,6 +31,7 @@ script_traits = {path = "../script_traits"}
 serde = "0.7"
 serde_macros = "0.7"
 style_traits = {path = "../style_traits"}
+time = "0.1"
 url = {version = "1.0.0", features = ["heap_size"]}
 util = {path = "../util"}
 webrender_traits = {git = "https://github.com/servo/webrender_traits"}
