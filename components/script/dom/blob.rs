@@ -28,6 +28,7 @@ pub struct DataSlice {
 }
 
 impl DataSlice {
+    /// Construct DataSlice from reference counted bytes
     pub fn new(bytes: Arc<Vec<u8>>, start: Option<i64>, end: Option<i64>) -> DataSlice {
         let size = bytes.len() as i64;
         let relativeStart: i64 = match start {
@@ -62,14 +63,21 @@ impl DataSlice {
         }
     }
 
+    /// Construct an empty data slice
+    pub fn empty() -> DataSlice {
+        DataSlice {
+            bytes: Arc::new(Vec::new()),
+            bytes_start: 0,
+            bytes_end: 0,
+        }
+    }
+
+    /// Get sliced bytes
     pub fn get_bytes(&self) -> &[u8] {
         &self.bytes[self.bytes_start..self.bytes_end]
     }
 
-    pub fn get_all_bytes(&self) -> Arc<Vec<u8>> {
-        self.bytes.clone()
-    }
-
+    /// Get length of sliced bytes
     pub fn size(&self) -> u64 {
         (self.bytes_end as u64) - (self.bytes_start as u64)
     }
@@ -86,38 +94,20 @@ pub struct Blob {
     isClosed_: Cell<bool>,
 }
 
-fn is_ascii_printable(string: &str) -> bool {
-    // Step 5.1 in Sec 5.1 of File API spec
-    // https://w3c.github.io/FileAPI/#constructorBlob
-    string.chars().all(|c| c >= '\x20' && c <= '\x7E')
-}
-
 impl Blob {
-    pub fn new_inherited(bytes: Arc<Vec<u8>>,
-                         bytes_start: Option<i64>,
-                         bytes_end: Option<i64>,
-                         typeString: &str) -> Blob {
-        Blob {
-            reflector_: Reflector::new(),
-            data: DataSlice::new(bytes, bytes_start, bytes_end),
-            typeString: typeString.to_owned(),
-            isClosed_: Cell::new(false),
-        }
-    }
 
-    pub fn new(global: GlobalRef, bytes: Vec<u8>, typeString: &str) -> Root<Blob> {
-        let boxed_blob = box Blob::new_inherited(Arc::new(bytes), None, None, typeString);
+    pub fn new(global: GlobalRef, slice: DataSlice, typeString: &str) -> Root<Blob> {
+        let boxed_blob = box Blob::new_inherited(slice, typeString);
         reflect_dom_object(boxed_blob, global, BlobBinding::Wrap)
     }
 
-    fn new_sliced(global: GlobalRef,
-                  bytes: Arc<Vec<u8>>,
-                  bytes_start: Option<i64>,
-                  bytes_end: Option<i64>,
-                  typeString: &str) -> Root<Blob> {
-
-      let boxed_blob = box Blob::new_inherited(bytes, bytes_start, bytes_end, typeString);
-      reflect_dom_object(boxed_blob, global, BlobBinding::Wrap)
+    pub fn new_inherited(slice: DataSlice, typeString: &str) -> Blob {
+        Blob {
+            reflector_: Reflector::new(),
+            data: slice,
+            typeString: typeString.to_owned(),
+            isClosed_: Cell::new(false),
+        }
     }
 
     // https://w3c.github.io/FileAPI/#constructorBlob
@@ -129,31 +119,29 @@ impl Blob {
         // TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView
         let bytes: Vec<u8> = match blobParts {
             None => Vec::new(),
-            Some(blobs) => {
-                blobs.iter().flat_map(|bPart| {
-                    match bPart {
-                        &BlobOrString::String(ref s) => {
-                            UTF_8.encode(s, EncoderTrap::Replace).unwrap()
-                        },
-                        &BlobOrString::Blob(ref b) => {
-                            b.get_data().get_bytes().to_vec()
-                        },
-                    }
-                })
-                .collect()
-            }
+            Some(blobparts) => blob_parts_to_bytes(blobparts),
         };
-        let typeString = if is_ascii_printable(&blobPropertyBag.type_) {
-            &*blobPropertyBag.type_
-        } else {
-            ""
-        };
-        Ok(Blob::new(global, bytes, &typeString.to_ascii_lowercase()))
+
+        let slice = DataSlice::new(Arc::new(bytes), None, None);
+        Ok(Blob::new(global, slice, &blobPropertyBag.get_typestring()))
     }
 
     pub fn get_data(&self) -> &DataSlice {
         &self.data
     }
+}
+
+pub fn blob_parts_to_bytes(blobparts: Vec<BlobOrString>) -> Vec<u8> {
+    blobparts.iter().flat_map(|blobpart| {
+            match blobpart {
+                &BlobOrString::String(ref s) => {
+                    UTF_8.encode(s, EncoderTrap::Replace).unwrap()
+                },
+                &BlobOrString::Blob(ref b) => {
+                    b.get_data().get_bytes().to_vec()
+                },
+            }
+        }).collect::<Vec<u8>>()
 }
 
 impl BlobMethods for Blob {
@@ -187,7 +175,7 @@ impl BlobMethods for Blob {
         };
         let global = self.global();
         let bytes = self.data.bytes.clone();
-        Blob::new_sliced(global.r(), bytes, start, end, &relativeContentType)
+        Blob::new(global.r(), DataSlice::new(bytes, start, end), &relativeContentType)
     }
 
     // https://w3c.github.io/FileAPI/#dfn-isClosed
@@ -208,4 +196,21 @@ impl BlobMethods for Blob {
         // TODO Step 3 if Blob URL Store is implemented
 
     }
+}
+
+
+impl BlobBinding::BlobPropertyBag {
+    pub fn get_typestring(&self) -> String {
+        if is_ascii_printable(&self.type_) {
+            self.type_.to_lowercase()
+        } else {
+            "".to_string()
+        }
+    }
+}
+
+fn is_ascii_printable(string: &str) -> bool {
+    // Step 5.1 in Sec 5.1 of File API spec
+    // https://w3c.github.io/FileAPI/#constructorBlob
+    string.chars().all(|c| c >= '\x20' && c <= '\x7E')
 }
