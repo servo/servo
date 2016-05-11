@@ -14,6 +14,7 @@ crate-type = ["staticlib"]
 app_units = "0.2.3"
 cssparser = "0.5.4"
 euclid = "0.6.4"
+gecko_bindings = {version = "0.0.1", path = "gecko_bindings"}
 heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
 lazy_static = "0.2"

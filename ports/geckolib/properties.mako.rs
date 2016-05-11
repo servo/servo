@@ -11,13 +11,13 @@
 
 use app_units::Au;
 % for style_struct in data.style_structs:
-use gecko_style_structs::${style_struct.gecko_ffi_name};
-use bindings::Gecko_Construct_${style_struct.gecko_ffi_name};
-use bindings::Gecko_CopyConstruct_${style_struct.gecko_ffi_name};
-use bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
+use gecko_bindings::structs::${style_struct.gecko_ffi_name};
+use gecko_bindings::bindings::Gecko_Construct_${style_struct.gecko_ffi_name};
+use gecko_bindings::bindings::Gecko_CopyConstruct_${style_struct.gecko_ffi_name};
+use gecko_bindings::bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
 % endfor
-use bindings::{Gecko_CopyListStyleTypeFrom, Gecko_SetListStyleType};
-use gecko_style_structs;
+use gecko_bindings::bindings::{Gecko_CopyListStyleTypeFrom, Gecko_SetListStyleType};
+use gecko_bindings::structs;
 use glue::ArcHelpers;
 use heapsize::HeapSizeOf;
 use std::fmt::{self, Debug};
@@ -29,7 +29,6 @@ use style::properties::{CascadePropertyFn, ServoComputedValues, ComputedValues};
 use style::properties::longhands;
 use style::properties::make_cascade_vec;
 use style::properties::style_struct_traits::*;
-use gecko_style_structs::{nsStyleUnion, nsStyleUnit};
 use values::{ToGeckoStyleCoord, convert_rgba_to_nscolor, convert_nscolor_to_rgba};
 use values::round_border_to_device_pixels;
 
@@ -130,7 +129,7 @@ impl ComputedValues for GeckoComputedValues {
 }
 
 <%def name="declare_style_struct(style_struct)">
-#[derive(Clone, HeapSizeOf, Debug)]
+#[derive(HeapSizeOf)]
 pub struct ${style_struct.gecko_struct_name} {
     gecko: ${style_struct.gecko_ffi_name},
 }
@@ -154,12 +153,12 @@ def is_border_style_masked(ffi_name):
 
 def get_gecko_property(ffi_name):
     if is_border_style_masked(ffi_name):
-        return "(self.gecko.%s & (gecko_style_structs::BORDER_STYLE_MASK as u8))" % ffi_name
+        return "(self.gecko.%s & (structs::BORDER_STYLE_MASK as u8))" % ffi_name
     return "self.gecko.%s" % ffi_name
 
 def set_gecko_property(ffi_name, expr):
     if is_border_style_masked(ffi_name):
-        return "self.gecko.%s &= !(gecko_style_structs::BORDER_STYLE_MASK as u8);" % ffi_name + \
+        return "self.gecko.%s &= !(structs::BORDER_STYLE_MASK as u8);" % ffi_name + \
                "self.gecko.%s |= %s as u8;" % (ffi_name, expr)
     elif ffi_name == "__LIST_STYLE_TYPE__":
         return "unsafe { Gecko_SetListStyleType(&mut self.gecko, %s as u32); }" % expr
@@ -168,12 +167,11 @@ def set_gecko_property(ffi_name, expr):
 
 <%def name="impl_keyword_setter(ident, gecko_ffi_name, keyword)">
     fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
-        use gecko_style_structs as gss;
         use style::properties::longhands::${ident}::computed_value::T as Keyword;
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         let result = match v {
             % for value in keyword.values_for('gecko'):
-                Keyword::${to_rust_ident(value)} => gss::${keyword.gecko_constant(value)} as u8,
+                Keyword::${to_rust_ident(value)} => structs::${keyword.gecko_constant(value)} as u8,
             % endfor
         };
         ${set_gecko_property(gecko_ffi_name, "result")}
@@ -182,12 +180,11 @@ def set_gecko_property(ffi_name, expr):
 
 <%def name="impl_keyword_clone(ident, gecko_ffi_name, keyword)">
     fn clone_${ident}(&self) -> longhands::${ident}::computed_value::T {
-        use gecko_style_structs as gss;
         use style::properties::longhands::${ident}::computed_value::T as Keyword;
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         match ${get_gecko_property(gecko_ffi_name)} as u32 {
             % for value in keyword.values_for('gecko'):
-            gss::${keyword.gecko_constant(value)} => Keyword::${to_rust_ident(value)},
+            structs::${keyword.gecko_constant(value)} => Keyword::${to_rust_ident(value)},
             % endfor
             x => panic!("Found unexpected value in style struct for ${ident} property: {}", x),
         }
@@ -196,13 +193,13 @@ def set_gecko_property(ffi_name, expr):
 
 <%def name="clear_color_flags(color_flags_ffi_name)">
     % if color_flags_ffi_name:
-    self.gecko.${color_flags_ffi_name} &= !(gecko_style_structs::BORDER_COLOR_SPECIAL as u8);
+    self.gecko.${color_flags_ffi_name} &= !(structs::BORDER_COLOR_SPECIAL as u8);
     % endif
 </%def>
 
 <%def name="set_current_color_flag(color_flags_ffi_name)">
     % if color_flags_ffi_name:
-    self.gecko.${color_flags_ffi_name} |= gecko_style_structs::BORDER_COLOR_FOREGROUND as u8;
+    self.gecko.${color_flags_ffi_name} |= structs::BORDER_COLOR_FOREGROUND as u8;
     % else:
     // FIXME(heycam): This is a Gecko property that doesn't store currentColor
     // as a computed value.  These are currently handled by converting
@@ -216,7 +213,7 @@ def set_gecko_property(ffi_name, expr):
 </%def>
 
 <%def name="get_current_color_flag_from(field)">
-    (${field} & (gecko_style_structs::BORDER_COLOR_FOREGROUND as u8)) != 0
+    (${field} & (structs::BORDER_COLOR_FOREGROUND as u8)) != 0
 </%def>
 
 <%def name="impl_color_setter(ident, gecko_ffi_name, color_flags_ffi_name=None)">
@@ -288,7 +285,7 @@ def set_gecko_property(ffi_name, expr):
                                &mut self.gecko.${union_ffi_name});
     }
     fn copy_${ident}_from(&mut self, other: &Self) {
-        use gecko_style_structs::nsStyleUnit::eStyleUnit_Calc;
+        use gecko_bindings::structs::nsStyleUnit::eStyleUnit_Calc;
         debug_assert!(self.gecko.${unit_ffi_name} != eStyleUnit_Calc,
                       "stylo: Can't yet handle refcounted Calc");
         self.gecko.${unit_ffi_name} =  other.gecko.${unit_ffi_name};
@@ -308,7 +305,7 @@ def set_gecko_property(ffi_name, expr):
                                         &mut self.gecko.${y_union_ffi_name});
     }
     fn copy_${ident}_from(&mut self, other: &Self) {
-        use gecko_style_structs::nsStyleUnit::eStyleUnit_Calc;
+        use gecko_bindings::structs::nsStyleUnit::eStyleUnit_Calc;
         debug_assert!(self.gecko.${x_unit_ffi_name} != eStyleUnit_Calc &&
                       self.gecko.${y_unit_ffi_name} != eStyleUnit_Calc,
                       "stylo: Can't yet handle refcounted Calc");
@@ -340,30 +337,29 @@ impl Drop for ${style_struct.gecko_struct_name} {
         }
     }
 }
-impl Clone for ${style_struct.gecko_ffi_name} {
+impl Clone for ${style_struct.gecko_struct_name} {
     fn clone(&self) -> Self {
         unsafe {
             let mut result: Self = zeroed();
-            Gecko_CopyConstruct_${style_struct.gecko_ffi_name}(&mut result, self);
+            Gecko_CopyConstruct_${style_struct.gecko_ffi_name}(&mut result.gecko, &self.gecko);
             result
         }
     }
-}
-unsafe impl Send for ${style_struct.gecko_ffi_name} {}
-unsafe impl Sync for ${style_struct.gecko_ffi_name} {}
-impl HeapSizeOf for ${style_struct.gecko_ffi_name} {
-    // Not entirely accurate, but good enough for now.
-    fn heap_size_of_children(&self) -> usize { 0 }
 }
 
 // FIXME(bholley): Make bindgen generate Debug for all types.
 %if style_struct.gecko_ffi_name in "nsStyleBorder nsStyleDisplay nsStyleList nsStyleBackground "\
                                     "nsStyleFont nsStyleSVGReset".split():
-impl Debug for ${style_struct.gecko_ffi_name} {
+impl Debug for ${style_struct.gecko_struct_name} {
     // FIXME(bholley): Generate this.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "GECKO STYLE STRUCT")
     }
+}
+%else:
+impl Debug for ${style_struct.gecko_struct_name} {
+    // FIXME(bholley): Generate this.
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { self.gecko.fmt(f) }
 }
 %endif
 </%def>
@@ -476,14 +472,15 @@ CORNERS = [Corner("TOP_LEFT", 0), Corner("TOP_RIGHT", 1), Corner("BOTTOM_RIGHT",
 #[allow(dead_code)]
 fn static_assert() {
     unsafe {
-    % for side in SIDES:
-        transmute::<_, [u32; ${side.index}]>([1; gecko_style_structs::Side::eSide${side.name} as usize]);
-    % endfor
-    % for corner in CORNERS:
-        transmute::<_, [u32; ${corner.x_index}]>([1; gecko_style_structs::${corner.x_name} as usize]);
-        transmute::<_, [u32; ${corner.y_index}]>([1; gecko_style_structs::${corner.y_name} as usize]);
-    % endfor
+        % for corner in CORNERS:
+        transmute::<_, [u32; ${corner.x_index}]>([1; structs::${corner.x_name} as usize]);
+        transmute::<_, [u32; ${corner.y_index}]>([1; structs::${corner.y_name} as usize]);
+        % endfor
     }
+    // Note: using the above technique with an enum hits a rust bug when |structs| is in a different crate.
+    % for side in SIDES:
+    { const DETAIL: u32 = [0][(structs::Side::eSide${side.name} as usize != ${side.index}) as usize]; let _ = DETAIL; }
+    % endfor
 }
 
 <% border_style_keyword = Keyword("border-style",
@@ -629,24 +626,22 @@ fn static_assert() {
     // We could generalize this if we run into other newtype keywords.
     <% overflow_x = data.longhands_by_name["overflow-x"] %>
     fn set_overflow_y(&mut self, v: longhands::overflow_y::computed_value::T) {
-        use gecko_style_structs as gss;
         use style::properties::longhands::overflow_x::computed_value::T as BaseType;
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         self.gecko.mOverflowY = match v.0 {
             % for value in overflow_x.keyword.values_for('gecko'):
-                BaseType::${to_rust_ident(value)} => gss::${overflow_x.keyword.gecko_constant(value)} as u8,
+                BaseType::${to_rust_ident(value)} => structs::${overflow_x.keyword.gecko_constant(value)} as u8,
             % endfor
         };
     }
     <%call expr="impl_simple_copy('overflow_y', 'mOverflowY')"></%call>
     fn clone_overflow_y(&self) -> longhands::overflow_y::computed_value::T {
-        use gecko_style_structs as gss;
         use style::properties::longhands::overflow_x::computed_value::T as BaseType;
         use style::properties::longhands::overflow_y::computed_value::T as NewType;
         // FIXME(bholley): Align binary representations and ditch |match| for cast + static_asserts
         match self.gecko.mOverflowY as u32 {
             % for value in overflow_x.keyword.values_for('gecko'):
-            gss::${overflow_x.keyword.gecko_constant(value)} => NewType(BaseType::${to_rust_ident(value)}),
+            structs::${overflow_x.keyword.gecko_constant(value)} => NewType(BaseType::${to_rust_ident(value)}),
             % endfor
             x => panic!("Found unexpected value in style struct for overflow_y property: {}", x),
         }
@@ -680,16 +675,13 @@ fn static_assert() {
                   color_flags_ffi_name="mTextDecorationStyle") %>
 
     fn has_underline(&self) -> bool {
-        use gecko_style_structs as gss;
-        (self.gecko.mTextDecorationStyle & (gss::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8)) != 0
+        (self.gecko.mTextDecorationStyle & (structs::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8)) != 0
     }
     fn has_overline(&self) -> bool {
-        use gecko_style_structs as gss;
-        (self.gecko.mTextDecorationStyle & (gss::NS_STYLE_TEXT_DECORATION_LINE_OVERLINE as u8)) != 0
+        (self.gecko.mTextDecorationStyle & (structs::NS_STYLE_TEXT_DECORATION_LINE_OVERLINE as u8)) != 0
     }
     fn has_line_through(&self) -> bool {
-        use gecko_style_structs as gss;
-        (self.gecko.mTextDecorationStyle & (gss::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8)) != 0
+        (self.gecko.mTextDecorationStyle & (structs::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8)) != 0
     }
 </%self:impl_trait>
 
