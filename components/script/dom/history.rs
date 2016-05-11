@@ -4,8 +4,9 @@
 
 use dom::bindings::codegen::Bindings::HistoryBinding::{self, HistoryMethods, ScrollRestoration};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::Root;
+use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::window::Window;
 use js::jsapi::{JSContext, HandleValue};
 use js::jsval::JSVal;
 use util::str::DOMString;
@@ -13,18 +14,20 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct History {
     reflector_: Reflector,
+    window: JS<Window>,
 }
 
 impl History {
-    pub fn new_inherited() -> History {
+    pub fn new_inherited(window: &Window) -> History {
         History {
             reflector_: Reflector::new(),
+            window: JS::from_ref(&window),
         }
     }
 
-    pub fn new(global: GlobalRef) -> Root<History> {
-        reflect_dom_object(box History::new_inherited(),
-                           global,
+    pub fn new(window: &Window) -> Root<History> {
+        reflect_dom_object(box History::new_inherited(window),
+                           GlobalRef::Window(window),
                            HistoryBinding::Wrap)
     }
 }
