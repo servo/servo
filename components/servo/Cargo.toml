@@ -26,7 +26,6 @@ energy-profiling = ["profile_traits/energy-profiling"]
 
 [profile.release]
 opt-level = 3
-codegen-units = 4
 # Uncomment to profile on Linux:
 # debug = true
 # lto = false
