@@ -26,6 +26,7 @@ use script_thread::{MainThreadScriptChan, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
 use task_source::TaskSource;
 use task_source::dom_manipulation::DOMManipulationTask;
+use task_source::history_traversal::HistoryTraversalTask;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::Url;
 
@@ -198,12 +199,12 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// `ScriptChan` used to send messages to the event loop of this global's
+    /// `TaskSource` used to queue history taversal messages to the event loop of this global's
     /// thread.
-    pub fn history_traversal_task_source(&self) -> Box<ScriptChan + Send> {
+    pub fn history_traversal_task_source(&self) -> Box<TaskSource<HistoryTraversalTask> + Send> {
         match *self {
             GlobalRef::Window(ref window) => window.history_traversal_task_source(),
-            GlobalRef::Worker(ref worker) => worker.script_chan(),
+            GlobalRef::Worker(_) => unimplemented!(),
         }
     }
 

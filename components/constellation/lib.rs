@@ -36,6 +36,7 @@ extern crate rand;
 extern crate script_traits;
 extern crate serde;
 extern crate style_traits;
+extern crate time;
 extern crate url;
 #[macro_use]
 extern crate util;
