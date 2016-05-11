@@ -36,7 +36,7 @@ use script_thread::get_browsing_context;
 use url::Url;
 use util::str::DOMString;
 
-fn find_node_by_unique_id(context: &Root<BrowsingContext>,
+fn find_node_by_unique_id(context: &BrowsingContext,
                           pipeline: PipelineId,
                           node_id: String)
                           -> Option<Root<Node>> {
@@ -65,7 +65,7 @@ pub unsafe fn jsval_to_webdriver(cx: *mut JSContext, val: HandleValue) -> WebDri
 }
 
 #[allow(unsafe_code)]
-pub fn handle_execute_script(context: &Root<BrowsingContext>,
+pub fn handle_execute_script(context: &BrowsingContext,
                              pipeline: PipelineId,
                              eval: String,
                              reply: IpcSender<WebDriverJSResult>) {
@@ -80,7 +80,7 @@ pub fn handle_execute_script(context: &Root<BrowsingContext>,
     reply.send(result).unwrap();
 }
 
-pub fn handle_execute_async_script(context: &Root<BrowsingContext>,
+pub fn handle_execute_async_script(context: &BrowsingContext,
                                    pipeline: PipelineId,
                                    eval: String,
                                    reply: IpcSender<WebDriverJSResult>) {
@@ -92,7 +92,7 @@ pub fn handle_execute_async_script(context: &Root<BrowsingContext>,
     window.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 }
 
-pub fn handle_get_frame_id(context: &Root<BrowsingContext>,
+pub fn handle_get_frame_id(context: &BrowsingContext,
                            pipeline: PipelineId,
                            webdriver_frame_id: WebDriverFrameId,
                            reply: IpcSender<Result<Option<PipelineId>, ()>>) {
@@ -122,7 +122,7 @@ pub fn handle_get_frame_id(context: &Root<BrowsingContext>,
     reply.send(frame_id).unwrap()
 }
 
-pub fn handle_find_element_css(context: &Root<BrowsingContext>, _pipeline: PipelineId, selector: String,
+pub fn handle_find_element_css(context: &BrowsingContext, _pipeline: PipelineId, selector: String,
                                reply: IpcSender<Result<Option<String>, ()>>) {
     reply.send(match context.active_document().QuerySelector(DOMString::from(selector)) {
         Ok(node) => {
@@ -132,7 +132,7 @@ pub fn handle_find_element_css(context: &Root<BrowsingContext>, _pipeline: Pipel
     }).unwrap();
 }
 
-pub fn handle_find_elements_css(context: &Root<BrowsingContext>,
+pub fn handle_find_elements_css(context: &BrowsingContext,
                                 _pipeline: PipelineId,
                                 selector: String,
                                 reply: IpcSender<Result<Vec<String>, ()>>) {
@@ -152,7 +152,7 @@ pub fn handle_find_elements_css(context: &Root<BrowsingContext>,
     }).unwrap();
 }
 
-pub fn handle_focus_element(context: &Root<BrowsingContext>,
+pub fn handle_focus_element(context: &BrowsingContext,
                             pipeline: PipelineId,
                             element_id: String,
                             reply: IpcSender<Result<(), ()>>) {
@@ -171,18 +171,18 @@ pub fn handle_focus_element(context: &Root<BrowsingContext>,
     }).unwrap();
 }
 
-pub fn handle_get_active_element(context: &Root<BrowsingContext>,
+pub fn handle_get_active_element(context: &BrowsingContext,
                                  _pipeline: PipelineId,
                                  reply: IpcSender<Option<String>>) {
     reply.send(context.active_document().GetActiveElement().map(
         |elem| elem.upcast::<Node>().unique_id())).unwrap();
 }
 
-pub fn handle_get_title(context: &Root<BrowsingContext>, _pipeline: PipelineId, reply: IpcSender<String>) {
+pub fn handle_get_title(context: &BrowsingContext, _pipeline: PipelineId, reply: IpcSender<String>) {
     reply.send(String::from(context.active_document().Title())).unwrap();
 }
 
-pub fn handle_get_rect(context: &Root<BrowsingContext>,
+pub fn handle_get_rect(context: &BrowsingContext,
                        pipeline: PipelineId,
                        element_id: String,
                        reply: IpcSender<Result<Rect<f64>, ()>>) {
@@ -220,7 +220,7 @@ pub fn handle_get_rect(context: &Root<BrowsingContext>,
     }).unwrap();
 }
 
-pub fn handle_get_text(context: &Root<BrowsingContext>,
+pub fn handle_get_text(context: &BrowsingContext,
                        pipeline: PipelineId,
                        node_id: String,
                        reply: IpcSender<Result<String, ()>>) {
@@ -232,7 +232,7 @@ pub fn handle_get_text(context: &Root<BrowsingContext>,
     }).unwrap();
 }
 
-pub fn handle_get_name(context: &Root<BrowsingContext>,
+pub fn handle_get_name(context: &BrowsingContext,
                        pipeline: PipelineId,
                        node_id: String,
                        reply: IpcSender<Result<String, ()>>) {
@@ -244,7 +244,7 @@ pub fn handle_get_name(context: &Root<BrowsingContext>,
     }).unwrap();
 }
 
-pub fn handle_get_attribute(context: &Root<BrowsingContext>,
+pub fn handle_get_attribute(context: &BrowsingContext,
                             pipeline: PipelineId,
                             node_id: String,
                             name: String,
@@ -258,7 +258,7 @@ pub fn handle_get_attribute(context: &Root<BrowsingContext>,
     }).unwrap();
 }
 
-pub fn handle_get_css(context: &Root<BrowsingContext>,
+pub fn handle_get_css(context: &BrowsingContext,
                       pipeline: PipelineId,
                       node_id: String,
                       name: String,
@@ -274,7 +274,7 @@ pub fn handle_get_css(context: &Root<BrowsingContext>,
     }).unwrap();
 }
 
-pub fn handle_get_url(context: &Root<BrowsingContext>,
+pub fn handle_get_url(context: &BrowsingContext,
                       _pipeline: PipelineId,
                       reply: IpcSender<Url>) {
     let document = context.active_document();
@@ -282,7 +282,7 @@ pub fn handle_get_url(context: &Root<BrowsingContext>,
     reply.send((*url).clone()).unwrap();
 }
 
-pub fn handle_get_window_size(context: &Root<BrowsingContext>,
+pub fn handle_get_window_size(context: &BrowsingContext,
                               _pipeline: PipelineId,
                               reply: IpcSender<Option<WindowSizeData>>) {
     let window = context.active_window();
@@ -290,7 +290,7 @@ pub fn handle_get_window_size(context: &Root<BrowsingContext>,
     reply.send(size).unwrap();
 }
 
-pub fn handle_is_enabled(context: &Root<BrowsingContext>,
+pub fn handle_is_enabled(context: &BrowsingContext,
                          pipeline: PipelineId,
                          element_id: String,
                          reply: IpcSender<Result<bool, ()>>) {
@@ -305,7 +305,7 @@ pub fn handle_is_enabled(context: &Root<BrowsingContext>,
     }).unwrap();
 }
 
-pub fn handle_is_selected(context: &Root<BrowsingContext>,
+pub fn handle_is_selected(context: &BrowsingContext,
                           pipeline: PipelineId,
                           element_id: String,
                           reply: IpcSender<Result<bool, ()>>) {

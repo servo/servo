@@ -1665,7 +1665,7 @@ impl ScriptThread {
     }
 
     /// Reflows non-incrementally, rebuilding the entire layout tree in the process.
-    fn rebuild_and_force_reflow(&self, context: &Root<BrowsingContext>, reason: ReflowReason) {
+    fn rebuild_and_force_reflow(&self, context: &BrowsingContext, reason: ReflowReason) {
         let document = context.active_document();
         document.dirty_all_nodes();
         let window = window_from_node(document.r());
@@ -1980,7 +1980,7 @@ impl Drop for ScriptThread {
 }
 
 /// Shuts down layout for the given browsing context tree.
-fn shut_down_layout(context_tree: &Root<BrowsingContext>) {
+fn shut_down_layout(context_tree: &BrowsingContext) {
     let mut channels = vec!();
 
     for context in context_tree.iter() {
@@ -2010,7 +2010,7 @@ fn shut_down_layout(context_tree: &Root<BrowsingContext>) {
     }
 }
 
-pub fn get_browsing_context(context: &Root<BrowsingContext>,
+pub fn get_browsing_context(context: &BrowsingContext,
                             pipeline_id: PipelineId)
                             -> Root<BrowsingContext> {
     context.find(pipeline_id).expect("ScriptThread: received an event \

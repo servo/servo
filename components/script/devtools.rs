@@ -65,7 +65,7 @@ pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<Eva
     reply.send(result).unwrap();
 }
 
-pub fn handle_get_root_node(context: &Root<BrowsingContext>, pipeline: PipelineId, reply: IpcSender<NodeInfo>) {
+pub fn handle_get_root_node(context: &BrowsingContext, pipeline: PipelineId, reply: IpcSender<NodeInfo>) {
     let context = get_browsing_context(context, pipeline);
     let document = context.active_document();
 
@@ -73,7 +73,7 @@ pub fn handle_get_root_node(context: &Root<BrowsingContext>, pipeline: PipelineI
     reply.send(node.summarize()).unwrap();
 }
 
-pub fn handle_get_document_element(context: &Root<BrowsingContext>,
+pub fn handle_get_document_element(context: &BrowsingContext,
                                    pipeline: PipelineId,
                                    reply: IpcSender<NodeInfo>) {
     let context = get_browsing_context(context, pipeline);
@@ -84,7 +84,7 @@ pub fn handle_get_document_element(context: &Root<BrowsingContext>,
     reply.send(node.summarize()).unwrap();
 }
 
-fn find_node_by_unique_id(context: &Root<BrowsingContext>,
+fn find_node_by_unique_id(context: &BrowsingContext,
                           pipeline: PipelineId,
                           node_id: String)
                           -> Root<Node> {
@@ -101,7 +101,7 @@ fn find_node_by_unique_id(context: &Root<BrowsingContext>,
     panic!("couldn't find node with unique id {}", node_id)
 }
 
-pub fn handle_get_children(context: &Root<BrowsingContext>,
+pub fn handle_get_children(context: &BrowsingContext,
                            pipeline: PipelineId,
                            node_id: String,
                            reply: IpcSender<Vec<NodeInfo>>) {
@@ -112,7 +112,7 @@ pub fn handle_get_children(context: &Root<BrowsingContext>,
     reply.send(children).unwrap();
 }
 
-pub fn handle_get_layout(context: &Root<BrowsingContext>,
+pub fn handle_get_layout(context: &BrowsingContext,
                          pipeline: PipelineId,
                          node_id: String,
                          reply: IpcSender<ComputedNodeLayout>) {
@@ -202,7 +202,7 @@ pub fn handle_get_cached_messages(_pipeline_id: PipelineId,
     reply.send(messages).unwrap();
 }
 
-pub fn handle_modify_attribute(context: &Root<BrowsingContext>,
+pub fn handle_modify_attribute(context: &BrowsingContext,
                                pipeline: PipelineId,
                                node_id: String,
                                modifications: Vec<Modification>) {
@@ -224,20 +224,20 @@ pub fn handle_wants_live_notifications(global: &GlobalRef, send_notifications: b
     global.set_devtools_wants_updates(send_notifications);
 }
 
-pub fn handle_set_timeline_markers(context: &Root<BrowsingContext>,
+pub fn handle_set_timeline_markers(context: &BrowsingContext,
                                    marker_types: Vec<TimelineMarkerType>,
                                    reply: IpcSender<TimelineMarker>) {
     let window = context.active_window();
     window.set_devtools_timeline_markers(marker_types, reply);
 }
 
-pub fn handle_drop_timeline_markers(context: &Root<BrowsingContext>,
+pub fn handle_drop_timeline_markers(context: &BrowsingContext,
                                     marker_types: Vec<TimelineMarkerType>) {
     let window = context.active_window();
     window.drop_devtools_timeline_markers(marker_types);
 }
 
-pub fn handle_request_animation_frame(context: &Root<BrowsingContext>,
+pub fn handle_request_animation_frame(context: &BrowsingContext,
                                       id: PipelineId,
                                       actor_name: String) {
     let context = context.find(id).expect("There is no such context");
