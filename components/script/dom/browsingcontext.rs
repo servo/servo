@@ -123,6 +123,11 @@ impl BrowsingContext {
         self.active_index.set(self.active_index.get() + 1);
     }
 
+    fn navigate_forward(&self) {
+        self.active_index.set(self.active_index.get() + 1);
+        self.active_document().SetTitle(self.history.borrow_mut()[self.active_index.get()].title());
+    }
+
     // Clear all session history entries after the active index
     fn remove_forward_history(&self) {
         let mut history = self.history.borrow_mut();
@@ -250,6 +255,10 @@ impl SessionHistoryEntry {
 
     pub fn state(&self) -> JSVal {
         self.state.get()
+    }
+
+    pub fn title(&self) -> DOMString {
+        self.title.clone()
     }
 }
 
