@@ -47,3 +47,20 @@
         Err(())
     }
 </%helpers:shorthand>
+
+// The -moz-outline-radius shorthand is non-standard and not on a standards track.
+<%helpers:shorthand name="-moz-outline-radius" sub_properties="${' '.join(
+    '-moz-outline-radius-%s' % corner
+    for corner in ['topleft', 'topright', 'bottomright', 'bottomleft']
+)}" products="gecko">
+    use properties::shorthands;
+
+    // Re-use border-radius parsing.
+    shorthands::border_radius::parse_value(context, input).map(|longhands| {
+        Longhands {
+            % for corner in ["top_left", "top_right", "bottom_right", "bottom_left"]:
+            _moz_outline_radius_${corner.replace("_", "")}: longhands.border_${corner}_radius,
+            % endfor
+        }
+    })
+</%helpers:shorthand>

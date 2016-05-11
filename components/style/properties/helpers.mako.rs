@@ -191,10 +191,12 @@
     </%call>
 </%def>
 
-<%def name="shorthand(name, sub_properties, experimental=False)">
+<%def name="shorthand(name, sub_properties, experimental=False, **kwargs)">
 <%
-    shorthand = data.declare_shorthand(name, sub_properties.split(), experimental=experimental)
+    shorthand = data.declare_shorthand(name, sub_properties.split(), experimental=experimental,
+                                       **kwargs)
 %>
+    % if shorthand:
     pub mod ${shorthand.ident} {
         use cssparser::Parser;
         use parser::ParserContext;
@@ -252,6 +254,7 @@
             ${caller.body()}
         }
     }
+    % endif
 </%def>
 
 <%def name="four_sides_shorthand(name, sub_property_pattern, parser_function)">

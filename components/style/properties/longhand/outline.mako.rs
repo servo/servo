@@ -58,4 +58,11 @@ ${helpers.predefined_type("outline-color", "CSSColor", "::cssparser::Color::Curr
     }
 </%helpers:longhand>
 
+// The -moz-outline-radius-* properties are non-standard and not on a standards track.
+% for corner in ["topleft", "topright", "bottomright", "bottomleft"]:
+    ${helpers.predefined_type("-moz-outline-radius-" + corner, "BorderRadiusSize",
+                              "computed::BorderRadiusSize::zero()",
+                              "parse", products="gecko")}
+% endfor
+
 ${helpers.predefined_type("outline-offset", "Length", "Au(0)")}

@@ -283,8 +283,8 @@ def set_gecko_property(ffi_name, expr):
     }
     fn copy_${ident}_from(&mut self, other: &Self) {
         use gecko_style_structs::nsStyleUnit::eStyleUnit_Calc;
-        assert!(self.gecko.${unit_ffi_name} != eStyleUnit_Calc,
-                "stylo: Can't yet handle refcounted Calc");
+        debug_assert!(self.gecko.${unit_ffi_name} != eStyleUnit_Calc,
+                      "stylo: Can't yet handle refcounted Calc");
         self.gecko.${unit_ffi_name} =  other.gecko.${unit_ffi_name};
         self.gecko.${union_ffi_name} = other.gecko.${union_ffi_name};
     }
@@ -292,6 +292,25 @@ def set_gecko_property(ffi_name, expr):
 
 <%def name="impl_style_coord(ident, gecko_ffi_name)">
 <%call expr="impl_split_style_coord(ident, '%s.mUnit' % gecko_ffi_name, '%s.mValue' % gecko_ffi_name)"></%call>
+</%def>
+
+<%def name="impl_corner_style_coord(ident, x_unit_ffi_name, x_union_ffi_name, y_unit_ffi_name, y_union_ffi_name)">
+    fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        v.0.width.to_gecko_style_coord(&mut self.gecko.${x_unit_ffi_name},
+                                       &mut self.gecko.${x_union_ffi_name});
+        v.0.height.to_gecko_style_coord(&mut self.gecko.${y_unit_ffi_name},
+                                        &mut self.gecko.${y_union_ffi_name});
+    }
+    fn copy_${ident}_from(&mut self, other: &Self) {
+        use gecko_style_structs::nsStyleUnit::eStyleUnit_Calc;
+        debug_assert!(self.gecko.${x_unit_ffi_name} != eStyleUnit_Calc &&
+                      self.gecko.${y_unit_ffi_name} != eStyleUnit_Calc,
+                      "stylo: Can't yet handle refcounted Calc");
+        self.gecko.${x_unit_ffi_name} = other.gecko.${x_unit_ffi_name};
+        self.gecko.${x_union_ffi_name} = other.gecko.${x_union_ffi_name};
+        self.gecko.${y_unit_ffi_name} = other.gecko.${y_unit_ffi_name};
+        self.gecko.${y_union_ffi_name} = other.gecko.${y_union_ffi_name};
+    }
 </%def>
 
 <%def name="impl_style_struct(style_struct)">
@@ -436,8 +455,16 @@ class Side(object):
         self.ident = name.lower()
         self.index = index
 
-SIDES = [Side("Top", 0), Side("Right", 1), Side("Bottom", 2), Side("Left", 3)]
+class Corner(object):
+    def __init__(self, name, index):
+        self.x_name = "NS_CORNER_" + name + "_X"
+        self.y_name = "NS_CORNER_" + name + "_Y"
+        self.ident = name.lower()
+        self.x_index = 2 * index
+        self.y_index = 2 * index + 1
 
+SIDES = [Side("Top", 0), Side("Right", 1), Side("Bottom", 2), Side("Left", 3)]
+CORNERS = [Corner("TOP_LEFT", 0), Corner("TOP_RIGHT", 1), Corner("BOTTOM_RIGHT", 2), Corner("BOTTOM_LEFT", 3)]
 %>
 
 #[allow(dead_code)]
@@ -446,14 +473,21 @@ fn static_assert() {
     % for side in SIDES:
         transmute::<_, [u32; ${side.index}]>([1; gecko_style_structs::Side::eSide${side.name} as usize]);
     % endfor
+    % for corner in CORNERS:
+        transmute::<_, [u32; ${corner.x_index}]>([1; gecko_style_structs::${corner.x_name} as usize]);
+        transmute::<_, [u32; ${corner.y_index}]>([1; gecko_style_structs::${corner.y_name} as usize]);
+    % endfor
     }
 }
 
 <% border_style_keyword = Keyword("border-style",
                                   "none solid double dotted dashed hidden groove ridge inset outset") %>
 
-<% skip_border_longhands = " ".join(["border-{0}-color border-{0}-style border-{0}-width ".format(x.ident)
-                                     for x in SIDES]) %>
+<% skip_border_longhands = " ".join(["border-{0}-{1}".format(x.ident, y)
+                                     for x in SIDES
+                                     for y in ["color", "style", "width"]] +
+                                    ["border-{0}-radius".format(x.ident.replace("_", "-"))
+                                     for x in CORNERS]) %>
 <%self:impl_trait style_struct_name="Border"
                   skip_longhands="${skip_border_longhands}"
                   skip_additionals="*">
@@ -470,6 +504,14 @@ fn static_assert() {
     fn border_${side.ident}_has_nonzero_width(&self) -> bool {
         self.gecko.mComputedBorder.${side.ident} != 0
     }
+    % endfor
+
+    % for corner in CORNERS:
+    <% impl_corner_style_coord("border_%s_radius" % corner.ident,
+                               "mBorderRadius.mUnits[%s]" % corner.x_index,
+                               "mBorderRadius.mValues[%s]" % corner.x_index,
+                               "mBorderRadius.mUnits[%s]" % corner.y_index,
+                               "mBorderRadius.mValues[%s]" % corner.y_index) %>
     % endfor
 </%self:impl_trait>
 
@@ -506,13 +548,24 @@ fn static_assert() {
     % endfor
 </%self:impl_trait>
 
+<% skip_outline_longhands = " ".join("outline-color outline-style".split() +
+                                     ["-moz-outline-radius-{0}".format(x.ident.replace("_", ""))
+                                      for x in CORNERS]) %>
 <%self:impl_trait style_struct_name="Outline"
-                  skip_longhands="outline-color outline-style"
+                  skip_longhands="${skip_outline_longhands}"
                   skip_additionals="*">
 
     <% impl_keyword("outline_style", "mOutlineStyle", border_style_keyword, need_clone=True) %>
 
     <% impl_color("outline_color", "mOutlineColor", color_flags_ffi_name="mOutlineStyle") %>
+
+    % for corner in CORNERS:
+    <% impl_corner_style_coord("_moz_outline_radius_%s" % corner.ident.replace("_", ""),
+                               "mOutlineRadius.mUnits[%s]" % corner.x_index,
+                               "mOutlineRadius.mValues[%s]" % corner.x_index,
+                               "mOutlineRadius.mUnits[%s]" % corner.y_index,
+                               "mOutlineRadius.mValues[%s]" % corner.y_index) %>
+    % endfor
 
     fn outline_has_nonzero_width(&self) -> bool {
         self.gecko.mCachedOutlineWidth != 0
