@@ -11,6 +11,7 @@ use js::jsapi::{JSContext, HandleValue};
 use js::jsval::JSVal;
 use util::str::DOMString;
 
+// https://html.spec.whatwg.org/multipage/#the-history-interface
 #[dom_struct]
 pub struct History {
     reflector_: Reflector,
@@ -50,7 +51,7 @@ impl HistoryMethods for History {
 
     // https://html.spec.whatwg.org/multipage/#dom-history-state
     fn State(&self, cx: *mut JSContext) -> JSVal {
-        unreachable!()
+        self.window.browsing_context().state()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-go
@@ -70,7 +71,7 @@ impl HistoryMethods for History {
 
     // https://html.spec.whatwg.org/multipage/#dom-history-pushstate
     fn PushState(&self, cx: *mut JSContext, data: HandleValue, title: DOMString, url: Option<DOMString>) {
-
+        self.window.browsing_context().push_state(title);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-replacestate
