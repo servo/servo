@@ -25,6 +25,7 @@ use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::EventTarget;
+use dom::history::History;
 use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::node::{Node, TrustedNodeAddress, from_untrusted_node_address, window_from_node};
@@ -149,6 +150,7 @@ pub struct Window {
     #[ignore_heap_size_of = "TODO(#6911) newtypes containing unmeasurable types are hard"]
     compositor: IpcSender<ScriptToCompositorMsg>,
     browsing_context: MutNullableHeap<JS<BrowsingContext>>,
+    history: MutNullableHeap<JS<History>>,
     performance: MutNullableHeap<JS<Performance>>,
     navigation_start: u64,
     navigation_start_precise: f64,
@@ -461,6 +463,11 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-location
     fn Location(&self) -> Root<Location> {
         self.Document().GetLocation().unwrap()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-history
+    fn History(&self) -> Root<History> {
+        self.history.or_init(|| History::new(self))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
@@ -1462,6 +1469,7 @@ impl Window {
             mem_profiler_chan: mem_profiler_chan,
             devtools_chan: devtools_chan,
             browsing_context: Default::default(),
+            history: Default::default(),
             performance: Default::default(),
             navigation_start: (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64,
             navigation_start_precise: time::precise_time_ns() as f64,
