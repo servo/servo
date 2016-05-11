@@ -219,7 +219,7 @@ impl HttpRequestFactory for AssertAuthHeaderRequestFactory {
 
 fn assert_headers_included(expected: &Headers, request: &Headers) {
     assert!(expected.len() != 0);
-    for header in expected.iter() {
+    for header in &expected {
         assert!(request.get_raw(header.name()).is_some());
         assert_eq!(request.get_raw(header.name()).unwrap(),
                    expected.get_raw(header.name()).unwrap())

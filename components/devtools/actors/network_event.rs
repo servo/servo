@@ -217,7 +217,7 @@ impl Actor for NetworkEventActor {
                     let headersSize = headers.len() as u8;
                     let mut headerNames = Vec::new();
                     let mut rawHeadersString = "".to_owned();
-                    for item in headers.iter()  {
+                    for item in &headers  {
                         let name = item.name();
                         let value = item.value_string();
                         headerNames.push(name.to_owned());
@@ -392,7 +392,7 @@ impl NetworkEventActor {
         let mut headers_byte_count = 0;
         if let Some(ref headers) = self.response.headers {
             headers_size = headers.len() as u32;
-            for item in headers.iter()  {
+            for item in &headers  {
                 headers_byte_count += item.name().len() + item.value_string().len();
             }
 

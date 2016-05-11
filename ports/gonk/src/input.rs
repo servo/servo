@@ -115,7 +115,7 @@ fn read_input_device(device_path: &Path,
     // let buf: [u8; (16 * size_of::<linux_input_event>())];
     let mut buf: [u8; (16 * 16)] = unsafe { zeroed() };
     let mut slots: [InputSlot; 10] = unsafe { zeroed() };
-    for slot in slots.iter_mut() {
+    for slot in &mut slots {
         slot.tracking_id = -1;
     }
 
