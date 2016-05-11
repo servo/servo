@@ -2401,7 +2401,8 @@ impl Fragment {
                 }
                 let whitespace_start = ByteIndex(trailing_whitespace_start_byte as isize);
                 let whitespace_len = scanned_text_fragment_info.range.length() - whitespace_start;
-                let whitespace_range = Range::new(whitespace_start, whitespace_len);
+                let mut whitespace_range = Range::new(whitespace_start, whitespace_len);
+                whitespace_range.shift_by(scanned_text_fragment_info.range.begin());
 
                 let text_bounds = scanned_text_fragment_info.run
                                                         .metrics_for_range(&whitespace_range)
