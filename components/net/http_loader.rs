@@ -419,7 +419,7 @@ fn set_cookie_for_url(cookie_jar: &Arc<RwLock<CookieStorage>>,
 
 fn set_cookies_from_response(url: Url, response: &HttpResponse, cookie_jar: &Arc<RwLock<CookieStorage>>) {
     if let Some(cookies) = response.headers().get_raw("set-cookie") {
-        for cookie in cookies.iter() {
+        for cookie in &cookies {
             if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
                 set_cookie_for_url(&cookie_jar,
                                    url.clone(),
@@ -693,7 +693,7 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
 
         if log_enabled!(log::LogLevel::Info) {
             info!("{}", method);
-            for header in headers.iter() {
+            for header in &headers {
                 info!(" - {}", header);
             }
             info!("{:?}", data);

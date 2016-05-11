@@ -66,6 +66,8 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual('missing space before -', errors.next()[2])
         self.assertEqual('missing space before *', errors.next()[2])
         self.assertEqual('missing space after =>', errors.next()[2])
+        self.assertEqual('use &x or &mut x instead of x.iter() or x.iter_mut()', errors.next()[2])
+        self.assertEqual('use &x or &mut x instead of x.iter() or x.iter_mut()', errors.next()[2])
         self.assertEqual('extra space before :', errors.next()[2])
         self.assertEqual('extra space before :', errors.next()[2])
         self.assertEqual('use &[T] instead of &Vec<T>', errors.next()[2])

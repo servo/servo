@@ -29,6 +29,10 @@ impl test {
             2 => 1,
         };
         let z = &Vec<T>;
+
+        let v = vec![1, 2, 3, 4, 5];
+        for foo in v.iter() {}
+        for foo in v.iter_mut() {}
     }
 
     fn test_fun2(y : &String, z : &Vec<f32>) -> f32 {
