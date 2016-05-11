@@ -150,6 +150,10 @@ pub enum ConstellationControlMsg {
     FramedContentChanged(PipelineId, SubpageId),
     /// Report an error from a CSS parser for the given pipeline
     ReportCSSError(PipelineId, String, usize, usize, String),
+    /// Notifies script thread to change the active session history entry of the browsing context
+    UpdateActiveHistoryEntry(PipelineId, usize),
+    /// Notifies a frame that is can remove all of its forward browsing context session history
+    ClearForwardSessionHistory(PipelineId),
 }
 
 /// Used to determine if a script has any pending asynchronous activity.

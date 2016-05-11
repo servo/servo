@@ -1788,10 +1788,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn on_navigation_window_event(&self, direction: WindowNavigateMsg) {
         let direction = match direction {
-            windowing::WindowNavigateMsg::Forward => NavigationDirection::Forward,
-            windowing::WindowNavigateMsg::Back => NavigationDirection::Back,
+            windowing::WindowNavigateMsg::Forward => NavigationDirection::Forward(1),
+            windowing::WindowNavigateMsg::Back => NavigationDirection::Back(1),
         };
-        let msg = ConstellationMsg::Navigate(None, direction);
+        let msg = ConstellationMsg::Navigate(direction);
         if let Err(e) = self.constellation_chan.send(msg) {
             warn!("Sending navigation to constellation failed ({}).", e);
         }

@@ -90,6 +90,16 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
         window_from_node(self).SetOnstorage(listener)
     }
 
+    // https://html.spec.whatwg.org/multipage/#the-body-element
+    fn GetOnpopstate(&self) -> Option<Rc<EventHandlerNonNull>> {
+        window_from_node(self).GetOnpopstate()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#the-body-element
+    fn SetOnpopstate(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+        window_from_node(self).SetOnpopstate(listener)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-body-background
     make_getter!(Background, "background");
 
