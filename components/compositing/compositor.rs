@@ -507,9 +507,15 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         // Drain compositor port, sometimes messages contain channels that are blocking
         // another thread from finishing (i.e. SetFrameTree).
         while self.port.try_recv_compositor_msg().is_some() {}
-
+        
         // Tell the profiler, memory profiler, and scrolling timer to shut down.
-        self.time_profiler_chan.send(time::ProfilerMsg::Exit);
+        match ipc::channel() {
+            Ok((sender, receiver)) => {
+                self.time_profiler_chan.send(time::ProfilerMsg::Exit(sender));
+                receiver.recv();
+            },
+            Err(_) => {},
+        }
         self.mem_profiler_chan.send(mem::ProfilerMsg::Exit);
         self.delayed_composition_timer.shutdown();
 

@@ -1706,6 +1706,7 @@ dependencies = [
 name = "profile_tests"
 version = "0.0.1"
 dependencies = [
+ "ipc-channel 0.2.2 (git+https://github.com/servo/ipc-channel)",
  "profile 0.0.1",
  "profile_traits 0.0.1",
 ]
