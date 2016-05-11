@@ -86,6 +86,7 @@ const BACKOFF_INCREMENT_IN_US: u32 = 5;
 const BACKOFFS_UNTIL_CONTROL_CHECK: u32 = 6;
 
 fn next_power_of_two(mut v: u32) -> u32 {
+    if v == 0 { return 1; }
     v -= 1;
     v |= v >> 1;
     v |= v >> 2;
