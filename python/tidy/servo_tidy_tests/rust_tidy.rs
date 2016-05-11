@@ -31,16 +31,8 @@ impl test {
         let z = &Vec<T>;
 
         let v = vec![1, 2, 3, 4, 5];
-
-        // should be: for foo in &v {
-        for foo in v.iter() {
-            println!("{}", foo);
-        }
-
-        // should be: for foo in &mut v {
-        for foo in v.iter_mut()
-            println!("{}", foo);
-        }
+        for foo in v.iter() {}
+        for foo in v.iter_mut() {}
     }
 
     fn test_fun2(y : &String, z : &Vec<f32>) -> f32 {
