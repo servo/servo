@@ -5,32 +5,43 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
+use dom::bindings::error::{Error, ErrorResult};
+use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WindowProxyHandler;
 use dom::bindings::utils::get_array_index_from_id;
 use dom::document::Document;
 use dom::element::Element;
+use dom::popstateevent::PopStateEvent;
+use dom::urlhelper::UrlHelper;
 use dom::window::Window;
 use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
 use js::glue::{GetProxyPrivate, SetProxyExtra, GetProxyExtra};
 use js::jsapi::{Handle, HandleId, HandleObject, HandleValue, JSAutoCompartment};
+use js::jsapi::{Heap, MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
 use js::jsapi::{JSContext, JSPROP_READONLY, JSErrNum, JSObject, PropertyDescriptor, JS_DefinePropertyById};
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass, JSTracer, FreeOp};
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHandle};
-use js::jsapi::{MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
-use js::jsval::{UndefinedValue, PrivateValue};
+use js::jsval::{JSVal, UndefinedValue, PrivateValue, NullValue};
+use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::{PipelineId, SubpageId};
+use script_thread::Runnable;
+use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
+use task_source::history_traversal::HistoryTraversalTask;
 use url::Url;
 use util::str::DOMString;
 
 #[dom_struct]
 pub struct BrowsingContext {
-    reflector: Reflector,
+    reflector_: Reflector,
 
     /// Pipeline id associated with this context.
     id: PipelineId,
@@ -53,7 +64,7 @@ pub struct BrowsingContext {
 impl BrowsingContext {
     pub fn new_inherited(frame_element: Option<&Element>, id: PipelineId) -> BrowsingContext {
         BrowsingContext {
-            reflector: Reflector::new(),
+            reflector_: Reflector::new(),
             id: id,
             needs_reflow: Cell::new(true),
             history: DOMRefCell::new(vec![]),
@@ -92,16 +103,32 @@ impl BrowsingContext {
     pub fn init(&self, document: &Document) {
         assert!(self.history.borrow().is_empty());
         assert_eq!(self.active_index.get(), 0);
-        self.history.borrow_mut().push(SessionHistoryEntry::new(document, document.url().clone(), document.Title()));
+        self.history.borrow_mut().push(SessionHistoryEntry::new(document,
+                                                                document.url().clone(),
+                                                                document.Title(),
+                                                                None));
+    }
+
+    pub fn frame_element(&self) -> Option<&Element> {
+        self.frame_element.r()
+    }
+
+    pub fn window_proxy(&self) -> *mut JSObject {
+        let window_proxy = self.reflector_.get_jsobject();
+        assert!(!window_proxy.get().is_null());
+        window_proxy.get()
     }
 
     pub fn push_history(&self, document: &Document) {
         let mut history = self.history.borrow_mut();
-        // Clear all session history entries after the active index
-        history.drain((self.active_index.get() + 1)..);
-        history.push(SessionHistoryEntry::new(document, document.url().clone(), document.Title()));
+        self.remove_forward_history();
+        history.push(SessionHistoryEntry::new(document, document.url().clone(), document.Title(), None));
         self.active_index.set(self.active_index.get() + 1);
         assert_eq!(self.active_index.get(), history.len() - 1);
+    }
+
+    pub fn session_history_length(&self) -> usize {
+        self.history.borrow().len()
     }
 
     pub fn active_document(&self) -> Root<Document> {
@@ -112,14 +139,114 @@ impl BrowsingContext {
         Root::from_ref(self.active_document().window())
     }
 
-    pub fn frame_element(&self) -> Option<&Element> {
-        self.frame_element.r()
+    pub fn set_active_entry(&self, active_index: usize, trigger_event: bool) {
+        assert!(active_index < self.history.borrow().len());
+        self.active_index.set(active_index);
+
+        // TODO(ConnorGBrewster): Change document URL hash. This should not trigger a reload
+        // when called by push_state/replace_state, it should only cause a reload when
+        // the entry is navigated to.
+
+        if trigger_event {
+            let active_window = &*self.active_window();
+            let trusted_window = Trusted::new(active_window);
+            let task_source = active_window.history_traversal_task_source();
+            let runnable = box PopstateNotificationRunnable {
+                window: trusted_window,
+                state: self.state(),
+            };
+            let _ = task_source.queue(HistoryTraversalTask::FireNavigationEvent(runnable));
+        }
     }
 
-    pub fn window_proxy(&self) -> *mut JSObject {
-        let window_proxy = self.reflector.get_jsobject();
-        assert!(!window_proxy.get().is_null());
-        window_proxy.get()
+    pub fn state(&self) -> StructuredCloneData {
+        let active_window = &*self.active_window();
+        let global = GlobalRef::Window(active_window);
+        let _ac = JSAutoCompartment::new(global.get_cx(), self.reflector_.get_jsobject().get());
+
+        let state_js = RootedValue::new(global.get_cx(), self.history.borrow()[self.active_index.get()].state());
+        StructuredCloneData::write(global.get_cx(), state_js.handle()).unwrap()
+    }
+
+    pub fn push_state(&self, state: StructuredCloneData, title: DOMString, url: Option<DOMString>) -> ErrorResult {
+        self.remove_forward_history();
+        let active_document = self.active_document();
+
+        let active_window = &*self.active_window();
+        let global = GlobalRef::Window(active_window);
+        let _ac = JSAutoCompartment::new(global.get_cx(), self.reflector_.get_jsobject().get());
+        let mut state_js = RootedValue::new(global.get_cx(), NullValue());
+        state.read(global, state_js.handle_mut());
+
+        let url = match url {
+            Some(url) => {
+                match active_document.url().join(&url) {
+                    Ok(url) => url,
+                    Err(_) => return Err(Error::Security),
+                }
+            },
+            None => active_document.url().clone(),
+        };
+
+        if !UrlHelper::SameOrigin(&url, active_document.url()) {
+            return Err(Error::Security);
+        }
+
+        self.history.borrow_mut().push(SessionHistoryEntry::new(&*active_document,
+                                                                url,
+                                                                title,
+                                                                Some(state_js.handle())));
+        let new_index = self.active_index.get() + 1;
+        self.set_active_entry(new_index, false);
+
+        let active_window = self.active_window();
+        let pipeline_info = active_window.parent_info();
+        let ConstellationChan(ref chan) = *active_window.constellation_chan();
+        let msg = ConstellationMsg::HistoryStatePushed(pipeline_info, new_index);
+        chan.send(msg).unwrap();
+
+        Ok(())
+    }
+
+    pub fn replace_state(&self, state: StructuredCloneData, title: DOMString, url: Option<DOMString>) -> ErrorResult {
+        // TODO: update URL after we can set the Url of a doc after creation
+        let active_index = self.active_index.get();
+        assert!(active_index < self.session_history_length());
+        let active_document = self.active_document();
+
+        let active_window = &*self.active_window();
+        let global = GlobalRef::Window(active_window);
+        let _ac = JSAutoCompartment::new(global.get_cx(), self.reflector_.get_jsobject().get());
+        let mut state_js = RootedValue::new(global.get_cx(), NullValue());
+        state.read(global, state_js.handle_mut());
+
+        let url = match url {
+            Some(url) => {
+                match active_document.url().join(&url) {
+                    Ok(url) => url,
+                    Err(_) => return Err(Error::Security),
+                }
+            },
+            None => active_document.url().clone(),
+        };
+
+        if !UrlHelper::SameOrigin(&url, active_document.url()) {
+            return Err(Error::Security);
+        }
+
+        self.history.borrow_mut()[active_index] = SessionHistoryEntry::new(&*active_document,
+                                                                           url,
+                                                                           title,
+                                                                           Some(state_js.handle()));
+        self.set_active_entry(active_index, false);
+
+        Ok(())
+    }
+
+    // Clear all session history entries after the active index
+    pub fn remove_forward_history(&self) {
+        let mut history = self.history.borrow_mut();
+        history.drain((self.active_index.get() + 1)..);
     }
 
     pub fn remove(&self, id: PipelineId) -> Option<Root<BrowsingContext>> {
@@ -163,6 +290,28 @@ impl BrowsingContext {
     pub fn clear_session_history(&self) {
         self.active_index.set(0);
         self.history.borrow_mut().clear();
+    }
+
+    pub fn handle_popstate(window: Trusted<Window>, state: StructuredCloneData) {
+        let window = window.root();
+        let global = GlobalRef::Window(&window);
+        let target = window.upcast();
+        let _ac = JSAutoCompartment::new(global.get_cx(), target.reflector().get_jsobject().get());
+        let mut state_js = RootedValue::new(global.get_cx(), UndefinedValue());
+        state.read(global, state_js.handle_mut());
+        PopStateEvent::dispatch_jsval(target, global, state_js.handle());
+    }
+}
+
+pub struct PopstateNotificationRunnable {
+    window: Trusted<Window>,
+    state: StructuredCloneData,
+}
+
+impl Runnable for PopstateNotificationRunnable {
+    fn handler(self: Box<PopstateNotificationRunnable>) {
+        let this = *self;
+        BrowsingContext::handle_popstate(this.window, this.state);
     }
 }
 
@@ -217,15 +366,31 @@ pub struct SessionHistoryEntry {
     document: JS<Document>,
     url: Url,
     title: DOMString,
+    state: Heap<JSVal>,
 }
 
 impl SessionHistoryEntry {
-    fn new(document: &Document, url: Url, title: DOMString) -> SessionHistoryEntry {
+    fn new(document: &Document, url: Url, title: DOMString, state: Option<HandleValue>) -> SessionHistoryEntry {
+        let mut jsval: Heap<JSVal> = Default::default();
+        let state = match state {
+            Some(state) => state,
+            None => HandleValue::null()
+        };
+        jsval.set(state.get());
         SessionHistoryEntry {
             document: JS::from_ref(document),
             url: url,
             title: title,
+            state: jsval,
         }
+    }
+
+    pub fn state(&self) -> JSVal {
+        self.state.get()
+    }
+
+    pub fn title(&self) -> DOMString {
+        self.title.clone()
     }
 }
 
