@@ -34,6 +34,7 @@ use util::geometry::ScreenPx;
 use util::opts;
 #[cfg(not(target_os = "android"))]
 use util::opts::RenderApi;
+use util::resource_files;
 
 static mut g_nested_event_loop_listener: Option<*mut (NestedEventLoopListener + 'static)> = None;
 
@@ -109,6 +110,9 @@ impl Window {
         // #9996.
         let visible = is_foreground && !opts::get().no_native_titlebar;
 
+        let mut icon_path = resource_files::resources_dir_path();
+        icon_path.push("servo.png");
+
         let mut builder =
             glutin::WindowBuilder::new().with_title("Servo".to_string())
                                         .with_decorations(!opts::get().no_native_titlebar)
@@ -117,7 +121,8 @@ impl Window {
                                         .with_gl(Window::gl_version())
                                         .with_visibility(visible)
                                         .with_parent(parent)
-                                        .with_multitouch();
+                                        .with_multitouch()
+                                        .with_icon(icon_path);
 
         if opts::get().enable_vsync {
             builder = builder.with_vsync();
