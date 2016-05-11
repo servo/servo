@@ -667,6 +667,15 @@ fn static_assert() {
 
 </%self:impl_trait>
 
+<%self:impl_trait style_struct_name="InheritedText"
+                  skip_longhands="text-align">
+
+    <% text_align_keyword = Keyword("text-align", "start end left right center justify -moz-center -moz-left " +
+                                                  "-moz-right match-parent") %>
+    <%call expr="impl_keyword('text_align', 'mTextAlign', text_align_keyword, need_clone=False)"></%call>
+
+</%self:impl_trait>
+
 <%self:impl_trait style_struct_name="Text"
                   skip_longhands="text-decoration-color"
                   skip_additionals="*">
