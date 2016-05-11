@@ -29,6 +29,10 @@ impl test {
             2 => 1,
         };
         let z = &Vec<T>;
+        struct Member {
+            member_name:"Foo"
+            member_id:5
+        }
     }
 
     fn test_fun2(y : &String, z : &Vec<f32>) -> f32 {
