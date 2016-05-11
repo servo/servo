@@ -31,6 +31,7 @@ use style::properties::make_cascade_vec;
 use style::properties::style_struct_traits::*;
 use gecko_style_structs::{nsStyleUnion, nsStyleUnit};
 use values::{ToGeckoStyleCoord, convert_rgba_to_nscolor, convert_nscolor_to_rgba};
+use values::round_border_to_device_pixels;
 
 #[derive(Clone)]
 pub struct GeckoComputedValues {
@@ -264,9 +265,14 @@ def set_gecko_property(ffi_name, expr):
 <%call expr="impl_color_copy(ident, gecko_ffi_name, color_flags_ffi_name)"></%call>
 </%def>
 
-<%def name="impl_app_units(ident, gecko_ffi_name, need_clone)">
+<%def name="impl_app_units(ident, gecko_ffi_name, need_clone, round_to_pixels=False)">
     fn set_${ident}(&mut self, v: longhands::${ident}::computed_value::T) {
+        % if round_to_pixels:
+        let au_per_device_px = Au(self.gecko.mTwipsPerPixel);
+        self.gecko.${gecko_ffi_name} = round_border_to_device_pixels(v, au_per_device_px).0;
+        % else:
         self.gecko.${gecko_ffi_name} = v.0;
+        % endif
     }
 <%call expr="impl_simple_copy(ident, gecko_ffi_name)"></%call>
 %if need_clone:
@@ -499,7 +505,8 @@ fn static_assert() {
     <% impl_color("border_%s_color" % side.ident, "mBorderColor[%s]" % side.index,
                   color_flags_ffi_name="mBorderStyle[%s]" % side.index) %>
 
-    <% impl_app_units("border_%s_width" % side.ident, "mComputedBorder.%s" % side.ident, need_clone=False) %>
+    <% impl_app_units("border_%s_width" % side.ident, "mComputedBorder.%s" % side.ident, need_clone=False,
+                      round_to_pixels=True) %>
 
     fn border_${side.ident}_has_nonzero_width(&self) -> bool {
         self.gecko.mComputedBorder.${side.ident} != 0
@@ -548,7 +555,7 @@ fn static_assert() {
     % endfor
 </%self:impl_trait>
 
-<% skip_outline_longhands = " ".join("outline-color outline-style".split() +
+<% skip_outline_longhands = " ".join("outline-color outline-style outline-width".split() +
                                      ["-moz-outline-radius-{0}".format(x.ident.replace("_", ""))
                                       for x in CORNERS]) %>
 <%self:impl_trait style_struct_name="Outline"
@@ -559,6 +566,9 @@ fn static_assert() {
 
     <% impl_color("outline_color", "mOutlineColor", color_flags_ffi_name="mOutlineStyle") %>
 
+    <% impl_app_units("outline_width", "mActualOutlineWidth", need_clone=False,
+                      round_to_pixels=True) %>
+
     % for corner in CORNERS:
     <% impl_corner_style_coord("_moz_outline_radius_%s" % corner.ident.replace("_", ""),
                                "mOutlineRadius.mUnits[%s]" % corner.x_index,
@@ -568,7 +578,7 @@ fn static_assert() {
     % endfor
 
     fn outline_has_nonzero_width(&self) -> bool {
-        self.gecko.mCachedOutlineWidth != 0
+        self.gecko.mActualOutlineWidth != 0
     }
 </%self:impl_trait>
 

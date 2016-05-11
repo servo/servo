@@ -4700,7 +4700,7 @@ pub struct nsStyleOutline {
     pub mOutlineRadius: nsStyleCorners,
     pub mOutlineWidth: nsStyleCoord,
     pub mOutlineOffset: nscoord,
-    pub mCachedOutlineWidth: nscoord,
+    pub mActualOutlineWidth: nscoord,
     pub mOutlineColor: nscolor,
     pub mOutlineStyle: u8,
     pub mTwipsPerPixel: nscoord,
