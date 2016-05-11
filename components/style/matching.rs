@@ -616,8 +616,8 @@ pub trait MatchMethods : TNode {
     fn insert_into_bloom_filter(&self, bf: &mut BloomFilter) {
         // Only elements are interesting.
         if let Some(element) = self.as_element() {
-            bf.insert(element.get_local_name());
-            bf.insert(element.get_namespace());
+            bf.insert(&*element.get_local_name());
+            bf.insert(&*element.get_namespace());
             element.get_id().map(|id| bf.insert(&id));
 
             // TODO: case-sensitivity depends on the document type and quirks mode
@@ -630,8 +630,8 @@ pub trait MatchMethods : TNode {
     fn remove_from_bloom_filter(&self, bf: &mut BloomFilter) {
         // Only elements are interesting.
         if let Some(element) = self.as_element() {
-            bf.remove(element.get_local_name());
-            bf.remove(element.get_namespace());
+            bf.remove(&*element.get_local_name());
+            bf.remove(&*element.get_namespace());
             element.get_id().map(|id| bf.remove(&id));
 
             // TODO: case-sensitivity depends on the document type and quirks mode

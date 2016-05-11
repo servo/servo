@@ -83,7 +83,7 @@ use std::default::Default;
 use std::mem;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use string_cache::{Atom, Namespace, QualName};
+use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace, QualName};
 use style::element_state::*;
 use style::properties::DeclaredValue;
 use style::properties::longhands::{self, background_image, border_spacing, font_family, overflow_x, font_size};
@@ -2131,12 +2131,12 @@ impl<'a> ::selectors::Element for Root<Element> {
         })
     }
 
-    fn get_local_name(&self) -> &Atom {
-        self.local_name()
+    fn get_local_name(&self) -> BorrowedAtom {
+        BorrowedAtom(self.local_name())
     }
 
-    fn get_namespace(&self) -> &Namespace {
-        self.namespace()
+    fn get_namespace(&self) -> BorrowedNamespace {
+        BorrowedNamespace(self.namespace())
     }
 
     fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {

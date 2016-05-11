@@ -72,6 +72,7 @@ extern crate simd;
 
 extern crate skia;
 extern crate smallvec;
+#[macro_use]
 extern crate string_cache;
 extern crate style;
 extern crate style_traits;

@@ -7,10 +7,10 @@ use element_state::*;
 use selector_impl::SelectorImplExt;
 use selectors::Element;
 use selectors::matching::matches_compound_selector;
-use selectors::parser::{AttrSelector, Combinator, CompoundSelector, NamespaceConstraint, SelectorImpl, SimpleSelector};
+use selectors::parser::{AttrSelector, Combinator, CompoundSelector, SelectorImpl, SimpleSelector};
 use std::clone::Clone;
 use std::sync::Arc;
-use string_cache::{Atom, Namespace};
+use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
 
 /// When the ElementState of an element (like IN_HOVER_STATE) changes, certain
 /// pseudo-classes (like :hover) may require us to restyle that element, its
@@ -133,10 +133,10 @@ impl<'a, E> Element for ElementWrapper<'a, E>
     fn is_html_element_in_html_document(&self) -> bool {
         self.element.is_html_element_in_html_document()
     }
-    fn get_local_name(&self) -> &Atom {
+    fn get_local_name(&self) -> BorrowedAtom {
         self.element.get_local_name()
     }
-    fn get_namespace(&self) -> &Namespace {
+    fn get_namespace(&self) -> BorrowedNamespace {
         self.element.get_namespace()
     }
     fn get_id(&self) -> Option<Atom> {
@@ -152,8 +152,15 @@ impl<'a, E> Element for ElementWrapper<'a, E>
             None => self.element.has_class(name),
         }
     }
+    #[cfg(feature = "gecko")]
+    fn match_attr<F>(&self, _: &AttrSelector, _: F) -> bool
+                    where F: Fn(&str) -> bool {
+        panic!("Gecko can't borrow atoms as UTF-8.");
+    }
+    #[cfg(not(feature = "gecko"))]
     fn match_attr<F>(&self, attr: &AttrSelector, test: F) -> bool
                     where F: Fn(&str) -> bool {
+        use selectors::parser::NamespaceConstraint;
         match self.snapshot.attrs {
             Some(_) => {
                 let html = self.is_html_element_in_html_document();
