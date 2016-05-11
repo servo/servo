@@ -149,8 +149,9 @@ class CommandBase(object):
         self.config["tools"].setdefault("cache-dir", default_cache_dir)
         resolverelative("tools", "cache-dir")
 
-        self.config["tools"].setdefault("cargo-home-dir",
-                                        path.join(context.topdir, ".cargo"))
+        default_cargo_home = os.environ.get("CARGO_HOME",
+                                            path.join(context.topdir, ".cargo"))
+        self.config["tools"].setdefault("cargo-home-dir", default_cargo_home)
         resolverelative("tools", "cargo-home-dir")
 
         context.sharedir = self.config["tools"]["cache-dir"]
