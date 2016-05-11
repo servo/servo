@@ -375,9 +375,7 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> E
         if iframe.upcast::<Node>().is_in_doc() {
             let window = window_from_node(iframe);
 
-            let pipeline_info = Some((window.pipeline(),
-                                      iframe.subpage_id().unwrap()));
-            let msg = ConstellationMsg::Navigate(pipeline_info, direction);
+            let msg = ConstellationMsg::Navigate(direction);
             window.constellation_chan().send(msg).unwrap();
         }
 
@@ -466,12 +464,12 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
     fn GoBack(&self) -> ErrorResult {
-        Navigate(self, NavigationDirection::Back)
+        Navigate(self, NavigationDirection::Back(1))
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goForward
     fn GoForward(&self) -> ErrorResult {
-        Navigate(self, NavigationDirection::Forward)
+        Navigate(self, NavigationDirection::Forward(1))
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/reload
