@@ -37,3 +37,6 @@ smallvec = "0.1"
 string_cache = {version = "0.2.12", features = ["heap_size"]}
 time = "0.1"
 url = {version = "1.0.0", features = ["heap_size"]}
+
+[build-dependencies]
+walkdir = "0.1"
