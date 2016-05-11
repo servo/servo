@@ -35,11 +35,11 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::{LayoutControlChan, LayoutThreadFactory};
 use msg::constellation_msg::WebDriverCommandMsg;
+use msg::constellation_msg::{ConstellationChan, PanicMsg};
 use msg::constellation_msg::{FrameId, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, NavigationDirection};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
-use msg::constellation_msg::{self, ConstellationChan, PanicMsg};
 use msg::webdriver_msg;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
@@ -139,6 +139,12 @@ pub struct Constellation<LTF, STF> {
     /// A list of all the frames
     frames: HashMap<FrameId, Frame>,
 
+    /// A list of frames that have been navigated in the order they are navigated
+    navigation_history: Vec<Option<FrameId>>,
+
+    /// The index of the current location in the navigation history
+    active_history_index: usize,
+
     /// Maps from pipeline ID to the frame that contains it.
     pipeline_to_frame_map: HashMap<PipelineId, FrameId>,
 
@@ -225,28 +231,52 @@ pub struct InitialConstellationState {
     pub webrender_api_sender: Option<webrender_traits::RenderApiSender>,
 }
 
+#[derive(Clone, Copy, PartialEq)]
+enum EntryReason {
+    Load,
+    StateChange,
+}
+
+#[derive(Clone, Copy)]
+struct FrameEntry {
+    id: PipelineId,
+    context_index: usize,
+    reason: EntryReason,
+}
+
+impl FrameEntry {
+    fn new(pipeline_id: PipelineId, context_index: usize, reason: EntryReason) -> FrameEntry {
+        FrameEntry {
+            id: pipeline_id,
+            context_index: context_index,
+            reason: reason,
+        }
+    }
+}
+
 /// Stores the navigation context for a single frame in the frame tree.
+/// Also stores the index of the active session history entry of the browsing context
 pub struct Frame {
-    prev: Vec<PipelineId>,
-    current: PipelineId,
-    next: Vec<PipelineId>,
+    prev: Vec<FrameEntry>,
+    current: FrameEntry,
+    next: Vec<FrameEntry>,
 }
 
 impl Frame {
     fn new(pipeline_id: PipelineId) -> Frame {
         Frame {
             prev: vec!(),
-            current: pipeline_id,
+            current: FrameEntry::new(pipeline_id, 0, EntryReason::Load),
             next: vec!(),
         }
     }
 
-    fn load(&mut self, pipeline_id: PipelineId) -> Vec<PipelineId> {
+    fn load(&mut self, pipeline_id: PipelineId) -> Vec<FrameEntry> {
         // TODO(gw): To also allow navigations within subframes
         // to affect the parent navigation history, this should bubble
         // up the navigation change to each parent.
         self.prev.push(self.current);
-        self.current = pipeline_id;
+        self.current = FrameEntry::new(pipeline_id, 0, EntryReason::Load);
         replace(&mut self.next, vec!())
     }
 }
@@ -283,10 +313,10 @@ impl<'a> Iterator for FrameTreeIterator<'a> {
                     continue;
                 },
             };
-            let pipeline = match self.pipelines.get(&frame.current) {
+            let pipeline = match self.pipelines.get(&frame.current.id) {
                 Some(pipeline) => pipeline,
                 None => {
-                    warn!("Pipeline {:?} iterated after closure.", frame.current);
+                    warn!("Pipeline {:?} iterated after closure.", frame.current.id);
                     continue;
                 },
             };
@@ -350,6 +380,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 storage_thread: state.storage_thread,
                 pipelines: HashMap::new(),
                 frames: HashMap::new(),
+                navigation_history: vec!(None),
+                active_history_index: 0,
                 pipeline_to_frame_map: HashMap::new(),
                 subpage_map: HashMap::new(),
                 pending_frames: vec!(),
@@ -647,9 +679,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 self.handle_init_load(url);
             }
             // Handle a forward or back request
-            Request::Compositor(FromCompositorMsg::Navigate(pipeline_info, direction)) => {
+            Request::Compositor(FromCompositorMsg::Navigate(direction)) => {
                 debug!("constellation got navigation message from compositor");
-                self.handle_navigate_msg(pipeline_info, direction);
+                self.handle_navigate_msg(direction);
             }
             Request::Compositor(FromCompositorMsg::WindowSize(new_size, size_type)) => {
                 debug!("constellation got window resize message");
@@ -695,9 +727,19 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 self.handle_dom_load(pipeline_id)
             }
             // Handle a forward or back request
-            Request::Script(FromScriptMsg::Navigate(pipeline_info, direction)) => {
+            Request::Script(FromScriptMsg::Navigate(direction)) => {
                 debug!("constellation got navigation message from script");
-                self.handle_navigate_msg(pipeline_info, direction);
+                self.handle_navigate_msg(direction);
+            }
+            // Handle request for history length
+            Request::Script(FromScriptMsg::HistoryLength(sender)) => {
+                debug!("constellation got history length message from compositor");
+                self.handle_history_length(sender);
+            }
+            // Handle pushing a history entry due to state change
+            Request::Script(FromScriptMsg::HistoryStatePushed(pipeline_info, active_index)) => {
+                debug!("constellation got history length message from compositor");
+                self.handle_history_state_pushed(pipeline_info, active_index);
             }
             // Notification that the new document is ready to become active
             Request::Script(FromScriptMsg::ActivateDocument(pipeline_id)) => {
@@ -807,6 +849,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             Request::Script(FromScriptMsg::Alert(pipeline_id, message, sender)) => {
                 debug!("constellation got Alert message");
                 self.handle_alert(pipeline_id, message, sender);
+            }
+            Request::Script(FromScriptMsg::IsPipelineFullyActive(pipeline_id, sender)) => {
+                debug!("constellation got IsPipelineFullyActive message");
+                self.handle_is_pipeline_fully_active(pipeline_id, sender);
             }
 
 
@@ -1089,7 +1135,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             if let Some(_) = parent_pipeline_info {
                 let root_pipeline_id = self.root_frame_id
                     .and_then(|root_frame_id| self.frames.get(&root_frame_id))
-                    .map(|root_frame| root_frame.current);
+                    .map(|root_frame| root_frame.current.id);
 
                 let ancestor_info = self.get_root_pipeline_and_containing_parent(&pipeline_id);
                 if let Some(ancestor_info) = ancestor_info {
@@ -1116,6 +1162,24 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         };
 
         let result = sender.send(display_alert_dialog);
+        if let Err(e) = result {
+            self.handle_send_error(pipeline_id, e);
+        }
+    }
+
+    fn handle_is_pipeline_fully_active(&mut self, pipeline_id: PipelineId, sender: IpcSender<bool>) {
+        // Iterate through the frame tree and see if this pipeline matches any of the
+        // active frame pipelines.
+        for frame in self.current_frame_tree_iter(self.root_frame_id) {
+            if frame.current.id == pipeline_id {
+                let result = sender.send(true);
+                if let Err(e) = result {
+                    warn!("Send pipeline is active failed ({})", e);
+                }
+                return;
+            }
+        }
+        let result = sender.send(false);
         if let Err(e) = result {
             self.handle_send_error(pipeline_id, e);
         }
@@ -1223,36 +1287,17 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         self.handle_subframe_loaded(pipeline_id);
     }
 
-    fn handle_navigate_msg(&mut self,
-                           pipeline_info: Option<(PipelineId, SubpageId)>,
-                           direction: constellation_msg::NavigationDirection) {
-        debug!("received message to navigate {:?}", direction);
-
-        // Get the frame id associated with the pipeline that sent
-        // the navigate message, or use root frame id by default.
-        let frame_id = pipeline_info
-            .and_then(|info| self.subpage_map.get(&info))
-            .and_then(|pipeline_id| self.pipeline_to_frame_map.get(&pipeline_id))
-            .cloned()
-            .or(self.root_frame_id);
-
-        // If the frame_id lookup fails, then we are in the middle of tearing down
-        // the root frame, so it is reasonable to silently ignore the navigation.
-        let frame_id = match frame_id {
-            None => return warn!("Navigation after root's closure."),
-            Some(frame_id) => frame_id,
-        };
-
+    fn navigate_frame(&mut self, frame_id: FrameId, direction: NavigationDirection) {
         // Check if the currently focused pipeline is the pipeline being replaced
         // (or a child of it). This has to be done here, before the current
         // frame tree is modified below.
         let update_focus_pipeline = self.focused_pipeline_in_tree(frame_id);
 
-        // Get the ids for the previous and next pipelines.
-        let (prev_pipeline_id, next_pipeline_id) = match self.frames.get_mut(&frame_id) {
+        // Get the previous and next frame entries.
+        let (prev_entry, next_entry) = match self.frames.get_mut(&frame_id) {
             Some(frame) => {
                 let next = match direction {
-                    NavigationDirection::Forward => {
+                    NavigationDirection::Forward(_) => {
                         match frame.next.pop() {
                             None => {
                                 warn!("no next page to navigate to");
@@ -1264,7 +1309,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                             },
                         }
                     }
-                    NavigationDirection::Back => {
+                    NavigationDirection::Back(_) => {
                         match frame.prev.pop() {
                             None => {
                                 warn!("no previous page to navigate to");
@@ -1287,39 +1332,48 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             },
         };
 
-        // If the currently focused pipeline is the one being changed (or a child
-        // of the pipeline being changed) then update the focus pipeline to be
-        // the replacement.
-        if update_focus_pipeline {
-            self.focus_pipeline_id = Some(next_pipeline_id);
+        let pipeline_info = self.pipelines.get(&prev_entry.id).and_then(|p| p.parent_info);
+
+        // No need to do this if the navigation is only a state change
+        if next_entry.id != prev_entry.id {
+            // If the currently focused pipeline is the one being changed (or a child
+            // of the pipeline being changed) then update the focus pipeline to be
+            // the replacement.
+            if update_focus_pipeline {
+                self.focus_pipeline_id = Some(next_entry.id);
+            }
+
+            // Suspend the old pipeline, and resume the new one.
+            if let Some(prev_pipeline) = self.pipelines.get(&prev_entry.id) {
+                prev_pipeline.freeze();
+            }
+            if let Some(next_pipeline) = self.pipelines.get(&next_entry.id) {
+                next_pipeline.thaw();
+            }
+
+            // Set paint permissions correctly for the compositor layers.
+            self.revoke_paint_permission(prev_entry.id);
+            self.send_frame_tree_and_grant_paint_permission();
         }
 
-        // Suspend the old pipeline, and resume the new one.
-        if let Some(prev_pipeline) = self.pipelines.get(&prev_pipeline_id) {
-            prev_pipeline.freeze();
+        if next_entry.id == prev_entry.id && next_entry.context_index != prev_entry.context_index {
+            self.send_popstate_msg(next_entry.id, next_entry.context_index);
         }
-        if let Some(next_pipeline) = self.pipelines.get(&next_pipeline_id) {
-            next_pipeline.thaw();
-        }
-
-        // Set paint permissions correctly for the compositor layers.
-        self.revoke_paint_permission(prev_pipeline_id);
-        self.send_frame_tree_and_grant_paint_permission();
 
         // Update the owning iframe to point to the new subpage id.
         // This makes things like contentDocument work correctly.
         if let Some((parent_pipeline_id, subpage_id)) = pipeline_info {
-            let new_subpage_id = match self.pipelines.get(&next_pipeline_id) {
-                None => return warn!("Pipeline {:?} navigated to after closure.", next_pipeline_id),
+            let new_subpage_id = match self.pipelines.get(&next_entry.id) {
+                None => return warn!("Pipeline {:?} navigated to after closure.", next_entry.id),
                 Some(pipeline) => match pipeline.parent_info {
-                    None => return warn!("Pipeline {:?} has no parent info.", next_pipeline_id),
+                    None => return warn!("Pipeline {:?} has no parent info.", next_entry.id),
                     Some((_, new_subpage_id)) => new_subpage_id,
                 },
             };
             let msg = ConstellationControlMsg::UpdateSubpageId(parent_pipeline_id,
                                                                subpage_id,
                                                                new_subpage_id,
-                                                               next_pipeline_id);
+                                                               next_entry.id);
             let result = match self.pipelines.get(&parent_pipeline_id) {
                 None => return warn!("Pipeline {:?} child navigated after closure.", parent_pipeline_id),
                 Some(pipeline) => pipeline.script_chan.send(msg),
@@ -1330,8 +1384,124 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
             // If this is an iframe, send a mozbrowser location change event.
             // This is the result of a back/forward navigation.
-            self.trigger_mozbrowserlocationchange(next_pipeline_id);
+            self.trigger_mozbrowserlocationchange(next_entry.id);
         }
+    }
+
+    fn send_popstate_msg(&mut self, pipeline_id: PipelineId, index: usize) {
+        let msg = ConstellationControlMsg::UpdateActiveHistoryEntry(pipeline_id, index);
+        let result = match self.pipelines.get(&pipeline_id) {
+            None => return warn!("Pipeline {:?} child navigated after closure.", pipeline_id),
+            Some(pipeline) => pipeline.script_chan.send(msg),
+        };
+        if let Err(e) = result {
+            self.handle_send_error(pipeline_id, e);
+        }
+    }
+
+    fn handle_navigate_msg(&mut self, direction: NavigationDirection) {
+        debug!("received message to navigate {:?}", direction);
+        match direction {
+            NavigationDirection::Forward(delta) => {
+                if delta + self.active_history_index < self.navigation_history.len() {
+                    for _ in 0..delta {
+                        self.active_history_index += 1;
+                        if let Some(frame_id) = self.navigation_history[self.active_history_index] {
+                            self.navigate_frame(frame_id, direction);
+                        }
+                    }
+                } else {
+                    return warn!("invalid forward navigation delta");
+                }
+            },
+            NavigationDirection::Back(delta) => {
+                if delta <= self.active_history_index {
+                    for _ in 0..delta {
+                        if let Some(frame_id) = self.navigation_history[self.active_history_index] {
+                            self.navigate_frame(frame_id, direction);
+                        }
+                        self.active_history_index -= 1;
+                    }
+                } else {
+                    return warn!("invalid back navigation delta");
+                }
+            },
+        }
+    }
+
+    fn push_navigation_event(&mut self, frame_id: FrameId) {
+        // Cleanup each frame's forward history if they are past the current
+        // `active_history_index`
+        if self.active_history_index < self.navigation_history.len() - 1 {
+            let frame_ids = self.navigation_history
+                                .drain(self.active_history_index + 1..)
+                                .filter_map(|f| f)
+                                .collect::<Vec<FrameId>>();
+            for frame_id in &frame_ids {
+                let (evicted_frames, id) = match self.frames.get_mut(&frame_id) {
+                    Some(frame) => {
+                        (replace(&mut frame.next, vec!()), frame.current.id)
+                    },
+                    None => return warn!("frame forward history removed after closure"),
+                };
+                let msg = ConstellationControlMsg::ClearForwardSessionHistory(id);
+                let result = match self.pipelines.get(&id) {
+                    None => return warn!("Pipeline {:?} child navigated after closure.", id),
+                    Some(pipeline) => pipeline.script_chan.send(msg),
+                };
+                if let Err(e) = result {
+                    self.handle_send_error(id, e);
+                }
+                self.close_evicted_pipelines(evicted_frames);
+            }
+        }
+        self.active_history_index = self.navigation_history.len();
+        self.navigation_history.push(Some(frame_id));
+    }
+
+    fn close_evicted_pipelines(&mut self, entries: Vec<FrameEntry>) {
+        for entry in entries {
+            if entry.reason == EntryReason::Load {
+                self.close_pipeline(entry.id, ExitPipelineMode::Normal);
+            }
+        }
+    }
+
+    fn handle_history_length(&mut self, sender: IpcSender<usize>) {
+        let _ = sender.send(self.navigation_history.len());
+    }
+
+    fn handle_history_state_pushed(&mut self,
+                                   pipeline_info: Option<(PipelineId, SubpageId)>,
+                                   active_index: usize) {
+        // Get the frame id associated with the pipeline that sent
+        // the navigate message, or use root frame id by default.
+        let frame_id = pipeline_info
+            .and_then(|info| self.subpage_map.get(&info))
+            .and_then(|pipeline_id| self.pipeline_to_frame_map.get(&pipeline_id))
+            .cloned()
+            .or(self.root_frame_id);
+
+        // If the frame_id lookup fails, then we are in the middle of tearing down
+        // the root frame, so it is reasonable to silently ignore the navigation.
+        let frame_id = match frame_id {
+            None => return warn!("Navigation after root's closure."),
+            Some(frame_id) => frame_id,
+        };
+
+        let evicted_frames = match self.frames.get_mut(&frame_id) {
+            Some(frame) => {
+                let prev = frame.current;
+                frame.current = FrameEntry::new(prev.id, active_index, EntryReason::StateChange);
+                frame.prev.push(prev);
+                replace(&mut frame.next, vec!())
+            },
+            None => return warn!("Could not get frame."),
+        };
+
+        self.close_evicted_pipelines(evicted_frames);
+
+        self.push_navigation_event(frame_id);
     }
 
     fn handle_key_msg(&mut self, key: Key, state: KeyState, mods: KeyModifiers) {
@@ -1340,7 +1510,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         // the compositor below.
         let root_pipeline_id = self.root_frame_id
             .and_then(|root_frame_id| self.frames.get(&root_frame_id))
-            .map(|root_frame| root_frame.current);
+            .map(|root_frame| root_frame.current.id);
         let pipeline_id = self.focus_pipeline_id.or(root_pipeline_id);
 
         match pipeline_id {
@@ -1392,7 +1562,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                            resp_chan: IpcSender<Option<(PipelineId, bool)>>) {
         let current_pipeline_id = frame_id.or(self.root_frame_id)
             .and_then(|frame_id| self.frames.get(&frame_id))
-            .map(|frame| frame.current);
+            .map(|frame| frame.current.id);
         let current_pipeline_id_loaded = current_pipeline_id
             .map(|id| (id, true));
         let pipeline_id_loaded = self.pending_frames.iter().rev()
@@ -1523,7 +1693,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             WebDriverCommandMsg::TakeScreenshot(pipeline_id, reply) => {
                 let current_pipeline_id = self.root_frame_id
                     .and_then(|root_frame_id| self.frames.get(&root_frame_id))
-                    .map(|root_frame| root_frame.current);
+                    .map(|root_frame| root_frame.current.id);
                 if Some(pipeline_id) == current_pipeline_id {
                     self.compositor_proxy.send(ToCompositorMsg::CreatePng(reply));
                 } else {
@@ -1567,6 +1737,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             self.pipeline_to_frame_map.get(&old_pipeline_id).cloned()
                 .and_then(|frame_id| {
                     self.pipeline_to_frame_map.insert(frame_change.new_pipeline_id, frame_id);
+                    self.push_navigation_event(frame_id);
                     self.frames.get_mut(&frame_id)
                 }).map(|frame| frame.load(frame_change.new_pipeline_id))
         });
@@ -1598,10 +1769,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         self.trigger_mozbrowserlocationchange(frame_change.new_pipeline_id);
 
         // Remove any evicted frames
-        for pipeline_id in evicted_frames.unwrap_or_default() {
-            self.close_pipeline(pipeline_id, ExitPipelineMode::Normal);
-        }
-
+        self.close_evicted_pipelines(evicted_frames.unwrap_or_default());
     }
 
     fn handle_activate_document_msg(&mut self, pipeline_id: PipelineId) {
@@ -1665,7 +1833,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 None => return warn!("Frame {:?} resized after closing.", root_frame_id),
                 Some(frame) => frame,
             };
-            let pipeline_id = frame.current;
+            let pipeline_id = frame.current.id;
             let pipeline = match self.pipelines.get(&pipeline_id) {
                 None => return warn!("Pipeline {:?} resized after closing.", pipeline_id),
                 Some(pipeline) => pipeline,
@@ -1675,8 +1843,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 new_size,
                 size_type
             ));
-            for pipeline_id in frame.prev.iter().chain(&frame.next) {
-                let pipeline = match self.pipelines.get(&pipeline_id) {
+            for entry in frame.prev.iter().chain(&frame.next) {
+                let pipeline = match self.pipelines.get(&entry.id) {
                     None => {
                         warn!("Inactive pipeline {:?} resized after closing.", pipeline_id);
                         continue;
@@ -1745,7 +1913,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         // screenshot can safely be written.
         for frame in self.current_frame_tree_iter(self.root_frame_id) {
 
-            let pipeline_id = frame.current;
+            let pipeline_id = frame.current.id;
 
             let pipeline = match self.pipelines.get(&pipeline_id) {
                 None => { warn!("Pipeline {:?} screenshot while closing.", pipeline_id); continue; },
@@ -1770,7 +1938,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             }
 
             // See if this pipeline has reached idle script state yet.
-            match self.document_states.get(&frame.current) {
+            match self.document_states.get(&frame.current.id) {
                 Some(&DocumentState::Idle) => {}
                 Some(&DocumentState::Pending) | None => {
                     return ReadyToSave::DocumentLoading;
@@ -1790,7 +1958,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 }
 
                 // Get the epoch that the compositor has drawn for this pipeline.
-                let compositor_epoch = pipeline_states.get(&frame.current);
+                let compositor_epoch = pipeline_states.get(&frame.current.id);
                 match compositor_epoch {
                     Some(compositor_epoch) => {
                         // Synchronously query the layout thread to see if the current
@@ -1842,7 +2010,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         // ordering is vital - so that if close_pipeline() ends up closing
         // any child frames, they can be removed from the parent frame correctly.
         let parent_info = self.frames.get(&frame_id)
-            .and_then(|frame| self.pipelines.get(&frame.current))
+            .and_then(|frame| self.pipelines.get(&frame.current.id))
             .and_then(|pipeline| pipeline.parent_info);
 
         let pipelines_to_close = {
@@ -1857,8 +2025,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             pipelines_to_close
         };
 
-        for pipeline_id in &pipelines_to_close {
-            self.close_pipeline(*pipeline_id, exit_mode);
+        for entry in &pipelines_to_close {
+            self.close_pipeline(entry.id, exit_mode);
         }
 
         if self.frames.remove(&frame_id).is_none() {
@@ -1949,7 +2117,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     // Convert a frame to a sendable form to pass to the compositor
     fn frame_to_sendable(&self, frame_id: FrameId) -> Option<SendableFrameTree> {
         self.frames.get(&frame_id).and_then(|frame: &Frame| {
-            self.pipelines.get(&frame.current).map(|pipeline: &Pipeline| {
+            self.pipelines.get(&frame.current.id).map(|pipeline: &Pipeline| {
                 let mut frame_tree = SendableFrameTree {
                     pipeline: pipeline.to_sendable(),
                     size: pipeline.size,
@@ -1971,7 +2139,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     fn revoke_paint_permission(&self, pipeline_id: PipelineId) {
         let frame_id = self.pipeline_to_frame_map.get(&pipeline_id).map(|frame_id| *frame_id);
         for frame in self.current_frame_tree_iter(frame_id) {
-            self.pipelines.get(&frame.current).map(|pipeline| pipeline.revoke_paint_permission());
+            self.pipelines.get(&frame.current.id).map(|pipeline| pipeline.revoke_paint_permission());
         }
     }
 
@@ -1996,7 +2164,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
 
         for frame in self.current_frame_tree_iter(self.root_frame_id) {
-            self.pipelines.get(&frame.current).map(|pipeline| pipeline.grant_paint_permission());
+            self.pipelines.get(&frame.current.id).map(|pipeline| pipeline.grant_paint_permission());
         }
     }
 
@@ -2081,7 +2249,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                                pipeline_id: PipelineId,
                                root_frame_id: Option<FrameId>) -> bool {
         self.current_frame_tree_iter(root_frame_id)
-            .any(|current_frame| current_frame.current == pipeline_id)
+            .any(|current_frame| current_frame.current.id == pipeline_id)
     }
 
 }
