@@ -26,6 +26,7 @@ backtrace = "0.2.1"
 bitflags = "0.6.0"
 deque = "0.3.1"
 euclid = {version = "0.6.4", features = ["unstable", "plugins"]}
+gecko_atom = {version = "1.0.0", optional = true}
 getopts = "0.2.11"
 heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"

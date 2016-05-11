@@ -127,7 +127,7 @@ impl AttrValue {
 
     pub fn from_atomic_tokens(atoms: Vec<Atom>) -> AttrValue {
         // TODO(ajeffrey): effecient conversion of Vec<Atom> to DOMString
-        let tokens = DOMString::from(str_join(&atoms, "\x20"));
+        let tokens = DOMString::from(str_join(atoms.iter().map(Atom::to_string), "\x20"));
         AttrValue::TokenList(tokens, atoms)
     }
 

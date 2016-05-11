@@ -42,7 +42,8 @@ extern crate rustc_serialize;
 extern crate selectors;
 extern crate serde;
 extern crate smallvec;
-#[macro_use(atom, ns)] extern crate string_cache;
+#[cfg(not(feature = "gecko"))] #[macro_use(atom, ns)] extern crate string_cache;
+#[cfg(feature = "gecko")] #[macro_use(atom, ns)] extern crate gecko_atom as string_cache;
 #[macro_use]
 extern crate style_traits;
 extern crate time;
