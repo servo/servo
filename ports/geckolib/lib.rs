@@ -17,6 +17,8 @@ extern crate app_units;
 extern crate cssparser;
 extern crate env_logger;
 extern crate euclid;
+#[macro_use(atom, ns)]
+extern crate gecko_atom as string_cache;
 extern crate heapsize;
 #[macro_use]
 extern crate lazy_static;
@@ -26,8 +28,6 @@ extern crate log;
 extern crate num_cpus;
 extern crate selectors;
 extern crate smallvec;
-#[macro_use(atom, ns)]
-extern crate string_cache;
 extern crate style;
 extern crate url;
 extern crate util;
