@@ -5,7 +5,7 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
-use dom::bindings::js::{JS, Root, RootedReference};
+use dom::bindings::js::{JS, MutHeapJSVal, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::trace::JSTraceable;
@@ -22,7 +22,7 @@ use js::jsapi::{JSContext, JSPROP_READONLY, JSErrNum, JSObject, PropertyDescript
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass, JSTracer, FreeOp};
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHandle};
 use js::jsapi::{MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
-use js::jsval::{UndefinedValue, PrivateValue};
+use js::jsval::{JSVal, UndefinedValue, PrivateValue};
 use msg::constellation_msg::{PipelineId, SubpageId};
 use std::cell::Cell;
 use url::Url;
@@ -97,8 +97,7 @@ impl BrowsingContext {
 
     pub fn push_history(&self, document: &Document) {
         let mut history = self.history.borrow_mut();
-        // Clear all session history entries after the active index
-        history.drain((self.active_index.get() + 1)..);
+        self.remove_forward_history();
         history.push(SessionHistoryEntry::new(document, document.url().clone(), document.Title()));
         self.active_index.set(self.active_index.get() + 1);
         assert_eq!(self.active_index.get(), history.len() - 1);
@@ -110,6 +109,24 @@ impl BrowsingContext {
 
     pub fn active_window(&self) -> Root<Window> {
         Root::from_ref(self.active_document().window())
+    }
+
+    pub fn state(&self) -> JSVal {
+        self.history.borrow()[self.active_index.get()].state()
+    }
+
+    pub fn push_state(&self, title: DOMString) {
+        self.remove_forward_history();
+        let new_document = self.active_document().clone();
+        new_document.SetTitle(title.clone());
+        self.history.borrow_mut().push(SessionHistoryEntry::new(&*new_document, new_document.url().clone(), title));
+        self.active_index.set(self.active_index.get() + 1);
+    }
+
+    // Clear all session history entries after the active index
+    fn remove_forward_history(&self) {
+        let mut history = self.history.borrow_mut();
+        history.drain((self.active_index.get() + 1)..);
     }
 
     pub fn frame_element(&self) -> Option<&Element> {
@@ -217,6 +234,8 @@ pub struct SessionHistoryEntry {
     document: JS<Document>,
     url: Url,
     title: DOMString,
+    #[ignore_heap_size_of = "Defined in rust-mozjs"]
+    state: MutHeapJSVal,
 }
 
 impl SessionHistoryEntry {
@@ -225,7 +244,12 @@ impl SessionHistoryEntry {
             document: JS::from_ref(document),
             url: url,
             title: title,
+            state: MutHeapJSVal::new(),
         }
+    }
+
+    pub fn state(&self) -> JSVal {
+        self.state.get()
     }
 }
 
