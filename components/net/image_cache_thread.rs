@@ -211,7 +211,7 @@ impl ImageListener {
 
     fn initiate_request(&self, responder: Option<ImageResponder>) {
         let ImageCacheChan(ref sender) = self.sender;
-        let _ = sender.send(ImageCacheResult::InitiateRequest(responder));
+        sender.send(ImageCacheResult::InitiateRequest(responder)).unwrap();
     }
 
     fn notify(&self, image_response: ImageResponse) {
@@ -522,26 +522,29 @@ impl ImageCache {
                 let (cache_result, load_key, mut pending_load) = self.pending_loads.get_cached(ref_url.clone());
                 match cache_result {
                     CacheResult::Miss => {
-                        image_listener.initiate_request(responder);
-                        // A new load request! Request the load from
-                        // the resource thread.
-                        /*let load_data = LoadData::new(LoadContext::Image, (*ref_url).clone(), None, None, None);
-                        let (action_sender, action_receiver) = ipc::channel().unwrap();
-                        let response_target = AsyncResponseTarget {
-                            sender: action_sender,
-                        };
-                        let msg = ControlMsg::Load(load_data,
-                                                   LoadConsumer::Listener(response_target),
-                                                   None);
-                        let progress_sender = self.progress_sender.clone();
-                        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-                            let action: ResponseAction = message.to().unwrap();
-                            progress_sender.send(ResourceLoadInfo {
-                                action: action,
-                                key: load_key,
-                            }).unwrap();
-                        });
-                        self.resource_thread.send(msg).unwrap();*/
+                        if responder.is_some() {
+                            image_listener.initiate_request(responder);
+                        } else {
+                            // A new load request! Request the load from
+                            // the resource thread.
+                            let load_data = LoadData::new(LoadContext::Image, (*ref_url).clone(), None, None, None);
+                            let (action_sender, action_receiver) = ipc::channel().unwrap();
+                            let response_target = AsyncResponseTarget {
+                                sender: action_sender,
+                            };
+                            let msg = ControlMsg::Load(load_data,
+                                                       LoadConsumer::Listener(response_target),
+                                                       None);
+                            let progress_sender = self.progress_sender.clone();
+                            ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+                                let action: ResponseAction = message.to().unwrap();
+                                progress_sender.send(ResourceLoadInfo {
+                                    action: action,
+                                    key: load_key,
+                                }).unwrap();
+                            });
+                            self.resource_thread.send(msg).unwrap();
+                        }
                     }
                     CacheResult::Hit => {
                         // Request is already on its way.

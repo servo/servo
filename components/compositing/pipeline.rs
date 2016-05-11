@@ -436,7 +436,7 @@ impl UnprivilegedPipelineContent {
             scheduler_chan: self.scheduler_chan.clone(),
             panic_chan: self.panic_chan.clone(),
             bluetooth_thread: self.bluetooth_thread.clone(),
-            resource_thread: self.resource_thread,
+            resource_thread: self.resource_thread.clone(),
             storage_thread: self.storage_thread.clone(),
             image_cache_thread: self.image_cache_thread.clone(),
             time_profiler_chan: self.time_profiler_chan.clone(),
@@ -461,6 +461,7 @@ impl UnprivilegedPipelineContent {
                                   self.font_cache_thread,
                                   self.time_profiler_chan,
                                   self.mem_profiler_chan,
+                                  self.resource_thread,
                                   self.layout_shutdown_chan,
                                   self.layout_content_process_shutdown_chan.clone(),
                                   self.webrender_api_sender);
