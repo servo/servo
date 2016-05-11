@@ -85,17 +85,6 @@ const SPINS_UNTIL_BACKOFF: u32 = 128;
 const BACKOFF_INCREMENT_IN_US: u32 = 5;
 const BACKOFFS_UNTIL_CONTROL_CHECK: u32 = 6;
 
-fn next_power_of_two(mut v: u32) -> u32 {
-    v -= 1;
-    v |= v >> 1;
-    v |= v >> 2;
-    v |= v >> 4;
-    v |= v >> 8;
-    v |= v >> 16;
-    v += 1;
-    v
-}
-
 #[cfg(not(windows))]
 fn sleep_microseconds(usec: u32) {
     unsafe {
@@ -114,7 +103,7 @@ impl<QueueData: Sync, WorkData: Send> WorkerThread<QueueData, WorkData> {
     /// The main logic. This function starts up the worker and listens for
     /// messages.
     fn start(&mut self) {
-        let deque_index_mask = next_power_of_two(self.other_deques.len() as u32) - 1;
+        let deque_index_mask = (self.other_deques.len() as u32).next_power_of_two() - 1;
         loop {
             // Wait for a start message.
             let (mut deque, ref_count, queue_data) = match self.port.recv().unwrap() {
