@@ -228,39 +228,36 @@ impl WebGLRenderingContext {
         true
     }
 
-    fn validate_tex_image_parameters(&self,
-                                     target: u32,
-                                     level: i32,
-                                     internal_format: u32,
-                                     width: i32,
-                                     height: i32,
-                                     border: i32,
-                                     format: u32,
-                                     data_type: u32) -> bool {
-        // GL_INVALID_ENUM is generated if target is not GL_TEXTURE_2D,
-        // GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
-        // GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
-        // GL_TEXTURE_CUBE_MAP_POSITIVE_Z, or GL_TEXTURE_CUBE_MAP_NEGATIVE_Z.
-        let texture = match target {
-            constants::TEXTURE_2D
-                => self.bound_texture_2d.get(),
-            constants::TEXTURE_CUBE_MAP_POSITIVE_X |
-            constants::TEXTURE_CUBE_MAP_NEGATIVE_X |
-            constants::TEXTURE_CUBE_MAP_POSITIVE_Y |
-            constants::TEXTURE_CUBE_MAP_NEGATIVE_Y |
-            constants::TEXTURE_CUBE_MAP_POSITIVE_Z |
-            constants::TEXTURE_CUBE_MAP_NEGATIVE_Z
-                => self.bound_texture_cube_map.get(),
-            _ => {
-                self.webgl_error(InvalidEnum);
-                return false;
-            },
-        };
+    fn validate_tex_internal_format(&self, internal_format: u32) -> bool {
+        // GL_INVALID_VALUE is generated if internal_format is not an
+        // accepted format.
+        match internal_format {
+            constants::DEPTH_COMPONENT |
+            constants::ALPHA |
+            constants::RGB |
+            constants::RGBA |
+            constants::LUMINANCE |
+            constants::LUMINANCE_ALPHA => true,
 
-        //  If an attempt is made to call this function with no
-        //  WebGLTexture bound, an INVALID_OPERATION error is generated.
-        if texture.is_none() {
-            self.webgl_error(InvalidOperation);
+            _ => {
+                self.webgl_error(InvalidValue);
+                false
+            },
+        }
+    }
+
+
+    fn validate_tex_image_2d_parameters(&self,
+                                        target: u32,
+                                        level: i32,
+                                        internal_format: u32,
+                                        width: i32,
+                                        height: i32,
+                                        border: i32,
+                                        format: u32,
+                                        data_type: u32) -> bool {
+        // Validate common tex image parameters
+        if !self.validate_common_tex_image_parameters(target, level, width, height) {
             return false;
         }
 
@@ -276,63 +273,15 @@ impl WebGLRenderingContext {
             },
         }
 
-
-        // TODO(emilio): GL_INVALID_VALUE may be generated if
-        // level is greater than log_2(max), where max is
-        // the returned value of GL_MAX_TEXTURE_SIZE when
-        // target is GL_TEXTURE_2D or GL_MAX_CUBE_MAP_TEXTURE_SIZE
-        // when target is not GL_TEXTURE_2D.
-        let is_cubic = target != constants::TEXTURE_2D;
-
-        // GL_INVALID_VALUE is generated if target is one of the
-        // six cube map 2D image targets and the width and height
-        // parameters are not equal.
-        if is_cubic && width != height {
-            self.webgl_error(InvalidValue);
+        // Validate internal_format
+        if !self.validate_tex_internal_format(internal_format) {
             return false;
-        }
-
-        // GL_INVALID_VALUE is generated if internal_format is not an
-        // accepted format.
-        match internal_format {
-            constants::DEPTH_COMPONENT |
-            constants::ALPHA |
-            constants::RGB |
-            constants::RGBA |
-            constants::LUMINANCE |
-            constants::LUMINANCE_ALPHA => {},
-
-            _ => {
-                self.webgl_error(InvalidValue);
-                return false;
-            },
         }
 
         // GL_INVALID_OPERATION is generated if format does not
         // match internal_format.
         if format != internal_format {
             self.webgl_error(InvalidOperation);
-            return false;
-        }
-
-        // GL_INVALID_VALUE is generated if level is less than 0.
-        //
-        // GL_INVALID_VALUE is generated if width or height is less than 0
-        // or greater than GL_MAX_TEXTURE_SIZE when target is GL_TEXTURE_2D or
-        // GL_MAX_CUBE_MAP_TEXTURE_SIZE when target is not GL_TEXTURE_2D.
-        //
-        // TODO(emilio): Check limits
-        if width < 0 || height < 0 || level < 0 {
-            self.webgl_error(InvalidValue);
-            return false;
-        }
-
-        // GL_INVALID_VALUE is generated if level is greater than zero and the
-        // texture is not power of two.
-        if level > 0 &&
-           (!(width as u32).is_power_of_two() ||
-            !(height as u32).is_power_of_two()) {
-            self.webgl_error(InvalidValue);
             return false;
         }
 
@@ -363,6 +312,82 @@ impl WebGLRenderingContext {
         true
     }
 
+    fn validate_common_tex_image_parameters(&self,
+                                            target: u32,
+                                            level: i32,
+                                            width: i32,
+                                            height: i32) -> bool {
+        // GL_INVALID_ENUM is generated if target is not GL_TEXTURE_2D,
+        // GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+        // GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+        // GL_TEXTURE_CUBE_MAP_POSITIVE_Z, or GL_TEXTURE_CUBE_MAP_NEGATIVE_Z.
+        //
+        // max_size is GL_MAX_TEXTURE_SIZE when target is GL_TEXTURE_2D or
+        // GL_MAX_CUBE_MAP_TEXTURE_SIZE when target is not GL_TEXTURE_2D.
+        let (texture, max) = match target {
+            constants::TEXTURE_2D
+                => (self.bound_texture_2d.get(), self.limits.max_tex_size),
+            constants::TEXTURE_CUBE_MAP_POSITIVE_X |
+            constants::TEXTURE_CUBE_MAP_NEGATIVE_X |
+            constants::TEXTURE_CUBE_MAP_POSITIVE_Y |
+            constants::TEXTURE_CUBE_MAP_NEGATIVE_Y |
+            constants::TEXTURE_CUBE_MAP_POSITIVE_Z |
+            constants::TEXTURE_CUBE_MAP_NEGATIVE_Z
+                => (self.bound_texture_cube_map.get(), self.limits.max_cube_map_tex_size),
+            _ => {
+                self.webgl_error(InvalidEnum);
+                return false;
+            },
+        };
+
+        //  If an attempt is made to call this function with no
+        //  WebGLTexture bound, an INVALID_OPERATION error is generated.
+        if texture.is_none() {
+            self.webgl_error(InvalidOperation);
+            return false;
+        }
+
+        let is_cubic = target != constants::TEXTURE_2D;
+
+        // GL_INVALID_VALUE is generated if target is one of the
+        // six cube map 2D image targets and the width and height
+        // parameters are not equal.
+        if is_cubic && width != height {
+            self.webgl_error(InvalidValue);
+            return false;
+        }
+
+        // GL_INVALID_VALUE is generated if level is less than 0.
+        //
+        // GL_INVALID_VALUE is generated if width or height is less than 0
+        if width < 0 || height < 0 || level < 0 ||
+            width as u32 > max || height as u32 > max {
+            self.webgl_error(InvalidValue);
+            return false;
+        }
+
+        // GL_INVALID_VALUE may be generated if
+        // level is greater than log_2(max), where max is
+        // the returned value of GL_MAX_TEXTURE_SIZE when
+        // target is GL_TEXTURE_2D or GL_MAX_CUBE_MAP_TEXTURE_SIZE
+        // when target is not GL_TEXTURE_2D.
+        if level > (max as f32).log2() as i32 {
+            self.webgl_error(InvalidValue);
+            return false;
+        }
+
+        // GL_INVALID_VALUE is generated if level is greater than zero and the
+        // texture is not power of two.
+        if level > 0 &&
+           (!(width as u32).is_power_of_two() ||
+            !(height as u32).is_power_of_two()) {
+            self.webgl_error(InvalidValue);
+            return false;
+        }
+
+        true
+    }
+
     fn tex_image_2d(&self,
                     target: u32,
                     level: i32,
@@ -374,11 +399,11 @@ impl WebGLRenderingContext {
                     data_type: u32,
                     pixels: Vec<u8>) { // NB: pixels should NOT be premultipied
         // This should be validated before reaching this function
-        debug_assert!(self.validate_tex_image_parameters(target, level,
-                                                         internal_format,
-                                                         width, height,
-                                                         border, format,
-                                                         data_type));
+        debug_assert!(self.validate_tex_image_2d_parameters(target, level,
+                                                            internal_format,
+                                                            width, height,
+                                                            border, format,
+                                                            data_type));
 
         let slot = match target {
             constants::TEXTURE_2D
@@ -783,6 +808,79 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // FIXME: No compressed texture format is currently supported, so error out as per
         // https://www.khronos.org/registry/webgl/specs/latest/1.0/#COMPRESSED_TEXTURE_SUPPORT
         self.webgl_error(InvalidEnum)
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn CopyTexImage2D(&self, target: u32, level: i32, internal_format: u32,
+                      x: i32, y: i32, width: i32, height: i32, border: i32) {
+        // Validate common tex image parameters
+        if !self.validate_common_tex_image_parameters(target, level, width, height) ||
+            !self.validate_tex_internal_format(internal_format) {
+            return;
+        }
+
+        // GL_INVALID_VALUE is generated if the border is not 0
+        if border != 0 {
+            self.webgl_error(InvalidValue);
+            return;
+        }
+
+        let msg = WebGLCommand::CopyTexImage2D(target, level, internal_format, x, y,
+                                               width, height, border);
+
+        self.ipc_renderer.send(CanvasMsg::WebGL(msg)).unwrap()
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn CopyTexSubImage2D(&self, target: u32, level: i32, xoffset: i32, yoffset: i32,
+                         x: i32, y: i32, width: i32, height: i32) {
+        // Validate common tex image parameters
+        if !self.validate_common_tex_image_parameters(target, level, width, height) {
+            return;
+        }
+
+        // GL_INVALID_VALUE is generated if:
+        //   - x or y are less than 0
+        //   - xoffset or yoffset is less than 0
+        //   - x plus the x offset is greater than the width
+        //   - y plus the y offset is greater than the height
+        if x < 0 || xoffset < 0 || (x + xoffset) > width ||
+            y < 0 || yoffset < 0 || (y + yoffset) > height {
+            self.webgl_error(InvalidValue);
+            return;
+        }
+
+        // We have previously checked target and know that it is vailid, and we
+        // know that if it is not GL_TEXTURE_2D it must be a GL_TEXTURE_CUBE_MAP
+        let (texture, face) = match target {
+            constants::TEXTURE_2D => (self.bound_texture_2d.get().unwrap(), 0),
+            constants::TEXTURE_CUBE_MAP_POSITIVE_X => (self.bound_texture_cube_map.get().unwrap(), 0),
+            constants::TEXTURE_CUBE_MAP_NEGATIVE_X => (self.bound_texture_cube_map.get().unwrap(), 1),
+            constants::TEXTURE_CUBE_MAP_POSITIVE_Y => (self.bound_texture_cube_map.get().unwrap(), 2),
+            constants::TEXTURE_CUBE_MAP_NEGATIVE_Y => (self.bound_texture_cube_map.get().unwrap(), 3),
+            constants::TEXTURE_CUBE_MAP_POSITIVE_Z => (self.bound_texture_cube_map.get().unwrap(), 4),
+            constants::TEXTURE_CUBE_MAP_NEGATIVE_Z => (self.bound_texture_cube_map.get().unwrap(), 5),
+            _ => unreachable!()
+        };
+
+        // Retrieve the destination width and height
+        let (dst_width, dst_height) = {
+            // We have already checked that level is > 0
+            let image_info = texture.image_info_at_face(face, level as u32);
+            (image_info.width() as i32, image_info.height() as i32)
+        };
+
+        // GL_INVALID_VALUE is generated if the width, height, x, or y is greater
+        // than the destination width or height
+        if x > dst_width || width > dst_width || y > dst_height || height > dst_height {
+            self.webgl_error(InvalidValue);
+            return;
+        }
+
+        let msg = WebGLCommand::CopyTexSubImage2D(target, level, xoffset, yoffset,
+                                                  x, y, width, height);
+
+        self.ipc_renderer.send(CanvasMsg::WebGL(msg)).unwrap();
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.11
@@ -1674,13 +1772,13 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                   format: u32,
                   data_type: u32,
                   data: Option<*mut JSObject>) {
-        if !self.validate_tex_image_parameters(target,
-                                               level,
-                                               internal_format,
-                                               width, height,
-                                               border,
-                                               format,
-                                               data_type) {
+        if !self.validate_tex_image_2d_parameters(target,
+                                                  level,
+                                                  internal_format,
+                                                  width, height,
+                                                  border,
+                                                  format,
+                                                  data_type) {
             return; // Error handled in validate()
         }
 
@@ -1819,9 +1917,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         };
 
         // NB: Border must be zero
-        if !self.validate_tex_image_parameters(target, level, internal_format,
-                                               size.width, size.height, 0,
-                                               format, data_type) {
+        if !self.validate_tex_image_2d_parameters(target, level, internal_format,
+                                                  size.width, size.height, 0,
+                                                  format, data_type) {
             return; // Error handled in validate()
         }
 
