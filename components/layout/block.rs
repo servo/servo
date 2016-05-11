@@ -1650,10 +1650,18 @@ impl BlockFlow {
                 // page set `max-width` in order to avoid hitting floats. The search box on Google
                 // SERPs falls into this category.)
                 if self.fragment.style.max_inline_size() == LengthOrPercentageOrNone::None {
+                    let speculated_left_float_size =
+                        max(Au(0),
+                            self.base.speculated_float_placement_in.left -
+                            self.fragment.margin.inline_start);
+                    let speculated_right_float_size =
+                        max(Au(0),
+                            self.base.speculated_float_placement_in.right -
+                            self.fragment.margin.inline_end);
                     self.fragment.border_box.size.inline =
                         self.fragment.border_box.size.inline -
-                        self.base.speculated_float_placement_in.left -
-                        self.base.speculated_float_placement_in.right;
+                        speculated_left_float_size -
+                        speculated_right_float_size;
                 }
             }
             FormattingContextType::None | FormattingContextType::Other => {}
