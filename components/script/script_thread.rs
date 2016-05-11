@@ -96,7 +96,7 @@ use style::context::ReflowGoal;
 use task_source::TaskSource;
 use task_source::dom_manipulation::{DOMManipulationTaskSource, DOMManipulationTask};
 use task_source::file_reading::FileReadingTaskSource;
-use task_source::history_traversal::HistoryTraversalTaskSource;
+use task_source::history_traversal::{HistoryTraversalTaskSource, HistoryTraversalTask};
 use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::{UserInteractionTaskSource, UserInteractionTask};
 use time::Tm;
@@ -223,6 +223,8 @@ pub enum MainThreadScriptMsg {
     DOMManipulation(DOMManipulationTask),
     /// Tasks that originate from the user interaction task source
     UserInteraction(UserInteractionTask),
+    /// Tasks that originate from the history traversal task source
+    HistoryTraversal(HistoryTraversalTask),
 }
 
 impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
@@ -915,6 +917,10 @@ impl ScriptThread {
                 self.handle_framed_content_changed(containing_pipeline_id, subpage_id),
             ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
+            ConstellationControlMsg::UpdateActiveHistoryEntry(pipeline_id, active_entry) =>
+                self.handle_update_active_history_entry(pipeline_id, active_entry),
+            ConstellationControlMsg::ClearForwardSessionHistory(pipeline_id) =>
+                self.handle_clear_forward_session_history(pipeline_id),
         }
     }
 
@@ -940,6 +946,8 @@ impl ScriptThread {
             MainThreadScriptMsg::DOMManipulation(task) =>
                 task.handle_task(self),
             MainThreadScriptMsg::UserInteraction(task) =>
+                task.handle_task(),
+            MainThreadScriptMsg::HistoryTraversal(task) =>
                 task.handle_task(),
         }
     }
@@ -1979,6 +1987,26 @@ impl ScriptThread {
             let message = ScriptToDevtoolsControlMsg::ReportCSSError(pipeline_id, css_error);
             sender.send(message).unwrap();
         }
+    }
+
+    fn handle_update_active_history_entry(&self, pipeline_id: PipelineId, active_index: usize) {
+        let parent_context = self.root_browsing_context();
+        let context = match parent_context.find(pipeline_id) {
+            Some(context) => context,
+            None => return,
+        };
+
+        context.set_active_entry(active_index, true);
+    }
+
+    fn handle_clear_forward_session_history(&self, pipeline_id: PipelineId) {
+        let parent_context = self.root_browsing_context();
+        let context = match parent_context.find(pipeline_id) {
+            Some(context) => context,
+            None => return,
+        };
+
+        context.remove_forward_history();
     }
 }
 

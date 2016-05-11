@@ -74,7 +74,11 @@ pub enum ScriptMsg {
     /// Dispatch a mozbrowser event to a given iframe. Only available in experimental mode.
     MozBrowserEvent(PipelineId, SubpageId, MozBrowserEvent),
     /// HTMLIFrameElement Forward or Back navigation.
-    Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
+    Navigate(NavigationDirection),
+    /// Returns the session history length.
+    HistoryLength(IpcSender<usize>),
+    /// Notifies constellation that a new state was pushed, and the frame needs to be updated
+    HistoryStatePushed(Option<(PipelineId, SubpageId)>, usize),
     /// Favicon detected
     NewFavicon(Url),
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
@@ -112,4 +116,6 @@ pub enum ScriptMsg {
     GetScrollOffset(PipelineId, LayerId, IpcSender<Point2D<f32>>),
     /// Requests that the compositor shut down.
     Exit,
+    /// Checks if the pipeline is fully active
+    IsPipelineFullyActive(PipelineId, IpcSender<bool>),
 }
