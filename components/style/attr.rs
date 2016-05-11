@@ -25,7 +25,7 @@ pub enum AttrValue {
     UInt(DOMString, u32),
     Int(DOMString, i32),
     Double(DOMString, f64),
-    Atom(Atom),
+    Atom(DOMString, Atom),
     Length(DOMString, Option<Length>),
     Color(DOMString, Option<RGBA>),
     Dimension(DOMString, LengthOrPercentageOrAuto),
@@ -181,8 +181,8 @@ impl AttrValue {
     }
 
     pub fn from_atomic(string: DOMString) -> AttrValue {
-        let value = Atom::from(string);
-        AttrValue::Atom(value)
+        let value = Atom::from(&*string);
+        AttrValue::Atom(string, value)
     }
 
     pub fn from_url(base: &Url, url: DOMString) -> AttrValue {
@@ -224,7 +224,7 @@ impl AttrValue {
     /// Panics if the `AttrValue` is not an `Atom`
     pub fn as_atom(&self) -> &Atom {
         match *self {
-            AttrValue::Atom(ref value) => value,
+            AttrValue::Atom(_, ref value) => value,
             _ => panic!("Atom not found"),
         }
     }
@@ -306,8 +306,8 @@ impl Deref for AttrValue {
                 AttrValue::Color(ref value, _) |
                 AttrValue::Int(ref value, _) |
                 AttrValue::Url(ref value, _) |
-                AttrValue::Dimension(ref value, _) => &value,
-            AttrValue::Atom(ref value) => &value,
+                AttrValue::Dimension(ref value, _) |
+                AttrValue::Atom(ref value, _) => value,
         }
     }
 }
