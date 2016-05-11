@@ -4,6 +4,7 @@
 
 #![feature(box_syntax)]
 #![feature(fnbox)]
+#![feature(fs_time)]
 #![feature(mpsc_select)]
 #![feature(plugin)]
 #![feature(plugin)]
@@ -50,6 +51,7 @@ pub mod cookie;
 pub mod cookie_storage;
 pub mod data_loader;
 pub mod file_loader;
+pub mod filemanager_thread;
 pub mod hsts;
 pub mod http_loader;
 pub mod image_cache_thread;
