@@ -31,7 +31,7 @@ use std::ops::BitOr;
 use std::slice;
 use std::str::from_utf8_unchecked;
 use std::sync::Arc;
-use string_cache::{Atom, Namespace};
+use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
 use style::dom::{OpaqueNode, PresentationalHintsSynthetizer};
 use style::dom::{TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use style::element_state::ElementState;
@@ -344,9 +344,8 @@ impl<'le> TElement for GeckoElement<'le> {
     fn get_attr<'a>(&'a self, namespace: &Namespace, name: &Atom) -> Option<&'a str> {
         unsafe {
             let mut length: u32 = 0;
-            let ptr = Gecko_GetAttrAsUTF8(self.element,
-                                          namespace.0.as_ptr(), namespace.0.len() as u32,
-                                          name.as_ptr(), name.len() as u32, &mut length);
+            let ptr = Gecko_GetAttrAsUTF8(self.element, namespace.0.as_ptr(), name.as_ptr(),
+                                          &mut length);
             reinterpret_string(ptr, length)
         }
     }
@@ -408,26 +407,16 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         unimplemented!()
     }
 
-    fn get_local_name(&self) -> &Atom {
-        panic!("Requires signature modification - only implemented in stylo branch");
-        /*
+    fn get_local_name<'a>(&'a self) -> BorrowedAtom<'a> {
         unsafe {
-            let mut length: u32 = 0;
-            let p = Gecko_LocalName(self.element, &mut length);
-            Atom::from(String::from_utf16(slice::from_raw_parts(p, length as usize)).unwrap())
+            BorrowedAtom::new(Gecko_LocalName(self.element))
         }
-        */
     }
 
-    fn get_namespace(&self) -> &Namespace {
-        panic!("Requires signature modification - only implemented in stylo branch");
-        /*
+    fn get_namespace<'a>(&'a self) -> BorrowedNamespace<'a> {
         unsafe {
-            let mut length: u32 = 0;
-            let p = Gecko_Namespace(self.element, &mut length);
-            Namespace(Atom::from(String::from_utf16(slice::from_raw_parts(p, length as usize)).unwrap()))
+            BorrowedNamespace::new(Gecko_Namespace(self.element))
         }
-        */
     }
 
     fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {
