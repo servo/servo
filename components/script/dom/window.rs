@@ -28,6 +28,7 @@ use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::EventTarget;
+use dom::history::History;
 use dom::location::Location;
 use dom::navigator::Navigator;
 use dom::node::{Node, TrustedNodeAddress, from_untrusted_node_address, window_from_node};
@@ -83,7 +84,7 @@ use style::properties::longhands::overflow_x;
 use style::selector_impl::PseudoElement;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::file_reading::FileReadingTaskSource;
-use task_source::history_traversal::HistoryTraversalTaskSource;
+use task_source::history_traversal::{HistoryTraversalTaskSource, HistoryTraversalTask};
 use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
 use time;
@@ -154,6 +155,7 @@ pub struct Window {
     #[ignore_heap_size_of = "channels are hard"]
     custom_message_chan: IpcSender<CustomResponseSender>,
     browsing_context: MutNullableHeap<JS<BrowsingContext>>,
+    history: MutNullableHeap<JS<History>>,
     performance: MutNullableHeap<JS<Performance>>,
     navigation_start: u64,
     navigation_start_precise: f64,
@@ -291,7 +293,7 @@ impl Window {
         self.networking_task_source.clone()
     }
 
-    pub fn history_traversal_task_source(&self) -> Box<ScriptChan + Send> {
+    pub fn history_traversal_task_source(&self) -> Box<TaskSource<HistoryTraversalTask> + Send> {
         self.history_traversal_task_source.clone()
     }
 
@@ -471,6 +473,11 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-location
     fn Location(&self) -> Root<Location> {
         self.Document().GetLocation().unwrap()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-history
+    fn History(&self) -> Root<History> {
+        self.history.or_init(|| History::new(self))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-sessionstorage
@@ -1586,6 +1593,7 @@ impl Window {
             time_profiler_chan: time_profiler_chan,
             devtools_chan: devtools_chan,
             browsing_context: Default::default(),
+            history: Default::default(),
             performance: Default::default(),
             navigation_start: (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64,
             navigation_start_precise: time::precise_time_ns() as f64,
