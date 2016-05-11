@@ -9,9 +9,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::blob::{Blob, DataSlice};
-use encoding::all::UTF_8;
-use encoding::types::{EncoderTrap, Encoding};
+use dom::blob::{Blob, DataSlice, blob_parts_to_bytes};
 use std::sync::Arc;
 use time;
 use util::str::DOMString;
@@ -53,16 +51,7 @@ impl File {
                        filename: DOMString,
                        filePropertyBag: &FileBinding::FilePropertyBag)
                        -> Fallible<Root<File>> {
-        let bytes: Vec<u8> = fileBits.iter().flat_map(|blobpart| {
-                match blobpart {
-                    &BlobOrString::String(ref s) => {
-                        UTF_8.encode(s, EncoderTrap::Replace).unwrap()
-                    },
-                    &BlobOrString::Blob(ref b) => {
-                        b.get_data().get_bytes().to_vec()
-                    },
-                }
-            }).collect();
+        let bytes: Vec<u8> = blob_parts_to_bytes(fileBits);
 
         let ref blobPropertyBag = filePropertyBag.parent;
         let typeString = blobPropertyBag.get_typestring();
