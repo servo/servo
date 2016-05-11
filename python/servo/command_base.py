@@ -256,7 +256,7 @@ class CommandBase(object):
                                   " --release" if release else ""))
         sys.exit()
 
-    def build_env(self, gonk=False, hosts_file_path=None):
+    def build_env(self, gonk=False, hosts_file_path=None, target=None):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
         if sys.platform == "win32" and type(env['PATH']) == unicode:
@@ -399,6 +399,16 @@ class CommandBase(object):
         if self.config["tools"]["rustc-with-gold"] and sys.platform not in ("win32", "msys"):
             if subprocess.call(['which', 'ld.gold'], stdout=PIPE, stderr=PIPE) == 0:
                 env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C link-args=-fuse-ld=gold"
+
+        if not (self.config["build"]["ccache"] == ""):
+            env['CCACHE'] = self.config["build"]["ccache"]
+
+        # Ensure Rust uses hard floats and SIMD on ARM devices
+        if target:
+            if target.startswith('arm') or target.startswith('aarch64'):
+                env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
+
+        env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -W unused-extern-crates"
 
         return env
 

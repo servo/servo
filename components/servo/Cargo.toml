@@ -65,18 +65,17 @@ devtools = {path = "../devtools"}
 webdriver_server = {path = "../webdriver_server", optional = true}
 devtools_traits = {path = "../devtools_traits"}
 glutin_app = {path = "../../ports/glutin", optional = true}
-android_glue = {version = "0.1.3", optional = true}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
-layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
 gleam = "0.2"
 browserhtml = {git = "https://github.com/browserhtml/browserhtml", branch = "gh-pages"}
 env_logger = "0.3"
-euclid = {version = "0.6.4", features = ["plugins"]}
+euclid = "0.6.4"
 libc = "0.2"
-url = {version = "1.0.0", features = ["heap_size", "serde", "query_encoding"]}
+url = "1.0.0"
 
 [target.'cfg(target_os = "android")'.dependencies]
 log = "0.3"
+android_glue = "0.1.3"
 
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 gaol = {git = "https://github.com/servo/gaol"}
