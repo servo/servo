@@ -201,13 +201,14 @@ impl LiveDOMReferences {
 /// A JSTraceDataOp for tracing reflectors held in LIVE_REFERENCES
 pub unsafe extern "C" fn trace_refcounted_objects(tracer: *mut JSTracer,
                                                   _data: *mut os::raw::c_void) {
+    debug!("tracing live refcounted references");
     LIVE_REFERENCES.with(|ref r| {
         let r = r.borrow();
         let live_references = r.as_ref().unwrap();
         let table = live_references.table.borrow();
         for obj in table.keys() {
             let reflectable = &*(*obj as *const Reflector);
-            trace_reflector(tracer, "LIVE_REFERENCES", reflectable);
+            trace_reflector(tracer, "refcounted", reflectable);
         }
     });
 }

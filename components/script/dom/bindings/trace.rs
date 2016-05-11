@@ -171,14 +171,14 @@ impl JSTraceable for Heap<*mut JSObject> {
         if self.get().is_null() {
             return;
         }
-        trace_object(trc, "object", self);
+        trace_object(trc, "heap object", self);
     }
 }
 
 
 impl JSTraceable for Heap<JSVal> {
     fn trace(&self, trc: *mut JSTracer) {
-        trace_jsval(trc, "val", self);
+        trace_jsval(trc, "heap value", self);
     }
 }
 
@@ -552,6 +552,7 @@ impl<A: JSTraceable + Reflectable> FromIterator<Root<A>> for RootedVec<JS<A>> {
 
 /// SM Callback that traces the rooted traceables
 pub unsafe fn trace_traceables(tracer: *mut JSTracer) {
+    debug!("tracing stack-rooted traceables");
     ROOTED_TRACEABLES.with(|ref traceables| {
         let traceables = traceables.borrow();
         traceables.trace(tracer);

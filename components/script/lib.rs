@@ -17,6 +17,7 @@
 #![feature(peekable_is_empty)]
 #![feature(plugin)]
 #![feature(slice_patterns)]
+#![feature(stmt_expr_attributes)]
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]

@@ -115,6 +115,7 @@ thread_local!(static SCRIPT_THREAD_ROOT: RefCell<Option<*const ScriptThread>> = 
 pub unsafe fn trace_thread(tr: *mut JSTracer) {
     SCRIPT_THREAD_ROOT.with(|root| {
         if let Some(script_thread) = *root.borrow() {
+            debug!("tracing fields of ScriptThread");
             (*script_thread).trace(tr);
         }
     });
@@ -1357,6 +1358,7 @@ impl ScriptThread {
 
         // otherwise find just the matching page and exit all sub-pages
         if let Some(ref mut child_page) = page.remove(id) {
+            debug!("shutting down layout for child context {:?}", id);
             shut_down_layout(&*child_page);
         }
         false
