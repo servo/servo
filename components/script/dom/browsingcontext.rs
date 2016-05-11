@@ -102,6 +102,7 @@ impl BrowsingContext {
         history.drain((self.active_index.get() + 1)..);
         history.push(SessionHistoryEntry::new(document, document.url().clone(), document.Title()));
         self.active_index.set(self.active_index.get() + 1);
+        assert_eq!(self.active_index.get(), history.len() - 1);
     }
 
     pub fn active_document(&self) -> Root<Document> {
@@ -202,8 +203,7 @@ impl Iterator for ContextIterator {
         if let Some(ref context) = popped {
             self.stack.extend(context.children.borrow()
                                               .iter()
-                                              .cloned()
-                                              .map(|ref c| Root::from_ref(&**c)));
+                                              .map(|c| Root::from_ref(&**c)));
         }
         popped
     }

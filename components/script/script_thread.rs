@@ -625,17 +625,15 @@ impl ScriptThread {
         // Gather them first to avoid a double mut borrow on self.
         let mut resizes = vec!();
 
-        {
-            let context = self.browsing_context.get();
-            if let Some(context) = context {
-                for context in context.iter() {
-                    // Only process a resize if layout is idle.
-                    let window = context.active_window();
-                    let resize_event = window.steal_resize_event();
-                    match resize_event {
-                        Some(size) => resizes.push((window.pipeline(), size)),
-                        None => ()
-                    }
+        let context = self.browsing_context.get();
+        if let Some(context) = context {
+            for context in context.iter() {
+                // Only process a resize if layout is idle.
+                let window = context.active_window();
+                let resize_event = window.steal_resize_event();
+                match resize_event {
+                    Some(size) => resizes.push((window.pipeline(), size)),
+                    None => ()
                 }
             }
         }
@@ -1396,7 +1394,7 @@ impl ScriptThread {
             let ConstellationChan(ref chan) = self.constellation_chan;
             chan.send(ConstellationMsg::SetFinalUrl(incomplete.pipeline_id, final_url.clone())).unwrap();
         }
-        debug!("ScriptThread: loading {} on context {:?}", incomplete.url, incomplete.pipeline_id);
+        debug!("ScriptThread: loading {} on pipeline {:?}", incomplete.url, incomplete.pipeline_id);
 
         let frame_element = incomplete.parent_info.and_then(|(parent_id, subpage_id)| {
             // The root context may not exist yet, if the parent of this frame
