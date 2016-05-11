@@ -207,7 +207,7 @@ impl AsyncResponseListener for ImageContext {
         }
     }
 
-    fn response_complete(&mut self, status: Result<(), NetworkError>) {
+    fn response_complete(&mut self, _status: Result<(), NetworkError>) {
         let elem = self.elem.root();
         let document = document_from_node(elem.r());
         let window = document.window();

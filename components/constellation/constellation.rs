@@ -78,6 +78,7 @@ enum ReadyToSave {
     NoRootFrame,
     PendingFrames,
     WebFontNotLoaded,
+    ImageNotLoaded,
     DocumentLoading,
     EpochMismatch,
     PipelineUnknown,
@@ -1813,18 +1814,22 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
             // Check to see if there are any webfonts still loading.
             //
-            // If GetWebFontLoadState returns false, either there are no
+            // If GetResourceLoadState returns false, either there are no
             // webfonts loading, or there's a WebFontLoaded message waiting in
             // script_chan's message queue. Therefore, we need to check this
             // before we check whether the document is ready; otherwise,
             // there's a race condition where a webfont has finished loading,
             // but hasn't yet notified the document.
-            let msg = LayoutControlMsg::GetWebFontLoadState(state_sender.clone());
+            let msg = LayoutControlMsg::GetResourceLoadState(state_sender.clone());
             if let Err(e) = pipeline.layout_chan.0.send(msg) {
                 warn!("Get web font failed ({})", e);
             }
-            if state_receiver.recv().unwrap_or(true) {
+            let pending = state_receiver.recv();
+            if pending.as_ref().map(|p| p.web_font).unwrap_or(true) {
                 return ReadyToSave::WebFontNotLoaded;
+            }
+            if pending.map(|p| p.image).unwrap_or(true) {
+                return ReadyToSave::ImageNotLoaded;
             }
 
             // See if this pipeline has reached idle script state yet.
