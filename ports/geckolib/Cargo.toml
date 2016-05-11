@@ -20,12 +20,15 @@ heapsize_plugin = "0.1.2"
 lazy_static = "0.2"
 libc = "0.2"
 num_cpus = "0.2.2"
-selectors = "0.5"
+selectors = "0.6"
 smallvec = "0.1"
-string_cache = "0.2.12"
+string_cache = "0.2.16"
 url = "1.0.0"
 log = {version = "0.3.5", features = ["release_max_level_info"]}
 plugins = {path = "../../components/plugins"}
 util = {path = "../../components/util"}
 style = {path = "../../components/style", features = ["gecko"]}
 env_logger = "0.3"
+
+[replace]
+"string_cache:0.2.16" = {path = "string_cache"}

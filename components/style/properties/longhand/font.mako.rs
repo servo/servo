@@ -13,12 +13,6 @@
     use values::computed::ComputedValueAsSpecified;
     pub use self::computed_value::T as SpecifiedValue;
 
-    const SERIF: &'static str = "serif";
-    const SANS_SERIF: &'static str = "sans-serif";
-    const CURSIVE: &'static str = "cursive";
-    const FANTASY: &'static str = "fantasy";
-    const MONOSPACE: &'static str = "monospace";
-
     impl ComputedValueAsSpecified for SpecifiedValue {}
     pub mod computed_value {
         use cssparser::ToCss;
@@ -28,45 +22,44 @@
         #[derive(Debug, PartialEq, Eq, Clone, Hash, HeapSizeOf, Deserialize, Serialize)]
         pub enum FontFamily {
             FamilyName(Atom),
-            // Generic,
-            Serif,
-            SansSerif,
-            Cursive,
-            Fantasy,
-            Monospace,
+            Generic(Atom),
         }
         impl FontFamily {
+
             #[inline]
-            pub fn name(&self) -> &str {
+            pub fn atom(&self) -> &Atom {
                 match *self {
-                    FontFamily::FamilyName(ref name) => &*name,
-                    FontFamily::Serif => super::SERIF,
-                    FontFamily::SansSerif => super::SANS_SERIF,
-                    FontFamily::Cursive => super::CURSIVE,
-                    FontFamily::Fantasy => super::FANTASY,
-                    FontFamily::Monospace => super::MONOSPACE
+                    FontFamily::FamilyName(ref name) => name,
+                    FontFamily::Generic(ref name) => name,
                 }
             }
 
+            #[inline]
+            #[cfg(not(feature = "gecko"))] // Gecko can't borrow atoms as UTF-8.
+            pub fn name(&self) -> &str {
+                self.atom()
+            }
+
+            #[cfg(not(feature = "gecko"))] // Gecko can't borrow atoms as UTF-8.
             pub fn from_atom(input: Atom) -> FontFamily {
                 let option = match_ignore_ascii_case! { &input,
-                    super::SERIF => Some(FontFamily::Serif),
-                    super::SANS_SERIF => Some(FontFamily::SansSerif),
-                    super::CURSIVE => Some(FontFamily::Cursive),
-                    super::FANTASY => Some(FontFamily::Fantasy),
-                    super::MONOSPACE => Some(FontFamily::Monospace),
+                    &atom!("serif") => Some(atom!("serif")),
+                    &atom!("sans-serif") => Some(atom!("sans-serif")),
+                    &atom!("cursive") => Some(atom!("cursive")),
+                    &atom!("fantasy") => Some(atom!("fantasy")),
+                    &atom!("monospace") => Some(atom!("monospace")),
                     _ => None
                 };
 
                 match option {
-                    Some(family) => family,
+                    Some(family) => FontFamily::Generic(family),
                     None => FontFamily::FamilyName(input)
                 }
             }
         }
         impl ToCss for FontFamily {
             fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-                dest.write_str(self.name())
+                self.atom().with_str(|s| dest.write_str(s))
             }
         }
         impl ToCss for T {
@@ -86,7 +79,7 @@
 
     #[inline]
     pub fn get_initial_value() -> computed_value::T {
-        computed_value::T(vec![FontFamily::Serif])
+        computed_value::T(vec![FontFamily::Generic(atom!("serif"))])
     }
     /// <family-name>#
     /// <family-name> = <string> | [ <ident>+ ]
@@ -100,14 +93,18 @@
         }
         let first_ident = try!(input.expect_ident());
 
-        match_ignore_ascii_case! { first_ident,
-            SERIF => return Ok(FontFamily::Serif),
-            SANS_SERIF => return Ok(FontFamily::SansSerif),
-            CURSIVE => return Ok(FontFamily::Cursive),
-            FANTASY => return Ok(FontFamily::Fantasy),
-            MONOSPACE => return Ok(FontFamily::Monospace),
+        // FIXME(bholley): The fast thing to do here would be to look up the
+        // string (as lowercase) in the static atoms table. We don't have an
+        // API to do that yet though, so we do the simple thing for now.
+        match &first_ident[..] {
+            s if atom!("serif").eq_str_ignore_ascii_case(s) => return Ok(FontFamily::Generic(atom!("serif"))),
+            s if atom!("sans-serif").eq_str_ignore_ascii_case(s) => return Ok(FontFamily::Generic(atom!("sans-serif"))),
+            s if atom!("cursive").eq_str_ignore_ascii_case(s) => return Ok(FontFamily::Generic(atom!("cursive"))),
+            s if atom!("fantasy").eq_str_ignore_ascii_case(s) => return Ok(FontFamily::Generic(atom!("fantasy"))),
+            s if atom!("monospace").eq_str_ignore_ascii_case(s) => return Ok(FontFamily::Generic(atom!("monospace"))),
             _ => {}
         }
+
         let mut value = first_ident.into_owned();
         while let Ok(ident) = input.try(|input| input.expect_ident()) {
             value.push_str(" ");

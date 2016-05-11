@@ -62,7 +62,7 @@ use std::cell::{Ref, RefCell, RefMut};
 use std::marker::PhantomData;
 use std::mem::{transmute, transmute_copy};
 use std::sync::Arc;
-use string_cache::{Atom, Namespace};
+use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace};
 use style::computed_values::content::ContentItem;
 use style::computed_values::{content, display};
 use style::dom::{PresentationalHintsSynthetizer, TDocument, TElement, TNode, UnsafeNode};
@@ -519,13 +519,13 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
     }
 
     #[inline]
-    fn get_local_name(&self) -> &Atom {
-        self.element.local_name()
+    fn get_local_name<'a>(&'a self) -> BorrowedAtom<'a> {
+        BorrowedAtom(self.element.local_name())
     }
 
     #[inline]
-    fn get_namespace(&self) -> &Namespace {
-        self.element.namespace()
+    fn get_namespace<'a>(&'a self) -> BorrowedNamespace<'a> {
+        BorrowedNamespace(self.element.namespace())
     }
 
     fn match_non_ts_pseudo_class(&self, pseudo_class: NonTSPseudoClass) -> bool {
@@ -737,8 +737,8 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
     #[inline]
     fn get_details_summary_pseudo(&self) -> Option<Self> {
         if self.is_element() &&
-           self.as_element().get_local_name() == &atom!("details") &&
-           self.as_element().get_namespace() == &ns!(html) {
+           self.as_element().get_local_name() == atom!("details") &&
+           self.as_element().get_namespace() == ns!(html) {
             Some(self.with_pseudo(PseudoElementType::DetailsSummary(None)))
         } else {
             None
@@ -748,8 +748,8 @@ pub trait ThreadSafeLayoutNode: Clone + Copy + Sized + PartialEq {
     #[inline]
     fn get_details_content_pseudo(&self) -> Option<Self> {
         if self.is_element() &&
-           self.as_element().get_local_name() == &atom!("details") &&
-           self.as_element().get_namespace() == &ns!(html) {
+           self.as_element().get_local_name() == atom!("details") &&
+           self.as_element().get_namespace() == ns!(html) {
             let display = if self.as_element().get_attr(&ns!(), &atom!("open")).is_some() {
                 None // Specified by the stylesheet
             } else {
@@ -958,10 +958,10 @@ pub trait ThreadSafeLayoutElement: Clone + Copy + Sized +
     fn get_attr(&self, namespace: &Namespace, name: &Atom) -> Option<&str>;
 
     #[inline]
-    fn get_local_name(&self) -> &Atom;
+    fn get_local_name<'a>(&'a self) -> BorrowedAtom<'a>;
 
     #[inline]
-    fn get_namespace(&self) -> &Namespace;
+    fn get_namespace<'a>(&'a self) -> BorrowedNamespace<'a>;
 }
 
 #[derive(Copy, Clone)]
@@ -1222,8 +1222,8 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
                 loop {
                     let next_node = if let Some(ref node) = current_node {
                         if node.is_element() &&
-                           node.as_element().get_local_name() == &atom!("summary") &&
-                           node.as_element().get_namespace() == &ns!(html) {
+                           node.as_element().get_local_name() == atom!("summary") &&
+                           node.as_element().get_namespace() == ns!(html) {
                             self.current_node = None;
                             return Some(node.clone());
                         }
@@ -1240,8 +1240,8 @@ impl<ConcreteNode> Iterator for ThreadSafeLayoutNodeChildrenIterator<ConcreteNod
                 let node = self.current_node.clone();
                 let node = node.and_then(|node| {
                     if node.is_element() &&
-                       node.as_element().get_local_name() == &atom!("summary") &&
-                       node.as_element().get_namespace() == &ns!(html) {
+                       node.as_element().get_local_name() == atom!("summary") &&
+                       node.as_element().get_namespace() == ns!(html) {
                         unsafe { node.dangerous_next_sibling() }
                     } else {
                         Some(node)
@@ -1301,13 +1301,13 @@ impl<'le> ThreadSafeLayoutElement for ServoThreadSafeLayoutElement<'le> {
     }
 
     #[inline]
-    fn get_local_name(&self) -> &Atom {
-        self.element.local_name()
+    fn get_local_name<'a>(&'a self) -> BorrowedAtom<'a> {
+        BorrowedAtom(self.element.local_name())
     }
 
     #[inline]
-    fn get_namespace(&self) -> &Namespace {
-        self.element.namespace()
+    fn get_namespace<'a>(&'a self) -> BorrowedNamespace<'a> {
+        BorrowedNamespace(self.element.namespace())
     }
 }
 
@@ -1374,12 +1374,12 @@ impl <'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     }
 
     #[inline]
-    fn get_local_name(&self) -> &Atom {
+    fn get_local_name<'a>(&'a self) -> BorrowedAtom<'a> {
         ThreadSafeLayoutElement::get_local_name(self)
     }
 
     #[inline]
-    fn get_namespace(&self) -> &Namespace {
+    fn get_namespace<'a>(&'a self) -> BorrowedNamespace<'a> {
         ThreadSafeLayoutElement::get_namespace(self)
     }
 
