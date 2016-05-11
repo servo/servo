@@ -11,7 +11,7 @@ name = "style"
 path = "lib.rs"
 
 [features]
-gecko = []
+gecko = ["gecko_atom", "selectors/gecko_atom"]
 
 [dependencies]
 plugins = {path = "../plugins"}
@@ -23,6 +23,7 @@ cssparser = {version = "0.5.5", features = ["heap_size", "serde-serialization"]}
 encoding = "0.2"
 euclid = {version = "0.6.4", features = ["plugins"]}
 fnv = "1.0"
+gecko_atom = {version = "1.0.0", optional = true}
 heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
 lazy_static = "0.2"

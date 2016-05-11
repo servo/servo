@@ -26,7 +26,7 @@ use gecko_style_structs::nsStyleSVGReset;
 use gecko_style_structs::nsStyleColumn;
 use gecko_style_structs::nsStyleEffects;
 
-pub enum nsIAtom { }
+pub use string_cache::nsIAtom;
 pub enum nsINode { }
 pub type RawGeckoNode = nsINode;
 pub enum Element { }
@@ -108,8 +108,8 @@ extern "C" {
      -> *mut ServoComputedValues;
     pub fn Servo_AddRefComputedValues(arg1: *mut ServoComputedValues);
     pub fn Servo_ReleaseComputedValues(arg1: *mut ServoComputedValues);
-    pub fn Gecko_GetAttrAsUTF8(element: *mut RawGeckoElement, ns: *const u8, nslen: u32,
-                               name: *const u8, namelen: u32, length: *mut u32)
+    pub fn Gecko_GetAttrAsUTF8(element: *mut RawGeckoElement, ns: *mut nsIAtom,
+                               name: *mut nsIAtom, length: *mut u32)
      -> *const ::std::os::raw::c_char;
     pub fn Gecko_GetAtomAsUTF16(atom: *mut nsIAtom, length: *mut u32)
      -> *const u16;

@@ -40,7 +40,8 @@ extern crate rand;
 extern crate rustc_serialize;
 extern crate serde;
 extern crate smallvec;
-extern crate string_cache;
+#[cfg(not(feature = "gecko_atom"))] #[macro_use] extern crate string_cache;
+#[cfg(feature = "gecko_atom")] #[macro_use] extern crate gecko_atom as string_cache;
 extern crate url;
 
 use std::sync::Arc;
@@ -80,7 +81,7 @@ pub fn breakpoint() {
 
 // Workaround for lack of `ptr_eq` on Arcs...
 #[inline]
-pub fn arc_ptr_eq<T: 'static + Send + Sync>(a: &Arc<T>, b: &Arc<T>) -> bool {
+pub fn arc_ptr_eq<T: 'static>(a: &Arc<T>, b: &Arc<T>) -> bool {
     let a: &T = &**a;
     let b: &T = &**b;
     (a as *const T) == (b as *const T)
