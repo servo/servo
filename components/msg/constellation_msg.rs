@@ -259,8 +259,8 @@ impl LoadData {
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize)]
 pub enum NavigationDirection {
-    Forward,
-    Back,
+    Forward(usize),
+    Back(usize),
 }
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize)]
