@@ -7,19 +7,16 @@
 <script src="/resources/testharnessreport.js"></script>
 <a>anchor</a>
 <script>
-function test_getter(property,url,expectedresult) {
-  var a = document.querySelector('a');
-}
 function test_gettersetter(property, oldresult, newval, newresult, oldurl, newurl) {
   var a = document.querySelector('a');
   a.href = oldurl;
   var r1 = a[property];
-  assert_equals(r1,oldresult);
+  assert_equals(r1, oldresult);
   a[property] = newval;
   var r2 = a[property];
-  assert_equals(r2,newresult);
+  assert_equals(r2, newresult);
   var r3 = a.href;
-  assert_equals(r3,newurl);
+  assert_equals(r3, newurl);
 }
 
 //Elements for each test: [property, oldresult, newvalue, newresult, oldurl, newurl]
@@ -54,9 +51,10 @@ tests = [
   // the following two tests pass
   ["search", "?ho", "?hi", "?hi", "http://google.com/?ho", "http://google.com/?hi"],
   ["search", "?ho", "hi", "?hi", "http://google.com/?ho", "http://google.com/?hi"],
-// these don't
-// ["search", "?ho", "?hi", "?hi", "http://google.com?ho", "http://google.com?hi"],
-// ["search", "?ho", "hi", "?hi", "http://google.com?ho", "http://google.com?hi"],
+  // FIXME: the following two tests fail
+  // (please check specification what is the correct behaviour if ? directly follows the host without file or /
+  ["search", "?ho", "?hi", "?hi", "http://google.com?ho", "http://google.com?hi"],
+  ["search", "?ho", "hi", "?hi", "http://google.com?ho", "http://google.com?hi"],
   ["username", "anonymous", "wellknown", "wellknown",
    "https://anonymous:pwd@developer.mozilla.org:1234/en-US/",
    "https://wellknown:pwd@developer.mozilla.org:1234/en-US/"]
@@ -64,7 +62,7 @@ tests = [
 
 for (var i = 0; i < tests.length; i++) {
     test(function() {
-        test_gettersetter(tests[i][0],tests[i][1],tests[i][2],tests[i][3],tests[i][4],tests[i][5])
+        test_gettersetter(tests[i][0], tests[i][1], tests[i][2], tests[i][3], tests[i][4], tests[i][5])
     }, "Getter and setter for attribute of anchor element(" + i + "):" + tests[i][0] );
 }
 </script>
