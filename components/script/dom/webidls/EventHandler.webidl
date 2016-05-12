@@ -56,6 +56,7 @@ interface GlobalEventHandlers {
 // https://html.spec.whatwg.org/multipage/#windoweventhandlers
 [NoInterfaceObject]
 interface WindowEventHandlers {
-           attribute EventHandler onunload;
+           attribute EventHandler onmessage;
            attribute EventHandler onstorage;
+           attribute EventHandler onunload;
 };

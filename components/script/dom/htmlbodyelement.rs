@@ -92,6 +92,16 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
         window_from_node(self).SetOnstorage(listener)
     }
 
+    // https://html.spec.whatwg.org/multipage/#the-body-element
+    fn GetOnmessage(&self) -> Option<Rc<EventHandlerNonNull>> {
+        window_from_node(self).GetOnmessage()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#the-body-element
+    fn SetOnmessage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+        window_from_node(self).SetOnmessage(listener)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-body-background
     make_getter!(Background, "background");
 
