@@ -1390,14 +1390,17 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     }
 
     fn handle_get_pipeline(&mut self, frame_id: Option<FrameId>,
-                           resp_chan: IpcSender<Option<PipelineId>>) {
+                           resp_chan: IpcSender<Option<(PipelineId, bool)>>) {
         let current_pipeline_id = frame_id.or(self.root_frame_id)
             .and_then(|frame_id| self.frames.get(&frame_id))
             .map(|frame| frame.current);
-        let pipeline_id = self.pending_frames.iter().rev()
+        let current_pipeline_id_loaded = current_pipeline_id
+            .map(|id| (id, true));
+        let pipeline_id_loaded = self.pending_frames.iter().rev()
             .find(|x| x.old_pipeline_id == current_pipeline_id)
-            .map(|x| x.new_pipeline_id).or(current_pipeline_id);
-        if let Err(e) = resp_chan.send(pipeline_id) {
+            .map(|x| (x.new_pipeline_id, x.document_ready))
+            .or(current_pipeline_id_loaded);
+        if let Err(e) = resp_chan.send(pipeline_id_loaded) {
             warn!("Failed get_pipeline response ({}).", e);
         }
     }

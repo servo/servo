@@ -223,32 +223,31 @@ impl Handler {
         }
     }
 
-    fn root_pipeline(&self) -> WebDriverResult<PipelineId> {
+    fn pipeline(&self, frame_id: Option<FrameId>) -> WebDriverResult<PipelineId> {
         let interval = 20;
         let iterations = 30_000 / interval;
+        let (sender, receiver) = ipc::channel().unwrap();
 
         for _ in 0..iterations {
-            if let Some(x) = self.pipeline(None) {
-                return Ok(x)
-            };
-
+            let msg = ConstellationMsg::GetPipeline(frame_id, sender.clone());
+            self.constellation_chan.send(msg).unwrap();
+            // Wait until the document is ready before returning the pipeline id.
+            if let Some((x, true)) = receiver.recv().unwrap() {
+                return Ok(x);
+            }
             thread::sleep(Duration::from_millis(interval));
-        };
+        }
 
         Err(WebDriverError::new(ErrorStatus::Timeout,
-                                "Failed to get root window handle"))
+                                "Failed to get window handle"))
+    }
+
+    fn root_pipeline(&self) -> WebDriverResult<PipelineId> {
+        self.pipeline(None)
     }
 
     fn frame_pipeline(&self) -> WebDriverResult<PipelineId> {
-        if let Some(ref session) = self.session {
-            match self.pipeline(session.frame_id) {
-                Some(x) => Ok(x),
-                None => Err(WebDriverError::new(ErrorStatus::NoSuchFrame,
-                                                "Frame got closed"))
-            }
-        } else {
-            panic!("Command tried to access session but session is None");
-        }
+        self.pipeline(self.session.as_ref().and_then(|session| session.frame_id))
     }
 
     fn session(&self) -> WebDriverResult<&WebDriverSession> {
@@ -268,14 +267,6 @@ impl Handler {
             None => Err(WebDriverError::new(ErrorStatus::SessionNotCreated,
                                             "Session not created"))
         }
-    }
-
-    fn pipeline(&self, frame_id: Option<FrameId>) -> Option<PipelineId> {
-        let (sender, receiver) = ipc::channel().unwrap();
-        self.constellation_chan.send(ConstellationMsg::GetPipeline(frame_id, sender)).unwrap();
-
-
-        receiver.recv().unwrap()
     }
 
     fn handle_new_session(&mut self) -> WebDriverResult<WebDriverResponse> {
