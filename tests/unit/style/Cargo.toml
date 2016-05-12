@@ -9,8 +9,6 @@ path = "lib.rs"
 doctest = false
 
 [dependencies]
-msg = {path = "../../../components/msg"}
-plugins = {path = "../../../components/plugins"}
 style = {path = "../../../components/style"}
 style_traits = {path = "../../../components/style_traits"}
 util = {path = "../../../components/util"}
