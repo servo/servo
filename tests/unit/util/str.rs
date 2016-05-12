@@ -12,7 +12,7 @@ pub fn split_html_space_chars_whitespace() {
 
 #[test]
 pub fn test_str_join_empty() {
-    let slice = [] as [&str; 0];
+    let slice: [&str; 0] = [];
     let actual = str_join(&slice, "-");
     let expected = "";
     assert_eq!(actual, expected);
