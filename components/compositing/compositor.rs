@@ -512,7 +512,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match ipc::channel() {
             Ok((sender, receiver)) => {
                 self.time_profiler_chan.send(time::ProfilerMsg::Exit(sender));
-                receiver.recv();
+                let _ = receiver.recv();
             },
             Err(_) => {},
         }
