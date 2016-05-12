@@ -340,7 +340,7 @@ impl Drop for ${style_struct.gecko_struct_name} {
 impl Clone for ${style_struct.gecko_struct_name} {
     fn clone(&self) -> Self {
         unsafe {
-            let mut result: Self = zeroed();
+            let mut result = ${style_struct.gecko_struct_name} { gecko: zeroed() };
             Gecko_CopyConstruct_${style_struct.gecko_ffi_name}(&mut result.gecko, &self.gecko);
             result
         }
