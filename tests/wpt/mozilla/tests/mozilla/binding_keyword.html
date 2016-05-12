@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  var t = new TestBinding();
+  console.log("created");
+  var dict = t.receiveTestDictionaryWithSuccessOnKeyword();
+  console.log("received");
+  assert_equals(dict.type, "success");
+  console.log("is success (assert)");
+  var is_success = t.typeKeywordIsSuccess(dict);
+  console.log("after call");
+  assert_true(is_success);
+  console.log("is success");
+}, "Conversion of dictionary elements with rust keywords works")
+</script>

@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script>
+  var t = new TestBinding();
+  console.log("created");
+  var dict = t.receiveTestDictionaryWithSuccessOnKeyword();
+  console.log("received: ", dict.type);
+  try {
+    var is_success = t.typeKeywordIsSuccess(dict);
+    console.log("is: ", is_success);
+  } catch (ex) {
+    console.log("exception: ", ex);
+  }
+  console.log("out of the try block.");
+</script>
