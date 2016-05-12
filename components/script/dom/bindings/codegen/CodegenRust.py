@@ -638,8 +638,11 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     # Note that we can't just set failureCode to exceptionCode, because setting
     # failureCode will prevent pending exceptions from being set in cases when
     # they really should be!
+    unhandledExceptionCode = exceptionCode
     if exceptionCode is None:
-        exceptionCode = "return false;"
+        exceptionCode = 'return false;'
+        unhandledExceptionCode = 'debug!("Unhandled exception error"); return false;'
+
 
     needsRooting = typeNeedsRooting(type, descriptorProvider)
 
@@ -717,7 +720,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
                         "    Ok(value) => value,\n"
                         "    Err(()) => { %s },\n"
-                        "}" % (config, exceptionCode))
+                        "}" % (config, unhandledExceptionCode))
 
         return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
@@ -729,7 +732,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         templateBody = ("match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
                         "    Ok(value) => value,\n"
                         "    Err(()) => { %s },\n"
-                        "}" % exceptionCode)
+                        "}" % unhandledExceptionCode)
 
         return handleOptional(templateBody, declType, handleDefaultNull("None"))
 
@@ -800,7 +803,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
             "    Ok(strval) => strval,\n"
             "    Err(_) => { %s },\n"
-            "}" % (nullBehavior, exceptionCode))
+            "}" % (nullBehavior, unhandledExceptionCode))
 
         if defaultValue is None:
             default = None
@@ -826,7 +829,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
             "    Ok(strval) => strval,\n"
             "    Err(_) => { %s },\n"
-            "}" % exceptionCode)
+            "}" % unhandledExceptionCode)
 
         if defaultValue is None:
             default = None
@@ -852,7 +855,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             "match FromJSValConvertible::from_jsval(cx, ${val}, ()) {\n"
             "    Ok(strval) => strval,\n"
             "    Err(_) => { %s },\n"
-            "}" % exceptionCode)
+            "}" % unhandledExceptionCode)
 
         declType = CGGeneric("ByteString")
         if type.nullable():
@@ -881,7 +884,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             "        mem::transmute(index)\n"
             "    },\n"
             "}" % {"values": enum + "Values::strings",
-                   "exceptionCode": exceptionCode,
+                   "exceptionCode": unhandledExceptionCode,
                    "handleInvalidEnumValueCode": handleInvalidEnumValueCode})
 
         if defaultValue is not None:
@@ -996,7 +999,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         template = ("match %s::new(cx, ${val}) {\n"
                     "    Ok(dictionary) => dictionary,\n"
                     "    Err(_) => { %s },\n"
-                    "}" % (typeName, exceptionCode))
+                    "}" % (typeName, unhandledExceptionCode))
 
         return handleOptional(template, declType, handleDefaultNull("%s::empty(cx)" % typeName))
 
@@ -1021,7 +1024,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         "match FromJSValConvertible::from_jsval(cx, ${val}, %s) {\n"
         "    Ok(v) => v,\n"
         "    Err(_) => { %s }\n"
-        "}" % (conversionBehavior, exceptionCode))
+        "}" % (conversionBehavior, unhandledExceptionCode))
 
     if defaultValue is not None:
         if isinstance(defaultValue, IDLNullValue):
