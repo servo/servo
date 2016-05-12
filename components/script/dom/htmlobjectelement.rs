@@ -6,6 +6,7 @@ use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
+use dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::document::Document;
@@ -20,6 +21,7 @@ use net_traits::image::base::Image;
 use std::sync::Arc;
 use string_cache::Atom;
 use util::str::DOMString;
+
 
 #[dom_struct]
 pub struct HTMLObjectElement {
@@ -92,8 +94,11 @@ impl HTMLObjectElementMethods for HTMLObjectElement {
     }
 }
 
-impl Validatable for HTMLObjectElement {}
-
+impl Validatable for HTMLObjectElement {
+    fn get_value_for_validation(&self) -> Option<DOMString>{
+        None
+    }
+}
 impl VirtualMethods for HTMLObjectElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
@@ -112,4 +117,48 @@ impl VirtualMethods for HTMLObjectElement {
     }
 }
 
-impl FormControl for HTMLObjectElement {}
+impl FormControl for HTMLObjectElement {
+    fn candidate_for_validation(&self, element: &Element) -> bool {
+        if element.as_maybe_validatable().is_some() {
+            return true
+        }
+        else {
+           return false
+        }
+    }
+
+    fn satisfies_constraints(&self, element: &Element) -> bool {
+        let vs = ValidityState::new(window_from_node(self).r(), element);
+        return  vs.Valid()
+    }
+    fn ValueMissing(&self) -> bool {
+            return false;
+    }
+    fn TypeMismatch(&self) -> bool {
+            return false;
+    }
+    fn PatternMismatch(&self) -> bool {
+            return false;
+    }
+    fn TooLong(&self) -> bool {
+            return false;
+    }
+    fn TooShort(&self) -> bool {
+            return false;
+    }
+    fn RangeUnderflow(&self) -> bool {
+            return false;
+    }
+    fn RangeOverflow(&self) -> bool {
+            return false;
+    }
+    fn StepMismatch(&self) -> bool {
+            return false;
+    }
+    fn BadInput(&self) -> bool {
+            return false;
+    }
+    fn CustomError(&self) -> bool {
+            return false;
+    }
+}
