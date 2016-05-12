@@ -11,6 +11,14 @@ matrix:
     - sudo: 9000
       dist: trusty
       script:
+         - which python
+         - which pip
+         - which virtualenv
+         - virtualenv --version
+         - pip install --upgrade pip virtualenv
+         - which pip
+         - which virtualenv
+         - virtualenv --version
          - ./mach build -d --verbose
          - ./mach test-compiletest
          - ./mach test-unit
