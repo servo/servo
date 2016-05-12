@@ -6772,6 +6772,12 @@
             "url": "/_mozilla/mozilla/websocket_connection_fail.html"
           }
         ],
+        "mozilla/window-postmessage-sameorigin.html": [
+          {
+            "path": "mozilla/window-postmessage-sameorigin.html",
+            "url": "/_mozilla/mozilla/window-postmessage-sameorigin.html"
+          }
+        ],
         "mozilla/window.html": [
           {
             "path": "mozilla/window.html",
