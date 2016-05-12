@@ -31,7 +31,7 @@ pub enum ProfilerMsg {
     /// Message used to force print the profiling metrics
     Print,
     /// Tells the profiler to shut down.
-    Exit,
+    Exit(IpcSender<()>),
 }
 
 #[repr(u32)]
