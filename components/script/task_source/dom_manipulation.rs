@@ -18,8 +18,10 @@ impl TaskSource<DOMManipulationTask> for DOMManipulationTaskSource {
     fn queue(&self, msg: DOMManipulationTask) -> Result<(), ()> {
         self.0.send(MainThreadScriptMsg::DOMManipulation(msg)).map_err(|_| ())
     }
+}
 
-    fn clone(&self) -> Box<TaskSource<DOMManipulationTask> + Send> {
+impl DOMManipulationTaskSource {
+    pub fn clone(&self) -> Box<TaskSource<DOMManipulationTask> + Send> {
         box DOMManipulationTaskSource((&self.0).clone())
     }
 }
@@ -42,7 +44,7 @@ pub enum DOMManipulationTask {
 }
 
 impl DOMManipulationTask {
-    pub fn handle_msg(self, script_thread: &ScriptThread) {
+    pub fn handle_task(self, script_thread: &ScriptThread) {
         use self::DOMManipulationTask::*;
 
         match self {

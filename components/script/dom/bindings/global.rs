@@ -175,15 +175,6 @@ impl<'a> GlobalRef<'a> {
 
     /// `ScriptChan` used to send messages to the event loop of this global's
     /// thread.
-    pub fn user_interaction_task_source(&self) -> Box<ScriptChan + Send> {
-        match *self {
-            GlobalRef::Window(ref window) => window.user_interaction_task_source(),
-            GlobalRef::Worker(ref worker) => worker.script_chan(),
-        }
-    }
-
-    /// `ScriptChan` used to send messages to the event loop of this global's
-    /// thread.
     pub fn networking_task_source(&self) -> Box<ScriptChan + Send> {
         match *self {
             GlobalRef::Window(ref window) => window.networking_task_source(),

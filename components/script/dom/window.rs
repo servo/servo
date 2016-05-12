@@ -275,7 +275,7 @@ impl Window {
         self.dom_manipulation_task_source.clone()
     }
 
-    pub fn user_interaction_task_source(&self) -> Box<ScriptChan + Send> {
+    pub fn user_interaction_task_source(&self) -> UserInteractionTaskSource {
         self.user_interaction_task_source.clone()
     }
 

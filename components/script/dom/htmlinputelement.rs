@@ -12,10 +12,8 @@ use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
 use dom::bindings::error::{Error, ErrorResult};
-use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
-use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers, LayoutElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -31,9 +29,7 @@ use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
-use script_runtime::CommonScriptMsg;
-use script_runtime::ScriptThreadEventCategory::InputEvent;
-use script_thread::Runnable;
+use script_runtime::ScriptChan;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -549,6 +545,12 @@ impl HTMLInputElementMethods for HTMLInputElement {
         let direction = direction.map_or(SelectionDirection::None, |d| SelectionDirection::from(d));
         self.textinput.borrow_mut().selection_direction = direction;
         self.textinput.borrow_mut().set_selection_range(start, end);
+        let window = window_from_node(self);
+        let _ = window.user_interaction_task_source().queue_event(
+            &self.upcast(),
+            atom!("select"),
+            EventBubbles::Bubbles,
+            EventCancelable::NotCancelable);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
@@ -919,7 +921,12 @@ impl VirtualMethods for HTMLInputElement {
                             self.value_changed.set(true);
 
                             if event.IsTrusted() {
-                                ChangeEventRunnable::send(self.upcast::<Node>());
+                                let window = window_from_node(self);
+                                let _ = window.user_interaction_task_source().queue_event(
+                                    &self.upcast(),
+                                    atom!("input"),
+                                    EventBubbles::Bubbles,
+                                    EventCancelable::NotCancelable);
                             }
 
                             self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -1146,33 +1153,5 @@ impl Activatable for HTMLInputElement {
                             FormSubmitter::FormElement(form.r()));
             }
         }
-    }
-}
-
-pub struct ChangeEventRunnable {
-    element: Trusted<Node>,
-}
-
-impl ChangeEventRunnable {
-    pub fn send(node: &Node) {
-        let handler = Trusted::new(node);
-        let dispatcher = ChangeEventRunnable {
-            element: handler,
-        };
-        let chan = window_from_node(node).user_interaction_task_source();
-        let _ = chan.send(CommonScriptMsg::RunnableMsg(InputEvent, box dispatcher));
-    }
-}
-
-impl Runnable for ChangeEventRunnable {
-    fn handler(self: Box<ChangeEventRunnable>) {
-        let target = self.element.root();
-        let window = window_from_node(target.r());
-        let window = window.r();
-        let event = Event::new(GlobalRef::Window(window),
-                               atom!("input"),
-                               EventBubbles::Bubbles,
-                               EventCancelable::NotCancelable);
-        target.upcast::<EventTarget>().dispatch_event(&event);
     }
 }

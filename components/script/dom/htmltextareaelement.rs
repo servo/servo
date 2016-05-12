@@ -14,18 +14,18 @@ use dom::bindings::reflector::{Reflectable};
 use dom::document::Document;
 use dom::element::RawLayoutElementHelpers;
 use dom::element::{AttributeMutation, Element};
-use dom::event::{Event};
+use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormControl, HTMLFormElement};
-use dom::htmlinputelement::ChangeEventRunnable;
 use dom::keyboardevent::KeyboardEvent;
 use dom::node::{ChildrenMutation, Node, NodeDamage, UnbindContext};
-use dom::node::{document_from_node};
+use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
+use script_runtime::ScriptChan;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
 use std::ops::Range;
@@ -256,6 +256,12 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
         let direction = direction.map_or(SelectionDirection::None, |d| SelectionDirection::from(d));
         self.textinput.borrow_mut().selection_direction = direction;
         self.textinput.borrow_mut().set_selection_range(start, end);
+        let window = window_from_node(self);
+        let _ = window.user_interaction_task_source().queue_event(
+            &self.upcast(),
+            atom!("select"),
+            EventBubbles::Bubbles,
+            EventCancelable::NotCancelable);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
@@ -373,7 +379,12 @@ impl VirtualMethods for HTMLTextAreaElement {
                         self.value_changed.set(true);
 
                         if event.IsTrusted() {
-                            ChangeEventRunnable::send(self.upcast::<Node>());
+                            let window = window_from_node(self);
+                            let _ = window.user_interaction_task_source().queue_event(
+                                &self.upcast(),
+                                atom!("input"),
+                                EventBubbles::Bubbles,
+                                EventCancelable::NotCancelable);
                         }
 
                         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
