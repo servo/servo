@@ -38,7 +38,8 @@ pub enum DOMManipulationTask {
     // https://html.spec.whatwg.org/multipage/#planned-navigation
     PlannedNavigation(Box<Runnable + Send>),
     // https://html.spec.whatwg.org/multipage/#send-a-storage-notification
-    SendStorageNotification(Box<MainThreadRunnable + Send>)
+    SendStorageNotification(Box<MainThreadRunnable + Send>),
+    Runnable(Box<Runnable + Send>),
 }
 
 impl DOMManipulationTask {
@@ -58,7 +59,8 @@ impl DOMManipulationTask {
             FireToggleEvent(runnable) => runnable.handler(),
             MediaTask(runnable) => runnable.handler(),
             PlannedNavigation(runnable) => runnable.handler(),
-            SendStorageNotification(runnable) => runnable.handler(script_thread)
+            SendStorageNotification(runnable) => runnable.handler(script_thread),
+            Runnable(runnable) => runnable.handler(),
         }
     }
 }
