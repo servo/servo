@@ -6064,6 +6064,12 @@
             "url": "/_mozilla/mozilla/bad_cert_detected.html"
           }
         ],
+        "mozilla/binding_keyword.html": [
+          {
+            "path": "mozilla/binding_keyword.html",
+            "url": "/_mozilla/mozilla/binding_keyword.html"
+          }
+        ],
         "mozilla/blob.html": [
           {
             "path": "mozilla/blob.html",

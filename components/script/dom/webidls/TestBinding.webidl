@@ -30,6 +30,8 @@ dictionary TestDictionary {
   object objectValue;
   TestDictionaryDefaults dict;
   sequence<TestDictionaryDefaults> seqDict;
+  // Reserved rust keyword
+  DOMString type;
 };
 
 dictionary TestDictionaryDefaults {
@@ -196,6 +198,8 @@ interface TestBinding {
   (sequence<long> or boolean)? receiveNullableUnion4();
   (unsigned long or boolean)? receiveNullableUnion5();
   sequence<long>? receiveNullableSequence();
+  TestDictionary receiveTestDictionaryWithSuccessOnKeyword();
+  boolean typeKeywordIsSuccess(TestDictionary arg);
 
   void passBoolean(boolean arg);
   void passByte(byte arg);
