@@ -42,10 +42,10 @@ impl PopStateEvent {
                type_: Atom,
                bubbles: bool,
                cancelable: bool,
-               state: HandleValue)
+               state: JSVal)
                -> Root<PopStateEvent> {
         let ev = PopStateEvent::new_uninitialized(global);
-        ev.state.set(state.get());
+        ev.state.set(state);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
@@ -62,7 +62,7 @@ impl PopStateEvent {
                               Atom::from(type_),
                               init.parent.bubbles,
                               init.parent.cancelable,
-                              unsafe { HandleValue::from_marked_location(&init.state) }))
+                              unsafe { HandleValue::from_marked_location(&init.state).get() }))
     }
 }
 
