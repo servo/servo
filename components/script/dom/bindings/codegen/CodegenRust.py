@@ -5301,7 +5301,7 @@ class CGDictionary(CGThing):
             insertion = ("let mut %s = RootedValue::new(cx, UndefinedValue());\n"
                          "self.%s.to_jsval(cx, %s.handle_mut());\n"
                          "set_dictionary_property(cx, obj.handle(), \"%s\", %s.handle()).unwrap();"
-                         % (name, name, name, name, name))
+                         % (name, name, name, member.identifier.name, name))
             return CGGeneric("%s\n" % insertion)
 
         memberInits = CGList([memberInit(m) for m in self.memberInfo])
