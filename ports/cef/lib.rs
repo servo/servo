@@ -42,15 +42,7 @@ extern crate url as std_url;
 extern { }
 
 #[cfg(target_os="macos")]
-extern crate cgl;
-#[cfg(target_os="macos")]
 extern crate cocoa;
-#[cfg(target_os="macos")]
-extern crate core_foundation;
-#[cfg(target_os="macos")]
-extern crate core_graphics;
-#[cfg(target_os="macos")]
-extern crate core_text;
 #[cfg(target_os="macos")]
 #[macro_use]
 extern crate objc;
