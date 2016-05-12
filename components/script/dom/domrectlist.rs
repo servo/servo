@@ -10,6 +10,11 @@ use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::domrect::DOMRect;
 use dom::window::Window;
 
+pub struct Iter<'a> {
+    rects: &'a DOMRectList,
+    position: usize
+}
+
 #[dom_struct]
 pub struct DOMRectList {
     reflector_: Reflector,
@@ -33,6 +38,10 @@ impl DOMRectList {
                            GlobalRef::Window(window),
                            DOMRectListBinding::Wrap)
     }
+
+    pub fn iter(&self) -> Iter {
+        Iter { rects: self, position: 0 }
+    }
 }
 
 impl DOMRectListMethods for DOMRectList {
@@ -55,5 +64,20 @@ impl DOMRectListMethods for DOMRectList {
     fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<DOMRect>> {
         *found = index < self.rects.len() as u32;
         self.Item(index)
+    }
+}
+
+impl<'a> Iterator for Iter<'a> {
+    type Item = Root<DOMRect>;
+
+    fn next(&mut self) -> Option<Root<DOMRect>> {
+        let rv = self.rects.Item(self.position as u32);
+        match rv {
+            Some(rv) => {
+                self.position = self.position + 1;
+                Some(rv)
+            },
+            None => None
+        }
     }
 }
