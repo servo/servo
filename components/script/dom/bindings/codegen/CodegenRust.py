@@ -643,7 +643,6 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         exceptionCode = 'return false;'
         unhandledExceptionCode = 'debug!("Unhandled exception error"); return false;'
 
-
     needsRooting = typeNeedsRooting(type, descriptorProvider)
 
     def handleOptional(template, declType, default):
@@ -5298,14 +5297,23 @@ class CGDictionary(CGThing):
             conversion = self.getMemberConversion(memberInfo, member.type)
             return CGGeneric("%s: %s,\n" % (name, conversion.define()))
 
+        def varInsert(varName, dictionaryName):
+            insertion = ("let mut %s_js = RootedValue::new(cx, UndefinedValue());\n"
+                         "%s.to_jsval(cx, %s_js.handle_mut());\n"
+                         "set_dictionary_property(cx, obj.handle(), \"%s\", %s_js.handle()).unwrap();"
+                         % (varName, varName, varName, dictionaryName, varName))
+            return CGGeneric(insertion)
+
         def memberInsert(memberInfo):
             member, _ = memberInfo
             name = self.makeMemberName(member.identifier.name)
-            insertion = ("let mut %s = RootedValue::new(cx, UndefinedValue());\n"
-                         "self.%s.to_jsval(cx, %s.handle_mut());\n"
-                         "set_dictionary_property(cx, obj.handle(), \"%s\", %s.handle()).unwrap();"
-                         % (name, name, name, member.identifier.name, name))
-            return CGGeneric("%s\n" % insertion)
+            if member.optional and not member.defaultValue:
+                insertion = CGIfWrapper("let Some(ref %s) = self.%s" % (name, name),
+                                        varInsert(name, member.identifier.name))
+            else:
+                insertion = CGGeneric("let %s = &self.%s;\n%s" %
+                                     (name, name, varInsert(name, member.identifier.name).define()))
+            return CGGeneric("%s\n" % insertion.define())
 
         memberInits = CGList([memberInit(m) for m in self.memberInfo])
         memberInserts = CGList([memberInsert(m) for m in self.memberInfo])
