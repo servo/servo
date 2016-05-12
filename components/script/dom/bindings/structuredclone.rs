@@ -9,9 +9,9 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use js::jsapi::{HandleValue, MutableHandleValue};
 use js::jsapi::{JSContext, JS_ReadStructuredClone, JS_STRUCTURED_CLONE_VERSION};
-use js::jsapi::{JS_ClearPendingException, JS_WriteStructuredClone};
+use js::jsapi::{JS_ClearPendingException, JS_WriteStructuredClone, JS_ClearStructuredClone};
 use libc::size_t;
-use std::ptr;
+use std::{mem, ptr};
 
 /// A buffer for a structured clone.
 pub struct StructuredCloneData {

@@ -11,13 +11,15 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::{EventHandlerNonNull,
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
-use dom::bindings::error::{Error, Fallible, report_pending_exception};
+use dom::bindings::error::{Error, Fallible, ErrorResult, report_pending_exception};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::num::Finite;
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::Reflectable;
+use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use dom::browsingcontext::BrowsingContext;
 use dom::console::Console;
@@ -27,6 +29,7 @@ use dom::document::Document;
 use dom::element::Element;
 use dom::eventtarget::EventTarget;
 use dom::location::Location;
+use dom::messageevent::MessageEvent;
 use dom::navigator::Navigator;
 use dom::node::{Node, TrustedNodeAddress, from_untrusted_node_address, window_from_node};
 use dom::performance::Performance;
@@ -35,9 +38,10 @@ use dom::storage::Storage;
 use euclid::{Point2D, Rect, Size2D};
 use gfx_traits::LayerId;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{Evaluate2, MutableHandleValue};
+use js::jsapi::{Evaluate2, MutableHandleValue, RootedValue};
 use js::jsapi::{HandleValue, JSContext};
 use js::jsapi::{JSAutoCompartment, JSAutoRequest, JS_GC, JS_GetRuntime, SetWindowProxy};
+use js::jsval::UndefinedValue;
 use js::rust::CompileOptionsWrapper;
 use js::rust::Runtime;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
@@ -51,12 +55,13 @@ use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::storage_thread::{StorageThread, StorageType};
 use num_traits::ToPrimitive;
+use origin::Origin;
 use profile_traits::mem;
 use reporter::CSSErrorReporter;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
-use script_runtime::{ScriptChan, ScriptPort};
+use script_runtime::{ScriptChan, ScriptPort, CommonScriptMsg, ScriptThreadEventCategory};
 use script_thread::SendableMainThreadScriptChan;
-use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
+use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper, Runnable};
 use script_traits::{ConstellationControlMsg, UntrustedNodeAddress};
 use script_traits::{DocumentState, MsDuration, ScriptToCompositorMsg, TimerEvent, TimerEventId};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource};
@@ -626,6 +631,36 @@ impl WindowMethods for Window {
     fn CancelAnimationFrame(&self, ident: u32) {
         let doc = self.Document();
         doc.cancel_animation_frame(ident);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-window-postmessage
+    fn PostMessage(&self,
+                   cx: *mut JSContext,
+                   message: HandleValue,
+                   origin: DOMString,
+                   _transfer: HandleValue)
+                   -> ErrorResult {
+        // Step 1
+        let origin = match &origin[..] {
+            "*" => PostMessageOrigin::AnyOrigin,
+            "/" => PostMessageOrigin::SameOrigin(Origin::new(self.Document().url())),
+            url => match Url::parse(&url) {
+                Ok(url) => PostMessageOrigin::Absolute(url),
+                Err(_) => return Err(Error::Syntax),
+            }
+        };
+
+        // Step 2-6
+        let data = try!(StructuredCloneData::write(cx, message));
+
+        // TODO step 7 (transferables)
+
+        // Step 8
+        // TODO record the necessary incumbent settings data; requires a script settings stack.
+        let runnable = PostMessageHandler::new(self, origin, data);
+        let msg = CommonScriptMsg::RunnableMsg(ScriptThreadEventCategory::DomEvent, box runnable);
+        let _ = self.script_chan.send(msg);
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window-captureevents
@@ -1573,4 +1608,68 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
     });
 
     println!("{}", debug_msg);
+}
+
+enum PostMessageOrigin {
+    Absolute(Url),
+    SameOrigin(Origin),
+    AnyOrigin,
+}
+
+struct PostMessageHandler {
+    destination: Trusted<Window>,
+    origin: PostMessageOrigin,
+    message: StructuredCloneData,
+}
+
+impl PostMessageHandler {
+    fn new(window: &Window,
+           origin: PostMessageOrigin,
+           message: StructuredCloneData) -> PostMessageHandler {
+        PostMessageHandler {
+            destination: Trusted::new(window),
+            origin: origin,
+            message: message,
+        }
+    }
+}
+
+impl Runnable for PostMessageHandler {
+    // https://html.spec.whatwg.org/multipage/#dom-window-postmessage steps 9-11
+    fn handler(self: Box<PostMessageHandler>) {
+        let this = *self;
+        let window = this.destination.root();
+
+        // Step 9
+        let doc = window.Document();
+        match this.origin {
+            PostMessageOrigin::SameOrigin(source) => {
+                if !source.same_origin(doc.origin()) {
+                    return;
+                }
+            }
+
+            PostMessageOrigin::Absolute(url) => {
+                let origin = Origin::new(&url);
+                if !origin.same_origin(doc.origin()) {
+                    return
+                }
+            }
+
+            PostMessageOrigin::AnyOrigin => {}
+        }
+
+        let cx = window.get_cx();
+        let _ar = JSAutoRequest::new(cx);
+        let globalhandle = window.reflector().get_jsobject();
+        let _ac = JSAutoCompartment::new(cx, globalhandle.get());
+
+        let mut message = RootedValue::new(cx, UndefinedValue());
+        this.message.read(GlobalRef::Window(&*window), message.handle_mut());
+        // TODO (origin, source attribute require script settings stack)
+        // Step 10-11
+        MessageEvent::dispatch_jsval(window.upcast(),
+                                     GlobalRef::Window(&*window),
+                                     message.handle());
+    }
 }

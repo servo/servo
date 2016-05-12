@@ -346,6 +346,10 @@ impl Document {
         true
     }
 
+    pub fn origin(&self) -> &Origin {
+        &self.origin
+    }
+
     // https://dom.spec.whatwg.org/#concept-document-url
     pub fn url(&self) -> &Url {
         &self.url
