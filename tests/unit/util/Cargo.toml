@@ -10,7 +10,3 @@ doctest = false
 
 [dependencies]
 util = {path = "../../../components/util"}
-plugins = {path = "../../../components/plugins"}
-app_units = {version = "0.2.3", features = ["plugins"]}
-euclid = {version = "0.6.4", features = ["plugins"]}
-libc = "0.2"

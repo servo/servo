@@ -11,7 +11,7 @@ fn time_profiler_smoke_test() {
     let chan = time::Profiler::create(&None, None);
     assert!(true, "Can create the profiler thread");
 
-    let (ipcchan, ipcport) = ipc::channel().unwrap();
+    let (ipcchan, _ipcport) = ipc::channel().unwrap();
     chan.send(ProfilerMsg::Exit(ipcchan));
     assert!(true, "Can tell the profiler thread to exit");
 }
