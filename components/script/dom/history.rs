@@ -6,6 +6,7 @@ use dom::bindings::codegen::Bindings::HistoryBinding::{self, HistoryMethods, Scr
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::structuredclone::StructuredCloneData;
 use dom::window::Window;
 use js::jsapi::{JSContext, HandleValue};
 use js::jsval::JSVal;
@@ -36,7 +37,8 @@ impl History {
 impl HistoryMethods for History {
     // https://html.spec.whatwg.org/multipage/#dom-history-length
     fn Length(&self) -> u32 {
-        0
+        // TODO: Consider how this should be casted
+        self.window.browsing_context().session_history_length() as u32
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-scroll-restoration
@@ -50,32 +52,34 @@ impl HistoryMethods for History {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-state
-    fn State(&self, cx: *mut JSContext) -> JSVal {
+    fn State(&self, _cx: *mut JSContext) -> JSVal {
         self.window.browsing_context().state()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-go
     fn Go(&self, delta: i32) {
-
+        self.window.browsing_context().go(delta)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-back
     fn Back(&self) {
-
+        self.window.browsing_context().go(-1)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-forward
     fn Forward(&self) {
-
+        self.window.browsing_context().go(1)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-pushstate
     fn PushState(&self, cx: *mut JSContext, data: HandleValue, title: DOMString, url: Option<DOMString>) {
-        self.window.browsing_context().push_state(title);
+        let data = StructuredCloneData::write(cx, data).unwrap();
+        self.window.browsing_context().push_state(data, title, url);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-replacestate
     fn ReplaceState(&self, cx: *mut JSContext, data: HandleValue, title: DOMString, url: Option<DOMString>) {
-
+        let data = StructuredCloneData::write(cx, data).unwrap();
+        self.window.browsing_context().replace_state(data, title, url);
     }
 }
