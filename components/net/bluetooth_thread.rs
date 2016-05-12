@@ -19,6 +19,8 @@ use std::collections::HashMap;
 use std::string::String;
 use std::thread;
 use std::time::Duration;
+#[cfg(target_os = "linux")]
+use tinyfiledialogs;
 use util::thread::spawn_named;
 
 const ADAPTER_ERROR: &'static str = "No adapter found";
@@ -30,6 +32,12 @@ const DESCRIPTOR_ERROR: &'static str = "No descriptor found";
 const VALUE_ERROR: &'static str = "No characteristic or descriptor found with that id";
 // The discovery session needs some time to find any nearby devices
 const DISCOVERY_TIMEOUT: u64 = 1500;
+#[cfg(target_os = "linux")]
+const DIALOG_TITLE: &'static str = "Choose a device";
+#[cfg(target_os = "linux")]
+const DIALOG_COLUMN_ID: &'static str = "Id";
+#[cfg(target_os = "linux")]
+const DIALOG_COLUMN_NAME: &'static str = "Name";
 
 bitflags! {
     flags Flags: u32 {
@@ -208,6 +216,38 @@ impl BluetoothManager {
         None
     }
 
+    #[cfg(target_os = "linux")]
+    fn select_device(&mut self, devices: Vec<BluetoothDevice>) -> Option<String> {
+        let mut dialog_rows: Vec<String> = vec!();
+        for device in devices {
+            dialog_rows.extend_from_slice(&[device.get_address().unwrap_or("".to_string()),
+                                            device.get_name().unwrap_or("".to_string())]);
+        }
+        let dialog_rows: Vec<&str> = dialog_rows.iter()
+                                                .map(|s| s.as_ref())
+                                                .collect();
+        let dialog_rows: &[&str] = dialog_rows.as_slice();
+
+        if let Some(device) = tinyfiledialogs::list_dialog(DIALOG_TITLE,
+                                                           &[DIALOG_COLUMN_ID, DIALOG_COLUMN_NAME],
+                                                           Some(dialog_rows)) {
+            // The device string format will be "Address|Name".
+            // We need the first part, therefore we reverse the split and use the last item.
+            return device.rsplit("|").map(|s| s.to_string()).collect::<Vec<String>>().pop();
+        }
+        None
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    fn select_device(&mut self, devices: Vec<BluetoothDevice>) -> Option<String> {
+        for device in devices {
+            if let Ok(address) = device.get_address() {
+                return Some(address);
+            }
+        }
+        None
+    }
+
     // Service
 
     fn get_and_cache_gatt_services(&mut self,
@@ -370,8 +410,8 @@ impl BluetoothManager {
         let matched_devices: Vec<BluetoothDevice> = devices.into_iter()
                                                            .filter(|d| matches_filters(d, options.get_filters()))
                                                            .collect();
-        for device in matched_devices {
-            if let Ok(address) = device.get_address() {
+        if let Some(address) = self.select_device(matched_devices) {
+            if let Some(device) = self.get_device(&mut adapter, address.as_str()) {
                 let message = Ok(BluetoothDeviceMsg {
                                      id: address,
                                      name: device.get_name().ok(),
