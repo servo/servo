@@ -5,9 +5,11 @@
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
+use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeapJSVal, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
 use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WindowProxyHandler;
 use dom::bindings::utils::get_array_index_from_id;
@@ -30,7 +32,7 @@ use util::str::DOMString;
 
 #[dom_struct]
 pub struct BrowsingContext {
-    reflector: Reflector,
+    reflector_: Reflector,
 
     /// Pipeline id associated with this context.
     id: PipelineId,
@@ -53,7 +55,7 @@ pub struct BrowsingContext {
 impl BrowsingContext {
     pub fn new_inherited(frame_element: Option<&Element>, id: PipelineId) -> BrowsingContext {
         BrowsingContext {
-            reflector: Reflector::new(),
+            reflector_: Reflector::new(),
             id: id,
             needs_reflow: Cell::new(true),
             history: DOMRefCell::new(vec![]),
@@ -103,6 +105,10 @@ impl BrowsingContext {
         assert_eq!(self.active_index.get(), history.len() - 1);
     }
 
+    pub fn session_history_length(&self) -> usize {
+        self.history.borrow().len()
+    }
+
     pub fn active_document(&self) -> Root<Document> {
         Root::from_ref(&self.history.borrow()[self.active_index.get()].document)
     }
@@ -115,17 +121,48 @@ impl BrowsingContext {
         self.history.borrow()[self.active_index.get()].state()
     }
 
-    pub fn push_state(&self, title: DOMString) {
+    pub fn push_state(&self, state: StructuredCloneData, title: DOMString, _url: Option<DOMString>) {
+        // TODO: update URL after we can set the Url of a doc after creation
         self.remove_forward_history();
-        let new_document = self.active_document().clone();
-        new_document.SetTitle(title.clone());
-        self.history.borrow_mut().push(SessionHistoryEntry::new(&*new_document, new_document.url().clone(), title));
-        self.active_index.set(self.active_index.get() + 1);
+        let active_document = self.active_document();
+        self.history.borrow_mut().push(SessionHistoryEntry::new(&*active_document, active_document.url().clone(), title));
+        // TODO: Cleanup. Not very clean
+        self.go(1);
+        self.set_current_state(state);
     }
 
-    fn navigate_forward(&self) {
-        self.active_index.set(self.active_index.get() + 1);
-        self.active_document().SetTitle(self.history.borrow_mut()[self.active_index.get()].title());
+    pub fn replace_state(&self, state: StructuredCloneData, title: DOMString, _url: Option<DOMString>) {
+        // TODO: update URL after we can set the Url of a doc after creation
+        assert!(self.active_index.get() < self.session_history_length());
+        let active_document = self.active_document();
+        self.history.borrow_mut()[self.active_index.get()] = SessionHistoryEntry::new(&*active_document, active_document.url().clone(), title);
+        self.set_current_state(state);
+    }
+
+    fn set_current_state(&self, state: StructuredCloneData) {
+        let active_window = &*self.active_window();
+        let global = GlobalRef::Window(active_window);
+        let _ar = JSAutoRequest::new(global.get_cx());
+        let _ac = JSAutoCompartment::new(global.get_cx(), self.reflector_.get_jsobject().get());
+
+        let mut state_js = RootedValue::new(global.get_cx(), UndefinedValue());
+        state.read(global, state_js.handle_mut());
+
+        self.history.borrow_mut()[self.active_index.get()].set_state(state_js.handle().get());
+    }
+
+    pub fn go(&self, delta: i32) {
+        // TODO: Consider how this should be casted
+        let active_index = self.active_index.get() as i32;
+        println!("OLD INDEX {:?}", active_index);
+        if active_index + delta < self.session_history_length() as i32 && active_index + delta >= 0 {
+            // TODO:
+            //  * check if we need to navigate through the constellation
+            //  * tell constellation to navigate if needed
+            //  * send popstateevent and other events if applicable
+            self.active_index.set((active_index + delta) as usize);
+        }
+        println!("NEW INDEX {:?}", self.active_index.get());
     }
 
     // Clear all session history entries after the active index
@@ -139,7 +176,7 @@ impl BrowsingContext {
     }
 
     pub fn window_proxy(&self) -> *mut JSObject {
-        let window_proxy = self.reflector.get_jsobject();
+        let window_proxy = self.reflector_.get_jsobject();
         assert!(!window_proxy.get().is_null());
         window_proxy.get()
     }
@@ -255,6 +292,10 @@ impl SessionHistoryEntry {
 
     pub fn state(&self) -> JSVal {
         self.state.get()
+    }
+
+    pub fn set_state(&self, state: JSVal) {
+        self.state.set(state)
     }
 
     pub fn title(&self) -> DOMString {
