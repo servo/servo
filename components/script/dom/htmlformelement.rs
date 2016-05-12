@@ -270,9 +270,9 @@ impl HTMLFormElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#multipart/form-data-encoding-algorithm
-    fn encode_form_data(&self, form_data: &mut Vec<FormDatum>,
-                               encoding: Option<EncodingRef>,
-                               boundary: String) -> String {
+    fn encode_multipart_form_data(&self, form_data: &mut Vec<FormDatum>,
+                                  encoding: Option<EncodingRef>,
+                                  boundary: String) -> String {
         // Step 1
         let mut result = "".to_owned();
 
@@ -321,7 +321,37 @@ impl HTMLFormElement {
 
         result.push_str(&*format!("\r\n--{}--", boundary));
 
-        return result;
+        result
+    }
+
+    // https://html.spec.whatwg.org/multipage/#text/plain-encoding-algorithm
+    fn encode_plaintext(&self, form_data: &mut Vec<FormDatum>) -> String {
+        // Step 1
+        let mut result = String::new();
+
+        // Step 2
+        let encoding = self.pick_encoding();
+
+        // Step 3
+        let charset = &*encoding.whatwg_name().unwrap();
+
+        for entry in form_data.iter_mut() {
+            // Step 4
+            if entry.name == "_charset_" && entry.ty == "hidden" {
+                entry.value = FormDatumValue::String(DOMString::from(charset.clone()));
+            }
+
+            // Step 5
+            if entry.ty == "file" {
+                entry.value = FormDatumValue::String(DOMString::from(entry.value_str()));
+            }
+
+            // Step 6
+            result.push_str(&*format!("{}={}\r\n", entry.name, entry.value_str()));
+        }
+
+        // Step 7
+        result
     }
 
     /// [Form submission](https://html.spec.whatwg.org/multipage/#concept-form-submit)
@@ -377,6 +407,7 @@ impl HTMLFormElement {
                 load_data.headers.set(ContentType::form_url_encoded());
 
                 form_urlencoded::Serializer::new(String::new())
+                    .encoding_override(Some(self.pick_encoding()))
                     .extend_pairs(form_data.into_iter().map(|field| (field.name.clone(), field.value_str())))
                     .finish()
             }
@@ -385,10 +416,13 @@ impl HTMLFormElement {
                 let mime = mime!(Multipart / FormData; Boundary =(&boundary));
                 load_data.headers.set(ContentType(mime));
 
-                self.encode_form_data(&mut form_data, None, boundary)
+                self.encode_multipart_form_data(&mut form_data, None, boundary)
             }
-            // TODO: Support plain text encoding
-            FormEncType::TextPlainEncoded => "".to_owned()
+            FormEncType::TextPlainEncoded => {
+                load_data.headers.set(ContentType(mime!(Text / Plain)));
+
+                self.encode_plaintext(&mut form_data)
+            }
         };
 
         // Step 18
