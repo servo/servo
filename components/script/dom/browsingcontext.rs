@@ -6,6 +6,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use dom::bindings::global::GlobalRef;
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutHeapJSVal, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
 use dom::bindings::reflector::{Reflectable, Reflector};
@@ -15,6 +16,9 @@ use dom::bindings::utils::WindowProxyHandler;
 use dom::bindings::utils::get_array_index_from_id;
 use dom::document::Document;
 use dom::element::Element;
+use dom::event::Event;
+use dom::eventtarget::EventTarget;
+use dom::popstateevent::PopStateEvent;
 use dom::window::Window;
 use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
@@ -27,6 +31,7 @@ use js::jsapi::{MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
 use js::jsval::{JSVal, UndefinedValue, PrivateValue};
 use msg::constellation_msg::{PipelineId, SubpageId};
 use std::cell::Cell;
+use string_cache::atom::Atom;
 use url::Url;
 use util::str::DOMString;
 
@@ -126,9 +131,8 @@ impl BrowsingContext {
         self.remove_forward_history();
         let active_document = self.active_document();
         self.history.borrow_mut().push(SessionHistoryEntry::new(&*active_document, active_document.url().clone(), title));
-        // TODO: Cleanup. Not very clean
+        self.set_state(self.active_index.get() + 1, state);
         self.go(1);
-        self.set_current_state(state);
     }
 
     pub fn replace_state(&self, state: StructuredCloneData, title: DOMString, _url: Option<DOMString>) {
@@ -136,10 +140,10 @@ impl BrowsingContext {
         assert!(self.active_index.get() < self.session_history_length());
         let active_document = self.active_document();
         self.history.borrow_mut()[self.active_index.get()] = SessionHistoryEntry::new(&*active_document, active_document.url().clone(), title);
-        self.set_current_state(state);
+        self.set_state(self.active_index.get(), state);
     }
 
-    fn set_current_state(&self, state: StructuredCloneData) {
+    fn set_state(&self, index: usize, state: StructuredCloneData) {
         let active_window = &*self.active_window();
         let global = GlobalRef::Window(active_window);
         let _ar = JSAutoRequest::new(global.get_cx());
@@ -148,21 +152,24 @@ impl BrowsingContext {
         let mut state_js = RootedValue::new(global.get_cx(), UndefinedValue());
         state.read(global, state_js.handle_mut());
 
-        self.history.borrow_mut()[self.active_index.get()].set_state(state_js.handle().get());
+        self.history.borrow_mut()[index].set_state(state_js.handle().get());
     }
 
     pub fn go(&self, delta: i32) {
         // TODO: Consider how this should be casted
         let active_index = self.active_index.get() as i32;
-        println!("OLD INDEX {:?}", active_index);
         if active_index + delta < self.session_history_length() as i32 && active_index + delta >= 0 {
             // TODO:
             //  * check if we need to navigate through the constellation
             //  * tell constellation to navigate if needed
             //  * send popstateevent and other events if applicable
             self.active_index.set((active_index + delta) as usize);
+            let active_window = &*self.active_window();
+
+            // TODO: Move this to the HistoryTraversalTaskSource
+            let event = PopStateEvent::new(GlobalRef::Window(active_window), Atom::from("popstateevent"), true, false, self.state());
+            event.upcast::<Event>().fire(active_window.upcast());
         }
-        println!("NEW INDEX {:?}", self.active_index.get());
     }
 
     // Clear all session history entries after the active index
