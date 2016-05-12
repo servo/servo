@@ -10,12 +10,12 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::browsingcontext::IterableContext;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storageevent::StorageEvent;
 use dom::urlhelper::UrlHelper;
 use ipc_channel::ipc;
 use net_traits::storage_thread::{StorageThread, StorageThreadMsg, StorageType};
-use page::IterablePage;
 use script_runtime::ScriptChan;
 use script_thread::{MainThreadRunnable, ScriptThread};
 use task_source::dom_manipulation::DOMManipulationTask;
@@ -199,9 +199,9 @@ impl MainThreadRunnable for StorageEventRunnable {
             Some(storage)
         );
 
-        let root_page = script_thread.root_page();
-        for it_page in root_page.iter() {
-            let it_window_root = it_page.window();
+        let root_context = script_thread.root_browsing_context();
+        for it_context in root_context.iter() {
+            let it_window_root = it_context.active_window();
             let it_window = it_window_root.r();
             assert!(UrlHelper::SameOrigin(&ev_url, &it_window.get_url()));
             // TODO: Such a Document object is not necessarily fully active, but events fired on such

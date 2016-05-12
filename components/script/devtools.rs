@@ -15,6 +15,7 @@ use dom::bindings::conversions::{FromJSValConvertible, jsstring_to_str};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
+use dom::browsingcontext::{BrowsingContext, IterableContext};
 use dom::element::Element;
 use dom::node::Node;
 use dom::window::Window;
@@ -22,10 +23,8 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::{ObjectClassName, RootedObject, RootedValue};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
-use page::{IterablePage, Page};
-use script_thread::get_page;
+use script_thread::get_browsing_context;
 use std::ffi::CStr;
-use std::rc::Rc;
 use std::str;
 use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left};
 use util::str::DOMString;
@@ -66,28 +65,31 @@ pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<Eva
     reply.send(result).unwrap();
 }
 
-pub fn handle_get_root_node(page: &Rc<Page>, pipeline: PipelineId, reply: IpcSender<NodeInfo>) {
-    let page = get_page(&*page, pipeline);
-    let document = page.document();
+pub fn handle_get_root_node(context: &BrowsingContext, pipeline: PipelineId, reply: IpcSender<NodeInfo>) {
+    let context = get_browsing_context(context, pipeline);
+    let document = context.active_document();
 
     let node = document.upcast::<Node>();
     reply.send(node.summarize()).unwrap();
 }
 
-pub fn handle_get_document_element(page: &Rc<Page>,
+pub fn handle_get_document_element(context: &BrowsingContext,
                                    pipeline: PipelineId,
                                    reply: IpcSender<NodeInfo>) {
-    let page = get_page(&*page, pipeline);
-    let document = page.document();
+    let context = get_browsing_context(context, pipeline);
+    let document = context.active_document();
     let document_element = document.GetDocumentElement().unwrap();
 
     let node = document_element.upcast::<Node>();
     reply.send(node.summarize()).unwrap();
 }
 
-fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String) -> Root<Node> {
-    let page = get_page(&*page, pipeline);
-    let document = page.document();
+fn find_node_by_unique_id(context: &BrowsingContext,
+                          pipeline: PipelineId,
+                          node_id: String)
+                          -> Root<Node> {
+    let context = get_browsing_context(context, pipeline);
+    let document = context.active_document();
     let node = document.upcast::<Node>();
 
     for candidate in node.traverse_preorder() {
@@ -99,29 +101,29 @@ fn find_node_by_unique_id(page: &Rc<Page>, pipeline: PipelineId, node_id: String
     panic!("couldn't find node with unique id {}", node_id)
 }
 
-pub fn handle_get_children(page: &Rc<Page>,
+pub fn handle_get_children(context: &BrowsingContext,
                            pipeline: PipelineId,
                            node_id: String,
                            reply: IpcSender<Vec<NodeInfo>>) {
-    let parent = find_node_by_unique_id(&*page, pipeline, node_id);
+    let parent = find_node_by_unique_id(context, pipeline, node_id);
     let children = parent.children()
                          .map(|child| child.summarize())
                          .collect();
     reply.send(children).unwrap();
 }
 
-pub fn handle_get_layout(page: &Rc<Page>,
+pub fn handle_get_layout(context: &BrowsingContext,
                          pipeline: PipelineId,
                          node_id: String,
                          reply: IpcSender<ComputedNodeLayout>) {
-    let node = find_node_by_unique_id(&*page, pipeline, node_id);
+    let node = find_node_by_unique_id(context, pipeline, node_id);
 
     let elem = node.downcast::<Element>().expect("should be getting layout of element");
     let rect = elem.GetBoundingClientRect();
     let width = rect.Width() as f32;
     let height = rect.Height() as f32;
 
-    let window = page.window();
+    let window = context.active_window();
     let elem = node.downcast::<Element>().expect("should be getting layout of element");
     let computed_style = window.r().GetComputedStyle(elem, None);
 
@@ -200,11 +202,11 @@ pub fn handle_get_cached_messages(_pipeline_id: PipelineId,
     reply.send(messages).unwrap();
 }
 
-pub fn handle_modify_attribute(page: &Rc<Page>,
+pub fn handle_modify_attribute(context: &BrowsingContext,
                                pipeline: PipelineId,
                                node_id: String,
                                modifications: Vec<Modification>) {
-    let node = find_node_by_unique_id(&*page, pipeline, node_id);
+    let node = find_node_by_unique_id(context, pipeline, node_id);
     let elem = node.downcast::<Element>().expect("should be getting layout of element");
 
     for modification in modifications {
@@ -222,22 +224,25 @@ pub fn handle_wants_live_notifications(global: &GlobalRef, send_notifications: b
     global.set_devtools_wants_updates(send_notifications);
 }
 
-pub fn handle_set_timeline_markers(page: &Rc<Page>,
+pub fn handle_set_timeline_markers(context: &BrowsingContext,
                                    marker_types: Vec<TimelineMarkerType>,
                                    reply: IpcSender<TimelineMarker>) {
-    let window = page.window();
+    let window = context.active_window();
     window.set_devtools_timeline_markers(marker_types, reply);
 }
 
-pub fn handle_drop_timeline_markers(page: &Rc<Page>, marker_types: Vec<TimelineMarkerType>) {
-    let window = page.window();
+pub fn handle_drop_timeline_markers(context: &BrowsingContext,
+                                    marker_types: Vec<TimelineMarkerType>) {
+    let window = context.active_window();
     window.drop_devtools_timeline_markers(marker_types);
 }
 
-pub fn handle_request_animation_frame(page: &Rc<Page>, id: PipelineId, actor_name: String) {
-    let page = page.find(id).expect("There is no such page");
-    let doc = page.document();
-    let devtools_sender = page.window().devtools_chan().unwrap();
+pub fn handle_request_animation_frame(context: &BrowsingContext,
+                                      id: PipelineId,
+                                      actor_name: String) {
+    let context = context.find(id).expect("There is no such context");
+    let doc = context.active_document();
+    let devtools_sender = context.active_window().devtools_chan().unwrap();
     doc.request_animation_frame(box move |time| {
         let msg = ScriptToDevtoolsControlMsg::FramerateTick(actor_name, time);
         devtools_sender.send(msg).unwrap();

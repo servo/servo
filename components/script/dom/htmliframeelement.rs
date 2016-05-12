@@ -36,7 +36,6 @@ use layout_interface::ReflowQueryType;
 use msg::constellation_msg::{ConstellationChan, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
 use net_traits::response::HttpsState;
-use page::IterablePage;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{IFrameLoadInfo, MozBrowserEvent, ScriptMsg as ConstellationMsg};
 use std::ascii::AsciiExt;
@@ -418,11 +417,8 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
         self.subpage_id.get().and_then(|subpage_id| {
             let window = window_from_node(self);
             let window = window.r();
-            let children = window.page().children.borrow();
-            children.iter().find(|page| {
-                let window = page.window();
-                window.subpage() == Some(subpage_id)
-            }).map(|page| page.window())
+            let browsing_context = window.browsing_context();
+            browsing_context.find_child_by_subpage(subpage_id)
         })
     }
 
