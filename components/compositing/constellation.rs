@@ -1258,7 +1258,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         let (prev_pipeline_id, next_pipeline_id) = match self.frames.get_mut(&frame_id) {
             Some(frame) => {
                 let next = match direction {
-                    NavigationDirection::Forward => {
+                    NavigationDirection::Forward(_delta) => {
                         match frame.next.pop() {
                             None => {
                                 warn!("no next page to navigate to");
@@ -1270,7 +1270,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                             },
                         }
                     }
-                    NavigationDirection::Back => {
+                    NavigationDirection::Back(_delta) => {
                         match frame.prev.pop() {
                             None => {
                                 warn!("no previous page to navigate to");
