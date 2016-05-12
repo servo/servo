@@ -54,6 +54,8 @@
   void cancelAnimationFrame(unsigned long handle);
 
   //void postMessage(any message, DOMString targetOrigin, optional sequence<Transferable> transfer);
+  [Throws]
+  void postMessage(any message, DOMString targetOrigin);
 
   // also has obsolete members
 };
