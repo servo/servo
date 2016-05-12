@@ -44,6 +44,8 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::{JSContext, JS_ParseJSON, RootedValue};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
+use msg::constellation_msg::ReferrerPolicy;
+use net_traits::ControlMsg::Load;
 use net_traits::CoreResourceMsg::Load;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
 use net_traits::{LoadConsumer, LoadContext, LoadData, ResourceCORSData, CoreResourceThread};
@@ -148,10 +150,14 @@ pub struct XMLHttpRequest {
     fetch_time: Cell<i64>,
     generation_id: Cell<GenerationId>,
     response_status: Cell<Result<(), ()>>,
+    referrer_url: Option<Url>,
+    referrer_policy: Option<ReferrerPolicy>,
 }
 
 impl XMLHttpRequest {
     fn new_inherited(global: GlobalRef) -> XMLHttpRequest {
+        //TODO - will this panic (outside of the scope of the ref policy tests)?
+        let current_doc = global.as_window().Document();
         XMLHttpRequest {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(),
             ready_state: Cell::new(XMLHttpRequestState::Unsent),
@@ -183,6 +189,8 @@ impl XMLHttpRequest {
             fetch_time: Cell::new(0),
             generation_id: Cell::new(GenerationId(0)),
             response_status: Cell::new(Ok(())),
+            referrer_url: Some(current_doc.url().clone()),
+            referrer_policy: current_doc.get_referrer_policy(),
         }
     }
     pub fn new(global: GlobalRef) -> Root<XMLHttpRequest> {
@@ -573,13 +581,12 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         // Step 5
         let global = self.global();
         let pipeline_id = global.r().pipeline();
-        //TODO - set referrer_policy/referrer_url in load_data
         let mut load_data =
             LoadData::new(LoadContext::Browsing,
                           self.request_url.borrow().clone().unwrap(),
                           Some(pipeline_id),
-                          None,
-                          None);
+                          self.referrer_policy,
+                          self.referrer_url.clone());
         if load_data.url.origin().ne(&global.r().get_url().origin()) {
             load_data.credentials_flag = self.WithCredentials();
         }
