@@ -85,7 +85,7 @@ impl Formattable for Option<TimerMetadata> {
 impl Formattable for ProfilerCategory {
     // some categories are subcategories of LayoutPerformCategory
     // and should be printed to indicate this
-    fn format(&self, output: &Option<OutputOptions>) -> String {
+    fn format(&self, _output: &Option<OutputOptions>) -> String {
         let padding = match *self {
             ProfilerCategory::LayoutStyleRecalc |
             ProfilerCategory::LayoutRestyleDamagePropagation |
@@ -213,7 +213,7 @@ impl Profiler {
                             match port.recv() {
                                 Err(_) => break,
                                 Ok(ProfilerMsg::Exit(chan)) => {
-                                    chan.send(());
+                                    let _ = chan.send(());
                                     break;
                                 },
                                 _ => {}
@@ -315,7 +315,7 @@ impl Profiler {
             ProfilerMsg::Exit(chan) => {
                 heartbeats::cleanup();
                 self.print_buckets();
-                chan.send(());
+                let _ = chan.send(());
                 return false;
             },
         };
@@ -334,7 +334,7 @@ impl Profiler {
                     Ok(file) => file,
                 };
                 write!(file, "_category_, _incremental?_, _iframe?_, _url_, _mean (ms)_, _median (ms)_, _min (ms)_, \
-                _max (ms)_, _events_\n");
+                _max (ms)_, _events_\n").unwrap();
                 for (&(ref category, ref meta), ref mut data) in &mut self.buckets {
                     data.sort_by(|a, b| {
                         if a < b {
@@ -352,11 +352,11 @@ impl Profiler {
                              data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));
                         write!(file, "{}, {}, {:15.4}, {:15.4}, {:15.4}, {:15.4}, {:15}\n",
                             category.format(&self.output), meta.format(&self.output),
-                            mean, median, min, max, data_len);
+                            mean, median, min, max, data_len).unwrap();
                     }
                 }
             },
-            Some(OutputOptions::Stdout(ref period)) => {
+            Some(OutputOptions::Stdout(_)) => {
                 let stdout = io::stdout();
                 let mut lock = stdout.lock();
 

@@ -18,14 +18,14 @@ pub struct FileManager {
 }
 
 impl FileManager {
-    fn new(recv: IpcReceiver<FileManagerThreadMsg>) -> FileManager {
+    pub fn new(recv: IpcReceiver<FileManagerThreadMsg>) -> FileManager {
         FileManager {
             receiver: recv,
             idmap: RefCell::new(HashMap::new()),
         }
     }
 
-    fn new_thread() -> IpcSender<FileManagerThreadMsg> {
+    pub fn new_thread() -> IpcSender<FileManagerThreadMsg> {
         let (chan, recv) = ipc::channel().unwrap();
 
         spawn_named("FileManager".to_owned(), move || {
