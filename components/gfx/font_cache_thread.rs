@@ -438,8 +438,8 @@ impl FontCacheThread {
 
     pub fn exit(&self) {
         let (response_chan, response_port) = ipc::channel().unwrap();
-        self.chan.send(Command::Exit(response_chan)).unwrap();
-        response_port.recv().unwrap();
+        self.chan.send(Command::Exit(response_chan)).expect("Couldn't send FontCacheThread exit message");
+        response_port.recv().expect("Couldn't receive FontCacheThread reply");
     }
 }
 
