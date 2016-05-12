@@ -9,8 +9,9 @@ test(function() {
 
   var dict = t.receiveTestDictionaryWithSuccessOnKeyword();
   assert_equals(dict.type, "success");
+  assert_equals(dict.nonRequiredNullable, undefined);
+  assert_equals(dict.nonRequiredNullable2, null);
 
-  var is_success = t.typeKeywordIsSuccess(dict);
-  assert_true(is_success);
-}, "Conversion of dictionary elements with rust keywords works")
+  assert_true(t.dictMatchesPassedValues(dict));
+}, "Conversion of dictionary elements with rust keywords, and null non-required nullable properties works")
 </script>

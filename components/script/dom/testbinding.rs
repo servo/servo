@@ -347,11 +347,15 @@ impl TestBindingMethods for TestBinding {
             unsignedLongValue: None,
             unsignedShortValue: None,
             usvstringValue: None,
+            nonRequiredNullable: None,
+            nonRequiredNullable2: Some(None), // null
         }
     }
 
-    fn TypeKeywordIsSuccess(&self, arg: &TestDictionary) -> bool {
-        arg.type_.as_ref().map(|s| s == "success").unwrap_or(false)
+    fn DictMatchesPassedValues(&self, arg: &TestDictionary) -> bool {
+        arg.type_.as_ref().map(|s| s == "success").unwrap_or(false) &&
+            arg.nonRequiredNullable.is_none() &&
+            arg.nonRequiredNullable2 == Some(None)
     }
 
     fn PassBoolean(&self, _: bool) {}
