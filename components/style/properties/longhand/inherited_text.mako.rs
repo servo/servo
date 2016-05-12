@@ -136,9 +136,16 @@
             right("right") => 3,
             center("center") => 4,
             justify("justify") => 5,
+            % if product == "servo":
             servo_center("-servo-center") => 6,
             servo_left("-servo-left") => 7,
             servo_right("-servo-right") => 8,
+            % else:
+            _moz_center("-moz-center") => 6,
+            _moz_left("-moz-left") => 7,
+            _moz_right("-moz-right") => 8,
+            match_parent("match-parent") => 9,
+            % endif
         }
     }
     #[inline] pub fn get_initial_value() -> computed_value::T {
