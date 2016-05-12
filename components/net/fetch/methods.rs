@@ -5,7 +5,7 @@
 use connector::create_http_connector;
 use data_loader::decode;
 use fetch::cors_cache::CORSCache;
-use http_loader::{NetworkHttpRequestFactory, obtain_response};
+use http_loader::{NetworkHttpRequestFactory, ReadResult, obtain_response, read_block};
 use hyper::header::{Accept, AcceptLanguage, Authorization, AccessControlAllowCredentials};
 use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
 use hyper::header::{AccessControlRequestHeaders, AccessControlMaxAge, AccessControlRequestMethod, Basic};
@@ -850,34 +850,25 @@ fn http_network_fetch(request: Rc<Request>,
             thread::spawn(move || {
 
                 *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
-                let mut new_body = vec![];
-                res.response.read_to_end(&mut new_body).unwrap();
 
-                let mut body = res_body.lock().unwrap();
-                assert!(*body != ResponseBody::Empty);
-                *body = ResponseBody::Done(new_body);
+                loop {
+                    match read_block(&mut res.response) {
+                        Ok(ReadResult::Payload(ref mut chunk)) => {
+                            if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
+                                body.append(chunk);
+                            }
+                        },
+                        Ok(ReadResult::EOF) | Err(_) => {
+                            let completed_body = match *res_body.lock().unwrap() {
+                                ResponseBody::Receiving(ref body) => (*body).clone(),
+                                _ => vec![]
+                            };
+                            *res_body.lock().unwrap() = ResponseBody::Done(completed_body);
+                            break;
+                        }
+                    }
 
-                // TODO: the vec storage format is much too slow for these operations,
-                // response.body needs to use something else before this code can be used
-                // *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
-
-                // loop {
-                //     match read_block(&mut res.response) {
-                //         Ok(ReadResult::Payload(ref mut new_body)) => {
-                //             if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
-                //                 (body).append(new_body);
-                //             }
-                //         },
-                //         Ok(ReadResult::EOF) | Err(_) => break
-                //     }
-
-                // }
-
-                // let mut completed_body = res_body.lock().unwrap();
-                // if let ResponseBody::Receiving(ref body) = *completed_body {
-                //     // TODO cloning seems sub-optimal, but I couldn't figure anything else out
-                //     *res_body.lock().unwrap() = ResponseBody::Done((*body).clone());
-                // }
+                }
             });
         },
         Err(_) =>
