@@ -28,7 +28,7 @@ use js::jsapi::{JSContext, JSPROP_READONLY, JSErrNum, JSObject, PropertyDescript
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass, JSTracer, FreeOp};
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHandle};
 use js::jsapi::{MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
-use js::jsval::{JSVal, UndefinedValue, PrivateValue};
+use js::jsval::{JSVal, UndefinedValue, PrivateValue, NullValue};
 use msg::constellation_msg::{PipelineId, SubpageId};
 use std::cell::Cell;
 use string_cache::atom::Atom;
@@ -100,6 +100,7 @@ impl BrowsingContext {
         assert!(self.history.borrow().is_empty());
         assert_eq!(self.active_index.get(), 0);
         self.history.borrow_mut().push(SessionHistoryEntry::new(document, document.url().clone(), document.Title()));
+        self.history.borrow_mut()[0].set_state(NullValue());
     }
 
     pub fn push_history(&self, document: &Document) {
@@ -149,7 +150,7 @@ impl BrowsingContext {
         let _ar = JSAutoRequest::new(global.get_cx());
         let _ac = JSAutoCompartment::new(global.get_cx(), self.reflector_.get_jsobject().get());
 
-        let mut state_js = RootedValue::new(global.get_cx(), UndefinedValue());
+        let mut state_js = RootedValue::new(global.get_cx(), NullValue());
         state.read(global, state_js.handle_mut());
 
         self.history.borrow_mut()[index].set_state(state_js.handle().get());
