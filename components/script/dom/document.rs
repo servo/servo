@@ -201,6 +201,7 @@ pub struct Document {
     /// List of animation frame callbacks
     #[ignore_heap_size_of = "closures are hard"]
     animation_frame_list: DOMRefCell<BTreeMap<u32, Box<FnBox(f64)>>>,
+    running_animation_callbacks: Cell<bool>,
     /// Tracks all outstanding loads related to this document.
     loader: DOMRefCell<DocumentLoader>,
     /// The current active HTML parser, to allow resuming after interruptions.
@@ -1281,11 +1282,20 @@ impl Document {
         self.animation_frame_ident.set(ident);
         self.animation_frame_list.borrow_mut().insert(ident, callback);
 
+        // No need to send a `ChangeRunningAnimationsState` if we're running animation callbacks:
+        // we're guaranteed to already be in the "animation callbacks present" state.
+        //
+        // This reduces CPU usage by avoiding needless thread wakeups in the common case of
+        // repeated rAF.
+        //
         // TODO: Should tick animation only when document is visible
-        let ConstellationChan(ref chan) = *self.window.constellation_chan();
-        let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
-                                                                   AnimationState::AnimationCallbacksPresent);
-        chan.send(event).unwrap();
+        if !self.running_animation_callbacks.get() {
+            let ConstellationChan(ref chan) = *self.window.constellation_chan();
+            let event = ConstellationMsg::ChangeRunningAnimationsState(
+                self.window.pipeline(),
+                AnimationState::AnimationCallbacksPresent);
+            chan.send(event).unwrap();
+        }
 
         ident
     }
@@ -1305,6 +1315,7 @@ impl Document {
     pub fn run_the_animation_frame_callbacks(&self) {
         let animation_frame_list =
             mem::replace(&mut *self.animation_frame_list.borrow_mut(), BTreeMap::new());
+        self.running_animation_callbacks.set(true);
         let performance = self.window.Performance();
         let performance = performance.r();
         let timing = performance.Now();
@@ -1323,6 +1334,8 @@ impl Document {
                                                                        AnimationState::NoAnimationCallbacksPresent);
             chan.send(event).unwrap();
         }
+
+        self.running_animation_callbacks.set(false);
 
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
@@ -1676,6 +1689,7 @@ impl Document {
             scripting_enabled: Cell::new(browsing_context.is_some()),
             animation_frame_ident: Cell::new(0),
             animation_frame_list: DOMRefCell::new(BTreeMap::new()),
+            running_animation_callbacks: Cell::new(false),
             loader: DOMRefCell::new(doc_loader),
             current_parser: Default::default(),
             reflow_timeout: Cell::new(None),
