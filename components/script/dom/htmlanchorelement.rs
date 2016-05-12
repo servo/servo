@@ -81,9 +81,8 @@ impl HTMLAnchorElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#update-href
-    fn update_href(&self) {
-        self.upcast::<Element>().set_string_attribute(&atom!("href"),
-            self.url.borrow().as_ref().unwrap().as_str().into());
+    fn update_href(&self, url: &Url) {
+        self.upcast::<Element>().set_string_attribute(&atom!("href"), DOMString::from(url.as_str()));
     }
 }
 
@@ -168,7 +167,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             // Steps 4-5.
             UrlHelper::SetHash(url, value);
             // Step 6.
-            self.update_href();
+            self.update_href(url);
         }
     }
 
@@ -204,7 +203,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             // Step 4.
             UrlHelper::SetHost(url, value);
             // Step 5.
-            self.update_href();
+            self.update_href(url);
         }
     }
 
@@ -236,7 +235,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             // Step 4.
             UrlHelper::SetHostname(url, value);
             // Step 5.
-            self.update_href();
+            self.update_href(url);
         }
     }
 
@@ -292,7 +291,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             // Step 4.
             UrlHelper::SetPassword(url, value);
             // Step 5.
-            self.update_href();
+            self.update_href(url);
         }
     }
 
@@ -320,7 +319,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             // Step 5.
             UrlHelper::SetPathname(url, value);
             // Step 6.
-            self.update_href();
+            self.update_href(url);
         }
     }
 
@@ -352,7 +351,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             // Step 4.
             UrlHelper::SetPort(url, value);
             // Step 5.
-            self.update_href();
+            self.update_href(url);
         }
     }
 
@@ -379,7 +378,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             // Step 3.
             UrlHelper::SetProtocol(url, value);
             // Step 4.
-            self.update_href();
+            self.update_href(url);
         }
     }
 
@@ -408,7 +407,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             // encoding override (as described in the spec)
             UrlHelper::SetSearch(url, value);
             // Step 6.
-            self.update_href();
+            self.update_href(url);
         }
     }
 
@@ -439,7 +438,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             // Step 4.
             UrlHelper::SetUsername(url, value);
             // Step 5.
-            self.update_href();
+            self.update_href(url);
         }
     }
 
