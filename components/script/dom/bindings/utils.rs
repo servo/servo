@@ -182,18 +182,18 @@ pub fn get_array_index_from_id(_cx: *mut JSContext, id: HandleId) -> Option<u32>
 
 /// Find the index of a string given by `v` in `values`.
 /// Returns `Err(())` on JSAPI failure (there is a pending exception), and
-/// `Ok(None)` if there was no matching string.
+/// `Ok((None, value))` if there was no matching string.
 pub unsafe fn find_enum_string_index(cx: *mut JSContext,
                                      v: HandleValue,
                                      values: &[&'static str])
-                                     -> Result<Option<usize>, ()> {
+                                     -> Result<(Option<usize>, String), ()> {
     let jsstr = ToString(cx, v);
     if jsstr.is_null() {
         return Err(());
     }
 
     let search = jsstring_to_str(cx, jsstr);
-    Ok(values.iter().position(|value| search == *value))
+    Ok((values.iter().position(|value| search == *value), search.into()))
 }
 
 /// Returns wether `obj` is a platform object
