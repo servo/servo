@@ -908,6 +908,8 @@ impl ScriptThread {
                 self.handle_framed_content_changed(containing_pipeline_id, subpage_id),
             ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
+            ConstellationControlMsg::UpdateActiveHistoryEntry(pipeline_id, active_entry) =>
+                self.handle_update_active_history_entry(pipeline_id, active_entry),
         }
     }
 
@@ -1969,6 +1971,16 @@ impl ScriptThread {
                     css_error)).unwrap();
              }
         }
+    }
+
+    fn handle_update_active_history_entry(&self, pipeline_id: PipelineId, active_index: usize) {
+        let parent_context = self.root_browsing_context();
+        let context = match parent_context.find(pipeline_id) {
+            Some(context) => context,
+            None => return,
+        };
+
+        context.set_active_entry(active_index);
     }
 }
 
