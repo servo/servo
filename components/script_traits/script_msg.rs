@@ -67,6 +67,8 @@ pub enum ScriptMsg {
     Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
     /// Returns the session history length.
     HistoryLength(Option<(PipelineId, SubpageId)>, IpcSender<Option<usize>>),
+    /// Notifies constellation that a new state was pushed, and the frame needs to be updated
+    HistoryStatePushed(Option<(PipelineId, SubpageId)>, usize),
     /// Favicon detected
     NewFavicon(Url),
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
