@@ -20,7 +20,7 @@ def parse_manifest(text):
 def test_load(url, timeout):
     ua_script_path = "{}/user-agent-js".format(os.getcwd())
     test_cmd = ("timeout {timeout}s ./servo/servo '{url}'"
-                "--userscripts {ua} -x -o {png}").format(timeout=timeout,
+                " --userscripts {ua} -x -o {png}").format(timeout=timeout,
                                                          url=url,
                                                          ua=ua_script_path,
                                                          png="output.png")
@@ -28,9 +28,8 @@ def test_load(url, timeout):
     print("Running test:")
     print(test_cmd)
     print("Timeout:{}".format(timeout))
-    log = ""
     try:
-        log = subprocess.check_output(test_cmd, stderr=subprocess.STDOUT,
+        return subprocess.check_output(test_cmd, stderr=subprocess.STDOUT,
                                       shell=True, timeout=timeout)
     except subprocess.CalledProcessError as e:
         print("Unexpected Fail:")
@@ -39,7 +38,7 @@ def test_load(url, timeout):
     except subprocess.TimeoutExpired:
         print("Test timeout: {}".format(url))
 
-    return log
+    return ""
 
 
 def parse_log(log):

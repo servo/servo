@@ -24,10 +24,10 @@ def format_perf_data(perf_json):
     suites = []
     measurement = "domComplete"  # Change this to an array when we have more
 
-    def getTimeFromNavStart(timings, measurement):
+    def get_time_from_nav_start(timings, measurement):
         return timings[measurement] - timings['navigationStart']
 
-    measurementFromNavStart = partial(getTimeFromNavStart,
+    measurementFromNavStart = partial(get_time_from_nav_start,
                                       measurement=measurement)
 
     suite = {
