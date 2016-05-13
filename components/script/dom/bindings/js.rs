@@ -461,6 +461,13 @@ pub trait RootedReference<'root> {
     fn r(&'root self) -> Self::Ref;
 }
 
+impl<'root, T: JSTraceable + Reflectable + 'root> RootedReference<'root> for [JS<T>] {
+    type Ref = &'root [&'root T];
+    fn r(&'root self) -> &'root [&'root T] {
+        unsafe { mem::transmute(self) }
+    }
+}
+
 impl<'root, T: Reflectable + 'root> RootedReference<'root> for Rc<T> {
     type Ref = &'root T;
     fn r(&'root self) -> &'root T {

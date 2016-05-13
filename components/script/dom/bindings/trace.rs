@@ -36,7 +36,7 @@ use devtools_traits::CSSError;
 use devtools_traits::WorkerId;
 use dom::abstractworker::SharedRt;
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::js::{JS, Root, RootedReference};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::str::{DOMString, USVString};
@@ -80,7 +80,6 @@ use std::boxed::FnBox;
 use std::cell::{Cell, UnsafeCell};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::hash::{BuildHasher, Hash};
-use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -550,13 +549,6 @@ impl<'a, T: JSTraceable + Reflectable> RootedVec<'a, JS<T>> {
         RootedVec {
             root: root,
         }
-    }
-}
-
-impl<'a, 'root, T: JSTraceable + Reflectable + 'root> RootedReference<'root> for RootedVec<'a, JS<T>> {
-    type Ref = &'root [&'root T];
-    fn r(&'root self) -> &'root [&'root T] {
-        unsafe { mem::transmute(&self[..]) }
     }
 }
 
