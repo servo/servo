@@ -4,9 +4,11 @@
 
 use constellation_msg::{PipelineId, WindowSizeData};
 use euclid::rect::Rect;
+use euclid::size::TypedSize2D;
 use ipc_channel::ipc::IpcSender;
 use rustc_serialize::json::{Json, ToJson};
 use url::Url;
+use util::geometry::ViewportPx;
 
 #[derive(Deserialize, Serialize)]
 pub enum WebDriverScriptCommand {
@@ -24,6 +26,7 @@ pub enum WebDriverScriptCommand {
     GetFrameId(WebDriverFrameId, IpcSender<Result<Option<PipelineId>, ()>>),
     GetUrl(IpcSender<Url>),
     GetWindowSize(IpcSender<Option<WindowSizeData>>),
+    SetWindowSize(TypedSize2D<ViewportPx, f32>, IpcSender<()>),
     IsEnabled(String, IpcSender<Result<bool, ()>>),
     IsSelected(String, IpcSender<Result<bool, ()>>),
     GetTitle(IpcSender<String>)

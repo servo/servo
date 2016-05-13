@@ -11,6 +11,7 @@
 #![deny(unsafe_code)]
 
 extern crate compositing;
+extern crate euclid;
 extern crate hyper;
 extern crate image;
 extern crate ipc_channel;
@@ -25,6 +26,7 @@ extern crate webdriver;
 mod keys;
 
 use compositing::CompositorMsg as ConstellationMsg;
+use euclid::Size2D;
 use hyper::method::Method::{self, Post};
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -46,7 +48,8 @@ use util::prefs::{get_pref, reset_all_prefs, reset_pref, set_pref, PrefValue};
 use util::thread::spawn_named;
 use uuid::Uuid;
 use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters};
-use webdriver::command::{Parameters, SendKeysParameters, SwitchToFrameParameters, TimeoutsParameters};
+use webdriver::command::{Parameters, SendKeysParameters, SwitchToFrameParameters};
+use webdriver::command::{TimeoutsParameters, WindowSizeParameters};
 use webdriver::command::{WebDriverCommand, WebDriverExtensionCommand, WebDriverMessage};
 use webdriver::common::{LocatorStrategy, WebElement};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
@@ -365,6 +368,16 @@ impl Handler {
             },
             None => Err(WebDriverError::new(ErrorStatus::NoSuchWindow, "Unable to determine window size"))
         }
+    }
+
+    fn handle_set_window_size(&self, params: &WindowSizeParameters) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        let size = Size2D::from_untyped(&Size2D::new(params.width as f32, params.height as f32));
+
+        try!(self.root_script_command(WebDriverScriptCommand::SetWindowSize(size, sender)));
+        receiver.recv().unwrap();
+
+        Ok(WebDriverResponse::Void)
     }
 
     fn handle_is_enabled(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
@@ -767,6 +780,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
             WebDriverCommand::GetCurrentUrl => self.handle_current_url(),
             WebDriverCommand::GetWindowSize => self.handle_window_size(),
+            WebDriverCommand::SetWindowSize(ref size) => self.handle_set_window_size(size),
             WebDriverCommand::IsEnabled(ref element) => self.handle_is_enabled(element),
             WebDriverCommand::IsSelected(ref element) => self.handle_is_selected(element),
             WebDriverCommand::GoBack => self.handle_go_back(),
