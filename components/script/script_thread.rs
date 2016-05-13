@@ -97,7 +97,7 @@ use style::context::ReflowGoal;
 use task_source::TaskSource;
 use task_source::dom_manipulation::{DOMManipulationTaskSource, DOMManipulationTask};
 use task_source::file_reading::FileReadingTaskSource;
-use task_source::history_traversal::HistoryTraversalTaskSource;
+use task_source::history_traversal::{HistoryTraversalTaskSource, HistoryTraversalTask};
 use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::{UserInteractionTaskSource, UserInteractionTask};
 use time::Tm;
@@ -224,6 +224,8 @@ pub enum MainThreadScriptMsg {
     DOMManipulation(DOMManipulationTask),
     /// Tasks that originate from the user interaction task source
     UserInteraction(UserInteractionTask),
+    /// Tasks that originate from the history traversal task source
+    HistoryTraversal(HistoryTraversalTask),
 }
 
 impl OpaqueSender<CommonScriptMsg> for Box<ScriptChan + Send> {
@@ -935,6 +937,8 @@ impl ScriptThread {
             MainThreadScriptMsg::DOMManipulation(task) =>
                 task.handle_task(self),
             MainThreadScriptMsg::UserInteraction(task) =>
+                task.handle_task(),
+            MainThreadScriptMsg::HistoryTraversal(task) =>
                 task.handle_task(),
         }
     }

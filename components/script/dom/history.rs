@@ -11,8 +11,8 @@ use dom::window::Window;
 use msg::constellation_msg::{ConstellationChan, NavigationDirection};
 use script_traits::ScriptMsg as ConstellationMsg;
 use ipc_channel::ipc;
-use js::jsapi::{JSContext, HandleValue};
-use js::jsval::JSVal;
+use js::jsapi::{HandleValue, JSContext, JSAutoCompartment, RootedValue};
+use js::jsval::{JSVal, UndefinedValue};
 use util::str::DOMString;
 
 // https://html.spec.whatwg.org/multipage/#the-history-interface
@@ -47,6 +47,7 @@ impl History {
 impl HistoryMethods for History {
     // https://html.spec.whatwg.org/multipage/#dom-history-length
     fn Length(&self) -> u32 {
+        // TODO: Check if `Document` is `fully active`
         let (sender, receiver) = ipc::channel::<Option<usize>>().expect("Failed to create IPC channel");
         let pipeline_info = self.window.parent_info();
         let ConstellationChan(ref chan) = *self.window.constellation_chan();
@@ -61,21 +62,29 @@ impl HistoryMethods for History {
 
     // https://html.spec.whatwg.org/multipage/#dom-history-scroll-restoration
     fn ScrollRestoration(&self) -> ScrollRestoration {
+        // TODO: Check if `Document` is `fully active`
         ScrollRestoration::Auto
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-scroll-restoration
     fn SetScrollRestoration(&self, value: ScrollRestoration) {
+        // TODO: Check if `Document` is `fully active`
 
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-state
-    fn State(&self, _cx: *mut JSContext) -> JSVal {
-        self.window.browsing_context().state()
+    fn State(&self, cx: *mut JSContext) -> JSVal {
+        // TODO: Check if `Document` is `fully active`
+        let state = self.window.browsing_context().state();
+        let _ac = JSAutoCompartment::new(cx, self.reflector_.get_jsobject().get());
+        let mut state_js = RootedValue::new(cx, UndefinedValue());
+        state.read(GlobalRef::Window(&self.window), state_js.handle_mut());
+        state_js.handle().get()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-go
     fn Go(&self, delta: i32) {
+        // TODO: Check if `Document` is `fully active`
         let direction = match delta {
             delta if delta > 0 => NavigationDirection::Forward(delta as u32),
             delta if delta < 0 => NavigationDirection::Back((-delta) as u32),
@@ -90,22 +99,26 @@ impl HistoryMethods for History {
 
     // https://html.spec.whatwg.org/multipage/#dom-history-back
     fn Back(&self) {
+        // TODO: Check if `Document` is `fully active`
         self.navigate(NavigationDirection::Back(1));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-forward
     fn Forward(&self) {
+        // TODO: Check if `Document` is `fully active`
         self.navigate(NavigationDirection::Forward(1));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-pushstate
     fn PushState(&self, cx: *mut JSContext, data: HandleValue, title: DOMString, url: Option<DOMString>) {
+        // TODO: Check if `Document` is `fully active`
         let data = StructuredCloneData::write(cx, data).unwrap();
         self.window.browsing_context().push_state(data, title, url);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-replacestate
     fn ReplaceState(&self, cx: *mut JSContext, data: HandleValue, title: DOMString, url: Option<DOMString>) {
+        // TODO: Check if `Document` is `fully active`
         let data = StructuredCloneData::write(cx, data).unwrap();
         self.window.browsing_context().replace_state(data, title, url);
     }
