@@ -17,7 +17,6 @@ use dom::bindings::utils::get_array_index_from_id;
 use dom::document::Document;
 use dom::element::Element;
 use dom::event::Event;
-use dom::eventtarget::EventTarget;
 use dom::popstateevent::PopStateEvent;
 use dom::window::Window;
 use js::JSCLASS_IS_GLOBAL;

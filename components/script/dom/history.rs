@@ -8,6 +8,9 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::window::Window;
+use msg::constellation_msg::{ConstellationChan, NavigationDirection};
+use script_traits::ScriptMsg as ConstellationMsg;
+use ipc_channel::ipc;
 use js::jsapi::{JSContext, HandleValue};
 use js::jsval::JSVal;
 use util::str::DOMString;
@@ -32,13 +35,28 @@ impl History {
                            GlobalRef::Window(window),
                            HistoryBinding::Wrap)
     }
+
+    fn navigate(&self, direction: NavigationDirection) {
+        let pipeline_info = self.window.parent_info();
+        let ConstellationChan(ref chan) = *self.window.constellation_chan();
+        let msg = ConstellationMsg::Navigate(pipeline_info, direction);
+        chan.send(msg).unwrap();
+    }
 }
 
 impl HistoryMethods for History {
     // https://html.spec.whatwg.org/multipage/#dom-history-length
     fn Length(&self) -> u32 {
-        // TODO: Consider how this should be casted
-        self.window.browsing_context().session_history_length() as u32
+        let (sender, receiver) = ipc::channel::<Option<usize>>().expect("Failed to create IPC channel");
+        let pipeline_info = self.window.parent_info();
+        let ConstellationChan(ref chan) = *self.window.constellation_chan();
+        let msg = ConstellationMsg::HistoryLength(pipeline_info, sender);
+        chan.send(msg).unwrap();
+
+        match receiver.recv().unwrap() {
+            Some(len) => len as u32,
+            _ => 0
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-scroll-restoration
@@ -58,17 +76,26 @@ impl HistoryMethods for History {
 
     // https://html.spec.whatwg.org/multipage/#dom-history-go
     fn Go(&self, delta: i32) {
-        self.window.browsing_context().go(delta)
+        let direction = match delta {
+            delta if delta > 0 => NavigationDirection::Forward(delta as u32),
+            delta if delta < 0 => NavigationDirection::Back((-delta) as u32),
+            _ => {
+                // TODO: Reload page
+                // This is assumed to be 0
+                NavigationDirection::Forward(0)
+            },
+        };
+        self.navigate(direction);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-back
     fn Back(&self) {
-        self.window.browsing_context().go(-1)
+        self.navigate(NavigationDirection::Back(1));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-forward
     fn Forward(&self) {
-        self.window.browsing_context().go(1)
+        self.navigate(NavigationDirection::Forward(1));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-pushstate
