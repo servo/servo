@@ -53,7 +53,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{DOMProxyShadowsResult, HandleId, HandleObject, RootedValue};
-use js::jsapi::{JSAutoRequest, JSContext, JS_SetWrapObjectCallbacks, JSTracer, SetWindowProxyClass};
+use js::jsapi::{JSContext, JS_SetWrapObjectCallbacks, JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_interface::{ReflowQueryType};
@@ -1576,7 +1576,6 @@ impl ScriptThread {
 
             // Turn javascript: URL into JS code to eval, according to the steps in
             // https://html.spec.whatwg.org/multipage/#javascript-protocol
-            let _ar = JSAutoRequest::new(self.get_cx());
 
             // This slice of the URL’s serialization is equivalent to (5.) to (7.):
             // Start with the scheme data of the parsed URL;

@@ -17,7 +17,7 @@ use dom::window::Window;
 use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
 use js::glue::{GetProxyPrivate, SetProxyExtra, GetProxyExtra};
-use js::jsapi::{Handle, HandleId, HandleObject, HandleValue, JSAutoCompartment, JSAutoRequest};
+use js::jsapi::{Handle, HandleId, HandleObject, HandleValue, JSAutoCompartment};
 use js::jsapi::{JSContext, JSPROP_READONLY, JSErrNum, JSObject, PropertyDescriptor, JS_DefinePropertyById};
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass, JSTracer, FreeOp};
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHandle};
@@ -70,7 +70,6 @@ impl BrowsingContext {
             assert!(!handler.is_null());
 
             let cx = window.get_cx();
-            let _ar = JSAutoRequest::new(cx);
             let parent = window.reflector().get_jsobject();
             assert!(!parent.get().is_null());
             assert!(((*JS_GetClass(parent.get())).flags & JSCLASS_IS_GLOBAL) != 0);

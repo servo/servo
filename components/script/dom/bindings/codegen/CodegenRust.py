@@ -2400,7 +2400,6 @@ class CGWrapMethod(CGAbstractMethod):
         if not self.descriptor.isGlobal():
             create = CreateBindingJSObject(self.descriptor, "scope")
             return CGGeneric("""\
-let _ar = JSAutoRequest::new(cx);
 let scope = scope.reflector().get_jsobject();
 assert!(!scope.get().is_null());
 assert!(((*JS_GetClass(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
@@ -2419,7 +2418,6 @@ Root::from_ref(&*raw)""" % {'copyUnforgeable': unforgeable, 'createObject': crea
         else:
             create = CreateBindingJSObject(self.descriptor)
             return CGGeneric("""\
-let _ar = JSAutoRequest::new(cx);
 %(createObject)s
 
 let _ac = JSAutoCompartment::new(cx, obj.ptr);
@@ -5546,7 +5544,7 @@ class CGBindingRoot(CGThing):
             'js::jsapi::{JS_AtomizeAndPinString, JS_IsExceptionPending, JS_NewObject, JS_NewObjectWithGivenProto}',
             'js::jsapi::{JS_NewObjectWithoutMetadata, JS_NewStringCopyZ, JS_SetProperty}',
             'js::jsapi::{JS_SetPrototype, JS_SetReservedSlot, JS_WrapValue, JSAutoCompartment}',
-            'js::jsapi::{JSAutoRequest, JSContext, JSClass, JSFreeOp, JSFunctionSpec}',
+            'js::jsapi::{JSContext, JSClass, JSFreeOp, JSFunctionSpec}',
             'js::jsapi::{JSJitGetterCallArgs, JSJitInfo, JSJitMethodCallArgs, JSJitSetterCallArgs}',
             'js::jsapi::{JSNative, JSObject, JSNativeWrapper, JSPropertySpec}',
             'js::jsapi::{JSString, JSTracer, JSType, JSTypedMethodJitInfo, JSValueType}',

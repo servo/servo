@@ -22,7 +22,7 @@ use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::WorkerGlobalScopeInit;
 use ipc_channel::ipc;
 use js::jsapi::{HandleValue, JSContext, JSRuntime, RootedValue};
-use js::jsapi::{JSAutoCompartment, JSAutoRequest, JS_RequestInterruptCallback};
+use js::jsapi::{JSAutoCompartment, JS_RequestInterruptCallback};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use script_runtime::ScriptChan;
@@ -133,7 +133,6 @@ impl Worker {
 
         let global = worker.r().global();
         let target = worker.upcast();
-        let _ar = JSAutoRequest::new(global.r().get_cx());
         let _ac = JSAutoCompartment::new(global.r().get_cx(), target.reflector().get_jsobject().get());
         let mut message = RootedValue::new(global.r().get_cx(), UndefinedValue());
         data.read(global.r(), message.handle_mut());

@@ -23,7 +23,7 @@ use dom::workerglobalscope::WorkerGlobalScopeInit;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{HandleValue, JS_SetInterruptCallback};
-use js::jsapi::{JSAutoCompartment, JSAutoRequest, JSContext, RootedValue};
+use js::jsapi::{JSAutoCompartment, JSContext, RootedValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
@@ -347,7 +347,6 @@ impl DedicatedWorkerGlobalScope {
             WorkerScriptMsg::DOMMessage(data) => {
                 let scope = self.upcast::<WorkerGlobalScope>();
                 let target = self.upcast();
-                let _ar = JSAutoRequest::new(scope.get_cx());
                 let _ac = JSAutoCompartment::new(scope.get_cx(),
                                                  scope.reflector().get_jsobject().get());
                 let mut message = RootedValue::new(scope.get_cx(), UndefinedValue());
