@@ -101,15 +101,13 @@ impl BrowsingContext {
     pub fn init(&self, document: &Document) {
         assert!(self.history.borrow().is_empty());
         assert_eq!(self.active_index.get(), 0);
-        self.history.borrow_mut().push(SessionHistoryEntry::new(document, document.url().clone(), document.Title()));
-        // TODO: Find a better way to set this to null by default
-        self.history.borrow_mut()[0].set_state(NullValue());
+        self.history.borrow_mut().push(SessionHistoryEntry::new(document, document.url().clone(), document.Title(), None));
     }
 
     pub fn push_history(&self, document: &Document) {
         let mut history = self.history.borrow_mut();
         self.remove_forward_history();
-        history.push(SessionHistoryEntry::new(document, document.url().clone(), document.Title()));
+        history.push(SessionHistoryEntry::new(document, document.url().clone(), document.Title(), None));
         self.active_index.set(self.active_index.get() + 1);
         assert_eq!(self.active_index.get(), history.len() - 1);
     }
@@ -153,9 +151,18 @@ impl BrowsingContext {
         // TODO: update URL after we can set the Url of a doc after creation
         self.remove_forward_history();
         let active_document = self.active_document();
-        self.history.borrow_mut().push(SessionHistoryEntry::new(&*active_document, active_document.url().clone(), title));
+
+        let active_window = &*self.active_window();
+        let global = GlobalRef::Window(active_window);
+        let _ac = JSAutoCompartment::new(global.get_cx(), self.reflector_.get_jsobject().get());
+        let mut state_js = RootedValue::new(global.get_cx(), NullValue());
+        state.read(global, state_js.handle_mut());
+
+        self.history.borrow_mut().push(SessionHistoryEntry::new(&*active_document,
+                                                                active_document.url().clone(),
+                                                                title,
+                                                                Some(state_js.handle())));
         let new_index = self.active_index.get() + 1;
-        self.set_state(new_index, state);
         self.set_active_entry(new_index);
 
         let active_window = self.active_window();
@@ -167,21 +174,20 @@ impl BrowsingContext {
 
     pub fn replace_state(&self, state: StructuredCloneData, title: DOMString, _url: Option<DOMString>) {
         // TODO: update URL after we can set the Url of a doc after creation
-        assert!(self.active_index.get() < self.session_history_length());
+        let active_index = self.active_index.get();
+        assert!(active_index < self.session_history_length());
         let active_document = self.active_document();
-        self.history.borrow_mut()[self.active_index.get()] = SessionHistoryEntry::new(&*active_document, active_document.url().clone(), title);
-        self.set_state(self.active_index.get(), state);
-    }
 
-    fn set_state(&self, index: usize, state: StructuredCloneData) {
         let active_window = &*self.active_window();
         let global = GlobalRef::Window(active_window);
         let _ac = JSAutoCompartment::new(global.get_cx(), self.reflector_.get_jsobject().get());
-
         let mut state_js = RootedValue::new(global.get_cx(), NullValue());
         state.read(global, state_js.handle_mut());
 
-        self.history.borrow_mut()[index].set_state(state_js.handle().get());
+        self.history.borrow_mut()[active_index] = SessionHistoryEntry::new(&*active_document,
+                                                                           active_document.url().clone(),
+                                                                           title,
+                                                                           Some(state_js.handle()));
     }
 
     // Clear all session history entries after the active index
@@ -317,26 +323,27 @@ pub struct SessionHistoryEntry {
     document: JS<Document>,
     url: Url,
     title: DOMString,
-    #[ignore_heap_size_of = "Defined in rust-mozjs"]
-    state: MutHeapJSVal,
+    state: Heap<JSVal>,
 }
 
 impl SessionHistoryEntry {
-    fn new(document: &Document, url: Url, title: DOMString) -> SessionHistoryEntry {
+    fn new(document: &Document, url: Url, title: DOMString, state: Option<HandleValue>) -> SessionHistoryEntry {
+        let mut jsval: Heap<JSVal> = Default::default();
+        let state = match state {
+            Some(state) => state,
+            None => HandleValue::null()
+        };
+        jsval.set(state.get());
         SessionHistoryEntry {
             document: JS::from_ref(document),
             url: url,
             title: title,
-            state: MutHeapJSVal::new(),
+            state: jsval,
         }
     }
 
     pub fn state(&self) -> JSVal {
         self.state.get()
-    }
-
-    pub fn set_state(&self, state: JSVal) {
-        self.state.set(state)
     }
 
     pub fn title(&self) -> DOMString {
