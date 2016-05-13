@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::Bluetoo
 use dom::bindings::error::Error::Type;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, MutHeap, Root};
+use dom::bindings::js::{JS, MutHeap, Root, RootedReference};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use dom::bluetoothdevice::BluetoothDevice;

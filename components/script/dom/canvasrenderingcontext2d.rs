@@ -22,7 +22,7 @@ use dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use dom::bindings::error::{Error, Fallible, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, LayoutJS, Root};
+use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};

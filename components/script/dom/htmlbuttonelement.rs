@@ -7,7 +7,7 @@ use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::js::{Root, RootedReference};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::event::Event;

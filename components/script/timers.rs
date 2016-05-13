@@ -6,6 +6,7 @@ use dom::bindings::callback::ExceptionHandling::Report;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::global::GlobalRef;
+use dom::bindings::js::RootedReference;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::trace::JSTraceable;
 use dom::window::ScriptHelpers;

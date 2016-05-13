@@ -6,7 +6,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::URLBinding::{self, URLMethods};
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::USVString;
 use dom::urlhelper::UrlHelper;

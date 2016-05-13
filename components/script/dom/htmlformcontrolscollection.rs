@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLFormControlsCollectionBinding::HTMLFor
 use dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::element::Element;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};

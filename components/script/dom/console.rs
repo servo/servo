@@ -7,7 +7,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ConsoleBinding;
 use dom::bindings::codegen::Bindings::ConsoleBinding::ConsoleMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::Root;
+use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use std::collections::HashMap;
 use time::{Timespec, get_time};

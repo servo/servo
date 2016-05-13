@@ -10,7 +10,7 @@
 use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::root_from_object;
-use dom::bindings::js::Root;
+use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::window::{self, ScriptHelpers};
 use dom::workerglobalscope::WorkerGlobalScope;
@@ -265,10 +265,9 @@ impl<'a> GlobalRef<'a> {
     }
 }
 
-impl GlobalRoot {
-    /// Obtain a safe reference to the global object that cannot outlive the
-    /// lifetime of this root.
-    pub fn r(&self) -> GlobalRef {
+impl<'root> RootedReference<'root> for GlobalRoot {
+    type Ref = GlobalRef<'root>;
+    fn r(&'root self) -> GlobalRef<'root> {
         match *self {
             GlobalRoot::Window(ref window) => GlobalRef::Window(window.r()),
             GlobalRoot::Worker(ref worker) => GlobalRef::Worker(worker.r()),

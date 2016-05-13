@@ -9,7 +9,7 @@ use document_loader::LoadType;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::ServoHTMLParserBinding;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, Root};
+use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::trace::JSTraceable;
