@@ -16,7 +16,6 @@ use std::str;
 use std::sync::Arc;
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 use style::computed_values::{font_stretch, font_variant, font_weight};
-use style::properties::style_structs::ServoFont;
 use text::Shaper;
 use text::glyph::{GlyphId, GlyphStore};
 use text::shaping::ShaperMethods;
@@ -87,8 +86,6 @@ pub struct FontMetrics {
     pub average_advance:  Au,
     pub line_gap:         Au,
 }
-
-pub type SpecifiedFontStyle = ServoFont;
 
 #[derive(Debug)]
 pub struct Font {
