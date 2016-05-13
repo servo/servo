@@ -65,6 +65,8 @@ pub enum ScriptMsg {
     MozBrowserEvent(PipelineId, SubpageId, MozBrowserEvent),
     /// HTMLIFrameElement Forward or Back navigation.
     Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
+    /// Returns the session history length.
+    HistoryLength(Option<(PipelineId, SubpageId)>, IpcSender<Option<usize>>),
     /// Favicon detected
     NewFavicon(Url),
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.

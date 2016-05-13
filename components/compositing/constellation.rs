@@ -700,6 +700,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 debug!("constellation got navigation message from script");
                 self.handle_navigate_msg(pipeline_info, direction);
             }
+            Request::Script(FromScriptMsg::HistoryLength(pipeline_info, sender)) => {
+                debug!("constellation got history length message from compositor");
+                self.handle_history_length(pipeline_info, sender);
+            }
             // Notification that the new document is ready to become active
             Request::Script(FromScriptMsg::ActivateDocument(pipeline_id)) => {
                 debug!("constellation got activate document message");
@@ -1253,28 +1257,50 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         let (prev_pipeline_id, next_pipeline_id) = match self.frames.get_mut(&frame_id) {
             Some(frame) => {
                 let next = match direction {
-                    NavigationDirection::Forward(_delta) => {
-                        match frame.next.pop() {
-                            None => {
-                                warn!("no next page to navigate to");
-                                return;
-                            },
-                            Some(next) => {
-                                frame.prev.push(frame.current);
-                                next
-                            },
+                    NavigationDirection::Forward(delta) => {
+                        let len = frame.next.len();
+                        if (delta as usize) < len {
+                            frame.prev.push(frame.current);
+                            {
+                                let drain = frame.next.drain((len - (delta as usize) + 1)..);
+                                for pipeline in drain.rev() {
+                                    frame.prev.push(pipeline);
+                                }
+                            }
+                            match frame.next.pop() {
+                                None => {
+                                    warn!("no next page to navigate to");
+                                    return;
+                                },
+                                Some(next) => {
+                                    next
+                                },
+                            }
+                        } else {
+                            return warn!("invalid navigation delta.");
                         }
                     }
-                    NavigationDirection::Back(_delta) => {
-                        match frame.prev.pop() {
-                            None => {
-                                warn!("no previous page to navigate to");
-                                return;
-                            },
-                            Some(prev) => {
-                                frame.next.push(frame.current);
-                                prev
-                            },
+                    NavigationDirection::Back(delta) => {
+                        let len = frame.prev.len();
+                        if (delta as usize) < len {
+                            frame.next.push(frame.current);
+                            {
+                                let drain = frame.prev.drain((len - (delta as usize) + 1)..);
+                                for pipeline in drain.rev() {
+                                    frame.next.push(pipeline);
+                                }
+                            }
+                            match frame.prev.pop() {
+                                None => {
+                                    warn!("no next page to navigate to");
+                                    return;
+                                },
+                                Some(next) => {
+                                    next
+                                },
+                            }
+                        } else {
+                            return warn!("invalid navigation delta.");
                         }
                     }
                 };
@@ -1332,6 +1358,33 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             // If this is an iframe, send a mozbrowser location change event.
             // This is the result of a back/forward navigation.
             self.trigger_mozbrowserlocationchange(next_pipeline_id);
+        }
+    }
+
+    fn handle_history_length(&mut self,
+                             pipeline_info: Option<(PipelineId, SubpageId)>,
+                             sender: IpcSender<Option<usize>>) {
+        // Get the frame id associated with the pipeline that sent
+        // the navigate message, or use root frame id by default.
+        let frame_id = pipeline_info
+            .and_then(|info| self.subpage_map.get(&info))
+            .and_then(|pipeline_id| self.pipeline_to_frame_map.get(&pipeline_id))
+            .cloned()
+            .or(self.root_frame_id);
+
+        // If the frame_id lookup fails, then we are in the middle of tearing down
+        // the root frame, so it is reasonable to silently ignore the navigation.
+        let frame_id = match frame_id {
+            None => {
+                sender.send(None);
+                return warn!("Navigation after root's closure.")
+            },
+            Some(frame_id) => frame_id,
+        };
+
+        match self.frames.get_mut(&frame_id) {
+            Some(frame) => sender.send(Some(frame.prev.len() + frame.next.len() + 1)).unwrap(),
+            None => sender.send(None).unwrap(),
         }
     }
 
