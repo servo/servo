@@ -543,13 +543,32 @@ fn static_assert() {
 
 <% skip_position_longhands = " ".join(x.ident for x in SIDES) %>
 <%self:impl_trait style_struct_name="Position"
-                  skip_longhands="${skip_position_longhands}">
+                  skip_longhands="${skip_position_longhands} z-index">
 
     % for side in SIDES:
     <% impl_split_style_coord("%s" % side.ident,
                               "mOffset.mUnits[%s]" % side.index,
                               "mOffset.mValues[%s]" % side.index) %>
     % endfor
+
+    fn set_z_index(&mut self, v: longhands::z_index::computed_value::T) {
+        use gecko_bindings::structs::nsStyleUnit;
+        use style::properties::longhands::z_index::computed_value::T;
+        match v {
+            T::Auto => {
+                self.gecko.mZIndex.mUnit = nsStyleUnit::eStyleUnit_Auto;
+                unsafe { *self.gecko.mZIndex.mValue.mInt.as_mut() = 0; }
+            }
+            T::Number(n) => {
+                self.gecko.mZIndex.mUnit = nsStyleUnit::eStyleUnit_Integer;
+                unsafe { *self.gecko.mZIndex.mValue.mInt.as_mut() = n; }
+            }
+        }
+    }
+    fn copy_z_index_from(&mut self, other: &Self) {
+        self.gecko.mZIndex.mUnit = other.gecko.mZIndex.mUnit;
+        self.gecko.mZIndex.mValue = other.gecko.mZIndex.mValue;
+    }
 </%self:impl_trait>
 
 <% skip_outline_longhands = " ".join("outline-color outline-style outline-width".split() +
