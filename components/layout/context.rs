@@ -151,6 +151,31 @@ impl<'a> LayoutContext<'a> {
         self.cached_local_layout_context.font_context.borrow_mut()
     }
 
+    pub fn get_or_request_image(&self, url: Url, use_placeholder: UsePlaceholder)
+                                -> Option<ImageOrMetadataAvailable> {
+        // See if the image is already available
+        let result = self.shared.image_cache_thread.find_image(url.clone(),
+                                                               use_placeholder);
+        match result {
+            Ok(image) => Some(ImageOrMetadataAvailable::ImageAvailable(image)),
+            // Image failed to load, so just return nothing
+            Err(ImageState::LoadError) => None,
+            // Not yet requested, async mode - request image or metadata from the cache
+            Err(ImageState::NotRequested) => {
+                let sender = self.shared.image_cache_sender.lock().unwrap().clone();
+                self.shared.image_cache_thread.request_image(url, sender, None);
+                self.shared.outstanding_images.fetch_add(1, Ordering::SeqCst);
+                None
+            }
+            // Image has been requested, is still pending. Return no image for this paint loop.
+            // When the image loads it will trigger a reflow and/or repaint.
+            Err(ImageState::Pending) => {
+                //self.shared.outstanding_images.fetch_add(1, Ordering::SeqCst);
+                None
+            }
+        }        
+    }
+
     pub fn get_or_request_image_or_meta(&self, url: Url, use_placeholder: UsePlaceholder)
                                 -> Option<ImageOrMetadataAvailable> {
         // See if the image is already available
@@ -170,7 +195,7 @@ impl<'a> LayoutContext<'a> {
             // Image has been requested, is still pending. Return no image for this paint loop.
             // When the image loads it will trigger a reflow and/or repaint.
             Err(ImageState::Pending) => {
-                self.shared.outstanding_images.fetch_add(1, Ordering::SeqCst);
+                //self.shared.outstanding_images.fetch_add(1, Ordering::SeqCst);
                 None
             }
         }
@@ -189,7 +214,7 @@ impl<'a> LayoutContext<'a> {
             }
         }
 
-        match self.get_or_request_image_or_meta((*url).clone(), use_placeholder) {
+        match self.get_or_request_image((*url).clone(), use_placeholder) {
             Some(ImageOrMetadataAvailable::ImageAvailable(image)) => {
                 let image_info = WebRenderImageInfo::from_image(&*image);
                 if image_info.key.is_none() {

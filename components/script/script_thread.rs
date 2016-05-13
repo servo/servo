@@ -903,6 +903,8 @@ impl ScriptThread {
                 self.handle_tick_all_animations(pipeline_id),
             ConstellationControlMsg::WebFontLoaded(pipeline_id) =>
                 self.handle_web_font_loaded(pipeline_id),
+            ConstellationControlMsg::ImageLoaded(pipeline_id) =>
+                self.handle_image_loaded(pipeline_id),
             ConstellationControlMsg::DispatchFrameLoadEvent {
                 target: pipeline_id, parent: containing_id } =>
                 self.handle_frame_load_event(containing_id, pipeline_id),
@@ -910,6 +912,8 @@ impl ScriptThread {
                 self.handle_framed_content_changed(containing_pipeline_id, subpage_id),
             ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
+            ConstellationControlMsg::AnyImagesOutstanding(pipeline_id, sender) =>
+                self.handle_any_images_outstanding(pipeline_id, sender),
         }
     }
 
@@ -1378,6 +1382,13 @@ impl ScriptThread {
     fn handle_web_font_loaded(&self, pipeline_id: PipelineId) {
         if let Some(ref page) = self.find_subpage(pipeline_id)  {
             self.rebuild_and_force_reflow(page, ReflowReason::WebFontLoaded);
+        }
+    }
+
+    /// Handles a image being loaded. Does nothing if the page no longer exists.
+    fn handle_image_loaded(&self, pipeline_id: PipelineId) {
+        if let Some(ref page) = self.find_subpage(pipeline_id)  {
+            self.rebuild_and_force_reflow(page, ReflowReason::ImageLoaded);
         }
     }
 
@@ -1970,6 +1981,14 @@ impl ScriptThread {
                     css_error)).unwrap();
              }
         }
+    }
+
+    fn handle_any_images_outstanding(&self, pipeline_id: PipelineId, sender: IpcSender<bool>) {
+        let page = self.root_page();
+        let page = page.find(pipeline_id).expect("ScriptThread: received fire timer msg for a
+            pipeline ID not associated with this script thread. This is a bug.");
+        let window = page.window();
+        let _ = sender.send(window.get_pending_reflow_count() != 0);
     }
 }
 
