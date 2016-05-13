@@ -33,6 +33,8 @@ td[align="right"]   { text-align: right; }
 
 center { text-align: -servo-center; }
 
+label { cursor: default; }
+
 input:not([type=radio i]):not([type=checkbox i]):not([type=reset i]):not([type=button i]):not([type=submit i]),
 textarea {
   cursor: text;
