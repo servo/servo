@@ -36,7 +36,7 @@ use devtools_traits::CSSError;
 use devtools_traits::WorkerId;
 use dom::abstractworker::SharedRt;
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::js::{JS, Root};
+use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::refcounted::{Trusted, TrustedPromise};
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::str::{DOMString, USVString};
@@ -553,9 +553,9 @@ impl<'a, T: JSTraceable + Reflectable> RootedVec<'a, JS<T>> {
     }
 }
 
-impl<'a, T: JSTraceable + Reflectable> RootedVec<'a, JS<T>> {
-    /// Obtain a safe slice of references that can't outlive that RootedVec.
-    pub fn r(&self) -> &[&T] {
+impl<'a, 'root, T: JSTraceable + Reflectable + 'root> RootedReference<'root> for RootedVec<'a, JS<T>> {
+    type Ref = &'root [&'root T];
+    fn r(&'root self) -> &'root [&'root T] {
         unsafe { mem::transmute(&self[..]) }
     }
 }
