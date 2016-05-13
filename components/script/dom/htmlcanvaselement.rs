@@ -145,7 +145,7 @@ impl HTMLCanvasElement {
         if self.context.borrow().is_none() {
             let window = window_from_node(self);
             let size = self.get_size();
-            let context = CanvasRenderingContext2D::new(GlobalRef::Window(window.r()), self, size);
+            let context = CanvasRenderingContext2D::new(GlobalRef::Window(&window), self, size);
             *self.context.borrow_mut() = Some(CanvasContext::Context2d(JS::from_rooted(&context)));
         }
 
@@ -174,7 +174,7 @@ impl HTMLCanvasElement {
                 GLContextAttributes::default()
             };
 
-            let maybe_ctx = WebGLRenderingContext::new(GlobalRef::Window(window.r()), self, size, attrs);
+            let maybe_ctx = WebGLRenderingContext::new(GlobalRef::Window(&window), self, size, attrs);
 
             *self.context.borrow_mut() = maybe_ctx.map( |ctx| CanvasContext::WebGL(JS::from_rooted(&ctx)));
         }
@@ -275,7 +275,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
                 let image_data = try!(context.GetImageData(Finite::wrap(0f64), Finite::wrap(0f64),
                                                            Finite::wrap(self.Width() as f64),
                                                            Finite::wrap(self.Height() as f64)));
-                image_data.get_data_array(&GlobalRef::Window(window.r()))
+                image_data.get_data_array(&GlobalRef::Window(&window))
             }
             None => {
                 // Each pixel is fully-transparent black.

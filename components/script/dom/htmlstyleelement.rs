@@ -70,7 +70,7 @@ impl HTMLStyleElement {
         layout_chan.send(Msg::AddStylesheet(sheet.clone())).unwrap();
         *self.stylesheet.borrow_mut() = Some(sheet);
         let doc = document_from_node(self);
-        doc.r().invalidate_stylesheets();
+        doc.invalidate_stylesheets();
     }
 
     pub fn get_stylesheet(&self) -> Option<Arc<Stylesheet>> {

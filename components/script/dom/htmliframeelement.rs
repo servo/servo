@@ -121,7 +121,6 @@ impl HTMLIFrameElement {
         }
 
         let window = window_from_node(self);
-        let window = window.r();
         let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id();
         let new_pipeline_id = self.pipeline_id.get().unwrap();
         let private_iframe = self.privatebrowsing();
@@ -167,7 +166,7 @@ impl HTMLIFrameElement {
                 let mut detail = RootedValue::new(cx, UndefinedValue());
                 let event_name = Atom::from(event.name());
                 self.build_mozbrowser_event_detail(event, cx, detail.handle_mut());
-                CustomEvent::new(GlobalRef::Window(window.r()),
+                CustomEvent::new(GlobalRef::Window(&window),
                                  event_name,
                                  true,
                                  true,
@@ -374,7 +373,6 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> E
     if iframe.Mozbrowser() {
         if iframe.upcast::<Node>().is_in_doc() {
             let window = window_from_node(iframe);
-            let window = window.r();
 
             let pipeline_info = Some((window.pipeline(),
                                       iframe.subpage_id().unwrap()));
@@ -416,7 +414,6 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     fn GetContentWindow(&self) -> Option<Root<Window>> {
         self.subpage_id.get().and_then(|subpage_id| {
             let window = window_from_node(self);
-            let window = window.r();
             let browsing_context = window.browsing_context();
             browsing_context.find_child_by_subpage(subpage_id)
         })
@@ -570,7 +567,6 @@ impl VirtualMethods for HTMLIFrameElement {
         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
         if let Some(pipeline_id) = self.pipeline_id.get() {
             let window = window_from_node(self);
-            let window = window.r();
 
             // The only reason we're waiting for the iframe to be totally
             // removed is to ensure the script thread can't add iframes faster

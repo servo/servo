@@ -82,7 +82,6 @@ impl Runnable for ImageResponseHandlerRunnable {
     fn handler(self: Box<Self>) {
         // Update the image field
         let element = self.element.root();
-        let element_ref = element.r();
         let (image, metadata, trigger_image_load) = match self.image {
             ImageResponse::Loaded(image) | ImageResponse::PlaceholderLoaded(image) => {
                 (Some(image.clone()), Some(ImageMetadata { height: image.height, width: image.width } ), true)
@@ -92,8 +91,8 @@ impl Runnable for ImageResponseHandlerRunnable {
             }
             ImageResponse::None => (None, None, true)
         };
-        element_ref.current_request.borrow_mut().image = image;
-        element_ref.current_request.borrow_mut().metadata = metadata;
+        element.current_request.borrow_mut().image = image;
+        element.current_request.borrow_mut().metadata = metadata;
 
         // Mark the node dirty
         let document = document_from_node(&*element);
@@ -105,7 +104,7 @@ impl Runnable for ImageResponseHandlerRunnable {
         }
 
         // Trigger reflow
-        let window = window_from_node(document.r());
+        let window = window_from_node(&*document);
         window.add_pending_reflow();
     }
 }
@@ -179,7 +178,7 @@ impl HTMLImageElement {
                  width: Option<u32>,
                  height: Option<u32>) -> Fallible<Root<HTMLImageElement>> {
         let document = global.as_window().Document();
-        let image = HTMLImageElement::new(atom!("img"), None, document.r());
+        let image = HTMLImageElement::new(atom!("img"), None, &document);
         if let Some(w) = width {
             image.SetWidth(w);
         }
