@@ -84,7 +84,7 @@ impl<'a> TreeSink for servoxmlparser::Sink {
                 Root::upcast(text)
             }
         };
-        assert!(parent.AppendChild(child.r()).is_ok());
+        assert!(parent.AppendChild(&child).is_ok());
     }
 
     fn append_doctype_to_document(&mut self, name: StrTendril, public_id: StrTendril,
