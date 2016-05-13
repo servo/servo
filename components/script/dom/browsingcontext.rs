@@ -9,6 +9,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutHeapJSVal, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
+use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
@@ -16,7 +17,6 @@ use dom::bindings::utils::WindowProxyHandler;
 use dom::bindings::utils::get_array_index_from_id;
 use dom::document::Document;
 use dom::element::Element;
-use dom::event::Event;
 use dom::popstateevent::PopStateEvent;
 use dom::window::Window;
 use js::JSCLASS_IS_GLOBAL;
@@ -26,13 +26,14 @@ use js::jsapi::{Handle, HandleId, HandleObject, HandleValue, JSAutoCompartment};
 use js::jsapi::{JSContext, JSPROP_READONLY, JSErrNum, JSObject, PropertyDescriptor, JS_DefinePropertyById};
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass, JSTracer, FreeOp};
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHandle};
-use js::jsapi::{MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
+use js::jsapi::{Heap, MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
 use js::jsval::{JSVal, UndefinedValue, PrivateValue, NullValue};
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::{PipelineId, SubpageId};
+use script_thread::Runnable;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
-use string_cache::atom::Atom;
+use task_source::history_traversal::HistoryTraversalTask;
 use url::Url;
 use util::str::DOMString;
 
@@ -101,6 +102,7 @@ impl BrowsingContext {
         assert!(self.history.borrow().is_empty());
         assert_eq!(self.active_index.get(), 0);
         self.history.borrow_mut().push(SessionHistoryEntry::new(document, document.url().clone(), document.Title()));
+        // TODO: Find a better way to set this to null by default
         self.history.borrow_mut()[0].set_state(NullValue());
     }
 
@@ -127,15 +129,24 @@ impl BrowsingContext {
     pub fn set_active_entry(&self, active_index: usize) {
         assert!(active_index < self.history.borrow().len());
         self.active_index.set(active_index);
-        let active_window = &*self.active_window();
 
-        // TODO: Move this to the HistoryTraversalTaskSource
-        let event = PopStateEvent::new(GlobalRef::Window(active_window), Atom::from("popstateevent"), true, false, self.state());
-        event.upcast::<Event>().fire(active_window.upcast());
+        let active_window = &*self.active_window();
+        let trusted_window = Trusted::new(active_window);
+        let task_source = active_window.history_traversal_task_source();
+        let runnable = box PopstateNotificationRunnable {
+            window: trusted_window,
+            state: self.state(),
+        };
+        let _ = task_source.queue(HistoryTraversalTask::FireNavigationEvent(runnable));
     }
 
-    pub fn state(&self) -> JSVal {
-        self.history.borrow()[self.active_index.get()].state()
+    pub fn state(&self) -> StructuredCloneData {
+        let active_window = &*self.active_window();
+        let global = GlobalRef::Window(active_window);
+        let _ac = JSAutoCompartment::new(global.get_cx(), self.reflector_.get_jsobject().get());
+
+        let state_js = RootedValue::new(global.get_cx(), self.history.borrow()[self.active_index.get()].state());
+        StructuredCloneData::write(global.get_cx(), state_js.handle()).unwrap()
     }
 
     pub fn push_state(&self, state: StructuredCloneData, title: DOMString, _url: Option<DOMString>) {
@@ -143,13 +154,14 @@ impl BrowsingContext {
         self.remove_forward_history();
         let active_document = self.active_document();
         self.history.borrow_mut().push(SessionHistoryEntry::new(&*active_document, active_document.url().clone(), title));
-        self.set_state(self.active_index.get() + 1, state);
-        self.go(1);
+        let new_index = self.active_index.get() + 1;
+        self.set_state(new_index, state);
+        self.set_active_entry(new_index);
 
         let active_window = self.active_window();
         let pipeline_info = active_window.parent_info();
         let ConstellationChan(ref chan) = *active_window.constellation_chan();
-        let msg = ConstellationMsg::HistoryStatePushed(pipeline_info, self.active_index.get());
+        let msg = ConstellationMsg::HistoryStatePushed(pipeline_info, new_index);
         chan.send(msg).unwrap();
     }
 
@@ -164,30 +176,12 @@ impl BrowsingContext {
     fn set_state(&self, index: usize, state: StructuredCloneData) {
         let active_window = &*self.active_window();
         let global = GlobalRef::Window(active_window);
-        let _ar = JSAutoRequest::new(global.get_cx());
         let _ac = JSAutoCompartment::new(global.get_cx(), self.reflector_.get_jsobject().get());
 
         let mut state_js = RootedValue::new(global.get_cx(), NullValue());
         state.read(global, state_js.handle_mut());
 
         self.history.borrow_mut()[index].set_state(state_js.handle().get());
-    }
-
-    pub fn go(&self, delta: i32) {
-        // TODO: Consider how this should be casted
-        let active_index = self.active_index.get() as i32;
-        if active_index + delta < self.session_history_length() as i32 && active_index + delta >= 0 {
-            // TODO:
-            //  * check if we need to navigate through the constellation
-            //  * tell constellation to navigate if needed
-            //  * send popstateevent and other events if applicable
-            self.active_index.set((active_index + delta) as usize);
-            let active_window = &*self.active_window();
-
-            // TODO: Move this to the HistoryTraversalTaskSource
-            let event = PopStateEvent::new(GlobalRef::Window(active_window), Atom::from("popstateevent"), true, false, self.state());
-            event.upcast::<Event>().fire(active_window.upcast());
-        }
     }
 
     // Clear all session history entries after the active index
@@ -247,6 +241,28 @@ impl BrowsingContext {
     pub fn clear_session_history(&self) {
         self.active_index.set(0);
         self.history.borrow_mut().clear();
+    }
+
+    pub fn handle_popstate(window: Trusted<Window>, state: StructuredCloneData) {
+        let window = window.root();
+        let global = GlobalRef::Window(&window);
+        let target = window.upcast();
+        let _ac = JSAutoCompartment::new(global.get_cx(), target.reflector().get_jsobject().get());
+        let mut state_js = RootedValue::new(global.get_cx(), UndefinedValue());
+        state.read(global, state_js.handle_mut());
+        PopStateEvent::dispatch_jsval(target, global, state_js.handle());
+    }
+}
+
+pub struct PopstateNotificationRunnable {
+    window: Trusted<Window>,
+    state: StructuredCloneData,
+}
+
+impl Runnable for PopstateNotificationRunnable {
+    fn handler(self: Box<PopstateNotificationRunnable>) {
+        let this = *self;
+        BrowsingContext::handle_popstate(this.window, this.state);
     }
 }
 

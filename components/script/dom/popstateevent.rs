@@ -2,16 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::eventtarget::EventTarget;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::PopStateEventBinding;
 use dom::bindings::codegen::Bindings::PopStateEventBinding::PopStateEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{MutHeapJSVal, Root};
+use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::event::Event;
-use js::jsapi::{HandleValue, JSContext};
+use js::jsapi::{HandleValue, Heap, JSContext, RootedValue};
 use js::jsval::JSVal;
 use string_cache::Atom;
 use util::str::DOMString;
@@ -20,32 +21,33 @@ use util::str::DOMString;
 #[dom_struct]
 pub struct PopStateEvent {
     event: Event,
-    #[ignore_heap_size_of = "Defined in rust-mozjs"]
-    state: MutHeapJSVal,
+    state: Heap<JSVal>,
 }
 
 impl PopStateEvent {
-    fn new_inherited() -> PopStateEvent {
-        PopStateEvent {
-            event: Event::new_inherited(),
-            state: MutHeapJSVal::new(),
-        }
+    pub fn new_uninitialized(global: GlobalRef) -> Root<PopStateEvent> {
+        PopStateEvent::new_initialized(global,
+                                       HandleValue::undefined())
     }
 
-    pub fn new_uninitialized(global: GlobalRef) -> Root<PopStateEvent> {
-        reflect_dom_object(box PopStateEvent::new_inherited(),
-                           global,
-                           PopStateEventBinding::Wrap)
+    pub fn new_initialized(global: GlobalRef,
+                           state: HandleValue)
+                           -> Root <PopStateEvent> {
+        let mut ev = box PopStateEvent {
+            event: Event::new_inherited(),
+            state: Heap::default(),
+        };
+        ev.state.set(state.get());
+        reflect_dom_object(ev, global, PopStateEventBinding::Wrap)
     }
 
     pub fn new(global: GlobalRef,
                type_: Atom,
                bubbles: bool,
                cancelable: bool,
-               state: JSVal)
+               state: HandleValue)
                -> Root<PopStateEvent> {
-        let ev = PopStateEvent::new_uninitialized(global);
-        ev.state.set(state);
+        let ev = PopStateEvent::new_initialized(global, state);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
@@ -53,16 +55,30 @@ impl PopStateEvent {
         ev
     }
 
-    #[allow(unsafe_code)]
     pub fn Constructor(global: GlobalRef,
                        type_: DOMString,
                        init: &PopStateEventBinding::PopStateEventInit)
                        -> Fallible<Root<PopStateEvent>> {
-        Ok(PopStateEvent::new(global,
-                              Atom::from(type_),
-                              init.parent.bubbles,
-                              init.parent.cancelable,
-                              unsafe { HandleValue::from_marked_location(&init.state).get() }))
+        let data = RootedValue::new(global.get_cx(), init.state);
+        let ev = PopStateEvent::new(global,
+                                    Atom::from(type_),
+                                    init.parent.bubbles,
+                                    init.parent.cancelable,
+                                    data.handle());
+        Ok(ev)
+    }
+}
+
+impl PopStateEvent {
+    pub fn dispatch_jsval(target: &EventTarget,
+                          scope: GlobalRef,
+                          state: HandleValue) {
+        let popstateevent = PopStateEvent::new(scope,
+                                               Atom::from("popstateevent"),
+                                               true,
+                                               false,
+                                               state);
+        popstateevent.upcast::<Event>().fire(target);
     }
 }
 
