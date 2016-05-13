@@ -26,7 +26,6 @@ use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 use string_cache::Atom;
 use style::computed_values::{font_style, font_variant};
 use style::properties::style_structs::ServoFont;
-use util::cache::HashCache;
 use webrender_traits;
 
 #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))]
@@ -123,22 +122,8 @@ impl FontContext {
             FontHandleMethods::new_from_template(&self.platform_handle, template,
                                                  Some(actual_pt_size));
 
-        handle.map(|handle| {
-            let metrics = handle.metrics();
-
-            Font {
-                handle: handle,
-                shaper: None,
-                variant: variant,
-                descriptor: descriptor,
-                requested_pt_size: pt_size,
-                actual_pt_size: actual_pt_size,
-                metrics: metrics,
-                shape_cache: HashCache::new(),
-                glyph_advance_cache: HashCache::new(),
-                font_key: font_key,
-            }
-        })
+        handle.map(|handle|
+            Font::new(handle, variant, descriptor, pt_size, actual_pt_size, font_key))
     }
 
     fn expire_font_caches_if_necessary(&mut self) {

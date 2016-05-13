@@ -95,10 +95,33 @@ pub struct Font {
     pub descriptor: FontTemplateDescriptor,
     pub requested_pt_size: Au,
     pub actual_pt_size: Au,
-    pub shaper: Option<Shaper>,
-    pub shape_cache: HashCache<ShapeCacheEntry, Arc<GlyphStore>>,
-    pub glyph_advance_cache: HashCache<u32, FractionalPixel>,
+    shaper: Option<Shaper>,
+    shape_cache: HashCache<ShapeCacheEntry, Arc<GlyphStore>>,
+    glyph_advance_cache: HashCache<u32, FractionalPixel>,
     pub font_key: Option<webrender_traits::FontKey>,
+}
+
+impl Font {
+    pub fn new(handle: FontHandle,
+               variant: font_variant::T,
+               descriptor: FontTemplateDescriptor,
+               requested_pt_size: Au,
+               actual_pt_size: Au,
+               font_key: Option<webrender_traits::FontKey>) -> Font {
+        let metrics = handle.metrics();
+        Font {
+            handle: handle,
+            shaper: None,
+            variant: variant,
+            descriptor: descriptor,
+            requested_pt_size: requested_pt_size,
+            actual_pt_size: actual_pt_size,
+            metrics: metrics,
+            shape_cache: HashCache::new(),
+            glyph_advance_cache: HashCache::new(),
+            font_key: font_key,
+        }
+    }
 }
 
 bitflags! {
@@ -130,7 +153,7 @@ pub struct ShapingOptions {
 
 /// An entry in the shape cache.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub struct ShapeCacheEntry {
+struct ShapeCacheEntry {
     text: String,
     options: ShapingOptions,
 }
