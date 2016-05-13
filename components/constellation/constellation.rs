@@ -1812,6 +1812,16 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 Some(pipeline) => pipeline,
             };
 
+            let (sender, receiver) = ipc::channel().expect("Faield to create IPC channel!");
+            let msg = ConstellationControlMsg::AnyImagesOutstanding(pipeline.id.clone(),
+                                                                    sender);
+            if let Err(e) = pipeline.script_chan.send(msg) {
+                warn!("Get script images failed ({})", e);
+            }
+            if receiver.recv().unwrap_or(true) {
+                return ReadyToSave::ImageNotLoaded;
+            }
+
             // Check to see if there are any webfonts still loading.
             //
             // If GetResourceLoadState returns false, either there are no

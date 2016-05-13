@@ -39,7 +39,7 @@ use layout_traits::{ConvertPipelineIdToWebRender, LayoutThreadFactory};
 use log;
 use msg::constellation_msg::{PanicMsg, PipelineId};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
-use net_traits::image_cache_thread::{UsePlaceholder};
+use net_traits::image_cache_thread::{UsePlaceholder, ImageCacheResultResponse, ImageResponse};
 use net_traits::ResourceThreads;
 use parallel;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
@@ -210,6 +210,9 @@ pub struct LayoutThread {
 
     /// The number of images that have been requested but not yet loaded.
     last_outstanding_image_count: usize,
+
+    /// The number of images that have been requested but not yet loaded.
+    pending_images: usize,
 
     /// The number of Web fonts that have been requested but not yet loaded.
     outstanding_web_fonts: Arc<AtomicUsize>,
@@ -463,6 +466,7 @@ impl LayoutThread {
             new_animations_sender: new_animations_sender,
             new_animations_receiver: new_animations_receiver,
             last_outstanding_image_count: 0,
+            pending_images: 0,
             outstanding_web_fonts: outstanding_web_fonts_counter,
             root_flow: None,
             visible_rects: Arc::new(HashMap::with_hasher(Default::default())),
@@ -536,7 +540,7 @@ impl LayoutThread {
             url: (*url).clone(),
             visible_rects: self.visible_rects.clone(),
             webrender_image_cache: self.webrender_image_cache.clone(),
-            outstanding_images: Arc::new(AtomicUsize::new(0)),
+            outstanding_images: Arc::new(AtomicUsize::new(self.last_outstanding_image_count)),
         }
     }
 
@@ -545,7 +549,7 @@ impl LayoutThread {
         enum Request {
             FromPipeline(LayoutControlMsg),
             FromScript(Msg),
-            FromImageCache,
+            FromImageCache(ImageCacheResult),
             FromFontCache,
         }
 
@@ -562,8 +566,7 @@ impl LayoutThread {
                     Request::FromScript(msg.unwrap())
                 },
                 msg = port_from_image_cache.recv() => {
-                    msg.unwrap();
-                    Request::FromImageCache
+                    Request::FromImageCache(msg.unwrap())
                 },
                 msg = port_from_font_cache.recv() => {
                     msg.unwrap();
@@ -593,8 +596,20 @@ impl LayoutThread {
             Request::FromScript(msg) => {
                 self.handle_request_helper(msg, possibly_locked_rw_data)
             },
-            Request::FromImageCache => {
-                self.repaint(possibly_locked_rw_data)
+            Request::FromImageCache(msg) => {
+                match msg {
+                    ImageCacheResult::Response(response) => {
+                        match response.image_response {
+                            ImageResponse::Loaded(_) | ImageResponse::PlaceholderLoaded(_) => {
+                                self.pending_images += 1;
+                            }
+                            _ => {}
+                        }
+                    }
+                    _ => {}
+                }
+                self.script_chan.send(ConstellationControlMsg::ImageLoaded(self.id));
+                true
             },
             Request::FromFontCache => {
                 let _rw_data = possibly_locked_rw_data.lock();
@@ -1021,6 +1036,10 @@ impl LayoutThread {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
 
+        //XXX this only makes sense if the relevant nodes are being reflowed
+        self.last_outstanding_image_count -= self.pending_images;
+        self.pending_images = 0;
+
         debug!("layout: received layout request for: {}", *self.url.borrow());
 
         let mut rw_data = possibly_locked_rw_data.lock();
@@ -1181,6 +1200,7 @@ impl LayoutThread {
 
         self.last_outstanding_image_count =
             shared_layout_context.outstanding_images.load(Ordering::SeqCst);
+        debug!("outstanding images: {}", self.last_outstanding_image_count);
 
         if let Some(mut root_flow) = self.root_flow.clone() {
             match data.query_type {
