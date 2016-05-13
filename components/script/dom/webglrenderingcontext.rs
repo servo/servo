@@ -412,6 +412,58 @@ impl WebGLRenderingContext {
             .send(CanvasMsg::WebGL(msg))
             .unwrap()
     }
+
+    fn tex_sub_image_2d(&self,
+                        target: u32,
+                        level: i32,
+                        xoffset: i32,
+                        yoffset: i32,
+                        width: i32,
+                        height: i32,
+                        format: u32,
+                        data_type: u32,
+                        pixels: Vec<u8>) {  // NB: pixels should NOT be premultipied
+        // This should be validated before reaching this function
+        debug_assert!(self.validate_tex_image_parameters(target, level,
+                                                         format,
+                                                         width, height,
+                                                         0, format,
+                                                         data_type));
+
+        let slot = match target {
+            constants::TEXTURE_2D
+                => self.bound_texture_2d.get(),
+            constants::TEXTURE_CUBE_MAP
+                => self.bound_texture_cube_map.get(),
+
+            _ => return self.webgl_error(InvalidEnum),
+        };
+
+        let texture = slot.as_ref().expect("No bound texture found after validation");
+
+        if format == constants::RGBA &&
+           data_type == constants::UNSIGNED_BYTE &&
+           self.texture_unpacking_settings.get().contains(PREMULTIPLY_ALPHA) {
+            // TODO(emilio): premultiply here.
+        }
+
+        // TODO(emilio): Flip Y axis if necessary here
+
+        // TexImage2D depth is always equal to 1
+        handle_potential_webgl_error!(self, texture.initialize(target,
+                                                               width as u32,
+                                                               height as u32, 1,
+                                                               format,
+                                                               level as u32));
+
+        // TODO(emilio): Invert axis, convert colorspace, premultiply alpha if requested
+        let msg = WebGLCommand::TexSubImage2D(target, level, xoffset, yoffset,
+                                            width, height, format, data_type, pixels);
+
+        self.ipc_renderer
+            .send(CanvasMsg::WebGL(msg))
+            .unwrap()
+    }
 }
 
 impl Drop for WebGLRenderingContext {
@@ -1829,6 +1881,178 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                           internal_format,
                           size.width, size.height, 0,
                           format, data_type, pixels)
+    }
+
+    #[allow(unsafe_code)]
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn TexSubImage2D(&self,
+                    _cx: *mut JSContext,
+                    target: u32,
+                    level: i32,
+                    xoffset: i32,
+                    yoffset: i32,
+                    width: i32,
+                    height: i32,
+                    format: u32,
+                    type_: u32,
+                    data: Option<*mut JSObject>) {
+        // NB: Border must be zero
+        if !self.validate_tex_image_parameters(target,
+                                               level,
+                                               format,
+                                               width, height,
+                                               0,
+                                               format,
+                                               type_) {
+            return; // Error handled in validate()
+        }
+
+        // TODO(emilio, #10693): Add type-safe wrappers to validations
+        let (element_size, components_per_element) = match type_ {
+            constants::UNSIGNED_BYTE => (1, 1),
+            constants::UNSIGNED_SHORT_5_6_5 => (2, 3),
+            constants::UNSIGNED_SHORT_5_5_5_1 |
+            constants::UNSIGNED_SHORT_4_4_4_4 => (2, 4),
+            _ => unreachable!(), // previously validated
+        };
+
+        let components = match format {
+            constants::DEPTH_COMPONENT => 1,
+            constants::ALPHA => 1,
+            constants::LUMINANCE => 1,
+            constants::LUMINANCE_ALPHA => 2,
+            constants::RGB => 3,
+            constants::RGBA => 4,
+            _ => unreachable!(), // previously validated
+        };
+
+        // If data is non-null, the type of pixels must match the type of the
+        // data to be read.
+        // If it is UNSIGNED_BYTE, a Uint8Array must be supplied;
+        // if it is UNSIGNED_SHORT_5_6_5, UNSIGNED_SHORT_4_4_4_4,
+        // or UNSIGNED_SHORT_5_5_5_1, a Uint16Array must be supplied.
+        // If the types do not match, an INVALID_OPERATION error is generated.
+        let received_size = if let Some(data) = data {
+            if unsafe { array_buffer_view_data_checked::<u16>(data).is_some() } {
+                2
+            } else if unsafe { array_buffer_view_data_checked::<u8>(data).is_some() } {
+                1
+            } else {
+                return self.webgl_error(InvalidOperation);
+            }
+        } else {
+            element_size
+        };
+
+        if received_size != element_size {
+            return self.webgl_error(InvalidOperation);
+        }
+
+        // NOTE: width and height are positive or zero due to validate()
+        let expected_byte_length = width * height * element_size * components / components_per_element;
+
+
+        // If data is null, a buffer of sufficient size
+        // initialized to 0 is passed.
+        let buff = if let Some(data) = data {
+            array_buffer_view_to_vec::<u8>(data)
+                .expect("Can't reach here without being an ArrayBufferView!")
+        } else {
+            vec![0u8; expected_byte_length as usize]
+        };
+
+        if buff.len() != expected_byte_length as usize {
+            return self.webgl_error(InvalidOperation);
+        }
+
+        self.tex_sub_image_2d(target, level,
+                            xoffset, yoffset,
+                            width, height,
+                            format, type_, buff)
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    fn TexSubImage2D_(&self,
+                    target: u32,
+                    level: i32,
+                    xoffset: i32,
+                    yoffset: i32,
+                    format: u32,
+                    type_: u32,
+                    source: Option<ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement>) {
+        let source = match source {
+            Some(s) => s,
+            None => return,
+        };
+
+
+        // NOTE: Getting the pixels probably can be short-circuited if some
+        // parameter is invalid.
+        //
+        // Nontheless, since it's the error case, I'm not totally sure the
+        // complexity is worth it.
+        let (pixels, size) = match source {
+            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::ImageData(image_data) => {
+                let global = self.global();
+                (image_data.get_data_array(&global.r()), image_data.get_size())
+            },
+            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLImageElement(image) => {
+                let img_url = match image.get_url() {
+                    Some(url) => url,
+                    None => return,
+                };
+
+                let window = window_from_node(&*self.canvas);
+
+                let img = match canvas_utils::request_image_from_cache(window.r(), img_url) {
+                    ImageResponse::Loaded(img) => img,
+                    ImageResponse::PlaceholderLoaded(_) | ImageResponse::None |
+                    ImageResponse::MetadataLoaded(_)
+                        => return,
+                };
+
+                let size = Size2D::new(img.width as i32, img.height as i32);
+
+                // TODO(emilio): Validate that the format argument
+                // is coherent with the image.
+                //
+                // RGB8 should be easy to support too
+                let mut data = match img.format {
+                    PixelFormat::RGBA8 => img.bytes.to_vec(),
+                    _ => unimplemented!(),
+                };
+
+                byte_swap(&mut data);
+
+                (data, size)
+            },
+            // TODO(emilio): Getting canvas data is implemented in CanvasRenderingContext2D,
+            // but we need to refactor it moving it to `HTMLCanvasElement` and support
+            // WebGLContext (probably via GetPixels()).
+            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLCanvasElement(canvas) => {
+                let canvas = canvas.r();
+                if let Some((mut data, size)) = canvas.fetch_all_data() {
+                    byte_swap(&mut data);
+                    (data, size)
+                } else {
+                    return
+                }
+            },
+            ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLVideoElement(_rooted_video)
+                => unimplemented!(),
+        };
+
+        // NB: Border must be zero
+        if !self.validate_tex_image_parameters(target, level, format,
+                                               size.width, size.height, 0,
+                                               format, type_) {
+            return; // Error handled in validate()
+        }
+
+        self.tex_sub_image_2d(target, level,
+                            xoffset, yoffset,
+                            size.width, size.height,
+                            format, type_, pixels)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
