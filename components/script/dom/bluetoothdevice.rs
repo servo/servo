@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding;
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, Root, MutHeap, MutNullableHeap};
+use dom::bindings::js::{JS, MutHeap, MutNullableHeap, Root, RootedReference};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bluetoothadvertisingdata::BluetoothAdvertisingData;
 use dom::bluetoothremotegattserver::BluetoothRemoteGATTServer;

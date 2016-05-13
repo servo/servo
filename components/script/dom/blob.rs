@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::UnionTypes::BlobOrString;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::Root;
+use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use encoding::all::UTF_8;
 use encoding::types::{EncoderTrap, Encoding};
