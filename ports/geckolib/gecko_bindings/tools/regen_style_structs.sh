@@ -53,6 +53,7 @@ export RUST_BACKTRACE=1
   -DJS_DEBUG=1                                                      \
   -DDEBUG=1 -DTRACING=1 -DOS_POSIX=1                                \
   -DIMPL_LIBXUL                                                     \
+  -include "nsThemeConstants.h"                                     \
   -match "RefCountType.h"                                           \
   -match "nscore.h"                                                 \
   -match "nsError.h"                                                \
@@ -72,6 +73,7 @@ export RUST_BACKTRACE=1
   -match "nsPoint.h"                                                \
   -match "nsRect.h"                                                 \
   -match "nsMargin.h"                                               \
+  -match "nsThemeConstants.h"                                       \
   -match "nsCSSProperty.h"                                          \
   -match "CSSVariableValues.h"                                      \
   -match "nsFont.h"                                                 \
@@ -82,7 +84,7 @@ export RUST_BACKTRACE=1
   -match "nsStyleCoord.h"                                           \
   -match "RefPtr.h"                                                 \
   -match "nsISupportsImpl.h"                                        \
-  -match "gfxFontConstants.h"                                      \
+  -match "gfxFontConstants.h"                                       \
   -match "gfxFontFamilyList.h"                                      \
   -match "gfxFontFeatures.h"                                        \
   -match "imgRequestProxy.h"                                        \
