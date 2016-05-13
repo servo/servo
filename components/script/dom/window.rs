@@ -80,7 +80,7 @@ use style::selector_impl::PseudoElement;
 use task_source::TaskSource;
 use task_source::dom_manipulation::{DOMManipulationTaskSource, DOMManipulationTask};
 use task_source::file_reading::FileReadingTaskSource;
-use task_source::history_traversal::HistoryTraversalTaskSource;
+use task_source::history_traversal::{HistoryTraversalTaskSource, HistoryTraversalTask};
 use task_source::networking::NetworkingTaskSource;
 use task_source::user_interaction::UserInteractionTaskSource;
 use time;
@@ -284,7 +284,7 @@ impl Window {
         self.networking_task_source.clone()
     }
 
-    pub fn history_traversal_task_source(&self) -> Box<ScriptChan + Send> {
+    pub fn history_traversal_task_source(&self) -> Box<TaskSource<HistoryTraversalTask> + Send> {
         self.history_traversal_task_source.clone()
     }
 
