@@ -28,7 +28,9 @@ use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass, J
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHandle};
 use js::jsapi::{MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
 use js::jsval::{JSVal, UndefinedValue, PrivateValue, NullValue};
+use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::{PipelineId, SubpageId};
+use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
 use string_cache::atom::Atom;
 use url::Url;
@@ -122,6 +124,16 @@ impl BrowsingContext {
         Root::from_ref(self.active_document().window())
     }
 
+    pub fn set_active_entry(&self, active_index: usize) {
+        assert!(active_index < self.history.borrow().len());
+        self.active_index.set(active_index);
+        let active_window = &*self.active_window();
+
+        // TODO: Move this to the HistoryTraversalTaskSource
+        let event = PopStateEvent::new(GlobalRef::Window(active_window), Atom::from("popstateevent"), true, false, self.state());
+        event.upcast::<Event>().fire(active_window.upcast());
+    }
+
     pub fn state(&self) -> JSVal {
         self.history.borrow()[self.active_index.get()].state()
     }
@@ -133,6 +145,12 @@ impl BrowsingContext {
         self.history.borrow_mut().push(SessionHistoryEntry::new(&*active_document, active_document.url().clone(), title));
         self.set_state(self.active_index.get() + 1, state);
         self.go(1);
+
+        let active_window = self.active_window();
+        let pipeline_info = active_window.parent_info();
+        let ConstellationChan(ref chan) = *active_window.constellation_chan();
+        let msg = ConstellationMsg::HistoryStatePushed(pipeline_info, self.active_index.get() + 1);
+        chan.send(msg).unwrap();
     }
 
     pub fn replace_state(&self, state: StructuredCloneData, title: DOMString, _url: Option<DOMString>) {
