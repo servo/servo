@@ -25,7 +25,7 @@ use dom::node::Node;
 use dom::window::ScriptHelpers;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
-use euclid::size::Size2D;
+use euclid::size::{Size2D, TypedSize2D};
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::JSContext;
 use js::jsapi::{HandleValue, RootedValue};
@@ -34,6 +34,7 @@ use msg::constellation_msg::{PipelineId, WindowSizeData};
 use msg::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use script_thread::get_browsing_context;
 use url::Url;
+use util::geometry::ViewportPx;
 use util::str::DOMString;
 
 fn find_node_by_unique_id(context: &BrowsingContext,
@@ -288,6 +289,18 @@ pub fn handle_get_window_size(context: &BrowsingContext,
     let window = context.active_window();
     let size = window.window_size();
     reply.send(size).unwrap();
+}
+
+pub fn handle_set_window_size(context: &BrowsingContext,
+                              _pipeline: PipelineId,
+                              size: TypedSize2D<ViewportPx, f32>,
+                              reply: IpcSender<()>) {
+    let window = context.active_window();
+    // TODO: converting to a dimensionless size is error-prone
+    let untyped = size.to_untyped();
+    // TODO: when window puts in security checks for resize, we will need to rewrite this
+    window.ResizeTo(untyped.width as i32, untyped.height as i32);
+    reply.send(()).unwrap();
 }
 
 pub fn handle_is_enabled(context: &BrowsingContext,
