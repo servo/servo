@@ -662,11 +662,11 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                  '%s' % (firstCap(sourceDescription), exceptionCode))),
             post="\n")
 
-    def onFailureInvalidEnumValue(failureCode):
+    def onFailureInvalidEnumValue(failureCode, passedVarName):
         return CGGeneric(
             failureCode or
-            ('throw_type_error(cx, "%s is not a valid enum value."); %s'
-             % (firstCap(sourceDescription), exceptionCode)))
+            ('throw_type_error(cx, &format!("\'{}\' is not a valid enum value for enumeration \'%s\'.", %s)); %s'
+             % (type.name, passedVarName, exceptionCode)))
 
     def onFailureNotCallable(failureCode):
         return CGGeneric(
@@ -873,15 +873,15 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                             "yet")
         enum = type.inner.identifier.name
         if invalidEnumValueFatal:
-            handleInvalidEnumValueCode = onFailureInvalidEnumValue(failureCode).define()
+            handleInvalidEnumValueCode = onFailureInvalidEnumValue(failureCode, 'search').define()
         else:
             handleInvalidEnumValueCode = "return true;"
 
         template = (
             "match find_enum_string_index(cx, ${val}, %(values)s) {\n"
             "    Err(_) => { %(exceptionCode)s },\n"
-            "    Ok(None) => { %(handleInvalidEnumValueCode)s },\n"
-            "    Ok(Some(index)) => {\n"
+            "    Ok((None, search)) => { %(handleInvalidEnumValueCode)s },\n"
+            "    Ok((Some(index), _)) => {\n"
             "        //XXXjdm need some range checks up in here.\n"
             "        mem::transmute(index)\n"
             "    },\n"
