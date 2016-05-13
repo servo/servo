@@ -25,8 +25,7 @@ use dom::virtualmethods::VirtualMethods;
 use dom::window::Window;
 use fnv::FnvHasher;
 use heapsize::HeapSizeOf;
-use js::jsapi::{CompileFunction, JS_GetFunctionObject, RootedValue, RootedFunction};
-use js::jsapi::{JSAutoCompartment, JSAutoRequest};
+use js::jsapi::{CompileFunction, JS_GetFunctionObject, RootedValue, RootedFunction, JSAutoCompartment};
 use js::rust::{AutoObjectVectorWrapper, CompileOptionsWrapper};
 use libc::{c_char, size_t};
 use std::collections::HashMap;
@@ -422,7 +421,6 @@ impl EventTarget {
 
         let scopechain = AutoObjectVectorWrapper::new(cx);
 
-        let _ar = JSAutoRequest::new(cx);
         let _ac = JSAutoCompartment::new(cx, window.reflector().get_jsobject().get());
         let mut handler = RootedFunction::new(cx, ptr::null_mut());
         let rv = unsafe {

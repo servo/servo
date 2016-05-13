@@ -37,7 +37,7 @@ use gfx_traits::LayerId;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{Evaluate2, MutableHandleValue};
 use js::jsapi::{HandleValue, JSContext};
-use js::jsapi::{JSAutoCompartment, JSAutoRequest, JS_GC, JS_GetRuntime, SetWindowProxy};
+use js::jsapi::{JSAutoCompartment, JS_GC, JS_GetRuntime, SetWindowProxy};
 use js::rust::CompileOptionsWrapper;
 use js::rust::Runtime;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
@@ -843,7 +843,6 @@ impl<'a, T: Reflectable> ScriptHelpers for &'a T {
                                              rval: MutableHandleValue) {
         let global = self.global();
         let cx = global.r().get_cx();
-        let _ar = JSAutoRequest::new(cx);
         let globalhandle = global.r().reflector().get_jsobject();
         let code: Vec<u16> = code.encode_utf16().collect();
         let filename = CString::new(filename).unwrap();
@@ -1216,7 +1215,6 @@ impl Window {
         self.browsing_context.set(Some(&browsing_context));
         let window = self.reflector().get_jsobject();
         let cx = self.get_cx();
-        let _ar = JSAutoRequest::new(cx);
         let _ac = JSAutoCompartment::new(cx, window.get());
         unsafe { SetWindowProxy(cx, window, browsing_context.reflector().get_jsobject()); }
     }

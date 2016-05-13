@@ -25,7 +25,7 @@ use dom::eventtarget::EventTarget;
 use dom::messageevent::MessageEvent;
 use dom::urlhelper::UrlHelper;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use js::jsapi::{JSAutoCompartment, JSAutoRequest, RootedValue};
+use js::jsapi::{JSAutoCompartment, RootedValue};
 use js::jsapi::{JS_GetArrayBufferData, JS_NewArrayBuffer};
 use js::jsval::UndefinedValue;
 use libc::{uint32_t, uint8_t};
@@ -591,7 +591,6 @@ impl Runnable for MessageReceivedTask {
         // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
         unsafe {
             let cx = global.r().get_cx();
-            let _ar = JSAutoRequest::new(cx);
             let _ac = JSAutoCompartment::new(cx, ws.reflector().get_jsobject().get());
             let mut message = RootedValue::new(cx, UndefinedValue());
             match self.message {

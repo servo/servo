@@ -18,7 +18,7 @@ use dom::window::{base64_atob, base64_btoa};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{HandleValue, JSAutoRequest, JSContext, JSRuntime, RootedValue};
+use js::jsapi::{HandleValue, JSContext, JSRuntime, RootedValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::{ConstellationChan, PipelineId};
@@ -329,7 +329,6 @@ impl WorkerGlobalScope {
                     // TODO: An error needs to be dispatched to the parent.
                     // https://github.com/servo/servo/issues/6422
                     println!("evaluate_script failed");
-                    let _ar = JSAutoRequest::new(self.runtime.cx());
                     report_pending_exception(self.runtime.cx(), self.reflector().get_jsobject().get());
                 }
             }
