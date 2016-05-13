@@ -77,7 +77,7 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
         self.cells.or_init(|| {
             let window = window_from_node(self);
             let filter = box CellsFilter;
-            HTMLCollection::create(window.r(), self.upcast(), filter)
+            HTMLCollection::create(&window, self.upcast(), filter)
         })
     }
 
@@ -87,7 +87,7 @@ impl HTMLTableRowElementMethods for HTMLTableRowElement {
         node.insert_cell_or_row(
             index,
             || self.Cells(),
-            || HTMLTableDataCellElement::new(atom!("td"), None, node.owner_doc().r()))
+            || HTMLTableDataCellElement::new(atom!("td"), None, &node.owner_doc()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tr-deletecell

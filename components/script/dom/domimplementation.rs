@@ -135,7 +135,7 @@ impl DOMImplementationMethods for DOMImplementation {
         {
             // Step 3.
             let doc_node = doc.upcast::<Node>();
-            let doc_type = DocumentType::new(DOMString::from("html"), None, None, doc.r());
+            let doc_type = DocumentType::new(DOMString::from("html"), None, None, &doc);
             doc_node.AppendChild(doc_type.upcast()).unwrap();
         }
 
@@ -144,14 +144,14 @@ impl DOMImplementationMethods for DOMImplementation {
             let doc_node = doc.upcast::<Node>();
             let doc_html = Root::upcast::<Node>(HTMLHtmlElement::new(atom!("html"),
                                                                      None,
-                                                                     doc.r()));
+                                                                     &doc));
             doc_node.AppendChild(&doc_html).expect("Appending failed");
 
             {
                 // Step 5.
                 let doc_head = Root::upcast::<Node>(HTMLHeadElement::new(atom!("head"),
                                                                          None,
-                                                                         doc.r()));
+                                                                         &doc));
                 doc_html.AppendChild(&doc_head).unwrap();
 
                 // Step 6.
@@ -162,18 +162,18 @@ impl DOMImplementationMethods for DOMImplementation {
                         let doc_title =
                             Root::upcast::<Node>(HTMLTitleElement::new(atom!("title"),
                                                                        None,
-                                                                       doc.r()));
+                                                                       &doc));
                         doc_head.AppendChild(&doc_title).unwrap();
 
                         // Step 6.2.
-                        let title_text = Text::new(title_str, doc.r());
+                        let title_text = Text::new(title_str, &doc);
                         doc_title.AppendChild(title_text.upcast()).unwrap();
                     }
                 }
             }
 
             // Step 7.
-            let doc_body = HTMLBodyElement::new(atom!("body"), None, doc.r());
+            let doc_body = HTMLBodyElement::new(atom!("body"), None, &doc);
             doc_html.AppendChild(doc_body.upcast()).unwrap();
         }
 

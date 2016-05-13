@@ -210,7 +210,7 @@ impl FetchResponseListener for ScriptContext {
         *elem.load.borrow_mut() = Some(load);
         elem.ready_to_be_parser_executed.set(true);
 
-        let document = document_from_node(elem.r());
+        let document = document_from_node(&*elem);
         document.finish_load(LoadType::Script(self.url.clone()));
     }
 }
@@ -447,7 +447,7 @@ impl HTMLScriptElement {
         // TODO: make this suspension happen automatically.
         if was_parser_inserted {
             if let Some(parser) = doc.get_current_parser() {
-                parser.r().suspend();
+                parser.suspend();
             }
         }
         NextParserState::Suspend
@@ -495,7 +495,6 @@ impl HTMLScriptElement {
 
         // Step 4.
         let document = document_from_node(self);
-        let document = document.r();
         let old_script = document.GetCurrentScript();
 
         // Step 5.a.1.
@@ -521,13 +520,13 @@ impl HTMLScriptElement {
         if script.external {
             self.dispatch_load_event();
         } else {
-            window.dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("load"), window.r());
+            window.dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("load"), &window);
         }
     }
 
     pub fn queue_error_event(&self) {
         let window = window_from_node(self);
-        window.dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("error"), window.r());
+        window.dom_manipulation_task_source().queue_simple_event(self.upcast(), atom!("error"), &window);
     }
 
     pub fn dispatch_before_script_execute_event(&self) -> EventStatus {
@@ -603,7 +602,6 @@ impl HTMLScriptElement {
                       bubbles: EventBubbles,
                       cancelable: EventCancelable) -> EventStatus {
         let window = window_from_node(self);
-        let window = window.r();
         let event = Event::new(window.upcast(), type_, bubbles, cancelable);
         event.fire(self.upcast())
     }

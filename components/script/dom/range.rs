@@ -72,7 +72,7 @@ impl Range {
     // https://dom.spec.whatwg.org/#dom-range
     pub fn Constructor(global: &GlobalScope) -> Fallible<Root<Range>> {
         let document = global.as_window().Document();
-        Ok(Range::new_with_doc(document.r()))
+        Ok(Range::new_with_doc(&document))
     }
 
     // https://dom.spec.whatwg.org/#contained
@@ -100,7 +100,7 @@ impl Range {
         let common_ancestor = self.CommonAncestorContainer();
 
         let first_contained_child =
-            if start_node.is_inclusive_ancestor_of(end_node.r()) {
+            if start_node.is_inclusive_ancestor_of(&end_node) {
                 // Step 7.
                 None
             } else {
@@ -110,7 +110,7 @@ impl Range {
             };
 
         let last_contained_child =
-            if end_node.is_inclusive_ancestor_of(start_node.r()) {
+            if end_node.is_inclusive_ancestor_of(&start_node) {
                 // Step 9.
                 None
             } else {
@@ -270,25 +270,25 @@ impl RangeMethods for Range {
     // https://dom.spec.whatwg.org/#dom-range-setstartbefore
     fn SetStartBefore(&self, node: &Node) -> ErrorResult {
         let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
-        self.SetStart(parent.r(), node.index())
+        self.SetStart(&parent, node.index())
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setstartafter
     fn SetStartAfter(&self, node: &Node) -> ErrorResult {
         let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
-        self.SetStart(parent.r(), node.index() + 1)
+        self.SetStart(&parent, node.index() + 1)
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setendbefore
     fn SetEndBefore(&self, node: &Node) -> ErrorResult {
         let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
-        self.SetEnd(parent.r(), node.index())
+        self.SetEnd(&parent, node.index())
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setendafter
     fn SetEndAfter(&self, node: &Node) -> ErrorResult {
         let parent = try!(node.GetParentNode().ok_or(Error::InvalidNodeType));
-        self.SetEnd(parent.r(), node.index() + 1)
+        self.SetEnd(&parent, node.index() + 1)
     }
 
     // https://dom.spec.whatwg.org/#dom-range-collapse
@@ -417,9 +417,9 @@ impl RangeMethods for Range {
         // Step 4.
         let offset = node.index();
         // Step 5.
-        Ordering::Greater == bp_position(parent.r(), offset + 1,
+        Ordering::Greater == bp_position(&parent, offset + 1,
                                          &start_node, self.StartOffset()).unwrap() &&
-        Ordering::Less == bp_position(parent.r(), offset,
+        Ordering::Less == bp_position(&parent, offset,
                                       &self.EndContainer(), self.EndOffset()).unwrap()
     }
 
@@ -433,7 +433,7 @@ impl RangeMethods for Range {
         let end_offset = self.EndOffset();
 
         // Step 1.
-        let fragment = DocumentFragment::new(start_node.owner_doc().r());
+        let fragment = DocumentFragment::new(&start_node.owner_doc());
 
         // Step 2.
         if self.start == self.end {
@@ -471,10 +471,10 @@ impl RangeMethods for Range {
                 // Step 14.2.
                 try!(fragment.upcast::<Node>().AppendChild(&clone));
                 // Step 14.3.
-                let subrange = Range::new(clone.owner_doc().r(),
-                                          start_node.r(),
+                let subrange = Range::new(&clone.owner_doc(),
+                                          &start_node,
                                           start_offset,
-                                          child.r(),
+                                          &child,
                                           child.len());
                 // Step 14.4.
                 let subfragment = try!(subrange.CloneContents());
@@ -506,10 +506,10 @@ impl RangeMethods for Range {
                 // Step 17.2.
                 try!(fragment.upcast::<Node>().AppendChild(&clone));
                 // Step 17.3.
-                let subrange = Range::new(clone.owner_doc().r(),
-                                          child.r(),
+                let subrange = Range::new(&clone.owner_doc(),
+                                          &child,
                                           0,
-                                          end_node.r(),
+                                          &end_node,
                                           end_offset);
                 // Step 17.4.
                 let subfragment = try!(subrange.CloneContents());
@@ -532,7 +532,7 @@ impl RangeMethods for Range {
         let end_offset = self.EndOffset();
 
         // Step 1.
-        let fragment = DocumentFragment::new(start_node.owner_doc().r());
+        let fragment = DocumentFragment::new(&start_node.owner_doc());
 
         // Step 2.
         if self.Collapsed() {
@@ -561,9 +561,9 @@ impl RangeMethods for Range {
         let (first_contained_child, last_contained_child, contained_children) =
             try!(self.contained_children());
 
-        let (new_node, new_offset) = if start_node.is_inclusive_ancestor_of(end_node.r()) {
+        let (new_node, new_offset) = if start_node.is_inclusive_ancestor_of(&end_node) {
             // Step 13.
-            (Root::from_ref(start_node.r()), start_offset)
+            (Root::from_ref(&*start_node), start_offset)
         } else {
             // Step 14.1-2.
             let reference_node = start_node.ancestors()
@@ -595,10 +595,10 @@ impl RangeMethods for Range {
                 // Step 16.2.
                 try!(fragment.upcast::<Node>().AppendChild(&clone));
                 // Step 16.3.
-                let subrange = Range::new(clone.owner_doc().r(),
-                                          start_node.r(),
+                let subrange = Range::new(&clone.owner_doc(),
+                                          &start_node,
                                           start_offset,
-                                          child.r(),
+                                          &child,
                                           child.len());
                 // Step 16.4.
                 let subfragment = try!(subrange.ExtractContents());
@@ -630,10 +630,10 @@ impl RangeMethods for Range {
                 // Step 19.2.
                 try!(fragment.upcast::<Node>().AppendChild(&clone));
                 // Step 19.3.
-                let subrange = Range::new(clone.owner_doc().r(),
-                                          child.r(),
+                let subrange = Range::new(&clone.owner_doc(),
+                                          &child,
                                           0,
-                                          end_node.r(),
+                                          &end_node,
                                           end_offset);
                 // Step 19.4.
                 let subfragment = try!(subrange.ExtractContents());
@@ -643,8 +643,8 @@ impl RangeMethods for Range {
         }
 
         // Step 20.
-        try!(self.SetStart(new_node.r(), new_offset));
-        try!(self.SetEnd(new_node.r(), new_offset));
+        try!(self.SetStart(&new_node, new_offset));
+        try!(self.SetEnd(&new_node, new_offset));
 
         // Step 21.
         Ok(fragment)
@@ -682,16 +682,16 @@ impl RangeMethods for Range {
                     None => return Err(Error::HierarchyRequest)
                 };
                 // Step 5.
-                (Some(Root::from_ref(start_node.r())), parent)
+                (Some(Root::from_ref(&*start_node)), parent)
             } else {
                 // Steps 4-5.
                 let child = start_node.ChildNodes().Item(start_offset);
-                (child, Root::from_ref(start_node.r()))
+                (child, Root::from_ref(&*start_node))
             };
 
         // Step 6.
         try!(Node::ensure_pre_insertion_validity(node,
-                                                 parent.r(),
+                                                 &parent,
                                                  reference_node.r()));
 
         // Step 7.
@@ -701,7 +701,7 @@ impl RangeMethods for Range {
                 Some(text) => {
                     split_text = try!(text.SplitText(start_offset));
                     let new_reference = Root::upcast::<Node>(split_text);
-                    assert!(new_reference.GetParentNode().r() == Some(parent.r()));
+                    assert!(new_reference.GetParentNode().r() == Some(&parent));
                     Some(new_reference)
                 },
                 _ => reference_node
@@ -729,11 +729,11 @@ impl RangeMethods for Range {
         };
 
         // Step 12.
-        try!(Node::pre_insert(node, parent.r(), reference_node.r()));
+        try!(Node::pre_insert(node, &parent, reference_node.r()));
 
         // Step 13.
         if self.Collapsed() {
-            self.set_end(parent.r(), new_offset);
+            self.set_end(&parent, new_offset);
         }
 
         Ok(())
@@ -765,21 +765,21 @@ impl RangeMethods for Range {
         rooted_vec!(let mut contained_children);
         let ancestor = self.CommonAncestorContainer();
 
-        let mut iter = start_node.following_nodes(ancestor.r());
+        let mut iter = start_node.following_nodes(&ancestor);
 
         let mut next = iter.next();
         while let Some(child) = next {
-            if self.contains(child.r()) {
-                contained_children.push(JS::from_ref(child.r()));
+            if self.contains(&child) {
+                contained_children.push(JS::from_ref(&*child));
                 next = iter.next_skipping_children();
             } else {
                 next = iter.next();
             }
         }
 
-        let (new_node, new_offset) = if start_node.is_inclusive_ancestor_of(end_node.r()) {
+        let (new_node, new_offset) = if start_node.is_inclusive_ancestor_of(&end_node) {
             // Step 5.
-            (Root::from_ref(start_node.r()), start_offset)
+            (Root::from_ref(&*start_node), start_offset)
         } else {
             // Step 6.
             fn compute_reference(start_node: &Node, end_node: &Node) -> (Root<Node>, u32) {
@@ -793,7 +793,7 @@ impl RangeMethods for Range {
                 unreachable!()
             }
 
-            compute_reference(start_node.r(), end_node.r())
+            compute_reference(&start_node, &end_node)
         };
 
         // Step 7.
@@ -814,8 +814,8 @@ impl RangeMethods for Range {
         }
 
         // Step 10.
-        self.SetStart(new_node.r(), new_offset).unwrap();
-        self.SetEnd(new_node.r(), new_offset).unwrap();
+        self.SetStart(&new_node, new_offset).unwrap();
+        self.SetEnd(&new_node, new_offset).unwrap();
         Ok(())
     }
 
@@ -825,8 +825,8 @@ impl RangeMethods for Range {
         let start = self.StartContainer();
         let end = self.EndContainer();
 
-        if start.inclusive_ancestors().any(|n| !n.is_inclusive_ancestor_of(end.r()) && !n.is::<Text>()) ||
-           end.inclusive_ancestors().any(|n| !n.is_inclusive_ancestor_of(start.r()) && !n.is::<Text>()) {
+        if start.inclusive_ancestors().any(|n| !n.is_inclusive_ancestor_of(&end) && !n.is::<Text>()) ||
+           end.inclusive_ancestors().any(|n| !n.is_inclusive_ancestor_of(&start) && !n.is::<Text>()) {
              return Err(Error::InvalidState);
         }
 
@@ -878,7 +878,7 @@ impl RangeMethods for Range {
 
         // Step 4.
         let ancestor = self.CommonAncestorContainer();
-        let mut iter = start_node.following_nodes(ancestor.r())
+        let mut iter = start_node.following_nodes(&ancestor)
                                  .filter_map(Root::downcast::<Text>);
 
         while let Some(child) = iter.next() {
@@ -1004,7 +1004,7 @@ fn bp_position(a_node: &Node, a_offset: u32,
         // Step 3-1, 3-2.
         let mut b_ancestors = b_node.inclusive_ancestors();
         let child = b_ancestors.find(|child| {
-            child.GetParentNode().unwrap().r() == a_node
+            &*child.GetParentNode().unwrap() == a_node
         }).unwrap();
         // Step 3-3.
         if child.index() < a_offset {

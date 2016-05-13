@@ -79,6 +79,6 @@ impl HTMLDialogElementMethods for HTMLDialogElement {
         // TODO: Step 4 implement pending dialog stack removal
 
         // Step 5
-        win.dom_manipulation_task_source().queue_simple_event(target, atom!("close"), win.r());
+        win.dom_manipulation_task_source().queue_simple_event(target, atom!("close"), &win);
     }
 }

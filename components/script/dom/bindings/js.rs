@@ -473,7 +473,7 @@ impl<T: Reflectable> RootedReference<T> for Option<Rc<T>> {
 
 impl<T: Reflectable> RootedReference<T> for Option<Root<T>> {
     fn r(&self) -> Option<&T> {
-        self.as_ref().map(|root| root.r())
+        self.as_ref().map(|root| &**root)
     }
 }
 
@@ -614,12 +614,6 @@ impl<T: Reflectable> Root<T> {
     /// Generate a new root from a reference
     pub fn from_ref(unrooted: &T) -> Root<T> {
         Root::new(unsafe { NonZero::new(&*unrooted) })
-    }
-
-    /// Obtain a safe reference to the wrapped JS owned-value that cannot
-    /// outlive the lifetime of this root.
-    pub fn r(&self) -> &T {
-        &**self
     }
 }
 

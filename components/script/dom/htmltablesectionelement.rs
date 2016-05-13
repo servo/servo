@@ -62,7 +62,7 @@ impl HTMLTableSectionElementMethods for HTMLTableSectionElement {
         node.insert_cell_or_row(
             index,
             || self.Rows(),
-            || HTMLTableRowElement::new(atom!("tr"), None, node.owner_doc().r()))
+            || HTMLTableRowElement::new(atom!("tr"), None, &node.owner_doc()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tbody-deleterow

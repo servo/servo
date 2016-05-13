@@ -412,7 +412,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
             ValueMode::Filename => {
                 if value.is_empty() {
                     let window = window_from_node(self);
-                    let fl = FileList::new(window.r(), vec![]);
+                    let fl = FileList::new(&window, vec![]);
                     self.filelist.set(Some(&fl));
                 } else {
                     return Err(Error::InvalidState);
@@ -595,7 +595,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
             atom!("select"),
             EventBubbles::Bubbles,
             EventCancelable::NotCancelable,
-            window.r());
+            &window);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 
@@ -631,7 +631,7 @@ fn broadcast_radio_checked(broadcaster: &HTMLInputElement, group: Option<&Atom>)
                         owner: Option<&HTMLFormElement>, group: Option<&Atom>) {
         let iter = doc_node.query_selector_iter(DOMString::from("input[type=radio]")).unwrap()
                 .filter_map(Root::downcast::<HTMLInputElement>)
-                .filter(|r| in_same_group(r.r(), owner, group) && broadcaster != r.r());
+                .filter(|r| in_same_group(&r, owner, group) && broadcaster != &**r);
         for ref r in iter {
             if r.Checked() {
                 r.SetChecked(false);
@@ -813,7 +813,7 @@ impl HTMLInputElement {
             match recv.recv().expect("IpcSender side error") {
                 Ok(selected_files) => {
                     for selected in selected_files {
-                        files.push(File::new_from_selected(window.r(), selected));
+                        files.push(File::new_from_selected(&window, selected));
                     }
                 },
                 Err(err) => error = Some(err),
@@ -836,7 +836,7 @@ impl HTMLInputElement {
 
             match recv.recv().expect("IpcSender side error") {
                 Ok(selected) => {
-                    files.push(File::new_from_selected(window.r(), selected));
+                    files.push(File::new_from_selected(&window, selected));
                 },
                 Err(err) => error = Some(err),
             };
@@ -845,7 +845,7 @@ impl HTMLInputElement {
         if let Some(err) = error {
             debug!("Input file select error: {:?}", err);
         } else {
-            let filelist = FileList::new(window.r(), files);
+            let filelist = FileList::new(&window, files);
             self.filelist.set(Some(&filelist));
 
             target.fire_event("input",
@@ -931,7 +931,7 @@ impl VirtualMethods for HTMLInputElement {
 
                         if new_type == InputType::InputFile {
                             let window = window_from_node(self);
-                            let filelist = FileList::new(window.r(), vec![]);
+                            let filelist = FileList::new(&window, vec![]);
                             self.filelist.set(Some(&filelist));
                         }
 
@@ -1124,7 +1124,7 @@ impl VirtualMethods for HTMLInputElement {
                                     atom!("input"),
                                     EventBubbles::Bubbles,
                                     EventCancelable::NotCancelable,
-                                    window.r());
+                                    &window);
                             }
 
                             self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
@@ -1200,7 +1200,7 @@ impl Activatable for HTMLInputElement {
                             .unwrap()
                             .filter_map(Root::downcast::<HTMLInputElement>)
                             .find(|r| {
-                                in_same_group(r.r(), owner.r(), group.as_ref()) &&
+                                in_same_group(&*r, owner.r(), group.as_ref()) &&
                                 r.Checked()
                             });
                     cache.checked_radio = checked_member.r().map(JS::from_ref);
@@ -1349,7 +1349,7 @@ impl Activatable for HTMLInputElement {
                     return;
                 }
                 form.submit(SubmittedFrom::NotFromForm,
-                            FormSubmitter::FormElement(form.r()));
+                            FormSubmitter::FormElement(&form));
             }
         }
     }

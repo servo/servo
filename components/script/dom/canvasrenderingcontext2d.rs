@@ -232,7 +232,7 @@ impl CanvasRenderingContext2D {
                 canvas.origin_is_clean()
             }
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::CanvasRenderingContext2D(image) =>
-                image.r().origin_is_clean(),
+                image.origin_is_clean(),
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLImageElement(image) =>
                 match image.get_url() {
                     None => true,
@@ -280,23 +280,20 @@ impl CanvasRenderingContext2D {
                   -> ErrorResult {
         let result = match image {
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLCanvasElement(ref canvas) => {
-                self.draw_html_canvas_element(canvas.r(),
+                self.draw_html_canvas_element(&canvas,
                                               sx, sy, sw, sh,
                                               dx, dy, dw, dh)
             }
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::CanvasRenderingContext2D(ref image) => {
-                let context = image.r();
-                let canvas = context.Canvas();
-                self.draw_html_canvas_element(canvas.r(),
+                self.draw_html_canvas_element(&image.Canvas(),
                                               sx, sy, sw, sh,
                                               dx, dy, dw, dh)
             }
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLImageElement(ref image) => {
-                let image_element = image.r();
                 // https://html.spec.whatwg.org/multipage/#img-error
                 // If the image argument is an HTMLImageElement object that is in the broken state,
                 // then throw an InvalidStateError exception
-                let (image_data, image_size) = match self.fetch_image_data(&image_element) {
+                let (image_data, image_size) = match self.fetch_image_data(image) {
                     Some((mut data, size)) => {
                         // Pixels come from cache in BGRA order and drawImage expects RGBA so we
                         // have to swap the color values
@@ -464,7 +461,7 @@ impl CanvasRenderingContext2D {
     #[inline]
     fn request_image_from_cache(&self, url: Url) -> ImageResponse {
         let window = window_from_node(&*self.canvas);
-        canvas_utils::request_image_from_cache(window.r(), url)
+        canvas_utils::request_image_from_cache(&window, url)
     }
 
     fn create_drawable_rect(&self, x: f64, y: f64, w: f64, h: f64) -> Option<Rect<f32>> {
@@ -941,14 +938,14 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             },
             StringOrCanvasGradientOrCanvasPattern::CanvasGradient(gradient) => {
                 self.state.borrow_mut().stroke_style =
-                    CanvasFillOrStrokeStyle::Gradient(JS::from_ref(gradient.r()));
+                    CanvasFillOrStrokeStyle::Gradient(JS::from_ref(&*gradient));
                 let msg = CanvasMsg::Canvas2d(
                     Canvas2dMsg::SetStrokeStyle(gradient.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();
             },
             StringOrCanvasGradientOrCanvasPattern::CanvasPattern(pattern) => {
                 self.state.borrow_mut().stroke_style =
-                    CanvasFillOrStrokeStyle::Pattern(JS::from_ref(pattern.r()));
+                    CanvasFillOrStrokeStyle::Pattern(JS::from_ref(&*pattern));
                 let msg = CanvasMsg::Canvas2d(
                     Canvas2dMsg::SetStrokeStyle(pattern.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();
@@ -1162,7 +1159,7 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                 // https://html.spec.whatwg.org/multipage/#img-error
                 // If the image argument is an HTMLImageElement object that is in the broken state,
                 // then throw an InvalidStateError exception
-                try!(self.fetch_image_data(&image.r()).ok_or(Error::InvalidState))
+                try!(self.fetch_image_data(image).ok_or(Error::InvalidState))
             },
             HTMLImageElementOrHTMLCanvasElementOrCanvasRenderingContext2D::HTMLCanvasElement(ref canvas) => {
                 let _ = canvas.get_or_init_2d_context();

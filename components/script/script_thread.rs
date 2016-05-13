@@ -1181,7 +1181,6 @@ impl ScriptThread {
             Some(browsing_context) => browsing_context.active_document(),
             None => return warn!("Message sent to closed pipeline {}.", pipeline),
         };
-        let doc = doc.r();
         if doc.loader().is_blocked() {
             return;
         }
@@ -1189,19 +1188,19 @@ impl ScriptThread {
         doc.mut_loader().inhibit_events();
 
         // https://html.spec.whatwg.org/multipage/#the-end step 7
-        let handler = box DocumentProgressHandler::new(Trusted::new(doc));
+        let handler = box DocumentProgressHandler::new(Trusted::new(&doc));
         self.dom_manipulation_task_source.queue(handler, doc.window().upcast()).unwrap();
 
         if let Some(fragment) = doc.url().fragment() {
-            self.check_and_scroll_fragment(fragment, pipeline, doc);
+            self.check_and_scroll_fragment(fragment, pipeline, &doc);
         }
     }
 
     fn check_and_scroll_fragment(&self, fragment: &str, pipeline_id: PipelineId, doc: &Document) {
         match doc.find_fragment_node(fragment) {
             Some(ref node) => {
-                doc.set_target_element(Some(node.r()));
-                self.scroll_fragment_point(pipeline_id, node.r());
+                doc.set_target_element(Some(&node));
+                self.scroll_fragment_point(pipeline_id, &node);
             }
             None => {
                 doc.set_target_element(None);
@@ -1726,7 +1725,7 @@ impl ScriptThread {
             None
         };
 
-        let document = Document::new(window.r(),
+        let document = Document::new(&window,
                                      Some(&browsing_context),
                                      Some(final_url.clone()),
                                      is_html_document,
@@ -1793,12 +1792,12 @@ impl ScriptThread {
         };
 
         if is_xml {
-            parse_xml(document.r(),
+            parse_xml(&document,
                       parse_input,
                       final_url,
                       xml::ParseContext::Owner(Some(incomplete.pipeline_id)));
         } else {
-            parse_html(document.r(),
+            parse_html(&document,
                        parse_input,
                        final_url,
                        ParseContext::Owner(Some(incomplete.pipeline_id)));
@@ -1857,7 +1856,7 @@ impl ScriptThread {
     fn rebuild_and_force_reflow(&self, context: &BrowsingContext, reason: ReflowReason) {
         let document = context.active_document();
         document.dirty_all_nodes();
-        let window = window_from_node(document.r());
+        let window = window_from_node(&*document);
         window.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, reason);
     }
 
@@ -1956,7 +1955,7 @@ impl ScriptThread {
                     Some(browsing_context) => browsing_context.active_document(),
                     None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
                 };
-                document.r().handle_touchpad_pressure_event(self.js_runtime.rt(), point, pressure, phase);
+                document.handle_touchpad_pressure_event(self.js_runtime.rt(), point, pressure, phase);
             }
 
             KeyEvent(ch, key, state, modifiers) => {
@@ -2015,7 +2014,7 @@ impl ScriptThread {
                 let url = document.url();
                 if &url[..Position::AfterQuery] == &nurl[..Position::AfterQuery] &&
                     load_data.method == Method::Get {
-                    self.check_and_scroll_fragment(fragment, parent_pipeline_id, document.r());
+                    self.check_and_scroll_fragment(fragment, parent_pipeline_id, &document);
                     return;
                 }
             }
@@ -2055,15 +2054,15 @@ impl ScriptThread {
         let fragment_node = window.steal_fragment_name()
                                   .and_then(|name| document.find_fragment_node(&*name));
         match fragment_node {
-            Some(ref node) => self.scroll_fragment_point(pipeline_id, node.r()),
+            Some(ref node) => self.scroll_fragment_point(pipeline_id, &node),
             None => {}
         }
 
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
         if size_type == WindowSizeType::Resize {
-            let uievent = UIEvent::new(window.r(),
+            let uievent = UIEvent::new(&window,
                                        DOMString::from("resize"), EventBubbles::DoesNotBubble,
-                                       EventCancelable::NotCancelable, Some(window.r()),
+                                       EventCancelable::NotCancelable, Some(&window),
                                        0i32);
             uievent.upcast::<Event>().fire(window.upcast());
         }
@@ -2128,7 +2127,7 @@ impl ScriptThread {
         debug!("kicking off initial reflow of {:?}", final_url);
         document.disarm_reflow_timeout();
         document.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
-        let window = window_from_node(document.r());
+        let window = window_from_node(&*document);
         window.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::FirstLoad);
 
         // No more reflow required

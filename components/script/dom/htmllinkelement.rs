@@ -364,10 +364,7 @@ impl FetchResponseListener for StylesheetContext {
             sheet.set_media(Some(media));
             let sheet = Arc::new(sheet);
 
-            let elem = elem.r();
-            let document = document.r();
-
-            let win = window_from_node(elem);
+            let win = window_from_node(&*elem);
             win.layout_chan().send(Msg::AddStylesheet(sheet.clone())).unwrap();
 
             *elem.stylesheet.borrow_mut() = Some(sheet);

@@ -57,7 +57,6 @@ impl DOMParserMethods for DOMParser {
         let content_type =
             DOMString::from(DOMParserBinding::SupportedTypeValues::strings[ty as usize]);
         let doc = self.window.Document();
-        let doc = doc.r();
         let loader = DocumentLoader::new(&*doc.loader());
         match ty {
             Text_html => {
@@ -71,7 +70,7 @@ impl DOMParserMethods for DOMParser {
                                              loader,
                                              None,
                                              None);
-                parse_html(document.r(), s, url, ParseContext::Owner(None));
+                parse_html(&document, s, url, ParseContext::Owner(None));
                 document.set_ready_state(DocumentReadyState::Complete);
                 Ok(document)
             }
@@ -87,7 +86,7 @@ impl DOMParserMethods for DOMParser {
                                              loader,
                                              None,
                                              None);
-                parse_xml(document.r(), s, url, xml::ParseContext::Owner(None));
+                parse_xml(&document, s, url, xml::ParseContext::Owner(None));
                 Ok(document)
             }
         }

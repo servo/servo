@@ -218,7 +218,7 @@ impl Node {
                     },
                     Some(ref prev_sibling) => {
                         prev_sibling.next_sibling.set(Some(new_child));
-                        new_child.prev_sibling.set(Some(prev_sibling.r()));
+                        new_child.prev_sibling.set(Some(&prev_sibling));
                     },
                 }
                 before.prev_sibling.set(Some(new_child));
@@ -517,7 +517,7 @@ impl Node {
     }
 
     pub fn is_ancestor_of(&self, parent: &Node) -> bool {
-        parent.ancestors().any(|ancestor| ancestor.r() == self)
+        parent.ancestors().any(|ancestor| &*ancestor == self)
     }
 
     pub fn following_siblings(&self) -> NodeSiblingIterator {
@@ -553,7 +553,7 @@ impl Node {
     }
 
     pub fn is_parent_of(&self, child: &Node) -> bool {
-        child.parent_node.get().map_or(false, |ref parent| parent.r() == self)
+        child.parent_node.get().map_or(false, |parent| &*parent == self)
     }
 
     pub fn to_trusted_node_address(&self) -> TrustedNodeAddress {
@@ -692,7 +692,7 @@ impl Node {
         let node = try!(doc.node_from_nodes_and_strings(nodes));
         // Step 2.
         let first_child = self.first_child.get();
-        Node::pre_insert(node.r(), self, first_child.r()).map(|_| ())
+        Node::pre_insert(&node, self, first_child.r()).map(|_| ())
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-append
@@ -701,7 +701,7 @@ impl Node {
         let doc = self.owner_doc();
         let node = try!(doc.node_from_nodes_and_strings(nodes));
         // Step 2.
-        self.AppendChild(node.r()).map(|_| ())
+        self.AppendChild(&node).map(|_| ())
     }
 
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
@@ -744,7 +744,7 @@ impl Node {
     pub fn query_selector_all(&self, selectors: DOMString) -> Fallible<Root<NodeList>> {
         let window = window_from_node(self);
         let iter = try!(self.query_selector_iter(selectors));
-        Ok(NodeList::new_simple_list(window.r(), iter))
+        Ok(NodeList::new_simple_list(&window, iter))
     }
 
     pub fn ancestors(&self) -> AncestorIterator {
@@ -789,7 +789,7 @@ impl Node {
 
     pub fn remove_self(&self) {
         if let Some(ref parent) = self.GetParentNode() {
-            Node::remove(self, parent.r(), SuppressObserver::Unsuppressed);
+            Node::remove(self, &parent, SuppressObserver::Unsuppressed);
         }
     }
 
@@ -827,7 +827,7 @@ impl Node {
     // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#dfn-concept-parse-fragment
     pub fn parse_fragment(&self, markup: DOMString) -> Fallible<Root<DocumentFragment>> {
         let context_document = document_from_node(self);
-        let fragment = DocumentFragment::new(context_document.r());
+        let fragment = DocumentFragment::new(&context_document);
         if context_document.is_html_document() {
             parse_html_fragment(self.upcast(), markup, fragment.upcast());
         } else {
@@ -1502,7 +1502,7 @@ impl Node {
                     match child {
                         Some(child) => {
                             if parent.children()
-                                     .take_while(|c| c.r() != child)
+                                     .take_while(|c| &**c != child)
                                      .any(|c| c.is::<Element>())
                             {
                                 return Err(Error::HierarchyRequest);
@@ -1540,7 +1540,7 @@ impl Node {
 
         // Step 4.
         let document = document_from_node(parent);
-        Node::adopt(node, document.r());
+        Node::adopt(node, &document);
 
         // Step 5.
         Node::insert(node, parent, reference_child, SuppressObserver::Unsuppressed);
@@ -1645,7 +1645,7 @@ impl Node {
     fn pre_remove(child: &Node, parent: &Node) -> Fallible<Root<Node>> {
         // Step 1.
         match child.GetParentNode() {
-            Some(ref node) if node.r() != parent => return Err(Error::NotFound),
+            Some(ref node) if &**node != parent => return Err(Error::NotFound),
             None => return Err(Error::NotFound),
             _ => ()
         }
@@ -1659,7 +1659,7 @@ impl Node {
 
     // https://dom.spec.whatwg.org/#concept-node-remove
     fn remove(node: &Node, parent: &Node, suppress_observers: SuppressObserver) {
-        assert!(node.GetParentNode().map_or(false, |node_parent| node_parent.r() == parent));
+        assert!(node.GetParentNode().map_or(false, |node_parent| &*node_parent == parent));
         let cached_index = {
             if parent.ranges.is_empty() {
                 None
@@ -1708,11 +1708,12 @@ impl Node {
                 let doctype = node.downcast::<DocumentType>().unwrap();
                 let doctype = DocumentType::new(doctype.name().clone(),
                                                 Some(doctype.public_id().clone()),
-                                                Some(doctype.system_id().clone()), document.r());
+                                                Some(doctype.system_id().clone()),
+                                                &document);
                 Root::upcast::<Node>(doctype)
             },
             NodeTypeId::DocumentFragment => {
-                let doc_fragment = DocumentFragment::new(document.r());
+                let doc_fragment = DocumentFragment::new(&document);
                 Root::upcast::<Node>(doc_fragment)
             },
             NodeTypeId::CharacterData(_) => {
@@ -1743,7 +1744,7 @@ impl Node {
                 };
                 let element = Element::create(name,
                     element.prefix().as_ref().map(|p| Atom::from(&**p)),
-                    document.r(), ElementCreator::ScriptCreated);
+                    &document, ElementCreator::ScriptCreated);
                 Root::upcast::<Node>(element)
             },
         };
@@ -1751,7 +1752,7 @@ impl Node {
         // Step 3.
         let document = match copy.downcast::<Document>() {
             Some(doc) => Root::from_ref(doc),
-            None => Root::from_ref(document.r()),
+            None => Root::from_ref(&*document),
         };
         assert!(copy.owner_doc() == document);
 
@@ -1779,14 +1780,14 @@ impl Node {
         }
 
         // Step 5: cloning steps.
-        vtable_for(&node).cloning_steps(copy.r(), maybe_doc, clone_children);
+        vtable_for(&node).cloning_steps(&copy, maybe_doc, clone_children);
 
         // Step 6.
         if clone_children == CloneChildrenFlag::CloneChildren {
             for child in node.children() {
-                let child_copy = Node::clone(child.r(), Some(document.r()),
+                let child_copy = Node::clone(&child, Some(&document),
                                              clone_children);
-                let _inserted_node = Node::pre_insert(child_copy.r(), copy.r(), None);
+                let _inserted_node = Node::pre_insert(&child_copy, &copy, None);
             }
         }
 
@@ -2121,12 +2122,12 @@ impl NodeMethods for Node {
                 NodeTypeId::DocumentType => {
                     if self.children()
                            .any(|c| c.is_doctype() &&
-                                c.r() != child)
+                                &*c != child)
                     {
                         return Err(Error::HierarchyRequest);
                     }
                     if self.children()
-                           .take_while(|c| c.r() != child)
+                           .take_while(|c| &**c != child)
                            .any(|c| c.is::<Element>())
                     {
                         return Err(Error::HierarchyRequest);
@@ -2151,7 +2152,7 @@ impl NodeMethods for Node {
 
         // Step 10.
         let document = document_from_node(self);
-        Node::adopt(node, document.r());
+        Node::adopt(node, &document);
 
         let removed_child = if node != child {
             // Step 11.
@@ -2294,7 +2295,7 @@ impl NodeMethods for Node {
 
             // Step 6.
             this.children().zip(node.children()).all(|(child, other_child)| {
-                is_equal_node(child.r(), other_child.r())
+                is_equal_node(&child, &other_child)
             })
         }
         match maybe_node {
@@ -2322,7 +2323,7 @@ impl NodeMethods for Node {
             let mut lastself = Root::from_ref(self);
             let mut lastother = Root::from_ref(other);
             for ancestor in self.ancestors() {
-                if ancestor.r() == other {
+                if &*ancestor == other {
                     // step 4.
                     return NodeConstants::DOCUMENT_POSITION_CONTAINS +
                            NodeConstants::DOCUMENT_POSITION_PRECEDING;
@@ -2330,7 +2331,7 @@ impl NodeMethods for Node {
                 lastself = ancestor;
             }
             for ancestor in other.ancestors() {
-                if ancestor.r() == self {
+                if &*ancestor == self {
                     // step 5.
                     return NodeConstants::DOCUMENT_POSITION_CONTAINED_BY +
                            NodeConstants::DOCUMENT_POSITION_FOLLOWING;
@@ -2354,11 +2355,11 @@ impl NodeMethods for Node {
             }
 
             for child in lastself.traverse_preorder() {
-                if child.r() == other {
+                if &*child == other {
                     // step 6.
                     return NodeConstants::DOCUMENT_POSITION_PRECEDING;
                 }
-                if child.r() == self {
+                if &*child == self {
                     // step 7.
                     return NodeConstants::DOCUMENT_POSITION_FOLLOWING;
                 }

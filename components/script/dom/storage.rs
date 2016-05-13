@@ -180,8 +180,7 @@ impl Runnable for StorageEventRunnable {
 
     fn main_thread_handler(self: Box<StorageEventRunnable>, script_thread: &ScriptThread) {
         let this = *self;
-        let storage_root = this.element.root();
-        let storage = storage_root.r();
+        let storage = this.element.root();
         let global = storage.global();
         let ev_url = storage.get_url();
 
@@ -191,13 +190,12 @@ impl Runnable for StorageEventRunnable {
             EventBubbles::DoesNotBubble, EventCancelable::NotCancelable,
             this.key.map(DOMString::from), this.old_value.map(DOMString::from), this.new_value.map(DOMString::from),
             DOMString::from(ev_url.to_string()),
-            Some(storage)
+            Some(&storage)
         );
 
         let root_context = script_thread.root_browsing_context();
         for it_context in root_context.iter() {
-            let it_window_root = it_context.active_window();
-            let it_window = it_window_root.r();
+            let it_window = it_context.active_window();
             assert!(UrlHelper::SameOrigin(&ev_url, &it_window.get_url()));
             // TODO: Such a Document object is not necessarily fully active, but events fired on such
             // objects are ignored by the event loop until the Document becomes fully active again.

@@ -220,7 +220,6 @@ impl HTMLIFrameElement {
     pub fn set_visible(&self, visible: bool) {
         if let Some(pipeline_id) = self.pipeline_id.get() {
             let window = window_from_node(self);
-            let window = window.r();
             let msg = ConstellationMsg::SetVisible(pipeline_id, visible);
             window.upcast::<GlobalScope>().constellation_chan().send(msg).unwrap();
         }
@@ -265,7 +264,6 @@ impl HTMLIFrameElement {
     pub fn get_content_window(&self) -> Option<Root<Window>> {
         self.pipeline_id.get().and_then(|pipeline_id| {
             let window = window_from_node(self);
-            let window = window.r();
             let browsing_context = window.browsing_context();
             browsing_context.find_child_by_id(pipeline_id)
         })

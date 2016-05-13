@@ -69,7 +69,7 @@ impl XMLDocument {
             XMLDocumentBinding::Wrap);
         {
             let node = doc.upcast::<Node>();
-            node.set_owner_doc(&doc.r().document);
+            node.set_owner_doc(&doc.document);
         }
         doc
     }

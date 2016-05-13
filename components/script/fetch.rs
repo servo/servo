@@ -163,8 +163,8 @@ impl FetchResponseListener for FetchContext {
     fn process_response_eof(&mut self, _response: Result<(), NetworkError>) {
         let response = self.response_object.root();
         let global = response.global();
-        let cx = global.r().get_cx();
-        let _ac = JSAutoCompartment::new(cx, global.r().reflector().get_jsobject().get());
+        let cx = global.get_cx();
+        let _ac = JSAutoCompartment::new(cx, global.reflector().get_jsobject().get());
         response.finish(mem::replace(&mut self.body, vec![]));
         // TODO
         // ... trailerObject is not supported in Servo yet.

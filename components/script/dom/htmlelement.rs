@@ -93,7 +93,6 @@ impl HTMLElement {
                 },
                 _ => {
                     if let Some(attr) = element.get_attribute(&ns!(), &atom!("draggable")) {
-                        let attr = attr.r();
                         let value = attr.value();
                         let is_true = match *value {
                             AttrValue::String(ref string) => string == "true",
@@ -116,7 +115,7 @@ impl HTMLElementMethods for HTMLElement {
     fn Style(&self) -> Root<CSSStyleDeclaration> {
         self.style_decl.or_init(|| {
             let global = window_from_node(self);
-            CSSStyleDeclaration::new(global.r(), self.upcast::<Element>(), None, CSSModificationAccess::ReadWrite)
+            CSSStyleDeclaration::new(&global, self.upcast::<Element>(), None, CSSModificationAccess::ReadWrite)
         })
     }
 
@@ -482,7 +481,7 @@ impl HTMLElement {
 
         let id = element.Id();
         let id = match &id as &str {
-            "" => return NodeList::new_simple_list(window.r(), ancestors),
+            "" => return NodeList::new_simple_list(&window, ancestors),
             id => id,
         };
 
@@ -495,7 +494,7 @@ impl HTMLElement {
                                 .filter(|elem| elem.get_string_attribute(&atom!("for")) == id)
                                 .map(Root::upcast::<Node>);
 
-        NodeList::new_simple_list(window.r(), children.chain(ancestors))
+        NodeList::new_simple_list(&window, children.chain(ancestors))
     }
 }
 

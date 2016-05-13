@@ -104,7 +104,7 @@ impl AttrMethods for Attr {
             let value = owner.parse_attribute(&self.identifier.namespace,
                                               self.local_name(),
                                               value);
-            self.set_value(value, owner.r());
+            self.set_value(value, &owner);
         } else {
             *self.value.borrow_mut() = AttrValue::String(value.into());
         }
@@ -200,12 +200,12 @@ impl Attr {
     /// or removed from its older parent.
     pub fn set_owner(&self, owner: Option<&Element>) {
         let ns = &self.identifier.namespace;
-        match (self.owner().r(), owner) {
+        match (self.owner(), owner) {
             (Some(old), None) => {
                 // Already gone from the list of attributes of old owner.
                 assert!(old.get_attribute(&ns, &self.identifier.local_name).r() != Some(self))
             }
-            (Some(old), Some(new)) => assert!(old == new),
+            (Some(old), Some(new)) => assert!(&*old == new),
             _ => {},
         }
         self.owner.set(owner);

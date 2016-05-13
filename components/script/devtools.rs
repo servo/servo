@@ -146,7 +146,7 @@ pub fn handle_get_layout(context: &BrowsingContext,
 
     let window = context.active_window();
     let elem = node.downcast::<Element>().expect("should be getting layout of element");
-    let computed_style = window.r().GetComputedStyle(elem, None);
+    let computed_style = window.GetComputedStyle(elem, None);
 
     reply.send(Some(ComputedNodeLayout {
         display: String::from(computed_style.Display()),

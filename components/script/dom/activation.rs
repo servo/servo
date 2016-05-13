@@ -83,11 +83,11 @@ pub fn synthetic_click_activation(element: &Element,
     // https://html.spec.whatwg.org/multipage/#fire-a-synthetic-mouse-event
     let win = window_from_node(element);
     let target = element.upcast::<EventTarget>();
-    let mouse = MouseEvent::new(win.r(),
+    let mouse = MouseEvent::new(&win,
                                 DOMString::from("click"),
                                 EventBubbles::DoesNotBubble,
                                 EventCancelable::NotCancelable,
-                                Some(win.r()),
+                                Some(&win),
                                 1,
                                 0,
                                 0,

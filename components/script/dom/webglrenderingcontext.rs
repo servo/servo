@@ -342,7 +342,7 @@ impl WebGLRenderingContext {
 
                 let window = window_from_node(&*self.canvas);
 
-                let img = match canvas_utils::request_image_from_cache(window.r(), img_url) {
+                let img = match canvas_utils::request_image_from_cache(&window, img_url) {
                     ImageResponse::Loaded(img) => img,
                     ImageResponse::PlaceholderLoaded(_) | ImageResponse::None |
                     ImageResponse::MetadataLoaded(_)
@@ -368,7 +368,6 @@ impl WebGLRenderingContext {
             // but we need to refactor it moving it to `HTMLCanvasElement` and support
             // WebGLContext (probably via GetPixels()).
             ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement::HTMLCanvasElement(canvas) => {
-                let canvas = canvas.r();
                 if let Some((mut data, size)) = canvas.fetch_all_data() {
                     byte_swap(&mut data);
                     (data, size)
