@@ -34,7 +34,7 @@ use canvas_traits::{CompositionOrBlending, LineCapStyle, LineJoinStyle, Repetiti
 use cssparser::RGBA;
 use devtools_traits::CSSError;
 use devtools_traits::WorkerId;
-use dom::bindings::js::{JS, Root, RootedReference};
+use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::utils::WindowProxyHandler;
@@ -75,7 +75,6 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::hash::{BuildHasher, Hash};
 use std::intrinsics::return_address;
 use std::iter::{FromIterator, IntoIterator};
-use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::sync::Arc;
@@ -506,13 +505,6 @@ impl<T: JSTraceable> RootedVec<T> {
         RootedVec::<T> {
             v: vec![],
         }
-    }
-}
-
-impl<'root, T: JSTraceable + Reflectable + 'root> RootedReference<'root> for RootedVec<JS<T>> {
-    type Ref = &'root [&'root T];
-    fn r(&'root self) -> &'root [&'root T] {
-        unsafe { mem::transmute(&self.v[..]) }
     }
 }
 
