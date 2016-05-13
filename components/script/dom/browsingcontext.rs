@@ -149,7 +149,7 @@ impl BrowsingContext {
         let active_window = self.active_window();
         let pipeline_info = active_window.parent_info();
         let ConstellationChan(ref chan) = *active_window.constellation_chan();
-        let msg = ConstellationMsg::HistoryStatePushed(pipeline_info, self.active_index.get() + 1);
+        let msg = ConstellationMsg::HistoryStatePushed(pipeline_info, self.active_index.get());
         chan.send(msg).unwrap();
     }
 

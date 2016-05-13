@@ -1326,19 +1326,20 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             },
         };
 
-        let msg = ConstellationControlMsg::UpdateActiveHistoryEntry(next_pipeline_id.0,
-                                                                    next_pipeline_id.1);
-        let result = match self.pipelines.get(&next_pipeline_id.0) {
-            None => return warn!("Pipeline {:?} child navigated after closure.", next_pipeline_id.1),
-            Some(pipeline) => pipeline.script_chan.send(msg),
-        };
-        if let Err(e) = result {
-            self.handle_send_error(next_pipeline_id.0, e);
-        }
-
         if next_pipeline_id.0 == prev_pipeline_id.0 {
+            // TODO: DRY
+            let msg = ConstellationControlMsg::UpdateActiveHistoryEntry(next_pipeline_id.0,
+                                                                        next_pipeline_id.1);
+            let result = match self.pipelines.get(&next_pipeline_id.0) {
+                None => return warn!("Pipeline {:?} child navigated after closure.", next_pipeline_id.0),
+                Some(pipeline) => pipeline.script_chan.send(msg),
+            };
+            if let Err(e) = result {
+                self.handle_send_error(next_pipeline_id.0, e);
+            }
+
             // No need to swap pipelines if this one is already active
-            // return;
+            return;
         }
 
         // If the currently focused pipeline is the one being changed (or a child
@@ -1359,6 +1360,17 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         // Set paint permissions correctly for the compositor layers.
         self.revoke_paint_permission(prev_pipeline_id.0);
         self.send_frame_tree_and_grant_paint_permission();
+
+        // TODO: DRY
+        let msg = ConstellationControlMsg::UpdateActiveHistoryEntry(next_pipeline_id.0,
+                                                                    next_pipeline_id.1);
+        let result = match self.pipelines.get(&next_pipeline_id.0) {
+            None => return warn!("Pipeline {:?} child navigated after closure.", next_pipeline_id.0),
+            Some(pipeline) => pipeline.script_chan.send(msg),
+        };
+        if let Err(e) = result {
+            self.handle_send_error(next_pipeline_id.0, e);
+        }
 
         // Update the owning iframe to point to the new subpage id.
         // This makes things like contentDocument work correctly.
