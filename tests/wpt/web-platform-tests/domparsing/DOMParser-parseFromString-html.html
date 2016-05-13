@@ -61,4 +61,10 @@ test(function() {
     assert_equals(htmldoc.documentElement.localName, "html");
     assert_equals(htmldoc.documentElement.namespaceURI, "http://www.w3.org/1999/xhtml");
 }, "DOMParser parses HTML tag soup with no problems");
+
+test(function() {
+    assert_throws(new TypeError(), function() {
+        new DOMParser().parseFromString("", "text/foo-this-is-invalid");
+    })
+}, "DOMParser throws on an invalid enum value")
 </script>

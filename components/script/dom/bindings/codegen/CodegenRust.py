@@ -662,12 +662,17 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                  '%s' % (firstCap(sourceDescription), exceptionCode))),
             post="\n")
 
+    def onFailureInvalidEnumValue(failureCode):
+        return CGGeneric(
+            failureCode or
+            ('throw_type_error(cx, "%s is not a valid enum value."); %s'
+             % (firstCap(sourceDescription), exceptionCode)))
+
     def onFailureNotCallable(failureCode):
-        return CGWrapper(
-            CGGeneric(
-                failureCode or
-                ('throw_type_error(cx, \"%s is not callable.\");\n'
-                 '%s' % (firstCap(sourceDescription), exceptionCode))))
+        return CGGeneric(
+            failureCode or
+            ('throw_type_error(cx, \"%s is not callable.\");\n'
+             '%s' % (firstCap(sourceDescription), exceptionCode)))
 
     # A helper function for handling null default values. Checks that the
     # default value, if it exists, is null.
@@ -868,7 +873,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                             "yet")
         enum = type.inner.identifier.name
         if invalidEnumValueFatal:
-            handleInvalidEnumValueCode = exceptionCode
+            handleInvalidEnumValueCode = onFailureInvalidEnumValue(failureCode).define()
         else:
             handleInvalidEnumValueCode = "return true;"
 
