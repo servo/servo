@@ -6,7 +6,9 @@
 
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
-use dom::bindings::codegen::Bindings::TestBindingBinding::{self, TestBindingMethods, TestEnum};
+use dom::bindings::codegen::Bindings::TestBindingBinding;
+use dom::bindings::codegen::Bindings::TestBindingBinding::{TestBindingMethods, TestDictionary};
+use dom::bindings::codegen::Bindings::TestBindingBinding::{TestDictionaryDefaults, TestEnum};
 use dom::bindings::codegen::UnionTypes::{BlobOrBoolean, BlobOrBlobSequence};
 use dom::bindings::codegen::UnionTypes::{BlobOrString, BlobOrUnsignedLong, EventOrString};
 use dom::bindings::codegen::UnionTypes::{EventOrUSVString, HTMLElementOrLong};
@@ -286,6 +288,75 @@ impl TestBindingMethods for TestBinding {
         Some(UnsignedLongOrBoolean::UnsignedLong(0u32))
     }
     fn ReceiveNullableSequence(&self) -> Option<Vec<i32>> { Some(vec![1]) }
+    fn ReceiveTestDictionaryWithSuccessOnKeyword(&self) -> TestDictionary {
+        TestDictionary {
+            anyValue: NullValue(),
+            booleanValue: None,
+            byteValue: None,
+            dict: TestDictionaryDefaults {
+                UnrestrictedDoubleValue: 0.0,
+                anyValue: NullValue(),
+                booleanValue: false,
+                byteValue: 0,
+                doubleValue: Finite::new(1.0).unwrap(),
+                enumValue: TestEnum::Foo,
+                floatValue: Finite::new(1.0).unwrap(),
+                longLongValue: 54,
+                longValue: 12,
+                nullableBooleanValue: None,
+                nullableByteValue: None,
+                nullableDoubleValue: None,
+                nullableFloatValue: None,
+                nullableLongLongValue: None,
+                nullableLongValue: None,
+                nullableObjectValue: ptr::null_mut(),
+                nullableOctetValue: None,
+                nullableShortValue: None,
+                nullableStringValue: None,
+                nullableUnrestrictedDoubleValue: None,
+                nullableUnrestrictedFloatValue: None,
+                nullableUnsignedLongLongValue: None,
+                nullableUnsignedLongValue: None,
+                nullableUnsignedShortValue: None,
+                nullableUsvstringValue: None,
+                octetValue: 0,
+                shortValue: 0,
+                stringValue: DOMString::new(),
+                unrestrictedFloatValue: 0.0,
+                unsignedLongLongValue: 0,
+                unsignedLongValue: 0,
+                unsignedShortValue: 0,
+                usvstringValue: USVString("".to_owned()),
+            },
+            doubleValue: None,
+            enumValue: None,
+            floatValue: None,
+            interfaceValue: None,
+            longLongValue: None,
+            longValue: None,
+            objectValue: None,
+            octetValue: None,
+            requiredValue: true,
+            seqDict: None,
+            shortValue: None,
+            stringValue: None,
+            type_: Some(DOMString::from("success")),
+            unrestrictedDoubleValue: None,
+            unrestrictedFloatValue: None,
+            unsignedLongLongValue: None,
+            unsignedLongValue: None,
+            unsignedShortValue: None,
+            usvstringValue: None,
+            nonRequiredNullable: None,
+            nonRequiredNullable2: Some(None), // null
+        }
+    }
+
+    fn DictMatchesPassedValues(&self, arg: &TestDictionary) -> bool {
+        arg.type_.as_ref().map(|s| s == "success").unwrap_or(false) &&
+            arg.nonRequiredNullable.is_none() &&
+            arg.nonRequiredNullable2 == Some(None)
+    }
 
     fn PassBoolean(&self, _: bool) {}
     fn PassByte(&self, _: i8) {}

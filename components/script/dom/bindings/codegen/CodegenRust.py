@@ -662,12 +662,17 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                  '%s' % (firstCap(sourceDescription), exceptionCode))),
             post="\n")
 
+    def onFailureInvalidEnumValue(failureCode, passedVarName):
+        return CGGeneric(
+            failureCode or
+            ('throw_type_error(cx, &format!("\'{}\' is not a valid enum value for enumeration \'%s\'.", %s)); %s'
+             % (type.name, passedVarName, exceptionCode)))
+
     def onFailureNotCallable(failureCode):
-        return CGWrapper(
-            CGGeneric(
-                failureCode or
-                ('throw_type_error(cx, \"%s is not callable.\");\n'
-                 '%s' % (firstCap(sourceDescription), exceptionCode))))
+        return CGGeneric(
+            failureCode or
+            ('throw_type_error(cx, \"%s is not callable.\");\n'
+             '%s' % (firstCap(sourceDescription), exceptionCode)))
 
     # A helper function for handling null default values. Checks that the
     # default value, if it exists, is null.
@@ -868,15 +873,15 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                             "yet")
         enum = type.inner.identifier.name
         if invalidEnumValueFatal:
-            handleInvalidEnumValueCode = exceptionCode
+            handleInvalidEnumValueCode = onFailureInvalidEnumValue(failureCode, 'search').define()
         else:
             handleInvalidEnumValueCode = "return true;"
 
         template = (
             "match find_enum_string_index(cx, ${val}, %(values)s) {\n"
             "    Err(_) => { %(exceptionCode)s },\n"
-            "    Ok(None) => { %(handleInvalidEnumValueCode)s },\n"
-            "    Ok(Some(index)) => {\n"
+            "    Ok((None, search)) => { %(handleInvalidEnumValueCode)s },\n"
+            "    Ok((Some(index), _)) => {\n"
             "        //XXXjdm need some range checks up in here.\n"
             "        mem::transmute(index)\n"
             "    },\n"
@@ -5295,14 +5300,23 @@ class CGDictionary(CGThing):
             conversion = self.getMemberConversion(memberInfo, member.type)
             return CGGeneric("%s: %s,\n" % (name, conversion.define()))
 
+        def varInsert(varName, dictionaryName):
+            insertion = ("let mut %s_js = RootedValue::new(cx, UndefinedValue());\n"
+                         "%s.to_jsval(cx, %s_js.handle_mut());\n"
+                         "set_dictionary_property(cx, obj.handle(), \"%s\", %s_js.handle()).unwrap();"
+                         % (varName, varName, varName, dictionaryName, varName))
+            return CGGeneric(insertion)
+
         def memberInsert(memberInfo):
             member, _ = memberInfo
             name = self.makeMemberName(member.identifier.name)
-            insertion = ("let mut %s = RootedValue::new(cx, UndefinedValue());\n"
-                         "self.%s.to_jsval(cx, %s.handle_mut());\n"
-                         "set_dictionary_property(cx, obj.handle(), \"%s\", %s.handle()).unwrap();"
-                         % (name, name, name, name, name))
-            return CGGeneric("%s\n" % insertion)
+            if member.optional and not member.defaultValue:
+                insertion = CGIfWrapper("let Some(ref %s) = self.%s" % (name, name),
+                                        varInsert(name, member.identifier.name))
+            else:
+                insertion = CGGeneric("let %s = &self.%s;\n%s" %
+                                      (name, name, varInsert(name, member.identifier.name).define()))
+            return CGGeneric("%s\n" % insertion.define())
 
         memberInits = CGList([memberInit(m) for m in self.memberInfo])
         memberInserts = CGList([memberInsert(m) for m in self.memberInfo])

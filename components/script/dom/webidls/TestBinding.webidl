@@ -30,6 +30,13 @@ dictionary TestDictionary {
   object objectValue;
   TestDictionaryDefaults dict;
   sequence<TestDictionaryDefaults> seqDict;
+  // Reserved rust keyword
+  DOMString type;
+  // These are used to test bidirectional conversion
+  // and differentiation of non-required and nullable types
+  // in dictionaries.
+  DOMString? nonRequiredNullable;
+  DOMString? nonRequiredNullable2;
 };
 
 dictionary TestDictionaryDefaults {
@@ -196,6 +203,8 @@ interface TestBinding {
   (sequence<long> or boolean)? receiveNullableUnion4();
   (unsigned long or boolean)? receiveNullableUnion5();
   sequence<long>? receiveNullableSequence();
+  TestDictionary receiveTestDictionaryWithSuccessOnKeyword();
+  boolean dictMatchesPassedValues(TestDictionary arg);
 
   void passBoolean(boolean arg);
   void passByte(byte arg);

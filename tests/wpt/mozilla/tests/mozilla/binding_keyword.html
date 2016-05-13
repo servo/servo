@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test for conversions from and to dictionary properties with keywords</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  var t = new TestBinding();
+
+  var dict = t.receiveTestDictionaryWithSuccessOnKeyword();
+  assert_equals(dict.type, "success");
+  assert_equals(dict.nonRequiredNullable, undefined);
+  assert_equals(dict.nonRequiredNullable2, null);
+
+  assert_true(t.dictMatchesPassedValues(dict));
+}, "Conversion of dictionary elements with rust keywords, and null non-required nullable properties works")
+</script>
