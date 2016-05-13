@@ -54,7 +54,7 @@ pub type FractionalPixel = f64;
 
 pub type FontTableTag = u32;
 
-pub trait FontTableTagConversions {
+trait FontTableTagConversions {
     fn tag_to_str(&self) -> String;
 }
 
