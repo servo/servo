@@ -408,7 +408,7 @@ class CommandBase(object):
             if target.startswith('arm') or target.startswith('aarch64'):
                 env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
 
-        env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -W unused-extern-crates"
+        env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -W unused-extern-crates -Z orbit"
 
         return env
 
