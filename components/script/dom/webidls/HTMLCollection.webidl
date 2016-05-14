@@ -4,7 +4,6 @@
 
 // https://dom.spec.whatwg.org/#interface-htmlcollection
 
-[LegacyUnenumerableNamedProperties]
 interface HTMLCollection {
   [Pure]
   readonly attribute unsigned long length;
