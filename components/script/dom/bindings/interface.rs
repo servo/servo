@@ -12,10 +12,10 @@ use js::glue::UncheckedUnwrapObject;
 use js::jsapi::{Class, ClassExtension, ClassSpec, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{HandleObject, HandleValue, JSClass, JSContext, JSFunctionSpec};
 use js::jsapi::{JSNative, JSFUN_CONSTRUCTOR, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY};
-use js::jsapi::{JSPROP_RESOLVING, JSPropertySpec, JSString, JS_DefineProperty1, JS_DefineProperty2};
-use js::jsapi::{JS_AtomizeAndPinString, JS_DefineProperty4, JS_GetClass, JS_GetFunctionObject};
-use js::jsapi::{JS_GetPrototype, JS_LinkConstructorAndPrototype, JS_NewFunction, JS_NewObject};
-use js::jsapi::{JS_NewObjectWithUniqueType, JS_NewStringCopyZ, JS_DefineProperty};
+use js::jsapi::{JSPROP_RESOLVING, JSPropertySpec, JSString, JS_AtomizeAndPinString};
+use js::jsapi::{JS_DefineProperty, JS_DefineProperty1, JS_DefineProperty2, JS_DefineProperty4};
+use js::jsapi::{JS_GetClass, JS_GetFunctionObject, JS_GetPrototype, JS_LinkConstructorAndPrototype};
+use js::jsapi::{JS_NewFunction, JS_NewObject, JS_NewObjectWithUniqueType, JS_NewStringCopyN};
 use js::jsapi::{MutableHandleObject, MutableHandleValue, ObjectOps, RootedObject, RootedString};
 use js::jsapi::{RootedValue, Value};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
@@ -87,9 +87,9 @@ unsafe extern "C" fn fun_to_string_hook(cx: *mut JSContext,
                                         -> *mut JSString {
     let js_class = JS_GetClass(obj.get());
     assert!(!js_class.is_null());
-    let object_class = &*(js_class as *const NonCallbackInterfaceObjectClass);
-    assert!(object_class.representation.last() == Some(&0));
-    let ret = JS_NewStringCopyZ(cx, object_class.representation.as_ptr() as *const libc::c_char);
+    let repr = (*(js_class as *const NonCallbackInterfaceObjectClass)).representation;
+    assert!(!repr.is_empty());
+    let ret = JS_NewStringCopyN(cx, repr.as_ptr() as *const libc::c_char, repr.len());
     assert!(!ret.is_null());
     ret
 }
@@ -103,7 +103,7 @@ pub struct NonCallbackInterfaceObjectClass {
     pub proto_id: PrototypeList::ID,
     /// The prototype depth of that interface, used in the hasInstance hook.
     pub proto_depth: u16,
-    /// The string representation of the object (ends with '\0').
+    /// The string representation of the object.
     pub representation: &'static [u8],
 }
 
@@ -111,7 +111,7 @@ unsafe impl Sync for NonCallbackInterfaceObjectClass {}
 
 impl NonCallbackInterfaceObjectClass {
     /// Create a new `NonCallbackInterfaceObjectClass` structure.
-    pub const unsafe fn new(
+    pub const fn new(
             constructor_behavior: InterfaceConstructorBehavior,
             string_rep: &'static [u8],
             proto_id: PrototypeList::ID,
