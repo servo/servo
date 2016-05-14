@@ -35938,6 +35938,12 @@
     "deleted_reftests": {},
     "items": {
       "testharness": {
+        "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_getters-work-without-setters-called-before.html": [
+          {
+            "path": "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_getters-work-without-setters-called-before.html",
+            "url": "/html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_getters-work-without-setters-called-before.html"
+          }
+        ],
         "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html": [
           {
             "path": "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html",
