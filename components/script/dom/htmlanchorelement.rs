@@ -4,7 +4,7 @@
 
 
 use dom::activation::Activatable;
-use dom::attr::AttrValue;
+use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
@@ -16,7 +16,7 @@ use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::str::USVString;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
-use dom::element::Element;
+use dom::element::{AttributeMutation, Element};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
@@ -71,7 +71,6 @@ impl HTMLAnchorElement {
     fn reinitialize_url(&self) {
         // Step 1.
         match *self.url.borrow() {
-            None => return,
             Some(ref url) if url.scheme() == "blob" && url.cannot_be_a_base() => return,
             _ => (),
         }
