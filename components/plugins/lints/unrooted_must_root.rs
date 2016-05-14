@@ -106,15 +106,13 @@ impl LateLintPass for UnrootedPass {
         let ref map = cx.tcx.map;
         if map.expect_item(map.get_parent(var.node.data.id())).attrs.iter().all(|a| !a.check_name("must_root")) {
             match var.node.data {
-                hir::VariantData::Tuple(ref vec, _) => {
-                    for ty in vec {
-                        cx.tcx.ast_ty_to_ty_cache.borrow().get(&ty.id).map(|t| {
-                            if is_unrooted_ty(cx, t, false) {
-                                cx.span_lint(UNROOTED_MUST_ROOT, ty.ty.span,
-                                             "Type must be rooted, use #[must_root] on \
-                                              the enum definition to propagate")
-                            }
-                        });
+                hir::VariantData::Tuple(ref fields, _) => {
+                    for ref field in fields {
+                        if is_unrooted_ty(cx, cx.tcx.node_id_to_type(field.id), false) {
+                            cx.span_lint(UNROOTED_MUST_ROOT, field.ty.span,
+                                         "Type must be rooted, use #[must_root] on \
+                                          the enum definition to propagate")
+                        }
                     }
                 }
                 _ => () // Struct variants already caught by check_struct_def
@@ -123,7 +121,7 @@ impl LateLintPass for UnrootedPass {
     }
     /// Function arguments that are #[must_root] types are not allowed
     fn check_fn(&mut self, cx: &LateContext, kind: visit::FnKind, decl: &hir::FnDecl,
-                block: &hir::Block, span: codemap::Span, _id: ast::NodeId) {
+                block: &hir::Block, span: codemap::Span, id: ast::NodeId) {
         let in_new_function = match kind {
             visit::FnKind::ItemFn(n, _, _, _, _, _, _) |
             visit::FnKind::Method(n, _, _, _) => {
@@ -132,27 +130,21 @@ impl LateLintPass for UnrootedPass {
             visit::FnKind::Closure(_) => return,
         };
 
-        for arg in &decl.inputs {
-            cx.tcx.ast_ty_to_ty_cache.borrow().get(&arg.ty.id).map(|t| {
-                if is_unrooted_ty(cx, t, false) {
-                    if in_derive_expn(cx, span) {
-                        return;
-                    }
+        if !in_derive_expn(cx, span) {
+            let ty = cx.tcx.node_id_to_type(id);
+
+            for (arg, ty) in decl.inputs.iter().zip(ty.fn_args().0.iter()) {
+                if is_unrooted_ty(cx, ty, false) {
                     cx.span_lint(UNROOTED_MUST_ROOT, arg.ty.span, "Type must be rooted")
                 }
-            });
-        }
+            }
 
-        if !in_new_function {
-            if let hir::Return(ref ty) = decl.output {
-                cx.tcx.ast_ty_to_ty_cache.borrow().get(&ty.id).map(|t| {
-                    if is_unrooted_ty(cx, t, false) {
-                        if in_derive_expn(cx, span) {
-                            return;
-                        }
-                        cx.span_lint(UNROOTED_MUST_ROOT, ty.span, "Type must be rooted")
+            if !in_new_function {
+                if let ty::FnOutput::FnConverging(ret) = ty.fn_ret().0 {
+                    if is_unrooted_ty(cx, ret, false) {
+                        cx.span_lint(UNROOTED_MUST_ROOT, decl.output.span(), "Type must be rooted")
                     }
-                });
+                }
             }
         }
 
