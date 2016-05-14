@@ -70,13 +70,13 @@ impl<K: PartialEq, V: Clone> LRUCache<K, V> {
     }
 
     #[inline]
-    pub fn touch(&mut self, pos: usize) -> V {
+    pub fn touch(&mut self, pos: usize) -> &V {
         let last_index = self.entries.len() - 1;
         if pos != last_index {
             let entry = self.entries.remove(pos);
             self.entries.push(entry);
         }
-        self.entries[last_index].1.clone()
+        &self.entries[last_index].1
     }
 
     pub fn iter(&self) -> Iter<(K, V)> {
@@ -92,14 +92,14 @@ impl<K: PartialEq, V: Clone> LRUCache<K, V> {
 
     pub fn find(&mut self, key: &K) -> Option<V> {
         match self.entries.iter().position(|&(ref k, _)| key == k) {
-            Some(pos) => Some(self.touch(pos)),
+            Some(pos) => Some(self.touch(pos).clone()),
             None      => None,
         }
     }
 
     pub fn find_or_create<F>(&mut self, key: K, mut blk: F) -> V where F: FnMut() -> V {
         match self.entries.iter().position(|&(ref k, _)| *k == key) {
-            Some(pos) => self.touch(pos),
+            Some(pos) => self.touch(pos).clone(),
             None => {
                 let val = blk();
                 self.insert(key, val.clone());
