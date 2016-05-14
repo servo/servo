@@ -180,10 +180,7 @@ impl Font {
         shaper.as_ref().unwrap().shape_text(text, options, &mut glyphs);
 
         let glyphs = Arc::new(glyphs);
-        self.shape_cache.insert(ShapeCacheEntry {
-            text: text.to_owned(),
-            options: *options,
-        }, glyphs.clone());
+        self.shape_cache.insert(lookup_key, glyphs.clone());
 
         let end_time = time::precise_time_ns();
         TEXT_SHAPING_PERFORMANCE_COUNTER.fetch_add((end_time - start_time) as usize,
