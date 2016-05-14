@@ -166,30 +166,24 @@ impl Font {
         let shaper = &self.shaper;
         let lookup_key = ShapeCacheEntry {
             text: text.to_owned(),
-            options: options.clone(),
-        };
-        if let Some(glyphs) = self.shape_cache.find(&lookup_key) {
-            return glyphs.clone();
-        }
-
-        let start_time = time::precise_time_ns();
-
-        let mut glyphs = GlyphStore::new(text.len(),
-                                         options.flags.contains(IS_WHITESPACE_SHAPING_FLAG),
-                                         options.flags.contains(RTL_FLAG));
-        shaper.as_ref().unwrap().shape_text(text, options, &mut glyphs);
-
-        let glyphs = Arc::new(glyphs);
-        self.shape_cache.insert(ShapeCacheEntry {
-            text: text.to_owned(),
             options: *options,
-        }, glyphs.clone());
+        };
+        self.shape_cache.find_or_create(lookup_key, || {
+            let start_time = time::precise_time_ns();
 
-        let end_time = time::precise_time_ns();
-        TEXT_SHAPING_PERFORMANCE_COUNTER.fetch_add((end_time - start_time) as usize,
-                                                   Ordering::Relaxed);
+            let mut glyphs = GlyphStore::new(text.len(),
+                                             options.flags.contains(IS_WHITESPACE_SHAPING_FLAG),
+                                             options.flags.contains(RTL_FLAG));
+            shaper.as_ref().unwrap().shape_text(text, options, &mut glyphs);
 
-        glyphs
+            let glyphs = Arc::new(glyphs);
+
+            let end_time = time::precise_time_ns();
+            TEXT_SHAPING_PERFORMANCE_COUNTER.fetch_add((end_time - start_time) as usize,
+                                                       Ordering::Relaxed);
+
+            glyphs
+        })
     }
 
     fn make_shaper<'a>(&'a mut self, options: &ShapingOptions) -> &'a Shaper {
@@ -231,8 +225,8 @@ impl Font {
 
     pub fn glyph_h_advance(&mut self, glyph: GlyphId) -> FractionalPixel {
         let handle = &self.handle;
-        self.glyph_advance_cache.find_or_create(&glyph, |glyph| {
-            match handle.glyph_h_advance(*glyph) {
+        self.glyph_advance_cache.find_or_create(glyph, || {
+            match handle.glyph_h_advance(glyph) {
                 Some(adv) => adv,
                 None => 10f64 as FractionalPixel // FIXME: Need fallback strategy
             }
