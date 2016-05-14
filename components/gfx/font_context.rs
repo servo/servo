@@ -8,9 +8,7 @@ use azure::azure_hl::BackendType;
 use azure::scaled_font::FontInfo;
 use azure::scaled_font::ScaledFont;
 use fnv::FnvHasher;
-use font::FontHandleMethods;
-use font::SpecifiedFontStyle;
-use font::{Font, FontGroup};
+use font::{Font, FontGroup, FontHandleMethods};
 use font_cache_thread::FontCacheThread;
 use font_template::FontTemplateDescriptor;
 use heapsize::HeapSizeOf;
@@ -27,7 +25,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering, ATOMIC_USIZE_INIT};
 use string_cache::Atom;
 use style::computed_values::{font_style, font_variant};
-use util::cache::HashCache;
+use style::properties::style_structs::ServoFont;
 use webrender_traits;
 
 #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))]
@@ -124,22 +122,8 @@ impl FontContext {
             FontHandleMethods::new_from_template(&self.platform_handle, template,
                                                  Some(actual_pt_size));
 
-        handle.map(|handle| {
-            let metrics = handle.metrics();
-
-            Font {
-                handle: handle,
-                shaper: None,
-                variant: variant,
-                descriptor: descriptor,
-                requested_pt_size: pt_size,
-                actual_pt_size: actual_pt_size,
-                metrics: metrics,
-                shape_cache: HashCache::new(),
-                glyph_advance_cache: HashCache::new(),
-                font_key: font_key,
-            }
-        })
+        handle.map(|handle|
+            Font::new(handle, variant, descriptor, pt_size, actual_pt_size, font_key))
     }
 
     fn expire_font_caches_if_necessary(&mut self) {
@@ -158,7 +142,7 @@ impl FontContext {
     /// Create a group of fonts for use in layout calculations. May return
     /// a cached font if this font instance has already been used by
     /// this context.
-    pub fn layout_font_group_for_style(&mut self, style: Arc<SpecifiedFontStyle>)
+    pub fn layout_font_group_for_style(&mut self, style: Arc<ServoFont>)
                                        -> Rc<FontGroup> {
         self.expire_font_caches_if_necessary();
 
@@ -317,7 +301,7 @@ impl HeapSizeOf for FontContext {
 
 #[derive(Debug)]
 struct LayoutFontGroupCacheKey {
-    pointer: Arc<SpecifiedFontStyle>,
+    pointer: Arc<ServoFont>,
     size: Au,
 }
 

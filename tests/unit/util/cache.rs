@@ -13,7 +13,7 @@ fn test_hashcache() {
     assert!(cache.find(&1).is_some());
     assert!(cache.find(&2).is_none());
 
-    cache.find_or_create(&2, |_v| { Cell::new("two") });
+    cache.find_or_create(2, || { Cell::new("two") });
     assert!(cache.find(&1).is_some());
     assert!(cache.find(&2).is_some());
 }
@@ -44,7 +44,7 @@ fn test_lru_cache() {
     assert!(cache.find(&4).is_some());  // (2, 4) (no change)
 
     // Test find_or_create.
-    cache.find_or_create(&1, |_| { Cell::new("one") }); // (4, 1)
+    cache.find_or_create(1, || { Cell::new("one") }); // (4, 1)
 
     assert!(cache.find(&1).is_some()); // (4, 1) (no change)
     assert!(cache.find(&2).is_none()); // (4, 1) (no change)

@@ -351,7 +351,7 @@ impl<C: ComputedValues> StyleSharingCandidateCache<C> {
     }
 
     pub fn touch(&mut self, index: usize) {
-        self.cache.touch(index)
+        self.cache.touch(index);
     }
 }
 

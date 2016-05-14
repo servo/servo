@@ -13,14 +13,14 @@ use std::slice::Iter;
 
 #[derive(Debug)]
 pub struct HashCache<K, V>
-    where K: Clone + PartialEq + Eq + Hash,
+    where K: PartialEq + Eq + Hash,
           V: Clone,
 {
     entries: HashMap<K, V, BuildHasherDefault<SipHasher>>,
 }
 
 impl<K, V> HashCache<K, V>
-    where K: Clone + PartialEq + Eq + Hash,
+    where K: PartialEq + Eq + Hash,
           V: Clone,
 {
     pub fn new() -> HashCache<K, V> {
@@ -40,13 +40,13 @@ impl<K, V> HashCache<K, V>
         }
     }
 
-    pub fn find_or_create<F>(&mut self, key: &K, blk: F) -> V where F: Fn(&K) -> V {
-        match self.entries.entry(key.clone()) {
+    pub fn find_or_create<F>(&mut self, key: K, mut blk: F) -> V where F: FnMut() -> V {
+        match self.entries.entry(key) {
             Occupied(occupied) => {
                 (*occupied.get()).clone()
             }
             Vacant(vacant) => {
-                (*vacant.insert(blk(key))).clone()
+                (*vacant.insert(blk())).clone()
             }
         }
     }
@@ -61,7 +61,7 @@ pub struct LRUCache<K, V> {
     cache_size: usize,
 }
 
-impl<K: Clone + PartialEq, V: Clone> LRUCache<K, V> {
+impl<K: PartialEq, V: Clone> LRUCache<K, V> {
     pub fn new(size: usize) -> LRUCache<K, V> {
         LRUCache {
           entries: vec!(),
@@ -70,13 +70,13 @@ impl<K: Clone + PartialEq, V: Clone> LRUCache<K, V> {
     }
 
     #[inline]
-    pub fn touch(&mut self, pos: usize) -> V {
+    pub fn touch(&mut self, pos: usize) -> &V {
         let last_index = self.entries.len() - 1;
         if pos != last_index {
             let entry = self.entries.remove(pos);
             self.entries.push(entry);
         }
-        self.entries[last_index].1.clone()
+        &self.entries[last_index].1
     }
 
     pub fn iter(&self) -> Iter<(K, V)> {
@@ -92,17 +92,17 @@ impl<K: Clone + PartialEq, V: Clone> LRUCache<K, V> {
 
     pub fn find(&mut self, key: &K) -> Option<V> {
         match self.entries.iter().position(|&(ref k, _)| key == k) {
-            Some(pos) => Some(self.touch(pos)),
+            Some(pos) => Some(self.touch(pos).clone()),
             None      => None,
         }
     }
 
-    pub fn find_or_create<F>(&mut self, key: &K, blk: F) -> V where F: Fn(&K) -> V {
-        match self.entries.iter().position(|&(ref k, _)| *k == *key) {
-            Some(pos) => self.touch(pos),
+    pub fn find_or_create<F>(&mut self, key: K, mut blk: F) -> V where F: FnMut() -> V {
+        match self.entries.iter().position(|&(ref k, _)| *k == key) {
+            Some(pos) => self.touch(pos).clone(),
             None => {
-                let val = blk(key);
-                self.insert(key.clone(), val.clone());
+                let val = blk();
+                self.insert(key, val.clone());
                 val
             }
         }
@@ -154,13 +154,12 @@ impl<K: Clone + Eq + Hash, V: Clone> SimpleHashCache<K, V> {
         }
     }
 
-    pub fn find_or_create<F>(&mut self, key: &K, blk: F) -> V where F: Fn(&K) -> V {
-        match self.find(key) {
-            Some(value) => return value,
-            None => {}
+    pub fn find_or_create<F>(&mut self, key: K, mut blk: F) -> V where F: FnMut() -> V {
+        if let Some(value) = self.find(&key) {
+            return value;
         }
-        let value = blk(key);
-        self.insert((*key).clone(), value.clone());
+        let value = blk();
+        self.insert(key, value.clone());
         value
     }
 

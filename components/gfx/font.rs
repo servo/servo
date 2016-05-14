@@ -16,7 +16,6 @@ use std::str;
 use std::sync::Arc;
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 use style::computed_values::{font_stretch, font_variant, font_weight};
-use style::properties::style_structs::ServoFont;
 use text::Shaper;
 use text::glyph::{GlyphId, GlyphStore};
 use text::shaping::ShaperMethods;
@@ -54,7 +53,7 @@ pub type FractionalPixel = f64;
 
 pub type FontTableTag = u32;
 
-pub trait FontTableTagConversions {
+trait FontTableTagConversions {
     fn tag_to_str(&self) -> String;
 }
 
@@ -88,8 +87,6 @@ pub struct FontMetrics {
     pub line_gap:         Au,
 }
 
-pub type SpecifiedFontStyle = ServoFont;
-
 #[derive(Debug)]
 pub struct Font {
     pub handle: FontHandle,
@@ -98,10 +95,33 @@ pub struct Font {
     pub descriptor: FontTemplateDescriptor,
     pub requested_pt_size: Au,
     pub actual_pt_size: Au,
-    pub shaper: Option<Shaper>,
-    pub shape_cache: HashCache<ShapeCacheEntry, Arc<GlyphStore>>,
-    pub glyph_advance_cache: HashCache<u32, FractionalPixel>,
+    shaper: Option<Shaper>,
+    shape_cache: HashCache<ShapeCacheEntry, Arc<GlyphStore>>,
+    glyph_advance_cache: HashCache<u32, FractionalPixel>,
     pub font_key: Option<webrender_traits::FontKey>,
+}
+
+impl Font {
+    pub fn new(handle: FontHandle,
+               variant: font_variant::T,
+               descriptor: FontTemplateDescriptor,
+               requested_pt_size: Au,
+               actual_pt_size: Au,
+               font_key: Option<webrender_traits::FontKey>) -> Font {
+        let metrics = handle.metrics();
+        Font {
+            handle: handle,
+            shaper: None,
+            variant: variant,
+            descriptor: descriptor,
+            requested_pt_size: requested_pt_size,
+            actual_pt_size: actual_pt_size,
+            metrics: metrics,
+            shape_cache: HashCache::new(),
+            glyph_advance_cache: HashCache::new(),
+            font_key: font_key,
+        }
+    }
 }
 
 bitflags! {
@@ -133,7 +153,7 @@ pub struct ShapingOptions {
 
 /// An entry in the shape cache.
 #[derive(Clone, Eq, PartialEq, Hash, Debug)]
-pub struct ShapeCacheEntry {
+struct ShapeCacheEntry {
     text: String,
     options: ShapingOptions,
 }
@@ -146,30 +166,24 @@ impl Font {
         let shaper = &self.shaper;
         let lookup_key = ShapeCacheEntry {
             text: text.to_owned(),
-            options: options.clone(),
-        };
-        if let Some(glyphs) = self.shape_cache.find(&lookup_key) {
-            return glyphs.clone();
-        }
-
-        let start_time = time::precise_time_ns();
-
-        let mut glyphs = GlyphStore::new(text.len(),
-                                         options.flags.contains(IS_WHITESPACE_SHAPING_FLAG),
-                                         options.flags.contains(RTL_FLAG));
-        shaper.as_ref().unwrap().shape_text(text, options, &mut glyphs);
-
-        let glyphs = Arc::new(glyphs);
-        self.shape_cache.insert(ShapeCacheEntry {
-            text: text.to_owned(),
             options: *options,
-        }, glyphs.clone());
+        };
+        self.shape_cache.find_or_create(lookup_key, || {
+            let start_time = time::precise_time_ns();
 
-        let end_time = time::precise_time_ns();
-        TEXT_SHAPING_PERFORMANCE_COUNTER.fetch_add((end_time - start_time) as usize,
-                                                   Ordering::Relaxed);
+            let mut glyphs = GlyphStore::new(text.len(),
+                                             options.flags.contains(IS_WHITESPACE_SHAPING_FLAG),
+                                             options.flags.contains(RTL_FLAG));
+            shaper.as_ref().unwrap().shape_text(text, options, &mut glyphs);
 
-        glyphs
+            let glyphs = Arc::new(glyphs);
+
+            let end_time = time::precise_time_ns();
+            TEXT_SHAPING_PERFORMANCE_COUNTER.fetch_add((end_time - start_time) as usize,
+                                                       Ordering::Relaxed);
+
+            glyphs
+        })
     }
 
     fn make_shaper<'a>(&'a mut self, options: &ShapingOptions) -> &'a Shaper {
@@ -211,8 +225,8 @@ impl Font {
 
     pub fn glyph_h_advance(&mut self, glyph: GlyphId) -> FractionalPixel {
         let handle = &self.handle;
-        self.glyph_advance_cache.find_or_create(&glyph, |glyph| {
-            match handle.glyph_h_advance(*glyph) {
+        self.glyph_advance_cache.find_or_create(glyph, || {
+            match handle.glyph_h_advance(glyph) {
                 Some(adv) => adv,
                 None => 10f64 as FractionalPixel // FIXME: Need fallback strategy
             }
