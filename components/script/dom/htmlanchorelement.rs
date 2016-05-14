@@ -4,7 +4,7 @@
 
 
 use dom::activation::Activatable;
-use dom::attr::AttrValue;
+use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
@@ -16,7 +16,7 @@ use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::str::USVString;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
-use dom::element::Element;
+use dom::element::{AttributeMutation, Element};
 use dom::event::Event;
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
@@ -89,6 +89,16 @@ impl HTMLAnchorElement {
 impl VirtualMethods for HTMLAnchorElement {
     fn super_type(&self) -> Option<&VirtualMethods> {
         Some(self.upcast::<HTMLElement>() as &VirtualMethods)
+    }
+
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        self.super_type().unwrap().attribute_mutated(attr, mutation);
+        match attr.local_name() {
+            &atom!("href") => {
+                self.set_url();
+            },
+            _ => {},
+        }
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
