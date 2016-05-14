@@ -35943,6 +35943,12 @@
             "path": "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html",
             "url": "/html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html"
           }
+        ],
+        "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_getter.html": [
+          {
+            "path": "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_getter.html",
+            "url": "/html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_getter.html"
+          }
         ]
       }
     },

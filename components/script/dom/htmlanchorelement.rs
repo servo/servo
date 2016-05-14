@@ -71,7 +71,6 @@ impl HTMLAnchorElement {
     fn reinitialize_url(&self) {
         // Step 1.
         match *self.url.borrow() {
-            None => return,
             Some(ref url) if url.scheme() == "blob" && url.cannot_be_a_base() => return,
             _ => (),
         }
