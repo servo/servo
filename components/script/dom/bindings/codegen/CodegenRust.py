@@ -1993,17 +1993,16 @@ class CGInterfaceObjectJSClass(CGThing):
         args = {
             "constructorBehavior": constructorBehavior,
             "id": name,
-            "representation": str_to_const_array("function %s() {\\n    [native code]\\n}" % name),
+            "representation": 'b"function %s() {\\n    [native code]\\n}"' % name,
             "depth": self.descriptor.prototypeDepth
         }
         return """\
-static InterfaceObjectClass: NonCallbackInterfaceObjectClass = unsafe {
+static InterfaceObjectClass: NonCallbackInterfaceObjectClass =
     NonCallbackInterfaceObjectClass::new(
         %(constructorBehavior)s,
         %(representation)s,
         PrototypeList::ID::%(id)s,
-        %(depth)s)
-};
+        %(depth)s);
 """ % args
 
 
