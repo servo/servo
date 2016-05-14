@@ -67,7 +67,7 @@ pub mod longhands {
     <%include file="/longhand/table.mako.rs" />
     <%include file="/longhand/text.mako.rs" />
     <%include file="/longhand/ui.mako.rs" />
-    <%include file="/longhand/svg_inherited.mako.rs" />
+    <%include file="/longhand/inherited_svg.mako.rs" />
     <%include file="/longhand/svg.mako.rs" />
     <%include file="/longhand/xul.mako.rs" />
 }
