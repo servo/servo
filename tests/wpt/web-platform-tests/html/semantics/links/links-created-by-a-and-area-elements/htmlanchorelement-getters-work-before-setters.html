@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset="utf-8">
+<html>
+<head>
+<title>HTMLAnchorElement getters before setters called</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<a href="http://google.com?hi">a1</a>
+<a href="http://google.com#somehash">a2</a>
+<a href="http://google.com:1234/somedir">a3</a>
+<a href="http://google.com:1234/somedir">a4</a>
+<a href="http://google.com:1234/somedir">a5</a>
+<a href="https://anonymous:flabada@developer.mozilla.org/en-US/docs/">a6</a>
+<a href="http://google.com:1234/somedir/someotherdir/index.html">a7</a>
+<a href="http://google.com:1234/somedir">a8</a>
+<a href="http://google.com/somedir">a9</a>
+<a href="https://anonymous:pwd@developer.mozilla.org:1234/en-US/">a10</a>
+<script>
+function test_gettersetter(property, result, url) {
+  var a = document.querySelector('a[href="'+url+'"]');
+  var r = a[property];
+  assert_equals(r, result);
+}
+
+//Elements for each test: [property, result, url]
+//                         [0]       [1]     [2]
+tests = [
+  ["search", "?hi", "http://google.com?hi"],
+  ["hash", "#somehash",
+   "http://google.com#somehash"],
+  ["host", "google.com:1234",
+   "http://google.com:1234/somedir"],
+  ["hostname", "google.com",
+   "http://google.com:1234/somedir"],
+  ["href", "http://google.com:1234/somedir",
+   "http://google.com:1234/somedir"],
+  ["password", "flabada",
+   "https://anonymous:flabada@developer.mozilla.org/en-US/docs/"],
+  ["pathname", "/somedir/someotherdir/index.html",
+   "http://google.com:1234/somedir/someotherdir/index.html"],
+  ["port", "1234",  "http://google.com:1234/somedir"],
+  ["protocol", "http:", "http://google.com/somedir"],
+  ["username", "anonymous",
+   "https://anonymous:pwd@developer.mozilla.org:1234/en-US/"]
+];
+
+for (var i = 0; i < tests.length; i++) {
+    test(function() {
+        test_gettersetter(tests[i][0], tests[i][1], tests[i][2])
+    }, "Getter and setter for attribute of anchor element(" + i + "):" + tests[i][0]);
+}
+</script>
+</head>
+</html>
+
