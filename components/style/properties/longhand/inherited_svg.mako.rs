@@ -6,7 +6,7 @@
 
 // SVG 1.1 (Second Edition)
 // https://www.w3.org/TR/SVG/
-<% data.new_style_struct("SVGInherited",
+<% data.new_style_struct("InheritedSVG",
                          inherited=True,
                          gecko_name="SVG") %>
 
