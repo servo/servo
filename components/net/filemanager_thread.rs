@@ -3,7 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use net_traits::filemanager_thread::{FileManagerThreadMsg, FileManagerResult, FileManagerThreadError};
+use net_traits::filemanager_thread::{FileManagerResult, FileManagerThreadError};
+use net_traits::filemanager_thread::{FileManagerThreadMsg, FileManagerThread};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs::File;
@@ -18,14 +19,14 @@ pub struct FileManager {
 }
 
 impl FileManager {
-    pub fn new(recv: IpcReceiver<FileManagerThreadMsg>) -> FileManager {
+    fn new(recv: IpcReceiver<FileManagerThreadMsg>) -> FileManager {
         FileManager {
             receiver: recv,
             idmap: RefCell::new(HashMap::new()),
         }
     }
 
-    pub fn new_thread() -> IpcSender<FileManagerThreadMsg> {
+    pub fn new_thread() -> FileManagerThread {
         let (chan, recv) = ipc::channel().unwrap();
 
         spawn_named("FileManager".to_owned(), move || {
@@ -36,7 +37,7 @@ impl FileManager {
     }
 
     /// Start the file manager event loop
-    pub fn start(&mut self) {
+    fn start(&mut self) {
         loop {
             match self.receiver.recv().unwrap() {
                 FileManagerThreadMsg::SelectFile(sender) => self.select_file(sender),

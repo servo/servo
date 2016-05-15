@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-//! A thread that takes a URL and streams back the binary data.
+//! A thread that manages various resources like cookie, files
+
 use about_loader;
 use chrome_loader;
 use connector::{Connector, create_http_connector};
@@ -11,6 +12,7 @@ use cookie_storage::CookieStorage;
 use data_loader;
 use devtools_traits::{DevtoolsControlMsg};
 use file_loader;
+use filemanager_thread::FileManager;
 use hsts::HstsList;
 use http_loader::{self, HttpState};
 use hyper::client::pool::Pool;
@@ -20,8 +22,8 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
 use net_traits::LoadContext;
 use net_traits::ProgressMsg::Done;
-use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceThread, ResponseAction};
-use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
+use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceThread, ResourceThreads, ResponseAction};
+use net_traits::{CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId, ResourceMsg};
 use net_traits::{NetworkError, WebSocketCommunicate, WebSocketConnectData};
 use rustc_serialize::json;
 use rustc_serialize::{Decodable, Encodable};
@@ -35,6 +37,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, RwLock};
+use storage_thread::StorageThreadFactory;
 use url::Url;
 use util::opts;
 use util::prefs;
@@ -148,9 +151,9 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata,
     }
 }
 
-/// Create a ResourceThread
-pub fn new_resource_thread(user_agent: String,
-                           devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceThread {
+/// Create ResourceThreads collection
+pub fn new_resource_threads(user_agent: String,
+                            devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceThreads {
     let hsts_preload = HstsList::from_servo_preload();
     let (setup_chan, setup_port) = ipc::channel().unwrap();
     let setup_chan_clone = setup_chan.clone();
@@ -165,11 +168,16 @@ pub fn new_resource_thread(user_agent: String,
         };
         channel_manager.start(setup_chan_clone);
     });
-    setup_chan
+
+    ResourceThreads {
+        resource_thread: setup_chan,
+        filemanager_thread: FileManager::new_thread(),
+        storage_thread: StorageThreadFactory::new(),
+    }
 }
 
 struct ResourceChannelManager {
-    from_client: IpcReceiver<ControlMsg>,
+    from_client: IpcReceiver<ResourceMsg>,
     resource_manager: ResourceManager
 }
 
@@ -177,27 +185,27 @@ impl ResourceChannelManager {
     fn start(&mut self, control_sender: ResourceThread) {
         loop {
             match self.from_client.recv().unwrap() {
-                ControlMsg::Load(load_data, consumer, id_sender) =>
+                ResourceMsg::Load(load_data, consumer, id_sender) =>
                     self.resource_manager.load(load_data, consumer, id_sender, control_sender.clone()),
-                ControlMsg::WebsocketConnect(connect, connect_data) =>
+                ResourceMsg::WebsocketConnect(connect, connect_data) =>
                     self.resource_manager.websocket_connect(connect, connect_data),
-                ControlMsg::SetCookiesForUrl(request, cookie_list, source) =>
+                ResourceMsg::SetCookiesForUrl(request, cookie_list, source) =>
                     self.resource_manager.set_cookies_for_url(request, cookie_list, source),
-                ControlMsg::GetCookiesForUrl(url, consumer, source) => {
+                ResourceMsg::GetCookiesForUrl(url, consumer, source) => {
                     let cookie_jar = &self.resource_manager.cookie_jar;
                     let mut cookie_jar = cookie_jar.write().unwrap();
                     consumer.send(cookie_jar.cookies_for_url(&url, source)).unwrap();
                 }
-                ControlMsg::Cancel(res_id) => {
+                ResourceMsg::Cancel(res_id) => {
                     if let Some(cancel_sender) = self.resource_manager.cancel_load_map.get(&res_id) {
                         let _ = cancel_sender.send(());
                     }
                     self.resource_manager.cancel_load_map.remove(&res_id);
                 }
-                ControlMsg::Synchronize(sender) => {
+                ResourceMsg::Synchronize(sender) => {
                     let _ = sender.send(());
                 }
-                ControlMsg::Exit => {
+                ResourceMsg::Exit => {
                     if let Some(ref profile_dir) = opts::get().profile_dir {
                         match self.resource_manager.auth_cache.read() {
                             Ok(auth_cache) => write_json_to_file(&*auth_cache, profile_dir, "auth_cache.json"),
@@ -331,7 +339,7 @@ impl Drop for CancellationListener {
     fn drop(&mut self) {
         if let Some(ref resource) = self.cancel_resource {
             // Ensure that the resource manager stops tracking this request now that it's terminated.
-            let _ = resource.resource_thread.send(ControlMsg::Cancel(resource.resource_id));
+            let _ = resource.resource_thread.send(ResourceMsg::Cancel(resource.resource_id));
         }
     }
 }
