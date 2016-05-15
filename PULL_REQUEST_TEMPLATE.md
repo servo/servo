@@ -1,6 +1,6 @@
 Thank you for contributing to Servo! Please replace each `[ ]` by `[X]` when the step is complete, and replace `__` with appropriate data:
 - [ ] `./mach build -d` does not report any errors
-- [ ] `./mach test-tidy` does not report any errors
+- [ ] `./mach test-tidy` does not report any errors. (use the [`test-tidy` git hook](https://github.com/servo/servo/wiki/Github-workflow#test-tidy-commit-hook) to automate this step)
 - [ ] These changes fix #__ (github issue number if applicable).
 
 Either:
