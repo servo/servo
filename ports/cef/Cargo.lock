@@ -136,6 +136,11 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "bitflags"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "block"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -434,7 +439,7 @@ dependencies = [
 name = "devtools_traits"
 version = "0.0.1"
 dependencies = [
- "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.4 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -643,7 +648,7 @@ version = "0.0.1"
 dependencies = [
  "app_units 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "azure 0.4.5 (git+https://github.com/servo/rust-azure)",
- "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -735,7 +740,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "glutin_app"
 version = "0.0.1"
 dependencies = [
- "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "compositing 0.0.1",
  "euclid 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "gleam 0.2.18 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1012,7 +1017,7 @@ version = "0.0.1"
 dependencies = [
  "app_units 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "azure 0.4.5 (git+https://github.com/servo/rust-azure)",
- "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas_traits 0.0.1",
  "cssparser 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1215,7 +1220,7 @@ dependencies = [
 name = "msg"
 version = "0.0.1"
 dependencies = [
- "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1236,7 +1241,7 @@ dependencies = [
 name = "net"
 version = "0.0.1"
 dependencies = [
- "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "brotli 0.3.23 (git+https://github.com/ende76/brotli-rs)",
  "cookie 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "device 0.0.1 (git+https://github.com/servo/devices)",
@@ -1696,7 +1701,7 @@ version = "0.0.1"
 dependencies = [
  "angle 0.1.0 (git+https://github.com/emilio/angle?branch=servo)",
  "app_units 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas 0.0.1",
  "canvas_traits 0.0.1",
  "caseless 0.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1999,7 +2004,7 @@ name = "style"
 version = "0.0.1"
 dependencies = [
  "app_units 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "cssparser 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "encoding 0.2.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2212,7 +2217,7 @@ version = "0.0.1"
 dependencies = [
  "app_units 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "backtrace 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "bitflags 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "deque 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "getopts 0.2.14 (registry+https://github.com/rust-lang/crates.io-index)",
