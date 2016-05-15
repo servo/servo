@@ -54,5 +54,6 @@ partial interface HTMLElement {
 };
 
 HTMLElement implements GlobalEventHandlers;
+HTMLElement implements DocumentAndElementEventHandlers;
 HTMLElement implements ElementContentEditable;
 HTMLElement implements ElementCSSInlineStyle;
