@@ -137,6 +137,9 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!(NoOnload);
 
+    // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
+    document_and_element_event_handlers!();
+
     // https://html.spec.whatwg.org/multipage/#dom-dataset
     fn Dataset(&self) -> Root<DOMStringMap> {
         self.dataset.or_init(|| DOMStringMap::new(self))

@@ -104,3 +104,11 @@ interface WindowEventHandlers {
            attribute EventHandler onunhandledrejection;
            attribute EventHandler onunload;
 };
+
+// https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
+[NoInterfaceObject]
+interface DocumentAndElementEventHandlers {
+          attribute EventHandler oncopy;
+          attribute EventHandler oncut;
+          attribute EventHandler onpaste;
+};

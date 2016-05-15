@@ -472,3 +472,14 @@ macro_rules! window_event_handlers(
         window_owned_event_handler!(unload, GetOnunload, SetOnunload);
     );
 );
+
+// https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
+// see webidls/EventHandler.webidl
+// As more methods get added, just update them here.
+macro_rules! document_and_element_event_handlers(
+    () => (
+        event_handler!(cut, GetOncut, SetOncut);
+        event_handler!(copy, GetOncopy, SetOncopy);
+        event_handler!(paste, GetOnpaste, SetOnpaste);
+    )
+);
