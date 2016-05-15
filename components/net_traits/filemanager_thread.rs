@@ -6,6 +6,8 @@ use ipc_channel::ipc::IpcSender;
 use std::path::PathBuf;
 use uuid::Uuid;
 
+pub type FileManagerThread = IpcSender<FileManagerThreadMsg>;
+
 #[derive(Deserialize, Serialize)]
 pub enum FileManagerThreadMsg {
     /// Select a single file, return triple (FileID, FileName, lastModified)
