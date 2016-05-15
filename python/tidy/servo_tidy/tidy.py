@@ -387,6 +387,8 @@ def check_rust(file_name, lines):
             (r": &Vec<", "use &[T] instead of &Vec<T>", no_filter),
             # No benefit over using &str
             (r": &String", "use &str instead of &String", no_filter),
+            # No benefit to using &Root<T>
+            (r": &Root<", "use &T instead of &Root<T>", no_filter),
             (r"^&&", "operators should go at the end of the first line", no_filter),
         ]
 

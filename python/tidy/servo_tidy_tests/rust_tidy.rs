@@ -41,4 +41,8 @@ impl test {
             && x;
     }
 
+    fn test_fun3(x:&Root<isize>) {
+        ()
+    }
+
 }
