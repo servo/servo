@@ -49,7 +49,7 @@ use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceThread;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
-use net_traits::storage_thread::{StorageThread, StorageType};
+use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
 use profile_traits::mem;
 use reporter::CSSErrorReporter;
@@ -217,10 +217,6 @@ pub struct Window {
     #[ignore_heap_size_of = "channels are hard"]
     bluetooth_thread: IpcSender<BluetoothMethodMsg>,
 
-    /// A handle for communicating messages to the storage thread.
-    #[ignore_heap_size_of = "channels are hard"]
-    storage_thread: StorageThread,
-
     /// A handle for communicating messages to the constellation thread.
     #[ignore_heap_size_of = "channels are hard"]
     constellation_chan: ConstellationChan<ConstellationMsg>,
@@ -337,10 +333,6 @@ impl Window {
 
     pub fn bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
         self.bluetooth_thread.clone()
-    }
-
-    pub fn storage_thread(&self) -> StorageThread {
-        self.storage_thread.clone()
     }
 
     pub fn css_error_reporter(&self) -> Box<ParseErrorReporter + Send> {
@@ -1423,7 +1415,6 @@ impl Window {
                image_cache_thread: ImageCacheThread,
                resource_thread: Arc<ResourceThread>,
                bluetooth_thread: IpcSender<BluetoothMethodMsg>,
-               storage_thread: StorageThread,
                mem_profiler_chan: mem::ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
                constellation_chan: ConstellationChan<ConstellationMsg>,
@@ -1478,7 +1469,6 @@ impl Window {
             js_runtime: DOMRefCell::new(Some(runtime.clone())),
             resource_thread: resource_thread,
             bluetooth_thread: bluetooth_thread,
-            storage_thread: storage_thread,
             constellation_chan: constellation_chan,
             page_clip_rect: Cell::new(MAX_RECT),
             fragment_name: DOMRefCell::new(None),

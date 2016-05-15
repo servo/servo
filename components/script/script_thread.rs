@@ -66,8 +66,7 @@ use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
-use net_traits::storage_thread::StorageThread;
-use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadContext, Metadata, ResourceThread};
+use net_traits::{AsyncResponseTarget, ResourceMsg, LoadConsumer, LoadContext, Metadata, ResourceThread};
 use network_listener::NetworkListener;
 use parse::ParserRoot;
 use parse::html::{ParseContext, parse_html};
@@ -315,8 +314,6 @@ pub struct ScriptThread {
     resource_thread: Arc<ResourceThread>,
     /// A handle to the bluetooth thread.
     bluetooth_thread: IpcSender<BluetoothMethodMsg>,
-    /// A handle to the storage thread.
-    storage_thread: StorageThread,
 
     /// The port on which the script thread receives messages (load URL, exit, etc.)
     port: Receiver<MainThreadScriptMsg>,
@@ -558,7 +555,6 @@ impl ScriptThread {
 
             resource_thread: Arc::new(state.resource_thread),
             bluetooth_thread: state.bluetooth_thread,
-            storage_thread: state.storage_thread,
 
             port: port,
             chan: MainThreadScriptChan(chan.clone()),
@@ -1444,7 +1440,6 @@ impl ScriptThread {
                                  self.image_cache_thread.clone(),
                                  self.resource_thread.clone(),
                                  self.bluetooth_thread.clone(),
-                                 self.storage_thread.clone(),
                                  self.mem_profiler_chan.clone(),
                                  self.devtools_chan.clone(),
                                  self.constellation_chan.clone(),
@@ -1895,7 +1890,7 @@ impl ScriptThread {
             load_data.url = Url::parse("about:blank").unwrap();
         }
 
-        self.resource_thread.send(ControlMsg::Load(NetLoadData {
+        self.resource_thread.send(ResourceMsg::Load(NetLoadData {
             context: LoadContext::Browsing,
             url: load_data.url,
             method: load_data.method,
