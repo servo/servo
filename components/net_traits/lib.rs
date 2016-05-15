@@ -29,6 +29,7 @@ extern crate util;
 extern crate uuid;
 extern crate websocket;
 
+use filemanager_thread::FileManagerThreadMsg;
 use hyper::header::{ContentType, Headers};
 use hyper::http::RawStatus;
 use hyper::method::Method;
@@ -37,6 +38,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use std::sync::mpsc::Sender;
 use std::thread;
+use storage_thread::StorageThreadMsg;
 use url::Url;
 use websocket::header;
 
@@ -180,7 +182,7 @@ pub enum LoadConsumer {
 }
 
 /// Handle to a resource thread
-pub type ResourceThread = IpcSender<ControlMsg>;
+pub type ResourceThread = IpcSender<ResourceMsg>;
 
 #[derive(PartialEq, Copy, Clone, Deserialize, Serialize)]
 pub enum IncludeSubdomains {
@@ -222,7 +224,7 @@ pub struct WebSocketConnectData {
 }
 
 #[derive(Deserialize, Serialize)]
-pub enum ControlMsg {
+pub enum ResourceMsg {
     /// Request the data associated with a particular URL
     Load(LoadData, LoadConsumer, Option<IpcSender<ResourceId>>),
     /// Try to make a websocket connection to a URL.
@@ -235,6 +237,10 @@ pub enum ControlMsg {
     Cancel(ResourceId),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
     Synchronize(IpcSender<()>),
+    /// Message to filemanager_thread
+    FileManagerMsg(FileManagerThreadMsg),
+    /// Message to storage_thread
+    StorageMsg(StorageThreadMsg),
     /// Break the load handler loop and exit
     Exit,
 }
@@ -294,7 +300,7 @@ impl PendingAsyncLoad {
         self.guard.neuter();
         let load_data = LoadData::new(self.context, self.url, self.pipeline, self.referrer_policy, self.referrer_url);
         let consumer = LoadConsumer::Listener(listener);
-        self.resource_thread.send(ControlMsg::Load(load_data, consumer, None)).unwrap();
+        self.resource_thread.send(ResourceMsg::Load(load_data, consumer, None)).unwrap();
     }
 }
 
@@ -409,7 +415,7 @@ pub fn load_whole_resource(context: LoadContext,
                            pipeline_id: Option<PipelineId>)
         -> Result<(Metadata, Vec<u8>), NetworkError> {
     let (start_chan, start_port) = ipc::channel().unwrap();
-    resource_thread.send(ControlMsg::Load(LoadData::new(context, url, pipeline_id, None, None),
+    resource_thread.send(ResourceMsg::Load(LoadData::new(context, url, pipeline_id, None, None),
                        LoadConsumer::Channel(start_chan), None)).unwrap();
     let response = start_port.recv().unwrap();
 

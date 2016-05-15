@@ -44,7 +44,7 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::{JSContext, JS_ParseJSON, RootedValue};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
-use net_traits::ControlMsg::Load;
+use net_traits::ResourceMsg::Load;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
 use net_traits::{LoadConsumer, LoadContext, LoadData, ResourceCORSData, ResourceThread};
 use network_listener::{NetworkListener, PreInvoke};
