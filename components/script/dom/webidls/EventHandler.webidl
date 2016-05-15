@@ -20,6 +20,10 @@ callback OnErrorEventHandlerNonNull = any ((Event or DOMString) event, optional 
                                                optional any error);
 typedef OnErrorEventHandlerNonNull? OnErrorEventHandler;
 
+[TreatNonObjectAsNull]
+callback OnBeforeUnloadEventHandlerNonNull = DOMString? (Event event);
+typedef OnBeforeUnloadEventHandlerNonNull? OnBeforeUnloadEventHandler;
+
 // https://html.spec.whatwg.org/multipage/#globaleventhandlers
 [NoInterfaceObject]
 interface GlobalEventHandlers {
@@ -90,7 +94,7 @@ interface GlobalEventHandlers {
 interface WindowEventHandlers {
            attribute EventHandler onafterprint;
            attribute EventHandler onbeforeprint;
-           //attribute OnBeforeUnloadEventHandler onbeforeunload;
+           attribute OnBeforeUnloadEventHandler onbeforeunload;
            attribute EventHandler onhashchange;
            attribute EventHandler onlanguagechange;
            attribute EventHandler onmessage;

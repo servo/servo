@@ -347,9 +347,23 @@ macro_rules! error_event_handler(
     )
 );
 
+macro_rules! beforeunload_event_handler(
+    ($event_type: ident, $getter: ident, $setter: ident) => (
+        define_event_handler!(OnBeforeUnloadEventHandlerNonNull, $event_type,
+                              $getter, $setter, set_beforeunload_event_handler);
+    )
+);
+
 macro_rules! window_owned_event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
         define_window_owned_event_handler!(EventHandlerNonNull,
+                                           $event_type, $getter, $setter);
+    )
+);
+
+macro_rules! window_owned_beforeunload_event_handler(
+    ($event_type: ident, $getter: ident, $setter: ident) => (
+        define_window_owned_event_handler!(OnBeforeUnloadEventHandlerNonNull,
                                            $event_type, $getter, $setter);
     )
 );
@@ -433,6 +447,8 @@ macro_rules! window_event_handlers(
     () => (
         event_handler!(afterprint, GetOnafterprint, SetOnafterprint);
         event_handler!(beforeprint, GetOnbeforeprint, SetOnbeforeprint);
+        beforeunload_event_handler!(beforeunload, GetOnbeforeunload,
+                                    SetOnbeforeunload);
         event_handler!(hashchange, GetOnhashchange, SetOnhashchange);
         event_handler!(languagechange, GetOnlanguagechange,
                        SetOnlanguagechange);
@@ -454,6 +470,9 @@ macro_rules! window_event_handlers(
                                     SetOnafterprint);
         window_owned_event_handler!(beforeprint, GetOnbeforeprint,
                                     SetOnbeforeprint);
+        window_owned_beforeunload_event_handler!(beforeunload,
+                                                 GetOnbeforeunload,
+                                                 SetOnbeforeunload);
         window_owned_event_handler!(hashchange, GetOnhashchange,
                                     SetOnhashchange);
         window_owned_event_handler!(languagechange, GetOnlanguagechange,
