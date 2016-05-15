@@ -7,7 +7,6 @@ use dom::bindings::codegen::Bindings::HTMLAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::reflector::Reflectable;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::htmlelement::HTMLElement;

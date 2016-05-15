@@ -15,7 +15,6 @@ use azure::azure_hl::Color;
 use block::{BlockFlow, BlockStackingContextType};
 use canvas_traits::{CanvasMsg, CanvasData, FromLayoutMsg};
 use context::LayoutContext;
-use euclid::num::Zero;
 use euclid::{Matrix4D, Point2D, Point3D, Rect, SideOffsets2D, Size2D};
 use flex::FlexFlow;
 use flow::{BaseFlow, Flow, IS_ABSOLUTELY_POSITIONED};

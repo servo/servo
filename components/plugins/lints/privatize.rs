@@ -5,7 +5,6 @@
 use rustc::hir;
 use rustc::lint::{LateContext, LintPass, LintArray, LateLintPass, LintContext};
 use syntax::ast;
-use syntax::attr::AttrMetaMethods;
 
 declare_lint!(PRIVATIZE, Deny,
               "Allows to enforce private fields for struct definitions");

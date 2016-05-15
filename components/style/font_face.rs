@@ -6,7 +6,6 @@ use computed_values::font_family::FontFamily;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use parser::{ParserContext, log_css_error};
 use properties::longhands::font_family::parse_one_family;
-use std::ascii::AsciiExt;
 use url::Url;
 
 #[derive(Clone, Debug, HeapSizeOf, PartialEq, Eq, Deserialize, Serialize)]

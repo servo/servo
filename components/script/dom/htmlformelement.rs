@@ -43,7 +43,6 @@ use hyper::header::{Charset, ContentDisposition, ContentType, DispositionParam, 
 use hyper::method::Method;
 use msg::constellation_msg::{LoadData, PipelineId};
 use rand::random;
-use script_runtime::ScriptChan;
 use script_thread::{MainThreadScriptMsg, Runnable};
 use std::borrow::ToOwned;
 use std::cell::Cell;

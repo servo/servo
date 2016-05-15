@@ -512,7 +512,6 @@ impl MaybeNew for ViewportConstraints {
                      rule: &ViewportRule)
                      -> Option<ViewportConstraints>
     {
-        use num_traits::{Float, ToPrimitive};
         use std::cmp;
 
         if rule.declarations.is_empty() {

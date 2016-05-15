@@ -358,7 +358,6 @@ impl ReportsForest {
 mod system_reporter {
     use libc::{c_char, c_int, c_void, size_t};
     use profile_traits::mem::{Report, ReportKind, ReporterRequest};
-    use std::borrow::ToOwned;
     use std::ffi::CString;
     use std::mem::size_of;
     use std::ptr::null_mut;

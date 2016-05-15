@@ -14,11 +14,11 @@ use flow_ref::{self, FlowRef};
 use profile_traits::time::{self, TimerMetadata, profile};
 use std::mem;
 use std::sync::atomic::{AtomicIsize, Ordering};
-use style::dom::{TNode, UnsafeNode};
+use style::dom::UnsafeNode;
 use style::parallel::{CHUNK_SIZE, WorkQueueData};
 use style::parallel::{run_queue_with_custom_work_data_type};
 use traversal::AssignBSizes;
-use traversal::{AssignISizes, BubbleISizes, PostorderNodeMutTraversal};
+use traversal::{AssignISizes, BubbleISizes};
 use util::opts;
 use util::workqueue::{WorkQueue, WorkUnit, WorkerProxy};
 

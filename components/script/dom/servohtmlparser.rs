@@ -28,7 +28,6 @@ use msg::constellation_msg::{PipelineId, SubpageId};
 use net_traits::{AsyncResponseListener, Metadata, NetworkError};
 use network_listener::PreInvoke;
 use parse::{TrustedParser, ParserRef, Parser};
-use script_runtime::ScriptChan;
 use script_thread::ScriptThread;
 use std::cell::Cell;
 use std::default::Default;

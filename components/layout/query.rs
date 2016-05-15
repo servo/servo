@@ -19,7 +19,7 @@ use msg::constellation_msg::ConstellationChan;
 use opaque_node::OpaqueNodeMethods;
 use script::layout_interface::{ContentBoxResponse, NodeOverflowResponse, ContentBoxesResponse, NodeGeometryResponse};
 use script::layout_interface::{HitTestResponse, LayoutRPC, OffsetParentResponse, NodeLayerIdResponse};
-use script::layout_interface::{ResolvedStyleResponse, ScriptLayoutChan, MarginStyleResponse};
+use script::layout_interface::{ResolvedStyleResponse, MarginStyleResponse};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
 use sequential;

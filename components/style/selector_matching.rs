@@ -7,9 +7,9 @@
 
 use dom::PresentationalHintsSynthetizer;
 use element_state::*;
-use error_reporting::{ParseErrorReporter, StdoutErrorReporter};
+use error_reporting::StdoutErrorReporter;
 use media_queries::{Device, MediaType};
-use properties::{self, ComputedValues, PropertyDeclaration, PropertyDeclarationBlock};
+use properties::{self, PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RestyleHint, DependencySet};
 use selector_impl::{SelectorImplExt, ServoSelectorImpl};
 use selectors::Element;

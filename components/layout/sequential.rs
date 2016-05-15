@@ -17,10 +17,7 @@ use fragment::FragmentBorderBoxIterator;
 use generated_content::ResolveGeneratedContent;
 use gfx::display_list::{DisplayItem, StackingContext};
 use incremental::{REFLOW, STORE_OVERFLOW};
-use style::dom::TNode;
-use style::traversal::DomTraversalContext;
-use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList};
-use traversal::{ComputeAbsolutePositions, PostorderNodeMutTraversal};
+use traversal::{AssignBSizes, AssignISizes, BubbleISizes, BuildDisplayList, ComputeAbsolutePositions};
 use util::opts;
 
 pub use style::sequential::traverse_dom;
@@ -158,4 +155,3 @@ pub fn guess_float_placement(flow: &mut Flow) {
     floats_in.compute_floats_out(flow);
     flow::mut_base(flow).speculated_float_placement_out = floats_in
 }
-
