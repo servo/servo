@@ -19,7 +19,7 @@ tinyfiledialogs = {git = "https://github.com/jdm/tinyfiledialogs"}
 [dependencies]
 angle = {git = "https://github.com/emilio/angle", branch = "servo"}
 app_units = {version = "0.2.3", features = ["plugins"]}
-bitflags = "0.6.0"
+bitflags = "0.7"
 canvas = {path = "../canvas"}
 canvas_traits = {path = "../canvas_traits"}
 caseless = "0.1.0"
