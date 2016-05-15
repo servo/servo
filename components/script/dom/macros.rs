@@ -321,6 +321,18 @@ macro_rules! define_event_handler(
     )
 );
 
+macro_rules! define_window_owned_event_handler(
+    ($handler: ident, $event_type: ident, $getter: ident, $setter: ident) => (
+        fn $getter(&self) -> Option<::std::rc::Rc<$handler>> {
+            window_from_node(self).$getter()
+        }
+
+        fn $setter(&self, listener: Option<::std::rc::Rc<$handler>>) {
+            window_from_node(self).$setter(listener)
+        }
+    )
+);
+
 macro_rules! event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
         define_event_handler!(EventHandlerNonNull, $event_type, $getter, $setter,
@@ -332,6 +344,13 @@ macro_rules! error_event_handler(
     ($event_type: ident, $getter: ident, $setter: ident) => (
         define_event_handler!(OnErrorEventHandlerNonNull, $event_type, $getter, $setter,
                               set_error_event_handler);
+    )
+);
+
+macro_rules! window_owned_event_handler(
+    ($event_type: ident, $getter: ident, $setter: ident) => (
+        define_window_owned_event_handler!(EventHandlerNonNull,
+                                           $event_type, $getter, $setter);
     )
 );
 
@@ -405,4 +424,51 @@ macro_rules! global_event_handlers(
         event_handler!(volumechange, GetOnvolumechange, SetOnvolumechange);
         event_handler!(waiting, GetOnwaiting, SetOnwaiting);
     )
+);
+
+// https://html.spec.whatwg.org/multipage/#windoweventhandlers
+// see webidls/EventHandler.webidl
+// As more methods get added, just update them here.
+macro_rules! window_event_handlers(
+    () => (
+        event_handler!(afterprint, GetOnafterprint, SetOnafterprint);
+        event_handler!(beforeprint, GetOnbeforeprint, SetOnbeforeprint);
+        event_handler!(hashchange, GetOnhashchange, SetOnhashchange);
+        event_handler!(languagechange, GetOnlanguagechange,
+                       SetOnlanguagechange);
+        event_handler!(message, GetOnmessage, SetOnmessage);
+        event_handler!(offline, GetOnoffline, SetOnoffline);
+        event_handler!(online, GetOnonline, SetOnonline);
+        event_handler!(pagehide, GetOnpagehide, SetOnpagehide);
+        event_handler!(pageshow, GetOnpageshow, SetOnpageshow);
+        event_handler!(popstate, GetOnpopstate, SetOnpopstate);
+        event_handler!(rejectionhandled, GetOnrejectionhandled,
+                       SetOnrejectionhandled);
+        event_handler!(storage, GetOnstorage, SetOnstorage);
+        event_handler!(unhandledrejection, GetOnunhandledrejection,
+                       SetOnunhandledrejection);
+        event_handler!(unload, GetOnunload, SetOnunload);
+    );
+    (ForwardToWindow) => (
+        window_owned_event_handler!(afterprint, GetOnafterprint,
+                                    SetOnafterprint);
+        window_owned_event_handler!(beforeprint, GetOnbeforeprint,
+                                    SetOnbeforeprint);
+        window_owned_event_handler!(hashchange, GetOnhashchange,
+                                    SetOnhashchange);
+        window_owned_event_handler!(languagechange, GetOnlanguagechange,
+                                    SetOnlanguagechange);
+        window_owned_event_handler!(message, GetOnmessage, SetOnmessage);
+        window_owned_event_handler!(offline, GetOnoffline, SetOnoffline);
+        window_owned_event_handler!(online, GetOnonline, SetOnonline);
+        window_owned_event_handler!(pagehide, GetOnpagehide, SetOnpagehide);
+        window_owned_event_handler!(pageshow, GetOnpageshow, SetOnpageshow);
+        window_owned_event_handler!(popstate, GetOnpopstate, SetOnpopstate);
+        window_owned_event_handler!(rejectionhandled, GetOnrejectionhandled,
+                                    SetOnrejectionhandled);
+        window_owned_event_handler!(storage, GetOnstorage, SetOnstorage);
+        window_owned_event_handler!(unhandledrejection, GetOnunhandledrejection,
+                                    SetOnunhandledrejection);
+        window_owned_event_handler!(unload, GetOnunload, SetOnunload);
+    );
 );
