@@ -9,7 +9,7 @@ name = "net"
 path = "lib.rs"
 
 [dependencies]
-bitflags = "0.6.0"
+bitflags = "0.7"
 brotli = {git = "https://github.com/ende76/brotli-rs"}
 cookie = {version = "0.2.4", features = ["serialize-rustc"]}
 device = {git = "https://github.com/servo/devices"}
