@@ -35,10 +35,9 @@ impl test {
         }
     }
 
-    fn test_fun2(y : &String, z : &Vec<f32>) -> f32 {
+    fn test_fun2(y : &String, z : &Vec<f32>, r: &Root<isize>) -> f32 {
         let x = true;
         x
             && x;
     }
-
 }
