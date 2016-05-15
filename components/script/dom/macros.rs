@@ -341,36 +341,68 @@ macro_rules! error_event_handler(
 macro_rules! global_event_handlers(
     () => (
         event_handler!(blur, GetOnblur, SetOnblur);
+        event_handler!(focus, GetOnfocus, SetOnfocus);
         event_handler!(load, GetOnload, SetOnload);
         event_handler!(resize, GetOnresize, SetOnresize);
+        event_handler!(scroll, GetOnscroll, SetOnscroll);
         global_event_handlers!(NoOnload);
 
     );
     (NoOnload) => (
         event_handler!(abort, GetOnabort, SetOnabort);
+        event_handler!(cancel, GetOncancel, SetOncancel);
         event_handler!(canplay, GetOncanplay, SetOncanplay);
         event_handler!(canplaythrough, GetOncanplaythrough, SetOncanplaythrough);
         event_handler!(change, GetOnchange, SetOnchange);
         event_handler!(click, GetOnclick, SetOnclick);
+        event_handler!(close, GetOnclose, SetOnclose);
+        event_handler!(contextmenu, GetOncontextmenu, SetOncontextmenu);
+        event_handler!(cuechange, GetOncuechange, SetOncuechange);
         event_handler!(dblclick, GetOndblclick, SetOndblclick);
+        event_handler!(drag, GetOndrag, SetOndrag);
+        event_handler!(dragend, GetOndragend, SetOndragend);
+        event_handler!(dragenter, GetOndragenter, SetOndragenter);
+        event_handler!(dragexit, GetOndragexit, SetOndragexit);
+        event_handler!(dragleave, GetOndragleave, SetOndragleave);
+        event_handler!(dragover, GetOndragover, SetOndragover);
+        event_handler!(dragstart, GetOndragstart, SetOndragstart);
+        event_handler!(drop, GetOndrop, SetOndrop);
+        event_handler!(durationchange, GetOndurationchange, SetOndurationchange);
         event_handler!(emptied, GetOnemptied, SetOnemptied);
+        event_handler!(ended, GetOnended, SetOnended);
         error_event_handler!(error, GetOnerror, SetOnerror);
         event_handler!(input, GetOninput, SetOninput);
+        event_handler!(invalid, GetOninvalid, SetOninvalid);
         event_handler!(keydown, GetOnkeydown, SetOnkeydown);
         event_handler!(keypress, GetOnkeypress, SetOnkeypress);
         event_handler!(keyup, GetOnkeyup, SetOnkeyup);
         event_handler!(loadeddata, GetOnloadeddata, SetOnloadeddata);
         event_handler!(loadedmetata, GetOnloadedmetadata, SetOnloadedmetadata);
+        event_handler!(loadstart, GetOnloadstart, SetOnloadstart);
+        event_handler!(mousedown, GetOnmousedown, SetOnmousedown);
+        event_handler!(mouseenter, GetOnmouseenter, SetOnmouseenter);
+        event_handler!(mouseleave, GetOnmouseleave, SetOnmouseleave);
+        event_handler!(mousemove, GetOnmousemove, SetOnmousemove);
+        event_handler!(mouseout, GetOnmouseout, SetOnmouseout);
         event_handler!(mouseover, GetOnmouseover, SetOnmouseover);
+        event_handler!(mouseup, GetOnmouseup, SetOnmouseup);
+        event_handler!(wheel, GetOnwheel, SetOnwheel);
         event_handler!(pause, GetOnpause, SetOnpause);
         event_handler!(play, GetOnplay, SetOnplay);
         event_handler!(playing, GetOnplaying, SetOnplaying);
         event_handler!(progress, GetOnprogress, SetOnprogress);
+        event_handler!(ratechange, GetOnratechange, SetOnratechange);
         event_handler!(reset, GetOnreset, SetOnreset);
+        event_handler!(seeked, GetOnseeked, SetOnseeked);
+        event_handler!(seeking, GetOnseeking, SetOnseeking);
+        event_handler!(select, GetOnselect, SetOnselect);
+        event_handler!(show, GetOnshow, SetOnshow);
+        event_handler!(stalled, GetOnstalled, SetOnstalled);
         event_handler!(submit, GetOnsubmit, SetOnsubmit);
         event_handler!(suspend, GetOnsuspend, SetOnsuspend);
         event_handler!(timeupdate, GetOntimeupdate, SetOntimeupdate);
         event_handler!(toggle, GetOntoggle, SetOntoggle);
+        event_handler!(volumechange, GetOnvolumechange, SetOnvolumechange);
         event_handler!(waiting, GetOnwaiting, SetOnwaiting);
     )
 );
