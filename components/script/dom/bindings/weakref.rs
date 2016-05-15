@@ -20,7 +20,6 @@ use js::jsapi::{JSTracer, JS_GetReservedSlot, JS_SetReservedSlot};
 use js::jsval::PrivateValue;
 use libc::c_void;
 use std::cell::{Cell, UnsafeCell};
-use std::iter::Iterator;
 use std::mem;
 use std::ops::{Deref, DerefMut, Drop};
 

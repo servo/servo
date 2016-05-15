@@ -5,7 +5,6 @@
 use dom::bindings::refcounted::Trusted;
 use dom::event::{EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
-use script_runtime::ScriptChan;
 use script_thread::MainThreadScriptMsg;
 use std::result::Result;
 use std::sync::mpsc::Sender;

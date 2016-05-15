@@ -103,7 +103,6 @@ use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
 use num_traits::ToPrimitive;
 use origin::Origin;
 use parse::{ParserRoot, ParserRef, MutNullableParserField};
-use script_runtime::ScriptChan;
 use script_thread::{MainThreadScriptMsg, Runnable};
 use script_traits::UntrustedNodeAddress;
 use script_traits::{AnimationState, MouseButton, MouseEventType, MozBrowserEvent};

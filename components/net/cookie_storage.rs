@@ -7,7 +7,6 @@
 
 use cookie::Cookie;
 use net_traits::CookieSource;
-use rustc_serialize::Encoder;
 use std::cmp::Ordering;
 use url::Url;
 

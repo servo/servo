@@ -37,7 +37,7 @@ use flow::{BLOCK_POSITION_IS_STATIC, CLEARS_LEFT, CLEARS_RIGHT};
 use flow::{CONTAINS_TEXT_OR_REPLACED_FRAGMENTS, INLINE_POSITION_IS_STATIC};
 use flow::{IS_ABSOLUTELY_POSITIONED};
 use flow::{ImmutableFlowUtils, LateAbsolutePositionInfo, MutableFlowUtils, OpaqueFlow};
-use flow::{NEEDS_LAYER, PostorderFlowTraversal, PreorderFlowTraversal, FragmentationContext};
+use flow::{NEEDS_LAYER, PreorderFlowTraversal, FragmentationContext};
 use flow::{self, BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ForceNonfloatedFlag};
 use flow_list::FlowList;
 use flow_ref::FlowRef;

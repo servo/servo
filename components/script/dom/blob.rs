@@ -9,7 +9,6 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::trace::JSTraceable;
 use encoding::all::UTF_8;
 use encoding::types::{EncoderTrap, Encoding};
 use num_traits::ToPrimitive;

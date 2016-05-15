@@ -9,7 +9,6 @@ use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyEle
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
-use dom::bindings::reflector::Reflectable;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::eventtarget::EventTarget;

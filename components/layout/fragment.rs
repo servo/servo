@@ -11,7 +11,7 @@ use canvas_traits::CanvasMsg;
 use context::LayoutContext;
 use euclid::{Point2D, Rect, Size2D};
 use floats::ClearType;
-use flow::{self, Flow, ImmutableFlowUtils};
+use flow::{self, ImmutableFlowUtils};
 use flow_ref::{self, FlowRef};
 use gfx;
 use gfx::display_list::{BLUR_INFLATION_FACTOR, FragmentType, OpaqueNode, StackingContextId};

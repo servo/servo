@@ -15,7 +15,6 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Ref;
 use string_cache::Atom;
-use style::error_reporting::ParseErrorReporter;
 use style::properties::{PropertyDeclaration, Shorthand};
 use style::properties::{is_supported_property, parse_one_declaration};
 use style::selector_impl::PseudoElement;

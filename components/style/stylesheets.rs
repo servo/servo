@@ -12,7 +12,6 @@ use parser::{ParserContext, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use selectors::parser::{Selector, SelectorImpl, parse_selector_list};
 use smallvec::SmallVec;
-use std::ascii::AsciiExt;
 use std::cell::Cell;
 use std::iter::Iterator;
 use std::marker::PhantomData;

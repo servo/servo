@@ -17,7 +17,7 @@ use gfx::display_list::{StackingContext, StackingContextId};
 use std::fmt;
 use std::sync::Arc;
 use style::logical_geometry::LogicalSize;
-use style::properties::{ComputedValues, ServoComputedValues};
+use style::properties::ServoComputedValues;
 use util::print_tree::PrintTree;
 
 /// A table formatting context.

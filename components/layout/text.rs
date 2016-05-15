@@ -16,7 +16,7 @@ use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::TextRun;
 use gfx::text::util::{self, CompressionMode};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFragments, LAST_FRAGMENT_OF_ELEMENT};
-use range::{Range, RangeIndex};
+use range::Range;
 use std::borrow::ToOwned;
 use std::collections::LinkedList;
 use std::mem;

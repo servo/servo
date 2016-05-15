@@ -21,7 +21,6 @@ use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::validitystate::ValidityState;
 use dom::virtualmethods::VirtualMethods;
-use std::ascii::AsciiExt;
 use std::cell::Cell;
 use string_cache::Atom;
 use style::element_state::*;

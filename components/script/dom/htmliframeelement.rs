@@ -38,7 +38,6 @@ use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
 use net_traits::response::HttpsState;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{IFrameLoadInfo, MozBrowserEvent, ScriptMsg as ConstellationMsg};
-use std::ascii::AsciiExt;
 use std::cell::Cell;
 use string_cache::Atom;
 use style::context::ReflowGoal;

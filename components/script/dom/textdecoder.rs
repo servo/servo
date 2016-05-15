@@ -10,8 +10,6 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::USVString;
-use dom::bindings::trace::JSTraceable;
-use encoding::Encoding;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
 use js::jsapi::{JSContext, JSObject};

@@ -9,7 +9,6 @@
 
 use app_units::Au;
 use azure::azure_hl::Color;
-use euclid::num::Zero;
 use euclid::{Point2D, Rect, Size2D};
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList};
@@ -565,4 +564,3 @@ impl WebRenderFrameBuilder {
     }
 
 }
-

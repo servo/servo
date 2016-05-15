@@ -35,7 +35,6 @@ use hyper::method::Method;
 use hyper::mime::{Attr, Mime};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
-use serde::{Deserializer, Serializer};
 use std::sync::mpsc::Sender;
 use std::thread;
 use url::Url;

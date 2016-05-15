@@ -10,7 +10,6 @@ use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaEl
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
-use dom::bindings::reflector::{Reflectable};
 use dom::document::Document;
 use dom::element::RawLayoutElementHelpers;
 use dom::element::{AttributeMutation, Element};
@@ -25,7 +24,6 @@ use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use msg::constellation_msg::ConstellationChan;
-use script_runtime::ScriptChan;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
 use std::ops::Range;

@@ -33,7 +33,6 @@ extern crate layout_traits;
 extern crate log;
 extern crate msg;
 extern crate net_traits;
-extern crate num_traits;
 extern crate offscreen_gl_context;
 #[macro_use]
 extern crate profile_traits;

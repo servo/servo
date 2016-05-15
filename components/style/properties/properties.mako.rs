@@ -1368,7 +1368,7 @@ pub fn cascade<C: ComputedValues>(
                cached_style: Option<<&C>,
                mut error_reporter: StdBox<ParseErrorReporter + Send>)
                -> (C, bool) {
-    use properties::style_struct_traits::{Border, Box, Color, Font, Outline};
+    use properties::style_struct_traits::{Border, Box, Font, Outline};
     let initial_values = C::initial_values();
     let (is_root_element, inherited_style) = match parent_style {
         Some(parent_style) => (false, parent_style),

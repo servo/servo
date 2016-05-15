@@ -15,7 +15,6 @@ use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::structuredclone::StructuredCloneData;
-use dom::bindings::trace::JSTraceable;
 use dom::messageevent::MessageEvent;
 use dom::worker::{SimpleWorkerErrorHandler, SharedRt, TrustedWorkerAddress, WorkerMessageHandler};
 use dom::workerglobalscope::WorkerGlobalScope;

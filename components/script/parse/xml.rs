@@ -6,7 +6,7 @@
 
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, Root, RootedReference};
+use dom::bindings::js::{JS, Root};
 use dom::comment::Comment;
 use dom::document::Document;
 use dom::documenttype::DocumentType;

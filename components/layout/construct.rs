@@ -20,7 +20,7 @@ use data::{HAS_NEWLY_CONSTRUCTED_FLOW, PrivateLayoutData};
 use flex::FlexFlow;
 use floats::FloatKind;
 use flow::{MutableFlowUtils, MutableOwnedFlowUtils, CAN_BE_FRAGMENTED};
-use flow::{self, AbsoluteDescendants, Flow, IS_ABSOLUTELY_POSITIONED, ImmutableFlowUtils};
+use flow::{self, AbsoluteDescendants, IS_ABSOLUTELY_POSITIONED, ImmutableFlowUtils};
 use flow_ref::{self, FlowRef};
 use fragment::{CanvasFragmentInfo, ImageFragmentInfo, InlineAbsoluteFragmentInfo};
 use fragment::{Fragment, GeneratedContentInfo, IframeFragmentInfo};
@@ -60,7 +60,7 @@ use traversal::PostorderNodeMutTraversal;
 use url::Url;
 use util::linked_list;
 use util::opts;
-use wrapper::{LayoutNode, PseudoElementType, TextContent, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+use wrapper::{PseudoElementType, TextContent, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
 
 /// The results of flow construction for a DOM node.
 #[derive(Clone)]
