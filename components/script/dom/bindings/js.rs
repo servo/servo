@@ -38,6 +38,7 @@ use script_thread::STACK_ROOTS;
 use std::cell::UnsafeCell;
 use std::default::Default;
 use std::hash::{Hash, Hasher};
+#[cfg(debug_assertions)]
 use std::intrinsics::type_name;
 use std::mem;
 use std::ops::Deref;
