@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::HistoryBinding::{self, HistoryMethods, ScrollRestoration};
+use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
@@ -110,16 +111,18 @@ impl HistoryMethods for History {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-pushstate
-    fn PushState(&self, cx: *mut JSContext, data: HandleValue, title: DOMString, url: Option<DOMString>) {
+    fn PushState(&self, cx: *mut JSContext, data: HandleValue, title: DOMString, url: Option<DOMString>) -> ErrorResult {
         // TODO: Check if `Document` is `fully active`
-        let data = StructuredCloneData::write(cx, data).unwrap();
+        let data = try!(StructuredCloneData::write(cx, data));
         self.window.browsing_context().push_state(data, title, url);
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-replacestate
-    fn ReplaceState(&self, cx: *mut JSContext, data: HandleValue, title: DOMString, url: Option<DOMString>) {
+    fn ReplaceState(&self, cx: *mut JSContext, data: HandleValue, title: DOMString, url: Option<DOMString>) -> ErrorResult {
         // TODO: Check if `Document` is `fully active`
-        let data = StructuredCloneData::write(cx, data).unwrap();
+        let data = try!(StructuredCloneData::write(cx, data));
         self.window.browsing_context().replace_state(data, title, url);
+        Ok(())
     }
 }
