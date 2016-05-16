@@ -72,6 +72,7 @@ pub type GlyphId = u32;
 // TODO: make this more type-safe.
 
 const FLAG_CHAR_IS_SPACE: u32       = 0x40000000;
+#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
 const FLAG_CHAR_IS_SPACE_SHIFT: u32 = 30;
 const FLAG_IS_SIMPLE_GLYPH: u32     = 0x80000000;
 
