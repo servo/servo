@@ -592,7 +592,7 @@ pub fn modify_request_headers(headers: &mut Headers,
                                                load_data.referrer_policy.clone(),
                                                referrer_url.clone(),
                                                url.clone());
-    
+
     if let Some(referer_val) = referrer_url.clone() {
         headers.set(Referer(referer_val.into_string()));
     }

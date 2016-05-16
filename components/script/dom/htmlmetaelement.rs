@@ -90,16 +90,16 @@ impl HTMLMetaElement {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/semantics.html#meta-referrer
+    /// https://html.spec.whatwg.org/multipage/#meta-referrer
     fn apply_referrer(&self) {
         /*todo - I think this chould only run if document's policy hasnt yet
         been set. unclear - see:
-        https://html.spec.whatwg.org/multipage/semantics.html#meta-referrer
+        https://html.spec.whatwg.org/multipage/#meta-referrer
         https://w3c.github.io/webappsec-referrer-policy/#set-referrer-policy
         */
         let doc = document_from_node(self);
         if let Some(head) = doc.GetHead() {
-            if head.upcast::<Node>().is_parent_of(self.upcast::<Node>()){
+            if head.upcast::<Node>().is_parent_of(self.upcast::<Node>()) {
                 let element = self.upcast::<Element>();
                 if let Some(content) = element.get_attribute(&ns!(), &atom!("content")).r() {
                     let content = content.value();
