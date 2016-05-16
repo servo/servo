@@ -17,6 +17,7 @@
 extern crate alloc_jemalloc;
 extern crate hbs_pow;
 extern crate ipc_channel;
+#[cfg(not(target_os = "windows"))]
 extern crate libc;
 #[macro_use]
 extern crate log;
