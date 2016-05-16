@@ -30,7 +30,8 @@ use style::properties::longhands;
 use style::properties::make_cascade_vec;
 use style::properties::style_struct_traits::*;
 use values::{StyleCoordHelpers, ToGeckoStyleCoord, convert_nscolor_to_rgba};
-use values::{convert_rgba_to_nscolor, round_border_to_device_pixels};
+use values::{convert_rgba_to_nscolor, debug_assert_unit_is_safe_to_copy};
+use values::round_border_to_device_pixels;
 
 #[derive(Clone)]
 pub struct GeckoComputedValues {
@@ -285,9 +286,7 @@ def set_gecko_property(ffi_name, expr):
                                &mut self.gecko.${union_ffi_name});
     }
     fn copy_${ident}_from(&mut self, other: &Self) {
-        use gecko_bindings::structs::nsStyleUnit::eStyleUnit_Calc;
-        debug_assert!(self.gecko.${unit_ffi_name} != eStyleUnit_Calc,
-                      "stylo: Can't yet handle refcounted Calc");
+        debug_assert_unit_is_safe_to_copy(self.gecko.${unit_ffi_name});
         self.gecko.${unit_ffi_name} =  other.gecko.${unit_ffi_name};
         self.gecko.${union_ffi_name} = other.gecko.${union_ffi_name};
     }
@@ -305,10 +304,8 @@ def set_gecko_property(ffi_name, expr):
                                         &mut self.gecko.${y_union_ffi_name});
     }
     fn copy_${ident}_from(&mut self, other: &Self) {
-        use gecko_bindings::structs::nsStyleUnit::eStyleUnit_Calc;
-        debug_assert!(self.gecko.${x_unit_ffi_name} != eStyleUnit_Calc &&
-                      self.gecko.${y_unit_ffi_name} != eStyleUnit_Calc,
-                      "stylo: Can't yet handle refcounted Calc");
+        debug_assert_unit_is_safe_to_copy(self.gecko.${x_unit_ffi_name});
+        debug_assert_unit_is_safe_to_copy(self.gecko.${y_unit_ffi_name});
         self.gecko.${x_unit_ffi_name} = other.gecko.${x_unit_ffi_name};
         self.gecko.${x_union_ffi_name} = other.gecko.${x_union_ffi_name};
         self.gecko.${y_unit_ffi_name} = other.gecko.${y_unit_ffi_name};
@@ -559,6 +556,7 @@ fn static_assert() {
         }
     }
     fn copy_z_index_from(&mut self, other: &Self) {
+        debug_assert_unit_is_safe_to_copy(self.gecko.mZIndex.mUnit);
         self.gecko.mZIndex.mUnit = other.gecko.mZIndex.mUnit;
         self.gecko.mZIndex.mValue = other.gecko.mZIndex.mValue;
     }
@@ -672,6 +670,7 @@ fn static_assert() {
         }
     }
     fn copy_vertical_align_from(&mut self, other: &Self) {
+        debug_assert_unit_is_safe_to_copy(self.gecko.mVerticalAlign.mUnit);
         self.gecko.mVerticalAlign.mUnit = other.gecko.mVerticalAlign.mUnit;
         self.gecko.mVerticalAlign.mValue = other.gecko.mVerticalAlign.mValue;
     }

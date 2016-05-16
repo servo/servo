@@ -129,3 +129,7 @@ pub fn round_border_to_device_pixels(width: Au, au_per_device_px: Au) -> Au {
         max(au_per_device_px, Au(width.0 / au_per_device_px.0 * au_per_device_px.0))
     }
 }
+
+pub fn debug_assert_unit_is_safe_to_copy(unit: nsStyleUnit) {
+    debug_assert!(unit != nsStyleUnit::eStyleUnit_Calc, "stylo: Can't yet handle refcounted Calc");
+}
