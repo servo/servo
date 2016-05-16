@@ -26,7 +26,9 @@ use gaol;
 use gaol::sandbox::{self, Sandbox, SandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
-use ipc_channel::ipc::{self, IpcOneShotServer, IpcSender};
+#[cfg(not(target_os = "windows"))]
+use ipc_channel::ipc::IpcOneShotServer;
+use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::{LayoutControlChan, LayoutThreadFactory};
 use msg::constellation_msg::WebDriverCommandMsg;
@@ -54,6 +56,7 @@ use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, Scri
 use script_traits::{MozBrowserEvent, MozBrowserErrorType};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
+#[cfg(not(target_os = "windows"))]
 use std::env;
 use std::io::Error as IOError;
 use std::marker::PhantomData;
@@ -179,6 +182,7 @@ pub struct Constellation<LTF, STF> {
     scheduler_chan: IpcSender<TimerEventRequest>,
 
     /// A list of child content processes.
+    #[cfg_attr(target_os = "windows", allow(dead_code))]
     child_processes: Vec<ChildProcess>,
 
     /// Document states for loaded pipelines (used only when writing screenshots).
@@ -317,8 +321,9 @@ enum ExitPipelineMode {
 }
 
 enum ChildProcess {
-#[cfg(not(target_os = "windows"))]
+    #[cfg(not(target_os = "windows"))]
     Sandboxed(gaol::platform::process::Process),
+    #[cfg(not(target_os = "windows"))]
     Unsandboxed(process::Child),
 }
 
