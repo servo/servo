@@ -317,8 +317,9 @@ enum ExitPipelineMode {
 }
 
 enum ChildProcess {
-#[cfg(not(target_os = "windows"))]
+    #[cfg(not(target_os = "windows"))]
     Sandboxed(gaol::platform::process::Process),
+    #[cfg(not(target_os = "windows"))],
     Unsandboxed(process::Child),
 }
 
