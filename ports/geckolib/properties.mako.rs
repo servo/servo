@@ -29,7 +29,8 @@ use style::properties::{CascadePropertyFn, ServoComputedValues, ComputedValues};
 use style::properties::longhands;
 use style::properties::make_cascade_vec;
 use style::properties::style_struct_traits::*;
-use values::{ToGeckoStyleCoord, convert_rgba_to_nscolor, convert_nscolor_to_rgba};
+use values::{StyleCoordHelpers, ToGeckoStyleCoord, convert_nscolor_to_rgba};
+use values::{convert_rgba_to_nscolor, debug_assert_unit_is_safe_to_copy};
 use values::round_border_to_device_pixels;
 
 #[derive(Clone)]
@@ -285,9 +286,7 @@ def set_gecko_property(ffi_name, expr):
                                &mut self.gecko.${union_ffi_name});
     }
     fn copy_${ident}_from(&mut self, other: &Self) {
-        use gecko_bindings::structs::nsStyleUnit::eStyleUnit_Calc;
-        debug_assert!(self.gecko.${unit_ffi_name} != eStyleUnit_Calc,
-                      "stylo: Can't yet handle refcounted Calc");
+        debug_assert_unit_is_safe_to_copy(self.gecko.${unit_ffi_name});
         self.gecko.${unit_ffi_name} =  other.gecko.${unit_ffi_name};
         self.gecko.${union_ffi_name} = other.gecko.${union_ffi_name};
     }
@@ -305,10 +304,8 @@ def set_gecko_property(ffi_name, expr):
                                         &mut self.gecko.${y_union_ffi_name});
     }
     fn copy_${ident}_from(&mut self, other: &Self) {
-        use gecko_bindings::structs::nsStyleUnit::eStyleUnit_Calc;
-        debug_assert!(self.gecko.${x_unit_ffi_name} != eStyleUnit_Calc &&
-                      self.gecko.${y_unit_ffi_name} != eStyleUnit_Calc,
-                      "stylo: Can't yet handle refcounted Calc");
+        debug_assert_unit_is_safe_to_copy(self.gecko.${x_unit_ffi_name});
+        debug_assert_unit_is_safe_to_copy(self.gecko.${y_unit_ffi_name});
         self.gecko.${x_unit_ffi_name} = other.gecko.${x_unit_ffi_name};
         self.gecko.${x_union_ffi_name} = other.gecko.${x_union_ffi_name};
         self.gecko.${y_unit_ffi_name} = other.gecko.${y_unit_ffi_name};
@@ -552,20 +549,14 @@ fn static_assert() {
     % endfor
 
     fn set_z_index(&mut self, v: longhands::z_index::computed_value::T) {
-        use gecko_bindings::structs::nsStyleUnit;
         use style::properties::longhands::z_index::computed_value::T;
         match v {
-            T::Auto => {
-                self.gecko.mZIndex.mUnit = nsStyleUnit::eStyleUnit_Auto;
-                unsafe { *self.gecko.mZIndex.mValue.mInt.as_mut() = 0; }
-            }
-            T::Number(n) => {
-                self.gecko.mZIndex.mUnit = nsStyleUnit::eStyleUnit_Integer;
-                unsafe { *self.gecko.mZIndex.mValue.mInt.as_mut() = n; }
-            }
+            T::Auto => self.gecko.mZIndex.set_auto(),
+            T::Number(n) => self.gecko.mZIndex.set_int(n),
         }
     }
     fn copy_z_index_from(&mut self, other: &Self) {
+        debug_assert_unit_is_safe_to_copy(self.gecko.mZIndex.mUnit);
         self.gecko.mZIndex.mUnit = other.gecko.mZIndex.mUnit;
         self.gecko.mZIndex.mValue = other.gecko.mZIndex.mValue;
     }
@@ -632,7 +623,7 @@ fn static_assert() {
 
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Box" skip_longhands="display overflow-y">
+<%self:impl_trait style_struct_name="Box" skip_longhands="display overflow-y vertical-align">
 
     // We manually-implement the |display| property until we get general
     // infrastructure for preffing certain values.
@@ -664,6 +655,24 @@ fn static_assert() {
             % endfor
             x => panic!("Found unexpected value in style struct for overflow_y property: {}", x),
         }
+    }
+
+    fn set_vertical_align(&mut self, v: longhands::vertical_align::computed_value::T) {
+        <% keyword = data.longhands_by_name["vertical-align"].keyword %>
+        use style::properties::longhands::vertical_align::computed_value::T;
+        // FIXME: Align binary representations and ditch |match| for cast + static_asserts
+        match v {
+            % for value in keyword.values_for('gecko'):
+                T::${to_rust_ident(value)} =>
+                    self.gecko.mVerticalAlign.set_int(structs::${keyword.gecko_constant(value)} as i32),
+            % endfor
+            T::LengthOrPercentage(v) => self.gecko.mVerticalAlign.set(v),
+        }
+    }
+    fn copy_vertical_align_from(&mut self, other: &Self) {
+        debug_assert_unit_is_safe_to_copy(self.gecko.mVerticalAlign.mUnit);
+        self.gecko.mVerticalAlign.mUnit = other.gecko.mVerticalAlign.mUnit;
+        self.gecko.mVerticalAlign.mValue = other.gecko.mVerticalAlign.mValue;
     }
 
 </%self:impl_trait>

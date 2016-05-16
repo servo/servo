@@ -4,9 +4,43 @@
 
 use app_units::Au;
 use cssparser::RGBA;
-use gecko_bindings::structs::{nsStyleUnion, nsStyleUnit};
+use gecko_bindings::structs::{nsStyleCoord, nsStyleUnion, nsStyleUnit};
 use std::cmp::max;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
+
+pub trait StyleCoordHelpers {
+    fn set<T: ToGeckoStyleCoord>(&mut self, val: T);
+    fn set_auto(&mut self);
+    fn set_coord(&mut self, val: Au);
+    fn set_int(&mut self, val: i32);
+    fn set_percent(&mut self, val: f32);
+}
+
+impl StyleCoordHelpers for nsStyleCoord {
+    fn set<T: ToGeckoStyleCoord>(&mut self, val: T) {
+        val.to_gecko_style_coord(&mut self.mUnit, &mut self.mValue);
+    }
+
+    fn set_auto(&mut self) {
+        self.mUnit = nsStyleUnit::eStyleUnit_Auto;
+        unsafe { *self.mValue.mInt.as_mut() = 0; }
+    }
+
+    fn set_coord(&mut self, val: Au) {
+        self.mUnit = nsStyleUnit::eStyleUnit_Coord;
+        unsafe { *self.mValue.mInt.as_mut() = val.0; }
+    }
+
+    fn set_percent(&mut self, val: f32) {
+        self.mUnit = nsStyleUnit::eStyleUnit_Percent;
+        unsafe { *self.mValue.mFloat.as_mut() = val; }
+    }
+
+    fn set_int(&mut self, val: i32) {
+        self.mUnit = nsStyleUnit::eStyleUnit_Integer;
+        unsafe { *self.mValue.mInt.as_mut() = val; }
+    }
+}
 
 pub trait ToGeckoStyleCoord {
     fn to_gecko_style_coord(&self, unit: &mut nsStyleUnit, union: &mut nsStyleUnion);
@@ -94,4 +128,8 @@ pub fn round_border_to_device_pixels(width: Au, au_per_device_px: Au) -> Au {
     } else {
         max(au_per_device_px, Au(width.0 / au_per_device_px.0 * au_per_device_px.0))
     }
+}
+
+pub fn debug_assert_unit_is_safe_to_copy(unit: nsStyleUnit) {
+    debug_assert!(unit != nsStyleUnit::eStyleUnit_Calc, "stylo: Can't yet handle refcounted Calc");
 }
