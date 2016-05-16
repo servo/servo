@@ -549,7 +549,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optflag("x", "exit", "Exit after load flag");
     opts.optopt("y", "layout-threads", "Number of threads to use for layout", "1");
     opts.optflag("i", "nonincremental-layout", "Enable to turn off incremental layout.");
-    opts.optflag("", "no-ssl", "Disables ssl certificate verification.");
     opts.optflagopt("", "userscripts",
                     "Uses userscripts in resources/user-agent-js, or a specified full path", "");
     opts.optmulti("", "user-stylesheet",
