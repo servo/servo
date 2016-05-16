@@ -29,8 +29,8 @@ use style::properties::{CascadePropertyFn, ServoComputedValues, ComputedValues};
 use style::properties::longhands;
 use style::properties::make_cascade_vec;
 use style::properties::style_struct_traits::*;
-use values::{ToGeckoStyleCoord, convert_rgba_to_nscolor, convert_nscolor_to_rgba};
-use values::round_border_to_device_pixels;
+use values::{StyleCoordHelpers, ToGeckoStyleCoord, convert_nscolor_to_rgba};
+use values::{convert_rgba_to_nscolor, round_border_to_device_pixels};
 
 #[derive(Clone)]
 pub struct GeckoComputedValues {
@@ -552,17 +552,10 @@ fn static_assert() {
     % endfor
 
     fn set_z_index(&mut self, v: longhands::z_index::computed_value::T) {
-        use gecko_bindings::structs::nsStyleUnit;
         use style::properties::longhands::z_index::computed_value::T;
         match v {
-            T::Auto => {
-                self.gecko.mZIndex.mUnit = nsStyleUnit::eStyleUnit_Auto;
-                unsafe { *self.gecko.mZIndex.mValue.mInt.as_mut() = 0; }
-            }
-            T::Number(n) => {
-                self.gecko.mZIndex.mUnit = nsStyleUnit::eStyleUnit_Integer;
-                unsafe { *self.gecko.mZIndex.mValue.mInt.as_mut() = n; }
-            }
+            T::Auto => self.gecko.mZIndex.set_auto(),
+            T::Number(n) => self.gecko.mZIndex.set_int(n),
         }
     }
     fn copy_z_index_from(&mut self, other: &Self) {
