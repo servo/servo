@@ -34,6 +34,7 @@ use util::geometry::ScreenPx;
 use util::opts;
 #[cfg(not(target_os = "android"))]
 use util::opts::RenderApi;
+use util::prefs;
 use util::resource_files;
 
 static mut g_nested_event_loop_listener: Option<*mut (NestedEventLoopListener + 'static)> = None;
@@ -768,7 +769,9 @@ impl WindowMethods for Window {
             }
 
             (NONE, Key::Escape) => {
-                self.event_queue.borrow_mut().push(WindowEvent::Quit);
+                if let Some(true) = prefs::get_pref("shell.quit-on-escape.enabled").as_boolean() {
+                    self.event_queue.borrow_mut().push(WindowEvent::Quit);
+                }
             }
 
             (CMD_OR_ALT, Key::Right) => {
