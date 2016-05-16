@@ -42,6 +42,8 @@ def create_parser_wpt():
                         help="Run with a release build of servo")
     parser.add_argument('--chaos', default=False, action="store_true",
                         help="Run under chaos mode in rr until a failure is captured")
+    parser.add_argument('--pref', default=[], action="append", dest="prefs",
+                        help="Pass preferences to servo")
     return parser
 
 
@@ -321,6 +323,12 @@ class MachCommands(CommandBase):
             kwargs["debugger_args"] = "record --chaos"
             kwargs["repeat_until_unexpected"] = True
             # TODO: Delete rr traces from green test runs?
+        prefs = kwargs.pop("prefs")
+        if prefs:
+            binary_args = []
+            for pref in prefs:
+                binary_args.append("--pref=" + pref)
+            kwargs["binary_args"] = binary_args
 
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
