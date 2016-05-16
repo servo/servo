@@ -55,6 +55,7 @@
   "layout.writing-mode.enabled": false,
   "network.http.redirection-limit": 20,
   "network.mime.sniff": false,
+  "shell.homepage": "http://servo.org",
   "shell.native-titlebar.enabled": true,
-  "shell.homepage": "http://servo.org"
+  "shell.quit-on-escape.enabled": true
 }
