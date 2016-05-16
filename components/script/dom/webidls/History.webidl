@@ -12,6 +12,8 @@ interface History {
   void go(optional long delta = 0);
   void back();
   void forward();
+  [Throws]
   void pushState(any data, DOMString title, optional DOMString? url = null);
+  [Throws]
   void replaceState(any data, DOMString title, optional DOMString? url = null);
 };
