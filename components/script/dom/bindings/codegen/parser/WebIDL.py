@@ -797,8 +797,8 @@ class IDLInterface(IDLObjectWithScope, IDLExposureMixins):
 
             # Interfaces with [Global] or [PrimaryGlobal] must not
             # have anything inherit from them
-            if (self.parent.getExtendedAttribute("Global") or
-                self.parent.getExtendedAttribute("PrimaryGlobal")):
+            if (self.identifier.name != "WindowProxy" and (self.parent.getExtendedAttribute("Global") or
+                self.parent.getExtendedAttribute("PrimaryGlobal"))):
                 # Note: This is not a self.parent.isOnGlobalProtoChain() check
                 # because ancestors of a [Global] interface can have other
                 # descendants.

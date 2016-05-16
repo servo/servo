@@ -400,6 +400,7 @@ pub mod webgltexture;
 pub mod webgluniformlocation;
 pub mod websocket;
 pub mod window;
+pub mod windowproxy;
 pub mod worker;
 pub mod workerglobalscope;
 pub mod workerlocation;
