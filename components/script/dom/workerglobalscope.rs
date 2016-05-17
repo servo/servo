@@ -22,7 +22,7 @@ use js::jsapi::{HandleValue, JSContext, JSRuntime, RootedValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::{PanicMsg, PipelineId};
-use net_traits::{LoadContext, ResourceThread, load_whole_resource};
+use net_traits::{LoadContext, CoreResourceThread, load_whole_resource};
 use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_traits::ScriptMsg as ConstellationMsg;
@@ -43,7 +43,7 @@ pub enum WorkerGlobalScopeTypeId {
 }
 
 pub struct WorkerGlobalScopeInit {
-    pub resource_thread: ResourceThread,
+    pub core_resource_thread: CoreResourceThread,
     pub mem_profiler_chan: mem::ProfilerChan,
     pub time_profiler_chan: time::ProfilerChan,
     pub to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
@@ -66,7 +66,7 @@ pub struct WorkerGlobalScope {
     runtime: Runtime,
     next_worker_id: Cell<WorkerId>,
     #[ignore_heap_size_of = "Defined in std"]
-    resource_thread: ResourceThread,
+    core_resource_thread: CoreResourceThread,
     location: MutNullableHeap<JS<WorkerLocation>>,
     navigator: MutNullableHeap<JS<WorkerNavigator>>,
     console: MutNullableHeap<JS<Console>>,
@@ -118,7 +118,7 @@ impl WorkerGlobalScope {
             worker_url: worker_url,
             closing: init.closing,
             runtime: runtime,
-            resource_thread: init.resource_thread,
+            core_resource_thread: init.core_resource_thread,
             location: Default::default(),
             navigator: Default::default(),
             console: Default::default(),
@@ -186,8 +186,8 @@ impl WorkerGlobalScope {
         self.closing.load(Ordering::SeqCst)
     }
 
-    pub fn resource_thread(&self) -> &ResourceThread {
-        &self.resource_thread
+    pub fn core_resource_thread(&self) -> &CoreResourceThread {
+        &self.core_resource_thread
     }
 
     pub fn get_url(&self) -> &Url {
@@ -236,7 +236,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
         let mut rval = RootedValue::new(self.runtime.cx(), UndefinedValue());
         for url in urls {
-            let (url, source) = match load_whole_resource(LoadContext::Script, &self.resource_thread, url, None) {
+            let (url, source) = match load_whole_resource(LoadContext::Script, &self.core_resource_thread, url, None) {
                 Err(_) => return Err(Error::Network),
                 Ok((metadata, bytes)) => {
                     (metadata.final_url, String::from_utf8(bytes).unwrap())

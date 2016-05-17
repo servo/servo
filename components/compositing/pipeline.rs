@@ -16,10 +16,9 @@ use layers::geometry::DevicePixel;
 use layout_traits::{LayoutControlChan, LayoutThreadFactory};
 use msg::constellation_msg::{FrameId, LoadData, PanicMsg, PipelineId};
 use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeData};
-use net_traits::ResourceThread;
+use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
-use net_traits::storage_thread::StorageThread;
 use profile_traits::mem as profile_mem;
 use profile_traits::time;
 use script_traits::{ConstellationControlMsg, InitialScriptState, MozBrowserEvent};
@@ -98,10 +97,8 @@ pub struct InitialPipelineState {
     pub image_cache_thread: ImageCacheThread,
     /// A channel to the font cache thread.
     pub font_cache_thread: FontCacheThread,
-    /// A channel to the resource thread.
-    pub resource_thread: ResourceThread,
-    /// A channel to the storage thread.
-    pub storage_thread: StorageThread,
+    /// Channels to the resource-related threads.
+    pub resource_threads: ResourceThreads,
     /// A channel to the time profiler thread.
     pub time_profiler_chan: time::ProfilerChan,
     /// A channel to the memory profiler thread.
@@ -219,8 +216,7 @@ impl Pipeline {
             bluetooth_thread: state.bluetooth_thread,
             image_cache_thread: state.image_cache_thread,
             font_cache_thread: state.font_cache_thread.clone(),
-            resource_thread: state.resource_thread,
-            storage_thread: state.storage_thread,
+            resource_threads: state.resource_threads,
             time_profiler_chan: state.time_profiler_chan.clone(),
             mem_profiler_chan: state.mem_profiler_chan.clone(),
             window_size: window_size,
@@ -396,8 +392,7 @@ pub struct UnprivilegedPipelineContent {
     bluetooth_thread: IpcSender<BluetoothMethodMsg>,
     image_cache_thread: ImageCacheThread,
     font_cache_thread: FontCacheThread,
-    resource_thread: ResourceThread,
-    storage_thread: StorageThread,
+    resource_threads: ResourceThreads,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: profile_mem::ProfilerChan,
     window_size: Option<WindowSizeData>,
@@ -435,8 +430,7 @@ impl UnprivilegedPipelineContent {
             scheduler_chan: self.scheduler_chan.clone(),
             panic_chan: self.panic_chan.clone(),
             bluetooth_thread: self.bluetooth_thread.clone(),
-            resource_thread: self.resource_thread,
-            storage_thread: self.storage_thread.clone(),
+            resource_threads: self.resource_threads,
             image_cache_thread: self.image_cache_thread.clone(),
             time_profiler_chan: self.time_profiler_chan.clone(),
             mem_profiler_chan: self.mem_profiler_chan.clone(),

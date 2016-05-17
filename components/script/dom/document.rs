@@ -96,11 +96,11 @@ use layout_interface::{LayoutChan, Msg, ReflowQueryType};
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy, SubpageId};
-use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
+use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::response::HttpsState;
-use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
-use num_traits::ToPrimitive;
+use net_traits::{AsyncResponseTarget, PendingAsyncLoad, IpcSend};
+use num_traits::{ToPrimitive};
 use origin::Origin;
 use parse::{ParserRoot, ParserRef, MutNullableParserField};
 use script_thread::{MainThreadScriptMsg, Runnable};
@@ -2570,7 +2570,7 @@ impl DocumentMethods for Document {
 
         let url = self.url();
         let (tx, rx) = ipc::channel().unwrap();
-        let _ = self.window.resource_thread().send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
+        let _ = self.window.resource_threads().send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
         let cookies = rx.recv().unwrap();
         Ok(cookies.map_or(DOMString::new(), DOMString::from))
     }
@@ -2587,7 +2587,7 @@ impl DocumentMethods for Document {
 
         let url = self.url();
         let _ = self.window
-                    .resource_thread()
+                    .resource_threads()
                     .send(SetCookiesForUrl((*url).clone(), String::from(cookie), NonHTTP));
         Ok(())
     }
