@@ -4,7 +4,6 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::global::GlobalRef;
@@ -134,9 +133,7 @@ impl BrowsingContext {
         assert!(active_index < self.history.borrow().len());
         self.active_index.set(active_index);
 
-        // let active_document = self.active_document();
-        // let entry = &self.history.borrow()[active_index];
-        // active_document.GetLocation().map(|location| location.SetHash(UrlHelper::Hash(&entry.url)));
+        // TODO: Change document URL hash, without reloading
 
         if trigger_event {
             let active_window = &*self.active_window();
