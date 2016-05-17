@@ -357,27 +357,29 @@ impl Handler {
 
     fn handle_window_size(&self) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
+        let pipeline_id = try!(self.root_pipeline());
+        let cmd_msg = WebDriverCommandMsg::GetWindowSize(pipeline_id, sender);
 
-        try!(self.root_script_command(WebDriverScriptCommand::GetWindowSize(sender)));
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
-        match receiver.recv().unwrap() {
-            Some(window_size) => {
-                let vp = window_size.visible_viewport;
-                let window_size_response = WindowSizeResponse::new(vp.width.get() as u64, vp.height.get() as u64);
-                Ok(WebDriverResponse::WindowSize(window_size_response))
-            },
-            None => Err(WebDriverError::new(ErrorStatus::NoSuchWindow, "Unable to determine window size"))
-        }
+        let window_size = receiver.recv().unwrap();
+        let vp = window_size.visible_viewport;
+        let window_size_response = WindowSizeResponse::new(vp.width.get() as u64, vp.height.get() as u64);
+        Ok(WebDriverResponse::WindowSize(window_size_response))
     }
 
     fn handle_set_window_size(&self, params: &WindowSizeParameters) -> WebDriverResult<WebDriverResponse> {
         let (sender, receiver) = ipc::channel().unwrap();
-        let size = Size2D::from_untyped(&Size2D::new(params.width as f32, params.height as f32));
+        let size = Size2D::new(params.width as u32, params.height as u32);
+        let pipeline_id = try!(self.root_pipeline());
+        let cmd_msg = WebDriverCommandMsg::SetWindowSize(pipeline_id, size, sender);
 
-        try!(self.root_script_command(WebDriverScriptCommand::SetWindowSize(size, sender)));
-        receiver.recv().unwrap();
+        self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
-        Ok(WebDriverResponse::Void)
+        let window_size = receiver.recv().unwrap();
+        let vp = window_size.visible_viewport;
+        let window_size_response = WindowSizeResponse::new(vp.width.get() as u64, vp.height.get() as u64);
+        Ok(WebDriverResponse::WindowSize(window_size_response))
     }
 
     fn handle_is_enabled(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
