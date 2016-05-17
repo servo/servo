@@ -18,7 +18,7 @@ pub struct FileManager {
 }
 
 impl FileManager {
-    pub fn new(recv: IpcReceiver<FileManagerThreadMsg>) -> FileManager {
+    fn new(recv: IpcReceiver<FileManagerThreadMsg>) -> FileManager {
         FileManager {
             receiver: recv,
             idmap: RefCell::new(HashMap::new()),
@@ -36,7 +36,7 @@ impl FileManager {
     }
 
     /// Start the file manager event loop
-    pub fn start(&mut self) {
+    fn start(&mut self) {
         loop {
             match self.receiver.recv().unwrap() {
                 FileManagerThreadMsg::SelectFile(sender) => self.select_file(sender),
