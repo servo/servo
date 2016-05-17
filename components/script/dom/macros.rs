@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::document::Document;
+
 #[macro_export]
 macro_rules! make_getter(
     ( $attr:ident, $htmlname:tt ) => (
@@ -98,8 +100,8 @@ macro_rules! make_url_or_base_getter(
             let element = self.upcast::<Element>();
             let url = element.get_url_attribute(&atom!($htmlname));
             if url.is_empty() {
-                let window = window_from_node(self);
-                DOMString::from(window.get_url().into_string())
+                let document = document_from_node(self);
+                DOMString::from(document.r().base_url().into_string())
             } else {
                 url
             }
