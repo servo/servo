@@ -685,9 +685,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 self.handle_init_load(url);
             }
             // Handle a forward or back request
-            Request::Compositor(FromCompositorMsg::Navigate(pipeline_info, direction)) => {
+            Request::Compositor(FromCompositorMsg::Navigate(direction)) => {
                 debug!("constellation got navigation message from compositor");
-                self.handle_navigate_msg(pipeline_info, direction);
+                self.handle_navigate_msg(direction);
             }
             Request::Compositor(FromCompositorMsg::WindowSize(new_size, size_type)) => {
                 debug!("constellation got window resize message");
@@ -733,14 +733,14 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 self.handle_dom_load(pipeline_id)
             }
             // Handle a forward or back request
-            Request::Script(FromScriptMsg::Navigate(pipeline_info, direction)) => {
+            Request::Script(FromScriptMsg::Navigate(direction)) => {
                 debug!("constellation got navigation message from script");
-                self.handle_navigate_msg(pipeline_info, direction);
+                self.handle_navigate_msg(direction);
             }
             // Handle request for history length
-            Request::Script(FromScriptMsg::HistoryLength(pipeline_info, sender)) => {
+            Request::Script(FromScriptMsg::HistoryLength(sender)) => {
                 debug!("constellation got history length message from compositor");
-                self.handle_history_length(pipeline_info, sender);
+                self.handle_history_length(sender);
             }
             // Handle pushing a history entry due to state change
             Request::Script(FromScriptMsg::HistoryStatePushed(pipeline_info, active_index)) => {
@@ -1378,13 +1378,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
     }
 
-    fn handle_navigate_msg(&mut self,
-                           pipeline_info: Option<(PipelineId, SubpageId)>,
-                           direction: NavigationDirection) {
+    fn handle_navigate_msg(&mut self, direction: NavigationDirection) {
         debug!("received message to navigate {:?}", direction);
         match direction {
             NavigationDirection::Forward(delta) => {
-                let delta = delta as usize;
                 if delta + self.active_history_index < self.navigation_history.len() {
                     self.active_history_index += 1;
                     for _ in 0..delta {
@@ -1393,12 +1390,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                         }
                     }
                 } else {
-                    println!("Cant go forward");
                     return warn!("invalid forward navigation delta");
                 }
             },
             NavigationDirection::Back(delta) => {
-                let delta = delta as usize;
                 if delta <= self.active_history_index {
                     for _ in 0..delta {
                         if let Some(frame_id) = self.navigation_history[self.active_history_index] {
@@ -1407,7 +1402,6 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                         self.active_history_index -= 1;
                     }
                 } else {
-                    println!("Cant go back");
                     return warn!("invalid back navigation delta");
                 }
             },
@@ -1447,10 +1441,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
     }
 
-    fn handle_history_length(&mut self,
-                             pipeline_info: Option<(PipelineId, SubpageId)>,
-                             sender: IpcSender<Option<usize>>) {
-        let _ = sender.send(Some(self.navigation_history.len()));
+    fn handle_history_length(&mut self, sender: IpcSender<usize>) {
+        let _ = sender.send(self.navigation_history.len());
     }
 
     fn handle_history_state_pushed(&mut self,
