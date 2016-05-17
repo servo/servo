@@ -118,12 +118,11 @@ impl FontContext {
             font_variant::T::normal => pt_size,
         };
 
-        let handle: Result<FontHandle, _> =
-            FontHandleMethods::new_from_template(&self.platform_handle, template,
-                                                 Some(actual_pt_size));
+        let handle = try!(FontHandle::new_from_template(&self.platform_handle,
+                                                        template,
+                                                        Some(actual_pt_size)));
 
-        handle.map(|handle|
-            Font::new(handle, variant, descriptor, pt_size, actual_pt_size, font_key))
+        Ok(Font::new(handle, variant, descriptor, pt_size, actual_pt_size, font_key))
     }
 
     fn expire_font_caches_if_necessary(&mut self) {
