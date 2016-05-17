@@ -1695,7 +1695,7 @@ class CGImports(CGWrapper):
     """
     Generates the appropriate import/use statements.
     """
-    def __init__(self, child, descriptors, callbacks, imports, ignored_warnings=None):
+    def __init__(self, child, descriptors, callbacks, imports, config, ignored_warnings=None):
         """
         Adds a set of imports.
         """
@@ -1756,7 +1756,11 @@ class CGImports(CGWrapper):
         for c in callbacks:
             types += relatedTypesForSignatures(c)
 
-        imports += ['dom::types::%s' % getIdentifier(t).name for t in types if isImportable(t)]
+        descriptorProvider = config.getDescriptorProvider()
+        for t in types:
+            if isImportable(t):
+                descriptor = descriptorProvider.getDescriptor(getIdentifier(t).name)
+                imports += ['%s' % descriptor.path]
 
         statements = []
         if len(ignored_warnings) > 0:
@@ -2090,7 +2094,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
     # Sort unionStructs by key, retrieve value
     unionStructs = (i[1] for i in sorted(unionStructs.items(), key=operator.itemgetter(0)))
 
-    return CGImports(CGList(unionStructs, "\n\n"), [], [], imports, ignored_warnings=[])
+    return CGImports(CGList(unionStructs, "\n\n"), [], [], imports, config, ignored_warnings=[])
 
 
 class Argument():
@@ -5063,13 +5067,9 @@ class CGDescriptor(CGThing):
                 descriptor.shouldHaveGetConstructorObjectMethod()):
             cgThings.append(CGGetConstructorObjectMethod(descriptor))
 
-        unscopableNames = []
         for m in descriptor.interface.members:
             if (m.isMethod() and
                     (not m.isIdentifierLess() or m == descriptor.operations["Stringifier"])):
-                if m.getExtendedAttribute("Unscopable"):
-                    assert not m.isStatic()
-                    unscopableNames.append(m.identifier.name)
                 if m.isStatic():
                     assert descriptor.interface.hasInterfaceObject()
                     cgThings.append(CGStaticMethod(descriptor, m))
@@ -5081,9 +5081,7 @@ class CGDescriptor(CGThing):
                     raise TypeError("Stringifier attributes not supported yet. "
                                     "See https://github.com/servo/servo/issues/7590\n"
                                     "%s" % m.location)
-                if m.getExtendedAttribute("Unscopable"):
-                    assert not m.isStatic()
-                    unscopableNames.append(m.identifier.name)
+
                 if m.isStatic():
                     assert descriptor.interface.hasInterfaceObject()
                     cgThings.append(CGStaticGetter(descriptor, m))
@@ -5116,6 +5114,10 @@ class CGDescriptor(CGThing):
 
         if not descriptor.interface.isCallback():
             cgThings.append(CGPrototypeJSClass(descriptor))
+
+        properties = PropertyArrays(descriptor)
+        cgThings.append(CGGeneric(str(properties)))
+        cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties))
 
         # If there are no constant members, don't make a module for constants
         constMembers = [m for m in descriptor.interface.members if m.isConst()]
@@ -5163,15 +5165,7 @@ class CGDescriptor(CGThing):
 
             cgThings.append(CGWrapMethod(descriptor))
 
-        haveUnscopables = False
         if not descriptor.interface.isCallback():
-            if unscopableNames:
-                haveUnscopables = True
-                cgThings.append(
-                    CGList([CGGeneric("const unscopable_names: &'static [&'static [u8]] = &["),
-                            CGIndenter(CGList([CGGeneric(str_to_const_array(name)) for
-                                               name in unscopableNames], ",\n")),
-                            CGGeneric("];\n")], "\n"))
             if descriptor.concrete or descriptor.hasDescendants():
                 cgThings.append(CGIDLInterface(descriptor))
             cgThings.append(CGInterfaceTrait(descriptor))
@@ -5460,7 +5454,8 @@ class CGBindingRoot(CGThing):
         # (hence hasInterfaceObject=False).
         descriptors.extend(config.getDescriptors(webIDLFile=webIDLFile,
                                                  hasInterfaceObject=False,
-                                                 isCallback=False))
+                                                 isCallback=False,
+                                                 register=True))
 
         dictionaries = config.getDictionaries(webIDLFile=webIDLFile)
 
@@ -5588,6 +5583,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::str::{ByteString, DOMString, USVString}',
             'dom::bindings::trace::RootedVec',
             'dom::bindings::weakref::{DOM_WEAK_SLOT, WeakBox, WeakReferenceable}',
+            'dom::browsingcontext::BrowsingContext',
             'mem::heap_size_of_raw_self_and_children',
             'libc',
             'util::prefs',
@@ -5602,7 +5598,7 @@ class CGBindingRoot(CGThing):
             'std::rc::Rc',
             'std::default::Default',
             'std::ffi::CString',
-        ])
+        ], config)
 
         # Add the auto-generated comment.
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
@@ -6278,7 +6274,7 @@ class GlobalGenRoots():
             'dom::bindings::codegen',
             'dom::bindings::codegen::PrototypeList::Proxies',
             'libc',
-        ], ignored_warnings=[])
+        ], config, ignored_warnings=[])
 
     @staticmethod
     def InterfaceTypes(config):

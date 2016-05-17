@@ -558,32 +558,35 @@ impl WindowMethods for Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window
-    fn Window(&self) -> Root<Window> {
-        Root::from_ref(self)
+    fn Window(&self) -> Root<BrowsingContext> {
+        self.browsing_context()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-self
-    fn Self_(&self) -> Root<Window> {
-        self.Window()
+    fn Self_(&self) -> Root<BrowsingContext> {
+        self.browsing_context()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-frames
-    fn Frames(&self) -> Root<Window> {
-        self.Window()
+    fn Frames(&self) -> Root<BrowsingContext> {
+        self.browsing_context()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-parent
-    fn Parent(&self) -> Root<Window> {
-        self.parent().unwrap_or(self.Window())
+    fn Parent(&self) -> Root<BrowsingContext> {
+        match  self.parent() {
+            Some(window) => window.browsing_context(),
+            None => self.Window()
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-top
-    fn Top(&self) -> Root<Window> {
-        let mut window = self.Window();
+    fn Top(&self) -> Root<BrowsingContext> {
+        let mut window = Root::from_ref(self);
         while let Some(parent) = window.parent() {
             window = parent;
         }
-        window
+        window.browsing_context()
     }
 
     // https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/

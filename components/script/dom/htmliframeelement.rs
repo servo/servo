@@ -22,6 +22,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, LayoutJS};
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
+use dom::browsingcontext::BrowsingContext;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -256,6 +257,15 @@ impl HTMLIFrameElement {
         }
     }
 
+    pub fn get_content_window(&self) -> Option<Root<Window>> {
+        self.subpage_id.get().and_then(|subpage_id| {
+            let window = window_from_node(self);
+            let window = window.r();
+            let browsing_context = window.browsing_context();
+            browsing_context.find_child_by_subpage(subpage_id)
+        })
+    }
+
 }
 
 pub trait HTMLIFrameElementLayoutMethods {
@@ -422,18 +432,16 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
-    fn GetContentWindow(&self) -> Option<Root<Window>> {
-        self.subpage_id.get().and_then(|subpage_id| {
-            let window = window_from_node(self);
-            let window = window.r();
-            let browsing_context = window.browsing_context();
-            browsing_context.find_child_by_subpage(subpage_id)
-        })
+    fn GetContentWindow(&self) -> Option<Root<BrowsingContext>> {
+        match self.get_content_window() {
+            Some(ref window) => Some(window.browsing_context()),
+            None => None
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
     fn GetContentDocument(&self) -> Option<Root<Document>> {
-        self.GetContentWindow().and_then(|window| {
+        self.get_content_window().and_then(|window| {
             // FIXME(#10964): this should use the Document's origin and the
             //                origin of the incumbent settings object.
             let self_url = self.get_url();
