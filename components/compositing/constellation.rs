@@ -1407,22 +1407,17 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         // Cleanup each frame's forward history if they are past the current
         // `active_history_index`
         if self.active_history_index >= self.navigation_history.len() {
-            // TODO: Not allocate tons of extra Vecs here
             let frame_ids = self.navigation_history
                                 .drain(self.active_history_index + 1..)
                                 .filter_map(|f| f)
                                 .collect::<Vec<FrameId>>();
-            frame_ids.iter().map(|frame_id| {
+            for frame_id in &frame_ids {
                 let evicted_frames = match self.frames.get_mut(&frame_id) {
                     Some(frame) => replace(&mut frame.next, vec!()),
                     None => return warn!("frame forward history removed after closure"),
                 };
-                for entry in evicted_frames {
-                    if entry.reason == EntryReason::Load {
-                        self.close_pipeline(entry.id, ExitPipelineMode::Normal);
-                    }
-                }
-            }).collect::<Vec<()>>();
+                self.close_evicted_pipelines(evicted_frames);
+            }
         }
         self.active_history_index = self.navigation_history.len();
         self.navigation_history.push(Some(frame_id));
