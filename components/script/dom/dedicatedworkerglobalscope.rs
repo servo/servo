@@ -224,7 +224,7 @@ impl DedicatedWorkerGlobalScope {
             let _stack_roots_tls = StackRootTLS::new(&roots);
 
             let (url, source) = match load_whole_resource(LoadContext::Script,
-                                                          &init.resource_thread,
+                                                          &init.core_resource_thread,
                                                           worker_url,
                                                           None) {
                 Err(_) => {

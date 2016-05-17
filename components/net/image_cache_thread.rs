@@ -9,7 +9,7 @@ use net_traits::image::base::{Image, ImageMetadata, load_from_memory, PixelForma
 use net_traits::image_cache_thread::ImageResponder;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheCommand, ImageCacheThread, ImageState};
 use net_traits::image_cache_thread::{ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
-use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadData, ResourceThread};
+use net_traits::{AsyncResponseTarget, CoreResourceMsg, LoadConsumer, LoadData, CoreResourceThread};
 use net_traits::{ResponseAction, LoadContext, NetworkError};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
@@ -240,7 +240,7 @@ struct ImageCache {
     thread_pool: ThreadPool,
 
     // Resource thread handle
-    resource_thread: ResourceThread,
+    core_resource_thread: CoreResourceThread,
 
     // Images that are loading over network, or decoding.
     pending_loads: AllPendingLoads,
@@ -305,7 +305,7 @@ fn convert_format(format: PixelFormat) -> webrender_traits::ImageFormat {
 }
 
 impl ImageCache {
-    fn run(resource_thread: ResourceThread,
+    fn run(core_resource_thread: CoreResourceThread,
            webrender_api: Option<webrender_traits::RenderApi>,
            ipc_command_receiver: IpcReceiver<ImageCacheCommand>) {
         // Preload the placeholder image, used when images fail to load.
@@ -338,7 +338,7 @@ impl ImageCache {
             thread_pool: ThreadPool::new(4),
             pending_loads: AllPendingLoads::new(),
             completed_loads: HashMap::new(),
-            resource_thread: resource_thread,
+            core_resource_thread: core_resource_thread,
             placeholder_image: placeholder_image,
             webrender_api: webrender_api,
         };
@@ -525,7 +525,7 @@ impl ImageCache {
                         let response_target = AsyncResponseTarget {
                             sender: action_sender,
                         };
-                        let msg = ControlMsg::Load(load_data,
+                        let msg = CoreResourceMsg::Load(load_data,
                                                    LoadConsumer::Listener(response_target),
                                                    None);
                         let progress_sender = self.progress_sender.clone();
@@ -536,7 +536,7 @@ impl ImageCache {
                                 key: load_key,
                             }).unwrap();
                         });
-                        self.resource_thread.send(msg).unwrap();
+                        self.core_resource_thread.send(msg).unwrap();
                     }
                     CacheResult::Hit => {
                         // Request is already on its way.
@@ -611,12 +611,12 @@ impl ImageCache {
 }
 
 /// Create a new image cache.
-pub fn new_image_cache_thread(resource_thread: ResourceThread,
+pub fn new_image_cache_thread(core_resource_thread: CoreResourceThread,
                               webrender_api: Option<webrender_traits::RenderApi>) -> ImageCacheThread {
     let (ipc_command_sender, ipc_command_receiver) = ipc::channel().unwrap();
 
     spawn_named("ImageCacheThread".to_owned(), move || {
-        ImageCache::run(resource_thread, webrender_api, ipc_command_receiver)
+        ImageCache::run(core_resource_thread, webrender_api, ipc_command_receiver)
     });
 
     ImageCacheThread::new(ipc_command_sender)

@@ -45,10 +45,10 @@ use libc;
 use msg::constellation_msg::{ConstellationChan, LoadData, PanicMsg, PipelineId, SubpageId};
 use msg::constellation_msg::{WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
-use net_traits::ResourceThread;
+use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
-use net_traits::storage_thread::{StorageThread, StorageType};
+use net_traits::storage_thread::StorageType;
 use num_traits::ToPrimitive;
 use profile_traits::mem;
 use profile_traits::time::{ProfilerCategory, TimerMetadata, TimerMetadataFrameType};
@@ -214,17 +214,13 @@ pub struct Window {
     /// The current size of the window, in pixels.
     window_size: Cell<Option<WindowSizeData>>,
 
-    /// Associated resource thread for use by DOM objects like XMLHttpRequest
-    #[ignore_heap_size_of = "channels are hard"]
-    resource_thread: Arc<ResourceThread>,
+    /// Associated resource threads for use by DOM objects like XMLHttpRequest,
+    /// including resource_thread, filemanager_thread and storage_thread
+    resource_threads: ResourceThreads,
 
     /// A handle for communicating messages to the bluetooth thread.
     #[ignore_heap_size_of = "channels are hard"]
     bluetooth_thread: IpcSender<BluetoothMethodMsg>,
-
-    /// A handle for communicating messages to the storage thread.
-    #[ignore_heap_size_of = "channels are hard"]
-    storage_thread: StorageThread,
 
     /// A handle for communicating messages to the constellation thread.
     #[ignore_heap_size_of = "channels are hard"]
@@ -345,10 +341,6 @@ impl Window {
 
     pub fn bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
         self.bluetooth_thread.clone()
-    }
-
-    pub fn storage_thread(&self) -> StorageThread {
-        self.storage_thread.clone()
     }
 
     pub fn css_error_reporter(&self) -> Box<ParseErrorReporter + Send> {
@@ -1276,8 +1268,8 @@ impl Window {
         (*self.Document().url()).clone()
     }
 
-    pub fn resource_thread(&self) -> ResourceThread {
-        (*self.resource_thread).clone()
+    pub fn resource_threads(&self) -> &ResourceThreads {
+        &self.resource_threads
     }
 
     pub fn mem_profiler_chan(&self) -> &mem::ProfilerChan {
@@ -1453,9 +1445,8 @@ impl Window {
                image_cache_chan: ImageCacheChan,
                compositor: IpcSender<ScriptToCompositorMsg>,
                image_cache_thread: ImageCacheThread,
-               resource_thread: Arc<ResourceThread>,
+               resource_threads: ResourceThreads,
                bluetooth_thread: IpcSender<BluetoothMethodMsg>,
-               storage_thread: StorageThread,
                mem_profiler_chan: mem::ProfilerChan,
                time_profiler_chan: ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
@@ -1511,9 +1502,8 @@ impl Window {
             parent_info: parent_info,
             dom_static: GlobalStaticData::new(),
             js_runtime: DOMRefCell::new(Some(runtime.clone())),
-            resource_thread: resource_thread,
+            resource_threads: resource_threads,
             bluetooth_thread: bluetooth_thread,
-            storage_thread: storage_thread,
             constellation_chan: constellation_chan,
             page_clip_rect: Cell::new(MAX_RECT),
             fragment_name: DOMRefCell::new(None),
@@ -1605,3 +1595,5 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
 
     println!("{}", debug_msg);
 }
+
+no_jsmanaged_fields!(ResourceThreads);
