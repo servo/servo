@@ -597,6 +597,9 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#handler-window-onstorage
     event_handler!(storage, GetOnstorage, SetOnstorage);
 
+    // https://html.spec.whatwg.org/multipage/#handler-window-onpopstate
+    event_handler!(popstate, GetOnpopstate, SetOnpopstate);
+
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/screen
     fn Screen(&self) -> Root<Screen> {
         self.screen.or_init(|| Screen::new(self))
