@@ -23,6 +23,7 @@ use net_traits::ProgressMsg::Done;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceThread, ResponseAction};
 use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
 use net_traits::{NetworkError, WebSocketCommunicate, WebSocketConnectData};
+use net_traits::{IpcSend, IpcSendResult, ResourceThreads};
 use rustc_serialize::json;
 use rustc_serialize::{Decodable, Encodable};
 use std::borrow::ToOwned;
@@ -147,6 +148,12 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata,
         }
     }
 }
+
+pub fn new_resource_threads(user_agent: String,
+                            devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceThreads {
+    ResourceThreads::new(new_resource_thread(user_agent, devtools_chan))
+}
+
 
 /// Create a ResourceThread
 pub fn new_resource_thread(user_agent: String,

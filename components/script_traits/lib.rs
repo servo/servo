@@ -45,7 +45,7 @@ use msg::constellation_msg::{ConstellationChan, PanicMsg, PipelineId, WindowSize
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineNamespaceId, SubpageId};
 use msg::webdriver_msg::WebDriverScriptCommand;
-use net_traits::ResourceThread;
+use net_traits::{ResourceThreads, IpcSend};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::response::HttpsState;
@@ -320,7 +320,7 @@ pub struct InitialScriptState {
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerEventRequest>,
     /// A channel to the resource manager thread.
-    pub resource_thread: ResourceThread,
+    pub resource_threads: ResourceThreads,
     /// A channel to the bluetooth thread.
     pub bluetooth_thread: IpcSender<BluetoothMethodMsg>,
     /// A channel to the storage thread.
