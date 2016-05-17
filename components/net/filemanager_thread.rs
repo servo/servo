@@ -3,7 +3,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use net_traits::filemanager_thread::{FileManagerThreadMsg, FileManagerResult, FileManagerThreadError};
+use mime_guess::guess_mime_type_opt;
+use net_traits::filemanager_thread::{FileManagerThreadMsg, FileManagerResult};
+use net_traits::filemanager_thread::{SelectedFile, FileManagerThreadError};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs::File;
@@ -49,7 +51,7 @@ impl FileManager {
 }
 
 impl FileManager {
-    fn select_file(&mut self, sender: IpcSender<FileManagerResult<(Uuid, PathBuf, u64)>>) {
+    fn select_file(&mut self, sender: IpcSender<FileManagerResult<SelectedFile>>) {
         // TODO: Pull the dialog UI in and get selected
         let selected_path = Path::new("");
 
@@ -63,7 +65,7 @@ impl FileManager {
         }
     }
 
-    fn select_files(&mut self, sender: IpcSender<FileManagerResult<Vec<(Uuid, PathBuf, u64)>>>) {
+    fn select_files(&mut self, sender: IpcSender<FileManagerResult<Vec<SelectedFile>>>) {
         let selected_paths = vec![Path::new("")];
 
         let mut replies = vec![];
@@ -81,7 +83,7 @@ impl FileManager {
         let _ = sender.send(Ok(replies));
     }
 
-    fn create_entry(&mut self, file_path: &Path) -> Option<(Uuid, PathBuf, u64)> {
+    fn create_entry(&mut self, file_path: &Path) -> Option<SelectedFile> {
         match File::open(file_path) {
             Ok(handler) => {
                 let id = Uuid::new_v4();
@@ -100,7 +102,16 @@ impl FileManager {
                 let filename = file_path.file_name();
 
                 match (epoch, filename) {
-                    (Ok(epoch), Some(filename)) => Some((id, Path::new(filename).to_path_buf(), epoch)),
+                    (Ok(epoch), Some(filename)) => {
+                        let filename_path = Path::new(filename);
+                        let mime = guess_mime_type_opt(filename_path);
+                        Some(SelectedFile {
+                            id: id,
+                            filename: filename_path.to_path_buf(),
+                            modified: epoch,
+                            type_string: mime.map(|x| format!("{}", x)),
+                        })
+                    }
                     _ => None
                 }
             },
