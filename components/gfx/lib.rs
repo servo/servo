@@ -28,6 +28,7 @@ extern crate azure;
 extern crate bitflags;
 
 // Mac OS-specific library dependencies
+#[cfg(target_os = "macos")] extern crate byteorder;
 #[cfg(target_os = "macos")] extern crate core_foundation;
 #[cfg(target_os = "macos")] extern crate core_graphics;
 #[cfg(target_os = "macos")] extern crate core_text;
