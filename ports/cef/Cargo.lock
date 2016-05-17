@@ -663,6 +663,7 @@ dependencies = [
  "app_units 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "azure 0.4.5 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "byteorder 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-text 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",

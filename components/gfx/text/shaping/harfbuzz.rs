@@ -4,7 +4,7 @@
 
 use app_units::Au;
 use euclid::Point2D;
-use font::{DISABLE_KERNING_SHAPING_FLAG, Font, FontTableMethods, FontTableTag};
+use font::{DISABLE_KERNING_SHAPING_FLAG, Font, FontHandleMethods, FontTableMethods, FontTableTag};
 use font::{IGNORE_LIGATURES_SHAPING_FLAG, KERN, RTL_FLAG, ShapingOptions};
 use harfbuzz::{HB_DIRECTION_LTR, HB_DIRECTION_RTL, HB_MEMORY_MODE_READONLY};
 use harfbuzz::{hb_blob_create, hb_face_create_for_tables};
@@ -34,10 +34,12 @@ use harfbuzz::{hb_glyph_position_t};
 use harfbuzz::{hb_position_t, hb_tag_t};
 use libc::{c_char, c_int, c_uint, c_void};
 use platform::font::FontTable;
+use std::ascii::AsciiExt;
 use std::{char, cmp, ptr};
 use text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use text::shaping::ShaperMethods;
 use text::util::{fixed_to_float, float_to_fixed, is_bidi_control};
+use unicode_script::Script;
 
 const NO_GLYPH: i32 = -1;
 const LIGA: u32 = ot_tag!('l', 'i', 'g', 'a');
@@ -199,7 +201,45 @@ impl ShaperMethods for Shaper {
     /// Calculate the layout metrics associated with the given text when painted in a specific
     /// font.
     fn shape_text(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
+        let font = unsafe { &mut *self.font_and_shaping_options.font };
+        if options.script == Script::Latin &&
+            !options.flags.contains(RTL_FLAG) &&
+            font.handle.can_do_fast_kerning() &&
+            text.is_ascii()
+        {
+            debug!("shape_text: Using ASCII fast path.");
+
+            let mut prev_glyph_id = None;
+            for (i, byte) in text.bytes().enumerate() {
+                let character = byte as char;
+                let glyph_id = match font.glyph_index(character) {
+                    Some(id) => id,
+                    None => continue,
+                };
+
+                let mut advance = Au::from_f64_px(font.glyph_h_advance(glyph_id));
+                if character == ' ' {
+                    advance += options.word_spacing;
+                }
+                if let Some(letter_spacing) = options.letter_spacing {
+                    advance += letter_spacing;
+                }
+                let offset = prev_glyph_id.map(|prev| {
+                    let h_kerning = Au::from_f64_px(font.glyph_h_kerning(prev, glyph_id));
+                    advance += h_kerning;
+                    Point2D::new(h_kerning, Au(0))
+                });
+
+                let glyph = GlyphData::new(glyph_id, advance, offset, true, true);
+                glyphs.add_glyph_for_byte_index(ByteIndex(i as isize), character, &glyph);
+                prev_glyph_id = Some(glyph_id);
+            }
+            glyphs.finalize_changes();
+            return;
+        }
         unsafe {
+            debug!("shape_text: Using Harfbuzz.");
+
             let hb_buffer: *mut hb_buffer_t = hb_buffer_create();
             hb_buffer_set_direction(hb_buffer, if options.flags.contains(RTL_FLAG) {
                 HB_DIRECTION_RTL
