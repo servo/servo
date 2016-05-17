@@ -6,9 +6,10 @@
 [PrimaryGlobal]
 /*sealed*/ interface Window : EventTarget {
   // the current browsing context
-  //[Unforgeable] readonly attribute WindowProxy window;
+  [Unforgeable] readonly attribute WindowProxy window;
+  //[Unforgeable] readonly attribute BrowsingContext window;
   //[Replaceable] readonly attribute WindowProxy self;
-  readonly attribute Window window;
+  //readonly attribute Window window;
   [BinaryName="Self_"] readonly attribute Window self;
   [Unforgeable] readonly attribute Document document;
   //         attribute DOMString name;
@@ -64,6 +65,9 @@
 };
 Window implements GlobalEventHandlers;
 Window implements WindowEventHandlers;
+
+[NoInterfaceObject]
+interface WindowProxy : Window {};
 
 // https://html.spec.whatwg.org/multipage/#timers
 [NoInterfaceObject/*, Exposed=Window,Worker*/]
