@@ -13,7 +13,7 @@ use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::codegen::UnionTypes::EventOrString;
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
-use dom::bindings::inheritance::{Castable, EventTargetTypeId};
+use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::element::Element;
@@ -35,8 +35,8 @@ use std::ffi::CString;
 use std::hash::BuildHasherDefault;
 use std::mem;
 use std::ops::{Deref, DerefMut};
+use std::ptr;
 use std::rc::Rc;
-use std::{intrinsics, ptr};
 use string_cache::Atom;
 use url::Url;
 use util::str::DOMString;
@@ -60,42 +60,6 @@ impl CommonEventHandler {
 pub enum ListenerPhase {
     Capturing,
     Bubbling,
-}
-
-impl PartialEq for EventTargetTypeId {
-    #[inline]
-    fn eq(&self, other: &EventTargetTypeId) -> bool {
-        match (*self, *other) {
-            (EventTargetTypeId::Node(this_type), EventTargetTypeId::Node(other_type)) => {
-                this_type == other_type
-            }
-            _ => self.eq_slow(other)
-        }
-    }
-}
-
-impl EventTargetTypeId {
-    #[allow(unsafe_code)]
-    fn eq_slow(&self, other: &EventTargetTypeId) -> bool {
-        match (*self, *other) {
-            (EventTargetTypeId::Node(this_type), EventTargetTypeId::Node(other_type)) => {
-                this_type == other_type
-            }
-            (EventTargetTypeId::WorkerGlobalScope(this_type),
-             EventTargetTypeId::WorkerGlobalScope(other_type)) => {
-                this_type == other_type
-            }
-            (EventTargetTypeId::XMLHttpRequestEventTarget(this_type),
-             EventTargetTypeId::XMLHttpRequestEventTarget(other_type)) => {
-                this_type == other_type
-            }
-            (_, _) => {
-                unsafe {
-                    intrinsics::discriminant_value(self) == intrinsics::discriminant_value(other)
-                }
-            }
-        }
-    }
 }
 
 /// https://html.spec.whatwg.org/multipage/#internal-raw-uncompiled-handler
