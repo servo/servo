@@ -106,6 +106,7 @@ impl Worker {
             from_devtools_sender: optional_sender,
             constellation_chan: constellation_chan,
             scheduler_chan: scheduler_chan,
+            panic_chan: global.panic_chan().clone(),
             worker_id: worker_id,
             closing: closing,
         };

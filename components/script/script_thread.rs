@@ -59,7 +59,7 @@ use js::rust::Runtime;
 use layout_interface::{ReflowQueryType};
 use layout_interface::{self, LayoutChan, NewLayoutThreadInfo, ScriptLayoutChan};
 use mem::heap_size_of_self_and_children;
-use msg::constellation_msg::{ConstellationChan, LoadData};
+use msg::constellation_msg::{ConstellationChan, LoadData, PanicMsg};
 use msg::constellation_msg::{PipelineId, PipelineNamespace};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::WebDriverScriptCommand;
@@ -383,6 +383,8 @@ pub struct ScriptThread {
     timer_event_port: Receiver<TimerEvent>,
 
     content_process_shutdown_chan: IpcSender<()>,
+
+    panic_chan: IpcSender<PanicMsg>,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -575,6 +577,7 @@ impl ScriptThread {
             compositor: DOMRefCell::new(state.compositor),
             time_profiler_chan: state.time_profiler_chan,
             mem_profiler_chan: state.mem_profiler_chan,
+            panic_chan: state.panic_chan.0,
 
             devtools_chan: state.devtools_chan,
             devtools_port: devtools_port,
@@ -1450,6 +1453,7 @@ impl ScriptThread {
                                  self.constellation_chan.clone(),
                                  self.control_chan.clone(),
                                  self.scheduler_chan.clone(),
+                                 self.panic_chan.clone(),
                                  ipc_timer_event_chan,
                                  incomplete.layout_chan,
                                  incomplete.pipeline_id,
