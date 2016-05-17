@@ -39,6 +39,7 @@ use dom::window::Window;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
+use encoding::types::DecoderTrap;
 use hyper::header::{Charset, ContentDisposition, ContentType, DispositionParam, DispositionType};
 use hyper::method::Method;
 use msg::constellation_msg::{LoadData, PipelineId};
@@ -46,7 +47,6 @@ use rand::random;
 use script_thread::{MainThreadScriptMsg, Runnable};
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::str::from_utf8;
 use std::sync::mpsc::Sender;
 use string_cache::Atom;
 use task_source::dom_manipulation::DOMManipulationTask;
@@ -280,7 +280,7 @@ impl HTMLFormElement {
         let encoding = encoding.unwrap_or(self.pick_encoding());
 
         //  Step 3
-        let charset = &*encoding.whatwg_name().unwrap();
+        let charset = &*encoding.whatwg_name().unwrap_or("UTF-8");
 
         // Step 4
         for entry in form_data.iter_mut() {
@@ -308,12 +308,17 @@ impl HTMLFormElement {
                         DispositionParam::Filename(Charset::Ext(String::from(charset.clone())),
                                                    None,
                                                    f.name().clone().into()));
+                    /// XXX: unwrap
                     let content_type = ContentType(f.upcast::<Blob>().Type().parse().unwrap());
                     result.push_str(&*format!("Content-Disposition: {}\r\n{}\r\n\r\n",
                         content_disposition,
                         content_type));
 
-                    result.push_str(from_utf8(&f.upcast::<Blob>().get_data().get_bytes()).unwrap());
+                    let slice = f.upcast::<Blob>().get_slice();
+
+                    let decoded = encoding.decode(&slice.get_bytes(), DecoderTrap::Replace)
+                                          .expect("Invalid encoding in file");
+                    result.push_str(&decoded);
                 }
             }
         }
