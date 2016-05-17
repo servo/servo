@@ -7,16 +7,19 @@ use dom::activation::{Activatable, ActivationSource, synthetic_click_activation}
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
+use dom::bindings::js::{JS, LayoutJS, Root, RootedReference, MutNullableHeap};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers, LayoutElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::file::File;
+use dom::filelist::FileList;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormDatumValue, FormControl, FormDatum, FormSubmitter, HTMLFormElement};
@@ -27,7 +30,9 @@ use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
+use net_traits::IpcSend;
+use net_traits::filemanager_thread::FileManagerThreadMsg;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -81,7 +86,7 @@ pub struct HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag
     value_dirty: Cell<bool>,
 
-    // TODO: selected files for file input
+    filelist: MutNullableHeap<JS<FileList>>,
 }
 
 #[derive(JSTraceable)]
@@ -130,6 +135,7 @@ impl HTMLInputElement {
             textinput: DOMRefCell::new(TextInput::new(Single, DOMString::new(), chan, None, SelectionDirection::None)),
             activation_state: DOMRefCell::new(InputActivationState::new()),
             value_dirty: Cell::new(false),
+            filelist: MutNullableHeap::new(None),
         }
     }
 
@@ -354,8 +360,18 @@ impl HTMLInputElementMethods for HTMLInputElement {
                             |a| DOMString::from(a.summarize().value))
             }
             ValueMode::Filename => {
-                // TODO: return C:\fakepath\<first of selected files> when a file is selected
-                DOMString::from("")
+                let mut path = DOMString::from("");
+                match self.filelist.get() {
+                    Some(ref fl) => match fl.Item(0) {
+                        Some(ref f) => {
+                            path.push_str("C:\\fakepath\\");
+                            path.push_str(f.name());
+                            path
+                        }
+                        None => path,
+                    },
+                    None => path,
+                }
             }
         }
     }
@@ -373,7 +389,9 @@ impl HTMLInputElementMethods for HTMLInputElement {
             }
             ValueMode::Filename => {
                 if value.is_empty() {
-                    // TODO: empty list of selected files
+                    let window = window_from_node(self);
+                    let fl = FileList::new(window.r(), vec![]);
+                    self.filelist.set(Some(&fl));
                 } else {
                     return Err(Error::InvalidState);
                 }
@@ -1096,6 +1114,44 @@ impl Activatable for HTMLInputElement {
                                   EventBubbles::Bubbles,
                                   EventCancelable::NotCancelable);
             },
+            InputType::InputFile => {
+                let window = window_from_node(self);
+                let filemanager = window.resource_threads().sender();
+
+                let mut files: Vec<Root<File>> = vec![];
+                let mut error = None;
+
+                if self.Multiple() {
+                    let (chan, recv) = ipc::channel().expect("Error initializing channel");
+                    let msg = FileManagerThreadMsg::SelectFiles(chan);
+                    let _ = filemanager.send(msg).unwrap();
+
+                    match recv.recv().expect("IpcSender side error") {
+                        Ok(selected_files) => {
+                            for selected in selected_files {
+                                files.push(File::new_from_selected(window.r(), selected));
+                            }
+                        },
+                        Err(err) => error = Some(err),
+                    };
+                } else {
+                    let (chan, recv) = ipc::channel().expect("Error initializing channel");
+                    let msg = FileManagerThreadMsg::SelectFile(chan);
+                    let _ = filemanager.send(msg).unwrap();
+
+                    match recv.recv().expect("IpcSender side error") {
+                        Ok(selected) => files.push(File::new_from_selected(window.r(), selected)),
+                        Err(err) => error = Some(err),
+                    };
+                }
+
+                if let Some(err) = error {
+                    debug!("Input file select error: {:?}", err);
+                } else {
+                    let filelist = FileList::new(window.r(), files);
+                    self.filelist.set(Some(&filelist));
+                }
+            }
             _ => ()
         }
     }

@@ -1596,4 +1596,3 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
     println!("{}", debug_msg);
 }
 
-no_jsmanaged_fields!(ResourceThreads);

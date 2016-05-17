@@ -11,6 +11,7 @@ use cookie_storage::CookieStorage;
 use data_loader;
 use devtools_traits::{DevtoolsControlMsg};
 use file_loader;
+use filemanager_thread::FileManagerThreadFactory;
 use hsts::HstsList;
 use http_loader::{self, HttpState};
 use hyper::client::pool::Pool;
@@ -154,7 +155,8 @@ pub fn new_resource_threads(user_agent: String,
                             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             profiler_chan: ProfilerChan) -> ResourceThreads {
     ResourceThreads::new(new_core_resource_thread(user_agent, devtools_chan, profiler_chan),
-                         StorageThreadFactory::new())
+                         StorageThreadFactory::new(),
+                         FileManagerThreadFactory::new())
 }
 
 
