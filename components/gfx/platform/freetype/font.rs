@@ -6,7 +6,7 @@ extern crate freetype;
 
 use app_units::Au;
 use font::{FontHandleMethods, FontMetrics, FontTableMethods};
-use font::{FontTableTag, FractionalPixel};
+use font::{FontTableTag, FractionalPixel, GPOS, GSUB, KERN};
 use freetype::freetype::{FTErrorMethods, FT_F26Dot6, FT_Face, FT_FaceRec};
 use freetype::freetype::{FT_Done_Face, FT_New_Memory_Face};
 use freetype::freetype::{FT_Get_Char_Index, FT_Get_Postscript_Name};
@@ -35,6 +35,7 @@ fn fixed_to_float_ft(f: i32) -> f64 {
     fixed_to_float(6, f)
 }
 
+#[derive(Debug)]
 pub struct FontTable {
     buffer: Vec<u8>,
 }
@@ -52,6 +53,7 @@ pub struct FontHandle {
     font_data: Arc<FontTemplateData>,
     face: FT_Face,
     handle: FontContextHandle,
+    can_do_fast_shaping: bool,
 }
 
 impl Drop for FontHandle {
@@ -74,11 +76,16 @@ impl FontHandleMethods for FontHandle {
         if ft_ctx.is_null() { return Err(()); }
 
         return create_face_from_buffer(ft_ctx, &template.bytes, pt_size).map(|face| {
-            let handle = FontHandle {
+            let mut handle = FontHandle {
                   face: face,
                   font_data: template.clone(),
                   handle: fctx.clone(),
+                  can_do_fast_shaping: false,
             };
+            // TODO: Implement basic support for GPOS and GSUB.
+            handle.can_do_fast_shaping = handle.has_table(KERN) &&
+                                         !handle.has_table(GPOS) &&
+                                         !handle.has_table(GSUB);
             handle
         });
 
@@ -170,6 +177,10 @@ impl FontHandleMethods for FontHandle {
             FT_Get_Kerning(self.face, first_glyph, second_glyph, FT_KERNING_DEFAULT, &mut delta);
         }
         fixed_to_float_ft(delta.x as i32)
+    }
+
+    fn can_do_fast_shaping(&self) -> bool {
+        self.can_do_fast_shaping
     }
 
     fn glyph_h_advance(&self, glyph: GlyphId) -> Option<FractionalPixel> {
@@ -273,6 +284,12 @@ impl<'a> FontHandle {
         unsafe {
             let result = FT_Set_Char_Size(face, char_width, 0, 0, 0);
             if result.succeeded() { Ok(()) } else { Err(()) }
+        }
+    }
+
+    fn has_table(&self, tag: FontTableTag) -> bool {
+        unsafe {
+            FT_Load_Sfnt_Table(self.face, tag as FT_ULong, 0, ptr::null_mut(), &mut 0).succeeded()
         }
     }
 

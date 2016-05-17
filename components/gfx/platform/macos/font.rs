@@ -9,6 +9,7 @@ extern crate core_graphics;
 extern crate core_text;
 
 use app_units::Au;
+use byteorder::{BigEndian, ByteOrder};
 use core_foundation::base::CFIndex;
 use core_foundation::data::CFData;
 use core_foundation::string::UniChar;
@@ -17,15 +18,17 @@ use core_graphics::geometry::CGRect;
 use core_text::font::CTFont;
 use core_text::font_descriptor::{SymbolicTraitAccessors, TraitAccessors};
 use core_text::font_descriptor::{kCTFontDefaultOrientation};
-use font::FontTableTag;
-use font::FractionalPixel;
-use font::{FontHandleMethods, FontMetrics, FontTableMethods};
+use font::{FontHandleMethods, FontMetrics, FontTableTag, FontTableMethods, FractionalPixel};
+use font::{GPOS, GSUB, KERN};
 use platform::font_template::FontTemplateData;
 use platform::macos::font_context::FontContextHandle;
-use std::ptr;
+use std::ops::Range;
 use std::sync::Arc;
+use std::{fmt, ptr};
 use style::computed_values::{font_stretch, font_weight};
 use text::glyph::GlyphId;
+
+const KERN_PAIR_LEN: usize = 6;
 
 pub struct FontTable {
     data: CFData,
@@ -61,7 +64,104 @@ impl FontTableMethods for FontTable {
 pub struct FontHandle {
     font_data: Arc<FontTemplateData>,
     ctfont: CTFont,
+    h_kern_subtable: Option<CachedKernTable>,
+    can_do_fast_shaping: bool,
 }
+
+impl FontHandle {
+    /// Cache all the data needed for basic horizontal kerning. This is used only as a fallback or
+    /// fast path (when the GPOS table is missing or unnecessary) so it needn't handle every case.
+    fn find_h_kern_subtable(&self) -> Option<CachedKernTable> {
+        let font_table = match self.table_for_tag(KERN) {
+            Some(table) => table,
+            None => return None
+        };
+
+        let mut result = CachedKernTable {
+            font_table: font_table,
+            pair_data_range: 0..0,
+            pixels_per_font_unit: 0.0,
+        };
+
+        // Look for a subtable with horizontal kerning in format 0.
+        // https://www.microsoft.com/typography/otspec/kern.htm
+        const KERN_COVERAGE_HORIZONTAL_FORMAT_0: u16 = 1;
+        const SUBTABLE_HEADER_LEN: usize = 6;
+        const FORMAT_0_HEADER_LEN: usize = 8;
+        {
+            let table = result.font_table.buffer();
+            let version = BigEndian::read_u16(table);
+            if version != 0 {
+                return None;
+            }
+            let num_subtables = BigEndian::read_u16(&table[2..]);
+            let mut start = 4;
+            for _ in 0..num_subtables {
+                let len = BigEndian::read_u16(&table[start + 2..]) as usize;
+                let cov = BigEndian::read_u16(&table[start + 4..]);
+                let end = start + len;
+                if cov == KERN_COVERAGE_HORIZONTAL_FORMAT_0 {
+                    // Found a matching subtable.
+                    if result.pair_data_range.len() > 0 {
+                        debug!("Found multiple horizontal kern tables. Disable fast path.");
+                        return None;
+                    }
+                    // Read the subtable header.
+                    let subtable_start = start + SUBTABLE_HEADER_LEN;
+                    let n_pairs = BigEndian::read_u16(&table[subtable_start..]) as usize;
+                    let pair_data_start = subtable_start + FORMAT_0_HEADER_LEN;
+
+                    result.pair_data_range = pair_data_start..end;
+                    result.pixels_per_font_unit = self.ctfont.pt_size() as f64 /
+                                                  self.ctfont.units_per_em() as f64;
+
+                    debug_assert_eq!(n_pairs * KERN_PAIR_LEN, result.pair_data_range.len());
+                }
+                start = end;
+            }
+        }
+        if result.pair_data_range.len() > 0 {
+            Some(result)
+        } else {
+            None
+        }
+    }
+}
+
+struct CachedKernTable {
+    font_table: FontTable,
+    pair_data_range: Range<usize>,
+    pixels_per_font_unit: f64,
+}
+
+impl CachedKernTable {
+    /// Search for a glyph pair in the kern table and return the corresponding value.
+    fn binary_search(&self, first_glyph: GlyphId, second_glyph: GlyphId) -> Option<i16> {
+        let pairs = &self.font_table.buffer()[self.pair_data_range.clone()];
+
+        let query = first_glyph << 16 | second_glyph;
+        let (mut start, mut end) = (0, pairs.len() / KERN_PAIR_LEN);
+        while start < end {
+            let i = (start + end) / 2;
+            let key = BigEndian::read_u32(&pairs[i * KERN_PAIR_LEN..]);
+            if key > query {
+                end = i;
+            } else if key < query {
+                start = i + 1;
+            } else {
+                return Some(BigEndian::read_i16(&pairs[i * KERN_PAIR_LEN + 4..]));
+            }
+        }
+        None
+    }
+}
+
+impl fmt::Debug for CachedKernTable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "CachedKernTable")
+    }
+}
+
 
 impl FontHandleMethods for FontHandle {
     fn new_from_template(_fctx: &FontContextHandle,
@@ -74,10 +174,18 @@ impl FontHandleMethods for FontHandle {
         };
         match template.ctfont(size) {
             Some(ref ctfont) => {
-                Ok(FontHandle {
+                let mut handle = FontHandle {
                     font_data: template.clone(),
                     ctfont: ctfont.clone_with_font_size(size),
-                })
+                    h_kern_subtable: None,
+                    can_do_fast_shaping: false,
+                };
+                handle.h_kern_subtable = handle.find_h_kern_subtable();
+                // TODO: Implement basic support for GPOS and GSUB.
+                handle.can_do_fast_shaping = handle.h_kern_subtable.is_some() &&
+                                             handle.table_for_tag(GPOS).is_none() &&
+                                             handle.table_for_tag(GSUB).is_none();
+                Ok(handle)
             }
             None => {
                 Err(())
@@ -155,10 +263,17 @@ impl FontHandleMethods for FontHandle {
         return Some(glyphs[0] as GlyphId);
     }
 
-    fn glyph_h_kerning(&self, _first_glyph: GlyphId, _second_glyph: GlyphId)
-                        -> FractionalPixel {
-        // TODO: Implement on mac
+    fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId) -> FractionalPixel {
+        if let Some(ref table) = self.h_kern_subtable {
+            if let Some(font_units) = table.binary_search(first_glyph, second_glyph) {
+                return font_units as f64 * table.pixels_per_font_unit;
+            }
+        }
         0.0
+    }
+
+    fn can_do_fast_shaping(&self) -> bool {
+        self.can_do_fast_shaping
     }
 
     fn glyph_h_advance(&self, glyph: GlyphId) -> Option<FractionalPixel> {
