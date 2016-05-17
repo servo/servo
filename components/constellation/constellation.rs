@@ -292,13 +292,15 @@ impl<'a> Iterator for FrameTreeIterator<'a> {
 }
 
 struct WebDriverData {
-    load_channel: Option<(PipelineId, IpcSender<webdriver_msg::LoadStatus>)>
+    load_channel: Option<(PipelineId, IpcSender<webdriver_msg::LoadStatus>)>,
+    resize_channel: Option<IpcSender<WindowSizeData>>,
 }
 
 impl WebDriverData {
     pub fn new() -> WebDriverData {
         WebDriverData {
-            load_channel: None
+            load_channel: None,
+            resize_channel: None,
         }
     }
 }
@@ -1484,6 +1486,13 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script thread.
         match msg {
+            WebDriverCommandMsg::GetWindowSize(_, reply) => {
+               let _ = reply.send(self.window_size);
+            },
+            WebDriverCommandMsg::SetWindowSize(_, size, reply) => {
+                self.webdriver.resize_channel = Some(reply);
+                self.compositor_proxy.send(ToCompositorMsg::ResizeTo(size));
+            },
             WebDriverCommandMsg::LoadUrl(pipeline_id, load_data, reply) => {
                 self.load_url_for_webdriver(pipeline_id, load_data, reply);
             },
@@ -1701,6 +1710,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     size_type
                 ));
             }
+        }
+
+        if let Some(resize_channel) = self.webdriver.resize_channel.take() {
+            let _ = resize_channel.send(new_size);
         }
 
         self.window_size = new_size;
