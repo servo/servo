@@ -25,16 +25,15 @@ use dom::node::Node;
 use dom::window::ScriptHelpers;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
-use euclid::size::{Size2D, TypedSize2D};
+use euclid::size::Size2D;
 use ipc_channel::ipc::IpcSender;
 use js::jsapi::JSContext;
 use js::jsapi::{HandleValue, RootedValue};
 use js::jsval::UndefinedValue;
-use msg::constellation_msg::{PipelineId, WindowSizeData};
+use msg::constellation_msg::PipelineId;
 use msg::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use script_thread::get_browsing_context;
 use url::Url;
-use util::geometry::ViewportPx;
 use util::str::DOMString;
 
 fn find_node_by_unique_id(context: &BrowsingContext,
