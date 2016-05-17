@@ -195,8 +195,7 @@ impl Drop for CallSetup {
                                           unsafe { JS_IsExceptionPending(self.cx) };
         if need_to_deal_with_exception {
             unsafe {
-                let old_global = RootedObject::new(self.cx, self.exception_compartment.ptr);
-                let _ac = JSAutoCompartment::new(self.cx, old_global.ptr);
+                let _ac = JSAutoCompartment::new(self.cx, self.exception_compartment.ptr);
                 JS_ReportPendingException(self.cx);
             }
         }
