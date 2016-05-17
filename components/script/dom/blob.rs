@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BlobBinding;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::UnionTypes::BlobOrString;
@@ -18,6 +19,7 @@ use std::cell::Cell;
 use std::cmp::{max, min};
 use std::sync::Arc;
 use util::str::DOMString;
+use uuid::Uuid;
 
 #[derive(Clone, JSTraceable)]
 pub struct DataSlice {
@@ -88,22 +90,76 @@ impl DataSlice {
 pub struct Blob {
     reflector_: Reflector,
     #[ignore_heap_size_of = "No clear owner"]
-    data: DataSlice,
+    blob_impl: BlobImpl,
     typeString: String,
     isClosed_: Cell<bool>,
 }
 
+#[derive(Clone, JSTraceable)]
+pub struct BlobImpl {
+    slice: DOMRefCell<Option<DataSlice>>,
+    file_id: Option<Uuid>,
+}
+
+impl BlobImpl {
+    pub fn new_from_slice(slice: DataSlice) -> BlobImpl {
+        BlobImpl {
+            slice: DOMRefCell::new(Some(slice)),
+            file_id: None,
+        }
+    }
+
+    pub fn new_from_file(file_id: Uuid) -> BlobImpl {
+        BlobImpl {
+            slice: DOMRefCell::new(None),
+            file_id: Some(file_id),
+        }
+    }
+
+    pub fn new_from_empty_slice() -> BlobImpl {
+        BlobImpl::new_from_slice(DataSlice::empty())
+    }
+
+    pub fn get_bytes(&self) -> Vec<u8> {
+        match *self.slice.borrow() {
+            None => Vec::new(),
+            Some(ref s) => s.get_bytes().to_vec()
+        }
+    }
+
+    pub fn get_slice(&self) -> DataSlice {
+        match *self.slice.borrow() {
+            None => DataSlice::empty(),
+            Some(ref s) => s.clone()
+        }
+    }
+
+    pub fn size(&self) -> u64 {
+        match *self.slice.borrow() {
+            None => 0,
+            Some(ref s) => s.size()
+        }
+    }
+
+    pub fn slice(&self, start: Option<i64>, end: Option<i64>) -> BlobImpl {
+        match *self.slice.borrow() {
+            None => BlobImpl::new_from_empty_slice(),
+            Some(ref s) => BlobImpl::new_from_slice(DataSlice::new(s.bytes.clone(), start, end))
+        }
+    }
+}
+
 impl Blob {
 
-    pub fn new(global: GlobalRef, slice: DataSlice, typeString: &str) -> Root<Blob> {
-        let boxed_blob = box Blob::new_inherited(slice, typeString);
+    pub fn new(global: GlobalRef, blob_impl: BlobImpl, typeString: &str) -> Root<Blob> {
+        let boxed_blob = box Blob::new_inherited(blob_impl, typeString);
         reflect_dom_object(boxed_blob, global, BlobBinding::Wrap)
     }
 
-    pub fn new_inherited(slice: DataSlice, typeString: &str) -> Blob {
+    pub fn new_inherited(blob_impl: BlobImpl, typeString: &str) -> Blob {
         Blob {
             reflector_: Reflector::new(),
-            data: slice,
+            blob_impl: blob_impl,
             typeString: typeString.to_owned(),
             isClosed_: Cell::new(false),
         }
@@ -122,11 +178,34 @@ impl Blob {
         };
 
         let slice = DataSlice::new(Arc::new(bytes), None, None);
-        Ok(Blob::new(global, slice, &blobPropertyBag.get_typestring()))
+        Ok(Blob::new(global, BlobImpl::new_from_slice(slice), &blobPropertyBag.get_typestring()))
     }
 
-    pub fn get_data(&self) -> &DataSlice {
-        &self.data
+    pub fn size(&self) -> u64 {
+        self.blob_impl.size()
+    }
+
+    pub fn is_cached(&self) -> bool {
+        match *self.blob_impl.slice.borrow() {
+            Some(_) => true,
+            None => false,
+        }
+    }
+
+    pub fn cache(&self, slice: DataSlice) {
+        *self.blob_impl.slice.borrow_mut() = Some(slice);
+    }
+
+    pub fn get_file_id(&self) -> Option<Uuid> {
+        self.blob_impl.file_id
+    }
+
+    pub fn get_bytes(&self) -> Vec<u8> {
+        self.blob_impl.get_bytes()
+    }
+
+    pub fn get_slice(&self) -> DataSlice {
+        self.blob_impl.get_slice()
     }
 }
 
@@ -137,7 +216,7 @@ pub fn blob_parts_to_bytes(blobparts: Vec<BlobOrString>) -> Vec<u8> {
                     UTF_8.encode(s, EncoderTrap::Replace).unwrap()
                 },
                 &BlobOrString::Blob(ref b) => {
-                    b.get_data().get_bytes().to_vec()
+                    b.get_bytes()
                 },
             }
         }).collect::<Vec<u8>>()
@@ -146,7 +225,7 @@ pub fn blob_parts_to_bytes(blobparts: Vec<BlobOrString>) -> Vec<u8> {
 impl BlobMethods for Blob {
     // https://w3c.github.io/FileAPI/#dfn-size
     fn Size(&self) -> u64 {
-        self.data.size()
+        self.size()
     }
 
     // https://w3c.github.io/FileAPI/#dfn-type
@@ -172,9 +251,9 @@ impl BlobMethods for Blob {
                 }
             }
         };
+
         let global = self.global();
-        let bytes = self.data.bytes.clone();
-        Blob::new(global.r(), DataSlice::new(bytes, start, end), &relativeContentType)
+        Blob::new(global.r(), self.blob_impl.slice(start, end), &relativeContentType)
     }
 
     // https://w3c.github.io/FileAPI/#dfn-isClosed

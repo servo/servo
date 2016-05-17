@@ -22,7 +22,7 @@ use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{ByteString, USVString, is_token};
-use dom::blob::{Blob, DataSlice};
+use dom::blob::{Blob, DataSlice, BlobImpl};
 use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -1118,7 +1118,7 @@ impl XMLHttpRequest {
 
         // Step 3, 4
         let slice = DataSlice::new(Arc::new(self.response.borrow().to_vec()), None, None);
-        let blob = Blob::new(self.global().r(), slice, &mime);
+        let blob = Blob::new(self.global().r(), BlobImpl::new_from_slice(slice), &mime);
         self.response_blob.set(Some(blob.r()));
         blob
     }
@@ -1402,13 +1402,12 @@ impl Extractable for BodyInit {
                     Some(DOMString::from("application/x-www-form-urlencoded;charset=UTF-8")))
             },
             BodyInit::Blob(ref b) => {
-                let data = b.get_data();
                 let content_type = if b.Type().as_ref().is_empty() {
                     None
                 } else {
                     Some(b.Type())
                 };
-                (data.get_bytes().to_vec(), content_type)
+                (b.get_bytes(), content_type)
             },
         }
     }

@@ -21,11 +21,14 @@ use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
 use hyper::mime::{Attr, Mime};
+use ipc_channel::ipc::{self, IpcSender};
+use net_traits::filemanager_thread::FileManagerThreadMsg;
 use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
 use script_runtime::ScriptThreadEventCategory::FileRead;
 use script_runtime::{ScriptChan, CommonScriptMsg};
 use script_thread::Runnable;
 use std::cell::Cell;
+use std::sync::Arc;
 use string_cache::Atom;
 use util::str::DOMString;
 use util::thread::spawn_named;
@@ -351,7 +354,13 @@ impl FileReader {
         self.change_ready_state(FileReaderReadyState::Loading);
 
         // Step 4
-        let blob_contents = blob.get_data().clone();
+        let blob_contents = if blob.is_cached() {
+            blob.get_slice()
+        } else {
+            let slice = self.read_file(blob);
+            blob.cache(slice.clone());
+            slice
+        };
 
         let type_ = blob.Type();
 
@@ -367,6 +376,27 @@ impl FileReader {
         });
         Ok(())
     }
+
+    // XXX: This looks like an awkward interface to use anyway
+    fn read_file(&self, blob: &Blob) -> DataSlice {
+        match blob.get_file_id() {
+            Some(id) => {
+                // FIXME: Just proof of concept, should fix after the resource thread #11189 PR is landed
+                // let global = self.global();
+                // global.r().filemanager_thread();
+                let file_manager: IpcSender<FileManagerThreadMsg> = unimplemented!();
+                let (chan, recv) = ipc::channel().unwrap();
+                let _ = file_manager.send(FileManagerThreadMsg::ReadFile(chan, id));
+                let result = recv.recv().unwrap(); // Should block here
+                let bytes = result.unwrap();
+                let slice = DataSlice::new(Arc::new(bytes), None, None);
+
+                slice
+            }
+            None => panic!("Invalid blob_impl")
+        }
+    }
+
 
     fn change_ready_state(&self, state: FileReaderReadyState) {
         self.ready_state.set(state);
