@@ -43,8 +43,8 @@ use msg::constellation_msg::{self, ConstellationChan, PanicMsg};
 use msg::webdriver_msg;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
-use net_traits::storage_thread::{StorageThread, StorageThreadMsg};
-use net_traits::{self, ResourceThread};
+use net_traits::storage_thread::StorageThreadMsg;
+use net_traits::{self, ResourceThreads, IpcSend};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use profile_traits::mem;
 use profile_traits::time;
@@ -118,8 +118,8 @@ pub struct Constellation<LTF, STF> {
     /// to the compositor.
     compositor_proxy: Box<CompositorProxy>,
 
-    /// A channel through which messages can be sent to the resource thread.
-    resource_thread: ResourceThread,
+    /// Channels through which messages can be sent to the resource-related threads.
+    resource_threads: ResourceThreads,
 
     /// A channel through which messages can be sent to the image cache thread.
     image_cache_thread: ImageCacheThread,
@@ -129,9 +129,6 @@ pub struct Constellation<LTF, STF> {
 
     /// A channel through which messages can be sent to the bluetooth thread.
     bluetooth_thread: IpcSender<BluetoothMethodMsg>,
-
-    /// A channel through which messages can be sent to the storage thread.
-    storage_thread: StorageThread,
 
     /// A list of all the pipelines. (See the `pipeline` module for more details.)
     pipelines: HashMap<PipelineId, Pipeline>,
@@ -212,9 +209,7 @@ pub struct InitialConstellationState {
     /// A channel to the font cache thread.
     pub font_cache_thread: FontCacheThread,
     /// A channel to the resource thread.
-    pub resource_thread: ResourceThread,
-    /// A channel to the storage thread.
-    pub storage_thread: StorageThread,
+    pub resource_threads: ResourceThreads,
     /// A channel to the time profiler thread.
     pub time_profiler_chan: time::ProfilerChan,
     /// A channel to the memory profiler thread.
@@ -344,10 +339,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 compositor_proxy: state.compositor_proxy,
                 devtools_chan: state.devtools_chan,
                 bluetooth_thread: state.bluetooth_thread,
-                resource_thread: state.resource_thread,
+                resource_threads: state.resource_threads,
                 image_cache_thread: state.image_cache_thread,
                 font_cache_thread: state.font_cache_thread,
-                storage_thread: state.storage_thread,
                 pipelines: HashMap::new(),
                 frames: HashMap::new(),
                 pipeline_to_frame_map: HashMap::new(),
@@ -433,8 +427,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 bluetooth_thread: self.bluetooth_thread.clone(),
                 image_cache_thread: self.image_cache_thread.clone(),
                 font_cache_thread: self.font_cache_thread.clone(),
-                resource_thread: self.resource_thread.clone(),
-                storage_thread: self.storage_thread.clone(),
+                resource_threads: self.resource_threads.clone(),
                 time_profiler_chan: self.time_profiler_chan.clone(),
                 mem_profiler_chan: self.mem_profiler_chan.clone(),
                 window_size: initial_window_size,
@@ -839,7 +832,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             pipeline.exit();
         }
         self.image_cache_thread.exit();
-        if let Err(e) = self.resource_thread.send(net_traits::ControlMsg::Exit) {
+        if let Err(e) = self.resource_threads.send(net_traits::CoreResourceMsg::Exit) {
             warn!("Exit resource thread failed ({})", e);
         }
         if let Some(ref chan) = self.devtools_chan {
@@ -848,7 +841,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 warn!("Exit devtools failed ({})", e);
             }
         }
-        if let Err(e) = self.storage_thread.send(StorageThreadMsg::Exit) {
+        if let Err(e) = self.resource_threads.send(StorageThreadMsg::Exit) {
             warn!("Exit storage thread failed ({})", e);
         }
         if let Err(e) = self.bluetooth_thread.send(BluetoothMethodMsg::Exit) {
