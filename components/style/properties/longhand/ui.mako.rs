@@ -11,3 +11,6 @@
 
 ${helpers.single_keyword("ime-mode", "normal auto active disabled inactive", products="gecko",
                          gecko_ffi_name="mIMEMode")}
+
+${helpers.single_keyword("-moz-user-select", "auto text none all", products="gecko",
+                         gecko_ffi_name="mUserSelect", gecko_constant_prefix="NS_STYLE_USER_SELECT")}
