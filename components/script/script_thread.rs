@@ -1986,7 +1986,7 @@ impl ScriptThread {
             None => return,
         };
 
-        context.set_active_entry(active_index);
+        context.set_active_entry(active_index, true);
     }
 
     fn handle_clear_forward_session_history(&self, pipeline_id: PipelineId) {
