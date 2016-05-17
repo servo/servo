@@ -188,7 +188,7 @@ impl<'a> GlobalRef<'a> {
     pub fn history_traversal_task_source(&self) -> Box<TaskSource<HistoryTraversalTask> + Send> {
         match *self {
             GlobalRef::Window(ref window) => window.history_traversal_task_source(),
-            GlobalRef::Worker(ref worker) => unimplemented!(),
+            GlobalRef::Worker(_) => unimplemented!(),
         }
     }
 

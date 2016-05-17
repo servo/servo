@@ -390,12 +390,12 @@ impl Handler {
     }
 
     fn handle_go_back(&self) -> WebDriverResult<WebDriverResponse> {
-        self.constellation_chan.send(ConstellationMsg::Navigate(None, NavigationDirection::Back(1))).unwrap();
+        self.constellation_chan.send(ConstellationMsg::Navigate(NavigationDirection::Back(1))).unwrap();
         Ok(WebDriverResponse::Void)
     }
 
     fn handle_go_forward(&self) -> WebDriverResult<WebDriverResponse> {
-        self.constellation_chan.send(ConstellationMsg::Navigate(None, NavigationDirection::Forward(1))).unwrap();
+        self.constellation_chan.send(ConstellationMsg::Navigate(NavigationDirection::Forward(1))).unwrap();
         Ok(WebDriverResponse::Void)
     }
 
