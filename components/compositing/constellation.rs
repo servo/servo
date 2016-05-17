@@ -1340,15 +1340,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             self.send_frame_tree_and_grant_paint_permission();
         }
 
-        let msg = ConstellationControlMsg::UpdateActiveHistoryEntry(next_entry.id,
-                                                                    next_entry.context_index);
-        let result = match self.pipelines.get(&next_entry.id) {
-            None => return warn!("Pipeline {:?} child navigated after closure.", next_entry.id),
-            Some(pipeline) => pipeline.script_chan.send(msg),
-        };
-        if let Err(e) = result {
-            self.handle_send_error(next_entry.id, e);
-        }
+        self.send_popstate_msg(next_entry.id, next_entry.context_index);
 
         // Update the owning iframe to point to the new subpage id.
         // This makes things like contentDocument work correctly.
@@ -1375,6 +1367,17 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             // If this is an iframe, send a mozbrowser location change event.
             // This is the result of a back/forward navigation.
             self.trigger_mozbrowserlocationchange(next_entry.id);
+        }
+    }
+
+    fn send_popstate_msg(&mut self, pipeline_id: PipelineId, index: usize) {
+        let msg = ConstellationControlMsg::UpdateActiveHistoryEntry(pipeline_id, index);
+        let result = match self.pipelines.get(&pipeline_id) {
+            None => return warn!("Pipeline {:?} child navigated after closure.", pipeline_id),
+            Some(pipeline) => pipeline.script_chan.send(msg),
+        };
+        if let Err(e) = result {
+            self.handle_send_error(pipeline_id, e);
         }
     }
 
@@ -1411,7 +1414,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     fn push_navigation_event(&mut self, frame_id: FrameId) {
         // Cleanup each frame's forward history if they are past the current
         // `active_history_index`
-        if self.active_history_index >= self.navigation_history.len() {
+        if self.active_history_index < self.navigation_history.len() - 1 {
             let frame_ids = self.navigation_history
                                 .drain(self.active_history_index + 1..)
                                 .filter_map(|f| f)

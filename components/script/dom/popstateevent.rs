@@ -74,7 +74,7 @@ impl PopStateEvent {
                           scope: GlobalRef,
                           state: HandleValue) {
         let popstateevent = PopStateEvent::new(scope,
-                                               Atom::from("popstateevent"),
+                                               Atom::from("popstate"),
                                                true,
                                                false,
                                                state);

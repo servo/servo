@@ -58,4 +58,5 @@ interface GlobalEventHandlers {
 interface WindowEventHandlers {
            attribute EventHandler onunload;
            attribute EventHandler onstorage;
+           attribute EventHandler onpopstate;
 };
