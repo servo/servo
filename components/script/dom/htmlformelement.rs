@@ -218,7 +218,7 @@ impl HTMLFormElementMethods for HTMLFormElement {
         }
         let filter = box ElementsFilter { form: Root::from_ref(self) };
         let window = window_from_node(self);
-        let elements = HTMLFormControlsCollection::new(window.r(), self.upcast(), filter);
+        let elements = HTMLFormControlsCollection::new(&window, self.upcast(), filter);
         self.elements.set(Some(&elements));
         elements
     }
@@ -725,11 +725,11 @@ pub enum FormSubmittableElement {
 impl FormSubmittableElement {
     fn as_event_target(&self) -> &EventTarget {
         match *self {
-            FormSubmittableElement::ButtonElement(ref button) => button.r().upcast(),
-            FormSubmittableElement::InputElement(ref input) => input.r().upcast(),
-            FormSubmittableElement::ObjectElement(ref object) => object.r().upcast(),
-            FormSubmittableElement::SelectElement(ref select) => select.r().upcast(),
-            FormSubmittableElement::TextAreaElement(ref textarea) => textarea.r().upcast()
+            FormSubmittableElement::ButtonElement(ref button) => button.upcast(),
+            FormSubmittableElement::InputElement(ref input) => input.upcast(),
+            FormSubmittableElement::ObjectElement(ref object) => object.upcast(),
+            FormSubmittableElement::SelectElement(ref select) => select.upcast(),
+            FormSubmittableElement::TextAreaElement(ref textarea) => textarea.upcast()
         }
     }
 }
@@ -867,7 +867,7 @@ pub trait FormControl: DerivedFrom<Element> + Reflectable {
         if self.to_element().has_attribute(attr) {
             input(self)
         } else {
-            self.form_owner().map_or(DOMString::new(), |t| owner(t.r()))
+            self.form_owner().map_or(DOMString::new(), |t| owner(&t))
         }
     }
 
@@ -882,7 +882,7 @@ pub trait FormControl: DerivedFrom<Element> + Reflectable {
         if self.to_element().has_attribute(attr) {
             input(self)
         } else {
-            self.form_owner().map_or(false, |t| owner(t.r()))
+            self.form_owner().map_or(false, |t| owner(&t))
         }
     }
 

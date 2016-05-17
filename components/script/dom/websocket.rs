@@ -12,7 +12,7 @@ use dom::bindings::conversions::{ToJSValConvertible};
 use dom::bindings::error::{Error, Fallible, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
 use dom::bindings::str::{USVString, is_token};

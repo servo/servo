@@ -6,6 +6,7 @@
 
 use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::global_root_from_object;
+use dom::bindings::js::RootedReference;
 use dom::bindings::reflector::Reflectable;
 use js::jsapi::GetGlobalForObjectCrossCompartment;
 use js::jsapi::JSAutoCompartment;

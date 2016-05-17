@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::js::{JS, Root};
+use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::document::Document;
 use dom::servohtmlparser::ServoHTMLParser;
@@ -75,8 +75,9 @@ pub enum ParserRoot {
     XML(Root<ServoXMLParser>),
 }
 
-impl ParserRoot {
-    pub fn r(&self) -> ParserRef {
+impl<'root> RootedReference<'root> for ParserRoot {
+    type Ref = ParserRef<'root>;
+    fn r(&'root self) -> ParserRef<'root> {
         match *self {
             ParserRoot::HTML(ref parser) => ParserRef::HTML(parser.r()),
             ParserRoot::XML(ref parser) => ParserRef::XML(parser.r()),

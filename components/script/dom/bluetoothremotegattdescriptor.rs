@@ -13,7 +13,7 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::Bluetoo
 use dom::bindings::error::Error::{Type, Network};
 use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, MutHeap, Root};
+use dom::bindings::js::{JS, MutHeap, Root, RootedReference};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::ByteString;
 use dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;

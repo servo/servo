@@ -5,7 +5,7 @@
 use dom::bindings::codegen::Bindings::NavigatorBinding;
 use dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::reflector::{Reflector, Reflectable, reflect_dom_object};
 use dom::bluetooth::Bluetooth;
 use dom::mimetypearray::MimeTypeArray;

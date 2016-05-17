@@ -11,7 +11,7 @@ use dom::bindings::conversions::{ToJSValConvertible, array_buffer_view_data, arr
 use dom::bindings::conversions::{array_buffer_view_to_vec_checked, array_buffer_view_to_vec};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
+use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlcanvaselement::HTMLCanvasElement;

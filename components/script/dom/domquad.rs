@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::DOMQuadBinding::{DOMQuadInit, DOMQuadMetho
 use dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{DOMRectInit};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
-use dom::bindings::js::{Root, JS};
+use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::dompoint::DOMPoint;
 use dom::domrect::DOMRect;
