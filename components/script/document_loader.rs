@@ -8,9 +8,9 @@
 use dom::bindings::js::JS;
 use dom::document::Document;
 use msg::constellation_msg::PipelineId;
-use net_traits::{PendingAsyncLoad, CoreResourceThread, LoadContext};
+use net_traits::{PendingAsyncLoad, LoadContext};
 use net_traits::{RequestSource, AsyncResponseTarget};
-use std::sync::Arc;
+use net_traits::{ResourceThreads, IpcSend};
 use std::thread;
 use url::Url;
 
@@ -93,10 +93,7 @@ impl Drop for LoadBlocker {
 
 #[derive(JSTraceable, HeapSizeOf)]
 pub struct DocumentLoader {
-    /// We use an `Arc<CoreResourceThread>` here in order to avoid file descriptor exhaustion when there
-    /// are lots of iframes.
-    #[ignore_heap_size_of = "channels are hard"]
-    pub resource_thread: Arc<CoreResourceThread>,
+    resource_threads: ResourceThreads,
     pipeline: Option<PipelineId>,
     blocking_loads: Vec<LoadType>,
     events_inhibited: bool,
@@ -104,19 +101,16 @@ pub struct DocumentLoader {
 
 impl DocumentLoader {
     pub fn new(existing: &DocumentLoader) -> DocumentLoader {
-        DocumentLoader::new_with_thread(existing.resource_thread.clone(), None, None)
+        DocumentLoader::new_with_threads(existing.resource_threads.clone(), None, None)
     }
 
-    /// We use an `Arc<CoreResourceThread>` here in order to avoid file descriptor exhaustion when there
-    /// are lots of iframes.
-    pub fn new_with_thread(resource_thread: Arc<CoreResourceThread>,
-                         pipeline: Option<PipelineId>,
-                         initial_load: Option<Url>)
-                         -> DocumentLoader {
+    pub fn new_with_threads(resource_threads: ResourceThreads,
+                            pipeline: Option<PipelineId>,
+                            initial_load: Option<Url>) -> DocumentLoader {
         let initial_loads = initial_load.into_iter().map(LoadType::PageSource).collect();
 
         DocumentLoader {
-            resource_thread: resource_thread,
+            resource_threads: resource_threads,
             pipeline: pipeline,
             blocking_loads: initial_loads,
             events_inhibited: false,
@@ -138,7 +132,7 @@ impl DocumentLoader {
         self.add_blocking_load(load);
         let client_chan = referrer.window().custom_message_chan();
         PendingAsyncLoad::new(context,
-                              (*self.resource_thread).clone(),
+                              self.resource_threads.sender(),
                               url,
                               self.pipeline,
                               referrer.get_referrer_policy(),
@@ -169,7 +163,12 @@ impl DocumentLoader {
     pub fn inhibit_events(&mut self) {
         self.events_inhibited = true;
     }
+
     pub fn events_inhibited(&self) -> bool {
         self.events_inhibited
+    }
+
+    pub fn resource_threads(&self) -> &ResourceThreads {
+        &self.resource_threads
     }
 }

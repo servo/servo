@@ -24,7 +24,8 @@ use js::jsapi::{HandleValue, JSContext, JSRuntime, RootedValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy, PanicMsg};
-use net_traits::{LoadContext, CoreResourceThread, load_whole_resource, RequestSource, LoadOrigin, CustomResponseSender};
+use net_traits::{LoadContext, ResourceThreads, load_whole_resource};
+use net_traits::{RequestSource, LoadOrigin, CustomResponseSender, IpcSend};
 use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_traits::ScriptMsg as ConstellationMsg;
@@ -44,7 +45,7 @@ pub enum WorkerGlobalScopeTypeId {
 }
 
 pub struct WorkerGlobalScopeInit {
-    pub core_resource_thread: CoreResourceThread,
+    pub resource_threads: ResourceThreads,
     pub mem_profiler_chan: mem::ProfilerChan,
     pub time_profiler_chan: time::ProfilerChan,
     pub to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
@@ -67,7 +68,7 @@ pub struct WorkerGlobalScope {
     runtime: Runtime,
     next_worker_id: Cell<WorkerId>,
     #[ignore_heap_size_of = "Defined in std"]
-    core_resource_thread: CoreResourceThread,
+    resource_threads: ResourceThreads,
     location: MutNullableHeap<JS<WorkerLocation>>,
     navigator: MutNullableHeap<JS<WorkerNavigator>>,
     console: MutNullableHeap<JS<Console>>,
@@ -126,7 +127,7 @@ impl WorkerGlobalScope {
             worker_url: worker_url,
             closing: init.closing,
             runtime: runtime,
-            core_resource_thread: init.core_resource_thread,
+            resource_threads: init.resource_threads,
             location: Default::default(),
             navigator: Default::default(),
             console: Default::default(),
@@ -204,8 +205,8 @@ impl WorkerGlobalScope {
         self.closing.load(Ordering::SeqCst)
     }
 
-    pub fn core_resource_thread(&self) -> &CoreResourceThread {
-        &self.core_resource_thread
+    pub fn resource_threads(&self) -> &ResourceThreads {
+        &self.resource_threads
     }
 
     pub fn get_url(&self) -> &Url {
@@ -269,7 +270,10 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
         let mut rval = RootedValue::new(self.runtime.cx(), UndefinedValue());
         for url in urls {
-            let (url, source) = match load_whole_resource(LoadContext::Script, &self.core_resource_thread, url, self) {
+            let (url, source) = match load_whole_resource(LoadContext::Script,
+                                                          &self.resource_threads.sender(),
+                                                          url,
+                                                          self) {
                 Err(_) => return Err(Error::Network),
                 Ok((metadata, bytes)) => {
                     (metadata.final_url, String::from_utf8(bytes).unwrap())
