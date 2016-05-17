@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::eventtarget::EventTarget;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::PopStateEventBinding;
 use dom::bindings::codegen::Bindings::PopStateEventBinding::PopStateEventMethods;
@@ -12,6 +11,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::event::Event;
+use dom::eventtarget::EventTarget;
 use js::jsapi::{HandleValue, Heap, JSContext, RootedValue};
 use js::jsval::JSVal;
 use string_cache::Atom;
