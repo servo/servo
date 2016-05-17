@@ -1573,9 +1573,9 @@ impl ScriptThread {
             }
         });
 
-        let loader = DocumentLoader::new_with_thread(Arc::new(self.resource_threads.sender()),
-                                                     Some(browsing_context.pipeline()),
-                                                     Some(incomplete.url.clone()));
+        let loader = DocumentLoader::new_with_threads(self.resource_threads.clone(),
+                                                      Some(browsing_context.pipeline()),
+                                                      Some(incomplete.url.clone()));
 
         let is_html_document = match metadata.content_type {
             Some(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _))) |

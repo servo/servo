@@ -11,7 +11,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bindings::str::{DOMString, USVString};
-use dom::blob::Blob;
+use dom::blob::{Blob, BlobImpl};
 use dom::file::File;
 use dom::htmlformelement::HTMLFormElement;
 use std::collections::HashMap;
@@ -121,14 +121,15 @@ impl FormDataMethods for FormData {
 
 
 impl FormData {
-    fn get_file_or_blob(&self, value: &Blob, filename: Option<USVString>) -> Root<Blob> {
+    fn get_file_or_blob(&self, blob: &Blob, filename: Option<USVString>) -> Root<Blob> {
         match filename {
             Some(fname) => {
                 let global = self.global();
                 let name = DOMString::from(fname.0);
-                Root::upcast(File::new(global.r(), value.get_data().clone(), name, None, ""))
+                let slice = blob.get_slice_or_empty();
+                Root::upcast(File::new(global.r(), BlobImpl::new_from_slice(slice), name, None, ""))
             }
-            None => Root::from_ref(value)
+            None => Root::from_ref(blob)
         }
     }
 }
