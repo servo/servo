@@ -4,7 +4,9 @@
 
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
+use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
+use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root, RootedReference};
@@ -18,6 +20,7 @@ use dom::bindings::utils::get_array_index_from_id;
 use dom::document::Document;
 use dom::element::Element;
 use dom::popstateevent::PopStateEvent;
+use dom::urlhelper::UrlHelper;
 use dom::window::Window;
 use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
@@ -131,6 +134,10 @@ impl BrowsingContext {
         assert!(active_index < self.history.borrow().len());
         self.active_index.set(active_index);
 
+        // let active_document = self.active_document();
+        // let entry = &self.history.borrow()[active_index];
+        // active_document.GetLocation().map(|location| location.SetHash(UrlHelper::Hash(&entry.url)));
+
         if trigger_event {
             let active_window = &*self.active_window();
             let trusted_window = Trusted::new(active_window);
@@ -152,7 +159,7 @@ impl BrowsingContext {
         StructuredCloneData::write(global.get_cx(), state_js.handle()).unwrap()
     }
 
-    pub fn push_state(&self, state: StructuredCloneData, title: DOMString, _url: Option<DOMString>) {
+    pub fn push_state(&self, state: StructuredCloneData, title: DOMString, url: Option<DOMString>) -> ErrorResult {
         // TODO: update URL after we can set the Url of a doc after creation
         self.remove_forward_history();
         let active_document = self.active_document();
@@ -163,8 +170,22 @@ impl BrowsingContext {
         let mut state_js = RootedValue::new(global.get_cx(), NullValue());
         state.read(global, state_js.handle_mut());
 
+        let url = match url {
+            Some(url) => {
+                match active_document.url().join(&url) {
+                    Ok(url) => url,
+                    Err(_) => return Err(Error::Security),
+                }
+            },
+            None => active_document.url().clone(),
+        };
+
+        if !UrlHelper::SameOrigin(&url, active_document.url()) {
+            return Err(Error::Security);
+        }
+
         self.history.borrow_mut().push(SessionHistoryEntry::new(&*active_document,
-                                                                active_document.url().clone(),
+                                                                url,
                                                                 title,
                                                                 Some(state_js.handle())));
         let new_index = self.active_index.get() + 1;
@@ -175,9 +196,11 @@ impl BrowsingContext {
         let ConstellationChan(ref chan) = *active_window.constellation_chan();
         let msg = ConstellationMsg::HistoryStatePushed(pipeline_info, new_index);
         chan.send(msg).unwrap();
+
+        Ok(())
     }
 
-    pub fn replace_state(&self, state: StructuredCloneData, title: DOMString, _url: Option<DOMString>) {
+    pub fn replace_state(&self, state: StructuredCloneData, title: DOMString, url: Option<DOMString>) -> ErrorResult {
         // TODO: update URL after we can set the Url of a doc after creation
         let active_index = self.active_index.get();
         assert!(active_index < self.session_history_length());
@@ -189,10 +212,27 @@ impl BrowsingContext {
         let mut state_js = RootedValue::new(global.get_cx(), NullValue());
         state.read(global, state_js.handle_mut());
 
+        let url = match url {
+            Some(url) => {
+                match active_document.url().join(&url) {
+                    Ok(url) => url,
+                    Err(_) => return Err(Error::Security),
+                }
+            },
+            None => active_document.url().clone(),
+        };
+
+        if !UrlHelper::SameOrigin(&url, active_document.url()) {
+            return Err(Error::Security);
+        }
+
         self.history.borrow_mut()[active_index] = SessionHistoryEntry::new(&*active_document,
-                                                                           active_document.url().clone(),
+                                                                           url,
                                                                            title,
                                                                            Some(state_js.handle()));
+        self.set_active_entry(active_index, false);
+
+        Ok(())
     }
 
     // Clear all session history entries after the active index

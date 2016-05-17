@@ -114,7 +114,7 @@ impl HistoryMethods for History {
                  -> ErrorResult {
         // TODO: Check if `Document` is `fully active`
         let data = try!(StructuredCloneData::write(cx, data));
-        self.window.browsing_context().push_state(data, title, url);
+        try!(self.window.browsing_context().push_state(data, title, url));
         Ok(())
     }
 
@@ -127,7 +127,7 @@ impl HistoryMethods for History {
                     -> ErrorResult {
         // TODO: Check if `Document` is `fully active`
         let data = try!(StructuredCloneData::write(cx, data));
-        self.window.browsing_context().replace_state(data, title, url);
+        try!(self.window.browsing_context().replace_state(data, title, url));
         Ok(())
     }
 }
