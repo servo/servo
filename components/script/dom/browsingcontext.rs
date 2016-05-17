@@ -23,10 +23,10 @@ use js::JSCLASS_IS_GLOBAL;
 use js::glue::{CreateWrapperProxyHandler, ProxyTraps, NewWindowProxy};
 use js::glue::{GetProxyPrivate, SetProxyExtra, GetProxyExtra};
 use js::jsapi::{Handle, HandleId, HandleObject, HandleValue, JSAutoCompartment};
+use js::jsapi::{Heap, MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
 use js::jsapi::{JSContext, JSPROP_READONLY, JSErrNum, JSObject, PropertyDescriptor, JS_DefinePropertyById};
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass, JSTracer, FreeOp};
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHandle};
-use js::jsapi::{Heap, MutableHandleValue, ObjectOpResult, RootedObject, RootedValue};
 use js::jsval::{JSVal, UndefinedValue, PrivateValue, NullValue};
 use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::{PipelineId, SubpageId};
@@ -101,7 +101,10 @@ impl BrowsingContext {
     pub fn init(&self, document: &Document) {
         assert!(self.history.borrow().is_empty());
         assert_eq!(self.active_index.get(), 0);
-        self.history.borrow_mut().push(SessionHistoryEntry::new(document, document.url().clone(), document.Title(), None));
+        self.history.borrow_mut().push(SessionHistoryEntry::new(document,
+                                                                document.url().clone(),
+                                                                document.Title(),
+                                                                None));
     }
 
     pub fn push_history(&self, document: &Document) {
