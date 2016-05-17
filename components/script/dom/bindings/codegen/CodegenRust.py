@@ -1764,8 +1764,10 @@ class CGImports(CGWrapper):
 
         types = []
         for d in descriptors:
-            types += [d.interface]
-
+            if not d.correspondToBrowsingContext:
+                types += [d.interface]
+            else:
+                print d.interface
             members = d.interface.members + d.interface.namedConstructors
             constructor = d.interface.ctor()
             if constructor:
@@ -5085,116 +5087,117 @@ class CGDescriptor(CGThing):
         assert not descriptor.concrete or not descriptor.interface.isCallback()
 
         cgThings = []
-        if not descriptor.interface.isCallback():
-            cgThings.append(CGGetProtoObjectMethod(descriptor))
-        if (descriptor.interface.hasInterfaceObject() and
-                descriptor.shouldHaveGetConstructorObjectMethod()):
-            cgThings.append(CGGetConstructorObjectMethod(descriptor))
+        if not descriptor.correspondToBrowsingContext:
+            if not descriptor.interface.isCallback():
+                cgThings.append(CGGetProtoObjectMethod(descriptor))
+            if (descriptor.interface.hasInterfaceObject() and
+                    descriptor.shouldHaveGetConstructorObjectMethod()):
+                cgThings.append(CGGetConstructorObjectMethod(descriptor))
 
-        for m in descriptor.interface.members:
-            if (m.isMethod() and
-                    (not m.isIdentifierLess() or m == descriptor.operations["Stringifier"])):
-                if m.isStatic():
-                    assert descriptor.interface.hasInterfaceObject()
-                    cgThings.append(CGStaticMethod(descriptor, m))
-                elif not descriptor.interface.isCallback():
-                    cgThings.append(CGSpecializedMethod(descriptor, m))
-                    cgThings.append(CGMemberJITInfo(descriptor, m))
-            elif m.isAttr():
-                if m.stringifier:
-                    raise TypeError("Stringifier attributes not supported yet. "
-                                    "See https://github.com/servo/servo/issues/7590\n"
-                                    "%s" % m.location)
-
-                if m.isStatic():
-                    assert descriptor.interface.hasInterfaceObject()
-                    cgThings.append(CGStaticGetter(descriptor, m))
-                elif not descriptor.interface.isCallback():
-                    cgThings.append(CGSpecializedGetter(descriptor, m))
-
-                if not m.readonly:
+            for m in descriptor.interface.members:
+                if (m.isMethod() and
+                        (not m.isIdentifierLess() or m == descriptor.operations["Stringifier"])):
                     if m.isStatic():
                         assert descriptor.interface.hasInterfaceObject()
-                        cgThings.append(CGStaticSetter(descriptor, m))
+                        cgThings.append(CGStaticMethod(descriptor, m))
                     elif not descriptor.interface.isCallback():
-                        cgThings.append(CGSpecializedSetter(descriptor, m))
-                elif m.getExtendedAttribute("PutForwards"):
-                    cgThings.append(CGSpecializedForwardingSetter(descriptor, m))
+                        cgThings.append(CGSpecializedMethod(descriptor, m))
+                        cgThings.append(CGMemberJITInfo(descriptor, m))
+                elif m.isAttr():
+                    if m.stringifier:
+                        raise TypeError("Stringifier attributes not supported yet. "
+                                        "See https://github.com/servo/servo/issues/7590\n"
+                                        "%s" % m.location)
 
-                if (not m.isStatic() and not descriptor.interface.isCallback()):
-                    cgThings.append(CGMemberJITInfo(descriptor, m))
+                    if m.isStatic():
+                        assert descriptor.interface.hasInterfaceObject()
+                        cgThings.append(CGStaticGetter(descriptor, m))
+                    elif not descriptor.interface.isCallback():
+                        cgThings.append(CGSpecializedGetter(descriptor, m))
 
-        if descriptor.concrete:
-            cgThings.append(CGClassFinalizeHook(descriptor))
-            cgThings.append(CGClassTraceHook(descriptor))
+                    if not m.readonly:
+                        if m.isStatic():
+                            assert descriptor.interface.hasInterfaceObject()
+                            cgThings.append(CGStaticSetter(descriptor, m))
+                        elif not descriptor.interface.isCallback():
+                            cgThings.append(CGSpecializedSetter(descriptor, m))
+                    elif m.getExtendedAttribute("PutForwards"):
+                        cgThings.append(CGSpecializedForwardingSetter(descriptor, m))
 
-        if descriptor.interface.hasInterfaceObject():
-            if descriptor.interface.ctor():
-                cgThings.append(CGClassConstructHook(descriptor))
-            for ctor in descriptor.interface.namedConstructors:
-                cgThings.append(CGClassConstructHook(descriptor, ctor))
+                    if (not m.isStatic() and not descriptor.interface.isCallback()):
+                        cgThings.append(CGMemberJITInfo(descriptor, m))
+
+            if descriptor.concrete:
+                cgThings.append(CGClassFinalizeHook(descriptor))
+                cgThings.append(CGClassTraceHook(descriptor))
+
+            if descriptor.interface.hasInterfaceObject():
+                if descriptor.interface.ctor():
+                    cgThings.append(CGClassConstructHook(descriptor))
+                for ctor in descriptor.interface.namedConstructors:
+                    cgThings.append(CGClassConstructHook(descriptor, ctor))
+                if not descriptor.interface.isCallback():
+                    cgThings.append(CGInterfaceObjectJSClass(descriptor))
+
             if not descriptor.interface.isCallback():
-                cgThings.append(CGInterfaceObjectJSClass(descriptor))
+                cgThings.append(CGPrototypeJSClass(descriptor))
 
-        if not descriptor.interface.isCallback():
-            cgThings.append(CGPrototypeJSClass(descriptor))
+            properties = PropertyArrays(descriptor)
+            cgThings.append(CGGeneric(str(properties)))
+            cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties))
 
-        properties = PropertyArrays(descriptor)
-        cgThings.append(CGGeneric(str(properties)))
-        cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties))
+            # If there are no constant members, don't make a module for constants
+            constMembers = [m for m in descriptor.interface.members if m.isConst()]
+            if constMembers:
+                cgThings.append(CGNamespace.build([descriptor.name + "Constants"],
+                                                  CGConstant(constMembers),
+                                                  public=True))
 
-        # If there are no constant members, don't make a module for constants
-        constMembers = [m for m in descriptor.interface.members if m.isConst()]
-        if constMembers:
-            cgThings.append(CGNamespace.build([descriptor.name + "Constants"],
-                                              CGConstant(constMembers),
-                                              public=True))
+            if descriptor.interface.hasInterfaceObject():
+                cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
+                if descriptor.isExposedConditionally():
+                    cgThings.append(CGConstructorEnabled(descriptor))
 
-        if descriptor.interface.hasInterfaceObject():
-            cgThings.append(CGDefineDOMInterfaceMethod(descriptor))
-            if descriptor.isExposedConditionally():
-                cgThings.append(CGConstructorEnabled(descriptor))
-
-        if descriptor.proxy:
-            cgThings.append(CGDefineProxyHandler(descriptor))
-
-        if descriptor.concrete:
             if descriptor.proxy:
-                # cgThings.append(CGProxyIsProxy(descriptor))
-                cgThings.append(CGProxyUnwrap(descriptor))
-                cgThings.append(CGDOMJSProxyHandlerDOMClass(descriptor))
-                cgThings.append(CGDOMJSProxyHandler_ownPropertyKeys(descriptor))
-                if descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties"):
-                    cgThings.append(CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(descriptor))
-                cgThings.append(CGDOMJSProxyHandler_getOwnPropertyDescriptor(descriptor))
-                cgThings.append(CGDOMJSProxyHandler_className(descriptor))
-                cgThings.append(CGDOMJSProxyHandler_get(descriptor))
-                cgThings.append(CGDOMJSProxyHandler_hasOwn(descriptor))
+                cgThings.append(CGDefineProxyHandler(descriptor))
 
-                if descriptor.operations['IndexedSetter'] or descriptor.operations['NamedSetter']:
-                    cgThings.append(CGDOMJSProxyHandler_defineProperty(descriptor))
+            if descriptor.concrete:
+                if descriptor.proxy:
+                    # cgThings.append(CGProxyIsProxy(descriptor))
+                    cgThings.append(CGProxyUnwrap(descriptor))
+                    cgThings.append(CGDOMJSProxyHandlerDOMClass(descriptor))
+                    cgThings.append(CGDOMJSProxyHandler_ownPropertyKeys(descriptor))
+                    if descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties"):
+                        cgThings.append(CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(descriptor))
+                    cgThings.append(CGDOMJSProxyHandler_getOwnPropertyDescriptor(descriptor))
+                    cgThings.append(CGDOMJSProxyHandler_className(descriptor))
+                    cgThings.append(CGDOMJSProxyHandler_get(descriptor))
+                    cgThings.append(CGDOMJSProxyHandler_hasOwn(descriptor))
 
-                # We want to prevent indexed deleters from compiling at all.
-                assert not descriptor.operations['IndexedDeleter']
+                    if descriptor.operations['IndexedSetter'] or descriptor.operations['NamedSetter']:
+                        cgThings.append(CGDOMJSProxyHandler_defineProperty(descriptor))
 
-                if descriptor.operations['NamedDeleter']:
-                    cgThings.append(CGDOMJSProxyHandler_delete(descriptor))
+                    # We want to prevent indexed deleters from compiling at all.
+                    assert not descriptor.operations['IndexedDeleter']
 
-                # cgThings.append(CGDOMJSProxyHandler(descriptor))
-                # cgThings.append(CGIsMethod(descriptor))
-                pass
-            else:
-                cgThings.append(CGDOMJSClass(descriptor))
-                pass
+                    if descriptor.operations['NamedDeleter']:
+                        cgThings.append(CGDOMJSProxyHandler_delete(descriptor))
 
-            cgThings.append(CGWrapMethod(descriptor))
+                    # cgThings.append(CGDOMJSProxyHandler(descriptor))
+                    # cgThings.append(CGIsMethod(descriptor))
+                    pass
+                else:
+                    cgThings.append(CGDOMJSClass(descriptor))
+                    pass
 
-        if not descriptor.interface.isCallback():
-            if descriptor.concrete or descriptor.hasDescendants():
-                cgThings.append(CGIDLInterface(descriptor))
-            cgThings.append(CGInterfaceTrait(descriptor))
-            if descriptor.weakReferenceable:
-                cgThings.append(CGWeakReferenceableTrait(descriptor))
+                cgThings.append(CGWrapMethod(descriptor))
+
+            if not descriptor.interface.isCallback():
+                if descriptor.concrete or descriptor.hasDescendants():
+                    cgThings.append(CGIDLInterface(descriptor))
+                cgThings.append(CGInterfaceTrait(descriptor))
+                if descriptor.weakReferenceable:
+                    cgThings.append(CGWeakReferenceableTrait(descriptor))
 
         cgThings = CGList(cgThings, "\n")
         # self.cgRoot = CGWrapper(CGNamespace(toBindingNamespace(descriptor.name),
