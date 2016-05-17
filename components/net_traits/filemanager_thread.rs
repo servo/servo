@@ -7,12 +7,21 @@ use std::path::PathBuf;
 use uuid::Uuid;
 
 #[derive(Deserialize, Serialize)]
+pub struct SelectedFile {
+    pub id: Uuid,
+    pub filename: PathBuf,
+    pub modified: u64,
+    // https://w3c.github.io/FileAPI/#dfn-type
+    pub type_string: Option<String>,
+}
+
+#[derive(Deserialize, Serialize)]
 pub enum FileManagerThreadMsg {
     /// Select a single file, return triple (FileID, FileName, lastModified)
-    SelectFile(IpcSender<FileManagerResult<(Uuid, PathBuf, u64)>>),
+    SelectFile(IpcSender<FileManagerResult<SelectedFile>>),
 
     /// Select multiple files, return a vector of triples
-    SelectFiles(IpcSender<FileManagerResult<Vec<(Uuid, PathBuf, u64)>>>),
+    SelectFiles(IpcSender<FileManagerResult<Vec<SelectedFile>>>),
 
     /// Read file, return the bytes
     ReadFile(IpcSender<FileManagerResult<Vec<u8>>>, Uuid),
@@ -23,7 +32,7 @@ pub enum FileManagerThreadMsg {
 
 pub type FileManagerResult<T> = Result<T, FileManagerThreadError>;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum FileManagerThreadError {
     /// The selection action is invalid, nothing is selected
     InvalidSelection,
