@@ -83,6 +83,7 @@ struct Handler {
     constellation_chan: Sender<ConstellationMsg>,
     script_timeout: u32,
     load_timeout: u32,
+    resize_timeout: u32,
     implicit_wait_timeout: u32
 }
 
@@ -222,6 +223,7 @@ impl Handler {
             constellation_chan: constellation_chan,
             script_timeout: 30_000,
             load_timeout: 300_000,
+            resize_timeout: 30_000,
             implicit_wait_timeout: 0
         }
     }
@@ -372,14 +374,24 @@ impl Handler {
         let (sender, receiver) = ipc::channel().unwrap();
         let size = Size2D::new(params.width as u32, params.height as u32);
         let pipeline_id = try!(self.root_pipeline());
-        let cmd_msg = WebDriverCommandMsg::SetWindowSize(pipeline_id, size, sender);
+        let cmd_msg = WebDriverCommandMsg::SetWindowSize(pipeline_id, size, sender.clone());
 
         self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
-        let window_size = receiver.recv().unwrap();
-        let vp = window_size.visible_viewport;
-        let window_size_response = WindowSizeResponse::new(vp.width.get() as u64, vp.height.get() as u64);
-        Ok(WebDriverResponse::WindowSize(window_size_response))
+        let timeout = self.resize_timeout;
+        thread::spawn(move || {
+            thread::sleep(Duration::from_millis(timeout as u64));
+            let _ = sender.send(None);
+        });
+
+        match receiver.recv().unwrap() {
+            Some(window_size) => {
+                let vp = window_size.visible_viewport;
+                let window_size_response = WindowSizeResponse::new(vp.width.get() as u64, vp.height.get() as u64);
+                Ok(WebDriverResponse::WindowSize(window_size_response))
+            },
+            None => Err(WebDriverError::new(ErrorStatus::Timeout, "Resize timed out")),
+        }
     }
 
     fn handle_is_enabled(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {

@@ -298,7 +298,7 @@ impl<'a> Iterator for FrameTreeIterator<'a> {
 
 struct WebDriverData {
     load_channel: Option<(PipelineId, IpcSender<webdriver_msg::LoadStatus>)>,
-    resize_channel: Option<IpcSender<WindowSizeData>>,
+    resize_channel: Option<IpcSender<Option<WindowSizeData>>>,
 }
 
 impl WebDriverData {
@@ -1716,7 +1716,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
 
         if let Some(resize_channel) = self.webdriver.resize_channel.take() {
-            let _ = resize_channel.send(new_size);
+            let _ = resize_channel.send(Some(new_size));
         }
 
         self.window_size = new_size;
