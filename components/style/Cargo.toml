@@ -14,11 +14,8 @@ path = "lib.rs"
 gecko = []
 
 [dependencies]
-plugins = {path = "../plugins"}
-util = {path = "../util"}
-style_traits = {path = "../style_traits"}
 app_units = {version = "0.2.3", features = ["plugins"]}
-bitflags = "0.6.0"
+bitflags = "0.7"
 cssparser = {version = "0.5.5", features = ["heap_size", "serde-serialization"]}
 encoding = "0.2"
 euclid = {version = "0.6.4", features = ["plugins"]}
@@ -29,14 +26,17 @@ lazy_static = "0.2"
 log = "0.3.5"
 matches = "0.1"
 num-traits = "0.1.32"
+plugins = {path = "../plugins"}
 rustc-serialize = "0.3"
 selectors = {version = "0.5", features = ["heap_size", "unstable"]}
 serde = {version = "0.7", features = ["nightly"]}
 serde_macros = "0.7"
 smallvec = "0.1"
 string_cache = {version = "0.2.12", features = ["heap_size"]}
+style_traits = {path = "../style_traits"}
 time = "0.1"
 url = {version = "1.0.0", features = ["heap_size"]}
+util = {path = "../util"}
 
 [build-dependencies]
 walkdir = "0.1"

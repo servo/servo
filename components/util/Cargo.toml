@@ -18,22 +18,22 @@ path = "lib.rs"
 non-geckolib = ["js"]
 
 [dependencies]
-plugins = {path = "../plugins"}
-js = {git = "https://github.com/servo/rust-mozjs", optional = true}
-ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 app_units = {version = "0.2.3", features = ["plugins"]}
 backtrace = "0.2.1"
-bitflags = "0.6.0"
+bitflags = "0.7"
 deque = "0.3.1"
 euclid = {version = "0.6.4", features = ["unstable", "plugins"]}
 getopts = "0.2.11"
 heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+js = {git = "https://github.com/servo/rust-mozjs", optional = true}
 lazy_static = "0.2"
 libc = "0.2"
 log = "0.3.5"
 num = "0.1.32"
 num_cpus = "0.2.2"
+plugins = {path = "../plugins"}
 rand = "0.3"
 rustc-serialize = "0.3"
 serde = "0.7"

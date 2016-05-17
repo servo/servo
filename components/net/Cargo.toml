@@ -9,32 +9,32 @@ name = "net"
 path = "lib.rs"
 
 [dependencies]
-net_traits = {path = "../net_traits"}
-util = {path = "../util"}
-devtools_traits = {path = "../devtools_traits"}
+bitflags = "0.7"
 brotli = {git = "https://github.com/ende76/brotli-rs"}
-plugins = {path = "../plugins"}
-msg = {path = "../msg"}
-ipc-channel = {git = "https://github.com/servo/ipc-channel"}
-webrender_traits = {git = "https://github.com/servo/webrender_traits"}
+cookie = {version = "0.2.4", features = ["serialize-rustc"]}
 device = {git = "https://github.com/servo/devices"}
-bitflags = "0.6.0"
-cookie = { version = "0.2.4", features = [ "serialize-rustc" ] }
+devtools_traits = {path = "../devtools_traits"}
 flate2 = "0.2.0"
-hyper = { version = "0.9", features = [ "serde-serialization" ] }
+hyper = {version = "0.9", features = ["serde-serialization"]}
 immeta = "0.3.1"
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 log = "0.3.5"
 matches = "0.1"
 mime = "0.2.0"
 mime_guess = "1.6.0"
+msg = {path = "../msg"}
+net_traits = {path = "../net_traits"}
 openssl = "0.7.6"
 openssl-verify = "0.1"
+plugins = {path = "../plugins"}
 rustc-serialize = "0.3"
 threadpool = "1.0"
 time = "0.1.17"
 unicase = "1.4.0"
 url = {version = "1.0.0", features = ["heap_size", "rustc-serialize"]}
-uuid = { version = "0.2", features = ["v4"] }
+util = {path = "../util"}
+uuid = {version = "0.2", features = ["v4"]}
+webrender_traits = {git = "https://github.com/servo/webrender_traits"}
 websocket = "0.17"
 
 [target.'cfg(any(target_os = "macos", target_os = "linux"))'.dependencies]

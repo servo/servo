@@ -8,17 +8,17 @@ name = "glutin_app"
 path = "lib.rs"
 
 [dependencies]
-bitflags = "0.6.0"
-url = {version = "1.0.0", features = ["heap_size"]}
-gleam = "0.2.8"
-euclid = {version = "0.6.4", features = ["plugins"]}
-servo-glutin = "0.4"
+bitflags = "0.7"
 compositing = {path = "../../components/compositing"}
-script_traits = {path = "../../components/script_traits"}
+euclid = {version = "0.6.4", features = ["plugins"]}
+gleam = "0.2.8"
 layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
 msg = {path = "../../components/msg"}
 net_traits = {path = "../../components/net_traits"}
+script_traits = {path = "../../components/script_traits"}
+servo-glutin = "0.4"
 style_traits = {path = "../../components/style_traits"}
+url = {version = "1.0.0", features = ["heap_size"]}
 util = {path = "../../components/util"}
 
 [target.'cfg(target_os = "linux")'.dependencies]

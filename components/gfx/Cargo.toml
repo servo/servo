@@ -11,38 +11,38 @@ path = "lib.rs"
 
 [dependencies]
 app_units = {version = "0.2.3", features = ["plugins"]}
-bitflags = "0.6.0"
+azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
+bitflags = "0.7"
 euclid = {version = "0.6.4", features = ["plugins"]}
 fnv = "1.0"
+gfx_traits = {path = "../gfx_traits"}
 harfbuzz-sys = "0.1"
 heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
 lazy_static = "0.2"
 libc = "0.2"
 log = "0.3.5"
 mime = "0.2"
+msg = {path = "../msg"}
+net_traits = {path = "../net_traits"}
+plugins = {path = "../plugins"}
+profile_traits = {path = "../profile_traits"}
 rand = "0.3"
+range = {path = "../range"}
 rustc-serialize = "0.3"
 serde = "0.7"
 serde_macros = "0.7"
 servo-skia = "0.20130412.0"
 smallvec = "0.1"
 string_cache = {version = "0.2.12", features = ["heap_size"]}
-time = "0.1.12"
-unicode-script = { version = "0.1", features = ["harfbuzz"] }
-url = {version = "1.0.0", features = ["heap_size"]}
-plugins = {path = "../plugins"}
-gfx_traits = {path = "../gfx_traits"}
-net_traits = {path = "../net_traits"}
-util = {path = "../util"}
-msg = {path = "../msg"}
-profile_traits = {path = "../profile_traits"}
-range = {path = "../range"}
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
-azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
-layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
-ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+time = "0.1.12"
+unicode-script = {version = "0.1", features = ["harfbuzz"]}
+url = {version = "1.0.0", features = ["heap_size"]}
+util = {path = "../util"}
 webrender_traits = {git = "https://github.com/servo/webrender_traits"}
 xi-unicode = "0.0.1"
 
