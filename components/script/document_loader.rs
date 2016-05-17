@@ -9,7 +9,7 @@ use dom::bindings::js::JS;
 use dom::document::Document;
 use msg::constellation_msg::PipelineId;
 use net_traits::AsyncResponseTarget;
-use net_traits::{PendingAsyncLoad, ResourceThread, LoadContext};
+use net_traits::{PendingAsyncLoad, CoreResourceThread, LoadContext};
 use std::sync::Arc;
 use std::thread;
 use url::Url;
@@ -93,10 +93,10 @@ impl Drop for LoadBlocker {
 
 #[derive(JSTraceable, HeapSizeOf)]
 pub struct DocumentLoader {
-    /// We use an `Arc<ResourceThread>` here in order to avoid file descriptor exhaustion when there
+    /// We use an `Arc<CoreResourceThread>` here in order to avoid file descriptor exhaustion when there
     /// are lots of iframes.
     #[ignore_heap_size_of = "channels are hard"]
-    pub resource_thread: Arc<ResourceThread>,
+    pub resource_thread: Arc<CoreResourceThread>,
     pipeline: Option<PipelineId>,
     blocking_loads: Vec<LoadType>,
     events_inhibited: bool,
@@ -107,9 +107,9 @@ impl DocumentLoader {
         DocumentLoader::new_with_thread(existing.resource_thread.clone(), None, None)
     }
 
-    /// We use an `Arc<ResourceThread>` here in order to avoid file descriptor exhaustion when there
+    /// We use an `Arc<CoreResourceThread>` here in order to avoid file descriptor exhaustion when there
     /// are lots of iframes.
-    pub fn new_with_thread(resource_thread: Arc<ResourceThread>,
+    pub fn new_with_thread(resource_thread: Arc<CoreResourceThread>,
                          pipeline: Option<PipelineId>,
                          initial_load: Option<Url>)
                          -> DocumentLoader {

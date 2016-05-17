@@ -19,7 +19,7 @@ use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use msg::constellation_msg::{ConstellationChan, PipelineId};
-use net_traits::ResourceThread;
+use net_traits::CoreResourceThread;
 use profile_traits::mem;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::{MainThreadScriptChan, ScriptThread};
@@ -106,8 +106,8 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// Get the `ResourceThread` for this global scope.
-    pub fn resource_thread(&self) -> ResourceThread {
+    /// Get the `CoreResourceThread` for this global scope.
+    pub fn core_resource_thread(&self) -> CoreResourceThread {
         match *self {
             GlobalRef::Window(ref window) => {
                 let doc = window.Document();
@@ -115,7 +115,7 @@ impl<'a> GlobalRef<'a> {
                 let loader = doc.loader();
                 (*loader.resource_thread).clone()
             }
-            GlobalRef::Worker(ref worker) => worker.resource_thread().clone(),
+            GlobalRef::Worker(ref worker) => worker.core_resource_thread().clone(),
         }
     }
 
