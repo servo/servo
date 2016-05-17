@@ -283,26 +283,6 @@ pub fn handle_get_url(context: &BrowsingContext,
     reply.send((*url).clone()).unwrap();
 }
 
-pub fn handle_get_window_size(context: &BrowsingContext,
-                              _pipeline: PipelineId,
-                              reply: IpcSender<Option<WindowSizeData>>) {
-    let window = context.active_window();
-    let size = window.window_size();
-    reply.send(size).unwrap();
-}
-
-pub fn handle_set_window_size(context: &BrowsingContext,
-                              _pipeline: PipelineId,
-                              size: TypedSize2D<ViewportPx, f32>,
-                              reply: IpcSender<()>) {
-    let window = context.active_window();
-    // TODO: converting to a dimensionless size is error-prone
-    let untyped = size.to_untyped();
-    // TODO: when window puts in security checks for resize, we will need to rewrite this
-    window.ResizeTo(untyped.width as i32, untyped.height as i32);
-    reply.send(()).unwrap();
-}
-
 pub fn handle_is_enabled(context: &BrowsingContext,
                          pipeline: PipelineId,
                          element_id: String,
