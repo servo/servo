@@ -30,6 +30,8 @@ macro_rules! ot_tag {
     );
 }
 
+pub const GPOS: u32 = ot_tag!('G', 'P', 'O', 'S');
+pub const GSUB: u32 = ot_tag!('G', 'S', 'U', 'B');
 pub const KERN: u32 = ot_tag!('k', 'e', 'r', 'n');
 
 static TEXT_SHAPING_PERFORMANCE_COUNTER: AtomicUsize = ATOMIC_USIZE_INIT;
@@ -51,7 +53,9 @@ pub trait FontHandleMethods: Sized {
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId>;
     fn glyph_h_advance(&self, GlyphId) -> Option<FractionalPixel>;
-    fn glyph_h_kerning(&self, GlyphId, GlyphId) -> FractionalPixel;
+    fn glyph_h_kerning(&self, glyph0: GlyphId, glyph1: GlyphId) -> FractionalPixel;
+    /// Can this font do basic horizontal LTR shaping without Harfbuzz?
+    fn can_do_fast_shaping(&self) -> bool;
     fn metrics(&self) -> FontMetrics;
     fn table_for_tag(&self, FontTableTag) -> Option<FontTable>;
 }
