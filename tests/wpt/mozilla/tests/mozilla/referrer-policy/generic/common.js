@@ -111,7 +111,7 @@ function queryIframe(url, callback, referrer_policy) {
     var iframe = appendIframeToBody(url + "&id=" + id, referrer_policy);
     iframe.addEventListener("load", function listener() {
       var xhr = new XMLHttpRequest();
-      xhr.open('GET', '/referrer-policy/generic/subresource/stash.py?id=' + id, true);
+      xhr.open('GET', '/_mozilla/mozilla/referrer-policy/generic/subresource/stash.py?id=' + id, true);
       xhr.onreadystatechange = function(e) {
         if (this.readyState == 4 && this.status == 200) {
           var server_data = JSON.parse(this.responseText);
