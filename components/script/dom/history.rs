@@ -38,9 +38,8 @@ impl History {
     }
 
     fn navigate(&self, direction: NavigationDirection) {
-        let pipeline_info = self.window.parent_info();
         let ConstellationChan(ref chan) = *self.window.constellation_chan();
-        let msg = ConstellationMsg::Navigate(pipeline_info, direction);
+        let msg = ConstellationMsg::Navigate(direction);
         chan.send(msg).unwrap();
     }
 }
@@ -49,16 +48,12 @@ impl HistoryMethods for History {
     // https://html.spec.whatwg.org/multipage/#dom-history-length
     fn Length(&self) -> u32 {
         // TODO: Check if `Document` is `fully active`
-        let (sender, receiver) = ipc::channel::<Option<usize>>().expect("Failed to create IPC channel");
-        let pipeline_info = self.window.parent_info();
+        let (sender, receiver) = ipc::channel::<usize>().expect("Failed to create IPC channel");
         let ConstellationChan(ref chan) = *self.window.constellation_chan();
-        let msg = ConstellationMsg::HistoryLength(pipeline_info, sender);
+        let msg = ConstellationMsg::HistoryLength(sender);
         chan.send(msg).unwrap();
 
-        match receiver.recv().unwrap() {
-            Some(len) => len as u32,
-            _ => 0
-        }
+        receiver.recv().unwrap() as u32
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-scroll-restoration
@@ -68,7 +63,7 @@ impl HistoryMethods for History {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-history-scroll-restoration
-    fn SetScrollRestoration(&self, value: ScrollRestoration) {
+    fn SetScrollRestoration(&self, _value: ScrollRestoration) {
         // TODO: Check if `Document` is `fully active`
 
     }
@@ -87,8 +82,8 @@ impl HistoryMethods for History {
     fn Go(&self, delta: i32) {
         // TODO: Check if `Document` is `fully active`
         let direction = match delta {
-            delta if delta > 0 => NavigationDirection::Forward(delta as u32),
-            delta if delta < 0 => NavigationDirection::Back((-delta) as u32),
+            delta if delta > 0 => NavigationDirection::Forward(delta as usize),
+            delta if delta < 0 => NavigationDirection::Back((-delta) as usize),
             _ => {
                 // TODO: Reload page
                 // This is assumed to be 0
