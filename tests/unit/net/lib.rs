@@ -20,6 +20,7 @@ extern crate util;
 
 #[cfg(test)] mod chrome_loader;
 #[cfg(test)] mod cookie;
+#[cfg(test)] mod cookie_http_state;
 #[cfg(test)] mod data_loader;
 #[cfg(test)] mod file_loader;
 #[cfg(test)] mod fetch;
