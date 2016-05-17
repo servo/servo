@@ -53,7 +53,8 @@ pub fn expand_jstraceable(cx: &mut ExtCtxt, span: Span, mitem: &MetaItem, item: 
                 ret_ty: ty::nil_ty(),
                 attributes: vec![quote_attr!(cx, #[inline])],
                 is_unsafe: false,
-                combine_substructure: combine_substructure(box jstraceable_substructure)
+                combine_substructure: combine_substructure(box jstraceable_substructure),
+                unify_fieldless_variants: true,
             }
         ],
         associated_types: vec![],

@@ -6377,9 +6377,7 @@ class GlobalGenRoots():
             if not config.getInterface(base).getExtendedAttribute("Abstract"):
                 variants.append(CGGeneric(base))
             variants += [CGGeneric(type_id_variant(derivedName)) for derivedName in derived]
-            derives = "Clone, Copy, Debug"
-            if base != 'EventTarget' and base != 'HTMLElement':
-                derives += ", PartialEq"
+            derives = "Clone, Copy, Debug, PartialEq"
             typeIdCode.append(CGWrapper(CGIndenter(CGList(variants, ",\n"), 4),
                                         pre="#[derive(%s)]\npub enum %sTypeId {\n" % (derives, base),
                                         post="\n}\n\n"))
