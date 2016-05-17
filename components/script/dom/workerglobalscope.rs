@@ -21,7 +21,7 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::{HandleValue, JSContext, JSRuntime, RootedValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use msg::constellation_msg::{ConstellationChan, PipelineId};
+use msg::constellation_msg::{ConstellationChan, PanicMsg, PipelineId};
 use net_traits::{LoadContext, ResourceThread, load_whole_resource};
 use profile_traits::mem;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
@@ -49,6 +49,7 @@ pub struct WorkerGlobalScopeInit {
     pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
     pub constellation_chan: ConstellationChan<ConstellationMsg>,
     pub scheduler_chan: IpcSender<TimerEventRequest>,
+    pub panic_chan: IpcSender<PanicMsg>,
     pub worker_id: WorkerId,
     pub closing: Arc<AtomicBool>,
 }
@@ -94,6 +95,9 @@ pub struct WorkerGlobalScope {
 
     #[ignore_heap_size_of = "Defined in std"]
     scheduler_chan: IpcSender<TimerEventRequest>,
+
+    #[ignore_heap_size_of = "Defined in ipc-channel"]
+    panic_chan: IpcSender<PanicMsg>,
 }
 
 impl WorkerGlobalScope {
@@ -124,6 +128,7 @@ impl WorkerGlobalScope {
             devtools_wants_updates: Cell::new(false),
             constellation_chan: init.constellation_chan,
             scheduler_chan: init.scheduler_chan,
+            panic_chan: init.panic_chan,
         }
     }
 
@@ -190,6 +195,10 @@ impl WorkerGlobalScope {
         let WorkerId(id_num) = worker_id;
         self.next_worker_id.set(WorkerId(id_num + 1));
         worker_id
+    }
+
+    pub fn panic_chan(&self) -> &IpcSender<PanicMsg> {
+        &self.panic_chan
     }
 }
 

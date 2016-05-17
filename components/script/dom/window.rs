@@ -42,7 +42,7 @@ use js::rust::Runtime;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
 use layout_interface::{LayoutChan, LayoutRPC, Msg, Reflow, ReflowQueryType, MarginStyleResponse};
 use libc;
-use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId};
+use msg::constellation_msg::{ConstellationChan, LoadData, PanicMsg, PipelineId, SubpageId};
 use msg::constellation_msg::{WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceThread;
@@ -253,6 +253,9 @@ pub struct Window {
     ignore_further_async_events: Arc<AtomicBool>,
 
     error_reporter: CSSErrorReporter,
+
+    #[ignore_heap_size_of = "Defined in ipc-channel"]
+    panic_chan: IpcSender<PanicMsg>,
 }
 
 impl Window {
@@ -1275,6 +1278,10 @@ impl Window {
         &self.scheduler_chan
     }
 
+    pub fn panic_chan(&self) -> &IpcSender<PanicMsg> {
+        &self.panic_chan
+    }
+
     pub fn schedule_callback(&self, callback: OneshotTimerCallback, duration: MsDuration) -> OneshotTimerHandle {
         self.timers.schedule_callback(callback,
                                       duration,
@@ -1428,6 +1435,7 @@ impl Window {
                constellation_chan: ConstellationChan<ConstellationMsg>,
                control_chan: IpcSender<ConstellationControlMsg>,
                scheduler_chan: IpcSender<TimerEventRequest>,
+               panic_chan: IpcSender<PanicMsg>,
                timer_event_chan: IpcSender<TimerEvent>,
                layout_chan: LayoutChan,
                id: PipelineId,
@@ -1496,7 +1504,8 @@ impl Window {
             devtools_wants_updates: Cell::new(false),
             webdriver_script_chan: DOMRefCell::new(None),
             ignore_further_async_events: Arc::new(AtomicBool::new(false)),
-            error_reporter: error_reporter
+            error_reporter: error_reporter,
+            panic_chan: panic_chan,
         };
 
         WindowBinding::Wrap(runtime.cx(), win)
