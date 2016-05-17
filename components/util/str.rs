@@ -4,7 +4,7 @@
 
 use app_units::Au;
 use libc::c_char;
-use num::ToPrimitive;
+use num_traits::ToPrimitive;
 use std::borrow::ToOwned;
 use std::convert::AsRef;
 use std::ffi::CStr;

@@ -34,8 +34,8 @@ extern crate lazy_static;
 extern crate libc;
 #[macro_use]
 extern crate log;
-extern crate num;
 extern crate num_cpus;
+extern crate num_traits;
 extern crate rand;
 extern crate rustc_serialize;
 extern crate serde;
