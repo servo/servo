@@ -8,13 +8,13 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <!-- Common global functions for referrer-policy tests. -->
-    <script src="/referrer-policy/generic/common.js"></script>
+    <script src="/_mozilla/mozilla/referrer-policy/generic/common.js"></script>
     <!-- The original specification JSON for validating the scenario. -->
-    <script src="/referrer-policy/spec_json.js"></script>
+    <script src="/_mozilla/mozilla/referrer-policy/spec_json.js"></script>
     <!-- Internal checking of the tests -->
-    <script src="/referrer-policy/generic/sanity-checker.js"></script>
+    <script src="/_mozilla/mozilla/referrer-policy/generic/sanity-checker.js"></script>
     <!-- Simple wrapper API for all referrer-policy test cases. -->
-    <script src="/referrer-policy/generic/referrer-policy-test-case.js?pipe=sub"></script>
+    <script src="/_mozilla/mozilla/referrer-policy/generic/referrer-policy-test-case.js?pipe=sub"></script>
   </head>
   <body>
     <h1>%(spec_title)s</h1>
