@@ -9,8 +9,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::blob::{Blob, DataSlice, blob_parts_to_bytes};
-use std::sync::Arc;
+use dom::blob::{Blob, BlobImpl, DataSlice, blob_parts_to_bytes};
 use time;
 use util::str::DOMString;
 
@@ -22,10 +21,10 @@ pub struct File {
 }
 
 impl File {
-    fn new_inherited(slice: DataSlice, name: DOMString,
+    fn new_inherited(blob_impl: BlobImpl, name: DOMString,
                      modified: Option<i64>, typeString: &str) -> File {
         File {
-            blob: Blob::new_inherited(slice, typeString),
+            blob: Blob::new_inherited(blob_impl, typeString),
             name: name,
             // https://w3c.github.io/FileAPI/#dfn-lastModified
             modified: match modified {
@@ -38,9 +37,9 @@ impl File {
         }
     }
 
-    pub fn new(global: GlobalRef, slice: DataSlice,
+    pub fn new(global: GlobalRef, blob_impl: BlobImpl,
                name: DOMString, modified: Option<i64>, typeString: &str) -> Root<File> {
-        reflect_dom_object(box File::new_inherited(slice, name, modified, typeString),
+        reflect_dom_object(box File::new_inherited(blob_impl, name, modified, typeString),
                            global,
                            FileBinding::Wrap)
     }
@@ -56,9 +55,9 @@ impl File {
         let ref blobPropertyBag = filePropertyBag.parent;
         let typeString = blobPropertyBag.get_typestring();
 
-        let slice = DataSlice::new(Arc::new(bytes), None, None);
+        let slice = DataSlice::from_bytes(bytes);
         let modified = filePropertyBag.lastModified;
-        Ok(File::new(global, slice, filename, modified, &typeString))
+        Ok(File::new(global, BlobImpl::new_from_slice(slice), filename, modified, &typeString))
     }
 
     pub fn name(&self) -> &DOMString {

@@ -313,7 +313,8 @@ impl HTMLFormElement {
                         content_disposition,
                         content_type));
 
-                    result.push_str(from_utf8(&f.upcast::<Blob>().get_data().get_bytes()).unwrap());
+                    let slice = f.upcast::<Blob>().get_slice();
+                    result.push_str(from_utf8(&slice.get_bytes()).unwrap());
                 }
             }
         }

@@ -23,7 +23,7 @@ pub enum FileManagerThreadMsg {
 
 pub type FileManagerResult<T> = Result<T, FileManagerThreadError>;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum FileManagerThreadError {
     /// The selection action is invalid, nothing is selected
     InvalidSelection,
