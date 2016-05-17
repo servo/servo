@@ -615,7 +615,7 @@ impl HTMLFormElement {
         // Step 4
         for datum in &mut ret {
             match &*datum.ty {
-                "file" | "textarea" => (),
+                "file" | "textarea" => (), // TODO
                 _ => {
                     datum.name = clean_crlf(&datum.name);
                     datum.value = FormDatumValue::String(clean_crlf( match datum.value {
