@@ -210,7 +210,7 @@ pub enum WebDriverCommandMsg {
     Refresh(PipelineId, IpcSender<LoadStatus>),
     ScriptCommand(PipelineId, WebDriverScriptCommand),
     SendKeys(PipelineId, Vec<(Key, KeyModifiers, KeyState)>),
-    SetWindowSize(PipelineId, Size2D<u32>, IpcSender<WindowSizeData>),
+    SetWindowSize(PipelineId, Size2D<u32>, IpcSender<Option<WindowSizeData>>),
     TakeScreenshot(PipelineId, IpcSender<Option<Image>>),
 }
 
