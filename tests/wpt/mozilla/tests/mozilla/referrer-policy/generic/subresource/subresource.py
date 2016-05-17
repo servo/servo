@@ -24,11 +24,12 @@ def create_redirect_url(request, cross_origin = False):
     if cross_origin:
         destination_netloc = get_swapped_origin_netloc(parsed.netloc)
 
+    query = filter(lambda x: x.startswith('id='), parsed.query.split('&'))
     destination_url = urlparse.urlunsplit(urlparse.SplitResult(
         scheme = parsed.scheme,
         netloc = destination_netloc,
         path = parsed.path,
-        query = None,
+        query = query[0] if query else None,
         fragment = None))
 
     return destination_url
