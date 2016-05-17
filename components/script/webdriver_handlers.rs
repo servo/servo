@@ -6,7 +6,6 @@ use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclar
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
-use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::HTMLOptionElementBinding::HTMLOptionElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -105,7 +104,7 @@ pub fn handle_get_frame_id(context: &BrowsingContext,
             match find_node_by_unique_id(context, pipeline, x) {
                 Some(ref node) => {
                     match node.downcast::<HTMLIFrameElement>() {
-                        Some(ref elem) => Ok(elem.GetContentWindow()),
+                        Some(ref elem) => Ok(elem.get_content_window()),
                         None => Err(())
                     }
                 },
