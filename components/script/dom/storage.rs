@@ -15,6 +15,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storageevent::StorageEvent;
 use dom::urlhelper::UrlHelper;
 use ipc_channel::ipc;
+use net_traits::IpcSend;
 use net_traits::storage_thread::{StorageThread, StorageThreadMsg, StorageType};
 use script_thread::{MainThreadRunnable, ScriptThread};
 use task_source::dom_manipulation::DOMManipulationTask;
@@ -48,7 +49,7 @@ impl Storage {
     fn get_storage_thread(&self) -> StorageThread {
         let global_root = self.global();
         let global_ref = global_root.r();
-        global_ref.as_window().storage_thread()
+        global_ref.as_window().resource_threads().sender()
     }
 
 }
