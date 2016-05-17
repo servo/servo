@@ -12,7 +12,6 @@ use js::jsapi::JSAutoCompartment;
 use js::jsapi::{Heap, MutableHandleObject, RootedObject, RootedValue};
 use js::jsapi::{IsCallable, JSContext, JSObject, JS_WrapObject};
 use js::jsapi::{JSCompartment, JS_EnterCompartment, JS_LeaveCompartment};
-use js::jsapi::{JS_BeginRequest, JS_EndRequest};
 use js::jsapi::{JS_GetProperty, JS_IsExceptionPending, JS_ReportPendingException};
 use js::jsapi::{JS_RestoreFrameChain, JS_SaveFrameChain};
 use js::jsval::{JSVal, UndefinedValue};
@@ -168,9 +167,6 @@ impl CallSetup {
     pub fn new<T: CallbackContainer>(callback: &T, handling: ExceptionHandling) -> CallSetup {
         let global = global_root_from_object(callback.callback());
         let cx = global.r().get_cx();
-        unsafe {
-            JS_BeginRequest(cx);
-        }
 
         let exception_compartment = unsafe {
             GetGlobalForObjectCrossCompartment(callback.callback())
@@ -210,9 +206,6 @@ impl Drop for CallSetup {
                     JS_RestoreFrameChain(self.cx);
                 }
             }
-        }
-        unsafe {
-            JS_EndRequest(self.cx);
         }
     }
 }
