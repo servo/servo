@@ -17,6 +17,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::Reflectable;
+use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use dom::browsingcontext::BrowsingContext;
 use dom::console::Console;
@@ -36,7 +37,7 @@ use gfx_traits::LayerId;
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{Evaluate2, MutableHandleValue};
 use js::jsapi::{HandleValue, JSContext};
-use js::jsapi::{JSAutoCompartment, JS_GC, JS_GetRuntime, SetWindowProxy};
+use js::jsapi::{JSAutoCompartment, JS_GC, JS_GetRuntime, SetWindowProxy, JSTracer};
 use js::rust::CompileOptionsWrapper;
 use js::rust::Runtime;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
@@ -45,7 +46,7 @@ use libc;
 use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId};
 use msg::constellation_msg::{WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
-use net_traits::ResourceThread;
+use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::storage_thread::{StorageThread, StorageType};
@@ -210,7 +211,7 @@ pub struct Window {
 
     /// Associated resource thread for use by DOM objects like XMLHttpRequest
     #[ignore_heap_size_of = "channels are hard"]
-    resource_thread: Arc<ResourceThread>,
+    resource_threads: ResourceThreads,
 
     /// A handle for communicating messages to the bluetooth thread.
     #[ignore_heap_size_of = "channels are hard"]
@@ -1251,8 +1252,8 @@ impl Window {
         (*self.Document().url()).clone()
     }
 
-    pub fn resource_thread(&self) -> ResourceThread {
-        (*self.resource_thread).clone()
+    pub fn resource_threads(&self) -> ResourceThreads {
+        self.resource_threads.clone()
     }
 
     pub fn mem_profiler_chan(&self) -> &mem::ProfilerChan {
@@ -1420,7 +1421,7 @@ impl Window {
                image_cache_chan: ImageCacheChan,
                compositor: IpcSender<ScriptToCompositorMsg>,
                image_cache_thread: ImageCacheThread,
-               resource_thread: Arc<ResourceThread>,
+               resource_threads: ResourceThreads,
                bluetooth_thread: IpcSender<BluetoothMethodMsg>,
                storage_thread: StorageThread,
                mem_profiler_chan: mem::ProfilerChan,
@@ -1475,7 +1476,7 @@ impl Window {
             parent_info: parent_info,
             dom_static: GlobalStaticData::new(),
             js_runtime: DOMRefCell::new(Some(runtime.clone())),
-            resource_thread: resource_thread,
+            resource_threads: resource_threads,
             bluetooth_thread: bluetooth_thread,
             storage_thread: storage_thread,
             constellation_chan: constellation_chan,
@@ -1567,4 +1568,9 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
     });
 
     println!("{}", debug_msg);
+}
+
+
+impl JSTraceable for ResourceThreads {
+    fn trace(&self, _: *mut JSTracer) { }
 }

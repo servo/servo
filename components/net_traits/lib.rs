@@ -8,7 +8,6 @@
 #![feature(plugin)]
 #![feature(slice_patterns)]
 #![feature(step_by)]
-#![feature(custom_attribute)]
 #![plugin(heapsize_plugin, serde_macros)]
 
 #![deny(unsafe_code)]
@@ -35,6 +34,7 @@ use hyper::method::Method;
 use hyper::mime::{Attr, Mime};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use std::io::Error as IOError;
 use std::sync::mpsc::Sender;
 use std::thread;
 use url::Url;
@@ -181,6 +181,36 @@ pub enum LoadConsumer {
 
 /// Handle to a resource thread
 pub type ResourceThread = IpcSender<ControlMsg>;
+
+pub type IpcSendResult = Result<(), IOError>;
+
+pub trait IpcSend<T> where T: serde::Serialize + serde::Deserialize {
+    fn send(&self, T) -> IpcSendResult;
+    fn sender(&self) -> IpcSender<T>;
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct ResourceThreads {
+    resource_thread: ResourceThread,
+}
+
+impl ResourceThreads {
+    pub fn new(r: ResourceThread) -> ResourceThreads {
+        ResourceThreads {
+            resource_thread: r,
+        }
+    }
+}
+
+impl IpcSend<ControlMsg> for ResourceThreads {
+    fn send(&self, msg: ControlMsg) -> IpcSendResult {
+        self.resource_thread.send(msg)
+    }
+
+    fn sender(&self) -> IpcSender<ControlMsg> {
+        self.resource_thread.clone()
+    }
+}
 
 #[derive(PartialEq, Copy, Clone, Deserialize, Serialize)]
 pub enum IncludeSubdomains {
