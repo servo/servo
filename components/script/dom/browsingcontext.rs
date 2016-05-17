@@ -194,7 +194,7 @@ impl BrowsingContext {
     }
 
     // Clear all session history entries after the active index
-    fn remove_forward_history(&self) {
+    pub fn remove_forward_history(&self) {
         let mut history = self.history.borrow_mut();
         history.drain((self.active_index.get() + 1)..);
     }
