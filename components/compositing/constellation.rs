@@ -1412,10 +1412,20 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                                 .filter_map(|f| f)
                                 .collect::<Vec<FrameId>>();
             for frame_id in &frame_ids {
-                let evicted_frames = match self.frames.get_mut(&frame_id) {
-                    Some(frame) => replace(&mut frame.next, vec!()),
+                let (evicted_frames, id) = match self.frames.get_mut(&frame_id) {
+                    Some(frame) => {
+                        (replace(&mut frame.next, vec!()), frame.current.id)
+                    },
                     None => return warn!("frame forward history removed after closure"),
                 };
+                let msg = ConstellationControlMsg::ClearForwardSessionHistory(id);
+                let result = match self.pipelines.get(&id) {
+                    None => return warn!("Pipeline {:?} child navigated after closure.", id),
+                    Some(pipeline) => pipeline.script_chan.send(msg),
+                };
+                if let Err(e) = result {
+                    self.handle_send_error(id, e);
+                }
                 self.close_evicted_pipelines(evicted_frames);
             }
         }

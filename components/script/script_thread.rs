@@ -912,6 +912,8 @@ impl ScriptThread {
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
             ConstellationControlMsg::UpdateActiveHistoryEntry(pipeline_id, active_entry) =>
                 self.handle_update_active_history_entry(pipeline_id, active_entry),
+            ConstellationControlMsg::ClearForwardSessionHistory(pipeline_id) =>
+                self.handle_clear_forward_session_history(pipeline_id),
         }
     }
 
@@ -1985,6 +1987,16 @@ impl ScriptThread {
         };
 
         context.set_active_entry(active_index);
+    }
+
+    fn handle_clear_forward_session_history(&self, pipeline_id: PipelineId) {
+        let parent_context = self.root_browsing_context();
+        let context = match parent_context.find(pipeline_id) {
+            Some(context) => context,
+            None => return,
+        };
+
+        context.remove_forward_history();
     }
 }
 
