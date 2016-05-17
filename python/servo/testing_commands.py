@@ -664,3 +664,15 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
 
         if editor:
             proc.wait()
+
+    @Command('update-net-cookies',
+             description='Update the net unit tests with cookie tests from http-state',
+             category='testing')
+    def update_net_cookies(self):
+        cache_dir = path.join(self.config["tools"]["cache-dir"], "tests")
+        run_file = path.abspath(path.join(PROJECT_TOPLEVEL_PATH,
+                                          "tests", "unit", "net",
+                                          "cookie_http_state_utils.py"))
+        run_globals = {"__file__": run_file}
+        execfile(run_file, run_globals)
+        return run_globals["update_test_file"](cache_dir)
