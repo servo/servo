@@ -127,18 +127,20 @@ impl BrowsingContext {
         Root::from_ref(self.active_document().window())
     }
 
-    pub fn set_active_entry(&self, active_index: usize) {
+    pub fn set_active_entry(&self, active_index: usize, trigger_event: bool) {
         assert!(active_index < self.history.borrow().len());
         self.active_index.set(active_index);
 
-        let active_window = &*self.active_window();
-        let trusted_window = Trusted::new(active_window);
-        let task_source = active_window.history_traversal_task_source();
-        let runnable = box PopstateNotificationRunnable {
-            window: trusted_window,
-            state: self.state(),
-        };
-        let _ = task_source.queue(HistoryTraversalTask::FireNavigationEvent(runnable));
+        if trigger_event {
+            let active_window = &*self.active_window();
+            let trusted_window = Trusted::new(active_window);
+            let task_source = active_window.history_traversal_task_source();
+            let runnable = box PopstateNotificationRunnable {
+                window: trusted_window,
+                state: self.state(),
+            };
+            let _ = task_source.queue(HistoryTraversalTask::FireNavigationEvent(runnable));
+        }
     }
 
     pub fn state(&self) -> StructuredCloneData {
@@ -166,7 +168,7 @@ impl BrowsingContext {
                                                                 title,
                                                                 Some(state_js.handle())));
         let new_index = self.active_index.get() + 1;
-        self.set_active_entry(new_index);
+        self.set_active_entry(new_index, false);
 
         let active_window = self.active_window();
         let pipeline_info = active_window.parent_info();

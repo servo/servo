@@ -1340,7 +1340,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             self.send_frame_tree_and_grant_paint_permission();
         }
 
-        self.send_popstate_msg(next_entry.id, next_entry.context_index);
+        if next_entry.id == prev_entry.id && next_entry.context_index != prev_entry.context_index {
+            self.send_popstate_msg(next_entry.id, next_entry.context_index);
+        }
 
         // Update the owning iframe to point to the new subpage id.
         // This makes things like contentDocument work correctly.
