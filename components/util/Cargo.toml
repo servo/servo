@@ -31,8 +31,8 @@ js = {git = "https://github.com/servo/rust-mozjs", optional = true}
 lazy_static = "0.2"
 libc = "0.2"
 log = "0.3.5"
-num = "0.1.32"
 num_cpus = "0.2.2"
+num-traits = "0.1.32"
 plugins = {path = "../plugins"}
 rand = "0.3"
 rustc-serialize = "0.3"
