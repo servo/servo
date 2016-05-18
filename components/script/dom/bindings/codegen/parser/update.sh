@@ -1,7 +1,6 @@
 wget https://mxr.mozilla.org/mozilla-central/source/dom/bindings/parser/WebIDL.py?raw=1 -O WebIDL.py
 patch < abstract.patch
 patch < debug.patch
-patch < legacy-unenumerable-named-properties.patch
 
 wget https://hg.mozilla.org/mozilla-central/archive/tip.tar.gz/dom/bindings/parser/tests/ -O tests.tar.gz
 rm -r tests
