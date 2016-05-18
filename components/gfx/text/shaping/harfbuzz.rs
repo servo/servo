@@ -519,7 +519,7 @@ extern fn font_table_func(_: *mut hb_face_t,
                 // `Box::into_raw` intentionally leaks the FontTable so we don't destroy the buffer
                 // while HarfBuzz is using it.  When HarfBuzz is done with the buffer, it will pass
                 // this raw pointer back to `destroy_blob_func` which will deallocate the Box.
-                let font_table_ptr = Box::into_raw(font_table);
+                let font_table_ptr = Box::into_raw(box font_table);
 
                 let buf = (*font_table_ptr).buffer();
                 // HarfBuzz calls `destroy_blob_func` when the buffer is no longer needed.

@@ -209,10 +209,10 @@ impl FontHandleMethods for FontHandle {
         metrics
     }
 
-    fn table_for_tag(&self, tag: FontTableTag) -> Option<Box<FontTable>> {
+    fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
         let result: Option<CFData> = self.ctfont.get_font_table(tag);
         result.and_then(|data| {
-            Some(box FontTable::wrap(data))
+            Some(FontTable::wrap(data))
         })
     }
 }
