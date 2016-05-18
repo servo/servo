@@ -115,7 +115,7 @@
 </%helpers:longhand>
 
 
-${helpers.single_keyword("font-style", "normal italic oblique")}
+${helpers.single_keyword("font-style", "normal italic oblique", gecko_constant_prefix="NS_FONT_STYLE")}
 ${helpers.single_keyword("font-variant", "normal small-caps")}
 
 <%helpers:longhand name="font-weight" need_clone="True">

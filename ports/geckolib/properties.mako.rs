@@ -375,7 +375,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
    # These live in nsStyleImageLayers in gecko. Need to figure out what to do about that.
    force_stub += ["background-repeat", "background-attachment", "background-clip", "background-origin"];
    # These live in an nsFont member in Gecko. Should be straightforward to do manually.
-   force_stub += ["font-kerning", "font-stretch", "font-style", "font-variant"]
+   force_stub += ["font-kerning", "font-stretch", "font-variant"]
    # These have unusual representations in gecko.
    force_stub += ["list-style-type", "text-overflow"]
    # Enum class instead of NS_STYLE_...
@@ -589,7 +589,9 @@ fn static_assert() {
     }
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Font" skip_longhands="font-size font-weight" skip_additionals="*">
+<%self:impl_trait style_struct_name="Font" skip_longhands="font-style font-size font-weight" skip_additionals="*">
+    <%call expr="impl_keyword('font_style', 'mFont.style',
+        data.longhands_by_name['font-style'].keyword, need_clone=False)"></%call>
 
     // FIXME(bholley): Gecko has two different sizes, one of which (mSize) is the
     // actual computed size, and the other of which (mFont.size) is the 'display

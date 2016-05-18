@@ -82,6 +82,7 @@ export RUST_BACKTRACE=1
   -match "nsStyleCoord.h"                                           \
   -match "RefPtr.h"                                                 \
   -match "nsISupportsImpl.h"                                        \
+  -match "gfxFontConstants.h"                                      \
   -match "gfxFontFamilyList.h"                                      \
   -match "gfxFontFeatures.h"                                        \
   -match "imgRequestProxy.h"                                        \

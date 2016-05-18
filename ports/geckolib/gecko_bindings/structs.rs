@@ -821,6 +821,44 @@ pub const NS_STYLE_DISPLAY_MODE_BROWSER: ::std::os::raw::c_uint = 0;
 pub const NS_STYLE_DISPLAY_MODE_MINIMAL_UI: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_DISPLAY_MODE_STANDALONE: ::std::os::raw::c_uint = 2;
 pub const NS_STYLE_DISPLAY_MODE_FULLSCREEN: ::std::os::raw::c_uint = 3;
+pub const NS_FONT_STYLE_NORMAL: ::std::os::raw::c_uint = 0;
+pub const NS_FONT_STYLE_ITALIC: ::std::os::raw::c_uint = 1;
+pub const NS_FONT_STYLE_OBLIQUE: ::std::os::raw::c_uint = 2;
+pub const NS_FONT_WEIGHT_NORMAL: ::std::os::raw::c_uint = 400;
+pub const NS_FONT_WEIGHT_BOLD: ::std::os::raw::c_uint = 700;
+pub const NS_FONT_WEIGHT_THIN: ::std::os::raw::c_uint = 100;
+pub const NS_FONT_STRETCH_NORMAL: ::std::os::raw::c_uint = 0;
+pub const NS_FONT_STRETCH_SEMI_EXPANDED: ::std::os::raw::c_uint = 1;
+pub const NS_FONT_STRETCH_EXPANDED: ::std::os::raw::c_uint = 2;
+pub const NS_FONT_STRETCH_EXTRA_EXPANDED: ::std::os::raw::c_uint = 3;
+pub const NS_FONT_STRETCH_ULTRA_EXPANDED: ::std::os::raw::c_uint = 4;
+pub const NS_FONT_SMOOTHING_AUTO: ::std::os::raw::c_uint = 0;
+pub const NS_FONT_SMOOTHING_GRAYSCALE: ::std::os::raw::c_uint = 1;
+pub const NS_FONT_KERNING_AUTO: ::std::os::raw::c_uint = 0;
+pub const NS_FONT_KERNING_NONE: ::std::os::raw::c_uint = 1;
+pub const NS_FONT_KERNING_NORMAL: ::std::os::raw::c_uint = 2;
+pub const NS_FONT_SYNTHESIS_WEIGHT: ::std::os::raw::c_uint = 1;
+pub const NS_FONT_SYNTHESIS_STYLE: ::std::os::raw::c_uint = 2;
+pub const NS_FONT_DISPLAY_AUTO: ::std::os::raw::c_uint = 0;
+pub const NS_FONT_DISPLAY_BLOCK: ::std::os::raw::c_uint = 1;
+pub const NS_FONT_DISPLAY_SWAP: ::std::os::raw::c_uint = 2;
+pub const NS_FONT_DISPLAY_FALLBACK: ::std::os::raw::c_uint = 3;
+pub const NS_FONT_DISPLAY_OPTIONAL: ::std::os::raw::c_uint = 4;
+pub const NS_FONT_VARIANT_CAPS_NORMAL: ::std::os::raw::c_uint = 0;
+pub const NS_FONT_VARIANT_CAPS_SMALLCAPS: ::std::os::raw::c_uint = 1;
+pub const NS_FONT_VARIANT_CAPS_ALLSMALL: ::std::os::raw::c_uint = 2;
+pub const NS_FONT_VARIANT_CAPS_PETITECAPS: ::std::os::raw::c_uint = 3;
+pub const NS_FONT_VARIANT_CAPS_ALLPETITE: ::std::os::raw::c_uint = 4;
+pub const NS_FONT_VARIANT_CAPS_TITLING: ::std::os::raw::c_uint = 5;
+pub const NS_FONT_VARIANT_CAPS_UNICASE: ::std::os::raw::c_uint = 6;
+pub const NS_FONT_VARIANT_POSITION_NORMAL: ::std::os::raw::c_uint = 0;
+pub const NS_FONT_VARIANT_POSITION_SUPER: ::std::os::raw::c_uint = 1;
+pub const NS_FONT_VARIANT_POSITION_SUB: ::std::os::raw::c_uint = 2;
+pub const NS_FONT_VARIANT_WIDTH_NORMAL: ::std::os::raw::c_uint = 0;
+pub const NS_FONT_VARIANT_WIDTH_FULL: ::std::os::raw::c_uint = 1;
+pub const NS_FONT_VARIANT_WIDTH_HALF: ::std::os::raw::c_uint = 2;
+pub const NS_FONT_VARIANT_WIDTH_THIRD: ::std::os::raw::c_uint = 3;
+pub const NS_FONT_VARIANT_WIDTH_QUARTER: ::std::os::raw::c_uint = 4;
 pub const NS_STYLE_INHERIT_MASK: ::std::os::raw::c_uint = 16777215;
 pub const NS_STYLE_HAS_TEXT_DECORATION_LINES: ::std::os::raw::c_uint =
     16777216;
@@ -4262,6 +4300,99 @@ pub struct HandleRefPtr<T> {
 #[derive(Debug)]
 pub struct ArenaRefPtr<T> {
     pub mPtr: RefPtr<T>,
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum gfxFontConstants_h_unnamed_10 {
+    eFeatureAlternates_historical = 0,
+    eFeatureAlternates_stylistic = 1,
+    eFeatureAlternates_styleset = 2,
+    eFeatureAlternates_character_variant = 3,
+    eFeatureAlternates_swash = 4,
+    eFeatureAlternates_ornaments = 5,
+    eFeatureAlternates_annotation = 6,
+    eFeatureAlternates_numFeatures = 7,
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum gfxFontConstants_h_unnamed_11 {
+    eFeatureEastAsian_jis78 = 0,
+    eFeatureEastAsian_jis83 = 1,
+    eFeatureEastAsian_jis90 = 2,
+    eFeatureEastAsian_jis04 = 3,
+    eFeatureEastAsian_simplified = 4,
+    eFeatureEastAsian_traditional = 5,
+    eFeatureEastAsian_full_width = 6,
+    eFeatureEastAsian_prop_width = 7,
+    eFeatureEastAsian_ruby = 8,
+    eFeatureEastAsian_numFeatures = 9,
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum gfxFontConstants_h_unnamed_12 {
+    eFeatureLigatures_none = 0,
+    eFeatureLigatures_common = 1,
+    eFeatureLigatures_no_common = 2,
+    eFeatureLigatures_discretionary = 3,
+    eFeatureLigatures_no_discretionary = 4,
+    eFeatureLigatures_historical = 5,
+    eFeatureLigatures_no_historical = 6,
+    eFeatureLigatures_contextual = 7,
+    eFeatureLigatures_no_contextual = 8,
+    eFeatureLigatures_numFeatures = 9,
+}
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum gfxFontConstants_h_unnamed_13 {
+    eFeatureNumeric_lining = 0,
+    eFeatureNumeric_oldstyle = 1,
+    eFeatureNumeric_proportional = 2,
+    eFeatureNumeric_tabular = 3,
+    eFeatureNumeric_diagonal_fractions = 4,
+    eFeatureNumeric_stacked_fractions = 5,
+    eFeatureNumeric_slashedzero = 6,
+    eFeatureNumeric_ordinal = 7,
+    eFeatureNumeric_numFeatures = 8,
+}
+pub const eFontPrefLang_First: eFontPrefLang =
+    eFontPrefLang::eFontPrefLang_Western;
+pub const eFontPrefLang_Last: eFontPrefLang =
+    eFontPrefLang::eFontPrefLang_Others;
+pub const eFontPrefLang_Count: eFontPrefLang =
+    eFontPrefLang::eFontPrefLang_CJKSet;
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum eFontPrefLang {
+    eFontPrefLang_Western = 0,
+    eFontPrefLang_Japanese = 1,
+    eFontPrefLang_ChineseTW = 2,
+    eFontPrefLang_ChineseCN = 3,
+    eFontPrefLang_ChineseHK = 4,
+    eFontPrefLang_Korean = 5,
+    eFontPrefLang_Cyrillic = 6,
+    eFontPrefLang_Greek = 7,
+    eFontPrefLang_Thai = 8,
+    eFontPrefLang_Hebrew = 9,
+    eFontPrefLang_Arabic = 10,
+    eFontPrefLang_Devanagari = 11,
+    eFontPrefLang_Tamil = 12,
+    eFontPrefLang_Armenian = 13,
+    eFontPrefLang_Bengali = 14,
+    eFontPrefLang_Canadian = 15,
+    eFontPrefLang_Ethiopic = 16,
+    eFontPrefLang_Georgian = 17,
+    eFontPrefLang_Gujarati = 18,
+    eFontPrefLang_Gurmukhi = 19,
+    eFontPrefLang_Khmer = 20,
+    eFontPrefLang_Malayalam = 21,
+    eFontPrefLang_Mathematics = 22,
+    eFontPrefLang_Oriya = 23,
+    eFontPrefLang_Telugu = 24,
+    eFontPrefLang_Kannada = 25,
+    eFontPrefLang_Sinhala = 26,
+    eFontPrefLang_Tibetan = 27,
+    eFontPrefLang_Others = 28,
+    eFontPrefLang_CJKSet = 29,
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
