@@ -36,6 +36,7 @@ ignored_files = [
     os.path.join(".", "ports", "gonk", "src", "native_window_glue.cpp"),
     os.path.join(".", "ports", "geckolib", "gecko_bindings", "bindings.rs"),
     os.path.join(".", "ports", "geckolib", "gecko_bindings", "structs.rs"),
+    os.path.join(".", "ports", "geckolib", "string_cache", "atom_macro.rs"),
     os.path.join(".", "resources", "hsts_preload.json"),
     os.path.join(".", "tests", "wpt", "metadata", "MANIFEST.json"),
     os.path.join(".", "tests", "wpt", "metadata-css", "MANIFEST.json"),

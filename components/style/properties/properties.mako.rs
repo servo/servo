@@ -478,7 +478,7 @@ impl PartialEq<str> for PropertyDeclarationName {
         match *self {
             PropertyDeclarationName::Longhand(n) => n == other,
             PropertyDeclarationName::Custom(ref n) => {
-                ::custom_properties::parse_name(other) == Ok(&**n)
+                n.with_str(|s| ::custom_properties::parse_name(other) == Ok(s))
             }
             PropertyDeclarationName::Internal => false,
         }
@@ -491,7 +491,7 @@ impl fmt::Display for PropertyDeclarationName {
             PropertyDeclarationName::Longhand(n) => f.write_str(n),
             PropertyDeclarationName::Custom(ref n) => {
                 try!(f.write_str("--"));
-                f.write_str(n)
+                n.with_str(|s| f.write_str(s))
             }
             PropertyDeclarationName::Internal => Ok(()),
         }
@@ -575,7 +575,7 @@ impl PropertyDeclaration {
                 % endif
             % endfor
             PropertyDeclaration::Custom(ref declaration_name, _) => {
-                ::custom_properties::parse_name(name) == Ok(&**declaration_name)
+                declaration_name.with_str(|s| ::custom_properties::parse_name(name) == Ok(s))
             }
         }
     }

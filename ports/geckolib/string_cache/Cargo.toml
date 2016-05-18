@@ -1,0 +1,21 @@
+[package]
+name = "string_cache"
+description = "A crate to allow using Gecko's nsIAtom as a replacement for string_cache."
+version = "0.2.16"
+authors = ["The Servo Project Developers"]
+publish = false
+
+[lib]
+name = "string_cache"
+path = "lib.rs"
+
+[features]
+log-events = []
+unstable = []
+heap_size = []
+
+[dependencies]
+heapsize = "0.3.5"
+libc = "0.2"
+gecko_bindings = {version = "0.0.1", path = "../gecko_bindings"}
+serde = "0.7"

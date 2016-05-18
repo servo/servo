@@ -133,11 +133,11 @@ struct FontCache {
 fn populate_generic_fonts() -> HashMap<FontFamily, LowercaseString> {
     let mut generic_fonts = HashMap::with_capacity(5);
 
-    append_map(&mut generic_fonts, FontFamily::Serif, "Times New Roman");
-    append_map(&mut generic_fonts, FontFamily::SansSerif, SANS_SERIF_FONT_FAMILY);
-    append_map(&mut generic_fonts, FontFamily::Cursive, "Apple Chancery");
-    append_map(&mut generic_fonts, FontFamily::Fantasy, "Papyrus");
-    append_map(&mut generic_fonts, FontFamily::Monospace, "Menlo");
+    append_map(&mut generic_fonts, FontFamily::Generic(atom!("serif")), "Times New Roman");
+    append_map(&mut generic_fonts, FontFamily::Generic(atom!("sans-serif")), SANS_SERIF_FONT_FAMILY);
+    append_map(&mut generic_fonts, FontFamily::Generic(atom!("cursive")), "Apple Chancery");
+    append_map(&mut generic_fonts, FontFamily::Generic(atom!("fantasy")), "Papyrus");
+    append_map(&mut generic_fonts, FontFamily::Generic(atom!("monospace")), "Menlo");
 
     fn append_map(generic_fonts: &mut HashMap<FontFamily, LowercaseString>,
                   font_family: FontFamily,

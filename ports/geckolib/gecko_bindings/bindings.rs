@@ -142,6 +142,20 @@ extern "C" {
     pub fn Gecko_SetNodeData(node: *mut RawGeckoNode,
                              data: *mut ServoNodeData);
     pub fn Servo_DropNodeData(data: *mut ServoNodeData);
+    pub fn Gecko_Atomize(aString: *const ::std::os::raw::c_char, aLength: u32)
+     -> *mut nsIAtom;
+    pub fn Gecko_AddRefAtom(aAtom: *mut nsIAtom);
+    pub fn Gecko_ReleaseAtom(aAtom: *mut nsIAtom);
+    pub fn Gecko_HashAtom(aAtom: *mut nsIAtom) -> u32;
+    pub fn Gecko_GetAtomAsUTF16(aAtom: *mut nsIAtom, aLength: *mut u32)
+     -> *const u16;
+    pub fn Gecko_AtomEqualsUTF8(aAtom: *mut nsIAtom,
+                                aString: *const ::std::os::raw::c_char,
+                                aLength: u32) -> bool;
+    pub fn Gecko_AtomEqualsUTF8IgnoreCase(aAtom: *mut nsIAtom,
+                                          aString:
+                                              *const ::std::os::raw::c_char,
+                                          aLength: u32) -> bool;
     pub fn Gecko_SetListStyleType(style_struct: *mut nsStyleList, type_: u32);
     pub fn Gecko_CopyListStyleTypeFrom(dst: *mut nsStyleList,
                                        src: *const nsStyleList);
@@ -181,18 +195,15 @@ extern "C" {
      -> *mut ServoComputedValues;
     pub fn Servo_AddRefComputedValues(arg1: *mut ServoComputedValues);
     pub fn Servo_ReleaseComputedValues(arg1: *mut ServoComputedValues);
-    pub fn Gecko_GetAttrAsUTF8(element: *mut RawGeckoElement, ns: *const u8, nslen: u32,
-                               name: *const u8, namelen: u32, length: *mut u32)
-     -> *const ::std::os::raw::c_char;
-    pub fn Gecko_GetAtomAsUTF16(atom: *mut nsIAtom, length: *mut u32)
-     -> *const u16;
-    pub fn Gecko_LocalName(element: *mut RawGeckoElement, length: *mut u32)
-     -> *const u16;
-    pub fn Gecko_Namespace(element: *mut RawGeckoElement, length: *mut u32)
-     -> *const u16;
     pub fn Servo_Initialize();
     pub fn Servo_RestyleDocument(doc: *mut RawGeckoDocument,
                                  set: *mut RawServoStyleSet);
+    pub fn Gecko_GetAttrAsUTF8(element: *mut RawGeckoElement,
+                               ns: *mut nsIAtom, name: *mut nsIAtom,
+                               length: *mut u32)
+     -> *const ::std::os::raw::c_char;
+    pub fn Gecko_LocalName(element: *mut RawGeckoElement) -> *mut nsIAtom;
+    pub fn Gecko_Namespace(element: *mut RawGeckoElement) -> *mut nsIAtom;
     pub fn Gecko_Construct_nsStyleFont(ptr: *mut nsStyleFont);
     pub fn Gecko_CopyConstruct_nsStyleFont(ptr: *mut nsStyleFont,
                                            other: *const nsStyleFont);

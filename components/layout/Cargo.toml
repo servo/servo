@@ -32,7 +32,7 @@ range = {path = "../range"}
 rustc-serialize = "0.3"
 script = {path = "../script"}
 script_traits = {path = "../script_traits"}
-selectors = {version = "0.5.1", features = ["heap_size"]}
+selectors = {version = "0.6", features = ["heap_size"]}
 serde_json = "0.7"
 serde_macros = "0.7"
 smallvec = "0.1"
