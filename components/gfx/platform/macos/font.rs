@@ -52,8 +52,8 @@ impl FontTable {
 }
 
 impl FontTableMethods for FontTable {
-    fn with_buffer<F>(&self, blk: F) where F: FnOnce(*const u8, usize) {
-        blk(self.data.bytes().as_ptr(), self.data.len() as usize);
+    fn buffer(&self) -> &[u8] {
+        self.data.bytes()
     }
 }
 

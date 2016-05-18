@@ -529,15 +529,13 @@ extern fn font_table_func(_: *mut hb_face_t,
                 // this raw pointer back to `destroy_blob_func` which will deallocate the Box.
                 let font_table_ptr = Box::into_raw(font_table);
 
-                let mut blob: *mut hb_blob_t = ptr::null_mut();
-                (*font_table_ptr).with_buffer(|buf: *const u8, len: usize| {
-                    // HarfBuzz calls `destroy_blob_func` when the buffer is no longer needed.
-                    blob = hb_blob_create(buf as *const c_char,
-                                          len as c_uint,
+                let buf = (*font_table_ptr).buffer();
+                // HarfBuzz calls `destroy_blob_func` when the buffer is no longer needed.
+                let blob = hb_blob_create(buf.as_ptr() as *const c_char,
+                                          buf.len() as c_uint,
                                           HB_MEMORY_MODE_READONLY,
                                           font_table_ptr as *mut c_void,
                                           Some(destroy_blob_func));
-                });
 
                 assert!(!blob.is_null());
                 blob

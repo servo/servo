@@ -68,7 +68,7 @@ impl FontTableTagConversions for FontTableTag {
 }
 
 pub trait FontTableMethods {
-    fn with_buffer<F>(&self, F) where F: FnOnce(*const u8, usize);
+    fn buffer(&self) -> &[u8];
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

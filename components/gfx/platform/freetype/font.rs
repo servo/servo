@@ -40,8 +40,8 @@ pub struct FontTable {
 }
 
 impl FontTableMethods for FontTable {
-    fn with_buffer<F>(&self, blk: F) where F: FnOnce(*const u8, usize) {
-        blk(self.buffer.as_ptr(), self.buffer.len())
+    fn buffer(&self) -> &[u8] {
+        &self.buffer
     }
 }
 
