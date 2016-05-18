@@ -136,7 +136,7 @@ else
   TESTS_SRC=$(mktemp)
   echo "#![feature(const_fn)]" > $TESTS_SRC
   cat ../structs.rs >> $TESTS_SRC
-  rustc $TESTS_SRC --test -o $TESTS_FILE
+  multirust run nightly rustc $TESTS_SRC --test -o $TESTS_FILE
   $TESTS_FILE
   rm $TESTS_FILE
   rm $TESTS_SRC
