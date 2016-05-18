@@ -25,6 +25,7 @@ extern crate gleam;
 pub extern crate canvas;
 pub extern crate canvas_traits;
 pub extern crate compositing;
+pub extern crate constellation;
 pub extern crate devtools;
 pub extern crate devtools_traits;
 pub extern crate euclid;
@@ -59,13 +60,13 @@ fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 use compositing::CompositorEventListener;
 use compositing::CompositorMsg as ConstellationMsg;
 use compositing::compositor_thread::InitialCompositorState;
-use compositing::constellation::InitialConstellationState;
 use compositing::pipeline::UnprivilegedPipelineContent;
 #[cfg(not(target_os = "windows"))]
 use compositing::sandboxing;
 use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
-use compositing::{CompositorProxy, CompositorThread, Constellation};
+use compositing::{CompositorProxy, CompositorThread};
+use constellation::{Constellation, InitialConstellationState};
 #[cfg(not(target_os = "windows"))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;

@@ -47,6 +47,7 @@ plugin_compiletest = {path = "../../tests/compiletest/plugin"}
 webrender_traits = {git = "https://github.com/servo/webrender_traits"}
 webrender = {git = "https://github.com/servo/webrender"}
 compositing = {path = "../compositing"}
+constellation = {path = "../constellation"}
 net = {path = "../net"}
 net_traits = {path = "../net_traits"}
 msg = {path = "../msg"}

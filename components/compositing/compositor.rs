@@ -4,11 +4,11 @@
 
 use AnimationTickType;
 use CompositorMsg as ConstellationMsg;
+use SendableFrameTree;
 use app_units::Au;
 use compositor_layer::{CompositorData, CompositorLayer, RcCompositorLayer, WantsScrollEventsFlag};
 use compositor_thread::{CompositorEventListener, CompositorProxy};
 use compositor_thread::{CompositorReceiver, InitialCompositorState, Msg, RenderListener};
-use constellation::SendableFrameTree;
 use delayed_composition::DelayedCompositionTimerProxy;
 use euclid::point::TypedPoint2D;
 use euclid::rect::TypedRect;

@@ -23,7 +23,7 @@ use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
 use url::Url;
 use windowing::{WindowEvent, WindowMethods};
-pub use constellation::SendableFrameTree;
+pub use SendableFrameTree;
 pub use windowing;
 use webrender;
 use webrender_traits;

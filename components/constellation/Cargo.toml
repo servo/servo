@@ -1,0 +1,37 @@
+[package]
+name = "constellation"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+publish = false
+
+[lib]
+name = "constellation"
+path = "lib.rs"
+
+[dependencies]
+canvas = {path = "../canvas"}
+canvas_traits = {path = "../canvas_traits"}
+clipboard = {git = "https://github.com/aweinstock314/rust-clipboard"}
+compositing = {path = "../compositing"}
+devtools_traits = {path = "../devtools_traits"}
+euclid = {version = "0.6.4", features = ["plugins"]}
+gfx = {path = "../gfx"}
+gfx_traits = {path = "../gfx_traits"}
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+layout_traits = {path = "../layout_traits"}
+log = "0.3.5"
+msg = {path = "../msg"}
+net_traits = {path = "../net_traits"}
+offscreen_gl_context = "0.1.2"
+plugins = {path = "../plugins"}
+profile_traits = {path = "../profile_traits"}
+rand = "0.3"
+script_traits = {path = "../script_traits"}
+serde_macros = "0.7"
+style_traits = {path = "../style_traits"}
+url = {version = "1.0.0", features = ["heap_size"]}
+util = {path = "../util"}
+webrender_traits = {git = "https://github.com/servo/webrender_traits"}
+
+[target.'cfg(not(target_os = "windows"))'.dependencies]
+gaol = {git = "https://github.com/servo/gaol"}
