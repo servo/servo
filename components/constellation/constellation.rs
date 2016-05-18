@@ -9,14 +9,17 @@
 //! navigation context, each `Pipeline` encompassing a `ScriptThread`,
 //! `LayoutThread`, and `PaintThread`.
 
-use AnimationTickType;
-use CompositorMsg as FromCompositorMsg;
 use canvas::canvas_paint_thread::CanvasPaintThread;
 use canvas::webgl_paint_thread::WebGLPaintThread;
 use canvas_traits::CanvasMsg;
 use clipboard::ClipboardContext;
-use compositor_thread::CompositorProxy;
-use compositor_thread::Msg as ToCompositorMsg;
+use compositing::CompositorMsg as FromCompositorMsg;
+use compositing::compositor_thread::CompositorProxy;
+use compositing::compositor_thread::Msg as ToCompositorMsg;
+use compositing::pipeline::{InitialPipelineState, Pipeline, UnprivilegedPipelineContent};
+#[cfg(not(target_os = "windows"))]
+use compositing::sandboxing;
+use compositing::{AnimationTickType, SendableFrameTree};
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
@@ -43,12 +46,9 @@ use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::{StorageThread, StorageThreadMsg};
 use net_traits::{self, ResourceThread};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
-use pipeline::{CompositionPipeline, InitialPipelineState, Pipeline, UnprivilegedPipelineContent};
 use profile_traits::mem;
 use profile_traits::time;
 use rand::{random, Rng, SeedableRng, StdRng};
-#[cfg(not(target_os = "windows"))]
-use sandboxing;
 use script_traits::{AnimationState, CompositorEvent, ConstellationControlMsg};
 use script_traits::{DocumentState, LayoutControlMsg};
 use script_traits::{IFrameLoadInfo, IFrameSandboxState, TimerEventRequest};
@@ -294,12 +294,6 @@ impl<'a> Iterator for FrameTreeIterator<'a> {
             return Some(frame)
         }
     }
-}
-
-pub struct SendableFrameTree {
-    pub pipeline: CompositionPipeline,
-    pub size: Option<TypedSize2D<PagePx, f32>>,
-    pub children: Vec<SendableFrameTree>,
 }
 
 struct WebDriverData {

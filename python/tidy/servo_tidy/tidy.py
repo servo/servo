@@ -585,6 +585,9 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
     if print_text:
         print '\rChecking files for tidiness...'
     for filename in files_to_check:
+        if not os.path.exists(filename):
+            continue
+
         with open(filename, "r") as f:
             contents = f.read()
             for check in checking_functions:

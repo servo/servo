@@ -5,7 +5,6 @@
 #![feature(box_syntax)]
 #![feature(custom_derive)]
 #![feature(plugin)]
-#![feature(mpsc_select)]
 #![feature(plugin)]
 #![plugin(plugins)]
 
@@ -15,9 +14,6 @@
 extern crate app_units;
 
 extern crate azure;
-extern crate canvas;
-extern crate canvas_traits;
-extern crate clipboard;
 extern crate devtools_traits;
 extern crate euclid;
 #[cfg(not(target_os = "windows"))]
@@ -33,10 +29,8 @@ extern crate layout_traits;
 extern crate log;
 extern crate msg;
 extern crate net_traits;
-extern crate offscreen_gl_context;
 #[macro_use]
 extern crate profile_traits;
-extern crate rand;
 extern crate script_traits;
 extern crate serde;
 extern crate style_traits;
@@ -48,26 +42,25 @@ extern crate webrender;
 extern crate webrender_traits;
 
 pub use compositor_thread::{CompositorEventListener, CompositorProxy, CompositorThread};
-pub use constellation::Constellation;
-use euclid::size::{Size2D};
+use euclid::size::{Size2D, TypedSize2D};
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcSender};
 use msg::constellation_msg::{FrameId, Key, KeyState, KeyModifiers, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
 use msg::constellation_msg::{WebDriverCommandMsg, WindowSizeData, WindowSizeType};
+use pipeline::CompositionPipeline;
 use std::collections::HashMap;
 use url::Url;
+use util::geometry::PagePx;
 
 mod compositor;
 mod compositor_layer;
 pub mod compositor_thread;
-pub mod constellation;
 mod delayed_composition;
 pub mod pipeline;
 #[cfg(not(target_os = "windows"))]
 pub mod sandboxing;
 mod surface_map;
-mod timer_scheduler;
 mod touch;
 pub mod windowing;
 
@@ -104,4 +97,10 @@ pub enum CompositorMsg {
     TickAnimation(PipelineId, AnimationTickType),
     /// Dispatch a webdriver command
     WebDriverCommand(WebDriverCommandMsg),
+}
+
+pub struct SendableFrameTree {
+    pub pipeline: CompositionPipeline,
+    pub size: Option<TypedSize2D<PagePx, f32>>,
+    pub children: Vec<SendableFrameTree>,
 }
