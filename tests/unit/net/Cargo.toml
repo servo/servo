@@ -14,6 +14,7 @@ net_traits = {path = "../../../components/net_traits"}
 util = {path = "../../../components/util"}
 msg = {path = "../../../components/msg"}
 plugins = {path = "../../../components/plugins"}
+profile_traits = {path = "../../../components/profile_traits"}
 devtools_traits = {path = "../../../components/devtools_traits"}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 cookie = "0.2"

@@ -211,7 +211,9 @@ fn create_constellation(opts: opts::Opts,
                         supports_clipboard: bool,
                         webrender_api_sender: Option<webrender_traits::RenderApiSender>) -> Sender<ConstellationMsg> {
     let bluetooth_thread: IpcSender<BluetoothMethodMsg> = BluetoothThreadFactory::new();
-    let resource_thread = new_resource_thread(opts.user_agent.clone(), devtools_chan.clone());
+    let resource_thread = new_resource_thread(opts.user_agent.clone(),
+                                              devtools_chan.clone(),
+                                              time_profiler_chan.clone());
     let image_cache_thread = new_image_cache_thread(resource_thread.clone(),
                                                     webrender_api_sender.as_ref().map(|wr| wr.create_api()));
     let font_cache_thread = FontCacheThread::new(resource_thread.clone(),

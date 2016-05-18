@@ -20,7 +20,7 @@ use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use msg::constellation_msg::{ConstellationChan, PanicMsg, PipelineId};
 use net_traits::ResourceThread;
-use profile_traits::mem;
+use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::{MainThreadScriptChan, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
@@ -78,6 +78,14 @@ impl<'a> GlobalRef<'a> {
         match *self {
             GlobalRef::Window(window) => window.mem_profiler_chan(),
             GlobalRef::Worker(worker) => worker.mem_profiler_chan(),
+        }
+    }
+
+    /// Get a `time::ProfilerChan` to send messages to the time profiler thread.
+    pub fn time_profiler_chan(&self) -> &time::ProfilerChan {
+        match *self {
+            GlobalRef::Window(window) => window.time_profiler_chan(),
+            GlobalRef::Worker(worker) => worker.time_profiler_chan(),
         }
     }
 

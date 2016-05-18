@@ -102,6 +102,7 @@ impl Worker {
         let init = WorkerGlobalScopeInit {
             resource_thread: resource_thread,
             mem_profiler_chan: global.mem_profiler_chan().clone(),
+            time_profiler_chan: global.time_profiler_chan().clone(),
             to_devtools_sender: global.devtools_chan(),
             from_devtools_sender: optional_sender,
             constellation_chan: constellation_chan,

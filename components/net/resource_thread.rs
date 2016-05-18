@@ -23,6 +23,7 @@ use net_traits::ProgressMsg::Done;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceThread, ResponseAction};
 use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
 use net_traits::{NetworkError, WebSocketCommunicate, WebSocketConnectData};
+use profile_traits::time::ProfilerChan;
 use rustc_serialize::json;
 use rustc_serialize::{Decodable, Encodable};
 use std::borrow::ToOwned;
@@ -150,13 +151,14 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata,
 
 /// Create a ResourceThread
 pub fn new_resource_thread(user_agent: String,
-                           devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceThread {
+                           devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+                           profiler_chan: ProfilerChan) -> ResourceThread {
     let hsts_preload = HstsList::from_servo_preload();
     let (setup_chan, setup_port) = ipc::channel().unwrap();
     let setup_chan_clone = setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
         let resource_manager = ResourceManager::new(
-            user_agent, hsts_preload, devtools_chan
+            user_agent, hsts_preload, devtools_chan, profiler_chan
         );
 
         let mut channel_manager = ResourceChannelManager {
@@ -364,6 +366,7 @@ pub struct ResourceManager {
     auth_cache: Arc<RwLock<AuthCache>>,
     mime_classifier: Arc<MIMEClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    profiler_chan: ProfilerChan,
     hsts_list: Arc<RwLock<HstsList>>,
     connector: Arc<Pool<Connector>>,
     cancel_load_map: HashMap<ResourceId, Sender<()>>,
@@ -373,7 +376,8 @@ pub struct ResourceManager {
 impl ResourceManager {
     pub fn new(user_agent: String,
                mut hsts_list: HstsList,
-               devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
+               devtools_channel: Option<Sender<DevtoolsControlMsg>>,
+               profiler_chan: ProfilerChan) -> ResourceManager {
         let mut auth_cache = AuthCache::new();
         let mut cookie_jar = CookieStorage::new();
         if let Some(ref profile_dir) = opts::get().profile_dir {
@@ -387,6 +391,7 @@ impl ResourceManager {
             auth_cache: Arc::new(RwLock::new(auth_cache)),
             mime_classifier: Arc::new(MIMEClassifier::new()),
             devtools_chan: devtools_channel,
+            profiler_chan: profiler_chan,
             hsts_list: Arc::new(RwLock::new(hsts_list)),
             connector: create_http_connector(),
             cancel_load_map: HashMap::new(),
@@ -445,6 +450,7 @@ impl ResourceManager {
                 http_loader::factory(self.user_agent.clone(),
                                      http_state,
                                      self.devtools_chan.clone(),
+                                     self.profiler_chan.clone(),
                                      self.connector.clone())
             },
             "data" => from_factory(data_loader::factory),

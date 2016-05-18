@@ -1449,6 +1449,7 @@ impl ScriptThread {
                                  self.bluetooth_thread.clone(),
                                  self.storage_thread.clone(),
                                  self.mem_profiler_chan.clone(),
+                                 self.time_profiler_chan.clone(),
                                  self.devtools_chan.clone(),
                                  self.constellation_chan.clone(),
                                  self.control_chan.clone(),

@@ -23,7 +23,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::{ConstellationChan, PanicMsg, PipelineId};
 use net_traits::{LoadContext, ResourceThread, load_whole_resource};
-use profile_traits::mem;
+use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_traits::ScriptMsg as ConstellationMsg;
 use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
@@ -45,6 +45,7 @@ pub enum WorkerGlobalScopeTypeId {
 pub struct WorkerGlobalScopeInit {
     pub resource_thread: ResourceThread,
     pub mem_profiler_chan: mem::ProfilerChan,
+    pub time_profiler_chan: time::ProfilerChan,
     pub to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
     pub constellation_chan: ConstellationChan<ConstellationMsg>,
@@ -73,6 +74,8 @@ pub struct WorkerGlobalScope {
     timers: OneshotTimers,
     #[ignore_heap_size_of = "Defined in std"]
     mem_profiler_chan: mem::ProfilerChan,
+    #[ignore_heap_size_of = "Defined in std"]
+    time_profiler_chan: time::ProfilerChan,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
 
@@ -122,6 +125,7 @@ impl WorkerGlobalScope {
             crypto: Default::default(),
             timers: OneshotTimers::new(timer_event_chan, init.scheduler_chan.clone()),
             mem_profiler_chan: init.mem_profiler_chan,
+            time_profiler_chan: init.time_profiler_chan,
             to_devtools_sender: init.to_devtools_sender,
             from_devtools_sender: init.from_devtools_sender,
             from_devtools_receiver: from_devtools_receiver,
@@ -134,6 +138,10 @@ impl WorkerGlobalScope {
 
     pub fn mem_profiler_chan(&self) -> &mem::ProfilerChan {
         &self.mem_profiler_chan
+    }
+
+    pub fn time_profiler_chan(&self) -> &time::ProfilerChan {
+        &self.time_profiler_chan
     }
 
     pub fn devtools_chan(&self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
