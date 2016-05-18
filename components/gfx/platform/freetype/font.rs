@@ -73,22 +73,14 @@ impl FontHandleMethods for FontHandle {
         let ft_ctx: FT_Library = fctx.ctx.ctx;
         if ft_ctx.is_null() { return Err(()); }
 
-        let face_result = create_face_from_buffer(ft_ctx, &template.bytes, pt_size);
-
-        // TODO: this could be more simply written as result::chain
-        // and moving buf into the struct ctor, but cant' move out of
-        // captured binding.
-        return match face_result {
-            Ok(face) => {
-              let handle = FontHandle {
+        return create_face_from_buffer(ft_ctx, &template.bytes, pt_size).map(|face| {
+            let handle = FontHandle {
                   face: face,
                   font_data: template.clone(),
-                  handle: fctx.clone()
-              };
-              Ok(handle)
-            }
-            Err(()) => Err(())
-        };
+                  handle: fctx.clone(),
+            };
+            handle
+        });
 
         fn create_face_from_buffer(lib: FT_Library, buffer: &[u8], pt_size: Option<Au>)
                                    -> Result<FT_Face, ()> {
@@ -101,15 +93,10 @@ impl FontHandleMethods for FontHandle {
                 if !result.succeeded() || face.is_null() {
                     return Err(());
                 }
-                match pt_size {
-                    Some(s) => {
-                        match FontHandle::set_char_size(face, s) {
-                            Ok(_) => Ok(face),
-                            Err(_) => Err(()),
-                        }
-                    }
-                    None => Ok(face),
+                if let Some(s) = pt_size {
+                    try!(FontHandle::set_char_size(face, s).or(Err(())))
                 }
+                Ok(face)
             }
         }
     }
