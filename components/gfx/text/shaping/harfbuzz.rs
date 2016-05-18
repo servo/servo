@@ -5,7 +5,7 @@
 use app_units::Au;
 use euclid::Point2D;
 use font::{DISABLE_KERNING_SHAPING_FLAG, Font, FontTableMethods, FontTableTag};
-use font::{IGNORE_LIGATURES_SHAPING_FLAG, RTL_FLAG, ShapingOptions};
+use font::{IGNORE_LIGATURES_SHAPING_FLAG, KERN, RTL_FLAG, ShapingOptions};
 use harfbuzz::{HB_DIRECTION_LTR, HB_DIRECTION_RTL, HB_MEMORY_MODE_READONLY};
 use harfbuzz::{hb_blob_create, hb_face_create_for_tables};
 use harfbuzz::{hb_blob_t};
@@ -39,16 +39,8 @@ use text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use text::shaping::ShaperMethods;
 use text::util::{fixed_to_float, float_to_fixed, is_bidi_control};
 
-macro_rules! hb_tag {
-    ($t1:expr, $t2:expr, $t3:expr, $t4:expr) => (
-        (($t1 as u32) << 24) | (($t2 as u32) << 16) | (($t3 as u32) << 8) | ($t4 as u32)
-    );
-}
-
 const NO_GLYPH: i32 = -1;
-
-static KERN: u32 = hb_tag!('k', 'e', 'r', 'n');
-static LIGA: u32 = hb_tag!('l', 'i', 'g', 'a');
+const LIGA: u32 = ot_tag!('l', 'i', 'g', 'a');
 
 pub struct ShapedGlyphData {
     count: usize,

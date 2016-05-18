@@ -24,6 +24,14 @@ use unicode_script::Script;
 use util::cache::HashCache;
 use webrender_traits;
 
+macro_rules! ot_tag {
+    ($t1:expr, $t2:expr, $t3:expr, $t4:expr) => (
+        (($t1 as u32) << 24) | (($t2 as u32) << 16) | (($t3 as u32) << 8) | ($t4 as u32)
+    );
+}
+
+pub const KERN: u32 = ot_tag!('k', 'e', 'r', 'n');
+
 static TEXT_SHAPING_PERFORMANCE_COUNTER: AtomicUsize = ATOMIC_USIZE_INIT;
 
 // FontHandle encapsulates access to the platform's font API,

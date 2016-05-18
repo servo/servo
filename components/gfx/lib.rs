@@ -95,7 +95,7 @@ mod paint_context;
 pub mod display_list;
 
 // Fonts
-pub mod font;
+#[macro_use] pub mod font;
 pub mod font_cache_thread;
 pub mod font_context;
 pub mod font_template;
