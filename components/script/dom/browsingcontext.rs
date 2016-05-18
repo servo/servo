@@ -180,16 +180,17 @@ impl BrowsingContext {
         let url = match url {
             Some(url) => {
                 match active_document.url().join(&url) {
-                    Ok(url) => url,
+                    Ok(url) => {
+                        if !UrlHelper::SameOrigin(&url, active_document.url()) {
+                            return Err(Error::Security);
+                        }
+                        url
+                    },
                     Err(_) => return Err(Error::Security),
                 }
             },
             None => active_document.url().clone(),
         };
-
-        if !UrlHelper::SameOrigin(&url, active_document.url()) {
-            return Err(Error::Security);
-        }
 
         self.history.borrow_mut().push(SessionHistoryEntry::new(&*active_document,
                                                                 url,
@@ -222,7 +223,12 @@ impl BrowsingContext {
         let url = match url {
             Some(url) => {
                 match active_document.url().join(&url) {
-                    Ok(url) => url,
+                    Ok(url) => {
+                        if !UrlHelper::SameOrigin(&url, active_document.url()) {
+                            return Err(Error::Security);
+                        }
+                        url
+                    },
                     Err(_) => return Err(Error::Security),
                 }
             },
