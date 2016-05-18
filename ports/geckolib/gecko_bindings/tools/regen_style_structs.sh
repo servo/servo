@@ -98,6 +98,7 @@ export RUST_BACKTRACE=1
   -match "utility"                                                  \
   -match "pair"                                                     \
   -match "SheetParsingMode.h"                                       \
+  -match "StaticPtr.h"                                              \
   -blacklist-type "IsDestructibleFallbackImpl"                      \
   -blacklist-type "IsDestructibleFallback"                          \
   -opaque-type "nsIntMargin"                                        \
