@@ -130,7 +130,7 @@ if [ $? -ne 0 ]; then
 else
   echo -e "\e[34minfo:\e[0m bindgen exited successfully, running tests"
   TESTS_FILE=$(mktemp)
-  rustc ../structs.rs --test -o $TESTS_FILE
+  multirust run nightly rustc ../structs.rs --test -o $TESTS_FILE
   $TESTS_FILE
   rm $TESTS_FILE
 fi
