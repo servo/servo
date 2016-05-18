@@ -17,4 +17,4 @@ FILES=("components/compositing/compositor.rs"
 ls -1 "${FILES[@]}"
 
 # make sure the files do not contain "unwrap" or "panic!"
-! grep -Hn "unwrap(\|panic!(" "${FILES[@]}"
+! grep --line-number --with-filename  "unwrap(\|panic(" "${FILES[@]}"
