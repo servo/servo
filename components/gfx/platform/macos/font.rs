@@ -59,8 +59,8 @@ impl FontTableMethods for FontTable {
 
 #[derive(Debug)]
 pub struct FontHandle {
-    pub font_data: Arc<FontTemplateData>,
-    pub ctfont: CTFont,
+    font_data: Arc<FontTemplateData>,
+    ctfont: CTFont,
 }
 
 impl FontHandleMethods for FontHandle {

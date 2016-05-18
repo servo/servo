@@ -49,9 +49,9 @@ impl FontTableMethods for FontTable {
 pub struct FontHandle {
     // The font binary. This must stay valid for the lifetime of the font,
     // if the font is created using FT_Memory_Face.
-    pub font_data: Arc<FontTemplateData>,
-    pub face: FT_Face,
-    pub handle: FontContextHandle
+    font_data: Arc<FontTemplateData>,
+    face: FT_Face,
+    handle: FontContextHandle,
 }
 
 impl Drop for FontHandle {
