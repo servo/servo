@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::attr::AttrValue;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
@@ -90,7 +91,7 @@ impl HTMLMetaElementMethods for HTMLMetaElement {
     make_getter!(Name, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-meta-name
-    make_setter!(SetName, "name");
+    make_atomic_setter!(SetName, "name");
 
     // https://html.spec.whatwg.org/multipage/#dom-meta-content
     make_getter!(Content, "content");
@@ -111,6 +112,13 @@ impl VirtualMethods for HTMLMetaElement {
 
         if tree_in_doc {
             self.process_attributes();
+        }
+    }
+
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+        match name {
+            &atom!("name") => AttrValue::from_atomic(value),
+            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
 }
