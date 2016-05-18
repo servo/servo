@@ -113,4 +113,11 @@ impl VirtualMethods for HTMLMetaElement {
             self.process_attributes();
         }
     }
+
+    fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
+        match name {
+            &atom!("name") => AttrValue::from_atomic(value),
+            _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+        }
+    }
 }
