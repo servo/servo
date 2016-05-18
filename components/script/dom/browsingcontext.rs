@@ -109,6 +109,16 @@ impl BrowsingContext {
                                                                 None));
     }
 
+    pub fn frame_element(&self) -> Option<&Element> {
+        self.frame_element.r()
+    }
+
+    pub fn window_proxy(&self) -> *mut JSObject {
+        let window_proxy = self.reflector_.get_jsobject();
+        assert!(!window_proxy.get().is_null());
+        window_proxy.get()
+    }
+
     pub fn push_history(&self, document: &Document) {
         let mut history = self.history.borrow_mut();
         self.remove_forward_history();
@@ -133,7 +143,9 @@ impl BrowsingContext {
         assert!(active_index < self.history.borrow().len());
         self.active_index.set(active_index);
 
-        // TODO: Change document URL hash, without reloading
+        // TODO(ConnorGBrewster): Change document URL hash. This should not trigger a reload
+        // when called by push_state/replace_state, it should only cause a reload when
+        // the entry is navigated to.
 
         if trigger_event {
             let active_window = &*self.active_window();
@@ -157,7 +169,6 @@ impl BrowsingContext {
     }
 
     pub fn push_state(&self, state: StructuredCloneData, title: DOMString, url: Option<DOMString>) -> ErrorResult {
-        // TODO: update URL after we can set the Url of a doc after creation
         self.remove_forward_history();
         let active_document = self.active_document();
 
@@ -236,16 +247,6 @@ impl BrowsingContext {
     pub fn remove_forward_history(&self) {
         let mut history = self.history.borrow_mut();
         history.drain((self.active_index.get() + 1)..);
-    }
-
-    pub fn frame_element(&self) -> Option<&Element> {
-        self.frame_element.r()
-    }
-
-    pub fn window_proxy(&self) -> *mut JSObject {
-        let window_proxy = self.reflector_.get_jsobject();
-        assert!(!window_proxy.get().is_null());
-        window_proxy.get()
     }
 
     pub fn remove(&self, id: PipelineId) -> Option<Root<BrowsingContext>> {

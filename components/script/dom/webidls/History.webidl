@@ -6,11 +6,17 @@ enum ScrollRestoration { "auto", "manual" };
 
 // https://html.spec.whatwg.org/multipage/#the-history-interface
 interface History {
+  [Throws]
   readonly attribute unsigned long length;
+  [Throws]
   attribute ScrollRestoration scrollRestoration;
+  [Throws]
   readonly attribute any state;
+  [Throws]
   void go(optional long delta = 0);
+  [Throws]
   void back();
+  [Throws]
   void forward();
   [Throws]
   void pushState(any data, DOMString title, optional DOMString? url = null);

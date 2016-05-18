@@ -856,6 +856,10 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 debug!("constellation got Alert message");
                 self.handle_alert(pipeline_id, message, sender);
             }
+            Request::Script(FromScriptMsg::IsPipelineFullyActive(pipeline_id, sender)) => {
+                debug!("constellation got Alert message");
+                self.handle_is_pipeline_fully_active(pipeline_id, sender);
+            }
 
 
             // Messages from layout thread
@@ -1164,6 +1168,24 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         };
 
         let result = sender.send(display_alert_dialog);
+        if let Err(e) = result {
+            self.handle_send_error(pipeline_id, e);
+        }
+    }
+
+    fn handle_is_pipeline_fully_active(&mut self, pipeline_id: PipelineId, sender: IpcSender<bool>) {
+        // Iterate through the frame tree and see if this pipeline matches any of the
+        // active frame pipelines.
+        for frame in self.current_frame_tree_iter(self.root_frame_id) {
+            if frame.current.id == pipeline_id {
+                let result = sender.send(true);
+                if let Err(e) = result {
+                    warn!("Send pipeline is active failed ({})", e);
+                }
+                return;
+            }
+        }
+        let result = sender.send(false);
         if let Err(e) = result {
             self.handle_send_error(pipeline_id, e);
         }

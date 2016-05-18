@@ -87,4 +87,6 @@ pub enum ScriptMsg {
     SetFinalUrl(PipelineId, Url),
     /// Check if an alert dialog box should be presented
     Alert(PipelineId, String, IpcSender<bool>),
+    /// Checks if the pipeline is fully active
+    IsPipelineFullyActive(PipelineId, IpcSender<bool>),
 }
