@@ -666,7 +666,7 @@ fn static_assert() {
         match v {
             % for value in keyword.values_for('gecko'):
                 T::${to_rust_ident(value)} =>
-                    self.gecko.mVerticalAlign.set_int(structs::${keyword.gecko_constant(value)} as i32),
+                    self.gecko.mVerticalAlign.set_enum(structs::${keyword.gecko_constant(value)} as i32),
             % endfor
             T::LengthOrPercentage(v) => self.gecko.mVerticalAlign.set(v),
         }

@@ -13,6 +13,7 @@ pub trait StyleCoordHelpers {
     fn set_auto(&mut self);
     fn set_coord(&mut self, val: Au);
     fn set_int(&mut self, val: i32);
+    fn set_enum(&mut self, val: i32);
     fn set_percent(&mut self, val: f32);
 }
 
@@ -38,6 +39,11 @@ impl StyleCoordHelpers for nsStyleCoord {
 
     fn set_int(&mut self, val: i32) {
         self.mUnit = nsStyleUnit::eStyleUnit_Integer;
+        unsafe { *self.mValue.mInt.as_mut() = val; }
+    }
+
+    fn set_enum(&mut self, val: i32) {
+        self.mUnit = nsStyleUnit::eStyleUnit_Enumerated;
         unsafe { *self.mValue.mInt.as_mut() = val; }
     }
 }
