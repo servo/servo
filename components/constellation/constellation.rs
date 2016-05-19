@@ -1283,35 +1283,52 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // Get the previous and next frame entries.
         let (prev_entry, next_entry) = match self.frames.get_mut(&frame_id) {
             Some(frame) => {
-                let next = match direction {
-                    NavigationDirection::Forward(_) => {
-                        match frame.next.pop() {
-                            None => {
-                                warn!("no next page to navigate to");
-                                return;
-                            },
-                            Some(next) => {
-                                frame.prev.push(frame.current);
-                                next
-                            },
+                match direction {
+                    NavigationDirection::Forward(delta) => {
+                        if delta <= frame.next.len() {
+                            let old = frame.current;
+                            frame.prev.push(old);
+
+                            for _ in 0..delta - 1 {
+                                frame.next.pop().map(|entry| frame.prev.push(entry));
+                            }
+                            match frame.next.pop() {
+                                None => {
+                                    warn!("no next page to navigate to");
+                                    return;
+                                },
+                                Some(new) => {
+                                    frame.current = new;
+                                    (old, new)
+                                },
+                            }
+                        } else {
+                            return warn!("invalid forward frame navigation delta");
                         }
                     }
-                    NavigationDirection::Back(_) => {
-                        match frame.prev.pop() {
-                            None => {
-                                warn!("no previous page to navigate to");
-                                return;
-                            },
-                            Some(prev) => {
-                                frame.next.push(frame.current);
-                                prev
-                            },
+                    NavigationDirection::Back(delta) => {
+                        if delta <= frame.prev.len() {
+                            let old = frame.current;
+                            frame.next.push(old);
+
+                            for _ in 0..delta - 1 {
+                                frame.prev.pop().map(|entry| frame.next.push(entry));
+                            }
+                            match frame.prev.pop() {
+                                None => {
+                                    warn!("no previous page to navigate to");
+                                    return;
+                                },
+                                Some(new) => {
+                                    frame.current = new;
+                                    (old, new)
+                                },
+                            }
+                        } else {
+                            return warn!("invalid back frame navigation delta");
                         }
                     }
-                };
-                let prev = frame.current;
-                frame.current = next;
-                (prev, next)
+                }
             },
             None => {
                 warn!("no frame to navigate from");
@@ -1343,9 +1360,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.send_frame_tree_and_grant_paint_permission();
         }
 
-        if next_entry.id == prev_entry.id && next_entry.context_index != prev_entry.context_index {
-            self.send_popstate_msg(next_entry.id, next_entry.context_index);
-        }
+        self.send_popstate_msg(next_entry.id, next_entry.context_index);
 
         // Update the owning iframe to point to the new subpage id.
         // This makes things like contentDocument work correctly.
@@ -1388,13 +1403,20 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_navigate_msg(&mut self, direction: NavigationDirection) {
         debug!("received message to navigate {:?}", direction);
+
+        let mut navigation_info: HashMap<FrameId, usize> = HashMap::new();
+
         match direction {
             NavigationDirection::Forward(delta) => {
                 if delta + self.active_history_index < self.navigation_history.len() {
                     for _ in 0..delta {
                         self.active_history_index += 1;
                         if let Some(frame_id) = self.navigation_history[self.active_history_index] {
-                            self.navigate_frame(frame_id, direction);
+                            let delta = match navigation_info.get(&frame_id) {
+                                Some(info) => info + 1,
+                                None => 1,
+                            };
+                            navigation_info.insert(frame_id, delta);
                         }
                     }
                 } else {
@@ -1405,7 +1427,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 if delta <= self.active_history_index {
                     for _ in 0..delta {
                         if let Some(frame_id) = self.navigation_history[self.active_history_index] {
-                            self.navigate_frame(frame_id, direction);
+                            let delta = match navigation_info.get(&frame_id) {
+                                Some(info) => info + 1,
+                                None => 1,
+                            };
+                            navigation_info.insert(frame_id, delta);
                         }
                         self.active_history_index -= 1;
                     }
@@ -1413,6 +1439,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     return warn!("invalid back navigation delta");
                 }
             },
+        }
+
+        for (frame_id, delta) in navigation_info {
+            match direction {
+                NavigationDirection::Forward(_) => self.navigate_frame(frame_id, NavigationDirection::Forward(delta)),
+                NavigationDirection::Back(_) => self.navigate_frame(frame_id, NavigationDirection::Back(delta)),
+            }
         }
     }
 
