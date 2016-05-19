@@ -13,4 +13,8 @@ FILES=("components/compositing/compositor.rs"
        "components/compositing/pipeline.rs"
        "components/constellation/constellation.rs")
 
-! grep -n "unwrap(\|panic!(" "${FILES[@]}"
+# make sure the files exist
+ls -1 "${FILES[@]}"
+
+# make sure the files do not contain "unwrap" or "panic!"
+! grep --line-number --with-filename "unwrap(\|panic!(" "${FILES[@]}"
