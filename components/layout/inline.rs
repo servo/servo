@@ -1082,7 +1082,7 @@ impl InlineFlow {
     /// `style` is the style of the block.
     pub fn compute_minimum_ascent_and_descent(&self,
                                               font_context: &mut FontContext,
-                                              style: &ServoComputedValues)
+                                              _style: &ServoComputedValues)
                                               -> (Au, Au) {
         // As a special case, if this flow contains only hypothetical fragments, then the entire
         // flow is hypothetical and takes up no space. See CSS 2.1 § 10.3.7.
@@ -1090,25 +1090,10 @@ impl InlineFlow {
             return (Au(0), Au(0))
         }
 
-        let font_style = style.get_font_arc();
-        let font_metrics = text::font_metrics_for_style(font_context, font_style);
-        let line_height = text::line_height_from_style(style, &font_metrics);
-        let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
-
         let mut block_size_above_baseline = Au(0);
         let mut depth_below_baseline = Au(i32::MIN);
         let mut largest_block_size_for_top_fragments = Au(0);
         let mut largest_block_size_for_bottom_fragments = Au(0);
-
-        // We use `vertical_align::T::baseline` here because `vertical-align` must not apply to
-        // the inside of inline blocks.
-        update_inline_metrics(&inline_metrics,
-                              style.get_box().display,
-                              vertical_align::T::baseline,
-                              &mut block_size_above_baseline,
-                              &mut depth_below_baseline,
-                              &mut largest_block_size_for_top_fragments,
-                              &mut largest_block_size_for_bottom_fragments);
 
         // According to CSS 2.1 § 10.8, `line-height` of any inline element specifies the minimal
         // height of line boxes within the element.
