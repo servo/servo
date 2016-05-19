@@ -1091,29 +1091,19 @@ impl InlineFlow {
             return (Au(0), Au(0))
         }
 
-        let font_style = style.get_font_arc();
-        let font_metrics = text::font_metrics_for_style(font_context, font_style);
-        let line_height = text::line_height_from_style(style, &font_metrics);
-        let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
-
         let mut block_size_above_baseline = Au(0);
         let mut depth_below_baseline = Au(i32::MIN);
         let mut largest_block_size_for_top_fragments = Au(0);
         let mut largest_block_size_for_bottom_fragments = Au(0);
 
-        // We use `vertical_align::T::baseline` here because `vertical-align` must not apply to
-        // the inside of inline blocks.
-        update_inline_metrics(&inline_metrics,
-                              style.get_box().display,
-                              vertical_align::T::baseline,
-                              &mut block_size_above_baseline,
-                              &mut depth_below_baseline,
-                              &mut largest_block_size_for_top_fragments,
-                              &mut largest_block_size_for_bottom_fragments);
+        // If the box is composed entirely of replaced elements, then we should not consider
+        // font metrics for the parent element.
+        let mut no_strut = true;
 
         // According to CSS 2.1 § 10.8, `line-height` of any inline element specifies the minimal
         // height of line boxes within the element.
         for frag in &self.fragments.fragments {
+            no_strut = no_strut && !frag.is_scanned_text_fragment();
             if let Some(ref inline_context) = frag.inline_context {
                 for node in &inline_context.nodes {
                     let font_style = node.style.get_font_arc();
@@ -1132,6 +1122,22 @@ impl InlineFlow {
 
                 }
             }
+        }
+
+        if !no_strut {
+            let font_style = style.get_font_arc();
+            let font_metrics = text::font_metrics_for_style(font_context, font_style);
+            let line_height = text::line_height_from_style(style, &font_metrics);
+            let inline_metrics = InlineMetrics::from_font_metrics(&font_metrics, line_height);
+            // We use `vertical_align::T::baseline` here because `vertical-align` must not apply
+            // to the inside of inline blocks.
+            update_inline_metrics(&inline_metrics,
+                                  style.get_box().display,
+                                  vertical_align::T::baseline,
+                                  &mut block_size_above_baseline,
+                                  &mut depth_below_baseline,
+                                  &mut largest_block_size_for_top_fragments,
+                                  &mut largest_block_size_for_bottom_fragments);
         }
 
         block_size_above_baseline =
