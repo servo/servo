@@ -824,3 +824,79 @@ ${helpers.single_keyword("page-break-inside",
 ${helpers.single_keyword("resize",
                          "none both horizontal vertical",
                          products="gecko")}
+
+// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding
+<%helpers:longhand name="-moz-binding" products="gecko">
+    use cssparser::{CssStringWriter, ToCss};
+    use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
+    use std::fmt::{self, Write};
+    use url::Url;
+    use values::computed::ComputedValueAsSpecified;
+
+    #[derive(PartialEq, Clone, Debug, HeapSizeOf)]
+    pub struct UrlExtraData {
+        pub base: GeckoArcURI,
+        pub referrer: GeckoArcURI,
+        pub principal: GeckoArcPrincipal,
+    }
+
+    #[derive(PartialEq, Clone, Debug, HeapSizeOf)]
+    pub enum SpecifiedValue {
+        Url(Url, UrlExtraData),
+        None,
+    }
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            match *self {
+                SpecifiedValue::Url(ref url, _) => {
+                    try!(dest.write_str("url(\""));
+                    try!(write!(&mut CssStringWriter::new(dest), "{}", url));
+                    try!(dest.write_str("\")"));
+                    Ok(())
+                }
+                SpecifiedValue::None => {
+                    try!(dest.write_str("none"));
+                    Ok(())
+                }
+            }
+        }
+    }
+
+    pub mod computed_value {
+        pub type T = super::SpecifiedValue;
+    }
+
+    #[inline] pub fn get_initial_value() -> SpecifiedValue {
+        SpecifiedValue::None
+    }
+
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+            Ok(SpecifiedValue::None)
+        } else {
+            match context.extra_data {
+                ParserContextExtraData {
+                    base: Some(ref base),
+                    referrer: Some(ref referrer),
+                    principal: Some(ref principal),
+                } => {
+                    let extra_data = UrlExtraData {
+                        base: base.clone(),
+                        referrer: referrer.clone(),
+                        principal: principal.clone(),
+                    };
+                    Ok(SpecifiedValue::Url(context.parse_url(&*try!(input.expect_url())), extra_data))
+                },
+                _ => {
+                    // FIXME(heycam) should ensure we always have a principal, etc., when parsing
+                    // style attributes and re-parsing due to CSS Variables.
+                    println!("stylo: skipping -moz-binding declaration without ParserContextExtraData");
+                    Err(())
+                },
+            }
+        }
+    }
+</%helpers:longhand>
