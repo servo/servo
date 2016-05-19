@@ -247,8 +247,7 @@ pub struct LayoutThread {
 
 impl LayoutThreadFactory for LayoutThread {
     /// Spawns a new layout thread.
-    fn create(_phantom: Option<&mut LayoutThread>,
-              id: PipelineId,
+    fn create(id: PipelineId,
               url: Url,
               is_iframe: bool,
               chan: OpaqueScriptLayoutChannel,
@@ -731,23 +730,22 @@ impl LayoutThread {
     }
 
     fn create_layout_thread(&self, info: NewLayoutThreadInfo) {
-        LayoutThreadFactory::create(None::<&mut LayoutThread>,
-                                  info.id,
-                                  info.url.clone(),
-                                  info.is_parent,
-                                  info.layout_pair,
-                                  info.pipeline_port,
-                                  info.constellation_chan,
-                                  info.panic_chan,
-                                  info.script_chan.clone(),
-                                  info.paint_chan.to::<LayoutToPaintMsg>(),
-                                  self.image_cache_thread.clone(),
-                                  self.font_cache_thread.clone(),
-                                  self.time_profiler_chan.clone(),
-                                  self.mem_profiler_chan.clone(),
-                                  info.layout_shutdown_chan,
-                                  info.content_process_shutdown_chan,
-                                  self.webrender_api.as_ref().map(|wr| wr.clone_sender()));
+        LayoutThread::create(info.id,
+                             info.url.clone(),
+                             info.is_parent,
+                             info.layout_pair,
+                             info.pipeline_port,
+                             info.constellation_chan,
+                             info.panic_chan,
+                             info.script_chan.clone(),
+                             info.paint_chan.to::<LayoutToPaintMsg>(),
+                             self.image_cache_thread.clone(),
+                             self.font_cache_thread.clone(),
+                             self.time_profiler_chan.clone(),
+                             self.mem_profiler_chan.clone(),
+                             info.layout_shutdown_chan,
+                             info.content_process_shutdown_chan,
+                             self.webrender_api.as_ref().map(|wr| wr.clone_sender()));
     }
 
     /// Enters a quiescent state in which no new messages will be processed until an `ExitNow` is
