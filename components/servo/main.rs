@@ -35,11 +35,17 @@ use servo::Browser;
 use servo::compositing::windowing::WindowEvent;
 use servo::util::opts::{self, ArgumentParsingResult};
 use servo::util::panicking::initiate_panic_hook;
+use std::process;
 use std::rc::Rc;
 
 fn main() {
     // Parse the command line options and store them globally
     let opts_result = opts::from_cmdline_args(&*args());
+
+    if opts::get().is_printing_version {
+        println!("Servo {}{}", env!("CARGO_PKG_VERSION"), env!("GIT_INFO"));
+        process::exit(0);
+    }
 
     let content_process_token = if let ArgumentParsingResult::ContentProcess(token) = opts_result {
         Some(token)
