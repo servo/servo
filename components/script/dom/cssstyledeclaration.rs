@@ -10,7 +10,7 @@ use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
 use dom::bindings::str::DOMString;
 use dom::element::{Element, StylePriority};
-use dom::node::{Node, window_from_node};
+use dom::node::{Node, NodeDamage, window_from_node};
 use dom::window::Window;
 use std::ascii::AsciiExt;
 use std::cell::Ref;
@@ -243,6 +243,8 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         // Step 9
         element.update_inline_style(declarations, priority);
 
+        let node = element.upcast::<Node>();
+        node.dirty(NodeDamage::NodeStyleDamaged);
         Ok(())
     }
 
@@ -275,6 +277,8 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             None => element.set_inline_style_property_priority(&[&*property], priority),
         }
 
+        let node = element.upcast::<Node>();
+        node.dirty(NodeDamage::NodeStyleDamaged);
         Ok(())
     }
 
@@ -296,18 +300,21 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         // Step 3
         let value = self.GetPropertyValue(property.clone());
 
-        let elem = self.owner.upcast::<Element>();
+        let element = self.owner.upcast::<Element>();
 
         match Shorthand::from_name(&property) {
             // Step 4
             Some(shorthand) => {
                 for longhand in shorthand.longhands() {
-                    elem.remove_inline_style_property(longhand)
+                    element.remove_inline_style_property(longhand)
                 }
             }
             // Step 5
-            None => elem.remove_inline_style_property(&property),
+            None => element.remove_inline_style_property(&property),
         }
+
+        let node = element.upcast::<Node>();
+        node.dirty(NodeDamage::NodeStyleDamaged);
 
         // Step 6
         Ok(value)
