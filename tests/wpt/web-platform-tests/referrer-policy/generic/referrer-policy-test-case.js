@@ -103,8 +103,6 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
         sanityChecker.checkSubresourceResult(
             test, t._scenario, t._subresourceUrl, result);
 
-        console.log(JSON.stringify(result));
-
         // Check the reported URL.
         test.step(function() {
           //TODO - uncomment when can pull referrer
