@@ -10,7 +10,8 @@ use env_logger;
 use euclid::Size2D;
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues, ServoNodeData};
-use gecko_bindings::bindings::{nsIAtom};
+use gecko_bindings::bindings::{ThreadSafePrincipalHolder, ThreadSafeURIHolder, nsIAtom};
+use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use gecko_bindings::structs::SheetParsingMode;
 use properties::GeckoComputedValues;
 use selector_impl::{GeckoSelectorImpl, PseudoElement, SharedStyleContext, Stylesheet};
@@ -121,7 +122,11 @@ pub extern "C" fn Servo_DropNodeData(data: *mut ServoNodeData) -> () {
 #[no_mangle]
 pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8,
                                                 length: u32,
-                                                mode: SheetParsingMode) -> *mut RawServoStyleSheet {
+                                                mode: SheetParsingMode,
+                                                base: *mut ThreadSafeURIHolder,
+                                                referrer: *mut ThreadSafeURIHolder,
+                                                principal: *mut ThreadSafePrincipalHolder)
+                                                -> *mut RawServoStyleSheet {
 
     let input = unsafe { from_utf8_unchecked(slice::from_raw_parts(bytes, length as usize)) };
 
@@ -133,7 +138,11 @@ pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8,
 
     // FIXME(heycam): Pass in the real base URL.
     let url = Url::parse("about:none").unwrap();
-    let extra_data = ParserContextExtraData { };
+    let extra_data = ParserContextExtraData {
+        base: Some(GeckoArcURI::new(base)),
+        referrer: Some(GeckoArcURI::new(referrer)),
+        principal: Some(GeckoArcPrincipal::new(principal)),
+    };
     let sheet = Arc::new(Stylesheet::from_str(input, url, origin, Box::new(StdoutErrorReporter),
                                               extra_data));
     unsafe {
