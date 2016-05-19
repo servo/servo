@@ -14,6 +14,7 @@ import subprocess
 from subprocess import PIPE
 import sys
 import platform
+import time
 
 import toml
 
@@ -409,6 +410,8 @@ class CommandBase(object):
                 env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
 
         env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -W unused-extern-crates"
+
+        env['BUILD_DATE'] = time.strftime("%Y-%m-%d")
 
         return env
 

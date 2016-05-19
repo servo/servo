@@ -584,6 +584,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optopt("G", "graphics", "Select graphics backend (gl or es2)", "gl");
     opts.optopt("", "profile-dir",
                     "optional directory path for user sessions", "");
+    opts.optflag("v", "version", "Display servo version information");
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -594,6 +595,11 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     if opt_match.opt_present("h") || opt_match.opt_present("help") {
         print_usage(app_name, &opts);
+        process::exit(0);
+    };
+
+    if opt_match.opt_present("v") || opt_match.opt_present("version") {
+        println!("Servo {} - compiled {}", env!("CARGO_PKG_VERSION"), env!("BUILD_DATE"));
         process::exit(0);
     };
 
