@@ -30,7 +30,6 @@ use js::jsapi::{JSContext, JSPROP_READONLY, JSErrNum, JSObject, PropertyDescript
 use js::jsapi::{JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetClass, JSTracer, FreeOp};
 use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, MutableHandle};
 use js::jsval::{JSVal, UndefinedValue, PrivateValue, NullValue};
-use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::{PipelineId, SubpageId};
 use script_thread::Runnable;
 use script_traits::ScriptMsg as ConstellationMsg;
@@ -206,9 +205,8 @@ impl BrowsingContext {
 
         let active_window = self.active_window();
         let pipeline_info = active_window.parent_info();
-        let ConstellationChan(ref chan) = *active_window.constellation_chan();
         let msg = ConstellationMsg::HistoryStatePushed(pipeline_info, new_index);
-        chan.send(msg).unwrap();
+        active_window.constellation_chan().send(msg).unwrap();
 
         Ok(())
     }
