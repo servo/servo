@@ -1743,6 +1743,8 @@ class CGImports(CGWrapper):
             return [type]
 
         def isImportable(type):
+            if str(type) == "WindowProxy (Wrapper)":
+                return False
             if not type.isType():
                 assert type.isInterface()
                 return not type.isCallback()
@@ -1766,8 +1768,7 @@ class CGImports(CGWrapper):
         for d in descriptors:
             if not d.correspondToBrowsingContext:
                 types += [d.interface]
-            else:
-                print d.interface
+
             members = d.interface.members + d.interface.namedConstructors
             constructor = d.interface.ctor()
             if constructor:
@@ -2973,6 +2974,7 @@ class CGPerSignatureCall(CGThing):
             static))
         self.cgRoot = CGList(cgThings, "\n")
 
+
     def getArgs(self):
         return "args" if self.argCount > 0 else ""
 
@@ -3185,6 +3187,8 @@ class CGSpecializedGetter(CGAbstractExternMethod):
         nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
                                                         self.attr)
 
+        print self.attr.type
+        print nativeName
         return CGWrapper(CGGetterCall([], self.attr.type, nativeName,
                                       self.descriptor, self.attr),
                          pre="let this = &*this;\n")
