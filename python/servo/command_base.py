@@ -14,6 +14,7 @@ import subprocess
 from subprocess import PIPE
 import sys
 import platform
+import time
 
 import toml
 
@@ -409,6 +410,22 @@ class CommandBase(object):
                 env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -C target-feature=+neon"
 
         env['RUSTFLAGS'] = env.get('RUSTFLAGS', "") + " -W unused-extern-crates"
+
+        git_info = []
+        if os.path.isdir('.git'):
+            git_sha = subprocess.check_output([
+                'git', 'rev-parse', '--short', 'HEAD'
+            ]).strip()
+            git_is_dirty = bool(subprocess.check_output([
+                'git', 'status', '--porcelain'
+            ]).strip())
+
+            git_info.append('')
+            git_info.append(git_sha)
+            if git_is_dirty:
+                git_info.append('dirty')
+
+        env['GIT_INFO'] = '-'.join(git_info)
 
         return env
 
