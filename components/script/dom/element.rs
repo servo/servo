@@ -1977,7 +1977,7 @@ impl VirtualMethods for Element {
                 *self.style_attribute.borrow_mut() =
                     mutation.new_value(attr).map(|value| {
                         let win = window_from_node(self);
-                        parse_style_attribute(&value, &doc.base_url(), win.css_error_reporter())
+                        parse_style_attribute(&value, &doc.base_url(), win.css_error_reporter(), ())
                     });
                 if node.is_in_doc() {
                     node.dirty(NodeDamage::NodeStyleDamaged);
