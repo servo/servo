@@ -33,8 +33,7 @@ use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, RootedValue, JSContext, MutableHandleValue};
 use js::jsval::{UndefinedValue, NullValue};
 use layout_interface::ReflowQueryType;
-use msg::constellation_msg::{ConstellationChan, LoadData};
-use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
+use msg::constellation_msg::{LoadData, NavigationDirection, PipelineId, SubpageId};
 use net_traits::response::HttpsState;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{IFrameLoadInfo, MozBrowserEvent, ScriptMsg as ConstellationMsg};
@@ -120,12 +119,10 @@ impl HTMLIFrameElement {
         }
 
         let window = window_from_node(self);
-        let window = window.r();
         let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id();
         let new_pipeline_id = self.pipeline_id.get().unwrap();
         let private_iframe = self.privatebrowsing();
 
-        let ConstellationChan(ref chan) = *window.constellation_chan();
         let load_info = IFrameLoadInfo {
             load_data: load_data,
             containing_pipeline_id: window.pipeline(),
@@ -135,7 +132,9 @@ impl HTMLIFrameElement {
             sandbox: sandboxed,
             is_private: private_iframe,
         };
-        chan.send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info)).unwrap();
+        window.constellation_chan()
+              .send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info))
+              .unwrap();
 
         if mozbrowser_enabled() {
             // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
@@ -372,13 +371,11 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> E
     if iframe.Mozbrowser() {
         if iframe.upcast::<Node>().is_in_doc() {
             let window = window_from_node(iframe);
-            let window = window.r();
 
             let pipeline_info = Some((window.pipeline(),
                                       iframe.subpage_id().unwrap()));
-            let ConstellationChan(ref chan) = *window.constellation_chan();
             let msg = ConstellationMsg::Navigate(pipeline_info, direction);
-            chan.send(msg).unwrap();
+            window.constellation_chan().send(msg).unwrap();
         }
 
         Ok(())
@@ -568,7 +565,6 @@ impl VirtualMethods for HTMLIFrameElement {
         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
         if let Some(pipeline_id) = self.pipeline_id.get() {
             let window = window_from_node(self);
-            let window = window.r();
 
             // The only reason we're waiting for the iframe to be totally
             // removed is to ensure the script thread can't add iframes faster
@@ -576,7 +572,6 @@ impl VirtualMethods for HTMLIFrameElement {
             //
             // Since most of this cleanup doesn't happen on same-origin
             // iframes, and since that would cause a deadlock, don't do it.
-            let ConstellationChan(ref chan) = *window.constellation_chan();
             let same_origin = {
                 // FIXME(#10968): this should probably match the origin check in
                 //                HTMLIFrameElement::contentDocument.
@@ -591,7 +586,7 @@ impl VirtualMethods for HTMLIFrameElement {
                 (Some(sender), Some(receiver))
             };
             let msg = ConstellationMsg::RemoveIFrame(pipeline_id, sender);
-            chan.send(msg).unwrap();
+            window.constellation_chan().send(msg).unwrap();
             if let Some(receiver) = receiver {
                 receiver.recv().unwrap()
             }

@@ -19,7 +19,7 @@ use gfx_traits::{Epoch, FrameTreeId, LayerId, LayerKind, LayerProperties, PaintL
 use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
-use msg::constellation_msg::{ConstellationChan, PanicMsg, PipelineId};
+use msg::constellation_msg::{PanicMsg, PipelineId};
 use paint_context::PaintContext;
 use profile_traits::mem::{self, ReportsChan};
 use profile_traits::time;
@@ -393,12 +393,11 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
                   layout_to_paint_port: Receiver<LayoutToPaintMsg>,
                   chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
                   compositor: C,
-                  panic_chan: ConstellationChan<PanicMsg>,
+                  panic_chan: IpcSender<PanicMsg>,
                   font_cache_thread: FontCacheThread,
                   time_profiler_chan: time::ProfilerChan,
                   mem_profiler_chan: mem::ProfilerChan,
                   shutdown_chan: IpcSender<()>) {
-        let ConstellationChan(c) = panic_chan.clone();
         thread::spawn_named_with_send_on_panic(format!("PaintThread {:?}", id),
                                                thread_state::PAINT,
                                                move || {
@@ -439,7 +438,7 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
 
             debug!("paint_thread: shutdown_chan send");
             shutdown_chan.send(()).unwrap();
-        }, Some(id), c);
+        }, Some(id), panic_chan);
     }
 
     #[allow(unsafe_code)]

@@ -95,8 +95,7 @@ impl WebGLRenderingContext {
                      -> Result<WebGLRenderingContext, String> {
         let (sender, receiver) = ipc::channel().unwrap();
         let constellation_chan = global.constellation_chan();
-        constellation_chan.0
-                          .send(ConstellationMsg::CreateWebGLPaintThread(size, attrs, sender))
+        constellation_chan.send(ConstellationMsg::CreateWebGLPaintThread(size, attrs, sender))
                           .unwrap();
         let result = receiver.recv().unwrap();
 

@@ -94,7 +94,7 @@ use js::jsapi::JS_GetRuntime;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use layout_interface::{LayoutChan, Msg, ReflowQueryType};
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
-use msg::constellation_msg::{ConstellationChan, Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy, SubpageId};
 use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
@@ -623,9 +623,8 @@ impl Document {
             // Update the focus state for all elements in the focus chain.
             // https://html.spec.whatwg.org/multipage/#focus-chain
             if focus_type == FocusType::Element {
-                let ConstellationChan(ref chan) = *self.window.constellation_chan();
                 let event = ConstellationMsg::Focus(self.window.pipeline());
-                chan.send(event).unwrap();
+                self.window.constellation_chan().send(event).unwrap();
             }
         }
     }
@@ -699,7 +698,7 @@ impl Document {
                 let event = ConstellationMsg::ForwardMouseButtonEvent(pipeline_id,
                                                                       mouse_event_type,
                                                                       button, child_point);
-                self.window.constellation_chan().0.send(event).unwrap();
+                self.window.constellation_chan().send(event).unwrap();
             }
             return;
         }
@@ -880,7 +879,7 @@ impl Document {
                     let child_point = client_point - child_origin;
 
                     let event = ConstellationMsg::ForwardMouseMoveEvent(pipeline_id, child_point);
-                    self.window.constellation_chan().0.send(event).unwrap();
+                    self.window.constellation_chan().send(event).unwrap();
                 }
                 return;
             }
@@ -1270,11 +1269,10 @@ impl Document {
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
         if htmliframeelement::mozbrowser_enabled() {
             if let Some((containing_pipeline_id, subpage_id)) = self.window.parent_info() {
-                let ConstellationChan(ref chan) = *self.window.constellation_chan();
                 let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
                                                               subpage_id,
                                                               event);
-                chan.send(event).unwrap();
+                self.window.constellation_chan().send(event).unwrap();
             }
         }
     }
@@ -1294,11 +1292,10 @@ impl Document {
         //
         // TODO: Should tick animation only when document is visible
         if !self.running_animation_callbacks.get() {
-            let ConstellationChan(ref chan) = *self.window.constellation_chan();
             let event = ConstellationMsg::ChangeRunningAnimationsState(
                 self.window.pipeline(),
                 AnimationState::AnimationCallbacksPresent);
-            chan.send(event).unwrap();
+            self.window.constellation_chan().send(event).unwrap();
         }
 
         ident
@@ -1308,10 +1305,9 @@ impl Document {
     pub fn cancel_animation_frame(&self, ident: u32) {
         self.animation_frame_list.borrow_mut().remove(&ident);
         if self.animation_frame_list.borrow().is_empty() {
-            let ConstellationChan(ref chan) = *self.window.constellation_chan();
             let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
                                                                        AnimationState::NoAnimationCallbacksPresent);
-            chan.send(event).unwrap();
+            self.window.constellation_chan().send(event).unwrap();
         }
     }
 
@@ -1333,10 +1329,9 @@ impl Document {
         // the next frame (which is the common case), we won't send a NoAnimationCallbacksPresent
         // message quickly followed by an AnimationCallbacksPresent message.
         if self.animation_frame_list.borrow().is_empty() {
-            let ConstellationChan(ref chan) = *self.window.constellation_chan();
             let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
                                                                        AnimationState::NoAnimationCallbacksPresent);
-            chan.send(event).unwrap();
+            self.window.constellation_chan().send(event).unwrap();
         }
 
         self.running_animation_callbacks.set(false);
@@ -1495,9 +1490,8 @@ impl Document {
 
     pub fn notify_constellation_load(&self) {
         let pipeline_id = self.window.pipeline();
-        let ConstellationChan(ref chan) = *self.window.constellation_chan();
         let event = ConstellationMsg::DOMLoad(pipeline_id);
-        chan.send(event).unwrap();
+        self.window.constellation_chan().send(event).unwrap();
 
     }
 

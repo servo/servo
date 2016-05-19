@@ -39,7 +39,7 @@ use msg::constellation_msg::{FrameId, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, NavigationDirection};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
-use msg::constellation_msg::{self, ConstellationChan, PanicMsg};
+use msg::constellation_msg::{self, PanicMsg};
 use msg::webdriver_msg;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
@@ -91,16 +91,16 @@ enum ReadyToSave {
 /// the `script` crate).
 pub struct Constellation<LTF, STF> {
     /// A channel through which script messages can be sent to this object.
-    script_sender: ConstellationChan<FromScriptMsg>,
+    script_sender: IpcSender<FromScriptMsg>,
 
     /// A channel through which compositor messages can be sent to this object.
     compositor_sender: Sender<FromCompositorMsg>,
 
     /// A channel through which layout thread messages can be sent to this object.
-    layout_sender: ConstellationChan<FromLayoutMsg>,
+    layout_sender: IpcSender<FromLayoutMsg>,
 
     /// A channel through which panic messages can be sent to this object.
-    panic_sender: ConstellationChan<PanicMsg>,
+    panic_sender: IpcSender<PanicMsg>,
 
     /// Receives messages from scripts.
     script_receiver: Receiver<FromScriptMsg>,
@@ -323,14 +323,18 @@ enum ChildProcess {
 
 impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF> {
     pub fn start(state: InitialConstellationState) -> Sender<FromCompositorMsg> {
-        let (ipc_script_receiver, ipc_script_sender) = ConstellationChan::<FromScriptMsg>::new();
+        let (ipc_script_sender, ipc_script_receiver) = ipc::channel().expect("ipc channel failure");
         let script_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_script_receiver);
-        let (compositor_sender, compositor_receiver) = channel();
-        let (ipc_layout_receiver, ipc_layout_sender) = ConstellationChan::<FromLayoutMsg>::new();
+
+        let (ipc_layout_sender, ipc_layout_receiver) = ipc::channel().expect("ipc channel failure");
         let layout_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_layout_receiver);
-        let (ipc_panic_receiver, ipc_panic_sender) = ConstellationChan::<PanicMsg>::new();
+
+        let (ipc_panic_sender, ipc_panic_receiver) = ipc::channel().expect("ipc channel failure");
         let panic_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_panic_receiver);
+
+        let (compositor_sender, compositor_receiver) = channel();
         let compositor_sender_clone = compositor_sender.clone();
+
         spawn_named("Constellation".to_owned(), move || {
             let mut constellation: Constellation<LTF, STF> = Constellation {
                 script_sender: ipc_script_sender,

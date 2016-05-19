@@ -55,7 +55,6 @@ use js::jsval::JSVal;
 use js::rust::Runtime;
 use layout_interface::{LayoutChan, LayoutRPC};
 use libc;
-use msg::constellation_msg::ConstellationChan;
 use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData, WindowSizeType, ReferrerPolicy};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
@@ -66,7 +65,7 @@ use offscreen_gl_context::GLLimits;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_runtime::ScriptChan;
-use script_traits::{LayoutMsg, ScriptMsg, TimerEventId, TimerSource, TouchpadPressurePhase, UntrustedNodeAddress};
+use script_traits::{TimerEventId, TimerSource, TouchpadPressurePhase, UntrustedNodeAddress};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use std::boxed::FnBox;
@@ -322,20 +321,6 @@ no_jsmanaged_fields!(HttpsState);
 no_jsmanaged_fields!(SharedRt);
 no_jsmanaged_fields!(TouchpadPressurePhase);
 no_jsmanaged_fields!(ReferrerPolicy);
-
-impl JSTraceable for ConstellationChan<ScriptMsg> {
-    #[inline]
-    fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-impl JSTraceable for ConstellationChan<LayoutMsg> {
-    #[inline]
-    fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]

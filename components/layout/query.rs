@@ -15,7 +15,6 @@ use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use gfx::display_list::OpaqueNode;
 use gfx_traits::{LayerId};
 use layout_thread::LayoutThreadData;
-use msg::constellation_msg::ConstellationChan;
 use opaque_node::OpaqueNodeMethods;
 use script::layout_interface::{ContentBoxResponse, NodeOverflowResponse, ContentBoxesResponse, NodeGeometryResponse};
 use script::layout_interface::{HitTestResponse, LayoutRPC, OffsetParentResponse, NodeLayerIdResponse};
@@ -79,8 +78,7 @@ impl LayoutRPC for LayoutRPCImpl {
                 None => Cursor::DefaultCursor,
                 Some(dim) => dim.pointing.unwrap(),
             };
-            let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
-            constellation_chan.send(ConstellationMsg::SetCursor(cursor)).unwrap();
+            rw_data.constellation_chan.send(ConstellationMsg::SetCursor(cursor)).unwrap();
         }
         HitTestResponse {
             node_address: result.map(|dim| dim.node.to_untrusted_node_address()),

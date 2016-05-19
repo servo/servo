@@ -26,7 +26,6 @@ use hyper::mime::{Mime, TopLevel, SubLevel};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use layout_interface::{LayoutChan, Msg};
-use msg::constellation_msg::ConstellationChan;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
 use network_listener::{NetworkListener, PreInvoke};
 use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg};
@@ -242,9 +241,8 @@ impl HTMLLinkElement {
         let document = document_from_node(self);
         match document.base_url().join(href) {
             Ok(url) => {
-                let ConstellationChan(ref chan) = *document.window().constellation_chan();
                 let event = ConstellationMsg::NewFavicon(url.clone());
-                chan.send(event).unwrap();
+                document.window().constellation_chan().send(event).unwrap();
 
                 let mozbrowser_event = match *sizes {
                     Some(ref sizes) => MozBrowserEvent::IconChange(rel.to_owned(), url.to_string(), sizes.to_owned()),

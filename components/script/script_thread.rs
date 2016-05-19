@@ -59,8 +59,7 @@ use js::rust::Runtime;
 use layout_interface::{ReflowQueryType};
 use layout_interface::{self, LayoutChan, NewLayoutThreadInfo, ScriptLayoutChan};
 use mem::heap_size_of_self_and_children;
-use msg::constellation_msg::{ConstellationChan, LoadData, PanicMsg};
-use msg::constellation_msg::{PipelineId, PipelineNamespace};
+use msg::constellation_msg::{LoadData, PanicMsg, PipelineId, PipelineNamespace};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
@@ -342,10 +341,10 @@ pub struct ScriptThread {
     control_port: Receiver<ConstellationControlMsg>,
 
     /// For communicating load url messages to the constellation
-    constellation_chan: ConstellationChan<ConstellationMsg>,
+    constellation_chan: IpcSender<ConstellationMsg>,
 
     /// For communicating layout messages to the constellation
-    layout_to_constellation_chan: ConstellationChan<LayoutMsg>,
+    layout_to_constellation_chan: IpcSender<LayoutMsg>,
 
     /// A handle to the compositor for communicating ready state messages.
     compositor: DOMRefCell<IpcSender<ScriptToCompositorMsg>>,
@@ -438,7 +437,7 @@ impl ScriptThreadFactory for ScriptThread {
               state: InitialScriptState,
               layout_chan: &OpaqueScriptLayoutChannel,
               load_data: LoadData) {
-        let ConstellationChan(panic_chan) = state.panic_chan.clone();
+        let panic_chan = state.panic_chan.clone();
         let (script_chan, script_port) = channel();
         let layout_chan = LayoutChan(layout_chan.sender());
         let pipeline_id = state.id;
@@ -577,7 +576,7 @@ impl ScriptThread {
             compositor: DOMRefCell::new(state.compositor),
             time_profiler_chan: state.time_profiler_chan,
             mem_profiler_chan: state.mem_profiler_chan,
-            panic_chan: state.panic_chan.0,
+            panic_chan: state.panic_chan,
 
             devtools_chan: state.devtools_chan,
             devtools_port: devtools_port,
@@ -1134,8 +1133,7 @@ impl ScriptThread {
         let handler = box DocumentProgressHandler::new(Trusted::new(doc));
         self.dom_manipulation_task_source.queue(DOMManipulationTask::DocumentProgress(handler)).unwrap();
 
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();
     }
 
     fn collect_reports(&self, reports_chan: ReportsChan) {
@@ -1398,8 +1396,9 @@ impl ScriptThread {
             chan.send(layout_interface::Msg::SetFinalUrl(final_url.clone())).unwrap();
 
             // update the pipeline url
-            let ConstellationChan(ref chan) = self.constellation_chan;
-            chan.send(ConstellationMsg::SetFinalUrl(incomplete.pipeline_id, final_url.clone())).unwrap();
+            self.constellation_chan
+                .send(ConstellationMsg::SetFinalUrl(incomplete.pipeline_id, final_url.clone()))
+                .unwrap();
         }
         debug!("ScriptThread: loading {} on pipeline {:?}", incomplete.url, incomplete.pipeline_id);
 
@@ -1569,8 +1568,9 @@ impl ScriptThread {
         }
         document.set_ready_state(DocumentReadyState::Loading);
 
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::ActivateDocument(incomplete.pipeline_id)).unwrap();
+        self.constellation_chan
+            .send(ConstellationMsg::ActivateDocument(incomplete.pipeline_id))
+            .unwrap();
 
         // Notify devtools that a new script global exists.
         self.notify_devtools(document.Title(), final_url.clone(), (browsing_context.pipeline(), None));
@@ -1729,8 +1729,7 @@ impl ScriptThread {
                                            });
 
                         let event = ConstellationMsg::NodeStatus(status);
-                        let ConstellationChan(ref chan) = self.constellation_chan;
-                        chan.send(event).unwrap();
+                        self.constellation_chan.send(event).unwrap();
 
                         state_already_changed = true;
                     }
@@ -1744,8 +1743,7 @@ impl ScriptThread {
                                                .filter_map(Root::downcast::<HTMLAnchorElement>)
                                                .next() {
                             let event = ConstellationMsg::NodeStatus(None);
-                            let ConstellationChan(ref chan) = self.constellation_chan;
-                            chan.send(event).unwrap();
+                            self.constellation_chan.send(event).unwrap();
                         }
                     }
                 }
@@ -1844,8 +1842,9 @@ impl ScriptThread {
                 }
             }
             None => {
-                let ConstellationChan(ref const_chan) = self.constellation_chan;
-                const_chan.send(ConstellationMsg::LoadUrl(pipeline_id, load_data)).unwrap();
+                self.constellation_chan
+                    .send(ConstellationMsg::LoadUrl(pipeline_id, load_data))
+                    .unwrap();
             }
         }
     }

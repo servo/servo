@@ -14,9 +14,8 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
 use layout_traits::{LayoutControlChan, LayoutThreadFactory};
-use msg::constellation_msg::{ConstellationChan, PanicMsg, FrameId, PipelineId, SubpageId};
-use msg::constellation_msg::{LoadData, WindowSizeData};
-use msg::constellation_msg::{PipelineNamespaceId};
+use msg::constellation_msg::{FrameId, LoadData, PanicMsg, PipelineId};
+use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeData};
 use net_traits::ResourceThread;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
@@ -82,11 +81,11 @@ pub struct InitialPipelineState {
     /// If `None`, this is the root.
     pub parent_info: Option<(PipelineId, SubpageId)>,
     /// A channel to the associated constellation.
-    pub constellation_chan: ConstellationChan<ScriptMsg>,
+    pub constellation_chan: IpcSender<ScriptMsg>,
     /// A channel for the layout thread to send messages to the constellation.
-    pub layout_to_constellation_chan: ConstellationChan<LayoutMsg>,
+    pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A channel to report panics
-    pub panic_chan: ConstellationChan<PanicMsg>,
+    pub panic_chan: IpcSender<PanicMsg>,
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerEventRequest>,
     /// A channel to the compositor.
@@ -389,8 +388,8 @@ impl Pipeline {
 pub struct UnprivilegedPipelineContent {
     id: PipelineId,
     parent_info: Option<(PipelineId, SubpageId)>,
-    constellation_chan: ConstellationChan<ScriptMsg>,
-    layout_to_constellation_chan: ConstellationChan<LayoutMsg>,
+    constellation_chan: IpcSender<ScriptMsg>,
+    layout_to_constellation_chan: IpcSender<LayoutMsg>,
     scheduler_chan: IpcSender<TimerEventRequest>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     script_to_compositor_chan: IpcSender<ScriptToCompositorMsg>,
@@ -404,7 +403,7 @@ pub struct UnprivilegedPipelineContent {
     window_size: Option<WindowSizeData>,
     script_chan: IpcSender<ConstellationControlMsg>,
     load_data: LoadData,
-    panic_chan: ConstellationChan<PanicMsg>,
+    panic_chan: IpcSender<PanicMsg>,
     script_port: Option<IpcReceiver<ConstellationControlMsg>>,
     layout_to_paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
     opts: Opts,
@@ -488,7 +487,7 @@ pub struct PrivilegedPipelineContent {
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: profile_mem::ProfilerChan,
     load_data: LoadData,
-    panic_chan: ConstellationChan<PanicMsg>,
+    panic_chan: IpcSender<PanicMsg>,
     layout_to_paint_port: Receiver<LayoutToPaintMsg>,
     chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
     chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
