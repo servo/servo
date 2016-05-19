@@ -2624,7 +2624,6 @@ pub struct piecewise_construct_t;
 impl ::std::clone::Clone for piecewise_construct_t {
     fn clone(&self) -> Self { *self }
 }
-pub enum tuple { }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct pair<_T1, _T2> {
@@ -3656,6 +3655,56 @@ pub type nscolor = u32;
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsHexColorType { NoAlpha = 0, AllowAlpha = 1, }
 /**
+ * Class to safely handle main-thread-only pointers off the main thread.
+ *
+ * Classes like XPCWrappedJS are main-thread-only, which means that it is
+ * forbidden to call methods on instances of these classes off the main thread.
+ * For various reasons (see bug 771074), this restriction recently began to
+ * apply to AddRef/Release as well.
+ *
+ * This presents a problem for consumers that wish to hold a callback alive
+ * on non-main-thread code. A common example of this is the proxy callback
+ * pattern, where non-main-thread code holds a strong-reference to the callback
+ * object, and dispatches new Runnables (also with a strong reference) to the
+ * main thread in order to execute the callback. This involves several AddRef
+ * and Release calls on the other thread, which is (now) verboten.
+ *
+ * The basic idea of this class is to introduce a layer of indirection.
+ * nsMainThreadPtrHolder is a threadsafe reference-counted class that internally
+ * maintains one strong reference to the main-thread-only object. It must be
+ * instantiated on the main thread (so that the AddRef of the underlying object
+ * happens on the main thread), but consumers may subsequently pass references
+ * to the holder anywhere they please. These references are meant to be opaque
+ * when accessed off-main-thread (assertions enforce this).
+ *
+ * The semantics of RefPtr<nsMainThreadPtrHolder<T> > would be cumbersome, so
+ * we also introduce nsMainThreadPtrHandle<T>, which is conceptually identical
+ * to the above (though it includes various convenience methods). The basic
+ * pattern is as follows.
+ *
+ * // On the main thread:
+ * nsCOMPtr<nsIFooCallback> callback = ...;
+ * nsMainThreadPtrHandle<nsIFooCallback> callbackHandle =
+ *   new nsMainThreadPtrHolder<nsIFooCallback>(callback);
+ * // Pass callbackHandle to structs/classes that might be accessed on other
+ * // threads.
+ *
+ * All structs and classes that might be accessed on other threads should store
+ * an nsMainThreadPtrHandle<T> rather than an nsCOMPtr<T>.
+ */
+#[repr(C)]
+#[derive(Debug)]
+pub struct nsMainThreadPtrHolder<T> {
+    pub mRefCnt: ThreadSafeAutoRefCnt,
+    pub mRawPtr: *mut T,
+    pub mStrict: bool,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nsMainThreadPtrHandle<T> {
+    pub mPtr: RefPtr<T>,
+}
+/**
  * This structure precedes the string buffers "we" allocate.  It may be the
  * case that nsTAString::mData does not point to one of these special
  * buffers.  The mFlags member variable distinguishes the buffer type.
@@ -3677,12 +3726,21 @@ fn bindgen_test_layout_nsStringBuffer() {
 }
 pub enum CSSStyleSheet { }
 #[repr(C)]
+pub struct URLValueData {
+    pub _bindgen_opaque_blob: [u64; 5usize],
+}
+#[test]
+fn bindgen_test_layout_URLValueData() {
+    assert_eq!(::std::mem::size_of::<URLValueData>() , 40usize);
+    assert_eq!(::std::mem::align_of::<URLValueData>() , 8usize);
+}
+#[repr(C)]
 pub struct URLValue {
-    pub _bindgen_opaque_blob: [u64; 7usize],
+    pub _bindgen_opaque_blob: [u64; 6usize],
 }
 #[test]
 fn bindgen_test_layout_URLValue() {
-    assert_eq!(::std::mem::size_of::<URLValue>() , 56usize);
+    assert_eq!(::std::mem::size_of::<URLValue>() , 48usize);
     assert_eq!(::std::mem::align_of::<URLValue>() , 8usize);
 }
 #[repr(C)]
@@ -4430,22 +4488,22 @@ pub enum nsStyleUnit {
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleCoord_h_unnamed_10 {
+pub struct nsStyleCoord_h_unnamed_14 {
     pub mInt: __BindgenUnionField<i32>,
     pub mFloat: __BindgenUnionField<f32>,
     pub mPointer: __BindgenUnionField<*mut ::std::os::raw::c_void>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleCoord_h_unnamed_10 { }
-impl ::std::clone::Clone for nsStyleCoord_h_unnamed_10 {
+impl nsStyleCoord_h_unnamed_14 { }
+impl ::std::clone::Clone for nsStyleCoord_h_unnamed_14 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleCoord_h_unnamed_10() {
-    assert_eq!(::std::mem::size_of::<nsStyleCoord_h_unnamed_10>() , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleCoord_h_unnamed_10>() , 8usize);
+fn bindgen_test_layout_nsStyleCoord_h_unnamed_14() {
+    assert_eq!(::std::mem::size_of::<nsStyleCoord_h_unnamed_14>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsStyleCoord_h_unnamed_14>() , 8usize);
 }
-pub type nsStyleUnion = nsStyleCoord_h_unnamed_10;
+pub type nsStyleUnion = nsStyleCoord_h_unnamed_14;
 /**
  * Class that hold a single size specification used by the style
  * system.  The size specification consists of two parts -- a number
@@ -4640,27 +4698,27 @@ pub enum nsStyleImageType {
 pub struct nsStyleImage {
     pub mSubImages: u64,
     pub mType: nsStyleImageType,
-    pub nsStyleImage_nsStyleStruct_h_unnamed_13: nsStyleImage_nsStyleStruct_h_unnamed_13,
+    pub nsStyleImage_nsStyleStruct_h_unnamed_17: nsStyleImage_nsStyleStruct_h_unnamed_17,
     pub mCropRect: nsAutoPtr<nsStyleSides>,
     pub mImageTracked: bool,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleImage_nsStyleStruct_h_unnamed_13 {
+pub struct nsStyleImage_nsStyleStruct_h_unnamed_17 {
     pub mImage: __BindgenUnionField<*mut imgRequestProxy>,
     pub mGradient: __BindgenUnionField<*mut nsStyleGradient>,
     pub mElementId: __BindgenUnionField<*mut ::std::os::raw::c_ushort>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleImage_nsStyleStruct_h_unnamed_13 { }
-impl ::std::clone::Clone for nsStyleImage_nsStyleStruct_h_unnamed_13 {
+impl nsStyleImage_nsStyleStruct_h_unnamed_17 { }
+impl ::std::clone::Clone for nsStyleImage_nsStyleStruct_h_unnamed_17 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleImage_nsStyleStruct_h_unnamed_13() {
-    assert_eq!(::std::mem::size_of::<nsStyleImage_nsStyleStruct_h_unnamed_13>()
+fn bindgen_test_layout_nsStyleImage_nsStyleStruct_h_unnamed_17() {
+    assert_eq!(::std::mem::size_of::<nsStyleImage_nsStyleStruct_h_unnamed_17>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleImage_nsStyleStruct_h_unnamed_13>()
+    assert_eq!(::std::mem::align_of::<nsStyleImage_nsStyleStruct_h_unnamed_17>()
                , 8usize);
 }
 #[test]
@@ -4710,7 +4768,7 @@ pub struct nsStyleImageLayers {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum nsStyleImageLayers_nsStyleStruct_h_unnamed_14 {
+pub enum nsStyleImageLayers_nsStyleStruct_h_unnamed_18 {
     shorthand = 0,
     color = 1,
     image = 2,
@@ -5175,7 +5233,7 @@ fn bindgen_test_layout_nsStyleVisibility() {
 #[derive(Debug, Copy)]
 pub struct nsTimingFunction {
     pub mType: nsTimingFunction_Type,
-    pub nsTimingFunction_nsStyleStruct_h_unnamed_15: nsTimingFunction_nsStyleStruct_h_unnamed_15,
+    pub nsTimingFunction_nsStyleStruct_h_unnamed_19: nsTimingFunction_nsStyleStruct_h_unnamed_19,
 }
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -5202,56 +5260,56 @@ pub enum nsTimingFunction_StepSyntax {
 pub enum nsTimingFunction_Keyword { Implicit = 0, Explicit = 1, }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsTimingFunction_nsStyleStruct_h_unnamed_15 {
-    pub mFunc: __BindgenUnionField<nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_16>,
-    pub nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_17: __BindgenUnionField<nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_17>,
+pub struct nsTimingFunction_nsStyleStruct_h_unnamed_19 {
+    pub mFunc: __BindgenUnionField<nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_20>,
+    pub nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21: __BindgenUnionField<nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21>,
     pub _bindgen_data_: [u32; 4usize],
 }
-impl nsTimingFunction_nsStyleStruct_h_unnamed_15 { }
-impl ::std::clone::Clone for nsTimingFunction_nsStyleStruct_h_unnamed_15 {
+impl nsTimingFunction_nsStyleStruct_h_unnamed_19 { }
+impl ::std::clone::Clone for nsTimingFunction_nsStyleStruct_h_unnamed_19 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsTimingFunction_nsStyleStruct_h_unnamed_15() {
-    assert_eq!(::std::mem::size_of::<nsTimingFunction_nsStyleStruct_h_unnamed_15>()
+fn bindgen_test_layout_nsTimingFunction_nsStyleStruct_h_unnamed_19() {
+    assert_eq!(::std::mem::size_of::<nsTimingFunction_nsStyleStruct_h_unnamed_19>()
                , 16usize);
-    assert_eq!(::std::mem::align_of::<nsTimingFunction_nsStyleStruct_h_unnamed_15>()
+    assert_eq!(::std::mem::align_of::<nsTimingFunction_nsStyleStruct_h_unnamed_19>()
                , 4usize);
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_16 {
+pub struct nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_20 {
     pub mX1: f32,
     pub mY1: f32,
     pub mX2: f32,
     pub mY2: f32,
 }
 impl ::std::clone::Clone for
- nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_16 {
+ nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_20 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_16() {
-    assert_eq!(::std::mem::size_of::<nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_16>()
+fn bindgen_test_layout_nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_20() {
+    assert_eq!(::std::mem::size_of::<nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_20>()
                , 16usize);
-    assert_eq!(::std::mem::align_of::<nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_16>()
+    assert_eq!(::std::mem::align_of::<nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_20>()
                , 4usize);
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_17 {
+pub struct nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21 {
     pub mStepSyntax: nsTimingFunction_StepSyntax,
     pub mSteps: u32,
 }
 impl ::std::clone::Clone for
- nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_17 {
+ nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_17() {
-    assert_eq!(::std::mem::size_of::<nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_17>()
+fn bindgen_test_layout_nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21() {
+    assert_eq!(::std::mem::size_of::<nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_17>()
+    assert_eq!(::std::mem::align_of::<nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21>()
                , 4usize);
 }
 impl ::std::clone::Clone for nsTimingFunction {
@@ -5396,26 +5454,26 @@ pub enum nsStyleContentType {
 #[derive(Debug)]
 pub struct nsStyleContentData {
     pub mType: nsStyleContentType,
-    pub mContent: nsStyleContentData_nsStyleStruct_h_unnamed_18,
+    pub mContent: nsStyleContentData_nsStyleStruct_h_unnamed_22,
     pub mImageTracked: bool,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleContentData_nsStyleStruct_h_unnamed_18 {
+pub struct nsStyleContentData_nsStyleStruct_h_unnamed_22 {
     pub mString: __BindgenUnionField<*mut ::std::os::raw::c_ushort>,
     pub mImage: __BindgenUnionField<*mut imgRequestProxy>,
     pub mCounters: __BindgenUnionField<*mut Array>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleContentData_nsStyleStruct_h_unnamed_18 { }
-impl ::std::clone::Clone for nsStyleContentData_nsStyleStruct_h_unnamed_18 {
+impl nsStyleContentData_nsStyleStruct_h_unnamed_22 { }
+impl ::std::clone::Clone for nsStyleContentData_nsStyleStruct_h_unnamed_22 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleContentData_nsStyleStruct_h_unnamed_18() {
-    assert_eq!(::std::mem::size_of::<nsStyleContentData_nsStyleStruct_h_unnamed_18>()
+fn bindgen_test_layout_nsStyleContentData_nsStyleStruct_h_unnamed_22() {
+    assert_eq!(::std::mem::size_of::<nsStyleContentData_nsStyleStruct_h_unnamed_22>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleContentData_nsStyleStruct_h_unnamed_18>()
+    assert_eq!(::std::mem::align_of::<nsStyleContentData_nsStyleStruct_h_unnamed_22>()
                , 8usize);
 }
 #[test]
@@ -5549,26 +5607,26 @@ pub enum nsStyleSVGOpacitySource {
 #[repr(C)]
 #[derive(Debug)]
 pub struct nsStyleSVGPaint {
-    pub mPaint: nsStyleSVGPaint_nsStyleStruct_h_unnamed_19,
+    pub mPaint: nsStyleSVGPaint_nsStyleStruct_h_unnamed_23,
     pub mType: nsStyleSVGPaintType,
     pub mFallbackColor: nscolor,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleSVGPaint_nsStyleStruct_h_unnamed_19 {
+pub struct nsStyleSVGPaint_nsStyleStruct_h_unnamed_23 {
     pub mColor: __BindgenUnionField<nscolor>,
     pub mPaintServer: __BindgenUnionField<*mut nsIURI>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleSVGPaint_nsStyleStruct_h_unnamed_19 { }
-impl ::std::clone::Clone for nsStyleSVGPaint_nsStyleStruct_h_unnamed_19 {
+impl nsStyleSVGPaint_nsStyleStruct_h_unnamed_23 { }
+impl ::std::clone::Clone for nsStyleSVGPaint_nsStyleStruct_h_unnamed_23 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleSVGPaint_nsStyleStruct_h_unnamed_19() {
-    assert_eq!(::std::mem::size_of::<nsStyleSVGPaint_nsStyleStruct_h_unnamed_19>()
+fn bindgen_test_layout_nsStyleSVGPaint_nsStyleStruct_h_unnamed_23() {
+    assert_eq!(::std::mem::size_of::<nsStyleSVGPaint_nsStyleStruct_h_unnamed_23>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleSVGPaint_nsStyleStruct_h_unnamed_19>()
+    assert_eq!(::std::mem::align_of::<nsStyleSVGPaint_nsStyleStruct_h_unnamed_23>()
                , 8usize);
 }
 #[test]
@@ -5635,25 +5693,25 @@ fn bindgen_test_layout_nsStyleBasicShape() {
 #[derive(Debug)]
 pub struct nsStyleClipPath {
     pub mType: i32,
-    pub nsStyleClipPath_nsStyleStruct_h_unnamed_20: nsStyleClipPath_nsStyleStruct_h_unnamed_20,
+    pub nsStyleClipPath_nsStyleStruct_h_unnamed_24: nsStyleClipPath_nsStyleStruct_h_unnamed_24,
     pub mSizingBox: u8,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleClipPath_nsStyleStruct_h_unnamed_20 {
+pub struct nsStyleClipPath_nsStyleStruct_h_unnamed_24 {
     pub mBasicShape: __BindgenUnionField<*mut nsStyleBasicShape>,
     pub mURL: __BindgenUnionField<*mut nsIURI>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleClipPath_nsStyleStruct_h_unnamed_20 { }
-impl ::std::clone::Clone for nsStyleClipPath_nsStyleStruct_h_unnamed_20 {
+impl nsStyleClipPath_nsStyleStruct_h_unnamed_24 { }
+impl ::std::clone::Clone for nsStyleClipPath_nsStyleStruct_h_unnamed_24 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleClipPath_nsStyleStruct_h_unnamed_20() {
-    assert_eq!(::std::mem::size_of::<nsStyleClipPath_nsStyleStruct_h_unnamed_20>()
+fn bindgen_test_layout_nsStyleClipPath_nsStyleStruct_h_unnamed_24() {
+    assert_eq!(::std::mem::size_of::<nsStyleClipPath_nsStyleStruct_h_unnamed_24>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleClipPath_nsStyleStruct_h_unnamed_20>()
+    assert_eq!(::std::mem::align_of::<nsStyleClipPath_nsStyleStruct_h_unnamed_24>()
                , 8usize);
 }
 #[test]
@@ -5666,24 +5724,24 @@ fn bindgen_test_layout_nsStyleClipPath() {
 pub struct nsStyleFilter {
     pub mType: i32,
     pub mFilterParameter: nsStyleCoord,
-    pub nsStyleFilter_nsStyleStruct_h_unnamed_21: nsStyleFilter_nsStyleStruct_h_unnamed_21,
+    pub nsStyleFilter_nsStyleStruct_h_unnamed_25: nsStyleFilter_nsStyleStruct_h_unnamed_25,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleFilter_nsStyleStruct_h_unnamed_21 {
+pub struct nsStyleFilter_nsStyleStruct_h_unnamed_25 {
     pub mURL: __BindgenUnionField<*mut nsIURI>,
     pub mDropShadow: __BindgenUnionField<*mut nsCSSShadowArray>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleFilter_nsStyleStruct_h_unnamed_21 { }
-impl ::std::clone::Clone for nsStyleFilter_nsStyleStruct_h_unnamed_21 {
+impl nsStyleFilter_nsStyleStruct_h_unnamed_25 { }
+impl ::std::clone::Clone for nsStyleFilter_nsStyleStruct_h_unnamed_25 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleFilter_nsStyleStruct_h_unnamed_21() {
-    assert_eq!(::std::mem::size_of::<nsStyleFilter_nsStyleStruct_h_unnamed_21>()
+fn bindgen_test_layout_nsStyleFilter_nsStyleStruct_h_unnamed_25() {
+    assert_eq!(::std::mem::size_of::<nsStyleFilter_nsStyleStruct_h_unnamed_25>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleFilter_nsStyleStruct_h_unnamed_21>()
+    assert_eq!(::std::mem::align_of::<nsStyleFilter_nsStyleStruct_h_unnamed_25>()
                , 8usize);
 }
 #[test]

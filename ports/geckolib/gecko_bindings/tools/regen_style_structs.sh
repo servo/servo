@@ -100,8 +100,10 @@ export RUST_BACKTRACE=1
   -match "pair"                                                     \
   -match "SheetParsingMode.h"                                       \
   -match "StaticPtr.h"                                              \
+  -match "nsProxyRelease.h"                                         \
   -blacklist-type "IsDestructibleFallbackImpl"                      \
   -blacklist-type "IsDestructibleFallback"                          \
+  -blacklist-type "nsProxyReleaseEvent"                             \
   -opaque-type "nsIntMargin"                                        \
   -opaque-type "nsIntPoint"                                         \
   -opaque-type "nsIntRect"                                          \
@@ -114,6 +116,7 @@ export RUST_BACKTRACE=1
   -opaque-type "CounterStyleManager"                                \
   -opaque-type "ImageValue"                                         \
   -opaque-type "URLValue"                                           \
+  -opaque-type "URLValueData"                                       \
   -opaque-type "nsIPrincipal"                                       \
   -opaque-type "nsDataHashtable"                                    \
   -opaque-type "imgIRequest"                                        \
