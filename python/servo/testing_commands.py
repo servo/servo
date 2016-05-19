@@ -253,20 +253,20 @@ class MachCommands(CommandBase):
         return 0
 
     @Command('test-tidy',
-             description='Run the source code tidiness check',
+             description='Run the source code tidiness check on changed files',
              category='testing')
-    @CommandArgument('--faster', default=False, action="store_true",
-                     help="Only check changed files and skip the WPT lint in tidy, "
-                          "if there are no changes in the WPT files")
+    @CommandArgument('--all', default=False, action="store_true",
+                     help="Check all files, and run the WPT lint in tidy, "
+                          "even if unchanged")
     @CommandArgument('--no-progress', default=False, action="store_true",
                      help="Don't show progress for tidy")
     @CommandArgument('--self-test', default=False, action="store_true",
                      help="Run unit tests for tidy")
-    def test_tidy(self, faster, no_progress, self_test):
+    def test_tidy(self, all, no_progress, self_test):
         if self_test:
             return test_tidy.do_tests()
         else:
-            return tidy.scan(faster, not no_progress)
+            return tidy.scan(all, not no_progress)
 
     @Command('test-webidl',
              description='Run the WebIDL parser tests',
