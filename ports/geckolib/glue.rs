@@ -24,6 +24,7 @@ use style::context::{ReflowGoal};
 use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::parallel;
+use style::parser::ParserContextExtraData;
 use style::properties::ComputedValues;
 use style::selector_impl::{SelectorImplExt, PseudoElementCascadeType};
 use style::stylesheets::Origin;
@@ -132,7 +133,9 @@ pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8,
 
     // FIXME(heycam): Pass in the real base URL.
     let url = Url::parse("about:none").unwrap();
-    let sheet = Arc::new(Stylesheet::from_str(input, url, origin, Box::new(StdoutErrorReporter)));
+    let extra_data = ParserContextExtraData { };
+    let sheet = Arc::new(Stylesheet::from_str(input, url, origin, Box::new(StdoutErrorReporter),
+                                              extra_data));
     unsafe {
         transmute(sheet)
     }

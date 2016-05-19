@@ -29,7 +29,7 @@ use euclid::size::Size2D;
 use string_cache::Atom;
 use computed_values;
 use logical_geometry::{LogicalMargin, PhysicalSide, WritingMode};
-use parser::{ParserContext, log_css_error};
+use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use selectors::matching::DeclarationBlock;
 use stylesheets::Origin;
 use values::AuExtensionMethods;
@@ -185,13 +185,18 @@ mod property_bit_field {
             if let DeclaredValue::WithVariables {
                 ref css, first_token_type, ref base_url, from_shorthand
             } = *value {
+                // FIXME(heycam): A ParserContextExtraData should be built from data
+                // stored in the WithVariables, in case variable expansion results in
+                // a url() value.
+                let extra_data = ParserContextExtraData::default();
                 substitute_variables_${property.ident}_slow(css,
                                                             first_token_type,
                                                             base_url,
                                                             from_shorthand,
                                                             custom_properties,
                                                             f,
-                                                            error_reporter);
+                                                            error_reporter,
+                                                            extra_data);
             } else {
                 f(value);
             }
@@ -206,7 +211,8 @@ mod property_bit_field {
                 from_shorthand: Option<Shorthand>,
                 custom_properties: &Option<Arc<::custom_properties::ComputedValuesMap>>,
                 f: F,
-                error_reporter: &mut StdBox<ParseErrorReporter + Send>)
+                error_reporter: &mut StdBox<ParseErrorReporter + Send>,
+                extra_data: ParserContextExtraData)
                 where F: FnOnce(&DeclaredValue<longhands::${property.ident}::SpecifiedValue>) {
             f(&
                 ::custom_properties::substitute(css, first_token_type, custom_properties)
@@ -215,8 +221,9 @@ mod property_bit_field {
                     //
                     // FIXME(pcwalton): Cloning the error reporter is slow! But so are custom
                     // properties, so whatever...
-                    let context = ParserContext::new(
-                        ::stylesheets::Origin::Author, base_url, (*error_reporter).clone());
+                    let context = ParserContext::new_with_extra_data(
+                        ::stylesheets::Origin::Author, base_url, (*error_reporter).clone(),
+                        extra_data);
                     Parser::new(&css).parse_entirely(|input| {
                         match from_shorthand {
                             None => {
@@ -256,15 +263,17 @@ pub struct PropertyDeclarationBlock {
     pub normal: Arc<Vec<PropertyDeclaration>>,
 }
 
-pub fn parse_style_attribute(input: &str, base_url: &Url, error_reporter: StdBox<ParseErrorReporter + Send>)
+pub fn parse_style_attribute(input: &str, base_url: &Url, error_reporter: StdBox<ParseErrorReporter + Send>,
+                             extra_data: ParserContextExtraData)
                              -> PropertyDeclarationBlock {
-    let context = ParserContext::new(Origin::Author, base_url, error_reporter);
+    let context = ParserContext::new_with_extra_data(Origin::Author, base_url, error_reporter, extra_data);
     parse_property_declaration_list(&context, &mut Parser::new(input))
 }
 
-pub fn parse_one_declaration(name: &str, input: &str, base_url: &Url, error_reporter: StdBox<ParseErrorReporter + Send>)
+pub fn parse_one_declaration(name: &str, input: &str, base_url: &Url, error_reporter: StdBox<ParseErrorReporter + Send>,
+                             extra_data: ParserContextExtraData)
                              -> Result<Vec<PropertyDeclaration>, ()> {
-    let context = ParserContext::new(Origin::Author, base_url, error_reporter);
+    let context = ParserContext::new_with_extra_data(Origin::Author, base_url, error_reporter, extra_data);
     let mut results = vec![];
     match PropertyDeclaration::parse(name, &context, &mut Parser::new(input), &mut results) {
         PropertyDeclarationParseResult::ValidOrIgnoredDeclaration => Ok(results),
