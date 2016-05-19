@@ -37,7 +37,7 @@ use ipc_channel::router::ROUTER;
 use layout_debug;
 use layout_traits::{ConvertPipelineIdToWebRender, LayoutThreadFactory};
 use log;
-use msg::constellation_msg::{ConstellationChan, PanicMsg, PipelineId};
+use msg::constellation_msg::{PanicMsg, PipelineId};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use net_traits::image_cache_thread::{UsePlaceholder};
 use parallel;
@@ -100,7 +100,7 @@ const DISPLAY_PORT_THRESHOLD_SIZE_FACTOR: i32 = 4;
 /// This needs to be protected by a mutex so we can do fast RPCs.
 pub struct LayoutThreadData {
     /// The channel on which messages can be sent to the constellation.
-    pub constellation_chan: ConstellationChan<ConstellationMsg>,
+    pub constellation_chan: IpcSender<ConstellationMsg>,
 
     /// The root stacking context.
     pub display_list: Option<Arc<DisplayList>>,
@@ -168,7 +168,7 @@ pub struct LayoutThread {
     font_cache_sender: IpcSender<()>,
 
     /// The channel on which messages can be sent to the constellation.
-    constellation_chan: ConstellationChan<ConstellationMsg>,
+    constellation_chan: IpcSender<ConstellationMsg>,
 
     /// The channel on which messages can be sent to the script thread.
     script_chan: IpcSender<ConstellationControlMsg>,
@@ -253,8 +253,8 @@ impl LayoutThreadFactory for LayoutThread {
               is_iframe: bool,
               chan: OpaqueScriptLayoutChannel,
               pipeline_port: IpcReceiver<LayoutControlMsg>,
-              constellation_chan: ConstellationChan<ConstellationMsg>,
-              panic_chan: ConstellationChan<PanicMsg>,
+              constellation_chan: IpcSender<ConstellationMsg>,
+              panic_chan: IpcSender<PanicMsg>,
               script_chan: IpcSender<ConstellationControlMsg>,
               paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
               image_cache_thread: ImageCacheThread,
@@ -264,7 +264,6 @@ impl LayoutThreadFactory for LayoutThread {
               shutdown_chan: IpcSender<()>,
               content_process_shutdown_chan: IpcSender<()>,
               webrender_api_sender: Option<webrender_traits::RenderApiSender>) {
-        let ConstellationChan(fail_chan) = panic_chan.clone();
         thread::spawn_named_with_send_on_panic(format!("LayoutThread {:?}", id),
                                                thread_state::LAYOUT,
                                                move || {
@@ -291,7 +290,7 @@ impl LayoutThreadFactory for LayoutThread {
             }
             let _ = shutdown_chan.send(());
             let _ = content_process_shutdown_chan.send(());
-        }, Some(id), fail_chan);
+        }, Some(id), panic_chan);
     }
 }
 
@@ -385,7 +384,7 @@ impl LayoutThread {
            is_iframe: bool,
            port: Receiver<Msg>,
            pipeline_port: IpcReceiver<LayoutControlMsg>,
-           constellation_chan: ConstellationChan<ConstellationMsg>,
+           constellation_chan: IpcSender<ConstellationMsg>,
            script_chan: IpcSender<ConstellationControlMsg>,
            paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
            image_cache_thread: ImageCacheThread,
@@ -1080,9 +1079,9 @@ impl LayoutThread {
         if viewport_size_changed {
             if let Some(constraints) = constraints {
                 // let the constellation know about the viewport constraints
-                let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
-                constellation_chan.send(ConstellationMsg::ViewportConstrained(
-                        self.id, constraints)).unwrap();
+                rw_data.constellation_chan
+                       .send(ConstellationMsg::ViewportConstrained(self.id, constraints))
+                       .unwrap();
             }
             // FIXME (#10104): Only dirty nodes affected by vh/vw/vmin/vmax styles.
             if data.document_stylesheets.iter().any(|sheet| sheet.dirty_on_viewport_size_change) {

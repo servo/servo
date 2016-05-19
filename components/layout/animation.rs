@@ -7,7 +7,8 @@
 use flow::{self, Flow};
 use gfx::display_list::OpaqueNode;
 use incremental::RestyleDamage;
-use msg::constellation_msg::{ConstellationChan, PipelineId};
+use ipc_channel::ipc::IpcSender;
+use msg::constellation_msg::PipelineId;
 use script_traits::{AnimationState, LayoutMsg as ConstellationMsg};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
@@ -17,7 +18,7 @@ use time;
 
 /// Processes any new animations that were discovered after style recalculation.
 /// Also expire any old animations that have completed, inserting them into `expired_animations`.
-pub fn update_animation_state(constellation_chan: &ConstellationChan<ConstellationMsg>,
+pub fn update_animation_state(constellation_chan: &IpcSender<ConstellationMsg>,
                               running_animations: &mut HashMap<OpaqueNode, Vec<Animation>>,
                               expired_animations: &mut HashMap<OpaqueNode, Vec<Animation>>,
                               new_animations_receiver: &Receiver<Animation>,
@@ -77,8 +78,7 @@ pub fn update_animation_state(constellation_chan: &ConstellationChan<Constellati
         animation_state = AnimationState::AnimationsPresent;
     }
 
-    constellation_chan.0
-                      .send(ConstellationMsg::ChangeRunningAnimationsState(pipeline_id, animation_state))
+    constellation_chan.send(ConstellationMsg::ChangeRunningAnimationsState(pipeline_id, animation_state))
                       .unwrap();
 }
 

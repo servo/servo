@@ -41,9 +41,9 @@ use gfx_traits::Epoch;
 use gfx_traits::LayerId;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
-use msg::constellation_msg::{ConstellationChan, PanicMsg, PipelineId, WindowSizeData, WindowSizeType};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{PipelineNamespaceId, SubpageId};
+use msg::constellation_msg::{PanicMsg, PipelineId, PipelineNamespaceId};
+use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceThread;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
@@ -96,7 +96,7 @@ pub struct NewLayoutInfo {
     /// A port on which layout can receive messages from the pipeline.
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
     /// A channel for sending panics on
-    pub panic_chan: ConstellationChan<PanicMsg>,
+    pub panic_chan: IpcSender<PanicMsg>,
     /// A shutdown channel so that layout can notify others when it's done.
     pub layout_shutdown_chan: IpcSender<()>,
     /// A shutdown channel so that layout can tell the content process to shut down when it's done.
@@ -312,11 +312,11 @@ pub struct InitialScriptState {
     /// A port on which messages sent by the constellation to script can be received.
     pub control_port: IpcReceiver<ConstellationControlMsg>,
     /// A channel on which messages can be sent to the constellation from script.
-    pub constellation_chan: ConstellationChan<ScriptMsg>,
+    pub constellation_chan: IpcSender<ScriptMsg>,
     /// A channel for the layout thread to send messages to the constellation.
-    pub layout_to_constellation_chan: ConstellationChan<LayoutMsg>,
+    pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A channel for sending panics to the constellation.
-    pub panic_chan: ConstellationChan<PanicMsg>,
+    pub panic_chan: IpcSender<PanicMsg>,
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerEventRequest>,
     /// A channel to the resource manager thread.

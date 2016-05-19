@@ -42,7 +42,7 @@ use js::rust::Runtime;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
 use layout_interface::{LayoutChan, LayoutRPC, Msg, Reflow, ReflowQueryType, MarginStyleResponse};
 use libc;
-use msg::constellation_msg::{ConstellationChan, LoadData, PanicMsg, PipelineId, SubpageId};
+use msg::constellation_msg::{LoadData, PanicMsg, PipelineId, SubpageId};
 use msg::constellation_msg::{WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::ResourceThread;
@@ -228,7 +228,7 @@ pub struct Window {
 
     /// A handle for communicating messages to the constellation thread.
     #[ignore_heap_size_of = "channels are hard"]
-    constellation_chan: ConstellationChan<ConstellationMsg>,
+    constellation_chan: IpcSender<ConstellationMsg>,
 
     /// Pending scroll to fragment event, if any
     fragment_name: DOMRefCell<Option<String>>,
@@ -449,7 +449,7 @@ impl WindowMethods for Window {
         stderr.flush().unwrap();
 
         let (sender, receiver) = ipc::channel().unwrap();
-        self.constellation_chan().0.send(ConstellationMsg::Alert(self.pipeline(), s.to_string(), sender)).unwrap();
+        self.constellation_chan().send(ConstellationMsg::Alert(self.pipeline(), s.to_string(), sender)).unwrap();
 
         let should_display_alert_dialog = receiver.recv().unwrap();
         if should_display_alert_dialog {
@@ -1120,7 +1120,7 @@ impl Window {
 
             if ready_state == DocumentReadyState::Complete && !reftest_wait {
                 let event = ConstellationMsg::SetDocumentState(self.id, DocumentState::Idle);
-                self.constellation_chan().0.send(event).unwrap();
+                self.constellation_chan().send(event).unwrap();
             }
         }
     }
@@ -1296,7 +1296,7 @@ impl Window {
         &self.layout_chan
     }
 
-    pub fn constellation_chan(&self) -> &ConstellationChan<ConstellationMsg> {
+    pub fn constellation_chan(&self) -> &IpcSender<ConstellationMsg> {
         &self.constellation_chan
     }
 
@@ -1459,7 +1459,7 @@ impl Window {
                mem_profiler_chan: mem::ProfilerChan,
                time_profiler_chan: ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-               constellation_chan: ConstellationChan<ConstellationMsg>,
+               constellation_chan: IpcSender<ConstellationMsg>,
                control_chan: IpcSender<ConstellationControlMsg>,
                scheduler_chan: IpcSender<TimerEventRequest>,
                panic_chan: IpcSender<PanicMsg>,
