@@ -140,6 +140,10 @@ impl BrowsingContext {
 
     pub fn set_active_entry(&self, active_index: usize, trigger_event: bool) {
         assert!(active_index < self.history.borrow().len());
+        // If we are already at this entry, we do not want to send a `popstate` event
+        if self.active_index.get() == active_index {
+            return;
+        }
         self.active_index.set(active_index);
 
         // TODO(ConnorGBrewster): Change document URL hash. This should not trigger a reload
