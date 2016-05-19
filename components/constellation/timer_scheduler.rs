@@ -142,8 +142,8 @@ impl TimerScheduler {
     }
 
     fn get_next_task(&mut self) -> Option<Task> {
-        let now = precise_time_ns();
         if let Some(event) = self.scheduled_events.peek() {
+            let now = precise_time_ns();
             if event.for_time < now {
                 return Some(Task::DispatchDueEvents);
             }
