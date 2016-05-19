@@ -318,6 +318,8 @@ class CommandBase(object):
             env["ANDROID_NDK"] = self.config["android"]["ndk"]
         if self.config["android"]["toolchain"]:
             env["ANDROID_TOOLCHAIN"] = self.config["android"]["toolchain"]
+        if self.config["android"]["target"]:
+            env["ANDROID_TARGET"] = self.config["android"]["target"]
 
         if gonk:
             if self.config["gonk"]["b2g"]:
