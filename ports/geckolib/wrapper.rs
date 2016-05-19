@@ -37,6 +37,7 @@ use style::dom::{TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use style::element_state::ElementState;
 #[allow(unused_imports)] // Used in commented-out code.
 use style::error_reporting::StdoutErrorReporter;
+use style::parser::dummy_extra_data;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 #[allow(unused_imports)] // Used in commented-out code.
 use style::properties::{parse_style_attribute};
@@ -330,7 +331,11 @@ impl<'le> TElement for GeckoElement<'le> {
         let attr = self.get_attr(&ns!(), &atom!("style"));
         // FIXME(bholley): Real base URL and error reporter.
         let base_url = Url::parse("http://www.example.org").unwrap();
-        attr.map(|v| parse_style_attribute(&v, &base_url, Box::new(StdoutErrorReporter)))
+        // FIXME(heycam): Needs real ParserContextExtraData so that URLs parse
+        // properly.
+        let extra_data = dummy_extra_data();
+        attr.map(|v| parse_style_attribute(&v, &base_url, Box::new(StdoutErrorReporter),
+                                           extra_data))
         */
     }
 

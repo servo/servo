@@ -26,7 +26,7 @@ fn test_parse_stylesheet() {
     ";
     let url = Url::parse("about::test").unwrap();
     let stylesheet = Stylesheet::from_str(css, url, Origin::UserAgent,
-                                          Box::new(CSSErrorReporterTest));
+                                          Box::new(CSSErrorReporterTest), ());
     assert_eq!(stylesheet, Stylesheet {
         origin: Origin::UserAgent,
         media: None,
@@ -205,7 +205,7 @@ fn test_report_error_stylesheet() {
 
     let errors = error_reporter.errors.clone();
 
-    Stylesheet::from_str(css, url, Origin::UserAgent, error_reporter);
+    Stylesheet::from_str(css, url, Origin::UserAgent, error_reporter, ());
 
     let mut errors = errors.lock().unwrap();
 
