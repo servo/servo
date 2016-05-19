@@ -5,6 +5,8 @@
 
 use cssparser::{Parser, SourcePosition};
 use error_reporting::ParseErrorReporter;
+#[cfg(feature = "gecko")]
+use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use selectors::parser::ParserContext as SelectorParserContext;
 use stylesheets::Origin;
 use url::Url;
@@ -14,6 +16,9 @@ pub struct ParserContextExtraData;
 
 #[cfg(feature = "gecko")]
 pub struct ParserContextExtraData {
+    pub base: Option<GeckoArcURI>,
+    pub referrer: Option<GeckoArcURI>,
+    pub principal: Option<GeckoArcPrincipal>,
 }
 
 impl ParserContextExtraData {
@@ -24,7 +29,7 @@ impl ParserContextExtraData {
 
     #[cfg(feature = "gecko")]
     pub fn default() -> ParserContextExtraData {
-        ParserContextExtraData { }
+        ParserContextExtraData { base: None, referrer: None, principal: None }
     }
 }
 
