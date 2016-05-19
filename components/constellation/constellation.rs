@@ -91,38 +91,38 @@ enum ReadyToSave {
 /// the `script` crate).
 pub struct Constellation<LTF, STF> {
     /// A channel through which script messages can be sent to this object.
-    pub script_sender: ConstellationChan<FromScriptMsg>,
+    script_sender: ConstellationChan<FromScriptMsg>,
 
     /// A channel through which compositor messages can be sent to this object.
-    pub compositor_sender: Sender<FromCompositorMsg>,
+    compositor_sender: Sender<FromCompositorMsg>,
 
     /// A channel through which layout thread messages can be sent to this object.
-    pub layout_sender: ConstellationChan<FromLayoutMsg>,
+    layout_sender: ConstellationChan<FromLayoutMsg>,
 
     /// A channel through which panic messages can be sent to this object.
-    pub panic_sender: ConstellationChan<PanicMsg>,
+    panic_sender: ConstellationChan<PanicMsg>,
 
     /// Receives messages from scripts.
-    pub script_receiver: Receiver<FromScriptMsg>,
+    script_receiver: Receiver<FromScriptMsg>,
 
     /// Receives messages from the compositor
-    pub compositor_receiver: Receiver<FromCompositorMsg>,
+    compositor_receiver: Receiver<FromCompositorMsg>,
 
     /// Receives messages from the layout thread
-    pub layout_receiver: Receiver<FromLayoutMsg>,
+    layout_receiver: Receiver<FromLayoutMsg>,
 
     /// Receives panic messages.
-    pub panic_receiver: Receiver<PanicMsg>,
+    panic_receiver: Receiver<PanicMsg>,
 
     /// A channel (the implementation of which is port-specific) through which messages can be sent
     /// to the compositor.
-    pub compositor_proxy: Box<CompositorProxy>,
+    compositor_proxy: Box<CompositorProxy>,
 
     /// A channel through which messages can be sent to the resource thread.
-    pub resource_thread: ResourceThread,
+    resource_thread: ResourceThread,
 
     /// A channel through which messages can be sent to the image cache thread.
-    pub image_cache_thread: ImageCacheThread,
+    image_cache_thread: ImageCacheThread,
 
     /// A channel through which messages can be sent to the developer tools.
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
@@ -164,10 +164,10 @@ pub struct Constellation<LTF, STF> {
     pending_frames: Vec<FrameChange>,
 
     /// A channel through which messages can be sent to the time profiler.
-    pub time_profiler_chan: time::ProfilerChan,
+    time_profiler_chan: time::ProfilerChan,
 
     /// A channel through which messages can be sent to the memory profiler.
-    pub mem_profiler_chan: mem::ProfilerChan,
+    mem_profiler_chan: mem::ProfilerChan,
 
     phantom: PhantomData<(LTF, STF)>,
 
