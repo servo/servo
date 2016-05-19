@@ -176,12 +176,18 @@ class Descriptor(DescriptorProvider):
 
         # Callback types do not use JS smart pointers, so we should not use the
         # built-in rooting mechanisms for them.
+        self.correspondToBrowsingContext = desc.get('correspondToBrowsingContext', False)
         if self.interface.isCallback():
             self.needsRooting = False
             ty = "%sBinding::%s" % (ifaceName, ifaceName)
             self.returnType = "Rc<%s>" % ty
             self.argumentType = "???"
             self.nativeType = ty
+        elif self.correspondToBrowsingContext:
+            self.needsRooting = True
+            self.returnType = "Root<BrowsingContext>"
+            self.argumentType = "&BrowsingContext"
+            self.nativeType = "*const BrowsingContext"
         else:
             self.needsRooting = True
             self.returnType = "Root<%s>" % ifaceName
@@ -193,7 +199,6 @@ class Descriptor(DescriptorProvider):
         self.outerObjectHook = desc.get('outerObjectHook', 'None')
         self.proxy = False
         self.weakReferenceable = desc.get('weakReferenceable', False)
-        self.correspondToBrowsingContext = desc.get('correspondToBrowsingContext', False)
 
         # If we're concrete, we need to crawl our ancestor interfaces and mark
         # them as having a concrete descendant.
