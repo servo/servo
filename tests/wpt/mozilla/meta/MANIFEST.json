@@ -1200,6 +1200,18 @@
             "url": "/_mozilla/css/canvas_linear_gradient_a.html"
           }
         ],
+        "css/canvas_no_descender.html": [
+          {
+            "path": "css/canvas_no_descender.html",
+            "references": [
+              [
+                "/_mozilla/css/canvas_no_descender_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/canvas_no_descender.html"
+          }
+        ],
         "css/canvas_over_area.html": [
           {
             "path": "css/canvas_over_area.html",
@@ -8220,6 +8232,18 @@
             ]
           ],
           "url": "/_mozilla/css/canvas_linear_gradient_a.html"
+        }
+      ],
+      "css/canvas_no_descender.html": [
+        {
+          "path": "css/canvas_no_descender.html",
+          "references": [
+            [
+              "/_mozilla/css/canvas_no_descender_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/canvas_no_descender.html"
         }
       ],
       "css/canvas_over_area.html": [

@@ -1103,11 +1103,13 @@ impl InlineFlow {
 
         // We use `vertical_align::T::baseline` here because `vertical-align` must not apply to
         // the inside of inline blocks.
+        // Similarly, we do not modify the descent because font metrics should not be affected
+        // by them in the absence of text.
         update_inline_metrics(&inline_metrics,
                               style.get_box().display,
                               vertical_align::T::baseline,
                               &mut block_size_above_baseline,
-                              &mut depth_below_baseline,
+                              &mut Au(0),
                               &mut largest_block_size_for_top_fragments,
                               &mut largest_block_size_for_bottom_fragments);
 
