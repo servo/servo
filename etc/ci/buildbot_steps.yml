@@ -23,8 +23,8 @@ mac-rel-css:
   - bash ./etc/ci/manifest_changed.sh
 
 linux-dev:
-  - ./mach test-tidy --no-progress
   - ./mach test-tidy --no-progress --self-test
+  - ./mach test-tidy --no-progress --all
   - ./mach build --dev
   - ./mach test-compiletest
   - ./mach test-unit
