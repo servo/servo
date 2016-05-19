@@ -15,7 +15,7 @@ use dom::window::Window;
 use ipc_channel::ipc;
 use js::jsapi::{HandleValue, JSContext, JSAutoCompartment, RootedValue};
 use js::jsval::{JSVal, UndefinedValue};
-use msg::constellation_msg::{ConstellationChan, NavigationDirection};
+use msg::constellation_msg::NavigationDirection;
 use script_traits::ScriptMsg as ConstellationMsg;
 use util::str::DOMString;
 
@@ -41,16 +41,14 @@ impl History {
     }
 
     fn traverse_history(&self, direction: NavigationDirection) {
-        let ConstellationChan(ref chan) = *self.window.constellation_chan();
         let msg = ConstellationMsg::Navigate(direction);
-        chan.send(msg).unwrap();
+        self.window.constellation_chan().send(msg).unwrap();
     }
 
     fn is_fully_active(&self) -> ErrorResult {
         let (sender, receiver) = ipc::channel::<bool>().expect("Failed to create IPC channel");
-        let ConstellationChan(ref chan) = *self.window.constellation_chan();
         let msg = ConstellationMsg::IsPipelineFullyActive(self.window.pipeline(), sender);
-        chan.send(msg).unwrap();
+        self.window.constellation_chan().send(msg).unwrap();
 
         if receiver.recv().unwrap() {
             Ok(())
@@ -65,9 +63,8 @@ impl HistoryMethods for History {
     fn GetLength(&self) -> Fallible<u32> {
         try!(self.is_fully_active());
         let (sender, receiver) = ipc::channel::<usize>().expect("Failed to create IPC channel");
-        let ConstellationChan(ref chan) = *self.window.constellation_chan();
         let msg = ConstellationMsg::HistoryLength(sender);
-        chan.send(msg).unwrap();
+        self.window.constellation_chan().send(msg).unwrap();
         Ok(receiver.recv().unwrap() as u32)
     }
 
