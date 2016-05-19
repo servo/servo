@@ -101,8 +101,8 @@ def filter_file(file_name):
     return True
 
 
-def filter_files(start_dir, faster, progress):
-    file_iter = get_file_list(start_dir, faster, ignored_dirs)
+def filter_files(start_dir, only_changed_files, progress):
+    file_iter = get_file_list(start_dir, only_changed_files, ignored_dirs)
     (has_element, file_iter) = is_iter_empty(file_iter)
     if not has_element:
         raise StopIteration
@@ -649,14 +649,14 @@ def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
                 yield os.path.join(root, f)
 
 
-def scan(faster=False, progress=True):
+def scan(only_changed_files=False, progress=True):
     # standard checks
-    files_to_check = filter_files('.', faster, progress)
+    files_to_check = filter_files('.', only_changed_files, progress)
     checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
     line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec, check_modeline)
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
     # wpt lint checks
-    wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(faster, progress))
+    wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(only_changed_files, progress))
     # collect errors
     errors = itertools.chain(errors, wpt_lint_errors)
     error = None
