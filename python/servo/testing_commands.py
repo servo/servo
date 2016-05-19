@@ -258,7 +258,7 @@ class MachCommands(CommandBase):
     @CommandArgument('--faster', default=False, action="store_true",
                      help="Only check changed files and skip the WPT lint in tidy, "
                           "if there are no changes in the WPT files. Cannot be used with --all")
-    @CommandArgument('--all', default=False, action="store_true.", dest="all_files"
+    @CommandArgument('--all', default=False, action="store_true", dest="all_files",
                      help="Check all files, and run the WPT lint in tidy, "
                           "even if unchanged. Cannot be used with --faster")
     @CommandArgument('--no-progress', default=False, action="store_true",
@@ -272,7 +272,7 @@ class MachCommands(CommandBase):
             # The `test-tidy` command is currently mid-migration from --faster to --all.
             # Since --faster and --all are opposites, they cannot both be used at the same time
             if faster and all_files:
-                print "Cannot tidy --all while also being --faster"
+                print("Cannot tidy --all while also being --faster")
                 return -1
 
             # |--faster|--all|behaviour of tidy.scan()
