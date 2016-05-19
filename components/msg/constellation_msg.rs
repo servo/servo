@@ -9,31 +9,14 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use hyper::header::Headers;
 use hyper::method::Method;
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use layers::geometry::DevicePixel;
-use serde::{Deserialize, Serialize};
 use std::cell::Cell;
 use std::fmt;
 use url::Url;
 use util::geometry::{PagePx, ViewportPx};
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use webrender_traits;
-
-#[derive(Deserialize, Serialize)]
-pub struct ConstellationChan<T: Deserialize + Serialize>(pub IpcSender<T>);
-
-impl<T: Deserialize + Serialize> ConstellationChan<T> {
-    pub fn new() -> (IpcReceiver<T>, ConstellationChan<T>) {
-        let (chan, port) = ipc::channel().unwrap();
-        (port, ConstellationChan(chan))
-    }
-}
-
-impl<T: Serialize + Deserialize> Clone for ConstellationChan<T> {
-    fn clone(&self) -> ConstellationChan<T> {
-        ConstellationChan(self.0.clone())
-    }
-}
 
 pub type PanicMsg = (Option<PipelineId>, String, String);
 

@@ -27,7 +27,7 @@ use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
-use msg::constellation_msg::ConstellationChan;
+use ipc_channel::ipc::IpcSender;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -76,7 +76,7 @@ pub struct HTMLInputElement {
     size: Cell<u32>,
     maxlength: Cell<i32>,
     #[ignore_heap_size_of = "#7193"]
-    textinput: DOMRefCell<TextInput<ConstellationChan<ConstellationMsg>>>,
+    textinput: DOMRefCell<TextInput<IpcSender<ConstellationMsg>>>,
     activation_state: DOMRefCell<InputActivationState>,
     // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag
     value_dirty: Cell<bool>,

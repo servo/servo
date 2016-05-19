@@ -15,7 +15,6 @@ use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use msg::constellation_msg::ConstellationChan;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::rc::Rc;
 use string_cache::Atom;
@@ -153,9 +152,8 @@ impl VirtualMethods for HTMLBodyElement {
         let window = window_from_node(self);
         let document = window.Document();
         document.set_reflow_timeout(time::precise_time_ns() + INITIAL_REFLOW_DELAY);
-        let ConstellationChan(ref chan) = *window.constellation_chan();
         let event = ConstellationMsg::HeadParsed;
-        chan.send(event).unwrap();
+        window.constellation_chan().send(event).unwrap();
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
