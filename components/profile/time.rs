@@ -47,7 +47,7 @@ impl Formattable for Option<TimerMetadata> {
                             TimerMetadataFrameType::RootWindow => "yes",
                             TimerMetadataFrameType::IFrame => "no",
                         };
-                        format!(" {}, {}, {}", incremental, iframe, url)
+                        format!(" {}\t{}\t{}", incremental, iframe, url)
                     },
                     _ => {
                         /* The profiling output is the terminal */
@@ -71,7 +71,7 @@ impl Formattable for Option<TimerMetadata> {
             None => {
                 match *output {
                     Some(OutputOptions::FileName(_)) => {
-                        format!(" {}, {}, {}", "    N/A", "  N/A", "             N/A")
+                        format!(" {}\t{}\t{}", "    N/A", "  N/A", "             N/A")
                     },
                     _ => {
                         format!(" {:14} {:9} {:30}", "    N/A", "  N/A", "             N/A")
@@ -336,8 +336,8 @@ impl Profiler {
                                      Error::description(&e)),
                     Ok(file) => file,
                 };
-                write!(file, "_category_, _incremental?_, _iframe?_, _url_, _mean (ms)_, _median (ms)_, _min (ms)_, \
-                _max (ms)_, _events_\n").unwrap();
+                write!(file, "_category_\t_incremental?_\t_iframe?_\t_url_\t_mean (ms)_\t \
+                    _median (ms)_\t_min (ms)_\t_max (ms)_\t_events_\n").unwrap();
                 for (&(ref category, ref meta), ref mut data) in &mut self.buckets {
                     data.sort_by(|a, b| {
                         if a < b {
@@ -353,7 +353,7 @@ impl Profiler {
                              data[data_len / 2],
                              data.iter().fold(f64::INFINITY, |a, &b| a.min(b)),
                              data.iter().fold(-f64::INFINITY, |a, &b| a.max(b)));
-                        write!(file, "{}, {}, {:15.4}, {:15.4}, {:15.4}, {:15.4}, {:15}\n",
+                        write!(file, "{}\t {}\t {:15.4}\t {:15.4}\t {:15.4}\t {:15.4}\t {:15}\n",
                             category.format(&self.output), meta.format(&self.output),
                             mean, median, min, max, data_len).unwrap();
                     }
