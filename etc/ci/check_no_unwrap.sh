@@ -11,6 +11,6 @@ cd "$(git rev-parse --show-toplevel)" # cd into repo root so make sure paths wor
 # files that should not contain "unwrap"
 FILES=("components/compositing/compositor.rs"
        "components/compositing/pipeline.rs"
-       "components/compositing/constellation.rs")
+       "components/constellation/constellation.rs")
 
 ! grep -n "unwrap(\|panic!(" "${FILES[@]}"
