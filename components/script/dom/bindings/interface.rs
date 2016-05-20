@@ -67,7 +67,10 @@ pub type NonNullJSNative =
 
 /// Defines constants on `obj`.
 /// Fails on JSAPI failure.
-pub fn define_constants(cx: *mut JSContext, obj: HandleObject, constants: &'static [ConstantSpec]) {
+fn define_constants(
+        cx: *mut JSContext,
+        obj: HandleObject,
+        constants: &'static [ConstantSpec]) {
     for spec in constants {
         let value = RootedValue::new(cx, spec.get_value());
         unsafe {
