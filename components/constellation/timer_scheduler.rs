@@ -9,24 +9,13 @@ use script_traits::{NsDuration, precise_time_ns};
 use script_traits::{TimerEvent, TimerEventRequest};
 use std::cmp::{self, Ord};
 use std::collections::BinaryHeap;
-use std::sync::mpsc::{Receiver, Sender, channel};
-use std::thread::{self, Thread};
-use std::time::Duration;
+use std::sync::mpsc::Receiver;
 use util::thread::spawn_named;
 
 pub struct TimerScheduler {
     port: Receiver<TimerEventRequest>,
 
     scheduled_events: BinaryHeap<ScheduledEvent>,
-
-    /// Channel used to schedule a new timeout
-    to_timeout_helper_tx: Sender<NsDuration>,
-
-    /// Channel used to receive a timeout
-    from_timeout_helper_rx: Receiver<()>,
-
-    /// Used to wake-up the timeout helper thread
-    timeout_helper: Thread,
 }
 
 struct ScheduledEvent {
@@ -53,41 +42,14 @@ impl PartialEq for ScheduledEvent {
     }
 }
 
-// TODO(emilio): This can be vastly simplified once action is taken in
-// https://github.com/rust-lang/rfcs/issues/962.
-//
-// Another way to do this more cleanly would be returning a
-// `TimerSchedulerHandler`, that would contain the thread handle and the sender,
-// and make the sender take care of `send()`ing, then waking up the thread.
-//
-// Unfortunately, this wouldn't be ipc-safe.
-//
-// Also, this could be a method in `TimerScheduler` if we wouldn't use it while
-// holding the topmost event in the heap.
-#[allow(unsafe_code)] // due to select!
-fn recv_until<T: Send>(port: &Receiver<T>,
-                       until: NsDuration,
-                       timeout_rx: &Receiver<()>,
-                       timeout_tx: &Sender<NsDuration>,
-                       timeout_thread: &Thread) -> Option<T> {
-    if let Ok(ret) = port.try_recv() {
-        return Some(ret);
-    }
-
-    timeout_tx.send(until).expect("send to TimeoutHelper failed");
+fn recv_with_timeout<T: Send>(port: &Receiver<T>, from: NsDuration, timeout: NsDuration) -> Option<T> {
     loop {
-        select! {
-            msg = port.recv() => {
-                if let Ok(ret) = msg {
-                    timeout_thread.unpark();
-                    let _ = timeout_rx.recv();
-                    return Some(ret)
-                }
-                continue;
-            },
-            _ = timeout_rx.recv() => {
-                return None;
-            }
+        if let Ok(ret) = port.try_recv() {
+            return Some(ret);
+        }
+        let now = precise_time_ns();
+        if now - from >= timeout {
+            return None;
         }
     }
 }
@@ -101,37 +63,9 @@ impl TimerScheduler {
     pub fn start() -> IpcSender<TimerEventRequest> {
         let (chan, port) = ipc::channel().unwrap();
 
-        let (to_timeout_helper_tx, to_timeout_helper_rx) = channel::<NsDuration>();
-        let (from_timeout_helper_tx, from_timeout_helper_rx) = channel::<()>();
-
-        let helper_thread = thread::spawn(move || {
-            loop {
-                let until = match to_timeout_helper_rx.recv() {
-                    Ok(until) => until,
-                    Err(_) => continue,
-                };
-
-                let now = precise_time_ns();
-                if until < now {
-                    from_timeout_helper_tx.send(())
-                                          .expect("Failed to send to TimerScheduler");
-                    continue;
-                }
-
-                let duration = (until - now).get();
-                let duration_secs = duration / 1_000_000_000;
-                let duration_ns = duration % 1_000_000_000;
-                thread::park_timeout(Duration::new(duration_secs, duration_ns as u32));
-                let _ = from_timeout_helper_tx.send(());
-            }
-        }).thread().clone();
-
         let mut timer_scheduler = TimerScheduler {
             port: ROUTER.route_ipc_receiver_to_new_mpsc_receiver(port),
             scheduled_events: BinaryHeap::new(),
-            to_timeout_helper_tx: to_timeout_helper_tx,
-            from_timeout_helper_rx: from_timeout_helper_rx,
-            timeout_helper: helper_thread,
         };
 
         spawn_named("TimerScheduler".to_owned(), move || {
@@ -148,11 +82,8 @@ impl TimerScheduler {
                 return Some(Task::DispatchDueEvents);
             }
 
-            recv_until(&self.port,
-                       event.for_time,
-                       &self.from_timeout_helper_rx,
-                       &self.to_timeout_helper_tx,
-                       &self.timeout_helper).map(Task::HandleRequest)
+            let timeout = event.for_time - now;
+            recv_with_timeout(&self.port, now, timeout).map(Task::HandleRequest)
         } else {
             self.port.recv().ok().map(Task::HandleRequest)
         }
