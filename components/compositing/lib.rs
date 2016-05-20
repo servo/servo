@@ -14,7 +14,6 @@
 extern crate app_units;
 
 extern crate azure;
-extern crate devtools_traits;
 extern crate euclid;
 #[cfg(not(target_os = "windows"))]
 extern crate gaol;
@@ -60,7 +59,6 @@ mod compositor;
 mod compositor_layer;
 pub mod compositor_thread;
 mod delayed_composition;
-pub mod pipeline;
 #[cfg(not(target_os = "windows"))]
 pub mod sandboxing;
 mod surface_map;

@@ -10,8 +10,8 @@ cd "$(git rev-parse --show-toplevel)" # cd into repo root so make sure paths wor
 
 # files that should not contain "unwrap"
 FILES=("components/compositing/compositor.rs"
-       "components/compositing/pipeline.rs"
        "components/constellation/constellation.rs"
+       "components/constellation/pipeline.rs"
        "ports/glutin/lib.rs"
        "ports/glutin/window.rs")
 
