@@ -231,6 +231,10 @@ class MachCommands(CommandBase):
             env=env, cwd=self.servo_crate(), verbose=verbose)
         elapsed = time() - build_start
 
+        if sys.platform == "win32" or sys.platform == "msys":
+            shutil.copy(path.join(self.get_top_dir(), "components", "servo", "servo.exe.manifest"),
+                        path.join(base_path, "debug" if dev else "release"))
+
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify_build_done(elapsed)
 

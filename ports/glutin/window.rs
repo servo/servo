@@ -11,6 +11,7 @@ use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use euclid::{Size2D, Point2D};
+use gdi32;
 use gleam::gl;
 use glutin;
 #[cfg(target_os = "macos")]
@@ -30,12 +31,14 @@ use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender};
 use style_traits::cursor::Cursor;
 use url::Url;
+use user32;
 use util::geometry::ScreenPx;
 use util::opts;
 #[cfg(not(target_os = "android"))]
 use util::opts::RenderApi;
 use util::prefs;
 use util::resource_files;
+use winapi;
 
 static mut g_nested_event_loop_listener: Option<*mut (NestedEventLoopListener + 'static)> = None;
 
@@ -98,12 +101,28 @@ pub struct Window {
     current_url: RefCell<Option<Url>>,
 }
 
+#[cfg(not(target_os = "windows"))]
+fn window_creation_scale_factor() -> ScaleFactor<ScreenPx, DevicePixel, f32> {
+    1.0
+}
+
+#[cfg(target_os = "windows")]
+fn window_creation_scale_factor() -> ScaleFactor<ScreenPx, DevicePixel, f32> {
+        let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
+        let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
+        ScaleFactor::new(ppi as f32 / 96.0)
+}
+
+
 impl Window {
     pub fn new(is_foreground: bool,
-               window_size: TypedSize2D<DevicePixel, u32>,
+               window_size: TypedSize2D<ScreenPx, u32>,
                parent: Option<glutin::WindowID>) -> Rc<Window> {
-        let width = window_size.to_untyped().width;
-        let height = window_size.to_untyped().height;
+        let win_size: TypedSize2D<DevicePixel, u32> =
+            (window_size.as_f32() * window_creation_scale_factor())
+            .as_uint().cast().expect("Window size should fit in u32");
+        let width = win_size.to_untyped().width;
+        let height = win_size.to_untyped().height;
 
         // If there's no chrome, start off with the window invisible. It will be set to visible in
         // `load_end()`. This avoids an ugly flash of unstyled content (especially important since
@@ -644,8 +663,16 @@ impl WindowMethods for Window {
          box receiver as Box<CompositorReceiver>)
     }
 
-    fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
+    #[cfg(not(target_os = "windows"))]
+    fn scale_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
         ScaleFactor::new(self.window.hidpi_factor())
+    }
+
+    #[cfg(target_os = "windows")]
+    fn scale_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
+        let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
+        let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
+        ScaleFactor::new(ppi as f32 / 96.0)
     }
 
     fn set_page_title(&self, title: Option<String>) {
