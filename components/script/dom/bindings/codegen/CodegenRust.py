@@ -1334,8 +1334,11 @@ def MemberCondition(pref, func):
     """
     assert pref is None or isinstance(pref, str)
     assert func is None or isinstance(func, str)
+    assert func is None or pref is None
     if pref is not None:
         return 'Condition::Pref("%s")' % pref
+    if func is not None:
+        return 'Condition::Func(%s)' % func
     return "Condition::Satisfied"
 
 

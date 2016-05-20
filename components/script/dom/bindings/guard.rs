@@ -4,6 +4,7 @@
 
 //! Machinery to conditionally expose things.
 
+use js::jsapi::{HandleObject, JSContext};
 use util::prefs::get_pref;
 
 /// A container with a condition.
@@ -22,8 +23,10 @@ impl<T: Clone + Copy> Guard<T> {
     }
 
     /// Expose the value if the condition is satisfied.
-    pub fn expose(&self) -> Option<T> {
-        if self.condition.is_satisfied() {
+    ///
+    /// The passed handle is the object on which the value may be exposed.
+    pub unsafe fn expose(&self, cx: *mut JSContext, obj: HandleObject) -> Option<T> {
+        if self.condition.is_satisfied(cx, obj) {
             Some(self.value)
         } else {
             None
@@ -33,6 +36,8 @@ impl<T: Clone + Copy> Guard<T> {
 
 /// A condition to expose things.
 pub enum Condition {
+    /// The condition is satisfied if the function returns true.
+    Func(unsafe fn(*mut JSContext, HandleObject) -> bool),
     /// The condition is satisfied if the preference is set.
     Pref(&'static str),
     /// The condition is always satisfied.
@@ -40,9 +45,10 @@ pub enum Condition {
 }
 
 impl Condition {
-    fn is_satisfied(&self) -> bool {
+    unsafe fn is_satisfied(&self, cx: *mut JSContext, obj: HandleObject) -> bool {
         match *self {
             Condition::Pref(name) => get_pref(name).as_boolean().unwrap_or(false),
+            Condition::Func(f) => f(cx, obj),
             Condition::Satisfied => true,
         }
     }
