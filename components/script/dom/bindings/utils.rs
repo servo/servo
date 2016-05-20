@@ -557,24 +557,17 @@ pub struct Prefable<T: 'static> {
     pub pref: Option<&'static str>,
     /// The underlying slice of specifications.
     pub specs: &'static [T],
-    /// Whether the specifications contain special terminating entries that should be
-    /// included or not.
-    pub terminator: bool,
 }
 
 impl<T> Prefable<T> {
     /// Retrieve the slice represented by this container, unless the condition
     /// guarding it is false.
-    pub fn specs(&self) -> &'static [T] {
+    pub fn specs(&self) -> Option<&'static [T]> {
         if let Some(pref) = self.pref {
             if !prefs::get_pref(pref).as_boolean().unwrap_or(false) {
-                return if self.terminator {
-                    &self.specs[self.specs.len() - 1..]
-                } else {
-                    &[]
-                };
+                return None;
             }
         }
-        self.specs
+        Some(self.specs)
     }
 }
