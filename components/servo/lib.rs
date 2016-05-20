@@ -129,12 +129,12 @@ impl Browser {
             resource_path.push("shaders");
 
             // TODO(gw): Duplicates device_pixels_per_screen_px from compositor. Tidy up!
-            let hidpi_factor = window.hidpi_factor().get();
+            let scale_factor = window.scale_factor().get();
             let device_pixel_ratio = match opts.device_pixels_per_px {
                 Some(device_pixels_per_px) => device_pixels_per_px,
                 None => match opts.output_file {
                     Some(_) => 1.0,
-                    None => hidpi_factor,
+                    None => scale_factor,
                 }
             };
 

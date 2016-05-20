@@ -133,8 +133,8 @@ pub trait WindowMethods {
     /// Called when the <head> tag has finished parsing
     fn head_parsed(&self);
 
-    /// Returns the hidpi factor of the monitor.
-    fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32>;
+    /// Returns the scale factor of the system (device pixels / screen pixels).
+    fn scale_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32>;
 
     /// Gets the OS native graphics display for this window.
     fn native_display(&self) -> NativeDisplay;
