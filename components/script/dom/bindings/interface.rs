@@ -70,7 +70,7 @@ pub type NonNullJSNative =
 fn define_constants(
         cx: *mut JSContext,
         obj: HandleObject,
-        constants: &'static [ConstantSpec]) {
+        constants: &[ConstantSpec]) {
     for spec in constants {
         let value = RootedValue::new(cx, spec.get_value());
         unsafe {
@@ -213,8 +213,8 @@ impl InterfaceConstructorBehavior {
 pub unsafe fn create_callback_interface_object(
         cx: *mut JSContext,
         receiver: HandleObject,
-        constants: &'static [Guard<&'static [ConstantSpec]>],
-        name: &'static [u8],
+        constants: &[Guard<&[ConstantSpec]>],
+        name: &[u8],
         rval: MutableHandleObject) {
     assert!(!constants.is_empty());
     rval.set(JS_NewObject(cx, ptr::null()));
@@ -233,9 +233,9 @@ pub unsafe fn create_interface_prototype_object(
         cx: *mut JSContext,
         proto: HandleObject,
         class: &'static JSClass,
-        regular_methods: &'static [Guard<&'static [JSFunctionSpec]>],
-        regular_properties: &'static [Guard<&'static [JSPropertySpec]>],
-        constants: &'static [Guard<&'static [ConstantSpec]>],
+        regular_methods: &[Guard<&'static [JSFunctionSpec]>],
+        regular_properties: &[Guard<&'static [JSPropertySpec]>],
+        constants: &[Guard<&[ConstantSpec]>],
         rval: MutableHandleObject) {
     create_object(cx, proto, class, regular_methods, regular_properties, constants, rval);
 }
@@ -246,11 +246,11 @@ pub unsafe fn create_noncallback_interface_object(
         receiver: HandleObject,
         proto: HandleObject,
         class: &'static NonCallbackInterfaceObjectClass,
-        static_methods: &'static [Guard<&'static [JSFunctionSpec]>],
-        static_properties: &'static [Guard<&'static [JSPropertySpec]>],
-        constants: &'static [Guard<&'static [ConstantSpec]>],
+        static_methods: &[Guard<&'static [JSFunctionSpec]>],
+        static_properties: &[Guard<&'static [JSPropertySpec]>],
+        constants: &[Guard<&[ConstantSpec]>],
         interface_prototype_object: HandleObject,
-        name: &'static [u8],
+        name: &[u8],
         length: u32,
         rval: MutableHandleObject) {
     create_object(cx,
@@ -270,7 +270,7 @@ pub unsafe fn create_noncallback_interface_object(
 pub unsafe fn create_named_constructors(
         cx: *mut JSContext,
         receiver: HandleObject,
-        named_constructors: &[(NonNullJSNative, &'static [u8], u32)],
+        named_constructors: &[(NonNullJSNative, &[u8], u32)],
         interface_prototype_object: HandleObject) {
     let mut constructor = RootedObject::new(cx, ptr::null_mut());
 
@@ -360,9 +360,9 @@ unsafe fn create_object(
         cx: *mut JSContext,
         proto: HandleObject,
         class: &'static JSClass,
-        methods: &'static [Guard<&'static [JSFunctionSpec]>],
-        properties: &'static [Guard<&'static [JSPropertySpec]>],
-        constants: &'static [Guard<&'static [ConstantSpec]>],
+        methods: &[Guard<&'static [JSFunctionSpec]>],
+        properties: &[Guard<&'static [JSPropertySpec]>],
+        constants: &[Guard<&[ConstantSpec]>],
         rval: MutableHandleObject) {
     rval.set(JS_NewObjectWithUniqueType(cx, class, proto));
     assert!(!rval.ptr.is_null());
@@ -379,7 +379,7 @@ unsafe fn create_object(
 pub unsafe fn define_guarded_methods(
         cx: *mut JSContext,
         obj: HandleObject,
-        methods: &'static [Guard<&'static [JSFunctionSpec]>]) {
+        methods: &[Guard<&'static [JSFunctionSpec]>]) {
     for guard in methods {
         if let Some(specs) = guard.expose() {
             define_methods(cx, obj, specs).unwrap();
@@ -391,7 +391,7 @@ pub unsafe fn define_guarded_methods(
 pub unsafe fn define_guarded_properties(
         cx: *mut JSContext,
         obj: HandleObject,
-        properties: &'static [Guard<&'static [JSPropertySpec]>]) {
+        properties: &[Guard<&'static [JSPropertySpec]>]) {
     for guard in properties {
         if let Some(specs) = guard.expose() {
             define_properties(cx, obj, specs).unwrap();
@@ -399,7 +399,7 @@ pub unsafe fn define_guarded_properties(
     }
 }
 
-unsafe fn define_name(cx: *mut JSContext, obj: HandleObject, name: &'static [u8]) {
+unsafe fn define_name(cx: *mut JSContext, obj: HandleObject, name: &[u8]) {
     assert!(*name.last().unwrap() == b'\0');
     let name = RootedString::new(
         cx, JS_AtomizeAndPinString(cx, name.as_ptr() as *const libc::c_char));
@@ -424,7 +424,7 @@ unsafe fn define_length(cx: *mut JSContext, obj: HandleObject, length: u32) {
 unsafe fn define_on_global_object(
         cx: *mut JSContext,
         receiver: HandleObject,
-        name: &'static [u8],
+        name: &[u8],
         obj: HandleObject) {
     assert!(*name.last().unwrap() == b'\0');
     assert!(JS_DefineProperty1(cx,
