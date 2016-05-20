@@ -212,7 +212,7 @@ impl InterfaceConstructorBehavior {
 /// Create and define the interface object of a callback interface.
 pub unsafe fn create_callback_interface_object(
         cx: *mut JSContext,
-        receiver: HandleObject,
+        global: HandleObject,
         constants: &[Guard<&[ConstantSpec]>],
         name: &[u8],
         rval: MutableHandleObject) {
@@ -225,7 +225,7 @@ pub unsafe fn create_callback_interface_object(
         }
     }
     define_name(cx, rval.handle(), name);
-    define_on_global_object(cx, receiver, name, rval.handle());
+    define_on_global_object(cx, global, name, rval.handle());
 }
 
 /// Create the interface prototype object of a non-callback interface.
@@ -243,7 +243,7 @@ pub unsafe fn create_interface_prototype_object(
 /// Create and define the interface object of a non-callback interface.
 pub unsafe fn create_noncallback_interface_object(
         cx: *mut JSContext,
-        receiver: HandleObject,
+        global: HandleObject,
         proto: HandleObject,
         class: &'static NonCallbackInterfaceObjectClass,
         static_methods: &[Guard<&'static [JSFunctionSpec]>],
@@ -263,13 +263,13 @@ pub unsafe fn create_noncallback_interface_object(
     assert!(JS_LinkConstructorAndPrototype(cx, rval.handle(), interface_prototype_object));
     define_name(cx, rval.handle(), name);
     define_length(cx, rval.handle(), length);
-    define_on_global_object(cx, receiver, name, rval.handle());
+    define_on_global_object(cx, global, name, rval.handle());
 }
 
 /// Create and define the named constructors of a non-callback interface.
 pub unsafe fn create_named_constructors(
         cx: *mut JSContext,
-        receiver: HandleObject,
+        global: HandleObject,
         named_constructors: &[(NonNullJSNative, &[u8], u32)],
         interface_prototype_object: HandleObject) {
     let mut constructor = RootedObject::new(cx, ptr::null_mut());
@@ -294,7 +294,7 @@ pub unsafe fn create_named_constructors(
                                    None,
                                    None));
 
-        define_on_global_object(cx, receiver, name, constructor.handle());
+        define_on_global_object(cx, global, name, constructor.handle());
     }
 }
 
@@ -423,12 +423,12 @@ unsafe fn define_length(cx: *mut JSContext, obj: HandleObject, length: u32) {
 
 unsafe fn define_on_global_object(
         cx: *mut JSContext,
-        receiver: HandleObject,
+        global: HandleObject,
         name: &[u8],
         obj: HandleObject) {
     assert!(*name.last().unwrap() == b'\0');
     assert!(JS_DefineProperty1(cx,
-                               receiver,
+                               global,
                                name.as_ptr() as *const libc::c_char,
                                obj,
                                JSPROP_RESOLVING,
