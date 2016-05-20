@@ -5,6 +5,7 @@
 # Common codegen classes.
 
 from collections import defaultdict
+from itertools import groupby
 
 import operator
 import re
@@ -1406,37 +1407,18 @@ class PropertyDefiner:
         # members while still allowing us to define all the members in the smallest
         # number of JSAPI calls.
         assert len(array) != 0
-        # So we won't put a specTerminator at the very front of the list:
-        lastCondition = getCondition(array[0], self.descriptor)
         specs = []
-        currentSpecs = []
         prefableSpecs = []
-
         prefableTemplate = '    Prefable { pref: %s, specs: %s[%d], terminator: %s }'
+        hasTerminator = 'true' if specTerminator else 'false'
 
-        def switchToCondition(props, condition):
-            prefableSpecs.append(prefableTemplate %
-                                 (condition,
-                                  name + "_specs",
-                                  len(specs),
-                                  'true' if specTerminator else 'false'))
+        for cond, members in groupby(array, lambda m: getCondition(m, self.descriptor)):
+            currentSpecs = [specTemplate % getDataTuple(m) for m in members]
+            if specTerminator:
+                currentSpecs.append(specTerminator)
             specs.append("&[\n" + ",\n".join(currentSpecs) + "]\n")
-            del currentSpecs[:]
-
-        for member in array:
-            curCondition = getCondition(member, self.descriptor)
-            if lastCondition != curCondition:
-                # Terminate previous list
-                if specTerminator:
-                    currentSpecs.append(specTerminator)
-                # And switch to our new pref
-                switchToCondition(self, lastCondition)
-                lastCondition = curCondition
-            # And the actual spec
-            currentSpecs.append(specTemplate % getDataTuple(member))
-        if specTerminator:
-            currentSpecs.append(specTerminator)
-        switchToCondition(self, lastCondition)
+            prefableSpecs.append(
+                prefableTemplate % (cond, name + "_specs", len(specs) - 1, hasTerminator))
 
         specsArray = ("const %s_specs: &'static [&'static[%s]] = &[\n" +
                       ",\n".join(specs) + "\n" +
