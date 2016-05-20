@@ -1735,6 +1735,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             return ReadyToSave::PendingFrames;
         }
 
+        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
+
         // Step through the current frame tree, checking that the script
         // thread is idle, and that the current epoch of the layout thread
         // matches what the compositor has painted. If all these conditions
@@ -1757,8 +1759,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             // before we check whether the document is ready; otherwise,
             // there's a race condition where a webfont has finished loading,
             // but hasn't yet notified the document.
-            let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
-            let msg = LayoutControlMsg::GetWebFontLoadState(sender);
+            let msg = LayoutControlMsg::GetWebFontLoadState(sender.clone());
             if let Err(e) = pipeline.layout_chan.0.send(msg) {
                 warn!("Get web font failed ({})", e);
             }
@@ -1794,9 +1795,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                         // epoch matches what the compositor has drawn. If they match
                         // (and script is idle) then this pipeline won't change again
                         // and can be considered stable.
-                        let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
                         let LayoutControlChan(ref layout_chan) = pipeline.layout_chan;
-                        if let Err(e) = layout_chan.send(LayoutControlMsg::GetCurrentEpoch(sender)) {
+                        if let Err(e) = layout_chan.send(LayoutControlMsg::GetCurrentEpoch(sender.clone())) {
                             warn!("Failed to send GetCurrentEpoch ({}).", e);
                         }
                         match receiver.recv() {
