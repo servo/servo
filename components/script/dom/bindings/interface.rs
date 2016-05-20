@@ -220,7 +220,7 @@ pub unsafe fn create_callback_interface_object(
     rval.set(JS_NewObject(cx, ptr::null()));
     assert!(!rval.ptr.is_null());
     for guard in constants {
-        if let Some(specs) = guard.expose() {
+        if let Some(specs) = guard.expose(cx, rval.handle()) {
             define_constants(cx, rval.handle(), specs);
         }
     }
@@ -369,7 +369,7 @@ unsafe fn create_object(
     define_guarded_methods(cx, rval.handle(), methods);
     define_guarded_properties(cx, rval.handle(), properties);
     for guard in constants {
-        if let Some(specs) = guard.expose() {
+        if let Some(specs) = guard.expose(cx, rval.handle()) {
             define_constants(cx, rval.handle(), specs);
         }
     }
@@ -381,7 +381,7 @@ pub unsafe fn define_guarded_methods(
         obj: HandleObject,
         methods: &[Guard<&'static [JSFunctionSpec]>]) {
     for guard in methods {
-        if let Some(specs) = guard.expose() {
+        if let Some(specs) = guard.expose(cx, obj) {
             define_methods(cx, obj, specs).unwrap();
         }
     }
@@ -393,7 +393,7 @@ pub unsafe fn define_guarded_properties(
         obj: HandleObject,
         properties: &[Guard<&'static [JSPropertySpec]>]) {
     for guard in properties {
-        if let Some(specs) = guard.expose() {
+        if let Some(specs) = guard.expose(cx, obj) {
             define_properties(cx, obj, specs).unwrap();
         }
     }

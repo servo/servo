@@ -433,4 +433,26 @@ interface TestBinding {
   static void prefControlledStaticMethodEnabled();
   [Pref="dom.testbinding.prefcontrolled2.enabled"]
   const unsigned short prefControlledConstEnabled = 0;
+
+  [Func="TestBinding::condition_unsatisfied"]
+  readonly attribute boolean funcControlledAttributeDisabled;
+  [Func="TestBinding::condition_unsatisfied"]
+  static readonly attribute boolean funcControlledStaticAttributeDisabled;
+  [Func="TestBinding::condition_unsatisfied"]
+  void funcControlledMethodDisabled();
+  [Func="TestBinding::condition_unsatisfied"]
+  static void funcControlledStaticMethodDisabled();
+  [Func="TestBinding::condition_unsatisfied"]
+  const unsigned short funcControlledConstDisabled = 0;
+
+  [Func="TestBinding::condition_satisfied"]
+  readonly attribute boolean funcControlledAttributeEnabled;
+  [Func="TestBinding::condition_satisfied"]
+  static readonly attribute boolean funcControlledStaticAttributeEnabled;
+  [Func="TestBinding::condition_satisfied"]
+  void funcControlledMethodEnabled();
+  [Func="TestBinding::condition_satisfied"]
+  static void funcControlledStaticMethodEnabled();
+  [Func="TestBinding::condition_satisfied"]
+  const unsigned short funcControlledConstEnabled = 0;
 };
