@@ -1335,8 +1335,8 @@ def MemberCondition(pref, func):
     assert pref is None or isinstance(pref, str)
     assert func is None or isinstance(func, str)
     if pref:
-        return 'Some("%s")' % pref
-    return "None"
+        return 'Condition::Pref("%s")' % pref
+    return "Condition::Satisfied"
 
 
 class PropertyDefiner:
@@ -1380,8 +1380,8 @@ class PropertyDefiner:
             PropertyDefiner.getStringAttr(interfaceMember,
                                           "Func"))
 
-    def generatePrefableArray(self, array, name, specTemplate, specTerminator,
-                              specType, getCondition, getDataTuple):
+    def generateGuardedArray(self, array, name, specTemplate, specTerminator,
+                             specType, getCondition, getDataTuple):
         """
         This method generates our various arrays.
 
@@ -1409,7 +1409,7 @@ class PropertyDefiner:
         assert len(array) != 0
         specs = []
         prefableSpecs = []
-        prefableTemplate = '    Prefable { pref: %s, specs: %s[%d] }'
+        prefableTemplate = '    Guard::new(%s, %s[%d])'
 
         for cond, members in groupby(array, lambda m: getCondition(m, self.descriptor)):
             currentSpecs = [specTemplate % getDataTuple(m) for m in members]
@@ -1423,7 +1423,7 @@ class PropertyDefiner:
                       ",\n".join(specs) + "\n" +
                       "];\n") % (name, specType)
 
-        prefArray = ("const %s: &'static [Prefable<%s>] = &[\n" +
+        prefArray = ("const %s: &'static [Guard<&'static [%s]>] = &[\n" +
                      ",\n".join(prefableSpecs) + "\n" +
                      "];\n") % (name, specType)
         return specsArray + prefArray
@@ -1470,7 +1470,7 @@ class MethodDefiner(PropertyDefiner):
                                  "methodInfo": False,
                                  "selfHostedName": "ArrayValues",
                                  "length": 0,
-                                 "condition": "None"})
+                                 "condition": "Condition::Satisfied"})
 
         isUnforgeableInterface = bool(descriptor.interface.getExtendedAttribute("Unforgeable"))
         if not static and unforgeable == isUnforgeableInterface:
@@ -1521,7 +1521,7 @@ class MethodDefiner(PropertyDefiner):
                         % m["name"][2:], accessor, jitinfo, m["length"], flags, selfHostedName)
             return (str_to_const_array(m["name"]), accessor, jitinfo, m["length"], flags, selfHostedName)
 
-        return self.generatePrefableArray(
+        return self.generateGuardedArray(
             array, name,
             '    JSFunctionSpec {\n'
             '        name: %s as *const u8 as *const libc::c_char,\n'
@@ -1601,7 +1601,7 @@ class AttrDefiner(PropertyDefiner):
             return (str_to_const_array(attr.identifier.name), flags, getter(attr),
                     setter(attr))
 
-        return self.generatePrefableArray(
+        return self.generateGuardedArray(
             array, name,
             '    JSPropertySpec {\n'
             '        name: %s as *const u8 as *const libc::c_char,\n'
@@ -1636,7 +1636,7 @@ class ConstDefiner(PropertyDefiner):
             return (str_to_const_array(const.identifier.name),
                     convertConstIDLValueToJSVal(const.value))
 
-        return self.generatePrefableArray(
+        return self.generateGuardedArray(
             array, name,
             '    ConstantSpec { name: %s, value: %s }',
             None,
@@ -2297,8 +2297,8 @@ def InitUnforgeablePropertiesOnHolder(descriptor, properties):
     """
     unforgeables = []
 
-    defineUnforgeableAttrs = "define_prefable_properties(cx, unforgeable_holder.handle(), %s);"
-    defineUnforgeableMethods = "define_prefable_methods(cx, unforgeable_holder.handle(), %s);"
+    defineUnforgeableAttrs = "define_guarded_properties(cx, unforgeable_holder.handle(), %s);"
+    defineUnforgeableMethods = "define_guarded_methods(cx, unforgeable_holder.handle(), %s);"
 
     unforgeableMembers = [
         (defineUnforgeableAttrs, properties.unforgeable_attrs),
@@ -5528,13 +5528,13 @@ class CGBindingRoot(CGThing):
             'dom::bindings::interface::{InterfaceConstructorBehavior, NonCallbackInterfaceObjectClass}',
             'dom::bindings::interface::{create_callback_interface_object, create_interface_prototype_object}',
             'dom::bindings::interface::{create_named_constructors, create_noncallback_interface_object}',
-            'dom::bindings::interface::{define_prefable_methods, define_prefable_properties}',
+            'dom::bindings::interface::{define_guarded_methods, define_guarded_properties}',
             'dom::bindings::interface::{ConstantSpec, NonNullJSNative}',
             'dom::bindings::interface::ConstantVal::{IntVal, UintVal}',
             'dom::bindings::js::{JS, Root, RootedReference}',
             'dom::bindings::js::{OptionalRootedReference}',
             'dom::bindings::reflector::{Reflectable}',
-            'dom::bindings::utils::{DOMClass, DOMJSClass, Prefable}',
+            'dom::bindings::utils::{DOMClass, DOMJSClass}',
             'dom::bindings::utils::{DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, JSCLASS_DOM_GLOBAL}',
             'dom::bindings::utils::{ProtoOrIfaceArray, create_dom_global}',
             'dom::bindings::utils::{enumerate_global, finalize_global, find_enum_string_index}',
@@ -5558,6 +5558,7 @@ class CGBindingRoot(CGThing):
             'dom::bindings::error::{Fallible, Error, ErrorResult}',
             'dom::bindings::error::Error::JSFailed',
             'dom::bindings::error::throw_dom_exception',
+            'dom::bindings::guard::{Condition, Guard}',
             'dom::bindings::proxyhandler',
             'dom::bindings::proxyhandler::{ensure_expando_object, fill_property_descriptor}',
             'dom::bindings::proxyhandler::{get_expando_object, get_property_descriptor}',
