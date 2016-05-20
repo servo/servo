@@ -346,15 +346,13 @@ pub struct ScriptControlChan(pub IpcSender<ConstellationControlMsg>);
 /// crate.
 pub trait ScriptThreadFactory {
     /// Create a `ScriptThread`.
-    fn create(_phantom: Option<&mut Self>,
-              state: InitialScriptState,
+    fn create(state: InitialScriptState,
               layout_chan: &OpaqueScriptLayoutChannel,
               load_data: LoadData);
     /// Create a script -> layout channel (`Sender`, `Receiver` pair).
-    fn create_layout_channel(_phantom: Option<&mut Self>) -> OpaqueScriptLayoutChannel;
+    fn create_layout_channel() -> OpaqueScriptLayoutChannel;
     /// Clone the `Sender` in `pair`.
-    fn clone_layout_channel(_phantom: Option<&mut Self>, pair: &OpaqueScriptLayoutChannel)
-                            -> Box<Any + Send>;
+    fn clone_layout_channel(pair: &OpaqueScriptLayoutChannel) -> Box<Any + Send>;
 }
 
 /// Messages sent from the script thread to the compositor

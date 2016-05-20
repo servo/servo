@@ -123,7 +123,9 @@ impl Pipeline {
     /// Returns the channels wrapped in a struct.
     pub fn create<LTF, STF>(state: InitialPipelineState)
                             -> (Pipeline, UnprivilegedPipelineContent, PrivilegedPipelineContent)
-        where LTF: LayoutThreadFactory, STF: ScriptThreadFactory {
+        where LTF: LayoutThreadFactory,
+              STF: ScriptThreadFactory
+    {
         // Note: we allow channel creation to panic, since recovering from this
         // probably requires a general low-memory strategy.
         let (layout_to_paint_chan, layout_to_paint_port) = util::ipc::optional_ipc_channel();
@@ -416,10 +418,12 @@ pub struct UnprivilegedPipelineContent {
 
 impl UnprivilegedPipelineContent {
     pub fn start_all<LTF, STF>(mut self, wait_for_completion: bool)
-                               where LTF: LayoutThreadFactory, STF: ScriptThreadFactory {
-        let layout_pair = ScriptThreadFactory::create_layout_channel(None::<&mut STF>);
+        where LTF: LayoutThreadFactory,
+              STF: ScriptThreadFactory
+    {
+        let layout_pair = STF::create_layout_channel();
 
-        ScriptThreadFactory::create(None::<&mut STF>, InitialScriptState {
+        STF::create(InitialScriptState {
             id: self.id,
             parent_info: self.parent_info,
             compositor: self.script_to_compositor_chan,
@@ -440,23 +444,22 @@ impl UnprivilegedPipelineContent {
             content_process_shutdown_chan: self.script_content_process_shutdown_chan.clone(),
         }, &layout_pair, self.load_data.clone());
 
-        LayoutThreadFactory::create(None::<&mut LTF>,
-                                  self.id,
-                                  self.load_data.url.clone(),
-                                  self.parent_info.is_some(),
-                                  layout_pair,
-                                  self.pipeline_port.expect("No pipeline port."),
-                                  self.layout_to_constellation_chan,
-                                  self.panic_chan,
-                                  self.script_chan.clone(),
-                                  self.layout_to_paint_chan.clone(),
-                                  self.image_cache_thread,
-                                  self.font_cache_thread,
-                                  self.time_profiler_chan,
-                                  self.mem_profiler_chan,
-                                  self.layout_shutdown_chan,
-                                  self.layout_content_process_shutdown_chan.clone(),
-                                  self.webrender_api_sender);
+        LTF::create(self.id,
+                    self.load_data.url.clone(),
+                    self.parent_info.is_some(),
+                    layout_pair,
+                    self.pipeline_port.expect("No pipeline port."),
+                    self.layout_to_constellation_chan,
+                    self.panic_chan,
+                    self.script_chan.clone(),
+                    self.layout_to_paint_chan.clone(),
+                    self.image_cache_thread,
+                    self.font_cache_thread,
+                    self.time_profiler_chan,
+                    self.mem_profiler_chan,
+                    self.layout_shutdown_chan,
+                    self.layout_content_process_shutdown_chan.clone(),
+                    self.webrender_api_sender);
 
         if wait_for_completion {
             let _ = self.script_content_process_shutdown_port.recv();

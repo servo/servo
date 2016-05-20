@@ -421,18 +421,17 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
 }
 
 impl ScriptThreadFactory for ScriptThread {
-    fn create_layout_channel(_phantom: Option<&mut ScriptThread>) -> OpaqueScriptLayoutChannel {
+    fn create_layout_channel() -> OpaqueScriptLayoutChannel {
         let (chan, port) = channel();
         ScriptLayoutChan::new(chan, port)
     }
 
-    fn clone_layout_channel(_phantom: Option<&mut ScriptThread>, pair: &OpaqueScriptLayoutChannel)
+    fn clone_layout_channel(pair: &OpaqueScriptLayoutChannel)
                             -> Box<Any + Send> {
         box pair.sender() as Box<Any + Send>
     }
 
-    fn create(_phantom: Option<&mut ScriptThread>,
-              state: InitialScriptState,
+    fn create(state: InitialScriptState,
               layout_chan: &OpaqueScriptLayoutChannel,
               load_data: LoadData) {
         let panic_chan = state.panic_chan.clone();
@@ -1077,9 +1076,8 @@ impl ScriptThread {
             content_process_shutdown_chan,
         } = new_layout_info;
 
-        let layout_pair = ScriptThread::create_layout_channel(None::<&mut ScriptThread>);
+        let layout_pair = ScriptThread::create_layout_channel();
         let layout_chan = LayoutChan(*ScriptThread::clone_layout_channel(
-            None::<&mut ScriptThread>,
             &layout_pair).downcast::<Sender<layout_interface::Msg>>().unwrap());
 
         let layout_creation_info = NewLayoutThreadInfo {

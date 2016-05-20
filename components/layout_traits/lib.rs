@@ -41,9 +41,7 @@ pub struct LayoutControlChan(pub IpcSender<LayoutControlMsg>);
 // A static method creating a layout thread
 // Here to remove the compositor -> layout dependency
 pub trait LayoutThreadFactory {
-    // FIXME: use a proper static method
-    fn create(_phantom: Option<&mut Self>,
-              id: PipelineId,
+    fn create(id: PipelineId,
               url: Url,
               is_iframe: bool,
               chan: OpaqueScriptLayoutChannel,
