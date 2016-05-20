@@ -1015,6 +1015,7 @@ impl InlineFlow {
             // FIXME(#5624, pcwalton): This passes our current reftests but isn't the right thing
             // to do.
             let fragment = fragments.get_mut(fragment_index.to_usize());
+            // TODO: Skip fragments that contains only discardable or non-printable characters.
             let fragment_inline_metrics = fragment.inline_metrics(layout_context);
             let mut block_start = line.bounds.start.b +
                 line.inline_metrics.block_size_above_baseline -
