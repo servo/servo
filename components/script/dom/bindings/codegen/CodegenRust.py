@@ -1409,8 +1409,7 @@ class PropertyDefiner:
         assert len(array) != 0
         specs = []
         prefableSpecs = []
-        prefableTemplate = '    Prefable { pref: %s, specs: %s[%d], terminator: %s }'
-        hasTerminator = 'true' if specTerminator else 'false'
+        prefableTemplate = '    Prefable { pref: %s, specs: %s[%d] }'
 
         for cond, members in groupby(array, lambda m: getCondition(m, self.descriptor)):
             currentSpecs = [specTemplate % getDataTuple(m) for m in members]
@@ -1418,7 +1417,7 @@ class PropertyDefiner:
                 currentSpecs.append(specTerminator)
             specs.append("&[\n" + ",\n".join(currentSpecs) + "]\n")
             prefableSpecs.append(
-                prefableTemplate % (cond, name + "_specs", len(specs) - 1, hasTerminator))
+                prefableTemplate % (cond, name + "_specs", len(specs) - 1))
 
         specsArray = ("const %s_specs: &'static [&'static[%s]] = &[\n" +
                       ",\n".join(specs) + "\n" +
