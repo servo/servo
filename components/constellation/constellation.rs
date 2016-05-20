@@ -168,7 +168,7 @@ pub struct Constellation<LTF, STF> {
 
     phantom: PhantomData<(LTF, STF)>,
 
-    pub window_size: WindowSizeData,
+    window_size: WindowSizeData,
 
     /// Means of accessing the clipboard
     clipboard_ctx: Option<ClipboardContext>,
@@ -221,7 +221,7 @@ pub struct InitialConstellationState {
 }
 
 /// Stores the navigation context for a single frame in the frame tree.
-pub struct Frame {
+struct Frame {
     prev: Vec<PipelineId>,
     current: PipelineId,
     next: Vec<PipelineId>,
@@ -296,7 +296,7 @@ struct WebDriverData {
 }
 
 impl WebDriverData {
-    pub fn new() -> WebDriverData {
+    fn new() -> WebDriverData {
         WebDriverData {
             load_channel: None
         }
