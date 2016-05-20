@@ -72,7 +72,7 @@ impl Worker {
             Err(_) => return Err(Error::Syntax),
         };
 
-        let resource_thread = global.resource_thread();
+        let core_resource_thread = global.core_resource_thread();
         let constellation_chan = global.constellation_chan().clone();
         let scheduler_chan = global.scheduler_chan().clone();
 
@@ -100,7 +100,7 @@ impl Worker {
         };
 
         let init = WorkerGlobalScopeInit {
-            resource_thread: resource_thread,
+            core_resource_thread: core_resource_thread,
             mem_profiler_chan: global.mem_profiler_chan().clone(),
             time_profiler_chan: global.time_profiler_chan().clone(),
             to_devtools_sender: global.devtools_chan(),

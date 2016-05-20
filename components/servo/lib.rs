@@ -73,10 +73,9 @@ use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
 use net::bluetooth_thread::BluetoothThreadFactory;
 use net::image_cache_thread::new_image_cache_thread;
-use net::resource_thread::new_resource_thread;
-use net::storage_thread::StorageThreadFactory;
+use net::resource_thread::new_resource_threads;
+use net_traits::IpcSend;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
-use net_traits::storage_thread::StorageThread;
 use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
@@ -211,14 +210,14 @@ fn create_constellation(opts: opts::Opts,
                         supports_clipboard: bool,
                         webrender_api_sender: Option<webrender_traits::RenderApiSender>) -> Sender<ConstellationMsg> {
     let bluetooth_thread: IpcSender<BluetoothMethodMsg> = BluetoothThreadFactory::new();
-    let resource_thread = new_resource_thread(opts.user_agent.clone(),
-                                              devtools_chan.clone(),
-                                              time_profiler_chan.clone());
-    let image_cache_thread = new_image_cache_thread(resource_thread.clone(),
+
+    let resource_threads = new_resource_threads(opts.user_agent.clone(),
+                                                devtools_chan.clone(),
+                                                time_profiler_chan.clone());
+    let image_cache_thread = new_image_cache_thread(resource_threads.sender(),
                                                     webrender_api_sender.as_ref().map(|wr| wr.create_api()));
-    let font_cache_thread = FontCacheThread::new(resource_thread.clone(),
+    let font_cache_thread = FontCacheThread::new(resource_threads.sender(),
                                                  webrender_api_sender.as_ref().map(|wr| wr.create_api()));
-    let storage_thread: StorageThread = StorageThreadFactory::new();
 
     let initial_state = InitialConstellationState {
         compositor_proxy: compositor_proxy,
@@ -226,8 +225,7 @@ fn create_constellation(opts: opts::Opts,
         bluetooth_thread: bluetooth_thread,
         image_cache_thread: image_cache_thread,
         font_cache_thread: font_cache_thread,
-        resource_thread: resource_thread,
-        storage_thread: storage_thread,
+        resource_threads: resource_threads,
         time_profiler_chan: time_profiler_chan,
         mem_profiler_chan: mem_profiler_chan,
         supports_clipboard: supports_clipboard,

@@ -6,7 +6,7 @@ use font_template::{FontTemplate, FontTemplateDescriptor};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use mime::{TopLevel, SubLevel};
-use net_traits::{AsyncResponseTarget, LoadContext, PendingAsyncLoad, ResourceThread, ResponseAction};
+use net_traits::{AsyncResponseTarget, LoadContext, PendingAsyncLoad, CoreResourceThread, ResponseAction};
 use platform::font_context::FontContextHandle;
 use platform::font_list::SANS_SERIF_FONT_FAMILY;
 use platform::font_list::for_each_available_family;
@@ -125,7 +125,7 @@ struct FontCache {
     local_families: HashMap<LowercaseString, FontTemplates>,
     web_families: HashMap<LowercaseString, FontTemplates>,
     font_context: FontContextHandle,
-    resource_thread: ResourceThread,
+    core_resource_thread: CoreResourceThread,
     webrender_api: Option<webrender_traits::RenderApi>,
     webrender_fonts: HashMap<Atom, webrender_traits::FontKey>,
 }
@@ -182,7 +182,7 @@ impl FontCache {
                         Source::Url(ref url_source) => {
                             let url = &url_source.url;
                             let load = PendingAsyncLoad::new(LoadContext::Font,
-                                                             self.resource_thread.clone(),
+                                                             self.core_resource_thread.clone(),
                                                              url.clone(),
                                                              None,
                                                              None,
@@ -372,7 +372,7 @@ pub struct FontCacheThread {
 }
 
 impl FontCacheThread {
-    pub fn new(resource_thread: ResourceThread,
+    pub fn new(core_resource_thread: CoreResourceThread,
                webrender_api: Option<webrender_traits::RenderApi>) -> FontCacheThread {
         let (chan, port) = ipc::channel().unwrap();
 
@@ -388,7 +388,7 @@ impl FontCacheThread {
                 local_families: HashMap::new(),
                 web_families: HashMap::new(),
                 font_context: FontContextHandle::new(),
-                resource_thread: resource_thread,
+                core_resource_thread: core_resource_thread,
                 webrender_api: webrender_api,
                 webrender_fonts: HashMap::new(),
             };
