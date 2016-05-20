@@ -36,7 +36,7 @@ _ANDROID_ARCH=arch-arm
 # Android 5.0, there will likely be another platform added (android-22?).
 # This value is always used.
 # _ANDROID_API="android-14"
-_ANDROID_API="android-18"
+_ANDROID_API="$ANDROID_PLATFORM"
 # _ANDROID_API="android-19"
 
 #####################################################################

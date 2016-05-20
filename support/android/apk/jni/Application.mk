@@ -1,2 +1,2 @@
 APP_ABI := armeabi
-APP_PLATFORM := android-18
+APP_PLATFORM := $(ANDROID_PLATFORM)
