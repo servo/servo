@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use bluetooth_blacklist::BLUETOOTH_BLACKLIST;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
-use dom::bindings::error::Error::Type;
+use dom::bindings::error::Error::{Security, Type};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
@@ -88,6 +89,7 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                          characteristic: BluetoothCharacteristicUUID)
                          -> Fallible<Root<BluetoothRemoteGATTCharacteristic>> {
         let uuid = try!(BluetoothUUID::GetCharacteristic(self.global().r(), characteristic)).to_string();
+        return_if_blacklisted!(uuid, is_blacklisted);
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetCharacteristic(self.get_instance_id(), uuid, sender)).unwrap();
@@ -122,7 +124,10 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                           -> Fallible<Vec<Root<BluetoothRemoteGATTCharacteristic>>> {
         let mut uuid: Option<String> = None;
         if let Some(c) = characteristic {
-            uuid = Some(try!(BluetoothUUID::GetCharacteristic(self.global().r(), c)).to_string())
+            uuid = Some(try!(BluetoothUUID::GetCharacteristic(self.global().r(), c)).to_string());
+            if let Some(ref uuid) = uuid {
+                return_if_blacklisted!(uuid, is_blacklisted);
+            }
         };
         let mut characteristics = vec!();
         let (sender, receiver) = ipc::channel().unwrap();
