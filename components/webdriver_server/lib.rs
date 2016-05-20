@@ -223,7 +223,7 @@ impl Handler {
             constellation_chan: constellation_chan,
             script_timeout: 30_000,
             load_timeout: 300_000,
-            resize_timeout: 30_000,
+            resize_timeout: 500,
             implicit_wait_timeout: 0
         }
     }
@@ -379,19 +379,19 @@ impl Handler {
         self.constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
 
         let timeout = self.resize_timeout;
+        let constellation_chan = self.constellation_chan.clone();
         thread::spawn(move || {
+            // On timeout, we send a GetWindowSize message to the constellation,
+            // which will give the current window size.
             thread::sleep(Duration::from_millis(timeout as u64));
-            let _ = sender.send(None);
+            let cmd_msg = WebDriverCommandMsg::GetWindowSize(pipeline_id, sender);
+            constellation_chan.send(ConstellationMsg::WebDriverCommand(cmd_msg)).unwrap();
         });
 
-        match receiver.recv().unwrap() {
-            Some(window_size) => {
-                let vp = window_size.visible_viewport;
-                let window_size_response = WindowSizeResponse::new(vp.width.get() as u64, vp.height.get() as u64);
-                Ok(WebDriverResponse::WindowSize(window_size_response))
-            },
-            None => Err(WebDriverError::new(ErrorStatus::Timeout, "Resize timed out")),
-        }
+        let window_size = receiver.recv().unwrap();
+        let vp = window_size.visible_viewport;
+        let window_size_response = WindowSizeResponse::new(vp.width.get() as u64, vp.height.get() as u64);
+        Ok(WebDriverResponse::WindowSize(window_size_response))
     }
 
     fn handle_is_enabled(&self, element: &WebElement) -> WebDriverResult<WebDriverResponse> {
