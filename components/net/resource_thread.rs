@@ -10,6 +10,7 @@ use cookie;
 use cookie_storage::CookieStorage;
 use data_loader;
 use devtools_traits::{DevtoolsControlMsg};
+use exthttp_loader;
 use file_loader;
 use hsts::HstsList;
 use http_loader::{self, HttpState};
@@ -450,6 +451,7 @@ impl CoreResourceManager {
         let loader = match load_data.url.scheme() {
             "chrome" => from_factory(chrome_loader::factory),
             "file" => from_factory(file_loader::factory),
+            "exthttp" | "exthttps" => from_factory(exthttp_loader::factory),
             "http" | "https" | "view-source" => {
                 let http_state = HttpState {
                     hsts_list: self.hsts_list.clone(),

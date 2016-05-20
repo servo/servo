@@ -42,6 +42,7 @@ extern crate unicase;
 extern crate url;
 extern crate util;
 extern crate uuid;
+extern crate webbrowser;
 extern crate webrender_traits;
 extern crate websocket;
 
@@ -52,6 +53,7 @@ pub mod connector;
 pub mod cookie;
 pub mod cookie_storage;
 pub mod data_loader;
+pub mod exthttp_loader;
 pub mod file_loader;
 pub mod filemanager_thread;
 pub mod hsts;
