@@ -16,8 +16,6 @@ use clipboard::ClipboardContext;
 use compositing::CompositorMsg as FromCompositorMsg;
 use compositing::compositor_thread::CompositorProxy;
 use compositing::compositor_thread::Msg as ToCompositorMsg;
-#[cfg(not(target_os = "windows"))]
-use compositing::sandboxing;
 use compositing::{AnimationTickType, SendableFrameTree};
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
@@ -49,6 +47,8 @@ use pipeline::{InitialPipelineState, Pipeline, UnprivilegedPipelineContent};
 use profile_traits::mem;
 use profile_traits::time;
 use rand::{random, Rng, SeedableRng, StdRng};
+#[cfg(not(target_os = "windows"))]
+use sandboxing::content_process_sandbox_profile;
 use script_traits::{AnimationState, CompositorEvent, ConstellationControlMsg};
 use script_traits::{DocumentState, LayoutControlMsg};
 use script_traits::{IFrameLoadInfo, IFrameSandboxState, TimerEventRequest};
@@ -482,7 +482,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 command.env("RUST_BACKTRACE", value);
             }
 
-            let profile = sandboxing::content_process_sandbox_profile();
+            let profile = content_process_sandbox_profile();
             ChildProcess::Sandboxed(Sandbox::new(profile).start(&mut command)
                                     .expect("Failed to start sandboxed child process!"))
         } else {

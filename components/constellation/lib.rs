@@ -43,7 +43,10 @@ extern crate webrender_traits;
 
 mod constellation;
 mod pipeline;
+#[cfg(not(target_os = "windows"))]
+mod sandboxing;
 mod timer_scheduler;
 
 pub use constellation::{Constellation, InitialConstellationState};
 pub use pipeline::UnprivilegedPipelineContent;
+pub use sandboxing::content_process_sandbox_profile;
