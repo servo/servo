@@ -27,3 +27,8 @@ x11 = "2.0.0"
 
 [target.'cfg(target_os = "android")'.dependencies]
 servo-egl = "0.2"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+winapi = "0.2"
+user32-sys = "0.2"
+gdi32-sys = "0.2"
