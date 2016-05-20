@@ -43,13 +43,16 @@ extern crate webrender_traits;
 
 pub use compositor_thread::{CompositorEventListener, CompositorProxy, CompositorThread};
 use euclid::size::{Size2D, TypedSize2D};
+use gfx::paint_thread::ChromeToPaintMsg;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcSender};
+use layout_traits::LayoutControlChan;
 use msg::constellation_msg::{FrameId, Key, KeyState, KeyModifiers, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
 use msg::constellation_msg::{WebDriverCommandMsg, WindowSizeData, WindowSizeType};
-use pipeline::CompositionPipeline;
+use script_traits::ConstellationControlMsg;
 use std::collections::HashMap;
+use std::sync::mpsc::Sender;
 use url::Url;
 use util::geometry::PagePx;
 
@@ -103,4 +106,13 @@ pub struct SendableFrameTree {
     pub pipeline: CompositionPipeline,
     pub size: Option<TypedSize2D<PagePx, f32>>,
     pub children: Vec<SendableFrameTree>,
+}
+
+/// The subset of the pipeline that is needed for layer composition.
+#[derive(Clone)]
+pub struct CompositionPipeline {
+    pub id: PipelineId,
+    pub script_chan: IpcSender<ConstellationControlMsg>,
+    pub layout_chan: LayoutControlChan,
+    pub chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
 }
