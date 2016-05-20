@@ -10,6 +10,8 @@ use script_traits::{TimerEvent, TimerEventRequest};
 use std::cmp::{self, Ord};
 use std::collections::BinaryHeap;
 use std::sync::mpsc::Receiver;
+use std::thread;
+use std::time::Duration;
 use util::thread::spawn_named;
 
 pub struct TimerScheduler {
@@ -42,16 +44,21 @@ impl PartialEq for ScheduledEvent {
     }
 }
 
-fn recv_with_timeout<T: Send>(port: &Receiver<T>, from: NsDuration, timeout: NsDuration) -> Option<T> {
-    loop {
-        if let Ok(ret) = port.try_recv() {
-            return Some(ret);
-        }
-        let now = precise_time_ns();
-        if now - from >= timeout {
-            return None;
-        }
+fn recv_with_timeout<T: Send>(port: &Receiver<T>, timeout: NsDuration) -> Option<T> {
+    if let Ok(ret) = port.try_recv() {
+        return Some(ret);
     }
+
+    let timeout = timeout.get();
+    let seconds = timeout / 1_000_000_000;
+    let nanos = timeout % 1_000_000_000;
+    // NB: This relies on the fact that Sender::send() calls unpark() on the
+    // receiver thread.
+    //
+    // This is probably stable enough to rely on it until
+    // https://github.com/rust-lang/rfcs/issues/962 is implemented.
+    thread::park_timeout(Duration::new(seconds, nanos as u32));
+    port.try_recv().ok()
 }
 
 enum Task {
@@ -83,7 +90,7 @@ impl TimerScheduler {
             }
 
             let timeout = event.for_time - now;
-            recv_with_timeout(&self.port, now, timeout).map(Task::HandleRequest)
+            recv_with_timeout(&self.port, timeout).map(Task::HandleRequest)
         } else {
             self.port.recv().ok().map(Task::HandleRequest)
         }
