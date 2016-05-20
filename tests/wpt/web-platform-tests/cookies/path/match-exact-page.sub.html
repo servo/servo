@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset=utf-8>
+  <title>Sets cookie from `Set-Cookie` HTTP header for path=/cookies/path/match-exact-page.sub.html</title>
+  <meta name=help href="http://tools.ietf.org/html/rfc6265#section-5.1.4">
+
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/cookies/resources/testharness-helpers.js"></script>
+</head>
+<body>
+<div id=log></div>
+<script>
+  function clearKnownCookie() {
+    document.cookie = "path_matches=0; expires=Thu, 01 Jan 1970 00:00:01 GMT; path=/cookies/path/match-exact-page.sub.html";
+  }
+
+  test(function () {
+      assert_not_equals(document.cookie.match(/path_matches=1/), null);
+  }, "'path_matches=1' present in `document.cookie`");
+
+  // TODO: make sure the cookie is sent and echoed from /cookies/path/match-exact-page.sub.html
+</script>
+</body>
+</html>
