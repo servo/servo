@@ -1322,31 +1322,20 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
                     returnType)
 
 
-class MemberCondition:
+def MemberCondition(pref, func):
     """
-    An object representing the condition for a member to actually be
-    exposed.  Any of the arguments can be None.  If not
-    None, they should have the following types:
+    A string representing the condition for a member to actually be exposed.
+    Any of the arguments can be None. If not None, they should have the
+    following types:
 
     pref: The name of the preference.
     func: The name of the function.
     """
-    def __init__(self, pref=None, func=None):
-        assert pref is None or isinstance(pref, str)
-        assert func is None or isinstance(func, str)
-        self.pref = pref
-
-        def toFuncPtr(val):
-            if val is None:
-                return "None"
-            return "Some(%s)" % val
-        self.func = toFuncPtr(func)
-
-    def __eq__(self, other):
-        return (self.pref == other.pref and self.func == other.func)
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
+    assert pref is None or isinstance(pref, str)
+    assert func is None or isinstance(func, str)
+    if pref:
+        return 'Some("%s")' % pref
+    return "None"
 
 
 class PropertyDefiner:
@@ -1427,7 +1416,7 @@ class PropertyDefiner:
 
         def switchToCondition(props, condition):
             prefableSpecs.append(prefableTemplate %
-                                 ('Some("%s")' % condition.pref if condition.pref else 'None',
+                                 (condition,
                                   name + "_specs",
                                   len(specs),
                                   'true' if specTerminator else 'false'))
@@ -1500,7 +1489,7 @@ class MethodDefiner(PropertyDefiner):
                                  "methodInfo": False,
                                  "selfHostedName": "ArrayValues",
                                  "length": 0,
-                                 "condition": MemberCondition()})
+                                 "condition": "None"})
 
         isUnforgeableInterface = bool(descriptor.interface.getExtendedAttribute("Unforgeable"))
         if not static and unforgeable == isUnforgeableInterface:
