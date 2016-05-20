@@ -50,30 +50,42 @@ impl TimerScheduler {
         let timeout_thread = thread::Builder::new()
             .name(String::from("TimerScheduler"))
             .spawn(move || {
+                // We maintain a priority queue of future events, sorted by due time.
                 let mut scheduled_events = BinaryHeap::<ScheduledEvent>::new();
                 loop {
                     let now = Instant::now();
+                    // Dispatch any events whose due time is past
                     loop {
                         match scheduled_events.peek() {
+                            // Dispatch the event if its due time is past
                             Some(event) if event.for_time <= now => {
                                 let TimerEventRequest(ref sender, source, id, _) = event.request;
                                 let _ = sender.send(TimerEvent(source, id));
                             },
+                            // Otherwise, we're done dispatching events
                             _ => break,
                         }
+                        // Remove the event from the priority queue
+                        // (Note this only executes when the first event has been dispatched
                         scheduled_events.pop();
                     }
+                    // Look to see if there are any incoming events
                     match req_receiver.try_recv() {
+                        // If there is an event, add it to the priority queue
                         Ok(req) => {
                             let TimerEventRequest(_, _, _, delay) = req;
                             let schedule = Instant::now() + Duration::from_millis(delay.get());
                             let event = ScheduledEvent { request: req, for_time: schedule };
                             scheduled_events.push(event);
                         },
+                        // If there is no incoming event, park the thread,
+                        // it will either be unparked when a new event arrives,
+                        // or by a timeout.
                         Err(Empty) => match scheduled_events.peek() {
                             None => thread::park(),
                             Some(event) => thread::park_timeout(event.for_time - now),
                         },
+                        // If the channel is closed, we are done.
                         Err(Disconnected) => break,
                     }
                 }
@@ -82,6 +94,11 @@ impl TimerScheduler {
             .thread()
             .clone();
 
+        // A proxy that just routes incoming IPC requests over the MPSC channel to the timeout thread,
+        // and unparks the timeout thread each time. Note that if unpark is called while the timeout
+        // thread isn't parked, this causes the next call to thread::park by the timeout thread
+        // not to block. This means that the timeout thread won't park when there is a request
+        // waiting in the MPSC channel buffer.
         thread::Builder::new()
             .name(String::from("TimerProxy"))
             .spawn(move || {
@@ -92,6 +109,7 @@ impl TimerScheduler {
             })
             .unwrap();
 
+        // Return the IPC sender
         req_ipc_sender
     }
 }
