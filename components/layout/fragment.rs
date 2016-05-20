@@ -1970,11 +1970,14 @@ impl Fragment {
                     ascent: computed_block_size + self.border_padding.block_start,
                 }
             }
-            SpecificFragmentInfo::ScannedText(ref text_fragment) => {
+            SpecificFragmentInfo::ScannedText(_) => {
                 // See CSS 2.1 § 10.8.1.
                 let line_height = self.calculate_line_height(layout_context);
+                let font_style = self.style.get_font_arc();
+                let font_metrics = text::font_metrics_for_style(&mut layout_context.font_context(),
+                                                                font_style);
                 let font_derived_metrics =
-                    InlineMetrics::from_font_metrics(&text_fragment.run.font_metrics, line_height);
+                    InlineMetrics::from_font_metrics(&font_metrics, line_height);
                 InlineMetrics {
                     block_size_above_baseline: font_derived_metrics.block_size_above_baseline +
                                                    self.border_padding.block_start,
