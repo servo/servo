@@ -216,7 +216,9 @@ pub unsafe fn create_callback_interface_object(
     rval.set(JS_NewObject(cx, ptr::null()));
     assert!(!rval.ptr.is_null());
     for prefable in constants {
-        define_constants(cx, rval.handle(), prefable.specs());
+        if let Some(specs) = prefable.specs() {
+            define_constants(cx, rval.handle(), specs);
+        }
     }
     define_name(cx, rval.handle(), name);
     define_on_global_object(cx, receiver, name, rval.handle());
@@ -363,7 +365,9 @@ unsafe fn create_object(
     define_prefable_methods(cx, rval.handle(), methods);
     define_prefable_properties(cx, rval.handle(), properties);
     for prefable in constants {
-        define_constants(cx, rval.handle(), prefable.specs());
+        if let Some(specs) = prefable.specs() {
+            define_constants(cx, rval.handle(), specs);
+        }
     }
 }
 
@@ -373,7 +377,9 @@ pub unsafe fn define_prefable_methods(
         obj: HandleObject,
         methods: &'static [Prefable<JSFunctionSpec>]) {
     for prefable in methods {
-        define_methods(cx, obj, prefable.specs()).unwrap();
+        if let Some(specs) = prefable.specs() {
+            define_methods(cx, obj, specs).unwrap();
+        }
     }
 }
 
@@ -383,7 +389,9 @@ pub unsafe fn define_prefable_properties(
         obj: HandleObject,
         properties: &'static [Prefable<JSPropertySpec>]) {
     for prefable in properties {
-        define_properties(cx, obj, prefable.specs()).unwrap();
+        if let Some(specs) = prefable.specs() {
+            define_properties(cx, obj, specs).unwrap();
+        }
     }
 }
 
