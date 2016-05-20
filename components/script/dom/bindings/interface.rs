@@ -6,7 +6,8 @@
 
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::conversions::get_dom_class;
-use dom::bindings::utils::{get_proto_or_iface_array, Prefable};
+use dom::bindings::guard::Guard;
+use dom::bindings::utils::get_proto_or_iface_array;
 use js::error::throw_type_error;
 use js::glue::UncheckedUnwrapObject;
 use js::jsapi::{Class, ClassExtension, ClassSpec, GetGlobalForObjectCrossCompartment};
@@ -209,14 +210,14 @@ impl InterfaceConstructorBehavior {
 pub unsafe fn create_callback_interface_object(
         cx: *mut JSContext,
         receiver: HandleObject,
-        constants: &'static [Prefable<ConstantSpec>],
+        constants: &'static [Guard<&'static [ConstantSpec]>],
         name: &'static [u8],
         rval: MutableHandleObject) {
     assert!(!constants.is_empty());
     rval.set(JS_NewObject(cx, ptr::null()));
     assert!(!rval.ptr.is_null());
-    for prefable in constants {
-        if let Some(specs) = prefable.specs() {
+    for guard in constants {
+        if let Some(specs) = guard.expose() {
             define_constants(cx, rval.handle(), specs);
         }
     }
@@ -229,9 +230,9 @@ pub unsafe fn create_interface_prototype_object(
         cx: *mut JSContext,
         proto: HandleObject,
         class: &'static JSClass,
-        regular_methods: &'static [Prefable<JSFunctionSpec>],
-        regular_properties: &'static [Prefable<JSPropertySpec>],
-        constants: &'static [Prefable<ConstantSpec>],
+        regular_methods: &'static [Guard<&'static [JSFunctionSpec]>],
+        regular_properties: &'static [Guard<&'static [JSPropertySpec]>],
+        constants: &'static [Guard<&'static [ConstantSpec]>],
         rval: MutableHandleObject) {
     create_object(cx, proto, class, regular_methods, regular_properties, constants, rval);
 }
@@ -242,9 +243,9 @@ pub unsafe fn create_noncallback_interface_object(
         receiver: HandleObject,
         proto: HandleObject,
         class: &'static NonCallbackInterfaceObjectClass,
-        static_methods: &'static [Prefable<JSFunctionSpec>],
-        static_properties: &'static [Prefable<JSPropertySpec>],
-        constants: &'static [Prefable<ConstantSpec>],
+        static_methods: &'static [Guard<&'static [JSFunctionSpec]>],
+        static_properties: &'static [Guard<&'static [JSPropertySpec]>],
+        constants: &'static [Guard<&'static [ConstantSpec]>],
         interface_prototype_object: HandleObject,
         name: &'static [u8],
         length: u32,
@@ -356,40 +357,40 @@ unsafe fn create_object(
         cx: *mut JSContext,
         proto: HandleObject,
         class: &'static JSClass,
-        methods: &'static [Prefable<JSFunctionSpec>],
-        properties: &'static [Prefable<JSPropertySpec>],
-        constants: &'static [Prefable<ConstantSpec>],
+        methods: &'static [Guard<&'static [JSFunctionSpec]>],
+        properties: &'static [Guard<&'static [JSPropertySpec]>],
+        constants: &'static [Guard<&'static [ConstantSpec]>],
         rval: MutableHandleObject) {
     rval.set(JS_NewObjectWithUniqueType(cx, class, proto));
     assert!(!rval.ptr.is_null());
-    define_prefable_methods(cx, rval.handle(), methods);
-    define_prefable_properties(cx, rval.handle(), properties);
-    for prefable in constants {
-        if let Some(specs) = prefable.specs() {
+    define_guarded_methods(cx, rval.handle(), methods);
+    define_guarded_properties(cx, rval.handle(), properties);
+    for guard in constants {
+        if let Some(specs) = guard.expose() {
             define_constants(cx, rval.handle(), specs);
         }
     }
 }
 
 /// Conditionally define methods on an object.
-pub unsafe fn define_prefable_methods(
+pub unsafe fn define_guarded_methods(
         cx: *mut JSContext,
         obj: HandleObject,
-        methods: &'static [Prefable<JSFunctionSpec>]) {
-    for prefable in methods {
-        if let Some(specs) = prefable.specs() {
+        methods: &'static [Guard<&'static [JSFunctionSpec]>]) {
+    for guard in methods {
+        if let Some(specs) = guard.expose() {
             define_methods(cx, obj, specs).unwrap();
         }
     }
 }
 
 /// Conditionally define properties on an object.
-pub unsafe fn define_prefable_properties(
+pub unsafe fn define_guarded_properties(
         cx: *mut JSContext,
         obj: HandleObject,
-        properties: &'static [Prefable<JSPropertySpec>]) {
-    for prefable in properties {
-        if let Some(specs) = prefable.specs() {
+        properties: &'static [Guard<&'static [JSPropertySpec]>]) {
+    for guard in properties {
+        if let Some(specs) = guard.expose() {
             define_properties(cx, obj, specs).unwrap();
         }
     }
