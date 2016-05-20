@@ -14,9 +14,9 @@ use dom::browsingcontext::IterableContext;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storageevent::StorageEvent;
 use dom::urlhelper::UrlHelper;
-use ipc_channel::ipc;
+use ipc_channel::ipc::{self, IpcSender};
 use net_traits::IpcSend;
-use net_traits::storage_thread::{StorageThread, StorageThreadMsg, StorageType};
+use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use script_thread::{MainThreadRunnable, ScriptThread};
 use task_source::dom_manipulation::DOMManipulationTask;
 use url::Url;
@@ -46,7 +46,7 @@ impl Storage {
         global_ref.get_url()
     }
 
-    fn get_storage_thread(&self) -> StorageThread {
+    fn get_storage_thread(&self) -> IpcSender<StorageThreadMsg> {
         let global_root = self.global();
         let global_ref = global_root.r();
         global_ref.as_window().resource_threads().sender()
