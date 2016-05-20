@@ -159,7 +159,9 @@ cp servobuild.example .servobuild
 
 ## Running
 
-Use `./mach run [url]` to run Servo.
+Use `./mach run [url]` to run Servo. Also, don't miss the info on the [browserhtml page](https://github.com/browserhtml/browserhtml) on how to run the Browser.html
+full tech demo (it provides a more browser-like experience than just browsing a single
+URL with servo).
 
 
 ### Commandline Arguments
