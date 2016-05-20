@@ -144,7 +144,7 @@ pub struct IOCompositor<Window: WindowMethods> {
     page_zoom: ScaleFactor<ViewportPx, ScreenPx, f32>,
 
     /// The device pixel ratio for this window.
-    hidpi_factor: ScaleFactor<ScreenPx, DevicePixel, f32>,
+    scale_factor: ScaleFactor<ScreenPx, DevicePixel, f32>,
 
     channel_to_self: Box<CompositorProxy + Send>,
 
@@ -405,7 +405,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             mem::ProfilerMsg::RegisterReporter(reporter_name(), reporter));
 
         let window_size = window.framebuffer_size();
-        let hidpi_factor = window.hidpi_factor();
+        let scale_factor = window.scale_factor();
         let composite_target = match opts::get().output_file {
             Some(_) => CompositeTarget::PngFile,
             None => CompositeTarget::Window
@@ -434,7 +434,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }),
             window_size: window_size,
             viewport: None,
-            hidpi_factor: hidpi_factor,
+            scale_factor: scale_factor,
             channel_to_self: state.sender.clone_compositor_proxy(),
             delayed_composition_timer: DelayedCompositionTimerProxy::new(state.sender),
             composition_request: CompositionRequest::NoCompositingNecessary,
@@ -1315,9 +1315,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         debug!("compositor resizing to {:?}", new_size.to_untyped());
 
         // A size change could also mean a resolution change.
-        let new_hidpi_factor = self.window.hidpi_factor();
-        if self.hidpi_factor != new_hidpi_factor {
-            self.hidpi_factor = new_hidpi_factor;
+        let new_scale_factor = self.window.scale_factor();
+        if self.scale_factor != new_scale_factor {
+            self.scale_factor = new_scale_factor;
             self.update_zoom_transform();
         }
 
@@ -1744,7 +1744,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             Some(device_pixels_per_px) => ScaleFactor::new(device_pixels_per_px),
             None => match opts::get().output_file {
                 Some(_) => ScaleFactor::new(1.0),
-                None => self.hidpi_factor
+                None => self.scale_factor
             }
         }
     }
