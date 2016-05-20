@@ -227,8 +227,8 @@ pub unsafe fn create_interface_prototype_object(
         cx: *mut JSContext,
         proto: HandleObject,
         class: &'static JSClass,
-        regular_methods: Option<&'static [Prefable<JSFunctionSpec>]>,
-        regular_properties: Option<&'static [Prefable<JSPropertySpec>]>,
+        regular_methods: &'static [Prefable<JSFunctionSpec>],
+        regular_properties: &'static [Prefable<JSPropertySpec>],
         constants: &'static [Prefable<ConstantSpec>],
         rval: MutableHandleObject) {
     create_object(cx, proto, class, regular_methods, regular_properties, constants, rval);
@@ -240,8 +240,8 @@ pub unsafe fn create_noncallback_interface_object(
         receiver: HandleObject,
         proto: HandleObject,
         class: &'static NonCallbackInterfaceObjectClass,
-        static_methods: Option<&'static [Prefable<JSFunctionSpec>]>,
-        static_properties: Option<&'static [Prefable<JSPropertySpec>]>,
+        static_methods: &'static [Prefable<JSFunctionSpec>],
+        static_properties: &'static [Prefable<JSPropertySpec>],
         constants: &'static [Prefable<ConstantSpec>],
         interface_prototype_object: HandleObject,
         name: &'static [u8],
@@ -354,36 +354,34 @@ unsafe fn create_object(
         cx: *mut JSContext,
         proto: HandleObject,
         class: &'static JSClass,
-        methods: Option<&'static [Prefable<JSFunctionSpec>]>,
-        properties: Option<&'static [Prefable<JSPropertySpec>]>,
+        methods: &'static [Prefable<JSFunctionSpec>],
+        properties: &'static [Prefable<JSPropertySpec>],
         constants: &'static [Prefable<ConstantSpec>],
         rval: MutableHandleObject) {
     rval.set(JS_NewObjectWithUniqueType(cx, class, proto));
     assert!(!rval.ptr.is_null());
-    if let Some(methods) = methods {
-        define_prefable_methods(cx, rval.handle(), methods);
-    }
-    if let Some(properties) = properties {
-        define_prefable_properties(cx, rval.handle(), properties);
-    }
+    define_prefable_methods(cx, rval.handle(), methods);
+    define_prefable_properties(cx, rval.handle(), properties);
     for prefable in constants {
         define_constants(cx, rval.handle(), prefable.specs());
     }
 }
 
 /// Conditionally define methods on an object.
-pub unsafe fn define_prefable_methods(cx: *mut JSContext,
-                                      obj: HandleObject,
-                                      methods: &'static [Prefable<JSFunctionSpec>]) {
+pub unsafe fn define_prefable_methods(
+        cx: *mut JSContext,
+        obj: HandleObject,
+        methods: &'static [Prefable<JSFunctionSpec>]) {
     for prefable in methods {
         define_methods(cx, obj, prefable.specs()).unwrap();
     }
 }
 
 /// Conditionally define properties on an object.
-pub unsafe fn define_prefable_properties(cx: *mut JSContext,
-                                         obj: HandleObject,
-                                         properties: &'static [Prefable<JSPropertySpec>]) {
+pub unsafe fn define_prefable_properties(
+        cx: *mut JSContext,
+        obj: HandleObject,
+        properties: &'static [Prefable<JSPropertySpec>]) {
     for prefable in properties {
         define_properties(cx, obj, prefable.specs()).unwrap();
     }
