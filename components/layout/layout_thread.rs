@@ -30,8 +30,8 @@ use gfx::font_context;
 use gfx::paint_thread::LayoutToPaintMsg;
 use gfx_traits::{color, Epoch, LayerId, ScrollPolicy};
 use heapsize::HeapSizeOf;
-use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REFLOW_OUT_OF_FLOW};
-use incremental::{REPAINT};
+use incremental::{LayoutDamageComputation};
+use incremental::{REPAINT, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW, REFLOW, REFLOW_ENTIRE_DOCUMENT};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_debug;
@@ -1440,7 +1440,7 @@ impl LayoutThread {
 
     fn reflow_all_nodes(flow: &mut Flow) {
         debug!("reflowing all nodes!");
-        flow::mut_base(flow).restyle_damage.insert(REFLOW | REPAINT);
+        flow::mut_base(flow).restyle_damage.insert(REPAINT | STORE_OVERFLOW | REFLOW);
 
         for child in flow::child_iter_mut(flow) {
             LayoutThread::reflow_all_nodes(child);
