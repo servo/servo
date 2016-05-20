@@ -31,6 +31,7 @@ use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
 use ipc_channel::ipc::{self, IpcSender};
+use net_traits::IpcSend;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::borrow::ToOwned;
@@ -1115,8 +1116,7 @@ impl Activatable for HTMLInputElement {
             },
             InputType::InputFile => {
                 let window = window_from_node(self);
-                // FIXME after PR #11189: let filemanager = window.filemanager_thread()
-                let filemanager: IpcSender<FileManagerThreadMsg> = unimplemented!();
+                let filemanager = window.resource_threads().sender();
 
                 let mut files: Vec<Root<File>> = vec![];
 

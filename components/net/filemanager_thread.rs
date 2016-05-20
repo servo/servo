@@ -19,15 +19,13 @@ pub struct FileManager {
     idmap: RefCell<HashMap<Uuid, PathBuf>>,
 }
 
-impl FileManager {
-    fn new(recv: IpcReceiver<FileManagerThreadMsg>) -> FileManager {
-        FileManager {
-            receiver: recv,
-            idmap: RefCell::new(HashMap::new()),
-        }
-    }
+pub trait FileManagerThreadFactory {
+    fn new() -> Self;
+}
 
-    pub fn new_thread() -> IpcSender<FileManagerThreadMsg> {
+impl FileManagerThreadFactory for IpcSender<FileManagerThreadMsg> {
+    /// Create a FileManagerThread
+    fn new() -> IpcSender<FileManagerThreadMsg> {
         let (chan, recv) = ipc::channel().unwrap();
 
         spawn_named("FileManager".to_owned(), move || {
@@ -35,6 +33,16 @@ impl FileManager {
         });
 
         chan
+    }
+}
+
+
+impl FileManager {
+    fn new(recv: IpcReceiver<FileManagerThreadMsg>) -> FileManager {
+        FileManager {
+            receiver: recv,
+            idmap: RefCell::new(HashMap::new()),
+        }
     }
 
     /// Start the file manager event loop

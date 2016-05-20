@@ -28,6 +28,7 @@ extern crate util;
 extern crate uuid;
 extern crate websocket;
 
+use filemanager_thread::FileManagerThreadMsg;
 use heapsize::HeapSizeOf;
 use hyper::header::{ContentType, Headers};
 use hyper::http::RawStatus;
@@ -186,8 +187,13 @@ pub type CoreResourceThread = IpcSender<CoreResourceMsg>;
 
 pub type IpcSendResult = Result<(), IOError>;
 
+/// Abstraction of the ability to send a particular type of message,
+/// used by net_traits::ResourceThreads to ease the use its IpcSender sub-fields
+/// XXX: If this trait will be used more in future, some auto derive might be appealing
 pub trait IpcSend<T> where T: serde::Serialize + serde::Deserialize {
+    /// send message T
     fn send(&self, T) -> IpcSendResult;
+    /// get underlying sender
     fn sender(&self) -> IpcSender<T>;
 }
 
@@ -200,13 +206,17 @@ pub trait IpcSend<T> where T: serde::Serialize + serde::Deserialize {
 pub struct ResourceThreads {
     core_thread: CoreResourceThread,
     storage_thread: StorageThread,
+    filemanager_thread: IpcSender<FileManagerThreadMsg>,
 }
 
 impl ResourceThreads {
-    pub fn new(c: CoreResourceThread, s: StorageThread) -> ResourceThreads {
+    pub fn new(c: CoreResourceThread,
+               s: StorageThread,
+               f: IpcSender<FileManagerThreadMsg>) -> ResourceThreads {
         ResourceThreads {
             core_thread: c,
             storage_thread: s,
+            filemanager_thread: f,
         }
     }
 }
@@ -228,6 +238,16 @@ impl IpcSend<StorageThreadMsg> for ResourceThreads {
 
     fn sender(&self) -> IpcSender<StorageThreadMsg> {
         self.storage_thread.clone()
+    }
+}
+
+impl IpcSend<FileManagerThreadMsg> for ResourceThreads {
+    fn send(&self, msg: FileManagerThreadMsg) -> IpcSendResult {
+        self.filemanager_thread.send(msg)
+    }
+
+    fn sender(&self) -> IpcSender<FileManagerThreadMsg> {
+        self.filemanager_thread.clone()
     }
 }
 
