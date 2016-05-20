@@ -2,10 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use bluetooth_blacklist::{Blacklist, uuid_is_blacklisted};
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
-use dom::bindings::error::Error::Type;
+use dom::bindings::error::Error::{Security, Type};
 use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
@@ -96,6 +97,9 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-getprimaryservice
     fn GetPrimaryService(&self, service: BluetoothServiceUUID) -> Fallible<Root<BluetoothRemoteGATTService>> {
         let uuid = try!(BluetoothUUID::GetService(self.global().r(), service)).to_string();
+        if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
+            return Err(Security)
+        }
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetPrimaryService(String::from(self.Device().Id()), uuid, sender)).unwrap();
@@ -120,7 +124,12 @@ impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
                           -> Fallible<Vec<Root<BluetoothRemoteGATTService>>> {
         let mut uuid: Option<String> = None;
         if let Some(s) = service {
-            uuid = Some(try!(BluetoothUUID::GetService(self.global().r(), s)).to_string())
+            uuid = Some(try!(BluetoothUUID::GetService(self.global().r(), s)).to_string());
+            if let Some(ref uuid) = uuid {
+                if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
+                    return Err(Security)
+                }
+            }
         };
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
