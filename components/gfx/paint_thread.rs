@@ -392,7 +392,7 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
                   chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
                   layout_to_paint_port: Receiver<LayoutToPaintMsg>,
                   chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
-                  compositor: C,
+                  mut compositor: C,
                   panic_chan: IpcSender<PanicMsg>,
                   font_cache_thread: FontCacheThread,
                   time_profiler_chan: time::ProfilerChan,
@@ -404,10 +404,8 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
             {
                 // Ensures that the paint thread and graphics context are destroyed before the
                 // shutdown message.
-                let mut compositor = compositor;
-                let native_display = compositor.native_display().map(
-                    |display| display);
-                let worker_threads = WorkerThreadProxy::spawn(native_display.clone(),
+                let native_display = compositor.native_display();
+                let worker_threads = WorkerThreadProxy::spawn(native_display,
                                                               font_cache_thread,
                                                               time_profiler_chan.clone());
 
