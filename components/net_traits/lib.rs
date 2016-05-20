@@ -38,7 +38,7 @@ use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use std::io::Error as IOError;
 use std::sync::mpsc::Sender;
 use std::thread;
-use storage_thread::{StorageThread, StorageThreadMsg};
+use storage_thread::StorageThreadMsg;
 use url::Url;
 use websocket::header;
 
@@ -199,11 +199,11 @@ pub trait IpcSend<T> where T: serde::Serialize + serde::Deserialize {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct ResourceThreads {
     core_thread: CoreResourceThread,
-    storage_thread: StorageThread,
+    storage_thread: IpcSender<StorageThreadMsg>,
 }
 
 impl ResourceThreads {
-    pub fn new(c: CoreResourceThread, s: StorageThread) -> ResourceThreads {
+    pub fn new(c: CoreResourceThread, s: IpcSender<StorageThreadMsg>) -> ResourceThreads {
         ResourceThreads {
             core_thread: c,
             storage_thread: s,

@@ -38,8 +38,3 @@ pub enum StorageThreadMsg {
     /// shut down this thread
     Exit
 }
-
-/// Handle to a storage thread
-pub type StorageThread = IpcSender<StorageThreadMsg>;
-
-

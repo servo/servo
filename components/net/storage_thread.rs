@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use net_traits::storage_thread::{StorageThread, StorageThreadMsg, StorageType};
+use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use resource_thread;
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
@@ -18,9 +18,9 @@ pub trait StorageThreadFactory {
     fn new() -> Self;
 }
 
-impl StorageThreadFactory for StorageThread {
-    /// Create a StorageThread
-    fn new() -> StorageThread {
+impl StorageThreadFactory for IpcSender<StorageThreadMsg> {
+    /// Create a storage thread
+    fn new() -> IpcSender<StorageThreadMsg> {
         let (chan, port) = ipc::channel().unwrap();
         spawn_named("StorageManager".to_owned(), move || {
             StorageManager::new(port).start();
