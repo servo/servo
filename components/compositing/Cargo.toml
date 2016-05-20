@@ -33,6 +33,3 @@ serde = "0.7"
 serde_macros = "0.7"
 time = "0.1.17"
 url = {version = "1.0.0", features = ["heap_size"]}
-
-[target.'cfg(not(target_os = "windows"))'.dependencies]
-gaol = {git = "https://github.com/servo/gaol"}
