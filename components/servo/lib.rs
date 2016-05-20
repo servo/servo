@@ -60,13 +60,12 @@ fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 use compositing::CompositorEventListener;
 use compositing::CompositorMsg as ConstellationMsg;
 use compositing::compositor_thread::InitialCompositorState;
-use compositing::pipeline::UnprivilegedPipelineContent;
 #[cfg(not(target_os = "windows"))]
 use compositing::sandboxing;
 use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
 use compositing::{CompositorProxy, CompositorThread};
-use constellation::{Constellation, InitialConstellationState};
+use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
 #[cfg(not(target_os = "windows"))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;

@@ -18,7 +18,6 @@ msg = {path = "../msg"}
 profile_traits = {path = "../profile_traits"}
 net_traits = {path = "../net_traits"}
 util = {path = "../util"}
-devtools_traits = {path = "../devtools_traits"}
 plugins = {path = "../plugins"}
 azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
 layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
