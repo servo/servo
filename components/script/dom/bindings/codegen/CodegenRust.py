@@ -2532,15 +2532,10 @@ assert!(!prototype_proto.ptr.is_null());""" % getPrototypeProto)]
         properties = {"id": name}
         for arrayName in self.properties.arrayNames():
             array = getattr(self.properties, arrayName)
-            if arrayName == "consts":
-                if array.length():
-                    properties[arrayName] = array.variableName()
-                else:
-                    properties[arrayName] = "&[]"
-            elif array.length():
-                properties[arrayName] = "Some(%s)" % array.variableName()
+            if array.length():
+                properties[arrayName] = array.variableName()
             else:
-                properties[arrayName] = "None"
+                properties[arrayName] = "&[]"
 
         code.append(CGGeneric("""
 let mut prototype = RootedObject::new(cx, ptr::null_mut());
