@@ -91,8 +91,8 @@ fn main() {
     }
 
     // Retrieve the Android SDK version target env variable
-    let default_target = "android-18".to_owned();
-    let android_target = env::var("ANDROID_TARGET").unwrap_or(default_target);
+    let default_platform = "android-18".to_owned();
+    let android_platform = env::var("ANDROID_PLATFORM").unwrap_or(default_platform);
 
     // Update the project
     let androidcmd = Command::new(sdk_path.join("tools").join("android"))
@@ -101,7 +101,7 @@ fn main() {
                                   .arg("--name")
                                   .arg("Servo")
                                   .arg("--target")
-                                  .arg(&android_target)
+                                  .arg(&android_platform)
                                   .arg("--path")
                                   .arg(".")
                                   .stdout(Stdio::inherit())

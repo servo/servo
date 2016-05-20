@@ -36,8 +36,8 @@
     <condition property="sdk.dir" value="${env.ANDROID_HOME}">
         <isset property="env.ANDROID_HOME" />
     </condition>
-    <condition property="target" value="${env.ANDROID_TARGET}">
-        <isset property="env.ANDROID_TARGET" />
+    <condition property="target" value="${env.ANDROID_PLATFORM}">
+        <isset property="env.ANDROID_PLATFORM" />
     </condition>
 
     <!-- quick check on sdk.dir -->
