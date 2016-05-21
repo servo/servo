@@ -240,7 +240,7 @@ pub struct Document {
     /// The document's origin.
     origin: Origin,
     ///  https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states
-    referrer_policy: Option<ReferrerPolicy>,
+    referrer_policy: Cell<Option<ReferrerPolicy>>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -1710,7 +1710,7 @@ impl Document {
             touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
             origin: origin,
             //TODO - setting this for now so no Referer header set
-            referrer_policy: Some(ReferrerPolicy::NoReferrer),
+            referrer_policy: Cell::new(Some(ReferrerPolicy::NoReferrer)),
         }
     }
 
@@ -1840,9 +1840,13 @@ impl Document {
         }
     }
 
-    //TODO - for now, returns no-referrer for all until reading in the value
+    pub fn set_referrer_policy(&self, policy: Option<ReferrerPolicy>) {
+        self.referrer_policy.set(policy);
+    }
+
+    //TODO - default still at no-referrer
     pub fn get_referrer_policy(&self) -> Option<ReferrerPolicy> {
-        return self.referrer_policy.clone();
+        return self.referrer_policy.get();
     }
 }
 
@@ -2801,6 +2805,12 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
     document_and_element_event_handlers!();
+
+    // https://html.spec.whatwg.org/multipage/#dom-document-referrer
+    fn Referrer(&self) -> DOMString {
+        //TODO - unimplemented, for ref pol tests
+        DOMString::new()
+    }
 }
 
 fn update_with_current_time_ms(marker: &Cell<u64>) {
@@ -2808,6 +2818,20 @@ fn update_with_current_time_ms(marker: &Cell<u64>) {
         let time = time::get_time();
         let current_time_ms = time.sec * 1000 + time.nsec as i64 / 1000000;
         marker.set(current_time_ms as u64);
+    }
+}
+
+/// https://w3c.github.io/webappsec-referrer-policy/#determine-policy-for-token
+pub fn determine_policy_for_token(token: &str) -> Option<ReferrerPolicy> {
+    let lower = token.to_lowercase();
+    return match lower.as_ref() {
+        "never" | "no-referrer" => Some(ReferrerPolicy::NoReferrer),
+        "default" | "no-referrer-when-downgrade" => Some(ReferrerPolicy::NoRefWhenDowngrade),
+        "origin" => Some(ReferrerPolicy::OriginOnly),
+        "origin-when-cross-origin" => Some(ReferrerPolicy::OriginWhenCrossOrigin),
+        "always" | "unsafe-url" => Some(ReferrerPolicy::UnsafeUrl),
+        "" => Some(ReferrerPolicy::NoReferrer),
+        _ => None,
     }
 }
 
