@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use CompositorProxy;
-use compositor_thread;
-use compositor_thread::Msg as CompositorMsg;
+use compositing::CompositionPipeline;
+use compositing::CompositorProxy;
+use compositing::compositor_thread;
+use compositing::compositor_thread::Msg as CompositorMsg;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
@@ -58,15 +59,6 @@ pub struct Pipeline {
     pub running_animations: bool,
     pub children: Vec<FrameId>,
     pub is_private: bool,
-}
-
-/// The subset of the pipeline that is needed for layer composition.
-#[derive(Clone)]
-pub struct CompositionPipeline {
-    pub id: PipelineId,
-    pub script_chan: IpcSender<ConstellationControlMsg>,
-    pub layout_chan: LayoutControlChan,
-    pub chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
 }
 
 /// Initial setup data needed to construct a pipeline.

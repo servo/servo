@@ -23,6 +23,7 @@ extern crate gaol;
 extern crate gfx;
 extern crate gfx_traits;
 extern crate ipc_channel;
+extern crate layers;
 extern crate layout_traits;
 #[macro_use]
 extern crate log;
@@ -33,6 +34,7 @@ extern crate offscreen_gl_context;
 extern crate profile_traits;
 extern crate rand;
 extern crate script_traits;
+extern crate serde;
 extern crate style_traits;
 extern crate url;
 #[macro_use]
@@ -40,6 +42,8 @@ extern crate util;
 extern crate webrender_traits;
 
 mod constellation;
+mod pipeline;
 mod timer_scheduler;
 
 pub use constellation::{Constellation, InitialConstellationState};
+pub use pipeline::UnprivilegedPipelineContent;

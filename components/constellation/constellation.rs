@@ -16,7 +16,6 @@ use clipboard::ClipboardContext;
 use compositing::CompositorMsg as FromCompositorMsg;
 use compositing::compositor_thread::CompositorProxy;
 use compositing::compositor_thread::Msg as ToCompositorMsg;
-use compositing::pipeline::{InitialPipelineState, Pipeline, UnprivilegedPipelineContent};
 #[cfg(not(target_os = "windows"))]
 use compositing::sandboxing;
 use compositing::{AnimationTickType, SendableFrameTree};
@@ -46,6 +45,7 @@ use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{self, ResourceThreads, IpcSend};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
+use pipeline::{InitialPipelineState, Pipeline, UnprivilegedPipelineContent};
 use profile_traits::mem;
 use profile_traits::time;
 use rand::{random, Rng, SeedableRng, StdRng};
