@@ -309,7 +309,7 @@ impl WebGLTexture {
         true
     }
 
-    fn image_info_at_face(&self, face: u8, level: u32) -> ImageInfo {
+    pub fn image_info_at_face(&self, face: u8, level: u32) -> ImageInfo {
         let pos = (level * self.face_count.get() as u32) + face as u32;
         self.image_info_array.borrow()[pos as usize]
     }
@@ -340,7 +340,7 @@ impl Drop for WebGLTexture {
 }
 
 #[derive(Clone, Copy, PartialEq, Debug, JSTraceable, HeapSizeOf)]
-struct ImageInfo {
+pub struct ImageInfo {
     width: u32,
     height: u32,
     depth: u32,
@@ -357,6 +357,18 @@ impl ImageInfo {
             internal_format: None,
             is_initialized: false,
         }
+    }
+
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
+    pub fn internal_format(&self) -> Option<u32> {
+        self.internal_format
     }
 
     fn is_power_of_two(&self) -> bool {
