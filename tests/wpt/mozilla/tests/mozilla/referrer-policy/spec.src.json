@@ -1,0 +1,400 @@
+{
+  "specification": [
+    {
+      "name": "unset-referrer-policy",
+      "title": "Referrer Policy is not explicitly defined",
+      "description": "Check that sub-resource gets the referrer URL when no explicit Referrer Policy is set.",
+      "specification_url": "https://w3c.github.io/webappsec/specs/referrer-policy/#referrer-policy-states",
+      "referrer_policy": null,
+      "test_expansion": [
+        {
+          "name": "generic",
+          "expansion": "default",
+          "source_protocol": "*",
+          "target_protocol": "*",
+            "delivery_method": ["http-csp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "*",
+          "subresource": "*",
+          "referrer_url": "stripped-referrer"
+        }
+      ]
+    },
+    {
+      "name": "no-referrer",
+      "title": "Referrer Policy is set to 'no-referrer'",
+      "description": "Check that sub-resource never gets the referrer URL.",
+      "specification_url": "https://w3c.github.io/webappsec/specs/referrer-policy/#referrer-policy-state-no-referrer",
+      "referrer_policy": "no-referrer",
+      "test_expansion": [
+        {
+          "name": "generic",
+          "expansion": "default",
+          "source_protocol": "*",
+          "target_protocol": "*",
+          "delivery_method": ["http-csp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "*",
+          "subresource": "*",
+          "referrer_url": "omitted"
+        }
+      ]
+    },
+    {
+      "name": "no-referrer-when-downgrade",
+      "title": "Referrer Policy is set to 'no-referrer-when-downgrade'",
+      "description": "Check that non a priori insecure subresource gets the full Referrer URL. A priori insecure subresource gets no referrer information.",
+      "specification_url": "https://w3c.github.io/webappsec/specs/referrer-policy/#referrer-policy-state-no-referrer-when-downgrade",
+      "referrer_policy": "no-referrer-when-downgrade",
+      "test_expansion": [
+        {
+          "name": "insecure-protocol",
+          "expansion": "default",
+          "source_protocol": "http",
+          "target_protocol": "http",
+          "delivery_method": ["http-csp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "*",
+          "subresource": "*",
+          "referrer_url": "stripped-referrer"
+        },
+        {
+          "name": "upgrade-protocol",
+          "expansion": "default",
+          "source_protocol": "http",
+          "target_protocol": "https",
+          "delivery_method": ["http-csp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "*",
+          "subresource": "*",
+          "referrer_url": "stripped-referrer"
+        },
+        {
+          "name": "downgrade-protocol",
+          "expansion": "default",
+          "source_protocol": "https",
+          "target_protocol": "http",
+          "delivery_method": ["http-csp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "*",
+          "subresource": "*",
+          "referrer_url": "origin"
+        },
+        {
+          "name": "secure-protocol",
+          "expansion": "default",
+          "source_protocol": "https",
+          "target_protocol": "https",
+          "delivery_method": ["http-csp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "*",
+          "subresource": "*",
+          "referrer_url": "stripped-referrer"
+        }
+      ]
+    },
+    {
+      "name": "origin-only",
+      "title": "Referrer Policy is set to 'origin-only'",
+      "description": "Check that all subresources in all casses get only the origin portion of the referrer URL.",
+      "specification_url": "https://w3c.github.io/webappsec/specs/referrer-policy/#referrer-policy-state-origin",
+      "referrer_policy": "origin",
+      "test_expansion": [
+        {
+          "name": "generic",
+          "expansion": "default",
+          "source_protocol": "*",
+          "target_protocol": "*",
+          "delivery_method": ["http-csp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "*",
+          "subresource": "*",
+          "referrer_url": "origin"
+        }
+      ]
+    },
+    {
+      "name": "origin-when-cross-origin",
+      "title": "Referrer Policy is set to 'origin-when-crossorigin'",
+      "description": "Check that cross-origin subresources get the origin portion of the referrer URL and same-origin get the stripped referrer URL.",
+      "specification_url": "https://w3c.github.io/webappsec/specs/referrer-policy/#referrer-policy-state-origin-when-cross-origin",
+      "referrer_policy": "origin-when-crossorigin",
+      "test_expansion": [
+        {
+          "name": "same-origin-insecure",
+          "expansion": "default",
+          "source_protocol": "http",
+          "target_protocol": "http",
+          "delivery_method": ["http-csp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "same-origin",
+          "subresource": "*",
+          "referrer_url": "stripped-referrer"
+        },
+        {
+          "name": "same-origin-secure-default",
+          "expansion": "default",
+          "source_protocol": "https",
+          "target_protocol": "https",
+          "delivery_method": ["http-csp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "same-origin",
+          "subresource": "*",
+          "referrer_url": "stripped-referrer"
+        },
+        {
+          "name": "same-origin-upgrade",
+          "expansion": "default",
+          "source_protocol": "http",
+          "target_protocol": "https",
+          "delivery_method": ["http-csp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "same-origin",
+          "subresource": "*",
+          "referrer_url": "origin"
+        },
+        {
+          "name": "same-origin-downgrade",
+          "expansion": "default",
+          "source_protocol": "http",
+          "target_protocol": "https",
+          "delivery_method": ["http-csp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "same-origin",
+          "subresource": "*",
+          "referrer_url": "origin"
+        },
+        {
+          "name": "same-origin-insecure",
+          "expansion": "override",
+          "source_protocol": "*",
+          "target_protocol": "*",
+          "delivery_method": ["http-csp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "swap-origin-redirect",
+          "origin": "same-origin",
+          "subresource": "*",
+          "referrer_url": "origin"
+        },
+        {
+          "name": "cross-origin",
+          "expansion": "default",
+          "source_protocol": "*",
+          "target_protocol": "*",
+          "delivery_method": ["http-csp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "cross-origin",
+          "subresource": "*",
+          "referrer_url": "origin"
+        }
+      ]
+    },
+    {
+      "name": "unsafe-url",
+      "title": "Referrer Policy is set to 'unsafe-url'",
+      "description": "Check that all sub-resources get the stripped referrer URL.",
+      "specification_url": "https://w3c.github.io/webappsec/specs/referrer-policy/#referrer-policy-state-unsafe-url",
+      "referrer_policy": "unsafe-url",
+      "test_expansion": [
+        {
+          "name": "generic",
+          "expansion": "default",
+          "source_protocol": "*",
+          "target_protocol": "*",
+          "delivery_method": ["http-csp", "meta-referrer", "meta-csp", "attr-referrer"],
+          "redirection": "*",
+          "origin": "*",
+          "subresource": "*",
+          "referrer_url": "stripped-referrer"
+        }
+      ]
+    }
+  ],
+
+  "excluded_tests":[
+    {
+      "name": "cross-origin-workers",
+      "expansion": "*",
+      "source_protocol": "*",
+      "target_protocol": "*",
+      "redirection": "*",
+      "delivery_method": "*",
+      "origin": "cross-origin",
+      "subresource": "worker-request",
+      "referrer_url": "*"
+    },
+    {
+      "name": "upgraded-protocol-workers",
+      "expansion": "*",
+      "source_protocol": "http",
+      "target_protocol": "https",
+      "delivery_method": "*",
+      "redirection": "*",
+      "origin": "*",
+      "subresource": "worker-request",
+      "referrer_url": "*"
+    },
+    {
+      "name": "mixed-content-insecure-subresources",
+      "expansion": "*",
+      "source_protocol": "https",
+      "target_protocol": "http",
+      "delivery_method": "*",
+      "redirection": "*",
+      "origin": "*",
+      "subresource": "*",
+      "referrer_url": "*"
+    },
+    {
+      "name": "elements-not-supporting-attr-referrer",
+      "expansion": "*",
+      "source_protocol": "*",
+      "target_protocol": "*",
+      "delivery_method": ["attr-referrer"],
+      "redirection": "*",
+      "origin": "*",
+      "subresource": [
+        "script-tag",
+        "xhr-request",
+        "worker-request",
+        "fetch-request"
+      ],
+      "referrer_url": "*"
+    },
+    {
+      "name": "elements-not-supporting-rel-noreferrer",
+      "expansion": "*",
+      "source_protocol": "*",
+      "target_protocol": "*",
+      "delivery_method": ["rel-noreferrer"],
+      "redirection": "*",
+      "origin": "*",
+      "subresource": [
+        "iframe-tag",
+        "img-tag",
+        "script-tag",
+        "xhr-request",
+        "worker-request",
+        "fetch-request",
+        "area-tag"
+      ],
+      "referrer_url": "*"
+    },
+    {
+      "name": "area-tag",
+      "expansion": "*",
+      "source_protocol": "*",
+      "target_protocol": "*",
+      "delivery_method": "*",
+      "redirection": "*",
+      "origin": "*",
+      "subresource": "area-tag",
+      "referrer_url": "*"
+    },
+    {
+      "name": "worker-requests-with-swap-origin-redirect",
+      "expansion": "*",
+      "source_protocol": "*",
+      "target_protocol": "*",
+      "delivery_method": "*",
+      "redirection": "swap-origin-redirect",
+      "origin": "*",
+      "subresource": ["worker-request"],
+      "referrer_url": "*"
+    },
+    {
+      "name": "overhead-for-redirection",
+      "expansion": "*",
+      "source_protocol": "*",
+      "target_protocol": "*",
+      "delivery_method": "*",
+      "redirection": ["keep-origin-redirect", "swap-origin-redirect"],
+      "origin": "*",
+      "subresource": ["a-tag", "area-tag"],
+      "referrer_url": "*"
+    },
+    {
+      "name": "source-https-unsupported-by-web-platform-tests-runners",
+      "expansion": "*",
+      "source_protocol": "https",
+      "target_protocol": "*",
+      "delivery_method": "*",
+      "redirection": "*",
+      "origin": "*",
+      "subresource": "*",
+      "referrer_url": "*"
+    }
+  ],
+
+  "referrer_policy_schema": [
+    null,
+    "no-referrer",
+    "no-referrer-when-downgrade",
+    "origin",
+    "origin-when-crossorigin",
+    "unsafe-url"
+  ],
+
+  "test_expansion_schema": {
+    "expansion": [
+      "default",
+      "override"
+    ],
+
+    "delivery_method": [
+      "http-csp",
+      "meta-referrer",
+      "meta-csp",
+      "attr-referrer",
+      "rel-noreferrer"
+    ],
+
+    "origin": [
+      "same-origin",
+      "cross-origin"
+    ],
+
+    "source_protocol": [
+      "http",
+      "https"
+    ],
+
+    "target_protocol": [
+      "http",
+      "https"
+    ],
+
+    "redirection": [
+      "no-redirect",
+      "keep-origin-redirect",
+      "swap-origin-redirect"
+    ],
+
+    "subresource": [
+      "iframe-tag",
+      "img-tag",
+      "script-tag",
+      "a-tag",
+      "area-tag",
+      "xhr-request",
+      "worker-request",
+      "fetch-request"
+    ],
+
+    "referrer_url": [
+      "omitted",
+      "origin",
+      "stripped-referrer"
+    ]
+  },
+
+  "subresource_path": {
+    "a-tag": "/referrer-policy/generic/subresource/document.py",
+    "area-tag": "/referrer-policy/generic/subresource/document.py",
+    "fetch-request": "/referrer-policy/generic/subresource/xhr.py",
+    "iframe-tag": "/referrer-policy/generic/subresource/document.py",
+    "img-tag": "/referrer-policy/generic/subresource/image.py",
+    "script-tag": "/referrer-policy/generic/subresource/script.py",
+    "worker-request": "/referrer-policy/generic/subresource/worker.py",
+    "xhr-request": "/referrer-policy/generic/subresource/xhr.py"
+  }
+}

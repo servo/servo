@@ -54,6 +54,7 @@ ignored_dirs = [
     os.path.join(".", "tests", "wpt", "harness"),
     os.path.join(".", "tests", "wpt", "update"),
     os.path.join(".", "tests", "wpt", "web-platform-tests"),
+    os.path.join(".", "tests", "wpt", "mozilla", "tests", "mozilla", "referrer-policy"),
     os.path.join(".", "tests", "wpt", "sync"),
     os.path.join(".", "tests", "wpt", "sync_css"),
     os.path.join(".", "python", "mach"),
