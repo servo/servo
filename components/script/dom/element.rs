@@ -65,6 +65,7 @@ use dom::nodelist::NodeList;
 use dom::text::Text;
 use dom::validation::Validatable;
 use dom::virtualmethods::{VirtualMethods, vtable_for};
+use heapsize::{HeapSizeOf};
 use html5ever::serialize;
 use html5ever::serialize::SerializeOpts;
 use html5ever::serialize::TraversalScope;
@@ -78,7 +79,7 @@ use selectors::parser::{AttrSelector, NamespaceConstraint, parse_author_origin_s
 use smallvec::VecLike;
 use std::ascii::AsciiExt;
 use std::borrow::Cow;
-use std::cell::{Cell, Ref};
+use std::cell::{Cell, UnsafeCell, Ref};
 use std::default::Default;
 use std::mem;
 use std::sync::Arc;
@@ -101,6 +102,7 @@ use util::str::{DOMString, LengthOrPercentageOrAuto};
 pub struct Element {
     node: Node,
     local_name: Atom,
+    tag_name: TagName,
     namespace: Namespace,
     prefix: Option<DOMString>,
     attrs: DOMRefCell<Vec<JS<Attr>>>,
@@ -143,6 +145,7 @@ impl Element {
         Element {
             node: Node::new_inherited(document),
             local_name: local_name,
+            tag_name: TagName::new(),
             namespace: namespace,
             prefix: prefix,
             attrs: DOMRefCell::new(vec![]),
@@ -1289,17 +1292,20 @@ impl ElementMethods for Element {
 
     // https://dom.spec.whatwg.org/#dom-element-tagname
     fn TagName(&self) -> DOMString {
-        let qualified_name = match self.prefix {
-            Some(ref prefix) => {
-                Cow::Owned(format!("{}:{}", &**prefix, &*self.local_name))
-            },
-            None => Cow::Borrowed(&*self.local_name)
-        };
-        DOMString::from(if self.html_element_in_html_document() {
-            qualified_name.to_ascii_uppercase()
-        } else {
-            qualified_name.into_owned()
-        })
+        let name = self.tag_name.or_init(|| {
+            let qualified_name = match self.prefix {
+                Some(ref prefix) => {
+                    Cow::Owned(format!("{}:{}", &**prefix, &*self.local_name))
+                },
+                None => Cow::Borrowed(&*self.local_name)
+            };
+            Atom::from(if self.html_element_in_html_document() {
+                qualified_name.to_ascii_uppercase()
+            } else {
+                qualified_name.into_owned()
+            })
+        });
+        DOMString::from(&*name)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-id
@@ -2092,6 +2098,11 @@ impl VirtualMethods for Element {
             }
         }
     }
+
+    fn adopting_steps(&self, old_doc: &Document) {
+        self.super_type().unwrap().adopting_steps(old_doc);
+        self.tag_name.clear();
+    }
 }
 
 impl<'a> ::selectors::Element for Root<Element> {
@@ -2533,5 +2544,52 @@ impl AtomicElementFlags {
 
     fn insert(&self, flags: ElementFlags) {
         self.0.fetch_or(flags.bits() as usize, Ordering::Relaxed);
+    }
+}
+
+// A holder for an element's "tag name", which will be lazily
+// resolved and cached. Should be reset when the document
+// owner change
+#[derive(JSTraceable)]
+struct TagName {
+    ptr: UnsafeCell<Option<Atom>>,
+}
+
+impl HeapSizeOf for TagName {
+    #[allow(unsafe_code)]
+    fn heap_size_of_children(&self) -> usize {
+        0
+    }
+}
+
+impl TagName {
+    pub fn new() -> TagName {
+        TagName { ptr: UnsafeCell::new(None) }
+    }
+
+    /// Retrieve a copy of the current inner value. If it is `None`, it is
+    /// initialized with the result of `cb` first.
+    #[allow(unsafe_code)]
+    pub fn or_init<F>(&self, cb: F) -> Atom
+        where F: FnOnce() -> Atom
+    {
+        match unsafe { &mut *self.ptr.get() } {
+            &mut Some(ref name) => name.clone(),
+            ptr => {
+                let name = cb();
+                *ptr = Some(name.clone());
+                name
+            }
+        }
+    }
+
+    // Clear the cached tag name, so that it will be re-calculated the
+    // next time that `or_init()` is called
+    #[allow(unsafe_code)]
+    pub fn clear(&self) {
+        unsafe {
+            let ptr = self.ptr.get();
+            *ptr = None;
+        }
     }
 }
