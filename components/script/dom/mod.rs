@@ -157,18 +157,18 @@
 //! Inheritance and casting
 //! =======================
 //!
-//! For all DOM interfaces `Foo` in an inheritance chain, a
-//! `dom::bindings::inheritance::FooCast` provides methods to cast
-//! to other types in the inheritance chain. For example:
+//! All DOM interfaces part of an inheritance chain (i.e. interfaces
+//! that derive others or are derived from) implement the trait `Castable`
+//! that provides both downcast and upcasts.
 //!
 //! ```ignore
-//! # use script::dom::bindings::inheritance::{NodeCast, HTMLElementCast};
+//! # use script::dom::bindings::inheritance::Castable;
 //! # use script::dom::element::Element;
 //! # use script::dom::node::Node;
 //! # use script::dom::htmlelement::HTMLElement;
 //! fn f(element: &Element) {
 //!     let base = element.upcast::<Node>();
-//!     let derived = element.downcast::<HTMLElement>();
+//!     let derived = element.downcast::<HTMLElement>().unwrap();
 //! }
 //! ```
 //!
