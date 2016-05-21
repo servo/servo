@@ -24,6 +24,16 @@ use unicode_script::Script;
 use util::cache::HashCache;
 use webrender_traits;
 
+macro_rules! ot_tag {
+    ($t1:expr, $t2:expr, $t3:expr, $t4:expr) => (
+        (($t1 as u32) << 24) | (($t2 as u32) << 16) | (($t3 as u32) << 8) | ($t4 as u32)
+    );
+}
+
+pub const GPOS: u32 = ot_tag!('G', 'P', 'O', 'S');
+pub const GSUB: u32 = ot_tag!('G', 'S', 'U', 'B');
+pub const KERN: u32 = ot_tag!('k', 'e', 'r', 'n');
+
 static TEXT_SHAPING_PERFORMANCE_COUNTER: AtomicUsize = ATOMIC_USIZE_INIT;
 
 // FontHandle encapsulates access to the platform's font API,
@@ -43,9 +53,11 @@ pub trait FontHandleMethods: Sized {
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId>;
     fn glyph_h_advance(&self, GlyphId) -> Option<FractionalPixel>;
-    fn glyph_h_kerning(&self, GlyphId, GlyphId) -> FractionalPixel;
+    fn glyph_h_kerning(&self, glyph0: GlyphId, glyph1: GlyphId) -> FractionalPixel;
+    /// Can this font do basic horizontal LTR shaping without Harfbuzz?
+    fn can_do_fast_shaping(&self) -> bool;
     fn metrics(&self) -> FontMetrics;
-    fn table_for_tag(&self, FontTableTag) -> Option<Box<FontTable>>;
+    fn table_for_tag(&self, FontTableTag) -> Option<FontTable>;
 }
 
 // Used to abstract over the shaper's choice of fixed int representation.
@@ -68,7 +80,7 @@ impl FontTableTagConversions for FontTableTag {
 }
 
 pub trait FontTableMethods {
-    fn with_buffer<F>(&self, F) where F: FnOnce(*const u8, usize);
+    fn buffer(&self) -> &[u8];
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -198,7 +210,7 @@ impl Font {
         self.shaper.as_ref().unwrap()
     }
 
-    pub fn table_for_tag(&self, tag: FontTableTag) -> Option<Box<FontTable>> {
+    pub fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
         let result = self.handle.table_for_tag(tag);
         let status = if result.is_some() { "Found" } else { "Didn't find" };
 

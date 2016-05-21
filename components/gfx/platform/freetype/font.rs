@@ -6,7 +6,7 @@ extern crate freetype;
 
 use app_units::Au;
 use font::{FontHandleMethods, FontMetrics, FontTableMethods};
-use font::{FontTableTag, FractionalPixel};
+use font::{FontTableTag, FractionalPixel, GPOS, GSUB, KERN};
 use freetype::freetype::{FTErrorMethods, FT_F26Dot6, FT_Face, FT_FaceRec};
 use freetype::freetype::{FT_Done_Face, FT_New_Memory_Face};
 use freetype::freetype::{FT_Get_Char_Index, FT_Get_Postscript_Name};
@@ -35,13 +35,14 @@ fn fixed_to_float_ft(f: i32) -> f64 {
     fixed_to_float(6, f)
 }
 
+#[derive(Debug)]
 pub struct FontTable {
     buffer: Vec<u8>,
 }
 
 impl FontTableMethods for FontTable {
-    fn with_buffer<F>(&self, blk: F) where F: FnOnce(*const u8, usize) {
-        blk(self.buffer.as_ptr(), self.buffer.len())
+    fn buffer(&self) -> &[u8] {
+        &self.buffer
     }
 }
 
@@ -49,9 +50,10 @@ impl FontTableMethods for FontTable {
 pub struct FontHandle {
     // The font binary. This must stay valid for the lifetime of the font,
     // if the font is created using FT_Memory_Face.
-    pub font_data: Arc<FontTemplateData>,
-    pub face: FT_Face,
-    pub handle: FontContextHandle
+    font_data: Arc<FontTemplateData>,
+    face: FT_Face,
+    handle: FontContextHandle,
+    can_do_fast_shaping: bool,
 }
 
 impl Drop for FontHandle {
@@ -73,22 +75,19 @@ impl FontHandleMethods for FontHandle {
         let ft_ctx: FT_Library = fctx.ctx.ctx;
         if ft_ctx.is_null() { return Err(()); }
 
-        let face_result = create_face_from_buffer(ft_ctx, &template.bytes, pt_size);
-
-        // TODO: this could be more simply written as result::chain
-        // and moving buf into the struct ctor, but cant' move out of
-        // captured binding.
-        return match face_result {
-            Ok(face) => {
-              let handle = FontHandle {
+        return create_face_from_buffer(ft_ctx, &template.bytes, pt_size).map(|face| {
+            let mut handle = FontHandle {
                   face: face,
                   font_data: template.clone(),
-                  handle: fctx.clone()
-              };
-              Ok(handle)
-            }
-            Err(()) => Err(())
-        };
+                  handle: fctx.clone(),
+                  can_do_fast_shaping: false,
+            };
+            // TODO (#11310): Implement basic support for GPOS and GSUB.
+            handle.can_do_fast_shaping = handle.has_table(KERN) &&
+                                         !handle.has_table(GPOS) &&
+                                         !handle.has_table(GSUB);
+            handle
+        });
 
         fn create_face_from_buffer(lib: FT_Library, buffer: &[u8], pt_size: Option<Au>)
                                    -> Result<FT_Face, ()> {
@@ -101,15 +100,10 @@ impl FontHandleMethods for FontHandle {
                 if !result.succeeded() || face.is_null() {
                     return Err(());
                 }
-                match pt_size {
-                    Some(s) => {
-                        match FontHandle::set_char_size(face, s) {
-                            Ok(_) => Ok(face),
-                            Err(_) => Err(()),
-                        }
-                    }
-                    None => Ok(face),
+                if let Some(s) = pt_size {
+                    try!(FontHandle::set_char_size(face, s).or(Err(())))
                 }
+                Ok(face)
             }
         }
     }
@@ -183,6 +177,10 @@ impl FontHandleMethods for FontHandle {
             FT_Get_Kerning(self.face, first_glyph, second_glyph, FT_KERNING_DEFAULT, &mut delta);
         }
         fixed_to_float_ft(delta.x as i32)
+    }
+
+    fn can_do_fast_shaping(&self) -> bool {
+        self.can_do_fast_shaping
     }
 
     fn glyph_h_advance(&self, glyph: GlyphId) -> Option<FractionalPixel> {
@@ -260,7 +258,7 @@ impl FontHandleMethods for FontHandle {
         metrics
     }
 
-    fn table_for_tag(&self, tag: FontTableTag) -> Option<Box<FontTable>> {
+    fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
         let tag = tag as FT_ULong;
 
         unsafe {
@@ -274,7 +272,7 @@ impl FontHandleMethods for FontHandle {
             if !FT_Load_Sfnt_Table(self.face, tag, 0, buf.as_mut_ptr(), &mut len).succeeded() {
                 return None
             }
-            Some(box FontTable { buffer: buf })
+            Some(FontTable { buffer: buf })
         }
     }
 }
@@ -286,6 +284,12 @@ impl<'a> FontHandle {
         unsafe {
             let result = FT_Set_Char_Size(face, char_width, 0, 0, 0);
             if result.succeeded() { Ok(()) } else { Err(()) }
+        }
+    }
+
+    fn has_table(&self, tag: FontTableTag) -> bool {
+        unsafe {
+            FT_Load_Sfnt_Table(self.face, tag as FT_ULong, 0, ptr::null_mut(), &mut 0).succeeded()
         }
     }
 

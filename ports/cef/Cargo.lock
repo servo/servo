@@ -78,7 +78,7 @@ source = "git+https://github.com/servo/rust-azure#a7177c8df81554352bc51de2f5b77c
 dependencies = [
  "core-foundation 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-text 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-text 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
  "heapsize 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -366,7 +366,7 @@ dependencies = [
 
 [[package]]
 name = "core-text"
-version = "1.1.0"
+version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "core-foundation 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -665,9 +665,10 @@ dependencies = [
  "app_units 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "azure 0.4.5 (git+https://github.com/servo/rust-azure)",
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "byteorder 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-foundation 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-text 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-text 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
@@ -2362,7 +2363,7 @@ dependencies = [
  "app_units 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "byteorder 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "core-graphics 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "core-text 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "core-text 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "euclid 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "fnv 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "freetype 0.1.0 (git+https://github.com/servo/rust-freetype)",
