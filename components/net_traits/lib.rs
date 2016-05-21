@@ -140,7 +140,7 @@ impl LoadData {
             credentials_flag: true,
             context: context,
             referrer_policy: load_origin.referrer_policy(),
-            referrer_url: load_origin.referrer_url(),
+            referrer_url: load_origin.referrer_url().clone(),
             source: load_origin.request_source()
         }
     }

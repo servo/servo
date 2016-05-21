@@ -146,8 +146,9 @@ impl HTMLIFrameElement {
     pub fn process_the_iframe_attributes(&self) {
         let url = self.get_url();
 
-        // TODO - loaddata here should have referrer info (not None, None)
-        self.navigate_or_reload_child_browsing_context(Some(LoadData::new(url, None, None)));
+        let document = document_from_node(self);
+        self.navigate_or_reload_child_browsing_context(
+            Some(LoadData::new(url, document.get_referrer_policy(), Some(document.url().clone()))));
     }
 
     #[allow(unsafe_code)]

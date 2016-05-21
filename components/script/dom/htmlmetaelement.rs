@@ -4,12 +4,13 @@
 
 use dom::attr::AttrValue;
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::str::DOMString;
-use dom::document::Document;
+use dom::document::{Document, determine_policy_for_token};
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node};
@@ -59,6 +60,10 @@ impl HTMLMetaElement {
             if name == "viewport" {
                 self.apply_viewport();
             }
+
+            if name == "referrer" {
+                self.apply_referrer();
+            }
         }
     }
 
@@ -81,6 +86,27 @@ impl HTMLMetaElement {
                     }));
                     let doc = document_from_node(self);
                     doc.invalidate_stylesheets();
+                }
+            }
+        }
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#meta-referrer
+    fn apply_referrer(&self) {
+        /*todo - I think this chould only run if document's policy hasnt yet
+        been set. unclear - see:
+        https://html.spec.whatwg.org/multipage/#meta-referrer
+        https://w3c.github.io/webappsec-referrer-policy/#set-referrer-policy
+        */
+        let doc = document_from_node(self);
+        if let Some(head) = doc.GetHead() {
+            if head.upcast::<Node>().is_parent_of(self.upcast::<Node>()) {
+                let element = self.upcast::<Element>();
+                if let Some(content) = element.get_attribute(&ns!(), &atom!("content")).r() {
+                    let content = content.value().trim();
+                    if !content.is_empty() {
+                        doc.set_referrer_policy(determine_policy_for_token(content));
+                    }
                 }
             }
         }
