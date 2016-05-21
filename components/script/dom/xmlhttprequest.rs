@@ -44,9 +44,10 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::{JSContext, JS_ParseJSON, RootedValue};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::CoreResourceMsg::Load;
-use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
-use net_traits::{LoadConsumer, LoadContext, LoadData, ResourceCORSData, CoreResourceThread};
+use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError, RequestSource};
+use net_traits::{LoadConsumer, LoadContext, LoadData, ResourceCORSData, CoreResourceThread, LoadOrigin};
 use network_listener::{NetworkListener, PreInvoke};
 use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
@@ -292,6 +293,26 @@ impl XMLHttpRequest {
             listener.notify(message.to().unwrap());
         });
         core_resource_thread.send(Load(load_data, LoadConsumer::Listener(response_target), None)).unwrap();
+    }
+}
+
+impl LoadOrigin for XMLHttpRequest {
+    fn referrer_url(&self) -> Option<Url> {
+        None
+    }
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        None
+    }
+    fn request_source(&self) -> RequestSource {
+        if self.sync.get() {
+            RequestSource::None
+        } else {
+            self.global().r().request_source()
+        }
+    }
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        let global = self.global();
+        Some(global.r().pipeline())
     }
 }
 
@@ -572,14 +593,11 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
         // Step 5
         let global = self.global();
-        let pipeline_id = global.r().pipeline();
         //TODO - set referrer_policy/referrer_url in load_data
         let mut load_data =
             LoadData::new(LoadContext::Browsing,
                           self.request_url.borrow().clone().unwrap(),
-                          Some(pipeline_id),
-                          None,
-                          None);
+                          self);
         if load_data.url.origin().ne(&global.r().get_url().origin()) {
             load_data.credentials_flag = self.WithCredentials();
         }

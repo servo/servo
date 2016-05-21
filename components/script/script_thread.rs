@@ -65,8 +65,8 @@ use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
-use net_traits::{AsyncResponseTarget, CoreResourceMsg, LoadConsumer, LoadContext, Metadata};
-use net_traits::{ResourceThreads, IpcSend};
+use net_traits::{AsyncResponseTarget, CoreResourceMsg, LoadConsumer, LoadContext, Metadata, ResourceThreads};
+use net_traits::{RequestSource, CustomResponse, CustomResponseSender, IpcSend};
 use network_listener::NetworkListener;
 use parse::ParserRoot;
 use parse::html::{ParseContext, parse_html};
@@ -205,6 +205,7 @@ enum MixedMessage {
     FromDevtools(DevtoolScriptControlMsg),
     FromImageCache(ImageCacheResult),
     FromScheduler(TimerEvent),
+    FromNetwork(IpcSender<Option<CustomResponse>>),
 }
 
 /// Messages used to control the script event loop
@@ -320,6 +321,12 @@ pub struct ScriptThread {
     /// A channel to hand out to script thread-based entities that need to be able to enqueue
     /// events in the event queue.
     chan: MainThreadScriptChan,
+
+    /// A handle to network event messages
+    custom_message_chan: IpcSender<CustomResponseSender>,
+
+    /// The port which receives a sender from the network
+    custom_message_port: Receiver<CustomResponseSender>,
 
     dom_manipulation_task_source: DOMManipulationTaskSource,
 
@@ -536,6 +543,9 @@ impl ScriptThread {
         let (ipc_devtools_sender, ipc_devtools_receiver) = ipc::channel().unwrap();
         let devtools_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_devtools_receiver);
 
+        let (ipc_custom_resp_chan, ipc_custom_resp_port) = ipc::channel().unwrap();
+        let custom_msg_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_custom_resp_port);
+
         // Ask the router to proxy IPC messages from the image cache thread to us.
         let (ipc_image_cache_channel, ipc_image_cache_port) = ipc::channel().unwrap();
         let image_cache_port =
@@ -558,6 +568,9 @@ impl ScriptThread {
             bluetooth_thread: state.bluetooth_thread,
 
             port: port,
+            custom_message_chan: ipc_custom_resp_chan,
+            custom_message_port: custom_msg_port,
+
             chan: MainThreadScriptChan(chan.clone()),
             dom_manipulation_task_source: DOMManipulationTaskSource(chan.clone()),
             user_interaction_task_source: UserInteractionTaskSource(chan.clone()),
@@ -619,7 +632,8 @@ impl ScriptThread {
 
     /// Handle incoming control messages.
     fn handle_msgs(&self) -> bool {
-        use self::MixedMessage::{FromScript, FromConstellation, FromScheduler, FromDevtools, FromImageCache};
+        use self::MixedMessage::{FromConstellation, FromDevtools, FromImageCache};
+        use self::MixedMessage::{FromScheduler, FromScript, FromNetwork};
 
         // Handle pending resize events.
         // Gather them first to avoid a double mut borrow on self.
@@ -653,6 +667,7 @@ impl ScriptThread {
             let mut timer_event_port = sel.handle(&self.timer_event_port);
             let mut devtools_port = sel.handle(&self.devtools_port);
             let mut image_cache_port = sel.handle(&self.image_cache_port);
+            let mut custom_message_port = sel.handle(&self.custom_message_port);
             unsafe {
                 script_port.add();
                 control_port.add();
@@ -661,6 +676,7 @@ impl ScriptThread {
                     devtools_port.add();
                 }
                 image_cache_port.add();
+                custom_message_port.add();
             }
             let ret = sel.wait();
             if ret == script_port.id() {
@@ -673,6 +689,8 @@ impl ScriptThread {
                 FromDevtools(self.devtools_port.recv().unwrap())
             } else if ret == image_cache_port.id() {
                 FromImageCache(self.image_cache_port.recv().unwrap())
+            } else if ret == custom_message_port.id() {
+                FromNetwork(self.custom_message_port.recv().unwrap())
             } else {
                 panic!("unexpected select result")
             }
@@ -735,7 +753,10 @@ impl ScriptThread {
                     Err(_) => match self.timer_event_port.try_recv() {
                         Err(_) => match self.devtools_port.try_recv() {
                             Err(_) => match self.image_cache_port.try_recv() {
-                                Err(_) => break,
+                                Err(_) => match self.custom_message_port.try_recv() {
+                                    Err(_) => break,
+                                    Ok(ev) => event = FromNetwork(ev)
+                                },
                                 Ok(ev) => event = FromImageCache(ev),
                             },
                             Ok(ev) => event = FromDevtools(ev),
@@ -761,6 +782,7 @@ impl ScriptThread {
                     },
                     FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
                     FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
+                    FromNetwork(inner_msg) => self.handle_msg_from_network(inner_msg),
                     FromScheduler(inner_msg) => self.handle_timer_event(inner_msg),
                     FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
                     FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
@@ -820,6 +842,7 @@ impl ScriptThread {
                 }
             },
             MixedMessage::FromScheduler(_) => ScriptThreadEventCategory::TimerEvent,
+            MixedMessage::FromNetwork(_) => ScriptThreadEventCategory::NetworkEvent
         }
     }
 
@@ -987,6 +1010,12 @@ impl ScriptThread {
 
     fn handle_msg_from_image_cache(&self, msg: ImageCacheResult) {
         msg.responder.unwrap().respond(msg.image_response);
+    }
+
+    fn handle_msg_from_network(&self, msg: IpcSender<Option<CustomResponse>>) {
+        // We may detect controlling service workers here
+        // We send None as default
+        let _ = msg.send(None);
     }
 
     fn handle_webdriver_msg(&self, pipeline_id: PipelineId, msg: WebDriverScriptCommand) {
@@ -1437,6 +1466,7 @@ impl ScriptThread {
                                  HistoryTraversalTaskSource(history_sender.clone()),
                                  FileReadingTaskSource(file_sender.clone()),
                                  self.image_cache_channel.clone(),
+                                 self.custom_message_chan.clone(),
                                  self.compositor.borrow_mut().clone(),
                                  self.image_cache_thread.clone(),
                                  self.resource_threads.clone(),
@@ -1905,6 +1935,7 @@ impl ScriptThread {
             credentials_flag: true,
             referrer_policy: load_data.referrer_policy,
             referrer_url: load_data.referrer_url,
+            source: RequestSource::Window(self.custom_message_chan.clone())
         }, LoadConsumer::Listener(response_target), None)).unwrap();
 
         self.incomplete_loads.borrow_mut().push(incomplete);
