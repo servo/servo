@@ -199,7 +199,7 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// `ScriptChan` used to send messages to the event loop of this global's
+    /// `TaskSource` used to queue history taversal messages to the event loop of this global's
     /// thread.
     pub fn history_traversal_task_source(&self) -> Box<TaskSource<HistoryTraversalTask> + Send> {
         match *self {
