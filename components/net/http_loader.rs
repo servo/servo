@@ -592,7 +592,8 @@ pub fn modify_request_headers(headers: &mut Headers,
                               user_agent: &str,
                               cookie_jar: &Arc<RwLock<CookieStorage>>,
                               auth_cache: &Arc<RwLock<AuthCache>>,
-                              load_data: &LoadData) {
+                              load_data: &LoadData,
+                              referrer_url: &mut Option<Url>) {
     // Ensure that the host header is set from the original url
     let host = Host {
         hostname: url.host_str().unwrap().to_owned(),
@@ -613,10 +614,12 @@ pub fn modify_request_headers(headers: &mut Headers,
     set_default_accept(headers);
     set_default_accept_encoding(headers);
 
-    if let Some(referer_val) = determine_request_referrer(headers,
-                                                          load_data.referrer_policy.clone(),
-                                                          load_data.referrer_url.clone(),
-                                                          url.clone()) {
+    *referrer_url = determine_request_referrer(headers,
+                                               load_data.referrer_policy.clone(),
+                                               referrer_url.clone(),
+                                               url.clone());
+
+    if let Some(referer_val) = referrer_url.clone() {
         headers.set(Referer(referer_val.into_string()));
     }
 
@@ -804,6 +807,8 @@ pub fn load<A, B>(load_data: &LoadData,
     let mut doc_url = load_data.url.clone();
     let mut redirected_to = HashSet::new();
     let mut method = load_data.method.clone();
+    // URL of referrer - to be updated with redirects
+    let mut referrer_url = load_data.referrer_url.clone();
 
     let mut new_auth_header: Option<Authorization<Basic>> = None;
 
@@ -874,7 +879,7 @@ pub fn load<A, B>(load_data: &LoadData,
 
         modify_request_headers(&mut request_headers, &doc_url,
                                &user_agent, &http_state.cookie_jar,
-                               &http_state.auth_cache, &load_data);
+                               &http_state.auth_cache, &load_data, &mut referrer_url);
 
         //if there is a new auth header then set the request headers with it
         if let Some(ref auth_header) = new_auth_header {
