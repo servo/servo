@@ -39,6 +39,18 @@ pub enum WindowSizeType {
     Resize,
 }
 
+#[derive(Deserialize, Serialize)]
+pub struct CookieData {
+    pub name: String,
+    pub value: String,
+    pub path: Option<String>,
+    pub domain: Option<String>,
+    pub expiry: Option<u64>,
+    pub max_age: Option<u64>,
+    pub secure: bool,
+    pub http: bool,
+}
+
 #[derive(PartialEq, Eq, Copy, Clone, Debug, Deserialize, Serialize)]
 pub enum KeyState {
     Pressed,

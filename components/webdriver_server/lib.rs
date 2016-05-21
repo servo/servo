@@ -29,9 +29,10 @@ use hyper::method::Method::{self, Post};
 use image::{DynamicImage, ImageFormat, RgbImage};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use keys::keycodes_to_keys;
-use msg::constellation_msg::{FrameId, LoadData, PipelineId};
+use msg::constellation_msg::{CookieData, FrameId, LoadData, PipelineId};
 use msg::constellation_msg::{NavigationDirection, PixelFormat, WebDriverCommandMsg};
-use msg::webdriver_msg::{LoadStatus, WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverScriptCommand};
+use msg::webdriver_msg::{LoadStatus, WebDriverCookieError, WebDriverFrameId};
+use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult, WebDriverScriptCommand};
 use regex::Captures;
 use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
 use rustc_serialize::json::{Json, ToJson};
@@ -45,12 +46,14 @@ use url::Url;
 use util::prefs::{get_pref, reset_all_prefs, reset_pref, set_pref, PrefValue};
 use util::thread::spawn_named;
 use uuid::Uuid;
+use webdriver::command::AddCookieParameters;
 use webdriver::command::{GetParameters, JavascriptCommandParameters, LocatorParameters};
 use webdriver::command::{Parameters, SendKeysParameters, SwitchToFrameParameters, TimeoutsParameters};
 use webdriver::command::{WebDriverCommand, WebDriverExtensionCommand, WebDriverMessage};
-use webdriver::common::{LocatorStrategy, WebElement};
+use webdriver::common::{Date, LocatorStrategy, Nullable, WebElement};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
 use webdriver::httpapi::{WebDriverExtensionRoute};
+use webdriver::response::{Cookie, CookieResponse};
 use webdriver::response::{ElementRectResponse, NewSessionResponse, ValueResponse};
 use webdriver::response::{WebDriverResponse, WindowSizeResponse};
 use webdriver::server::{self, Session, WebDriverHandler};
@@ -59,6 +62,21 @@ fn extension_routes() -> Vec<(Method, &'static str, ServoExtensionRoute)> {
     return vec![(Post, "/session/{sessionId}/servo/prefs/get", ServoExtensionRoute::GetPrefs),
                 (Post, "/session/{sessionId}/servo/prefs/set", ServoExtensionRoute::SetPrefs),
                 (Post, "/session/{sessionId}/servo/prefs/reset", ServoExtensionRoute::ResetPrefs)]
+}
+
+fn cookie_msg_to_cookie(cookie: CookieData) -> Cookie {
+    Cookie::new(
+        cookie.name,
+        cookie.value,
+        cookie.path.map(Nullable::Value).unwrap_or(Nullable::Null),
+        cookie.domain.map(Nullable::Value).unwrap_or(Nullable::Null),
+        cookie.expiry.map(|x| {
+            Nullable::Value(Date::new(x))
+        }).unwrap_or(Nullable::Null),
+        Nullable::Null,
+        cookie.secure,
+        cookie.http
+        )
 }
 
 pub fn start_server(port: u16, constellation_chan: Sender<ConstellationMsg>) {
@@ -588,6 +606,53 @@ impl Handler {
         }
     }
 
+    fn handle_get_cookies(&self) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        try!(self.frame_script_command(WebDriverScriptCommand::GetCookies(sender)));
+        let cookies = receiver.recv().unwrap();
+        let response = cookies.into_iter().map(|cookie| {
+            cookie_msg_to_cookie(cookie)
+        }).collect::<Vec<Cookie>>();
+        Ok(WebDriverResponse::Cookie(CookieResponse::new(response)))
+    }
+
+    fn handle_get_cookie(&self, name: &str) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        try!(self.frame_script_command(WebDriverScriptCommand::GetCookie(name.to_owned(), sender)));
+        let cookies = receiver.recv().unwrap();
+        let response = cookies.into_iter().map(|cookie| {
+            cookie_msg_to_cookie(cookie)
+        }).collect::<Vec<Cookie>>();
+        Ok(WebDriverResponse::Cookie(CookieResponse::new(response)))
+    }
+
+    fn handle_add_cookie(&self, params: &AddCookieParameters) -> WebDriverResult<WebDriverResponse> {
+        let (sender, receiver) = ipc::channel().unwrap();
+        let cookie = CookieData {
+            name: params.name.to_owned(),
+            value: params.value.to_owned(),
+            path: params.path.to_owned().into(),
+            domain: params.domain.to_owned().into(),
+            expiry: match params.expiry {
+                Nullable::Value(Date(val)) => Some(val),
+                Nullable::Null => None,
+            },
+            max_age: None,
+            secure: params.secure,
+            http: params.httpOnly
+        };
+        try!(self.frame_script_command(WebDriverScriptCommand::AddCookie(cookie, sender)));
+        match receiver.recv().unwrap() {
+            Ok(_) => Ok(WebDriverResponse::Void),
+            Err(response) => match response {
+                WebDriverCookieError::InvalidDomain => Err(WebDriverError::new(ErrorStatus::InvalidCookieDomain,
+                                                                               "Invalid cookie domain")),
+                WebDriverCookieError::UnableToSetCookie => Err(WebDriverError::new(ErrorStatus::UnableToSetCookie,
+                                                                                   "Unable to set cookie"))
+            }
+        }
+    }
+
     fn handle_set_timeouts(&mut self, parameters: &TimeoutsParameters) -> WebDriverResult<WebDriverResponse> {
         //TODO: this conversion is crazy, spec should limit these to u32 and check upstream
         let value = parameters.ms as u32;
@@ -764,6 +829,7 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
         match msg.command {
             WebDriverCommand::NewSession => self.handle_new_session(),
             WebDriverCommand::DeleteSession => self.handle_delete_session(),
+            WebDriverCommand::AddCookie(ref parameters) => self.handle_add_cookie(parameters),
             WebDriverCommand::Get(ref parameters) => self.handle_get(parameters),
             WebDriverCommand::GetCurrentUrl => self.handle_current_url(),
             WebDriverCommand::GetWindowSize => self.handle_window_size(),
@@ -779,6 +845,8 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
             WebDriverCommand::SwitchToParentFrame => self.handle_switch_to_parent_frame(),
             WebDriverCommand::FindElement(ref parameters) => self.handle_find_element(parameters),
             WebDriverCommand::FindElements(ref parameters) => self.handle_find_elements(parameters),
+            WebDriverCommand::GetCookie(ref name) => self.handle_get_cookie(name),
+            WebDriverCommand::GetCookies => self.handle_get_cookies(),
             WebDriverCommand::GetActiveElement => self.handle_active_element(),
             WebDriverCommand::GetElementRect(ref element) => self.handle_element_rect(element),
             WebDriverCommand::GetElementText(ref element) => self.handle_element_text(element),
