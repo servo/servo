@@ -7,4 +7,5 @@ interface HTMLFrameSetElement : HTMLElement {
   //         attribute DOMString cols;
   //         attribute DOMString rows;
 };
-//HTMLFrameSetElement implements WindowEventHandlers;
+
+HTMLFrameSetElement implements WindowEventHandlers;

@@ -2795,6 +2795,9 @@ impl DocumentMethods for Document {
         // Step 5
         elements
     }
+
+    // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
+    document_and_element_event_handlers!();
 }
 
 fn update_with_current_time_ms(marker: &Cell<u64>) {

@@ -4,7 +4,7 @@
 
 use cssparser::RGBA;
 use dom::attr::{Attr, AttrValue};
-use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
+use dom::bindings::codegen::Bindings::EventHandlerBinding::{EventHandlerNonNull, OnBeforeUnloadEventHandlerNonNull};
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::inheritance::Castable;
@@ -16,7 +16,6 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use script_traits::ScriptMsg as ConstellationMsg;
-use std::rc::Rc;
 use string_cache::Atom;
 use time;
 use url::Url;
@@ -70,31 +69,14 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
     // https://html.spec.whatwg.org/multipage/#dom-body-text
     make_legacy_color_setter!(SetText, "text");
 
-    // https://html.spec.whatwg.org/multipage/#the-body-element
-    fn GetOnunload(&self) -> Option<Rc<EventHandlerNonNull>> {
-        window_from_node(self).GetOnunload()
-    }
-
-    // https://html.spec.whatwg.org/multipage/#the-body-element
-    fn SetOnunload(&self, listener: Option<Rc<EventHandlerNonNull>>) {
-        window_from_node(self).SetOnunload(listener)
-    }
-
-    // https://html.spec.whatwg.org/multipage/#the-body-element
-    fn GetOnstorage(&self) -> Option<Rc<EventHandlerNonNull>> {
-        window_from_node(self).GetOnstorage()
-    }
-
-    // https://html.spec.whatwg.org/multipage/#the-body-element
-    fn SetOnstorage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
-        window_from_node(self).SetOnstorage(listener)
-    }
-
     // https://html.spec.whatwg.org/multipage/#dom-body-background
     make_getter!(Background, "background");
 
     // https://html.spec.whatwg.org/multipage/#dom-body-background
     make_url_setter!(SetBackground, "background");
+
+    // https://html.spec.whatwg.org/multipage/#windoweventhandlers
+    window_event_handlers!(ForwardToWindow);
 }
 
 pub trait HTMLBodyElementLayoutHelpers {

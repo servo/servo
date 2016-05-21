@@ -7,7 +7,9 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarker
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
-use dom::bindings::codegen::Bindings::EventHandlerBinding::{EventHandlerNonNull, OnErrorEventHandlerNonNull};
+use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
+use dom::bindings::codegen::Bindings::EventHandlerBinding::OnBeforeUnloadEventHandlerNonNull;
+use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
@@ -585,11 +587,8 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!();
 
-    // https://html.spec.whatwg.org/multipage/#handler-window-onunload
-    event_handler!(unload, GetOnunload, SetOnunload);
-
-    // https://html.spec.whatwg.org/multipage/#handler-window-onstorage
-    event_handler!(storage, GetOnstorage, SetOnstorage);
+    // https://html.spec.whatwg.org/multipage/#windoweventhandlers
+    window_event_handlers!();
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/screen
     fn Screen(&self) -> Root<Screen> {

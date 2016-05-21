@@ -211,6 +211,7 @@ pub mod types {
 
 pub mod activation;
 pub mod attr;
+pub mod beforeunloadevent;
 mod create;
 #[allow(unsafe_code)]
 #[deny(missing_docs, non_snake_case)]
