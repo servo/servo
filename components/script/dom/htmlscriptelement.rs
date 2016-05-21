@@ -31,6 +31,7 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
+use net_traits::request::ParserMetadata;
 use network_listener::{NetworkListener, PreInvoke};
 use std::ascii::AsciiExt;
 use std::cell::Cell;
@@ -325,9 +326,15 @@ impl HTMLScriptElement {
 
         // TODO: Step 14: CORS.
 
-        // TODO: Step 15: Nonce.
+        // Step 15.
+        let cryptographic_nonce = element.get_string_attribute(&atom!("nonce"));
 
-        // TODO: Step 16: Parser state.
+        // Step 16.
+        let parser_state = if self.parser_inserted.get() {
+            ParserMetadata::ParserInserted
+        } else {
+            ParserMetadata::NotParserInserted
+        };
 
         // TODO: Step 17: environment settings object.
 
@@ -358,6 +365,7 @@ impl HTMLScriptElement {
                 fetch_a_classic_script(self, url, encoding);
                 true
             },
+            // TODO: Step 19.
             None => false,
         };
 

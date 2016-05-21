@@ -78,6 +78,14 @@ pub enum CacheMode {
     OnlyIfCached
 }
 
+/// [Parser metadata](https://fetch.spec.whatwg.org/#concept-request-parser-metadata)
+#[derive(Copy, Clone, PartialEq)]
+pub enum ParserMetadata {
+    None,
+    ParserInserted,
+    NotParserInserted
+}
+
 /// [Redirect mode](https://fetch.spec.whatwg.org/#concept-request-redirect-mode)
 #[derive(Copy, Clone, PartialEq)]
 pub enum RedirectMode {
@@ -167,6 +175,8 @@ pub struct Request {
     pub cache_mode: Cell<CacheMode>,
     pub redirect_mode: Cell<RedirectMode>,
     pub integrity_metadata: RefCell<String>,
+    pub cryptographic_metadata: RefCell<String>,
+    pub parser_metadata: Cell<ParserMetadata>,
     // Use the last method on url_list to act as spec current url field, and
     // first method to act as spec url field
     pub url_list: RefCell<Vec<Url>>,
@@ -206,6 +216,8 @@ impl Request {
             cache_mode: Cell::new(CacheMode::Default),
             redirect_mode: Cell::new(RedirectMode::Follow),
             integrity_metadata: RefCell::new(String::new()),
+            cryptographic_metadata: RefCell::new(String::new()),
+            parser_metadata: Cell::new(ParserMetadata::None),
             url_list: RefCell::new(vec![url]),
             redirect_count: Cell::new(0),
             response_tainting: Cell::new(ResponseTainting::Basic),
@@ -278,6 +290,8 @@ impl Request {
             cache_mode: Cell::new(CacheMode::Default),
             redirect_mode: Cell::new(RedirectMode::Follow),
             integrity_metadata: RefCell::new(String::new()),
+            cryptographic_metadata: RefCell::new(String::new()),
+            parser_metadata: Cell::new(ParserMetadata::None),
             url_list: RefCell::new(vec![url]),
             redirect_count: Cell::new(0),
             response_tainting: Cell::new(ResponseTainting::Basic),
