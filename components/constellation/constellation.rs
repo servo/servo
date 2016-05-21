@@ -730,12 +730,12 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             }
             // Handle request for history length
             Request::Script(FromScriptMsg::HistoryLength(sender)) => {
-                debug!("constellation got history length message from compositor");
+                debug!("constellation got history length message from script");
                 self.handle_history_length(sender);
             }
             // Handle pushing a history entry due to state change
             Request::Script(FromScriptMsg::HistoryStatePushed(pipeline_info, active_index)) => {
-                debug!("constellation got history length message from compositor");
+                debug!("constellation got history state pushed message from script");
                 self.handle_history_state_pushed(pipeline_info, active_index);
             }
             // Notification that the new document is ready to become active
