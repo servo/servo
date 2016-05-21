@@ -352,7 +352,7 @@ pub enum FrameType {
 
 /// [Policies](https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states)
 /// for providing a referrer header for a request
-#[derive(HeapSizeOf, Clone, Deserialize, Serialize)]
+#[derive(HeapSizeOf, Clone, Deserialize, Serialize, Debug, Copy)]
 pub enum ReferrerPolicy {
     NoReferrer,
     NoRefWhenDowngrade,
