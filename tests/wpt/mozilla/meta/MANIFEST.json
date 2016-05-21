@@ -5044,16 +5044,16 @@
             "url": "/_mozilla/css/text_justify_none_a.html"
           }
         ],
-        "css/text_node_opacity.html": [
+        "css/text_node_effects.html": [
           {
-            "path": "css/text_node_opacity.html",
+            "path": "css/text_node_effects.html",
             "references": [
               [
-                "/_mozilla/css/text_node_opacity_ref.html",
+                "/_mozilla/css/text_node_effects_ref.html",
                 "=="
               ]
             ],
-            "url": "/_mozilla/css/text_node_opacity.html"
+            "url": "/_mozilla/css/text_node_effects.html"
           }
         ],
         "css/text_overflow_a.html": [
@@ -11868,16 +11868,16 @@
           "url": "/_mozilla/css/text_justify_none_a.html"
         }
       ],
-      "css/text_node_opacity.html": [
+      "css/text_node_effects.html": [
         {
-          "path": "css/text_node_opacity.html",
+          "path": "css/text_node_effects.html",
           "references": [
             [
-              "/_mozilla/css/text_node_opacity_ref.html",
+              "/_mozilla/css/text_node_effects_ref.html",
               "=="
             ]
           ],
-          "url": "/_mozilla/css/text_node_opacity.html"
+          "url": "/_mozilla/css/text_node_effects.html"
         }
       ],
       "css/text_overflow_a.html": [

@@ -2032,12 +2032,15 @@ pub fn modify_style_for_outer_inline_block_fragment(style: &mut Arc<ServoCompute
     box_style.position = longhands::position::computed_value::T::static_
 }
 
-/// Adjusts the `position` and `padding` properties as necessary to account for text.
+/// Adjusts properties as necessary to account for text.
 ///
-/// Text is never directly relatively positioned; it's always contained within an element that is
-/// itself relatively positioned.
+/// `position`, `padding`, `opacity`:
+///   Text is always in an element that takes these properties into account
+///   itself.
 #[inline]
 pub fn modify_style_for_text(style: &mut Arc<ServoComputedValues>) {
+    use computed_values::transform_style;
+
     if style.box_.position == longhands::position::computed_value::T::relative {
         // We leave the `position` property set to `relative` so that we'll still establish a
         // containing block if needed. But we reset all position offsets to `auto`.
@@ -2061,10 +2064,16 @@ pub fn modify_style_for_text(style: &mut Arc<ServoComputedValues>) {
         padding.padding_left = computed::LengthOrPercentage::Length(Au(0));
     }
 
-    if style.effects.opacity != 1.0 {
+    if style.get_used_transform_style() != transform_style::T::auto {
         let mut style = Arc::make_mut(style);
         let mut effects = Arc::make_mut(&mut style.effects);
+
         effects.opacity = 1.0;
+        effects.clip = longhands::clip::get_initial_value();
+        effects.transform = longhands::transform::get_initial_value();
+        effects.filter = longhands::filter::get_initial_value();
+        effects.perspective = computed::LengthOrNone::None;
+        effects.transform_style = transform_style::T::auto;
     }
 }
 
