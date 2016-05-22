@@ -9,7 +9,7 @@
 //! as possible.
 
 use context::LayoutContext;
-use flow::{InorderFlowTraversal};
+use flow::InorderFlowTraversal;
 use flow::{self, AFFECTS_COUNTERS, Flow, HAS_COUNTER_AFFECTING_CHILDREN, ImmutableFlowUtils};
 use fragment::{Fragment, GeneratedContentInfo, SpecificFragmentInfo, UnscannedTextFragmentInfo};
 use gfx::display_list::OpaqueNode;
