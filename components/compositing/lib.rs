@@ -40,7 +40,7 @@ extern crate webrender_traits;
 pub use compositor_thread::{CompositorEventListener, CompositorProxy, CompositorThread};
 use euclid::size::TypedSize2D;
 use gfx::paint_thread::ChromeToPaintMsg;
-use ipc_channel::ipc::{IpcSender};
+use ipc_channel::ipc::IpcSender;
 use layout_traits::LayoutControlChan;
 use msg::constellation_msg::PipelineId;
 use script_traits::ConstellationControlMsg;

@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::StorageEventBinding;
-use dom::bindings::codegen::Bindings::StorageEventBinding::{StorageEventMethods};
+use dom::bindings::codegen::Bindings::StorageEventBinding::StorageEventMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;

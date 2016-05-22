@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
 use dom::bindings::codegen::UnionTypes::StringOrStringSequence;
-use dom::bindings::conversions::{ToJSValConvertible};
+use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, Fallible, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;

@@ -24,7 +24,7 @@ pub use paint_listener::PaintListener;
 use azure::azure_hl::Color;
 use euclid::Matrix4D;
 use euclid::rect::Rect;
-use msg::constellation_msg::{PipelineId};
+use msg::constellation_msg::PipelineId;
 use std::fmt::{self, Debug, Formatter};
 
 #[derive(Clone, Copy, Debug, PartialEq)]

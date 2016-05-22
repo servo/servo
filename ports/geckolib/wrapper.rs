@@ -4,12 +4,13 @@
 
 #![allow(unsafe_code)]
 
-use gecko_bindings::bindings::{Gecko_ChildrenCount};
+use gecko_bindings::bindings::Gecko_ChildrenCount;
+use gecko_bindings::bindings::Gecko_GetNodeData;
+use gecko_bindings::bindings::ServoNodeData;
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetAttrAsUTF8, Gecko_GetDocumentElement};
 use gecko_bindings::bindings::{Gecko_GetFirstChild, Gecko_GetFirstChildElement};
 use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetLastChildElement};
 use gecko_bindings::bindings::{Gecko_GetNextSibling, Gecko_GetNextSiblingElement};
-use gecko_bindings::bindings::{Gecko_GetNodeData};
 use gecko_bindings::bindings::{Gecko_GetParentElement, Gecko_GetParentNode};
 use gecko_bindings::bindings::{Gecko_GetPrevSibling, Gecko_GetPrevSiblingElement};
 use gecko_bindings::bindings::{Gecko_IsHTMLElementInHTMLDocument, Gecko_IsLink, Gecko_IsRootElement, Gecko_IsTextNode};
@@ -17,7 +18,6 @@ use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink};
 #[allow(unused_imports)] // Used in commented-out code.
 use gecko_bindings::bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsElement, Gecko_SetNodeData};
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
-use gecko_bindings::bindings::{ServoNodeData};
 use libc::uintptr_t;
 use properties::GeckoComputedValues;
 use selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PrivateStyleData};
@@ -37,9 +37,9 @@ use style::dom::{TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use style::element_state::ElementState;
 #[allow(unused_imports)] // Used in commented-out code.
 use style::error_reporting::StdoutErrorReporter;
-use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 #[allow(unused_imports)] // Used in commented-out code.
-use style::properties::{parse_style_attribute};
+use style::properties::parse_style_attribute;
+use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::ElementExt;
 #[allow(unused_imports)] // Used in commented-out code.

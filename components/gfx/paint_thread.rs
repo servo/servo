@@ -31,7 +31,7 @@ use std::mem as std_mem;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use url::Url;
-use util::geometry::{ExpandToPixelBoundaries};
+use util::geometry::ExpandToPixelBoundaries;
 use util::opts;
 use util::thread;
 use util::thread_state;

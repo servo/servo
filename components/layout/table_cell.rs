@@ -26,7 +26,7 @@ use style::properties::{ComputedValues, ServoComputedValues};
 use table::InternalTable;
 use table_row::{CollapsedBorder, CollapsedBorderProvenance};
 use util::print_tree::PrintTree;
-use wrapper::{ThreadSafeLayoutNode};
+use wrapper::ThreadSafeLayoutNode;
 
 /// A table formatting context.
 #[derive(RustcEncodable)]
