@@ -389,6 +389,8 @@ def check_rust(file_name, lines):
             # No benefit over using &str
             (r": &String", "use &str instead of &String", no_filter),
             (r"^&&", "operators should go at the end of the first line", no_filter),
+            (r"\{(?!self)[A-Za-z0-9]+\};", "use statement contains parenthesis for single import",
+                lambda match, line: line.startswith('use ')),
         ]
 
         for pattern, message, filter_func in regex_rules:

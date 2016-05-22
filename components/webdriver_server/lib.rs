@@ -50,7 +50,7 @@ use webdriver::command::{Parameters, SendKeysParameters, SwitchToFrameParameters
 use webdriver::command::{WebDriverCommand, WebDriverExtensionCommand, WebDriverMessage};
 use webdriver::common::{LocatorStrategy, WebElement};
 use webdriver::error::{ErrorStatus, WebDriverError, WebDriverResult};
-use webdriver::httpapi::{WebDriverExtensionRoute};
+use webdriver::httpapi::WebDriverExtensionRoute;
 use webdriver::response::{ElementRectResponse, NewSessionResponse, ValueResponse};
 use webdriver::response::{WebDriverResponse, WindowSizeResponse};
 use webdriver::server::{self, Session, WebDriverHandler};

@@ -43,13 +43,13 @@ pub use js::conversions::{FromJSValConvertible, ToJSValConvertible, ConversionBe
 use js::error::throw_type_error;
 use js::glue::{GetProxyPrivate, IsWrapper};
 use js::glue::{RUST_JSID_IS_STRING, RUST_JSID_TO_STRING, UnwrapObject};
+use js::jsapi::Type;
 use js::jsapi::{HandleId, HandleObject, HandleValue, JS_GetClass};
 use js::jsapi::{JSClass, JSContext, JSObject, MutableHandleValue};
 use js::jsapi::{JS_GetLatin1StringCharsAndLength, JS_GetReservedSlot};
 use js::jsapi::{JS_GetObjectAsArrayBufferView, JS_GetArrayBufferViewType};
 use js::jsapi::{JS_GetTwoByteStringCharsAndLength, JS_IsArrayObject, JS_NewStringCopyN};
 use js::jsapi::{JS_StringHasLatin1Chars, JS_WrapValue};
-use js::jsapi::{Type};
 use js::jsval::{ObjectValue, StringValue};
 use js::rust::ToString;
 use libc;

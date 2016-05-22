@@ -28,7 +28,7 @@ use style::logical_geometry::LogicalSize;
 use style::properties::{ComputedValues, ServoComputedValues};
 use style::values::CSSFloat;
 use style::values::computed::LengthOrPercentageOrAuto;
-use table_row::{TableRowFlow};
+use table_row::TableRowFlow;
 use table_row::{self, CellIntrinsicInlineSize, CollapsedBorder, CollapsedBorderProvenance};
 use table_wrapper::TableLayout;
 use util::print_tree::PrintTree;

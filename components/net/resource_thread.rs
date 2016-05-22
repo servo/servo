@@ -9,7 +9,7 @@ use connector::{Connector, create_http_connector};
 use cookie;
 use cookie_storage::CookieStorage;
 use data_loader;
-use devtools_traits::{DevtoolsControlMsg};
+use devtools_traits::DevtoolsControlMsg;
 use file_loader;
 use hsts::HstsList;
 use http_loader::{self, HttpState};
