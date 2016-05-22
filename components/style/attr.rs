@@ -12,7 +12,7 @@ use string_cache::{Atom, Namespace};
 use url::Url;
 use util::str::{LengthOrPercentageOrAuto, HTML_SPACE_CHARACTERS};
 use util::str::{read_exponent, read_fraction, read_numbers, split_html_space_chars};
-use values::specified::{Length};
+use values::specified::Length;
 
 // Duplicated from script::dom::values.
 const UNSIGNED_LONG_MAX: u32 = 2147483647;

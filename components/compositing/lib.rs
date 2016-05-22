@@ -42,7 +42,7 @@ pub use compositor_thread::{CompositorEventListener, CompositorProxy, Compositor
 use euclid::size::{Size2D, TypedSize2D};
 use gfx::paint_thread::ChromeToPaintMsg;
 use gfx_traits::Epoch;
-use ipc_channel::ipc::{IpcSender};
+use ipc_channel::ipc::IpcSender;
 use layout_traits::LayoutControlChan;
 use msg::constellation_msg::{FrameId, Key, KeyState, KeyModifiers, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
