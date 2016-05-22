@@ -53,7 +53,7 @@ net_traits = {path = "../net_traits"}
 msg = {path = "../msg"}
 profile = {path = "../profile"}
 profile_traits = {path = "../profile_traits"}
-util = {path = "../util", features = ["non-geckolib"]}
+util = {path = "../util"}
 script = {path = "../script"}
 script_traits = {path = "../script_traits"}
 layout = {path = "../layout"}

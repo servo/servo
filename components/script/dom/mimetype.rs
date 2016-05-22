@@ -5,8 +5,8 @@
 use dom::bindings::codegen::Bindings::MimeTypeBinding::MimeTypeMethods;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector};
+use dom::bindings::str::DOMString;
 use dom::plugin::Plugin;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct MimeType {

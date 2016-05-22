@@ -8,6 +8,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::element::{Element, StylePriority};
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::window::Window;
@@ -18,7 +19,7 @@ use string_cache::Atom;
 use style::properties::{PropertyDeclaration, Shorthand};
 use style::properties::{is_supported_property, parse_one_declaration};
 use style::selector_impl::PseudoElement;
-use util::str::{DOMString, str_join};
+use util::str::str_join;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]

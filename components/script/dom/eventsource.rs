@@ -9,10 +9,10 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::str::DOMString;
 use dom::eventtarget::EventTarget;
 use std::cell::Cell;
 use url::Url;
-use util::str::DOMString;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, Debug, HeapSizeOf)]
 enum EventSourceReadyState {

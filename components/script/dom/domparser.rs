@@ -12,12 +12,12 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
 use dom::window::Window;
 use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct DOMParser {

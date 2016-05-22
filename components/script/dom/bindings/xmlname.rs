@@ -5,8 +5,8 @@
 //! Functions for validating and extracting qualified XML names.
 
 use dom::bindings::error::{Error, ErrorResult, Fallible};
+use dom::bindings::str::DOMString;
 use string_cache::{Atom, Namespace};
-use util::str::DOMString;
 
 /// Validate a qualified name. See https://dom.spec.whatwg.org/#validate for details.
 pub fn validate_qualified_name(qualified_name: &str) -> ErrorResult {

@@ -9,9 +9,9 @@ use dom::bindings::codegen::Bindings::ConsoleBinding::ConsoleMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use std::collections::HashMap;
 use time::{Timespec, get_time};
-use util::str::DOMString;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
 #[dom_struct]

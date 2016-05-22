@@ -14,6 +14,7 @@ use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, Root, RootedReference, MutNullableHeap};
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers, LayoutElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -42,7 +43,6 @@ use style::element_state::*;
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
 use textinput::{TextInput, SelectionDirection};
-use util::str::{DOMString};
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -881,10 +881,10 @@ impl VirtualMethods for HTMLInputElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("name") => AttrValue::from_atomic(value),
-            &atom!("size") => AttrValue::from_limited_u32(value, DEFAULT_INPUT_SIZE),
-            &atom!("type") => AttrValue::from_atomic(value),
-            &atom!("maxlength") => AttrValue::from_limited_i32(value, DEFAULT_MAX_LENGTH),
+            &atom!("name") => AttrValue::from_atomic(value.into()),
+            &atom!("size") => AttrValue::from_limited_u32(value.into(), DEFAULT_INPUT_SIZE),
+            &atom!("type") => AttrValue::from_atomic(value.into()),
+            &atom!("maxlength") => AttrValue::from_limited_i32(value.into(), DEFAULT_MAX_LENGTH),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

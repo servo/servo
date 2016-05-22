@@ -12,6 +12,7 @@ use dom::bindings::codegen::UnionTypes::NodeOrString;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
+use dom::bindings::str::DOMString;
 use dom::comment::Comment;
 use dom::document::Document;
 use dom::element::Element;
@@ -19,7 +20,6 @@ use dom::node::{Node, NodeDamage};
 use dom::processinginstruction::ProcessingInstruction;
 use dom::text::Text;
 use std::cell::Ref;
-use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#characterdata
 #[dom_struct]

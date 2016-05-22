@@ -15,6 +15,7 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{FromJSValConvertible, StringificationBehavior};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
+use dom::bindings::str::DOMString;
 use dom::browsingcontext::BrowsingContext;
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;
@@ -34,7 +35,6 @@ use msg::constellation_msg::PipelineId;
 use msg::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use script_thread::get_browsing_context;
 use url::Url;
-use util::str::DOMString;
 
 fn find_node_by_unique_id(context: &BrowsingContext,
                           pipeline: PipelineId,

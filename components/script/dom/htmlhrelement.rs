@@ -7,13 +7,14 @@ use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::HTMLHRElementBinding::{self, HTMLHRElementMethods};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, RawLayoutElementHelpers};
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
-use util::str::{DOMString, LengthOrPercentageOrAuto};
+use util::str::LengthOrPercentageOrAuto;
 
 #[dom_struct]
 pub struct HTMLHRElement {
@@ -92,9 +93,9 @@ impl VirtualMethods for HTMLHRElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("align") => AttrValue::from_dimension(value),
-            &atom!("color") => AttrValue::from_legacy_color(value),
-            &atom!("width") => AttrValue::from_dimension(value),
+            &atom!("align") => AttrValue::from_dimension(value.into()),
+            &atom!("color") => AttrValue::from_legacy_color(value.into()),
+            &atom!("width") => AttrValue::from_dimension(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

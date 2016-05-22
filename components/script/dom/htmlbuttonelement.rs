@@ -8,6 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLButtonElementBinding;
 use dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::event::Event;
@@ -25,7 +26,6 @@ use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use string_cache::Atom;
 use style::element_state::*;
-use util::str::DOMString;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone)]
 #[derive(HeapSizeOf)]

@@ -5,8 +5,8 @@
 use dom::bindings::codegen::Bindings::PluginBinding::PluginMethods;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector};
+use dom::bindings::str::DOMString;
 use dom::mimetype::MimeType;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct Plugin {

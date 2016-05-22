@@ -5,13 +5,13 @@
 use dom::bindings::codegen::Bindings::HTMLHeadElementBinding;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
 use dom::node::Node;
 use dom::userscripts::load_script;
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLHeadElement {

@@ -16,6 +16,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{HeapGCValue, JS, LayoutJS, Root};
 use dom::bindings::num::Finite;
+use dom::bindings::str::DOMString;
 use dom::canvasrenderingcontext2d::{CanvasRenderingContext2D, LayoutCanvasRenderingContext2DHelpers};
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -32,7 +33,6 @@ use offscreen_gl_context::GLContextAttributes;
 use rustc_serialize::base64::{STANDARD, ToBase64};
 use std::iter::repeat;
 use string_cache::Atom;
-use util::str::DOMString;
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;
@@ -312,8 +312,8 @@ impl VirtualMethods for HTMLCanvasElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("width") => AttrValue::from_u32(value, DEFAULT_WIDTH),
-            &atom!("height") => AttrValue::from_u32(value, DEFAULT_HEIGHT),
+            &atom!("width") => AttrValue::from_u32(value.into(), DEFAULT_WIDTH),
+            &atom!("height") => AttrValue::from_u32(value.into(), DEFAULT_HEIGHT),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

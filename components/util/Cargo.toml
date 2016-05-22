@@ -8,15 +8,6 @@ publish = false
 name = "util"
 path = "lib.rs"
 
-[features]
-
-# This feature allows us to avoid depending on various things we don't need for
-# GeckoLib builds. Conceptually, it would make more sense to have a "geckolib"
-# feature, but Cargo is generally set up for features to add dependencies, not
-# remove them. So we do it this way, and request that all non-GeckoLib builds
-# set this feature.
-non-geckolib = ["js"]
-
 [dependencies]
 app_units = {version = "0.2.3", features = ["plugins"]}
 backtrace = "0.2.1"
@@ -27,7 +18,6 @@ getopts = "0.2.11"
 heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
-js = {git = "https://github.com/servo/rust-mozjs", optional = true}
 lazy_static = "0.2"
 libc = "0.2"
 log = "0.3.5"
@@ -39,7 +29,6 @@ rustc-serialize = "0.3"
 serde = "0.7"
 serde_macros = "0.7"
 smallvec = "0.1"
-string_cache = {version = "0.2.17", features = ["heap_size"]}
 url = {version = "1.0.0", features = ["heap_size", "serde"]}
 
 [target.'cfg(windows)'.dependencies]
