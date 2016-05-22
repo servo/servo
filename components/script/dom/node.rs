@@ -28,6 +28,7 @@ use dom::bindings::js::Root;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
@@ -69,7 +70,6 @@ use std::iter::{self, FilterMap, Peekable};
 use std::mem;
 use string_cache::{Atom, Namespace, QualName};
 use style::selector_impl::ServoSelectorImpl;
-use util::str::DOMString;
 use util::thread_state;
 use uuid::Uuid;
 

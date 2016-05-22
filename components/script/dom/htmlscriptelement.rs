@@ -15,6 +15,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, ElementCreator};
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -41,7 +42,7 @@ use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use task_source::dom_manipulation::DOMManipulationTask;
 use url::Url;
-use util::str::{DOMString, HTML_SPACE_CHARACTERS, StaticStringVec};
+use util::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
 
 #[dom_struct]
 pub struct HTMLScriptElement {

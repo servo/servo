@@ -12,6 +12,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::bindings::xmlname::{validate_qualified_name, namespace_from_domstring};
 use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
@@ -23,7 +24,6 @@ use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::Node;
 use dom::text::Text;
 use dom::xmldocument::XMLDocument;
-use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#domimplementation
 #[dom_struct]

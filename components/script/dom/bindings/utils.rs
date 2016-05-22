@@ -7,9 +7,11 @@
 use dom::bindings::codegen::InterfaceObjectMap;
 use dom::bindings::codegen::PrototypeList;
 use dom::bindings::codegen::PrototypeList::{MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE_LENGTH};
-use dom::bindings::conversions::{DOM_OBJECT_SLOT, is_dom_class, private_from_proto_check};
+use dom::bindings::conversions::{DOM_OBJECT_SLOT, is_dom_class};
+use dom::bindings::conversions::{jsstring_to_str, private_from_proto_check};
 use dom::bindings::error::throw_invalid_this;
 use dom::bindings::inheritance::TopTypeId;
+use dom::bindings::str::DOMString;
 use dom::bindings::trace::trace_object;
 use dom::browsingcontext;
 use heapsize::HeapSizeOf;
@@ -37,9 +39,7 @@ use std::ffi::CString;
 use std::os::raw::c_void;
 use std::ptr;
 use std::slice;
-use util::non_geckolib::jsstring_to_str;
 use util::prefs;
-use util::str::DOMString;
 
 /// Proxy handler for a WindowProxy.
 pub struct WindowProxyHandler(pub *const libc::c_void);

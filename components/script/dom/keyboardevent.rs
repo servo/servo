@@ -11,13 +11,13 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::str::DOMString;
 use dom::event::Event;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use msg::constellation_msg;
 use msg::constellation_msg::{Key, KeyModifiers};
 use std::cell::Cell;
-use util::str::DOMString;
 
 no_jsmanaged_fields!(Key);
 

@@ -14,6 +14,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::eventtarget::EventTarget;
@@ -31,7 +32,7 @@ use script_thread::Runnable;
 use std::sync::Arc;
 use string_cache::Atom;
 use url::Url;
-use util::str::{DOMString, LengthOrPercentageOrAuto};
+use util::str::LengthOrPercentageOrAuto;
 
 #[derive(JSTraceable, HeapSizeOf)]
 #[allow(dead_code)]
@@ -377,9 +378,9 @@ impl VirtualMethods for HTMLImageElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("name") => AttrValue::from_atomic(value),
-            &atom!("width") | &atom!("height") => AttrValue::from_dimension(value),
-            &atom!("hspace") | &atom!("vspace") => AttrValue::from_u32(value, 0),
+            &atom!("name") => AttrValue::from_atomic(value.into()),
+            &atom!("width") | &atom!("height") => AttrValue::from_dimension(value.into()),
+            &atom!("hspace") | &atom!("vspace") => AttrValue::from_u32(value.into(), 0),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
@@ -394,6 +395,6 @@ fn image_dimension_setter(element: &Element, attr: Atom, value: u32) {
         value
     };
     let dim = LengthOrPercentageOrAuto::Length(Au::from_px(value as i32));
-    let value = AttrValue::Dimension(DOMString::from(value.to_string()), dim);
+    let value = AttrValue::Dimension(value.to_string(), dim);
     element.set_attribute(&attr, value);
 }

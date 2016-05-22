@@ -9,13 +9,13 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
 use dom::bluetoothuuid::{BluetoothCharacteristicUUID, BluetoothUUID};
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
-use util::str::DOMString;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattservice
 #[dom_struct]

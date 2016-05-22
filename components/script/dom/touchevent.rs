@@ -9,12 +9,12 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::str::DOMString;
 use dom::event::{EventBubbles, EventCancelable};
 use dom::touchlist::TouchList;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use std::cell::Cell;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct TouchEvent {

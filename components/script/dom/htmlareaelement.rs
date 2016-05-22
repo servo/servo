@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::HTMLAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::htmlelement::HTMLElement;
@@ -14,7 +15,6 @@ use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use std::default::Default;
 use string_cache::Atom;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLAreaElement {
@@ -46,7 +46,7 @@ impl VirtualMethods for HTMLAreaElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("rel") => AttrValue::from_serialized_tokenlist(value),
+            &atom!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

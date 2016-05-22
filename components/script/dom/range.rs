@@ -16,6 +16,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::inheritance::{CharacterDataTypeId, NodeTypeId};
 use dom::bindings::js::{JS, MutHeap, Root, RootedReference};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::bindings::trace::{JSTraceable, RootedVec};
 use dom::bindings::weakref::{WeakRef, WeakRefVec};
 use dom::characterdata::CharacterData;
@@ -27,7 +28,6 @@ use heapsize::HeapSizeOf;
 use js::jsapi::JSTracer;
 use std::cell::{Cell, UnsafeCell};
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct Range {

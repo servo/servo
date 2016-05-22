@@ -8,6 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLDetailsElementBinding::HTMLDetailsElem
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::AttributeMutation;
 use dom::eventtarget::EventTarget;
@@ -18,7 +19,6 @@ use script_thread::Runnable;
 use std::cell::Cell;
 use string_cache::Atom;
 use task_source::dom_manipulation::DOMManipulationTask;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLDetailsElement {

@@ -11,12 +11,12 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use js::jsapi::{RootedValue, HandleValue, JSContext};
 use js::jsval::JSVal;
 use std::cell::Cell;
 use string_cache::Atom;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct ErrorEvent {

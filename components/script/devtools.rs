@@ -15,6 +15,7 @@ use dom::bindings::conversions::{FromJSValConvertible, jsstring_to_str};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
+use dom::bindings::str::DOMString;
 use dom::browsingcontext::{BrowsingContext, IterableContext};
 use dom::element::Element;
 use dom::node::Node;
@@ -27,7 +28,6 @@ use script_thread::get_browsing_context;
 use std::ffi::CStr;
 use std::str;
 use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left};
-use util::str::DOMString;
 use uuid::Uuid;
 
 #[allow(unsafe_code)]

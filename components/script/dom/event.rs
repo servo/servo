@@ -9,12 +9,12 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::eventtarget::EventTarget;
 use std::cell::Cell;
 use std::default::Default;
 use string_cache::Atom;
 use time;
-use util::str::DOMString;
 
 #[derive(JSTraceable, Copy, Clone, Debug, PartialEq, Eq)]
 #[repr(u16)]

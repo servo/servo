@@ -9,13 +9,13 @@ use dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
 use dom::node::Node;
 use dom::radionodelist::RadioNodeList;
 use dom::window::Window;
 use std::iter;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLFormControlsCollection {
