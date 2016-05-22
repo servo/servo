@@ -7,7 +7,7 @@ use dom::bindings::codegen::Bindings::ForceTouchEventBinding::ForceTouchEventMet
 use dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{Root};
+use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
