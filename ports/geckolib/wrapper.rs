@@ -4,6 +4,7 @@
 
 #![allow(unsafe_code)]
 
+use gecko_bindings::bindings::ServoNodeData;
 use gecko_bindings::bindings::{Gecko_ChildrenCount};
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetAttrAsUTF8, Gecko_GetDocumentElement};
 use gecko_bindings::bindings::{Gecko_GetFirstChild, Gecko_GetFirstChildElement};
@@ -17,7 +18,6 @@ use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink};
 #[allow(unused_imports)] // Used in commented-out code.
 use gecko_bindings::bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsElement, Gecko_SetNodeData};
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
-use gecko_bindings::bindings::{ServoNodeData};
 use libc::uintptr_t;
 use properties::GeckoComputedValues;
 use selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PrivateStyleData};

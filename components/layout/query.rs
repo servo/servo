@@ -13,7 +13,7 @@ use flow;
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use gfx::display_list::OpaqueNode;
-use gfx_traits::{LayerId};
+use gfx_traits::LayerId;
 use layout_thread::LayoutThreadData;
 use opaque_node::OpaqueNodeMethods;
 use script::layout_interface::{ContentBoxResponse, NodeOverflowResponse, ContentBoxesResponse, NodeGeometryResponse};

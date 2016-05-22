@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::PluginBinding::PluginMethods;
 use dom::bindings::js::Root;
-use dom::bindings::reflector::{Reflector};
+use dom::bindings::reflector::Reflector;
 use dom::mimetype::MimeType;
 use util::str::DOMString;
 
