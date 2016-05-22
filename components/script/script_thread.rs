@@ -30,6 +30,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootCollection};
 use dom::bindings::js::{RootCollectionPtr, RootedReference};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted};
+use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WRAP_CALLBACKS;
 use dom::browsingcontext::{BrowsingContext, IterableContext};
@@ -102,7 +103,6 @@ use task_source::user_interaction::{UserInteractionTaskSource, UserInteractionTa
 use time::Tm;
 use url::{Url, Position};
 use util::opts;
-use util::str::DOMString;
 use util::thread;
 use util::thread_state;
 use webdriver_handlers;

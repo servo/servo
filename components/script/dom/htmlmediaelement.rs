@@ -15,6 +15,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, MutNullableHeap, JS};
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, AttributeMutation};
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -34,7 +35,6 @@ use string_cache::Atom;
 use task_source::dom_manipulation::DOMManipulationTask;
 use time::{self, Timespec, Duration};
 use url::Url;
-use util::str::DOMString;
 
 struct HTMLMediaElementContext {
     /// The element that initiated the request.

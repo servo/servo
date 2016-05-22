@@ -19,6 +19,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, LayoutJS};
 use dom::bindings::reflector::Reflectable;
+use dom::bindings::str::DOMString;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -42,7 +43,7 @@ use string_cache::Atom;
 use style::context::ReflowGoal;
 use url::Url;
 use util::prefs;
-use util::str::{DOMString, LengthOrPercentageOrAuto};
+use util::str::LengthOrPercentageOrAuto;
 
 pub fn mozbrowser_enabled() -> bool {
     prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false)
@@ -539,9 +540,9 @@ impl VirtualMethods for HTMLIFrameElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("sandbox") => AttrValue::from_serialized_tokenlist(value),
-            &atom!("width") => AttrValue::from_dimension(value),
-            &atom!("height") => AttrValue::from_dimension(value),
+            &atom!("sandbox") => AttrValue::from_serialized_tokenlist(value.into()),
+            &atom!("width") => AttrValue::from_dimension(value.into()),
+            &atom!("height") => AttrValue::from_dimension(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

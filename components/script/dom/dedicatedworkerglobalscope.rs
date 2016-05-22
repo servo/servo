@@ -14,6 +14,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::reflector::Reflectable;
+use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::messageevent::MessageEvent;
 use dom::worker::{SimpleWorkerErrorHandler, SharedRt, TrustedWorkerAddress};
@@ -36,7 +37,6 @@ use std::mem::replace;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::sync::{Arc, Mutex};
 use url::Url;
-use util::str::DOMString;
 use util::thread::spawn_named_with_send_on_panic;
 use util::thread_state::{IN_WORKER, SCRIPT};
 

@@ -9,6 +9,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::str::DOMString;
 use dom::browsingcontext::BrowsingContext;
 use dom::document::{Document, DocumentSource, IsHTMLDocument};
 use dom::location::Location;
@@ -16,7 +17,6 @@ use dom::node::Node;
 use dom::window::Window;
 use js::jsapi::{JSContext, JSObject};
 use url::Url;
-use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#xmldocument
 #[dom_struct]

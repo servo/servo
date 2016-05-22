@@ -10,9 +10,9 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root};
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::str::DOMString;
 use dom::uievent::UIEvent;
 use dom::window::Window;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct ForceTouchEvent {

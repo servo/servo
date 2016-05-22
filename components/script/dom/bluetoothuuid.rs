@@ -7,8 +7,8 @@ use dom::bindings::error::Error::Syntax;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::reflector::Reflector;
+use dom::bindings::str::DOMString;
 use regex::Regex;
-use util::str::DOMString;
 
 pub type UUID = DOMString;
 pub type BluetoothServiceUUID = StringOrUnsignedLong;

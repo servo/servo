@@ -10,6 +10,7 @@ use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateEl
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
 use dom::bindings::js::{JS, RootedReference};
+use dom::bindings::str::DOMString;
 use dom::characterdata::CharacterData;
 use dom::comment::Comment;
 use dom::document::Document;
@@ -37,7 +38,6 @@ use std::borrow::Cow;
 use std::io::{self, Write};
 use string_cache::QualName;
 use url::Url;
-use util::str::DOMString;
 
 fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<JS<Node>>) {
     match child {

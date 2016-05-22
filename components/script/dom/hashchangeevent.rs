@@ -10,10 +10,9 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
-use dom::bindings::str::USVString;
+use dom::bindings::str::{DOMString, USVString};
 use dom::event::Event;
 use string_cache::Atom;
-use util::str::DOMString;
 
 // https://html.spec.whatwg.org/multipage/#hashchangeevent
 #[dom_struct]

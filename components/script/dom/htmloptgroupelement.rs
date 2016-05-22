@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding;
 use dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupElementMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
@@ -15,7 +16,6 @@ use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
 use style::element_state::*;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLOptGroupElement {

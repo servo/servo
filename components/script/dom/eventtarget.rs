@@ -19,6 +19,7 @@ use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -42,7 +43,6 @@ use std::ptr;
 use std::rc::Rc;
 use string_cache::Atom;
 use url::Url;
-use util::str::DOMString;
 
 #[derive(PartialEq, Clone, JSTraceable)]
 pub enum CommonEventHandler {

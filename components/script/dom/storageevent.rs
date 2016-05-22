@@ -10,11 +10,11 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storage::Storage;
 use dom::window::Window;
 use string_cache::Atom;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct StorageEvent {

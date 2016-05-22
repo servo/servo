@@ -10,11 +10,11 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{MutHeapJSVal, Root};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::str::DOMString;
 use dom::event::Event;
 use js::jsapi::{HandleValue, JSContext};
 use js::jsval::JSVal;
 use string_cache::Atom;
-use util::str::DOMString;
 
 // https://html.spec.whatwg.org/multipage/#the-popstateevent-interface
 #[dom_struct]

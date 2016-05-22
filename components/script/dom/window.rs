@@ -19,6 +19,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::Reflectable;
+use dom::bindings::str::DOMString;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use dom::browsingcontext::BrowsingContext;
 use dom::console::Console;
@@ -92,7 +93,7 @@ use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Url;
 use util::geometry::{self, MAX_RECT};
-use util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use util::str::HTML_SPACE_CHARACTERS;
 use util::{breakpoint, opts};
 use webdriver_handlers::jsval_to_webdriver;
 

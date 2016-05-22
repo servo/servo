@@ -18,7 +18,7 @@ layout = {path = "../../components/layout"}
 devtools = {path = "../../components/devtools"}
 servo = {path = "../../components/servo", default-features = false}
 profile = {path = "../../components/profile"}
-util = {path = "../../components/util", features = ["non-geckolib"]}
+util = {path = "../../components/util"}
 env_logger = "0.3"
 url = {version = "1.0.0", features = ["heap_size"]}
 time = "0.1.17"

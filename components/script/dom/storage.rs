@@ -10,6 +10,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::browsingcontext::IterableContext;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storageevent::StorageEvent;
@@ -20,7 +21,6 @@ use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use script_thread::{MainThreadRunnable, ScriptThread};
 use task_source::dom_manipulation::DOMManipulationTask;
 use url::Url;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct Storage {
