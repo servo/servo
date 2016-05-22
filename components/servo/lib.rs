@@ -60,11 +60,11 @@ fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 use compositing::CompositorEventListener;
 use compositing::CompositorMsg as ConstellationMsg;
 use compositing::compositor_thread::InitialCompositorState;
-#[cfg(not(target_os = "windows"))]
-use compositing::sandboxing;
 use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
 use compositing::{CompositorProxy, CompositorThread};
+#[cfg(not(target_os = "windows"))]
+use constellation::content_process_sandbox_profile;
 use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
 #[cfg(not(target_os = "windows"))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
@@ -280,7 +280,7 @@ pub unsafe extern fn __errno_location() -> *mut i32 {
 
 #[cfg(not(target_os = "windows"))]
 fn create_sandbox() {
-    ChildSandbox::new(sandboxing::content_process_sandbox_profile()).activate()
+    ChildSandbox::new(content_process_sandbox_profile()).activate()
         .expect("Failed to activate sandbox!");
 }
 

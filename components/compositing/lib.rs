@@ -15,8 +15,6 @@ extern crate app_units;
 
 extern crate azure;
 extern crate euclid;
-#[cfg(not(target_os = "windows"))]
-extern crate gaol;
 extern crate gfx;
 extern crate gfx_traits;
 extern crate gleam;
@@ -59,8 +57,6 @@ mod compositor;
 mod compositor_layer;
 pub mod compositor_thread;
 mod delayed_composition;
-#[cfg(not(target_os = "windows"))]
-pub mod sandboxing;
 mod surface_map;
 mod touch;
 pub mod windowing;
