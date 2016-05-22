@@ -9,10 +9,10 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::str::DOMString;
 use dom::blob::{Blob, DataSlice, blob_parts_to_bytes};
 use std::sync::Arc;
 use time;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct File {

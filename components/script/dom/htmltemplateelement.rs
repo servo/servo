@@ -8,13 +8,13 @@ use dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTemplateEl
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
 use dom::htmlelement::HTMLElement;
 use dom::node::{CloneChildrenFlag, Node, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLTemplateElement {

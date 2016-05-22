@@ -159,7 +159,8 @@ macro_rules! make_url_setter(
             use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             use dom::node::document_from_node;
-            let value = AttrValue::from_url(document_from_node(self).url(), value);
+            let value = AttrValue::from_url(document_from_node(self).url(),
+                                            value.into());
             let element = self.upcast::<Element>();
             element.set_attribute(&atom!($htmlname), value);
         }
@@ -231,7 +232,7 @@ macro_rules! make_legacy_color_setter(
             use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             let element = self.upcast::<Element>();
-            let value = AttrValue::from_legacy_color(value);
+            let value = AttrValue::from_legacy_color(value.into());
             element.set_attribute(&atom!($htmlname), value)
         }
     );
@@ -244,7 +245,7 @@ macro_rules! make_dimension_setter(
             use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             let element = self.upcast::<Element>();
-            let value = AttrValue::from_dimension(value);
+            let value = AttrValue::from_dimension(value.into());
             element.set_attribute(&atom!($htmlname), value)
         }
     );
@@ -257,7 +258,7 @@ macro_rules! make_nonzero_dimension_setter(
             use dom::bindings::inheritance::Castable;
             use dom::element::Element;
             let element = self.upcast::<Element>();
-            let value = AttrValue::from_nonzero_dimension(value);
+            let value = AttrValue::from_nonzero_dimension(value.into());
             element.set_attribute(&atom!($htmlname), value)
         }
     );

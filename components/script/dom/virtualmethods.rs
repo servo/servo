@@ -7,6 +7,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::inheritance::ElementTypeId;
 use dom::bindings::inheritance::HTMLElementTypeId;
 use dom::bindings::inheritance::NodeTypeId;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::event::Event;
@@ -46,7 +47,6 @@ use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
 use string_cache::Atom;
-use util::str::DOMString;
 
 
 /// Trait to allow DOM nodes to opt-in to overriding (or adding to) common
@@ -70,7 +70,7 @@ pub trait VirtualMethods {
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match self.super_type() {
             Some(ref s) => s.parse_plain_attribute(name, value),
-            _ => AttrValue::String(value),
+            _ => AttrValue::String(value.into()),
         }
     }
 

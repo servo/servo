@@ -10,12 +10,12 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::str::DOMString;
 use dom::event::{EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
 use dom::uievent::UIEvent;
 use dom::window::Window;
 use std::default::Default;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct FocusEvent {

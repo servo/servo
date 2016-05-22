@@ -11,6 +11,7 @@ use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root, RootedReference};
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::htmlcollection::{CollectionFilter, HTMLCollection};
@@ -24,7 +25,7 @@ use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use string_cache::Atom;
 use style::attr::parse_unsigned_integer;
-use util::str::{DOMString, LengthOrPercentageOrAuto};
+use util::str::LengthOrPercentageOrAuto;
 
 #[dom_struct]
 pub struct HTMLTableElement {
@@ -419,9 +420,9 @@ impl VirtualMethods for HTMLTableElement {
 
     fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
         match *local_name {
-            atom!("border") => AttrValue::from_u32(value, 1),
-            atom!("width") => AttrValue::from_nonzero_dimension(value),
-            atom!("bgcolor") => AttrValue::from_legacy_color(value),
+            atom!("border") => AttrValue::from_u32(value.into(), 1),
+            atom!("width") => AttrValue::from_nonzero_dimension(value.into()),
+            atom!("bgcolor") => AttrValue::from_legacy_color(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }

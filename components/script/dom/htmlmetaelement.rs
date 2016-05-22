@@ -8,6 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLMetaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;
@@ -19,7 +20,7 @@ use string_cache::Atom;
 use style::servo::Stylesheet;
 use style::stylesheets::{CSSRule, Origin};
 use style::viewport::ViewportRule;
-use util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use util::str::HTML_SPACE_CHARACTERS;
 
 #[dom_struct]
 pub struct HTMLMetaElement {
@@ -117,7 +118,7 @@ impl VirtualMethods for HTMLMetaElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("name") => AttrValue::from_atomic(value),
+            &atom!("name") => AttrValue::from_atomic(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

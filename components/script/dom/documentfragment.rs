@@ -10,13 +10,13 @@ use dom::bindings::error::{ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::Element;
 use dom::htmlcollection::HTMLCollection;
 use dom::node::{Node, window_from_node};
 use dom::nodelist::NodeList;
 use string_cache::Atom;
-use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#documentfragment
 #[dom_struct]

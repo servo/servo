@@ -26,6 +26,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
+use dom::bindings::str::DOMString;
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::characterdata::CharacterData;
@@ -91,7 +92,7 @@ use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_sty
 use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA, LengthOrPercentage};
-use util::str::{DOMString, LengthOrPercentageOrAuto};
+use util::str::LengthOrPercentageOrAuto;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,
 // and when the element enters or leaves a browsing context container.
@@ -1031,7 +1032,7 @@ impl Element {
         if *namespace == ns!() {
             vtable_for(self.upcast()).parse_plain_attribute(local_name, value)
         } else {
-            AttrValue::String(value)
+            AttrValue::String(value.into())
         }
     }
 
@@ -1076,7 +1077,7 @@ impl Element {
 
     pub fn set_atomic_attribute(&self, local_name: &Atom, value: DOMString) {
         assert!(*local_name == local_name.to_ascii_lowercase());
-        let value = AttrValue::from_atomic(value);
+        let value = AttrValue::from_atomic(value.into());
         self.set_attribute(local_name, value);
     }
 
@@ -1126,7 +1127,7 @@ impl Element {
     }
     pub fn set_string_attribute(&self, local_name: &Atom, value: DOMString) {
         assert!(*local_name == local_name.to_ascii_lowercase());
-        self.set_attribute(local_name, AttrValue::String(value));
+        self.set_attribute(local_name, AttrValue::String(value.into()));
     }
 
     pub fn get_tokenlist_attribute(&self, local_name: &Atom) -> Vec<Atom> {
@@ -1140,7 +1141,8 @@ impl Element {
 
     pub fn set_tokenlist_attribute(&self, local_name: &Atom, value: DOMString) {
         assert!(*local_name == local_name.to_ascii_lowercase());
-        self.set_attribute(local_name, AttrValue::from_serialized_tokenlist(value));
+        self.set_attribute(local_name,
+                           AttrValue::from_serialized_tokenlist(value.into()));
     }
 
     pub fn set_atomic_tokenlist_attribute(&self, local_name: &Atom, tokens: Vec<Atom>) {
@@ -1169,7 +1171,7 @@ impl Element {
 
     pub fn set_int_attribute(&self, local_name: &Atom, value: i32) {
         assert!(*local_name == local_name.to_ascii_lowercase());
-        self.set_attribute(local_name, AttrValue::Int(DOMString::from(value.to_string()), value));
+        self.set_attribute(local_name, AttrValue::Int(value.to_string(), value));
     }
 
     pub fn get_uint_attribute(&self, local_name: &Atom, default: u32) -> u32 {
@@ -1187,9 +1189,7 @@ impl Element {
     }
     pub fn set_uint_attribute(&self, local_name: &Atom, value: u32) {
         assert!(*local_name == local_name.to_ascii_lowercase());
-        // FIXME(ajeffrey): Directly convert u32 to DOMString
-        self.set_attribute(local_name,
-                           AttrValue::UInt(DOMString::from(value.to_string()), value));
+        self.set_attribute(local_name, AttrValue::UInt(value.to_string(), value));
     }
 
     pub fn will_mutate_attr(&self) {
@@ -2032,8 +2032,8 @@ impl VirtualMethods for Element {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("id") => AttrValue::from_atomic(value),
-            &atom!("class") => AttrValue::from_serialized_tokenlist(value),
+            &atom!("id") => AttrValue::from_atomic(value.into()),
+            &atom!("class") => AttrValue::from_serialized_tokenlist(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

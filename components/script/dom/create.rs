@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::js::Root;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::Element;
 use dom::element::ElementCreator;
@@ -76,7 +77,6 @@ use dom::htmlulistelement::HTMLUListElement;
 use dom::htmlunknownelement::HTMLUnknownElement;
 use dom::htmlvideoelement::HTMLVideoElement;
 use string_cache::{Atom, QualName};
-use util::str::DOMString;
 
 pub fn create_element(name: QualName,
                       prefix: Option<Atom>,

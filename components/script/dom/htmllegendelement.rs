@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::HTMLLegendElementBinding::HTMLLegendElemen
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;
@@ -15,7 +16,6 @@ use dom::htmlformelement::{HTMLFormElement, FormControl};
 use dom::node::{Node, UnbindContext};
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLLegendElement {

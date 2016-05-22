@@ -7,6 +7,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::reflector::Reflectable;
+use dom::bindings::str::DOMString;
 use dom::window::ScriptHelpers;
 use dom::xmlhttprequest::XHRTimeoutCallback;
 use euclid::length::Length;
@@ -21,7 +22,6 @@ use std::cmp::{self, Ord, Ordering};
 use std::collections::HashMap;
 use std::default::Default;
 use std::rc::Rc;
-use util::str::DOMString;
 
 #[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf, Hash, PartialOrd, Ord, Debug)]
 pub struct OneshotTimerHandle(i32);

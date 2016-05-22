@@ -8,9 +8,9 @@ use dom::bindings::error::ErrorResult;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::htmlelement::HTMLElement;
 use dom::node::window_from_node;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct DOMStringMap {
