@@ -5,6 +5,7 @@
 //! Communication with the compositor thread.
 
 use CompositorMsg as ConstellationMsg;
+use SendableFrameTree;
 use compositor::{self, CompositingReason};
 use euclid::point::Point2D;
 use euclid::size::Size2D;
@@ -22,11 +23,9 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
 use url::Url;
-use windowing::{WindowEvent, WindowMethods};
-pub use SendableFrameTree;
-pub use windowing;
 use webrender;
 use webrender_traits;
+use windowing::{WindowEvent, WindowMethods};
 
 /// Sends messages to the compositor. This is a trait supplied by the port because the method used
 /// to communicate with the compositor may have to kick OS event loops awake, communicate cross-
