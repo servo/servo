@@ -57,7 +57,7 @@ use js::jsapi::{DOMProxyShadowsResult, HandleId, HandleObject, RootedValue};
 use js::jsapi::{JSContext, JS_SetWrapObjectCallbacks, JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use layout_interface::{ReflowQueryType};
+use layout_interface::ReflowQueryType;
 use layout_interface::{self, LayoutChan, NewLayoutThreadInfo};
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{LoadData, PanicMsg, PipelineId, PipelineNamespace};

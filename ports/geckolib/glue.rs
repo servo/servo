@@ -21,7 +21,7 @@ use std::ptr;
 use std::slice;
 use std::str::from_utf8_unchecked;
 use std::sync::{Arc, Mutex};
-use style::context::{ReflowGoal};
+use style::context::ReflowGoal;
 use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::parallel;
