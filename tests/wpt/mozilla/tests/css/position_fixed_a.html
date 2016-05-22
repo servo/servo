@@ -5,6 +5,11 @@
     .container {
       display: block;
       background: blue;
+
+      /* Use font available on all hosts, instead of system font,
+         because test reference depends on dynamic sizing, and different
+         fonts change the required margins. */
+      font-family: 'Ahem';
     }
     .fixed_block {
       background: green;
@@ -26,19 +31,13 @@
       top: 100px;
       bottom: 30px;
     }
-    .stretched_fixed_block {
-      position: fixed;
-      background: black;
-      top: 100px;
-      bottom: 30px;
-    }
   </style>
   </head>
   <body>
     <div class="container">
-      <div class="fixed_block"> fixed block </div>
-      <div class="positioned_fixed_block"> positioned fixed block </div>
-      <div class="sized_fixed_block"> sized fixed block </div>
+      <div class="fixed_block"> a </div>
+      <div class="sized_fixed_block"> b </div>
+      <div class="positioned_fixed_block"> c </div>
     </div>
   </body>
 </html>
