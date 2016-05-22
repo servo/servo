@@ -1212,6 +1212,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/browsers.html#fully-active
     fn handle_is_pipeline_fully_active(&mut self, pipeline_id: PipelineId, sender: IpcSender<bool>) {
         // Iterate through the frame tree and see if this pipeline matches any of the
         // active frame pipelines.
