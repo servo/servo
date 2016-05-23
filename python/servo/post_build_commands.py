@@ -131,7 +131,10 @@ class PostBuildCommands(CommandBase):
             if browserhtml_path is None:
                 print("Could not find browserhtml package; perhaps you haven't built Servo.")
                 return 1
-            args = args + ['-w', '-b', '--pref', 'dom.mozbrowser.enabled',
+            args = args + ['-w', '-b',
+                           '--pref', 'dom.mozbrowser.enabled',
+                           '--pref', 'dom.forcetouch.enabled',
+                           '--pref', 'shell.quit-on-escape.enabled=false',
                            path.join(browserhtml_path, 'out', 'index.html')]
             args = args + params
         else:
