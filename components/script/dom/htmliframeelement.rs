@@ -41,12 +41,8 @@ use std::cell::Cell;
 use string_cache::Atom;
 use style::context::ReflowGoal;
 use url::Url;
-use util::prefs;
+use util::prefs::mozbrowser_enabled;
 use util::str::{DOMString, LengthOrPercentageOrAuto};
-
-pub fn mozbrowser_enabled() -> bool {
-    prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false)
-}
 
 #[derive(HeapSizeOf)]
 enum SandboxAllowance {

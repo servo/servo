@@ -230,3 +230,7 @@ pub fn reset_all_prefs() {
         reset_pref(name);
     }
 }
+
+pub fn mozbrowser_enabled() -> bool {
+    get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false)
+}
