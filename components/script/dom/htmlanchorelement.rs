@@ -80,8 +80,8 @@ impl HTMLAnchorElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#update-href
-    fn update_href(&self, url: DOMString) {
-        self.upcast::<Element>().set_string_attribute(&atom!("href"), url);
+    fn update_href(&self, url: &Url) {
+        self.upcast::<Element>().set_string_attribute(&atom!("href"), DOMString::from(url.as_str()));
     }
 }
 
@@ -161,18 +161,17 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
         self.reinitialize_url();
 
         // Step 2.
-        let url = match self.url.borrow_mut().as_mut() {
+        match self.url.borrow_mut().as_mut() {
             // Step 3.
             Some(ref url) if url.scheme() == "javascript" => return,
             None => return,
             // Steps 4-5.
             Some(url) => {
                 UrlHelper::SetHash(url, value);
-                DOMString::from(url.as_str())
+                // Step 6.
+                self.update_href(url);
             }
         };
-        // Step 6.
-        self.update_href(url);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-host
@@ -200,18 +199,17 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
         self.reinitialize_url();
 
         // Step 2.
-        let url = match self.url.borrow_mut().as_mut() {
+        match self.url.borrow_mut().as_mut() {
             // Step 3.
             Some(ref url) if url.cannot_be_a_base() => return,
             None => return,
             // Step 4.
             Some(url) => {
                 UrlHelper::SetHost(url, value);
-                DOMString::from(url.as_str())
+                // Step 5.
+                self.update_href(url);
             }
         };
-        // Step 5.
-        self.update_href(url);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-hostname
@@ -235,18 +233,17 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
         self.reinitialize_url();
 
         // Step 2.
-        let url = match self.url.borrow_mut().as_mut() {
+        match self.url.borrow_mut().as_mut() {
             // Step 3.
             Some(ref url) if url.cannot_be_a_base() => return,
             None => return,
             // Step 4.
             Some(url) => {
                 UrlHelper::SetHostname(url, value);
-                DOMString::from(url.as_str())
+                // Step 5.
+                self.update_href(url);
             }
         };
-        // Step 5.
-        self.update_href(url);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-href
@@ -294,18 +291,17 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
         self.reinitialize_url();
 
         // Step 2.
-        let url = match self.url.borrow_mut().as_mut() {
+        match self.url.borrow_mut().as_mut() {
             // Step 3.
             Some(ref url) if url.host().is_none() || url.cannot_be_a_base() => return,
             None => return,
             // Step 4.
             Some(url) => {
                 UrlHelper::SetPassword(url, value);
-                DOMString::from(url.as_str())
+                // Step 5.
+                self.update_href(url);
             }
         };
-        // Step 5.
-        self.update_href(url);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-pathname
@@ -327,18 +323,17 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
         self.reinitialize_url();
 
         // Step 2.
-        let url = match self.url.borrow_mut().as_mut() {
+        match self.url.borrow_mut().as_mut() {
             // Step 3.
             Some(ref url) if url.cannot_be_a_base() => return,
             None => return,
             // Step 5.
             Some(url) => {
                 UrlHelper::SetPathname(url, value);
-                DOMString::from(url.as_str())
+                // Step 6.
+                self.update_href(url);
             }
         };
-        // Step 6.
-        self.update_href(url);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-port
@@ -360,7 +355,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
         self.reinitialize_url();
 
         // Step 3.
-        let url = match self.url.borrow_mut().as_mut() {
+        match self.url.borrow_mut().as_mut() {
             Some(ref url) if url.host().is_none() ||
                 url.cannot_be_a_base() ||
                 url.scheme() == "file" => return,
@@ -368,11 +363,10 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             // Step 4.
             Some(url) => {
                 UrlHelper::SetPort(url, value);
-                DOMString::from(url.as_str())
+                // Step 5.
+                self.update_href(url);
             }
         };
-        // Step 5.
-        self.update_href(url);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-protocol
@@ -393,17 +387,16 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
         // Step 1.
         self.reinitialize_url();
 
-        let url = match self.url.borrow_mut().as_mut() {
+        match self.url.borrow_mut().as_mut() {
             // Step 2.
             None => return,
             // Step 3.
             Some(url) => {
                 UrlHelper::SetProtocol(url, value);
-                DOMString::from(url.as_str())
+                // Step 4.
+                self.update_href(url);
             }
         };
-        // Step 4.
-        self.update_href(url);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-search
@@ -425,7 +418,7 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
         self.reinitialize_url();
 
         // Step 2.
-        let url = match self.url.borrow_mut().as_mut() {
+        match self.url.borrow_mut().as_mut() {
             // Step 3.
             None => return,
             // Steps 4-5.
@@ -433,11 +426,10 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
             // encoding override (as described in the spec)
             Some(url) => {
                 UrlHelper::SetSearch(url, value);
-                DOMString::from(url.as_str())
+                // Step 6.
+                self.update_href(url);
             }
         };
-        // Step 6.
-        self.update_href(url);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-username
@@ -459,18 +451,17 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
         self.reinitialize_url();
 
         // Step 2.
-        let url = match self.url.borrow_mut().as_mut() {
+        match self.url.borrow_mut().as_mut() {
             // Step 3.
             Some(ref url) if url.host().is_none() || url.cannot_be_a_base() => return,
             None => return,
             // Step 4.
             Some(url) => {
                 UrlHelper::SetUsername(url, value);
-                DOMString::from(url.as_str())
+                // Step 5.
+                self.update_href(url);
             }
         };
-        // Step 5.
-        self.update_href(url);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-href
