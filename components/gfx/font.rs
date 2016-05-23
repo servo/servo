@@ -172,7 +172,7 @@ struct ShapeCacheEntry {
 
 impl Font {
     pub fn shape_text(&mut self, text: &str, options: &ShapingOptions) -> Arc<GlyphStore> {
-        self.make_shaper(options);
+        self.make_shaper();
 
         //FIXME: find the equivalent of Equiv and the old ShapeCacheEntryRef
         let shaper = &self.shaper;
@@ -198,16 +198,10 @@ impl Font {
         })
     }
 
-    fn make_shaper<'a>(&'a mut self, options: &ShapingOptions) -> &'a Shaper {
-        // fast path: already created a shaper
-        if let Some(ref mut shaper) = self.shaper {
-            shaper.set_options(options);
-            return shaper
+    fn make_shaper(&mut self) {
+        if self.shaper.is_none() {
+            self.shaper = Some(Shaper::new(self));
         }
-
-        let shaper = Shaper::new(self, options);
-        self.shaper = Some(shaper);
-        self.shaper.as_ref().unwrap()
     }
 
     pub fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {

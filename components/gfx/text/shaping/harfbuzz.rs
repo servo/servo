@@ -127,16 +127,10 @@ impl ShapedGlyphData {
 }
 
 #[derive(Debug)]
-struct FontAndShapingOptions {
-    font: *mut Font,
-    options: ShapingOptions,
-}
-
-#[derive(Debug)]
 pub struct Shaper {
     hb_face: *mut hb_face_t,
     hb_font: *mut hb_font_t,
-    font_and_shaping_options: Box<FontAndShapingOptions>,
+    font: *mut Font,
 }
 
 impl Drop for Shaper {
@@ -152,15 +146,11 @@ impl Drop for Shaper {
 }
 
 impl Shaper {
-    pub fn new(font: &mut Font, options: &ShapingOptions) -> Shaper {
+    pub fn new(font: &mut Font) -> Shaper {
         unsafe {
-            let mut font_and_shaping_options = box FontAndShapingOptions {
-                font: font,
-                options: *options,
-            };
             let hb_face: *mut hb_face_t =
                 hb_face_create_for_tables(Some(font_table_func),
-                                          &mut *font_and_shaping_options as *mut _ as *mut c_void,
+                                          font as *mut _ as *mut c_void,
                                           None);
             let hb_font: *mut hb_font_t = hb_font_create(hb_face);
 
@@ -179,13 +169,9 @@ impl Shaper {
             Shaper {
                 hb_face: hb_face,
                 hb_font: hb_font,
-                font_and_shaping_options: font_and_shaping_options,
+                font: font,
             }
         }
-    }
-
-    pub fn set_options(&mut self, options: &ShapingOptions) {
-        self.font_and_shaping_options.options = *options
     }
 
     fn float_to_fixed(f: f64) -> i32 {
@@ -409,8 +395,7 @@ impl Shaper {
                     //
                     // TODO: Proper tab stops.
                     const TAB_COLS: i32 = 8;
-                    let font = self.font_and_shaping_options.font;
-                    let (space_glyph_id, space_advance) = glyph_space_advance(font);
+                    let (space_glyph_id, space_advance) = glyph_space_advance(self.font);
                     let advance = Au::from_f64_px(space_advance) * TAB_COLS;
                     let data = GlyphData::new(space_glyph_id,
                                               advance,
@@ -557,13 +542,11 @@ extern fn font_table_func(_: *mut hb_face_t,
                               -> *mut hb_blob_t {
     unsafe {
         // NB: These asserts have security implications.
-        let font_and_shaping_options: *const FontAndShapingOptions =
-            user_data as *const FontAndShapingOptions;
-        assert!(!font_and_shaping_options.is_null());
-        assert!(!(*font_and_shaping_options).font.is_null());
+        let font = user_data as *const Font;
+        assert!(!font.is_null());
 
         // TODO(Issue #197): reuse font table data, which will change the unsound trickery here.
-        match (*(*font_and_shaping_options).font).table_for_tag(tag as FontTableTag) {
+        match (*font).table_for_tag(tag as FontTableTag) {
             None => ptr::null_mut(),
             Some(font_table) => {
                 // `Box::into_raw` intentionally leaks the FontTable so we don't destroy the buffer
