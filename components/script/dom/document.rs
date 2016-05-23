@@ -1055,7 +1055,7 @@ impl Document {
                               key: Key,
                               state: KeyState,
                               modifiers: KeyModifiers,
-                              compositor: &mut IpcSender<ScriptToCompositorMsg>) {
+                              compositor: &IpcSender<ScriptToCompositorMsg>) {
         let focused = self.get_focused_element();
         let body = self.GetBody();
 
