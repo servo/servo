@@ -22,7 +22,7 @@ libc = "0.2"
 num_cpus = "0.2.2"
 selectors = "0.6"
 smallvec = "0.1"
-string_cache = "0.2.16"
+string_cache = "0.2.17"
 url = "1.0.0"
 log = {version = "0.3.5", features = ["release_max_level_info"]}
 plugins = {path = "../../components/plugins"}
@@ -31,4 +31,4 @@ style = {path = "../../components/style", features = ["gecko"]}
 env_logger = "0.3"
 
 [replace]
-"string_cache:0.2.16" = {path = "string_cache"}
+"string_cache:0.2.17" = {path = "string_cache"}

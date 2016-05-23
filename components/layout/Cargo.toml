@@ -36,7 +36,7 @@ selectors = {version = "0.6", features = ["heap_size"]}
 serde_json = "0.7"
 serde_macros = "0.7"
 smallvec = "0.1"
-string_cache = {version = "0.2.12", features = ["heap_size"]}
+string_cache = {version = "0.2.17", features = ["heap_size"]}
 style = {path = "../style"}
 style_traits = {path = "../style_traits"}
 time = "0.1"
