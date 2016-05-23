@@ -1045,8 +1045,6 @@ impl ScriptThread {
                 webdriver_handlers::handle_get_frame_id(&context, pipeline_id, frame_id, reply),
             WebDriverScriptCommand::GetUrl(reply) =>
                 webdriver_handlers::handle_get_url(&context, pipeline_id, reply),
-            WebDriverScriptCommand::GetWindowSize(reply) =>
-                webdriver_handlers::handle_get_window_size(&context, pipeline_id, reply),
             WebDriverScriptCommand::IsEnabled(element_id, reply) =>
                 webdriver_handlers::handle_is_enabled(&context, pipeline_id, element_id, reply),
             WebDriverScriptCommand::IsSelected(element_id, reply) =>

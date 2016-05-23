@@ -2344,6 +2344,7 @@ name = "webdriver_server"
 version = "0.0.1"
 dependencies = [
  "compositing 0.0.1",
+ "euclid 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.2 (git+https://github.com/servo/ipc-channel)",

@@ -30,7 +30,7 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::JSContext;
 use js::jsapi::{HandleValue, RootedValue};
 use js::jsval::UndefinedValue;
-use msg::constellation_msg::{PipelineId, WindowSizeData};
+use msg::constellation_msg::PipelineId;
 use msg::webdriver_msg::{WebDriverFrameId, WebDriverJSError, WebDriverJSResult, WebDriverJSValue};
 use script_thread::get_browsing_context;
 use url::Url;
@@ -280,14 +280,6 @@ pub fn handle_get_url(context: &BrowsingContext,
     let document = context.active_document();
     let url = document.url();
     reply.send((*url).clone()).unwrap();
-}
-
-pub fn handle_get_window_size(context: &BrowsingContext,
-                              _pipeline: PipelineId,
-                              reply: IpcSender<Option<WindowSizeData>>) {
-    let window = context.active_window();
-    let size = window.window_size();
-    reply.send(size).unwrap();
 }
 
 pub fn handle_is_enabled(context: &BrowsingContext,
