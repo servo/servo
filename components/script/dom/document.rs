@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use core::ops::Deref;
 use devtools_traits::CSSError;
 use document_loader::{DocumentLoader, LoadType};
 use dom::activation::{ActivationSource, synthetic_click_activation};
@@ -34,6 +35,7 @@ use dom::bindings::xmlname::{validate_and_extract, namespace_from_domstring, xml
 use dom::browsingcontext::BrowsingContext;
 use dom::closeevent::CloseEvent;
 use dom::comment::Comment;
+use dom::cssstylesheet::CSSStyleSheet;
 use dom::customevent::CustomEvent;
 use dom::documentfragment::DocumentFragment;
 use dom::documenttype::DocumentType;
@@ -1840,6 +1842,12 @@ impl Document {
     //TODO - for now, returns no-referrer for all until reading in the value
     pub fn get_referrer_policy(&self) -> Option<ReferrerPolicy> {
         return self.referrer_policy.clone();
+    }
+
+    pub fn get_nth_cssstylesheet(&self, index: u32) -> Root<CSSStyleSheet> {
+        let (ref mut node, ref mut sheet) = (self.stylesheets.borrow().clone()).unwrap()[index as usize];
+        let x = sheet.clone();
+        CSSStyleSheet::new(&self.window, x)
     }
 }
 

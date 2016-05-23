@@ -86,6 +86,8 @@ use style::element_state::*;
 use style::properties::PropertyDeclarationBlock;
 use style::restyle_hints::ElementSnapshot;
 use style::selector_impl::PseudoElement;
+use style::selector_impl::ServoSelectorImpl;
+use style::stylesheets::CSSRule;
 use style::values::specified::Length;
 use url::Origin as UrlOrigin;
 use url::Url;
@@ -321,6 +323,11 @@ no_jsmanaged_fields!(HttpsState);
 no_jsmanaged_fields!(SharedRt);
 no_jsmanaged_fields!(TouchpadPressurePhase);
 no_jsmanaged_fields!(ReferrerPolicy);
+no_jsmanaged_fields!(ServoSelectorImpl);
+
+impl JSTraceable for CSSRule<ServoSelectorImpl> {
+    fn trace(&self, _: *mut JSTracer) {}
+}
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]
