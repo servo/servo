@@ -2006,6 +2006,9 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     /// For a given pipeline, determine the iframe in the root pipeline that transitively contains
     /// it. There could be arbitrary levels of nested iframes in between them.
     fn get_root_pipeline_and_containing_parent(&self, pipeline_id: &PipelineId) -> Option<(PipelineId, SubpageId)> {
+        // This function does not return anything special without mozbrowser.
+        assert_eq!(prefs::get_pref("dom.mozbrowser.enabled").as_boolean(), Some(true));
+
         if let Some(pipeline) = self.pipelines.get(pipeline_id) {
             if let Some(mut ancestor_info) = pipeline.parent_info {
                 if let Some(mut ancestor) = self.pipelines.get(&ancestor_info.0) {
