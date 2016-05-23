@@ -9,6 +9,7 @@ use platform::font::{FontHandle, FontTable};
 use platform::font_context::FontContextHandle;
 use platform::font_template::FontTemplateData;
 use smallvec::SmallVec;
+use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -17,7 +18,7 @@ use std::sync::Arc;
 use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 use style::computed_values::{font_stretch, font_variant, font_weight};
 use text::Shaper;
-use text::glyph::{GlyphId, GlyphStore};
+use text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use text::shaping::ShaperMethods;
 use time;
 use unicode_script::Script;
@@ -108,8 +109,8 @@ pub struct Font {
     pub requested_pt_size: Au,
     pub actual_pt_size: Au,
     shaper: Option<Shaper>,
-    shape_cache: HashCache<ShapeCacheEntry, Arc<GlyphStore>>,
-    glyph_advance_cache: HashCache<u32, FractionalPixel>,
+    shape_cache: RefCell<HashCache<ShapeCacheEntry, Arc<GlyphStore>>>,
+    glyph_advance_cache: RefCell<HashCache<u32, FractionalPixel>>,
     pub font_key: Option<webrender_traits::FontKey>,
 }
 
@@ -129,8 +130,8 @@ impl Font {
             requested_pt_size: requested_pt_size,
             actual_pt_size: actual_pt_size,
             metrics: metrics,
-            shape_cache: HashCache::new(),
-            glyph_advance_cache: HashCache::new(),
+            shape_cache: RefCell::new(HashCache::new()),
+            glyph_advance_cache: RefCell::new(HashCache::new()),
             font_key: font_key,
         }
     }
@@ -172,36 +173,74 @@ struct ShapeCacheEntry {
 
 impl Font {
     pub fn shape_text(&mut self, text: &str, options: &ShapingOptions) -> Arc<GlyphStore> {
-        self.make_shaper();
+        let this = self as *const Font;
+        let mut shaper = self.shaper.take();
 
-        //FIXME: find the equivalent of Equiv and the old ShapeCacheEntryRef
-        let shaper = &self.shaper;
         let lookup_key = ShapeCacheEntry {
             text: text.to_owned(),
             options: *options,
         };
-        self.shape_cache.find_or_create(lookup_key, || {
+        let result = self.shape_cache.borrow_mut().find_or_create(lookup_key, || {
             let start_time = time::precise_time_ns();
-
             let mut glyphs = GlyphStore::new(text.len(),
                                              options.flags.contains(IS_WHITESPACE_SHAPING_FLAG),
                                              options.flags.contains(RTL_FLAG));
-            shaper.as_ref().unwrap().shape_text(text, options, &mut glyphs);
 
-            let glyphs = Arc::new(glyphs);
+            if self.can_do_fast_shaping(text, options) {
+                debug!("shape_text: Using ASCII fast path.");
+                self.shape_text_fast(text, options, &mut glyphs);
+            } else {
+                debug!("shape_text: Using Harfbuzz.");
+                if shaper.is_none() {
+                    shaper = Some(Shaper::new(this));
+                }
+                shaper.as_ref().unwrap().shape_text(text, options, &mut glyphs);
+            }
 
             let end_time = time::precise_time_ns();
             TEXT_SHAPING_PERFORMANCE_COUNTER.fetch_add((end_time - start_time) as usize,
                                                        Ordering::Relaxed);
-
-            glyphs
-        })
+            Arc::new(glyphs)
+        });
+        self.shaper = shaper;
+        result
     }
 
-    fn make_shaper(&mut self) {
-        if self.shaper.is_none() {
-            self.shaper = Some(Shaper::new(self));
+    fn can_do_fast_shaping(&self, text: &str, options: &ShapingOptions) -> bool {
+        options.script == Script::Latin &&
+            !options.flags.contains(RTL_FLAG) &&
+            self.handle.can_do_fast_shaping() &&
+            text.is_ascii()
+    }
+
+    /// Fast path for ASCII text that only needs simple horizontal LTR kerning.
+    fn shape_text_fast(&self, text: &str, options: &ShapingOptions, glyphs: &mut GlyphStore) {
+        let mut prev_glyph_id = None;
+        for (i, byte) in text.bytes().enumerate() {
+            let character = byte as char;
+            let glyph_id = match self.glyph_index(character) {
+                Some(id) => id,
+                None => continue,
+            };
+
+            let mut advance = Au::from_f64_px(self.glyph_h_advance(glyph_id));
+            if character == ' ' {
+                advance += options.word_spacing;
+            }
+            if let Some(letter_spacing) = options.letter_spacing {
+                advance += letter_spacing;
+            }
+            let offset = prev_glyph_id.map(|prev| {
+                let h_kerning = Au::from_f64_px(self.glyph_h_kerning(prev, glyph_id));
+                advance += h_kerning;
+                Point2D::new(h_kerning, Au(0))
+            });
+
+            let glyph = GlyphData::new(glyph_id, advance, offset, true, true);
+            glyphs.add_glyph_for_byte_index(ByteIndex(i as isize), character, &glyph);
+            prev_glyph_id = Some(glyph_id);
         }
+        glyphs.finalize_changes();
     }
 
     pub fn table_for_tag(&self, tag: FontTableTag) -> Option<FontTable> {
@@ -224,15 +263,14 @@ impl Font {
         self.handle.glyph_index(codepoint)
     }
 
-    pub fn glyph_h_kerning(&mut self, first_glyph: GlyphId, second_glyph: GlyphId)
+    pub fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId)
                            -> FractionalPixel {
         self.handle.glyph_h_kerning(first_glyph, second_glyph)
     }
 
-    pub fn glyph_h_advance(&mut self, glyph: GlyphId) -> FractionalPixel {
-        let handle = &self.handle;
-        self.glyph_advance_cache.find_or_create(glyph, || {
-            match handle.glyph_h_advance(glyph) {
+    pub fn glyph_h_advance(&self, glyph: GlyphId) -> FractionalPixel {
+        self.glyph_advance_cache.borrow_mut().find_or_create(glyph, || {
+            match self.handle.glyph_h_advance(glyph) {
                 Some(adv) => adv,
                 None => 10f64 as FractionalPixel // FIXME: Need fallback strategy
             }
