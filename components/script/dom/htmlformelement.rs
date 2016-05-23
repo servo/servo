@@ -548,7 +548,12 @@ impl HTMLFormElement {
                             data_set.push(datum);
                         }
                     }
-                    HTMLElementTypeId::HTMLButtonElement |
+                    HTMLElementTypeId::HTMLButtonElement => {
+                        let button = child.downcast::<HTMLButtonElement>().unwrap();
+                        if let Some(datum) = button.form_datum(submitter) {
+                            data_set.push(datum);
+                        }
+                    }
                     HTMLElementTypeId::HTMLObjectElement => {
                         // Unimplemented
                         ()

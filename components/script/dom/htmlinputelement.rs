@@ -623,8 +623,10 @@ impl HTMLInputElement {
     }
 
     /// https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
-    /// Steps range from 3.1 to 3.7 which related to the HTMLInputElement
+    /// Steps range from 3.1 to 3.7 (specific to HTMLInputElement)
     pub fn form_datum(&self, submitter: Option<FormSubmitter>) -> Option<FormDatum> {
+        // 3.1: disabled state check is in get_unclean_dataset
+
         // Step 3.2
         let ty = self.type_();
         // Step 3.4
@@ -652,7 +654,7 @@ impl HTMLInputElement {
 
         }
 
-        // Step 3.6
+        // Step 3.9
         Some(FormDatum {
             ty: DOMString::from(&*ty), // FIXME(ajeffrey): Convert directly from Atoms to DOMStrings
             name: name,
