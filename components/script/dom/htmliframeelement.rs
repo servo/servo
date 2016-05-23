@@ -375,7 +375,7 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> E
         if iframe.upcast::<Node>().is_in_doc() {
             let window = window_from_node(iframe);
 
-            let msg = ConstellationMsg::Navigate(direction);
+            let msg = ConstellationMsg::Navigate(iframe.pipeline_id.get(), direction);
             window.constellation_chan().send(msg).unwrap();
         }
 
