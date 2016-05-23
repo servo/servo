@@ -32,8 +32,8 @@ partial interface HTMLIFrameElement {
 };
 
 partial interface HTMLIFrameElement {
-  [ChromeOnly,SetterThrows,Pref="dom.mozbrowser.enabled"]
-           attribute boolean mozbrowser;
+    [Func="Window::global_is_mozbrowser"]
+    attribute boolean mozbrowser;
 };
 
 HTMLIFrameElement implements BrowserElement;
