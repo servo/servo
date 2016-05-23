@@ -27,75 +27,75 @@ pub const NS_THEME_BUTTON_BEVEL: ::std::os::raw::c_uint = 7;
 pub const NS_THEME_FOCUS_OUTLINE: ::std::os::raw::c_uint = 8;
 pub const NS_THEME_TOOLBOX: ::std::os::raw::c_uint = 11;
 pub const NS_THEME_TOOLBAR: ::std::os::raw::c_uint = 12;
-pub const NS_THEME_TOOLBARBUTTON: ::std::os::raw::c_uint = 13;
-pub const NS_THEME_DUALBUTTON: ::std::os::raw::c_uint = 14;
-pub const NS_THEME_TOOLBARBUTTON_DROPDOWN: ::std::os::raw::c_uint = 15;
+pub const NS_THEME_TOOLBAR_BUTTON: ::std::os::raw::c_uint = 13;
+pub const NS_THEME_TOOLBAR_DUAL_BUTTON: ::std::os::raw::c_uint = 14;
+pub const NS_THEME_TOOLBAR_BUTTON_DROPDOWN: ::std::os::raw::c_uint = 15;
 pub const NS_THEME_BUTTON_ARROW_UP: ::std::os::raw::c_uint = 16;
 pub const NS_THEME_BUTTON_ARROW_DOWN: ::std::os::raw::c_uint = 17;
 pub const NS_THEME_BUTTON_ARROW_NEXT: ::std::os::raw::c_uint = 18;
 pub const NS_THEME_BUTTON_ARROW_PREVIOUS: ::std::os::raw::c_uint = 19;
-pub const NS_THEME_SEPARATOR: ::std::os::raw::c_uint = 20;
-pub const NS_THEME_TOOLBARGRIPPER: ::std::os::raw::c_uint = 21;
+pub const NS_THEME_TOOLBAR_SEPARATOR: ::std::os::raw::c_uint = 20;
+pub const NS_THEME_TOOLBAR_GRIPPER: ::std::os::raw::c_uint = 21;
 pub const NS_THEME_SPLITTER: ::std::os::raw::c_uint = 22;
 pub const NS_THEME_STATUSBAR: ::std::os::raw::c_uint = 23;
-pub const NS_THEME_STATUSBARPANEL: ::std::os::raw::c_uint = 24;
-pub const NS_THEME_RESIZERPANEL: ::std::os::raw::c_uint = 25;
+pub const NS_THEME_STATUSBAR_PANEL: ::std::os::raw::c_uint = 24;
+pub const NS_THEME_STATUSBAR_RESIZER_PANEL: ::std::os::raw::c_uint = 25;
 pub const NS_THEME_RESIZER: ::std::os::raw::c_uint = 26;
 pub const NS_THEME_LISTBOX: ::std::os::raw::c_uint = 31;
-pub const NS_THEME_LISTITEM: ::std::os::raw::c_uint = 32;
+pub const NS_THEME_LISTBOX_LISTITEM: ::std::os::raw::c_uint = 32;
 pub const NS_THEME_TREEVIEW: ::std::os::raw::c_uint = 41;
-pub const NS_THEME_TREEITEM: ::std::os::raw::c_uint = 42;
-pub const NS_THEME_TREETWISTY: ::std::os::raw::c_uint = 43;
-pub const NS_THEME_TREELINE: ::std::os::raw::c_uint = 44;
-pub const NS_THEME_TREEHEADER: ::std::os::raw::c_uint = 45;
-pub const NS_THEME_TREEHEADERCELL: ::std::os::raw::c_uint = 46;
-pub const NS_THEME_TREEHEADERSORTARROW: ::std::os::raw::c_uint = 47;
-pub const NS_THEME_TREETWISTYOPEN: ::std::os::raw::c_uint = 48;
+pub const NS_THEME_TREEVIEW_TREEITEM: ::std::os::raw::c_uint = 42;
+pub const NS_THEME_TREEVIEW_TWISTY: ::std::os::raw::c_uint = 43;
+pub const NS_THEME_TREEVIEW_LINE: ::std::os::raw::c_uint = 44;
+pub const NS_THEME_TREEVIEW_HEADER: ::std::os::raw::c_uint = 45;
+pub const NS_THEME_TREEVIEW_HEADER_CELL: ::std::os::raw::c_uint = 46;
+pub const NS_THEME_TREEVIEW_HEADER_SORTARROW: ::std::os::raw::c_uint = 47;
+pub const NS_THEME_TREEVIEW_TWISTY_OPEN: ::std::os::raw::c_uint = 48;
 pub const NS_THEME_PROGRESSBAR: ::std::os::raw::c_uint = 51;
-pub const NS_THEME_PROGRESSCHUNK: ::std::os::raw::c_uint = 52;
+pub const NS_THEME_PROGRESSBAR_CHUNK: ::std::os::raw::c_uint = 52;
 pub const NS_THEME_PROGRESSBAR_VERTICAL: ::std::os::raw::c_uint = 53;
-pub const NS_THEME_PROGRESSCHUNK_VERTICAL: ::std::os::raw::c_uint = 54;
+pub const NS_THEME_PROGRESSBAR_CHUNK_VERTICAL: ::std::os::raw::c_uint = 54;
 pub const NS_THEME_METERBAR: ::std::os::raw::c_uint = 55;
-pub const NS_THEME_METERCHUNK: ::std::os::raw::c_uint = 56;
+pub const NS_THEME_METERBAR_CHUNK: ::std::os::raw::c_uint = 56;
 pub const NS_THEME_TAB: ::std::os::raw::c_uint = 61;
-pub const NS_THEME_TABPANEL: ::std::os::raw::c_uint = 62;
-pub const NS_THEME_TABPANELS: ::std::os::raw::c_uint = 65;
-pub const NS_THEME_TAB_SCROLL_ARROW_BACK: ::std::os::raw::c_uint = 66;
-pub const NS_THEME_TAB_SCROLL_ARROW_FORWARD: ::std::os::raw::c_uint = 67;
+pub const NS_THEME_TAB_PANEL: ::std::os::raw::c_uint = 62;
+pub const NS_THEME_TAB_PANELS: ::std::os::raw::c_uint = 65;
+pub const NS_THEME_TAB_SCROLLARROW_BACK: ::std::os::raw::c_uint = 66;
+pub const NS_THEME_TAB_SCROLLARROW_FORWARD: ::std::os::raw::c_uint = 67;
 pub const NS_THEME_TOOLTIP: ::std::os::raw::c_uint = 71;
 pub const NS_THEME_SPINNER: ::std::os::raw::c_uint = 72;
-pub const NS_THEME_SPINNER_UPBUTTON: ::std::os::raw::c_uint = 73;
-pub const NS_THEME_SPINNER_DOWNBUTTON: ::std::os::raw::c_uint = 74;
+pub const NS_THEME_SPINNER_UP_BUTTON: ::std::os::raw::c_uint = 73;
+pub const NS_THEME_SPINNER_DOWN_BUTTON: ::std::os::raw::c_uint = 74;
 pub const NS_THEME_SPINNER_TEXTFIELD: ::std::os::raw::c_uint = 75;
 pub const NS_THEME_NUMBER_INPUT: ::std::os::raw::c_uint = 76;
 pub const NS_THEME_SCROLLBAR: ::std::os::raw::c_uint = 80;
 pub const NS_THEME_SCROLLBAR_SMALL: ::std::os::raw::c_uint = 81;
 pub const NS_THEME_SCROLLBAR_HORIZONTAL: ::std::os::raw::c_uint = 82;
 pub const NS_THEME_SCROLLBAR_VERTICAL: ::std::os::raw::c_uint = 83;
-pub const NS_THEME_SCROLLBARBUTTON_UP: ::std::os::raw::c_uint = 84;
-pub const NS_THEME_SCROLLBARBUTTON_DOWN: ::std::os::raw::c_uint = 85;
-pub const NS_THEME_SCROLLBARBUTTON_LEFT: ::std::os::raw::c_uint = 86;
-pub const NS_THEME_SCROLLBARBUTTON_RIGHT: ::std::os::raw::c_uint = 87;
-pub const NS_THEME_SCROLLBARTRACK_HORIZONTAL: ::std::os::raw::c_uint = 88;
-pub const NS_THEME_SCROLLBARTRACK_VERTICAL: ::std::os::raw::c_uint = 89;
-pub const NS_THEME_SCROLLBARTHUMB_HORIZONTAL: ::std::os::raw::c_uint = 90;
-pub const NS_THEME_SCROLLBARTHUMB_VERTICAL: ::std::os::raw::c_uint = 91;
+pub const NS_THEME_SCROLLBAR_BUTTON_UP: ::std::os::raw::c_uint = 84;
+pub const NS_THEME_SCROLLBAR_BUTTON_DOWN: ::std::os::raw::c_uint = 85;
+pub const NS_THEME_SCROLLBAR_BUTTON_LEFT: ::std::os::raw::c_uint = 86;
+pub const NS_THEME_SCROLLBAR_BUTTON_RIGHT: ::std::os::raw::c_uint = 87;
+pub const NS_THEME_SCROLLBAR_TRACK_HORIZONTAL: ::std::os::raw::c_uint = 88;
+pub const NS_THEME_SCROLLBAR_TRACK_VERTICAL: ::std::os::raw::c_uint = 89;
+pub const NS_THEME_SCROLLBAR_THUMB_HORIZONTAL: ::std::os::raw::c_uint = 90;
+pub const NS_THEME_SCROLLBAR_THUMB_VERTICAL: ::std::os::raw::c_uint = 91;
 pub const NS_THEME_SCROLLBAR_NON_DISAPPEARING: ::std::os::raw::c_uint = 92;
 pub const NS_THEME_TEXTFIELD: ::std::os::raw::c_uint = 95;
-pub const NS_THEME_CARET: ::std::os::raw::c_uint = 96;
+pub const NS_THEME_TEXTFIELD_CARET: ::std::os::raw::c_uint = 96;
 pub const NS_THEME_TEXTFIELD_MULTILINE: ::std::os::raw::c_uint = 97;
 pub const NS_THEME_SEARCHFIELD: ::std::os::raw::c_uint = 98;
-pub const NS_THEME_MENULIST: ::std::os::raw::c_uint = 101;
-pub const NS_THEME_MENULIST_BUTTON: ::std::os::raw::c_uint = 102;
-pub const NS_THEME_MENULIST_TEXT: ::std::os::raw::c_uint = 103;
-pub const NS_THEME_MENULIST_TEXTFIELD: ::std::os::raw::c_uint = 104;
+pub const NS_THEME_DROPDOWN: ::std::os::raw::c_uint = 101;
+pub const NS_THEME_DROPDOWN_BUTTON: ::std::os::raw::c_uint = 102;
+pub const NS_THEME_DROPDOWN_TEXT: ::std::os::raw::c_uint = 103;
+pub const NS_THEME_DROPDOWN_TEXTFIELD: ::std::os::raw::c_uint = 104;
 pub const NS_THEME_SCALE_HORIZONTAL: ::std::os::raw::c_uint = 111;
 pub const NS_THEME_SCALE_VERTICAL: ::std::os::raw::c_uint = 112;
-pub const NS_THEME_SCALETHUMB_HORIZONTAL: ::std::os::raw::c_uint = 113;
-pub const NS_THEME_SCALETHUMB_VERTICAL: ::std::os::raw::c_uint = 114;
-pub const NS_THEME_SCALETHUMBSTART: ::std::os::raw::c_uint = 115;
-pub const NS_THEME_SCALETHUMBEND: ::std::os::raw::c_uint = 116;
-pub const NS_THEME_SCALETHUMBTICK: ::std::os::raw::c_uint = 117;
+pub const NS_THEME_SCALE_THUMB_HORIZONTAL: ::std::os::raw::c_uint = 113;
+pub const NS_THEME_SCALE_THUMB_VERTICAL: ::std::os::raw::c_uint = 114;
+pub const NS_THEME_SCALE_THUMB_START: ::std::os::raw::c_uint = 115;
+pub const NS_THEME_SCALE_THUMB_END: ::std::os::raw::c_uint = 116;
+pub const NS_THEME_SCALE_TICK: ::std::os::raw::c_uint = 117;
 pub const NS_THEME_RANGE: ::std::os::raw::c_uint = 120;
 pub const NS_THEME_RANGE_THUMB: ::std::os::raw::c_uint = 121;
 pub const NS_THEME_GROUPBOX: ::std::os::raw::c_uint = 149;
@@ -119,9 +119,9 @@ pub const NS_THEME_MENUIMAGE: ::std::os::raw::c_uint = 219;
 pub const NS_THEME_MENUITEMTEXT: ::std::os::raw::c_uint = 220;
 pub const NS_THEME_WIN_COMMUNICATIONS_TOOLBOX: ::std::os::raw::c_uint = 221;
 pub const NS_THEME_WIN_MEDIA_TOOLBOX: ::std::os::raw::c_uint = 222;
-pub const NS_THEME_WIN_BROWSERTABBAR_TOOLBOX: ::std::os::raw::c_uint = 223;
-pub const NS_THEME_MAC_FULLSCREEN_BUTTON: ::std::os::raw::c_uint = 226;
-pub const NS_THEME_MAC_HELP_BUTTON: ::std::os::raw::c_uint = 227;
+pub const NS_THEME_WIN_BROWSER_TAB_BAR_TOOLBOX: ::std::os::raw::c_uint = 223;
+pub const NS_THEME_MOZ_MAC_FULLSCREEN_BUTTON: ::std::os::raw::c_uint = 226;
+pub const NS_THEME_MOZ_MAC_HELP_BUTTON: ::std::os::raw::c_uint = 227;
 pub const NS_THEME_WIN_BORDERLESS_GLASS: ::std::os::raw::c_uint = 229;
 pub const NS_THEME_WIN_GLASS: ::std::os::raw::c_uint = 230;
 pub const NS_THEME_WINDOW_TITLEBAR: ::std::os::raw::c_uint = 231;
@@ -215,8 +215,8 @@ pub const NS_STYLE_BASIC_SHAPE_CIRCLE: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_BASIC_SHAPE_ELLIPSE: ::std::os::raw::c_uint = 2;
 pub const NS_STYLE_BASIC_SHAPE_INSET: ::std::os::raw::c_uint = 3;
 pub const NS_STYLE_BOX_SHADOW_INSET: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_FLOAT_EDGE_CONTENT_BOX: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_FLOAT_EDGE_MARGIN_BOX: ::std::os::raw::c_uint = 1;
+pub const NS_STYLE_FLOAT_EDGE_CONTENT: ::std::os::raw::c_uint = 0;
+pub const NS_STYLE_FLOAT_EDGE_MARGIN: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_USER_FOCUS_NONE: ::std::os::raw::c_uint = 0;
 pub const NS_STYLE_USER_FOCUS_IGNORE: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_USER_FOCUS_NORMAL: ::std::os::raw::c_uint = 2;
@@ -4553,22 +4553,22 @@ pub enum nsStyleUnit {
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleCoord_h_unnamed_10 {
+pub struct nsStyleCoord_h_unnamed_14 {
     pub mInt: __BindgenUnionField<i32>,
     pub mFloat: __BindgenUnionField<f32>,
     pub mPointer: __BindgenUnionField<*mut ::std::os::raw::c_void>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleCoord_h_unnamed_10 { }
-impl ::std::clone::Clone for nsStyleCoord_h_unnamed_10 {
+impl nsStyleCoord_h_unnamed_14 { }
+impl ::std::clone::Clone for nsStyleCoord_h_unnamed_14 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleCoord_h_unnamed_10() {
-    assert_eq!(::std::mem::size_of::<nsStyleCoord_h_unnamed_10>() , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleCoord_h_unnamed_10>() , 8usize);
+fn bindgen_test_layout_nsStyleCoord_h_unnamed_14() {
+    assert_eq!(::std::mem::size_of::<nsStyleCoord_h_unnamed_14>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsStyleCoord_h_unnamed_14>() , 8usize);
 }
-pub type nsStyleUnion = nsStyleCoord_h_unnamed_10;
+pub type nsStyleUnion = nsStyleCoord_h_unnamed_14;
 /**
  * Class that hold a single size specification used by the style
  * system.  The size specification consists of two parts -- a number
@@ -4763,27 +4763,27 @@ pub enum nsStyleImageType {
 pub struct nsStyleImage {
     pub mSubImages: u64,
     pub mType: nsStyleImageType,
-    pub nsStyleImage_nsStyleStruct_h_unnamed_13: nsStyleImage_nsStyleStruct_h_unnamed_13,
+    pub nsStyleImage_nsStyleStruct_h_unnamed_17: nsStyleImage_nsStyleStruct_h_unnamed_17,
     pub mCropRect: nsAutoPtr<nsStyleSides>,
     pub mImageTracked: bool,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleImage_nsStyleStruct_h_unnamed_13 {
+pub struct nsStyleImage_nsStyleStruct_h_unnamed_17 {
     pub mImage: __BindgenUnionField<*mut imgRequestProxy>,
     pub mGradient: __BindgenUnionField<*mut nsStyleGradient>,
     pub mElementId: __BindgenUnionField<*mut ::std::os::raw::c_ushort>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleImage_nsStyleStruct_h_unnamed_13 { }
-impl ::std::clone::Clone for nsStyleImage_nsStyleStruct_h_unnamed_13 {
+impl nsStyleImage_nsStyleStruct_h_unnamed_17 { }
+impl ::std::clone::Clone for nsStyleImage_nsStyleStruct_h_unnamed_17 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleImage_nsStyleStruct_h_unnamed_13() {
-    assert_eq!(::std::mem::size_of::<nsStyleImage_nsStyleStruct_h_unnamed_13>()
+fn bindgen_test_layout_nsStyleImage_nsStyleStruct_h_unnamed_17() {
+    assert_eq!(::std::mem::size_of::<nsStyleImage_nsStyleStruct_h_unnamed_17>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleImage_nsStyleStruct_h_unnamed_13>()
+    assert_eq!(::std::mem::align_of::<nsStyleImage_nsStyleStruct_h_unnamed_17>()
                , 8usize);
 }
 #[test]
@@ -4833,7 +4833,7 @@ pub struct nsStyleImageLayers {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum nsStyleImageLayers_nsStyleStruct_h_unnamed_14 {
+pub enum nsStyleImageLayers_nsStyleStruct_h_unnamed_18 {
     shorthand = 0,
     color = 1,
     image = 2,
@@ -5298,7 +5298,7 @@ fn bindgen_test_layout_nsStyleVisibility() {
 #[derive(Debug, Copy)]
 pub struct nsTimingFunction {
     pub mType: nsTimingFunction_Type,
-    pub nsTimingFunction_nsStyleStruct_h_unnamed_15: nsTimingFunction_nsStyleStruct_h_unnamed_15,
+    pub nsTimingFunction_nsStyleStruct_h_unnamed_19: nsTimingFunction_nsStyleStruct_h_unnamed_19,
 }
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -5325,56 +5325,56 @@ pub enum nsTimingFunction_StepSyntax {
 pub enum nsTimingFunction_Keyword { Implicit = 0, Explicit = 1, }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsTimingFunction_nsStyleStruct_h_unnamed_15 {
-    pub mFunc: __BindgenUnionField<nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_16>,
-    pub nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_17: __BindgenUnionField<nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_17>,
+pub struct nsTimingFunction_nsStyleStruct_h_unnamed_19 {
+    pub mFunc: __BindgenUnionField<nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_20>,
+    pub nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21: __BindgenUnionField<nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21>,
     pub _bindgen_data_: [u32; 4usize],
 }
-impl nsTimingFunction_nsStyleStruct_h_unnamed_15 { }
-impl ::std::clone::Clone for nsTimingFunction_nsStyleStruct_h_unnamed_15 {
+impl nsTimingFunction_nsStyleStruct_h_unnamed_19 { }
+impl ::std::clone::Clone for nsTimingFunction_nsStyleStruct_h_unnamed_19 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsTimingFunction_nsStyleStruct_h_unnamed_15() {
-    assert_eq!(::std::mem::size_of::<nsTimingFunction_nsStyleStruct_h_unnamed_15>()
+fn bindgen_test_layout_nsTimingFunction_nsStyleStruct_h_unnamed_19() {
+    assert_eq!(::std::mem::size_of::<nsTimingFunction_nsStyleStruct_h_unnamed_19>()
                , 16usize);
-    assert_eq!(::std::mem::align_of::<nsTimingFunction_nsStyleStruct_h_unnamed_15>()
+    assert_eq!(::std::mem::align_of::<nsTimingFunction_nsStyleStruct_h_unnamed_19>()
                , 4usize);
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_16 {
+pub struct nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_20 {
     pub mX1: f32,
     pub mY1: f32,
     pub mX2: f32,
     pub mY2: f32,
 }
 impl ::std::clone::Clone for
- nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_16 {
+ nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_20 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_16() {
-    assert_eq!(::std::mem::size_of::<nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_16>()
+fn bindgen_test_layout_nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_20() {
+    assert_eq!(::std::mem::size_of::<nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_20>()
                , 16usize);
-    assert_eq!(::std::mem::align_of::<nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_16>()
+    assert_eq!(::std::mem::align_of::<nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_20>()
                , 4usize);
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_17 {
+pub struct nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21 {
     pub mStepSyntax: nsTimingFunction_StepSyntax,
     pub mSteps: u32,
 }
 impl ::std::clone::Clone for
- nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_17 {
+ nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_17() {
-    assert_eq!(::std::mem::size_of::<nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_17>()
+fn bindgen_test_layout_nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21() {
+    assert_eq!(::std::mem::size_of::<nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsTimingFunction_nsStyleStruct_h_unnamed_15_nsStyleStruct_h_unnamed_17>()
+    assert_eq!(::std::mem::align_of::<nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21>()
                , 4usize);
 }
 impl ::std::clone::Clone for nsTimingFunction {
@@ -5519,26 +5519,26 @@ pub enum nsStyleContentType {
 #[derive(Debug)]
 pub struct nsStyleContentData {
     pub mType: nsStyleContentType,
-    pub mContent: nsStyleContentData_nsStyleStruct_h_unnamed_18,
+    pub mContent: nsStyleContentData_nsStyleStruct_h_unnamed_22,
     pub mImageTracked: bool,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleContentData_nsStyleStruct_h_unnamed_18 {
+pub struct nsStyleContentData_nsStyleStruct_h_unnamed_22 {
     pub mString: __BindgenUnionField<*mut ::std::os::raw::c_ushort>,
     pub mImage: __BindgenUnionField<*mut imgRequestProxy>,
     pub mCounters: __BindgenUnionField<*mut Array>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleContentData_nsStyleStruct_h_unnamed_18 { }
-impl ::std::clone::Clone for nsStyleContentData_nsStyleStruct_h_unnamed_18 {
+impl nsStyleContentData_nsStyleStruct_h_unnamed_22 { }
+impl ::std::clone::Clone for nsStyleContentData_nsStyleStruct_h_unnamed_22 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleContentData_nsStyleStruct_h_unnamed_18() {
-    assert_eq!(::std::mem::size_of::<nsStyleContentData_nsStyleStruct_h_unnamed_18>()
+fn bindgen_test_layout_nsStyleContentData_nsStyleStruct_h_unnamed_22() {
+    assert_eq!(::std::mem::size_of::<nsStyleContentData_nsStyleStruct_h_unnamed_22>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleContentData_nsStyleStruct_h_unnamed_18>()
+    assert_eq!(::std::mem::align_of::<nsStyleContentData_nsStyleStruct_h_unnamed_22>()
                , 8usize);
 }
 #[test]
@@ -5672,26 +5672,26 @@ pub enum nsStyleSVGOpacitySource {
 #[repr(C)]
 #[derive(Debug)]
 pub struct nsStyleSVGPaint {
-    pub mPaint: nsStyleSVGPaint_nsStyleStruct_h_unnamed_19,
+    pub mPaint: nsStyleSVGPaint_nsStyleStruct_h_unnamed_23,
     pub mType: nsStyleSVGPaintType,
     pub mFallbackColor: nscolor,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleSVGPaint_nsStyleStruct_h_unnamed_19 {
+pub struct nsStyleSVGPaint_nsStyleStruct_h_unnamed_23 {
     pub mColor: __BindgenUnionField<nscolor>,
     pub mPaintServer: __BindgenUnionField<*mut nsIURI>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleSVGPaint_nsStyleStruct_h_unnamed_19 { }
-impl ::std::clone::Clone for nsStyleSVGPaint_nsStyleStruct_h_unnamed_19 {
+impl nsStyleSVGPaint_nsStyleStruct_h_unnamed_23 { }
+impl ::std::clone::Clone for nsStyleSVGPaint_nsStyleStruct_h_unnamed_23 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleSVGPaint_nsStyleStruct_h_unnamed_19() {
-    assert_eq!(::std::mem::size_of::<nsStyleSVGPaint_nsStyleStruct_h_unnamed_19>()
+fn bindgen_test_layout_nsStyleSVGPaint_nsStyleStruct_h_unnamed_23() {
+    assert_eq!(::std::mem::size_of::<nsStyleSVGPaint_nsStyleStruct_h_unnamed_23>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleSVGPaint_nsStyleStruct_h_unnamed_19>()
+    assert_eq!(::std::mem::align_of::<nsStyleSVGPaint_nsStyleStruct_h_unnamed_23>()
                , 8usize);
 }
 #[test]
@@ -5758,25 +5758,25 @@ fn bindgen_test_layout_nsStyleBasicShape() {
 #[derive(Debug)]
 pub struct nsStyleClipPath {
     pub mType: i32,
-    pub nsStyleClipPath_nsStyleStruct_h_unnamed_20: nsStyleClipPath_nsStyleStruct_h_unnamed_20,
+    pub nsStyleClipPath_nsStyleStruct_h_unnamed_24: nsStyleClipPath_nsStyleStruct_h_unnamed_24,
     pub mSizingBox: u8,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleClipPath_nsStyleStruct_h_unnamed_20 {
+pub struct nsStyleClipPath_nsStyleStruct_h_unnamed_24 {
     pub mBasicShape: __BindgenUnionField<*mut nsStyleBasicShape>,
     pub mURL: __BindgenUnionField<*mut nsIURI>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleClipPath_nsStyleStruct_h_unnamed_20 { }
-impl ::std::clone::Clone for nsStyleClipPath_nsStyleStruct_h_unnamed_20 {
+impl nsStyleClipPath_nsStyleStruct_h_unnamed_24 { }
+impl ::std::clone::Clone for nsStyleClipPath_nsStyleStruct_h_unnamed_24 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleClipPath_nsStyleStruct_h_unnamed_20() {
-    assert_eq!(::std::mem::size_of::<nsStyleClipPath_nsStyleStruct_h_unnamed_20>()
+fn bindgen_test_layout_nsStyleClipPath_nsStyleStruct_h_unnamed_24() {
+    assert_eq!(::std::mem::size_of::<nsStyleClipPath_nsStyleStruct_h_unnamed_24>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleClipPath_nsStyleStruct_h_unnamed_20>()
+    assert_eq!(::std::mem::align_of::<nsStyleClipPath_nsStyleStruct_h_unnamed_24>()
                , 8usize);
 }
 #[test]
@@ -5789,24 +5789,24 @@ fn bindgen_test_layout_nsStyleClipPath() {
 pub struct nsStyleFilter {
     pub mType: i32,
     pub mFilterParameter: nsStyleCoord,
-    pub nsStyleFilter_nsStyleStruct_h_unnamed_21: nsStyleFilter_nsStyleStruct_h_unnamed_21,
+    pub nsStyleFilter_nsStyleStruct_h_unnamed_25: nsStyleFilter_nsStyleStruct_h_unnamed_25,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleFilter_nsStyleStruct_h_unnamed_21 {
+pub struct nsStyleFilter_nsStyleStruct_h_unnamed_25 {
     pub mURL: __BindgenUnionField<*mut nsIURI>,
     pub mDropShadow: __BindgenUnionField<*mut nsCSSShadowArray>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleFilter_nsStyleStruct_h_unnamed_21 { }
-impl ::std::clone::Clone for nsStyleFilter_nsStyleStruct_h_unnamed_21 {
+impl nsStyleFilter_nsStyleStruct_h_unnamed_25 { }
+impl ::std::clone::Clone for nsStyleFilter_nsStyleStruct_h_unnamed_25 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleFilter_nsStyleStruct_h_unnamed_21() {
-    assert_eq!(::std::mem::size_of::<nsStyleFilter_nsStyleStruct_h_unnamed_21>()
+fn bindgen_test_layout_nsStyleFilter_nsStyleStruct_h_unnamed_25() {
+    assert_eq!(::std::mem::size_of::<nsStyleFilter_nsStyleStruct_h_unnamed_25>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleFilter_nsStyleStruct_h_unnamed_21>()
+    assert_eq!(::std::mem::align_of::<nsStyleFilter_nsStyleStruct_h_unnamed_25>()
                , 8usize);
 }
 #[test]
