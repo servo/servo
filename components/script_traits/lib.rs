@@ -493,7 +493,7 @@ pub enum ConstellationMsg {
     /// Request to load a page.
     LoadUrl(PipelineId, LoadData),
     /// Request to navigate a frame.
-    Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
+    Navigate(Option<PipelineId>, NavigationDirection),
     /// Inform the constellation of a window being resized.
     WindowSize(WindowSizeData, WindowSizeType),
     /// Requests that the constellation instruct layout to begin a new tick of the animation.

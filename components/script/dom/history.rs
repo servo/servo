@@ -10,6 +10,7 @@ use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::window::Window;
 use ipc_channel::ipc;
@@ -17,7 +18,6 @@ use js::jsapi::{HandleValue, JSContext, JSAutoCompartment, RootedValue};
 use js::jsval::{JSVal, UndefinedValue};
 use msg::constellation_msg::NavigationDirection;
 use script_traits::ScriptMsg as ConstellationMsg;
-use util::str::DOMString;
 
 // https://html.spec.whatwg.org/multipage/#the-history-interface
 #[dom_struct]
@@ -41,7 +41,8 @@ impl History {
     }
 
     fn traverse_history(&self, direction: NavigationDirection) {
-        let msg = ConstellationMsg::Navigate(direction);
+        let pipeline = self.window.pipeline();
+        let msg = ConstellationMsg::Navigate(Some(pipeline), direction);
         self.window.constellation_chan().send(msg).unwrap();
     }
 
@@ -63,7 +64,8 @@ impl HistoryMethods for History {
     fn GetLength(&self) -> Fallible<u32> {
         try!(self.is_fully_active());
         let (sender, receiver) = ipc::channel::<usize>().expect("Failed to create IPC channel");
-        let msg = ConstellationMsg::HistoryLength(sender);
+        let pipeline = self.window.pipeline();
+        let msg = ConstellationMsg::HistoryLength(pipeline, sender);
         self.window.constellation_chan().send(msg).unwrap();
         Ok(receiver.recv().unwrap() as u32)
     }

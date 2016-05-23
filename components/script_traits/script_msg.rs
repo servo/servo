@@ -73,10 +73,10 @@ pub enum ScriptMsg {
     LoadUrl(PipelineId, LoadData),
     /// Dispatch a mozbrowser event to a given iframe. Only available in experimental mode.
     MozBrowserEvent(PipelineId, SubpageId, MozBrowserEvent),
-    /// HTMLIFrameElement Forward or Back navigation.
-    Navigate(NavigationDirection),
+    /// Pipeline Forward or Back navigation.
+    Navigate(Option<PipelineId>, NavigationDirection),
     /// Returns the session history length.
-    HistoryLength(IpcSender<usize>),
+    HistoryLength(PipelineId, IpcSender<usize>),
     /// Notifies constellation that a new state was pushed, and the frame needs to be updated
     HistoryStatePushed(Option<(PipelineId, SubpageId)>, usize),
     /// Favicon detected
