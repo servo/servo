@@ -13,6 +13,7 @@ use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descrip
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, Reflector};
 use dom::bindings::str::DOMString;
+use dom::bindings::structuredclone::StructuredCloneData;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WindowProxyHandler;
 use dom::bindings::utils::get_array_index_from_id;
@@ -308,23 +309,6 @@ impl BrowsingContext {
         state.read(global, state_js.handle_mut());
         PopStateEvent::dispatch_jsval(target, global, state_js.handle());
     }
-}
-
-pub struct PopstateNotificationRunnable {
-    window: Trusted<Window>,
-    state: StructuredCloneData,
-}
-
-impl Runnable for PopstateNotificationRunnable {
-    fn handler(self: Box<PopstateNotificationRunnable>) {
-        let this = *self;
-        BrowsingContext::handle_popstate(this.window, this.state);
-    }
-}
-
-pub struct ContextIterator {
-    stack: Vec<Root<BrowsingContext>>,
-}
 
     pub fn iter(&self) -> ContextIterator {
         ContextIterator {
@@ -341,6 +325,18 @@ pub struct ContextIterator {
                      .iter()
                      .filter_map(|c| c.find(id))
                      .next()
+    }
+}
+
+pub struct PopstateNotificationRunnable {
+    window: Trusted<Window>,
+    state: StructuredCloneData,
+}
+
+impl Runnable for PopstateNotificationRunnable {
+    fn handler(self: Box<PopstateNotificationRunnable>) {
+        let this = *self;
+        BrowsingContext::handle_popstate(this.window, this.state);
     }
 }
 
