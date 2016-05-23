@@ -112,8 +112,8 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::cell::{Cell, Ref, RefMut};
+use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::collections::{BTreeMap, HashMap};
 use std::default::Default;
 use std::mem;
 use std::ptr;
@@ -200,7 +200,7 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks
     /// List of animation frame callbacks
     #[ignore_heap_size_of = "closures are hard"]
-    animation_frame_list: DOMRefCell<BTreeMap<u32, Box<FnBox(f64)>>>,
+    animation_frame_list: DOMRefCell<Vec<(u32, Option<Box<FnBox(f64)>>)>>,
     /// Whether we're in the process of running animation callbacks.
     ///
     /// Tracking this is not necessary for correctness. Instead, it is an optimization to avoid
@@ -1282,7 +1282,7 @@ impl Document {
         let ident = self.animation_frame_ident.get() + 1;
 
         self.animation_frame_ident.set(ident);
-        self.animation_frame_list.borrow_mut().insert(ident, callback);
+        self.animation_frame_list.borrow_mut().push((ident, Some(callback)));
 
         // No need to send a `ChangeRunningAnimationsState` if we're running animation callbacks:
         // we're guaranteed to already be in the "animation callbacks present" state.
@@ -1303,25 +1303,25 @@ impl Document {
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
     pub fn cancel_animation_frame(&self, ident: u32) {
-        self.animation_frame_list.borrow_mut().remove(&ident);
-        if self.animation_frame_list.borrow().is_empty() {
-            let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
-                                                                       AnimationState::NoAnimationCallbacksPresent);
-            self.window.constellation_chan().send(event).unwrap();
+        let mut list = self.animation_frame_list.borrow_mut();
+        if let Some(mut pair) = list.iter_mut().find(|pair| pair.0 == ident) {
+            pair.1 = None;
         }
     }
 
     /// https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks
     pub fn run_the_animation_frame_callbacks(&self) {
-        let animation_frame_list =
-            mem::replace(&mut *self.animation_frame_list.borrow_mut(), BTreeMap::new());
+        let mut animation_frame_list =
+            mem::replace(&mut *self.animation_frame_list.borrow_mut(), vec![]);
         self.running_animation_callbacks.set(true);
         let performance = self.window.Performance();
         let performance = performance.r();
         let timing = performance.Now();
 
-        for (_, callback) in animation_frame_list {
-            callback(*timing);
+        for (_, callback) in animation_frame_list.drain(..) {
+            if let Some(callback) = callback {
+                callback(*timing);
+            }
         }
 
         // Only send the animation change state message after running any callbacks.
@@ -1329,6 +1329,8 @@ impl Document {
         // the next frame (which is the common case), we won't send a NoAnimationCallbacksPresent
         // message quickly followed by an AnimationCallbacksPresent message.
         if self.animation_frame_list.borrow().is_empty() {
+            mem::swap(&mut *self.animation_frame_list.borrow_mut(),
+                      &mut animation_frame_list);
             let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
                                                                        AnimationState::NoAnimationCallbacksPresent);
             self.window.constellation_chan().send(event).unwrap();
@@ -1686,7 +1688,7 @@ impl Document {
             asap_scripts_set: DOMRefCell::new(vec![]),
             scripting_enabled: Cell::new(browsing_context.is_some()),
             animation_frame_ident: Cell::new(0),
-            animation_frame_list: DOMRefCell::new(BTreeMap::new()),
+            animation_frame_list: DOMRefCell::new(vec![]),
             running_animation_callbacks: Cell::new(false),
             loader: DOMRefCell::new(doc_loader),
             current_parser: Default::default(),
