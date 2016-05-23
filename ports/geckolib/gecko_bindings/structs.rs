@@ -2198,6 +2198,20 @@ fn bindgen_test_layout_QITableEntry() {
     assert_eq!(::std::mem::size_of::<QITableEntry>() , 16usize);
     assert_eq!(::std::mem::align_of::<QITableEntry>() , 8usize);
 }
+/**
+ * already_AddRefed cooperates with reference counting smart pointers to enable
+ * you to assign in a pointer _without_ |AddRef|ing it.  You might want to use
+ * this as a return type from a function that returns an already |AddRef|ed
+ * pointer.
+ *
+ * TODO Move already_AddRefed to namespace mozilla.  This has not yet been done
+ * because of the sheer number of usages of already_AddRefed.
+ */
+#[repr(C)]
+#[derive(Debug)]
+pub struct already_AddRefed<T> {
+    pub mRawPtr: *mut T,
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct RefPtrTraits<U> {
