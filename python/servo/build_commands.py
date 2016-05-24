@@ -147,7 +147,7 @@ class MachCommands(CommandBase):
               features=None, android=None, verbose=False, debug_mozjs=False, params=None):
         if android is None:
             android = self.config["build"]["android"]
-        features = features or []
+        features = features or self.servo_features()
 
         opts = params or []
 
@@ -264,6 +264,10 @@ class MachCommands(CommandBase):
             opts += ["-v"]
         if release:
             opts += ["--release"]
+
+        servo_features = self.servo_features()
+        if servo_features:
+            opts += ["--features", "%s" % ' '.join("servo/" + x for x in servo_features)]
 
         build_start = time()
         with cd(path.join("ports", "cef")):
