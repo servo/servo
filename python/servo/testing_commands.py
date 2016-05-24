@@ -178,6 +178,10 @@ class MachCommands(CommandBase):
             args += ["-p", "%s_tests" % crate]
         args += test_patterns
 
+        features = self.servo_features()
+        if features:
+            args += ["--features", "%s" % ' '.join(features)]
+
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
