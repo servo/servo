@@ -58,6 +58,9 @@ pub struct HTMLScriptElement {
     /// https://html.spec.whatwg.org/multipage/#ready-to-be-parser-executed
     ready_to_be_parser_executed: Cell<bool>,
 
+    /// https://html.spec.whatwg.org/multipage/#concept-script-type
+    type_: Cell<ScriptType>,
+
     /// Document of the parser that created this element
     parser_document: JS<Document>,
 
@@ -75,6 +78,7 @@ impl HTMLScriptElement {
             parser_inserted: Cell::new(creator == ElementCreator::ParserCreated),
             non_blocking: Cell::new(creator != ElementCreator::ParserCreated),
             ready_to_be_parser_executed: Cell::new(false),
+            type_: Cell::new(ScriptType::Unset),
             parser_document: JS::from_ref(document),
             load: DOMRefCell::new(None),
         }
@@ -110,6 +114,13 @@ static SCRIPT_JS_MIMES: StaticStringVec = &[
     "text/x-ecmascript",
     "text/x-javascript",
 ];
+
+#[derive(Clone, Copy, HeapSizeOf, JSTraceable, PartialEq)]
+pub enum ScriptType {
+    Classic,
+    Module,
+    Unset
+}
 
 #[derive(HeapSizeOf, JSTraceable)]
 pub struct ScriptOrigin {
