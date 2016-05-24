@@ -11,7 +11,7 @@ use std::str::FromStr;
 use string_cache::{Atom, Namespace};
 use url::Url;
 use util::str::{LengthOrPercentageOrAuto, HTML_SPACE_CHARACTERS};
-use util::str::{read_exponent, read_fraction, read_numbers, split_html_space_chars};
+use util::str::{read_exponent, read_fraction, read_numbers, split_commas, split_html_space_chars};
 use values::specified::{Length};
 
 // Duplicated from script::dom::values.
@@ -124,6 +124,15 @@ impl AttrValue {
         AttrValue::TokenList(tokens, atoms)
     }
 
+    pub fn from_comma_separated_tokenlist(tokens: String) -> AttrValue {
+        let atoms = split_commas(&tokens).map(Atom::from)
+                                         .fold(vec![], |mut acc, atom| {
+                                            if !acc.contains(&atom) { acc.push(atom) }
+                                            acc
+                                         });
+        AttrValue::TokenList(tokens, atoms)
+    }
+
     #[cfg(not(feature = "gecko"))] // Gecko can't borrow atoms as UTF-8.
     pub fn from_atomic_tokens(atoms: Vec<Atom>) -> AttrValue {
         use util::str::str_join;
@@ -151,12 +160,12 @@ impl AttrValue {
     // https://html.spec.whatwg.org/multipage/#reflecting-content-attributes-in-idl-attributes:idl-double
     pub fn from_double(string: String, default: f64) -> AttrValue {
         let result = parse_double(&string).unwrap_or(default);
-        let result = if result.is_infinite() {
-            default
+
+        if result.is_normal() {
+            AttrValue::Double(string, result)
         } else {
-            result
-        };
-        AttrValue::Double(string, result)
+            AttrValue::Double(string, default)
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#limited-to-only-non-negative-numbers
