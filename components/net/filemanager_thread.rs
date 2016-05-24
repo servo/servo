@@ -53,6 +53,7 @@ impl FileManager {
                 FileManagerThreadMsg::SelectFiles(sender) => self.select_files(sender),
                 FileManagerThreadMsg::ReadFile(sender, id) => self.read_file(sender, id),
                 FileManagerThreadMsg::DeleteFileID(id) => self.delete_fileid(id),
+                FileManagerThreadMsg::Exit => break,
             }
         }
     }

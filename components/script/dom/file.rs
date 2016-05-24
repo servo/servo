@@ -52,7 +52,7 @@ impl File {
         let name = DOMString::from(selected.filename.to_str().expect("File name encoding error"));
 
         // FIXME: fix this after PR #11221 is landed
-        let id = selected.id;
+        let _id = selected.id;
         let slice = DataSlice::empty();
 
         let global = GlobalRef::Window(window);
