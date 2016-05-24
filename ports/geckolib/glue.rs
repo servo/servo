@@ -73,13 +73,9 @@ pub extern "C" fn Servo_Initialize() -> () {
     env_logger::init().unwrap();
 }
 
-#[no_mangle]
-pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *mut RawServoStyleSet) -> () {
-    let document = unsafe { GeckoDocument::from_raw(doc) };
-    let node = match document.root_node() {
-        Some(x) => x,
-        None => return,
-    };
+fn restyle_subtree(node: GeckoNode, raw_data: *mut RawServoStyleSet) {
+    debug_assert!(node.is_element() || node.is_text_node());
+
     let data = unsafe { &mut *(raw_data as *mut PerDocumentStyleData) };
 
     // Force the creation of our lazily-constructed initial computed values on
@@ -110,6 +106,23 @@ pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *m
     if node.is_dirty() || node.has_dirty_descendants() {
         parallel::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context, &mut data.work_queue);
     }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_RestyleSubtree(node: *mut RawGeckoNode,
+                                       raw_data: *mut RawServoStyleSet) -> () {
+    let node = unsafe { GeckoNode::from_raw(node) };
+    restyle_subtree(node, raw_data);
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *mut RawServoStyleSet) -> () {
+    let document = unsafe { GeckoDocument::from_raw(doc) };
+    let node = match document.root_node() {
+        Some(x) => x,
+        None => return,
+    };
+    restyle_subtree(node, raw_data);
 }
 
 #[no_mangle]
