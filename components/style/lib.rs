@@ -28,6 +28,8 @@ extern crate cssparser;
 extern crate encoding;
 extern crate euclid;
 extern crate fnv;
+#[cfg(feature = "gecko")]
+extern crate gecko_bindings;
 extern crate heapsize;
 #[allow(unused_extern_crates)]
 #[macro_use]

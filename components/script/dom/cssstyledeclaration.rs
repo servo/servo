@@ -16,6 +16,7 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Ref;
 use string_cache::Atom;
+use style::parser::ParserContextExtraData;
 use style::properties::{PropertyDeclaration, Shorthand};
 use style::properties::{is_supported_property, parse_one_declaration};
 use style::selector_impl::PseudoElement;
@@ -240,7 +241,9 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
 
         // Step 6
         let window = window_from_node(&*self.owner);
-        let declarations = parse_one_declaration(&property, &value, &window.get_url(), window.css_error_reporter());
+        let declarations =
+            parse_one_declaration(&property, &value, &window.get_url(), window.css_error_reporter(),
+                                  ParserContextExtraData::default());
 
         // Step 7
         let declarations = if let Ok(declarations) = declarations {

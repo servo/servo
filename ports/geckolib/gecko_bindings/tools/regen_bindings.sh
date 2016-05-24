@@ -50,7 +50,7 @@ do
 done
 
 # Other mapped types.
-for TYPE in SheetParsingMode
+for TYPE in SheetParsingMode nsMainThreadPtrHandle nsMainThreadPtrHolder
 do
   MAP_GECKO_TYPES=$MAP_GECKO_TYPES"-blacklist-type $TYPE "
   MAP_GECKO_TYPES=$MAP_GECKO_TYPES"-raw-line 'use structs::$TYPE;' "
@@ -59,6 +59,8 @@ done
 
 
 # Check for the include directory.
+export OBJDIR="$1"
+export SRCDIR="$1/.."  # Not necessarily true, but let's assume.
 export DIST_INCLUDE="$1/dist/include"
 if [ ! -d "$DIST_INCLUDE" ]; then
   echo "$DIST_INCLUDE: directory not found"
@@ -72,6 +74,8 @@ export RUST_BACKTRACE=1
 eval ./rust-bindgen/target/debug/bindgen           \
   -x c++ -std=gnu++0x                              \
   "-I$DIST_INCLUDE"                                \
+  "-I$DIST_INCLUDE/nspr/"                          \
+  "-I$SRCDIR/nsprpub/pr/include/"                  \
   $PLATFORM_DEPENDENT_DEFINES                      \
   -o ../bindings.rs                                \
   -no-type-renaming                                \

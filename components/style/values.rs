@@ -90,13 +90,13 @@ pub const FONT_MEDIUM_PX: i32 = 16;
 
 pub mod specified {
     use app_units::Au;
-    use cssparser::{self, CssStringWriter, Parser, ToCss, Token};
+    use cssparser::{self, Parser, ToCss, Token};
     use euclid::size::Size2D;
     use parser::ParserContext;
     use std::ascii::AsciiExt;
     use std::cmp;
     use std::f32::consts::PI;
-    use std::fmt::{self, Write};
+    use std::fmt;
     use std::ops::Mul;
     use style_traits::values::specified::AllowedNumericType;
     use super::AuExtensionMethods;
@@ -1224,12 +1224,10 @@ pub mod specified {
 
     impl ToCss for Image {
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            use values::LocalToCss;
             match *self {
                 Image::Url(ref url) => {
-                    try!(dest.write_str("url(\""));
-                    try!(write!(&mut CssStringWriter::new(dest), "{}", url));
-                    try!(dest.write_str("\")"));
-                    Ok(())
+                    url.to_css(dest)
                 }
                 Image::LinearGradient(ref gradient) => gradient.to_css(dest)
             }

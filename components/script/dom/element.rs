@@ -86,6 +86,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace, QualName};
 use style::element_state::*;
+use style::parser::ParserContextExtraData;
 use style::properties::DeclaredValue;
 use style::properties::longhands::{self, background_image, border_spacing, font_family, overflow_x, font_size};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
@@ -1977,7 +1978,8 @@ impl VirtualMethods for Element {
                 *self.style_attribute.borrow_mut() =
                     mutation.new_value(attr).map(|value| {
                         let win = window_from_node(self);
-                        parse_style_attribute(&value, &doc.base_url(), win.css_error_reporter())
+                        parse_style_attribute(&value, &doc.base_url(), win.css_error_reporter(),
+                                              ParserContextExtraData::default())
                     });
                 if node.is_in_doc() {
                     node.dirty(NodeDamage::NodeStyleDamaged);

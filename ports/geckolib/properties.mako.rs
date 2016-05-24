@@ -16,7 +16,8 @@ use gecko_bindings::bindings::Gecko_Construct_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_CopyConstruct_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
 % endfor
-use gecko_bindings::bindings::{Gecko_CopyListStyleTypeFrom, Gecko_SetListStyleType};
+use gecko_bindings::bindings::{Gecko_CopyMozBindingFrom, Gecko_CopyListStyleTypeFrom};
+use gecko_bindings::bindings::{Gecko_SetMozBinding, Gecko_SetListStyleType};
 use gecko_bindings::structs;
 use glue::ArcHelpers;
 use heapsize::HeapSizeOf;
@@ -625,7 +626,7 @@ fn static_assert() {
 
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Box" skip_longhands="display overflow-y vertical-align">
+<%self:impl_trait style_struct_name="Box" skip_longhands="display overflow-y vertical-align -moz-binding">
 
     // We manually-implement the |display| property until we get general
     // infrastructure for preffing certain values.
@@ -677,6 +678,25 @@ fn static_assert() {
         self.gecko.mVerticalAlign.mValue = other.gecko.mVerticalAlign.mValue;
     }
 
+    fn set__moz_binding(&mut self, v: longhands::_moz_binding::computed_value::T) {
+        use style::properties::longhands::_moz_binding::SpecifiedValue as BindingValue;
+        match v {
+            BindingValue::None => debug_assert!(self.gecko.mBinding.mRawPtr.is_null()),
+            BindingValue::Url(ref url, ref extra_data) => {
+                unsafe {
+                    Gecko_SetMozBinding(&mut self.gecko,
+                                        url.as_str().as_ptr(),
+                                        url.as_str().len() as u32,
+                                        extra_data.base.as_raw(),
+                                        extra_data.referrer.as_raw(),
+                                        extra_data.principal.as_raw());
+                }
+            }
+        }
+    }
+    fn copy__moz_binding_from(&mut self, other: &Self) {
+        unsafe { Gecko_CopyMozBindingFrom(&mut self.gecko, &other.gecko); }
+    }
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Background" skip_longhands="background-color" skip_additionals="*">

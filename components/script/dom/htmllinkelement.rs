@@ -38,6 +38,7 @@ use std::mem;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::media_queries::{MediaQueryList, parse_media_query_list};
+use style::parser::ParserContextExtraData;
 use style::servo::Stylesheet;
 use style::stylesheets::Origin;
 use url::Url;
@@ -307,7 +308,8 @@ impl AsyncResponseListener for StylesheetContext {
 
         let mut sheet = Stylesheet::from_bytes(&data, final_url, protocol_encoding_label,
                                                Some(environment_encoding), Origin::Author,
-                                               win.css_error_reporter());
+                                               win.css_error_reporter(),
+                                               ParserContextExtraData::default());
         let media = self.media.take().unwrap();
         sheet.set_media(Some(media));
         let sheet = Arc::new(sheet);
