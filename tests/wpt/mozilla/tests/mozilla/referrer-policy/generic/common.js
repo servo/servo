@@ -115,7 +115,7 @@ function queryIframe(url, callback, referrer_policy) {
       xhr.onreadystatechange = function(e) {
         if (this.readyState == 4 && this.status == 200) {
           var server_data = JSON.parse(this.responseText);
-          callback(wrapResult(url, server_data), url);
+          callback(server_data, url);
         }
       };
       xhr.send();

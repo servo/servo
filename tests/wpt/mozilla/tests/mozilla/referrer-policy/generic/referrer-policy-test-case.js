@@ -105,7 +105,7 @@ function ReferrerPolicyTestCase(scenario, testDescription, sanityChecker) {
 
         // Check the reported URL.
         test.step(function() {
-          //TODO - uncomment when can pull referrer
+          // TODO - can uncomment when Document::Referrer is implemented
           // assert_equals(result.referrer,
           //               t._expectedReferrerUrl,
           //               "Reported Referrer URL is '" +
