@@ -53,6 +53,7 @@ use net_traits::response::HttpsState;
 use profile_traits::mem;
 use std::any::Any;
 use std::collections::HashMap;
+use std::sync::mpsc::{Sender, Receiver};
 use url::Url;
 use util::ipc::OptionalOpaqueIpcSender;
 
@@ -246,10 +247,6 @@ pub enum TouchpadPressurePhase {
     AfterSecondClick,
 }
 
-/// An opaque wrapper around script<->layout channels to avoid leaking message types into
-/// crates that don't need to know about them.
-pub struct OpaqueScriptLayoutChannel(pub (Box<Any + Send>, Box<Any + Send>));
-
 /// Requests a TimerEvent-Message be sent after the given duration.
 #[derive(Deserialize, Serialize)]
 pub struct TimerEventRequest(pub IpcSender<TimerEvent>,
@@ -344,14 +341,12 @@ pub struct InitialScriptState {
 /// This trait allows creating a `ScriptThread` without depending on the `script`
 /// crate.
 pub trait ScriptThreadFactory {
+    /// Type of message sent from script to layout.
+    type Message;
     /// Create a `ScriptThread`.
     fn create(state: InitialScriptState,
-              layout_chan: &OpaqueScriptLayoutChannel,
-              load_data: LoadData);
-    /// Create a script -> layout channel (`Sender`, `Receiver` pair).
-    fn create_layout_channel() -> OpaqueScriptLayoutChannel;
-    /// Clone the `Sender` in `pair`.
-    fn clone_layout_channel(pair: &OpaqueScriptLayoutChannel) -> Box<Any + Send>;
+              load_data: LoadData)
+              -> (Sender<Self::Message>, Receiver<Self::Message>);
 }
 
 /// Messages sent from the script thread to the compositor

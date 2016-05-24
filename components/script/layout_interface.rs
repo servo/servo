@@ -16,8 +16,7 @@ use msg::constellation_msg::{PanicMsg, PipelineId, WindowSizeData};
 use net_traits::image_cache_thread::ImageCacheThread;
 use profile_traits::mem::ReportsChan;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
-use script_traits::{OpaqueScriptLayoutChannel, UntrustedNodeAddress};
-use std::any::Any;
+use script_traits::{UntrustedNodeAddress};
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use string_cache::Atom;
@@ -230,36 +229,11 @@ impl LayoutChan {
     }
 }
 
-/// A trait to manage opaque references to script<->layout channels without needing
-/// to expose the message type to crates that don't need to know about them.
-pub trait ScriptLayoutChan {
-    fn new(sender: Sender<Msg>, receiver: Receiver<Msg>) -> Self;
-    fn sender(&self) -> Sender<Msg>;
-    fn receiver(self) -> Receiver<Msg>;
-}
-
-impl ScriptLayoutChan for OpaqueScriptLayoutChannel {
-    fn new(sender: Sender<Msg>, receiver: Receiver<Msg>) -> OpaqueScriptLayoutChannel {
-        let inner = (box sender as Box<Any + Send>, box receiver as Box<Any + Send>);
-        OpaqueScriptLayoutChannel(inner)
-    }
-
-    fn sender(&self) -> Sender<Msg> {
-        let &OpaqueScriptLayoutChannel((ref sender, _)) = self;
-        (*sender.downcast_ref::<Sender<Msg>>().unwrap()).clone()
-    }
-
-    fn receiver(self) -> Receiver<Msg> {
-        let OpaqueScriptLayoutChannel((_, receiver)) = self;
-        *receiver.downcast::<Receiver<Msg>>().unwrap()
-    }
-}
-
 pub struct NewLayoutThreadInfo {
     pub id: PipelineId,
     pub url: Url,
     pub is_parent: bool,
-    pub layout_pair: OpaqueScriptLayoutChannel,
+    pub layout_pair: (Sender<Msg>, Receiver<Msg>),
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
     pub constellation_chan: IpcSender<ConstellationMsg>,
     pub panic_chan: IpcSender<PanicMsg>,

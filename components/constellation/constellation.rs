@@ -89,7 +89,7 @@ enum ReadyToSave {
 /// `ScriptThreadFactory` (which in practice are implemented by
 /// `LayoutThread` in the `layout` crate, and `ScriptThread` in
 /// the `script` crate).
-pub struct Constellation<LTF, STF> {
+pub struct Constellation<Message, LTF, STF> {
     /// A channel through which script messages can be sent to this object.
     script_sender: IpcSender<FromScriptMsg>,
 
@@ -166,7 +166,7 @@ pub struct Constellation<LTF, STF> {
     /// A channel through which messages can be sent to the memory profiler.
     mem_profiler_chan: mem::ProfilerChan,
 
-    phantom: PhantomData<(LTF, STF)>,
+    phantom: PhantomData<(Message, LTF, STF)>,
 
     window_size: WindowSizeData,
 
@@ -318,7 +318,10 @@ enum ChildProcess {
     Unsandboxed(process::Child),
 }
 
-impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF> {
+impl<Message, LTF, STF> Constellation<Message, LTF, STF>
+    where LTF: LayoutThreadFactory<Message=Message>,
+          STF: ScriptThreadFactory<Message=Message>
+{
     pub fn start(state: InitialConstellationState) -> Sender<FromCompositorMsg> {
         let (ipc_script_sender, ipc_script_receiver) = ipc::channel().expect("ipc channel failure");
         let script_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_script_receiver);
@@ -333,7 +336,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         let compositor_sender_clone = compositor_sender.clone();
 
         spawn_named("Constellation".to_owned(), move || {
-            let mut constellation: Constellation<LTF, STF> = Constellation {
+            let mut constellation: Constellation<Message, LTF, STF> = Constellation {
                 script_sender: ipc_script_sender,
                 compositor_sender: compositor_sender_clone,
                 layout_sender: ipc_layout_sender,
@@ -455,7 +458,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             if opts::multiprocess() {
                 self.spawn_multiprocess(pipeline_id, unprivileged_pipeline_content);
             } else {
-                unprivileged_pipeline_content.start_all::<LTF, STF>(false);
+                unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false);
             }
         }
 
