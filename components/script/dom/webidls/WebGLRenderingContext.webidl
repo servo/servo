@@ -523,11 +523,13 @@ interface WebGLRenderingContextBase
                                  GLsizei width, GLsizei height, GLenum format,
                                  object data);
 
-    //void copyTexImage2D(GLenum target, GLint level, GLenum internalformat,
-    //                    GLint x, GLint y, GLsizei width, GLsizei height,
-    //                    GLint border);
-    //void copyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-    //                       GLint x, GLint y, GLsizei width, GLsizei height);
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    void copyTexImage2D(GLenum target, GLint level, GLenum internalformat,
+                        GLint x, GLint y, GLsizei width, GLsizei height,
+                        GLint border);
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    void copyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+                           GLint x, GLint y, GLsizei width, GLsizei height);
 
     WebGLBuffer? createBuffer();
     WebGLFramebuffer? createFramebuffer();
