@@ -55,8 +55,6 @@ mod surface_map;
 mod touch;
 pub mod windowing;
 
-pub use script_traits::{AnimationTickType, ConstellationMsg as CompositorMsg};
-
 pub struct SendableFrameTree {
     pub pipeline: CompositionPipeline,
     pub size: Option<TypedSize2D<PagePx, f32>>,

@@ -58,7 +58,6 @@ fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
 fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 
 use compositing::CompositorEventListener;
-use compositing::CompositorMsg as ConstellationMsg;
 use compositing::compositor_thread::InitialCompositorState;
 use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
@@ -79,6 +78,7 @@ use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
+use script_traits::ConstellationMsg;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use util::resource_files::resources_dir_path;
