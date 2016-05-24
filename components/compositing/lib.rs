@@ -29,7 +29,6 @@ extern crate net_traits;
 #[macro_use]
 extern crate profile_traits;
 extern crate script_traits;
-extern crate serde;
 extern crate style_traits;
 extern crate time;
 extern crate url;
@@ -39,18 +38,13 @@ extern crate webrender;
 extern crate webrender_traits;
 
 pub use compositor_thread::{CompositorEventListener, CompositorProxy, CompositorThread};
-use euclid::size::{Size2D, TypedSize2D};
+use euclid::size::TypedSize2D;
 use gfx::paint_thread::ChromeToPaintMsg;
-use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcSender};
 use layout_traits::LayoutControlChan;
-use msg::constellation_msg::{FrameId, Key, KeyState, KeyModifiers, LoadData};
-use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
-use msg::constellation_msg::{WebDriverCommandMsg, WindowSizeData, WindowSizeType};
+use msg::constellation_msg::PipelineId;
 use script_traits::ConstellationControlMsg;
-use std::collections::HashMap;
 use std::sync::mpsc::Sender;
-use url::Url;
 use util::geometry::PagePx;
 
 mod compositor;
@@ -61,40 +55,7 @@ mod surface_map;
 mod touch;
 pub mod windowing;
 
-/// Specifies whether the script or layout thread needs to be ticked for animation.
-#[derive(Deserialize, Serialize)]
-pub enum AnimationTickType {
-    Script,
-    Layout,
-}
-
-/// Messages from the compositor to the constellation.
-#[derive(Deserialize, Serialize)]
-pub enum CompositorMsg {
-    Exit,
-    FrameSize(PipelineId, Size2D<f32>),
-    /// Request that the constellation send the FrameId corresponding to the document
-    /// with the provided pipeline id
-    GetFrame(PipelineId, IpcSender<Option<FrameId>>),
-    /// Request that the constellation send the current pipeline id for the provided frame
-    /// id, or for the root frame if this is None, over a provided channel.
-    /// Also returns a boolean saying whether the document has finished loading or not.
-    GetPipeline(Option<FrameId>, IpcSender<Option<(PipelineId, bool)>>),
-    /// Requests that the constellation inform the compositor of the title of the pipeline
-    /// immediately.
-    GetPipelineTitle(PipelineId),
-    InitLoadUrl(Url),
-    /// Query the constellation to see if the current compositor output is stable
-    IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
-    KeyEvent(Key, KeyState, KeyModifiers),
-    LoadUrl(PipelineId, LoadData),
-    Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
-    WindowSize(WindowSizeData, WindowSizeType),
-    /// Requests that the constellation instruct layout to begin a new tick of the animation.
-    TickAnimation(PipelineId, AnimationTickType),
-    /// Dispatch a webdriver command
-    WebDriverCommand(WebDriverCommandMsg),
-}
+pub use script_traits::{AnimationTickType, ConstellationMsg as CompositorMsg};
 
 pub struct SendableFrameTree {
     pub pipeline: CompositionPipeline,
