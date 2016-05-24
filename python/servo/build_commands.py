@@ -23,7 +23,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, call
+from servo.command_base import CommandBase, cd, call, BIN_SUFFIX
 
 
 def notify_linux(title, text):
@@ -226,8 +226,10 @@ class MachCommands(CommandBase):
             env['OPENSSL_INCLUDE_DIR'] = path.join(openssl_dir, "include")
             env['OPENSSL_STATIC'] = 'TRUE'
 
+        cargo_binary = "cargo" + BIN_SUFFIX
+
         status = call(
-            ["cargo", "build"] + opts,
+            [cargo_binary, "build"] + opts,
             env=env, cwd=self.servo_crate(), verbose=verbose)
         elapsed = time() - build_start
 
