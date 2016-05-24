@@ -103,9 +103,9 @@ impl HTMLMetaElement {
             if head.upcast::<Node>().is_parent_of(self.upcast::<Node>()) {
                 let element = self.upcast::<Element>();
                 if let Some(content) = element.get_attribute(&ns!(), &atom!("content")).r() {
-                    let content = content.value();
+                    let content = content.value().trim();
                     if !content.is_empty() {
-                        doc.set_referrer_policy(determine_policy_for_token(content.trim()));
+                        doc.set_referrer_policy(determine_policy_for_token(content));
                     }
                 }
             }
