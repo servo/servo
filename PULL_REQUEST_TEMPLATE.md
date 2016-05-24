@@ -1,7 +1,10 @@
+Replace this paragraph with a description of the changes, then follow the instructions in the next section.
+
+---
 <!-- Thank you for contributing to Servo! Please replace each `[ ]` by `[X]` when the step is complete, and replace `__` with appropriate data: -->
 - [ ] `./mach build -d` does not report any errors
 - [ ] `./mach test-tidy --faster` does not report any errors
-- [ ] These changes fix #__ <!-- (github issue number if applicable). -->
+- [ ] These changes fix #__ (github issue number if applicable)
 
 <!-- Either: -->
 - [ ] There are tests for these changes OR
