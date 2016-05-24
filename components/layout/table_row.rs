@@ -357,7 +357,7 @@ impl Flow for TableRowFlow {
                         None => break,
                     };
                 column_computed_inline_size.size = column_computed_inline_size.size +
-                    extra_column_computed_inline_size.size;
+                    extra_column_computed_inline_size.size + self.spacing.horizontal;
             }
 
             computed_inline_size_for_cells.push(column_computed_inline_size)
