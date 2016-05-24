@@ -130,7 +130,6 @@ impl Pipeline {
             .expect("Pipeline main chan");;
         let (script_to_compositor_chan, script_to_compositor_port) = ipc::channel()
             .expect("Pipeline script to compositor chan");
-        let mut pipeline_port = Some(pipeline_port);
 
         let window_size = state.window_size.map(|size| {
             WindowSizeData {
@@ -159,7 +158,7 @@ impl Pipeline {
         let (layout_content_process_shutdown_chan, layout_content_process_shutdown_port) =
             ipc::channel().expect("Pipeline layout content shutdown chan");
 
-        let (script_chan, script_port) = match state.script_chan {
+        let (script_chan, script_port, pipeline_port) = match state.script_chan {
             Some(script_chan) => {
                 let (containing_pipeline_id, subpage_id) =
                     state.parent_info.expect("script_pipeline != None but subpage_id == None");
@@ -170,8 +169,7 @@ impl Pipeline {
                     load_data: state.load_data.clone(),
                     paint_chan: layout_to_paint_chan.clone().to_opaque(),
                     panic_chan: state.panic_chan.clone(),
-                    pipeline_port: mem::replace(&mut pipeline_port, None)
-                        .expect("script_pipeline != None but pipeline_port == None"),
+                    pipeline_port: pipeline_port,
                     layout_shutdown_chan: layout_shutdown_chan.clone(),
                     content_process_shutdown_chan: layout_content_process_shutdown_chan.clone(),
                 };
@@ -179,11 +177,11 @@ impl Pipeline {
                 if let Err(e) = script_chan.send(ConstellationControlMsg::AttachLayout(new_layout_info)) {
                     warn!("Sending to script during pipeline creation failed ({})", e);
                 }
-                (script_chan, None)
+                (script_chan, None, None)
             }
             None => {
                 let (script_chan, script_port) = ipc::channel().expect("Pipeline script chan");
-                (script_chan, Some(script_port))
+                (script_chan, Some(script_port), Some(pipeline_port))
             }
         };
 
