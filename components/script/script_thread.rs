@@ -79,8 +79,8 @@ use script_runtime::{ScriptPort, StackRootTLS, new_rt_and_cx, get_reports};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::{CompositorEvent, ConstellationControlMsg, EventResult};
-use script_traits::{InitialScriptState, MouseButton, MouseEventType, MozBrowserEvent, NewLayoutInfo};
-use script_traits::{LayoutMsg, ScriptMsg as ConstellationMsg};
+use script_traits::{InitialScriptState, MouseButton, MouseEventType, MozBrowserEvent};
+use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg};
 use script_traits::{ScriptThreadFactory, TimerEvent, TimerEventRequest, TimerSource};
 use script_traits::{TouchEventType, TouchId};
 use std::borrow::ToOwned;
@@ -347,9 +347,6 @@ pub struct ScriptThread {
     /// For communicating load url messages to the constellation
     constellation_chan: IpcSender<ConstellationMsg>,
 
-    /// For communicating layout messages to the constellation
-    layout_to_constellation_chan: IpcSender<LayoutMsg>,
-
     /// The port on which we receive messages from the image cache
     image_cache_port: Receiver<ImageCacheResult>,
 
@@ -572,7 +569,6 @@ impl ScriptThread {
             control_chan: state.control_chan,
             control_port: control_port,
             constellation_chan: state.constellation_chan,
-            layout_to_constellation_chan: state.layout_to_constellation_chan,
             time_profiler_chan: state.time_profiler_chan,
             mem_profiler_chan: state.mem_profiler_chan,
             panic_chan: state.panic_chan,
@@ -1089,6 +1085,7 @@ impl ScriptThread {
             paint_chan,
             panic_chan,
             pipeline_port,
+            layout_to_constellation_chan,
             layout_shutdown_chan,
             content_process_shutdown_chan,
         } = new_layout_info;
@@ -1102,7 +1099,7 @@ impl ScriptThread {
             is_parent: false,
             layout_pair: layout_pair,
             pipeline_port: pipeline_port,
-            constellation_chan: self.layout_to_constellation_chan.clone(),
+            constellation_chan: layout_to_constellation_chan,
             panic_chan: panic_chan,
             paint_chan: paint_chan,
             script_chan: self.control_chan.clone(),

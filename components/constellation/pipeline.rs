@@ -166,6 +166,7 @@ impl Pipeline {
                     paint_chan: layout_to_paint_chan.clone().to_opaque(),
                     panic_chan: state.panic_chan.clone(),
                     pipeline_port: pipeline_port,
+                    layout_to_constellation_chan: state.layout_to_constellation_chan.clone(),
                     layout_shutdown_chan: layout_shutdown_chan.clone(),
                     content_process_shutdown_chan: layout_content_process_shutdown_chan.clone(),
                 };
@@ -410,7 +411,6 @@ impl UnprivilegedPipelineContent {
             control_chan: self.script_chan.clone(),
             control_port: mem::replace(&mut self.script_port, None).expect("No script port."),
             constellation_chan: self.constellation_chan.clone(),
-            layout_to_constellation_chan: self.layout_to_constellation_chan.clone(),
             scheduler_chan: self.scheduler_chan.clone(),
             panic_chan: self.panic_chan.clone(),
             bluetooth_thread: self.bluetooth_thread.clone(),

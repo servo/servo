@@ -100,6 +100,8 @@ pub struct NewLayoutInfo {
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
     /// A channel for sending panics on
     pub panic_chan: IpcSender<PanicMsg>,
+    /// A sender for the layout thread to communicate to the constellation.
+    pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A shutdown channel so that layout can notify others when it's done.
     pub layout_shutdown_chan: IpcSender<()>,
     /// A shutdown channel so that layout can tell the content process to shut down when it's done.
@@ -310,8 +312,6 @@ pub struct InitialScriptState {
     pub control_port: IpcReceiver<ConstellationControlMsg>,
     /// A channel on which messages can be sent to the constellation from script.
     pub constellation_chan: IpcSender<ScriptMsg>,
-    /// A channel for the layout thread to send messages to the constellation.
-    pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A channel for sending panics to the constellation.
     pub panic_chan: IpcSender<PanicMsg>,
     /// A channel to schedule timer events.
