@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use AnimationTickType;
 use CompositionPipeline;
-use CompositorMsg as ConstellationMsg;
 use SendableFrameTree;
 use app_units::Au;
 use compositor_layer::{CompositorData, CompositorLayer, RcCompositorLayer, WantsScrollEventsFlag};
@@ -37,8 +35,9 @@ use msg::constellation_msg::{WindowSizeData, WindowSizeType};
 use profile_traits::mem::{self, ReportKind, Reporter, ReporterRequest};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::CompositorEvent::{MouseMoveEvent, MouseButtonEvent, TouchEvent};
-use script_traits::{AnimationState, ConstellationControlMsg, LayoutControlMsg};
-use script_traits::{MouseButton, MouseEventType, TouchpadPressurePhase, TouchEventType, TouchId};
+use script_traits::{AnimationState, AnimationTickType, ConstellationControlMsg};
+use script_traits::{ConstellationMsg, LayoutControlMsg, MouseButton};
+use script_traits::{MouseEventType, TouchpadPressurePhase, TouchEventType, TouchId};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;

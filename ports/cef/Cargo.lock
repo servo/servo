@@ -2341,7 +2341,6 @@ dependencies = [
 name = "webdriver_server"
 version = "0.0.1"
 dependencies = [
- "compositing 0.0.1",
  "euclid 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.9.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2351,6 +2350,7 @@ dependencies = [
  "plugins 0.0.1",
  "regex 0.1.71 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
+ "script_traits 0.0.1",
  "url 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "uuid 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",

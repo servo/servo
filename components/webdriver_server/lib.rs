@@ -10,7 +10,6 @@
 
 #![deny(unsafe_code)]
 
-extern crate compositing;
 extern crate euclid;
 extern crate hyper;
 extern crate image;
@@ -18,6 +17,7 @@ extern crate ipc_channel;
 extern crate msg;
 extern crate regex;
 extern crate rustc_serialize;
+extern crate script_traits;
 extern crate url;
 extern crate util;
 extern crate uuid;
@@ -25,7 +25,6 @@ extern crate webdriver;
 
 mod keys;
 
-use compositing::CompositorMsg as ConstellationMsg;
 use euclid::Size2D;
 use hyper::method::Method::{self, Post};
 use image::{DynamicImage, ImageFormat, RgbImage};
@@ -37,6 +36,7 @@ use msg::webdriver_msg::{LoadStatus, WebDriverFrameId, WebDriverJSError, WebDriv
 use regex::Captures;
 use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
 use rustc_serialize::json::{Json, ToJson};
+use script_traits::ConstellationMsg;
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
 use std::net::{SocketAddr, SocketAddrV4};

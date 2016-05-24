@@ -41,9 +41,10 @@ use gfx_traits::Epoch;
 use gfx_traits::LayerId;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
-use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{PanicMsg, PipelineId, PipelineNamespaceId};
-use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
+use msg::constellation_msg::{FrameId, Key, KeyModifiers, KeyState, LoadData};
+use msg::constellation_msg::{NavigationDirection, PanicMsg, PipelineId};
+use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeData};
+use msg::constellation_msg::{WebDriverCommandMsg, WindowSizeType};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
@@ -51,6 +52,8 @@ use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::response::HttpsState;
 use profile_traits::mem;
 use std::any::Any;
+use std::collections::HashMap;
+use url::Url;
 use util::ipc::OptionalOpaqueIpcSender;
 
 pub use script_msg::{LayoutMsg, ScriptMsg};
@@ -490,4 +493,48 @@ impl MozBrowserErrorType {
             MozBrowserErrorType::Fatal => "fatal",
         }
     }
+}
+
+/// Specifies whether the script or layout thread needs to be ticked for animation.
+#[derive(Deserialize, Serialize)]
+pub enum AnimationTickType {
+    /// The script thread.
+    Script,
+    /// The layout thread.
+    Layout,
+}
+
+/// Messages to the constellation.
+#[derive(Deserialize, Serialize)]
+pub enum ConstellationMsg {
+    /// Exit the constellation.
+    Exit,
+    /// Inform the constellation of the size of the viewport.
+    FrameSize(PipelineId, Size2D<f32>),
+    /// Request that the constellation send the FrameId corresponding to the document
+    /// with the provided pipeline id
+    GetFrame(PipelineId, IpcSender<Option<FrameId>>),
+    /// Request that the constellation send the current pipeline id for the provided frame
+    /// id, or for the root frame if this is None, over a provided channel.
+    /// Also returns a boolean saying whether the document has finished loading or not.
+    GetPipeline(Option<FrameId>, IpcSender<Option<(PipelineId, bool)>>),
+    /// Requests that the constellation inform the compositor of the title of the pipeline
+    /// immediately.
+    GetPipelineTitle(PipelineId),
+    /// Request to load the initial page.
+    InitLoadUrl(Url),
+    /// Query the constellation to see if the current compositor output is stable
+    IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
+    /// Inform the constellation of a key event.
+    KeyEvent(Key, KeyState, KeyModifiers),
+    /// Request to load a page.
+    LoadUrl(PipelineId, LoadData),
+    /// Request to navigate a frame.
+    Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
+    /// Inform the constellation of a window being resized.
+    WindowSize(WindowSizeData, WindowSizeType),
+    /// Requests that the constellation instruct layout to begin a new tick of the animation.
+    TickAnimation(PipelineId, AnimationTickType),
+    /// Dispatch a webdriver command
+    WebDriverCommand(WebDriverCommandMsg),
 }

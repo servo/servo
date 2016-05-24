@@ -4,7 +4,6 @@
 
 //! Communication with the compositor thread.
 
-use CompositorMsg as ConstellationMsg;
 use SendableFrameTree;
 use compositor::{self, CompositingReason};
 use euclid::point::Point2D;
@@ -16,7 +15,7 @@ use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::constellation_msg::{Image, Key, KeyModifiers, KeyState, PipelineId};
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{AnimationState, EventResult, ScriptToCompositorMsg};
+use script_traits::{AnimationState, ConstellationMsg, EventResult, ScriptToCompositorMsg};
 use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
 use std::sync::mpsc::{Receiver, Sender, channel};
