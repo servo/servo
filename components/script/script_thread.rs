@@ -352,7 +352,7 @@ pub struct ScriptThread {
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
 
     /// A handle to the compositor for communicating ready state messages.
-    compositor: DOMRefCell<IpcSender<ScriptToCompositorMsg>>,
+    compositor: IpcSender<ScriptToCompositorMsg>,
 
     /// The port on which we receive messages from the image cache
     image_cache_port: Receiver<ImageCacheResult>,
@@ -472,7 +472,7 @@ impl ScriptThreadFactory for ScriptThread {
             let reporter_name = format!("script-reporter-{}", id);
             mem_profiler_chan.run_with_memory_reporting(|| {
                 script_thread.start();
-                let _ = script_thread.compositor.borrow_mut().send(ScriptToCompositorMsg::Exited);
+                let _ = script_thread.compositor.send(ScriptToCompositorMsg::Exited);
                 let _ = script_thread.content_process_shutdown_chan.send(());
             }, reporter_name, script_chan, CommonScriptMsg::CollectReports);
 
@@ -582,7 +582,7 @@ impl ScriptThread {
             control_port: control_port,
             constellation_chan: state.constellation_chan,
             layout_to_constellation_chan: state.layout_to_constellation_chan,
-            compositor: DOMRefCell::new(state.compositor),
+            compositor: state.compositor,
             time_profiler_chan: state.time_profiler_chan,
             mem_profiler_chan: state.mem_profiler_chan,
             panic_chan: state.panic_chan,
@@ -1308,7 +1308,7 @@ impl ScriptThread {
         // TODO(tkuehn): currently there is only one window,
         // so this can afford to be naive and just shut down the
         // compositor. In the future it'll need to be smarter.
-        self.compositor.borrow_mut().send(ScriptToCompositorMsg::Exit).unwrap();
+        self.compositor.send(ScriptToCompositorMsg::Exit).unwrap();
     }
 
     /// We have received notification that the response associated with a load has completed.
@@ -1465,7 +1465,7 @@ impl ScriptThread {
                                  FileReadingTaskSource(file_sender.clone()),
                                  self.image_cache_channel.clone(),
                                  self.custom_message_chan.clone(),
-                                 self.compositor.borrow_mut().clone(),
+                                 self.compositor.clone(),
                                  self.image_cache_thread.clone(),
                                  self.resource_threads.clone(),
                                  self.bluetooth_thread.clone(),
@@ -1688,7 +1688,7 @@ impl ScriptThread {
         let point = Point2D::new(rect.origin.x.to_nearest_px() as f32,
                                  rect.origin.y.to_nearest_px() as f32);
 
-        self.compositor.borrow_mut().send(ScriptToCompositorMsg::ScrollFragmentPoint(
+        self.compositor.send(ScriptToCompositorMsg::ScrollFragmentPoint(
                                                  pipeline_id, LayerId::null(), point, false)).unwrap();
     }
 
@@ -1776,11 +1776,11 @@ impl ScriptThread {
                     TouchEventType::Down => {
                         if handled {
                             // TODO: Wait to see if preventDefault is called on the first touchmove event.
-                            self.compositor.borrow_mut()
+                            self.compositor
                                 .send(ScriptToCompositorMsg::TouchEventProcessed(
                                         EventResult::DefaultAllowed)).unwrap();
                         } else {
-                            self.compositor.borrow_mut()
+                            self.compositor
                                 .send(ScriptToCompositorMsg::TouchEventProcessed(
                                         EventResult::DefaultPrevented)).unwrap();
                         }
@@ -1800,8 +1800,7 @@ impl ScriptThread {
             KeyEvent(key, state, modifiers) => {
                 let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
                 let document = context.active_document();
-                document.dispatch_key_event(
-                    key, state, modifiers, &mut self.compositor.borrow_mut());
+                document.dispatch_key_event(key, state, modifiers, &self.compositor);
             }
         }
     }
