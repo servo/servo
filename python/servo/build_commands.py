@@ -26,6 +26,10 @@ from mach.decorators import (
 from servo.command_base import CommandBase, cd, call
 
 
+def format_duration(seconds):
+    return str(datetime.timedelta(seconds=int(seconds)))
+
+
 def notify_linux(title, text):
     try:
         import dbus
@@ -86,7 +90,7 @@ def notify_build_done(elapsed):
     """Generate desktop notification when build is complete and the
     elapsed build time was longer than 30 seconds."""
     if elapsed > 30:
-        notify("Servo build", "Completed in %s" % str(datetime.timedelta(seconds=elapsed)))
+        notify("Servo build", "Completed in %s" % format_duration(elapsed))
 
 
 def notify(title, text):
@@ -238,7 +242,7 @@ class MachCommands(CommandBase):
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify_build_done(elapsed)
 
-        print("Build completed in %s" % str(datetime.timedelta(seconds=elapsed)))
+        print("Build completed in %s" % format_duration(elapsed))
         return status
 
     @Command('build-cef',
@@ -274,7 +278,7 @@ class MachCommands(CommandBase):
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify_build_done(elapsed)
 
-        print("CEF build completed in %s" % str(datetime.timedelta(seconds=elapsed)))
+        print("CEF build completed in %s" % format_duration(elapsed))
 
         return ret
 
@@ -311,7 +315,7 @@ class MachCommands(CommandBase):
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify_build_done(elapsed)
 
-        print("GeckoLib build completed in %s" % str(datetime.timedelta(seconds=elapsed)))
+        print("GeckoLib build completed in %s" % format_duration(elapsed))
 
         return ret
 
@@ -349,7 +353,7 @@ class MachCommands(CommandBase):
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify_build_done(elapsed)
 
-        print("Gonk build completed in %s" % str(datetime.timedelta(seconds=elapsed)))
+        print("Gonk build completed in %s" % format_duration(elapsed))
 
         return ret
 
