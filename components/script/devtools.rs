@@ -16,7 +16,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::str::DOMString;
-use dom::browsingcontext::{BrowsingContext, IterableContext};
+use dom::browsingcontext::BrowsingContext;
 use dom::element::Element;
 use dom::node::Node;
 use dom::window::Window;

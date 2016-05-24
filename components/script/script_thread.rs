@@ -33,7 +33,7 @@ use dom::bindings::refcounted::{LiveDOMReferences, Trusted};
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WRAP_CALLBACKS;
-use dom::browsingcontext::{BrowsingContext, IterableContext};
+use dom::browsingcontext::BrowsingContext;
 use dom::document::{Document, DocumentProgressHandler, DocumentSource, FocusType, IsHTMLDocument};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
