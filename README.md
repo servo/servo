@@ -74,27 +74,32 @@ sudo emerge net-misc/curl media-libs/freeglut \
 On Windows:
 
 Download Python for Windows [here](https://www.python.org/downloads/release/python-2711/). This is
-required for the SpiderMonkey build on Windows.
+required for the SpiderMonkey build on Windows. **Note**: even if you enable the "Add python.exe to Path", it's not certain that MSYS2 will pick this up. You may have to add `/c/Python27` and `/c/Python27/Scripts` manually to the path to get things working (in `~/.bash_profile` or similar), once MSYS2 is installed.
 
 Install MSYS2 from [here](https://msys2.github.io/). After you have done so, open an MSYS shell
 window and update the core libraries and install new packages:
 
 ```sh
-update-core
+pacman -Su
 pacman -Sy git mingw-w64-x86_64-toolchain mingw-w64-x86_64-freetype \
     mingw-w64-x86_64-icu mingw-w64-x86_64-nspr mingw-w64-x86_64-ca-certificates \
     mingw-w64-x86_64-expat mingw-w64-x86_64-cmake tar diffutils patch \
-    patchutils make python2-setuptools
-easy_install-2.7 pip virtualenv
-```
-
-Open a new MSYS shell window as Administrator and remove the Python binaries (they
-are not compatible with our `mach` driver script yet, unfortunately):
-
-```sh
-cd /mingw64/bin
-mv python2.exe python2-mingw64.exe
-mv python2.7.exe python2.7-mingw64.exe
+    patchutils make
+    
+# The above might give output like below. In that case, just press Enter to use the default:
+#
+#   :: There are 16 members in group mingw-w64-x86_64-toolchain:
+#   :: Repository mingw64
+#     1) mingw-w64-x86_64-binutils  2) mingw-w64-x86_64-crt-git  3) mingw-w64-x86_64-gcc  4) mingw-w64-x86_64-gcc-ada  5) mingw-w64-x86_64-gcc-fortran
+#     6) mingw-w64-x86_64-gcc-libgfortran  7) mingw-w64-x86_64-gcc-libs  8) mingw-w64-x86_64-gcc-objc  9) mingw-w64-x86_64-gdb  10) mingw-w64-x86_64-headers-git
+#     11) mingw-w64-x86_64-libmangle-git  12) mingw-w64-x86_64-libwinpthread-git  13) mingw-w64-x86_64-make  14) mingw-w64-x86_64-pkg-config  15) mingw-w64-x86_64-tools-git
+#     16) mingw-w64-x86_64-winpthreads-git
+#
+#  Enter a selection (default=all):
+    
+# Presuming you have fixed the path so that the python binaries and scripts are available:
+pip install -U pip setuptools
+pip install virtualenv
 ```
 
 Now, open a MINGW64 (not MSYS!) shell window, and you should be able to build servo as usual!
