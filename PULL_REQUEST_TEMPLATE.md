@@ -1,4 +1,4 @@
-Replace this paragraph with a description of the changes, then follow the instructions in the next section.
+<!-- Please describe your changes on the following line: -->
 
 ---
 <!-- Thank you for contributing to Servo! Please replace each `[ ]` by `[X]` when the step is complete, and replace `__` with appropriate data: -->
