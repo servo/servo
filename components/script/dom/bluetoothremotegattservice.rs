@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use dom::bindings::error::Error::Type;
@@ -12,7 +13,7 @@ use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
 use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
-use dom::bluetoothuuid::{BluetoothCharacteristicUUID, BluetoothUUID};
+use dom::bluetoothuuid::{BluetoothCharacteristicUUID, BluetoothServiceUUID, BluetoothUUID};
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use util::str::DOMString;
@@ -149,6 +150,61 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                                                                                 characteristic.instance_id));
                 }
                 Ok(characteristics)
+            },
+            Err(error) => {
+                Err(Type(error))
+            },
+        }
+    }
+
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservice
+    fn GetIncludedService(&self,
+                          service: BluetoothServiceUUID)
+                          -> Fallible<Root<BluetoothRemoteGATTService>> {
+        let uuid = try!(BluetoothUUID::GetService(self.global().r(), service)).to_string();
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.get_bluetooth_thread().send(
+            BluetoothMethodMsg::GetIncludedService(self.get_instance_id(),
+                                                   uuid,
+                                                   sender)).unwrap();
+        let service = receiver.recv().unwrap();
+        match service {
+            Ok(service) => {
+                Ok(BluetoothRemoteGATTService::new(self.global().r(),
+                                                   &self.device.get(),
+                                                   DOMString::from(service.uuid),
+                                                   service.is_primary,
+                                                   service.instance_id))
+            },
+            Err(error) => {
+                Err(Type(error))
+            },
+        }
+    }
+
+    // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getincludedservices
+    fn GetIncludedServices(&self,
+                          service: Option<BluetoothServiceUUID>)
+                          -> Fallible<Vec<Root<BluetoothRemoteGATTService>>> {
+        let mut uuid: Option<String> = None;
+        if let Some(s) = service {
+            uuid = Some(try!(BluetoothUUID::GetService(self.global().r(), s)).to_string())
+        };
+        let (sender, receiver) = ipc::channel().unwrap();
+        self.get_bluetooth_thread().send(
+            BluetoothMethodMsg::GetIncludedServices(self.get_instance_id(),
+                                                    uuid,
+                                                    sender)).unwrap();
+        let services_vec = receiver.recv().unwrap();
+        match services_vec {
+            Ok(service_vec) => {
+                Ok(service_vec.into_iter()
+                              .map(|service| BluetoothRemoteGATTService::new(self.global().r(),
+                                                                             &self.device.get(),
+                                                                             DOMString::from(service.uuid),
+                                                                             service.is_primary,
+                                                                             service.instance_id))
+                              .collect())
             },
             Err(error) => {
                 Err(Type(error))
