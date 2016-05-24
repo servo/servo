@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::CSSError;
 use document_loader::{DocumentLoader, LoadType};
 use dom::activation::{ActivationSource, synthetic_click_activation};
 use dom::attr::{Attr, AttrValue};
@@ -232,8 +231,6 @@ pub struct Document {
     dom_complete: Cell<u64>,
     load_event_start: Cell<u64>,
     load_event_end: Cell<u64>,
-    /// Vector to store CSS errors
-    css_errors_store: DOMRefCell<Vec<CSSError>>,
     /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
     https_state: Cell<HttpsState>,
     touchpad_pressure_phase: Cell<TouchpadPressurePhase>,
@@ -330,10 +327,6 @@ impl Document {
     pub fn set_https_state(&self, https_state: HttpsState) {
         self.https_state.set(https_state);
         self.trigger_mozbrowser_event(MozBrowserEvent::SecurityChange(https_state));
-    }
-
-    pub fn report_css_error(&self, css_error: CSSError) {
-        self.css_errors_store.borrow_mut().push(css_error);
     }
 
     // https://html.spec.whatwg.org/multipage/#fully-active
@@ -1705,7 +1698,6 @@ impl Document {
             dom_complete: Cell::new(Default::default()),
             load_event_start: Cell::new(Default::default()),
             load_event_end: Cell::new(Default::default()),
-            css_errors_store: DOMRefCell::new(vec![]),
             https_state: Cell::new(HttpsState::None),
             touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
             origin: origin,
