@@ -8,6 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLObjectElementBinding;
 use dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
@@ -19,7 +20,6 @@ use dom::virtualmethods::VirtualMethods;
 use net_traits::image::base::Image;
 use std::sync::Arc;
 use string_cache::Atom;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLObjectElement {

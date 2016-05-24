@@ -10,12 +10,12 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::element::Element;
 use dom::window::Window;
 use std::ascii::AsciiExt;
 use string_cache::Atom;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct NamedNodeMap {

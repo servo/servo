@@ -2236,7 +2236,6 @@ dependencies = [
  "heapsize 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "heapsize_plugin 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.2 (git+https://github.com/servo/ipc-channel)",
- "js 0.1.3 (git+https://github.com/servo/rust-mozjs)",
  "kernel32-sys 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2249,7 +2248,6 @@ dependencies = [
  "serde 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "smallvec 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "string_cache 0.2.17 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 

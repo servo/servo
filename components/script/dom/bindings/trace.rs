@@ -37,6 +37,7 @@ use devtools_traits::WorkerId;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::bindings::str::DOMString;
 use dom::bindings::utils::WindowProxyHandler;
 use dom::worker::SharedRt;
 use encoding::types::EncodingRef;
@@ -89,7 +90,7 @@ use style::selector_impl::PseudoElement;
 use style::values::specified::Length;
 use url::Origin as UrlOrigin;
 use url::Url;
-use util::str::{DOMString, LengthOrPercentageOrAuto};
+use util::str::LengthOrPercentageOrAuto;
 use uuid::Uuid;
 use webrender_traits::WebGLError;
 

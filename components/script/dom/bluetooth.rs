@@ -11,6 +11,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::bluetoothadvertisingdata::BluetoothAdvertisingData;
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothuuid::BluetoothUUID;
@@ -18,7 +19,6 @@ use ipc_channel::ipc::{self, IpcSender};
 use net_traits::bluetooth_scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use net_traits::bluetooth_scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
-use util::str::DOMString;
 
 const FILTER_EMPTY_ERROR: &'static str = "'filters' member must be non - empty to find any devices.";
 const FILTER_ERROR: &'static str = "A filter must restrict the devices in some way.";

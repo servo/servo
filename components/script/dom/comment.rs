@@ -7,10 +7,10 @@ use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
+use dom::bindings::str::DOMString;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::node::Node;
-use util::str::DOMString;
 
 /// An HTML comment.
 #[dom_struct]

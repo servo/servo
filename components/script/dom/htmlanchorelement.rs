@@ -13,7 +13,7 @@ use dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
-use dom::bindings::str::USVString;
+use dom::bindings::str::{DOMString, USVString};
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::element::Element;
@@ -29,7 +29,6 @@ use num_traits::ToPrimitive;
 use std::default::Default;
 use string_cache::Atom;
 use url::Url;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLAnchorElement {
@@ -92,7 +91,7 @@ impl VirtualMethods for HTMLAnchorElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("rel") => AttrValue::from_serialized_tokenlist(value),
+            &atom!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

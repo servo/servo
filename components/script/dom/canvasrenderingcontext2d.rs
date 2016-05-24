@@ -25,6 +25,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, LayoutJS, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use dom::canvaspattern::CanvasPattern;
 use dom::htmlcanvaselement::HTMLCanvasElement;
@@ -46,7 +47,6 @@ use std::str::FromStr;
 use std::{cmp, fmt};
 use unpremultiplytable::UNPREMULTIPLY_TABLE;
 use url::Url;
-use util::str::DOMString;
 use util::vec::byte_swap;
 
 #[must_root]

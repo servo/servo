@@ -12,6 +12,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::blob::{Blob, DataSlice};
 use dom::domexception::{DOMErrorName, DOMException};
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -27,7 +28,6 @@ use script_runtime::{ScriptChan, CommonScriptMsg};
 use script_thread::Runnable;
 use std::cell::Cell;
 use string_cache::Atom;
-use util::str::DOMString;
 use util::thread::spawn_named;
 
 #[derive(PartialEq, Clone, Copy, JSTraceable, HeapSizeOf)]

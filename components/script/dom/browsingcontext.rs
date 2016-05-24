@@ -8,6 +8,7 @@ use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
 use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WindowProxyHandler;
 use dom::bindings::utils::get_array_index_from_id;
@@ -26,7 +27,6 @@ use js::jsval::{UndefinedValue, PrivateValue};
 use msg::constellation_msg::{PipelineId, SubpageId};
 use std::cell::Cell;
 use url::Url;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct BrowsingContext {

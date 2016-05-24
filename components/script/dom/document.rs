@@ -28,6 +28,7 @@ use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::bindings::xmlname::{validate_and_extract, namespace_from_domstring, xml_name_type};
@@ -127,7 +128,7 @@ use task_source::dom_manipulation::DOMManipulationTask;
 use time;
 use url::Url;
 use url::percent_encoding::percent_decode;
-use util::str::{DOMString, split_html_space_chars, str_join};
+use util::str::{split_html_space_chars, str_join};
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
 pub enum IsHTMLDocument {
@@ -2087,7 +2088,7 @@ impl DocumentMethods for Document {
             local_name.make_ascii_lowercase();
         }
         let name = Atom::from(local_name);
-        let value = AttrValue::String(DOMString::new());
+        let value = AttrValue::String("".to_owned());
 
         Ok(Attr::new(&self.window, name.clone(), value, name, ns!(), None, None))
     }
@@ -2099,7 +2100,7 @@ impl DocumentMethods for Document {
                          -> Fallible<Root<Attr>> {
         let (namespace, prefix, local_name) = try!(validate_and_extract(namespace,
                                                                         &qualified_name));
-        let value = AttrValue::String(DOMString::new());
+        let value = AttrValue::String("".to_owned());
         let qualified_name = Atom::from(qualified_name);
         Ok(Attr::new(&self.window,
                      local_name,

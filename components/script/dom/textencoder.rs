@@ -8,7 +8,7 @@ use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::str::USVString;
+use dom::bindings::str::{DOMString, USVString};
 use encoding::EncoderTrap;
 use encoding::label::encoding_from_whatwg_label;
 use encoding::types::EncodingRef;
@@ -17,7 +17,6 @@ use js::jsapi::{JS_GetUint8ArrayData, JS_NewUint8Array};
 use libc::uint8_t;
 use std::borrow::ToOwned;
 use std::ptr;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct TextEncoder {

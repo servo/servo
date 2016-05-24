@@ -10,14 +10,13 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::str::USVString;
+use dom::bindings::str::{DOMString, USVString};
 use dom::blob::Blob;
 use dom::file::File;
 use dom::htmlformelement::HTMLFormElement;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use string_cache::Atom;
-use util::str::DOMString;
 
 #[derive(JSTraceable, Clone)]
 #[must_root]

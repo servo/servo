@@ -6,7 +6,7 @@
 
 use dom::bindings::codegen::Bindings::TestBindingProxyBinding::TestBindingProxyMethods;
 use dom::bindings::reflector::Reflector;
-use util::str::DOMString;
+use dom::bindings::str::DOMString;
 
 
 #[dom_struct]

@@ -15,6 +15,7 @@ use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
+use dom::bindings::str::DOMString;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::{Document, FocusType};
 use dom::domstringmap::DOMStringMap;
@@ -35,7 +36,6 @@ use std::default::Default;
 use std::rc::Rc;
 use string_cache::Atom;
 use style::element_state::*;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLElement {

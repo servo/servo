@@ -20,7 +20,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::str::{ByteString, USVString};
+use dom::bindings::str::{ByteString, DOMString, USVString};
 use dom::bindings::weakref::MutableWeakRef;
 use dom::blob::{Blob, DataSlice};
 use dom::url::URL;
@@ -30,7 +30,6 @@ use std::borrow::ToOwned;
 use std::ptr;
 use std::rc::Rc;
 use util::prefs::{get_pref};
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct TestBinding {

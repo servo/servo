@@ -7,11 +7,10 @@ use dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMetho
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::bindings::str::USVString;
+use dom::bindings::str::{DOMString, USVString};
 use dom::urlhelper::UrlHelper;
 use dom::workerglobalscope::WorkerGlobalScope;
 use url::Url;
-use util::str::DOMString;
 
 // https://html.spec.whatwg.org/multipage/#worker-locations
 #[dom_struct]
