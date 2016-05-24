@@ -20,7 +20,7 @@ bench = false
 
 [features]
 default = ["glutin_app", "webdriver", "max_log_level"]
-max_log_level = ["env_logger/log/release_max_level_info"]
+max_log_level = ["log/release_max_level_info"]
 webdriver = ["webdriver_server"]
 energy-profiling = ["profile_traits/energy-profiling"]
 
@@ -68,6 +68,7 @@ glutin_app = {path = "../../ports/glutin", optional = true}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 gleam = "0.2"
 browserhtml = {git = "https://github.com/browserhtml/browserhtml", branch = "gh-pages"}
+log = "0.3"
 env_logger = "0.3"
 euclid = "0.6.4"
 libc = "0.2"

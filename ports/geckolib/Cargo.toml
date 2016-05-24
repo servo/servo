@@ -10,6 +10,19 @@ name = "geckoservo"
 path = "lib.rs"
 crate-type = ["staticlib"]
 
+[features]
+default = ["servo_features"]
+
+# Features that aren't actually required for geckolib, but match the ones used
+# in the full Servo build.  Enabling this reduces the number of things
+# recompiled when building both Servo and geckolib in the same source tree.
+servo_features = [
+  "time",
+  "url/query_encoding",
+  "url/rustc-serialize",
+  "uuid",
+]
+
 [dependencies]
 app_units = "0.2.3"
 cssparser = "0.5.4"
@@ -20,13 +33,15 @@ heapsize_plugin = "0.1.2"
 lazy_static = "0.2"
 libc = "0.2"
 num_cpus = "0.2.2"
-selectors = "0.6"
+selectors = {version = "0.6", features = ["unstable"]}
 smallvec = "0.1"
-string_cache = "0.2.17"
+string_cache = {version = "0.2.17", features = ["unstable"]}
 url = "1.0.0"
 log = {version = "0.3.5", features = ["release_max_level_info"]}
 plugins = {path = "../../components/plugins"}
+time = {version = "0.1", optional = true, features = ["rustc-serialize"]}
 util = {path = "../../components/util"}
+uuid = {version = "0.2", optional = true, features = ["v4", "serde"]}
 style = {path = "../../components/style", features = ["gecko"]}
 env_logger = "0.3"
 
