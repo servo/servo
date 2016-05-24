@@ -51,8 +51,6 @@ impl File {
     pub fn new_from_selected(window: &Window, selected: SelectedFile) -> Root<File> {
         let name = DOMString::from(selected.filename.to_str().expect("File name encoding error"));
 
-        // FIXME: fix this after PR #11221 is landed
-        let id = selected.id;
         let slice = DataSlice::empty();
 
         let global = GlobalRef::Window(window);
