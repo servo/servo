@@ -252,6 +252,7 @@ table:matches(
 
 input, select, option, optgroup, button, textarea, keygen {
   text-indent: initial;
+  text-transform: none;
 }
 
 textarea { white-space: pre-wrap; }
