@@ -338,10 +338,6 @@ pub struct InitialScriptState {
     pub content_process_shutdown_chan: IpcSender<()>,
 }
 
-/// Encapsulates external communication with the script thread.
-#[derive(Clone, Deserialize, Serialize)]
-pub struct ScriptControlChan(pub IpcSender<ConstellationControlMsg>);
-
 /// This trait allows creating a `ScriptThread` without depending on the `script`
 /// crate.
 pub trait ScriptThreadFactory {
