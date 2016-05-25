@@ -471,11 +471,7 @@ pub struct PrivilegedPipelineContent {
 }
 
 impl PrivilegedPipelineContent {
-    pub fn start_all(self) {
-        self.start_paint_thread();
-    }
-
-    pub fn start_paint_thread(self) {
+    pub fn start(self) {
         PaintThread::create(self.id,
                           self.load_data.url,
                           self.chrome_to_paint_chan,

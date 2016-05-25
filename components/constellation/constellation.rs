@@ -423,7 +423,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     initial_window_size: Option<TypedSize2D<PagePx, f32>>,
                     script_channel: Option<IpcSender<ConstellationControlMsg>>,
                     load_data: LoadData) {
-        let spawning_paint_only = script_channel.is_some();
+        let spawning_content = script_channel.is_none();
         let (pipeline, unprivileged_pipeline_content, privileged_pipeline_content) =
             Pipeline::create::<LTF, STF>(InitialPipelineState {
                 id: pipeline_id,
@@ -448,11 +448,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 webrender_api_sender: self.webrender_api_sender.clone(),
             });
 
-        if spawning_paint_only {
-            privileged_pipeline_content.start_paint_thread();
-        } else {
-            privileged_pipeline_content.start_all();
+        privileged_pipeline_content.start();
 
+        if spawning_content {
             // Spawn the child process.
             //
             // Yes, that's all there is to it!
