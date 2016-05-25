@@ -30,7 +30,8 @@ use msg::constellation_msg::{PanicMsg, PipelineId, PipelineNamespaceId, Pipeline
 use net_traits::image_cache_thread::ImageCacheThread;
 use profile_traits::{mem, time};
 use script_traits::LayoutMsg as ConstellationMsg;
-use script_traits::{LayoutControlMsg, ConstellationControlMsg, OpaqueScriptLayoutChannel};
+use script_traits::{LayoutControlMsg, ConstellationControlMsg};
+use std::sync::mpsc::{Sender, Receiver};
 use url::Url;
 use util::ipc::OptionalIpcSender;
 
@@ -41,10 +42,11 @@ pub struct LayoutControlChan(pub IpcSender<LayoutControlMsg>);
 // A static method creating a layout thread
 // Here to remove the compositor -> layout dependency
 pub trait LayoutThreadFactory {
+    type Message;
     fn create(id: PipelineId,
               url: Url,
               is_iframe: bool,
-              chan: OpaqueScriptLayoutChannel,
+              chan: (Sender<Self::Message>, Receiver<Self::Message>),
               pipeline_port: IpcReceiver<LayoutControlMsg>,
               constellation_chan: IpcSender<ConstellationMsg>,
               panic_chan: IpcSender<PanicMsg>,

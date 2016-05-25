@@ -231,7 +231,8 @@ fn create_constellation(opts: opts::Opts,
         webrender_api_sender: webrender_api_sender,
     };
     let constellation_chan =
-        Constellation::<layout::layout_thread::LayoutThread,
+        Constellation::<script::layout_interface::Msg,
+                        layout::layout_thread::LayoutThread,
                         script::script_thread::ScriptThread>::start(initial_state);
 
     // Send the URL command to the constellation.
@@ -264,7 +265,8 @@ pub fn run_content_process(token: String) {
 
     script::init();
 
-    unprivileged_content.start_all::<layout::layout_thread::LayoutThread,
+    unprivileged_content.start_all::<script::layout_interface::Msg,
+                                     layout::layout_thread::LayoutThread,
                                      script::script_thread::ScriptThread>(true);
 }
 

@@ -50,11 +50,10 @@ use query::{process_node_overflow_request, process_resolved_style_request, proce
 use query::{process_offset_parent_query};
 use script::dom::node::OpaqueStyleAndLayoutData;
 use script::layout_interface::{LayoutRPC, OffsetParentResponse, NodeOverflowResponse, MarginStyleResponse};
-use script::layout_interface::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType};
-use script::layout_interface::{ScriptLayoutChan, ScriptReflow};
+use script::layout_interface::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
 use script::reporter::CSSErrorReporter;
 use script_traits::ConstellationControlMsg;
-use script_traits::{LayoutControlMsg, LayoutMsg as ConstellationMsg, OpaqueScriptLayoutChannel};
+use script_traits::{LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use sequential;
 use serde_json;
 use std::borrow::ToOwned;
@@ -246,11 +245,13 @@ pub struct LayoutThread {
 }
 
 impl LayoutThreadFactory for LayoutThread {
+    type Message = Msg;
+
     /// Spawns a new layout thread.
     fn create(id: PipelineId,
               url: Url,
               is_iframe: bool,
-              chan: OpaqueScriptLayoutChannel,
+              chan: (Sender<Msg>, Receiver<Msg>),
               pipeline_port: IpcReceiver<LayoutControlMsg>,
               constellation_chan: IpcSender<ConstellationMsg>,
               panic_chan: IpcSender<PanicMsg>,
@@ -267,11 +268,11 @@ impl LayoutThreadFactory for LayoutThread {
                                                thread_state::LAYOUT,
                                                move || {
             { // Ensures layout thread is destroyed before we send shutdown message
-                let sender = chan.sender();
+                let sender = chan.0;
                 let layout = LayoutThread::new(id,
                                              url,
                                              is_iframe,
-                                             chan.receiver(),
+                                             chan.1,
                                              pipeline_port,
                                              constellation_chan,
                                              script_chan,

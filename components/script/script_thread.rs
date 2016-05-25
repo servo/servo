@@ -58,7 +58,7 @@ use js::jsapi::{JSContext, JS_SetWrapObjectCallbacks, JSTracer, SetWindowProxyCl
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_interface::{ReflowQueryType};
-use layout_interface::{self, LayoutChan, NewLayoutThreadInfo, ScriptLayoutChan};
+use layout_interface::{self, LayoutChan, NewLayoutThreadInfo};
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{LoadData, PanicMsg, PipelineId, PipelineNamespace};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
@@ -80,10 +80,9 @@ use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent,
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::{CompositorEvent, ConstellationControlMsg, EventResult};
 use script_traits::{InitialScriptState, MouseButton, MouseEventType, MozBrowserEvent, NewLayoutInfo};
-use script_traits::{LayoutMsg, OpaqueScriptLayoutChannel, ScriptMsg as ConstellationMsg};
+use script_traits::{LayoutMsg, ScriptMsg as ConstellationMsg};
 use script_traits::{ScriptThreadFactory, ScriptToCompositorMsg, TimerEvent, TimerEventRequest, TimerSource};
 use script_traits::{TouchEventType, TouchId};
-use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
@@ -428,22 +427,16 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
 }
 
 impl ScriptThreadFactory for ScriptThread {
-    fn create_layout_channel() -> OpaqueScriptLayoutChannel {
-        let (chan, port) = channel();
-        ScriptLayoutChan::new(chan, port)
-    }
-
-    fn clone_layout_channel(pair: &OpaqueScriptLayoutChannel)
-                            -> Box<Any + Send> {
-        box pair.sender() as Box<Any + Send>
-    }
+    type Message = layout_interface::Msg;
 
     fn create(state: InitialScriptState,
-              layout_chan: &OpaqueScriptLayoutChannel,
-              load_data: LoadData) {
+              load_data: LoadData)
+              -> (Sender<layout_interface::Msg>, Receiver<layout_interface::Msg>) {
         let panic_chan = state.panic_chan.clone();
         let (script_chan, script_port) = channel();
-        let layout_chan = LayoutChan(layout_chan.sender());
+
+        let (sender, receiver) = channel();
+        let layout_chan = LayoutChan(sender.clone());
         let pipeline_id = state.id;
         thread::spawn_named_with_send_on_panic(format!("ScriptThread {:?}", state.id),
                                                thread_state::SCRIPT,
@@ -479,6 +472,8 @@ impl ScriptThreadFactory for ScriptThread {
             // This must always be the very last operation performed before the thread completes
             failsafe.neuter();
         }, Some(pipeline_id), panic_chan);
+
+        (sender, receiver)
     }
 }
 
@@ -1103,9 +1098,8 @@ impl ScriptThread {
             content_process_shutdown_chan,
         } = new_layout_info;
 
-        let layout_pair = ScriptThread::create_layout_channel();
-        let layout_chan = LayoutChan(*ScriptThread::clone_layout_channel(
-            &layout_pair).downcast::<Sender<layout_interface::Msg>>().unwrap());
+        let layout_pair = channel();
+        let layout_chan = LayoutChan(layout_pair.0.clone());
 
         let layout_creation_info = NewLayoutThreadInfo {
             id: new_pipeline_id,

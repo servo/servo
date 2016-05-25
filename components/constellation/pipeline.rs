@@ -407,13 +407,11 @@ pub struct UnprivilegedPipelineContent {
 }
 
 impl UnprivilegedPipelineContent {
-    pub fn start_all<LTF, STF>(mut self, wait_for_completion: bool)
-        where LTF: LayoutThreadFactory,
-              STF: ScriptThreadFactory
+    pub fn start_all<Message, LTF, STF>(mut self, wait_for_completion: bool)
+        where LTF: LayoutThreadFactory<Message=Message>,
+              STF: ScriptThreadFactory<Message=Message>
     {
-        let layout_pair = STF::create_layout_channel();
-
-        STF::create(InitialScriptState {
+        let layout_pair = STF::create(InitialScriptState {
             id: self.id,
             parent_info: self.parent_info,
             compositor: self.script_to_compositor_chan,
@@ -432,7 +430,7 @@ impl UnprivilegedPipelineContent {
             window_size: self.window_size,
             pipeline_namespace_id: self.pipeline_namespace_id,
             content_process_shutdown_chan: self.script_content_process_shutdown_chan.clone(),
-        }, &layout_pair, self.load_data.clone());
+        }, self.load_data.clone());
 
         LTF::create(self.id,
                     self.load_data.url.clone(),
