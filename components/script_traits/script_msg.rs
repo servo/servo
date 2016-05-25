@@ -11,9 +11,10 @@ use MozBrowserEvent;
 use canvas_traits::CanvasMsg;
 use euclid::point::Point2D;
 use euclid::size::Size2D;
+use gfx_traits::LayerId;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::{LoadData, SubpageId};
-use msg::constellation_msg::{NavigationDirection, PipelineId};
+use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
+use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
@@ -28,6 +29,15 @@ pub enum LayoutMsg {
     SetCursor(Cursor),
     /// Notifies the constellation that the viewport has been constrained in some manner
     ViewportConstrained(PipelineId, ViewportConstraints),
+}
+
+/// Whether a DOM event was prevented by web content
+#[derive(Deserialize, Serialize)]
+pub enum EventResult {
+    /// Allowed by web content
+    DefaultAllowed,
+    /// Prevented by web content
+    DefaultPrevented,
 }
 
 /// Messages from the script to the constellation.
@@ -83,4 +93,23 @@ pub enum ScriptMsg {
     SetFinalUrl(PipelineId, Url),
     /// Check if an alert dialog box should be presented
     Alert(PipelineId, String, IpcSender<bool>),
+    /// Scroll a page in a window
+    ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>, bool),
+    /// Set title of current page
+    /// https://html.spec.whatwg.org/multipage/#document.title
+    SetTitle(PipelineId, Option<String>),
+    /// Send a key event
+    SendKeyEvent(Key, KeyState, KeyModifiers),
+    /// Get Window Informations size and position
+    GetClientWindow(IpcSender<(Size2D<u32>, Point2D<i32>)>),
+    /// Move the window to a point
+    MoveTo(Point2D<i32>),
+    /// Resize the window to size
+    ResizeTo(Size2D<u32>),
+    /// Script has handled a touch event, and either prevented or allowed default actions.
+    TouchEventProcessed(EventResult),
+    /// Get Scroll Offset
+    GetScrollOffset(PipelineId, LayerId, IpcSender<Point2D<f32>>),
+    /// Requests that the compositor shut down.
+    Exit,
 }

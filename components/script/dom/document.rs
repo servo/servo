@@ -106,8 +106,8 @@ use parse::{ParserRoot, ParserRef, MutNullableParserField};
 use script_thread::{MainThreadScriptMsg, Runnable};
 use script_traits::UntrustedNodeAddress;
 use script_traits::{AnimationState, MouseButton, MouseEventType, MozBrowserEvent};
-use script_traits::{ScriptMsg as ConstellationMsg, ScriptToCompositorMsg};
-use script_traits::{TouchpadPressurePhase, TouchEventType, TouchId};
+use script_traits::{ScriptMsg as ConstellationMsg, TouchpadPressurePhase};
+use script_traits::{TouchEventType, TouchId};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
@@ -636,10 +636,10 @@ impl Document {
     /// Sends this document's title to the compositor.
     pub fn send_title_to_compositor(&self) {
         let window = self.window();
-        let compositor = window.compositor();
-        compositor.send(ScriptToCompositorMsg::SetTitle(window.pipeline(),
-                                                        Some(String::from(self.Title()))))
-                  .unwrap();
+        window.constellation_chan()
+              .send(ConstellationMsg::SetTitle(window.pipeline(),
+                                               Some(String::from(self.Title()))))
+              .unwrap();
     }
 
     pub fn dirty_all_nodes(&self) {
@@ -1049,7 +1049,7 @@ impl Document {
                               key: Key,
                               state: KeyState,
                               modifiers: KeyModifiers,
-                              compositor: &IpcSender<ScriptToCompositorMsg>) {
+                              constellation: &IpcSender<ConstellationMsg>) {
         let focused = self.get_focused_element();
         let body = self.GetBody();
 
@@ -1124,7 +1124,7 @@ impl Document {
         }
 
         if !prevented {
-            compositor.send(ScriptToCompositorMsg::SendKeyEvent(key, state, modifiers)).unwrap();
+            constellation.send(ConstellationMsg::SendKeyEvent(key, state, modifiers)).unwrap();
         }
 
         // This behavior is unspecced
