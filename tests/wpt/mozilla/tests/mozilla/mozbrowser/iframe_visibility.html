@@ -15,22 +15,62 @@
         iframe.mozbrowser = true;
         iframe.src = "http://web-platform.test:8000";
 
-        //Alternate the iframe's visibility and ensure it's reflected by event/getter
+        //Alternate the iframe's visibility and fire mozbrowservisibilitychange
         iframe.onload = function() {
             iframe.setVisible(false);
             iframe.setVisible(true);
         };
 
-        iframe.addEventListener("mozbrowservisibilitychange", e => {
+        iframe.addEventListener("mozbrowservisibilitychange", t.step_func(e => {
             assert_equals(iframe.getVisible(), e.detail.visible);
             receivedVisibilities.push(e.detail.visible);
             if (receivedVisibilities.length == expectedVisibilities.length) {
                 assert_array_equals(receivedVisibilities, expectedVisibilities);
                 t.done();
             }
-        });
+        }));
 
         document.body.appendChild(iframe);
     });
+
+    async_test(function(t) {
+      var iframe = document.createElement("iframe");
+      //var body = '<html><body><p>test</p></body></html>'; //TODO: jmr0 this doesn't work :(
+      //iframe.src = "data:text/html;charset=utf-8," + encodeURI(body);
+      iframe.mozbrowser = true;
+      iframe.src = "helper.html";
+      var start = null;
+      document.body.appendChild(iframe);
+      iframe.onload = function() {
+        var element = iframe.contentWindow.document.querySelector("p");
+        var animationCompletesAfterResumingVisibility = false;
+        var nonVisibleAnimationStopped = false;
+        element.style.position = 'relative';
+        element.style.right = "0px";
+        var step = function(timestamp) {
+          if (!start) start = timestamp;
+          var progress = timestamp - start;
+          element.style.right = Math.min(progress/5, 100) + "px";
+          if (progress < 500) {
+            iframe.contentWindow.requestAnimationFrame(step);
+          }
+        };
+
+        iframe.setVisible(false);
+
+        iframe.contentWindow.setTimeout(function(){
+            nonVisibleAnimationStopped = element.style.right === '0px';
+            iframe.setVisible(true);
+        },1000);
+
+        iframe.contentWindow.setTimeout(function(){
+            animationCompletesAfterResumingVisibility = element.style.right === '100px';
+            assert_equals(nonVisibleAnimationStopped && animationCompletesAfterResumingVisibility, true);
+            t.done();
+        },2000);
+
+        iframe.contentWindow.requestAnimationFrame(step);
+      };
+    }, 'Requesting animation frame not compositing when nonvisible');
     </script>
 </body>

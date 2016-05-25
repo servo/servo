@@ -722,6 +722,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
             (Msg::PipelineVisibilityChanged(pipeline_id, visible), ShutdownState::NotShuttingDown) => {
                 self.pipeline_details(pipeline_id).visible = visible;
+                if visible {
+                    self.process_animations();
+                }
             }
 
             (Msg::PipelineExited(pipeline_id, sender), _) => {
@@ -760,19 +763,16 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         match animation_state {
             AnimationState::AnimationsPresent => {
                 let visible = self.pipeline_details(pipeline_id).visible;
+                self.pipeline_details(pipeline_id).animations_running = true;
                 if visible {
-                    self.pipeline_details(pipeline_id).animations_running = true;
                     self.composite_if_necessary(CompositingReason::Animation);
                 }
             }
             AnimationState::AnimationCallbacksPresent => {
                 let visible = self.pipeline_details(pipeline_id).visible;
+                self.pipeline_details(pipeline_id).animation_callbacks_running = true;
                 if visible {
-                    if !self.pipeline_details(pipeline_id).animation_callbacks_running {
-                        self.pipeline_details(pipeline_id).animation_callbacks_running =
-                            true;
-                        self.tick_animations_for_pipeline(pipeline_id);
-                    }
+                    self.tick_animations_for_pipeline(pipeline_id);
                 }
             }
             AnimationState::NoAnimationsPresent => {
