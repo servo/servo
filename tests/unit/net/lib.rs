@@ -29,3 +29,4 @@ extern crate util;
 #[cfg(test)] mod resource_thread;
 #[cfg(test)] mod hsts;
 #[cfg(test)] mod http_loader;
+#[cfg(test)] mod filemanager_thread;

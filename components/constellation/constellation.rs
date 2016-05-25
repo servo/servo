@@ -38,6 +38,7 @@ use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
 use msg::constellation_msg::{self, PanicMsg};
 use msg::webdriver_msg;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
+use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{self, ResourceThreads, IpcSend};
@@ -850,6 +851,11 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         if let Err(e) = self.resource_threads.send(StorageThreadMsg::Exit) {
             warn!("Exit storage thread failed ({})", e);
         }
+
+        if let Err(e) = self.resource_threads.send(FileManagerThreadMsg::Exit) {
+            warn!("Exit storage thread failed ({})", e);
+        }
+
         if let Err(e) = self.bluetooth_thread.send(BluetoothMethodMsg::Exit) {
             warn!("Exit bluetooth thread failed ({})", e);
         }

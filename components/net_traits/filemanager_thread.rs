@@ -6,7 +6,7 @@ use ipc_channel::ipc::IpcSender;
 use std::path::PathBuf;
 use uuid::Uuid;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct SelectedFile {
     pub id: Uuid,
     pub filename: PathBuf,
@@ -28,6 +28,9 @@ pub enum FileManagerThreadMsg {
 
     /// Delete the FileID entry
     DeleteFileID(Uuid),
+
+    /// Shut down this thread
+    Exit,
 }
 
 pub type FileManagerResult<T> = Result<T, FileManagerThreadError>;
