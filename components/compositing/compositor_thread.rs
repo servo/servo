@@ -9,13 +9,13 @@ use compositor::{self, CompositingReason};
 use euclid::point::Point2D;
 use euclid::size::Size2D;
 use gfx_traits::{Epoch, FrameTreeId, LayerId, LayerProperties, PaintListener};
-use ipc_channel::ipc::{IpcReceiver, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::constellation_msg::{Image, Key, KeyModifiers, KeyState, PipelineId};
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::{AnimationState, ConstellationMsg, EventResult, ScriptToCompositorMsg};
+use script_traits::{AnimationState, ConstellationMsg, EventResult};
 use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -52,54 +52,6 @@ impl CompositorReceiver for Receiver<Msg> {
     }
     fn recv_compositor_msg(&mut self) -> Msg {
         self.recv().unwrap()
-    }
-}
-
-pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'static + Send>,
-                                  receiver: IpcReceiver<ScriptToCompositorMsg>) {
-    while let Ok(msg) = receiver.recv() {
-        match msg {
-            ScriptToCompositorMsg::ScrollFragmentPoint(pipeline_id, layer_id, point, smooth) => {
-                compositor_proxy.send(Msg::ScrollFragmentPoint(pipeline_id,
-                                                               layer_id,
-                                                               point,
-                                                               smooth));
-            }
-
-            ScriptToCompositorMsg::GetClientWindow(send) => {
-                compositor_proxy.send(Msg::GetClientWindow(send));
-            }
-
-            ScriptToCompositorMsg::MoveTo(point) => {
-                compositor_proxy.send(Msg::MoveTo(point));
-            }
-
-            ScriptToCompositorMsg::ResizeTo(size) => {
-                compositor_proxy.send(Msg::ResizeTo(size));
-            }
-
-            ScriptToCompositorMsg::Exit => {
-                compositor_proxy.send(Msg::Exit);
-            }
-
-            ScriptToCompositorMsg::SetTitle(pipeline_id, title) => {
-                compositor_proxy.send(Msg::ChangePageTitle(pipeline_id, title))
-            }
-
-            ScriptToCompositorMsg::SendKeyEvent(key, key_state, key_modifiers) => {
-                compositor_proxy.send(Msg::KeyEvent(key, key_state, key_modifiers))
-            }
-
-            ScriptToCompositorMsg::TouchEventProcessed(result) => {
-                compositor_proxy.send(Msg::TouchEventProcessed(result))
-            }
-
-            ScriptToCompositorMsg::GetScrollOffset(pid, lid, send) => {
-                compositor_proxy.send(Msg::GetScrollOffset(pid, lid, send));
-            }
-
-            ScriptToCompositorMsg::Exited => break,
-        }
     }
 }
 
