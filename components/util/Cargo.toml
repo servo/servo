@@ -30,6 +30,7 @@ serde = "0.7"
 serde_macros = "0.7"
 smallvec = "0.1"
 url = {version = "1.0.0", features = ["heap_size", "serde"]}
+xdg = "2.0"
 
 [target.'cfg(windows)'.dependencies]
 kernel32-sys = "0.2"
