@@ -16,7 +16,8 @@ ${helpers.single_keyword("text-overflow", "clip ellipsis")}
 
 ${helpers.single_keyword("unicode-bidi", "normal embed isolate bidi-override isolate-override plaintext")}
 
-<%helpers:longhand name="text-decoration" custom_cascade="${product == 'servo'}">
+<%helpers:longhand name="${'text-decoration' if product == 'servo' else 'text-decoration-line'}"
+                   custom_cascade="${product == 'servo'}">
     use cssparser::ToCss;
     use std::fmt;
     use values::computed::ComputedValueAsSpecified;
