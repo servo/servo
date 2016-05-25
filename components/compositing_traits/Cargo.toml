@@ -1,0 +1,26 @@
+[package]
+name = "compositing_traits"
+version = "0.0.1"
+authors = ["The Servo Project Developers"]
+publish = false
+
+[lib]
+name = "compositing_traits"
+path = "lib.rs"
+
+[dependencies]
+euclid = {version = "0.6.4", features = ["plugins"]}
+gfx = {path = "../gfx"}
+gfx_traits = {path = "../gfx_traits"}
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
+layout_traits = {path = "../layout_traits"}
+msg = {path = "../msg"}
+plugins = {path = "../plugins"}
+profile_traits = {path = "../profile_traits"}
+script_traits = {path = "../script_traits"}
+serde = "0.7"
+serde_macros = "0.7"
+style_traits = {path = "../style_traits"}
+url = {version = "1.0.0", features = ["heap_size"]}
+util = {path = "../util"}

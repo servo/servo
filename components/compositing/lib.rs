@@ -12,8 +12,8 @@
 #![plugin(serde_macros)]
 
 extern crate app_units;
-
 extern crate azure;
+extern crate compositing_traits;
 extern crate euclid;
 extern crate gfx;
 extern crate gfx_traits;
@@ -37,15 +37,8 @@ extern crate util;
 extern crate webrender;
 extern crate webrender_traits;
 
+pub use compositing_traits::{SendableFrameTree, CompositionPipeline};
 pub use compositor_thread::{CompositorEventListener, CompositorProxy, CompositorThread};
-use euclid::size::TypedSize2D;
-use gfx::paint_thread::ChromeToPaintMsg;
-use ipc_channel::ipc::{IpcSender};
-use layout_traits::LayoutControlChan;
-use msg::constellation_msg::PipelineId;
-use script_traits::ConstellationControlMsg;
-use std::sync::mpsc::Sender;
-use util::geometry::PagePx;
 
 mod compositor;
 mod compositor_layer;
@@ -54,18 +47,3 @@ mod delayed_composition;
 mod surface_map;
 mod touch;
 pub mod windowing;
-
-pub struct SendableFrameTree {
-    pub pipeline: CompositionPipeline,
-    pub size: Option<TypedSize2D<PagePx, f32>>,
-    pub children: Vec<SendableFrameTree>,
-}
-
-/// The subset of the pipeline that is needed for layer composition.
-#[derive(Clone)]
-pub struct CompositionPipeline {
-    pub id: PipelineId,
-    pub script_chan: IpcSender<ConstellationControlMsg>,
-    pub layout_chan: LayoutControlChan,
-    pub chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
-}

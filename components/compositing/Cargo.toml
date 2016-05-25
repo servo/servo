@@ -9,6 +9,7 @@ name = "compositing"
 path = "lib.rs"
 
 [dependencies]
+compositing_traits = {path = "../compositing_traits"}
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
 layout_traits = {path = "../layout_traits"}
