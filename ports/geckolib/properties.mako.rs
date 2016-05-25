@@ -632,7 +632,8 @@ fn static_assert() {
     // infrastructure for preffing certain values.
     <% display_keyword = Keyword("display", "inline block inline-block table inline-table table-row-group " +
                                             "table-header-group table-footer-group table-row table-column-group " +
-                                            "table-column table-cell table-caption list-item flex none") %>
+                                            "table-column table-cell table-caption list-item flex none " +
+                                            "-moz-box -moz-inline-box") %>
     <%call expr="impl_keyword('display', 'mDisplay', display_keyword, True)"></%call>
 
     // overflow-y is implemented as a newtype of overflow-x, so we need special handling.

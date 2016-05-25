@@ -19,6 +19,8 @@
             list-item flex
             none
         """.split()
+        if product == "gecko":
+            values += "-moz-box -moz-inline-box".split()
         experimental_values = set("flex".split())
     %>
     pub use self::computed_value::T as SpecifiedValue;
