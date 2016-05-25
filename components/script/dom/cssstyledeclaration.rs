@@ -13,14 +13,13 @@ use dom::element::{Element, StylePriority};
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::window::Window;
 use std::ascii::AsciiExt;
-use std::borrow::ToOwned;
 use std::cell::Ref;
+use std::slice;
 use string_cache::Atom;
 use style::parser::ParserContextExtraData;
 use style::properties::{PropertyDeclaration, Shorthand};
 use style::properties::{is_supported_property, parse_one_declaration};
 use style::selector_impl::PseudoElement;
-use util::str::str_join;
 
 // http://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface
 #[dom_struct]
@@ -49,29 +48,6 @@ macro_rules! css_properties(
         )*
     );
 );
-
-fn serialize_shorthand(shorthand: Shorthand, declarations: &[Ref<PropertyDeclaration>]) -> String {
-    // https://drafts.csswg.org/css-variables/#variables-in-shorthands
-    if let Some(css) = declarations[0].with_variables_from_shorthand(shorthand) {
-        if declarations[1..]
-               .iter()
-               .all(|d| d.with_variables_from_shorthand(shorthand) == Some(css)) {
-            css.to_owned()
-        } else {
-            String::new()
-        }
-    } else {
-        if declarations.iter().any(|d| d.with_variables()) {
-            String::new()
-        } else {
-            let str_iter = declarations.iter().map(|d| d.value());
-            // FIXME: this needs property-specific code, which probably should be in style/
-            // "as appropriate according to the grammar of shorthand "
-            // https://drafts.csswg.org/cssom/#serialize-a-css-value
-            str_join(str_iter, " ")
-        }
-    }
-}
 
 impl CSSStyleDeclaration {
     pub fn new_inherited(owner: &Element,
@@ -172,7 +148,19 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             }
 
             // Step 2.3
-            return DOMString::from(serialize_shorthand(shorthand, &list));
+            // Work around closures not being Clone
+            #[derive(Clone)]
+            struct Map<'a, 'b: 'a>(slice::Iter<'a, Ref<'b, PropertyDeclaration>>);
+            impl<'a, 'b> Iterator for Map<'a, 'b> {
+                type Item = &'a PropertyDeclaration;
+                fn next(&mut self) -> Option<Self::Item> {
+                    self.0.next().map(|r| &**r)
+                }
+            }
+
+            // TODO: important is hardcoded to false because method does not implement it yet
+            let serialized_value = shorthand.serialize_shorthand_value_to_string(Map(list.iter()), false);
+            return DOMString::from(serialized_value);
         }
 
         // Step 3 & 4
@@ -255,10 +243,8 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         let element = self.owner.upcast::<Element>();
 
         // Step 8
-        for decl in declarations {
-            // Step 9
-            element.update_inline_style(decl, priority);
-        }
+        // Step 9
+        element.update_inline_style(declarations, priority);
 
         let node = element.upcast::<Node>();
         node.dirty(NodeDamage::NodeStyleDamaged);
@@ -317,20 +303,20 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
         // Step 3
         let value = self.GetPropertyValue(property.clone());
 
-        let elem = self.owner.upcast::<Element>();
+        let element = self.owner.upcast::<Element>();
 
         match Shorthand::from_name(&property) {
             // Step 4
             Some(shorthand) => {
                 for longhand in shorthand.longhands() {
-                    elem.remove_inline_style_property(longhand)
+                    element.remove_inline_style_property(longhand)
                 }
             }
             // Step 5
-            None => elem.remove_inline_style_property(&property),
+            None => element.remove_inline_style_property(&property),
         }
 
-        let node = elem.upcast::<Node>();
+        let node = element.upcast::<Node>();
         node.dirty(NodeDamage::NodeStyleDamaged);
 
         // Step 6
