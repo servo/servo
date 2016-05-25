@@ -995,11 +995,16 @@ impl Window {
         };
 
         // TODO (farodin91): Raise an event to stop the current_viewport
-        let size = self.current_viewport.get().size;
-        self.current_viewport.set(Rect::new(Point2D::new(Au::from_f32_px(x), Au::from_f32_px(y)), size));
+        self.update_viewport_for_scroll(x, y);
 
         let message = ConstellationMsg::ScrollFragmentPoint(self.pipeline(), layer_id, point, smooth);
         self.constellation_chan.send(message).unwrap();
+    }
+
+    pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
+        let size = self.current_viewport.get().size;
+        let new_viewport = Rect::new(Point2D::new(Au::from_f32_px(x), Au::from_f32_px(y)), size);
+        self.current_viewport.set(new_viewport)
     }
 
     pub fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
