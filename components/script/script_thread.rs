@@ -1971,29 +1971,27 @@ impl ScriptThread {
 
     fn handle_css_error_reporting(&self, pipeline_id: PipelineId, filename: String,
                                   line: usize, column: usize, msg: String) {
+        let sender = match self.devtools_chan {
+            Some(ref sender) => sender,
+            None => return,
+        };
+
         let parent_context = self.root_browsing_context();
         let context = match parent_context.find(pipeline_id) {
             Some(context) => context,
             None => return,
         };
 
-        let document = context.active_document();
-        let css_error = CSSError {
-            filename: filename,
-            line: line,
-            column: column,
-            msg: msg
-        };
-
-        document.report_css_error(css_error.clone());
         let window = context.active_window();
-
         if window.live_devtools_updates() {
-            if let Some(ref chan) = self.devtools_chan {
-                chan.send(ScriptToDevtoolsControlMsg::ReportCSSError(
-                    pipeline_id,
-                    css_error)).unwrap();
-             }
+            let css_error = CSSError {
+                filename: filename,
+                line: line,
+                column: column,
+                msg: msg
+            };
+            let message = ScriptToDevtoolsControlMsg::ReportCSSError(pipeline_id, css_error);
+            sender.send(message).unwrap();
         }
     }
 }
