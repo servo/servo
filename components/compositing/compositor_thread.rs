@@ -9,7 +9,7 @@ use compositor::{self, CompositingReason};
 use euclid::point::Point2D;
 use euclid::size::Size2D;
 use gfx_traits::{Epoch, FrameTreeId, LayerId, LayerProperties, PaintListener};
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use layers::layers::{BufferRequest, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::constellation_msg::{Image, Key, KeyModifiers, KeyState, PipelineId};
@@ -79,9 +79,7 @@ pub fn run_script_listener_thread(compositor_proxy: Box<CompositorProxy + 'stati
             }
 
             ScriptToCompositorMsg::Exit => {
-                let (chan, port) = ipc::channel().unwrap();
-                compositor_proxy.send(Msg::Exit(chan));
-                port.recv().unwrap();
+                compositor_proxy.send(Msg::Exit);
             }
 
             ScriptToCompositorMsg::SetTitle(pipeline_id, title) => {
@@ -167,7 +165,7 @@ impl PaintListener for Box<CompositorProxy + 'static + Send> {
 /// Messages from the painting thread and the constellation thread to the compositor thread.
 pub enum Msg {
     /// Requests that the compositor shut down.
-    Exit(IpcSender<()>),
+    Exit,
 
     /// Informs the compositor that the constellation has completed shutdown.
     /// Required because the constellation can have pending calls to make
@@ -246,7 +244,7 @@ pub enum Msg {
 impl Debug for Msg {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match *self {
-            Msg::Exit(..) => write!(f, "Exit"),
+            Msg::Exit => write!(f, "Exit"),
             Msg::ShutdownComplete => write!(f, "ShutdownComplete"),
             Msg::GetNativeDisplay(..) => write!(f, "GetNativeDisplay"),
             Msg::InitializeLayersForPipeline(..) => write!(f, "InitializeLayersForPipeline"),

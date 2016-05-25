@@ -528,9 +528,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 return false
             }
 
-            (Msg::Exit(channel), _) => {
+            (Msg::Exit, _) => {
                 self.start_shutting_down();
-                let _ = channel.send(());
             }
 
             (Msg::ShutdownComplete, _) => {
