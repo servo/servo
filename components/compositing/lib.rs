@@ -37,9 +37,6 @@ extern crate util;
 extern crate webrender;
 extern crate webrender_traits;
 
-pub use compositing_traits::{SendableFrameTree, CompositionPipeline};
-pub use compositor_thread::{CompositorEventListener, CompositorProxy, CompositorThread};
-
 mod compositor;
 mod compositor_layer;
 pub mod compositor_thread;

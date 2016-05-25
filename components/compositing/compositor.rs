@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use CompositionPipeline;
-use SendableFrameTree;
 use app_units::Au;
+use compositing_traits::{CompositingReason, CompositionPipeline};
+use compositing_traits::{CompositorProxy, Msg, SendableFrameTree};
 use compositor_layer::{CompositorData, CompositorLayer, RcCompositorLayer, WantsScrollEventsFlag};
-use compositor_thread::{CompositorEventListener, CompositorProxy};
-use compositor_thread::{CompositorReceiver, InitialCompositorState, Msg, RenderListener};
+use compositor_thread::{CompositorEventListener, CompositorReceiver};
+use compositor_thread::{InitialCompositorState, RenderListener};
 use delayed_composition::DelayedCompositionTimerProxy;
 use euclid::point::TypedPoint2D;
 use euclid::rect::TypedRect;
@@ -55,8 +55,6 @@ use util::{opts, prefs};
 use webrender;
 use webrender_traits::{self, ScrollEventPhase};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
-
-pub use compositing_traits::CompositingReason;
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {

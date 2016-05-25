@@ -4,7 +4,8 @@
 
 //! Communication with the compositor thread.
 
-use compositor::{self, CompositingReason};
+use compositing_traits::{CompositingReason, CompositorProxy, Msg};
+use compositor;
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::ConstellationMsg;
@@ -13,8 +14,6 @@ use std::sync::mpsc::{Receiver, Sender};
 use webrender;
 use webrender_traits;
 use windowing::{WindowEvent, WindowMethods};
-
-pub use compositing_traits::{CompositorProxy, Msg};
 
 /// The port that the compositor receives messages on. As above, this is a trait supplied by the
 /// Servo port.
