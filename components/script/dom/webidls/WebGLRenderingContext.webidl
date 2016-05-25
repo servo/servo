@@ -602,11 +602,11 @@ interface WebGLRenderingContextBase
     //[WebGLHandlesContextLoss] GLsizeiptr getVertexAttribOffset(GLuint index, GLenum pname);
 
     void hint(GLenum target, GLenum mode);
-    //[WebGLHandlesContextLoss] GLboolean isBuffer(WebGLBuffer? buffer);
+    [WebGLHandlesContextLoss] GLboolean isBuffer(WebGLBuffer? buffer);
     //[WebGLHandlesContextLoss] GLboolean isEnabled(GLenum cap);
-    //[WebGLHandlesContextLoss] GLboolean isFramebuffer(WebGLFramebuffer? framebuffer);
+    [WebGLHandlesContextLoss] GLboolean isFramebuffer(WebGLFramebuffer? framebuffer);
     //[WebGLHandlesContextLoss] GLboolean isProgram(WebGLProgram? program);
-    //[WebGLHandlesContextLoss] GLboolean isRenderbuffer(WebGLRenderbuffer? renderbuffer);
+    [WebGLHandlesContextLoss] GLboolean isRenderbuffer(WebGLRenderbuffer? renderbuffer);
     [WebGLHandlesContextLoss] GLboolean isShader(WebGLShader? shader);
     [WebGLHandlesContextLoss] GLboolean isTexture(WebGLTexture? texture);
     void lineWidth(GLfloat width);

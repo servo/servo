@@ -17,6 +17,7 @@ use webrender_traits::{WebGLCommand, WebGLFramebufferBindingRequest};
 pub struct WebGLFramebuffer {
     webgl_object: WebGLObject,
     id: u32,
+    target: Cell<Option<u32>>,
     is_deleted: Cell<bool>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     renderer: IpcSender<CanvasMsg>,
@@ -27,6 +28,7 @@ impl WebGLFramebuffer {
         WebGLFramebuffer {
             webgl_object: WebGLObject::new_inherited(),
             id: id,
+            target: Cell::new(None),
             is_deleted: Cell::new(false),
             renderer: renderer,
         }
@@ -54,6 +56,8 @@ impl WebGLFramebuffer {
     }
 
     pub fn bind(&self, target: u32) {
+
+        self.target.set(Some(target));
         let cmd = WebGLCommand::BindFramebuffer(target, WebGLFramebufferBindingRequest::Explicit(self.id));
         self.renderer.send(CanvasMsg::WebGL(cmd)).unwrap();
     }
@@ -63,6 +67,14 @@ impl WebGLFramebuffer {
             self.is_deleted.set(true);
             let _ = self.renderer.send(CanvasMsg::WebGL(WebGLCommand::DeleteFramebuffer(self.id)));
         }
+    }
+
+    pub fn is_deleted(&self) -> bool {
+        self.is_deleted.get()
+    }
+
+    pub fn target(&self) -> Option<u32> {
+        self.target.get()
     }
 }
 
