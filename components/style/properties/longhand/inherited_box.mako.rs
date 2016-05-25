@@ -88,3 +88,40 @@ ${helpers.single_keyword("color-adjust", "economy exact", products="gecko")}
         }
     }
 </%helpers:longhand>
+
+// Used in the bottom-up flow construction traversal to avoid constructing flows for
+// descendants of nodes with `display: none`.
+<%helpers:longhand name="-servo-under-display-none" derived_from="display" products="servo">
+    use cssparser::ToCss;
+    use std::fmt;
+    use values::computed::ComputedValueAsSpecified;
+
+    #[derive(Copy, Clone, Debug, Eq, PartialEq, HeapSizeOf, Serialize, Deserialize)]
+    pub struct SpecifiedValue(pub bool);
+
+    pub mod computed_value {
+        pub type T = super::SpecifiedValue;
+    }
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+
+    pub fn get_initial_value() -> computed_value::T {
+        SpecifiedValue(false)
+    }
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, _: &mut W) -> fmt::Result where W: fmt::Write {
+            Ok(()) // Internal property
+        }
+    }
+
+    #[inline]
+    pub fn derive_from_display<Cx: TContext>(context: &mut Cx) {
+        use properties::style_struct_traits::Box;
+        use super::display::computed_value::T as Display;
+
+        if context.style().get_box().clone_display() == Display::none {
+            context.mutate_style().mutate_inheritedbox()
+                                  .set__servo_under_display_none(SpecifiedValue(true));
+        }
+    }
+</%helpers:longhand>
