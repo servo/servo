@@ -39,7 +39,7 @@ pub const NS_THEME_TOOLBARGRIPPER: ::std::os::raw::c_uint = 21;
 pub const NS_THEME_SPLITTER: ::std::os::raw::c_uint = 22;
 pub const NS_THEME_STATUSBAR: ::std::os::raw::c_uint = 23;
 pub const NS_THEME_STATUSBARPANEL: ::std::os::raw::c_uint = 24;
-pub const NS_THEME_RESIZERPANEL: ::std::os::raw::c_uint = 25;
+pub const NS_THEME_RESIZER_PANEL: ::std::os::raw::c_uint = 25;
 pub const NS_THEME_RESIZER: ::std::os::raw::c_uint = 26;
 pub const NS_THEME_LISTBOX: ::std::os::raw::c_uint = 31;
 pub const NS_THEME_LISTITEM: ::std::os::raw::c_uint = 32;
@@ -82,7 +82,7 @@ pub const NS_THEME_SCROLLBARTHUMB_HORIZONTAL: ::std::os::raw::c_uint = 90;
 pub const NS_THEME_SCROLLBARTHUMB_VERTICAL: ::std::os::raw::c_uint = 91;
 pub const NS_THEME_SCROLLBAR_NON_DISAPPEARING: ::std::os::raw::c_uint = 92;
 pub const NS_THEME_TEXTFIELD: ::std::os::raw::c_uint = 95;
-pub const NS_THEME_CARET: ::std::os::raw::c_uint = 96;
+pub const NS_THEME_TEXTFIELD_CARET: ::std::os::raw::c_uint = 96;
 pub const NS_THEME_TEXTFIELD_MULTILINE: ::std::os::raw::c_uint = 97;
 pub const NS_THEME_SEARCHFIELD: ::std::os::raw::c_uint = 98;
 pub const NS_THEME_MENULIST: ::std::os::raw::c_uint = 101;
@@ -188,8 +188,6 @@ pub const NS_ERROR_MODULE_BASE_OFFSET: ::std::os::raw::c_uint = 69;
 pub const MOZ_STRING_WITH_OBSOLETE_API: ::std::os::raw::c_uint = 1;
 pub const NSID_LENGTH: ::std::os::raw::c_uint = 39;
 pub const NS_NUMBER_OF_FLAGS_IN_REFCNT: ::std::os::raw::c_uint = 2;
-pub const _STL_PAIR_H: ::std::os::raw::c_uint = 1;
-pub const _GLIBCXX_UTILITY: ::std::os::raw::c_uint = 1;
 pub const TWIPS_PER_POINT_INT: ::std::os::raw::c_uint = 20;
 pub const POINTS_PER_INCH_INT: ::std::os::raw::c_uint = 72;
 pub const NS_FONT_VARIANT_NORMAL: ::std::os::raw::c_uint = 0;
@@ -1486,8 +1484,7 @@ pub enum nsresult {
     NS_ERROR_DOM_BLUETOOTH_AUTH_REJECTED = -2140536821,
     NS_ERROR_SIGNED_APP_MANIFEST_INVALID = -2140471295,
     NS_ERROR_DOM_ANIM_MISSING_PROPS_ERR = -2140405759,
-    NS_ERROR_DOM_ANIM_NO_TIMELINE_ERR = -2140405758,
-    NS_ERROR_DOM_ANIM_NO_EFFECT_ERR = -2140405757,
+    NS_ERROR_DOM_ANIM_NO_EFFECT_ERR = -2140405758,
     NS_ERROR_DOM_PUSH_INVALID_REGISTRATION_ERR = -2140340223,
     NS_ERROR_DOM_PUSH_DENIED_ERR = -2140340222,
     NS_ERROR_DOM_PUSH_ABORT_ERR = -2140340221,
@@ -2753,6 +2750,16 @@ pub struct pair<_T1, _T2> {
     pub first: _T1,
     pub second: _T2,
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct __make_pair_return_impl<_Tp> {
+    pub _phantom0: ::std::marker::PhantomData<_Tp>,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct __make_pair_return<_Tp> {
+    pub _phantom0: ::std::marker::PhantomData<_Tp>,
+}
 pub type Float = f32;
 #[repr(i8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -3008,16 +3015,6 @@ pub enum SideBits {
     eSideBitsTopBottom = 5,
     eSideBitsLeftRight = 10,
     eSideBitsAll = 15,
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct tuple_size<_Tp> {
-    pub _phantom0: ::std::marker::PhantomData<_Tp>,
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct tuple_element<_Tp> {
-    pub _phantom0: ::std::marker::PhantomData<_Tp>,
 }
 pub type nscoord = i32;
 #[repr(C)]
@@ -3720,12 +3717,24 @@ pub enum nsCSSProperty {
     eCSSPropertyAlias_WebkitBoxDirection = 420,
     eCSSPropertyAlias_WebkitBoxAlign = 421,
     eCSSPropertyAlias_WebkitBoxPack = 422,
-    eCSSPropertyAlias_WebkitUserSelect = 423,
-    eCSSProperty_COUNT_with_aliases = 424,
-    eCSSPropertyExtra_all_properties = 425,
-    eCSSPropertyExtra_x_none_value = 426,
-    eCSSPropertyExtra_x_auto_value = 427,
-    eCSSPropertyExtra_variable = 428,
+    eCSSPropertyAlias_WebkitFlexDirection = 423,
+    eCSSPropertyAlias_WebkitFlexWrap = 424,
+    eCSSPropertyAlias_WebkitFlexFlow = 425,
+    eCSSPropertyAlias_WebkitOrder = 426,
+    eCSSPropertyAlias_WebkitFlex = 427,
+    eCSSPropertyAlias_WebkitFlexGrow = 428,
+    eCSSPropertyAlias_WebkitFlexShrink = 429,
+    eCSSPropertyAlias_WebkitFlexBasis = 430,
+    eCSSPropertyAlias_WebkitJustifyContent = 431,
+    eCSSPropertyAlias_WebkitAlignItems = 432,
+    eCSSPropertyAlias_WebkitAlignSelf = 433,
+    eCSSPropertyAlias_WebkitAlignContent = 434,
+    eCSSPropertyAlias_WebkitUserSelect = 435,
+    eCSSProperty_COUNT_with_aliases = 436,
+    eCSSPropertyExtra_all_properties = 437,
+    eCSSPropertyExtra_x_none_value = 438,
+    eCSSPropertyExtra_x_auto_value = 439,
+    eCSSPropertyExtra_variable = 440,
 }
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
