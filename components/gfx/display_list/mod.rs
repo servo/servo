@@ -22,7 +22,7 @@ use euclid::num::Zero;
 use euclid::rect::TypedRect;
 use euclid::{Matrix2D, Matrix4D, Point2D, Rect, SideOffsets2D, Size2D};
 use fnv::FnvHasher;
-use gfx_traits::{LayerId, ScrollPolicy};
+use gfx_traits::{FragmentType, LayerId, ScrollPolicy, StackingContextId};
 use ipc_channel::ipc::IpcSharedMemory;
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, PixelFormat};
@@ -1393,37 +1393,6 @@ impl fmt::Debug for DisplayItem {
             self.bounds(),
             self.base().clip
         )
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Copy, Hash, Deserialize, Serialize, HeapSizeOf, RustcEncodable)]
-pub enum FragmentType {
-    /// A StackingContext for the fragment body itself.
-    FragmentBody,
-    /// A StackingContext created to contain ::before pseudo-element content.
-    BeforePseudoContent,
-    /// A StackingContext created to contain ::after pseudo-element content.
-    AfterPseudoContent,
-}
-
-/// A unique ID for every stacking context.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, RustcEncodable, Serialize)]
-pub struct StackingContextId(
-    /// The identifier for this StackingContext, derived from the Flow's memory address
-    /// and fragment type.  As a space optimization, these are combined into a single word.
-    usize
-);
-
-impl StackingContextId {
-    #[inline(always)]
-    pub fn new(id: usize) -> StackingContextId {
-        StackingContextId::new_of_type(id, FragmentType::FragmentBody)
-    }
-
-    #[inline(always)]
-    pub fn new_of_type(id: usize, fragment_type: FragmentType) -> StackingContextId {
-        debug_assert_eq!(id & fragment_type as usize, 0);
-        StackingContextId(id | fragment_type as usize)
     }
 }
 

@@ -6862,6 +6862,12 @@
             "url": "/_mozilla/mozilla/script_type.html"
           }
         ],
+        "mozilla/scrollTo.html": [
+          {
+            "path": "mozilla/scrollTo.html",
+            "url": "/_mozilla/mozilla/scrollTo.html"
+          }
+        ],
         "mozilla/send-arraybuffer.htm": [
           {
             "path": "mozilla/send-arraybuffer.htm",
