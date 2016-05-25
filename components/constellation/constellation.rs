@@ -812,6 +812,45 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_alert(pipeline_id, message, sender);
             }
 
+            Request::Script(FromScriptMsg::ScrollFragmentPoint(pipeline_id, layer_id, point, smooth)) => {
+                self.compositor_proxy.send(ToCompositorMsg::ScrollFragmentPoint(pipeline_id,
+                                                               layer_id,
+                                                               point,
+                                                               smooth));
+            }
+
+            Request::Script(FromScriptMsg::GetClientWindow(send)) => {
+                self.compositor_proxy.send(ToCompositorMsg::GetClientWindow(send));
+            }
+
+            Request::Script(FromScriptMsg::MoveTo(point)) => {
+                self.compositor_proxy.send(ToCompositorMsg::MoveTo(point));
+            }
+
+            Request::Script(FromScriptMsg::ResizeTo(size)) => {
+                self.compositor_proxy.send(ToCompositorMsg::ResizeTo(size));
+            }
+
+            Request::Script(FromScriptMsg::Exit) => {
+                self.compositor_proxy.send(ToCompositorMsg::Exit);
+            }
+
+            Request::Script(FromScriptMsg::SetTitle(pipeline_id, title)) => {
+                self.compositor_proxy.send(ToCompositorMsg::ChangePageTitle(pipeline_id, title))
+            }
+
+            Request::Script(FromScriptMsg::SendKeyEvent(key, key_state, key_modifiers)) => {
+                self.compositor_proxy.send(ToCompositorMsg::KeyEvent(key, key_state, key_modifiers))
+            }
+
+            Request::Script(FromScriptMsg::TouchEventProcessed(result)) => {
+                self.compositor_proxy.send(ToCompositorMsg::TouchEventProcessed(result))
+            }
+
+            Request::Script(FromScriptMsg::GetScrollOffset(pid, lid, send)) => {
+                self.compositor_proxy.send(ToCompositorMsg::GetScrollOffset(pid, lid, send));
+            }
+
 
             // Messages from layout thread
 

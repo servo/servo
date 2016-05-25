@@ -62,7 +62,7 @@ use script_runtime::{ScriptChan, ScriptPort};
 use script_thread::SendableMainThreadScriptChan;
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
 use script_traits::{ConstellationControlMsg, UntrustedNodeAddress};
-use script_traits::{DocumentState, MsDuration, ScriptToCompositorMsg, TimerEvent, TimerEventId};
+use script_traits::{DocumentState, MsDuration, TimerEvent, TimerEventId};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -153,8 +153,6 @@ pub struct Window {
     image_cache_chan: ImageCacheChan,
     #[ignore_heap_size_of = "channels are hard"]
     custom_message_chan: IpcSender<CustomResponseSender>,
-    #[ignore_heap_size_of = "TODO(#6911) newtypes containing unmeasurable types are hard"]
-    compositor: IpcSender<ScriptToCompositorMsg>,
     browsing_context: MutNullableHeap<JS<BrowsingContext>>,
     performance: MutNullableHeap<JS<Performance>>,
     navigation_start: u64,
@@ -338,10 +336,6 @@ impl Window {
 
     pub fn image_cache_thread(&self) -> &ImageCacheThread {
         &self.image_cache_thread
-    }
-
-    pub fn compositor(&self) -> &IpcSender<ScriptToCompositorMsg> {
-        &self.compositor
     }
 
     pub fn browsing_context(&self) -> Root<BrowsingContext> {
@@ -775,7 +769,7 @@ impl WindowMethods for Window {
         // Step 1
         //TODO determine if this operation is allowed
         let size = Size2D::new(x.to_u32().unwrap_or(1), y.to_u32().unwrap_or(1));
-        self.compositor.send(ScriptToCompositorMsg::ResizeTo(size)).unwrap()
+        self.constellation_chan.send(ConstellationMsg::ResizeTo(size)).unwrap()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeby
@@ -790,7 +784,7 @@ impl WindowMethods for Window {
         // Step 1
         //TODO determine if this operation is allowed
         let point = Point2D::new(x, y);
-        self.compositor.send(ScriptToCompositorMsg::MoveTo(point)).unwrap()
+        self.constellation_chan.send(ConstellationMsg::MoveTo(point)).unwrap()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-moveby
@@ -976,13 +970,13 @@ impl Window {
         let size = self.current_viewport.get().size;
         self.current_viewport.set(Rect::new(Point2D::new(Au::from_f32_px(x), Au::from_f32_px(y)), size));
 
-        self.compositor.send(ScriptToCompositorMsg::ScrollFragmentPoint(
-                                                         self.pipeline(), layer_id, point, smooth)).unwrap()
+        let message = ConstellationMsg::ScrollFragmentPoint(self.pipeline(), layer_id, point, smooth);
+        self.constellation_chan.send(message).unwrap();
     }
 
     pub fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
         let (send, recv) = ipc::channel::<(Size2D<u32>, Point2D<i32>)>().unwrap();
-        self.compositor.send(ScriptToCompositorMsg::GetClientWindow(send)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::GetClientWindow(send)).unwrap();
         recv.recv().unwrap_or((Size2D::zero(), Point2D::zero()))
     }
 
@@ -1180,7 +1174,7 @@ impl Window {
         let pipeline_id = self.id;
 
         let (send, recv) = ipc::channel::<Point2D<f32>>().unwrap();
-        self.compositor.send(ScriptToCompositorMsg::GetScrollOffset(pipeline_id, layer_id, send)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::GetScrollOffset(pipeline_id, layer_id, send)).unwrap();
         recv.recv().unwrap_or(Point2D::zero())
     }
 
@@ -1450,7 +1444,6 @@ impl Window {
                file_task_source: FileReadingTaskSource,
                image_cache_chan: ImageCacheChan,
                custom_message_chan: IpcSender<CustomResponseSender>,
-               compositor: IpcSender<ScriptToCompositorMsg>,
                image_cache_thread: ImageCacheThread,
                resource_threads: ResourceThreads,
                bluetooth_thread: IpcSender<BluetoothMethodMsg>,
@@ -1490,7 +1483,6 @@ impl Window {
             custom_message_chan: custom_message_chan,
             console: Default::default(),
             crypto: Default::default(),
-            compositor: compositor,
             navigator: Default::default(),
             image_cache_thread: image_cache_thread,
             mem_profiler_chan: mem_profiler_chan,

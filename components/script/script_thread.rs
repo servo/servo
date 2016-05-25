@@ -81,7 +81,7 @@ use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::{CompositorEvent, ConstellationControlMsg, EventResult};
 use script_traits::{InitialScriptState, MouseButton, MouseEventType, MozBrowserEvent, NewLayoutInfo};
 use script_traits::{LayoutMsg, ScriptMsg as ConstellationMsg};
-use script_traits::{ScriptThreadFactory, ScriptToCompositorMsg, TimerEvent, TimerEventRequest, TimerSource};
+use script_traits::{ScriptThreadFactory, TimerEvent, TimerEventRequest, TimerSource};
 use script_traits::{TouchEventType, TouchId};
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
@@ -350,9 +350,6 @@ pub struct ScriptThread {
     /// For communicating layout messages to the constellation
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
 
-    /// A handle to the compositor for communicating ready state messages.
-    compositor: IpcSender<ScriptToCompositorMsg>,
-
     /// The port on which we receive messages from the image cache
     image_cache_port: Receiver<ImageCacheResult>,
 
@@ -465,7 +462,6 @@ impl ScriptThreadFactory for ScriptThread {
             let reporter_name = format!("script-reporter-{}", id);
             mem_profiler_chan.run_with_memory_reporting(|| {
                 script_thread.start();
-                let _ = script_thread.compositor.send(ScriptToCompositorMsg::Exited);
                 let _ = script_thread.content_process_shutdown_chan.send(());
             }, reporter_name, script_chan, CommonScriptMsg::CollectReports);
 
@@ -577,7 +573,6 @@ impl ScriptThread {
             control_port: control_port,
             constellation_chan: state.constellation_chan,
             layout_to_constellation_chan: state.layout_to_constellation_chan,
-            compositor: state.compositor,
             time_profiler_chan: state.time_profiler_chan,
             mem_profiler_chan: state.mem_profiler_chan,
             panic_chan: state.panic_chan,
@@ -1301,8 +1296,8 @@ impl ScriptThread {
 
         // TODO(tkuehn): currently there is only one window,
         // so this can afford to be naive and just shut down the
-        // compositor. In the future it'll need to be smarter.
-        self.compositor.send(ScriptToCompositorMsg::Exit).unwrap();
+        // constellation. In the future it'll need to be smarter.
+        self.constellation_chan.send(ConstellationMsg::Exit).unwrap();
     }
 
     /// We have received notification that the response associated with a load has completed.
@@ -1459,7 +1454,6 @@ impl ScriptThread {
                                  FileReadingTaskSource(file_sender.clone()),
                                  self.image_cache_channel.clone(),
                                  self.custom_message_chan.clone(),
-                                 self.compositor.clone(),
                                  self.image_cache_thread.clone(),
                                  self.resource_threads.clone(),
                                  self.bluetooth_thread.clone(),
@@ -1682,8 +1676,11 @@ impl ScriptThread {
         let point = Point2D::new(rect.origin.x.to_nearest_px() as f32,
                                  rect.origin.y.to_nearest_px() as f32);
 
-        self.compositor.send(ScriptToCompositorMsg::ScrollFragmentPoint(
-                                                 pipeline_id, LayerId::null(), point, false)).unwrap();
+        let message = ConstellationMsg::ScrollFragmentPoint(pipeline_id,
+                                                            LayerId::null(),
+                                                            point,
+                                                            false);
+        self.constellation_chan.send(message).unwrap();
     }
 
     /// Reflows non-incrementally, rebuilding the entire layout tree in the process.
@@ -1768,16 +1765,14 @@ impl ScriptThread {
                 let handled = self.handle_touch_event(pipeline_id, event_type, identifier, point);
                 match event_type {
                     TouchEventType::Down => {
-                        if handled {
+                        let result = if handled {
                             // TODO: Wait to see if preventDefault is called on the first touchmove event.
-                            self.compositor
-                                .send(ScriptToCompositorMsg::TouchEventProcessed(
-                                        EventResult::DefaultAllowed)).unwrap();
+                            EventResult::DefaultAllowed
                         } else {
-                            self.compositor
-                                .send(ScriptToCompositorMsg::TouchEventProcessed(
-                                        EventResult::DefaultPrevented)).unwrap();
-                        }
+                            EventResult::DefaultPrevented
+                        };
+                        let message = ConstellationMsg::TouchEventProcessed(result);
+                        self.constellation_chan.send(message).unwrap();
                     }
                     _ => {
                         // TODO: Calling preventDefault on a touchup event should prevent clicks.
@@ -1794,7 +1789,7 @@ impl ScriptThread {
             KeyEvent(key, state, modifiers) => {
                 let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
                 let document = context.active_document();
-                document.dispatch_key_event(key, state, modifiers, &self.compositor);
+                document.dispatch_key_event(key, state, modifiers, &self.constellation_chan);
             }
         }
     }

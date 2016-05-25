@@ -4,7 +4,6 @@
 
 use compositing::CompositionPipeline;
 use compositing::CompositorProxy;
-use compositing::compositor_thread;
 use compositing::compositor_thread::Msg as CompositorMsg;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
@@ -24,7 +23,7 @@ use profile_traits::mem as profile_mem;
 use profile_traits::time;
 use script_traits::{ConstellationControlMsg, InitialScriptState, MozBrowserEvent};
 use script_traits::{LayoutControlMsg, LayoutMsg, NewLayoutInfo, ScriptMsg};
-use script_traits::{ScriptToCompositorMsg, ScriptThreadFactory, TimerEventRequest};
+use script_traits::{ScriptThreadFactory, TimerEventRequest};
 use std::collections::HashMap;
 use std::mem;
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -34,7 +33,6 @@ use util::geometry::{PagePx, ViewportPx};
 use util::ipc::OptionalIpcSender;
 use util::opts::{self, Opts};
 use util::prefs::{self, Pref};
-use util::thread;
 use webrender_traits;
 
 /// A uniquely-identifiable pipeline of script thread, layout thread, and paint thread.
@@ -128,8 +126,6 @@ impl Pipeline {
             .expect("Pipeline layout shutdown chan");
         let (pipeline_chan, pipeline_port) = ipc::channel()
             .expect("Pipeline main chan");;
-        let (script_to_compositor_chan, script_to_compositor_port) = ipc::channel()
-            .expect("Pipeline script to compositor chan");
 
         let window_size = state.window_size.map(|size| {
             WindowSizeData {
@@ -223,7 +219,6 @@ impl Pipeline {
             pipeline_port: pipeline_port,
             layout_shutdown_chan: layout_shutdown_chan,
             paint_shutdown_chan: paint_shutdown_chan.clone(),
-            script_to_compositor_chan: script_to_compositor_chan,
             pipeline_namespace_id: state.pipeline_namespace_id,
             layout_content_process_shutdown_chan: layout_content_process_shutdown_chan,
             layout_content_process_shutdown_port: layout_content_process_shutdown_port,
@@ -244,7 +239,6 @@ impl Pipeline {
             chrome_to_paint_chan: chrome_to_paint_chan,
             chrome_to_paint_port: chrome_to_paint_port,
             paint_shutdown_chan: paint_shutdown_chan,
-            script_to_compositor_port: script_to_compositor_port,
         };
 
         (pipeline, unprivileged_pipeline_content, privileged_pipeline_content)
@@ -380,7 +374,6 @@ pub struct UnprivilegedPipelineContent {
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
     scheduler_chan: IpcSender<TimerEventRequest>,
     devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-    script_to_compositor_chan: IpcSender<ScriptToCompositorMsg>,
     bluetooth_thread: IpcSender<BluetoothMethodMsg>,
     image_cache_thread: ImageCacheThread,
     font_cache_thread: FontCacheThread,
@@ -414,7 +407,6 @@ impl UnprivilegedPipelineContent {
         let layout_pair = STF::create(InitialScriptState {
             id: self.id,
             parent_info: self.parent_info,
-            compositor: self.script_to_compositor_chan,
             control_chan: self.script_chan.clone(),
             control_port: mem::replace(&mut self.script_port, None).expect("No script port."),
             constellation_chan: self.constellation_chan.clone(),
@@ -467,7 +459,6 @@ impl UnprivilegedPipelineContent {
 pub struct PrivilegedPipelineContent {
     id: PipelineId,
     compositor_proxy: Box<CompositorProxy + Send + 'static>,
-    script_to_compositor_port: IpcReceiver<ScriptToCompositorMsg>,
     font_cache_thread: FontCacheThread,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: profile_mem::ProfilerChan,
@@ -481,26 +472,7 @@ pub struct PrivilegedPipelineContent {
 
 impl PrivilegedPipelineContent {
     pub fn start_all(self) {
-        PaintThread::create(self.id,
-                          self.load_data.url,
-                          self.chrome_to_paint_chan,
-                          self.layout_to_paint_port,
-                          self.chrome_to_paint_port,
-                          self.compositor_proxy.clone_compositor_proxy(),
-                          self.panic_chan,
-                          self.font_cache_thread,
-                          self.time_profiler_chan,
-                          self.mem_profiler_chan,
-                          self.paint_shutdown_chan);
-
-        let compositor_proxy_for_script_listener_thread =
-            self.compositor_proxy.clone_compositor_proxy();
-        let script_to_compositor_port = self.script_to_compositor_port;
-        thread::spawn_named("CompositorScriptListener".to_owned(), move || {
-            compositor_thread::run_script_listener_thread(
-                compositor_proxy_for_script_listener_thread,
-                script_to_compositor_port)
-        });
+        self.start_paint_thread();
     }
 
     pub fn start_paint_thread(self) {
