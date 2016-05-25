@@ -30,7 +30,7 @@ fn main() {
     // Get the target android platform from ANDROID_PLATFORM env. Expecting "android-{version}"
     let android_platform = env::var("ANDROID_PLATFORM")
         .ok()
-        .expect("Please set the ANDROID_PLATFORM environment variable")
+        .expect("Please set the ANDROID_PLATFORM environment variable");
 
     // Get the standalone NDK path from NDK_STANDALONE env.
     //  let standalone_path = env::var("NDK_STANDALONE").ok().unwrap_or("/opt/ndk_standalone".to_string());
