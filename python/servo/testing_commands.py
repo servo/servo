@@ -91,7 +91,11 @@ class MachCommands(CommandBase):
                       "include_arg": "test_name"}),
             ("compiletest", {"kwargs": {"release": release},
                              "paths": [path.abspath(path.join("tests", "compiletest"))],
-                             "include_arg": "test_name"})
+                             "include_arg": "test_name"}),
+            ("webdriver", {"kwargs": {},
+                           "paths": [path.abspath(path.join("tests", "webdriver"))],
+                           "include_arg": "test_name"})
+
         ])
 
         suites_by_prefix = {path: k for k, v in suites.iteritems() if "paths" in v for path in v["paths"]}
@@ -243,6 +247,27 @@ class MachCommands(CommandBase):
         result = call(args, env=env, cwd=self.servo_crate())
         if result != 0:
             return result
+
+    @Command('test-webdriver',
+             description='Run the webdriver tests',
+             category='testing')
+    def test_webdriver(self, params=None):
+        test_dir = path.abspath(path.join(self.context.topdir, "tests", "webdriver"))
+        sys.path.append(path.join(self.context.topdir, "tests", "wpt", "harness", "wptrunner", "executors"))
+        sys.path.append(path.join(self.context.topdir, "tests", "webdriver", "harness"))
+
+        for f in os.listdir(test_dir):
+            name, ext = os.path.splitext(f)
+            if ext != '.py':
+                continue
+            try:
+                execfile(path.join(test_dir, f))
+                print("Test Passed")
+                # TODO the test passed
+            except Exception as e:
+                # TODO the test failed
+                print(e, "Test failed")
+                pass
 
     @Command('test-content',
              description='Run the content tests',
