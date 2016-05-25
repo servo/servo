@@ -866,10 +866,15 @@ pub fn load<A, B>(load_data: &LoadData,
 
         let mut block_cookies = false;
         if let Some(ref rules) = *http_state.blocked_content {
+            let same_origin =
+                load_data.referrer_url.as_ref()
+                         .map(|url| url.origin() == doc_url.origin())
+                         .unwrap_or(false);
+            let load_type = if same_origin { LoadType::FirstParty } else { LoadType::ThirdParty };
             let actions = process_rules_for_request(rules, &CBRequest {
                 url: doc_url.as_str(),
                 resource_type: to_resource_type(&load_data.context),
-                load_type: LoadType::FirstParty, //FIXME need request origin
+                load_type: load_type,
             });
             for action in actions {
                 match action {
