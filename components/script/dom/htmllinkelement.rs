@@ -25,7 +25,7 @@ use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
-use layout_interface::{LayoutChan, Msg};
+use layout_interface::Msg;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
 use network_listener::{NetworkListener, PreInvoke};
 use script_traits::{MozBrowserEvent, ScriptMsg as ConstellationMsg};
@@ -318,8 +318,7 @@ impl AsyncResponseListener for StylesheetContext {
         let document = document.r();
 
         let win = window_from_node(elem);
-        let LayoutChan(ref layout_chan) = *win.layout_chan();
-        layout_chan.send(Msg::AddStylesheet(sheet.clone())).unwrap();
+        win.layout_chan().send(Msg::AddStylesheet(sheet.clone())).unwrap();
 
         *elem.stylesheet.borrow_mut() = Some(sheet);
         document.invalidate_stylesheets();

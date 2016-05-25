@@ -42,7 +42,7 @@ use js::jsapi::{JS_GetRuntime, JS_GC, MutableHandleValue, SetWindowProxy};
 use js::rust::CompileOptionsWrapper;
 use js::rust::Runtime;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
-use layout_interface::{LayoutChan, LayoutRPC, Msg, Reflow, ReflowQueryType, MarginStyleResponse};
+use layout_interface::{LayoutRPC, Msg, Reflow, ReflowQueryType, MarginStyleResponse};
 use libc;
 use msg::constellation_msg::{LoadData, PanicMsg, PipelineId, SubpageId};
 use msg::constellation_msg::{WindowSizeData, WindowSizeType};
@@ -209,7 +209,7 @@ pub struct Window {
 
     /// A handle for communicating messages to the layout thread.
     #[ignore_heap_size_of = "channels are hard"]
-    layout_chan: LayoutChan,
+    layout_chan: Sender<Msg>,
 
     /// A handle to perform RPC calls into the layout, quickly.
     #[ignore_heap_size_of = "trait objects are hard"]
@@ -1057,8 +1057,7 @@ impl Window {
             query_type: query_type,
         };
 
-        let LayoutChan(ref chan) = self.layout_chan;
-        chan.send(Msg::Reflow(reflow)).unwrap();
+        self.layout_chan.send(Msg::Reflow(reflow)).unwrap();
 
         debug!("script: layout forked");
 
@@ -1300,7 +1299,7 @@ impl Window {
         self.devtools_chan.clone()
     }
 
-    pub fn layout_chan(&self) -> &LayoutChan {
+    pub fn layout_chan(&self) -> &Sender<Msg> {
         &self.layout_chan
     }
 
@@ -1484,15 +1483,14 @@ impl Window {
                scheduler_chan: IpcSender<TimerEventRequest>,
                panic_chan: IpcSender<PanicMsg>,
                timer_event_chan: IpcSender<TimerEvent>,
-               layout_chan: LayoutChan,
+               layout_chan: Sender<Msg>,
                id: PipelineId,
                parent_info: Option<(PipelineId, SubpageId)>,
                window_size: Option<WindowSizeData>)
                -> Root<Window> {
         let layout_rpc: Box<LayoutRPC> = {
             let (rpc_send, rpc_recv) = channel();
-            let LayoutChan(ref lchan) = layout_chan;
-            lchan.send(Msg::GetRPC(rpc_send)).unwrap();
+            layout_chan.send(Msg::GetRPC(rpc_send)).unwrap();
             rpc_recv.recv().unwrap()
         };
         let error_reporter = CSSErrorReporter {
