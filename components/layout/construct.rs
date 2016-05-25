@@ -1501,7 +1501,15 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
     //
     // TODO: This should actually consult the table in that section to get the
     // final computed value for 'display'.
-    fn process(&mut self, node: &ConcreteThreadSafeLayoutNode) -> bool {
+    fn process(&mut self, node: &ConcreteThreadSafeLayoutNode) {
+        node.insert_flags(HAS_NEWLY_CONSTRUCTED_FLOW);
+
+        // Bail out if this node has an ancestor with display: none.
+        if node.style(self.style_context()).get_inheritedbox()._servo_under_display_none.0 {
+            self.set_flow_construction_result(node, ConstructionResult::None);
+            return;
+        }
+
         // Get the `display` property for this node, and determine whether this node is floated.
         let (display, float, positioning) = match node.type_id() {
             None => {
@@ -1542,12 +1550,8 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
 
         // Switch on display and floatedness.
         match (display, float, positioning) {
-            // `display: none` contributes no flow construction result. Nuke the flow construction
-            // results of children.
+            // `display: none` contributes no flow construction result.
             (display::T::none, _, _) => {
-                for child in node.children() {
-                    self.set_flow_construction_result(&child, ConstructionResult::None);
-                }
                 self.set_flow_construction_result(node, ConstructionResult::None);
             }
 
@@ -1654,9 +1658,6 @@ impl<'a, ConcreteThreadSafeLayoutNode> PostorderNodeMutTraversal<ConcreteThreadS
                 self.set_flow_construction_result(node, construction_result)
             }
         }
-
-        node.insert_flags(HAS_NEWLY_CONSTRUCTED_FLOW);
-        true
     }
 }
 
