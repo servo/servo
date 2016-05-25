@@ -105,7 +105,7 @@ ${helpers.single_keyword("unicode-bidi", "normal embed isolate bidi-override iso
 </%helpers:longhand>
 
 ${helpers.single_keyword("text-decoration-style",
-                         "-moz-none solid double dotted dashed wavy",
+                         "solid double dotted dashed wavy -moz-none",
                          products="gecko")}
 
 ${helpers.predefined_type(
