@@ -1,6 +1,0 @@
-To generate a layout trace:
-
-./mach run -Z trace-layout <url>
-
-A layout_trace.json file will be writtent to the current directory that can be loaded by the viewer.
-
