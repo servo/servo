@@ -15,7 +15,8 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use euclid::{Matrix4D, Point2D, Rect, Size2D};
 use gfx::paint_thread::{ChromeToPaintMsg, PaintRequest};
-use gfx_traits::{color, Epoch, FrameTreeId, LayerId, LayerKind, LayerProperties, ScrollPolicy};
+use gfx_traits::{ScrollPolicy, StackingContextId};
+use gfx_traits::{color, Epoch, FrameTreeId, FragmentType, LayerId, LayerKind, LayerProperties};
 use gleam::gl;
 use gleam::gl::types::{GLint, GLsizei};
 use image::{DynamicImage, ImageFormat, RgbImage};
@@ -35,8 +36,8 @@ use profile_traits::mem::{self, ReportKind, Reporter, ReporterRequest};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::CompositorEvent::{MouseMoveEvent, MouseButtonEvent, TouchEvent};
 use script_traits::{AnimationState, AnimationTickType, ConstellationControlMsg};
-use script_traits::{ConstellationMsg, LayoutControlMsg, MouseButton};
-use script_traits::{MouseEventType, TouchpadPressurePhase, TouchEventType, TouchId};
+use script_traits::{ConstellationMsg, LayoutControlMsg, MouseButton, MouseEventType};
+use script_traits::{StackingContextScrollState, TouchpadPressurePhase, TouchEventType, TouchId};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -87,6 +88,32 @@ impl ConvertPipelineIdFromWebRender for webrender_traits::PipelineId {
         PipelineId {
             namespace_id: PipelineNamespaceId(self.0),
             index: PipelineIndex(self.1),
+        }
+    }
+}
+
+trait ConvertStackingContextFromWebRender {
+    fn from_webrender(&self) -> StackingContextId;
+}
+
+impl ConvertStackingContextFromWebRender for webrender_traits::ServoStackingContextId {
+    fn from_webrender(&self) -> StackingContextId {
+        StackingContextId::new_of_type(self.1, self.0.from_webrender())
+    }
+}
+
+trait ConvertFragmentTypeFromWebRender {
+    fn from_webrender(&self) -> FragmentType;
+}
+
+impl ConvertFragmentTypeFromWebRender for webrender_traits::FragmentType {
+    fn from_webrender(&self) -> FragmentType {
+        match *self {
+            webrender_traits::FragmentType::FragmentBody => FragmentType::FragmentBody,
+            webrender_traits::FragmentType::BeforePseudoContent => {
+                FragmentType::BeforePseudoContent
+            }
+            webrender_traits::FragmentType::AfterPseudoContent => FragmentType::AfterPseudoContent,
         }
     }
 }
@@ -1620,11 +1647,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
                     self.perform_updates_after_scroll();
                 }
-
-                if had_events {
-                    self.send_viewport_rects_for_all_layers();
-                }
             }
+        }
+
+        if had_events {
+            self.send_viewport_rects_for_all_layers();
         }
     }
 
@@ -1887,9 +1914,40 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn send_viewport_rects_for_all_layers(&self) {
-        match self.scene.root {
-            Some(ref root) => self.send_viewport_rect_for_layer(root.clone()),
-            None => {},
+        if opts::get().use_webrender {
+            return self.send_webrender_viewport_rects()
+        }
+
+        if let Some(ref root) = self.scene.root {
+            self.send_viewport_rect_for_layer(root.clone())
+        }
+    }
+
+    fn send_webrender_viewport_rects(&self) {
+        let mut stacking_context_scroll_states_per_pipeline = HashMap::new();
+        if let Some(ref webrender_api) = self.webrender_api {
+            for scroll_layer_state in webrender_api.get_scroll_layer_state() {
+                let stacking_context_scroll_state = StackingContextScrollState {
+                    stacking_context_id: scroll_layer_state.stacking_context_id.from_webrender(),
+                    scroll_offset: scroll_layer_state.scroll_offset,
+                };
+                let pipeline_id = scroll_layer_state.pipeline_id;
+                match stacking_context_scroll_states_per_pipeline.entry(pipeline_id) {
+                    Vacant(mut entry) => {
+                        entry.insert(vec![stacking_context_scroll_state]);
+                    }
+                    Occupied(mut entry) => entry.get_mut().push(stacking_context_scroll_state),
+                }
+            }
+
+            for (pipeline_id, stacking_context_scroll_states) in
+                    stacking_context_scroll_states_per_pipeline {
+                if let Some(pipeline) = self.pipeline(pipeline_id.from_webrender()) {
+                    let msg = LayoutControlMsg::SetStackingContextScrollStates(
+                        stacking_context_scroll_states);
+                    let _ = pipeline.layout_chan.send(msg);
+                }
+            }
         }
     }
 

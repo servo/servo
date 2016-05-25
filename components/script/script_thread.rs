@@ -708,6 +708,11 @@ impl ScriptThread {
                         self.handle_viewport(id, rect);
                     })
                 }
+                FromConstellation(ConstellationControlMsg::SetScrollState(id, scroll_offset)) => {
+                    self.profile_event(ScriptThreadEventCategory::SetScrollState, || {
+                        self.handle_set_scroll_state(id, &scroll_offset);
+                    })
+                }
                 FromConstellation(ConstellationControlMsg::TickAllAnimations(
                         pipeline_id)) => {
                     if !animation_ticks.contains(&pipeline_id) {
@@ -850,6 +855,9 @@ impl ScriptThread {
                 ScriptThreadEventCategory::NetworkEvent => ProfilerCategory::ScriptNetworkEvent,
                 ScriptThreadEventCategory::Resize => ProfilerCategory::ScriptResize,
                 ScriptThreadEventCategory::ScriptEvent => ProfilerCategory::ScriptEvent,
+                ScriptThreadEventCategory::SetScrollState => {
+                    ProfilerCategory::ScriptSetScrollState
+                }
                 ScriptThreadEventCategory::UpdateReplacedElement => {
                     ProfilerCategory::ScriptUpdateReplacedElement
                 }
@@ -877,6 +885,8 @@ impl ScriptThread {
                 self.handle_resize_inactive_msg(id, new_size),
             ConstellationControlMsg::Viewport(..) =>
                 panic!("should have handled Viewport already"),
+            ConstellationControlMsg::SetScrollState(..) =>
+                panic!("should have handled SetScrollState already"),
             ConstellationControlMsg::Resize(..) =>
                 panic!("should have handled Resize already"),
             ConstellationControlMsg::ExitPipeline(..) =>
@@ -1075,6 +1085,19 @@ impl ScriptThread {
             return;
         }
         panic!("Page rect message sent to nonexistent pipeline");
+    }
+
+    fn handle_set_scroll_state(&self, id: PipelineId, scroll_state: &Point2D<f32>) {
+        let context = self.browsing_context.get();
+        if let Some(context) = context {
+            if let Some(inner_context) = context.find(id) {
+                let window = inner_context.active_window();
+                window.update_viewport_for_scroll(-scroll_state.x, -scroll_state.y);
+                return
+            }
+        }
+
+        panic!("Set scroll state message message sent to nonexistent pipeline: {:?}", id);
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {

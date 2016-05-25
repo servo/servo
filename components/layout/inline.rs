@@ -17,9 +17,10 @@ use flow::{self, BaseFlow, Flow, FlowClass, ForceNonfloatedFlag, IS_ABSOLUTELY_P
 use flow_ref;
 use fragment::SpecificFragmentInfo;
 use fragment::{CoordinateSystem, Fragment, FragmentBorderBoxIterator, Overflow};
-use gfx::display_list::{OpaqueNode, StackingContext, StackingContextId};
+use gfx::display_list::{OpaqueNode, StackingContext};
 use gfx::font::FontMetrics;
 use gfx::font_context::FontContext;
+use gfx_traits::StackingContextId;
 use incremental::{BUBBLE_ISIZES, REFLOW, REFLOW_OUT_OF_FLOW, REPAINT, RESOLVE_GENERATED_CONTENT};
 use layout_debug;
 use model::IntrinsicISizesContribution;
