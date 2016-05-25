@@ -14,7 +14,8 @@ use display_list_builder::{BlockFlowDisplayListBuilding, BorderPaintingMode, Dis
 use euclid::{Point2D, Rect, SideOffsets2D, Size2D};
 use flow::{self, Flow, FlowClass, OpaqueFlow};
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use gfx::display_list::{StackingContext, StackingContextId};
+use gfx::display_list::StackingContext;
+use gfx_traits::StackingContextId;
 use incremental::REFLOW;
 use layout_debug;
 use model::MaybeAuto;

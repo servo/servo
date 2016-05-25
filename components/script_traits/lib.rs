@@ -39,6 +39,7 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use gfx_traits::Epoch;
 use gfx_traits::LayerId;
+use gfx_traits::StackingContextId;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
 use msg::constellation_msg::{FrameId, Key, KeyModifiers, KeyState, LoadData};
@@ -76,6 +77,8 @@ pub enum LayoutControlMsg {
     TickAnimations,
     /// Informs layout as to which regions of the page are visible.
     SetVisibleRects(Vec<(LayerId, Rect<Au>)>),
+    /// Tells layout about the new scrolling offsets of each scrollable stacking context.
+    SetStackingContextScrollStates(Vec<StackingContextScrollState>),
     /// Requests the current load state of Web fonts. `true` is returned if fonts are still loading
     /// and `false` is returned if all fonts have loaded.
     GetWebFontLoadState(IpcSender<bool>),
@@ -120,6 +123,8 @@ pub enum ConstellationControlMsg {
     SendEvent(PipelineId, CompositorEvent),
     /// Notifies script of the viewport.
     Viewport(PipelineId, Rect<f32>),
+    /// Notifies script of a new scroll offset.
+    SetScrollState(PipelineId, Point2D<f32>),
     /// Requests that the script thread immediately send the constellation the title of a pipeline.
     GetTitle(PipelineId),
     /// Notifies script thread to suspend all its timers
@@ -502,6 +507,15 @@ pub enum AnimationTickType {
     Script,
     /// The layout thread.
     Layout,
+}
+
+/// The scroll state of a stacking context.
+#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
+pub struct StackingContextScrollState {
+    /// The ID of the stacking context.
+    pub stacking_context_id: StackingContextId,
+    /// The scrolling offset of this stacking context.
+    pub scroll_offset: Point2D<f32>,
 }
 
 /// Messages to the constellation.

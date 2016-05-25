@@ -16,7 +16,8 @@ use flow::{BaseFlow, EarlyAbsolutePositionInfo, Flow, FlowClass, ImmutableFlowUt
 use flow::{self};
 use flow_list::MutFlowListIterator;
 use fragment::{Fragment, FragmentBorderBoxIterator, Overflow};
-use gfx::display_list::{StackingContext, StackingContextId};
+use gfx::display_list::StackingContext;
+use gfx_traits::StackingContextId;
 use incremental::{REFLOW, REFLOW_OUT_OF_FLOW};
 use layout_debug;
 use model::{IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto};

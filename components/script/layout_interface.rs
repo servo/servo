@@ -16,7 +16,7 @@ use msg::constellation_msg::{PanicMsg, PipelineId, WindowSizeData};
 use net_traits::image_cache_thread::ImageCacheThread;
 use profile_traits::mem::ReportsChan;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
-use script_traits::{OpaqueScriptLayoutChannel, UntrustedNodeAddress};
+use script_traits::{OpaqueScriptLayoutChannel, StackingContextScrollState, UntrustedNodeAddress};
 use std::any::Any;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -86,6 +86,9 @@ pub enum Msg {
 
     /// Set the final Url.
     SetFinalUrl(Url),
+
+    /// Tells layout about the new scrolling offsets of each scrollable stacking context.
+    SetStackingContextScrollStates(Vec<StackingContextScrollState>),
 }
 
 /// Synchronous messages that script can send to layout.

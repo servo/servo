@@ -25,13 +25,13 @@ use gfx::display_list::{BLUR_INFLATION_FACTOR, BaseDisplayItem, BorderDisplayIte
 use gfx::display_list::{BorderRadii, BoxShadowClipMode, BoxShadowDisplayItem, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayItemMetadata, DisplayListSection};
 use gfx::display_list::{GradientDisplayItem};
-use gfx::display_list::{GradientStop, IframeDisplayItem, ImageDisplayItem, WebGLDisplayItem, LayeredItem, LayerInfo};
-use gfx::display_list::{LineDisplayItem, OpaqueNode, SolidColorDisplayItem};
-use gfx::display_list::{StackingContext, StackingContextId, StackingContextType};
+use gfx::display_list::{GradientStop, IframeDisplayItem, ImageDisplayItem, WebGLDisplayItem};
+use gfx::display_list::{LayeredItem, LayerInfo, LineDisplayItem, OpaqueNode};
+use gfx::display_list::{SolidColorDisplayItem, StackingContext, StackingContextType};
 use gfx::display_list::{TextDisplayItem, TextOrientation, WebRenderImageInfo};
 use gfx::paint_thread::THREAD_TINT_COLORS;
 use gfx::text::glyph::ByteIndex;
-use gfx_traits::{color, ScrollPolicy};
+use gfx_traits::{color, ScrollPolicy, StackingContextId};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFlow, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::{self};
 use list_item::ListItemFlow;

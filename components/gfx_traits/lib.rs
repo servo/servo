@@ -149,3 +149,46 @@ impl FrameTreeId {
         self.0 += 1;
     }
 }
+
+/// A unique ID for every stacking context.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
+pub struct StackingContextId(
+    /// The type of the fragment for this StackingContext. This serves to differentiate
+    /// StackingContexts that share fragments.
+    FragmentType,
+    /// The identifier for this StackingContexts, derived from the Flow's memory address.
+    usize
+);
+
+impl StackingContextId {
+    #[inline]
+    pub fn new(id: usize) -> StackingContextId {
+        StackingContextId(FragmentType::FragmentBody, id)
+    }
+
+    #[inline]
+    pub fn new_of_type(id: usize, fragment_type: FragmentType) -> StackingContextId {
+        StackingContextId(fragment_type, id)
+    }
+
+    #[inline]
+    pub fn fragment_type(&self) -> FragmentType {
+        self.0
+    }
+
+    #[inline]
+    pub fn id(&self) -> usize {
+        self.1
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Copy, Hash, Deserialize, Serialize, HeapSizeOf)]
+pub enum FragmentType {
+    /// A StackingContext for the fragment body itself.
+    FragmentBody,
+    /// A StackingContext created to contain ::before pseudo-element content.
+    BeforePseudoContent,
+    /// A StackingContext created to contain ::after pseudo-element content.
+    AfterPseudoContent,
+}
+
