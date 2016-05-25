@@ -57,8 +57,7 @@ use js::jsapi::{DOMProxyShadowsResult, HandleId, HandleObject, RootedValue};
 use js::jsapi::{JSContext, JS_SetWrapObjectCallbacks, JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use layout_interface::{ReflowQueryType};
-use layout_interface::{self, LayoutChan, NewLayoutThreadInfo};
+use layout_interface::{self, NewLayoutThreadInfo, ReflowQueryType};
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{LoadData, PanicMsg, PipelineId, PipelineNamespace};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
@@ -132,7 +131,7 @@ struct InProgressLoad {
     /// The current window size associated with this pipeline.
     window_size: Option<WindowSizeData>,
     /// Channel to the layout thread associated with this pipeline.
-    layout_chan: LayoutChan,
+    layout_chan: Sender<layout_interface::Msg>,
     /// The current viewport clipping rectangle applying to this pipeline, if any.
     clip_rect: Option<Rect<f32>>,
     /// Window is frozen (navigated away while loading for example).
@@ -145,7 +144,7 @@ impl InProgressLoad {
     /// Create a new InProgressLoad object.
     fn new(id: PipelineId,
            parent_info: Option<(PipelineId, SubpageId)>,
-           layout_chan: LayoutChan,
+           layout_chan: Sender<layout_interface::Msg>,
            window_size: Option<WindowSizeData>,
            url: Url) -> InProgressLoad {
         InProgressLoad {
@@ -431,7 +430,7 @@ impl ScriptThreadFactory for ScriptThread {
         let (script_chan, script_port) = channel();
 
         let (sender, receiver) = channel();
-        let layout_chan = LayoutChan(sender.clone());
+        let layout_chan = sender.clone();
         let pipeline_id = state.id;
         thread::spawn_named_with_send_on_panic(format!("ScriptThread {:?}", state.id),
                                                thread_state::SCRIPT,
@@ -1092,7 +1091,7 @@ impl ScriptThread {
         } = new_layout_info;
 
         let layout_pair = channel();
-        let layout_chan = LayoutChan(layout_pair.0.clone());
+        let layout_chan = layout_pair.0.clone();
 
         let layout_creation_info = NewLayoutThreadInfo {
             id: new_pipeline_id,
@@ -1117,7 +1116,6 @@ impl ScriptThread {
 
         // Tell layout to actually spawn the thread.
         parent_window.layout_chan()
-                     .0
                      .send(layout_interface::Msg::CreateLayoutThread(layout_creation_info))
                      .unwrap();
 
@@ -1342,7 +1340,7 @@ impl ScriptThread {
             // Tell the layout thread to begin shutting down, and wait until it
             // processed this message.
             let (response_chan, response_port) = channel();
-            let LayoutChan(chan) = load.layout_chan;
+            let chan = &load.layout_chan;
             if chan.send(layout_interface::Msg::PrepareToExit(response_chan)).is_ok() {
                 debug!("shutting down layout for page {:?}", id);
                 response_port.recv().unwrap();
@@ -1401,8 +1399,9 @@ impl ScriptThread {
         let final_url = metadata.final_url.clone();
         {
             // send the final url to the layout thread.
-            let LayoutChan(ref chan) = incomplete.layout_chan;
-            chan.send(layout_interface::Msg::SetFinalUrl(final_url.clone())).unwrap();
+            incomplete.layout_chan
+                      .send(layout_interface::Msg::SetFinalUrl(final_url.clone()))
+                      .unwrap();
 
             // update the pipeline url
             self.constellation_chan
@@ -2000,7 +1999,7 @@ fn shut_down_layout(context_tree: &BrowsingContext) {
         // processed this message.
         let (response_chan, response_port) = channel();
         let window = context.active_window();
-        let LayoutChan(chan) = window.layout_chan().clone();
+        let chan = window.layout_chan().clone();
         if chan.send(layout_interface::Msg::PrepareToExit(response_chan)).is_ok() {
             channels.push(chan);
             response_port.recv().unwrap();

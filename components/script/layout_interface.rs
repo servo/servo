@@ -18,7 +18,7 @@ use profile_traits::mem::ReportsChan;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{UntrustedNodeAddress};
 use std::sync::Arc;
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::{Receiver, Sender};
 use string_cache::Atom;
 use style::context::ReflowGoal;
 use style::properties::longhands::{margin_top, margin_right, margin_bottom, margin_left, overflow_x};
@@ -215,17 +215,6 @@ pub struct ScriptReflow {
 impl Drop for ScriptReflow {
     fn drop(&mut self) {
         self.script_join_chan.send(()).unwrap();
-    }
-}
-
-/// Encapsulates a channel to the layout thread.
-#[derive(Clone)]
-pub struct LayoutChan(pub Sender<Msg>);
-
-impl LayoutChan {
-    pub fn new() -> (Receiver<Msg>, LayoutChan) {
-        let (chan, port) = channel();
-        (port, LayoutChan(chan))
     }
 }
 
