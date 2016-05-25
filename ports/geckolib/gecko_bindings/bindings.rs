@@ -223,6 +223,8 @@ extern "C" {
     pub fn Servo_Initialize();
     pub fn Servo_RestyleDocument(doc: *mut RawGeckoDocument,
                                  set: *mut RawServoStyleSet);
+    pub fn Servo_RestyleSubtree(node: *mut RawGeckoNode,
+                                set: *mut RawServoStyleSet);
     pub fn Gecko_GetAttrAsUTF8(element: *mut RawGeckoElement,
                                ns: *mut nsIAtom, name: *mut nsIAtom,
                                length: *mut u32)
