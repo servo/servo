@@ -1390,15 +1390,15 @@ impl ScriptThread {
 
     /// Handles a Web font being loaded. Does nothing if the page no longer exists.
     fn handle_web_font_loaded(&self, pipeline_id: PipelineId) {
-        if let Some(context) = self.find_child_context(pipeline_id)  {
+        if let Some(context) = self.find_child_context(pipeline_id) {
             self.rebuild_and_force_reflow(&context, ReflowReason::WebFontLoaded);
         }
     }
 
     /// Handles a image being loaded. Does nothing if the page no longer exists.
     fn handle_image_loaded(&self, pipeline_id: PipelineId) {
-        if let Some(ref page) = self.find_subpage(pipeline_id)  {
-            self.rebuild_and_force_reflow(page, ReflowReason::ImageLoaded);
+        if let Some(context) = self.find_child_context(pipeline_id)  {
+            self.rebuild_and_force_reflow(&context, ReflowReason::ImageLoaded);
         }
     }
 
@@ -1999,10 +1999,10 @@ impl ScriptThread {
     }
 
     fn handle_any_images_outstanding(&self, pipeline_id: PipelineId, sender: IpcSender<bool>) {
-        let page = self.root_page();
-        let page = page.find(pipeline_id).expect("ScriptThread: received fire timer msg for a
-            pipeline ID not associated with this script thread. This is a bug.");
-        let window = page.window();
+        let context = self.find_child_context(pipeline_id).expect(
+            "ScriptThread: received fire timer msg for a \
+             pipeline ID not associated with this script thread. This is a bug.");
+        let window = context.active_window();
         let _ = sender.send(window.get_pending_reflow_count() != 0);
     }
 }
