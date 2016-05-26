@@ -141,7 +141,7 @@ impl Pipeline {
         let (layout_content_process_shutdown_chan, layout_content_process_shutdown_port) =
             ipc::channel().expect("Pipeline layout content shutdown chan");
 
-        let (script_chan, script_port, pipeline_port, spawning_content) = match state.script_chan {
+        let (script_chan, content_ports) = match state.script_chan {
             Some(script_chan) => {
                 let (containing_pipeline_id, subpage_id, _) =
                     state.parent_info.expect("script_pipeline != None but subpage_id == None");
@@ -161,11 +161,11 @@ impl Pipeline {
                 if let Err(e) = script_chan.send(ConstellationControlMsg::AttachLayout(new_layout_info)) {
                     warn!("Sending to script during pipeline creation failed ({})", e);
                 }
-                (script_chan, None, None, false)
+                (script_chan, None)
             }
             None => {
                 let (script_chan, script_port) = ipc::channel().expect("Pipeline script chan");
-                (script_chan, Some(script_port), Some(pipeline_port), true)
+                (script_chan, Some((script_port, pipeline_port)))
             }
         };
 
@@ -193,7 +193,7 @@ impl Pipeline {
                             paint_shutdown_chan.clone());
 
         let mut child_process = None;
-        if spawning_content {
+        if let Some((script_port, pipeline_port)) = content_ports {
             // Route messages coming from content to devtools as appropriate.
             let script_to_devtools_chan = state.devtools_chan.as_ref().map(|devtools_chan| {
                 let (script_to_devtools_chan, script_to_devtools_port) = ipc::channel()
@@ -239,11 +239,11 @@ impl Pipeline {
                 script_chan: script_chan,
                 load_data: state.load_data,
                 panic_chan: state.panic_chan,
-                script_port: script_port,
+                script_port: Some(script_port),
                 opts: (*opts::get()).clone(),
                 prefs: prefs::get_cloned(),
                 layout_to_paint_chan: layout_to_paint_chan,
-                pipeline_port: pipeline_port,
+                pipeline_port: Some(pipeline_port),
                 layout_shutdown_chan: layout_shutdown_chan,
                 paint_shutdown_chan: paint_shutdown_chan,
                 pipeline_namespace_id: state.pipeline_namespace_id,
