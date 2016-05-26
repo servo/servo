@@ -132,18 +132,6 @@ impl Response {
         }
     }
 
-    pub fn wait_until_done(&self) {
-        match self.response_type {
-            // since these response types can't hold a body, they should be considered done
-            ResponseType::Error | ResponseType::Opaque | ResponseType::OpaqueRedirect => {},
-            _ => {
-                while !self.body.lock().unwrap().is_done() && !self.is_network_error() {
-                    // loop until done
-                }
-            }
-        }
-    }
-
     pub fn actual_response(&self) -> &Response {
         if self.return_internal.get() && self.internal_response.is_some() {
             &**self.internal_response.as_ref().unwrap()
