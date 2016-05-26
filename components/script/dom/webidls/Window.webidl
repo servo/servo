@@ -48,8 +48,8 @@
   //readonly attribute ApplicationCache applicationCache;
 
   // user prompts
-  //void alert();
   void alert(DOMString message);
+  void alert();
   //boolean confirm(optional DOMString message = "");
   //DOMString? prompt(optional DOMString message = "", optional DOMString default = "");
   //void print();

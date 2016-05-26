@@ -431,6 +431,11 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
 
 impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-alert
+    fn Alert_(&self) {
+        self.Alert(DOMString::new());
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-alert
     fn Alert(&self, s: DOMString) {
         // Right now, just print to the console
         // Ensure that stderr doesn't trample through the alert() we use to
