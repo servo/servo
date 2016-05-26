@@ -168,23 +168,12 @@ impl Pipeline {
             }
         };
 
-        let pipeline = Pipeline::new(state.id,
-                                     state.parent_info,
-                                     script_chan.clone(),
-                                     LayoutControlChan(pipeline_chan),
-                                     state.compositor_proxy.clone_compositor_proxy(),
-                                     chrome_to_paint_chan.clone(),
-                                     layout_shutdown_port,
-                                     paint_shutdown_port,
-                                     state.load_data.url.clone(),
-                                     state.window_size);
-
         PaintThread::create(state.id,
                             state.load_data.url.clone(),
-                            chrome_to_paint_chan,
+                            chrome_to_paint_chan.clone(),
                             layout_to_paint_port,
                             chrome_to_paint_port,
-                            state.compositor_proxy,
+                            state.compositor_proxy.clone_compositor_proxy(),
                             state.panic_chan.clone(),
                             state.font_cache_thread.clone(),
                             state.time_profiler_chan.clone(),
@@ -235,8 +224,8 @@ impl Pipeline {
                 mem_profiler_chan: state.mem_profiler_chan,
                 window_size: window_size,
                 layout_to_constellation_chan: state.layout_to_constellation_chan,
-                script_chan: script_chan,
-                load_data: state.load_data,
+                script_chan: script_chan.clone(),
+                load_data: state.load_data.clone(),
                 panic_chan: state.panic_chan,
                 script_port: script_port,
                 opts: (*opts::get()).clone(),
@@ -262,6 +251,17 @@ impl Pipeline {
                 unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false);
             }
         }
+
+        let pipeline = Pipeline::new(state.id,
+                                     state.parent_info,
+                                     script_chan,
+                                     LayoutControlChan(pipeline_chan),
+                                     state.compositor_proxy,
+                                     chrome_to_paint_chan,
+                                     layout_shutdown_port,
+                                     paint_shutdown_port,
+                                     state.load_data.url,
+                                     state.window_size);
 
         Ok((pipeline, child_process))
     }
