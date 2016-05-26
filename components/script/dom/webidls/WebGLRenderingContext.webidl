@@ -646,11 +646,11 @@ interface WebGLRenderingContextBase
     void texParameterf(GLenum target, GLenum pname, GLfloat param);
     void texParameteri(GLenum target, GLenum pname, GLint param);
 
-    //void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-    //                   GLsizei width, GLsizei height,
-    //                   GLenum format, GLenum type, ArrayBufferView? pixels);
-    //void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-    //                   GLenum format, GLenum type, TexImageSource? source); // May throw DOMException
+    void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+                      GLsizei width, GLsizei height,
+                      GLenum format, GLenum type, optional object data);
+    void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+                      GLenum format, GLenum type, TexImageSource? source); // May throw DOMException
 
     void uniform1f(WebGLUniformLocation? location, GLfloat x);
     //void uniform1fv(WebGLUniformLocation? location, Float32Array v);
