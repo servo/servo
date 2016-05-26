@@ -153,11 +153,6 @@ pub trait LoadOrigin {
     fn pipeline_id(&self) -> Option<PipelineId>;
 }
 
-/// Interface for observing the final response for an asynchronous fetch operation.
-pub trait AsyncFetchListener {
-    fn response_available(&self, response: response::Response);
-}
-
 /// A listener for asynchronous network events. Cancelling the underlying request is unsupported.
 pub trait AsyncResponseListener {
     /// The response headers for a request have been received.

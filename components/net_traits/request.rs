@@ -4,6 +4,7 @@
 
 use hyper::header::Headers;
 use hyper::method::Method;
+use response::Response;
 use std::cell::{Cell, RefCell};
 use url::{Origin as UrlOrigin, Url};
 
@@ -106,6 +107,25 @@ pub enum CORSSettings {
     UseCredentials
 }
 
+pub trait FetchTaskTarget {
+    /// https://fetch.spec.whatwg.org/#process-request-body
+    ///
+    /// Fired when a chunk of the request body is transmitted
+    fn process_request_body(&mut self, request: &Request);
+    /// https://fetch.spec.whatwg.org/#process-request-end-of-file
+    ///
+    /// Fired when the entire request finishes being transmitted
+    fn process_request_eof(&mut self, request: &Request);
+    /// https://fetch.spec.whatwg.org/#process-response
+    ///
+    /// Fired when headers are received
+    fn process_response(&mut self, response: &Response);
+    /// https://fetch.spec.whatwg.org/#process-response-end-of-file
+    ///
+    /// Fired when the response is fully fetched
+    fn process_response_eof(&mut self, response: &Response);
+}
+
 /// A [Request](https://fetch.spec.whatwg.org/#requests) as defined by the Fetch spec
 #[derive(Clone)]
 pub struct Request {
@@ -145,7 +165,7 @@ pub struct Request {
     pub url_list: RefCell<Vec<Url>>,
     pub redirect_count: Cell<u32>,
     pub response_tainting: Cell<ResponseTainting>,
-    pub done: Cell<bool>
+    pub done: Cell<bool>,
 }
 
 impl Request {
