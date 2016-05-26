@@ -1835,16 +1835,21 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
     /// Checks whether the pipeline or its ancestors are private
     #[allow(dead_code)]
-    fn check_is_pipeline_private(&self, pipeline_id: PipelineId) -> bool {
-        let mut pipeline_id = Some(pipeline_id);
-        while let Some(pipeline) = pipeline_id.and_then(|id| self.pipelines.get(&id)) {
-            if pipeline.is_private {
-                return true;
+    fn check_is_pipeline_private(&self, mut pipeline_id: PipelineId) -> bool {
+        loop {
+            match self.pipelines.get(&pipeline_id) {
+                Some(pipeline) if pipeline.is_private => return true,
+                Some(pipeline) => match pipeline.parent_info {
+                    None => return false,
+                    Some((_, _, FrameType::MozBrowserIFrame)) => return false,
+                    Some((parent_id, _, _)) => pipeline_id = parent_id,
+                },
+                None => {
+                    warn!("Finding private ancestor for pipeline {} after closure.", pipeline_id);
+                    return false;
+                },
             }
-            // TODO: terminate the search when we hit a mozbrowser iframe?
-            pipeline_id = pipeline.parent_info.map(|(parent_pipeline_id, _, _)| parent_pipeline_id);
         }
-        false
     }
 
     // Close a frame (and all children)
@@ -2027,13 +2032,16 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     Some((parent_id, _, _)) => pipeline_id = parent_id,
                     None => return None,
                 },
-                None => return None,
+                None => {
+                    warn!("Finding mozbrowser ancestor for pipeline {} after closure.", pipeline_id);
+                    return None;
+                },
             }
         }
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserlocationchange
-    // Note that this is a no-op if the pipeline is not an immediate child iframe of a mozbrowser iframe
+    // Note that this is a no-op if the pipeline is not a mozbrowser iframe
     fn trigger_mozbrowserlocationchange(&self, pipeline_id: PipelineId) {
         if !prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) { return; }
 
@@ -2043,7 +2051,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             })
         });
 
-        // If this is an iframe, then send the event with new url
+        // If this is a mozbrowser iframe, then send the event with new url
         if let Some((containing_pipeline_id, subpage_id, FrameType::MozBrowserIFrame, url)) = event_info {
             if let Some(parent_pipeline) = self.pipelines.get(&containing_pipeline_id) {
                 if let Some(frame_id) = self.pipeline_to_frame_map.get(&pipeline_id) {
