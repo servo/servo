@@ -6,8 +6,8 @@ use CompositionPipeline;
 use SendableFrameTree;
 use app_units::Au;
 use compositor_layer::{CompositorData, CompositorLayer, RcCompositorLayer, WantsScrollEventsFlag};
-use compositor_thread::{CompositorEventListener, CompositorProxy};
-use compositor_thread::{CompositorReceiver, InitialCompositorState, Msg, RenderListener};
+use compositor_thread::{CompositorProxy, CompositorReceiver};
+use compositor_thread::{InitialCompositorState, Msg, RenderListener};
 use delayed_composition::DelayedCompositionTimerProxy;
 use euclid::point::TypedPoint2D;
 use euclid::rect::TypedRect;
@@ -2443,31 +2443,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             webrender_api.tick_scrolling_bounce_animations()
         }
     }
-}
 
-fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorData>>,
-                                                   pipeline_id: PipelineId,
-                                                   layer_id: LayerId)
-                                                   -> Option<Rc<Layer<CompositorData>>> {
-    if layer.extra_data.borrow().pipeline_id == pipeline_id &&
-       layer.extra_data.borrow().id == layer_id {
-        return Some(layer);
-    }
-
-    for kid in &*layer.children() {
-        let result = find_layer_with_pipeline_and_layer_id_for_layer(kid.clone(),
-                                                                     pipeline_id,
-                                                                     layer_id);
-        if result.is_some() {
-            return result;
-        }
-    }
-
-    None
-}
-
-impl<Window> CompositorEventListener for IOCompositor<Window> where Window: WindowMethods {
-    fn handle_events(&mut self, messages: Vec<WindowEvent>) -> bool {
+    pub fn handle_events(&mut self, messages: Vec<WindowEvent>) -> bool {
         // Check for new messages coming from the other threads in the system.
         while let Some(msg) = self.port.try_recv_compositor_msg() {
             if !self.handle_browser_message(msg) {
@@ -2510,7 +2487,7 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
     /// paint is not scheduled the compositor will hang forever.
     ///
     /// This is used when resizing the window.
-    fn repaint_synchronously(&mut self) {
+    pub fn repaint_synchronously(&mut self) {
         if self.webrender.is_none() {
             while self.shutdown_state != ShutdownState::ShuttingDown {
                 let msg = self.port.recv_compositor_msg();
@@ -2546,11 +2523,11 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
         }
     }
 
-    fn pinch_zoom_level(&self) -> f32 {
+    pub fn pinch_zoom_level(&self) -> f32 {
         self.viewport_zoom.get() as f32
     }
 
-    fn title_for_main_frame(&self) {
+    pub fn title_for_main_frame(&self) {
         let root_pipeline_id = match self.root_pipeline {
             None => return,
             Some(ref root_pipeline) => root_pipeline.id,
@@ -2560,6 +2537,27 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
             warn!("Failed to send pipeline title ({}).", e);
         }
     }
+}
+
+fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorData>>,
+                                                   pipeline_id: PipelineId,
+                                                   layer_id: LayerId)
+                                                   -> Option<Rc<Layer<CompositorData>>> {
+    if layer.extra_data.borrow().pipeline_id == pipeline_id &&
+       layer.extra_data.borrow().id == layer_id {
+        return Some(layer);
+    }
+
+    for kid in &*layer.children() {
+        let result = find_layer_with_pipeline_and_layer_id_for_layer(kid.clone(),
+                                                                     pipeline_id,
+                                                                     layer_id);
+        if result.is_some() {
+            return result;
+        }
+    }
+
+    None
 }
 
 /// Why we performed a composite. This is used for debugging.
