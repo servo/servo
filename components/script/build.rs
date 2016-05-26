@@ -2,12 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::process::Command;
+extern crate cmake;
 
 fn main() {
-    assert!(Command::new("make")
-        .args(&["-f", "makefile.cargo"])
-        .status()
-        .unwrap()
-        .success());
+    let _ = cmake::Config::new(".")
+        .generator("Ninja")
+        .build_target("all")
+        .build();
 }
