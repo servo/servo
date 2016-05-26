@@ -120,11 +120,15 @@ pub struct InitialPipelineState {
 }
 
 impl Pipeline {
-    fn create<LTF, STF>(state: InitialPipelineState)
-                        -> (Pipeline, UnprivilegedPipelineContent, PrivilegedPipelineContent)
-        where LTF: LayoutThreadFactory,
-              STF: ScriptThreadFactory
+    /// Starts a paint thread, layout thread, and possibly a script thread, in
+    /// a new process if requested.
+    pub fn spawn<Message, LTF, STF>(state: InitialPipelineState)
+                                    -> Result<(Pipeline, Option<ChildProcess>), IOError>
+        where LTF: LayoutThreadFactory<Message=Message>,
+              STF: ScriptThreadFactory<Message=Message>
     {
+        let spawning_content = state.script_chan.is_none();
+
         // Note: we allow channel creation to panic, since recovering from this
         // probably requires a general low-memory strategy.
         let (layout_to_paint_chan, layout_to_paint_port) = util::ipc::optional_ipc_channel();
@@ -250,20 +254,6 @@ impl Pipeline {
             chrome_to_paint_port: chrome_to_paint_port,
             paint_shutdown_chan: paint_shutdown_chan,
         };
-
-        (pipeline, unprivileged_pipeline_content, privileged_pipeline_content)
-    }
-
-    /// Starts a paint thread, layout thread, and possibly a script thread, in
-    /// a new process if requested.
-    pub fn spawn<Message, LTF, STF>(state: InitialPipelineState)
-                                    -> Result<(Pipeline, Option<ChildProcess>), IOError>
-        where LTF: LayoutThreadFactory<Message=Message>,
-              STF: ScriptThreadFactory<Message=Message>
-    {
-        let spawning_content = state.script_chan.is_none();
-        let (pipeline, unprivileged_pipeline_content, privileged_pipeline_content) =
-            Pipeline::create::<LTF, STF>(state);
 
         privileged_pipeline_content.start();
 
