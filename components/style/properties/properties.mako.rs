@@ -131,6 +131,7 @@ pub mod shorthands {
     <%include file="/shorthand/margin.mako.rs" />
     <%include file="/shorthand/outline.mako.rs" />
     <%include file="/shorthand/padding.mako.rs" />
+    <%include file="/shorthand/text.mako.rs" />
 }
 
 
@@ -1166,14 +1167,15 @@ pub mod style_structs {
                     self.outline_width != ::app_units::Au(0)
                 }
             % elif style_struct.trait_name == "Text":
+                <% text_decoration_field = 'text_decoration' if product == 'servo' else 'text_decoration_line' %>
                 fn has_underline(&self) -> bool {
-                    self.text_decoration.underline
+                    self.${text_decoration_field}.underline
                 }
                 fn has_overline(&self) -> bool {
-                    self.text_decoration.overline
+                    self.${text_decoration_field}.overline
                 }
                 fn has_line_through(&self) -> bool {
-                    self.text_decoration.line_through
+                    self.${text_decoration_field}.line_through
                 }
             % endif
         }
@@ -1814,7 +1816,7 @@ pub fn cascade<C: ComputedValues>(
                         PropertyDeclaration::Color(_) |
                         PropertyDeclaration::Position(_) |
                         PropertyDeclaration::Float(_) |
-                        PropertyDeclaration::TextDecoration(_)
+                        PropertyDeclaration::TextDecoration${'' if product == 'servo' else 'Line'}(_)
                     );
                     if
                         % if category_to_cascade_now == "early":

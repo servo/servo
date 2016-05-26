@@ -728,20 +728,36 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Text"
-                  skip_longhands="text-decoration-color"
+                  skip_longhands="text-decoration-color text-decoration-line"
                   skip_additionals="*">
 
     <% impl_color("text_decoration_color", "mTextDecorationColor",
                   color_flags_ffi_name="mTextDecorationStyle") %>
 
+    fn set_text_decoration_line(&mut self, v: longhands::text_decoration_line::computed_value::T) {
+        let mut bits: u8 = 0;
+        if v.underline {
+            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8;
+        }
+        if v.overline {
+            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_OVERLINE as u8;
+        }
+        if v.line_through {
+            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8;
+        }
+        self.gecko.mTextDecorationLine = bits;
+    }
+
+    <%call expr="impl_simple_copy('text_decoration_line', 'mTextDecorationLine')"></%call>
+
     fn has_underline(&self) -> bool {
-        (self.gecko.mTextDecorationStyle & (structs::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8)) != 0
+        (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8)) != 0
     }
     fn has_overline(&self) -> bool {
-        (self.gecko.mTextDecorationStyle & (structs::NS_STYLE_TEXT_DECORATION_LINE_OVERLINE as u8)) != 0
+        (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_OVERLINE as u8)) != 0
     }
     fn has_line_through(&self) -> bool {
-        (self.gecko.mTextDecorationStyle & (structs::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8)) != 0
+        (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8)) != 0
     }
 </%self:impl_trait>
 
