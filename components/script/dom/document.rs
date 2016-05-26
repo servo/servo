@@ -55,7 +55,6 @@ use dom::htmlelement::HTMLElement;
 use dom::htmlembedelement::HTMLEmbedElement;
 use dom::htmlformelement::HTMLFormElement;
 use dom::htmlheadelement::HTMLHeadElement;
-use dom::htmlhtmlelement::HTMLHtmlElement;
 use dom::htmliframeelement::{self, HTMLIFrameElement};
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmllinkelement::HTMLLinkElement;
@@ -1228,7 +1227,7 @@ impl Document {
         self.stylesheets_changed_since_reflow.set(true);
         *self.stylesheets.borrow_mut() = None;
         // Mark the document element dirty so a reflow will be performed.
-        self.get_html_element().map(|root| {
+        self.GetDocumentElement().map(|root| {
             root.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged);
         });
     }
@@ -1755,10 +1754,6 @@ impl Document {
                              .flat_map(|node| node.traverse_preorder())
                              .filter(|node| callback(node.r()));
         NodeList::new_simple_list(&self.window, iter)
-    }
-
-    fn get_html_element(&self) -> Option<Root<HTMLHtmlElement>> {
-        self.GetDocumentElement().and_then(Root::downcast)
     }
 
     /// Returns the list of stylesheets associated with nodes in the document.
@@ -2356,7 +2351,7 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-head
     fn GetHead(&self) -> Option<Root<HTMLHeadElement>> {
-        self.get_html_element()
+        self.GetDocumentElement()
             .and_then(|root| root.upcast::<Node>().children().filter_map(Root::downcast).next())
     }
 
@@ -2367,7 +2362,7 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-document-body
     fn GetBody(&self) -> Option<Root<HTMLElement>> {
-        self.get_html_element().and_then(|root| {
+        self.GetDocumentElement().and_then(|root| {
             let node = root.upcast::<Node>();
             node.children().find(|child| {
                 match child.type_id() {
@@ -2400,7 +2395,7 @@ impl DocumentMethods for Document {
             return Ok(());
         }
 
-        match (self.get_html_element(), &old_body) {
+        match (self.GetDocumentElement(), &old_body) {
             // Step 3.
             (Some(ref root), &Some(ref child)) => {
                 let root = root.upcast::<Node>();
