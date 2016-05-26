@@ -75,10 +75,16 @@ eval ./rust-bindgen/target/debug/bindgen           \
   -x c++ -std=gnu++0x                              \
   "-I$DIST_INCLUDE"                                \
   "-I$DIST_INCLUDE/nspr/"                          \
-  "-I$SRCDIR/nsprpub/pr/include/"                  \
+  "-I$1/nsprpub/pr/include/"                       \
   $PLATFORM_DEPENDENT_DEFINES                      \
+  -DMOZILLA_INTERNAL_API                           \
+  -DMOZ_STYLO_BINDINGS=1                           \
+  -DJS_DEBUG=1                                     \
+  -DDEBUG=1 -DTRACING=1 -DOS_POSIX=1               \
+  -DIMPL_LIBXUL                                    \
   -o ../bindings.rs                                \
   -no-type-renaming                                \
+  -include "$1/mozilla-config.h"                   \
   "$DIST_INCLUDE/mozilla/ServoBindings.h"          \
   -match "ServoBindings.h"                         \
   -match "nsStyleStructList.h"                     \

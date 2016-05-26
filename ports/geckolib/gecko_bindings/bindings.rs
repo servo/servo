@@ -146,6 +146,10 @@ extern "C" {
     pub fn Gecko_IsRootElement(element: *mut RawGeckoElement) -> bool;
     pub fn Gecko_LocalName(element: *mut RawGeckoElement) -> *mut nsIAtom;
     pub fn Gecko_Namespace(element: *mut RawGeckoElement) -> *mut nsIAtom;
+    pub fn Gecko_GetElementId(element: *mut RawGeckoElement) -> *mut nsIAtom;
+    pub fn Gecko_ClassOrClassList(element: *mut RawGeckoElement,
+                                  class_: *mut *mut nsIAtom,
+                                  classList: *mut *mut *mut nsIAtom) -> u32;
     pub fn Gecko_GetNodeData(node: *mut RawGeckoNode) -> *mut ServoNodeData;
     pub fn Gecko_SetNodeData(node: *mut RawGeckoNode,
                              data: *mut ServoNodeData);
