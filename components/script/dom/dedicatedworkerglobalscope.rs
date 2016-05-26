@@ -213,7 +213,8 @@ impl DedicatedWorkerGlobalScope {
                             worker_url: Url,
                             id: PipelineId,
                             from_devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
-                            main_thread_rt: Arc<Mutex<Option<SharedRt>>>,
+                            parent_rt: SharedRt,
+                            worker_rt_for_mainthread: Arc<Mutex<Option<SharedRt>>>,
                             worker: TrustedWorkerAddress,
                             parent_sender: Box<ScriptChan + Send>,
                             own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
@@ -240,8 +241,8 @@ impl DedicatedWorkerGlobalScope {
                 }
             };
 
-            let runtime = unsafe { new_rt_and_cx() };
-            *main_thread_rt.lock().unwrap() = Some(SharedRt::new(&runtime));
+            let runtime = unsafe { new_rt_and_cx(parent_rt.rt()) };
+            *worker_rt_for_mainthread.lock().unwrap() = Some(SharedRt::new(&runtime));
 
             let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
             ROUTER.route_ipc_receiver_to_mpsc_sender(from_devtools_receiver, devtools_mpsc_chan);

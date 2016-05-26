@@ -87,6 +87,7 @@ use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::option::Option;
+use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
 use std::sync::atomic::{Ordering, AtomicBool};
@@ -443,8 +444,8 @@ impl ScriptThreadFactory for ScriptThread {
             let mem_profiler_chan = state.mem_profiler_chan.clone();
             let window_size = state.window_size;
             let script_thread = ScriptThread::new(state,
-                                              script_port,
-                                              script_chan.clone());
+                                                  script_port,
+                                                  script_chan.clone());
 
             SCRIPT_THREAD_ROOT.with(|root| {
                 *root.borrow_mut() = Some(&script_thread as *const _);
@@ -519,7 +520,7 @@ impl ScriptThread {
                port: Receiver<MainThreadScriptMsg>,
                chan: Sender<MainThreadScriptMsg>)
                -> ScriptThread {
-        let runtime = unsafe { new_rt_and_cx() };
+        let runtime = unsafe { new_rt_and_cx(ptr::null_mut()) };
 
         unsafe {
             JS_SetWrapObjectCallbacks(runtime.rt(),
