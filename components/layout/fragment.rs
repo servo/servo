@@ -22,7 +22,6 @@ use incremental::{RECONSTRUCT_FLOW, RestyleDamage};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFragmentContext, InlineFragmentNodeInfo};
 use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT};
 use ipc_channel::ipc::IpcSender;
-use layout_debug;
 use model::{self, IntrinsicISizes, IntrinsicISizesContribution, MaybeAuto, specified};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
@@ -49,6 +48,9 @@ use text::TextRunScanner;
 use url::Url;
 use util;
 use wrapper::{PseudoElementType, ThreadSafeLayoutElement, ThreadSafeLayoutNode};
+
+#[cfg(not(debug_assertions))]
+use layout_debug;
 
 /// Fragments (`struct Fragment`) are the leaves of the layout tree. They cannot position
 /// themselves. In general, fragments do not have a simple correspondence with CSS fragments in the
@@ -118,7 +120,9 @@ pub struct Fragment {
     pub flags: FragmentFlags,
 
     /// A debug ID that is consistent for the life of this fragment (via transform etc).
-    pub debug_id: u16,
+    /// This ID should not be considered stable across multiple layouts or fragment
+    /// manipulations.
+    debug_id: DebugId,
 
     /// The ID of the StackingContext that contains this fragment. This is initialized
     /// to 0, but it assigned during the collect_stacking_contexts phase of display
@@ -129,7 +133,7 @@ pub struct Fragment {
 impl Encodable for Fragment {
     fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
         e.emit_struct("fragment", 0, |e| {
-            try!(e.emit_struct_field("id", 0, |e| self.debug_id().encode(e)));
+            try!(e.emit_struct_field("id", 0, |e| self.debug_id.encode(e)));
             try!(e.emit_struct_field("border_box", 1, |e| self.border_box.encode(e)));
             e.emit_struct_field("margin", 2, |e| self.margin.encode(e))
         })
@@ -809,7 +813,7 @@ impl Fragment {
             inline_context: None,
             pseudo: node.get_pseudo_element_type().strip(),
             flags: FragmentFlags::empty(),
-            debug_id: layout_debug::generate_unique_debug_id(),
+            debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::new(0),
         }
     }
@@ -838,15 +842,9 @@ impl Fragment {
             inline_context: None,
             pseudo: pseudo,
             flags: FragmentFlags::empty(),
-            debug_id: layout_debug::generate_unique_debug_id(),
+            debug_id: DebugId::new(),
             stacking_context_id: StackingContextId::new(0),
         }
-    }
-
-    /// Returns a debug ID of this fragment. This ID should not be considered stable across
-    /// multiple layouts or fragment manipulations.
-    pub fn debug_id(&self) -> u16 {
-        self.debug_id
     }
 
     /// Transforms this fragment into another fragment of the given type, with the given size,
@@ -872,7 +870,7 @@ impl Fragment {
             inline_context: self.inline_context.clone(),
             pseudo: self.pseudo.clone(),
             flags: FragmentFlags::empty(),
-            debug_id: self.debug_id,
+            debug_id: self.debug_id.clone(),
             stacking_context_id: StackingContextId::new(0),
         }
     }
@@ -2624,7 +2622,7 @@ impl fmt::Debug for Fragment {
 
         write!(f, "{}({}) [{:?}] border_box={:?}{}{}{}",
             self.specific.get_type(),
-            self.debug_id(),
+            self.debug_id,
             self.specific,
             self.border_box,
             border_padding_string,
@@ -2779,4 +2777,54 @@ bitflags! {
 pub struct SpeculatedInlineContentEdgeOffsets {
     pub start: Au,
     pub end: Au,
+}
+
+#[cfg(not(debug_assertions))]
+#[derive(Clone)]
+struct DebugId;
+
+#[cfg(debug_assertions)]
+#[derive(Clone)]
+struct DebugId(u16);
+
+#[cfg(not(debug_assertions))]
+impl DebugId {
+    pub fn new() -> DebugId {
+        DebugId
+    }
+}
+
+#[cfg(debug_assertions)]
+impl DebugId {
+    pub fn new() -> DebugId {
+        DebugId(layout_debug::generate_unique_debug_id())
+    }
+}
+
+#[cfg(not(debug_assertions))]
+impl fmt::Display for DebugId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{:p}", &self)
+    }
+}
+
+#[cfg(debug_assertions)]
+impl fmt::Display for DebugId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[cfg(not(debug_assertions))]
+impl Encodable for DebugId {
+    fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
+        e.emit_str(&format!("{:p}", &self))
+    }
+}
+
+#[cfg(debug_assertions)]
+impl Encodable for DebugId {
+    fn encode<S: Encoder>(&self, e: &mut S) -> Result<(), S::Error> {
+        e.emit_u16(self.0)
+    }
 }

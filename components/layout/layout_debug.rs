@@ -19,6 +19,7 @@ use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
 
 thread_local!(static STATE_KEY: RefCell<Option<State>> = RefCell::new(None));
 
+#[cfg(not(debug_assertions))]
 static DEBUG_ID_COUNTER: AtomicUsize = ATOMIC_USIZE_INIT;
 
 pub struct Scope;
@@ -96,6 +97,7 @@ impl Drop for Scope {
 /// Generate a unique ID. This is used for items such as Fragment
 /// which are often reallocated but represent essentially the
 /// same data.
+#[cfg(not(debug_assertions))]
 pub fn generate_unique_debug_id() -> u16 {
     DEBUG_ID_COUNTER.fetch_add(1, Ordering::SeqCst) as u16
 }
