@@ -19,14 +19,8 @@ use compositing::compositor_thread::Msg as ToCompositorMsg;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
-#[cfg(not(target_os = "windows"))]
-use gaol;
-#[cfg(not(target_os = "windows"))]
-use gaol::sandbox::{self, Sandbox, SandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
-#[cfg(not(target_os = "windows"))]
-use ipc_channel::ipc::IpcOneShotServer;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::{LayoutControlChan, LayoutThreadFactory};
@@ -43,12 +37,10 @@ use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{self, ResourceThreads, IpcSend};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
-use pipeline::{InitialPipelineState, Pipeline, UnprivilegedPipelineContent};
+use pipeline::{ChildProcess, InitialPipelineState, Pipeline};
 use profile_traits::mem;
 use profile_traits::time;
 use rand::{random, Rng, SeedableRng, StdRng};
-#[cfg(not(target_os = "windows"))]
-use sandboxing::content_process_sandbox_profile;
 use script_traits::{AnimationState, AnimationTickType, CompositorEvent};
 use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg};
 use script_traits::{DocumentState, LayoutControlMsg};
@@ -57,8 +49,6 @@ use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, Scri
 use script_traits::{MozBrowserEvent, MozBrowserErrorType};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
-#[cfg(not(target_os = "windows"))]
-use std::env;
 use std::io::Error as IOError;
 use std::marker::PhantomData;
 use std::mem::replace;
@@ -312,13 +302,6 @@ enum ExitPipelineMode {
     Force,
 }
 
-enum ChildProcess {
-    #[cfg(not(target_os = "windows"))]
-    Sandboxed(gaol::platform::process::Process),
-    #[cfg(not(target_os = "windows"))]
-    Unsandboxed(process::Child),
-}
-
 impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     where LTF: LayoutThreadFactory<Message=Message>,
           STF: ScriptThreadFactory<Message=Message>
@@ -455,7 +438,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             //
             // Yes, that's all there is to it!
             if opts::multiprocess() {
-                self.spawn_multiprocess(pipeline_id, unprivileged_pipeline_content);
+                match unprivileged_pipeline_content.spawn_multiprocess() {
+                    Ok(child_process) => self.child_processes.push(child_process),
+                    Err(e) => self.handle_send_error(pipeline_id, e),
+                }
             } else {
                 unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false);
             }
@@ -463,58 +449,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         assert!(!self.pipelines.contains_key(&pipeline_id));
         self.pipelines.insert(pipeline_id, pipeline);
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    fn spawn_multiprocess(&mut self,
-                          pipeline_id: PipelineId,
-                          unprivileged_pipeline_content: UnprivilegedPipelineContent)
-    {
-        // Note that this function can panic, due to process creation,
-        // avoiding this panic would require a mechanism for dealing
-        // with low-resource scenarios.
-        let (server, token) =
-            IpcOneShotServer::<IpcSender<UnprivilegedPipelineContent>>::new()
-            .expect("Failed to create IPC one-shot server.");
-
-        // If there is a sandbox, use the `gaol` API to create the child process.
-        let child_process = if opts::get().sandbox {
-            let mut command = sandbox::Command::me().expect("Failed to get current sandbox.");
-            command.arg("--content-process").arg(token);
-
-            if let Ok(value) = env::var("RUST_BACKTRACE") {
-                command.env("RUST_BACKTRACE", value);
-            }
-
-            let profile = content_process_sandbox_profile();
-            ChildProcess::Sandboxed(Sandbox::new(profile).start(&mut command)
-                                    .expect("Failed to start sandboxed child process!"))
-        } else {
-            let path_to_self = env::current_exe()
-                .expect("Failed to get current executor.");
-            let mut child_process = process::Command::new(path_to_self);
-            child_process.arg("--content-process");
-            child_process.arg(token);
-
-            if let Ok(value) = env::var("RUST_BACKTRACE") {
-                child_process.env("RUST_BACKTRACE", value);
-            }
-
-            ChildProcess::Unsandboxed(child_process.spawn()
-                                      .expect("Failed to start unsandboxed child process!"))
-        };
-
-        self.child_processes.push(child_process);
-        let (_receiver, sender) = server.accept().expect("Server failed to accept.");
-        if let Err(e) = sender.send(unprivileged_pipeline_content) {
-            self.handle_send_error(pipeline_id, e);
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    fn spawn_multiprocess(&mut self, _: PipelineId, _: UnprivilegedPipelineContent) {
-        error!("Multiprocess is not supported on Windows.");
-        process::exit(1);
     }
 
     // Push a new (loading) pipeline to the list of pending frame changes

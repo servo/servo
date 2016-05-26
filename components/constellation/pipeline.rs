@@ -8,6 +8,8 @@ use compositing::compositor_thread::Msg as CompositorMsg;
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
+#[cfg(not(target_os = "windows"))]
+use gaol;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::paint_thread::{ChromeToPaintMsg, LayoutToPaintMsg, PaintThread};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -25,7 +27,9 @@ use script_traits::{ConstellationControlMsg, InitialScriptState, MozBrowserEvent
 use script_traits::{LayoutControlMsg, LayoutMsg, NewLayoutInfo, ScriptMsg};
 use script_traits::{ScriptThreadFactory, TimerEventRequest};
 use std::collections::HashMap;
+use std::io::Error as IOError;
 use std::mem;
+use std::process;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use url::Url;
 use util;
@@ -34,6 +38,13 @@ use util::ipc::OptionalIpcSender;
 use util::opts::{self, Opts};
 use util::prefs::{self, Pref};
 use webrender_traits;
+
+pub enum ChildProcess {
+    #[cfg(not(target_os = "windows"))]
+    Sandboxed(gaol::platform::process::Process),
+    #[cfg(not(target_os = "windows"))]
+    Unsandboxed(process::Child),
+}
 
 /// A uniquely-identifiable pipeline of script thread, layout thread, and paint thread.
 pub struct Pipeline {
@@ -445,6 +456,59 @@ impl UnprivilegedPipelineContent {
             let _ = self.script_content_process_shutdown_port.recv();
             let _ = self.layout_content_process_shutdown_port.recv();
         }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    pub fn spawn_multiprocess(self) -> Result<ChildProcess, IOError> {
+        use gaol::sandbox::{self, Sandbox, SandboxMethods};
+        use ipc_channel::ipc::IpcOneShotServer;
+        use sandboxing::content_process_sandbox_profile;
+        use std::env;
+
+        // Note that this function can panic, due to process creation,
+        // avoiding this panic would require a mechanism for dealing
+        // with low-resource scenarios.
+        let (server, token) =
+            IpcOneShotServer::<IpcSender<UnprivilegedPipelineContent>>::new()
+            .expect("Failed to create IPC one-shot server.");
+
+        // If there is a sandbox, use the `gaol` API to create the child process.
+        let child_process = if opts::get().sandbox {
+            let mut command = sandbox::Command::me().expect("Failed to get current sandbox.");
+            command.arg("--content-process").arg(token);
+
+            if let Ok(value) = env::var("RUST_BACKTRACE") {
+                command.env("RUST_BACKTRACE", value);
+            }
+
+            let profile = content_process_sandbox_profile();
+            ChildProcess::Sandboxed(Sandbox::new(profile).start(&mut command)
+                                    .expect("Failed to start sandboxed child process!"))
+        } else {
+            let path_to_self = env::current_exe()
+                .expect("Failed to get current executor.");
+            let mut child_process = process::Command::new(path_to_self);
+            child_process.arg("--content-process");
+            child_process.arg(token);
+
+            if let Ok(value) = env::var("RUST_BACKTRACE") {
+                child_process.env("RUST_BACKTRACE", value);
+            }
+
+            ChildProcess::Unsandboxed(child_process.spawn()
+                                      .expect("Failed to start unsandboxed child process!"))
+        };
+
+        let (_receiver, sender) = server.accept().expect("Server failed to accept.");
+        try!(sender.send(self));
+
+        Ok(child_process)
+    }
+
+    #[cfg(target_os = "windows")]
+    pub fn spawn_multiprocess(self) -> Result<ChildProcess, IOError> {
+        error!("Multiprocess is not supported on Windows.");
+        process::exit(1);
     }
 
     pub fn opts(&self) -> Opts {
