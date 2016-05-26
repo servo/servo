@@ -2446,7 +2446,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             webrender_api.tick_scrolling_bounce_animations()
         }
     }
-    
+
     pub fn handle_events(&mut self, messages: Vec<WindowEvent>) -> bool {
         // Check for new messages coming from the other threads in the system.
         while let Some(msg) = self.port.try_recv_compositor_msg() {
