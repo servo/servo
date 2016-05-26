@@ -145,7 +145,7 @@ pub struct Request {
     pub url_list: RefCell<Vec<Url>>,
     pub redirect_count: Cell<u32>,
     pub response_tainting: Cell<ResponseTainting>,
-    pub done: Cell<bool>
+    pub done: Cell<bool>,
 }
 
 impl Request {
