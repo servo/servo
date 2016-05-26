@@ -101,6 +101,26 @@ unsafe impl Send for nsStyleEffects {}
 unsafe impl Sync for nsStyleEffects {}
 impl HeapSizeOf for nsStyleEffects { fn heap_size_of_children(&self) -> usize { 0 } }
 
+/**
+ * This is a class to interface with Servo's FFI bindings in a way that we can
+ * distinguish between a weak and a strong pointer.
+ *
+ * We can't use already_AddRefed<T> directly because when there's a destructor
+ * or a move constructor in the arguments, C++ (g++ at least for sure) assumes
+ * that nothing that isn't C++ is going to call that function, and thus it uses
+ * its own calling convention instead of passing by value.
+ *
+ * This class won't be copiable in Rust, and it will potentially have a
+ * destructor that prevents it from leaking, just as already_AddRefed has in
+ * C++.
+ *
+ * <div rustbindgen nocopy></div>
+ */
+#[repr(C)]
+#[derive(Debug)]
+pub struct ServoFFIAddRefed<T> {
+    pub mRawPtr: *mut T,
+}
 pub enum nsIAtom { }
 pub enum nsINode { }
 pub type RawGeckoNode = nsINode;
@@ -202,12 +222,12 @@ extern "C" {
     pub fn Servo_InitStyleSet() -> *mut RawServoStyleSet;
     pub fn Servo_DropStyleSet(set: *mut RawServoStyleSet);
     pub fn Servo_GetComputedValues(node: *mut RawGeckoNode)
-     -> *mut ServoComputedValues;
+     -> ServoFFIAddRefed<ServoComputedValues>;
     pub fn Servo_GetComputedValuesForAnonymousBox(parentStyleOrNull:
                                                       *mut ServoComputedValues,
                                                   pseudoTag: *mut nsIAtom,
                                                   set: *mut RawServoStyleSet)
-     -> *mut ServoComputedValues;
+     -> ServoFFIAddRefed<ServoComputedValues>;
     pub fn Servo_GetComputedValuesForPseudoElement(parent_style:
                                                        *mut ServoComputedValues,
                                                    match_element:
@@ -215,9 +235,9 @@ extern "C" {
                                                    pseudo_tag: *mut nsIAtom,
                                                    set: *mut RawServoStyleSet,
                                                    is_probe: bool)
-     -> *mut ServoComputedValues;
+     -> ServoFFIAddRefed<ServoComputedValues>;
     pub fn Servo_InheritComputedValues(parent_style: *mut ServoComputedValues)
-     -> *mut ServoComputedValues;
+     -> ServoFFIAddRefed<ServoComputedValues>;
     pub fn Servo_AddRefComputedValues(arg1: *mut ServoComputedValues);
     pub fn Servo_ReleaseComputedValues(arg1: *mut ServoComputedValues);
     pub fn Servo_Initialize();
