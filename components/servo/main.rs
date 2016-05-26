@@ -98,7 +98,7 @@ fn unregister_glutin_resize_handler(window: &Rc<app::window::Window>) {
 }
 
 struct BrowserWrapper {
-    browser: Browser,
+    browser: Browser<app::window::Window>,
 }
 
 impl app::NestedEventLoopListener for BrowserWrapper {
