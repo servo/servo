@@ -31,7 +31,7 @@ const CHARACTERISTIC_ERROR: &'static str = "No characteristic found";
 const DESCRIPTOR_ERROR: &'static str = "No descriptor found";
 const VALUE_ERROR: &'static str = "No characteristic or descriptor found with that id";
 // The discovery session needs some time to find any nearby devices
-const DISCOVERY_TIMEOUT: u64 = 1500;
+const DISCOVERY_TIMEOUT_MS: u64 = 1500;
 #[cfg(target_os = "linux")]
 const DIALOG_TITLE: &'static str = "Choose a device";
 #[cfg(target_os = "linux")]
@@ -403,8 +403,9 @@ impl BluetoothManager {
         let session = BluetoothDiscoverySession::create_session(adapter.get_object_path()).ok();
         if let Some(ref s) = session {
             if s.start_discovery().is_ok() {
-                thread::sleep(Duration::from_millis(DISCOVERY_TIMEOUT));
+                thread::sleep(Duration::from_millis(DISCOVERY_TIMEOUT_MS));
             }
+            let _ = s.stop_discovery();
         }
         let devices = self.get_and_cache_devices(&mut adapter);
         let matched_devices: Vec<BluetoothDevice> = devices.into_iter()
@@ -419,11 +420,9 @@ impl BluetoothManager {
                                      tx_power: device.get_tx_power().ok().map(|p| p as i8),
                                      rssi: device.get_rssi().ok().map(|p| p as i8),
                                  });
-                session.map(|ref s| s.stop_discovery());
                 return drop(sender.send(message));
             }
         }
-        session.map(|ref s| s.stop_discovery());
         return drop(sender.send(Err(String::from(DEVICE_MATCH_ERROR))));
     }
 
