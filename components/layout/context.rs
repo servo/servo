@@ -173,7 +173,7 @@ impl<'a> LayoutContext<'a> {
                 //self.shared.outstanding_images.fetch_add(1, Ordering::SeqCst);
                 None
             }
-        }        
+        }
     }
 
     pub fn get_or_request_image_or_meta(&self, url: Url, use_placeholder: UsePlaceholder)
