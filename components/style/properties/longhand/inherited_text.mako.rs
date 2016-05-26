@@ -309,8 +309,7 @@ ${helpers.predefined_type("text-indent",
 // name per CSS-TEXT 6.2.
 ${helpers.single_keyword("overflow-wrap",
                          "normal break-word",
-                         gecko_ffi_name="mWordWrap",
-                         gecko_constant_prefix="NS_STYLE_WORDWRAP")}
+                         gecko_constant_prefix="NS_STYLE_OVERFLOWWRAP")}
 
 // TODO(pcwalton): Support `word-break: keep-all` once we have better CJK support.
 ${helpers.single_keyword("word-break",
