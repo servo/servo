@@ -51,7 +51,6 @@ use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::response::HttpsState;
 use profile_traits::mem;
-use std::any::Any;
 use std::collections::HashMap;
 use std::sync::mpsc::{Sender, Receiver};
 use url::Url;

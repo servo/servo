@@ -1911,7 +1911,6 @@ dependencies = [
  "plugins 0.0.1",
  "script 0.0.1",
  "url 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "util 0.0.1",
 ]
 
 [[package]]
