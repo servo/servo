@@ -406,45 +406,36 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     initial_window_size: Option<TypedSize2D<PagePx, f32>>,
                     script_channel: Option<IpcSender<ConstellationControlMsg>>,
                     load_data: LoadData) {
-        let spawning_content = script_channel.is_none();
-        let (pipeline, unprivileged_pipeline_content, privileged_pipeline_content) =
-            Pipeline::create::<LTF, STF>(InitialPipelineState {
-                id: pipeline_id,
-                parent_info: parent_info,
-                constellation_chan: self.script_sender.clone(),
-                layout_to_constellation_chan: self.layout_sender.clone(),
-                panic_chan: self.panic_sender.clone(),
-                scheduler_chan: self.scheduler_chan.clone(),
-                compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
-                devtools_chan: self.devtools_chan.clone(),
-                bluetooth_thread: self.bluetooth_thread.clone(),
-                image_cache_thread: self.image_cache_thread.clone(),
-                font_cache_thread: self.font_cache_thread.clone(),
-                resource_threads: self.resource_threads.clone(),
-                time_profiler_chan: self.time_profiler_chan.clone(),
-                mem_profiler_chan: self.mem_profiler_chan.clone(),
-                window_size: initial_window_size,
-                script_chan: script_channel,
-                load_data: load_data,
-                device_pixel_ratio: self.window_size.device_pixel_ratio,
-                pipeline_namespace_id: self.next_pipeline_namespace_id(),
-                webrender_api_sender: self.webrender_api_sender.clone(),
-            });
+        let result = Pipeline::spawn::<Message, LTF, STF>(InitialPipelineState {
+            id: pipeline_id,
+            parent_info: parent_info,
+            constellation_chan: self.script_sender.clone(),
+            layout_to_constellation_chan: self.layout_sender.clone(),
+            panic_chan: self.panic_sender.clone(),
+            scheduler_chan: self.scheduler_chan.clone(),
+            compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
+            devtools_chan: self.devtools_chan.clone(),
+            bluetooth_thread: self.bluetooth_thread.clone(),
+            image_cache_thread: self.image_cache_thread.clone(),
+            font_cache_thread: self.font_cache_thread.clone(),
+            resource_threads: self.resource_threads.clone(),
+            time_profiler_chan: self.time_profiler_chan.clone(),
+            mem_profiler_chan: self.mem_profiler_chan.clone(),
+            window_size: initial_window_size,
+            script_chan: script_channel,
+            load_data: load_data,
+            device_pixel_ratio: self.window_size.device_pixel_ratio,
+            pipeline_namespace_id: self.next_pipeline_namespace_id(),
+            webrender_api_sender: self.webrender_api_sender.clone(),
+        });
 
-        privileged_pipeline_content.start();
+        let (pipeline, child_process) = match result {
+            Ok(result) => result,
+            Err(e) => return self.handle_send_error(pipeline_id, e),
+        };
 
-        if spawning_content {
-            // Spawn the child process.
-            //
-            // Yes, that's all there is to it!
-            if opts::multiprocess() {
-                match unprivileged_pipeline_content.spawn_multiprocess() {
-                    Ok(child_process) => self.child_processes.push(child_process),
-                    Err(e) => self.handle_send_error(pipeline_id, e),
-                }
-            } else {
-                unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false);
-            }
+        if let Some(child_process) = child_process {
+            self.child_processes.push(child_process);
         }
 
         assert!(!self.pipelines.contains_key(&pipeline_id));

@@ -120,10 +120,8 @@ pub struct InitialPipelineState {
 }
 
 impl Pipeline {
-    /// Starts a paint thread, layout thread, and possibly a script thread.
-    /// Returns the channels wrapped in a struct.
-    pub fn create<LTF, STF>(state: InitialPipelineState)
-                            -> (Pipeline, UnprivilegedPipelineContent, PrivilegedPipelineContent)
+    fn create<LTF, STF>(state: InitialPipelineState)
+                        -> (Pipeline, UnprivilegedPipelineContent, PrivilegedPipelineContent)
         where LTF: LayoutThreadFactory,
               STF: ScriptThreadFactory
     {
@@ -254,6 +252,34 @@ impl Pipeline {
         };
 
         (pipeline, unprivileged_pipeline_content, privileged_pipeline_content)
+    }
+
+    /// Starts a paint thread, layout thread, and possibly a script thread, in
+    /// a new process if requested.
+    pub fn spawn<Message, LTF, STF>(state: InitialPipelineState)
+                                    -> Result<(Pipeline, Option<ChildProcess>), IOError>
+        where LTF: LayoutThreadFactory<Message=Message>,
+              STF: ScriptThreadFactory<Message=Message>
+    {
+        let spawning_content = state.script_chan.is_none();
+        let (pipeline, unprivileged_pipeline_content, privileged_pipeline_content) =
+            Pipeline::create::<LTF, STF>(state);
+
+        privileged_pipeline_content.start();
+
+        let mut child_process = None;
+        if spawning_content {
+            // Spawn the child process.
+            //
+            // Yes, that's all there is to it!
+            if opts::multiprocess() {
+                child_process = Some(try!(unprivileged_pipeline_content.spawn_multiprocess()));
+            } else {
+                unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false);
+            }
+        }
+
+        Ok((pipeline, child_process))
     }
 
     fn new(id: PipelineId,
@@ -520,7 +546,7 @@ impl UnprivilegedPipelineContent {
     }
 }
 
-pub struct PrivilegedPipelineContent {
+struct PrivilegedPipelineContent {
     id: PipelineId,
     compositor_proxy: Box<CompositorProxy + Send + 'static>,
     font_cache_thread: FontCacheThread,
