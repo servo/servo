@@ -164,25 +164,14 @@ impl BrowsingContext {
         self.active_index.set(0);
         self.history.borrow_mut().clear();
     }
-}
 
-pub struct ContextIterator {
-    stack: Vec<Root<BrowsingContext>>,
-}
-
-pub trait IterableContext {
-    fn iter(&self) -> ContextIterator;
-    fn find(&self, id: PipelineId) -> Option<Root<BrowsingContext>>;
-}
-
-impl IterableContext for BrowsingContext {
-    fn iter(&self) -> ContextIterator {
+    pub fn iter(&self) -> ContextIterator {
         ContextIterator {
             stack: vec!(Root::from_ref(self)),
         }
     }
 
-    fn find(&self, id: PipelineId) -> Option<Root<BrowsingContext>> {
+    pub fn find(&self, id: PipelineId) -> Option<Root<BrowsingContext>> {
         if self.id == id {
             return Some(Root::from_ref(self));
         }
@@ -192,6 +181,10 @@ impl IterableContext for BrowsingContext {
                      .filter_map(|c| c.find(id))
                      .next()
     }
+}
+
+pub struct ContextIterator {
+    stack: Vec<Root<BrowsingContext>>,
 }
 
 impl Iterator for ContextIterator {
