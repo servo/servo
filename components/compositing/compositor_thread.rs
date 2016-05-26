@@ -5,7 +5,7 @@
 //! Communication with the compositor thread.
 
 use SendableFrameTree;
-use compositor::{self, CompositingReason};
+use compositor::{CompositingReason, IOCompositor};
 use euclid::point::Point2D;
 use euclid::size::Size2D;
 use gfx_traits::{Epoch, FrameTreeId, LayerId, LayerProperties, PaintListener};
@@ -24,7 +24,7 @@ use style_traits::viewport::ViewportConstraints;
 use url::Url;
 use webrender;
 use webrender_traits;
-use windowing::{WindowEvent, WindowMethods};
+use windowing::WindowMethods;
 
 /// Sends messages to the compositor. This is a trait supplied by the port because the method used
 /// to communicate with the compositor may have to kick OS event loops awake, communicate cross-
@@ -286,19 +286,10 @@ pub struct CompositorThread;
 impl CompositorThread {
     pub fn create<Window>(window: Rc<Window>,
                           state: InitialCompositorState)
-                          -> Box<CompositorEventListener + 'static>
+                          -> IOCompositor<Window>
                           where Window: WindowMethods + 'static {
-        box compositor::IOCompositor::create(window, state)
-            as Box<CompositorEventListener>
+        IOCompositor::create(window, state)
     }
-}
-
-pub trait CompositorEventListener {
-    fn handle_events(&mut self, events: Vec<WindowEvent>) -> bool;
-    fn repaint_synchronously(&mut self);
-    fn pinch_zoom_level(&self) -> f32;
-    /// Requests that the compositor send the title for the main frame as soon as possible.
-    fn title_for_main_frame(&self);
 }
 
 /// Data used to construct a compositor.
