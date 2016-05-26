@@ -5,7 +5,7 @@
 //! Communication with the compositor thread.
 
 use SendableFrameTree;
-use compositor::{self, CompositingReason};
+use compositor::{CompositingReason, IOCompositor};
 use euclid::point::Point2D;
 use euclid::size::Size2D;
 use gfx_traits::{Epoch, FrameTreeId, LayerId, LayerProperties, PaintListener};
@@ -286,9 +286,9 @@ pub struct CompositorThread;
 impl CompositorThread {
     pub fn create<Window>(window: Rc<Window>,
                           state: InitialCompositorState)
-                          -> Box<compositor::IOCompositor<Window>>
+                          -> Box<IOCompositor<Window>>
                           where Window: WindowMethods + 'static {
-        box compositor::IOCompositor::create(window, state)
+        box IOCompositor::create(window, state)
     }
 }
 
