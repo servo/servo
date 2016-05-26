@@ -40,7 +40,8 @@ for STRUCT in nsStyleFont nsStyleColor nsStyleList nsStyleText \
               nsStyleSVG nsStyleVariables nsStyleBackground nsStylePosition \
               nsStyleTextReset nsStyleDisplay nsStyleContent nsStyleUIReset \
               nsStyleTable nsStyleMargin nsStylePadding nsStyleBorder \
-              nsStyleOutline nsStyleXUL nsStyleSVGReset nsStyleColumn nsStyleEffects
+              nsStyleOutline nsStyleXUL nsStyleSVGReset nsStyleColumn nsStyleEffects \
+              nsStyleImage nsStyleGradient nsStyleCoord nsStyleGradientStop
 do
   MAP_GECKO_TYPES=$MAP_GECKO_TYPES"-blacklist-type $STRUCT "
   MAP_GECKO_TYPES=$MAP_GECKO_TYPES"-raw-line 'use structs::$STRUCT;' "
@@ -50,7 +51,7 @@ do
 done
 
 # Other mapped types.
-for TYPE in SheetParsingMode nsMainThreadPtrHandle nsMainThreadPtrHolder
+for TYPE in SheetParsingMode nsMainThreadPtrHandle nsMainThreadPtrHolder nscolor
 do
   MAP_GECKO_TYPES=$MAP_GECKO_TYPES"-blacklist-type $TYPE "
   MAP_GECKO_TYPES=$MAP_GECKO_TYPES"-raw-line 'use structs::$TYPE;' "

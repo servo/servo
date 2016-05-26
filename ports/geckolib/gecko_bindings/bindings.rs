@@ -24,9 +24,14 @@ use structs::nsStyleXUL;
 use structs::nsStyleSVGReset;
 use structs::nsStyleColumn;
 use structs::nsStyleEffects;
+use structs::nsStyleImage;
+use structs::nsStyleGradient;
+use structs::nsStyleCoord;
+use structs::nsStyleGradientStop;
 use structs::SheetParsingMode;
 use structs::nsMainThreadPtrHandle;
 use structs::nsMainThreadPtrHolder;
+use structs::nscolor;
 use heapsize::HeapSizeOf;
 unsafe impl Send for nsStyleFont {}
 unsafe impl Sync for nsStyleFont {}
@@ -100,6 +105,18 @@ impl HeapSizeOf for nsStyleColumn { fn heap_size_of_children(&self) -> usize { 0
 unsafe impl Send for nsStyleEffects {}
 unsafe impl Sync for nsStyleEffects {}
 impl HeapSizeOf for nsStyleEffects { fn heap_size_of_children(&self) -> usize { 0 } }
+unsafe impl Send for nsStyleImage {}
+unsafe impl Sync for nsStyleImage {}
+impl HeapSizeOf for nsStyleImage { fn heap_size_of_children(&self) -> usize { 0 } }
+unsafe impl Send for nsStyleGradient {}
+unsafe impl Sync for nsStyleGradient {}
+impl HeapSizeOf for nsStyleGradient { fn heap_size_of_children(&self) -> usize { 0 } }
+unsafe impl Send for nsStyleCoord {}
+unsafe impl Sync for nsStyleCoord {}
+impl HeapSizeOf for nsStyleCoord { fn heap_size_of_children(&self) -> usize { 0 } }
+unsafe impl Send for nsStyleGradientStop {}
+unsafe impl Sync for nsStyleGradientStop {}
+impl HeapSizeOf for nsStyleGradientStop { fn heap_size_of_children(&self) -> usize { 0 } }
 
 pub enum nsIAtom { }
 pub enum nsINode { }
@@ -171,6 +188,17 @@ extern "C" {
     pub fn Gecko_SetListStyleType(style_struct: *mut nsStyleList, type_: u32);
     pub fn Gecko_CopyListStyleTypeFrom(dst: *mut nsStyleList,
                                        src: *const nsStyleList);
+    pub fn Gecko_SetNullImageValue(image: *mut nsStyleImage);
+    pub fn Gecko_SetGradientImageValue(image: *mut nsStyleImage,
+                                       gradient: *mut nsStyleGradient);
+    pub fn Gecko_CopyImageValueFrom(image: *mut nsStyleImage,
+                                    other: *const nsStyleImage);
+    pub fn Gecko_CreateGradient(shape: u8, size: u8, repeating: bool,
+                                legacy_syntax: bool, stops: u32)
+     -> *mut nsStyleGradient;
+    pub fn Gecko_SetGradientStop(gradient: *mut nsStyleGradient, index: u32,
+                                 location: *const nsStyleCoord,
+                                 color: nscolor, is_interpolation_hint: bool);
     pub fn Gecko_AddRefPrincipalArbitraryThread(aPtr:
                                                     *mut ThreadSafePrincipalHolder);
     pub fn Gecko_ReleasePrincipalArbitraryThread(aPtr:
