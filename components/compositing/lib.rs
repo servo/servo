@@ -38,6 +38,7 @@ extern crate webrender;
 extern crate webrender_traits;
 
 pub use compositor_thread::{CompositorProxy, CompositorThread};
+pub use compositor::IOCompositor;
 use euclid::size::TypedSize2D;
 use gfx::paint_thread::ChromeToPaintMsg;
 use ipc_channel::ipc::{IpcSender};
@@ -54,8 +55,6 @@ mod delayed_composition;
 mod surface_map;
 mod touch;
 pub mod windowing;
-
-pub use compositor::IOCompositor;
 
 pub struct SendableFrameTree {
     pub pipeline: CompositionPipeline,
