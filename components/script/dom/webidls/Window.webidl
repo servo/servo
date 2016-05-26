@@ -20,7 +20,7 @@
   //[Replaceable] readonly attribute BarProp scrollbars;
   //[Replaceable] readonly attribute BarProp statusbar;
   //[Replaceable] readonly attribute BarProp toolbar;
-  //         attribute DOMString status;
+  attribute DOMString status;
   void close();
   //readonly attribute boolean closed;
   //void stop();
