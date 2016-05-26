@@ -41,7 +41,7 @@ use gfx_traits::Epoch;
 use gfx_traits::LayerId;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
-use msg::constellation_msg::{FrameId, Key, KeyModifiers, KeyState, LoadData};
+use msg::constellation_msg::{FrameId, FrameType, Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{NavigationDirection, PanicMsg, PipelineId};
 use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeData};
 use msg::constellation_msg::{WebDriverCommandMsg, WindowSizeType};
@@ -415,6 +415,8 @@ pub struct IFrameLoadInfo {
     pub sandbox: IFrameSandboxState,
     ///  Whether this iframe should be considered private
     pub is_private: bool,
+    /// Whether this iframe is a mozbrowser iframe
+    pub frame_type: FrameType,
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events

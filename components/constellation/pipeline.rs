@@ -15,7 +15,7 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
 use layout_traits::{LayoutControlChan, LayoutThreadFactory};
-use msg::constellation_msg::{FrameId, LoadData, PanicMsg, PipelineId};
+use msg::constellation_msg::{FrameId, FrameType, LoadData, PanicMsg, PipelineId};
 use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeData};
 use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
@@ -40,7 +40,7 @@ use webrender_traits;
 /// A uniquely-identifiable pipeline of script thread, layout thread, and paint thread.
 pub struct Pipeline {
     pub id: PipelineId,
-    pub parent_info: Option<(PipelineId, SubpageId)>,
+    pub parent_info: Option<(PipelineId, SubpageId, FrameType)>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     /// A channel to layout, for performing reflows and shutdown.
     pub layout_chan: LayoutControlChan,
@@ -70,7 +70,7 @@ pub struct InitialPipelineState {
     pub id: PipelineId,
     /// The subpage ID of this pipeline to create in its pipeline parent.
     /// If `None`, this is the root.
-    pub parent_info: Option<(PipelineId, SubpageId)>,
+    pub parent_info: Option<(PipelineId, SubpageId, FrameType)>,
     /// A channel to the associated constellation.
     pub constellation_chan: IpcSender<ScriptMsg>,
     /// A channel for the layout thread to send messages to the constellation.
@@ -161,7 +161,7 @@ impl Pipeline {
 
         let (script_chan, script_port) = match state.script_chan {
             Some(script_chan) => {
-                let (containing_pipeline_id, subpage_id) =
+                let (containing_pipeline_id, subpage_id, _) =
                     state.parent_info.expect("script_pipeline != None but subpage_id == None");
                 let new_layout_info = NewLayoutInfo {
                     containing_pipeline_id: containing_pipeline_id,
@@ -203,7 +203,7 @@ impl Pipeline {
 
         let unprivileged_pipeline_content = UnprivilegedPipelineContent {
             id: state.id,
-            parent_info: state.parent_info,
+            parent_info: state.parent_info.map(|(parent_id, subpage_id, _)| (parent_id, subpage_id)),
             constellation_chan: state.constellation_chan,
             scheduler_chan: state.scheduler_chan,
             devtools_chan: script_to_devtools_chan,
@@ -253,7 +253,7 @@ impl Pipeline {
     }
 
     pub fn new(id: PipelineId,
-               parent_info: Option<(PipelineId, SubpageId)>,
+               parent_info: Option<(PipelineId, SubpageId, FrameType)>,
                script_chan: IpcSender<ConstellationControlMsg>,
                layout_chan: LayoutControlChan,
                compositor_proxy: Box<CompositorProxy + 'static + Send>,
