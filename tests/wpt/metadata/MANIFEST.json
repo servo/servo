@@ -35938,6 +35938,12 @@
     "deleted_reftests": {},
     "items": {
       "testharness": {
+        "html/browsers/the-window-object/browser-interface-elements/status.html": [
+          {
+            "path": "html/browsers/the-window-object/browser-interface-elements/status.html",
+            "url": "/html/browsers/the-window-object/browser-interface-elements/status.html"
+          }
+        ],
         "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html": [
           {
             "path": "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html",
