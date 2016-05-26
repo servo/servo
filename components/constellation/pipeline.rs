@@ -30,7 +30,7 @@ use std::collections::HashMap;
 use std::io::Error as IOError;
 use std::mem;
 use std::process;
-use std::sync::mpsc::{Receiver, Sender, channel};
+use std::sync::mpsc::{Sender, channel};
 use url::Url;
 use util;
 use util::geometry::{PagePx, ViewportPx};
@@ -241,21 +241,17 @@ impl Pipeline {
             webrender_api_sender: state.webrender_api_sender,
         };
 
-        let privileged_pipeline_content = PrivilegedPipelineContent {
-            id: state.id,
-            compositor_proxy: state.compositor_proxy,
-            font_cache_thread: state.font_cache_thread,
-            time_profiler_chan: state.time_profiler_chan,
-            mem_profiler_chan: state.mem_profiler_chan,
-            load_data: state.load_data,
-            panic_chan: state.panic_chan,
-            layout_to_paint_port: layout_to_paint_port,
-            chrome_to_paint_chan: chrome_to_paint_chan,
-            chrome_to_paint_port: chrome_to_paint_port,
-            paint_shutdown_chan: paint_shutdown_chan,
-        };
-
-        privileged_pipeline_content.start();
+        PaintThread::create(state.id,
+                            state.load_data.url,
+                            chrome_to_paint_chan,
+                            layout_to_paint_port,
+                            chrome_to_paint_port,
+                            state.compositor_proxy,
+                            state.panic_chan,
+                            state.font_cache_thread,
+                            state.time_profiler_chan,
+                            state.mem_profiler_chan,
+                            paint_shutdown_chan);
 
         let mut child_process = None;
         if spawning_content {
@@ -533,36 +529,5 @@ impl UnprivilegedPipelineContent {
 
     pub fn prefs(&self) -> HashMap<String, Pref> {
         self.prefs.clone()
-    }
-}
-
-struct PrivilegedPipelineContent {
-    id: PipelineId,
-    compositor_proxy: Box<CompositorProxy + Send + 'static>,
-    font_cache_thread: FontCacheThread,
-    time_profiler_chan: time::ProfilerChan,
-    mem_profiler_chan: profile_mem::ProfilerChan,
-    load_data: LoadData,
-    panic_chan: IpcSender<PanicMsg>,
-    layout_to_paint_port: Receiver<LayoutToPaintMsg>,
-    chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
-    chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
-    paint_shutdown_chan: IpcSender<()>,
-}
-
-impl PrivilegedPipelineContent {
-    pub fn start(self) {
-        PaintThread::create(self.id,
-                          self.load_data.url,
-                          self.chrome_to_paint_chan,
-                          self.layout_to_paint_port,
-                          self.chrome_to_paint_port,
-                          self.compositor_proxy,
-                          self.panic_chan,
-                          self.font_cache_thread,
-                          self.time_profiler_chan,
-                          self.mem_profiler_chan,
-                          self.paint_shutdown_chan);
-
     }
 }
