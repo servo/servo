@@ -11,10 +11,12 @@ use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, Leng
 pub trait StyleCoordHelpers {
     fn set<T: ToGeckoStyleCoord>(&mut self, val: T);
     fn set_auto(&mut self);
+    fn set_normal(&mut self);
     fn set_coord(&mut self, val: Au);
     fn set_int(&mut self, val: i32);
     fn set_enum(&mut self, val: i32);
     fn set_percent(&mut self, val: f32);
+    fn set_factor(&mut self, val: f32);
 }
 
 impl StyleCoordHelpers for nsStyleCoord {
@@ -24,6 +26,11 @@ impl StyleCoordHelpers for nsStyleCoord {
 
     fn set_auto(&mut self) {
         self.mUnit = nsStyleUnit::eStyleUnit_Auto;
+        unsafe { *self.mValue.mInt.as_mut() = 0; }
+    }
+
+    fn set_normal(&mut self) {
+        self.mUnit = nsStyleUnit::eStyleUnit_Normal;
         unsafe { *self.mValue.mInt.as_mut() = 0; }
     }
 
@@ -45,6 +52,11 @@ impl StyleCoordHelpers for nsStyleCoord {
     fn set_enum(&mut self, val: i32) {
         self.mUnit = nsStyleUnit::eStyleUnit_Enumerated;
         unsafe { *self.mValue.mInt.as_mut() = val; }
+    }
+
+    fn set_factor(&mut self, val: f32) {
+        self.mUnit = nsStyleUnit::eStyleUnit_Factor;
+        unsafe { *self.mValue.mFloat.as_mut() = val; }
     }
 }
 
