@@ -97,7 +97,7 @@ impl Runnable for ImageRequestRunnable {
         let script_chan = window.networking_task_source();
 
         //LoadBlocker::terminate(&mut element.current_request.borrow_mut().blocker);
-        
+
         let context = Arc::new(Mutex::new(ImageContext {
             elem: trusted_node,
             data: vec!(),
