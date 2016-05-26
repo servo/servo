@@ -245,17 +245,17 @@ impl Pipeline {
         (pipeline, unprivileged_pipeline_content, privileged_pipeline_content)
     }
 
-    pub fn new(id: PipelineId,
-               parent_info: Option<(PipelineId, SubpageId, FrameType)>,
-               script_chan: IpcSender<ConstellationControlMsg>,
-               layout_chan: LayoutControlChan,
-               compositor_proxy: Box<CompositorProxy + 'static + Send>,
-               chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
-               layout_shutdown_port: IpcReceiver<()>,
-               paint_shutdown_port: IpcReceiver<()>,
-               url: Url,
-               size: Option<TypedSize2D<PagePx, f32>>)
-               -> Pipeline {
+    fn new(id: PipelineId,
+           parent_info: Option<(PipelineId, SubpageId, FrameType)>,
+           script_chan: IpcSender<ConstellationControlMsg>,
+           layout_chan: LayoutControlChan,
+           compositor_proxy: Box<CompositorProxy + 'static + Send>,
+           chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
+           layout_shutdown_port: IpcReceiver<()>,
+           paint_shutdown_port: IpcReceiver<()>,
+           url: Url,
+           size: Option<TypedSize2D<PagePx, f32>>)
+           -> Pipeline {
         Pipeline {
             id: id,
             parent_info: parent_info,
