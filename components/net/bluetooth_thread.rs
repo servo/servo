@@ -27,6 +27,7 @@ const ADAPTER_ERROR: &'static str = "No adapter found";
 const DEVICE_ERROR: &'static str = "No device found";
 const DEVICE_MATCH_ERROR: &'static str = "No device found, that matches the given options";
 const PRIMARY_SERVICE_ERROR: &'static str = "No primary service found";
+const INCLUDED_SERVICE_ERROR: &'static str = "No included service found";
 const CHARACTERISTIC_ERROR: &'static str = "No characteristic found";
 const DESCRIPTOR_ERROR: &'static str = "No descriptor found";
 const VALUE_ERROR: &'static str = "No characteristic or descriptor found with that id";
@@ -161,6 +162,12 @@ impl BluetoothManager {
                 },
                 BluetoothMethodMsg::GetPrimaryServices(device_id, uuid, sender) => {
                     self.get_primary_services(device_id, uuid, sender)
+                },
+                BluetoothMethodMsg::GetIncludedService(service_id, uuid, sender) => {
+                    self.get_included_service(service_id, uuid, sender)
+                },
+                BluetoothMethodMsg::GetIncludedServices(service_id, uuid, sender) => {
+                    self.get_included_services(service_id, uuid, sender)
                 },
                 BluetoothMethodMsg::GetCharacteristic(service_id, uuid, sender) => {
                     self.get_characteristic(service_id, uuid, sender)
@@ -519,6 +526,66 @@ impl BluetoothManager {
         }
         if services_vec.is_empty() {
             return drop(sender.send(Err(String::from(PRIMARY_SERVICE_ERROR))));
+        }
+
+        let _ = sender.send(Ok(services_vec));
+    }
+
+    fn get_included_service(&mut self,
+                            service_id: String,
+                            uuid: String,
+                            sender: IpcSender<BluetoothResult<BluetoothServiceMsg>>) {
+        let mut adapter = match self.get_or_create_adapter() {
+            Some(a) => a,
+            None => return drop(sender.send(Err(String::from(ADAPTER_ERROR)))),
+        };
+        let primary_service = match self.get_gatt_service(&mut adapter, &service_id) {
+            Some(s) => s,
+            None => return drop(sender.send(Err(String::from(PRIMARY_SERVICE_ERROR)))),
+        };
+        let services = primary_service.get_includes().unwrap_or(vec!());
+        for service in services {
+            if let Ok(service_uuid) = service.get_uuid() {
+                if uuid == service_uuid {
+                    return drop(sender.send(Ok(BluetoothServiceMsg {
+                                                   uuid: uuid,
+                                                   is_primary: service.is_primary().unwrap_or(false),
+                                                   instance_id: service.get_object_path(),
+                                               })));
+                }
+            }
+        }
+        return drop(sender.send(Err(String::from(INCLUDED_SERVICE_ERROR))));
+    }
+
+    fn get_included_services(&mut self,
+                             service_id: String,
+                             uuid: Option<String>,
+                             sender: IpcSender<BluetoothResult<BluetoothServicesMsg>>) {
+        let mut adapter = match self.get_or_create_adapter() {
+            Some(a) => a,
+            None => return drop(sender.send(Err(String::from(ADAPTER_ERROR)))),
+        };
+        let primary_service = match self.get_gatt_service(&mut adapter, &service_id) {
+            Some(s) => s,
+            None => return drop(sender.send(Err(String::from(PRIMARY_SERVICE_ERROR)))),
+        };
+        let services = primary_service.get_includes().unwrap_or(vec!());
+        let mut services_vec = vec!();
+        for service in services {
+            if let Ok(service_uuid) = service.get_uuid() {
+                services_vec.push(BluetoothServiceMsg {
+                                      uuid: service_uuid,
+                                      is_primary: service.is_primary().unwrap_or(false),
+                                      instance_id: service.get_object_path(),
+                                  });
+            }
+        }
+        if let Some(uuid) = uuid {
+            services_vec.retain(|ref s| s.uuid == uuid);
+        }
+        if services_vec.is_empty() {
+            return drop(sender.send(Err(String::from(INCLUDED_SERVICE_ERROR))));
         }
 
         let _ = sender.send(Ok(services_vec));

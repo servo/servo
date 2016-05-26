@@ -17,6 +17,10 @@ interface BluetoothRemoteGATTService {
     //Promise<BluetoothRemoteGATTCharacteristic>getCharacteristic(BluetoothCharacteristicUUID characteristic);
     //Promise<sequence<BluetoothRemoteGATTCharacteristic>>
     //getCharacteristics(optional BluetoothCharacteristicUUID characteristic);
+    [Throws]
+    BluetoothRemoteGATTService getIncludedService(BluetoothServiceUUID service);
+    [Throws]
+    sequence<BluetoothRemoteGATTService> getIncludedServices(optional BluetoothServiceUUID service);
     //Promise<BluetoothRemoteGATTService>getIncludedService(BluetoothServiceUUID service);
     //Promise<sequence<BluetoothRemoteGATTService>>getIncludedServices(optional BluetoothServiceUUID service);
 };

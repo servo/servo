@@ -160,7 +160,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "blurz"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "dbus 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -467,9 +467,9 @@ dependencies = [
 [[package]]
 name = "device"
 version = "0.0.1"
-source = "git+https://github.com/servo/devices#cac0952154f65b416acef273a6d1099421ce113e"
+source = "git+https://github.com/servo/devices#3c39846a019eeed939eb7090096631254e6b5efc"
 dependencies = [
- "blurz 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "blurz 0.1.7 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
