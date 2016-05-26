@@ -29,6 +29,7 @@ else
 fi
 
 
+
 # Check for the include directory.
 export DIST_INCLUDE="$1/dist/include"
 if [ ! -d "$DIST_INCLUDE" ]; then
@@ -106,6 +107,12 @@ export RUST_BACKTRACE=1
   -blacklist-type "IsDestructibleFallbackImpl"                      \
   -blacklist-type "IsDestructibleFallback"                          \
   -blacklist-type "nsProxyReleaseEvent"                             \
+  -blacklist-type "__make_pair_return_impl"                         \
+  -blacklist-type "_Itup_cat"                                       \
+  -blacklist-type "__is_tuple_like_impl"                            \
+  -blacklist-type "tuple_size"                                      \
+  -blacklist-type "tuple_element"                                   \
+  -blacklist-type "tuple"                                           \
   -opaque-type "nsIntMargin"                                        \
   -opaque-type "nsIntPoint"                                         \
   -opaque-type "nsIntRect"                                          \
