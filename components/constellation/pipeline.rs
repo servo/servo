@@ -28,7 +28,6 @@ use script_traits::{LayoutControlMsg, LayoutMsg, NewLayoutInfo, ScriptMsg};
 use script_traits::{ScriptThreadFactory, TimerEventRequest};
 use std::collections::HashMap;
 use std::io::Error as IOError;
-use std::mem;
 use std::process;
 use std::sync::mpsc::{Sender, channel};
 use url::Url;
@@ -239,11 +238,11 @@ impl Pipeline {
                 script_chan: script_chan,
                 load_data: state.load_data,
                 panic_chan: state.panic_chan,
-                script_port: Some(script_port),
+                script_port: script_port,
                 opts: (*opts::get()).clone(),
                 prefs: prefs::get_cloned(),
                 layout_to_paint_chan: layout_to_paint_chan,
-                pipeline_port: Some(pipeline_port),
+                pipeline_port: pipeline_port,
                 layout_shutdown_chan: layout_shutdown_chan,
                 paint_shutdown_chan: paint_shutdown_chan,
                 pipeline_namespace_id: state.pipeline_namespace_id,
@@ -407,12 +406,12 @@ pub struct UnprivilegedPipelineContent {
     script_chan: IpcSender<ConstellationControlMsg>,
     load_data: LoadData,
     panic_chan: IpcSender<PanicMsg>,
-    script_port: Option<IpcReceiver<ConstellationControlMsg>>,
+    script_port: IpcReceiver<ConstellationControlMsg>,
     layout_to_paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
     opts: Opts,
     prefs: HashMap<String, Pref>,
     paint_shutdown_chan: IpcSender<()>,
-    pipeline_port: Option<IpcReceiver<LayoutControlMsg>>,
+    pipeline_port: IpcReceiver<LayoutControlMsg>,
     pipeline_namespace_id: PipelineNamespaceId,
     layout_shutdown_chan: IpcSender<()>,
     layout_content_process_shutdown_chan: IpcSender<()>,
@@ -423,7 +422,7 @@ pub struct UnprivilegedPipelineContent {
 }
 
 impl UnprivilegedPipelineContent {
-    pub fn start_all<Message, LTF, STF>(mut self, wait_for_completion: bool)
+    pub fn start_all<Message, LTF, STF>(self, wait_for_completion: bool)
         where LTF: LayoutThreadFactory<Message=Message>,
               STF: ScriptThreadFactory<Message=Message>
     {
@@ -431,7 +430,7 @@ impl UnprivilegedPipelineContent {
             id: self.id,
             parent_info: self.parent_info,
             control_chan: self.script_chan.clone(),
-            control_port: mem::replace(&mut self.script_port, None).expect("No script port."),
+            control_port: self.script_port,
             constellation_chan: self.constellation_chan.clone(),
             scheduler_chan: self.scheduler_chan.clone(),
             panic_chan: self.panic_chan.clone(),
@@ -450,7 +449,7 @@ impl UnprivilegedPipelineContent {
                     self.load_data.url.clone(),
                     self.parent_info.is_some(),
                     layout_pair,
-                    self.pipeline_port.expect("No pipeline port."),
+                    self.pipeline_port,
                     self.layout_to_constellation_chan,
                     self.panic_chan,
                     self.script_chan.clone(),
