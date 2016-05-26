@@ -153,9 +153,26 @@ pub trait LoadOrigin {
     fn pipeline_id(&self) -> Option<PipelineId>;
 }
 
-/// Interface for observing the final response for an asynchronous fetch operation.
-pub trait AsyncFetchListener {
-    fn response_available(&self, response: response::Response);
+pub trait FetchTaskTarget {
+    /// https://fetch.spec.whatwg.org/#process-request-body
+    ///
+    /// Fired when a chunk of the request body is transmitted
+    fn process_request_body(&mut self, request: &request::Request);
+
+    /// https://fetch.spec.whatwg.org/#process-request-end-of-file
+    ///
+    /// Fired when the entire request finishes being transmitted
+    fn process_request_eof(&mut self, request: &request::Request);
+
+    /// https://fetch.spec.whatwg.org/#process-response
+    ///
+    /// Fired when headers are received
+    fn process_response(&mut self, response: &response::Response);
+
+    /// https://fetch.spec.whatwg.org/#process-response-end-of-file
+    ///
+    /// Fired when the response is fully fetched
+    fn process_response_eof(&mut self, response: &response::Response);
 }
 
 /// A listener for asynchronous network events. Cancelling the underlying request is unsupported.
