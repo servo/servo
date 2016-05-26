@@ -4,6 +4,7 @@
 
 use device::bluetooth::BluetoothAdapter;
 use device::bluetooth::BluetoothDevice;
+use device::bluetooth::BluetoothDiscoverySession;
 use device::bluetooth::BluetoothGATTCharacteristic;
 use device::bluetooth::BluetoothGATTDescriptor;
 use device::bluetooth::BluetoothGATTService;
@@ -16,6 +17,10 @@ use net_traits::bluetooth_thread::{BluetoothResult, BluetoothServiceMsg, Bluetoo
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::string::String;
+use std::thread;
+use std::time::Duration;
+#[cfg(target_os = "linux")]
+use tinyfiledialogs;
 use util::thread::spawn_named;
 
 const ADAPTER_ERROR: &'static str = "No adapter found";
@@ -25,6 +30,14 @@ const PRIMARY_SERVICE_ERROR: &'static str = "No primary service found";
 const CHARACTERISTIC_ERROR: &'static str = "No characteristic found";
 const DESCRIPTOR_ERROR: &'static str = "No descriptor found";
 const VALUE_ERROR: &'static str = "No characteristic or descriptor found with that id";
+// The discovery session needs some time to find any nearby devices
+const DISCOVERY_TIMEOUT_MS: u64 = 1500;
+#[cfg(target_os = "linux")]
+const DIALOG_TITLE: &'static str = "Choose a device";
+#[cfg(target_os = "linux")]
+const DIALOG_COLUMN_ID: &'static str = "Id";
+#[cfg(target_os = "linux")]
+const DIALOG_COLUMN_NAME: &'static str = "Name";
 
 bitflags! {
     flags Flags: u32 {
@@ -203,6 +216,37 @@ impl BluetoothManager {
         None
     }
 
+    #[cfg(target_os = "linux")]
+    fn select_device(&mut self, devices: Vec<BluetoothDevice>) -> Option<String> {
+        let mut dialog_rows: Vec<String> = vec!();
+        for device in devices {
+            dialog_rows.extend_from_slice(&[device.get_address().unwrap_or("".to_string()),
+                                            device.get_name().unwrap_or("".to_string())]);
+        }
+        let dialog_rows: Vec<&str> = dialog_rows.iter()
+                                                .map(|s| s.as_ref())
+                                                .collect();
+        let dialog_rows: &[&str] = dialog_rows.as_slice();
+
+        if let Some(device) = tinyfiledialogs::list_dialog(DIALOG_TITLE,
+                                                           &[DIALOG_COLUMN_ID, DIALOG_COLUMN_NAME],
+                                                           Some(dialog_rows)) {
+            // The device string format will be "Address|Name". We need the first part of it.
+            return device.split("|").next().map(|s| s.to_string());
+        }
+        None
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    fn select_device(&mut self, devices: Vec<BluetoothDevice>) -> Option<String> {
+        for device in devices {
+            if let Ok(address) = device.get_address() {
+                return Some(address);
+            }
+        }
+        None
+    }
+
     // Service
 
     fn get_and_cache_gatt_services(&mut self,
@@ -355,16 +399,18 @@ impl BluetoothManager {
             Some(a) => a,
             None => return drop(sender.send(Err(String::from(ADAPTER_ERROR)))),
         };
-        let devices = self.get_and_cache_devices(&mut adapter);
-        if devices.is_empty() {
-            return drop(sender.send(Err(String::from(DEVICE_ERROR))));
+        if let Some(ref session) = BluetoothDiscoverySession::create_session(adapter.get_object_path()).ok() {
+            if session.start_discovery().is_ok() {
+                thread::sleep(Duration::from_millis(DISCOVERY_TIMEOUT_MS));
+            }
+            let _ = session.stop_discovery();
         }
-
+        let devices = self.get_and_cache_devices(&mut adapter);
         let matched_devices: Vec<BluetoothDevice> = devices.into_iter()
                                                            .filter(|d| matches_filters(d, options.get_filters()))
                                                            .collect();
-        for device in matched_devices {
-            if let Ok(address) = device.get_address() {
+        if let Some(address) = self.select_device(matched_devices) {
+            if let Some(device) = self.get_device(&mut adapter, address.as_str()) {
                 let message = Ok(BluetoothDeviceMsg {
                                      id: address,
                                      name: device.get_name().ok(),

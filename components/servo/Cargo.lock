@@ -2266,7 +2266,7 @@ dependencies = [
 [[package]]
 name = "tinyfiledialogs"
 version = "0.1.0"
-source = "git+https://github.com/jdm/tinyfiledialogs#686abf781f30b360a4c265964fd3744e2f61cf2d"
+source = "git+https://github.com/jdm/tinyfiledialogs#3a30f8f95686195cb3bcecfc77ff77277a624a53"
 dependencies = [
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
