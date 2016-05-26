@@ -9,7 +9,8 @@ use data::PerDocumentStyleData;
 use env_logger;
 use euclid::Size2D;
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
-use gecko_bindings::bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues, ServoNodeData};
+use gecko_bindings::bindings::{RawServoStyleSet, RawServoStyleSheet};
+use gecko_bindings::bindings::{ServoComputedValues, ServoFFIAddRefed, ServoNodeData};
 use gecko_bindings::bindings::{ThreadSafePrincipalHolder, ThreadSafeURIHolder, nsIAtom};
 use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use gecko_bindings::structs::SheetParsingMode;
@@ -282,7 +283,7 @@ pub extern "C" fn Servo_ReleaseStyleSheet(sheet: *mut RawServoStyleSheet) -> () 
 
 #[no_mangle]
 pub extern "C" fn Servo_GetComputedValues(node: *mut RawGeckoNode)
-     -> *mut ServoComputedValues {
+     -> ServoFFIAddRefed<ServoComputedValues> {
     let node = unsafe { GeckoNode::from_raw(node) };
     let arc_cv = match node.borrow_data().map_or(None, |data| data.style.clone()) {
         Some(style) => style,
@@ -295,21 +296,21 @@ pub extern "C" fn Servo_GetComputedValues(node: *mut RawGeckoNode)
             Arc::new(GeckoComputedValues::initial_values().clone())
         },
     };
-    unsafe { transmute(arc_cv) }
+    ServoFFIAddRefed::new(unsafe { transmute(arc_cv) })
 }
 
 #[no_mangle]
 pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(parent_style_or_null: *mut ServoComputedValues,
                                                          pseudo_tag: *mut nsIAtom,
                                                          raw_data: *mut RawServoStyleSet)
-     -> *mut ServoComputedValues {
+     -> ServoFFIAddRefed<ServoComputedValues> {
     let data = PerDocumentStyleData::borrow_mut_from_raw(raw_data);
 
     let pseudo = match pseudo_element_from_atom(pseudo_tag, /* ua_stylesheet = */ true) {
         Ok(pseudo) => pseudo,
         Err(pseudo) => {
             warn!("stylo: Unable to parse anonymous-box pseudo-element: {}", pseudo);
-            return ptr::null_mut();
+            return ServoFFIAddRefed::new(ptr::null_mut());
         }
     };
 
@@ -317,7 +318,7 @@ pub extern "C" fn Servo_GetComputedValuesForAnonymousBox(parent_style_or_null: *
 
     Helpers::maybe_with(parent_style_or_null, |maybe_parent| {
         let new_computed = data.stylist.precomputed_values_for_pseudo(&pseudo, maybe_parent);
-        new_computed.map_or(ptr::null_mut(), |c| Helpers::from(c))
+        ServoFFIAddRefed::new(new_computed.map_or(ptr::null_mut(), |c| Helpers::from(c)))
     })
 }
 
@@ -327,7 +328,7 @@ pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut Ser
                                                           pseudo_tag: *mut nsIAtom,
                                                           raw_data: *mut RawServoStyleSet,
                                                           is_probe: bool)
-     -> *mut ServoComputedValues {
+     -> ServoFFIAddRefed<ServoComputedValues> {
     debug_assert!(!match_element.is_null());
 
     let parent_or_null = || {
@@ -343,7 +344,7 @@ pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut Ser
         Ok(pseudo) => pseudo,
         Err(pseudo) => {
             warn!("stylo: Unable to parse anonymous-box pseudo-element: {}", pseudo);
-            return parent_or_null();
+            return ServoFFIAddRefed::new(parent_or_null());
         }
     };
 
@@ -361,13 +362,14 @@ pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut Ser
                                      .and_then(|data| {
                                          data.per_pseudo.get(&pseudo).map(|c| c.clone())
                                      });
-            maybe_computed.map_or_else(parent_or_null, Helpers::from)
+            ServoFFIAddRefed::new(maybe_computed.map_or_else(parent_or_null, Helpers::from))
         }
         PseudoElementCascadeType::Lazy => {
             Helpers::with(parent_style, |parent| {
-                data.stylist
-                    .lazily_compute_pseudo_element_style(&element, &pseudo, parent)
-                    .map_or_else(parent_or_null, Helpers::from)
+                ServoFFIAddRefed::new(
+                    data.stylist
+                        .lazily_compute_pseudo_element_style(&element, &pseudo, parent)
+                        .map_or_else(parent_or_null, Helpers::from))
             })
         }
         PseudoElementCascadeType::Precomputed => {
@@ -379,11 +381,11 @@ pub extern "C" fn Servo_GetComputedValuesForPseudoElement(parent_style: *mut Ser
 
 #[no_mangle]
 pub extern "C" fn Servo_InheritComputedValues(parent_style: *mut ServoComputedValues)
-     -> *mut ServoComputedValues {
+     -> ServoFFIAddRefed<ServoComputedValues> {
     type Helpers = ArcHelpers<ServoComputedValues, GeckoComputedValues>;
     Helpers::with(parent_style, |parent| {
         let style = GeckoComputedValues::inherit_from(parent);
-        Helpers::from(style)
+        ServoFFIAddRefed::new(Helpers::from(style))
     })
 }
 
