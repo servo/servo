@@ -93,6 +93,8 @@ pub struct NewLayoutInfo {
     pub new_pipeline_id: PipelineId,
     /// Id of the new frame associated with this pipeline.
     pub subpage_id: SubpageId,
+    /// Type of the new frame associated with this pipeline.
+    pub frame_type: FrameType,
     /// Network request data which will be initiated by the script thread.
     pub load_data: LoadData,
     /// The paint channel, cast to `OptionalOpaqueIpcSender`. This is really an
@@ -307,7 +309,7 @@ pub struct InitialScriptState {
     pub id: PipelineId,
     /// The subpage ID of this pipeline to create in its pipeline parent.
     /// If `None`, this is the root.
-    pub parent_info: Option<(PipelineId, SubpageId)>,
+    pub parent_info: Option<(PipelineId, SubpageId, FrameType)>,
     /// A channel with which messages can be sent to us (the script thread).
     pub control_chan: IpcSender<ConstellationControlMsg>,
     /// A port on which messages sent by the constellation to script can be received.
