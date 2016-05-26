@@ -31,7 +31,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::{LayoutControlChan, LayoutThreadFactory};
 use msg::constellation_msg::WebDriverCommandMsg;
-use msg::constellation_msg::{FrameId, PipelineId};
+use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{PipelineNamespace, PipelineNamespaceId, NavigationDirection};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
@@ -415,7 +415,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     /// Helper function for creating a pipeline
     fn new_pipeline(&mut self,
                     pipeline_id: PipelineId,
-                    parent_info: Option<(PipelineId, SubpageId)>,
+                    parent_info: Option<(PipelineId, SubpageId, FrameType)>,
                     initial_window_size: Option<TypedSize2D<PagePx, f32>>,
                     script_channel: Option<IpcSender<ConstellationControlMsg>>,
                     load_data: LoadData) {
@@ -1038,7 +1038,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
 
         // Create the new pipeline, attached to the parent and push to pending frames
         self.new_pipeline(load_info.new_pipeline_id,
-                          Some((load_info.containing_pipeline_id, load_info.new_subpage_id)),
+                          Some((load_info.containing_pipeline_id, load_info.new_subpage_id, load_info.frame_type)),
                           window_size,
                           script_chan,
                           load_data);
@@ -1090,15 +1090,15 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                     .and_then(|root_frame_id| self.frames.get(&root_frame_id))
                     .map(|root_frame| root_frame.current);
 
-                let ancestor_info = self.get_root_pipeline_and_containing_parent(&pipeline_id);
-                if let Some(ancestor_info) = ancestor_info {
-                    if root_pipeline_id == Some(ancestor_info.0) {
+                let ancestor_info = self.get_mozbrowser_ancestor_info(pipeline_id);
+                if let Some((ancestor_id, subpage_id)) = ancestor_info {
+                    if root_pipeline_id == Some(ancestor_id) {
                         match root_pipeline_id.and_then(|pipeline_id| self.pipelines.get(&pipeline_id)) {
                             Some(root_pipeline) => {
                                 // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsershowmodalprompt
                                 let event = MozBrowserEvent::ShowModalPrompt("alert".to_owned(), "Alert".to_owned(),
                                                                              String::from(message), "".to_owned());
-                                root_pipeline.trigger_mozbrowser_event(ancestor_info.1, event);
+                                root_pipeline.trigger_mozbrowser_event(subpage_id, event);
                             }
                             None => return warn!("Alert sent to Pipeline {:?} after closure.", root_pipeline_id),
                         }
@@ -1131,7 +1131,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         // requested change so it can update its internal state.
         let parent_info = self.pipelines.get(&source_id).and_then(|source| source.parent_info);
         match parent_info {
-            Some((parent_pipeline_id, subpage_id)) => {
+            Some((parent_pipeline_id, subpage_id, _)) => {
                 self.handle_load_start_msg(&source_id);
                 // Message the constellation to find the script thread for this iframe
                 // and issue an iframe load through there.
@@ -1312,7 +1312,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
                 None => return warn!("Pipeline {:?} navigated to after closure.", next_pipeline_id),
                 Some(pipeline) => match pipeline.parent_info {
                     None => return warn!("Pipeline {:?} has no parent info.", next_pipeline_id),
-                    Some((_, new_subpage_id)) => new_subpage_id,
+                    Some((_, new_subpage_id, _)) => new_subpage_id,
                 },
             };
             let msg = ConstellationControlMsg::UpdateSubpageId(parent_pipeline_id,
@@ -1417,7 +1417,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             Some(pipeline) => pipeline.parent_info,
             None => return warn!("Pipeline {:?} focus parent after closure.", pipeline_id),
         };
-        let (containing_pipeline_id, subpage_id) = match parent_info {
+        let (containing_pipeline_id, subpage_id, _) = match parent_info {
             Some(info) => info,
             None => return warn!("Pipeline {:?} focus has no parent.", pipeline_id),
         };
@@ -1584,7 +1584,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             // If a child frame, add it to the parent pipeline. Otherwise
             // it must surely be the root frame being created!
             match self.pipelines.get(&frame_change.new_pipeline_id).and_then(|pipeline| pipeline.parent_info) {
-                Some((parent_id, _)) => {
+                Some((parent_id, _, _)) => {
                     if let Some(parent) = self.pipelines.get_mut(&parent_id) {
                         parent.add_child(frame_id);
                     }
@@ -1841,7 +1841,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             if pipeline.is_private {
                 return true;
             }
-            pipeline_id = pipeline.parent_info.map(|(parent_pipeline_id, _)| parent_pipeline_id);
+            // TODO: terminate the search when we hit a mozbrowser iframe?
+            pipeline_id = pipeline.parent_info.map(|(parent_pipeline_id, _, _)| parent_pipeline_id);
         }
         false
     }
@@ -1876,7 +1877,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
             warn!("Closing frame {:?} twice.", frame_id);
         }
 
-        if let Some((parent_pipeline_id, _)) = parent_info {
+        if let Some((parent_pipeline_id, _, _)) = parent_info {
             let parent_pipeline = match self.pipelines.get_mut(&parent_pipeline_id) {
                 None => return warn!("Pipeline {:?} child closed after parent.", parent_pipeline_id),
                 Some(parent_pipeline) => parent_pipeline,
@@ -1912,8 +1913,8 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         };
 
         // If a child pipeline, remove from subpage map
-        if let Some(info) = pipeline.parent_info {
-            self.subpage_map.remove(&info);
+        if let Some((parent_id, subpage_id, _)) = pipeline.parent_info {
+            self.subpage_map.remove(&(parent_id, subpage_id));
         }
 
         // Remove assocation between this pipeline and its holding frame
@@ -2016,42 +2017,34 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
         }
     }
 
-    /// For a given pipeline, determine the iframe in the root pipeline that transitively contains
+    /// For a given pipeline, determine the mozbrowser iframe that transitively contains
     /// it. There could be arbitrary levels of nested iframes in between them.
-    fn get_root_pipeline_and_containing_parent(&self, pipeline_id: &PipelineId) -> Option<(PipelineId, SubpageId)> {
-        if let Some(pipeline) = self.pipelines.get(pipeline_id) {
-            if let Some(mut ancestor_info) = pipeline.parent_info {
-                if let Some(mut ancestor) = self.pipelines.get(&ancestor_info.0) {
-                    while let Some(next_info) = ancestor.parent_info {
-                        ancestor_info = next_info;
-                        ancestor = match self.pipelines.get(&ancestor_info.0) {
-                            Some(ancestor) => ancestor,
-                            None => {
-                                warn!("Get parent pipeline before root via closed pipeline {:?}.", ancestor_info.0);
-                                return None;
-                            },
-                        };
-                    }
-                    return Some(ancestor_info);
-                }
+    fn get_mozbrowser_ancestor_info(&self, mut pipeline_id: PipelineId) -> Option<(PipelineId, SubpageId)> {
+        loop {
+            match self.pipelines.get(&pipeline_id) {
+                Some(pipeline) => match pipeline.parent_info {
+                    Some((parent_id, subpage_id, FrameType::MozBrowserIFrame)) => return Some((parent_id, subpage_id)),
+                    Some((parent_id, _, _)) => pipeline_id = parent_id,
+                    None => return None,
+                },
+                None => return None,
             }
         }
-        None
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserlocationchange
-    // Note that this is a no-op if the pipeline is not an immediate child iframe of the root
+    // Note that this is a no-op if the pipeline is not an immediate child iframe of a mozbrowser iframe
     fn trigger_mozbrowserlocationchange(&self, pipeline_id: PipelineId) {
         if !prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) { return; }
 
         let event_info = self.pipelines.get(&pipeline_id).and_then(|pipeline| {
-            pipeline.parent_info.map(|(containing_pipeline_id, subpage_id)| {
-                (containing_pipeline_id, subpage_id, pipeline.url.to_string())
+            pipeline.parent_info.map(|(containing_pipeline_id, subpage_id, frame_type)| {
+                (containing_pipeline_id, subpage_id, frame_type, pipeline.url.to_string())
             })
         });
 
         // If this is an iframe, then send the event with new url
-        if let Some((containing_pipeline_id, subpage_id, url)) = event_info {
+        if let Some((containing_pipeline_id, subpage_id, FrameType::MozBrowserIFrame, url)) = event_info {
             if let Some(parent_pipeline) = self.pipelines.get(&containing_pipeline_id) {
                 if let Some(frame_id) = self.pipeline_to_frame_map.get(&pipeline_id) {
                     if let Some(frame) = self.frames.get(&frame_id) {
@@ -2070,7 +2063,7 @@ impl<LTF: LayoutThreadFactory, STF: ScriptThreadFactory> Constellation<LTF, STF>
     fn trigger_mozbrowsererror(&self, pipeline_id: PipelineId, reason: String, backtrace: String) {
         if !prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) { return; }
 
-        let ancestor_info = self.get_root_pipeline_and_containing_parent(&pipeline_id);
+        let ancestor_info = self.get_mozbrowser_ancestor_info(pipeline_id);
 
         if let Some(ancestor_info) = ancestor_info {
             match self.pipelines.get(&ancestor_info.0) {

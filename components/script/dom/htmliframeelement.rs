@@ -34,7 +34,7 @@ use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, RootedValue, JSContext, MutableHandleValue};
 use js::jsval::{UndefinedValue, NullValue};
 use layout_interface::ReflowQueryType;
-use msg::constellation_msg::{LoadData, NavigationDirection, PipelineId, SubpageId};
+use msg::constellation_msg::{FrameType, LoadData, NavigationDirection, PipelineId, SubpageId};
 use net_traits::response::HttpsState;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{IFrameLoadInfo, MozBrowserEvent, ScriptMsg as ConstellationMsg};
@@ -123,6 +123,7 @@ impl HTMLIFrameElement {
         let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id();
         let new_pipeline_id = self.pipeline_id.get().unwrap();
         let private_iframe = self.privatebrowsing();
+        let frame_type = if self.Mozbrowser() { FrameType::MozBrowserIFrame } else { FrameType::IFrame };
 
         let load_info = IFrameLoadInfo {
             load_data: load_data,
@@ -132,6 +133,7 @@ impl HTMLIFrameElement {
             new_pipeline_id: new_pipeline_id,
             sandbox: sandboxed,
             is_private: private_iframe,
+            frame_type: frame_type,
         };
         window.constellation_chan()
               .send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info))
@@ -444,6 +446,7 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
     fn Mozbrowser(&self) -> bool {
         // We don't want to allow mozbrowser iframes within iframes
+        // TODO: why not?
         let is_root_pipeline = window_from_node(self).parent_info().is_none();
         if mozbrowser_enabled() && is_root_pipeline {
             let element = self.upcast::<Element>();
