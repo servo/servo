@@ -68,3 +68,7 @@ uuid = {version = "0.2", features = ["v4"]}
 webrender_traits = {git = "https://github.com/servo/webrender_traits"}
 websocket = "0.17"
 xml5ever = {version = "0.1.2", features = ["unstable"]}
+
+[build-dependencies]
+cmake = "0.1"
+

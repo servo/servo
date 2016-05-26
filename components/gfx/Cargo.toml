@@ -51,7 +51,7 @@ core-foundation = "0.2"
 core-graphics = "0.3"
 core-text = "1.1"
 
-[target.'cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))'.dependencies]
+[target.'cfg(any(target_os = "linux", target_os = "android", all(target_os = "windows", target_env = "gnu")))'.dependencies]
 servo-fontconfig = "0.2"
 freetype = {git = "https://github.com/servo/rust-freetype"}
 
