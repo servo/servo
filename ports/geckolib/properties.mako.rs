@@ -719,11 +719,28 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedText"
-                  skip_longhands="text-align">
+                  skip_longhands="text-align line-height">
 
     <% text_align_keyword = Keyword("text-align", "start end left right center justify -moz-center -moz-left " +
                                                   "-moz-right match-parent") %>
     <%call expr="impl_keyword('text_align', 'mTextAlign', text_align_keyword, need_clone=False)"></%call>
+
+    fn set_line_height(&mut self, v: longhands::line_height::computed_value::T) {
+        use style::properties::longhands::line_height::computed_value::T;
+        // FIXME: Align binary representations and ditch |match| for cast + static_asserts
+        match v {
+            T::Normal => self.gecko.mLineHeight.set_normal(),
+            T::Length(val) => self.gecko.mLineHeight.set_coord(val),
+            T::Number(val) => self.gecko.mLineHeight.set_factor(val),
+            T::MozBlockHeight =>
+                self.gecko.mLineHeight.set_enum(structs::NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT as i32),
+        }
+    }
+    fn copy_line_height_from(&mut self, other: &Self) {
+        debug_assert_unit_is_safe_to_copy(self.gecko.mLineHeight.mUnit);
+        self.gecko.mLineHeight.mUnit = other.gecko.mLineHeight.mUnit;
+        self.gecko.mLineHeight.mValue = other.gecko.mLineHeight.mValue;
+    }
 
 </%self:impl_trait>
 
