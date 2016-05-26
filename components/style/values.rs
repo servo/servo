@@ -1181,6 +1181,7 @@ pub mod specified {
     }
 
     impl Angle {
+        #[inline]
         pub fn radians(self) -> f32 {
             let Angle(radians) = self;
             radians
