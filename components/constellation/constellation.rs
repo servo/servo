@@ -69,8 +69,9 @@ use style_traits::viewport::ViewportConstraints;
 use timer_scheduler::TimerScheduler;
 use url::Url;
 use util::geometry::PagePx;
+use util::opts;
+use util::prefs::mozbrowser_enabled;
 use util::thread::spawn_named;
-use util::{opts, prefs};
 use webrender_traits;
 
 #[derive(Debug, PartialEq)]
@@ -1129,7 +1130,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_alert(&mut self, pipeline_id: PipelineId, message: String, sender: IpcSender<bool>) {
-        let display_alert_dialog = if prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) {
+        let display_alert_dialog = if mozbrowser_enabled() {
             let parent_pipeline_info = self.pipelines.get(&pipeline_id).and_then(|source| source.parent_info);
             if let Some(_) = parent_pipeline_info {
                 let root_pipeline_id = self.root_frame_id
@@ -1421,7 +1422,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                    containing_pipeline_id: PipelineId,
                                    subpage_id: SubpageId,
                                    event: MozBrowserEvent) {
-        assert!(prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false));
+        assert!(mozbrowser_enabled());
 
         // Find the script channel for the given parent pipeline,
         // and pass the event to that script thread.
@@ -1999,9 +2000,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             if let Some(pipeline_id) = rng.choose(&*pipeline_ids) {
                 if let Some(pipeline) = self.pipelines.get(pipeline_id) {
                     // Don't kill the mozbrowser pipeline
-                    if prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) &&
-                        pipeline.parent_info.is_none()
-                    {
+                    if mozbrowser_enabled() && pipeline.parent_info.is_none() {
                         info!("Not closing mozbrowser pipeline {}.", pipeline_id);
                     } else {
                         // Note that we deliberately do not do any of the tidying up
@@ -2089,7 +2088,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserlocationchange
     // Note that this is a no-op if the pipeline is not a mozbrowser iframe
     fn trigger_mozbrowserlocationchange(&self, pipeline_id: PipelineId) {
-        if !prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) { return; }
+        if !mozbrowser_enabled() { return; }
 
         let event_info = self.pipelines.get(&pipeline_id).and_then(|pipeline| {
             pipeline.parent_info.map(|(containing_pipeline_id, subpage_id, frame_type)| {
@@ -2115,7 +2114,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowsererror
     // Note that this does not require the pipeline to be an immediate child of the root
     fn trigger_mozbrowsererror(&self, pipeline_id: PipelineId, reason: String, backtrace: String) {
-        if !prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) { return; }
+        if !mozbrowser_enabled() { return; }
 
         let ancestor_info = self.get_mozbrowser_ancestor_info(pipeline_id);
 

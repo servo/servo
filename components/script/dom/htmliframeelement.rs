@@ -42,12 +42,8 @@ use std::cell::Cell;
 use string_cache::Atom;
 use style::context::ReflowGoal;
 use url::Url;
-use util::prefs;
+use util::prefs::mozbrowser_enabled;
 use util::str::LengthOrPercentageOrAuto;
-
-pub fn mozbrowser_enabled() -> bool {
-    prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false)
-}
 
 #[derive(HeapSizeOf)]
 enum SandboxAllowance {
@@ -439,29 +435,16 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // Experimental mozbrowser implementation is based on the webidl
     // present in the gecko source tree, and the documentation here:
     // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
-
-    // TODO(gw): Use experimental codegen when it is available to avoid
-    // exposing these APIs. See https://github.com/servo/servo/issues/5264.
-
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
     fn Mozbrowser(&self) -> bool {
-        // We don't want to allow mozbrowser iframes within iframes
-        let is_root_pipeline = window_from_node(self).parent_info().is_none();
-        if mozbrowser_enabled() && is_root_pipeline {
-            let element = self.upcast::<Element>();
-            element.has_attribute(&atom!("mozbrowser"))
-        } else {
-            false
-        }
+        let element = self.upcast::<Element>();
+        element.has_attribute(&atom!("mozbrowser"))
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
-    fn SetMozbrowser(&self, value: bool) -> ErrorResult {
-        if mozbrowser_enabled() {
-            let element = self.upcast::<Element>();
-            element.set_bool_attribute(&atom!("mozbrowser"), value);
-        }
-        Ok(())
+    fn SetMozbrowser(&self, value: bool) {
+        let element = self.upcast::<Element>();
+        element.set_bool_attribute(&atom!("mozbrowser"), value);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack

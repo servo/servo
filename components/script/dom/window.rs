@@ -14,7 +14,7 @@ use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
-use dom::bindings::global::GlobalRef;
+use dom::bindings::global::{GlobalRef, global_root_from_object};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::num::Finite;
@@ -37,9 +37,8 @@ use dom::storage::Storage;
 use euclid::{Point2D, Rect, Size2D};
 use gfx_traits::LayerId;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{Evaluate2, MutableHandleValue};
-use js::jsapi::{HandleValue, JSContext};
-use js::jsapi::{JSAutoCompartment, JS_GC, JS_GetRuntime, SetWindowProxy};
+use js::jsapi::{Evaluate2, HandleObject, HandleValue, JSAutoCompartment, JSContext};
+use js::jsapi::{JS_GetRuntime, JS_GC, MutableHandleValue, SetWindowProxy};
 use js::rust::CompileOptionsWrapper;
 use js::rust::Runtime;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
@@ -93,6 +92,7 @@ use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Url;
 use util::geometry::{self, MAX_RECT};
+use util::prefs::mozbrowser_enabled;
 use util::str::HTML_SPACE_CHARACTERS;
 use util::{breakpoint, opts};
 use webdriver_handlers::jsval_to_webdriver;
@@ -1436,6 +1436,19 @@ impl Window {
             let context = window.browsing_context();
             context.active_window()
         })
+    }
+
+    /// Returns whether mozbrowser is enabled and `obj` has been created
+    /// in a top-level `Window` global.
+    #[allow(unsafe_code)]
+    pub unsafe fn global_is_mozbrowser(_: *mut JSContext, obj: HandleObject) -> bool {
+        if !mozbrowser_enabled() {
+            return false;
+        }
+        match global_root_from_object(obj.get()).r() {
+            GlobalRef::Window(window) => window.parent_info().is_none(),
+            _ => false,
+        }
     }
 }
 

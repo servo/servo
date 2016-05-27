@@ -56,7 +56,7 @@ use dom::htmlembedelement::HTMLEmbedElement;
 use dom::htmlformelement::HTMLFormElement;
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
-use dom::htmliframeelement::{self, HTMLIFrameElement};
+use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlmetaelement::HTMLMetaElement;
@@ -127,6 +127,7 @@ use task_source::dom_manipulation::DOMManipulationTask;
 use time;
 use url::Url;
 use url::percent_encoding::percent_decode;
+use util::prefs::mozbrowser_enabled;
 use util::str::{split_html_space_chars, str_join};
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
@@ -1261,7 +1262,7 @@ impl Document {
     }
 
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
-        if htmliframeelement::mozbrowser_enabled() {
+        if mozbrowser_enabled() {
             if let Some((containing_pipeline_id, subpage_id)) = self.window.parent_info() {
                 let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
                                                               subpage_id,
