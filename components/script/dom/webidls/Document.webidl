@@ -82,7 +82,7 @@ partial /*sealed*/ interface Document {
   [/*PutForwards=href, */Unforgeable]
   readonly attribute Location? location;
   readonly attribute DOMString domain;
-  // readonly attribute DOMString referrer;
+  readonly attribute DOMString referrer;
   [Throws]
   attribute DOMString cookie;
   readonly attribute DOMString lastModified;
