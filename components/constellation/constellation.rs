@@ -19,14 +19,8 @@ use compositing::compositor_thread::Msg as ToCompositorMsg;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::{Size2D, TypedSize2D};
-#[cfg(not(target_os = "windows"))]
-use gaol;
-#[cfg(not(target_os = "windows"))]
-use gaol::sandbox::{self, Sandbox, SandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
-#[cfg(not(target_os = "windows"))]
-use ipc_channel::ipc::IpcOneShotServer;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_traits::{LayoutControlChan, LayoutThreadFactory};
@@ -43,12 +37,10 @@ use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{self, ResourceThreads, IpcSend};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
-use pipeline::{InitialPipelineState, Pipeline, UnprivilegedPipelineContent};
+use pipeline::{ChildProcess, InitialPipelineState, Pipeline};
 use profile_traits::mem;
 use profile_traits::time;
 use rand::{random, Rng, SeedableRng, StdRng};
-#[cfg(not(target_os = "windows"))]
-use sandboxing::content_process_sandbox_profile;
 use script_traits::{AnimationState, AnimationTickType, CompositorEvent};
 use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg};
 use script_traits::{DocumentState, LayoutControlMsg};
@@ -57,8 +49,6 @@ use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, Scri
 use script_traits::{MozBrowserEvent, MozBrowserErrorType};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
-#[cfg(not(target_os = "windows"))]
-use std::env;
 use std::io::Error as IOError;
 use std::marker::PhantomData;
 use std::mem::replace;
@@ -313,13 +303,6 @@ enum ExitPipelineMode {
     Force,
 }
 
-enum ChildProcess {
-    #[cfg(not(target_os = "windows"))]
-    Sandboxed(gaol::platform::process::Process),
-    #[cfg(not(target_os = "windows"))]
-    Unsandboxed(process::Child),
-}
-
 impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     where LTF: LayoutThreadFactory<Message=Message>,
           STF: ScriptThreadFactory<Message=Message>
@@ -424,98 +407,40 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     initial_window_size: Option<TypedSize2D<PagePx, f32>>,
                     script_channel: Option<IpcSender<ConstellationControlMsg>>,
                     load_data: LoadData) {
-        let spawning_content = script_channel.is_none();
-        let (pipeline, unprivileged_pipeline_content, privileged_pipeline_content) =
-            Pipeline::create::<LTF, STF>(InitialPipelineState {
-                id: pipeline_id,
-                parent_info: parent_info,
-                constellation_chan: self.script_sender.clone(),
-                layout_to_constellation_chan: self.layout_sender.clone(),
-                panic_chan: self.panic_sender.clone(),
-                scheduler_chan: self.scheduler_chan.clone(),
-                compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
-                devtools_chan: self.devtools_chan.clone(),
-                bluetooth_thread: self.bluetooth_thread.clone(),
-                image_cache_thread: self.image_cache_thread.clone(),
-                font_cache_thread: self.font_cache_thread.clone(),
-                resource_threads: self.resource_threads.clone(),
-                time_profiler_chan: self.time_profiler_chan.clone(),
-                mem_profiler_chan: self.mem_profiler_chan.clone(),
-                window_size: initial_window_size,
-                script_chan: script_channel,
-                load_data: load_data,
-                device_pixel_ratio: self.window_size.device_pixel_ratio,
-                pipeline_namespace_id: self.next_pipeline_namespace_id(),
-                webrender_api_sender: self.webrender_api_sender.clone(),
-            });
+        let result = Pipeline::spawn::<Message, LTF, STF>(InitialPipelineState {
+            id: pipeline_id,
+            parent_info: parent_info,
+            constellation_chan: self.script_sender.clone(),
+            layout_to_constellation_chan: self.layout_sender.clone(),
+            panic_chan: self.panic_sender.clone(),
+            scheduler_chan: self.scheduler_chan.clone(),
+            compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
+            devtools_chan: self.devtools_chan.clone(),
+            bluetooth_thread: self.bluetooth_thread.clone(),
+            image_cache_thread: self.image_cache_thread.clone(),
+            font_cache_thread: self.font_cache_thread.clone(),
+            resource_threads: self.resource_threads.clone(),
+            time_profiler_chan: self.time_profiler_chan.clone(),
+            mem_profiler_chan: self.mem_profiler_chan.clone(),
+            window_size: initial_window_size,
+            script_chan: script_channel,
+            load_data: load_data,
+            device_pixel_ratio: self.window_size.device_pixel_ratio,
+            pipeline_namespace_id: self.next_pipeline_namespace_id(),
+            webrender_api_sender: self.webrender_api_sender.clone(),
+        });
 
-        privileged_pipeline_content.start();
+        let (pipeline, child_process) = match result {
+            Ok(result) => result,
+            Err(e) => return self.handle_send_error(pipeline_id, e),
+        };
 
-        if spawning_content {
-            // Spawn the child process.
-            //
-            // Yes, that's all there is to it!
-            if opts::multiprocess() {
-                self.spawn_multiprocess(pipeline_id, unprivileged_pipeline_content);
-            } else {
-                unprivileged_pipeline_content.start_all::<Message, LTF, STF>(false);
-            }
+        if let Some(child_process) = child_process {
+            self.child_processes.push(child_process);
         }
 
         assert!(!self.pipelines.contains_key(&pipeline_id));
         self.pipelines.insert(pipeline_id, pipeline);
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    fn spawn_multiprocess(&mut self,
-                          pipeline_id: PipelineId,
-                          unprivileged_pipeline_content: UnprivilegedPipelineContent)
-    {
-        // Note that this function can panic, due to process creation,
-        // avoiding this panic would require a mechanism for dealing
-        // with low-resource scenarios.
-        let (server, token) =
-            IpcOneShotServer::<IpcSender<UnprivilegedPipelineContent>>::new()
-            .expect("Failed to create IPC one-shot server.");
-
-        // If there is a sandbox, use the `gaol` API to create the child process.
-        let child_process = if opts::get().sandbox {
-            let mut command = sandbox::Command::me().expect("Failed to get current sandbox.");
-            command.arg("--content-process").arg(token);
-
-            if let Ok(value) = env::var("RUST_BACKTRACE") {
-                command.env("RUST_BACKTRACE", value);
-            }
-
-            let profile = content_process_sandbox_profile();
-            ChildProcess::Sandboxed(Sandbox::new(profile).start(&mut command)
-                                    .expect("Failed to start sandboxed child process!"))
-        } else {
-            let path_to_self = env::current_exe()
-                .expect("Failed to get current executor.");
-            let mut child_process = process::Command::new(path_to_self);
-            child_process.arg("--content-process");
-            child_process.arg(token);
-
-            if let Ok(value) = env::var("RUST_BACKTRACE") {
-                child_process.env("RUST_BACKTRACE", value);
-            }
-
-            ChildProcess::Unsandboxed(child_process.spawn()
-                                      .expect("Failed to start unsandboxed child process!"))
-        };
-
-        self.child_processes.push(child_process);
-        let (_receiver, sender) = server.accept().expect("Server failed to accept.");
-        if let Err(e) = sender.send(unprivileged_pipeline_content) {
-            self.handle_send_error(pipeline_id, e);
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    fn spawn_multiprocess(&mut self, _: PipelineId, _: UnprivilegedPipelineContent) {
-        error!("Multiprocess is not supported on Windows.");
-        process::exit(1);
     }
 
     // Push a new (loading) pipeline to the list of pending frame changes
