@@ -181,10 +181,6 @@ class CommandBase(object):
         self.config["android"].setdefault("platform", "android-18")
         self.config["android"].setdefault("target", "arm-linux-androideabi")
 
-        self.config.setdefault("gonk", {})
-        self.config["gonk"].setdefault("b2g", "")
-        self.config["gonk"].setdefault("product", "flame")
-
     _rust_path = None
     _cargo_build_id = None
 
@@ -257,7 +253,7 @@ class CommandBase(object):
                                   " --release" if release else ""))
         sys.exit()
 
-    def build_env(self, gonk=False, hosts_file_path=None, target=None):
+    def build_env(self, hosts_file_path=None, target=None):
         """Return an extended environment dictionary."""
         env = os.environ.copy()
         if sys.platform == "win32" and type(env['PATH']) == unicode:
@@ -321,65 +317,6 @@ class CommandBase(object):
             env["ANDROID_TOOLCHAIN"] = self.config["android"]["toolchain"]
         if self.config["android"]["platform"]:
             env["ANDROID_PLATFORM"] = self.config["android"]["platform"]
-
-        if gonk:
-            if self.config["gonk"]["b2g"]:
-                env["GONKDIR"] = self.config["gonk"]["b2g"]
-            if "GONKDIR" not in env:
-                # Things can get pretty opaque if this hasn't been set
-                print("Please set $GONKDIR in your environment or .servobuild file")
-                sys.exit(1)
-            if self.config["gonk"]["product"]:
-                env["GONK_PRODUCT"] = self.config["gonk"]["product"]
-
-            env["ARCH_DIR"] = "arch-arm"
-            env["CPPFLAGS"] = (
-                "-DANDROID -DTARGET_OS_GONK "
-                "-DANDROID_VERSION=19 "
-                "-DGR_GL_USE_NEW_SHADER_SOURCE_SIGNATURE=1 "
-                "-isystem %(gonkdir)s/bionic/libc/%(archdir)s/include "
-                "-isystem %(gonkdir)s/bionic/libc/include/ "
-                "-isystem %(gonkdir)s/bionic/libc/kernel/common "
-                "-isystem %(gonkdir)s/bionic/libc/kernel/%(archdir)s "
-                "-isystem %(gonkdir)s/bionic/libm/include "
-                "-I%(gonkdir)s/system "
-                "-I%(gonkdir)s/system/core/include "
-                "-I%(gonkdir)s/frameworks/native/opengl/include "
-                "-I%(gonkdir)s/external/zlib "
-            ) % {"gonkdir": env["GONKDIR"], "archdir": env["ARCH_DIR"]}
-            env["CXXFLAGS"] = (
-                "-O2 -mandroid -fPIC "
-                "-isystem %(gonkdir)s/api/cpp/include "
-                "-isystem %(gonkdir)s/external/stlport/stlport "
-                "-isystem %(gonkdir)s/bionic "
-                "-isystem %(gonkdir)s/bionic/libstdc++/include "
-                "%(cppflags)s"
-            ) % {"gonkdir": env["GONKDIR"], "cppflags": env["CPPFLAGS"]}
-            env["CFLAGS"] = (
-                "%(cxxflags)s"
-            ) % {"cxxflags": env["CXXFLAGS"]}
-
-            another_extra_path = path.join(
-                env["GONKDIR"], "prebuilts", "gcc", "linux-x86", "arm", "arm-linux-androideabi-4.7", "bin")
-
-            env["gonkdir"] = env["GONKDIR"]
-            env["gonk_toolchain_prefix"] = (
-                "%(toolchain)s/arm-linux-androideabi-"
-            ) % {"toolchain": another_extra_path}
-
-            env["PATH"] = "%s%s%s" % (another_extra_path, os.pathsep, env["PATH"])
-            env["LDFLAGS"] = (
-                "-mandroid -L%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/lib "
-                "-Wl,-rpath-link=%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/lib "
-                "--sysroot=%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/"
-            ) % {"gonkdir": env["GONKDIR"], "gonkproduct": env["GONK_PRODUCT"]}
-
-            # Not strictly necessary for a vanilla build, but might be when tweaking the openssl build
-            openssl_dir = (
-                "%(gonkdir)s/out/target/product/%(gonkproduct)s/obj/lib"
-            ) % {"gonkdir": env["GONKDIR"], "gonkproduct": env["GONK_PRODUCT"]}
-            env["OPENSSL_LIB_DIR"] = openssl_dir
-            env['OPENSSL_INCLUDE_DIR'] = path.join(env["GONKDIR"], "external/openssl/include")
 
         # These are set because they are the variable names that build-apk
         # expects. However, other submodules have makefiles that reference

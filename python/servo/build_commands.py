@@ -321,44 +321,6 @@ class MachCommands(CommandBase):
 
         return ret
 
-    @Command('build-gonk',
-             description='Build the Gonk port',
-             category='build')
-    @CommandArgument('--jobs', '-j',
-                     default=None,
-                     help='Number of jobs to run in parallel')
-    @CommandArgument('--verbose', '-v',
-                     action='store_true',
-                     help='Print verbose output')
-    @CommandArgument('--release', '-r',
-                     action='store_true',
-                     help='Build in release mode')
-    def build_gonk(self, jobs=None, verbose=False, release=False):
-        target = "arm-linux-androideabi"
-        self.ensure_bootstrapped(target=target)
-
-        opts = []
-        if jobs is not None:
-            opts += ["-j", jobs]
-        if verbose:
-            opts += ["-v"]
-        if release:
-            opts += ["--release"]
-
-        opts += ["--target", self.config["android"]["target"]]
-        env = self.build_env(gonk=True)
-        build_start = time()
-        with cd(path.join("ports", "gonk")):
-            ret = call(["cargo", "build"] + opts, env=env, verbose=verbose)
-        elapsed = time() - build_start
-
-        # Generate Desktop Notification if elapsed-time > some threshold value
-        notify_build_done(elapsed)
-
-        print("Gonk build completed in %s" % format_duration(elapsed))
-
-        return ret
-
     @Command('clean',
              description='Clean the build directory.',
              category='build')
