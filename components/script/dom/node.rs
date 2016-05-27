@@ -54,7 +54,7 @@ use euclid::size::Size2D;
 use heapsize::{HeapSizeOf, heap_size_of};
 use html5ever::tree_builder::QuirksMode;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
-use layout_interface::{LayoutChan, Msg};
+use layout_interface::Msg;
 use libc::{self, c_void, uintptr_t};
 use parse::html::parse_html_fragment;
 use ref_slice::ref_slice;
@@ -195,9 +195,8 @@ impl OpaqueStyleAndLayoutData {
     pub fn dispose(self, node: &Node) {
         debug_assert!(thread_state::get().is_script());
         let win = window_from_node(node);
-        let LayoutChan(ref chan) = *win.layout_chan();
         node.style_and_layout_data.set(None);
-        chan.send(Msg::ReapStyleAndLayoutData(self)).unwrap();
+        win.layout_chan().send(Msg::ReapStyleAndLayoutData(self)).unwrap();
     }
 }
 

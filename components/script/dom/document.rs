@@ -92,7 +92,7 @@ use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JS_GetRuntime;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
-use layout_interface::{LayoutChan, Msg, ReflowQueryType};
+use layout_interface::{Msg, ReflowQueryType};
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy, SubpageId};
@@ -404,8 +404,7 @@ impl Document {
         self.quirks_mode.set(mode);
 
         if mode == Quirks {
-            let LayoutChan(ref layout_chan) = *self.window.layout_chan();
-            layout_chan.send(Msg::SetQuirksMode).unwrap();
+            self.window.layout_chan().send(Msg::SetQuirksMode).unwrap();
         }
     }
 
