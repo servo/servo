@@ -65,7 +65,7 @@
 Window implements GlobalEventHandlers;
 Window implements WindowEventHandlers;
 
-// https://html.spec.whatwg.org/multipage/#windowtimers
+// https://html.spec.whatwg.org/multipage/#timers
 [NoInterfaceObject/*, Exposed=Window,Worker*/]
 interface WindowTimers {
   long setTimeout(Function handler, optional long timeout = 0, any... arguments);
