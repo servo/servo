@@ -249,6 +249,18 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-canvas-probablysupportscontext
+    fn ProbablySupportsContext(&self,
+                  cx: *mut JSContext,
+                  id: DOMString,
+                  attributes: Vec<HandleValue>) -> bool {
+        if self.GetContext(cx, id, attributes).is_some() {
+            true
+        } else {
+            false
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-canvas-todataurl
     fn ToDataURL(&self,
                  _context: *mut JSContext,
