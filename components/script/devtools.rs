@@ -21,7 +21,7 @@ use dom::element::Element;
 use dom::node::Node;
 use dom::window::Window;
 use ipc_channel::ipc::IpcSender;
-use js::jsapi::{ObjectClassName, RootedObject, RootedValue};
+use js::jsapi::{JSAutoCompartment, ObjectClassName, RootedObject, RootedValue};
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
 use script_thread::get_browsing_context;
@@ -35,6 +35,8 @@ pub fn handle_evaluate_js(global: &GlobalRef, eval: String, reply: IpcSender<Eva
     // global.get_cx() returns a valid `JSContext` pointer, so this is safe.
     let result = unsafe {
         let cx = global.get_cx();
+        let globalhandle = global.reflector().get_jsobject();
+        let _ac = JSAutoCompartment::new(cx, globalhandle.get());
         let mut rval = RootedValue::new(cx, UndefinedValue());
         global.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
 
