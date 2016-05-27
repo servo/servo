@@ -108,7 +108,6 @@ impl FlexFlow {
     pub fn from_fragment(fragment: Fragment,
                          flotation: Option<FloatKind>)
                          -> FlexFlow {
-
         let (main_mode, is_reverse) = match fragment.style.get_position().flex_direction {
             flex_direction::T::row            => (Mode::Inline, false),
             flex_direction::T::row_reverse    => (Mode::Inline, true),

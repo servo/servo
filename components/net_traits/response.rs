@@ -163,7 +163,6 @@ impl Response {
     /// Convert to a filtered response, of type `filter_type`.
     /// Do not use with type Error or Default
     pub fn to_filtered(self, filter_type: ResponseType) -> Response {
-
         assert!(filter_type != ResponseType::Error);
         assert!(filter_type != ResponseType::Default);
 
@@ -179,7 +178,6 @@ impl Response {
         response.response_type = filter_type;
 
         match filter_type {
-
             ResponseType::Default | ResponseType::Error => unreachable!(),
 
             ResponseType::Basic => {
@@ -193,7 +191,6 @@ impl Response {
             },
 
             ResponseType::CORS => {
-
                 let access = old_headers.get::<AccessControlExposeHeaders>();
                 let allowed_headers = access.as_ref().map(|v| &v[..]).unwrap_or(&[]);
 

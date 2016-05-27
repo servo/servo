@@ -387,7 +387,6 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                             pipeline_id: PipelineId,
                             request_id: String,
                             network_event: NetworkEvent) {
-
         let console_actor_name = match find_console_actor(actors.clone(), pipeline_id, None,
                                                           actor_workers, actor_pipelines) {
             Some(name) => name,

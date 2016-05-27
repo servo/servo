@@ -124,7 +124,6 @@ fn load_for_consumer(load_data: LoadData,
                      devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                      cancel_listener: CancellationListener,
                      user_agent: String) {
-
     let factory = NetworkHttpRequestFactory {
         connector: connector,
     };
@@ -555,7 +554,6 @@ fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             headers: Headers,
                             body: Option<Vec<u8>>,
                             pipeline_id: PipelineId, now: Tm) {
-
     if let Some(ref chan) = devtools_chan {
         let request = DevtoolsHttpRequest {
             url: url, method: method, headers: headers, body: body, pipeline_id: pipeline_id, startedDateTime: now };
@@ -632,7 +630,6 @@ pub fn modify_request_headers(headers: &mut Headers,
 fn set_auth_header(headers: &mut Headers,
                    url: &Url,
                    auth_cache: &Arc<RwLock<AuthCache>>) {
-
     if !headers.has::<Authorization<Basic>>() {
         if let Some(auth) = auth_from_url(url) {
             headers.set(auth);
@@ -694,7 +691,6 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
                           devtools_chan: &Option<Sender<DevtoolsControlMsg>>,
                           request_id: &str)
                           -> Result<A::R, LoadError> where A: HttpRequest + 'static  {
-
     let null_data = None;
     let response;
     let connection_url = replace_hosts(&url);

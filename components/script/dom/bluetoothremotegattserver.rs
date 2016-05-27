@@ -49,7 +49,6 @@ impl BluetoothRemoteGATTServer {
 }
 
 impl BluetoothRemoteGATTServerMethods for BluetoothRemoteGATTServer {
-
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattserver-device
     fn Device(&self) -> Root<BluetoothDevice> {
         self.device.get()

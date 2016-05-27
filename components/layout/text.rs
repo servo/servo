@@ -411,7 +411,6 @@ impl TextRunScanner {
 #[inline]
 fn bounding_box_for_run_metrics(metrics: &RunMetrics, writing_mode: WritingMode)
                                 -> LogicalSize<Au> {
-
     // This does nothing, but it will fail to build
     // when more values are added to the `text-orientation` CSS property.
     // This will be a reminder to update the code below.

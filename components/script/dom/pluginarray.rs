@@ -32,7 +32,6 @@ impl PluginArray {
 impl PluginArrayMethods for PluginArray {
     // https://html.spec.whatwg.org/multipage/#dom-pluginarray-refresh
     fn Refresh(&self, _reload: bool) {
-
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-pluginarray-length

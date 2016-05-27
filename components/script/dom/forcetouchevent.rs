@@ -39,7 +39,6 @@ impl ForceTouchEvent {
 }
 
 impl<'a> ForceTouchEventMethods for &'a ForceTouchEvent {
-
     fn ServoForce(&self) -> Finite<f32> {
         Finite::wrap(self.force)
     }

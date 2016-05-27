@@ -182,7 +182,7 @@ impl Profiler {
                 });
                 // decide if we need to spawn the timer thread
                 match option {
-                    &OutputOptions::FileName(_) => {/* no timer thread needed */},
+                    &OutputOptions::FileName(_) => { /* no timer thread needed */ },
                     &OutputOptions::Stdout(period) => {
                         // Spawn a timer thread
                         let chan = chan.clone();
@@ -389,7 +389,7 @@ impl Profiler {
                 }
                 writeln!(&mut lock, "").unwrap();
             },
-            None => {/* Do nothing if not output option has been set */},
+            None => { /* Do nothing if not output option has been set */ },
         };
     }
 }

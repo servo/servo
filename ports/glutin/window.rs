@@ -785,7 +785,6 @@ impl WindowMethods for Window {
 
     /// Helper function to handle keyboard events.
     fn handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
-
         match (mods, key) {
             (_, Key::Equal) => {
                 if mods & !SHIFT == CMD_OR_CONTROL {

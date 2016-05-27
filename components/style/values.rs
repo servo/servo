@@ -807,7 +807,6 @@ pub mod specified {
     impl ToCss for CalcLengthOrPercentage {
         #[allow(unused_assignments)]
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
-
             macro_rules! count {
                 ( $( $val:ident ),* ) => {
                     {
@@ -1139,7 +1138,6 @@ pub mod specified {
     }
     impl PositionComponent {
         pub fn parse(input: &mut Parser) -> Result<PositionComponent, ()> {
-
             input.try(LengthOrPercentage::parse)
             .map(PositionComponent::LengthOrPercentage)
             .or_else(|()| {

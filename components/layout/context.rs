@@ -120,7 +120,6 @@ impl<'a> StyleContext<'a, ServoSelectorImpl> for LayoutContext<'a> {
 
 impl<'a> LayoutContext<'a> {
     pub fn new(shared_layout_context: &'a SharedLayoutContext) -> LayoutContext<'a> {
-
         let local_context = create_or_get_local_context(shared_layout_context);
 
         LayoutContext {

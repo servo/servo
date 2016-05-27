@@ -867,7 +867,6 @@ impl<'a, ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode>
                             splits,
                             fragments: successors,
                         })) => {
-
                     // Bubble up {ib} splits.
                     self.accumulate_inline_block_splits(splits,
                                                         node,

@@ -75,7 +75,6 @@ impl BluetoothRemoteGATTCharacteristic {
 }
 
 impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteristic {
-
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-properties
     fn Properties(&self) -> Root<BluetoothCharacteristicProperties> {
         self.properties.get()

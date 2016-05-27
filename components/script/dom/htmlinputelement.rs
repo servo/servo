@@ -270,7 +270,6 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
 }
 
 impl HTMLInputElementMethods for HTMLInputElement {
-
     // https://html.spec.whatwg.org/multipage/#dom-input-accept
     make_getter!(Accept, "accept");
 
@@ -786,7 +785,6 @@ impl VirtualMethods for HTMLInputElement {
                         let new_value_mode = self.value_mode();
 
                         match (&old_value_mode, old_idl_value.is_empty(), new_value_mode) {
-
                             // Step 1
                             (&ValueMode::Value, false, ValueMode::Default) |
                             (&ValueMode::Value, false, ValueMode::DefaultOn) => {

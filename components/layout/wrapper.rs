@@ -982,7 +982,6 @@ impl<'a> PartialEq for ServoThreadSafeLayoutNode<'a> {
 }
 
 impl<'ln> DangerousThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
-
     unsafe fn dangerous_first_child(&self) -> Option<Self> {
             self.get_jsmanaged().first_child_ref()
                 .map(|node| self.new_with_this_lifetime(&node))

@@ -471,7 +471,6 @@ const DEFAULT_USER_AGENT: UserAgent = UserAgent::Gonk;
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;
 
 pub fn default_opts() -> Opts {
-
     Opts {
         is_running_problem_test: false,
         url: Some(Url::parse("about:blank").unwrap()),

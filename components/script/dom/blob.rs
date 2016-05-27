@@ -94,7 +94,6 @@ pub struct Blob {
 }
 
 impl Blob {
-
     pub fn new(global: GlobalRef, slice: DataSlice, typeString: &str) -> Root<Blob> {
         let boxed_blob = box Blob::new_inherited(slice, typeString);
         reflect_dom_object(boxed_blob, global, BlobBinding::Wrap)
@@ -114,7 +113,6 @@ impl Blob {
                        blobParts: Option<Vec<BlobOrString>>,
                        blobPropertyBag: &BlobBinding::BlobPropertyBag)
                        -> Fallible<Root<Blob>> {
-
         // TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView
         let bytes: Vec<u8> = match blobParts {
             None => Vec::new(),
@@ -160,7 +158,6 @@ impl BlobMethods for Blob {
              end: Option<i64>,
              contentType: Option<DOMString>)
              -> Root<Blob> {
-
         let relativeContentType = match contentType {
             None => DOMString::new(),
             Some(mut str) => {

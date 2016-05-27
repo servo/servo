@@ -127,7 +127,6 @@ impl TimelineActor {
     pub fn new(name: String,
                pipeline: PipelineId,
                script_sender: IpcSender<DevtoolScriptControlMsg>) -> TimelineActor {
-
         let marker_types = vec!(TimelineMarkerType::Reflow,
                                 TimelineMarkerType::DOMEvent);
 
@@ -270,7 +269,6 @@ impl Emitter {
                stream: TcpStream,
                memory_actor_name: Option<String>,
                framerate_actor_name: Option<String>) -> Emitter {
-
         Emitter {
             from: name,
             stream: stream,

@@ -976,7 +976,6 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
 
 #[test]
 fn test_when_cookie_set_marked_httpsonly_secure_isnt_sent_on_http_request() {
-
     let sec_url = Url::parse("https://mozilla.com").unwrap();
     let url = Url::parse("http://mozilla.com").unwrap();
 
@@ -1609,7 +1608,6 @@ fn test_referer_set_to_origin_with_originonly_policy() {
 
 #[test]
 fn test_referer_set_to_stripped_url_with_unsafeurl_policy() {
-
     let request_url = "http://mozilla.com";
     let referrer_url = "http://username:password@someurl.com/some/path#fragment";
     let referrer_policy = Some(ReferrerPolicy::UnsafeUrl);
@@ -1787,7 +1785,6 @@ fn test_no_referrer_policy_follows_noreferrerwhendowngrade_http_to_http() {
 
 #[test]
 fn test_no_referer_set_with_noreferrer_policy() {
-
     let request_url = "http://mozilla.com";
     let referrer_url = "http://someurl.com";
     let referrer_policy = Some(ReferrerPolicy::NoReferrer);

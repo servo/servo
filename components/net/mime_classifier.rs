@@ -266,7 +266,6 @@ trait Matches {
 }
 
 impl <'a, T: Iterator<Item=&'a u8> + Clone> Matches for T {
-
     // Matching function that works on an iterator.
     // see if the next matches.len() bytes in data_iterator equal matches
     // move iterator and return true or just return false
@@ -587,7 +586,6 @@ struct FeedsClassifier;
 impl FeedsClassifier {
     // Implements sniffing for mislabeled feeds (https://mimesniff.spec.whatwg.org/#sniffing-a-mislabeled-feed)
     fn classify_impl(&self, data: &[u8]) -> Option<(&'static str, &'static str)> {
-
         // Step 4: can not be feed unless length is > 3
         if data.len() < 3 {
             return None;
@@ -603,7 +601,6 @@ impl FeedsClassifier {
         // TODO: need max_bytes to prevent inadvertently examining html document
         //       eg. an html page with a feed example
         loop {
-
             if matcher.find(|&x| *x == b'<').is_none() {
                 return None;
             }

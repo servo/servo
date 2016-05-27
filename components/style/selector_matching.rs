@@ -268,7 +268,6 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                                          -> Option<Arc<Impl::ComputedValues>> {
         debug_assert!(Impl::pseudo_element_cascade_type(pseudo).is_precomputed());
         if let Some(declarations) = self.precomputed_pseudo_element_decls.get(pseudo) {
-
             let (computed, _) =
                 properties::cascade(self.device.au_viewport_size(),
                                     &declarations, false,

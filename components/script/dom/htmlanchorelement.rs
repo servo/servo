@@ -516,7 +516,6 @@ impl Activatable for HTMLAnchorElement {
         let mut ismap_suffix = None;
         if let Some(element) = target.downcast::<Element>() {
             if target.is::<HTMLImageElement>() && element.has_attribute(&atom!("ismap")) {
-
                 let target_node = element.upcast::<Node>();
                 let rect = window_from_node(target_node).content_box_query(
                     target_node.to_trusted_node_address());

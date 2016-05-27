@@ -422,7 +422,6 @@ impl DisplayList {
                                  traversal: &mut DisplayListTraversal<'a>,
                                  paint_context: &mut PaintContext,
                                  transform: &Matrix4D<f32>) {
-
         if stacking_context.context_type != StackingContextType::Real {
             self.draw_stacking_context_contents(stacking_context,
                                                 traversal,

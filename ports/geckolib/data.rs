@@ -20,7 +20,6 @@ use util::thread_state;
 use util::workqueue::WorkQueue;
 
 pub struct PerDocumentStyleData {
-
     /// Rule processor.
     pub stylist: Arc<Stylist>,
 

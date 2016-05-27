@@ -778,7 +778,6 @@ impl WebDriverHandler<ServoExtensionRoute> for Handler {
     fn handle_command(&mut self,
                       _session: &Option<Session>,
                       msg: &WebDriverMessage<ServoExtensionRoute>) -> WebDriverResult<WebDriverResponse> {
-
         // Unless we are trying to create a new session, we need to ensure that a
         // session has previously been created
         match msg.command {
