@@ -17,6 +17,7 @@
 #![feature(optin_builtin_traits)]
 #![feature(peekable_is_empty)]
 #![feature(plugin)]
+#![feature(question_mark)]
 #![feature(slice_patterns)]
 #![feature(stmt_expr_attributes)]
 
@@ -59,6 +60,7 @@ extern crate msg;
 extern crate net_traits;
 extern crate num_traits;
 extern crate offscreen_gl_context;
+extern crate open;
 extern crate phf;
 #[macro_use]
 extern crate profile_traits;
