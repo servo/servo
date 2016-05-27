@@ -909,6 +909,8 @@ impl ScriptThread {
                 self.handle_tick_all_animations(pipeline_id),
             ConstellationControlMsg::WebFontLoaded(pipeline_id) =>
                 self.handle_web_font_loaded(pipeline_id),
+            ConstellationControlMsg::ImageLoaded(pipeline_id) =>
+                self.handle_image_loaded(pipeline_id),
             ConstellationControlMsg::DispatchFrameLoadEvent {
                 target: pipeline_id, parent: containing_id } =>
                 self.handle_frame_load_event(containing_id, pipeline_id),
@@ -916,6 +918,8 @@ impl ScriptThread {
                 self.handle_framed_content_changed(containing_pipeline_id, subpage_id),
             ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
+            ConstellationControlMsg::AnyImagesOutstanding(pipeline_id, sender) =>
+                self.handle_any_images_outstanding(pipeline_id, sender),
         }
     }
 
@@ -996,7 +1000,12 @@ impl ScriptThread {
     }
 
     fn handle_msg_from_image_cache(&self, msg: ImageCacheResult) {
-        msg.responder.unwrap().respond(msg.image_response);
+        match msg {
+            ImageCacheResult::InitiateRequest(responder) =>
+                responder.unwrap().initiate_request(),
+            ImageCacheResult::Response(response) =>
+                response.responder.unwrap().respond(response.image_response),
+        }
     }
 
     fn handle_msg_from_network(&self, msg: IpcSender<Option<CustomResponse>>) {
@@ -1381,8 +1390,15 @@ impl ScriptThread {
 
     /// Handles a Web font being loaded. Does nothing if the page no longer exists.
     fn handle_web_font_loaded(&self, pipeline_id: PipelineId) {
-        if let Some(context) = self.find_child_context(pipeline_id)  {
+        if let Some(context) = self.find_child_context(pipeline_id) {
             self.rebuild_and_force_reflow(&context, ReflowReason::WebFontLoaded);
+        }
+    }
+
+    /// Handles a image being loaded. Does nothing if the page no longer exists.
+    fn handle_image_loaded(&self, pipeline_id: PipelineId) {
+        if let Some(context) = self.find_child_context(pipeline_id)  {
+            self.rebuild_and_force_reflow(&context, ReflowReason::ImageLoaded);
         }
     }
 
@@ -1980,6 +1996,14 @@ impl ScriptThread {
             let message = ScriptToDevtoolsControlMsg::ReportCSSError(pipeline_id, css_error);
             sender.send(message).unwrap();
         }
+    }
+
+    fn handle_any_images_outstanding(&self, pipeline_id: PipelineId, sender: IpcSender<bool>) {
+        let context = self.find_child_context(pipeline_id).expect(
+            "ScriptThread: received fire timer msg for a \
+             pipeline ID not associated with this script thread. This is a bug.");
+        let window = context.active_window();
+        let _ = sender.send(window.get_pending_reflow_count() != 0);
     }
 }
 

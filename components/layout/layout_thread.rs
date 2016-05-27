@@ -38,8 +38,9 @@ use layout_debug;
 use layout_traits::{ConvertPipelineIdToWebRender, LayoutThreadFactory};
 use log;
 use msg::constellation_msg::{PanicMsg, PipelineId};
+use net_traits::ResourceThreads;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
-use net_traits::image_cache_thread::{UsePlaceholder};
+use net_traits::image_cache_thread::{UsePlaceholder, ImageCacheResultResponse, ImageResponse};
 use parallel;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
@@ -52,7 +53,7 @@ use script::dom::node::OpaqueStyleAndLayoutData;
 use script::layout_interface::{LayoutRPC, OffsetParentResponse, NodeOverflowResponse, MarginStyleResponse};
 use script::layout_interface::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
 use script::reporter::CSSErrorReporter;
-use script_traits::ConstellationControlMsg;
+use script_traits::{ConstellationControlMsg, PendingResources};
 use script_traits::{LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use sequential;
 use serde_json;
@@ -175,6 +176,9 @@ pub struct LayoutThread {
     /// The channel on which messages can be sent to the painting thread.
     paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
 
+    /// The channel on which messages can be sent to the network thread.
+    pub resource_chan: ResourceThreads,
+
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: time::ProfilerChan,
 
@@ -203,6 +207,12 @@ pub struct LayoutThread {
 
     /// Receives newly-discovered animations.
     new_animations_receiver: Receiver<Animation>,
+
+    /// The number of images that have been requested but not yet loaded.
+    last_outstanding_image_count: usize,
+
+    /// The number of images that have been requested but not yet loaded.
+    pending_images: usize,
 
     /// The number of Web fonts that have been requested but not yet loaded.
     outstanding_web_fonts: Arc<AtomicUsize>,
@@ -261,6 +271,7 @@ impl LayoutThreadFactory for LayoutThread {
               font_cache_thread: FontCacheThread,
               time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
+              resource_chan: ResourceThreads,
               shutdown_chan: IpcSender<()>,
               content_process_shutdown_chan: IpcSender<()>,
               webrender_api_sender: Option<webrender_traits::RenderApiSender>) {
@@ -277,6 +288,7 @@ impl LayoutThreadFactory for LayoutThread {
                                              constellation_chan,
                                              script_chan,
                                              paint_chan,
+                                             resource_chan,
                                              image_cache_thread,
                                              font_cache_thread,
                                              time_profiler_chan,
@@ -387,6 +399,7 @@ impl LayoutThread {
            constellation_chan: IpcSender<ConstellationMsg>,
            script_chan: IpcSender<ConstellationControlMsg>,
            paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
+           resource_chan: ResourceThreads,
            image_cache_thread: ImageCacheThread,
            font_cache_thread: FontCacheThread,
            time_profiler_chan: time::ProfilerChan,
@@ -438,6 +451,7 @@ impl LayoutThread {
             script_chan: script_chan.clone(),
             constellation_chan: constellation_chan.clone(),
             paint_chan: paint_chan,
+            resource_chan: resource_chan,
             time_profiler_chan: time_profiler_chan,
             mem_profiler_chan: mem_profiler_chan,
             image_cache_thread: image_cache_thread,
@@ -451,6 +465,8 @@ impl LayoutThread {
             generation: 0,
             new_animations_sender: new_animations_sender,
             new_animations_receiver: new_animations_receiver,
+            last_outstanding_image_count: 0,
+            pending_images: 0,
             outstanding_web_fonts: outstanding_web_fonts_counter,
             root_flow: None,
             visible_rects: Arc::new(HashMap::with_hasher(Default::default())),
@@ -516,12 +532,15 @@ impl LayoutThread {
                 expired_animations: self.expired_animations.clone(),
                 error_reporter: self.error_reporter.clone(),
             },
+            pipeline: self.id.clone(),
+            resource_chan: Mutex::new(self.resource_chan.clone()),
             image_cache_thread: self.image_cache_thread.clone(),
             image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
             url: (*url).clone(),
             visible_rects: self.visible_rects.clone(),
             webrender_image_cache: self.webrender_image_cache.clone(),
+            outstanding_images: Arc::new(AtomicUsize::new(self.last_outstanding_image_count)),
         }
     }
 
@@ -530,7 +549,7 @@ impl LayoutThread {
         enum Request {
             FromPipeline(LayoutControlMsg),
             FromScript(Msg),
-            FromImageCache,
+            FromImageCache(ImageCacheResult),
             FromFontCache,
         }
 
@@ -547,8 +566,7 @@ impl LayoutThread {
                     Request::FromScript(msg.unwrap())
                 },
                 msg = port_from_image_cache.recv() => {
-                    msg.unwrap();
-                    Request::FromImageCache
+                    Request::FromImageCache(msg.unwrap())
                 },
                 msg = port_from_font_cache.recv() => {
                     msg.unwrap();
@@ -568,8 +586,8 @@ impl LayoutThread {
             Request::FromPipeline(LayoutControlMsg::GetCurrentEpoch(sender)) => {
                 self.handle_request_helper(Msg::GetCurrentEpoch(sender), possibly_locked_rw_data)
             },
-            Request::FromPipeline(LayoutControlMsg::GetWebFontLoadState(sender)) => {
-                self.handle_request_helper(Msg::GetWebFontLoadState(sender),
+            Request::FromPipeline(LayoutControlMsg::GetResourceLoadState(sender)) => {
+                self.handle_request_helper(Msg::GetResourceLoadState(sender),
                                            possibly_locked_rw_data)
             },
             Request::FromPipeline(LayoutControlMsg::ExitNow) => {
@@ -578,8 +596,20 @@ impl LayoutThread {
             Request::FromScript(msg) => {
                 self.handle_request_helper(msg, possibly_locked_rw_data)
             },
-            Request::FromImageCache => {
-                self.repaint(possibly_locked_rw_data)
+            Request::FromImageCache(msg) => {
+                match msg {
+                    ImageCacheResult::Response(response) => {
+                        match response.image_response {
+                            ImageResponse::Loaded(_) | ImageResponse::PlaceholderLoaded(_) => {
+                                self.pending_images += 1;
+                            }
+                            _ => {}
+                        }
+                    }
+                    _ => {}
+                }
+                self.script_chan.send(ConstellationControlMsg::ImageLoaded(self.id));
+                true
             },
             Request::FromFontCache => {
                 let _rw_data = possibly_locked_rw_data.lock();
@@ -617,6 +647,7 @@ impl LayoutThread {
                                                      &mut *rw_data,
                                                      &mut layout_context);
 
+        //XXXjdm update count of outstanding images??
 
         true
     }
@@ -660,10 +691,15 @@ impl LayoutThread {
                 let _rw_data = possibly_locked_rw_data.lock();
                 sender.send(self.epoch).unwrap();
             },
-            Msg::GetWebFontLoadState(sender) => {
+            Msg::GetResourceLoadState(sender) => {
                 let _rw_data = possibly_locked_rw_data.lock();
                 let outstanding_web_fonts = self.outstanding_web_fonts.load(Ordering::SeqCst);
-                sender.send(outstanding_web_fonts != 0).unwrap();
+                let outstanding_images = self.last_outstanding_image_count;
+                let pending = PendingResources {
+                    web_font: outstanding_web_fonts != 0,
+                    image: outstanding_images != 0,
+                };
+                sender.send(pending).unwrap();
             },
             Msg::CreateLayoutThread(info) => {
                 self.create_layout_thread(info)
@@ -744,6 +780,7 @@ impl LayoutThread {
                              self.font_cache_thread.clone(),
                              self.time_profiler_chan.clone(),
                              self.mem_profiler_chan.clone(),
+                             self.resource_chan.clone(),
                              info.layout_shutdown_chan,
                              info.content_process_shutdown_chan,
                              self.webrender_api.as_ref().map(|wr| wr.clone_sender()));
@@ -999,6 +1036,10 @@ impl LayoutThread {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
 
+        //XXX this only makes sense if the relevant nodes are being reflowed
+        self.last_outstanding_image_count -= self.pending_images;
+        self.pending_images = 0;
+
         debug!("layout: received layout request for: {}", *self.url.borrow());
 
         let mut rw_data = possibly_locked_rw_data.lock();
@@ -1156,6 +1197,10 @@ impl LayoutThread {
         self.perform_post_style_recalc_layout_passes(&data.reflow_info,
                                                      &mut rw_data,
                                                      &mut shared_layout_context);
+
+        self.last_outstanding_image_count =
+            shared_layout_context.outstanding_images.load(Ordering::SeqCst);
+        debug!("outstanding images: {}", self.last_outstanding_image_count);
 
         if let Some(mut root_flow) = self.root_flow.clone() {
             match data.query_type {

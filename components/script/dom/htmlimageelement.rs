@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use document_loader::{LoadType, LoadBlocker};
 use dom::attr::Attr;
 use dom::attr::AttrValue;
 use dom::bindings::cell::DOMRefCell;
@@ -22,14 +23,17 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeDamage, document_from_node, window_from_node};
 use dom::values::UNSIGNED_LONG_MAX;
 use dom::virtualmethods::VirtualMethods;
-use ipc_channel::ipc;
+use hyper::http::RawStatus;
+use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use net_traits::image::base::{Image, ImageMetadata};
-use net_traits::image_cache_thread::{ImageResponder, ImageResponse};
+use net_traits::image_cache_thread::{ImageResponder, ImageResponse, ImageListenerResponse};
+use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
+use network_listener::{NetworkListener, PreInvoke};
 use script_runtime::CommonScriptMsg;
 use script_runtime::ScriptThreadEventCategory::UpdateReplacedElement;
 use script_thread::Runnable;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use url::Url;
 use util::str::LengthOrPercentageOrAuto;
@@ -43,9 +47,11 @@ enum State {
     Broken,
 }
 #[derive(JSTraceable, HeapSizeOf)]
+#[must_root]
 struct ImageRequest {
     state: State,
     url: Option<Url>,
+    blocker: Option<LoadBlocker>,
     image: Option<Arc<Image>>,
     metadata: Option<ImageMetadata>,
 }
@@ -62,6 +68,60 @@ impl HTMLImageElement {
     }
 }
 
+struct ImageRequestRunnable {
+    element: Trusted<HTMLImageElement>,
+    img_url: Url,
+    responder_sender: IpcSender<ImageListenerResponse>,
+}
+
+impl ImageRequestRunnable {
+    fn new(element: Trusted<HTMLImageElement>,
+           img_url: Url,
+           responder_sender: IpcSender<ImageListenerResponse>)
+           -> ImageRequestRunnable {
+        ImageRequestRunnable {
+            element: element,
+            img_url: img_url,
+            responder_sender: responder_sender,
+        }
+    }
+}
+
+impl Runnable for ImageRequestRunnable {
+    fn handler(self: Box<Self>) {
+        let this = *self;
+        let trusted_node = this.element.clone();
+        let element = this.element.root();
+
+        let window = window_from_node(&*element);
+        let script_chan = window.networking_task_source();
+
+        //LoadBlocker::terminate(&mut element.current_request.borrow_mut().blocker);
+
+        let context = Arc::new(Mutex::new(ImageContext {
+            elem: trusted_node,
+            data: vec!(),
+            metadata: None,
+            url: this.img_url.clone(),
+            status: Ok(()),
+            responder: this.responder_sender,
+        }));
+
+        let (action_sender, action_receiver) = ipc::channel().unwrap();
+        let listener = NetworkListener {
+            context: context,
+            script_chan: script_chan,
+        };
+        let response_target = AsyncResponseTarget {
+            sender: action_sender,
+        };
+        ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
+            listener.notify(message.to().unwrap());
+        });
+        document_from_node(&*element).load_async(LoadType::Image(this.img_url), response_target);
+
+    }
+}
 
 struct ImageResponseHandlerRunnable {
     element: Trusted<HTMLImageElement>,
@@ -101,6 +161,7 @@ impl Runnable for ImageResponseHandlerRunnable {
 
         // Fire image.onload
         if trigger_image_load {
+            LoadBlocker::terminate(&mut element.current_request.borrow_mut().blocker);
             element.upcast::<EventTarget>().fire_simple_event("load");
         }
 
@@ -110,15 +171,72 @@ impl Runnable for ImageResponseHandlerRunnable {
     }
 }
 
+/// The context required for asynchronously loading an external image.
+struct ImageContext {
+    /// The element that initiated the request.
+    elem: Trusted<HTMLImageElement>,
+    /// The response body received to date.
+    data: Vec<u8>,
+    /// The response metadata received to date.
+    metadata: Option<Metadata>,
+    /// The initial URL requested.
+    url: Url,
+    /// Indicates whether the request failed, and why
+    status: Result<(), NetworkError>,
+    ///
+    responder: IpcSender<ImageListenerResponse>,
+}
+
+impl AsyncResponseListener for ImageContext {
+    fn headers_available(&mut self, metadata: Result<Metadata, NetworkError>) {
+        self.metadata = metadata.ok();
+
+        let status_code = self.metadata.as_ref().and_then(|m| {
+            match m.status {
+                Some(RawStatus(c, _)) => Some(c),
+                _ => None,
+            }
+        }).unwrap_or(0);
+
+        self.status = match status_code {
+            0 => Err(NetworkError::Internal("No http status code received".to_owned())),
+            200...299 => Ok(()), // HTTP ok status codes
+            _ => Err(NetworkError::Internal(format!("HTTP error code {}", status_code)))
+        };
+    }
+
+    fn data_available(&mut self, payload: Vec<u8>) {
+        if self.status.is_ok() {
+            let mut payload = payload;
+            self.data.append(&mut payload);
+        }
+    }
+
+    fn response_complete(&mut self, _status: Result<(), NetworkError>) {
+        let elem = self.elem.root();
+        let document = document_from_node(elem.r());
+        let window = document.window();
+        let image_cache = window.image_cache_thread();
+        image_cache.store_complete_image_bytes(self.url.clone(), self.data.clone());
+        /*let responder = self.responder.clone();
+        image_cache.request_image_and_metadata(self.url.clone(),
+                                               window.image_cache_chan(),
+                                               Some(ImageResponder::new(responder)));*/
+        document.finish_load(LoadType::Image(self.url.clone()));
+    }
+}
+
+impl PreInvoke for ImageContext {}
+
 impl HTMLImageElement {
     /// Makes the local `image` member match the status of the `src` attribute and starts
     /// prefetching the image. This method must be called after `src` is changed.
     fn update_image(&self, value: Option<(DOMString, Url)>) {
         let document = document_from_node(self);
         let window = document.window();
-        let image_cache = window.image_cache_thread();
         match value {
             None => {
+                LoadBlocker::terminate(&mut self.current_request.borrow_mut().blocker);
                 self.current_request.borrow_mut().url = None;
                 self.current_request.borrow_mut().image = None;
             }
@@ -127,25 +245,42 @@ impl HTMLImageElement {
                 // FIXME: handle URL parse errors more gracefully.
                 let img_url = img_url.unwrap();
                 self.current_request.borrow_mut().url = Some(img_url.clone());
+                self.current_request.borrow_mut().blocker =
+                    Some(LoadBlocker::new(&*document, LoadType::Image(img_url.clone())));
 
                 let trusted_node = Trusted::new(self);
                 let (responder_sender, responder_receiver) = ipc::channel().unwrap();
                 let script_chan = window.networking_task_source();
                 let wrapper = window.get_runnable_wrapper();
+                let img_url_cloned = img_url.clone();
+                let responder_sender_cloned = responder_sender.clone();
                 ROUTER.add_route(responder_receiver.to_opaque(), box move |message| {
                     // Return the image via a message to the script thread, which marks the element
                     // as dirty and triggers a reflow.
                     let image_response = message.to().unwrap();
-                    let runnable = ImageResponseHandlerRunnable::new(
-                        trusted_node.clone(), image_response);
-                    let runnable = wrapper.wrap_runnable(runnable);
-                    let _ = script_chan.send(CommonScriptMsg::RunnableMsg(
-                        UpdateReplacedElement, runnable));
+                    match image_response {
+                        ImageListenerResponse::InitiateRequest => {
+                            let runnable = ImageRequestRunnable::new(
+                                trusted_node.clone(), img_url.clone(), responder_sender.clone());
+                            let runnable = wrapper.wrap_runnable(runnable);
+                            let _ = script_chan.send(CommonScriptMsg::RunnableMsg(
+                                UpdateReplacedElement, runnable));
+                        }
+                        ImageListenerResponse::Complete(image_response) => {
+                            let runnable = ImageResponseHandlerRunnable::new(
+                                trusted_node.clone(), image_response);
+                            let runnable = wrapper.wrap_runnable(runnable);
+                            let _ = script_chan.send(CommonScriptMsg::RunnableMsg(
+                                UpdateReplacedElement, runnable));
+                        }
+                    }
                 });
 
-                image_cache.request_image_and_metadata(img_url,
-                                          window.image_cache_chan(),
-                                          Some(ImageResponder::new(responder_sender)));
+                let image_cache = window.image_cache_thread();
+                image_cache.request_image_and_metadata(img_url_cloned,
+                                                       window.image_cache_chan(),
+                                                       Some(ImageResponder::new(
+                                                           responder_sender_cloned)));
             }
         }
     }
@@ -156,13 +291,15 @@ impl HTMLImageElement {
                 state: State::Unavailable,
                 url: None,
                 image: None,
-                metadata: None
+                metadata: None,
+                blocker: None,
             }),
             pending_request: DOMRefCell::new(ImageRequest {
                 state: State::Unavailable,
                 url: None,
                 image: None,
-                metadata: None
+                metadata: None,
+                blocker: None,
             }),
         }
     }

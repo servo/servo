@@ -65,6 +65,16 @@ pub struct UntrustedNodeAddress(pub *const c_void);
 #[allow(unsafe_code)]
 unsafe impl Send for UntrustedNodeAddress {}
 
+/// The resources that have been requested by the layout thread that have not
+/// yet completed loading.
+#[derive(Deserialize, Serialize)]
+pub struct PendingResources {
+    /// Outstanding web fonts.
+    pub web_font: bool,
+    /// Outstanding images.
+    pub image: bool,
+}
+
 /// Messages sent to the layout thread from the constellation and/or compositor.
 #[derive(Deserialize, Serialize)]
 pub enum LayoutControlMsg {
@@ -78,7 +88,7 @@ pub enum LayoutControlMsg {
     SetVisibleRects(Vec<(LayerId, Rect<Au>)>),
     /// Requests the current load state of Web fonts. `true` is returned if fonts are still loading
     /// and `false` is returned if all fonts have loaded.
-    GetWebFontLoadState(IpcSender<bool>),
+    GetResourceLoadState(IpcSender<PendingResources>),
 }
 
 /// The initial data associated with a newly-created framed pipeline.
@@ -143,6 +153,9 @@ pub enum ConstellationControlMsg {
     /// Notifies the script thread that a new Web font has been loaded, and thus the page should be
     /// reflowed.
     WebFontLoaded(PipelineId),
+    /// Notifies the script thread that a new image has been loaded, and thus the page should be
+    /// reflowed.
+    ImageLoaded(PipelineId),
     /// Cause a `load` event to be dispatched at the appropriate frame element.
     DispatchFrameLoadEvent {
         /// The pipeline that has been marked as loaded.
@@ -154,6 +167,8 @@ pub enum ConstellationControlMsg {
     FramedContentChanged(PipelineId, SubpageId),
     /// Report an error from a CSS parser for the given pipeline
     ReportCSSError(PipelineId, String, usize, usize, String),
+    ///
+    AnyImagesOutstanding(PipelineId, IpcSender<bool>),
 }
 
 /// Used to determine if a script has any pending asynchronous activity.
