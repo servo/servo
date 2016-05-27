@@ -1817,24 +1817,25 @@ impl ScriptThread {
     /// The entry point for content to notify that a new load has been requested
     /// for the given pipeline (specifically the "navigate" algorithm).
     fn handle_navigate(&self, pipeline_id: PipelineId, subpage_id: Option<SubpageId>, load_data: LoadData) {
-        // Step 8.
+        // Step 6.
         {
             let nurl = &load_data.url;
-            if let Some(fragment) = nurl.fragment() {
-                let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
-                let document = context.active_document();
-                let document = document.r();
-                let url = document.url();
-                if &url[..Position::AfterQuery] == &nurl[..Position::AfterQuery] &&
-                    load_data.method == Method::Get {
-                    match document.find_fragment_node(fragment) {
-                        Some(ref node) => {
-                            self.scroll_fragment_point(pipeline_id, node.r());
-                        }
-                        None => {}
+            let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
+            let document = context.active_document();
+            let document = document.r();
+            let url = document.url();
+            if &url[..Position::AfterQuery] == &nurl[..Position::AfterQuery] &&
+                load_data.method == Method::Get {
+                if let Some(fragment) = nurl.fragment() {
+                    if let Some(ref node) = document.find_fragment_node(fragment) {
+                        self.scroll_fragment_point(pipeline_id, node.r());
                     }
-                    return;
                 }
+                // TODO: Revisit this return statement when a decission is taken
+                // in https://github.com/whatwg/html/issues/1177.
+                //
+                // See #10954 for discussion and background.
+                return;
             }
         }
 

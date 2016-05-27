@@ -35938,6 +35938,12 @@
     "deleted_reftests": {},
     "items": {
       "testharness": {
+        "html/browsers/browsing-the-web/navigating-across-documents/empty_fragment.html": [
+          {
+            "path": "html/browsers/browsing-the-web/navigating-across-documents/empty_fragment.html",
+            "url": "/html/browsers/browsing-the-web/navigating-across-documents/empty_fragment.html"
+          }
+        ],
         "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html": [
           {
             "path": "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html",
