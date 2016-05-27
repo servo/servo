@@ -9,6 +9,7 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use encoding::all::UTF_8;
 use encoding::types::{EncoderTrap, Encoding};
 use num_traits::ToPrimitive;
@@ -17,7 +18,6 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::cmp::{max, min};
 use std::sync::Arc;
-use util::str::DOMString;
 
 #[derive(Clone, JSTraceable)]
 pub struct DataSlice {

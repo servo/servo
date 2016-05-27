@@ -37,6 +37,7 @@ use devtools_traits::WorkerId;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::bindings::str::DOMString;
 use dom::bindings::utils::WindowProxyHandler;
 use dom::worker::SharedRt;
 use encoding::types::EncodingRef;
@@ -55,12 +56,12 @@ use js::jsval::JSVal;
 use js::rust::Runtime;
 use layout_interface::{LayoutChan, LayoutRPC};
 use libc;
-use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData, WindowSizeType, ReferrerPolicy};
+use msg::constellation_msg::{FrameType, PipelineId, SubpageId, WindowSizeData, WindowSizeType, ReferrerPolicy};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::response::HttpsState;
 use net_traits::storage_thread::StorageType;
-use net_traits::{Metadata, NetworkError};
+use net_traits::{Metadata, NetworkError, ResourceThreads};
 use offscreen_gl_context::GLLimits;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
@@ -89,7 +90,7 @@ use style::selector_impl::PseudoElement;
 use style::values::specified::Length;
 use url::Origin as UrlOrigin;
 use url::Url;
-use util::str::{DOMString, LengthOrPercentageOrAuto};
+use util::str::LengthOrPercentageOrAuto;
 use uuid::Uuid;
 use webrender_traits::WebGLError;
 
@@ -289,7 +290,7 @@ no_jsmanaged_fields!(PropertyDeclarationBlock);
 no_jsmanaged_fields!(HashSet<T>);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
-no_jsmanaged_fields!(SubpageId, WindowSizeData, WindowSizeType, PipelineId);
+no_jsmanaged_fields!(FrameType, SubpageId, WindowSizeData, WindowSizeType, PipelineId);
 no_jsmanaged_fields!(TimerEventId, TimerSource);
 no_jsmanaged_fields!(WorkerId);
 no_jsmanaged_fields!(QuirksMode);
@@ -321,6 +322,7 @@ no_jsmanaged_fields!(HttpsState);
 no_jsmanaged_fields!(SharedRt);
 no_jsmanaged_fields!(TouchpadPressurePhase);
 no_jsmanaged_fields!(ReferrerPolicy);
+no_jsmanaged_fields!(ResourceThreads);
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]

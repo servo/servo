@@ -8,6 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLStyleElementBinding;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;
@@ -17,9 +18,9 @@ use layout_interface::{LayoutChan, Msg};
 use std::sync::Arc;
 use string_cache::Atom;
 use style::media_queries::parse_media_query_list;
+use style::parser::ParserContextExtraData;
 use style::servo::Stylesheet;
 use style::stylesheets::Origin;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLStyleElement {
@@ -60,7 +61,8 @@ impl HTMLStyleElement {
         };
 
         let data = node.GetTextContent().expect("Element.textContent must be a string");
-        let mut sheet = Stylesheet::from_str(&data, url, Origin::Author, win.css_error_reporter());
+        let mut sheet = Stylesheet::from_str(&data, url, Origin::Author, win.css_error_reporter(),
+                                             ParserContextExtraData::default());
         let mut css_parser = CssParser::new(&mq_str);
         let media = parse_media_query_list(&mut css_parser);
         sheet.set_media(Some(media));

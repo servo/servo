@@ -8,6 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLFontElementBinding;
 use dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, RawLayoutElementHelpers};
 use dom::htmlelement::HTMLElement;
@@ -15,7 +16,7 @@ use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
 use style::values::specified;
-use util::str::{DOMString, HTML_SPACE_CHARACTERS, read_numbers};
+use util::str::{HTML_SPACE_CHARACTERS, read_numbers};
 
 #[dom_struct]
 pub struct HTMLFontElement {
@@ -59,7 +60,7 @@ impl HTMLFontElementMethods for HTMLFontElement {
     fn SetSize(&self, value: DOMString) {
         let element = self.upcast::<Element>();
         let length = parse_length(&value);
-        element.set_attribute(&atom!("size"), AttrValue::Length(value, length));
+        element.set_attribute(&atom!("size"), AttrValue::Length(value.into(), length));
     }
 }
 
@@ -70,11 +71,11 @@ impl VirtualMethods for HTMLFontElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("face") => AttrValue::from_atomic(value),
-            &atom!("color") => AttrValue::from_legacy_color(value),
+            &atom!("face") => AttrValue::from_atomic(value.into()),
+            &atom!("color") => AttrValue::from_legacy_color(value.into()),
             &atom!("size") => {
                 let length = parse_length(&value);
-                AttrValue::Length(value, length)
+                AttrValue::Length(value.into(), length)
             },
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }

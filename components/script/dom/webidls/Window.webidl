@@ -20,7 +20,7 @@
   //[Replaceable] readonly attribute BarProp scrollbars;
   //[Replaceable] readonly attribute BarProp statusbar;
   //[Replaceable] readonly attribute BarProp toolbar;
-  //         attribute DOMString status;
+  attribute DOMString status;
   void close();
   //readonly attribute boolean closed;
   //void stop();
@@ -48,8 +48,8 @@
   //readonly attribute ApplicationCache applicationCache;
 
   // user prompts
-  //void alert();
   void alert(DOMString message);
+  void alert();
   //boolean confirm(optional DOMString message = "");
   //DOMString? prompt(optional DOMString message = "", optional DOMString default = "");
   //void print();
@@ -65,7 +65,7 @@
 Window implements GlobalEventHandlers;
 Window implements WindowEventHandlers;
 
-// https://html.spec.whatwg.org/multipage/#windowtimers
+// https://html.spec.whatwg.org/multipage/#timers
 [NoInterfaceObject/*, Exposed=Window,Worker*/]
 interface WindowTimers {
   long setTimeout(Function handler, optional long timeout = 0, any... arguments);

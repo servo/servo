@@ -5,8 +5,8 @@ matrix:
   include:
     - sudo: false
       script:
-         - ./mach test-tidy --self-test
-         - ./mach test-tidy --no-progress
+         - ./mach test-tidy --no-progress --all
+         - ./mach test-tidy --no-progress --self-test
       cache: false
     - sudo: 9000
       dist: trusty

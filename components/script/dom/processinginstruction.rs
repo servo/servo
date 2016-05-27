@@ -5,10 +5,10 @@
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding;
 use dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use dom::bindings::js::Root;
+use dom::bindings::str::DOMString;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::node::Node;
-use util::str::DOMString;
 
 /// An HTML processing instruction node.
 #[dom_struct]

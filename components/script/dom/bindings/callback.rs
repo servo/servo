@@ -164,7 +164,7 @@ impl CallSetup {
     /// Performs the setup needed to make a call.
     #[allow(unrooted_must_root)]
     pub fn new<T: CallbackContainer>(callback: &T, handling: ExceptionHandling) -> CallSetup {
-        let global = global_root_from_object(callback.callback());
+        let global = unsafe { global_root_from_object(callback.callback()) };
         let cx = global.r().get_cx();
 
         let exception_compartment = unsafe {

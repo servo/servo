@@ -9,10 +9,12 @@ use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::str::DOMString;
 use dom::blob::{Blob, DataSlice, blob_parts_to_bytes};
+use dom::window::Window;
+use net_traits::filemanager_thread::SelectedFile;
 use std::sync::Arc;
 use time;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct File {
@@ -45,6 +47,17 @@ impl File {
                            FileBinding::Wrap)
     }
 
+    // Construct from selected file message from file manager thread
+    pub fn new_from_selected(window: &Window, selected: SelectedFile) -> Root<File> {
+        let name = DOMString::from(selected.filename.to_str().expect("File name encoding error"));
+
+        let slice = DataSlice::empty();
+
+        let global = GlobalRef::Window(window);
+
+        File::new(global, slice, name, Some(selected.modified as i64), "")
+    }
+
     // https://w3c.github.io/FileAPI/#file-constructor
     pub fn Constructor(global: GlobalRef,
                        fileBits: Vec<BlobOrString>,
@@ -64,7 +77,6 @@ impl File {
     pub fn name(&self) -> &DOMString {
         &self.name
     }
-
 }
 
 impl FileMethods for File {

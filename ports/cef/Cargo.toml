@@ -27,7 +27,7 @@ log = {version = "0.3.5", features = ["release_max_level_info"]}
 script_traits = {path = "../../components/script_traits"}
 net_traits = {path = "../../components/net_traits"}
 msg = {path = "../../components/msg"}
-util = {path = "../../components/util", features = ["non-geckolib"]}
+util = {path = "../../components/util"}
 style_traits = {path = "../../components/style_traits"}
 devtools = {path = "../../components/devtools"}
 layers = {git = "https://github.com/servo/rust-layers"}

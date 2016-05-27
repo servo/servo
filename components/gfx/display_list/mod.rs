@@ -1409,20 +1409,21 @@ pub enum FragmentType {
 /// A unique ID for every stacking context.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, RustcEncodable, Serialize)]
 pub struct StackingContextId(
-    /// The type of the fragment for this StackingContext. This serves to differentiate
-    /// StackingContexts that share fragments.
-    FragmentType,
-    /// The identifier for this StackingContexts, derived from the Flow's memory address.
+    /// The identifier for this StackingContext, derived from the Flow's memory address
+    /// and fragment type.  As a space optimization, these are combined into a single word.
     usize
 );
 
 impl StackingContextId {
+    #[inline(always)]
     pub fn new(id: usize) -> StackingContextId {
-        StackingContextId(FragmentType::FragmentBody, id)
+        StackingContextId::new_of_type(id, FragmentType::FragmentBody)
     }
 
+    #[inline(always)]
     pub fn new_of_type(id: usize, fragment_type: FragmentType) -> StackingContextId {
-        StackingContextId(fragment_type, id)
+        debug_assert_eq!(id & fragment_type as usize, 0);
+        StackingContextId(id | fragment_type as usize)
     }
 }
 

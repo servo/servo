@@ -7,9 +7,9 @@ use dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavigatorMet
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::navigatorinfo;
 use dom::workerglobalscope::WorkerGlobalScope;
-use util::str::DOMString;
 
 // https://html.spec.whatwg.org/multipage/#workernavigator
 #[dom_struct]

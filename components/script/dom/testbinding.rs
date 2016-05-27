@@ -20,17 +20,16 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::str::{ByteString, USVString};
+use dom::bindings::str::{ByteString, DOMString, USVString};
 use dom::bindings::weakref::MutableWeakRef;
 use dom::blob::{Blob, DataSlice};
 use dom::url::URL;
-use js::jsapi::{HandleValue, JSContext, JSObject};
+use js::jsapi::{HandleObject, HandleValue, JSContext, JSObject};
 use js::jsval::{JSVal, NullValue};
 use std::borrow::ToOwned;
 use std::ptr;
 use std::rc::Rc;
 use util::prefs::{get_pref};
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct TestBinding {
@@ -568,6 +567,10 @@ impl TestBindingMethods for TestBinding {
     fn PrefControlledAttributeEnabled(&self) -> bool { false }
     fn PrefControlledMethodDisabled(&self) {}
     fn PrefControlledMethodEnabled(&self) {}
+    fn FuncControlledAttributeDisabled(&self) -> bool { false }
+    fn FuncControlledAttributeEnabled(&self) -> bool { false }
+    fn FuncControlledMethodDisabled(&self) {}
+    fn FuncControlledMethodEnabled(&self) {}
 }
 
 impl TestBinding {
@@ -578,4 +581,14 @@ impl TestBinding {
     pub fn PrefControlledStaticAttributeEnabled(_: GlobalRef) -> bool { false }
     pub fn PrefControlledStaticMethodDisabled(_: GlobalRef) {}
     pub fn PrefControlledStaticMethodEnabled(_: GlobalRef) {}
+    pub fn FuncControlledStaticAttributeDisabled(_: GlobalRef) -> bool { false }
+    pub fn FuncControlledStaticAttributeEnabled(_: GlobalRef) -> bool { false }
+    pub fn FuncControlledStaticMethodDisabled(_: GlobalRef) {}
+    pub fn FuncControlledStaticMethodEnabled(_: GlobalRef) {}
+}
+
+#[allow(unsafe_code)]
+impl TestBinding {
+    pub unsafe fn condition_satisfied(_: *mut JSContext, _: HandleObject) -> bool { true }
+    pub unsafe fn condition_unsatisfied(_: *mut JSContext, _: HandleObject) -> bool { false }
 }

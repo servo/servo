@@ -7,12 +7,12 @@ use dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::{Reflector, Reflectable, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::bluetooth::Bluetooth;
 use dom::mimetypearray::MimeTypeArray;
 use dom::navigatorinfo;
 use dom::pluginarray::PluginArray;
 use dom::window::Window;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct Navigator {

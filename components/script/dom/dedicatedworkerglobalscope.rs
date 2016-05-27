@@ -14,6 +14,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootCollection};
 use dom::bindings::refcounted::LiveDOMReferences;
 use dom::bindings::reflector::Reflectable;
+use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::messageevent::MessageEvent;
 use dom::worker::{SimpleWorkerErrorHandler, SharedRt, TrustedWorkerAddress};
@@ -36,7 +37,6 @@ use std::mem::replace;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::sync::{Arc, Mutex};
 use url::Url;
-use util::str::DOMString;
 use util::thread::spawn_named_with_send_on_panic;
 use util::thread_state::{IN_WORKER, SCRIPT};
 
@@ -213,7 +213,8 @@ impl DedicatedWorkerGlobalScope {
                             worker_url: Url,
                             id: PipelineId,
                             from_devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
-                            main_thread_rt: Arc<Mutex<Option<SharedRt>>>,
+                            parent_rt: SharedRt,
+                            worker_rt_for_mainthread: Arc<Mutex<Option<SharedRt>>>,
                             worker: TrustedWorkerAddress,
                             parent_sender: Box<ScriptChan + Send>,
                             own_sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
@@ -240,8 +241,8 @@ impl DedicatedWorkerGlobalScope {
                 }
             };
 
-            let runtime = unsafe { new_rt_and_cx() };
-            *main_thread_rt.lock().unwrap() = Some(SharedRt::new(&runtime));
+            let runtime = unsafe { new_rt_and_cx(parent_rt.rt()) };
+            *worker_rt_for_mainthread.lock().unwrap() = Some(SharedRt::new(&runtime));
 
             let (devtools_mpsc_chan, devtools_mpsc_port) = channel();
             ROUTER.route_ipc_receiver_to_mpsc_sender(from_devtools_receiver, devtools_mpsc_chan);

@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use AnimationTickType;
 use CompositionPipeline;
-use CompositorMsg as ConstellationMsg;
 use SendableFrameTree;
 use app_units::Au;
 use compositor_layer::{CompositorData, CompositorLayer, RcCompositorLayer, WantsScrollEventsFlag};
@@ -37,8 +35,9 @@ use msg::constellation_msg::{WindowSizeData, WindowSizeType};
 use profile_traits::mem::{self, ReportKind, Reporter, ReporterRequest};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::CompositorEvent::{MouseMoveEvent, MouseButtonEvent, TouchEvent};
-use script_traits::{AnimationState, ConstellationControlMsg, LayoutControlMsg};
-use script_traits::{MouseButton, MouseEventType, TouchpadPressurePhase, TouchEventType, TouchId};
+use script_traits::{AnimationState, AnimationTickType, ConstellationControlMsg};
+use script_traits::{ConstellationMsg, LayoutControlMsg, MouseButton};
+use script_traits::{MouseEventType, TouchpadPressurePhase, TouchEventType, TouchId};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -58,14 +57,14 @@ use webrender_traits::{self, ScrollEventPhase};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
 #[derive(Debug, PartialEq)]
-pub enum UnableToComposite {
+enum UnableToComposite {
     NoContext,
     WindowUnprepared,
     NotReadyToPaintImage(NotReadyToPaint),
 }
 
 #[derive(Debug, PartialEq)]
-pub enum NotReadyToPaint {
+enum NotReadyToPaint {
     LayerHasOutstandingPaintMessages,
     MissingRoot,
     PendingSubpages(usize),
@@ -80,7 +79,7 @@ const BUFFER_MAP_SIZE: usize = 10000000;
 const MAX_ZOOM: f32 = 8.0;
 const MIN_ZOOM: f32 = 0.1;
 
-pub trait ConvertPipelineIdFromWebRender {
+trait ConvertPipelineIdFromWebRender {
     fn from_webrender(&self) -> PipelineId;
 }
 
@@ -221,7 +220,7 @@ pub struct IOCompositor<Window: WindowMethods> {
 }
 
 #[derive(Copy, Clone)]
-pub struct ScrollZoomEvent {
+struct ScrollZoomEvent {
     /// Change the pinch zoom level by this factor
     magnification: f32,
     /// Scroll by this offset
@@ -253,7 +252,7 @@ struct HitTestResult {
     point: TypedPoint2D<LayerPixel, f32>,
 }
 
-pub struct PipelineDetails {
+struct PipelineDetails {
     /// The pipeline associated with this PipelineDetails object.
     pipeline: Option<CompositionPipeline>,
 
@@ -279,7 +278,7 @@ impl PipelineDetails {
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-pub enum CompositeTarget {
+enum CompositeTarget {
     /// Normal composition to a window
     Window,
 
@@ -346,7 +345,7 @@ fn initialize_png(width: usize, height: usize) -> RenderTargetInfo {
     }
 }
 
-pub fn reporter_name() -> String {
+fn reporter_name() -> String {
     "compositor-reporter".to_owned()
 }
 
@@ -485,7 +484,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         compositor
     }
 
-    pub fn start_shutting_down(&mut self) {
+    fn start_shutting_down(&mut self) {
         debug!("Compositor sending Exit message to Constellation");
         if let Err(e) = self.constellation_chan.send(ConstellationMsg::Exit) {
             warn!("Sending exit message to constellation failed ({}).", e);
@@ -496,7 +495,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.shutdown_state = ShutdownState::ShuttingDown;
     }
 
-    pub fn finish_shutting_down(&mut self) {
+    fn finish_shutting_down(&mut self) {
         debug!("Compositor received message that constellation shutdown is complete");
 
         // Clear out the compositor layers so that painting threads can destroy the buffers.
@@ -529,9 +528,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 return false
             }
 
-            (Msg::Exit(channel), _) => {
+            (Msg::Exit, _) => {
                 self.start_shutting_down();
-                let _ = channel.send(());
             }
 
             (Msg::ShutdownComplete, _) => {
@@ -790,9 +788,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    pub fn pipeline_details (&mut self,
-                                              pipeline_id: PipelineId)
-                                              -> &mut PipelineDetails {
+    fn pipeline_details(&mut self, pipeline_id: PipelineId) -> &mut PipelineDetails {
         if !self.pipeline_details.contains_key(&pipeline_id) {
             self.pipeline_details.insert(pipeline_id, PipelineDetails::new());
         }
@@ -1124,11 +1120,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    pub fn move_layer(&self,
-                      pipeline_id: PipelineId,
-                      layer_id: LayerId,
-                      origin: TypedPoint2D<LayerPixel, f32>)
-                      -> bool {
+    fn move_layer(&self,
+                  pipeline_id: PipelineId,
+                  layer_id: LayerId,
+                  origin: TypedPoint2D<LayerPixel, f32>)
+                  -> bool {
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
             Some(ref layer) => {
                 if layer.wants_scroll_events() == WantsScrollEventsFlag::WantsScrollEvents {
@@ -2081,8 +2077,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     /// for some reason. If CompositeTarget is Window or Png no image data is returned;
     /// in the latter case the image is written directly to a file. If CompositeTarget
     /// is WindowAndPng Ok(Some(png::Image)) is returned.
-    pub fn composite_specific_target(&mut self, target: CompositeTarget) -> Result<Option<Image>, UnableToComposite> {
-
+    fn composite_specific_target(&mut self,
+                                 target: CompositeTarget)
+                                 -> Result<Option<Image>, UnableToComposite> {
         if self.context.is_none() && self.webrender.is_none() {
             return Err(UnableToComposite::NoContext)
         }

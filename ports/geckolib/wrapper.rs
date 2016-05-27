@@ -5,7 +5,9 @@
 #![allow(unsafe_code)]
 
 use gecko_bindings::bindings::{Gecko_ChildrenCount};
+use gecko_bindings::bindings::{Gecko_ClassOrClassList};
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetAttrAsUTF8, Gecko_GetDocumentElement};
+use gecko_bindings::bindings::{Gecko_GetElementId};
 use gecko_bindings::bindings::{Gecko_GetFirstChild, Gecko_GetFirstChildElement};
 use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetLastChildElement};
 use gecko_bindings::bindings::{Gecko_GetNextSibling, Gecko_GetNextSiblingElement};
@@ -18,6 +20,7 @@ use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink};
 use gecko_bindings::bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsElement, Gecko_SetNodeData};
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::bindings::{ServoNodeData};
+use gecko_bindings::bindings::{nsIAtom};
 use libc::uintptr_t;
 use properties::GeckoComputedValues;
 use selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PrivateStyleData};
@@ -28,6 +31,7 @@ use smallvec::VecLike;
 use std::cell::{Ref, RefCell, RefMut};
 use std::marker::PhantomData;
 use std::ops::BitOr;
+use std::ptr;
 use std::slice;
 use std::str::from_utf8_unchecked;
 use std::sync::Arc;
@@ -37,6 +41,7 @@ use style::dom::{TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use style::element_state::ElementState;
 #[allow(unused_imports)] // Used in commented-out code.
 use style::error_reporting::StdoutErrorReporter;
+use style::parser::ParserContextExtraData;
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock};
 #[allow(unused_imports)] // Used in commented-out code.
 use style::properties::{parse_style_attribute};
@@ -313,6 +318,12 @@ impl<'le> GeckoElement<'le> {
     }
 }
 
+lazy_static! {
+    pub static ref DUMMY_BASE_URL: Url = {
+        Url::parse("http://www.example.org").unwrap()
+    };
+}
+
 impl<'le> TElement for GeckoElement<'le> {
     type ConcreteNode = GeckoNode<'le>;
     type ConcreteDocument = GeckoDocument<'le>;
@@ -329,8 +340,12 @@ impl<'le> TElement for GeckoElement<'le> {
         // in the nsAttrValue. That will allow us to borrow it from here.
         let attr = self.get_attr(&ns!(), &atom!("style"));
         // FIXME(bholley): Real base URL and error reporter.
-        let base_url = Url::parse("http://www.example.org").unwrap();
-        attr.map(|v| parse_style_attribute(&v, &base_url, Box::new(StdoutErrorReporter)))
+        let base_url = &*DUMMY_BASE_URL;
+        // FIXME(heycam): Needs real ParserContextExtraData so that URLs parse
+        // properly.
+        let extra_data = ParserContextExtraData::default();
+        attr.map(|v| parse_style_attribute(&v, &base_url, Box::new(StdoutErrorReporter),
+                                           extra_data))
         */
     }
 
@@ -442,23 +457,46 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     fn get_id(&self) -> Option<Atom> {
-        // FIXME(bholley): Servo caches the id atom directly on the element to
-        // make this blazing fast. Assuming that was a measured optimization, doing
-        // the dumb thing like we do below will almost certainly be a bottleneck.
-        self.get_attr(&ns!(), &atom!("id")).map(|s| Atom::from(s))
+        unsafe {
+            let ptr = Gecko_GetElementId(self.element);
+            if ptr.is_null() {
+                None
+            } else {
+                Some(Atom::from(ptr))
+            }
+        }
     }
 
     fn has_class(&self, name: &Atom) -> bool {
-        // FIXME(bholley): Do this smarter.
-        self.get_attr(&ns!(), &atom!("class"))
-            .map_or(false, |classes| classes.split(" ").any(|n| &Atom::from(n) == name))
+        unsafe {
+            let mut class: *mut nsIAtom = ptr::null_mut();
+            let mut list: *mut *mut nsIAtom = ptr::null_mut();
+            let length = Gecko_ClassOrClassList(self.element, &mut class, &mut list);
+            match length {
+                0 => false,
+                1 => name.as_ptr() == class,
+                n => {
+                    let classes = slice::from_raw_parts(list, n as usize);
+                    classes.iter().any(|ptr| name.as_ptr() == *ptr)
+                }
+            }
+        }
     }
 
     fn each_class<F>(&self, mut callback: F) where F: FnMut(&Atom) {
-        // FIXME(bholley): Synergize with the DOM to stop splitting strings here.
-        if let Some(classes) = self.get_attr(&ns!(), &atom!("class")) {
-            for c in classes.split(" ") {
-                callback(&Atom::from(c));
+        unsafe {
+            let mut class: *mut nsIAtom = ptr::null_mut();
+            let mut list: *mut *mut nsIAtom = ptr::null_mut();
+            let length = Gecko_ClassOrClassList(self.element, &mut class, &mut list);
+            match length {
+                0 => {}
+                1 => Atom::with(class, &mut callback),
+                n => {
+                    let classes = slice::from_raw_parts(list, n as usize);
+                    for c in classes {
+                        Atom::with(*c, &mut callback)
+                    }
+                }
             }
         }
     }

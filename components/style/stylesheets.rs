@@ -8,7 +8,7 @@ use encoding::EncodingRef;
 use error_reporting::ParseErrorReporter;
 use font_face::{FontFaceRule, parse_font_face_block};
 use media_queries::{Device, MediaQueryList, parse_media_query_list};
-use parser::{ParserContext, log_css_error};
+use parser::{ParserContext, ParserContextExtraData, log_css_error};
 use properties::{PropertyDeclarationBlock, parse_property_declaration_list};
 use selectors::parser::{Selector, SelectorImpl, parse_selector_list};
 use smallvec::SmallVec;
@@ -83,32 +83,37 @@ impl<Impl: SelectorImpl> Stylesheet<Impl> {
     pub fn from_bytes_iter<I: Iterator<Item=Vec<u8>>>(
             input: I, base_url: Url, protocol_encoding_label: Option<&str>,
             environment_encoding: Option<EncodingRef>, origin: Origin,
-            error_reporter: Box<ParseErrorReporter + Send>) -> Stylesheet<Impl> {
+            error_reporter: Box<ParseErrorReporter + Send>,
+            extra_data: ParserContextExtraData) -> Stylesheet<Impl> {
         let mut bytes = vec![];
         // TODO: incremental decoding and tokenization/parsing
         for chunk in input {
             bytes.extend_from_slice(&chunk)
         }
         Stylesheet::from_bytes(&bytes, base_url, protocol_encoding_label,
-                               environment_encoding, origin, error_reporter)
+                               environment_encoding, origin, error_reporter,
+                               extra_data)
     }
 
     pub fn from_bytes(bytes: &[u8],
                       base_url: Url,
                       protocol_encoding_label: Option<&str>,
                       environment_encoding: Option<EncodingRef>,
-                      origin: Origin, error_reporter: Box<ParseErrorReporter + Send>)
+                      origin: Origin, error_reporter: Box<ParseErrorReporter + Send>,
+                      extra_data: ParserContextExtraData)
                       -> Stylesheet<Impl> {
         // TODO: bytes.as_slice could be bytes.container_as_bytes()
         let (string, _) = decode_stylesheet_bytes(
             bytes, protocol_encoding_label, environment_encoding);
-        Stylesheet::from_str(&string, base_url, origin, error_reporter)
+        Stylesheet::from_str(&string, base_url, origin, error_reporter, extra_data)
     }
 
     pub fn from_str(css: &str, base_url: Url, origin: Origin,
-                    error_reporter: Box<ParseErrorReporter + Send>) -> Stylesheet<Impl> {
+                    error_reporter: Box<ParseErrorReporter + Send>,
+                    extra_data: ParserContextExtraData) -> Stylesheet<Impl> {
         let rule_parser = TopLevelRuleParser {
-            context: ParserContext::new(origin, &base_url, error_reporter.clone()),
+            context: ParserContext::new_with_extra_data(origin, &base_url, error_reporter.clone(),
+                                                        extra_data),
             state: Cell::new(State::Start),
             _impl: PhantomData,
         };

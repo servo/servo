@@ -7,16 +7,20 @@ use dom::activation::{Activatable, ActivationSource, synthetic_click_activation}
 use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
+use dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding;
 use dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use dom::bindings::codegen::Bindings::KeyboardEventBinding::KeyboardEventMethods;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::{JS, LayoutJS, Root, RootedReference};
+use dom::bindings::js::{JS, LayoutJS, Root, RootedReference, MutNullableHeap};
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers, LayoutElementHelpers};
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
+use dom::file::File;
+use dom::filelist::FileList;
 use dom::htmlelement::HTMLElement;
 use dom::htmlfieldsetelement::HTMLFieldSetElement;
 use dom::htmlformelement::{FormDatumValue, FormControl, FormDatum, FormSubmitter, HTMLFormElement};
@@ -27,7 +31,9 @@ use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
+use net_traits::IpcSend;
+use net_traits::filemanager_thread::FileManagerThreadMsg;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -37,7 +43,6 @@ use style::element_state::*;
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;
 use textinput::{TextInput, SelectionDirection};
-use util::str::{DOMString};
 
 const DEFAULT_SUBMIT_VALUE: &'static str = "Submit";
 const DEFAULT_RESET_VALUE: &'static str = "Reset";
@@ -81,7 +86,7 @@ pub struct HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag
     value_dirty: Cell<bool>,
 
-    // TODO: selected files for file input
+    filelist: MutNullableHeap<JS<FileList>>,
 }
 
 #[derive(JSTraceable)]
@@ -130,6 +135,7 @@ impl HTMLInputElement {
             textinput: DOMRefCell::new(TextInput::new(Single, DOMString::new(), chan, None, SelectionDirection::None)),
             activation_state: DOMRefCell::new(InputActivationState::new()),
             value_dirty: Cell::new(false),
+            filelist: MutNullableHeap::new(None),
         }
     }
 
@@ -265,22 +271,22 @@ impl LayoutHTMLInputElementHelpers for LayoutJS<HTMLInputElement> {
 
 impl HTMLInputElementMethods for HTMLInputElement {
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-accept
+    // https://html.spec.whatwg.org/multipage/#dom-input-accept
     make_getter!(Accept, "accept");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-accept
+    // https://html.spec.whatwg.org/multipage/#dom-input-accept
     make_setter!(SetAccept, "accept");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-alt
+    // https://html.spec.whatwg.org/multipage/#dom-input-alt
     make_getter!(Alt, "alt");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-alt
+    // https://html.spec.whatwg.org/multipage/#dom-input-alt
     make_setter!(SetAlt, "alt");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-dirName
+    // https://html.spec.whatwg.org/multipage/#dom-input-dirName
     make_getter!(DirName, "dirname");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-dirName
+    // https://html.spec.whatwg.org/multipage/#dom-input-dirName
     make_setter!(SetDirName, "dirname");
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
@@ -354,8 +360,18 @@ impl HTMLInputElementMethods for HTMLInputElement {
                             |a| DOMString::from(a.summarize().value))
             }
             ValueMode::Filename => {
-                // TODO: return C:\fakepath\<first of selected files> when a file is selected
-                DOMString::from("")
+                let mut path = DOMString::from("");
+                match self.filelist.get() {
+                    Some(ref fl) => match fl.Item(0) {
+                        Some(ref f) => {
+                            path.push_str("C:\\fakepath\\");
+                            path.push_str(f.name());
+                            path
+                        }
+                        None => path,
+                    },
+                    None => path,
+                }
             }
         }
     }
@@ -373,7 +389,9 @@ impl HTMLInputElementMethods for HTMLInputElement {
             }
             ValueMode::Filename => {
                 if value.is_empty() {
-                    // TODO: empty list of selected files
+                    let window = window_from_node(self);
+                    let fl = FileList::new(window.r(), vec![]);
+                    self.filelist.set(Some(&fl));
                 } else {
                     return Err(Error::InvalidState);
                 }
@@ -397,10 +415,10 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#attr-fe-name
     make_atomic_setter!(SetName, "name");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-placeholder
+    // https://html.spec.whatwg.org/multipage/#dom-input-placeholder
     make_getter!(Placeholder, "placeholder");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-placeholder
+    // https://html.spec.whatwg.org/multipage/#dom-input-placeholder
     make_setter!(SetPlaceholder, "placeholder");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-formaction
@@ -436,10 +454,10 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#attr-fs-formnovalidate
     make_bool_setter!(SetFormNoValidate, "formnovalidate");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-max
+    // https://html.spec.whatwg.org/multipage/#dom-input-max
     make_getter!(Max, "max");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-max
+    // https://html.spec.whatwg.org/multipage/#dom-input-max
     make_setter!(SetMax, "max");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-maxlength
@@ -448,40 +466,40 @@ impl HTMLInputElementMethods for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-input-maxlength
     make_limited_int_setter!(SetMaxLength, "maxlength", DEFAULT_MAX_LENGTH);
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-min
+    // https://html.spec.whatwg.org/multipage/#dom-input-min
     make_getter!(Min, "min");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-min
+    // https://html.spec.whatwg.org/multipage/#dom-input-min
     make_setter!(SetMin, "min");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-multiple
+    // https://html.spec.whatwg.org/multipage/#dom-input-multiple
     make_bool_getter!(Multiple, "multiple");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-multiple
+    // https://html.spec.whatwg.org/multipage/#dom-input-multiple
     make_bool_setter!(SetMultiple, "multiple");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-pattern
+    // https://html.spec.whatwg.org/multipage/#dom-input-pattern
     make_getter!(Pattern, "pattern");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-pattern
+    // https://html.spec.whatwg.org/multipage/#dom-input-pattern
     make_setter!(SetPattern, "pattern");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-required
+    // https://html.spec.whatwg.org/multipage/#dom-input-required
     make_bool_getter!(Required, "required");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-required
+    // https://html.spec.whatwg.org/multipage/#dom-input-required
     make_bool_setter!(SetRequired, "required");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-src
-    make_getter!(Src, "src");
+    // https://html.spec.whatwg.org/multipage/#dom-input-src
+    make_url_getter!(Src, "src");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-src
-    make_setter!(SetSrc, "src");
+    // https://html.spec.whatwg.org/multipage/#dom-input-src
+    make_url_setter!(SetSrc, "src");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-step
+    // https://html.spec.whatwg.org/multipage/#dom-input-step
     make_getter!(Step, "step");
 
-    // https://html.spec.whatwg.org/multipage/#attr-input-step
+    // https://html.spec.whatwg.org/multipage/#dom-input-step
     make_setter!(SetStep, "step");
 
     // https://html.spec.whatwg.org/multipage/#dom-input-indeterminate
@@ -605,8 +623,10 @@ impl HTMLInputElement {
     }
 
     /// https://html.spec.whatwg.org/multipage/#constructing-the-form-data-set
-    /// Steps range from 3.1 to 3.7 which related to the HTMLInputElement
+    /// Steps range from 3.1 to 3.7 (specific to HTMLInputElement)
     pub fn form_datum(&self, submitter: Option<FormSubmitter>) -> Option<FormDatum> {
+        // 3.1: disabled state check is in get_unclean_dataset
+
         // Step 3.2
         let ty = self.type_();
         // Step 3.4
@@ -634,7 +654,7 @@ impl HTMLInputElement {
 
         }
 
-        // Step 3.6
+        // Step 3.9
         Some(FormDatum {
             ty: DOMString::from(&*ty), // FIXME(ajeffrey): Convert directly from Atoms to DOMStrings
             name: name,
@@ -861,10 +881,11 @@ impl VirtualMethods for HTMLInputElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("name") => AttrValue::from_atomic(value),
-            &atom!("size") => AttrValue::from_limited_u32(value, DEFAULT_INPUT_SIZE),
-            &atom!("type") => AttrValue::from_atomic(value),
-            &atom!("maxlength") => AttrValue::from_limited_i32(value, DEFAULT_MAX_LENGTH),
+            &atom!("accept") => AttrValue::from_comma_separated_tokenlist(value.into()),
+            &atom!("name") => AttrValue::from_atomic(value.into()),
+            &atom!("size") => AttrValue::from_limited_u32(value.into(), DEFAULT_INPUT_SIZE),
+            &atom!("type") => AttrValue::from_atomic(value.into()),
+            &atom!("maxlength") => AttrValue::from_limited_i32(value.into(), DEFAULT_MAX_LENGTH),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
@@ -1096,6 +1117,44 @@ impl Activatable for HTMLInputElement {
                                   EventBubbles::Bubbles,
                                   EventCancelable::NotCancelable);
             },
+            InputType::InputFile => {
+                let window = window_from_node(self);
+                let filemanager = window.resource_threads().sender();
+
+                let mut files: Vec<Root<File>> = vec![];
+                let mut error = None;
+
+                if self.Multiple() {
+                    let (chan, recv) = ipc::channel().expect("Error initializing channel");
+                    let msg = FileManagerThreadMsg::SelectFiles(chan);
+                    let _ = filemanager.send(msg).unwrap();
+
+                    match recv.recv().expect("IpcSender side error") {
+                        Ok(selected_files) => {
+                            for selected in selected_files {
+                                files.push(File::new_from_selected(window.r(), selected));
+                            }
+                        },
+                        Err(err) => error = Some(err),
+                    };
+                } else {
+                    let (chan, recv) = ipc::channel().expect("Error initializing channel");
+                    let msg = FileManagerThreadMsg::SelectFile(chan);
+                    let _ = filemanager.send(msg).unwrap();
+
+                    match recv.recv().expect("IpcSender side error") {
+                        Ok(selected) => files.push(File::new_from_selected(window.r(), selected)),
+                        Err(err) => error = Some(err),
+                    };
+                }
+
+                if let Some(err) = error {
+                    debug!("Input file select error: {:?}", err);
+                } else {
+                    let filelist = FileList::new(window.r(), files);
+                    self.filelist.set(Some(&filelist));
+                }
+            }
             _ => ()
         }
     }

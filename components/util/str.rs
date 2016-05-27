@@ -8,119 +8,9 @@ use num_traits::ToPrimitive;
 use std::borrow::ToOwned;
 use std::convert::AsRef;
 use std::ffi::CStr;
-use std::fmt;
 use std::iter::{Filter, Peekable};
-use std::ops::{Deref, DerefMut};
-use std::str::{Bytes, Split, from_utf8};
-use string_cache::Atom;
-
-#[derive(Clone, Debug, Deserialize, Eq, Hash, HeapSizeOf, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct DOMString(String);
-
-impl !Send for DOMString {}
-
-impl DOMString {
-    pub fn new() -> DOMString {
-        DOMString(String::new())
-    }
-    pub fn from_string(s: String) -> DOMString {
-        DOMString(s)
-    }
-    // FIXME(ajeffrey): implement more of the String methods on DOMString?
-    pub fn push_str(&mut self, string: &str) {
-        self.0.push_str(string)
-    }
-    pub fn clear(&mut self) {
-        self.0.clear()
-    }
-
-    pub fn bytes(&self) -> Bytes {
-        self.0.bytes()
-    }
-}
-
-impl Default for DOMString {
-    fn default() -> Self {
-        DOMString(String::new())
-    }
-}
-
-impl Deref for DOMString {
-    type Target = str;
-
-    #[inline]
-    fn deref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl DerefMut for DOMString {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut str {
-        &mut self.0
-    }
-}
-
-impl AsRef<str> for DOMString {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl fmt::Display for DOMString {
-    #[inline]
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(&**self, f)
-    }
-}
-
-impl PartialEq<str> for DOMString {
-    fn eq(&self, other: &str) -> bool {
-        &**self == other
-    }
-}
-
-impl<'a> PartialEq<&'a str> for DOMString {
-    fn eq(&self, other: &&'a str) -> bool {
-        &**self == *other
-    }
-}
-
-impl From<String> for DOMString {
-    fn from(contents: String) -> DOMString {
-        DOMString(contents)
-    }
-}
-
-impl<'a> From<&'a str> for DOMString {
-    fn from(contents: &str) -> DOMString {
-        DOMString::from(String::from(contents))
-    }
-}
-
-impl From<DOMString> for Atom {
-    fn from(contents: DOMString) -> Atom {
-        Atom::from(contents.0)
-    }
-}
-
-impl From<DOMString> for String {
-    fn from(contents: DOMString) -> String {
-        contents.0
-    }
-}
-
-impl Into<Vec<u8>> for DOMString {
-    fn into(self) -> Vec<u8> {
-        self.0.into()
-    }
-}
-
-impl Extend<char> for DOMString {
-    fn extend<I>(&mut self, iterable: I) where I: IntoIterator<Item=char> {
-        self.0.extend(iterable)
-    }
-}
+use std::ops::Deref;
+use std::str::{Split, from_utf8};
 
 pub type StaticCharVec = &'static [char];
 pub type StaticStringVec = &'static [&'static str];
@@ -151,6 +41,10 @@ pub fn split_html_space_chars<'a>(s: &'a str) ->
     s.split(HTML_SPACE_CHARACTERS).filter(not_empty as fn(&&str) -> bool)
 }
 
+pub fn split_commas<'a>(s: &'a str) -> Filter<Split<'a, char>, fn(&&str) -> bool> {
+    fn not_empty(&split: &&str) -> bool { !split.is_empty() }
+    s.split(',').filter(not_empty as fn(&&str) -> bool)
+}
 
 fn is_ascii_digit(c: &char) -> bool {
     match *c {

@@ -16,7 +16,8 @@ use gecko_bindings::bindings::Gecko_Construct_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_CopyConstruct_${style_struct.gecko_ffi_name};
 use gecko_bindings::bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
 % endfor
-use gecko_bindings::bindings::{Gecko_CopyListStyleTypeFrom, Gecko_SetListStyleType};
+use gecko_bindings::bindings::{Gecko_CopyMozBindingFrom, Gecko_CopyListStyleTypeFrom};
+use gecko_bindings::bindings::{Gecko_SetMozBinding, Gecko_SetListStyleType};
 use gecko_bindings::structs;
 use glue::ArcHelpers;
 use heapsize::HeapSizeOf;
@@ -625,13 +626,14 @@ fn static_assert() {
 
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Box" skip_longhands="display overflow-y vertical-align">
+<%self:impl_trait style_struct_name="Box" skip_longhands="display overflow-y vertical-align -moz-binding">
 
     // We manually-implement the |display| property until we get general
     // infrastructure for preffing certain values.
     <% display_keyword = Keyword("display", "inline block inline-block table inline-table table-row-group " +
                                             "table-header-group table-footer-group table-row table-column-group " +
-                                            "table-column table-cell table-caption list-item flex none") %>
+                                            "table-column table-cell table-caption list-item flex none " +
+                                            "-moz-box -moz-inline-box") %>
     <%call expr="impl_keyword('display', 'mDisplay', display_keyword, True)"></%call>
 
     // overflow-y is implemented as a newtype of overflow-x, so we need special handling.
@@ -677,6 +679,25 @@ fn static_assert() {
         self.gecko.mVerticalAlign.mValue = other.gecko.mVerticalAlign.mValue;
     }
 
+    fn set__moz_binding(&mut self, v: longhands::_moz_binding::computed_value::T) {
+        use style::properties::longhands::_moz_binding::SpecifiedValue as BindingValue;
+        match v {
+            BindingValue::None => debug_assert!(self.gecko.mBinding.mRawPtr.is_null()),
+            BindingValue::Url(ref url, ref extra_data) => {
+                unsafe {
+                    Gecko_SetMozBinding(&mut self.gecko,
+                                        url.as_str().as_ptr(),
+                                        url.as_str().len() as u32,
+                                        extra_data.base.as_raw(),
+                                        extra_data.referrer.as_raw(),
+                                        extra_data.principal.as_raw());
+                }
+            }
+        }
+    }
+    fn copy__moz_binding_from(&mut self, other: &Self) {
+        unsafe { Gecko_CopyMozBindingFrom(&mut self.gecko, &other.gecko); }
+    }
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Background" skip_longhands="background-color" skip_additionals="*">
@@ -707,20 +728,36 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Text"
-                  skip_longhands="text-decoration-color"
+                  skip_longhands="text-decoration-color text-decoration-line"
                   skip_additionals="*">
 
     <% impl_color("text_decoration_color", "mTextDecorationColor",
                   color_flags_ffi_name="mTextDecorationStyle") %>
 
+    fn set_text_decoration_line(&mut self, v: longhands::text_decoration_line::computed_value::T) {
+        let mut bits: u8 = 0;
+        if v.underline {
+            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8;
+        }
+        if v.overline {
+            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_OVERLINE as u8;
+        }
+        if v.line_through {
+            bits |= structs::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8;
+        }
+        self.gecko.mTextDecorationLine = bits;
+    }
+
+    <%call expr="impl_simple_copy('text_decoration_line', 'mTextDecorationLine')"></%call>
+
     fn has_underline(&self) -> bool {
-        (self.gecko.mTextDecorationStyle & (structs::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8)) != 0
+        (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_UNDERLINE as u8)) != 0
     }
     fn has_overline(&self) -> bool {
-        (self.gecko.mTextDecorationStyle & (structs::NS_STYLE_TEXT_DECORATION_LINE_OVERLINE as u8)) != 0
+        (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_OVERLINE as u8)) != 0
     }
     fn has_line_through(&self) -> bool {
-        (self.gecko.mTextDecorationStyle & (structs::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8)) != 0
+        (self.gecko.mTextDecorationLine & (structs::NS_STYLE_TEXT_DECORATION_LINE_LINE_THROUGH as u8)) != 0
     }
 </%self:impl_trait>
 

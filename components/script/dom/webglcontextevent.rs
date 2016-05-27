@@ -11,9 +11,9 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use string_cache::Atom;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct WebGLContextEvent {

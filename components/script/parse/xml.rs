@@ -7,6 +7,7 @@
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
+use dom::bindings::str::DOMString;
 use dom::comment::Comment;
 use dom::document::Document;
 use dom::documenttype::DocumentType;
@@ -23,7 +24,6 @@ use parse::Parser;
 use std::borrow::Cow;
 use string_cache::{Atom, QualName, Namespace};
 use url::Url;
-use util::str::DOMString;
 use xml5ever::tendril::StrTendril;
 use xml5ever::tokenizer::{Attribute, QName};
 use xml5ever::tree_builder::{NextParserState, NodeOrText, TreeSink};

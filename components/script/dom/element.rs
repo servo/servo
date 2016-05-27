@@ -5,7 +5,7 @@
 //! Element nodes.
 
 use app_units::Au;
-use cssparser::Color;
+use cssparser::{Color, ToCss};
 use devtools_traits::AttrInfo;
 use dom::activation::Activatable;
 use dom::attr::AttrValue;
@@ -26,6 +26,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
+use dom::bindings::str::DOMString;
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::bindings::xmlname::{namespace_from_domstring, validate_and_extract, xml_name_type};
 use dom::characterdata::CharacterData;
@@ -85,13 +86,14 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace, QualName};
 use style::element_state::*;
+use style::parser::ParserContextExtraData;
 use style::properties::DeclaredValue;
 use style::properties::longhands::{self, background_image, border_spacing, font_family, overflow_x, font_size};
 use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_style_attribute};
 use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA, LengthOrPercentage};
-use util::str::{DOMString, LengthOrPercentageOrAuto};
+use util::str::LengthOrPercentageOrAuto;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,
 // and when the element enters or leaves a browsing context container.
@@ -696,89 +698,145 @@ impl Element {
         }
     }
 
-    pub fn remove_inline_style_property(&self, property: &str) {
-        let mut inline_declarations = self.style_attribute.borrow_mut();
-        if let &mut Some(ref mut declarations) = &mut *inline_declarations {
-            let index = declarations.normal
-                                    .iter()
-                                    .position(|decl| decl.matches(property));
-            if let Some(index) = index {
-                Arc::make_mut(&mut declarations.normal).remove(index);
-                return;
-            }
+    // this sync method is called upon modification of the style_attribute property,
+    // therefore, it should not trigger subsequent mutation events
+    fn sync_property_with_attrs_style(&self) {
+        let style_str = if let &Some(ref declarations) = &*self.style_attribute().borrow() {
+            declarations.to_css_string()
+        } else {
+            String::new()
+        };
 
-            let index = declarations.important
-                                    .iter()
-                                    .position(|decl| decl.matches(property));
-            if let Some(index) = index {
-                Arc::make_mut(&mut declarations.important).remove(index);
-                return;
-            }
-        }
-    }
+        let mut new_style = AttrValue::String(style_str);
 
-    pub fn update_inline_style(&self,
-                               property_decl: PropertyDeclaration,
-                               style_priority: StylePriority) {
-        let mut inline_declarations = self.style_attribute().borrow_mut();
-        if let &mut Some(ref mut declarations) = &mut *inline_declarations {
-            let existing_declarations = if style_priority == StylePriority::Important {
-                &mut declarations.important
-            } else {
-                &mut declarations.normal
-            };
-
-            // Usually, the reference count will be 1 here. But transitions could make it greater
-            // than that.
-            let existing_declarations = Arc::make_mut(existing_declarations);
-            for declaration in &mut *existing_declarations {
-                if declaration.name() == property_decl.name() {
-                    *declaration = property_decl;
-                    return;
-                }
-            }
-            existing_declarations.push(property_decl);
+        if let Some(style_attr) = self.attrs.borrow().iter().find(|a| a.name() == &atom!("style")) {
+            style_attr.swap_value(&mut new_style);
             return;
         }
 
-        let (important, normal) = if style_priority == StylePriority::Important {
-            (vec![property_decl], vec![])
-        } else {
-            (vec![], vec![property_decl])
-        };
+        // explicitly not calling the push_new_attribute convenience method
+        // in order to avoid triggering mutation events
+        let window = window_from_node(self);
+        let attr = Attr::new(&window,
+                             atom!("style"),
+                             new_style,
+                             atom!("style"),
+                             ns!(),
+                             Some(atom!("style")),
+                             Some(self));
 
-        *inline_declarations = Some(PropertyDeclarationBlock {
-            important: Arc::new(important),
-            normal: Arc::new(normal),
-        });
+         assert!(attr.GetOwnerElement().r() == Some(self));
+         self.attrs.borrow_mut().push(JS::from_ref(&attr));
+    }
+
+    pub fn remove_inline_style_property(&self, property: &str) {
+        fn remove(element: &Element, property: &str) {
+            let mut inline_declarations = element.style_attribute.borrow_mut();
+            if let &mut Some(ref mut declarations) = &mut *inline_declarations {
+                let index = declarations.normal
+                                        .iter()
+                                        .position(|decl| decl.matches(property));
+                if let Some(index) = index {
+                    Arc::make_mut(&mut declarations.normal).remove(index);
+                    return;
+                }
+
+                let index = declarations.important
+                                        .iter()
+                                        .position(|decl| decl.matches(property));
+                if let Some(index) = index {
+                    Arc::make_mut(&mut declarations.important).remove(index);
+                    return;
+                }
+            }
+        }
+
+        remove(self, property);
+        self.sync_property_with_attrs_style();
+    }
+
+    pub fn update_inline_style(&self,
+                               declarations: Vec<PropertyDeclaration>,
+                               style_priority: StylePriority) {
+
+        fn update(element: &Element, mut declarations: Vec<PropertyDeclaration>, style_priority: StylePriority) {
+            let mut inline_declarations = element.style_attribute().borrow_mut();
+            if let &mut Some(ref mut existing_declarations) = &mut *inline_declarations {
+                let existing_declarations = if style_priority == StylePriority::Important {
+                    &mut existing_declarations.important
+                } else {
+                    &mut existing_declarations.normal
+                };
+
+                // Usually, the reference count will be 1 here. But transitions could make it greater
+                // than that.
+                let existing_declarations = Arc::make_mut(existing_declarations);
+
+                while let Some(mut incoming_declaration) = declarations.pop() {
+                    let mut replaced = false;
+                    for existing_declaration in &mut *existing_declarations {
+                        if existing_declaration.name() == incoming_declaration.name() {
+                            mem::swap(existing_declaration, &mut incoming_declaration);
+                            replaced = true;
+                            break;
+                        }
+                    }
+
+                    if !replaced {
+                        // inserting instead of pushing since the declarations are in reverse order
+                        existing_declarations.insert(0, incoming_declaration);
+                    }
+                }
+
+                return;
+            }
+
+            let (important, normal) = if style_priority == StylePriority::Important {
+                (declarations, vec![])
+            } else {
+                (vec![], declarations)
+            };
+
+            *inline_declarations = Some(PropertyDeclarationBlock {
+                important: Arc::new(important),
+                normal: Arc::new(normal),
+            });
+        }
+
+        update(self, declarations, style_priority);
+        self.sync_property_with_attrs_style();
     }
 
     pub fn set_inline_style_property_priority(&self,
                                               properties: &[&str],
                                               style_priority: StylePriority) {
-        let mut inline_declarations = self.style_attribute().borrow_mut();
-        if let &mut Some(ref mut declarations) = &mut *inline_declarations {
-            let (from, to) = if style_priority == StylePriority::Important {
-                (&mut declarations.normal, &mut declarations.important)
-            } else {
-                (&mut declarations.important, &mut declarations.normal)
-            };
+        {
+            let mut inline_declarations = self.style_attribute().borrow_mut();
+            if let &mut Some(ref mut declarations) = &mut *inline_declarations {
+              let (from, to) = if style_priority == StylePriority::Important {
+                  (&mut declarations.normal, &mut declarations.important)
+              } else {
+                  (&mut declarations.important, &mut declarations.normal)
+              };
 
-            // Usually, the reference counts of `from` and `to` will be 1 here. But transitions
-            // could make them greater than that.
-            let from = Arc::make_mut(from);
-            let to = Arc::make_mut(to);
-            let mut new_from = Vec::new();
-            for declaration in from.drain(..) {
-                let name = declaration.name();
-                if properties.iter().any(|p| name == **p) {
-                    to.push(declaration)
-                } else {
-                    new_from.push(declaration)
-                }
+              // Usually, the reference counts of `from` and `to` will be 1 here. But transitions
+              // could make them greater than that.
+              let from = Arc::make_mut(from);
+              let to = Arc::make_mut(to);
+              let mut new_from = Vec::new();
+              for declaration in from.drain(..) {
+                  let name = declaration.name();
+                  if properties.iter().any(|p| name == **p) {
+                      to.push(declaration)
+                  } else {
+                      new_from.push(declaration)
+                  }
+              }
+              mem::replace(from, new_from);
             }
-            mem::replace(from, new_from);
         }
+
+        self.sync_property_with_attrs_style();
     }
 
     pub fn get_inline_style_declaration(&self,
@@ -1031,7 +1089,7 @@ impl Element {
         if *namespace == ns!() {
             vtable_for(self.upcast()).parse_plain_attribute(local_name, value)
         } else {
-            AttrValue::String(value)
+            AttrValue::String(value.into())
         }
     }
 
@@ -1076,7 +1134,7 @@ impl Element {
 
     pub fn set_atomic_attribute(&self, local_name: &Atom, value: DOMString) {
         assert!(*local_name == local_name.to_ascii_lowercase());
-        let value = AttrValue::from_atomic(value);
+        let value = AttrValue::from_atomic(value.into());
         self.set_attribute(local_name, value);
     }
 
@@ -1126,7 +1184,7 @@ impl Element {
     }
     pub fn set_string_attribute(&self, local_name: &Atom, value: DOMString) {
         assert!(*local_name == local_name.to_ascii_lowercase());
-        self.set_attribute(local_name, AttrValue::String(value));
+        self.set_attribute(local_name, AttrValue::String(value.into()));
     }
 
     pub fn get_tokenlist_attribute(&self, local_name: &Atom) -> Vec<Atom> {
@@ -1140,7 +1198,8 @@ impl Element {
 
     pub fn set_tokenlist_attribute(&self, local_name: &Atom, value: DOMString) {
         assert!(*local_name == local_name.to_ascii_lowercase());
-        self.set_attribute(local_name, AttrValue::from_serialized_tokenlist(value));
+        self.set_attribute(local_name,
+                           AttrValue::from_serialized_tokenlist(value.into()));
     }
 
     pub fn set_atomic_tokenlist_attribute(&self, local_name: &Atom, tokens: Vec<Atom>) {
@@ -1169,7 +1228,7 @@ impl Element {
 
     pub fn set_int_attribute(&self, local_name: &Atom, value: i32) {
         assert!(*local_name == local_name.to_ascii_lowercase());
-        self.set_attribute(local_name, AttrValue::Int(DOMString::from(value.to_string()), value));
+        self.set_attribute(local_name, AttrValue::Int(value.to_string(), value));
     }
 
     pub fn get_uint_attribute(&self, local_name: &Atom, default: u32) -> u32 {
@@ -1187,9 +1246,7 @@ impl Element {
     }
     pub fn set_uint_attribute(&self, local_name: &Atom, value: u32) {
         assert!(*local_name == local_name.to_ascii_lowercase());
-        // FIXME(ajeffrey): Directly convert u32 to DOMString
-        self.set_attribute(local_name,
-                           AttrValue::UInt(DOMString::from(value.to_string()), value));
+        self.set_attribute(local_name, AttrValue::UInt(value.to_string(), value));
     }
 
     pub fn will_mutate_attr(&self) {
@@ -1977,7 +2034,8 @@ impl VirtualMethods for Element {
                 *self.style_attribute.borrow_mut() =
                     mutation.new_value(attr).map(|value| {
                         let win = window_from_node(self);
-                        parse_style_attribute(&value, &doc.base_url(), win.css_error_reporter())
+                        parse_style_attribute(&value, &doc.base_url(), win.css_error_reporter(),
+                                              ParserContextExtraData::default())
                     });
                 if node.is_in_doc() {
                     node.dirty(NodeDamage::NodeStyleDamaged);
@@ -2032,8 +2090,8 @@ impl VirtualMethods for Element {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("id") => AttrValue::from_atomic(value),
-            &atom!("class") => AttrValue::from_serialized_tokenlist(value),
+            &atom!("id") => AttrValue::from_atomic(value.into()),
+            &atom!("class") => AttrValue::from_serialized_tokenlist(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

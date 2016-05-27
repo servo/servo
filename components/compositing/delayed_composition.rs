@@ -21,7 +21,7 @@ pub struct DelayedCompositionTimerProxy {
     sender: Sender<ToDelayedCompositionTimerMsg>,
 }
 
-pub struct DelayedCompositionTimer {
+struct DelayedCompositionTimer {
     compositor_proxy: Box<CompositorProxy>,
     receiver: Receiver<ToDelayedCompositionTimerMsg>,
 }
@@ -56,7 +56,7 @@ impl DelayedCompositionTimerProxy {
 }
 
 impl DelayedCompositionTimer {
-    pub fn run(&mut self) {
+    fn run(&mut self) {
         'outer: loop {
             let mut timestamp;
             loop {

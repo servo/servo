@@ -8,6 +8,7 @@ use dom::bindings::codegen::Bindings::HTMLTableCellElementBinding::HTMLTableCell
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::LayoutJS;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{Element, RawLayoutElementHelpers};
 use dom::htmlelement::HTMLElement;
@@ -15,7 +16,7 @@ use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
-use util::str::{DOMString, LengthOrPercentageOrAuto};
+use util::str::LengthOrPercentageOrAuto;
 
 const DEFAULT_COLSPAN: u32 = 1;
 
@@ -120,9 +121,9 @@ impl VirtualMethods for HTMLTableCellElement {
 
     fn parse_plain_attribute(&self, local_name: &Atom, value: DOMString) -> AttrValue {
         match *local_name {
-            atom!("colspan") => AttrValue::from_u32(value, DEFAULT_COLSPAN),
-            atom!("bgcolor") => AttrValue::from_legacy_color(value),
-            atom!("width") => AttrValue::from_nonzero_dimension(value),
+            atom!("colspan") => AttrValue::from_u32(value.into(), DEFAULT_COLSPAN),
+            atom!("bgcolor") => AttrValue::from_legacy_color(value.into()),
+            atom!("width") => AttrValue::from_nonzero_dimension(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(local_name, value),
         }
     }

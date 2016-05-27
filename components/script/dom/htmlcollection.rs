@@ -8,6 +8,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root, MutNullableHeap};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::element::Element;
@@ -16,7 +17,7 @@ use dom::window::Window;
 use std::ascii::AsciiExt;
 use std::cell::Cell;
 use string_cache::{Atom, Namespace, QualName};
-use util::str::{DOMString, split_html_space_chars};
+use util::str::split_html_space_chars;
 
 pub trait CollectionFilter : JSTraceable {
     fn filter<'a>(&self, elem: &'a Element, root: &'a Node) -> bool;

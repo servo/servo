@@ -14,11 +14,12 @@ use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
-use dom::bindings::global::GlobalRef;
+use dom::bindings::global::{GlobalRef, global_root_from_object};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::Reflectable;
+use dom::bindings::str::DOMString;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use dom::browsingcontext::BrowsingContext;
 use dom::console::Console;
@@ -36,9 +37,8 @@ use dom::storage::Storage;
 use euclid::{Point2D, Rect, Size2D};
 use gfx_traits::LayerId;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{Evaluate2, MutableHandleValue};
-use js::jsapi::{HandleValue, JSContext};
-use js::jsapi::{JSAutoCompartment, JS_GC, JS_GetRuntime, SetWindowProxy};
+use js::jsapi::{Evaluate2, HandleObject, HandleValue, JSAutoCompartment, JSContext};
+use js::jsapi::{JS_GetRuntime, JS_GC, MutableHandleValue, SetWindowProxy};
 use js::rust::CompileOptionsWrapper;
 use js::rust::Runtime;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
@@ -61,7 +61,7 @@ use script_runtime::{ScriptChan, ScriptPort};
 use script_thread::SendableMainThreadScriptChan;
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
 use script_traits::{ConstellationControlMsg, UntrustedNodeAddress};
-use script_traits::{DocumentState, MsDuration, ScriptToCompositorMsg, TimerEvent, TimerEventId};
+use script_traits::{DocumentState, MsDuration, TimerEvent, TimerEventId};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -92,7 +92,8 @@ use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Url;
 use util::geometry::{self, MAX_RECT};
-use util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use util::prefs::mozbrowser_enabled;
+use util::str::HTML_SPACE_CHARACTERS;
 use util::{breakpoint, opts};
 use webdriver_handlers::jsval_to_webdriver;
 
@@ -152,8 +153,6 @@ pub struct Window {
     image_cache_chan: ImageCacheChan,
     #[ignore_heap_size_of = "channels are hard"]
     custom_message_chan: IpcSender<CustomResponseSender>,
-    #[ignore_heap_size_of = "TODO(#6911) newtypes containing unmeasurable types are hard"]
-    compositor: IpcSender<ScriptToCompositorMsg>,
     browsing_context: MutNullableHeap<JS<BrowsingContext>>,
     performance: MutNullableHeap<JS<Performance>>,
     navigation_start: u64,
@@ -161,6 +160,7 @@ pub struct Window {
     screen: MutNullableHeap<JS<Screen>>,
     session_storage: MutNullableHeap<JS<Storage>>,
     local_storage: MutNullableHeap<JS<Storage>>,
+    status: DOMRefCell<DOMString>,
     #[ignore_heap_size_of = "channels are hard"]
     scheduler_chan: IpcSender<TimerEventRequest>,
     timers: OneshotTimers,
@@ -339,10 +339,6 @@ impl Window {
         &self.image_cache_thread
     }
 
-    pub fn compositor(&self) -> &IpcSender<ScriptToCompositorMsg> {
-        &self.compositor
-    }
-
     pub fn browsing_context(&self) -> Root<BrowsingContext> {
         self.browsing_context.get().unwrap()
     }
@@ -435,6 +431,11 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
 }
 
 impl WindowMethods for Window {
+    // https://html.spec.whatwg.org/multipage/#dom-alert
+    fn Alert_(&self) {
+        self.Alert(DOMString::new());
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-alert
     fn Alert(&self, s: DOMString) {
         // Right now, just print to the console
@@ -774,7 +775,7 @@ impl WindowMethods for Window {
         // Step 1
         //TODO determine if this operation is allowed
         let size = Size2D::new(x.to_u32().unwrap_or(1), y.to_u32().unwrap_or(1));
-        self.compositor.send(ScriptToCompositorMsg::ResizeTo(size)).unwrap()
+        self.constellation_chan.send(ConstellationMsg::ResizeTo(size)).unwrap()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeby
@@ -789,7 +790,7 @@ impl WindowMethods for Window {
         // Step 1
         //TODO determine if this operation is allowed
         let point = Point2D::new(x, y);
-        self.compositor.send(ScriptToCompositorMsg::MoveTo(point)).unwrap()
+        self.constellation_chan.send(ConstellationMsg::MoveTo(point)).unwrap()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-moveby
@@ -827,6 +828,16 @@ impl WindowMethods for Window {
     fn DevicePixelRatio(&self) -> Finite<f64> {
         let dpr = self.window_size.get().map_or(1.0f32, |data| data.device_pixel_ratio.get());
         Finite::wrap(dpr as f64)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-window-status
+    fn Status(&self) -> DOMString {
+        self.status.borrow().clone()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-window-status
+    fn SetStatus(&self, status: DOMString) {
+        *self.status.borrow_mut() = status
     }
 }
 
@@ -975,13 +986,13 @@ impl Window {
         let size = self.current_viewport.get().size;
         self.current_viewport.set(Rect::new(Point2D::new(Au::from_f32_px(x), Au::from_f32_px(y)), size));
 
-        self.compositor.send(ScriptToCompositorMsg::ScrollFragmentPoint(
-                                                         self.pipeline(), layer_id, point, smooth)).unwrap()
+        let message = ConstellationMsg::ScrollFragmentPoint(self.pipeline(), layer_id, point, smooth);
+        self.constellation_chan.send(message).unwrap();
     }
 
     pub fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
         let (send, recv) = ipc::channel::<(Size2D<u32>, Point2D<i32>)>().unwrap();
-        self.compositor.send(ScriptToCompositorMsg::GetClientWindow(send)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::GetClientWindow(send)).unwrap();
         recv.recv().unwrap_or((Size2D::zero(), Point2D::zero()))
     }
 
@@ -1179,7 +1190,7 @@ impl Window {
         let pipeline_id = self.id;
 
         let (send, recv) = ipc::channel::<Point2D<f32>>().unwrap();
-        self.compositor.send(ScriptToCompositorMsg::GetScrollOffset(pipeline_id, layer_id, send)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::GetScrollOffset(pipeline_id, layer_id, send)).unwrap();
         recv.recv().unwrap_or(Point2D::zero())
     }
 
@@ -1437,6 +1448,19 @@ impl Window {
             context.active_window()
         })
     }
+
+    /// Returns whether mozbrowser is enabled and `obj` has been created
+    /// in a top-level `Window` global.
+    #[allow(unsafe_code)]
+    pub unsafe fn global_is_mozbrowser(_: *mut JSContext, obj: HandleObject) -> bool {
+        if !mozbrowser_enabled() {
+            return false;
+        }
+        match global_root_from_object(obj.get()).r() {
+            GlobalRef::Window(window) => window.parent_info().is_none(),
+            _ => false,
+        }
+    }
 }
 
 impl Window {
@@ -1449,7 +1473,6 @@ impl Window {
                file_task_source: FileReadingTaskSource,
                image_cache_chan: ImageCacheChan,
                custom_message_chan: IpcSender<CustomResponseSender>,
-               compositor: IpcSender<ScriptToCompositorMsg>,
                image_cache_thread: ImageCacheThread,
                resource_threads: ResourceThreads,
                bluetooth_thread: IpcSender<BluetoothMethodMsg>,
@@ -1489,7 +1512,6 @@ impl Window {
             custom_message_chan: custom_message_chan,
             console: Default::default(),
             crypto: Default::default(),
-            compositor: compositor,
             navigator: Default::default(),
             image_cache_thread: image_cache_thread,
             mem_profiler_chan: mem_profiler_chan,
@@ -1502,6 +1524,7 @@ impl Window {
             screen: Default::default(),
             session_storage: Default::default(),
             local_storage: Default::default(),
+            status: DOMRefCell::new(DOMString::new()),
             scheduler_chan: scheduler_chan.clone(),
             timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
             next_worker_id: Cell::new(WorkerId(0)),
@@ -1603,4 +1626,3 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
     println!("{}", debug_msg);
 }
 
-no_jsmanaged_fields!(ResourceThreads);

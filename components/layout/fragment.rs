@@ -1971,6 +1971,11 @@ impl Fragment {
                 }
             }
             SpecificFragmentInfo::ScannedText(ref text_fragment) => {
+                // Fragments with no glyphs don't contribute any inline metrics.
+                // TODO: Filter out these fragments during flow construction?
+                if text_fragment.content_size.inline == Au(0) {
+                    return InlineMetrics::new(Au(0), Au(0), Au(0));
+                }
                 // See CSS 2.1 § 10.8.1.
                 let line_height = self.calculate_line_height(layout_context);
                 let font_derived_metrics =

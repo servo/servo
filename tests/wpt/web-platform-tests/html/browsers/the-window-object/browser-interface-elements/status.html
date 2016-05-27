@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Window.status tests</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-window-status">
+<div id=log></div>
+<script>
+test(function() {
+    assert_true("status" in window, "status in window");
+    assert_equals(window.status, "", "window.status is empty string initially");
+    window.status = "newstatus";
+    assert_equals(window.status, "newstatus", "window.string is set to newstatus");
+    window.status = 5;
+    assert_equals(window.status, "5", "window.status is a string");
+}, "Functional properties of window.status");
+
+</script>

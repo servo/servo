@@ -12,6 +12,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::js::{RootedReference};
 use dom::bindings::refcounted::Trusted;
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::domtokenlist::DOMTokenList;
 use dom::element::{AttributeMutation, Element, ElementCreator};
@@ -37,10 +38,11 @@ use std::mem;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::media_queries::{MediaQueryList, parse_media_query_list};
+use style::parser::ParserContextExtraData;
 use style::servo::Stylesheet;
 use style::stylesheets::Origin;
 use url::Url;
-use util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use util::str::HTML_SPACE_CHARACTERS;
 
 no_jsmanaged_fields!(Stylesheet);
 
@@ -158,7 +160,7 @@ impl VirtualMethods for HTMLLinkElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("rel") => AttrValue::from_serialized_tokenlist(value),
+            &atom!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
@@ -306,7 +308,8 @@ impl AsyncResponseListener for StylesheetContext {
 
         let mut sheet = Stylesheet::from_bytes(&data, final_url, protocol_encoding_label,
                                                Some(environment_encoding), Origin::Author,
-                                               win.css_error_reporter());
+                                               win.css_error_reporter(),
+                                               ParserContextExtraData::default());
         let media = self.media.take().unwrap();
         sheet.set_media(Some(media));
         let sheet = Arc::new(sheet);

@@ -21,7 +21,7 @@ use dom::bindings::js::{JS, MutHeapJSVal, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
-use dom::bindings::str::{ByteString, USVString, is_token};
+use dom::bindings::str::{ByteString, DOMString, USVString, is_token};
 use dom::blob::{Blob, DataSlice};
 use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
@@ -62,8 +62,7 @@ use string_cache::Atom;
 use time;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::{Url, Position};
-use util::prefs;
-use util::str::DOMString;
+use util::prefs::mozbrowser_enabled;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
 enum XMLHttpRequestState {
@@ -885,7 +884,7 @@ impl XMLHttpRequest {
             // story. See https://github.com/servo/servo/issues/9582
             if let GlobalRoot::Window(win) = self.global() {
                 let is_root_pipeline = win.parent_info().is_none();
-                let is_mozbrowser_enabled = prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false);
+                let is_mozbrowser_enabled = mozbrowser_enabled();
                 is_root_pipeline && is_mozbrowser_enabled
             } else {
                 false

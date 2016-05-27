@@ -10,7 +10,8 @@ use env_logger;
 use euclid::Size2D;
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
 use gecko_bindings::bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues, ServoNodeData};
-use gecko_bindings::bindings::{nsIAtom};
+use gecko_bindings::bindings::{ThreadSafePrincipalHolder, ThreadSafeURIHolder, nsIAtom};
+use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use gecko_bindings::structs::SheetParsingMode;
 use properties::GeckoComputedValues;
 use selector_impl::{GeckoSelectorImpl, PseudoElement, SharedStyleContext, Stylesheet};
@@ -24,6 +25,7 @@ use style::context::{ReflowGoal};
 use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::parallel;
+use style::parser::ParserContextExtraData;
 use style::properties::ComputedValues;
 use style::selector_impl::{SelectorImplExt, PseudoElementCascadeType};
 use style::stylesheets::Origin;
@@ -71,13 +73,9 @@ pub extern "C" fn Servo_Initialize() -> () {
     env_logger::init().unwrap();
 }
 
-#[no_mangle]
-pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *mut RawServoStyleSet) -> () {
-    let document = unsafe { GeckoDocument::from_raw(doc) };
-    let node = match document.root_node() {
-        Some(x) => x,
-        None => return,
-    };
+fn restyle_subtree(node: GeckoNode, raw_data: *mut RawServoStyleSet) {
+    debug_assert!(node.is_element() || node.is_text_node());
+
     let data = unsafe { &mut *(raw_data as *mut PerDocumentStyleData) };
 
     // Force the creation of our lazily-constructed initial computed values on
@@ -111,6 +109,23 @@ pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *m
 }
 
 #[no_mangle]
+pub extern "C" fn Servo_RestyleSubtree(node: *mut RawGeckoNode,
+                                       raw_data: *mut RawServoStyleSet) -> () {
+    let node = unsafe { GeckoNode::from_raw(node) };
+    restyle_subtree(node, raw_data);
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *mut RawServoStyleSet) -> () {
+    let document = unsafe { GeckoDocument::from_raw(doc) };
+    let node = match document.root_node() {
+        Some(x) => x,
+        None => return,
+    };
+    restyle_subtree(node, raw_data);
+}
+
+#[no_mangle]
 pub extern "C" fn Servo_DropNodeData(data: *mut ServoNodeData) -> () {
     unsafe {
         let _ = Box::<NonOpaqueStyleData>::from_raw(data as *mut NonOpaqueStyleData);
@@ -120,7 +135,11 @@ pub extern "C" fn Servo_DropNodeData(data: *mut ServoNodeData) -> () {
 #[no_mangle]
 pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8,
                                                 length: u32,
-                                                mode: SheetParsingMode) -> *mut RawServoStyleSheet {
+                                                mode: SheetParsingMode,
+                                                base: *mut ThreadSafeURIHolder,
+                                                referrer: *mut ThreadSafeURIHolder,
+                                                principal: *mut ThreadSafePrincipalHolder)
+                                                -> *mut RawServoStyleSheet {
 
     let input = unsafe { from_utf8_unchecked(slice::from_raw_parts(bytes, length as usize)) };
 
@@ -132,7 +151,13 @@ pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8,
 
     // FIXME(heycam): Pass in the real base URL.
     let url = Url::parse("about:none").unwrap();
-    let sheet = Arc::new(Stylesheet::from_str(input, url, origin, Box::new(StdoutErrorReporter)));
+    let extra_data = ParserContextExtraData {
+        base: Some(GeckoArcURI::new(base)),
+        referrer: Some(GeckoArcURI::new(referrer)),
+        principal: Some(GeckoArcPrincipal::new(principal)),
+    };
+    let sheet = Arc::new(Stylesheet::from_str(input, url, origin, Box::new(StdoutErrorReporter),
+                                              extra_data));
     unsafe {
         transmute(sheet)
     }

@@ -8,7 +8,7 @@ use dom::bindings::codegen::Bindings::DOMExceptionBinding::DOMExceptionMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use util::str::DOMString;
+use dom::bindings::str::DOMString;
 
 #[repr(u16)]
 #[derive(JSTraceable, Copy, Clone, Debug, HeapSizeOf)]

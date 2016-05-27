@@ -53,7 +53,8 @@ On Fedora:
 sudo dnf install curl freeglut-devel libtool gcc-c++ libXi-devel \
     freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel gperf \
     fontconfig-devel cabextract ttmkfdir python python-virtualenv python-pip expat-devel \
-    rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel
+    rpm-build openssl-devel cmake bzip2-devel libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
+    dbus-devel
 ```
 
 On Arch Linux:
@@ -143,9 +144,14 @@ real-world use, add the `--release` flag to create an optimized build:
 ``` sh
 git clone https://github.com/servo/servo
 cd servo
-ANDROID_TOOLCHAIN=/path/to/toolchain ANDROID_NDK=/path/to/ndk PATH=$PATH:/path/to/toolchain/bin ./mach build --android
-cd ports/android
-ANDROID_SDK=/path/to/sdk make install
+
+export ANDROID_SDK="/path/to/sdk"
+export ANDROID_NDK="/path/to/ndk"
+export ANDROID_TOOLCHAIN="/path/to/toolchain"
+export PATH="$PATH:/path/to/toolchain/bin"
+
+./mach build --release --android
+./mach package --release
 ```
 
 Rather than setting the `ANDROID_*` environment variables every time, you can

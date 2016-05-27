@@ -19,6 +19,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, LayoutJS};
 use dom::bindings::reflector::Reflectable;
+use dom::bindings::str::DOMString;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -33,7 +34,7 @@ use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, RootedValue, JSContext, MutableHandleValue};
 use js::jsval::{UndefinedValue, NullValue};
 use layout_interface::ReflowQueryType;
-use msg::constellation_msg::{LoadData, NavigationDirection, PipelineId, SubpageId};
+use msg::constellation_msg::{FrameType, LoadData, NavigationDirection, PipelineId, SubpageId};
 use net_traits::response::HttpsState;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{IFrameLoadInfo, MozBrowserEvent, ScriptMsg as ConstellationMsg};
@@ -41,12 +42,8 @@ use std::cell::Cell;
 use string_cache::Atom;
 use style::context::ReflowGoal;
 use url::Url;
-use util::prefs;
-use util::str::{DOMString, LengthOrPercentageOrAuto};
-
-pub fn mozbrowser_enabled() -> bool {
-    prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false)
-}
+use util::prefs::mozbrowser_enabled;
+use util::str::LengthOrPercentageOrAuto;
 
 #[derive(HeapSizeOf)]
 enum SandboxAllowance {
@@ -122,6 +119,7 @@ impl HTMLIFrameElement {
         let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id();
         let new_pipeline_id = self.pipeline_id.get().unwrap();
         let private_iframe = self.privatebrowsing();
+        let frame_type = if self.Mozbrowser() { FrameType::MozBrowserIFrame } else { FrameType::IFrame };
 
         let load_info = IFrameLoadInfo {
             load_data: load_data,
@@ -131,6 +129,7 @@ impl HTMLIFrameElement {
             new_pipeline_id: new_pipeline_id,
             sandbox: sandboxed,
             is_private: private_iframe,
+            frame_type: frame_type,
         };
         window.constellation_chan()
               .send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info))
@@ -436,29 +435,16 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // Experimental mozbrowser implementation is based on the webidl
     // present in the gecko source tree, and the documentation here:
     // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
-
-    // TODO(gw): Use experimental codegen when it is available to avoid
-    // exposing these APIs. See https://github.com/servo/servo/issues/5264.
-
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
     fn Mozbrowser(&self) -> bool {
-        // We don't want to allow mozbrowser iframes within iframes
-        let is_root_pipeline = window_from_node(self).parent_info().is_none();
-        if mozbrowser_enabled() && is_root_pipeline {
-            let element = self.upcast::<Element>();
-            element.has_attribute(&atom!("mozbrowser"))
-        } else {
-            false
-        }
+        let element = self.upcast::<Element>();
+        element.has_attribute(&atom!("mozbrowser"))
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
-    fn SetMozbrowser(&self, value: bool) -> ErrorResult {
-        if mozbrowser_enabled() {
-            let element = self.upcast::<Element>();
-            element.set_bool_attribute(&atom!("mozbrowser"), value);
-        }
-        Ok(())
+    fn SetMozbrowser(&self, value: bool) {
+        let element = self.upcast::<Element>();
+        element.set_bool_attribute(&atom!("mozbrowser"), value);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
@@ -539,9 +525,9 @@ impl VirtualMethods for HTMLIFrameElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("sandbox") => AttrValue::from_serialized_tokenlist(value),
-            &atom!("width") => AttrValue::from_dimension(value),
-            &atom!("height") => AttrValue::from_dimension(value),
+            &atom!("sandbox") => AttrValue::from_serialized_tokenlist(value.into()),
+            &atom!("width") => AttrValue::from_dimension(value.into()),
+            &atom!("height") => AttrValue::from_dimension(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

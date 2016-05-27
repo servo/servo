@@ -30,9 +30,10 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootCollection};
 use dom::bindings::js::{RootCollectionPtr, RootedReference};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted};
+use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WRAP_CALLBACKS;
-use dom::browsingcontext::{BrowsingContext, IterableContext};
+use dom::browsingcontext::BrowsingContext;
 use dom::document::{Document, DocumentProgressHandler, DocumentSource, FocusType, IsHTMLDocument};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -57,7 +58,7 @@ use js::jsapi::{JSContext, JS_SetWrapObjectCallbacks, JSTracer, SetWindowProxyCl
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_interface::{ReflowQueryType};
-use layout_interface::{self, LayoutChan, NewLayoutThreadInfo, ScriptLayoutChan};
+use layout_interface::{self, LayoutChan, NewLayoutThreadInfo};
 use mem::heap_size_of_self_and_children;
 use msg::constellation_msg::{LoadData, PanicMsg, PipelineId, PipelineNamespace};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
@@ -78,15 +79,15 @@ use script_runtime::{ScriptPort, StackRootTLS, new_rt_and_cx, get_reports};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::{CompositorEvent, ConstellationControlMsg, EventResult};
-use script_traits::{InitialScriptState, MouseButton, MouseEventType, MozBrowserEvent, NewLayoutInfo};
-use script_traits::{LayoutMsg, OpaqueScriptLayoutChannel, ScriptMsg as ConstellationMsg};
-use script_traits::{ScriptThreadFactory, ScriptToCompositorMsg, TimerEvent, TimerEventRequest, TimerSource};
+use script_traits::{InitialScriptState, MouseButton, MouseEventType, MozBrowserEvent};
+use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg};
+use script_traits::{ScriptThreadFactory, TimerEvent, TimerEventRequest, TimerSource};
 use script_traits::{TouchEventType, TouchId};
-use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::option::Option;
+use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
 use std::sync::atomic::{Ordering, AtomicBool};
@@ -102,7 +103,6 @@ use task_source::user_interaction::{UserInteractionTaskSource, UserInteractionTa
 use time::Tm;
 use url::{Url, Position};
 use util::opts;
-use util::str::DOMString;
 use util::thread;
 use util::thread_state;
 use webdriver_handlers;
@@ -348,12 +348,6 @@ pub struct ScriptThread {
     /// For communicating load url messages to the constellation
     constellation_chan: IpcSender<ConstellationMsg>,
 
-    /// For communicating layout messages to the constellation
-    layout_to_constellation_chan: IpcSender<LayoutMsg>,
-
-    /// A handle to the compositor for communicating ready state messages.
-    compositor: DOMRefCell<IpcSender<ScriptToCompositorMsg>>,
-
     /// The port on which we receive messages from the image cache
     image_cache_port: Receiver<ImageCacheResult>,
 
@@ -428,22 +422,16 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
 }
 
 impl ScriptThreadFactory for ScriptThread {
-    fn create_layout_channel() -> OpaqueScriptLayoutChannel {
-        let (chan, port) = channel();
-        ScriptLayoutChan::new(chan, port)
-    }
-
-    fn clone_layout_channel(pair: &OpaqueScriptLayoutChannel)
-                            -> Box<Any + Send> {
-        box pair.sender() as Box<Any + Send>
-    }
+    type Message = layout_interface::Msg;
 
     fn create(state: InitialScriptState,
-              layout_chan: &OpaqueScriptLayoutChannel,
-              load_data: LoadData) {
+              load_data: LoadData)
+              -> (Sender<layout_interface::Msg>, Receiver<layout_interface::Msg>) {
         let panic_chan = state.panic_chan.clone();
         let (script_chan, script_port) = channel();
-        let layout_chan = LayoutChan(layout_chan.sender());
+
+        let (sender, receiver) = channel();
+        let layout_chan = LayoutChan(sender.clone());
         let pipeline_id = state.id;
         thread::spawn_named_with_send_on_panic(format!("ScriptThread {:?}", state.id),
                                                thread_state::SCRIPT,
@@ -456,8 +444,8 @@ impl ScriptThreadFactory for ScriptThread {
             let mem_profiler_chan = state.mem_profiler_chan.clone();
             let window_size = state.window_size;
             let script_thread = ScriptThread::new(state,
-                                              script_port,
-                                              script_chan.clone());
+                                                  script_port,
+                                                  script_chan.clone());
 
             SCRIPT_THREAD_ROOT.with(|root| {
                 *root.borrow_mut() = Some(&script_thread as *const _);
@@ -472,13 +460,14 @@ impl ScriptThreadFactory for ScriptThread {
             let reporter_name = format!("script-reporter-{}", id);
             mem_profiler_chan.run_with_memory_reporting(|| {
                 script_thread.start();
-                let _ = script_thread.compositor.borrow_mut().send(ScriptToCompositorMsg::Exited);
                 let _ = script_thread.content_process_shutdown_chan.send(());
             }, reporter_name, script_chan, CommonScriptMsg::CollectReports);
 
             // This must always be the very last operation performed before the thread completes
             failsafe.neuter();
         }, Some(pipeline_id), panic_chan);
+
+        (sender, receiver)
     }
 }
 
@@ -531,7 +520,7 @@ impl ScriptThread {
                port: Receiver<MainThreadScriptMsg>,
                chan: Sender<MainThreadScriptMsg>)
                -> ScriptThread {
-        let runtime = unsafe { new_rt_and_cx() };
+        let runtime = unsafe { new_rt_and_cx(ptr::null_mut()) };
 
         unsafe {
             JS_SetWrapObjectCallbacks(runtime.rt(),
@@ -581,8 +570,6 @@ impl ScriptThread {
             control_chan: state.control_chan,
             control_port: control_port,
             constellation_chan: state.constellation_chan,
-            layout_to_constellation_chan: state.layout_to_constellation_chan,
-            compositor: DOMRefCell::new(state.compositor),
             time_profiler_chan: state.time_profiler_chan,
             mem_profiler_chan: state.mem_profiler_chan,
             panic_chan: state.panic_chan,
@@ -1045,8 +1032,6 @@ impl ScriptThread {
                 webdriver_handlers::handle_get_frame_id(&context, pipeline_id, frame_id, reply),
             WebDriverScriptCommand::GetUrl(reply) =>
                 webdriver_handlers::handle_get_url(&context, pipeline_id, reply),
-            WebDriverScriptCommand::GetWindowSize(reply) =>
-                webdriver_handlers::handle_get_window_size(&context, pipeline_id, reply),
             WebDriverScriptCommand::IsEnabled(element_id, reply) =>
                 webdriver_handlers::handle_is_enabled(&context, pipeline_id, element_id, reply),
             WebDriverScriptCommand::IsSelected(element_id, reply) =>
@@ -1101,13 +1086,13 @@ impl ScriptThread {
             paint_chan,
             panic_chan,
             pipeline_port,
+            layout_to_constellation_chan,
             layout_shutdown_chan,
             content_process_shutdown_chan,
         } = new_layout_info;
 
-        let layout_pair = ScriptThread::create_layout_channel();
-        let layout_chan = LayoutChan(*ScriptThread::clone_layout_channel(
-            &layout_pair).downcast::<Sender<layout_interface::Msg>>().unwrap());
+        let layout_pair = channel();
+        let layout_chan = LayoutChan(layout_pair.0.clone());
 
         let layout_creation_info = NewLayoutThreadInfo {
             id: new_pipeline_id,
@@ -1115,7 +1100,7 @@ impl ScriptThread {
             is_parent: false,
             layout_pair: layout_pair,
             pipeline_port: pipeline_port,
-            constellation_chan: self.layout_to_constellation_chan.clone(),
+            constellation_chan: layout_to_constellation_chan,
             panic_chan: panic_chan,
             paint_chan: paint_chan,
             script_chan: self.control_chan.clone(),
@@ -1309,8 +1294,8 @@ impl ScriptThread {
 
         // TODO(tkuehn): currently there is only one window,
         // so this can afford to be naive and just shut down the
-        // compositor. In the future it'll need to be smarter.
-        self.compositor.borrow_mut().send(ScriptToCompositorMsg::Exit).unwrap();
+        // constellation. In the future it'll need to be smarter.
+        self.constellation_chan.send(ConstellationMsg::Exit).unwrap();
     }
 
     /// We have received notification that the response associated with a load has completed.
@@ -1467,7 +1452,6 @@ impl ScriptThread {
                                  FileReadingTaskSource(file_sender.clone()),
                                  self.image_cache_channel.clone(),
                                  self.custom_message_chan.clone(),
-                                 self.compositor.borrow_mut().clone(),
                                  self.image_cache_thread.clone(),
                                  self.resource_threads.clone(),
                                  self.bluetooth_thread.clone(),
@@ -1690,8 +1674,11 @@ impl ScriptThread {
         let point = Point2D::new(rect.origin.x.to_nearest_px() as f32,
                                  rect.origin.y.to_nearest_px() as f32);
 
-        self.compositor.borrow_mut().send(ScriptToCompositorMsg::ScrollFragmentPoint(
-                                                 pipeline_id, LayerId::null(), point, false)).unwrap();
+        let message = ConstellationMsg::ScrollFragmentPoint(pipeline_id,
+                                                            LayerId::null(),
+                                                            point,
+                                                            false);
+        self.constellation_chan.send(message).unwrap();
     }
 
     /// Reflows non-incrementally, rebuilding the entire layout tree in the process.
@@ -1776,16 +1763,14 @@ impl ScriptThread {
                 let handled = self.handle_touch_event(pipeline_id, event_type, identifier, point);
                 match event_type {
                     TouchEventType::Down => {
-                        if handled {
+                        let result = if handled {
                             // TODO: Wait to see if preventDefault is called on the first touchmove event.
-                            self.compositor.borrow_mut()
-                                .send(ScriptToCompositorMsg::TouchEventProcessed(
-                                        EventResult::DefaultAllowed)).unwrap();
+                            EventResult::DefaultAllowed
                         } else {
-                            self.compositor.borrow_mut()
-                                .send(ScriptToCompositorMsg::TouchEventProcessed(
-                                        EventResult::DefaultPrevented)).unwrap();
-                        }
+                            EventResult::DefaultPrevented
+                        };
+                        let message = ConstellationMsg::TouchEventProcessed(result);
+                        self.constellation_chan.send(message).unwrap();
                     }
                     _ => {
                         // TODO: Calling preventDefault on a touchup event should prevent clicks.
@@ -1802,8 +1787,7 @@ impl ScriptThread {
             KeyEvent(key, state, modifiers) => {
                 let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
                 let document = context.active_document();
-                document.dispatch_key_event(
-                    key, state, modifiers, &mut self.compositor.borrow_mut());
+                document.dispatch_key_event(key, state, modifiers, &self.constellation_chan);
             }
         }
     }
@@ -1974,29 +1958,27 @@ impl ScriptThread {
 
     fn handle_css_error_reporting(&self, pipeline_id: PipelineId, filename: String,
                                   line: usize, column: usize, msg: String) {
+        let sender = match self.devtools_chan {
+            Some(ref sender) => sender,
+            None => return,
+        };
+
         let parent_context = self.root_browsing_context();
         let context = match parent_context.find(pipeline_id) {
             Some(context) => context,
             None => return,
         };
 
-        let document = context.active_document();
-        let css_error = CSSError {
-            filename: filename,
-            line: line,
-            column: column,
-            msg: msg
-        };
-
-        document.report_css_error(css_error.clone());
         let window = context.active_window();
-
         if window.live_devtools_updates() {
-            if let Some(ref chan) = self.devtools_chan {
-                chan.send(ScriptToDevtoolsControlMsg::ReportCSSError(
-                    pipeline_id,
-                    css_error)).unwrap();
-             }
+            let css_error = CSSError {
+                filename: filename,
+                line: line,
+                column: column,
+                msg: msg
+            };
+            let message = ScriptToDevtoolsControlMsg::ReportCSSError(pipeline_id, css_error);
+            sender.send(message).unwrap();
         }
     }
 }

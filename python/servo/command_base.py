@@ -178,6 +178,7 @@ class CommandBase(object):
         self.config["android"].setdefault("sdk", "")
         self.config["android"].setdefault("ndk", "")
         self.config["android"].setdefault("toolchain", "")
+        self.config["android"].setdefault("platform", "android-18")
         self.config["android"].setdefault("target", "arm-linux-androideabi")
 
         self.config.setdefault("gonk", {})
@@ -318,6 +319,8 @@ class CommandBase(object):
             env["ANDROID_NDK"] = self.config["android"]["ndk"]
         if self.config["android"]["toolchain"]:
             env["ANDROID_TOOLCHAIN"] = self.config["android"]["toolchain"]
+        if self.config["android"]["platform"]:
+            env["ANDROID_PLATFORM"] = self.config["android"]["platform"]
 
         if gonk:
             if self.config["gonk"]["b2g"]:
