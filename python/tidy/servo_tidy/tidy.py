@@ -33,7 +33,6 @@ file_patterns_to_ignore = [
 # Files that are ignored for all tidy and lint checks.
 ignored_files = [
     # Generated and upstream code combined with our own. Could use cleanup
-    os.path.join(".", "ports", "gonk", "src", "native_window_glue.cpp"),
     os.path.join(".", "ports", "geckolib", "gecko_bindings", "bindings.rs"),
     os.path.join(".", "ports", "geckolib", "gecko_bindings", "structs.rs"),
     os.path.join(".", "ports", "geckolib", "string_cache", "atom_macro.rs"),

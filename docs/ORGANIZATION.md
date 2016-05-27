@@ -55,8 +55,6 @@
 		* Embedding implementation for the Chrome Embedding Framework (CEF) API.
 	* glutin
 		* Embedding implementation for the `glutin` windowing library.
-	* gonk
-		* Embedding implementation for the Firefox OS devices.
 * python
 	* servo
 		* Implementations of servo-specific mach commands.

@@ -1,3 +1,0 @@
-[target.arm-linux-androideabi]
-ar = "arm-linux-androideabi-ar"
-linker = "./fake-ld.sh"
