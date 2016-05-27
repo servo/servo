@@ -160,6 +160,7 @@ pub struct Window {
     screen: MutNullableHeap<JS<Screen>>,
     session_storage: MutNullableHeap<JS<Storage>>,
     local_storage: MutNullableHeap<JS<Storage>>,
+    status: DOMRefCell<DOMString>,
     #[ignore_heap_size_of = "channels are hard"]
     scheduler_chan: IpcSender<TimerEventRequest>,
     timers: OneshotTimers,
@@ -827,6 +828,16 @@ impl WindowMethods for Window {
     fn DevicePixelRatio(&self) -> Finite<f64> {
         let dpr = self.window_size.get().map_or(1.0f32, |data| data.device_pixel_ratio.get());
         Finite::wrap(dpr as f64)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-window-status
+    fn Status(&self) -> DOMString {
+        self.status.borrow().clone()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-window-status
+    fn SetStatus(&self, status: DOMString) {
+        *self.status.borrow_mut() = status
     }
 }
 
@@ -1513,6 +1524,7 @@ impl Window {
             screen: Default::default(),
             session_storage: Default::default(),
             local_storage: Default::default(),
+            status: DOMRefCell::new(DOMString::new()),
             scheduler_chan: scheduler_chan.clone(),
             timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
             next_worker_id: Cell::new(WorkerId(0)),
