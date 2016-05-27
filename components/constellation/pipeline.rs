@@ -178,7 +178,7 @@ impl Pipeline {
                             state.font_cache_thread.clone(),
                             state.time_profiler_chan.clone(),
                             state.mem_profiler_chan.clone(),
-                            paint_shutdown_chan.clone());
+                            paint_shutdown_chan);
 
         let mut child_process = None;
         if let Some((script_port, pipeline_port)) = content_ports {
@@ -233,7 +233,6 @@ impl Pipeline {
                 layout_to_paint_chan: layout_to_paint_chan,
                 pipeline_port: pipeline_port,
                 layout_shutdown_chan: layout_shutdown_chan,
-                paint_shutdown_chan: paint_shutdown_chan,
                 pipeline_namespace_id: state.pipeline_namespace_id,
                 layout_content_process_shutdown_chan: layout_content_process_shutdown_chan,
                 layout_content_process_shutdown_port: layout_content_process_shutdown_port,
@@ -410,7 +409,6 @@ pub struct UnprivilegedPipelineContent {
     layout_to_paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
     opts: Opts,
     prefs: HashMap<String, Pref>,
-    paint_shutdown_chan: IpcSender<()>,
     pipeline_port: IpcReceiver<LayoutControlMsg>,
     pipeline_namespace_id: PipelineNamespaceId,
     layout_shutdown_chan: IpcSender<()>,
