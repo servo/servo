@@ -1445,6 +1445,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "open"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "openssl"
 version = "0.7.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1736,6 +1741,7 @@ dependencies = [
  "net_traits 0.0.1",
  "num-traits 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
  "offscreen_gl_context 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "open 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf 0.7.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "phf_macros 0.7.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "plugins 0.0.1",

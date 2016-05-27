@@ -43,6 +43,7 @@ msg = {path = "../msg"}
 net_traits = {path = "../net_traits"}
 num-traits = "0.1.32"
 offscreen_gl_context = "0.1.2"
+open = "1.1.1"
 phf = "0.7.13"
 phf_macros = "0.7.13"
 plugins = {path = "../plugins"}

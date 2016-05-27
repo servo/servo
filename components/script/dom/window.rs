@@ -13,7 +13,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNo
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
-use dom::bindings::error::{Error, Fallible, report_pending_exception};
+use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
 use dom::bindings::global::{GlobalRef, global_root_from_object};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
@@ -52,6 +52,7 @@ use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::storage_thread::StorageType;
 use net_traits::{ResourceThreads, CustomResponseSender};
 use num_traits::ToPrimitive;
+use open;
 use profile_traits::mem;
 use profile_traits::time::{ProfilerCategory, TimerMetadata, TimerMetadataFrameType};
 use profile_traits::time::{ProfilerChan, TimerMetadataReflowType, profile};
@@ -838,6 +839,17 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-window-status
     fn SetStatus(&self, status: DOMString) {
         *self.status.borrow_mut() = status
+    }
+
+    // check-tidy: no specs after this line
+    fn OpenURLInDefaultBrowser(&self, href: DOMString) -> ErrorResult {
+        let url = try!(Url::parse(&href).map_err(|e| {
+            Error::Type(format!("Couldn't parse URL: {}", e))
+        }));
+        match open::that(url.as_str()) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(Error::Type(format!("Couldn't open URL: {}", e))),
+        }
     }
 }
 
