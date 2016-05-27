@@ -35,7 +35,7 @@ use incremental::{REPAINT, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW, REFLOW, REFLOW_EN
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_debug;
-use layout_traits::{ConvertPipelineIdToWebRender, LayoutThreadFactory};
+use layout_traits::LayoutThreadFactory;
 use log;
 use msg::constellation_msg::{PanicMsg, PipelineId};
 use net_traits::image_cache_thread::UsePlaceholder;

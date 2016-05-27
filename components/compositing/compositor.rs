@@ -27,7 +27,6 @@ use layers::platform::surface::NativeDisplay;
 use layers::rendergl;
 use layers::rendergl::RenderContext;
 use layers::scene::Scene;
-use layout_traits::ConvertPipelineIdToWebRender;
 use msg::constellation_msg::{Image, PixelFormat};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, PipelineIndex, PipelineNamespaceId};
