@@ -87,6 +87,10 @@ pub struct WebGLRenderingContext {
     current_vertex_attrib_0: Cell<(f32, f32, f32, f32)>,
 }
 
+fn log2(n: u32) -> u32 {
+    31 - n.leading_zeros()
+}
+
 impl WebGLRenderingContext {
     fn new_inherited(global: GlobalRef,
                      canvas: &HTMLCanvasElement,
@@ -402,7 +406,7 @@ impl WebGLRenderingContext {
         // the returned value of GL_MAX_TEXTURE_SIZE when
         // target is GL_TEXTURE_2D or GL_MAX_CUBE_MAP_TEXTURE_SIZE
         // when target is not GL_TEXTURE_2D.
-        if level > (max as f32).log2() as i32 {
+        if level > log2(max) as i32 {
             self.webgl_error(InvalidValue);
             return false;
         }
