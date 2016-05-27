@@ -57,7 +57,6 @@ use script_traits::{LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use sequential;
 use serde_json;
 use std::borrow::ToOwned;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::ops::{Deref, DerefMut};
@@ -143,7 +142,7 @@ pub struct LayoutThread {
     id: PipelineId,
 
     /// The URL of the pipeline that we belong to.
-    url: RefCell<Url>,
+    url: Url,
 
     /// Is the current reflow of an iframe, as opposed to a root window?
     is_iframe: bool,
@@ -431,7 +430,7 @@ impl LayoutThread {
 
         LayoutThread {
             id: id,
-            url: RefCell::new(url),
+            url: url,
             is_iframe: is_iframe,
             port: port,
             pipeline_port: pipeline_receiver,
@@ -610,7 +609,7 @@ impl LayoutThread {
         };
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  &self.url.borrow(),
+                                                                  &self.url,
                                                                   reflow_info.goal);
 
         self.perform_post_style_recalc_layout_passes(&reflow_info,
@@ -669,7 +668,7 @@ impl LayoutThread {
                 self.create_layout_thread(info)
             }
             Msg::SetFinalUrl(final_url) => {
-                *self.url.borrow_mut() = final_url;
+                self.url = final_url;
             },
             Msg::PrepareToExit(response_chan) => {
                 self.prepare_to_exit(response_chan);
@@ -693,7 +692,7 @@ impl LayoutThread {
         // FIXME(njn): Just measuring the display tree for now.
         let rw_data = possibly_locked_rw_data.lock();
         let display_list = rw_data.display_list.as_ref();
-        let formatted_url = &format!("url({})", *self.url.borrow());
+        let formatted_url = &format!("url({})", self.url);
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "display-list"],
             kind: ReportKind::ExplicitJemallocHeapSize,
@@ -999,7 +998,7 @@ impl LayoutThread {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
 
-        debug!("layout: received layout request for: {}", *self.url.borrow());
+        debug!("layout: received layout request for: {}", self.url);
 
         let mut rw_data = possibly_locked_rw_data.lock();
 
@@ -1045,7 +1044,7 @@ impl LayoutThread {
             Some(x) => x,
         };
 
-        debug!("layout: received layout request for: {}", *self.url.borrow());
+        debug!("layout: received layout request for: {}", self.url);
         if log_enabled!(log::LogLevel::Debug) {
             node.dump();
         }
@@ -1114,7 +1113,7 @@ impl LayoutThread {
         // Create a layout context for use throughout the following passes.
         let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
                                                                          viewport_size_changed,
-                                                                         &self.url.borrow(),
+                                                                         &self.url,
                                                                          data.reflow_info.goal);
 
         if node.is_dirty() || node.has_dirty_descendants() {
@@ -1263,7 +1262,7 @@ impl LayoutThread {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  &self.url.borrow(),
+                                                                  &self.url,
                                                                   reflow_info.goal);
 
         self.perform_post_main_layout_passes(&reflow_info, &mut *rw_data, &mut layout_context);
@@ -1283,7 +1282,7 @@ impl LayoutThread {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  &self.url.borrow(),
+                                                                  &self.url,
                                                                   reflow_info.goal);
 
         if let Some(mut root_flow) = self.root_flow.clone() {
@@ -1314,7 +1313,7 @@ impl LayoutThread {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  &self.url.borrow(),
+                                                                  &self.url,
                                                                   reflow_info.goal);
 
         // No need to do a style recalc here.
@@ -1459,7 +1458,7 @@ impl LayoutThread {
     /// Returns profiling information which is passed to the time profiler.
     fn profiler_metadata(&self) -> Option<TimerMetadata> {
         Some(TimerMetadata {
-            url: self.url.borrow().to_string(),
+            url: self.url.to_string(),
             iframe: if self.is_iframe {
                 TimerMetadataFrameType::IFrame
             } else {
