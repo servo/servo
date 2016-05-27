@@ -1085,8 +1085,6 @@ dependencies = [
  "net_traits 0.0.1",
  "profile_traits 0.0.1",
  "script_traits 0.0.1",
- "serde 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "serde_macros 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
  "webrender_traits 0.1.0 (git+https://github.com/servo/webrender_traits)",

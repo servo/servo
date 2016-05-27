@@ -2,9 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![feature(custom_derive, plugin)]
-#![plugin(serde_macros)]
-
 #![deny(unsafe_code)]
 
 extern crate gfx;
@@ -13,7 +10,6 @@ extern crate msg;
 extern crate net_traits;
 extern crate profile_traits;
 extern crate script_traits;
-extern crate serde;
 extern crate url;
 extern crate util;
 extern crate webrender_traits;
@@ -34,10 +30,6 @@ use script_traits::{LayoutControlMsg, ConstellationControlMsg};
 use std::sync::mpsc::{Sender, Receiver};
 use url::Url;
 use util::ipc::OptionalIpcSender;
-
-/// A channel wrapper for constellation messages
-#[derive(Clone, Deserialize, Serialize)]
-pub struct LayoutControlChan(pub IpcSender<LayoutControlMsg>);
 
 // A static method creating a layout thread
 // Here to remove the compositor -> layout dependency

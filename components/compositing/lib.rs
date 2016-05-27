@@ -41,9 +41,8 @@ pub use compositor_thread::{CompositorEventListener, CompositorProxy, Compositor
 use euclid::size::TypedSize2D;
 use gfx::paint_thread::ChromeToPaintMsg;
 use ipc_channel::ipc::IpcSender;
-use layout_traits::LayoutControlChan;
 use msg::constellation_msg::PipelineId;
-use script_traits::ConstellationControlMsg;
+use script_traits::{ConstellationControlMsg, LayoutControlMsg};
 use std::sync::mpsc::Sender;
 use util::geometry::PagePx;
 
@@ -66,6 +65,6 @@ pub struct SendableFrameTree {
 pub struct CompositionPipeline {
     pub id: PipelineId,
     pub script_chan: IpcSender<ConstellationControlMsg>,
-    pub layout_chan: LayoutControlChan,
+    pub layout_chan: IpcSender<LayoutControlMsg>,
     pub chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
 }

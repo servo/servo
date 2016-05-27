@@ -17,6 +17,4 @@ profile_traits = {path = "../profile_traits"}
 util = {path = "../util"}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 webrender_traits = {git = "https://github.com/servo/webrender_traits"}
-serde = "0.7"
-serde_macros = "0.7"
 url = {version = "1.0.0", features = ["heap_size"]}
