@@ -119,7 +119,7 @@ interface BrowserElementCommon {
   //void removeNextPaintListener(BrowserElementNextPaintEventCallback listener);
 };
 
-[NoInterfaceObject]
+[Func="Window::global_is_mozbrowser", NoInterfaceObject]
 interface BrowserElementPrivileged {
   //[Throws,
   // Pref="dom.mozBrowserFramesEnabled",
@@ -146,16 +146,16 @@ interface BrowserElementPrivileged {
   //                    unsigned long count,
   //                    unsigned long modifiers);
 
-  [Func="Window::global_is_mozbrowser", Throws]
+  [Throws]
   void goBack();
 
-  [Func="Window::global_is_mozbrowser", Throws]
+  [Throws]
   void goForward();
 
-  [Func="Window::global_is_mozbrowser", Throws]
+  [Throws]
   void reload(optional boolean hardReload = false);
 
-  [Func="Window::global_is_mozbrowser", Throws]
+  [Throws]
   void stop();
 
   //[Throws,
