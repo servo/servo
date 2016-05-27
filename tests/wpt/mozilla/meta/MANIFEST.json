@@ -6454,6 +6454,12 @@
             "url": "/_mozilla/mozilla/iframe-unblock-onload.html"
           }
         ],
+        "mozilla/iframe/same_origin_parentage.html": [
+          {
+            "path": "mozilla/iframe/same_origin_parentage.html",
+            "url": "/_mozilla/mozilla/iframe/same_origin_parentage.html"
+          }
+        ],
         "mozilla/iframe_contentDocument.html": [
           {
             "path": "mozilla/iframe_contentDocument.html",
