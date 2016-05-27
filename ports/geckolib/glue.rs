@@ -29,6 +29,7 @@ use style::parallel;
 use style::parser::ParserContextExtraData;
 use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_impl::{SelectorImplExt, PseudoElementCascadeType};
+use style::sequential;
 use style::stylesheets::Origin;
 use traversal::RecalcStyleOnly;
 use url::Url;
@@ -109,7 +110,12 @@ fn restyle_subtree(node: GeckoNode, raw_data: *mut RawServoStyleSet) {
     };
 
     if node.is_dirty() || node.has_dirty_descendants() {
-        parallel::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context, &mut per_doc_data.work_queue);
+        if per_doc_data.num_threads == 1 {
+            sequential::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context);
+        } else {
+            parallel::traverse_dom::<GeckoNode, RecalcStyleOnly>(node, &shared_style_context,
+                                                                 &mut per_doc_data.work_queue);
+        }
     }
 }
 
