@@ -1228,7 +1228,7 @@ impl Document {
         self.stylesheets_changed_since_reflow.set(true);
         *self.stylesheets.borrow_mut() = None;
         // Mark the document element dirty so a reflow will be performed.
-        self.get_html_element().map(|root| {
+        self.GetDocumentElement().map(|root| {
             root.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged);
         });
     }
