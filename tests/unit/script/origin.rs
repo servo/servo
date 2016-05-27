@@ -48,48 +48,6 @@ fn alias_cross_origin() {
 }
 
 #[test]
-fn alias_update_same_origin() {
-    let a = Origin::new(&Url::parse("http://example.com/a.html").unwrap());
-    let b = Origin::new(&Url::parse("http://example.org/b.html").unwrap());
-    let c = b.alias();
-    b.set(Url::parse("http://example.com/c.html").unwrap().origin());
-    assert!(a.same_origin(&c));
-    assert!(b.same_origin(&c));
-    assert!(c.same_origin(&c));
-}
-
-#[test]
-fn alias_update_cross_origin() {
-    let a = Origin::new(&Url::parse("http://example.com/a.html").unwrap());
-    let b = Origin::new(&Url::parse("http://example.com/b.html").unwrap());
-    let c = b.alias();
-    b.set(Url::parse("http://example.org/c.html").unwrap().origin());
-    assert!(!a.same_origin(&c));
-    assert!(b.same_origin(&c));
-    assert!(c.same_origin(&c));
-}
-
-#[test]
-fn alias_chain() {
-    let a = Origin::new(&Url::parse("http://example.com/a.html").unwrap());
-    let b = Origin::new(&Url::parse("http://example.com/b.html").unwrap());
-    let c = b.copy();
-    let d = c.alias();
-    let e = d.alias();
-    assert!(a.same_origin(&e));
-    assert!(b.same_origin(&e));
-    assert!(c.same_origin(&e));
-    assert!(d.same_origin(&e));
-    assert!(e.same_origin(&e));
-    c.set(Url::parse("http://example.org/c.html").unwrap().origin());
-    assert!(a.same_origin(&b));
-    assert!(!b.same_origin(&c));
-    assert!(c.same_origin(&d));
-    assert!(d.same_origin(&e));
-    assert!(!e.same_origin(&a));
-}
-
-#[test]
 fn opaque() {
     let a = Origin::opaque_identifier();
     let b = Origin::opaque_identifier();
