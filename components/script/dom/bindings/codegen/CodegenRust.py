@@ -19,6 +19,7 @@ from WebIDL import (
     IDLType,
     IDLInterfaceMember,
     IDLUndefinedValue,
+    IDLTypedefType,
 )
 
 from Configuration import (
@@ -535,7 +536,10 @@ def typeNeedsRooting(type, descriptorProvider):
 
 
 def union_native_type(t):
-    name = t.unroll().name
+    unrolled_type = t.unroll()
+    name = unrolled_type.name
+    if hasTypedefVariant(unrolled_type):
+        return name
     return 'UnionTypes::%s' % name
 
 
@@ -2059,7 +2063,7 @@ class CGCallbackTempRoot(CGGeneric):
         CGGeneric.__init__(self, "%s::new(${val}.get().to_object())" % name)
 
 
-def getAllTypes(descriptors, dictionaries, callbacks):
+def getAllTypes(descriptors, dictionaries, typedefs, callbacks):
     """
     Generate all the types we're dealing with.  For each type, a tuple
     containing type, descriptor, dictionary is yielded.  The
@@ -2075,9 +2079,18 @@ def getAllTypes(descriptors, dictionaries, callbacks):
     for callback in callbacks:
         for t in getTypesFromCallback(callback):
             yield (t, None, None)
+    for typedef in typedefs:
+        yield (typedef.innerType, None, None)
 
 
-def UnionTypes(descriptors, dictionaries, callbacks, config):
+def hasTypedefVariant(t):
+    for memberType in t.memberTypes:
+        if isinstance(memberType, IDLTypedefType):
+            return True
+    return False
+
+
+def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config, filterTypedefVariant):
     """
     Returns a CGList containing CGUnionStructs for every union.
     """
@@ -2101,12 +2114,14 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
     # Now find all the things we'll need as arguments and return values because
     # we need to wrap or unwrap them.
     unionStructs = dict()
-    for (t, descriptor, dictionary) in getAllTypes(descriptors, dictionaries, callbacks):
+    for (t, descriptor, dictionary) in getAllTypes(descriptors, dictionaries, typedefs, callbacks):
         assert not descriptor or not dictionary
         t = t.unroll()
         if not t.isUnion():
             continue
         name = str(t)
+        if not hasTypedefVariant(t) == filterTypedefVariant:
+            continue
         if name not in unionStructs:
             provider = descriptor or config.getDescriptorProvider()
             unionStructs[name] = CGList([
@@ -3769,6 +3784,9 @@ def getUnionTypeTemplateVars(type, descriptorProvider):
     elif type.isPrimitive():
         name = type.name
         typeName = builtinNames[type.tag()]
+    elif isinstance(type, IDLTypedefType):
+        name = type.name
+        typeName = type.name
     else:
         name = type.name
         typeName = "/*" + type.name + "*/"
@@ -3871,6 +3889,14 @@ class CGUnionConversionStruct(CGThing):
         else:
             arrayObject = None
 
+        typedefMemberTypes = filter(lambda t: isinstance(t, IDLTypedefType), memberTypes)
+        if len(typedefMemberTypes) > 0:
+            typeNames = [get_name(memberType) for memberType in typedefMemberTypes]
+            typedefObject = CGList(CGGeneric(get_match(typeName)) for typeName in typeNames)
+            names.extend(typeNames)
+        else:
+            typedefObject = None
+
         dateObjectMemberTypes = filter(lambda t: t.isDate(), memberTypes)
         if len(dateObjectMemberTypes) > 0:
             assert len(dateObjectMemberTypes) == 1
@@ -3903,14 +3929,16 @@ class CGUnionConversionStruct(CGThing):
         else:
             object = None
 
-        hasObjectTypes = interfaceObject or arrayObject or dateObject or nonPlatformObject or object
+        hasObjectTypes = interfaceObject or arrayObject or typedefObject or dateObject or nonPlatformObject or object
         if hasObjectTypes:
-            assert interfaceObject or arrayObject
+            assert interfaceObject or arrayObject or typedefObject
             templateBody = CGList([], "\n")
             if interfaceObject:
                 templateBody.append(interfaceObject)
             if arrayObject:
                 templateBody.append(arrayObject)
+            if typedefObject:
+                templateBody.append(typedefObject)
             conversions.append(CGIfWrapper("value.get().is_object()", templateBody))
         stringTypes = [t for t in memberTypes if t.isString() or t.isEnum()]
         numericTypes = [t for t in memberTypes if t.isNumeric()]
@@ -5502,6 +5530,9 @@ class CGBindingRoot(CGThing):
                                  getRetvalDeclarationForType(t.innerType, config.getDescriptorProvider()),
                                  CGGeneric(";\n\n")])
 
+        typedefsUnion = UnionTypes(descriptors, [], [], [], config, True)
+        cgthings.append(typedefsUnion.child)
+
         # Do codegen for all the dictionaries.
         cgthings.extend([CGDictionary(d, config.getDescriptorProvider())
                          for d in dictionaries])
@@ -5559,6 +5590,7 @@ class CGBindingRoot(CGThing):
             'js::glue::AppendToAutoIdVector',
             'js::rust::{GCMethods, define_methods, define_properties}',
             'dom::bindings',
+            'dom::bindings::error::throw_not_in_union',
             'dom::bindings::global::{GlobalRef, global_root_from_object, global_root_from_reflector}',
             'dom::bindings::interface::{InterfaceConstructorBehavior, NonCallbackInterfaceObjectClass}',
             'dom::bindings::interface::{create_callback_interface_object, create_interface_prototype_object}',
@@ -6404,8 +6436,9 @@ impl %(base)s {
         curr = UnionTypes(config.getDescriptors(),
                           config.getDictionaries(),
                           config.getCallbacks(),
-                          config)
-
+                          config.typedefs,
+                          config,
+                          False)
         # Add the auto-generated comment.
         curr = CGWrapper(curr, pre=AUTOGENERATED_WARNING_COMMENT)
 
