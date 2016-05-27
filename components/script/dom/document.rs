@@ -1228,9 +1228,9 @@ impl Document {
         self.stylesheets_changed_since_reflow.set(true);
         *self.stylesheets.borrow_mut() = None;
         // Mark the document element dirty so a reflow will be performed.
-        self.GetDocumentElement().map(|root| {
-            root.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged);
-        });
+        if let Some(element) = self.GetDocumentElement() {
+            element.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged);
+        }
     }
 
     pub fn get_and_reset_stylesheets_changed_since_reflow(&self) -> bool {
