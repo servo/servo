@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use compositing::CompositionPipeline;
-use compositing::CompositorProxy;
-use compositing::compositor_thread::Msg as CompositorMsg;
+use compositing_traits::{CompositionPipeline, CompositorProxy, Msg as CompositorMsg};
 use devtools_traits::{DevtoolsControlMsg, ScriptToDevtoolsControlMsg};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;

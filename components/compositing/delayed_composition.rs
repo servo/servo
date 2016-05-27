@@ -7,7 +7,7 @@
 //! This is useful when we need to composite next frame but we want to opportunistically give the
 //! painting thread time to paint if it can.
 
-use compositor_thread::{CompositorProxy, Msg};
+use compositing_traits::{CompositorProxy, Msg};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::thread::{self, Builder};
 use time;

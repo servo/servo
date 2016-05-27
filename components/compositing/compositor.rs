@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use CompositionPipeline;
-use SendableFrameTree;
 use app_units::Au;
+use compositing_traits::{CompositingReason, CompositionPipeline};
+use compositing_traits::{CompositorProxy, Msg, SendableFrameTree};
 use compositor_layer::{CompositorData, CompositorLayer, RcCompositorLayer, WantsScrollEventsFlag};
-use compositor_thread::{CompositorEventListener, CompositorProxy};
-use compositor_thread::{CompositorReceiver, InitialCompositorState, Msg, RenderListener};
+use compositor_thread::{CompositorEventListener, CompositorReceiver};
+use compositor_thread::{InitialCompositorState, RenderListener};
 use delayed_composition::DelayedCompositionTimerProxy;
 use euclid::point::TypedPoint2D;
 use euclid::rect::TypedRect;
@@ -2562,27 +2562,4 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
             warn!("Failed to send pipeline title ({}).", e);
         }
     }
-}
-
-/// Why we performed a composite. This is used for debugging.
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub enum CompositingReason {
-    /// We hit the delayed composition timeout. (See `delayed_composition.rs`.)
-    DelayedCompositeTimeout,
-    /// The window has been scrolled and we're starting the first recomposite.
-    Scroll,
-    /// A scroll has continued and we need to recomposite again.
-    ContinueScroll,
-    /// We're performing the single composite in headless mode.
-    Headless,
-    /// We're performing a composite to run an animation.
-    Animation,
-    /// A new frame tree has been loaded.
-    NewFrameTree,
-    /// New painted buffers have been received.
-    NewPaintedBuffers,
-    /// The window has been zoomed.
-    Zoom,
-    /// A new WebRender frame has arrived.
-    NewWebRenderFrame,
 }

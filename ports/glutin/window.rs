@@ -5,9 +5,10 @@
 //! A windowing implementation using glutin.
 
 use NestedEventLoopListener;
-use compositing::compositor_thread::{self, CompositorProxy, CompositorReceiver};
+use compositing::compositor_thread::CompositorReceiver;
 use compositing::windowing::{MouseWindowEvent, WindowNavigateMsg};
 use compositing::windowing::{WindowEvent, WindowMethods};
+use compositing_traits::{self, CompositorProxy};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use euclid::{Size2D, Point2D};
@@ -868,12 +869,12 @@ impl WindowMethods for Window {
 }
 
 struct GlutinCompositorProxy {
-    sender: Sender<compositor_thread::Msg>,
+    sender: Sender<compositing_traits::Msg>,
     window_proxy: Option<glutin::WindowProxy>,
 }
 
 impl CompositorProxy for GlutinCompositorProxy {
-    fn send(&self, msg: compositor_thread::Msg) {
+    fn send(&self, msg: compositing_traits::Msg) {
         // Send a message and kick the OS event loop awake.
         if let Err(err) = self.sender.send(msg) {
             warn!("Failed to send response ({}).", err);

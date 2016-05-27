@@ -4,7 +4,8 @@
 
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
-use compositor_thread::{CompositorProxy, CompositorReceiver};
+use compositing_traits::CompositorProxy;
+use compositor_thread::CompositorReceiver;
 use euclid::point::TypedPoint2D;
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
