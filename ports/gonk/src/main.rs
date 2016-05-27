@@ -53,7 +53,7 @@ mod input;
 mod window;
 
 struct BrowserWrapper {
-    browser: Browser,
+    browser: Browser<window::Window>,
 }
 
 fn main() {
