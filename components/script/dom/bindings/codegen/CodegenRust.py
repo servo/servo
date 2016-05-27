@@ -2390,6 +2390,7 @@ Root::from_ref(&*raw)""" % {'copyUnforgeable': unforgeable, 'createObject': crea
             create = CreateBindingJSObject(self.descriptor)
             return CGGeneric("""\
 %(createObject)s
+(*raw).init_reflector(obj.ptr);
 
 let _ac = JSAutoCompartment::new(cx, obj.ptr);
 let mut proto = RootedObject::new(cx, ptr::null_mut());
@@ -2397,7 +2398,6 @@ GetProtoObject(cx, obj.handle(), proto.handle_mut());
 JS_SetPrototype(cx, obj.handle(), proto.handle());
 
 %(copyUnforgeable)s
-(*raw).init_reflector(obj.ptr);
 
 Root::from_ref(&*raw)\
 """ % {'copyUnforgeable': unforgeable, 'createObject': create})
