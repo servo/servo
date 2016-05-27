@@ -425,10 +425,14 @@ impl ${style_struct.trait_name} for ${style_struct.gecko_struct_name} {
      */
     % for longhand in stub_longhands:
     fn set_${longhand.ident}(&mut self, _: longhands::${longhand.ident}::computed_value::T) {
-        println!("stylo: Unimplemented property setter: ${longhand.name}");
+        if cfg!(debug_assertions) {
+            println!("stylo: Unimplemented property setter: ${longhand.name}");
+        }
     }
     fn copy_${longhand.ident}_from(&mut self, _: &Self) {
-        println!("stylo: Unimplemented property setter: ${longhand.name}");
+        if cfg!(debug_assertions) {
+            println!("stylo: Unimplemented property setter: ${longhand.name}");
+        }
     }
     % if longhand.need_clone:
     fn clone_${longhand.ident}(&self) -> longhands::${longhand.ident}::computed_value::T {
