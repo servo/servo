@@ -29,7 +29,7 @@ use js::jsval::{JSVal, NullValue};
 use std::borrow::ToOwned;
 use std::ptr;
 use std::rc::Rc;
-use util::prefs::{get_pref};
+use util::prefs::get_pref;
 
 #[dom_struct]
 pub struct TestBinding {

@@ -78,7 +78,7 @@ use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
-use style::properties::longhands::{overflow_x};
+use style::properties::longhands::overflow_x;
 use style::selector_impl::PseudoElement;
 use task_source::TaskSource;
 use task_source::dom_manipulation::{DOMManipulationTaskSource, DOMManipulationTask};

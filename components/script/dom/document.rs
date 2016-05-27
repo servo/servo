@@ -100,7 +100,7 @@ use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::response::HttpsState;
 use net_traits::{AsyncResponseTarget, PendingAsyncLoad, IpcSend};
-use num_traits::{ToPrimitive};
+use num_traits::ToPrimitive;
 use origin::Origin;
 use parse::{ParserRoot, ParserRef, MutNullableParserField};
 use script_thread::{MainThreadScriptMsg, Runnable};

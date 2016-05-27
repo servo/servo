@@ -16,6 +16,7 @@ use dom::bindings::trace::trace_object;
 use dom::browsingcontext;
 use heapsize::HeapSizeOf;
 use js;
+use js::JS_CALLEE;
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
 use js::glue::{GetCrossCompartmentWrapper, WrapperNew};
 use js::glue::{RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING};
@@ -32,7 +33,6 @@ use js::jsapi::{JS_SetReservedSlot, JS_StringHasLatin1Chars, MutableHandleValue,
 use js::jsapi::{OnNewGlobalHookOption, RootedObject, RootedValue};
 use js::jsval::{JSVal, ObjectValue, PrivateValue, UndefinedValue};
 use js::rust::{GCMethods, ToString};
-use js::{JS_CALLEE};
 use libc;
 use std::default::Default;
 use std::ffi::CString;
