@@ -1040,7 +1040,6 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
                     sw: Finite<f64>,
                     sh: Finite<f64>)
                     -> Fallible<Root<ImageData>> {
-
         if !self.origin_is_clean() {
             return Err(Error::Security)
         }

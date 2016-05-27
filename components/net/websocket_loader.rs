@@ -30,7 +30,6 @@ fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, 
                                     origin: String, protocols: Vec<String>,
                                     cookie_jar: Arc<RwLock<CookieStorage>>)
     -> WebSocketResult<(Headers, Sender<WebSocketStream>, Receiver<WebSocketStream>)> {
-
     let host = Host {
         hostname: resource_url.host_str().unwrap().to_owned(),
         port: resource_url.port_or_known_default(),

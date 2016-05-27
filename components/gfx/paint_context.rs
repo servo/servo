@@ -663,7 +663,6 @@ impl<'a> PaintContext<'a> {
     fn corner_bounds(bounds: &Rect<f32>,
                      border: &SideOffsets2D<f32>,
                      radii: &BorderRadii<AzFloat>) -> (CornerOrigin, SideOffsets2D<Size2D<f32>>) {
-
         fn distance_to_elbow(radius: &Size2D<AzFloat>,
                              corner_width: f32,
                              corner_height: f32) -> Size2D<f32> {
@@ -1658,7 +1657,6 @@ pub trait ToAzureRect {
 }
 
 impl ToAzureRect for Rect<Au> {
-
     /// Round rects to pixel coordinates, maintaining the invariant of non-overlap,
     /// assuming that before rounding rects don't overlap.
     fn to_nearest_azure_rect(&self, pixels_per_px: ScaleFactor<PagePx, ScreenPx, f32>) -> Rect<AzFloat> {

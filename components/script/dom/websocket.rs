@@ -382,7 +382,6 @@ impl WebSocketMethods for WebSocket {
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
     fn Send(&self, data: USVString) -> ErrorResult {
-
         let data_byte_len = data.0.as_bytes().len() as u64;
         let send_data = try!(self.send_impl(data_byte_len));
 
@@ -397,7 +396,6 @@ impl WebSocketMethods for WebSocket {
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
     fn Send_(&self, blob: &Blob) -> ErrorResult {
-
         /* As per https://html.spec.whatwg.org/multipage/#websocket
            the buffered amount needs to be clamped to u32, even though Blob.Size() is u64
            If the buffer limit is reached in the first place, there are likely other major problems

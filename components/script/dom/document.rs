@@ -599,7 +599,6 @@ impl Document {
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or none if no elements requested it.
     pub fn commit_focus_transaction(&self, focus_type: FocusType) {
-
         if let Some(ref elem) = self.focused.get() {
             let node = elem.upcast::<Node>();
             elem.set_focus_state(false);
@@ -754,7 +753,6 @@ impl Document {
                                           client_point: Point2D<f32>,
                                           pressure: f32,
                                           phase_now: TouchpadPressurePhase) {
-
         let phase_before = self.touchpad_pressure_phase.get();
         self.touchpad_pressure_phase.set(phase_now);
 

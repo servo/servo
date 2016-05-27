@@ -234,7 +234,6 @@ impl ResourceChannelManager {
 }
 
 pub fn read_json_from_file<T: Decodable>(data: &mut T, config_dir: &str, filename: &str) {
-
     let path = Path::new(config_dir).join(filename);
     let display = path.display();
 
@@ -262,7 +261,6 @@ pub fn read_json_from_file<T: Decodable>(data: &mut T, config_dir: &str, filenam
 }
 
 pub fn write_json_to_file<T: Encodable>(data: &T, config_dir: &str, filename: &str) {
-
     let json_encoded: String;
     match json::encode(&data) {
         Ok(d) => json_encoded = d,
@@ -357,7 +355,6 @@ pub struct AuthCacheEntry {
 }
 
 impl AuthCache {
-
     pub fn new() -> AuthCache {
         AuthCache {
             version: 1,
@@ -429,7 +426,6 @@ impl CoreResourceManager {
             consumer: LoadConsumer,
             id_sender: Option<IpcSender<ResourceId>>,
             resource_thread: CoreResourceThread) {
-
         fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>, CancellationListener))
                         -> Box<FnBox(LoadData,
                                      LoadConsumer,

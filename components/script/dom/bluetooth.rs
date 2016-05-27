@@ -128,7 +128,6 @@ fn convert_request_device_options(options: &RequestDeviceOptions,
 }
 
 impl BluetoothMethods for Bluetooth {
-
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
     fn RequestDevice(&self, option: &RequestDeviceOptions) -> Fallible<Root<BluetoothDevice>> {
         let (sender, receiver) = ipc::channel().unwrap();

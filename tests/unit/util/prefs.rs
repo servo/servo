@@ -48,7 +48,6 @@ fn test_get_set_reset_extend() {
 
 #[test]
 fn test_default_config_dir_create_read_write() {
-
   let json_str = "{\
   \"layout.writing-mode.enabled\": true,\
   \"extra.stuff\": false,\

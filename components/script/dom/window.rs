@@ -1208,7 +1208,6 @@ impl Window {
     // https://drafts.csswg.org/cssom-view/#dom-element-scroll
     pub fn scroll_node(&self, node: TrustedNodeAddress,
                        x_: f64, y_: f64, behavior: ScrollBehavior) {
-
         self.reflow(ReflowGoal::ForScriptQuery,
                     ReflowQueryType::NodeLayerIdQuery(node),
                     ReflowReason::Query);

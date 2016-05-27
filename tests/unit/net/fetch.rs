@@ -42,7 +42,6 @@ impl AsyncFetchListener for FetchResponseCollector {
 }
 
 fn make_server<H: Handler + 'static>(handler: H) -> (Listening, Url) {
-
     // this is a Listening server because of handle_threads()
     let server = Server::http("0.0.0.0:0").unwrap().handle_threads(handler, 1).unwrap();
     let port = server.socket.port().to_string();
@@ -54,7 +53,6 @@ fn make_server<H: Handler + 'static>(handler: H) -> (Listening, Url) {
 
 #[test]
 fn test_fetch_response_is_not_network_error() {
-
     static MESSAGE: &'static [u8] = b"";
     let handler = move |_: HyperRequest, response: HyperResponse| {
         response.send(MESSAGE).unwrap();
@@ -76,7 +74,6 @@ fn test_fetch_response_is_not_network_error() {
 
 #[test]
 fn test_fetch_response_body_matches_const_message() {
-
     static MESSAGE: &'static [u8] = b"Hello World!";
     let handler = move |_: HyperRequest, response: HyperResponse| {
         response.send(MESSAGE).unwrap();
@@ -104,7 +101,6 @@ fn test_fetch_response_body_matches_const_message() {
 
 #[test]
 fn test_fetch_aboutblank() {
-
     let url = Url::parse("about:blank").unwrap();
     let origin = Origin::Origin(url.origin());
     let mut request = Request::new(url, Some(origin), false);
@@ -118,7 +114,6 @@ fn test_fetch_aboutblank() {
 
 #[test]
 fn test_fetch_data() {
-
     let url = Url::parse("data:text/html,<p>Servo</p>").unwrap();
     let origin = Origin::Origin(url.origin());
     let request = Request::new(url, Some(origin), false);
@@ -145,7 +140,6 @@ fn test_fetch_data() {
 
 #[test]
 fn test_fetch_file() {
-
     let mut path = resources_dir_path();
     path.push("servo.css");
 
@@ -295,10 +289,8 @@ fn test_cors_preflight_fetch_network_error() {
 
 #[test]
 fn test_fetch_response_is_basic_filtered() {
-
     static MESSAGE: &'static [u8] = b"";
     let handler = move |_: HyperRequest, mut response: HyperResponse| {
-
         response.headers_mut().set(SetCookie(vec![]));
         // this header is obsoleted, so hyper doesn't implement it, but it's still covered by the spec
         response.headers_mut().set_raw("Set-Cookie2", vec![]);
@@ -325,10 +317,8 @@ fn test_fetch_response_is_basic_filtered() {
 
 #[test]
 fn test_fetch_response_is_cors_filtered() {
-
     static MESSAGE: &'static [u8] = b"";
     let handler = move |_: HyperRequest, mut response: HyperResponse| {
-
         // this is mandatory for the Cors Check to pass
         // TODO test using different url encodings with this value ie. punycode
         response.headers_mut().set(AccessControlAllowOrigin::Any);
@@ -383,7 +373,6 @@ fn test_fetch_response_is_cors_filtered() {
 
 #[test]
 fn test_fetch_response_is_opaque_filtered() {
-
     static MESSAGE: &'static [u8] = b"";
     let handler = move |_: HyperRequest, response: HyperResponse| {
         response.send(MESSAGE).unwrap();
@@ -419,10 +408,8 @@ fn test_fetch_response_is_opaque_filtered() {
 
 #[test]
 fn test_fetch_response_is_opaque_redirect_filtered() {
-
     static MESSAGE: &'static [u8] = b"";
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
-
         let redirects = match request.uri {
             RequestUri::AbsolutePath(url) =>
                 url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
@@ -500,9 +487,7 @@ fn test_fetch_with_local_urls_only() {
 }
 
 fn setup_server_and_fetch(message: &'static [u8], redirect_cap: u32) -> Response {
-
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
-
         let redirects = match request.uri {
             RequestUri::AbsolutePath(url) =>
                 url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
@@ -534,7 +519,6 @@ fn setup_server_and_fetch(message: &'static [u8], redirect_cap: u32) -> Response
 
 #[test]
 fn test_fetch_redirect_count_ceiling() {
-
     static MESSAGE: &'static [u8] = b"no more redirects";
     // how many redirects to cause
     let redirect_cap = 20;
@@ -554,7 +538,6 @@ fn test_fetch_redirect_count_ceiling() {
 
 #[test]
 fn test_fetch_redirect_count_failure() {
-
     static MESSAGE: &'static [u8] = b"this message shouldn't be reachable";
     // how many redirects to cause
     let redirect_cap = 21;
@@ -570,12 +553,10 @@ fn test_fetch_redirect_count_failure() {
 }
 
 fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: StatusCode, method: Method) {
-
     let handler_method = method.clone();
     let handler_tx = Arc::new(Mutex::new(tx));
 
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
-
         let redirects = match request.uri {
             RequestUri::AbsolutePath(url) =>
                 url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),
@@ -587,12 +568,10 @@ fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: Stat
         let mut test_pass = true;
 
         if redirects == 0 {
-
             *response.status_mut() = StatusCode::TemporaryRedirect;
             response.headers_mut().set(Location("1".to_owned()));
 
         } else if redirects == 1 {
-
             // this makes sure that the request method does't change from the wrong status code
             if handler_method != Method::Get && request.method == Method::Get {
                 test_pass = false;
@@ -625,7 +604,6 @@ fn test_fetch_redirect_updates_method_runner(tx: Sender<bool>, status_code: Stat
 
 #[test]
 fn test_fetch_redirect_updates_method() {
-
     let (tx, rx) = channel();
 
     test_fetch_redirect_updates_method_runner(tx.clone(), StatusCode::MovedPermanently, Method::Post);
@@ -665,7 +643,6 @@ fn test_fetch_redirect_updates_method() {
 }
 
 fn response_is_done(response: &Response) -> bool {
-
     let response_complete = match response.response_type {
         ResponseType::Default | ResponseType::Basic | ResponseType::CORS => {
             (*response.body.lock().unwrap()).is_done()
@@ -685,7 +662,6 @@ fn response_is_done(response: &Response) -> bool {
 
 #[test]
 fn test_fetch_async_returns_complete_response() {
-
     static MESSAGE: &'static [u8] = b"this message should be retrieved in full";
     let handler = move |_: HyperRequest, response: HyperResponse| {
         response.send(MESSAGE).unwrap();
@@ -710,7 +686,6 @@ fn test_fetch_async_returns_complete_response() {
 
 #[test]
 fn test_opaque_filtered_fetch_async_returns_complete_response() {
-
     static MESSAGE: &'static [u8] = b"";
     let handler = move |_: HyperRequest, response: HyperResponse| {
         response.send(MESSAGE).unwrap();
@@ -737,10 +712,8 @@ fn test_opaque_filtered_fetch_async_returns_complete_response() {
 
 #[test]
 fn test_opaque_redirect_filtered_fetch_async_returns_complete_response() {
-
     static MESSAGE: &'static [u8] = b"";
     let handler = move |request: HyperRequest, mut response: HyperResponse| {
-
         let redirects = match request.uri {
             RequestUri::AbsolutePath(url) =>
                 url.split("/").collect::<String>().parse::<u32>().unwrap_or(0),

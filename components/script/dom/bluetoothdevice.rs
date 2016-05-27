@@ -49,7 +49,6 @@ impl BluetoothDevice {
 }
 
 impl BluetoothDeviceMethods for BluetoothDevice {
-
      // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-id
     fn Id(&self) -> DOMString {
         self.id.clone()

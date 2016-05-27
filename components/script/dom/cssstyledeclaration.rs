@@ -182,7 +182,6 @@ impl CSSStyleDeclarationMethods for CSSStyleDeclaration {
             if shorthand.longhands().iter()
                                     .map(|&longhand| self.GetPropertyPriority(DOMString::from(longhand)))
                                     .all(|priority| priority == "important") {
-
                 return DOMString::from("important");
             }
         // Step 3

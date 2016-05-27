@@ -132,7 +132,6 @@ impl FileManager {
     }
 
     fn read_file(&mut self, sender: IpcSender<FileManagerResult<Vec<u8>>>, id: Uuid) {
-
         match self.idmap.borrow().get(&id).and_then(|filepath| {
             let mut buffer = vec![];
             match File::open(&filepath) {

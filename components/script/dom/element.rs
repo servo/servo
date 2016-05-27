@@ -758,7 +758,6 @@ impl Element {
     pub fn update_inline_style(&self,
                                declarations: Vec<PropertyDeclaration>,
                                style_priority: StylePriority) {
-
         fn update(element: &Element, mut declarations: Vec<PropertyDeclaration>, style_priority: StylePriority) {
             let mut inline_declarations = element.style_attribute().borrow_mut();
             if let &mut Some(ref mut existing_declarations) = &mut *inline_declarations {
@@ -1285,7 +1284,6 @@ impl Element {
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scroll
     pub fn scroll(&self, x_: f64, y_: f64, behavior: ScrollBehavior) {
-
         // Step 1.2 or 2.3
         let x = if x_.is_finite() { x_ } else { 0.0f64 };
         let y = if y_.is_finite() { y_ } else { 0.0f64 };
@@ -1476,7 +1474,6 @@ impl ElementMethods for Element {
         });
 
         if let Some(position) = position {
-
             let old_attr = Root::from_ref(&*self.attrs.borrow()[position]);
 
             // Step 3.

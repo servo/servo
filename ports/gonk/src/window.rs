@@ -796,11 +796,9 @@ impl WindowMethods for Window {
     }
 
     fn set_inner_size(&self, _: Size2D<u32>) {
-
     }
 
     fn set_position(&self, _: Point2D<i32>) {
-
     }
 
     /// Presents the window to the screen (perhaps by page flipping).

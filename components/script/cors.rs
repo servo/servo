@@ -122,11 +122,9 @@ impl CORSRequest {
         // framework right now. It would be worth redesigning http_fetch to do this properly.
         impl AsyncResponseListener for CORSContext {
             fn headers_available(&mut self, _metadata: Result<Metadata, NetworkError>) {
-
             }
 
             fn data_available(&mut self, _payload: Vec<u8>) {
-
             }
 
             fn response_complete(&mut self, _status: Result<(), NetworkError>) {

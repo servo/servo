@@ -140,7 +140,6 @@ pub extern "C" fn Servo_StylesheetFromUTF8Bytes(bytes: *const u8,
                                                 referrer: *mut ThreadSafeURIHolder,
                                                 principal: *mut ThreadSafePrincipalHolder)
                                                 -> *mut RawServoStyleSheet {
-
     let input = unsafe { from_utf8_unchecked(slice::from_raw_parts(bytes, length as usize)) };
 
     let origin = match mode {

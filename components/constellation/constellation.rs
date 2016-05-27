@@ -870,7 +870,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         debug!("Panic handler for pipeline {:?}: {}.", pipeline_id, reason);
 
         if let Some(pipeline_id) = pipeline_id {
-
             let parent_info = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.parent_info);
             let window_size = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.size);
 
@@ -967,13 +966,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     // containing_page_pipeline_id's frame tree's children. This message is never the result of a
     // page navigation.
     fn handle_script_loaded_url_in_iframe_msg(&mut self, load_info: IFrameLoadInfo) {
-
         let old_pipeline_id = load_info.old_subpage_id
             .and_then(|old_subpage_id| self.subpage_map.get(&(load_info.containing_pipeline_id, old_subpage_id)))
             .cloned();
 
         let (load_data, script_chan, window_size) = {
-
             let old_pipeline = old_pipeline_id
                 .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
 
@@ -1540,7 +1537,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn add_or_replace_pipeline_in_frame_tree(&mut self, frame_change: FrameChange) {
-
         // If the currently focused pipeline is the one being changed (or a child
         // of the pipeline being changed) then update the focus pipeline to be
         // the replacement.
@@ -1745,7 +1741,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // are met, then the output image should not change and a reftest
         // screenshot can safely be written.
         for frame in self.current_frame_tree_iter(self.root_frame_id) {
-
             let pipeline_id = frame.current;
 
             let pipeline = match self.pipelines.get(&pipeline_id) {
@@ -1991,7 +1986,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // with low-resource scenarios.
         if let Some(root_frame_id) = self.root_frame_id {
             if let Some(frame_tree) = self.frame_to_sendable(root_frame_id) {
-
                 let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
                 self.compositor_proxy.send(ToCompositorMsg::SetFrameTree(frame_tree,
                                                                          chan,

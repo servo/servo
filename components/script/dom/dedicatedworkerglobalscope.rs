@@ -167,7 +167,6 @@ impl DedicatedWorkerGlobalScope {
                      timer_event_chan: IpcSender<TimerEvent>,
                      timer_event_port: Receiver<(TrustedWorkerAddress, TimerEvent)>)
                      -> DedicatedWorkerGlobalScope {
-
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(init,
                                                                 worker_url,

@@ -51,7 +51,6 @@ fn overflow_direction(writing_mode: &WritingMode) -> OverflowDirection {
 }
 
 impl LayoutRPC for LayoutRPCImpl {
-
     // The neat thing here is that in order to answer the following two queries we only
     // need to compare nodes for equality. Thus we can safely work only with `OpaqueNode`.
     fn content_box(&self) -> ContentBoxResponse {

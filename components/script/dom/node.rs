@@ -1637,7 +1637,6 @@ impl Node {
     // https://dom.spec.whatwg.org/#concept-node-clone
     pub fn clone(node: &Node, maybe_doc: Option<&Document>,
                  clone_children: CloneChildrenFlag) -> Root<Node> {
-
         // Step 1.
         let document = match maybe_doc {
             Some(doc) => Root::from_ref(doc),
@@ -1993,7 +1992,6 @@ impl NodeMethods for Node {
 
     // https://dom.spec.whatwg.org/#concept-node-replace
     fn ReplaceChild(&self, node: &Node, child: &Node) -> Fallible<Root<Node>> {
-
         // Step 1.
         match self.type_id() {
             NodeTypeId::Document(_) |

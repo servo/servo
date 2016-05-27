@@ -28,7 +28,6 @@ impl DOMQuad {
                      p3: &DOMPoint,
                      p4: &DOMPoint)
                      -> DOMQuad {
-
         DOMQuad {
             reflector_: Reflector::new(),
             p1: JS::from_ref(p1),

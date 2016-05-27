@@ -834,7 +834,6 @@ impl ScriptThread {
 
     fn profile_event<F, R>(&self, category: ScriptThreadEventCategory, f: F) -> R
         where F: FnOnce() -> R {
-
         if opts::get().profile_script_events {
             let profiler_cat = match category {
                 ScriptThreadEventCategory::AttachLayout => ProfilerCategory::ScriptAttachLayout,
@@ -1692,7 +1691,6 @@ impl ScriptThread {
     ///
     /// TODO: Actually perform DOM event dispatch.
     fn handle_event(&self, pipeline_id: PipelineId, event: CompositorEvent) {
-
         // DOM events can only be handled if there's a root browsing context.
         if !self.root_browsing_context_exists() {
             return;
