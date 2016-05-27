@@ -148,10 +148,14 @@ pub struct XMLHttpRequest {
     fetch_time: Cell<i64>,
     generation_id: Cell<GenerationId>,
     response_status: Cell<Result<(), ()>>,
+    referrer_url: Option<Url>,
+    referrer_policy: Option<ReferrerPolicy>,
 }
 
 impl XMLHttpRequest {
     fn new_inherited(global: GlobalRef) -> XMLHttpRequest {
+        //TODO - will this panic (outside of the scope of the ref policy tests)?
+        let current_doc = global.as_window().Document();
         XMLHttpRequest {
             eventtarget: XMLHttpRequestEventTarget::new_inherited(),
             ready_state: Cell::new(XMLHttpRequestState::Unsent),
@@ -183,6 +187,8 @@ impl XMLHttpRequest {
             fetch_time: Cell::new(0),
             generation_id: Cell::new(GenerationId(0)),
             response_status: Cell::new(Ok(())),
+            referrer_url: Some(current_doc.url().clone()),
+            referrer_policy: current_doc.get_referrer_policy(),
         }
     }
     pub fn new(global: GlobalRef) -> Root<XMLHttpRequest> {
@@ -297,10 +303,10 @@ impl XMLHttpRequest {
 
 impl LoadOrigin for XMLHttpRequest {
     fn referrer_url(&self) -> Option<Url> {
-        None
+        return self.referrer_url.clone();
     }
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
-        None
+        return self.referrer_policy;
     }
     fn request_source(&self) -> RequestSource {
         if self.sync.get() {
@@ -592,11 +598,12 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
         // Step 5
         let global = self.global();
-        //TODO - set referrer_policy/referrer_url in load_data
+
         let mut load_data =
             LoadData::new(LoadContext::Browsing,
                           self.request_url.borrow().clone().unwrap(),
                           self);
+
         if load_data.url.origin().ne(&global.r().get_url().origin()) {
             load_data.credentials_flag = self.WithCredentials();
         }
