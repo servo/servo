@@ -443,6 +443,7 @@ dependencies = [
  "devtools_traits 0.0.1",
  "hyper 0.9.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.2 (git+https://github.com/servo/ipc-channel)",
+ "log 0.3.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "msg 0.0.1",
  "plugins 0.0.1",
  "serde 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",

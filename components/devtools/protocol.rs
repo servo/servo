@@ -20,7 +20,7 @@ pub trait JsonPacketStream {
 impl JsonPacketStream for TcpStream {
     fn write_json_packet<T: Serialize>(&mut self, obj: &T) {
         let s = serde_json::to_string(obj).unwrap();
-        println!("<- {}", s);
+        debug!("<- {}", s);
         write!(self, "{}:{}", s.len(), s).unwrap();
     }
 
@@ -48,7 +48,7 @@ impl JsonPacketStream for TcpStream {
                     };
                     let mut packet = String::new();
                     self.take(packet_len).read_to_string(&mut packet).unwrap();
-                    println!("{}", packet);
+                    debug!("{}", packet);
                     return match serde_json::from_str(&packet) {
                         Ok(json) => Ok(Some(json)),
                         Err(err) => match err {

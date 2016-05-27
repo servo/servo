@@ -92,7 +92,7 @@ impl ActorRegistry {
     }
 
     pub fn register_script_actor(&self, script_id: String, actor: String) {
-        println!("registering {} ({})", actor, script_id);
+        debug!("registering {} ({})", actor, script_id);
         let mut script_actors = self.script_actors.borrow_mut();
         script_actors.insert(script_id, actor);
     }
@@ -110,7 +110,7 @@ impl ActorRegistry {
 
     pub fn actor_to_script(&self, actor: String) -> String {
         for (key, value) in &*self.script_actors.borrow() {
-            println!("checking {}", value);
+            debug!("checking {}", value);
             if *value == actor {
                 return key.to_owned();
             }
@@ -156,12 +156,12 @@ impl ActorRegistry {
         let to = msg.get("to").unwrap().as_string().unwrap();
 
         match self.actors.get(to) {
-            None => println!("message received for unknown actor \"{}\"", to),
+            None => debug!("message received for unknown actor \"{}\"", to),
             Some(actor) => {
                 let msg_type = msg.get("type").unwrap().as_string().unwrap();
                 if try!(actor.handle_message(self, msg_type, msg, stream))
                         != ActorMessageStatus::Processed {
-                    println!("unexpected message type \"{}\" found for actor \"{}\"",
+                    debug!("unexpected message type \"{}\" found for actor \"{}\"",
                              msg_type, to);
                 }
             }
