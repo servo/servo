@@ -733,12 +733,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_navigate_msg(pipeline_id, direction);
             }
             // Handle request for history length
-            Request::Script(FromScriptMsg::HistoryLength(pipeline_id, sender)) => {
+            FromScriptMsg::HistoryLength(pipeline_id, sender) => {
                 debug!("constellation got history length message from script");
                 self.handle_history_length(pipeline_id, sender);
             }
             // Handle pushing a history entry due to state change
-            Request::Script(FromScriptMsg::HistoryStatePushed(pipeline_info, active_index)) => {
+            FromScriptMsg::HistoryStatePushed(pipeline_info, active_index) => {
                 debug!("constellation got history state pushed message from script");
                 self.handle_history_state_pushed(pipeline_info, active_index);
             }
@@ -848,7 +848,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got Alert message");
                 self.handle_alert(pipeline_id, message, sender);
             }
-            Request::Script(FromScriptMsg::IsPipelineFullyActive(pipeline_id, sender)) => {
+            FromScriptMsg::IsPipelineFullyActive(pipeline_id, sender) => {
                 debug!("constellation got IsPipelineFullyActive message");
                 self.handle_is_pipeline_fully_active(pipeline_id, sender);
             }
@@ -1210,7 +1210,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
-    // https://html.spec.whatwg.org/multipage/browsers.html#fully-active
+    // https://html.spec.whatwg.org/multipage/#fully-active
     fn handle_is_pipeline_fully_active(&mut self, pipeline_id: PipelineId, sender: IpcSender<bool>) {
         // Iterate through the frame tree and see if this pipeline matches any of the
         // active frame pipelines.

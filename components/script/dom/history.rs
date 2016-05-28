@@ -46,6 +46,9 @@ impl History {
         self.window.constellation_chan().send(msg).unwrap();
     }
 
+    // TODO: Move this elsewhere as it seems other things than just `History`
+    // require this check
+    // https://html.spec.whatwg.org/multipage/#fully-active
     fn is_fully_active(&self) -> ErrorResult {
         let (sender, receiver) = ipc::channel::<bool>().expect("Failed to create IPC channel");
         let msg = ConstellationMsg::IsPipelineFullyActive(self.window.pipeline(), sender);
