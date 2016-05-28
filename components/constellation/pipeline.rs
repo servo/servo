@@ -15,7 +15,7 @@ use gfx::paint_thread::{ChromeToPaintMsg, LayoutToPaintMsg, PaintThread};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;
-use layout_traits::{LayoutControlChan, LayoutThreadFactory};
+use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::{FrameId, FrameType, LoadData, PanicMsg, PipelineId};
 use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeData};
 use net_traits::ResourceThreads;
@@ -51,7 +51,7 @@ pub struct Pipeline {
     pub parent_info: Option<(PipelineId, SubpageId, FrameType)>,
     pub script_chan: IpcSender<ConstellationControlMsg>,
     /// A channel to layout, for performing reflows and shutdown.
-    pub layout_chan: LayoutControlChan,
+    pub layout_chan: IpcSender<LayoutControlMsg>,
     /// A channel to the compositor.
     pub compositor_proxy: Box<CompositorProxy + 'static + Send>,
     pub chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
@@ -254,7 +254,7 @@ impl Pipeline {
         let pipeline = Pipeline::new(state.id,
                                      state.parent_info,
                                      script_chan,
-                                     LayoutControlChan(pipeline_chan),
+                                     pipeline_chan,
                                      state.compositor_proxy,
                                      chrome_to_paint_chan,
                                      layout_shutdown_port,
@@ -268,7 +268,7 @@ impl Pipeline {
     fn new(id: PipelineId,
            parent_info: Option<(PipelineId, SubpageId, FrameType)>,
            script_chan: IpcSender<ConstellationControlMsg>,
-           layout_chan: LayoutControlChan,
+           layout_chan: IpcSender<LayoutControlMsg>,
            compositor_proxy: Box<CompositorProxy + 'static + Send>,
            chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
            layout_shutdown_port: IpcReceiver<()>,
@@ -347,8 +347,7 @@ impl Pipeline {
         if let Err(e) = self.chrome_to_paint_chan.send(ChromeToPaintMsg::Exit) {
             warn!("Sending paint exit message failed ({}).", e);
         }
-        let LayoutControlChan(ref layout_channel) = self.layout_chan;
-        if let Err(e) = layout_channel.send(LayoutControlMsg::ExitNow) {
+        if let Err(e) = self.layout_chan.send(LayoutControlMsg::ExitNow) {
             warn!("Sending layout exit message failed ({}).", e);
         }
     }

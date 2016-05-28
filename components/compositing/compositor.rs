@@ -27,7 +27,7 @@ use layers::platform::surface::NativeDisplay;
 use layers::rendergl;
 use layers::rendergl::RenderContext;
 use layers::scene::Scene;
-use layout_traits::{ConvertPipelineIdToWebRender, LayoutControlChan};
+use layout_traits::ConvertPipelineIdToWebRender;
 use msg::constellation_msg::{Image, PixelFormat};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, PipelineIndex, PipelineNamespaceId};
@@ -1668,9 +1668,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         for (pipeline_id, new_visible_rects) in &new_visible_rects {
             if let Some(pipeline_details) = self.pipeline_details.get(&pipeline_id) {
                 if let Some(ref pipeline) = pipeline_details.pipeline {
-                    let LayoutControlChan(ref sender) = pipeline.layout_chan;
                     let msg = LayoutControlMsg::SetVisibleRects((*new_visible_rects).clone());
-                    if let Err(e) = sender.send(msg) {
+                    if let Err(e) = pipeline.layout_chan.send(msg) {
                         warn!("Sending layout control message failed ({}).", e);
                     }
                 }

@@ -23,7 +23,7 @@ use gfx::font_cache_thread::FontCacheThread;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
-use layout_traits::{LayoutControlChan, LayoutThreadFactory};
+use layout_traits::LayoutThreadFactory;
 use msg::constellation_msg::WebDriverCommandMsg;
 use msg::constellation_msg::{FrameId, FrameType, PipelineId};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
@@ -1057,7 +1057,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             AnimationTickType::Layout => {
                 let msg = LayoutControlMsg::TickAnimations;
                 match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.layout_chan.0.send(msg),
+                    Some(pipeline) => pipeline.layout_chan.send(msg),
                     None => return warn!("Pipeline {:?} got script tick after closure.", pipeline_id),
                 }
             }
@@ -1757,7 +1757,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             // there's a race condition where a webfont has finished loading,
             // but hasn't yet notified the document.
             let msg = LayoutControlMsg::GetWebFontLoadState(state_sender.clone());
-            if let Err(e) = pipeline.layout_chan.0.send(msg) {
+            if let Err(e) = pipeline.layout_chan.send(msg) {
                 warn!("Get web font failed ({})", e);
             }
             if state_receiver.recv().unwrap_or(true) {
@@ -1792,8 +1792,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         // epoch matches what the compositor has drawn. If they match
                         // (and script is idle) then this pipeline won't change again
                         // and can be considered stable.
-                        let LayoutControlChan(ref layout_chan) = pipeline.layout_chan;
-                        if let Err(e) = layout_chan.send(LayoutControlMsg::GetCurrentEpoch(epoch_sender.clone())) {
+                        let message = LayoutControlMsg::GetCurrentEpoch(epoch_sender.clone());
+                        if let Err(e) = pipeline.layout_chan.send(message) {
                             warn!("Failed to send GetCurrentEpoch ({}).", e);
                         }
                         match epoch_receiver.recv() {
