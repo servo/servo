@@ -414,7 +414,6 @@ pub fn multiprocess() -> bool {
 enum UserAgent {
     Desktop,
     Android,
-    Gonk,
 }
 
 #[derive(Clone, Debug, Eq, Deserialize, PartialEq, Serialize)]
@@ -453,21 +452,13 @@ fn default_user_agent_string(agent: UserAgent) -> String {
         UserAgent::Android => {
             "Mozilla/5.0 (Android; Mobile; rv:37.0) Servo/1.0 Firefox/37.0"
         }
-        UserAgent::Gonk => {
-            "Mozilla/5.0 (Mobile; rv:37.0) Servo/1.0 Firefox/37.0"
-        }
     }.to_owned()
 }
 
 #[cfg(target_os = "android")]
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Android;
 
-// FIXME: This requires https://github.com/servo/servo/issues/7138 to provide the
-// correct string in Gonk builds (i.e., it will never be chosen today).
-#[cfg(target_os = "gonk")]
-const DEFAULT_USER_AGENT: UserAgent = UserAgent::Gonk;
-
-#[cfg(not(any(target_os = "android", target_os = "gonk")))]
+#[cfg(not(target_os = "android"))]
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;
 
 pub fn default_opts() -> Opts {
@@ -561,7 +552,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optopt("", "resolution", "Set window resolution.", "800x600");
     opts.optopt("u",
                 "user-agent",
-                "Set custom user agent string (or android / gonk / desktop for platform default)",
+                "Set custom user agent string (or android / desktop for platform default)",
                 "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)");
     opts.optflag("M", "multiprocess", "Run in multiprocess mode");
     opts.optflag("S", "sandbox", "Run in a sandbox if multiprocess");
@@ -743,7 +734,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     let user_agent = match opt_match.opt_str("u") {
         Some(ref ua) if ua == "android" => default_user_agent_string(UserAgent::Android),
-        Some(ref ua) if ua == "gonk" => default_user_agent_string(UserAgent::Gonk),
         Some(ref ua) if ua == "desktop" => default_user_agent_string(UserAgent::Desktop),
         Some(ua) => ua,
         None => default_user_agent_string(DEFAULT_USER_AGENT),
