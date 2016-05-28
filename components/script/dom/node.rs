@@ -28,7 +28,7 @@ use dom::bindings::js::Root;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
-use dom::bindings::str::DOMString;
+use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
@@ -804,9 +804,10 @@ impl Node {
     }
 
     pub fn summarize(&self) -> NodeInfo {
+        let USVString(baseURI) = self.BaseURI();
         NodeInfo {
             uniqueId: self.unique_id(),
-            baseURI: String::from(self.BaseURI()),
+            baseURI: baseURI,
             parent: self.GetParentNode().map_or("".to_owned(), |node| node.unique_id()),
             nodeType: self.NodeType(),
             namespaceURI: String::new(), //FIXME
@@ -1860,8 +1861,8 @@ impl NodeMethods for Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-baseuri
-    fn BaseURI(&self) -> DOMString {
-        DOMString::from(self.owner_doc().base_url().as_str())
+    fn BaseURI(&self) -> USVString {
+        USVString(String::from(self.owner_doc().base_url().as_str()))
     }
 
     // https://dom.spec.whatwg.org/#dom-node-ownerdocument
