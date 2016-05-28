@@ -331,6 +331,12 @@ impl PipelineId {
             index: PipelineIndex(0),
         }
     }
+
+    pub fn to_webrender(&self) -> webrender_traits::PipelineId {
+        let PipelineNamespaceId(namespace_id) = self.namespace_id;
+        let PipelineIndex(index) = self.index;
+        webrender_traits::PipelineId(namespace_id, index)
+    }
 }
 
 impl fmt::Display for PipelineId {

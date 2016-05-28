@@ -14,7 +14,6 @@ use gfx::display_list::{BorderRadii, BoxShadowClipMode, ClippingRegion};
 use gfx::display_list::{DisplayItem, DisplayList};
 use gfx::display_list::{DisplayListTraversal, GradientStop, StackingContext, StackingContextType};
 use gfx_traits::ScrollPolicy;
-use layout_traits::ConvertPipelineIdToWebRender;
 use style::computed_values::filter::{self, Filter};
 use style::computed_values::{image_rendering, mix_blend_mode};
 use style::values::computed::BorderStyle;

@@ -11,7 +11,6 @@ path = "lib.rs"
 [dependencies]
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
-layout_traits = {path = "../layout_traits"}
 script_traits = {path = "../script_traits"}
 style_traits = {path = "../style_traits"}
 msg = {path = "../msg"}
