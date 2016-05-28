@@ -27,7 +27,7 @@ use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
-use dom::bindings::str::DOMString;
+use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::bindings::xmlname::{validate_and_extract, namespace_from_domstring, xml_name_type};
@@ -1865,8 +1865,8 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-url
-    fn URL(&self) -> DOMString {
-        DOMString::from(self.url().as_str())
+    fn URL(&self) -> USVString {
+        USVString(String::from(self.url().as_str()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-activeelement
@@ -1916,7 +1916,7 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-documenturi
-    fn DocumentURI(&self) -> DOMString {
+    fn DocumentURI(&self) -> USVString {
         self.URL()
     }
 
@@ -2192,8 +2192,10 @@ impl DocumentMethods for Document {
                 )),
             "webglcontextevent" =>
                 Ok(Root::upcast(WebGLContextEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
-            "storageevent" =>
-                Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, self.URL()))),
+            "storageevent" => {
+                let USVString(url) = self.URL();
+                Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, DOMString::from(url))))
+            },
             "progressevent" =>
                 Ok(Root::upcast(ProgressEvent::new_uninitialized(&self.window))),
             "focusevent" =>
