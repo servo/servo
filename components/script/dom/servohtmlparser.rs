@@ -94,7 +94,7 @@ impl AsyncResponseListener for ParserContext {
             Err(_) => None,
         };
         let content_type = metadata.clone().and_then(|meta| meta.content_type);
-        let parser = match ScriptThread::page_fetch_complete(&self.id,
+        let parser = match ScriptThread::page_headers_available(&self.id,
                                                              self.subpage.as_ref(),
                                                              metadata) {
             Some(parser) => parser,
