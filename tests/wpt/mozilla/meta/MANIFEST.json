@@ -1500,6 +1500,18 @@
             "url": "/_mozilla/css/float_intrinsic_width_a.html"
           }
         ],
+        "css/float_kerning_a.html": [
+          {
+            "path": "css/float_kerning_a.html",
+            "references": [
+              [
+                "/_mozilla/css/float_kerning_ref.html",
+                "=="
+              ]
+            ],
+            "url": "/_mozilla/css/float_kerning_a.html"
+          }
+        ],
         "css/float_overflow_area_a.html": [
           {
             "path": "css/float_overflow_area_a.html",
@@ -8502,6 +8514,18 @@
             ]
           ],
           "url": "/_mozilla/css/float_intrinsic_width_a.html"
+        }
+      ],
+      "css/float_kerning_a.html": [
+        {
+          "path": "css/float_kerning_a.html",
+          "references": [
+            [
+              "/_mozilla/css/float_kerning_ref.html",
+              "=="
+            ]
+          ],
+          "url": "/_mozilla/css/float_kerning_a.html"
         }
       ],
       "css/float_overflow_area_a.html": [
