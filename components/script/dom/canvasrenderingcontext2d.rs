@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use canvas::canvas_paint_thread::RectToi32;
 use canvas_traits::{Canvas2dMsg, CanvasCommonMsg, CanvasMsg};
 use canvas_traits::{CompositionOrBlending, LineCapStyle, LineJoinStyle};
 use canvas_traits::{FillOrStrokeStyle, FillRule, LinearGradientStyle, RadialGradientStyle, RepetitionStyle};
@@ -363,36 +362,23 @@ impl CanvasRenderingContext2D {
 
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
 
-        // If the source and target canvas are the same
-        let msg = if &*self.canvas == canvas {
-            CanvasMsg::Canvas2d(Canvas2dMsg::DrawImageSelf(image_size,
-                                                           dest_rect,
-                                                           source_rect,
-                                                           smoothing_enabled))
+        if &*self.canvas == canvas {
+            let msg = CanvasMsg::Canvas2d(Canvas2dMsg::DrawImageSelf(
+                image_size, dest_rect, source_rect, smoothing_enabled));
+            self.ipc_renderer.send(msg).unwrap();
         } else {
-            // Source and target canvases are different
             let context = match canvas.get_or_init_2d_context() {
                 Some(context) => context,
                 None => return Err(Error::InvalidState),
             };
 
+            let msg = CanvasMsg::Canvas2d(Canvas2dMsg::DrawImageInOther(
+                self.ipc_renderer.clone(), image_size, dest_rect, source_rect, smoothing_enabled));
+
             let renderer = context.get_ipc_renderer();
-            let (sender, receiver) = ipc::channel::<Vec<u8>>().unwrap();
-            // Reads pixels from source image
-            renderer.send(CanvasMsg::Canvas2d(Canvas2dMsg::GetImageData(source_rect.to_i32(),
-                                                                        image_size,
-                                                                        sender)))
-                    .unwrap();
-            let imagedata = receiver.recv().unwrap();
-            // Writes pixels to destination canvas
-            CanvasMsg::Canvas2d(Canvas2dMsg::DrawImage(imagedata,
-                                                       source_rect.size,
-                                                       dest_rect,
-                                                       source_rect,
-                                                       smoothing_enabled))
+            renderer.send(msg).unwrap();
         };
 
-        self.ipc_renderer.send(msg).unwrap();
         self.mark_as_dirty();
         Ok(())
     }
