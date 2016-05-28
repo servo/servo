@@ -50,12 +50,15 @@ use script_traits::{MozBrowserEvent, MozBrowserErrorType};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::Error as IOError;
+use std::iter::Peekable;
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::process;
+use std::slice::Iter;
 use std::sync::mpsc::{Sender, channel, Receiver};
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
+use time::precise_time_ns;
 use timer_scheduler::TimerScheduler;
 use url::Url;
 use util::geometry::PagePx;
@@ -127,9 +130,6 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A list of all the frames
     frames: HashMap<FrameId, Frame>,
-
-    /// A list of all the joint frame histories stored by the id of the top-level pipeline
-    joint_frame_histories: HashMap<FrameId, JointFrameHistory>,
 
     /// Maps from pipeline ID to the frame that contains it.
     pipeline_to_frame_map: HashMap<PipelineId, FrameId>,
@@ -215,31 +215,22 @@ pub struct InitialConstellationState {
     pub webrender_api_sender: Option<webrender_traits::RenderApiSender>,
 }
 
-struct JointFrameHistory {
-    history: Vec<Option<FrameId>>,
-    active: usize,
-}
-
-impl JointFrameHistory {
-    fn new() -> JointFrameHistory {
-        JointFrameHistory {
-            history: vec!(None),
-            active: 0,
-        }
-    }
-}
-
+/// Used to determine the reason why the navigation entry was added
+/// This is used to decide whether a pipeline should be closed after
+/// a new frame entry is pushed and the forward history is cleared.
 #[derive(Clone, Copy, PartialEq)]
 enum EntryReason {
     Load,
     StateChange,
 }
 
+/// Stores information about a single navigation entry
 #[derive(Clone, Copy)]
 struct FrameEntry {
     id: PipelineId,
     context_index: usize,
     reason: EntryReason,
+    time: u64,
 }
 
 impl FrameEntry {
@@ -248,21 +239,23 @@ impl FrameEntry {
             id: pipeline_id,
             context_index: context_index,
             reason: reason,
+            time: precise_time_ns(),
         }
     }
 }
 
 /// Stores the navigation context for a single frame in the frame tree.
-/// Also stores the index of the active session history entry of the browsing context
 pub struct Frame {
+    id: FrameId,
     prev: Vec<FrameEntry>,
     current: FrameEntry,
     next: Vec<FrameEntry>,
 }
 
 impl Frame {
-    fn new(pipeline_id: PipelineId) -> Frame {
+    fn new(id: FrameId, pipeline_id: PipelineId) -> Frame {
         Frame {
+            id: id,
             prev: vec!(),
             current: FrameEntry::new(pipeline_id, 0, EntryReason::Load),
             next: vec!(),
@@ -276,6 +269,38 @@ impl Frame {
         self.prev.push(self.current);
         self.current = FrameEntry::new(pipeline_id, 0, EntryReason::Load);
         replace(&mut self.next, vec!())
+    }
+}
+
+struct HistoryIterator<'a> {
+    stack: Vec<(FrameId, Peekable<Iter<'a, FrameEntry>>)>,
+    direction: NavigationDirection,
+}
+
+impl<'a> Iterator for HistoryIterator<'a> {
+    type Item = FrameId;
+    fn next(&mut self) -> Option<FrameId> {
+        let mut smallest = (None, 0, 0);
+        for (index, &mut (id, ref mut entry_iter)) in self.stack.iter_mut().enumerate() {
+            if let Some(entry) = entry_iter.peek() {
+                if smallest.0.is_none() {
+                    smallest = (Some(id), index, entry.time);
+                    continue;
+                }
+                let predicate = match self.direction {
+                    NavigationDirection::Forward(_) => entry.time < smallest.2,
+                    NavigationDirection::Back(_) => entry.time > smallest.2,
+                };
+                if predicate {
+                    smallest = (Some(id), index, entry.time);
+                }
+            }
+        }
+        if smallest.0.is_some() {
+            // Pop the entry that occurred most recently
+            self.stack[smallest.1].1.next();
+        }
+        smallest.0
     }
 }
 
@@ -379,7 +404,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 font_cache_thread: state.font_cache_thread,
                 pipelines: HashMap::new(),
                 frames: HashMap::new(),
-                joint_frame_histories: HashMap::new(),
                 pipeline_to_frame_map: HashMap::new(),
                 subpage_map: HashMap::new(),
                 pending_frames: vec!(),
@@ -505,13 +529,35 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
+    // Get an iterator for the current history in the frame tree. This iterator
+    // interleaves the history of each `Frame` in the frame tree according to the
+    // time at which each entry was added
+    fn get_history_iter(&self,
+                        frame_id_root: Option<FrameId>,
+                        direction: NavigationDirection)
+                        -> HistoryIterator {
+        let frame_tree_iter = self.current_frame_tree_iter(frame_id_root);
+        let iters = frame_tree_iter.map(|frame| {
+            let iter = match direction {
+                NavigationDirection::Forward(_) => frame.next.iter().peekable(),
+                NavigationDirection::Back(_) => frame.prev.iter().peekable(),
+            };
+            (frame.id, iter)
+        }).collect();
+
+        HistoryIterator {
+            stack: iters,
+            direction: direction,
+        }
+    }
+
     // Create a new frame and update the internal bookkeeping.
     fn new_frame(&mut self, pipeline_id: PipelineId) -> FrameId {
         let id = self.next_frame_id;
         let FrameId(ref mut i) = self.next_frame_id;
         *i += 1;
 
-        let frame = Frame::new(pipeline_id);
+        let frame = Frame::new(id, pipeline_id);
 
         assert!(!self.pipeline_to_frame_map.contains_key(&pipeline_id));
         assert!(!self.frames.contains_key(&id));
@@ -1413,7 +1459,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         debug!("received message to navigate {:?}", direction);
 
         let navigation_info = {
-            let frame_id = if prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) {
+            let frame_id = if mozbrowser_enabled() {
                 pipeline_id.and_then(|id| self.get_mozbrowser_ancestor_info(id))
                            .and_then(|info| self.subpage_map.get(&info))
                            .and_then(|pipeline_id| self.pipeline_to_frame_map.get(&pipeline_id))
@@ -1429,47 +1475,26 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 None => return warn!("Navigate message received after root's closure."),
             };
 
-            let mut joint_history = match self.joint_frame_histories.get_mut(&frame_id) {
-                Some(joint_history) => joint_history,
-                None => return warn!("Could not get joint history for frame id"),
+            let mut navigation_info: HashMap<FrameId, usize> = HashMap::new();
+            let mut history_iter = self.get_history_iter(Some(frame_id), direction);
+
+            let delta = match direction {
+                NavigationDirection::Forward(delta) => delta,
+                NavigationDirection::Back(delta) => delta,
             };
 
-            let mut navigation_info: HashMap<FrameId, usize> = HashMap::new();
-
-            match direction {
-                NavigationDirection::Forward(delta) => {
-                    if delta + joint_history.active < joint_history.history.len() {
-                        for _ in 0..delta {
-                            joint_history.active += 1;
-                            if let Some(frame_id) = joint_history.history[joint_history.active] {
-                                let delta = match navigation_info.get(&frame_id) {
-                                    Some(info) => info + 1,
-                                    None => 1,
-                                };
-                                navigation_info.insert(frame_id, delta);
-                            }
-                        }
-                    } else {
-                        return warn!("invalid forward navigation delta");
-                    }
-                },
-                NavigationDirection::Back(delta) => {
-                    if delta <= joint_history.active {
-                        for _ in 0..delta {
-                            if let Some(frame_id) = joint_history.history[joint_history.active] {
-                                let delta = match navigation_info.get(&frame_id) {
-                                    Some(info) => info + 1,
-                                    None => 1,
-                                };
-                                navigation_info.insert(frame_id, delta);
-                            }
-                            joint_history.active -= 1;
-                        }
-                    } else {
-                        return warn!("invalid back navigation delta");
-                    }
-                },
+            for _ in 0..delta {
+                if let Some(frame_id) = history_iter.next() {
+                    let delta = match navigation_info.get(&frame_id) {
+                        Some(info) => info + 1,
+                        None => 1,
+                    };
+                    navigation_info.insert(frame_id, delta);
+                } else {
+                    return warn!("invalid forward navigation delta");
+                }
             }
+
             navigation_info
         };
 
@@ -1487,7 +1512,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             None => return warn!("Navigation pushed to closed frame {:?}", frame_id),
         };
 
-        let top_frame_id = if prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) {
+        let top_frame_id = if mozbrowser_enabled() {
             self.get_mozbrowser_ancestor_info(pipeline_id)
                 .and_then(|info| self.subpage_map.get(&info))
                 .and_then(|pipeline_id| self.pipeline_to_frame_map.get(&pipeline_id))
@@ -1503,27 +1528,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             None => return warn!("Navigate message received after root's closure."),
         };
 
-        let frame_ids = {
-            let mut joint_history = match self.joint_frame_histories.get_mut(&top_frame_id) {
-                Some(joint_history) => joint_history,
-                None => return warn!("Could not get joint history for frame id"),
-            };
-
-            // Cleanup each frame's forward history if they are past the current
-            // `active_history_index`
-            let frame_ids = if joint_history.active < joint_history.history.len() - 1 {
-                joint_history.history
-                             .drain(joint_history.active + 1..)
-                             .filter_map(|f| f)
-                             .collect::<Vec<FrameId>>()
-            } else {
-                vec!()
-            };
-
-            joint_history.active = joint_history.history.len();
-            joint_history.history.push(Some(frame_id));
-            frame_ids
-        };
+        let frame_ids = self.get_history_iter(Some(top_frame_id), NavigationDirection::Forward(0)).collect::<Vec<FrameId>>();
 
         for frame_id in &frame_ids {
             let (evicted_frames, id) = match self.frames.get_mut(&frame_id) {
@@ -1551,7 +1556,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_history_length(&mut self, pipeline_id: PipelineId, sender: IpcSender<usize>) {
-        let frame_id = if prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) {
+        let frame_id = if mozbrowser_enabled() {
             self.get_mozbrowser_ancestor_info(pipeline_id)
                 .and_then(|info| self.subpage_map.get(&info))
                 .and_then(|pipeline_id| self.pipeline_to_frame_map.get(&pipeline_id))
@@ -1562,17 +1567,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.root_frame_id
         };
 
-        let frame_id = match frame_id {
-            Some(frame_id) => frame_id,
-            None => return warn!("Navigate message received after root's closure."),
-        };
+        let frame_tree = self.current_frame_tree_iter(frame_id);
+        let mut len = 1;
 
-        let joint_history = match self.joint_frame_histories.get(&frame_id) {
-            Some(joint_history) => joint_history,
-            None => return warn!("Could not get joint history for frame id"),
-        };
+        for frame in frame_tree {
+            len += frame.next.len() + frame.prev.len();
+        }
 
-        let _ = sender.send(joint_history.history.len());
+        let _ = sender.send(len);
     }
 
     fn handle_history_state_pushed(&mut self,
@@ -1863,7 +1865,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     if let Some(parent) = self.pipelines.get_mut(&parent_id) {
                         parent.add_child(frame_id);
                     }
-                    if prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false) {
+                    if mozbrowser_enabled() {
                         let is_child_of_root = {
                             if let Some(root) = self.root_frame_id.and_then(|id| self.frames.get(&id)) {
                                 root.current.id == parent_id
@@ -1874,14 +1876,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         if is_child_of_root {
                             // This is a mozbrowser frame and needs its own history as
                             // it is treated as a top-level frame
-                            self.joint_frame_histories.insert(frame_id, JointFrameHistory::new());
+                            // TODO: Maybe don't need this no more
                         }
                     }
                 }
                 None => {
                     assert!(self.root_frame_id.is_none());
                     self.root_frame_id = Some(frame_id);
-                    self.joint_frame_histories.insert(frame_id, JointFrameHistory::new());
                 }
             }
         }
