@@ -79,6 +79,8 @@ pub enum Canvas2dMsg {
     ArcTo(Point2D<f32>, Point2D<f32>, f32),
     DrawImage(Vec<u8>, Size2D<f64>, Rect<f64>, Rect<f64>, bool),
     DrawImageSelf(Size2D<f64>, Rect<f64>, Rect<f64>, bool),
+    DrawImageInOther(
+        IpcSender<CanvasMsg>, Size2D<f64>, Rect<f64>, Rect<f64>, bool, IpcSender<()>),
     BeginPath,
     BezierCurveTo(Point2D<f32>, Point2D<f32>, Point2D<f32>),
     ClearRect(Rect<f32>),
