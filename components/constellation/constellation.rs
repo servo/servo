@@ -1528,9 +1528,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             None => return warn!("Navigate message received after root's closure."),
         };
 
-        let frame_ids = self.get_history_iter(Some(top_frame_id), NavigationDirection::Forward(0)).collect::<Vec<FrameId>>();
+        let frame_ids = self.get_history_iter(Some(top_frame_id), NavigationDirection::Forward(0))
+                            .collect::<Vec<FrameId>>();
 
-        for frame_id in &frame_ids {
+        for frame_id in frame_ids {
             let (evicted_frames, id) = match self.frames.get_mut(&frame_id) {
                 Some(frame) => (replace(&mut frame.next, vec!()), frame.current.id),
                 None => return warn!("frame forward history removed after closure"),
