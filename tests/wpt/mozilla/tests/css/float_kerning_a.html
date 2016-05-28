@@ -1,0 +1,27 @@
+<html>
+  <head>
+    <link rel='match' href='float_kerning_ref.html'>
+    <style>
+    .container {      
+      /* The size of the font affects the initial position of each element,
+         so allowing the host system to choose the font will cause host-dependent
+         test failures */
+      font-family: 'Ahem';
+    }
+    .before_float {
+      background: green;
+      float: left;
+    }
+    .float {
+      background: red;
+      float: left;
+    }
+  </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="before_float">text</div>
+      <div class="float"> xe </div>
+    </div>
+  </body>
+</html>
