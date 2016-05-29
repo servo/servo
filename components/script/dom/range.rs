@@ -22,6 +22,8 @@ use dom::bindings::weakref::{WeakRef, WeakRefVec};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
+use dom::element::Element;
+use dom::htmlbodyelement::HTMLBodyElement;
 use dom::node::{Node, UnbindContext};
 use dom::text::Text;
 use heapsize::HeapSizeOf;
@@ -892,6 +894,41 @@ impl RangeMethods for Range {
 
         // Step 6.
         s
+    }
+
+    // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#extensions-to-the-range-interface
+    fn CreateContextualFragment(&self, fragment: DOMString) -> Fallible<Root<DocumentFragment>> {
+        // Step 1.
+        let node = self.StartContainer();
+        let element = match node.type_id() {
+            NodeTypeId::Document(_) | NodeTypeId::DocumentFragment => None,
+            NodeTypeId::Element(_) => Some(node),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) |
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => node.GetParentNode(),
+            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
+            NodeTypeId::DocumentType => unreachable!(),
+        };
+
+        // Step 2.
+        let should_create_body = element.as_ref().map_or(true, |elem| {
+            let elem = elem.downcast::<Element>().unwrap();
+            elem.local_name() == &atom!("html") && elem.html_element_in_html_document()
+        });
+        let element: Root<Node> = if should_create_body {
+            Root::upcast(HTMLBodyElement::new(atom!("body"), None, &self.StartContainer().owner_doc()))
+        } else {
+            Root::upcast(element.unwrap())
+        };
+
+        // Step 3.
+        let fragment_node = try!(element.parse_fragment(fragment));
+
+        // Step 4.
+        // Can be ignored because at the initialization all scripts in fragment node are supposed
+        // to be unmarked as "already started".
+
+        // Step 5.
+        Ok(fragment_node)
     }
 }
 
