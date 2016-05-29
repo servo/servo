@@ -538,8 +538,8 @@ impl HTMLScriptElement {
         is_js
     }
 
-    pub fn mark_already_started(&self) {
-        self.already_started.set(true);
+    pub fn set_already_started(&self, already_started: bool) {
+        self.already_started.set(already_started);
     }
 
     fn dispatch_event(&self,
@@ -599,7 +599,7 @@ impl VirtualMethods for HTMLScriptElement {
 
         // https://html.spec.whatwg.org/multipage/#already-started
         if self.already_started.get() {
-            copy.downcast::<HTMLScriptElement>().unwrap().mark_already_started();
+            copy.downcast::<HTMLScriptElement>().unwrap().set_already_started(true);
         }
     }
 }
