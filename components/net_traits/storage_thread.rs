@@ -35,6 +35,6 @@ pub enum StorageThreadMsg {
     /// clears the associated storage data by removing all the key/value pairs
     Clear(IpcSender<bool>, Url, StorageType),
 
-    /// shut down this thread
-    Exit
+    /// send a reply when done cleaning up thread resources and then shut it down
+    Exit(IpcSender<()>)
 }
