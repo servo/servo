@@ -350,25 +350,37 @@ ${helpers.predefined_type("opacity",
         if !try!(input.expect_function()).eq_ignore_ascii_case("rect") {
             return Err(())
         }
-        let sides = try!(input.parse_nested_block(|input| {
-            input.parse_comma_separated(|input| {
-                if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
-                    Ok(None)
-                } else {
-                    Length::parse(input).map(Some)
-                }
-            })
-        }));
-        if sides.len() == 4 {
-            Ok(SpecifiedValue(Some(SpecifiedClipRect {
-                top: sides[0].unwrap_or(Length::Absolute(Au(0))),
-                right: sides[1],
-                bottom: sides[2],
-                left: sides[3].unwrap_or(Length::Absolute(Au(0))),
-            })))
+
+        let parse_argument = |input: &mut Parser| {
+            if input.try(|input| input.expect_ident_matching("auto")).is_ok() {
+                Ok(None)
+            } else {
+                Length::parse(input).map(Some)
+            }
+        };
+
+        let top = try!(parse_argument(input));
+        let right;
+        let bottom;
+        let left;
+
+        if input.try(|input| input.expect_comma()).is_ok() {
+            right = try!(parse_argument(input));
+            try!(input.expect_comma());
+            bottom = try!(parse_argument(input));
+            try!(input.expect_comma());
+            left = try!(parse_argument(input));
         } else {
-            Err(())
+            right = try!(parse_argument(input));
+            bottom = try!(parse_argument(input));
+            left = try!(parse_argument(input));
         }
+        Ok(SpecifiedValue(Some(SpecifiedClipRect {
+            top: top.unwrap_or(Length::Absolute(Au(0))),
+            right: right,
+            bottom: bottom,
+            left: left.unwrap_or(Length::Absolute(Au(0))),
+        })))
     }
 </%helpers:longhand>
 
