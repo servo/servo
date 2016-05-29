@@ -340,8 +340,9 @@ pub enum CoreResourceMsg {
     Cancel(ResourceId),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
     Synchronize(IpcSender<()>),
-    /// Break the load handler loop and exit
-    Exit,
+    /// Break the load handler loop, send a reply when done cleaning up local resources
+    //  and exit
+    Exit(IpcSender<()>),
 }
 
 /// Initialized but unsent request. Encapsulates everything necessary to instruct
