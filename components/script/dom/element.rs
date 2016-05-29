@@ -130,7 +130,6 @@ impl Element {
         create_element(name, prefix, document, creator)
     }
 
-
     pub fn new_inherited(local_name: Atom,
                          namespace: Namespace, prefix: Option<DOMString>,
                          document: &Document) -> Element {
