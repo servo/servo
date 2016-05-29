@@ -10,6 +10,7 @@ use dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use dom::bindings::codegen::Bindings::RangeBinding::{self, RangeConstants};
 use dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::element::Element;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
@@ -28,6 +29,7 @@ use heapsize::HeapSizeOf;
 use js::jsapi::JSTracer;
 use std::cell::{Cell, UnsafeCell};
 use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
+use string_cache::Atom;
 
 #[dom_struct]
 pub struct Range {
@@ -892,6 +894,52 @@ impl RangeMethods for Range {
 
         // Step 6.
         s
+    }
+
+    // https://dvcs.w3.org/hg/innerhtml/raw-file/tip/index.html#extensions-to-the-range-interface
+    fn CreateContextualFragment(&self, fragment: DOMString) -> Fallible<Root<DocumentFragment>> {
+        // Step 1.
+        let node = self.StartContainer();
+        let element = match node.type_id() {
+            NodeTypeId::Document(_) | NodeTypeId::DocumentFragment => None,
+            NodeTypeId::Element(_) => Some(node),
+            NodeTypeId::CharacterData(CharacterDataTypeId::Comment) |
+            NodeTypeId::CharacterData(CharacterDataTypeId::Text) => node.GetParentNode(),
+            NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) |
+            NodeTypeId::DocumentType => unreachable!(),
+        };
+
+        // Step 2.
+        let elem_copy = element.clone().unwrap();
+        let document = elem_copy.downcast::<Document>().unwrap();
+        let element = if element.is_none() {
+            Element::new(Atom::from("body"),
+                         ns!(html),
+                         None,
+                         &document)
+        } else if document.is_html_document() {
+            let c_elem = element.unwrap();
+            let elem = c_elem.downcast::<Element>().unwrap();
+            if elem.local_name() == "html" && *elem.namespace() == ns!(html) {
+                Element::new(Atom::from("body"),
+                             ns!(html),
+                             None,
+                             &document)
+            } else {
+                elem.root_element()
+            }
+        } else {
+            element.unwrap().downcast::<Element>().unwrap().root_element()
+        };
+
+        // Step 3.
+        let fragment_node = element.upcast::<Node>().parse_fragment(fragment);
+
+        // Step 4.
+        // can be ignored
+
+        // Step 5.
+        fragment_node
     }
 }
 
