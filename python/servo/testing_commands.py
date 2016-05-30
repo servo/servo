@@ -347,6 +347,15 @@ class MachCommands(CommandBase):
         execfile(run_file, run_globals)
         return run_globals["run_tests"](**kwargs)
 
+    @Command('update-manifest',
+             description='run test-wpt --manifest-update SKIP_TESTS to regenerate MANIFEST.json',
+             category='testing',
+             parser=create_parser_wpt)
+    def update_manifest(self, **kwargs):
+        kwargs['test_list'].append(str('SKIP_TESTS'))
+        kwargs['manifest_update'] = True
+        return self.test_wpt(**kwargs)
+
     @Command('update-wpt',
              description='Update the web platform tests',
              category='testing',
