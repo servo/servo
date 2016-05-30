@@ -30,6 +30,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootCollection};
 use dom::bindings::js::{RootCollectionPtr, RootedReference};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted};
+use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WRAP_CALLBACKS;
@@ -54,7 +55,8 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{DOMProxyShadowsResult, HandleId, HandleObject, RootedValue};
-use js::jsapi::{JSContext, JS_SetWrapObjectCallbacks, JSTracer, SetWindowProxyClass};
+use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
+use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_interface::{self, NewLayoutThreadInfo, ReflowQueryType};
@@ -1599,6 +1601,7 @@ impl ScriptThread {
 
             // Script source is ready to be evaluated (11.)
             unsafe {
+                let _ac = JSAutoCompartment::new(self.get_cx(), window.reflector().get_jsobject().get());
                 let mut jsval = RootedValue::new(self.get_cx(), UndefinedValue());
                 window.evaluate_js_on_global_with_result(&script_source, jsval.handle_mut());
                 let strval = DOMString::from_jsval(self.get_cx(),
