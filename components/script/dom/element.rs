@@ -1299,11 +1299,10 @@ impl Element {
         }
 
         // Step 5
-        let w = doc.GetDefaultView();
-        if w.is_none() {
-            return;
-        }
-        let win = w.unwrap();
+        let win = match doc.GetDefaultView() {
+            None => return,
+            Some(win) => win,
+        };
 
         // Step 7
         if *self.root_element() == *self {
@@ -1641,11 +1640,10 @@ impl ElementMethods for Element {
         }
 
         // Step 3
-        let w = doc.GetDefaultView();
-        if w.is_none() {
-            return 0.0;
-        }
-        let win = w.unwrap();
+        let win = match doc.GetDefaultView() {
+            None => return 0.0,
+            Some(win) => win,
+        };
 
         // Step 5
         if *self.root_element() == *self {
@@ -1693,11 +1691,10 @@ impl ElementMethods for Element {
         }
 
         // Step 5
-        let w = doc.GetDefaultView();
-        if w.is_none() {
-            return;
-        }
-        let win = w.unwrap();
+        let win = match doc.GetDefaultView() {
+            None => return,
+            Some(win) => win,
+        };
 
         // Step 7
         if *self.root_element() == *self {
@@ -1735,11 +1732,10 @@ impl ElementMethods for Element {
         }
 
         // Step 3
-        let w = doc.GetDefaultView();
-        if w.is_none() {
-            return 0.0;
-        }
-        let win = w.unwrap();
+        let win = match doc.GetDefaultView() {
+            None => return 0.0,
+            Some(win) => win,
+        };
 
         // Step 5
         if *self.root_element() == *self {
@@ -1787,11 +1783,10 @@ impl ElementMethods for Element {
         }
 
         // Step 5
-        let w = doc.GetDefaultView();
-        if w.is_none() {
-            return;
-        }
-        let win = w.unwrap();
+        let win = match doc.GetDefaultView() {
+            None => return,
+            Some(win) => win,
+        };
 
         // Step 7
         if *self.root_element() == *self {
