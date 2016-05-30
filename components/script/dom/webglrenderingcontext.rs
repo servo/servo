@@ -1331,6 +1331,21 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             .unwrap()
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
+    fn IsBuffer(&self, buffer: Option<&WebGLBuffer>) -> bool {
+        buffer.map_or(false, |buf| buf.target().is_some() && !buf.is_deleted())
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
+    fn IsFramebuffer(&self, frame_buffer: Option<&WebGLFramebuffer>) -> bool {
+        frame_buffer.map_or(false, |buf| buf.target().is_some() && !buf.is_deleted())
+    }
+
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7
+    fn IsRenderbuffer(&self, render_buffer: Option<&WebGLRenderbuffer>) -> bool {
+        render_buffer.map_or(false, |buf| buf.ever_bound() && !buf.is_deleted())
+    }
+
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
     fn IsShader(&self, shader: Option<&WebGLShader>) -> bool {
         shader.map_or(false, |s| !s.is_deleted() || s.is_attached())
