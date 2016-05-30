@@ -146,12 +146,13 @@ promise_test(function(t) {
             assert_resolves(
                 iframe_test(REDIRECT_TO_HTML_URL),
                 'Normal redirected iframe loading should succeed.'),
-            assert_resolves(
+            assert_rejects(
                 iframe_test(SCOPE + '?url=' +
                             encodeURIComponent(REDIRECT_TO_HTML_URL) +
-                            '&redirect-mode=follow'),
+                            '&redirect-mode=follow',
+                            true /* timeout_enabled */),
                 'Redirected iframe loading with Request.redirect=follow should'+
-                ' succeed.'),
+                ' fail.'),
             assert_rejects(
                 iframe_test(SCOPE + '?url=' +
                             encodeURIComponent(REDIRECT_TO_HTML_URL) +
@@ -173,4 +174,182 @@ promise_test(function(t) {
           service_worker_unregister_and_done(t, SCOPE);
         });
   }, 'Verify redirect mode of Fetch API and ServiceWorker FetchEvent.');
+
+  // test for reponse.redirected
+  promise_test(function(t) {
+      var SCOPE = 'resources/fetch-request-redirect-iframe.html';
+      var SCRIPT = 'resources/fetch-rewrite-worker.js';
+      var REDIRECT_URL = base_path() + 'resources/redirect.py?Redirect=';
+      var XHR_URL = base_path() + 'resources/simple.txt';
+      var IMAGE_URL = base_path() + 'resources/square.png';
+
+      var REDIRECT_TO_XHR_URL = REDIRECT_URL + encodeURIComponent(XHR_URL);
+
+      var host_info = get_host_info();
+
+      var CROSS_ORIGIN_URL = host_info['HTTPS_REMOTE_ORIGIN'] + IMAGE_URL;
+
+      var REDIRECT_TO_CROSS_ORIGIN = REDIRECT_URL + encodeURIComponent(CROSS_ORIGIN_URL + '?ACAOrigin=*');
+
+      var worker;
+      var frame;
+      return service_worker_unregister_and_register(t, SCRIPT, SCOPE)
+        .then(function(registration) {
+            worker = registration.installing;
+            return wait_for_state(t, worker, 'activated');
+          })
+        .then(function() { return with_iframe(SCOPE); })
+        .then(function(f) {
+            frame = f;
+            return Promise.all([
+              // XMLHttpRequest tests.
+              assert_resolves(
+                  frame.contentWindow.xhr(
+                      './?url=' + encodeURIComponent(XHR_URL) +
+                      '&expected_redirected=false' +
+                      '&expected_resolves=true'),
+                  'Normal XHR should be resolved and response should not be redirected.'),
+              assert_resolves(
+                  frame.contentWindow.xhr(
+                      './?url=' + encodeURIComponent(REDIRECT_TO_XHR_URL) +
+                      '&expected_redirected=true' +
+                      '&expected_resolves=true'),
+                  'Redirected XHR should be resolved and response should be redirected.'),
+
+              // tests for request's mode = cors
+              assert_resolves(
+                  frame.contentWindow.xhr(
+                      './?url=' + encodeURIComponent(XHR_URL) +
+                      '&mode=cors' +
+                      '&expected_redirected=false' +
+                      '&expected_resolves=true'),
+                  'Normal XHR should be resolved and response should not be redirected even with CORS mode.'),
+              assert_resolves(
+                  frame.contentWindow.xhr(
+                      './?url=' + encodeURIComponent(REDIRECT_TO_XHR_URL) +
+                      '&mode=cors' +
+                      '&redirect-mode=follow' +
+                      '&expected_redirected=true' +
+                      '&expected_resolves=true'),
+                  'Redirected XHR should be resolved and response.redirected should be redirected with CORS mode.'),
+
+              // tests for request's mode = no-cors
+              // The response.redirect should be false since we will not add redirected url list when redirect-mode is not follow.
+              assert_rejects(
+                  frame.contentWindow.xhr(
+                      './?url=' + encodeURIComponent(REDIRECT_TO_XHR_URL) +
+                      '&mode=no-cors' +
+                      '&redirect-mode=manual' +
+                      '&expected_redirected=false' +
+                      '&expected_resolves=false'),
+                  'Redirected XHR should be reject and response should be redirected with NO-CORS mode and redirect-mode=manual.'),
+
+              // tests for redirecting to a cors
+              assert_resolves(
+                  frame.contentWindow.load_image(
+                      './?url=' + encodeURIComponent(REDIRECT_TO_CROSS_ORIGIN) +
+                      '&mode=no-cors' +
+                      '&redirect-mode=follow' +
+                      '&expected_redirected=false' +
+                      '&expected_resolves=true'),
+                  'Redirected COS image should be reject and response should not be redirected with NO-CORS mode.'),
+            ]);
+          })
+        .then(function() {
+            frame.remove();
+            service_worker_unregister_and_done(t, SCOPE);
+          });
+    }, 'Verify redirected of Response(Fetch API) and ServiceWorker FetchEvent.');
+
+    // test for reponse.redirected after cached
+    promise_test(function(t) {
+        var SCOPE = 'resources/fetch-request-redirect-iframe.html';
+        var SCRIPT = 'resources/fetch-rewrite-worker.js';
+        var REDIRECT_URL = base_path() + 'resources/redirect.py?Redirect=';
+        var XHR_URL = base_path() + 'resources/simple.txt';
+        var IMAGE_URL = base_path() + 'resources/square.png';
+
+        var REDIRECT_TO_XHR_URL = REDIRECT_URL + encodeURIComponent(XHR_URL);
+
+        var host_info = get_host_info();
+
+        var CROSS_ORIGIN_URL = host_info['HTTPS_REMOTE_ORIGIN'] + IMAGE_URL;
+
+        var REDIRECT_TO_CROSS_ORIGIN = REDIRECT_URL + encodeURIComponent(CROSS_ORIGIN_URL + '?ACAOrigin=*');
+
+        var worker;
+        var frame;
+        return service_worker_unregister_and_register(t, SCRIPT, SCOPE)
+          .then(function(registration) {
+              worker = registration.installing;
+              return wait_for_state(t, worker, 'activated');
+            })
+          .then(function() { return with_iframe(SCOPE); })
+          .then(function(f) {
+              frame = f;
+              return Promise.all([
+                // XMLHttpRequest tests.
+                assert_resolves(
+                    frame.contentWindow.xhr(
+                        './?url=' + encodeURIComponent(XHR_URL) +
+                        '&expected_redirected=false' +
+                        '&expected_resolves=true' +
+                        '&cache'),
+                    'Normal XHR should be resolved and response should not be redirected.'),
+                assert_resolves(
+                    frame.contentWindow.xhr(
+                        './?url=' + encodeURIComponent(REDIRECT_TO_XHR_URL) +
+                        '&expected_redirected=true' +
+                        '&expected_resolves=true' +
+                        '&cache'),
+                    'Redirected XHR should be resolved and response should be redirected.'),
+
+                // tests for request's mode = cors
+                assert_resolves(
+                    frame.contentWindow.xhr(
+                        './?url=' + encodeURIComponent(XHR_URL) +
+                        '&mode=cors' +
+                        '&expected_redirected=false' +
+                        '&expected_resolves=true' +
+                        '&cache'),
+                    'Normal XHR should be resolved and response should not be redirected even with CORS mode.'),
+                assert_resolves(
+                    frame.contentWindow.xhr(
+                        './?url=' + encodeURIComponent(REDIRECT_TO_XHR_URL) +
+                        '&mode=cors' +
+                        '&redirect-mode=follow' +
+                        '&expected_redirected=true' +
+                        '&expected_resolves=true' +
+                        '&cache'),
+                    'Redirected XHR should be resolved and response.redirected should be redirected with CORS mode.'),
+
+                // tests for request's mode = no-cors
+                // The response.redirect should be false since we will not add redirected url list when redirect-mode is not follow.
+                assert_rejects(
+                    frame.contentWindow.xhr(
+                        './?url=' + encodeURIComponent(REDIRECT_TO_XHR_URL) +
+                        '&mode=no-cors' +
+                        '&redirect-mode=manual' +
+                        '&expected_redirected=false' +
+                        '&expected_resolves=false' +
+                        '&cache'),
+                    'Redirected XHR should be reject and response should be redirected with NO-CORS mode and redirect-mode=manual.'),
+
+                // tests for redirecting to a cors
+                assert_resolves(
+                    frame.contentWindow.load_image(
+                        './?url=' + encodeURIComponent(REDIRECT_TO_CROSS_ORIGIN) +
+                        '&mode=no-cors' +
+                        '&redirect-mode=follow' +
+                        '&expected_redirected=false' +
+                        '&expected_resolves=true' +
+                        '&cache'),
+                    'Redirected COS image should be reject and response should not be redirected with NO-CORS mode.'),
+              ]);
+            })
+          .then(function() {
+              frame.remove();
+              service_worker_unregister_and_done(t, SCOPE);
+            });
+      }, 'Verify redirected of Response(Fetch API), Cache API  and ServiceWorker FetchEvent.');
 </script>

@@ -99,6 +99,11 @@
   }, "Check the checkValidity method of the form element when it has a fieldset child");
 
   test(function(){
+    // Restore the condition to default which was modified during the previous test.
+    document.getElementById("fs").disabled = false;
+    document.getElementById("inp1").value = "";
+    document.getElementById("inp1").type = "text";
+
     assert_true("reportValidity" in fm3, "The reportValidity method is not supported.");
     assert_false(fm3.reportValidity(), "The reportValidity method should be false.");
     document.getElementById("fs").disabled = true;

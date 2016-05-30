@@ -41,7 +41,7 @@ for (var statusCode of [301, 302, 303, 307, 308]) {
   redirectLocation("Redirect " + statusCode + " in \"manual\" mode without location", redirUrl, undefined, statusCode, "manual", true);
 
   redirectLocation("Redirect " + statusCode + " in \"follow\" mode with invalid location", redirUrl, invalidLocationUrl, statusCode, "follow", false);
-  redirectLocation("Redirect " + statusCode + " in \"manual\" mode with invalid location", redirUrl, invalidLocationUrl, statusCode, "manual", false);
+  redirectLocation("Redirect " + statusCode + " in \"manual\" mode with invalid location", redirUrl, invalidLocationUrl, statusCode, "manual", true);
 
   redirectLocation("Redirect " + statusCode + " in \"follow\" mode with data location", redirUrl, dataLocationUrl, statusCode, "follow", false);
   redirectLocation("Redirect " + statusCode + " in \"manual\" mode with data location", redirUrl, dataLocationUrl, statusCode, "manual", true);

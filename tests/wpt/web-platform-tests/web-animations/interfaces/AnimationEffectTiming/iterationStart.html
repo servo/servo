@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>iterationStart tests</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#dom-animationeffecttiming-iterationstart">
+<link rel="author" title="Daisuke Akatsuka" href="mailto:daisuke@mozilla-japan.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] },
+                         { iterationStart: 0.2,
+                           iterations: 1,
+                           fill: 'both',
+                           duration: 100,
+                           delay: 1 });
+  anim.effect.timing.iterationStart = 2.5;
+  assert_equals(anim.effect.getComputedTiming().progress, 0.5);
+  assert_equals(anim.effect.getComputedTiming().currentIteration, 2);
+}, 'Test that changing the iterationStart affects computed timing ' +
+   'when backwards-filling');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] },
+                         { iterationStart: 0.2,
+                           iterations: 1,
+                           fill: 'both',
+                           duration: 100,
+                           delay: 0 });
+  anim.effect.timing.iterationStart = 2.5;
+  assert_equals(anim.effect.getComputedTiming().progress, 0.5);
+  assert_equals(anim.effect.getComputedTiming().currentIteration, 2);
+}, 'Test that changing the iterationStart affects computed timing ' +
+   'during the active phase');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] },
+                         { iterationStart: 0.2,
+                           iterations: 1,
+                           fill: 'both',
+                           duration: 100,
+                           delay: 0 });
+  anim.finish();
+  anim.effect.timing.iterationStart = 2.5;
+  assert_equals(anim.effect.getComputedTiming().progress, 0.5);
+  assert_equals(anim.effect.getComputedTiming().currentIteration, 3);
+}, 'Test that changing the iterationStart affects computed timing ' +
+   'when forwards-filling');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 100);
+  assert_throws({ name: 'TypeError' },
+                function() {
+                  anim.effect.timing.iterationStart = -1;
+                });
+  assert_throws({ name: 'TypeError' },
+                function() {
+                  div.animate({ opacity: [ 0, 1 ] },
+                              { iterationStart: -1 });
+                });
+}, 'Test invalid iterationStart value');
+
+</script>
+</body>

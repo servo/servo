@@ -11,13 +11,11 @@ request.onload = function() {
   var idls = request.responseText;
 
   idlArray.add_untested_idls("interface WorkerGlobalScope {};");
-  idlArray.add_untested_idls("interface WorkerUtils {};");
-  idlArray.add_untested_idls("WorkerGlobalScope implements WorkerUtils;");
   idlArray.add_untested_idls("interface Event { };");
   idlArray.add_untested_idls("interface EventTarget { };");
 
   // From Indexed DB:
-  idlArray.add_idls("WorkerUtils implements IDBEnvironment;");
+  idlArray.add_idls("WorkerGlobalScope implements IDBEnvironment;");
   idlArray.add_idls(idls);
 
   idlArray.add_objects({

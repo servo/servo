@@ -45,45 +45,45 @@
 </div>
 
 <script>
-  testSelector("#set0 :read-write", [], "The :read-write pseudo-class must not match input elements to which the readonly attribute does not apply");
+  testSelectorIdsMatch("#set0 :read-write", [], "The :read-write pseudo-class must not match input elements to which the readonly attribute does not apply");
 
-  testSelector("#set0 :read-only", ["checkbox1", "hidden1", "range1", "color1", "radio1", "file1", "submit1", "image1", "button1", "reset1"], "The :read-only pseudo-class must match input elements to which the readonly attribute does not apply");
+  testSelectorIdsMatch("#set0 :read-only", ["checkbox1", "hidden1", "range1", "color1", "radio1", "file1", "submit1", "image1", "button1", "reset1"], "The :read-only pseudo-class must match input elements to which the readonly attribute does not apply");
 
-  testSelector("#set1 :read-write", ["input1"], "The :read-write pseudo-class must match input elements to which the readonly attribute applies, and that are mutable");
+  testSelectorIdsMatch("#set1 :read-write", ["input1"], "The :read-write pseudo-class must match input elements to which the readonly attribute applies, and that are mutable");
 
-  testSelector("#set1 :read-only", ["input2"], "The :read-only pseudo-class must not match input elements to which the readonly attribute applies, and that are mutable");
+  testSelectorIdsMatch("#set1 :read-only", ["input2"], "The :read-only pseudo-class must not match input elements to which the readonly attribute applies, and that are mutable");
 
   document.getElementById("input1").setAttribute("readonly", "readonly");
-  testSelector("#set1 :read-write", [], "The :read-write pseudo-class must not match input elements after the readonly attribute has been added");
+  testSelectorIdsMatch("#set1 :read-write", [], "The :read-write pseudo-class must not match input elements after the readonly attribute has been added");
 
-  testSelector("#set1 :read-only", ["input1", "input2"], "The :read-only pseudo-class must match input elements after the readonly attribute has been added");
+  testSelectorIdsMatch("#set1 :read-only", ["input1", "input2"], "The :read-only pseudo-class must match input elements after the readonly attribute has been added");
 
   document.getElementById("input1").removeAttribute("readonly");
-  testSelector("#set1 :read-write", ["input1"], "The :read-write pseudo-class must not match input elements after the readonly attribute has been removed");
+  testSelectorIdsMatch("#set1 :read-write", ["input1"], "The :read-write pseudo-class must not match input elements after the readonly attribute has been removed");
 
-  testSelector("#set1 :read-only", ["input2"], "The :read-only pseudo-class must match input elements after the readonly attribute has been removed");
+  testSelectorIdsMatch("#set1 :read-only", ["input2"], "The :read-only pseudo-class must match input elements after the readonly attribute has been removed");
 
-  testSelector("#set2 :read-write", ["textarea1"], "The :read-write pseudo-class must match textarea elements that do not have a readonly attribute, and that are not disabled");
+  testSelectorIdsMatch("#set2 :read-write", ["textarea1"], "The :read-write pseudo-class must match textarea elements that do not have a readonly attribute, and that are not disabled");
 
-  testSelector("#set2 :read-only", ["textarea2"], "The :read-only pseudo-class must match textarea elements that have a readonly attribute, or that are disabled");
+  testSelectorIdsMatch("#set2 :read-only", ["textarea2"], "The :read-only pseudo-class must match textarea elements that have a readonly attribute, or that are disabled");
 
   document.getElementById("textarea1").setAttribute("readonly", "readonly");
-  testSelector("#set2 :read-write", [], "The :read-write pseudo-class must match textarea elements after the readonly attribute has been added");
+  testSelectorIdsMatch("#set2 :read-write", [], "The :read-write pseudo-class must match textarea elements after the readonly attribute has been added");
 
-  testSelector("#set2 :read-only", ["textarea1", "textarea2"], "The :read-only pseudo-class must match textarea elements after the readonly attribute has been added");
+  testSelectorIdsMatch("#set2 :read-only", ["textarea1", "textarea2"], "The :read-only pseudo-class must match textarea elements after the readonly attribute has been added");
 
-  testSelector("#set3 :read-write", ["textarea3"], "The :read-write pseudo-class must not match textarea elements that are disabled");
+  testSelectorIdsMatch("#set3 :read-write", ["textarea3"], "The :read-write pseudo-class must not match textarea elements that are disabled");
 
-  testSelector("#set3 :read-only", ["textarea4"], "The :read-only pseudo-class must match textarea elements that are disabled");
+  testSelectorIdsMatch("#set3 :read-only", ["textarea4"], "The :read-only pseudo-class must match textarea elements that are disabled");
 
-  testSelector("#set4 :read-write", ["p2"], "The :read-write pseudo-class must match elements that are editable");
+  testSelectorIdsMatch("#set4 :read-write", ["p2"], "The :read-write pseudo-class must match elements that are editable");
 
-  testSelector("#set4 :read-only", ["p1"], "The :read-only pseudo-class must not match elements that are editable");
+  testSelectorIdsMatch("#set4 :read-only", ["p1"], "The :read-only pseudo-class must not match elements that are editable");
 
   document.designMode = "on";
 
-  testSelector("#set4 :read-write", ["p1", "p2"], "The :read-write pseudo-class must match elements that are editing hosts");
+  testSelectorIdsMatch("#set4 :read-write", ["p1", "p2"], "The :read-write pseudo-class must match elements that are editing hosts");
 
-  testSelector("#set4 :read-only", [], "The :read-only pseudo-class must not match elements that are editing hosts");
+  testSelectorIdsMatch("#set4 :read-only", [], "The :read-only pseudo-class must not match elements that are editing hosts");
 
 </script>

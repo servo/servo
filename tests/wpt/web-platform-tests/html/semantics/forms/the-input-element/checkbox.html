@@ -34,6 +34,7 @@
     c1_click_fired = true;
     assert_false(c1_input_fired, "click event should fire before input event");
     assert_false(c1_change_fired, "click event should fire before change event");
+    assert_false(e.isTrusted, "click()-initiated click event should not be trusted");
   });
   checkbox1.oninput = t1.step_func(function(e) {
     c1_input_fired = true;

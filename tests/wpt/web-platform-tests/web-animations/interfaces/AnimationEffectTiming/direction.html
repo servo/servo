@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>direction tests</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#dom-animationeffecttiming-direction">
+<link rel="author" title="Ryo Kato" href="mailto:foobar094@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+
+  var directions = ['normal', 'reverse', 'alternate', 'alternate-reverse'];
+  directions.forEach(function(direction) {
+    anim.effect.timing.direction = direction;
+    assert_equals(anim.effect.timing.direction, direction,
+                  'set direction to ' + direction);
+  });
+}, 'set direction to a valid keyword');
+
+</script>
+</body>

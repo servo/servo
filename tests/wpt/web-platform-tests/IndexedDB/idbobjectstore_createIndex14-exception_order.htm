@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<title>IndexedDB: Exception Order of IDBObjectStore.createIndex()</title>
+<link rel="author" title="Mozilla" href="https://www.mozilla.org">
+<link rel="help" href="http://w3c.github.io/IndexedDB/#dom-idbobjectstore-createindex">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+function indexeddb_test(description, upgrade_func, open_func = null) {
+    async_test(function(t) {
+        var dbname = document.location + "-" + t.name;
+        var del = indexedDB.deleteDatabase(dbname);
+        del.onerror = t.unreached_func("deleteDatabase should succeed");
+        var open = indexedDB.open(dbname, 1);
+        open.onerror = t.unreached_func("open should succeed");
+        open.onupgradeneeded = t.step_func(function() {
+            var db = open.result;
+            var tx = open.transaction;
+            upgrade_func(t, db, tx);
+        });
+        if (open_func) {
+            open.onsuccess = t.step_func(function() {
+                var db = open.result;
+                open_func(t, db);
+            });
+        }
+    }, description);
+}
+
+indexeddb_test(
+    "InvalidStateError(Incorrect mode) vs. TransactionInactiveError",
+    function(t, db, txn) {
+        var store = db.createObjectStore("s");
+    },
+    function(t, db) {
+        var txn = db.transaction("s");
+        var store = txn.objectStore("s");
+        txn.oncomplete = function() {
+            assert_throws("InvalidStateError", function() {
+                store.createIndex("index", "foo");
+            }, "Mode check should precede state check of the transaction");
+            t.done();
+        };
+    }
+);
+
+var gDeletedObjectStore;
+indexeddb_test(
+    "InvalidStateError(Deleted ObjectStore) vs. TransactionInactiveError",
+    function(t, db, txn) {
+        gDeletedObjectStore = db.createObjectStore("s");
+        db.deleteObjectStore("s");
+        txn.oncomplete = function() {
+            assert_throws("InvalidStateError", function() {
+                gDeletedObjectStore.createIndex("index", "foo");
+            }, "Deletion check should precede transaction-state check");
+            t.done();
+        };
+    }
+);
+
+indexeddb_test(
+    "TransactionInactiveError vs. ConstraintError",
+    function(t, db, txn) {
+        var store = db.createObjectStore("s");
+        store.createIndex("index", "foo");
+        txn.oncomplete = function() {
+            assert_throws("TransactionInactiveError", function() {
+                store.createIndex("index", "foo");
+            }, "Transaction-state check should precede index name check");
+            t.done();
+        };
+    }
+);
+
+indexeddb_test(
+    "ConstraintError vs. SyntaxError",
+    function(t, db) {
+        var store = db.createObjectStore("s");
+        store.createIndex("index", "foo");
+        assert_throws("ConstraintError", function() {
+            store.createIndex("index", "invalid key path");
+        }, "Index name check should precede syntax check of the key path");
+        assert_throws("ConstraintError", function() {
+            store.createIndex("index",
+                              ["invalid key path 1", "invalid key path 2"]);
+        }, "Index name check should precede syntax check of the key path");
+        t.done();
+    }
+);
+
+indexeddb_test(
+    "SyntaxError vs. InvalidAccessError",
+    function(t, db) {
+        var store = db.createObjectStore("s");
+        assert_throws("SyntaxError", function() {
+            store.createIndex("index",
+                              ["invalid key path 1", "invalid key path 2"],
+                              { multiEntry: true });
+        }, "Syntax check should precede multiEntry check of the key path");
+        t.done();
+    }
+);
+
+</script>

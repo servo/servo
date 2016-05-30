@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Animation.oncancel</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#dom-animation-oncancel">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<body>
+<div id="log"></div>
+<script>
+"use strict";
+
+async_test(function(t) {
+  var div = createDiv(t);
+  var animation = div.animate({}, 100 * MS_PER_SEC);
+  var finishedTimelineTime;
+  animation.finished.then().catch(function() {
+    finishedTimelineTime = animation.timeline.currentTime;
+  });
+
+  animation.oncancel = t.step_func_done(function(event) {
+    assert_equals(event.currentTime, null,
+      'event.currentTime should be null');
+    assert_equals(event.timelineTime, finishedTimelineTime,
+      'event.timelineTime should equal to the animation timeline ' +
+      'when finished promise is rejected');
+  });
+
+  animation.cancel();
+}, 'oncancel event is fired when animation.cancel() is called.');
+
+</script>
+</body>
