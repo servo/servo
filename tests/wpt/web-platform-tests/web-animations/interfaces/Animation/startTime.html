@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Animation.startTime tests</title>
+<link rel="help"
+href="https://w3c.github.io/web-animations/#dom-animation-starttime">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(function(t) {
+  var animation = new Animation(new KeyframeEffect(createDiv(t), null),
+                                document.timeline);
+  assert_equals(animation.startTime, null, 'startTime is unresolved');
+}, 'startTime of a newly created (idle) animation is unresolved');
+
+test(function(t) {
+  var animation = new Animation(new KeyframeEffect(createDiv(t), null),
+                                document.timeline);
+  animation.play();
+  assert_equals(animation.startTime, null, 'startTime is unresolved');
+}, 'startTime of a play-pending animation is unresolved');
+
+test(function(t) {
+  var animation = new Animation(new KeyframeEffect(createDiv(t), null),
+                                document.timeline);
+  animation.pause();
+  assert_equals(animation.startTime, null, 'startTime is unresolved');
+}, 'startTime of a pause-pending animation is unresolved');
+
+test(function(t) {
+  var animation = createDiv(t).animate(null);
+  assert_equals(animation.startTime, null, 'startTime is unresolved');
+}, 'startTime of a play-pending animation created using Element.animate'
+   + ' shortcut is unresolved');
+
+promise_test(function(t) {
+  var animation = createDiv(t).animate(null, 100 * MS_PER_SEC);
+  return animation.ready.then(function() {
+    assert_greater_than(animation.startTime, 0, 'startTime when running');
+  });
+}, 'startTime is resolved when running');
+
+</script>
+</body>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>KeyframeEffect setKeyframes() tests</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#dom-keyframeeffect-setkeyframes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<script src="../../resources/keyframe-utils.js"></script>
+<body>
+<div id="log"></div>
+<div id="target"></div>
+<script>
+'use strict';
+
+var target = document.getElementById('target');
+
+test(function(t) {
+  gEmptyKeyframeListTests.forEach(function(frame) {
+    var effect = new KeyframeEffect(target, {});
+    effect.setKeyframes(frame);
+    assert_frame_lists_equal(effect.getKeyframes(), []);
+  });
+}, 'Keyframes can be replaced with an empty keyframe');
+
+gPropertyIndexedKeyframesTests.forEach(function(subtest) {
+  test(function(t) {
+    var effect = new KeyframeEffect(target, {});
+    effect.setKeyframes(subtest.input);
+    assert_frame_lists_equal(effect.getKeyframes(), subtest.output);
+  }, 'Keyframes can be replaced with ' + subtest.desc);
+});
+
+gKeyframeSequenceTests.forEach(function(subtest) {
+  test(function(t) {
+    var effect = new KeyframeEffect(target, {});
+    effect.setKeyframes(subtest.input);
+    assert_frame_lists_equal(effect.getKeyframes(), subtest.output);
+  }, 'Keyframes can be replaced with ' + subtest.desc);
+});
+
+gInvalidKeyframesTests.forEach(function(subtest) {
+  test(function(t) {
+    var effect = new KeyframeEffect(target, {});
+    assert_throws(subtest.expected, function() {
+      effect.setKeyframes(subtest.input);
+    });
+  }, 'KeyframeEffect constructor throws with ' + subtest.desc);
+});
+</script>
+</body>

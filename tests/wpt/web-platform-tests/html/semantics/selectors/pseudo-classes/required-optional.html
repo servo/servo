@@ -22,14 +22,14 @@
 <textarea id=textarea2>textarea2</textarea>
 
 <script>
-  testSelector(":required", ["text1", "text2", "select1", "textarea1"], "':required' matches required <input>s, <select>s and <textarea>s");
-  testSelector(":optional", ["text3", "select2", "textarea2"], "':optional' matches elements <input>s, <select>s and <textarea>s that are not required");
+  testSelectorIdsMatch(":required", ["text1", "text2", "select1", "textarea1"], "':required' matches required <input>s, <select>s and <textarea>s");
+  testSelectorIdsMatch(":optional", ["text3", "select2", "textarea2"], "':optional' matches elements <input>s, <select>s and <textarea>s that are not required");
 
   document.getElementById("text1").removeAttribute("required");
-  testSelector(":required", ["text2", "select1", "textarea1"], "':required' doesn't match elements whose required attribute has been removed");
-  testSelector(":optional", ["text1", "text3", "select2", "textarea2"], "':optional' matches elements whose required attribute has been removed");
+  testSelectorIdsMatch(":required", ["text2", "select1", "textarea1"], "':required' doesn't match elements whose required attribute has been removed");
+  testSelectorIdsMatch(":optional", ["text1", "text3", "select2", "textarea2"], "':optional' matches elements whose required attribute has been removed");
 
   document.getElementById("select2").setAttribute("required", "required");
-  testSelector(":required", ["text2", "select1", "select2", "textarea1"], "':required' matches elements whose required attribute has been added");
-  testSelector(":optional", ["text1", "text3", "textarea2"], "':optional' doesn't match elements whose required attribute has been added");
+  testSelectorIdsMatch(":required", ["text2", "select1", "select2", "textarea1"], "':required' matches elements whose required attribute has been added");
+  testSelectorIdsMatch(":optional", ["text1", "text3", "textarea2"], "':optional' doesn't match elements whose required attribute has been added");
 </script>

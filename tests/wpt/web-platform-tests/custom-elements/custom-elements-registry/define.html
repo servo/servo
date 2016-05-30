@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<title>Custom Elements: Element definition</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="log"></div>
+<iframe id="iframe"></iframe>
+<script>
+'use strict';
+(() =>  {
+  // Element definition
+  // https://html.spec.whatwg.org/multipage/scripting.html#element-definition
+
+  // Use window from iframe to isolate the test.
+  const testWindow = iframe.contentDocument.defaultView;
+  const customElements = testWindow.customElements;
+
+  let testable = false;
+  test(() =>  {
+    assert_true('customElements' in testWindow, '"window.customElements" exists');
+    assert_true('define' in customElements, '"window.customElements.define" exists');
+    testable = true;
+  }, '"window.customElements.define" should exists');
+  if (!testable)
+    return;
+
+  const expectTypeError = TypeError.prototype;
+  // Following errors are DOMException, not JavaScript errors.
+  const expectSyntaxError = 'SYNTAX_ERR';
+  const expectNotSupportedError = 'NOT_SUPPORTED_ERR';
+
+  // 1. If IsConstructor(constructor) is false,
+  // then throw a TypeError and abort these steps.
+  test(() =>  {
+    assert_throws(expectTypeError, () =>  {
+      customElements.define();
+    });
+  }, 'If no arguments, should throw a TypeError');
+  test(() =>  {
+    assert_throws(expectTypeError, () =>  {
+      customElements.define('test-define-one-arg');
+    });
+  }, 'If one argument, should throw a TypeError');
+  [
+    [ 'undefined', undefined ],
+    [ 'null', null ],
+    [ 'object', {} ],
+    [ 'string', 'string' ],
+    [ 'arrow function', () => {} ], // IsConstructor returns false for arrow functions
+    [ 'method', ({ m() { } }).m ], // IsConstructor returns false for methods
+  ].forEach(t =>  {
+    test(() =>  {
+      assert_throws(expectTypeError, () =>  {
+        customElements.define(`test-define-constructor-${t[0]}`, t[1]);
+      });
+    }, `If constructor is ${t[0]}, should throw a TypeError`);
+  });
+
+  // 2. If name is not a valid custom element name,
+  // then throw a SyntaxError and abort these steps.
+  let validCustomElementNames = [
+    // [a-z] (PCENChar)* '-' (PCENChar)*
+    // https://html.spec.whatwg.org/multipage/scripting.html#valid-custom-element-name
+    'a-',
+    'a-a',
+    'aa-',
+    'aa-a',
+    'a-.-_',
+    'a-0123456789',
+    'a-\u6F22\u5B57', // Two CJK Unified Ideographs
+    'a-\uD840\uDC0B', // Surrogate pair U+2000B
+  ];
+  let invalidCustomElementNames = [
+    undefined,
+    null,
+    '',
+    '-',
+    'a',
+    'input',
+    'mycustomelement',
+    'A',
+    'A-',
+    '0-',
+    'a-A',
+    'a-Z',
+    'A-a',
+    'a-a\u00D7',
+    'a-a\u3000',
+    'a-a\uDB80\uDC00', // Surrogate pair U+F0000
+    // name must not be any of the hyphen-containing element names.
+    'annotation-xml',
+    'color-profile',
+    'font-face',
+    'font-face-src',
+    'font-face-uri',
+    'font-face-format',
+    'font-face-name',
+    'missing-glyph',
+  ];
+  validCustomElementNames.forEach(name =>  {
+    test(() =>  {
+      customElements.define(name, class {});
+    }, `Element names: defining an element named ${name} should succeed`);
+  });
+  invalidCustomElementNames.forEach(name =>  {
+    test(() =>  {
+      assert_throws(expectSyntaxError, () =>  {
+        customElements.define(name, class {});
+      });
+    }, `Element names: defining an element named ${name} should throw a SyntaxError`);
+  });
+
+  // 3. If this CustomElementsRegistry contains an entry with name name,
+  // then throw a NotSupportedError and abort these steps.
+  test(() =>  {
+    customElements.define('test-define-dup-name', class {});
+    assert_throws(expectNotSupportedError, () =>  {
+      customElements.define('test-define-dup-name', class {});
+    });
+  }, 'If the name is already defined, should throw a NotSupportedError');
+
+  // 4. If this CustomElementsRegistry contains an entry with constructor constructor,
+  // then throw a NotSupportedError and abort these steps.
+  test(() =>  {
+    class TestDupConstructor {};
+    customElements.define('test-define-dup-constructor', TestDupConstructor);
+    assert_throws(expectNotSupportedError, () =>  {
+      customElements.define('test-define-dup-ctor2', TestDupConstructor);
+    });
+  }, 'If the constructor is already defined, should throw a NotSupportedError');
+
+  // 7.1. If extends is a valid custom element name,
+  // then throw a NotSupportedError.
+  validCustomElementNames.forEach(name =>  {
+    test(() =>  {
+      assert_throws(expectNotSupportedError, () =>  {
+        customElements.define('test-define-extend-valid-name', class {}, { extends: name });
+      });
+    }, `If extends is ${name}, should throw a NotSupportedError`);
+  });
+
+  // 7.2. If the element interface for extends and the HTML namespace is HTMLUnknownElement
+  // (e.g., if extends does not indicate an element definition in this specification),
+  // then throw a NotSupportedError.
+  [
+    // https://html.spec.whatwg.org/multipage/dom.html#elements-in-the-dom:htmlunknownelement
+    'bgsound',
+    'blink',
+    'isindex',
+    'multicol',
+    'nextid',
+    'spacer',
+    'elementnametobeunknownelement',
+  ].forEach(name =>  {
+    test(() =>  {
+      assert_throws(expectNotSupportedError, () =>  {
+        customElements.define('test-define-extend-' + name, class {}, { extends: name });
+      });
+    }, `If extends is ${name}, should throw a NotSupportedError`);
+  });
+
+  // 8. Let observedAttributesIterable be Get(constructor, "observedAttributes").
+  // Rethrow any exceptions.
+  // See step 12 for rethrow tests.
+
+  // 10. Let prototype be Get(constructor, "prototype"). Rethrow any exceptions.
+  function assert_rethrown(func, description) {
+    assert_throws({ name: 'rethrown' }, func, description);
+  }
+  function throw_rethrown_error() {
+    const e = new Error('check this is rethrown');
+    e.name = 'rethrown';
+    throw e;
+  }
+  test(() =>  {
+    // Hack for prototype to throw while IsConstructor is true.
+    const BadConstructor = (function () { }).bind({});
+    Object.defineProperty(BadConstructor, 'prototype', {
+      get() { throw_rethrown_error(); }
+    });
+    assert_rethrown(() =>  {
+      customElements.define('test-define-constructor-prototype-rethrow', BadConstructor);
+    });
+  }, 'If constructor.prototype throws, should rethrow');
+  // 11. If Type(prototype) is not Object,
+  // then throw a TypeError exception.
+  test(() =>  {
+    const c = (function () { }).bind({}); // prototype is undefined.
+    assert_throws(expectTypeError, () =>  {
+      customElements.define('test-define-constructor-prototype-undefined', c);
+    });
+  }, 'If Type(constructor.prototype) is undefined, should throw a TypeError');
+  test(() =>  {
+    function c() {};
+    c.prototype = 'string';
+    assert_throws(expectTypeError, () =>  {
+      customElements.define('test-define-constructor-prototype-string', c);
+    });
+  }, 'If Type(constructor.prototype) is string, should throw a TypeError');
+
+  // 12. Let connectedCallback be Get(prototype, "connectedCallback"). Rethrow any exceptions.
+  // 13. If connectedCallback is not undefined, and IsCallable(connectedCallback) is false,
+  // then throw a TypeError exception.
+  // 14. Let disconnectedCallback be Get(prototype, "disconnectedCallback"). Rethrow any exceptions.
+  // 15. If disconnectedCallback is not undefined, and IsCallable(disconnectedCallback) is false,
+  // then throw a TypeError exception.
+  // 16. Let attributeChangedCallback be Get(prototype, "attributeChangedCallback"). Rethrow any exceptions.
+  // 17. If attributeChangedCallback is not undefined, and IsCallable(attributeChangedCallback) is false,
+  // then throw a TypeError exception.
+  [
+    'observedAttributes', // See step 8 above.
+    'connectedCallback',
+    'disconnectedCallback',
+    'attributeChangedCallback',
+  ].forEach(name =>  {
+    test(() =>  {
+      class C {
+        get [name]() { throw_rethrown_error(); }
+      }
+      assert_rethrown(() =>  {
+        customElements.define('test-define-constructor-rethrow-prototype-' + name, C);
+      });
+    }, `If constructor.prototype.${name} throws, should rethrow`);
+  });
+  [
+    'connectedCallback',
+    'disconnectedCallback',
+    'attributeChangedCallback',
+  ].forEach(name =>  {
+    test(() =>  {
+      class c {};
+      c.prototype[name] = undefined;
+      customElements.define('test-define-constructor-prototype-' + name, c);
+    }, `If constructor.prototype.${name} is undefined, should success`);
+    [
+      [ 'null', null ],
+      [ 'object', {} ],
+    ].forEach(value =>  {
+      test(() =>  {
+        class c {};
+        c.prototype[name] = value[1];
+        assert_throws(expectTypeError, () =>  {
+          customElements.define('test-define-constructor-prototype-' + name, c);
+        });
+      }, `If constructor.prototype.${name} is ${value[0]}, should throw a TypeError`);
+    })
+  });
+})();
+</script>
+</body>

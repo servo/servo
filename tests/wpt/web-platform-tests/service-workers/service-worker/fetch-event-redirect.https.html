@@ -45,9 +45,13 @@ function redirect_fetch_test(t, test) {
                           ?  '&expected_type=' + test['expected_type']
                           : '';
 
+    var expectedRedirectedParam = test['expected_redirected']
+                                ?  '&expected_redirected=' + test['expected_redirected']
+                                : '';
+
     var url = scope +
               '?url=' + encodeURIComponent(redirect + dest) +
-              expectedTypeParam
+              expectedTypeParam + expectedRedirectedParam
 
     var p = new Promise(function(resolve, reject) {
       var channel = new MessageChannel();
@@ -66,6 +70,7 @@ function redirect_fetch_test(t, test) {
         request_init: test.request_init,
         redirect_dest: test.redirect_dest,
         expected_type: test.expected_type,
+        expected_redirected: test.expected_redirected,
       }, '*', [channel.port2]);
     });
 
@@ -103,6 +108,7 @@ async_test(function(t) {
     redirect_dest: 'same-origin',
     url_credentials: false,
     expected_type: 'opaqueredirect',
+    expected_redirected: false,
     request_init: {
       redirect: 'manual',
       mode: 'cors'
@@ -112,7 +118,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, manual redirect, cors mode Request redirected to ' +
-   'same-origin without credentials should fail opaqueredirect interception');
+   'same-origin without credentials should fail opaqueredirect interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -120,6 +127,7 @@ async_test(function(t) {
     redirect_dest: 'no-cors',
     url_credentials: false,
     expected_type: 'opaqueredirect',
+    expected_redirected: false,
     request_init: {
       redirect: 'manual',
       mode: 'cors'
@@ -129,7 +137,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, manual redirect, cors mode Request redirected to ' +
-   'no-cors without credentials should fail opaqueredirect interception');
+   'no-cors without credentials should fail opaqueredirect interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -137,6 +146,7 @@ async_test(function(t) {
     redirect_dest: 'cors',
     url_credentials: false,
     expected_type: 'opaqueredirect',
+    expected_redirected: false,
     request_init: {
       redirect: 'manual',
       mode: 'cors'
@@ -146,7 +156,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, manual redirect, cors mode Request redirected to ' +
-   'cors without credentials should fail opaqueredirect interception');
+   'cors without credentials should fail opaqueredirect interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -154,6 +165,7 @@ async_test(function(t) {
     redirect_dest: 'same-origin',
     url_credentials: false,
     expected_type: 'opaqueredirect',
+    expected_redirected: false,
     request_init: {
       redirect: 'manual',
       mode: 'same-origin'
@@ -163,7 +175,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, manual redirect, same-origin mode Request redirected to ' +
-   'same-origin without credentials should fail opaqueredirect interception');
+   'same-origin without credentials should fail opaqueredirect interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -171,6 +184,7 @@ async_test(function(t) {
     redirect_dest: 'no-cors',
     url_credentials: false,
     expected_type: 'opaqueredirect',
+    expected_redirected: false,
     request_init: {
       redirect: 'manual',
       mode: 'same-origin'
@@ -180,7 +194,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, manual redirect, same-origin mode Request redirected to ' +
-   'no-cors without credentials should fail opaqueredirect interception');
+   'no-cors without credentials should fail opaqueredirect interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -188,6 +203,7 @@ async_test(function(t) {
     redirect_dest: 'cors',
     url_credentials: false,
     expected_type: 'opaqueredirect',
+    expected_redirected: false,
     request_init: {
       redirect: 'manual',
       mode: 'same-origin'
@@ -197,7 +213,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, manual redirect, same-origin mode Request redirected to ' +
-   'cors without credentials should fail opaqueredirect interception');
+   'cors without credentials should fail opaqueredirect interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -205,6 +222,7 @@ async_test(function(t) {
     redirect_dest: 'same-origin',
     url_credentials: false,
     expected_type: 'opaqueredirect',
+    expected_redirected: false,
     request_init: {
       redirect: 'manual',
       mode: 'no-cors'
@@ -214,7 +232,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, manual redirect, no-cors mode Request redirected to ' +
-   'same-origin without credentials should fail opaqueredirect interception');
+   'same-origin without credentials should fail opaqueredirect interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -222,6 +241,7 @@ async_test(function(t) {
     redirect_dest: 'no-cors',
     url_credentials: false,
     expected_type: 'opaqueredirect',
+    expected_redirected: false,
     request_init: {
       redirect: 'manual',
       mode: 'no-cors'
@@ -229,7 +249,8 @@ async_test(function(t) {
     should_reject: false
   });
 }, 'Non-navigation, manual redirect, no-cors mode Request redirected to ' +
-   'no-cors without credentials should succeed interception');
+   'no-cors without credentials should succeed interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -237,6 +258,7 @@ async_test(function(t) {
     redirect_dest: 'cors',
     url_credentials: false,
     expected_type: 'opaqueredirect',
+    expected_redirected: false,
     request_init: {
       redirect: 'manual',
       mode: 'no-cors'
@@ -244,7 +266,8 @@ async_test(function(t) {
     should_reject: false
   });
 }, 'Non-navigation, manual redirect, no-cors mode Request redirected to ' +
-   'cors without credentials should succeed interception');
+   'cors without credentials should succeed interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -252,6 +275,7 @@ async_test(function(t) {
     redirect_dest: 'same-origin',
     url_credentials: true,
     expected_type: 'opaqueredirect',
+    expected_redirected: false,
     request_init: {
       redirect: 'manual',
       mode: 'cors'
@@ -261,7 +285,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, manual redirect, cors mode Request redirected to ' +
-   'same-origin with credentials should fail opaqueredirect interception');
+   'same-origin with credentials should fail opaqueredirect interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -269,6 +294,7 @@ async_test(function(t) {
     redirect_dest: 'no-cors',
     url_credentials: true,
     expected_type: 'opaqueredirect',
+    expected_redirected: false,
     request_init: {
       redirect: 'manual',
       mode: 'cors'
@@ -278,7 +304,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, manual redirect, cors mode Request redirected to ' +
-   'no-cors with credentials should fail opaqueredirect interception');
+   'no-cors with credentials should fail opaqueredirect interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -286,6 +313,7 @@ async_test(function(t) {
     redirect_dest: 'cors',
     url_credentials: true,
     expected_type: 'opaqueredirect',
+    expected_redirected: false,
     request_init: {
       redirect: 'manual',
       mode: 'cors'
@@ -295,7 +323,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, manual redirect, cors mode Request redirected to ' +
-   'cors with credentials should fail opaqueredirect interception');
+   'cors with credentials should fail opaqueredirect interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -303,6 +332,7 @@ async_test(function(t) {
     redirect_dest: 'same-origin',
     url_credentials: true,
     expected_type: 'opaqueredirect',
+    expected_redirected: false,
     request_init: {
       redirect: 'manual',
       mode: 'same-origin'
@@ -312,7 +342,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, manual redirect, same-origin mode Request redirected to ' +
-   'same-origin with credentials should fail opaqueredirect interception');
+   'same-origin with credentials should fail opaqueredirect interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -320,6 +351,7 @@ async_test(function(t) {
     redirect_dest: 'no-cors',
     url_credentials: true,
     expected_type: 'opaqueredirect',
+    expected_redirected: false,
     request_init: {
       redirect: 'manual',
       mode: 'same-origin'
@@ -329,7 +361,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, manual redirect, same-origin mode Request redirected to ' +
-   'no-cors with credentials should fail opaqueredirect interception');
+   'no-cors with credentials should fail opaqueredirect interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -337,6 +370,7 @@ async_test(function(t) {
     redirect_dest: 'cors',
     url_credentials: true,
     expected_type: 'opaqueredirect',
+    expected_redirected: false,
     request_init: {
       redirect: 'manual',
       mode: 'same-origin'
@@ -346,7 +380,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, manual redirect, same-origin mode Request redirected to ' +
-   'cors with credentials should fail opaqueredirect interception');
+   'cors with credentials should fail opaqueredirect interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -354,6 +389,7 @@ async_test(function(t) {
     redirect_dest: 'same-origin',
     url_credentials: true,
     expected_type: 'opaqueredirect',
+    expected_redirected: false,
     request_init: {
       redirect: 'manual',
       mode: 'no-cors'
@@ -363,7 +399,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, manual redirect, no-cors mode Request redirected to ' +
-   'same-origin with credentials should fail opaqueredirect interception');
+   'same-origin with credentials should fail opaqueredirect interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -371,6 +408,7 @@ async_test(function(t) {
     redirect_dest: 'no-cors',
     url_credentials: true,
     expected_type: 'opaqueredirect',
+    expected_redirected: false,
     request_init: {
       redirect: 'manual',
       mode: 'no-cors'
@@ -378,7 +416,8 @@ async_test(function(t) {
     should_reject: false
   });
 }, 'Non-navigation, manual redirect, no-cors mode Request redirected to ' +
-   'no-cors with credentials should succeed interception');
+   'no-cors with credentials should succeed interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -386,6 +425,7 @@ async_test(function(t) {
     redirect_dest: 'cors',
     url_credentials: true,
     expected_type: 'opaqueredirect',
+    expected_redirected: false,
     request_init: {
       redirect: 'manual',
       mode: 'no-cors'
@@ -393,7 +433,8 @@ async_test(function(t) {
     should_reject: false
   });
 }, 'Non-navigation, manual redirect, no-cors mode Request redirected to ' +
-   'cors with credentials should succeed interception');
+   'cors with credentials should succeed interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -401,6 +442,7 @@ async_test(function(t) {
     redirect_dest: 'same-origin',
     url_credentials: false,
     expected_type: 'basic',
+    expected_redirected: true,
     request_init: {
       redirect: 'follow',
       mode: 'cors'
@@ -408,7 +450,8 @@ async_test(function(t) {
     should_reject: false
   });
 }, 'Non-navigation, follow redirect, cors mode Request redirected to ' +
-   'same-origin without credentials should succeed interception');
+   'same-origin without credentials should succeed interception ' +
+   'and response should be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -416,6 +459,7 @@ async_test(function(t) {
     redirect_dest: 'no-cors',
     url_credentials: false,
     expected_type: 'should-not-get-a-response',
+    expected_redirected: false,
     request_init: {
       redirect: 'follow',
       mode: 'cors'
@@ -425,7 +469,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, follow redirect, cors mode Request redirected to ' +
-   'no-cors without credentials should fail interception');
+   'no-cors without credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -433,6 +478,7 @@ async_test(function(t) {
     redirect_dest: 'cors',
     url_credentials: false,
     expected_type: 'cors',
+    expected_redirected: true,
     request_init: {
       redirect: 'follow',
       mode: 'cors'
@@ -440,7 +486,8 @@ async_test(function(t) {
     should_reject: false
   });
 }, 'Non-navigation, follow redirect, cors mode Request redirected to ' +
-   'cors without credentials should succeed interception');
+   'cors without credentials should succeed interception ' +
+   'and response should be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -448,6 +495,7 @@ async_test(function(t) {
     redirect_dest: 'same-origin',
     url_credentials: false,
     expected_type: 'basic',
+    expected_redirected: true,
     request_init: {
       redirect: 'follow',
       mode: 'same-origin'
@@ -455,7 +503,8 @@ async_test(function(t) {
     should_reject: false
   });
 }, 'Non-navigation, follow redirect, same-origin mode Request redirected to ' +
-   'same-origin without credentials should succeed interception');
+   'same-origin without credentials should succeed interception ' +
+   'and response should be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -463,6 +512,7 @@ async_test(function(t) {
     redirect_dest: 'no-cors',
     url_credentials: false,
     expected_type: 'should-not-get-a-response',
+    expected_redirected: false,
     request_init: {
       redirect: 'follow',
       mode: 'same-origin'
@@ -472,7 +522,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, follow redirect, same-origin mode Request redirected to ' +
-   'no-cors without credentials should fail interception');
+   'no-cors without credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -480,6 +531,7 @@ async_test(function(t) {
     redirect_dest: 'cors',
     url_credentials: false,
     expected_type: 'should-not-get-a-response',
+    expected_redirected: false,
     request_init: {
       redirect: 'follow',
       mode: 'same-origin'
@@ -489,7 +541,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, follow redirect, same-origin mode Request redirected to ' +
-   'cors without credentials should fail interception');
+   'cors without credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -497,6 +550,7 @@ async_test(function(t) {
     redirect_dest: 'same-origin',
     url_credentials: false,
     expected_type: 'basic',
+    expected_redirected: true,
     request_init: {
       redirect: 'follow',
       mode: 'no-cors'
@@ -504,7 +558,8 @@ async_test(function(t) {
     should_reject: false
   });
 }, 'Non-navigation, follow redirect, no-cors mode Request redirected to ' +
-   'same-origin without credentials should succeed interception');
+   'same-origin without credentials should succeed interception ' +
+   'and response should be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -512,6 +567,7 @@ async_test(function(t) {
     redirect_dest: 'no-cors',
     url_credentials: false,
     expected_type: 'opaque',
+    expected_redirected: false,
     request_init: {
       redirect: 'follow',
       mode: 'no-cors'
@@ -519,7 +575,8 @@ async_test(function(t) {
     should_reject: false
   });
 }, 'Non-navigation, follow redirect, no-cors mode Request redirected to ' +
-   'no-cors without credentials should succeed interception');
+   'no-cors without credentials should succeed interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -527,6 +584,7 @@ async_test(function(t) {
     redirect_dest: 'cors',
     url_credentials: false,
     expected_type: 'opaque',
+    expected_redirected: false,
     request_init: {
       redirect: 'follow',
       mode: 'no-cors'
@@ -534,7 +592,8 @@ async_test(function(t) {
     should_reject: false
   });
 }, 'Non-navigation, follow redirect, no-cors mode Request redirected to ' +
-   'cors without credentials should succeed interception');
+   'cors without credentials should succeed interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -542,6 +601,7 @@ async_test(function(t) {
     redirect_dest: 'same-origin',
     url_credentials: true,
     expected_type: 'basic',
+    expected_redirected: true,
     request_init: {
       redirect: 'follow',
       mode: 'cors'
@@ -549,7 +609,8 @@ async_test(function(t) {
     should_reject: false
   });
 }, 'Non-navigation, follow redirect, cors mode Request redirected to ' +
-   'same-origin with credentials should succeed interception');
+   'same-origin with credentials should succeed interception ' +
+   'and response should be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -557,6 +618,7 @@ async_test(function(t) {
     redirect_dest: 'no-cors',
     url_credentials: true,
     expected_type: 'should-not-get-a-response',
+    expected_redirected: false,
     request_init: {
       redirect: 'follow',
       mode: 'cors'
@@ -566,7 +628,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, follow redirect, cors mode Request redirected to ' +
-   'no-cors with credentials should fail interception');
+   'no-cors with credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -574,6 +637,7 @@ async_test(function(t) {
     redirect_dest: 'cors',
     url_credentials: true,
     expected_type: 'cors',
+    expected_redirected: true,
     request_init: {
       redirect: 'follow',
       mode: 'cors'
@@ -584,7 +648,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, follow redirect, cors mode Request redirected to ' +
-   'cors with credentials should fail interception');
+   'cors with credentials should fail interception ' +
+   'and response should be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -592,6 +657,7 @@ async_test(function(t) {
     redirect_dest: 'same-origin',
     url_credentials: true,
     expected_type: 'basic',
+    expected_redirected: true,
     request_init: {
       redirect: 'follow',
       mode: 'same-origin'
@@ -599,7 +665,8 @@ async_test(function(t) {
     should_reject: false
   });
 }, 'Non-navigation, follow redirect, same-origin mode Request redirected to ' +
-   'same-origin with credentials should succeed interception');
+   'same-origin with credentials should succeed interception ' +
+   'and response should be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -607,6 +674,7 @@ async_test(function(t) {
     redirect_dest: 'no-cors',
     url_credentials: true,
     expected_type: 'should-not-get-a-response',
+    expected_redirected: false,
     request_init: {
       redirect: 'follow',
       mode: 'same-origin'
@@ -616,7 +684,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, follow redirect, same-origin mode Request redirected to ' +
-   'no-cors with credentials should fail interception');
+   'no-cors with credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -624,6 +693,7 @@ async_test(function(t) {
     redirect_dest: 'cors',
     url_credentials: true,
     expected_type: 'should-not-get-a-response',
+    expected_redirected: false,
     request_init: {
       redirect: 'follow',
       mode: 'same-origin'
@@ -633,7 +703,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, follow redirect, same-origin mode Request redirected to ' +
-   'cors with credentials should fail interception');
+   'cors with credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -641,6 +712,7 @@ async_test(function(t) {
     redirect_dest: 'same-origin',
     url_credentials: true,
     expected_type: 'basic',
+    expected_redirected: true,
     request_init: {
       redirect: 'follow',
       mode: 'no-cors'
@@ -648,7 +720,8 @@ async_test(function(t) {
     should_reject: false
   });
 }, 'Non-navigation, follow redirect, no-cors mode Request redirected to ' +
-   'same-origin with credentials should succeed interception');
+   'same-origin with credentials should succeed interception ' +
+   'and response should be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -656,6 +729,7 @@ async_test(function(t) {
     redirect_dest: 'no-cors',
     url_credentials: true,
     expected_type: 'opaque',
+    expected_redirected: false,
     request_init: {
       redirect: 'follow',
       mode: 'no-cors'
@@ -663,7 +737,8 @@ async_test(function(t) {
     should_reject: false
   });
 }, 'Non-navigation, follow redirect, no-cors mode Request redirected to ' +
-   'no-cors with credentials should succeed interception');
+   'no-cors with credentials should succeed interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -671,6 +746,7 @@ async_test(function(t) {
     redirect_dest: 'cors',
     url_credentials: true,
     expected_type: 'opaque',
+    expected_redirected: false,
     request_init: {
       redirect: 'follow',
       mode: 'no-cors'
@@ -678,7 +754,8 @@ async_test(function(t) {
     should_reject: false
   });
 }, 'Non-navigation, follow redirect, no-cors mode Request redirected to ' +
-   'cors with credentials should succeed interception');
+   'cors with credentials should succeed interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -686,6 +763,7 @@ async_test(function(t) {
     redirect_dest: 'same-origin',
     url_credentials: false,
     expected_type: 'error',
+    expected_redirected: false,
     request_init: {
       redirect: 'error',
       mode: 'cors'
@@ -695,7 +773,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, error redirect, cors mode Request redirected to ' +
-   'same-origin without credentials should fail interception');
+   'same-origin without credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -703,6 +782,7 @@ async_test(function(t) {
     redirect_dest: 'no-cors',
     url_credentials: false,
     expected_type: 'error',
+    expected_redirected: false,
     request_init: {
       redirect: 'error',
       mode: 'cors'
@@ -712,7 +792,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, error redirect, cors mode Request redirected to ' +
-   'no-cors without credentials should fail interception');
+   'no-cors without credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -720,6 +801,7 @@ async_test(function(t) {
     redirect_dest: 'cors',
     url_credentials: false,
     expected_type: 'error',
+    expected_redirected: false,
     request_init: {
       redirect: 'error',
       mode: 'cors'
@@ -729,7 +811,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, error redirect, cors mode Request redirected to ' +
-   'cors without credentials should fail interception');
+   'cors without credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -737,6 +820,7 @@ async_test(function(t) {
     redirect_dest: 'same-origin',
     url_credentials: false,
     expected_type: 'error',
+    expected_redirected: false,
     request_init: {
       redirect: 'error',
       mode: 'same-origin'
@@ -746,7 +830,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, error redirect, same-origin mode Request redirected to ' +
-   'same-origin without credentials should fail interception');
+   'same-origin without credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -754,6 +839,7 @@ async_test(function(t) {
     redirect_dest: 'no-cors',
     url_credentials: false,
     expected_type: 'error',
+    expected_redirected: false,
     request_init: {
       redirect: 'error',
       mode: 'same-origin'
@@ -763,7 +849,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, error redirect, same-origin mode Request redirected to ' +
-   'no-cors without credentials should fail interception');
+   'no-cors without credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -771,6 +858,7 @@ async_test(function(t) {
     redirect_dest: 'cors',
     url_credentials: false,
     expected_type: 'error',
+    expected_redirected: false,
     request_init: {
       redirect: 'error',
       mode: 'same-origin'
@@ -780,7 +868,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, error redirect, same-origin mode Request redirected to ' +
-   'cors without credentials should fail interception');
+   'cors without credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -788,6 +877,7 @@ async_test(function(t) {
     redirect_dest: 'same-origin',
     url_credentials: false,
     expected_type: 'error',
+    expected_redirected: false,
     request_init: {
       redirect: 'error',
       mode: 'no-cors'
@@ -797,7 +887,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, error redirect, no-cors mode Request redirected to ' +
-   'same-origin without credentials should fail interception');
+   'same-origin without credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -805,6 +896,7 @@ async_test(function(t) {
     redirect_dest: 'no-cors',
     url_credentials: false,
     expected_type: 'error',
+    expected_redirected: false,
     request_init: {
       redirect: 'error',
       mode: 'no-cors'
@@ -814,7 +906,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, error redirect, no-cors mode Request redirected to ' +
-   'no-cors without credentials should fail interception');
+   'no-cors without credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -822,6 +915,7 @@ async_test(function(t) {
     redirect_dest: 'cors',
     url_credentials: false,
     expected_type: 'error',
+    expected_redirected: false,
     request_init: {
       redirect: 'error',
       mode: 'no-cors'
@@ -831,7 +925,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, error redirect, no-cors mode Request redirected to ' +
-   'cors without credentials should fail interception');
+   'cors without credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -839,6 +934,7 @@ async_test(function(t) {
     redirect_dest: 'same-origin',
     url_credentials: true,
     expected_type: 'error',
+    expected_redirected: false,
     request_init: {
       redirect: 'error',
       mode: 'cors'
@@ -848,7 +944,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, error redirect, cors mode Request redirected to ' +
-   'same-origin with credentials should fail interception');
+   'same-origin with credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -856,6 +953,7 @@ async_test(function(t) {
     redirect_dest: 'no-cors',
     url_credentials: true,
     expected_type: 'error',
+    expected_redirected: false,
     request_init: {
       redirect: 'error',
       mode: 'cors'
@@ -865,7 +963,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, error redirect, cors mode Request redirected to ' +
-   'no-cors with credentials should fail interception');
+   'no-cors with credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -873,6 +972,7 @@ async_test(function(t) {
     redirect_dest: 'cors',
     url_credentials: true,
     expected_type: 'error',
+    expected_redirected: false,
     request_init: {
       redirect: 'error',
       mode: 'cors'
@@ -882,7 +982,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, error redirect, cors mode Request redirected to ' +
-   'cors with credentials should fail interception');
+   'cors with credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -890,6 +991,7 @@ async_test(function(t) {
     redirect_dest: 'same-origin',
     url_credentials: true,
     expected_type: 'error',
+    expected_redirected: false,
     request_init: {
       redirect: 'error',
       mode: 'same-origin'
@@ -899,7 +1001,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, error redirect, same-origin mode Request redirected to ' +
-   'same-origin with credentials should fail interception');
+   'same-origin with credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -907,6 +1010,7 @@ async_test(function(t) {
     redirect_dest: 'no-cors',
     url_credentials: true,
     expected_type: 'error',
+    expected_redirected: false,
     request_init: {
       redirect: 'error',
       mode: 'same-origin'
@@ -916,7 +1020,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, error redirect, same-origin mode Request redirected to ' +
-   'no-cors with credentials should fail interception');
+   'no-cors with credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -924,6 +1029,7 @@ async_test(function(t) {
     redirect_dest: 'cors',
     url_credentials: true,
     expected_type: 'error',
+    expected_redirected: false,
     request_init: {
       redirect: 'error',
       mode: 'same-origin'
@@ -933,7 +1039,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, error redirect, same-origin mode Request redirected to ' +
-   'cors with credentials should fail interception');
+   'cors with credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -941,6 +1048,7 @@ async_test(function(t) {
     redirect_dest: 'same-origin',
     url_credentials: true,
     expected_type: 'error',
+    expected_redirected: false,
     request_init: {
       redirect: 'error',
       mode: 'no-cors'
@@ -950,7 +1058,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, error redirect, no-cors mode Request redirected to ' +
-   'same-origin with credentials should fail interception');
+   'same-origin with credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -958,6 +1067,7 @@ async_test(function(t) {
     redirect_dest: 'no-cors',
     url_credentials: true,
     expected_type: 'error',
+    expected_redirected: false,
     request_init: {
       redirect: 'error',
       mode: 'no-cors'
@@ -967,7 +1077,8 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, error redirect, no-cors mode Request redirected to ' +
-   'no-cors with credentials should fail interception');
+   'no-cors with credentials should fail interception ' +
+   'and response should not be redirected');
 
 async_test(function(t) {
   redirect_fetch_test(t, {
@@ -975,6 +1086,7 @@ async_test(function(t) {
     redirect_dest: 'cors',
     url_credentials: true,
     expected_type: 'error',
+    expected_redirected: false,
     request_init: {
       redirect: 'error',
       mode: 'no-cors'
@@ -984,7 +1096,7 @@ async_test(function(t) {
     should_reject: true
   });
 }, 'Non-navigation, error redirect, no-cors mode Request redirected to ' +
-   'cors with credentials should fail interception');
-
+   'cors with credentials should fail interception and response should not ' +
+   'be redirected');
 </script>
 </body>

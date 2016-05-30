@@ -95,6 +95,33 @@ self.addEventListener('fetch', function(event) {
             })));
           }
 
+          var expectedRedirected = params['expected_redirected'];
+          if (typeof expectedRedirected !== 'undefined') {
+            var expected_redirected = (expectedRedirected === 'true');
+            if(response.redirected !== expected_redirected) {
+              // This is simply determining how to pass an error to the outer
+              // test case(fetch-request-redirect.https.html).
+              var execptedResolves = params['expected_resolves'];
+              if (execptedResolves === 'true') {
+                // Reject a JSON object with a failure since promise is expected
+                // to be resolved.
+                reject(new Response(JSON.stringify({
+                  result: 'failure',
+                  detail: 'got '+ response.redirected +
+                          ' Response.redirected instead of ' + expectedRedirected
+                })));
+              } else {
+                // Resolve a JSON object with a failure since promise is expected
+                // to be rejected.
+                resolve(new Response(JSON.stringify({
+                  result: 'failure',
+                  detail: 'got '+ response.redirected +
+                          ' Response.redirected instead of ' + expectedRedirected
+                })));
+              }
+            }
+          }
+
           if (params['cache']) {
             var cacheName = "cached-fetches-" + Date.now();
             var cache;

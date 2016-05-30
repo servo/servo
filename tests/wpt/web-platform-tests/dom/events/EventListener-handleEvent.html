@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>EventListener::handleEvent()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<table id="table" border="1" style="display: none">
+    <tbody id="table-body">
+    <tr id="table-row">
+        <td id="table-cell">Shady Grove</td>
+        <td>Aeolian</td>
+    </tr>
+    <tr id="parent">
+        <td id="target">Over the river, Charlie</td>
+        <td>Dorian</td>
+    </tr>
+    </tbody>
+</table>
+<script>
+test(function(t) {
+    var event = "foo";
+    var target = document.getElementById("target");
+
+    var event_listener = {
+        "handleEvent": function(evt) {
+            var that = this;
+            t.step(function() {
+                assert_equals(evt.type, event);
+                assert_equals(evt.target, target);
+                assert_equals(that, event_listener);
+            });
+        }
+    };
+
+    var evt = document.createEvent("Event");
+    evt.initEvent(event, true, true);
+
+    target.addEventListener(event, event_listener, true);
+    target.dispatchEvent(evt);
+});
+</script>
