@@ -43,6 +43,7 @@ pub enum Origin {
 #[derive(Clone, PartialEq)]
 pub enum Referer {
     NoReferer,
+    /// Default referer if nothing is specified
     Client,
     RefererUrl(Url)
 }

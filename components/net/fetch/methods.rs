@@ -847,6 +847,7 @@ fn http_network_fetch(request: Rc<Request>,
         Ok(mut res) => {
             response.url = Some(res.response.url.clone());
             response.status = Some(res.response.status);
+            response.raw_status = Some(res.response.status_raw().clone());
             response.headers = res.response.headers.clone();
 
             let res_body = response.body.clone();
