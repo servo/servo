@@ -1,5 +1,5 @@
 import argparse
-from functools import partial
+from functools import partial, reduce
 import json
 import operator
 import random
@@ -7,10 +7,12 @@ import string
 from thclient import (TreeherderClient, TreeherderResultSetCollection,
                       TreeherderJobCollection)
 
+from runner import format_result_summary
+
 
 def geometric_mean(iterable):
-        iterable = filter(lambda x: x > 0, iterable)
-        return (reduce(operator.mul, iterable)) ** (1.0/len(iterable))
+        filtered = list(filter(lambda x: x > 0, iterable))
+        return (reduce(operator.mul, filtered)) ** (1.0/len(filtered))
 
 
 def format_testcase_name(name):
@@ -38,7 +40,7 @@ def format_perf_data(perf_json):
     for testcase in perf_json:
         if measurementFromNavStart(testcase) < 0:
             value = -1
-            print('Error: test case has negative timing. Test timeout?')
+            # print('Error: test case has negative timing. Test timeout?')
         else:
             value = measurementFromNavStart(testcase)
 
@@ -52,7 +54,8 @@ def format_perf_data(perf_json):
     return (
         {
             "performance_data": {
-                "framework": {"name": "talos"},
+                # Framework https://bugzilla.mozilla.org/show_bug.cgi?id=1271472
+                "framework": {"name": "servo-perf"},
                 "suites": suites
             }
         }
@@ -60,14 +63,17 @@ def format_perf_data(perf_json):
 
 
 # TODO: refactor this big function to smaller chunks
-def submit(perf_data, revision):
+def submit(perf_data, failures, revision, summary):
 
     print("[DEBUG] performance data:")
     print(perf_data)
+    print("[DEBUG] failures:")
+    print(map(lambda x: x['testcase'], failures))
     # TODO: read the correct guid from test result
     hashlen = len(revision['commit'])
+    # job_guid = "x" * hashlen
     job_guid = ''.join(
-        random.choice(string.letters + string.digits) for i in xrange(hashlen)
+        random.choice(string.ascii_letters + string.digits) for i in range(hashlen)
     )
 
     trsc = TreeherderResultSetCollection()
@@ -120,6 +126,10 @@ def submit(perf_data, revision):
 
         trsc.add(trs)
 
+    result = "success"
+    if len(failures) > 0:
+        result = "testfailed"
+
     dataset = [
         {
             'project': 'servo',
@@ -147,7 +157,7 @@ def submit(perf_data, revision):
                 'end_timestamp':  revision['author']['timestamp'],
 
                 'state': 'completed',
-                'result': 'success',
+                'result': result,  # "success" or "testfailed"
 
                 'machine': 'local-machine',
                 # TODO: read platform test result
@@ -210,10 +220,15 @@ def submit(perf_data, revision):
                         "blob": {
                             "job_details": [
                                 {
-                                    "url": "https://www.github.com/servo/servo",
-                                    "value": "website",
                                     "content_type": "link",
+                                    "url": "https://www.github.com/servo/servo",
+                                    "value": "GitHub",
                                     "title": "Source code"
+                                },
+                                {
+                                    "content_type": "raw_html",
+                                    "title": "Result Summary",
+                                    "value": summary
                                 }
                             ]
                         }
@@ -278,12 +293,13 @@ def submit(perf_data, revision):
         tjc.add(tj)
 
     # TODO: extract this read credential code out of this function.
-    with open('credential.json', 'rb') as f:
+    with open('credential.json', 'r') as f:
         cred = json.load(f)
 
     client = TreeherderClient(protocol='https',
-                              # host='local.treeherder.mozilla.org',
                               host='treeherder.allizom.org',
+                              # protocol='http',
+                              # host='local.treeherder.mozilla.org',
                               client_id=cred['client_id'],
                               secret=cred['secret'])
 
@@ -305,15 +321,18 @@ def main():
                         help="the json containing the servo revision data")
     args = parser.parse_args()
 
-    with open(args.perf_json, 'rb') as f:
+    with open(args.perf_json, 'r') as f:
         result_json = json.load(f)
 
-    with open(args.revision_json, 'rb') as f:
+    with open(args.revision_json, 'r') as f:
         revision = json.load(f)
 
     perf_data = format_perf_data(result_json)
+    failures = list(filter(lambda x: x['domComplete'] == -1, result_json))
+    summary = format_result_summary(result_json)
+    summary = summary.replace('\n', '<br/>')
 
-    submit(perf_data, revision)
+    submit(perf_data, failures, revision, summary)
     print("Done!")
 
 

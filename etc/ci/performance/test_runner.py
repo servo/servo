@@ -163,6 +163,38 @@ Shutting down the Constellation after generating an output file or exit flag spe
     assert(expected == list(result))
 
 
+def test_log_parser_empty():
+    mock_log = b'Nothing here! Test failed!'
+    mock_testcase = "http://localhost:8000/page_load_test/56.com/www.56.com/index.html"
+
+    expected = [{
+        "testcase": "http://localhost:8000/page_load_test/56.com/www.56.com/index.html",
+        "navigationStart": 0,
+        "unloadEventStart": -1,
+        "unloadEventEnd": -1,
+        "redirectStart": -1,
+        "redirectEnd": -1,
+        "fetchStart": -1,
+        "domainLookupStart": -1,
+        "domainLookupEnd": -1,
+        "connectStart": -1,
+        "connectEnd": -1,
+        "secureConnectionStart": -1,
+        "requestStart": -1,
+        "responseStart": -1,
+        "responseEnd": -1,
+        "domLoading": -1,
+        "domInteractive": -1,
+        "domContentLoadedEventStart": -1,
+        "domContentLoadedEventEnd": -1,
+        "domComplete": -1,
+        "loadEventStart": -1,
+        "loadEventEnd": -1
+    }]
+    result = runner.parse_log(mock_log, mock_testcase)
+    assert(expected == list(result))
+
+
 def test_manifest_loader():
 
     text = '''
@@ -267,3 +299,25 @@ def test_take_result_median_error():
     }]
 
     assert(expected == runner.take_result_median(input_json, len(input_json)))
+
+def test_log_result():
+    results = [{
+        "testcase": "http://localhost:8000/page_load_test/56.com/www.56.com/index.html",
+        "domComplete": -1
+    }, {
+        "testcase": "http://localhost:8000/page_load_test/56.com/www.56.com/index.html",
+        "domComplete": -1
+    }, {
+        "testcase": "http://localhost:8000/page_load_test/104.com/www.104.com/index.html",
+        "domComplete": 123456789
+    }]
+
+    expected = """
+========================================
+Total 3 tests; 1 succeeded, 2 failed.
+
+Failure summary:
+ - http://localhost:8000/page_load_test/56.com/www.56.com/index.html
+========================================
+"""
+    assert(expected == runner.format_result_summary(results))
