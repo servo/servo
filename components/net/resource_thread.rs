@@ -11,6 +11,7 @@ use cookie;
 use cookie_storage::CookieStorage;
 use data_loader;
 use devtools_traits::DevtoolsControlMsg;
+use fetch::methods::fetch;
 use file_loader;
 use filemanager_thread::FileManagerThreadFactory;
 use hsts::HstsList;
@@ -23,8 +24,10 @@ use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
 use net_traits::LoadContext;
 use net_traits::ProgressMsg::Done;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResponseAction, CoreResourceThread};
-use net_traits::{CoreResourceMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
-use net_traits::{NetworkError, WebSocketCommunicate, WebSocketConnectData, ResourceThreads};
+use net_traits::{CoreResourceMsg, CookieSource, FetchResponseMsg, LoadConsumer};
+use net_traits::{LoadData, LoadResponse, NetworkError, ResourceId};
+use net_traits::{WebSocketCommunicate, WebSocketConnectData, ResourceThreads};
+use net_traits::request::{Referer, Request};
 use profile_traits::time::ProfilerChan;
 use rustc_serialize::json;
 use rustc_serialize::{Decodable, Encodable};
@@ -36,6 +39,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use std::rc::Rc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, RwLock};
 use storage_thread::StorageThreadFactory;
@@ -193,6 +197,8 @@ impl ResourceChannelManager {
             match self.from_client.recv().unwrap() {
                 CoreResourceMsg::Load(load_data, consumer, id_sender) =>
                     self.resource_manager.load(load_data, consumer, id_sender, control_sender.clone()),
+                CoreResourceMsg::Fetch(load_data, sender) => 
+                    self.resource_manager.fetch(load_data, sender),
                 CoreResourceMsg::WebsocketConnect(connect, connect_data) =>
                     self.resource_manager.websocket_connect(connect, connect_data),
                 CoreResourceMsg::SetCookiesForUrl(request, cookie_list, source) =>
@@ -478,6 +484,35 @@ impl CoreResourceManager {
                          consumer,
                          self.mime_classifier.clone(),
                          cancel_listener));
+    }
+
+    fn fetch(&self, load_data: LoadData, sender: IpcSender<FetchResponseMsg>) {
+        spawn_named(format!("fetch thread for {}", load_data.url), move || {
+            let mut request = Request::new(load_data.url,
+                                           None, false);
+            // todo handle origin
+            // todo consider replacing LoadData with a direct mapping
+            // to a subset of Request
+            // todo set is_service_worker_global_scope
+            *request.method.borrow_mut() = load_data.method;
+            *request.headers.borrow_mut() = load_data.headers;
+            *request.body.borrow_mut() = load_data.data.clone();
+            if let Some(cors) = load_data.cors {
+                request.use_cors_preflight = cors.preflight;
+            }
+            // XXXManishearth: Check origin against pipeline id
+            request.use_url_credentials = load_data.credentials_flag;
+            // todo load context / mimesniff in fetch
+            // todo referrer policy?
+            if let Some(referer) = load_data.referrer_url {
+                request.referer = Referer::RefererUrl(referer);
+            }
+            // todo worker stuff
+
+
+            fetch(Rc::new(request), Some(Box::new(sender)));
+        })
+
     }
 
     fn websocket_connect(&self,

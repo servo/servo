@@ -112,6 +112,7 @@ pub struct LoadData {
     pub headers: Headers,
     #[ignore_heap_size_of = "Defined in hyper"]
     /// Headers that will apply to the initial request and any redirects
+    /// Unused in fetch
     pub preserved_headers: Headers,
     pub data: Option<Vec<u8>>,
     pub cors: Option<ResourceCORSData>,
@@ -154,6 +155,16 @@ pub trait LoadOrigin {
     fn pipeline_id(&self) -> Option<PipelineId>;
 }
 
+#[derive(Deserialize, Serialize)]
+pub enum FetchResponseMsg {
+    // todo: should have fields for transmitted/total bytes
+    ProcessRequestBody,
+    ProcessRequestEOF,
+    // todo: send more info about the response (or perhaps the entire Response)
+    ProcessResponse(Result<Metadata, NetworkError>),
+    ProcessResponseEOF(Result<Vec<u8>, NetworkError>),
+}
+
 pub trait FetchTaskTarget {
     /// https://fetch.spec.whatwg.org/#process-request-body
     ///
@@ -174,6 +185,36 @@ pub trait FetchTaskTarget {
     ///
     /// Fired when the response is fully fetched
     fn process_response_eof(&mut self, response: &response::Response);
+}
+
+impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
+    fn process_request_body(&mut self, _: &request::Request) {
+        let _ = self.send(FetchResponseMsg::ProcessRequestBody);
+    }
+
+    fn process_request_eof(&mut self, _: &request::Request) {
+        let _ = self.send(FetchResponseMsg::ProcessRequestEOF);
+    }
+
+    fn process_response(&mut self, response: &response::Response) {
+        let _ = self.send(FetchResponseMsg::ProcessResponse(response.metadata()));
+    }
+
+    fn process_response_eof(&mut self, response: &response::Response) {
+        if response.is_network_error() {
+            // todo: finer grained errors
+            let _ = self.send(FetchResponseMsg::ProcessResponse(Err(NetworkError::Internal("Network error".into()))));
+        }
+        if let Ok(ref guard) = response.body.lock() {
+            if let response::ResponseBody::Done(ref vec) = **guard {  
+                let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Ok(vec.clone())));
+                return;
+            }
+        }
+
+        // If something goes wrong, log it instead of crashing the resource thread
+        let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Err(NetworkError::Internal("Incomplete body".into()))));
+    }
 }
 
 /// A listener for asynchronous network events. Cancelling the underlying request is unsupported.
@@ -348,6 +389,7 @@ pub struct WebSocketConnectData {
 pub enum CoreResourceMsg {
     /// Request the data associated with a particular URL
     Load(LoadData, LoadConsumer, Option<IpcSender<ResourceId>>),
+    Fetch(LoadData, IpcSender<FetchResponseMsg>),
     /// Try to make a websocket connection to a URL.
     WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
     /// Store a set of cookies for a given originating URL
