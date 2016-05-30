@@ -76,7 +76,7 @@ use parse::xml::{self, parse_xml};
 use profile_traits::mem::{self, OpaqueSender, Report, ReportKind, ReportsChan};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
-use script_runtime::{ScriptPort, StackRootTLS, new_rt_and_cx, get_reports};
+use script_runtime::{ScriptPort, StackRootTLS, get_reports};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::{CompositorEvent, ConstellationControlMsg, EventResult};
@@ -521,7 +521,7 @@ impl ScriptThread {
                port: Receiver<MainThreadScriptMsg>,
                chan: Sender<MainThreadScriptMsg>)
                -> ScriptThread {
-        let runtime = unsafe { new_rt_and_cx(ptr::null_mut()) };
+        let runtime = unsafe { new_rt_and_cx() };
 
         unsafe {
             JS_SetWrapObjectCallbacks(runtime.rt(),
