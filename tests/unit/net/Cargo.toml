@@ -9,17 +9,18 @@ path = "lib.rs"
 doctest = false
 
 [dependencies]
+content-blocker = "0.2"
+cookie = "0.2"
+devtools_traits = {path = "../../../components/devtools_traits"}
+flate2 = "0.2.0"
+hyper = "0.9"
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+msg = {path = "../../../components/msg"}
 net = {path = "../../../components/net"}
 net_traits = {path = "../../../components/net_traits"}
-util = {path = "../../../components/util"}
-msg = {path = "../../../components/msg"}
 plugins = {path = "../../../components/plugins"}
 profile_traits = {path = "../../../components/profile_traits"}
-devtools_traits = {path = "../../../components/devtools_traits"}
-ipc-channel = {git = "https://github.com/servo/ipc-channel"}
-cookie = "0.2"
-hyper = "0.9"
-url = {version = "1.0.0", features = ["heap_size"]}
 time = "0.1"
-flate2 = "0.2.0"
 unicase = "1.0"
+url = {version = "1.0.0", features = ["heap_size"]}
+util = {path = "../../../components/util"}
