@@ -181,3 +181,15 @@ tool written for gecko reftests.
 The reftest analyzer allows pixel-level comparison of the test and reference
 screenshots. Tests that both fail and have an unexpected result are marked
 with a `!`.
+
+Updating the WPT manifest
+=========================
+
+MANIFEST.json can be regenerated automatically with the mach command `update-manifest` e.g.
+
+    ./mach update-manifest
+
+This is equivalent to running
+
+    ./mach test-wpt --manifest-update SKIP_TESTS 
+
