@@ -40,21 +40,21 @@
 <progress disabled></progress>
 
 <script>
-  testSelector(":disabled", ["button2", "input2", "select2", "optgroup2", "option2", "textarea2", "fieldset2", "clubname", "clubnum"], "':disabled' should match only disabled elements");
+  testSelectorIdsMatch(":disabled", ["button2", "input2", "select2", "optgroup2", "option2", "textarea2", "fieldset2", "clubname", "clubnum"], "':disabled' should match only disabled elements");
 
   document.getElementById("button2").removeAttribute("disabled");
-  testSelector(":disabled", ["input2", "select2", "optgroup2", "option2", "textarea2", "fieldset2", "clubname", "clubnum"], "':disabled' should not match elements whose disabled attribute has been removed");
+  testSelectorIdsMatch(":disabled", ["input2", "select2", "optgroup2", "option2", "textarea2", "fieldset2", "clubname", "clubnum"], "':disabled' should not match elements whose disabled attribute has been removed");
 
   document.getElementById("button1").setAttribute("disabled", "disabled");
-  testSelector(":disabled", ["button1", "input2", "select2", "optgroup2", "option2", "textarea2", "fieldset2", "clubname", "clubnum"], "':disabled' should also match elements whose disabled attribute has been set");
+  testSelectorIdsMatch(":disabled", ["button1", "input2", "select2", "optgroup2", "option2", "textarea2", "fieldset2", "clubname", "clubnum"], "':disabled' should also match elements whose disabled attribute has been set");
 
   document.getElementById("button1").setAttribute("disabled", "disabled");
-  testSelector(":disabled", ["button1", "input2", "select2", "optgroup2", "option2", "textarea2", "fieldset2", "clubname", "clubnum"], "':disabled' should also match elements whose disabled attribute has been set twice");
+  testSelectorIdsMatch(":disabled", ["button1", "input2", "select2", "optgroup2", "option2", "textarea2", "fieldset2", "clubname", "clubnum"], "':disabled' should also match elements whose disabled attribute has been set twice");
 
   document.getElementById("input2").setAttribute("type", "submit"); // change input type to submit
-  testSelector(":disabled", ["button1", "input2", "select2", "optgroup2", "option2", "textarea2", "fieldset2", "clubname", "clubnum"], "':disabled' should also match disabled elements whose type has changed");
+  testSelectorIdsMatch(":disabled", ["button1", "input2", "select2", "optgroup2", "option2", "textarea2", "fieldset2", "clubname", "clubnum"], "':disabled' should also match disabled elements whose type has changed");
 
   var input = document.createElement("input");
   input.setAttribute("disabled", "disabled");
-  testSelector(":disabled", ["button1", "input2", "select2", "optgroup2", "option2", "textarea2", "fieldset2", "clubname", "clubnum"], "':disabled' should not match elements not in the document");
+  testSelectorIdsMatch(":disabled", ["button1", "input2", "select2", "optgroup2", "option2", "textarea2", "fieldset2", "clubname", "clubnum"], "':disabled' should not match elements not in the document");
 </script>

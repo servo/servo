@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Animation.id</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#dom-animation-id">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<body>
+<div id="log"></div>
+<script>
+"use strict";
+
+test(function(t) {
+  var div = createDiv(t);
+  var animation = div.animate({}, 100 * MS_PER_SEC);
+  assert_equals(animation.id, '', 'id for CSS Animation is initially empty');
+  animation.id = 'anim'
+
+  assert_equals(animation.id, 'anim', 'animation.id reflects the value set');
+}, 'Animation.id for CSS Animations');
+
+</script>
+</body>

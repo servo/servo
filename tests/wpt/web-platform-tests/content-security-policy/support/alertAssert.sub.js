@@ -11,12 +11,12 @@ if(expected_alerts.length == 0) {
  }
 } else {
  var t_alert = async_test('Expecting alerts: {{GET[alerts]}}');
- setTimeout(function() {
+ step_timeout(function() {
    if(t_alert.phase != t_alert.phases.COMPLETE) {
      t_alert.step(function() { assert_unreached('Alert timeout, expected alerts ' + expected_alerts  + ' not fired.') });
      t_alert.done();
     }
- }, timeout * 100); 
+ }, timeout * 1000);
  var alert_assert = function (msg) {
      t_alert.step(function () {
          if(msg && msg instanceof Error) {

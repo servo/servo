@@ -1131,7 +1131,7 @@ interface HTMLDivElement : HTMLElement {
 interface HTMLAnchorElement : HTMLElement {
   attribute DOMString target;
   attribute DOMString download;
-  [PutForwards=value] readonly attribute DOMTokenList ping;
+  [CEReactions] attribute USVString ping;
   attribute DOMString rel;
   [PutForwards=value] readonly attribute DOMTokenList relList;
   attribute DOMString hreflang;
@@ -1501,7 +1501,7 @@ interface HTMLAreaElement : HTMLElement {
   attribute DOMString shape;
   attribute DOMString target;
   attribute DOMString download;
-  [PutForwards=value] readonly attribute DOMTokenList ping;
+  [CEReactions] attribute USVString ping;
   attribute DOMString rel;
   [PutForwards=value] readonly attribute DOMTokenList relList;
   // hreflang and type are not reflected
@@ -1560,7 +1560,7 @@ interface HTMLTableRowElement : HTMLElement {
 interface HTMLTableCellElement : HTMLElement {
   [CEReactions] attribute unsigned long colSpan;
   [CEReactions] attribute unsigned long rowSpan;
-  [CEReactions, SameObject, PutForwards=value] readonly attribute DOMTokenList headers;
+  [CEReactions] attribute DOMString headers;
   readonly attribute long cellIndex;
 
   [CEReactions] attribute DOMString scope; // only conforming for th elements
@@ -1655,9 +1655,9 @@ interface HTMLInputElement : HTMLElement {
   readonly attribute NodeList labels;
 
   void select();
-           attribute unsigned long selectionStart;
-           attribute unsigned long selectionEnd;
-           attribute DOMString selectionDirection;
+           attribute unsigned long? selectionStart;
+           attribute unsigned long? selectionEnd;
+           attribute DOMString? selectionDirection;
   void setRangeText(DOMString replacement);
   void setRangeText(DOMString replacement, unsigned long start, unsigned long end, optional SelectionMode selectionMode = "preserve");
   void setSelectionRange(unsigned long start, unsigned long end, optional DOMString direction);
@@ -1778,9 +1778,9 @@ interface HTMLTextAreaElement : HTMLElement {
   readonly attribute NodeList labels;
 
   void select();
-           attribute unsigned long selectionStart;
-           attribute unsigned long selectionEnd;
-           attribute DOMString selectionDirection;
+           attribute unsigned long? selectionStart;
+           attribute unsigned long? selectionEnd;
+           attribute DOMString? selectionDirection;
   void setRangeText(DOMString replacement);
   void setRangeText(DOMString replacement, unsigned long start, unsigned long end, optional SelectionMode selectionMode = "preserve");
   void setSelectionRange(unsigned long start, unsigned long end, optional DOMString direction);
@@ -3187,6 +3187,13 @@ setup(function() {
   iframe.hidden = true;
   document.body.appendChild(iframe);
 }, {explicit_done:true});
+
+function createInput(type) {
+  var input = document.createElement('input');
+  input.type = type;
+  return input;
+}
+
 window.onload = function() {
   idlArray.add_objects({
     NodeList: ['document.getElementsByName("name")'],
@@ -3292,7 +3299,31 @@ window.onload = function() {
     HTMLFieldsetElement: ['document.createElement("fieldset")'],
     HTMLLegendElement: ['document.createElement("legend")'],
     HTMLLabelElement: ['document.createElement("label")'],
-    HTMLInputElement: ['document.createElement("input")'],
+    HTMLInputElement: [
+      'document.createElement("input")',
+      'createInput("text")',
+      'createInput("hidden")',
+      'createInput("search")',
+      'createInput("tel")',
+      'createInput("url")',
+      'createInput("email")',
+      'createInput("password")',
+      'createInput("date")',
+      'createInput("month")',
+      'createInput("week")',
+      'createInput("time")',
+      'createInput("datetime-local")',
+      'createInput("number")',
+      'createInput("range")',
+      'createInput("color")',
+      'createInput("checkbox")',
+      'createInput("radio")',
+      'createInput("file")',
+      'createInput("submit")',
+      'createInput("image")',
+      'createInput("reset")',
+      'createInput("button")'
+    ],
     HTMLButtonElement: ['document.createElement("button")'],
     HTMLSelectElement: ['document.createElement("select")'],
     HTMLDataListElement: ['document.createElement("datalist")'],

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>fill tests</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#dom-animationeffecttiming-fill">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+["none", "forwards", "backwards", "both", ].forEach(function(fill){
+  test(function(t) {
+    var div = createDiv(t);
+    var anim = div.animate({ opacity: [ 0, 1 ] }, 100);
+    anim.effect.timing.fill = fill;
+    assert_equals(anim.effect.timing.fill, fill, 'set fill ' + fill);
+    assert_equals(anim.effect.getComputedTiming().fill, fill, 'getComputedTiming() after set fill ' + fill);
+  }, 'set fill ' + fill);
+});
+
+</script>
+</body>
