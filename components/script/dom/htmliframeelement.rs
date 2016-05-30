@@ -437,8 +437,12 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
     fn Mozbrowser(&self) -> bool {
-        let element = self.upcast::<Element>();
-        element.has_attribute(&atom!("mozbrowser"))
+        if window_from_node(self).is_mozbrowser() {
+            let element = self.upcast::<Element>();
+            element.has_attribute(&atom!("mozbrowser"))
+        } else {
+            false
+        }
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser

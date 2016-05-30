@@ -1459,15 +1459,17 @@ impl Window {
         })
     }
 
+    /// Returns whether this window is mozbrowser.
+    pub fn is_mozbrowser(&self) -> bool {
+        mozbrowser_enabled() && self.parent_info().is_none()
+    }
+
     /// Returns whether mozbrowser is enabled and `obj` has been created
     /// in a top-level `Window` global.
     #[allow(unsafe_code)]
     pub unsafe fn global_is_mozbrowser(_: *mut JSContext, obj: HandleObject) -> bool {
-        if !mozbrowser_enabled() {
-            return false;
-        }
         match global_root_from_object(obj.get()).r() {
-            GlobalRef::Window(window) => window.parent_info().is_none(),
+            GlobalRef::Window(window) => window.is_mozbrowser(),
             _ => false,
         }
     }
