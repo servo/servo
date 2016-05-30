@@ -7,10 +7,6 @@
 test(function() {
   assert_equals(typeof ProgressEvent, "function")
   assert_equals(ProgressEvent.length, 1)
-  assert_throws(new TypeError(), function() {
-    "use strict";
-    delete ProgressEvent.length;
-  })
 })
 test(function() {
   var desc = Object.getOwnPropertyDescriptor(ProgressEvent, "prototype")

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Animatable.animate tests</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#dom-animatable-animate">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<script src="../../resources/keyframe-utils.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+// Tests on Element
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate(null);
+  assert_class_string(anim, 'Animation', 'Returned object is an Animation');
+}, 'Element.animate() creates an Animation object');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate(null);
+  assert_class_string(anim.effect, 'KeyframeEffect',
+                      'Returned Animation has a KeyframeEffect');
+}, 'Element.animate() creates an Animation object with a KeyframeEffect');
+
+gPropertyIndexedKeyframesTests.forEach(function(subtest) {
+  test(function(t) {
+    var div = createDiv(t);
+    var anim = div.animate(subtest.input, 2000);
+    assert_frame_lists_equal(anim.effect.getKeyframes(), subtest.output);
+  }, 'Element.animate() accepts ' + subtest.desc);
+});
+
+gKeyframeSequenceTests.forEach(function(subtest) {
+  test(function(t) {
+    var div = createDiv(t);
+    var anim = div.animate(subtest.input, 2000);
+    assert_frame_lists_equal(anim.effect.getKeyframes(), subtest.output);
+  }, 'Element.animate() accepts ' + subtest.desc);
+});
+
+gInvalidKeyframesTests.forEach(function(subtest) {
+  test(function(t) {
+    var div = createDiv(t);
+    assert_throws(subtest.expected, function() {
+      div.animate(subtest.input, 2000);
+    });
+  }, 'Element.animate() does not accept ' + subtest.desc);
+});
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  assert_equals(anim.effect.timing.duration, 2000);
+  // Also check that unspecified parameters receive their default values
+  assert_equals(anim.effect.timing.fill, 'auto');
+}, 'Element.animate() accepts a double as an options argument');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] },
+                         { duration: Infinity, fill: 'forwards' });
+  assert_equals(anim.effect.timing.duration, Infinity);
+  assert_equals(anim.effect.timing.fill, 'forwards');
+  // Also check that unspecified parameters receive their default values
+  assert_equals(anim.effect.timing.direction, 'normal');
+}, 'Element.animate() accepts a KeyframeAnimationOptions argument');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] });
+  assert_equals(anim.effect.timing.duration, 'auto');
+}, 'Element.animate() accepts an absent options argument');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  assert_equals(anim.id, '');
+}, 'Element.animate() correctly sets the id attribute when no id is specified');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, { id: 'test' });
+  assert_equals(anim.id, 'test');
+}, 'Element.animate() correctly sets the id attribute');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  assert_equals(anim.timeline, document.timeline);
+}, 'Element.animate() correctly sets the Animation\'s timeline');
+
+async_test(function(t) {
+  var iframe = document.createElement('iframe');
+  iframe.width = 10;
+  iframe.height = 10;
+
+  iframe.addEventListener('load', t.step_func(function() {
+    var div = createDiv(t, iframe.contentDocument);
+    var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+    assert_equals(anim.timeline, iframe.contentDocument.timeline);
+    iframe.remove();
+    t.done();
+  }));
+
+  document.body.appendChild(iframe);
+}, 'Element.animate() correctly sets the Animation\'s timeline when ' +
+   'triggered on an element in a different document');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  assert_equals(anim.playState, 'pending');
+}, 'Element.animate() calls play on the Animation');
+
+// Tests on CSSPseudoElement
+
+test(function(t) {
+  var pseudoTarget = createPseudo(t, 'before');
+  var anim = pseudoTarget.animate(null);
+  assert_class_string(anim, 'Animation', 'The returned object is an Animation');
+}, 'CSSPseudoElement.animate() creates an Animation object');
+
+test(function(t) {
+  var pseudoTarget = createPseudo(t, 'before');
+  var anim = pseudoTarget.animate(null);
+  assert_equals(anim.effect.target, pseudoTarget,
+                'The returned Animation targets to the correct object');
+}, 'CSSPseudoElement.animate() creates an Animation object targeting ' +
+   'to the correct CSSPseudoElement object');
+</script>
+</body>

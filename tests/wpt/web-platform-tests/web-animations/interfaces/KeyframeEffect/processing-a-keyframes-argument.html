@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>KeyframeEffectReadOnly constructor tests</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#processing-a-keyframes-argument">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<div id="target"></div>
+<script>
+'use strict';
+
+// Test the "process a keyframe-like object" procedure.
+//
+// This file only tests the KeyframeEffectReadOnly constructor since it is
+// assumed that the implementation of the KeyframeEffect constructor,
+// Animatable.animate() method, and KeyframeEffect.setKeyframes() method will
+// all share common machinery and it is not necessary to test each method.
+
+// Test that only animatable properties are accessed
+
+var gNonAnimatableProps = [
+  'animation', // Shorthands where all the longhand sub-properties are not
+               // animatable, are also not animatable.
+  'animationDelay',
+  'animationDirection',
+  'animationDuration',
+  'animationFillMode',
+  'animationIterationCount',
+  'animationName',
+  'animationPlayState',
+  'animationTimingFunction',
+  'transition',
+  'transitionDelay',
+  'transitionDuration',
+  'transitionProperty',
+  'transitionTimingFunction',
+  'display',
+  'unsupportedProperty',
+];
+
+function TestKeyframe(testProp) {
+  var _propAccessCount = 0;
+
+  Object.defineProperty(this, testProp, {
+    get: function() { _propAccessCount++; },
+    enumerable: true
+  });
+
+  Object.defineProperty(this, 'propAccessCount', {
+    get: function() { return _propAccessCount; }
+  });
+}
+
+function GetTestKeyframeSequence(testProp) {
+  return [ new TestKeyframe(testProp) ]
+}
+
+gNonAnimatableProps.forEach(function(prop) {
+  test(function(t) {
+    var testKeyframe = new TestKeyframe(prop);
+
+    new KeyframeEffectReadOnly(null, testKeyframe);
+
+    assert_equals(testKeyframe.propAccessCount, 0, 'Accessor not called');
+  }, 'non-animatable property \'' + prop + '\' is not accessed when using'
+     + ' a property-indexed keyframe object');
+});
+
+gNonAnimatableProps.forEach(function(prop) {
+  test(function(t) {
+    var testKeyframes = GetTestKeyframeSequence(prop);
+
+    new KeyframeEffectReadOnly(null, testKeyframes);
+
+    assert_equals(testKeyframes[0].propAccessCount, 0, 'Accessor not called');
+  }, 'non-animatable property \'' + prop + '\' is not accessed when using'
+     + ' a keyframe sequence');
+});
+
+// FIXME: Test that non-enumerable properties are not accessed
+
+// FIXME: Test that properties are accessed in ascending order by Unicode
+//        codepoint
+//        (There is an existing test for this in
+//        keyframe-effect/constructor.html that should be moved here.)
+
+</script>

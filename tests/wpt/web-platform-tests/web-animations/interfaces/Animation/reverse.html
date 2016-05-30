@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Animation.reverse()</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#dom-animation-reverse">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<body>
+<div id="log"></div>
+<script>
+"use strict";
+
+promise_test(function(t) {
+  var div = createDiv(t);
+  var animation = div.animate({}, {duration: 100 * MS_PER_SEC,
+                                   iterations: Infinity});
+
+  // Wait a frame because if currentTime is still 0 when we call
+  // reverse(), it will throw (per spec).
+  return animation.ready.then(waitForAnimationFrames(1)).then(function() {
+    assert_greater_than_equal(animation.currentTime, 0,
+      'currentTime expected to be greater than 0, one frame after starting');
+    animation.currentTime = 50 * MS_PER_SEC;
+    var previousPlaybackRate = animation.playbackRate;
+    animation.reverse();
+    assert_equals(animation.playbackRate, -previousPlaybackRate,
+      'playbackRate should be inverted');
+  });
+}, 'reverse() inverts playbackRate');
+
+promise_test(function(t) {
+  var div = createDiv(t);
+  var animation = div.animate({}, {duration: 100 * MS_PER_SEC,
+                                   iterations: Infinity});
+  animation.currentTime = 50 * MS_PER_SEC;
+  animation.pause();
+
+  return animation.ready.then(function() {
+    animation.reverse();
+    return animation.ready;
+  }).then(function() {
+    assert_equals(animation.playState, 'running',
+      'Animation.playState should be "running" after reverse()');
+  });
+}, 'reverse() starts to play when pausing animation');
+
+test(function(t) {
+  var div = createDiv(t);
+  var animation = div.animate({}, 100 * MS_PER_SEC);
+  animation.currentTime = 50 * MS_PER_SEC;
+  animation.reverse();
+
+  assert_equals(animation.currentTime, 50 * MS_PER_SEC,
+    'reverse() should not change the currentTime ' +
+    'if the currentTime is in the middle of animation duration');
+}, 'reverse() maintains the same currentTime');
+
+test(function(t) {
+  var div = createDiv(t);
+  var animation = div.animate({}, 100 * MS_PER_SEC);
+  animation.currentTime = 200 * MS_PER_SEC;
+  animation.reverse();
+
+  assert_equals(animation.currentTime, 100 * MS_PER_SEC,
+    'reverse() should start playing from the animation effect end ' +
+    'if the playbackRate > 0 and the currentTime > effect end');
+}, 'reverse() when playbackRate > 0 and currentTime > effect end');
+
+test(function(t) {
+  var div = createDiv(t);
+  var animation = div.animate({}, 100 * MS_PER_SEC);
+
+  animation.currentTime = -200 * MS_PER_SEC;
+  animation.reverse();
+
+  assert_equals(animation.currentTime, 100 * MS_PER_SEC,
+    'reverse() should start playing from the animation effect end ' +
+    'if the playbackRate > 0 and the currentTime < 0');
+}, 'reverse() when playbackRate > 0 and currentTime < 0');
+
+test(function(t) {
+  var div = createDiv(t);
+  var animation = div.animate({}, 100 * MS_PER_SEC);
+  animation.playbackRate = -1;
+  animation.currentTime = -200 * MS_PER_SEC;
+  animation.reverse();
+
+  assert_equals(animation.currentTime, 0,
+    'reverse() should start playing from the start of animation time ' +
+    'if the playbackRate < 0 and the currentTime < 0');
+}, 'reverse() when playbackRate < 0 and currentTime < 0');
+
+test(function(t) {
+  var div = createDiv(t);
+  var animation = div.animate({}, 100 * MS_PER_SEC);
+  animation.playbackRate = -1;
+  animation.currentTime = 200 * MS_PER_SEC;
+  animation.reverse();
+
+  assert_equals(animation.currentTime, 0,
+    'reverse() should start playing from the start of animation time ' +
+    'if the playbackRate < 0 and the currentTime > effect end');
+}, 'reverse() when playbackRate < 0 and currentTime > effect end');
+
+test(function(t) {
+  var div = createDiv(t);
+  var animation = div.animate({}, {duration: 100 * MS_PER_SEC,
+                                   iterations: Infinity});
+  animation.currentTime = -200 * MS_PER_SEC;
+
+  assert_throws('InvalidStateError',
+    function () { animation.reverse(); },
+    'reverse() should throw InvalidStateError ' +
+    'if the playbackRate > 0 and the currentTime < 0 ' +
+    'and the target effect is positive infinity');
+}, 'reverse() when playbackRate > 0 and currentTime < 0 ' +
+   'and the target effect end is positive infinity');
+
+test(function(t) {
+  var div = createDiv(t);
+  var animation = div.animate({}, {duration: 100 * MS_PER_SEC,
+                                   iterations: Infinity});
+  animation.playbackRate = -1;
+  animation.currentTime = -200 * MS_PER_SEC;
+  animation.reverse();
+
+  assert_equals(animation.currentTime, 0,
+    'reverse() should start playing from the start of animation time ' +
+    'if the playbackRate < 0 and the currentTime < 0 ' +
+    'and the target effect is positive infinity');
+}, 'reverse() when playbackRate < 0 and currentTime < 0 ' +
+   'and the target effect end is positive infinity');
+
+test(function(t) {
+  var div = createDiv(t);
+  var animation = div.animate({}, 100 * MS_PER_SEC);
+  animation.playbackRate = 0;
+  animation.currentTime = 50 * MS_PER_SEC;
+  animation.reverse();
+
+  assert_equals(animation.playbackRate, 0,
+    'reverse() should preserve playbackRate if the playbackRate == 0');
+  assert_equals(animation.currentTime, 50 * MS_PER_SEC,
+    'reverse() should not affect the currentTime if the playbackRate == 0');
+  t.done();
+}, 'reverse() when playbackRate == 0');
+
+</script>
+</body>

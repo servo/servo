@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test that javascript: evaluation only performs a navigation to the
+  result when the result is a string value.</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<iframe src="javascript:'1'"></iframe>
+<iframe src="javascript:1"></iframe>
+<iframe src="javascript:({ toString: function() { return '1'; } })"></iframe>
+<iframe src="javascript:undefined"></iframe>
+<iframe src="javascript:null"></iframe>
+<iframe src="javascript:true"></iframe>
+<iframe src="javascript:new String('1')"></iframe>
+<script>
+  var t = async_test();
+  onload = t.step_func_done(function() {
+    assert_equals(frames[0].document.documentElement.textContent,
+                  "1", "string return should cause navigation");
+    assert_equals(frames[1].document.documentElement.textContent,
+                  "", "number return should not cause navigation");
+    assert_equals(frames[2].document.documentElement.textContent,
+                  "", "object return should not cause navigation");
+    assert_equals(frames[3].document.documentElement.textContent,
+                  "", "undefined return should not cause navigation");
+    assert_equals(frames[4].document.documentElement.textContent,
+                  "", "null return should not cause navigation");
+    assert_equals(frames[5].document.documentElement.textContent,
+                  "", "null return should not cause navigation");
+    assert_equals(frames[6].document.documentElement.textContent,
+                  "", "String object return should not cause navigation");
+  });
+</script>

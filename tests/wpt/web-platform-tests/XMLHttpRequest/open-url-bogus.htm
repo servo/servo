@@ -15,8 +15,11 @@
           assert_throws("SyntaxError", function() { client.open("GET", url) })
         }, document.title + " (" + url + ")")
       }
-      url("http:")
+      url("//[")
+      url("ftp:")
       url("http://a a/")
+      url("http:////////////")
+      url("http://u:p@/")
     </script>
   </body>
 </html>

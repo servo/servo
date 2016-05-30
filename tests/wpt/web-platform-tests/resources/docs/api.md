@@ -37,17 +37,21 @@ are complete", below.
 
 ## Synchronous Tests ##
 
-To create a synchronous test use the test() function:
+To create a synchronous test use the `test()` function:
 
 ```js
 test(test_function, name, properties)
 ```
 
 `test_function` is a function that contains the code to test. For example a
-trivial passing test would be:
+trivial test for the DOM
+[`hasFeature()`](https://dom.spec.whatwg.org/#dom-domimplementation-hasfeature)
+method (which is defined to always return true) would be:
 
 ```js
-test(function() {assert_true(true)}, "assert_true with true")
+test(function() {
+  assert_true(document.implementation.hasFeature());
+}, "hasFeature() with no arguments")
 ```
 
 The function passed in is run in the `test()` call.
@@ -63,38 +67,48 @@ a test may depend on one or more events or other callbacks. The API provided
 for testing these features is intended to be rather low-level but hopefully
 applicable to many situations.
 
-To create a test, one starts by getting a Test object using async_test:
+To create a test, one starts by getting a `Test` object using `async_test`:
 
 ```js
 async_test(name, properties)
 ```
 
 e.g.
-    var t = async_test("Simple async test")
+
+```js
+var t = async_test("DOMContentLoaded")
+```
 
 Assertions can be added to the test by calling the step method of the test
 object with a function containing the test assertions:
 
 ```js
-t.step(function() {assert_true(true)});
+document.addEventListener("DOMContentLoaded", function() {
+  t.step(function() {
+    assert_true(e.bubbles, "bubbles should be true");
+  });
+});
 ```
 
-When all the steps are complete, the done() method must be called:
+When all the steps are complete, the `done()` method must be called:
 
 ```js
 t.done();
 ```
 
-As a convenience, async_test can also takes a function as first argument.
+As a convenience, `async_test` can also takes a function as first argument.
 This function is called with the test object as both its `this` object and
 first argument. The above example can be rewritten as:
 
 ```js
 async_test(function(t) {
-    object.some_event = function() {
-        t.step(function (){assert_true(true); t.done();});
-    };
-}, "Simple async test");
+  document.addEventListener("DOMContentLoaded", function() {
+    t.step(function() {
+      assert_true(e.bubbles, "bubbles should be true");
+    });
+    t.done();
+  });
+}, "DOMContentLoaded");
 ```
 
 which avoids cluttering the global scope with references to async
@@ -103,18 +117,31 @@ tests instances.
 The properties argument is identical to that for `test()`.
 
 In many cases it is convenient to run a step in response to an event or a
-callback. A convenient method of doing this is through the step_func method
+callback. A convenient method of doing this is through the `step_func` method
 which returns a function that, when called runs a test step. For example
 
 ```js
-object.some_event = t.step_func(function(e) {assert_true(e.a)});
+document.addEventListener("DOMContentLoaded", t.step_func(function() {
+  assert_true(e.bubbles, "bubbles should be true");
+  t.done();
+});
+```
+
+As a further convenience, the `step_func` that calls `done()` can instead
+use `step_func_done`, as follows:
+
+```js
+document.addEventListener("DOMContentLoaded", t.step_func_done(function() {
+  assert_true(e.bubbles, "bubbles should be true");
+});
 ```
 
 For asynchronous callbacks that should never execute, `unreached_func` can
 be used. For example:
 
 ```js
-object.some_event = t.unreached_func("some_event should not fire");
+document.documentElement.addEventListener("DOMContentLoaded",
+  t.unreached_func("DOMContentLoaded should not be fired on the document element"));
 ```
 
 Keep in mind that other tests could start executing before an Asynchronous
@@ -233,7 +260,7 @@ the normal step function wrapper. For example:
 
 ```html
 <!doctype html>
-<title>Example single-page test</title>
+<title>Basic document.body test</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
@@ -276,11 +303,13 @@ function on the test object. All registered callbacks will be run as soon as
 the test result is known. For example
 
 ```js
-test(function() {
-         window.some_global = "example";
-         this.add_cleanup(function() {delete window.some_global});
-         assert_true(false);
-     });
+  test(function() {
+    var element = document.createElement("div");
+    element.setAttribute("id", "null");
+    document.body.appendChild(element);
+    this.add_cleanup(function() { document.body.removeChild(element) });
+    assert_equals(document.getElementById(null), element);
+  }, "Calling document.getElementById with a null argument.");
 ```
 
 ## Timeouts in Tests ##
@@ -298,9 +327,14 @@ that only passes if some event is *not* fired). In this case it is
 must use the `step_timeout` function:
 
 ```js
-var t = async_test("Some test that does something after a timeout");
-
-t.step_timeout(function() {assert_true(true); this.done()}, 2000);
+async_test(function(t) {
+  var gotEvent = false;
+  document.addEventListener("DOMContentLoaded", t.step_func(function() {
+    assert_false(gotEvent, "Unexpected DOMContentLoaded event");
+    gotEvent = true;
+    t.step_timeout(function() { t.done(); }, 2000);
+  });
+}, "Only one DOMContentLoaded");
 ```
 
 The difference between `setTimeout` and `step_timeout` is that the
@@ -308,6 +342,9 @@ latter takes account of the timeout multiplier when computing the
 delay; e.g., in the above case a timeout multiplier of 2 would cause a
 pause of 4000ms before calling the callback. This makes it less likely
 to produce unstable results in slow configurations.
+
+Note that timeouts generally need to be a few seconds long in order to
+produce stable results in all test environments.
 
 For single-page tests, `step_timeout` is also available as a global
 function.

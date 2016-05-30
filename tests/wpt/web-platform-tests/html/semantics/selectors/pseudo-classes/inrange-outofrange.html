@@ -70,15 +70,15 @@
 <input min="1" value="0" type="reset">
 
 <script>
-  testSelector(":in-range", ["number1", "datein", "timein", "weekin", "monthin", "datetimelocalin", "range0", "range1", "range2", "range3"], "':in-range' matches all elements that are candidates for constraint validation, have range limitations, and that are neither suffering from an underflow nor suffering from an overflow");
+  testSelectorIdsMatch(":in-range", ["number1", "datein", "timein", "weekin", "monthin", "datetimelocalin", "range0", "range1", "range2", "range3"], "':in-range' matches all elements that are candidates for constraint validation, have range limitations, and that are neither suffering from an underflow nor suffering from an overflow");
 
-  testSelector(":out-of-range", ["number3", "number4", "dateunder", "dateover", "timeunder", "timeover", "weekunder", "weekover", "monthunder", "monthover", "datetimelocalunder", "datetimelocalover"], "':out-of-range' matches all elements that are candidates for constraint validation, have range limitations, and that are either suffering from an underflow or suffering from an overflow");
+  testSelectorIdsMatch(":out-of-range", ["number3", "number4", "dateunder", "dateover", "timeunder", "timeover", "weekunder", "weekover", "monthunder", "monthover", "datetimelocalunder", "datetimelocalover"], "':out-of-range' matches all elements that are candidates for constraint validation, have range limitations, and that are either suffering from an underflow or suffering from an overflow");
 
   document.getElementById("number1").value = -10;
-  testSelector(":in-range", ["datein", "timein", "weekin", "monthin", "datetimelocalin", "range0", "range1", "range2", "range3"], "':in-range' update number1's value < min");
-  testSelector(":out-of-range", ["number1", "number3", "number4", "dateunder", "dateover", "timeunder", "timeover", "weekunder", "weekover", "monthunder", "monthover", "datetimelocalunder", "datetimelocalover"], "':out-of-range' update number1's value < min");
+  testSelectorIdsMatch(":in-range", ["datein", "timein", "weekin", "monthin", "datetimelocalin", "range0", "range1", "range2", "range3"], "':in-range' update number1's value < min");
+  testSelectorIdsMatch(":out-of-range", ["number1", "number3", "number4", "dateunder", "dateover", "timeunder", "timeover", "weekunder", "weekover", "monthunder", "monthover", "datetimelocalunder", "datetimelocalover"], "':out-of-range' update number1's value < min");
 
   document.getElementById("number3").min = 0;
-  testSelector(":in-range", ["number3", "datein", "timein", "weekin", "monthin", "datetimelocalin", "range0", "range1", "range2", "range3"], "':in-range' update number3's min < value");
-  testSelector(":out-of-range", ["number1", "number4", "dateunder", "dateover", "timeunder", "timeover", "weekunder", "weekover", "monthunder", "monthover", "datetimelocalunder", "datetimelocalover"], "':out-of-range' update number3's min < value");
+  testSelectorIdsMatch(":in-range", ["number3", "datein", "timein", "weekin", "monthin", "datetimelocalin", "range0", "range1", "range2", "range3"], "':in-range' update number3's min < value");
+  testSelectorIdsMatch(":out-of-range", ["number1", "number4", "dateunder", "dateover", "timeunder", "timeover", "weekunder", "weekover", "monthunder", "monthover", "datetimelocalunder", "datetimelocalover"], "':out-of-range' update number3's min < value");
 </script>

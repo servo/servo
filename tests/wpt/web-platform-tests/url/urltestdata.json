@@ -4273,5 +4273,43 @@
     "search": "??a=b&c=d",
     "searchParams": "%3Fa=b&c=d",
     "hash": ""
+  },
+  "# Scheme only",
+  {
+    "input": "http:",
+    "base": "http://example.org/foo/bar",
+    "href": "http://example.org/foo/bar",
+    "origin": "http://example.org",
+    "protocol": "http:",
+    "username": "",
+    "password": "",
+    "host": "example.org",
+    "hostname": "example.org",
+    "port": "",
+    "pathname": "/foo/bar",
+    "search": "",
+    "searchParams": "",
+    "hash": ""
+  },
+  {
+    "input": "http:",
+    "base": "https://example.org/foo/bar",
+    "failure": true
+  },
+  {
+    "input": "sc:",
+    "base": "https://example.org/foo/bar",
+    "href": "sc:",
+    "origin": "null",
+    "protocol": "sc:",
+    "username": "",
+    "password": "",
+    "host": "",
+    "hostname": "",
+    "port": "",
+    "pathname": "",
+    "search": "",
+    "searchParams": "",
+    "hash": ""
   }
 ]

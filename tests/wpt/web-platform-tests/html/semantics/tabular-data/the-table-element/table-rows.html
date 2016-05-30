@@ -34,6 +34,14 @@ function test_table_simple(group, table) {
   assert_equals(table.rows.bar, bar1);
   assert_equals(table.rows["bar"], bar1);
   assert_equals(table.rows.namedItem("bar"), bar1);
+  assert_array_equals(Object.getOwnPropertyNames(table.rows), [
+    "0",
+    "1",
+    "2",
+    "3",
+    "foo",
+    "bar"
+  ]);
 }
 test(function() {
   var table = document.createElement("table");
@@ -144,6 +152,46 @@ test(function() {
     foot1row2,
     foot2row1,
     foot2row2
+  ]);
+  assert_array_equals(Object.getOwnPropertyNames(table.rows), [
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7",
+    "8",
+    "9",
+    "10",
+    "11",
+    "12",
+    "13",
+    "14",
+    "15",
+    "16",
+    "17",
+    "18",
+    "head1row1",
+    "head1row2",
+    "head2row1",
+    "head2row2",
+    "orphan1",
+    "orphan2",
+    "orphan3",
+    "body1row1",
+    "body1row2",
+    "orphan4",
+    "body2row1",
+    "body2row2",
+    "orphan5",
+    "orphan6",
+    "orphan7",
+    "foot1row1",
+    "foot1row2",
+    "foot2row1",
+    "foot2row2"
   ]);
 
   var ids = [

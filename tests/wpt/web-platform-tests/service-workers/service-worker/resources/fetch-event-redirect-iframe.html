@@ -5,10 +5,14 @@ window.addEventListener('message', function(evt) {
   fetch(new Request(data.url, data.request_init)).then(function(response) {
     if (data.request_init.mode === 'no-cors' && data.redirect_dest != 'same-origin') {
       if (response.type === data.expected_type &&
-          (response.type === 'opaque' || response.type === 'opaqueredirect')) {
+          (response.type === 'opaque' || response.type === 'opaqueredirect') &&
+          response.redirected === data.expected_redirected) {
         return {result: 'success', detail: ''};
       } else {
-        return {result: 'failure', detail: 'expected ' + data.expected_type + ' response'};
+        return {result: 'failure',
+                detail: 'expected type ' + data.expected_type +
+                        ', expected redirected ' + data.expected_redirected +
+                        ' response'};
       }
     }
     return response.json();
