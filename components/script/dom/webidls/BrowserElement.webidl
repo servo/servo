@@ -146,16 +146,16 @@ interface BrowserElementPrivileged {
   //                    unsigned long count,
   //                    unsigned long modifiers);
 
-  [Throws]
+  [Func="Window::global_is_mozbrowser", Throws]
   void goBack();
 
-  [Throws]
+  [Func="Window::global_is_mozbrowser", Throws]
   void goForward();
 
-  [Throws]
+  [Func="Window::global_is_mozbrowser", Throws]
   void reload(optional boolean hardReload = false);
 
-  [Throws]
+  [Func="Window::global_is_mozbrowser", Throws]
   void stop();
 
   //[Throws,
