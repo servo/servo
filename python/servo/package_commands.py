@@ -12,6 +12,8 @@ from __future__ import print_function, unicode_literals
 import os
 import os.path as path
 import subprocess
+import tarfile
+import time
 
 from mach.registrar import Registrar
 
@@ -67,6 +69,7 @@ class PackageCommands(CommandBase):
             if browserhtml_path is None:
                 print("Could not find browserhtml package; perhaps you haven't built Servo.")
                 return 1
+            # TODO: deduplicate this arg list from post_build_commands
             servo_args = ['-w', '-b',
                           '--pref', 'dom.mozbrowser.enabled',
                           '--pref', 'dom.forcetouch.enabled',
@@ -78,7 +81,11 @@ class PackageCommands(CommandBase):
             os.close(runservo)
             # TODO: delete unneeded files from target directory
             # tar up the whole target directory
-
+            tar_path = '/'.join(dir_to_package.split('/')[:-1]) + '/'
+            tar_path += time.strftime('%Y-%m-%d-%H%M') + "-servo-tech-demo.tar.gz"
+            with tarfile.open(tar_path, "w:gz") as tar:
+                tar.add(dir_to_package)
+            print("Packaged Servo into " + tar_path)
 
     @Command('install',
              description='Install Servo (currently, Android only)',
