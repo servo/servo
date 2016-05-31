@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use actor::{Actor, ActorMessageStatus, ActorRegistry};
-use protocol::JsonPacketStream;
+use protocol::{ActorDescription, JsonPacketStream, Method};
 use serde_json::Value;
 use std::collections::BTreeMap;
 use std::net::TcpStream;
@@ -32,6 +32,21 @@ struct ConnectReply {
     traits: PerformanceTraits,
 }
 
+#[derive(Serialize)]
+struct CanCurrentlyRecordReply {
+    from: String,
+    value: SuccessMsg,
+}
+
+#[derive(Serialize)]
+struct SuccessMsg {
+    success: bool,
+    errors: Vec<Error>,
+}
+
+#[derive(Serialize)]
+enum Error {}
+
 impl Actor for PerformanceActor {
     fn name(&self) -> String {
         self.name.clone()
@@ -59,6 +74,17 @@ impl Actor for PerformanceActor {
                 stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
+            "canCurrentlyRecord" => {
+                let msg = CanCurrentlyRecordReply {
+                    from: self.name(),
+                    value: SuccessMsg {
+                        success: true,
+                        errors: vec![],
+                    }
+                };
+                stream.write_json_packet(&msg);
+                ActorMessageStatus::Processed
+            }
             _ => ActorMessageStatus::Ignored,
         })
     }
@@ -68,6 +94,26 @@ impl PerformanceActor {
     pub fn new(name: String) -> PerformanceActor {
         PerformanceActor {
             name: name,
+        }
+    }
+
+    pub fn description() -> ActorDescription {
+        ActorDescription {
+            category: "actor",
+            typeName: "performance",
+            methods: vec![
+                Method {
+                    name: "canCurrentlyRecord",
+                    request: Value::Object(vec![
+                        ("type".to_owned(), Value::String("canCurrentlyRecord".to_owned())),
+                    ].into_iter().collect()),
+                    response: Value::Object(vec![
+                        ("value".to_owned(), Value::Object(vec![
+                            ("_retval".to_owned(), Value::String("json".to_owned())),
+                        ].into_iter().collect())),
+                    ].into_iter().collect()),
+                },
+            ],
         }
     }
 }

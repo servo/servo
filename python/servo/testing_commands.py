@@ -348,6 +348,11 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
         run_file = path.abspath(path.join("tests", "wpt", "update.py"))
         kwargs["no_patch"] = not patch
+
+        if kwargs["no_patch"] and kwargs["sync"]:
+            print("Are you sure you don't want a patch?")
+            return 1
+
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
         return run_globals["update_tests"](**kwargs)
@@ -403,6 +408,11 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
         run_file = path.abspath(path.join("tests", "wpt", "update_css.py"))
         kwargs["no_patch"] = not patch
+
+        if kwargs["no_patch"] and kwargs["sync"]:
+            print("Are you sure you don't want a patch?")
+            return 1
+
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
         return run_globals["update_tests"](**kwargs)

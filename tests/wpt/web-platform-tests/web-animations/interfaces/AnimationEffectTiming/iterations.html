@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>iterations tests</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#dom-animationeffecttiming-iterations">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<link rel="stylesheet" href="/resources/testharness.css">
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  anim.effect.timing.iterations = 2;
+  assert_equals(anim.effect.timing.iterations, 2, 'set duration 2');
+  assert_equals(anim.effect.getComputedTiming().iterations, 2,
+                       'getComputedTiming() after set iterations 2');
+}, 'set iterations 2');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  anim.effect.timing.iterations = Infinity;
+  assert_equals(anim.effect.timing.iterations, Infinity, 'set duration Infinity');
+  assert_equals(anim.effect.getComputedTiming().iterations, Infinity,
+                       'getComputedTiming() after set iterations Infinity');
+}, 'set iterations Infinity');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  assert_throws({ name: 'TypeError' }, function() {
+    anim.effect.timing.iterations = -1;
+  });
+}, 'set negative iterations');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  assert_throws({ name: 'TypeError' }, function() {
+    anim.effect.timing.iterations = -Infinity;
+  });
+}, 'set negative infinity iterations ');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ opacity: [ 0, 1 ] }, 2000);
+  assert_throws({ name: 'TypeError' }, function() {
+    anim.effect.timing.iterations = NaN;
+  });
+}, 'set NaN iterations');
+
+</script>
+</body>

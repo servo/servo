@@ -6,6 +6,7 @@
 use about_loader;
 use chrome_loader;
 use connector::{Connector, create_http_connector};
+use content_blocker::BLOCKED_CONTENT_RULES;
 use cookie;
 use cookie_storage::CookieStorage;
 use data_loader;
@@ -453,7 +454,8 @@ impl CoreResourceManager {
                 let http_state = HttpState {
                     hsts_list: self.hsts_list.clone(),
                     cookie_jar: self.cookie_jar.clone(),
-                    auth_cache: self.auth_cache.clone()
+                    auth_cache: self.auth_cache.clone(),
+                    blocked_content: BLOCKED_CONTENT_RULES.clone(),
                 };
                 http_loader::factory(self.user_agent.clone(),
                                      http_state,
