@@ -20,7 +20,6 @@ use gecko_bindings::bindings::{Gecko_CopyMozBindingFrom, Gecko_CopyListStyleType
 use gecko_bindings::bindings::{Gecko_SetMozBinding, Gecko_SetListStyleType};
 use gecko_bindings::structs;
 use glue::ArcHelpers;
-use heapsize::HeapSizeOf;
 use std::fmt::{self, Debug};
 use std::mem::{transmute, zeroed};
 use std::sync::Arc;
