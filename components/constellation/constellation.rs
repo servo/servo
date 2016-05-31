@@ -716,6 +716,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got set visible messsage");
                 self.handle_set_visible_msg(pipeline_id, visible);
             }
+            Request::Script(FromScriptMsg::VisibilityChangeComplete(pipeline_id, visible)) => {
+                debug!("constellation got set visibility change complete message");
+                self.handle_visibility_change_complete(pipeline_id, visible);
+            }
             FromScriptMsg::RemoveIFrame(pipeline_id, sender) => {
                 debug!("constellation got remove iframe message");
                 self.handle_remove_iframe_msg(pipeline_id);
@@ -1506,6 +1510,17 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
         for id in child_pipeline_ids {
             self.pipelines.get_mut(&id).map(|pipeline| pipeline.change_visibility(visible));
+        }
+    }
+
+    fn handle_visibility_change_complete(&self, pipeline_id: PipelineId, visibility: bool) {
+        let parent_pipeline_info = self.pipelines.get(&pipeline_id).and_then(|source| source.parent_info);
+        if let Some((parent_pipeline_id, _)) = parent_pipeline_info {
+            if let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id) {
+                parent_pipeline.script_chan.send(ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id,
+                                                                                                 pipeline_id,
+                                                                                                 visibility));
+            }
         }
     }
 

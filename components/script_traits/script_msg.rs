@@ -83,6 +83,8 @@ pub enum ScriptMsg {
     RemoveIFrame(PipelineId, Option<IpcSender<()>>),
     /// Change pipeline visibility
     SetVisible(PipelineId, bool),
+    /// Notifies constellation that an iframe's visibility has been changed.
+    VisibilityChangeComplete(PipelineId, bool),
     /// A load has been requested in an IFrame.
     ScriptLoadedURLInIFrame(IFrameLoadInfo),
     /// Requests that the constellation set the contents of the clipboard
