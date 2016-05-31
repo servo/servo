@@ -284,8 +284,37 @@ impl HTMLScriptElement {
         }
 
         // Step 6.
-        if !self.is_javascript() {
-            return NextParserState::Continue;
+        let type_attribute = element.get_attribute(&ns!(), &atom!("type"));
+        let language_attribute = element.get_attribute(&ns!(), &atom!("language"));
+        match (type_attribute.r(), language_attribute.r()) {
+            (Some(type_attribute), _) => {
+                let type_value = type_attribute.value().to_ascii_lowercase();
+                let type_value = type_value.trim_matches(HTML_SPACE_CHARACTERS);
+
+                if type_value.is_empty() || SCRIPT_JS_MIMES.contains(&type_value) {
+                    self.type_.set(ScriptType::Classic);
+                } else if type_value == "module" {
+                    self.type_.set(ScriptType::Module);
+                } else {
+                    return NextParserState::Continue;
+                }
+            }
+            (None, Some(language_attribute)) => {
+                let language_value = language_attribute.value().to_ascii_lowercase();
+
+                if language_value.is_empty() {
+                    self.type_.set(ScriptType::Classic);
+                } else {
+                    let type_string = format!("text/{}", language_value);
+
+                    if SCRIPT_JS_MIMES.contains(&&*type_string) {
+                        self.type_.set(ScriptType::Classic);
+                    } else {
+                        return NextParserState::Continue;
+                    }
+                }
+            }
+            _ => self.type_.set(ScriptType::Classic)
         }
 
         // Step 7.
@@ -532,46 +561,6 @@ impl HTMLScriptElement {
         self.dispatch_event(atom!("error"),
                             EventBubbles::DoesNotBubble,
                             EventCancelable::NotCancelable);
-    }
-
-    pub fn is_javascript(&self) -> bool {
-        let element = self.upcast::<Element>();
-        let type_attr = element.get_attribute(&ns!(), &atom!("type"));
-        let is_js = match type_attr.as_ref().map(|s| s.value()) {
-            Some(ref s) if s.is_empty() => {
-                // type attr exists, but empty means js
-                debug!("script type empty, inferring js");
-                true
-            },
-            Some(s) => {
-                debug!("script type={}", &**s);
-                SCRIPT_JS_MIMES.contains(&s.to_ascii_lowercase().trim_matches(HTML_SPACE_CHARACTERS))
-            },
-            None => {
-                debug!("no script type");
-                let language_attr = element.get_attribute(&ns!(), &atom!("language"));
-                let is_js = match language_attr.as_ref().map(|s| s.value()) {
-                    Some(ref s) if s.is_empty() => {
-                        debug!("script language empty, inferring js");
-                        true
-                    },
-                    Some(s) => {
-                        debug!("script language={}", &**s);
-                        let mut language = format!("text/{}", &**s);
-                        language.make_ascii_lowercase();
-                        SCRIPT_JS_MIMES.contains(&&*language)
-                    },
-                    None => {
-                        debug!("no script type or language, inferring js");
-                        true
-                    }
-                };
-                // https://github.com/rust-lang/rust/issues/21114
-                is_js
-            }
-        };
-        // https://github.com/rust-lang/rust/issues/21114
-        is_js
     }
 
     pub fn set_already_started(&self, already_started: bool) {
