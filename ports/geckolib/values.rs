@@ -9,6 +9,7 @@ use std::cmp::max;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 
 pub trait StyleCoordHelpers {
+    fn copy_from(&mut self, other: &Self);
     fn set<T: ToGeckoStyleCoord>(&mut self, val: T);
     fn set_auto(&mut self);
     fn set_normal(&mut self);
@@ -20,6 +21,13 @@ pub trait StyleCoordHelpers {
 }
 
 impl StyleCoordHelpers for nsStyleCoord {
+    fn copy_from(&mut self, other: &Self) {
+        debug_assert_unit_is_safe_to_copy(self.mUnit);
+        debug_assert_unit_is_safe_to_copy(other.mUnit);
+        self.mUnit = other.mUnit;
+        self.mValue = other.mValue;
+    }
+
     fn set<T: ToGeckoStyleCoord>(&mut self, val: T) {
         val.to_gecko_style_coord(&mut self.mUnit, &mut self.mValue);
     }

@@ -149,6 +149,12 @@ pub struct ${style_struct.gecko_struct_name} {
     }
 </%def>
 
+<%def name="impl_coord_copy(ident, gecko_ffi_name)">
+    fn copy_${ident}_from(&mut self, other: &Self) {
+        self.gecko.${gecko_ffi_name}.copy_from(&other.gecko.${gecko_ffi_name});
+    }
+</%def>
+
 <%!
 def is_border_style_masked(ffi_name):
     return ffi_name.split("[")[0] in ["mBorderStyle", "mOutlineStyle", "mTextDecorationStyle"]
@@ -673,11 +679,8 @@ fn static_assert() {
             T::LengthOrPercentage(v) => self.gecko.mVerticalAlign.set(v),
         }
     }
-    fn copy_vertical_align_from(&mut self, other: &Self) {
-        debug_assert_unit_is_safe_to_copy(self.gecko.mVerticalAlign.mUnit);
-        self.gecko.mVerticalAlign.mUnit = other.gecko.mVerticalAlign.mUnit;
-        self.gecko.mVerticalAlign.mValue = other.gecko.mVerticalAlign.mValue;
-    }
+
+    <%call expr="impl_coord_copy('vertical_align', 'mVerticalAlign')"></%call>
 
     fn set__moz_binding(&mut self, v: longhands::_moz_binding::computed_value::T) {
         use style::properties::longhands::_moz_binding::SpecifiedValue as BindingValue;
@@ -736,11 +739,8 @@ fn static_assert() {
                 self.gecko.mLineHeight.set_enum(structs::NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT as i32),
         }
     }
-    fn copy_line_height_from(&mut self, other: &Self) {
-        debug_assert_unit_is_safe_to_copy(self.gecko.mLineHeight.mUnit);
-        self.gecko.mLineHeight.mUnit = other.gecko.mLineHeight.mUnit;
-        self.gecko.mLineHeight.mValue = other.gecko.mLineHeight.mValue;
-    }
+
+    <%call expr="impl_coord_copy('line_height', 'mLineHeight')"></%call>
 
 </%self:impl_trait>
 
