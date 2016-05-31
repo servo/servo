@@ -91,9 +91,6 @@ pub struct SharedLayoutContext {
     /// Interface to the font cache thread.
     pub font_cache_thread: Mutex<FontCacheThread>,
 
-    /// The URL.
-    pub url: Url,
-
     /// The visible rects for each layer, as reported to us by the compositor.
     pub visible_rects: Arc<HashMap<LayerId, Rect<Au>, BuildHasherDefault<FnvHasher>>>,
 
