@@ -996,14 +996,14 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
             }
             StringOrCanvasGradientOrCanvasPattern::CanvasGradient(gradient) => {
                 self.state.borrow_mut().fill_style =
-                    CanvasFillOrStrokeStyle::Gradient(JS::from_rooted(&gradient));
+                    CanvasFillOrStrokeStyle::Gradient(JS::from_ref(&*gradient));
                 let msg = CanvasMsg::Canvas2d(
                     Canvas2dMsg::SetFillStyle(gradient.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();
             }
             StringOrCanvasGradientOrCanvasPattern::CanvasPattern(pattern) => {
                 self.state.borrow_mut().fill_style =
-                    CanvasFillOrStrokeStyle::Pattern(JS::from_rooted(&pattern));
+                    CanvasFillOrStrokeStyle::Pattern(JS::from_ref(&*pattern));
                 let msg = CanvasMsg::Canvas2d(
                     Canvas2dMsg::SetFillStyle(pattern.to_fill_or_stroke_style()));
                 self.ipc_renderer.send(msg).unwrap();

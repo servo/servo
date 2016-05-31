@@ -540,7 +540,7 @@ impl<A: JSTraceable + Reflectable> FromIterator<Root<A>> for RootedVec<JS<A>> {
         let mut vec = unsafe {
             RootedVec::new_with_destination_address(return_address() as *const libc::c_void)
         };
-        vec.extend(iterable.into_iter().map(|item| JS::from_rooted(&item)));
+        vec.extend(iterable.into_iter().map(|item| JS::from_ref(&*item)));
         vec
     }
 }
