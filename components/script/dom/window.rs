@@ -71,6 +71,7 @@ use std::collections::HashSet;
 use std::default::Default;
 use std::ffi::CString;
 use std::io::{Write, stderr, stdout};
+use std::ptr;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::TryRecvError::{Disconnected, Empty};
@@ -656,6 +657,14 @@ impl WindowMethods for Window {
 
     fn Trap(&self) {
         breakpoint();
+    }
+
+    #[allow(unsafe_code)]
+    fn CrashHard(&self) {
+        let p: *mut u32 = ptr::null_mut();
+        unsafe {
+            *p = 0xdeadbeef
+        };
     }
 
     #[allow(unsafe_code)]

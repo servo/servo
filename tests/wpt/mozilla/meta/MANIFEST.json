@@ -6892,6 +6892,12 @@
             "url": "/_mozilla/mozilla/sequence-hole.html"
           }
         ],
+        "mozilla/sigsegv.html": [
+          {
+            "path": "mozilla/sigsegv.html",
+            "url": "/_mozilla/mozilla/sigsegv.html"
+          }
+        ],
         "mozilla/storage.html": [
           {
             "path": "mozilla/storage.html",
