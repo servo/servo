@@ -15,11 +15,13 @@
 //!
 //! [glutin]: https://github.com/tomaka/glutin
 
-#![feature(start)]
+#![feature(start, core_intrinsics)]
 
 #[cfg(target_os = "android")]
 #[macro_use]
 extern crate android_glue;
+#[cfg(not(target_os = "android"))]
+extern crate backtrace;
 extern crate env_logger;
 // The window backed by glutin
 extern crate glutin_app as app;
@@ -30,6 +32,9 @@ extern crate libc;
 extern crate log;
 // The Servo engine
 extern crate servo;
+#[cfg(not(target_os = "android"))]
+#[macro_use]
+extern crate sig;
 
 use servo::Browser;
 use servo::compositing::windowing::WindowEvent;
@@ -48,7 +53,33 @@ pub mod platform {
     pub fn deinit() {}
 }
 
+#[cfg(not(target_os = "android"))]
+fn install_crash_handler() {
+    use backtrace::Backtrace;
+    use sig::ffi::Sig;
+    use std::intrinsics::abort;
+    use std::thread;
+
+    fn handler(_sig: i32) {
+        let name = thread::current().name()
+                                    .map(|n| format!(" for thread \"{}\"", n))
+                                    .unwrap_or("".to_owned());
+        println!("Stack trace{}\n{:?}", name, Backtrace::new());
+        unsafe {
+            abort();
+        }
+    }
+
+    signal!(Sig::SEGV, handler);
+}
+
+#[cfg(target_os = "android")]
+fn install_crash_handler() {
+}
+
 fn main() {
+    install_crash_handler();
+
     // Parse the command line options and store them globally
     let opts_result = opts::from_cmdline_args(&*args());
 
