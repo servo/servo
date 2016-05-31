@@ -114,7 +114,7 @@ class PackageCommands(CommandBase):
         apk_path = binary_path + ".apk"
         if not path.exists(apk_path):
             result = Registrar.dispatch("package", context=self.context, release=release, dev=dev)
-            if result is not 0:
+            if result != 0:
                 return result
 
         print(["adb", "install", "-r", apk_path])
