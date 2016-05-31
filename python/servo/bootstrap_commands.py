@@ -69,8 +69,8 @@ def download(desc, src, writer, start_byte=0):
             print("No Rust compiler binary available for this platform. "
                   "Please see https://github.com/servo/servo/#prerequisites")
         sys.exit(1)
-    except urllib2.URLError:
-        print("Error downloading Rust compiler; are you connected to the internet?")
+    except urllib2.URLError, e:
+        print("Error downloading Rust compiler: " + str(e.reason) + ". The failing URL was: " + src)
         sys.exit(1)
     except KeyboardInterrupt:
         writer.flush()
