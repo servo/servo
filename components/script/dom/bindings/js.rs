@@ -601,7 +601,7 @@ impl<T: Reflectable> Deref for Root<T> {
 }
 
 impl<T: Reflectable> PartialEq for Root<T> {
-    fn eq(&self, other: &Root<T>) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         self.ptr == other.ptr
     }
 }
