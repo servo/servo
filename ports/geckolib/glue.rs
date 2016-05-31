@@ -5,7 +5,7 @@
 #![allow(unsafe_code)]
 
 use app_units::Au;
-use data::PerDocumentStyleData;
+use data::{NUM_THREADS, PerDocumentStyleData};
 use env_logger;
 use euclid::Size2D;
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
@@ -134,6 +134,11 @@ pub extern "C" fn Servo_RestyleDocument(doc: *mut RawGeckoDocument, raw_data: *m
         None => return,
     };
     restyle_subtree(node, raw_data);
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_StyleWorkerThreadCount() -> u32 {
+    *NUM_THREADS as u32
 }
 
 #[no_mangle]
