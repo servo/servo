@@ -23,7 +23,7 @@ from mach.decorators import (
     Command,
 )
 
-from servo.command_base import CommandBase, cd, call, check_call, BuildNotFound
+from servo.command_base import CommandBase, cd, call, check_call
 
 
 def read_file(filename, if_exists=False):
