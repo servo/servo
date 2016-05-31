@@ -22,6 +22,7 @@ use std::cmp::{self, Ord, Ordering};
 use std::collections::HashMap;
 use std::default::Default;
 use std::rc::Rc;
+use util::prefs::get_pref;
 
 #[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf, Hash, PartialOrd, Ord, Debug)]
 pub struct OneshotTimerHandle(i32);
@@ -210,7 +211,8 @@ impl OneshotTimers {
     }
 
     pub fn slow_down(&self) {
-        self.js_timers.set_min_duration(MsDuration::new(1000)); //TODO: jmr0: where to store this constant?
+        let duration = get_pref("js.timers.minimum_duration").as_u64().unwrap_or(1000);
+        self.js_timers.set_min_duration(MsDuration::new(duration));
     }
 
     pub fn speed_up(&self) {
