@@ -500,7 +500,6 @@ impl LayoutThread {
     fn build_shared_layout_context(&self,
                                    rw_data: &LayoutThreadData,
                                    screen_size_changed: bool,
-                                   url: &Url,
                                    goal: ReflowGoal)
                                    -> SharedLayoutContext {
         SharedLayoutContext {
@@ -518,7 +517,6 @@ impl LayoutThread {
             image_cache_thread: self.image_cache_thread.clone(),
             image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
-            url: (*url).clone(),
             visible_rects: self.visible_rects.clone(),
             webrender_image_cache: self.webrender_image_cache.clone(),
         }
@@ -609,7 +607,6 @@ impl LayoutThread {
         };
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  &self.url,
                                                                   reflow_info.goal);
 
         self.perform_post_style_recalc_layout_passes(&reflow_info,
@@ -1113,7 +1110,6 @@ impl LayoutThread {
         // Create a layout context for use throughout the following passes.
         let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
                                                                          viewport_size_changed,
-                                                                         &self.url,
                                                                          data.reflow_info.goal);
 
         if node.is_dirty() || node.has_dirty_descendants() {
@@ -1262,7 +1258,6 @@ impl LayoutThread {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  &self.url,
                                                                   reflow_info.goal);
 
         self.perform_post_main_layout_passes(&reflow_info, &mut *rw_data, &mut layout_context);
@@ -1282,7 +1277,6 @@ impl LayoutThread {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  &self.url,
                                                                   reflow_info.goal);
 
         if let Some(mut root_flow) = self.root_flow.clone() {
@@ -1313,7 +1307,6 @@ impl LayoutThread {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  &self.url,
                                                                   reflow_info.goal);
 
         // No need to do a style recalc here.
