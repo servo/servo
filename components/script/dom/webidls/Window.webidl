@@ -161,6 +161,9 @@ partial interface Window {
   void trap();
   [Func="Window::global_is_mozbrowser", Throws]
   void openURLInDefaultBrowser(DOMString href);
+
+  [Pref="dom.testable_crash.enabled"]
+  void crashHard();
 };
 
 // WebDriver extensions
