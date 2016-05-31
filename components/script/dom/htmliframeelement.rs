@@ -239,9 +239,8 @@ impl HTMLIFrameElement {
         if let Some(pipeline_id) = self.pipeline_id.get() {
             let window = window_from_node(self);
             let window = window.r();
-            let ConstellationChan(ref chan) = *window.constellation_chan();
-            chan.send(ConstellationMsg::SetVisible(pipeline_id,
-                                                   visible)).unwrap();
+            let msg = ConstellationMsg::SetVisible(pipeline_id, visible);
+            window.constellation_chan().send(msg).unwrap();
         }
     }
 

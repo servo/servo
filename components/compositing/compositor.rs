@@ -2140,7 +2140,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     fn composite_specific_target(&mut self,
                                  target: CompositeTarget)
                                  -> Result<Option<Image>, UnableToComposite> {
-
         if self.context.is_none() && self.webrender.is_none() {
             return Err(UnableToComposite::NoContext)
         }
