@@ -129,7 +129,9 @@ pub enum ConstellationControlMsg {
     /// Notifies script thread to resume all its timers
     Thaw(PipelineId),
     /// Notifies script thread whether frame is visible
-    ChangeFrameVisibilityStatus(PipelineId, PipelineId, bool),
+    ChangeFrameVisibilityStatus(PipelineId, bool),
+    /// Notifies script thread that frame visibility change is complete
+    NotifyVisibilityChange(PipelineId, PipelineId, bool),
     /// Notifies script thread that a url should be loaded in this iframe.
     Navigate(PipelineId, SubpageId, LoadData),
     /// Requests the script thread forward a mozbrowser event to an iframe it owns

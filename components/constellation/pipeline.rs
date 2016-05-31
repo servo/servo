@@ -398,12 +398,7 @@ impl Pipeline {
 
     fn notify_visibility(&self) {
 
-        let parent_id = match self.parent_info {
-            Some((parent_id, _)) => parent_id,
-            None => return debug!("Pipeline {:?} has no parent info set", self.id),
-        };
-
-        self.script_chan.send(ConstellationControlMsg::ChangeFrameVisibilityStatus(parent_id, self.id, self.visible))
+        self.script_chan.send(ConstellationControlMsg::ChangeFrameVisibilityStatus(self.id, self.visible))
                         .expect("Pipeline script chan");
 
         self.compositor_proxy.send(CompositorMsg::PipelineVisibilityChanged(self.id, self.visible));

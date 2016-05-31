@@ -890,8 +890,10 @@ impl ScriptThread {
                 self.handle_freeze_msg(pipeline_id),
             ConstellationControlMsg::Thaw(pipeline_id) =>
                 self.handle_thaw_msg(pipeline_id),
-            ConstellationControlMsg::ChangeFrameVisibilityStatus(containing_id, pipeline_id, visible) =>
-                self.handle_visibility_change_msg(containing_id, pipeline_id, visible),
+            ConstellationControlMsg::ChangeFrameVisibilityStatus(pipeline_id, visible) =>
+                self.handle_visibility_change_msg(pipeline_id, visible),
+            ConstellationControlMsg::NotifyVisibilityChange(containing_id, pipeline_id, visible) =>
+                self.handle_visibility_change_complete_msg(containing_id, pipeline_id, visible),
             ConstellationControlMsg::MozBrowserEvent(parent_pipeline_id,
                                                      subpage_id,
                                                      event) =>
@@ -1177,8 +1179,9 @@ impl ScriptThread {
         reports_chan.send(reports);
     }
 
-    /// Changes visibility of descendant iframes and slows down timers. Returns true if successful.
-    fn change_loaded_page_visibility(&self, id: PipelineId, visible: bool) -> bool {
+    /// To slow/speed up timers and manage any other script thread resource based on visibility.
+    /// Returns true if successful.
+    fn alter_resource_utilization(&self, id: PipelineId, visible: bool) -> bool {
         if let Some(root_page) = self.page.borrow().as_ref() {
             if let Some(ref inner_page) = root_page.find(id) {
                 let window = inner_page.window();
@@ -1193,8 +1196,8 @@ impl ScriptThread {
         false
     }
 
-    /// Handle visibility change message
-    fn handle_visibility_change_msg(&self, containing_id: PipelineId, id: PipelineId, visible: bool) {
+    /// Updates iframe element after a change in visibility
+    fn handle_visibility_change_complete_msg(&self, containing_id: PipelineId, id: PipelineId, visible: bool) {
         if let Some(root_page) = self.page.borrow().as_ref() {
             if let Some(ref page) = root_page.find(containing_id) {
                 if let Some(iframe) = page.document().find_iframe_by_pipeline(id) {
@@ -1202,10 +1205,19 @@ impl ScriptThread {
                 }
             }
         }
+    }
 
-        let changed_loaded_page_visibility = self.change_loaded_page_visibility(id, visible);
+    /// Handle visibility change message
+    fn handle_visibility_change_msg(&self, id: PipelineId, visible: bool) {
 
-        if !changed_loaded_page_visibility {
+        let resources_altered = self.alter_resource_utilization(id, visible);
+
+        // Separate message sent since parent script thread could be different (Iframe of different
+        // domain)
+        let ConstellationChan(ref chan) = self.constellation_chan;
+        chan.send(ConstellationMsg::VisibilityChangeComplete(id, visible)).unwrap();
+
+        if !resources_altered {
             let mut loads = self.incomplete_loads.borrow_mut();
             if let Some(ref mut load) = loads.iter_mut().find(|load| load.pipeline_id == id) {
                 load.is_visible = visible;
@@ -1688,7 +1700,7 @@ impl ScriptThread {
         }
 
         if !incomplete.is_visible {
-            self.change_loaded_page_visibility(page.pipeline(), false);
+            self.alter_resource_utilization(page.pipeline(), false);
         }
 
         context_remover.neuter();

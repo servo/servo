@@ -1,7 +1,7 @@
 <!doctype html>
 <meta charset="utf-8">
 <head>
-<title>Iframe visibility setter/getter</title>
+<title>Iframe visibility tests</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 </head>
@@ -13,7 +13,7 @@
 
         var iframe = document.createElement("iframe");
         iframe.mozbrowser = true;
-        iframe.src = "http://web-platform.test:8000";
+        iframe.src = "http://www.mozilla.org";
 
         //Alternate the iframe's visibility and fire mozbrowservisibilitychange
         iframe.onload = function() {
@@ -31,7 +31,7 @@
         }));
 
         document.body.appendChild(iframe);
-    });
+    }, "Iframe visibility setter/getter");
 
     async_test(function(t) {
       var iframe = document.createElement("iframe");
@@ -71,6 +71,23 @@
 
         iframe.contentWindow.requestAnimationFrame(step);
       };
-    }, 'Requesting animation frame not compositing when nonvisible');
+    }, 'Requesting animation frame composites only when frame is visible');
+
+    async_test(function(t) {
+      var iframe = document.createElement("iframe");
+      iframe.src = "http://web-platform.test:8000";
+      iframe.mozbrowser = true;
+      iframe.onload = function() {
+          iframe.addEventListener("mozbrowservisibilitychange", e => {
+              var startTime = Date.now();
+              iframe.contentWindow.setTimeout(function() {
+                  assert_equals(Date.now() - startTime > 1000, true);
+                  t.done();
+              }, 1);
+          });
+        iframe.setVisible(false);
+      };
+      document.body.appendChild(iframe);
+    }, 'Minimum setTimeout of 1s when pipeline is invisible');
     </script>
 </body>
