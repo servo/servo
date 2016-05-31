@@ -22,6 +22,7 @@ from mach.decorators import (
 )
 
 from servo.command_base import CommandBase, cd, call, check_call, BuildNotFound
+from servo.post_build_commands import find_dep_path_newest
 
 @CommandProvider
 class PackageCommands(CommandBase):
@@ -60,7 +61,24 @@ class PackageCommands(CommandBase):
                 print("Packaging Android exited with return value %d" % e.returncode)
                 return e.returncode
         else:
-            print(binary_path)
+            dir_to_package = '/'.join(binary_path.split('/')[:-1])
+            # write a run_servo.sh for correct browser.html invocation
+            browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
+            if browserhtml_path is None:
+                print("Could not find browserhtml package; perhaps you haven't built Servo.")
+                return 1
+            servo_args = ['-w', '-b',
+                          '--pref', 'dom.mozbrowser.enabled',
+                          '--pref', 'dom.forcetouch.enabled',
+                          '--pref', 'shell.quit-on-escape.enabled=false',
+                          path.join(browserhtml_path, 'out', 'index.html')]
+
+            runservo = os.open(dir_to_package + '/runservo.sh', os.O_WRONLY | os.O_CREAT, int("0755", 8))
+            os.write(runservo, "./servo " + ' '.join(servo_args))
+            os.close(runservo)
+            # TODO: delete unneeded files from target directory
+            # tar up the whole target directory
+
 
     @Command('install',
              description='Install Servo (currently, Android only)',
