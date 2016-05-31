@@ -1,32 +1,35 @@
 <html>
   <head>
     <style>
+    body, html {
+        margin: 0;
+    }
     .container {
       display: block;
       background: blue;
 
       font-family: 'Ahem';
     }
+    div {
+      position: absolute;
+    }
     .fixed_block {
-      background: green;
-      float: left;
-
-      /* Servo seems to ignore default margins when position: fixed */
-      margin-top: -8px;
+      top: 0;
+      left: 0;
     }
     .positioned_fixed_block {
+      left: 25px;
+      top: 292px;
       background: yellow;
       float: left;
-      margin-top: 292px;
-      margin-left: 704px;
     }
     .sized_fixed_block {
+      top: 100px;
+      left: 0;
       background: red;
       height: 50px;
       width: 50px;
       float: left;
-      margin-top: 92px;
-      margin-left: -19px;
     }
   </style>
   </head>
