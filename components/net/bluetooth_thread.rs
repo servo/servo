@@ -14,6 +14,7 @@ use net_traits::bluetooth_thread::{BluetoothCharacteristicMsg, BluetoothCharacte
 use net_traits::bluetooth_thread::{BluetoothDescriptorMsg, BluetoothDescriptorsMsg};
 use net_traits::bluetooth_thread::{BluetoothDeviceMsg, BluetoothMethodMsg};
 use net_traits::bluetooth_thread::{BluetoothResult, BluetoothServiceMsg, BluetoothServicesMsg};
+use rand::{self, Rng};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::string::String;
@@ -121,6 +122,7 @@ fn matches_filters(device: &BluetoothDevice, filters: &BluetoothScanfilterSequen
 pub struct BluetoothManager {
     receiver: IpcReceiver<BluetoothMethodMsg>,
     adapter: Option<BluetoothAdapter>,
+    address_to_id: HashMap<String, String>,
     service_to_device: HashMap<String, String>,
     characteristic_to_service: HashMap<String, String>,
     descriptor_to_characteristic: HashMap<String, String>,
@@ -135,6 +137,7 @@ impl BluetoothManager {
         BluetoothManager {
             receiver: receiver,
             adapter: adapter,
+            address_to_id: HashMap::new(),
             service_to_device: HashMap::new(),
             characteristic_to_service: HashMap::new(),
             descriptor_to_characteristic: HashMap::new(),
@@ -210,7 +213,11 @@ impl BluetoothManager {
         let devices = adapter.get_devices().unwrap_or(vec!());
         for device in &devices {
             if let Ok(address) = device.get_address() {
-                self.cached_devices.insert(address, device.clone());
+                if !self.address_to_id.contains_key(&address) {
+                    let generated_id = self.generate_device_id();
+                    self.address_to_id.insert(address, generated_id.clone());
+                    self.cached_devices.insert(generated_id, device.clone());
+                }
             }
         }
         self.cached_devices.iter().map(|(_, d)| d.clone()).collect()
@@ -252,6 +259,19 @@ impl BluetoothManager {
             }
         }
         None
+    }
+
+    #[allow(unused_assignments)]
+    fn generate_device_id(&mut self) -> String {
+        let mut device_id = String::new();
+        let mut rng = rand::thread_rng();
+        loop {
+            device_id = rng.gen::<u32>().to_string();
+            if !self.cached_devices.contains_key(&device_id) {
+                break;
+            }
+        }
+        device_id
     }
 
     // Service
@@ -417,9 +437,13 @@ impl BluetoothManager {
                                                            .filter(|d| matches_filters(d, options.get_filters()))
                                                            .collect();
         if let Some(address) = self.select_device(matched_devices) {
-            if let Some(device) = self.get_device(&mut adapter, address.as_str()) {
+            let device_id = match self.address_to_id.get(&address) {
+                Some(id) => id.clone(),
+                None => return drop(sender.send(Err(String::from(DEVICE_MATCH_ERROR)))),
+            };
+            if let Some(device) = self.get_device(&mut adapter, &device_id) {
                 let message = Ok(BluetoothDeviceMsg {
-                                     id: address,
+                                     id: device_id,
                                      name: device.get_name().ok(),
                                      appearance: device.get_appearance().ok(),
                                      tx_power: device.get_tx_power().ok().map(|p| p as i8),
