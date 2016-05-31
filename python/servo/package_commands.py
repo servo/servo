@@ -14,6 +14,7 @@ import os.path as path
 import subprocess
 import tarfile
 import time
+import shutil
 
 from mach.registrar import Registrar
 
@@ -26,6 +27,12 @@ from mach.decorators import (
 from servo.command_base import CommandBase, cd, BuildNotFound
 from servo.post_build_commands import find_dep_path_newest
 
+def delete(path):
+    try:
+        os.remove(path)
+    except OSError:
+        # rmtree happily nukes non-empty directories
+        shutil.rmtree(path)
 
 @CommandProvider
 class PackageCommands(CommandBase):
@@ -65,11 +72,19 @@ class PackageCommands(CommandBase):
                 return e.returncode
         else:
             dir_to_package = '/'.join(binary_path.split('/')[:-1])
-            # write a run_servo.sh for correct browser.html invocation
             browserhtml_path = find_dep_path_newest('browserhtml', binary_path)
             if browserhtml_path is None:
                 print("Could not find browserhtml package; perhaps you haven't built Servo.")
                 return 1
+            print("Deleting unused files")
+            keep = ['servo', 'resources', 'build']
+            for f in os.listdir(dir_to_package + '/'):
+                if f not in keep:
+                    delete(dir_to_package + '/' + f)
+            for f in os.listdir(dir_to_package + '/build/'):
+                if 'browserhtml' not in f:
+                    delete(dir_to_package + '/build/' + f)
+            print("Writing runservo.sh")
             # TODO: deduplicate this arg list from post_build_commands
             servo_args = ['-w', '-b',
                           '--pref', 'dom.mozbrowser.enabled',
@@ -77,11 +92,11 @@ class PackageCommands(CommandBase):
                           '--pref', 'shell.quit-on-escape.enabled=false',
                           path.join(browserhtml_path, 'out', 'index.html')]
 
-            runservo = os.open(dir_to_package + '/runservo.sh', os.O_WRONLY | os.O_CREAT, int("0755", 8))
+            runservo = os.open(dir_to_package + 'runservo.sh', os.O_WRONLY | os.O_CREAT, int("0755", 8))
             os.write(runservo, "./servo " + ' '.join(servo_args))
             os.close(runservo)
-            # TODO: delete unneeded files from target directory
             # tar up the whole target directory
+            print("Creating tarball")
             tar_path = '/'.join(dir_to_package.split('/')[:-1]) + '/'
             tar_path += time.strftime('%Y-%m-%d-%H%M') + "-servo-tech-demo.tar.gz"
             with tarfile.open(tar_path, "w:gz") as tar:
