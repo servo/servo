@@ -35938,6 +35938,12 @@
     "deleted_reftests": {},
     "items": {
       "testharness": {
+        "cssom-view/scrolling-no-browsing-context.html": [
+          {
+            "path": "cssom-view/scrolling-no-browsing-context.html",
+            "url": "/cssom-view/scrolling-no-browsing-context.html"
+          }
+        ],
         "html/browsers/the-window-object/browser-interface-elements/status.html": [
           {
             "path": "html/browsers/the-window-object/browser-interface-elements/status.html",
