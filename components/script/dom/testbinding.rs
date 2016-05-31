@@ -571,6 +571,15 @@ impl TestBindingMethods for TestBinding {
     fn FuncControlledAttributeEnabled(&self) -> bool { false }
     fn FuncControlledMethodDisabled(&self) {}
     fn FuncControlledMethodEnabled(&self) {}
+
+    #[allow(unsafe_code)]
+    fn CrashHard(&self) {
+        static READ_ONLY_VALUE: i32 = 0;
+        unsafe {
+            let p: *mut u32 = &READ_ONLY_VALUE as *const _ as *mut _;
+            ptr::write_volatile(p, 0xbaadc0de);
+        }
+    }
 }
 
 impl TestBinding {
