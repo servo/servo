@@ -145,7 +145,7 @@ impl HTMLCanvasElement {
             let window = window_from_node(self);
             let size = self.get_size();
             let context = CanvasRenderingContext2D::new(GlobalRef::Window(window.r()), self, size);
-            *self.context.borrow_mut() = Some(CanvasContext::Context2d(JS::from_rooted(&context)));
+            *self.context.borrow_mut() = Some(CanvasContext::Context2d(JS::from_ref(&*context)));
         }
 
         match *self.context.borrow().as_ref().unwrap() {
@@ -175,7 +175,7 @@ impl HTMLCanvasElement {
 
             let maybe_ctx = WebGLRenderingContext::new(GlobalRef::Window(window.r()), self, size, attrs);
 
-            *self.context.borrow_mut() = maybe_ctx.map( |ctx| CanvasContext::WebGL(JS::from_rooted(&ctx)));
+            *self.context.borrow_mut() = maybe_ctx.map( |ctx| CanvasContext::WebGL(JS::from_ref(&*ctx)));
         }
 
         if let Some(CanvasContext::WebGL(ref context)) = *self.context.borrow() {

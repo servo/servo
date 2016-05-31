@@ -76,15 +76,6 @@ impl<T> JS<T> {
 }
 
 impl<T: Reflectable> JS<T> {
-    /// Create a JS<T> from a Root<T>
-    /// XXX Not a great API. Should be a call on Root<T> instead
-    #[allow(unrooted_must_root)]
-    pub fn from_rooted(root: &Root<T>) -> JS<T> {
-        debug_assert!(thread_state::get().is_script());
-        JS {
-            ptr: unsafe { NonZero::new(&**root) },
-        }
-    }
     /// Create a JS<T> from a &T
     #[allow(unrooted_must_root)]
     pub fn from_ref(obj: &T) -> JS<T> {

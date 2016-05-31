@@ -157,7 +157,7 @@ impl XMLHttpRequest {
             ready_state: Cell::new(XMLHttpRequestState::Unsent),
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),
-            upload: JS::from_rooted(&XMLHttpRequestUpload::new(global)),
+            upload: JS::from_ref(&*XMLHttpRequestUpload::new(global)),
             response_url: DOMRefCell::new(String::from("")),
             status: Cell::new(0),
             status_text: DOMRefCell::new(ByteString::new(vec!())),
