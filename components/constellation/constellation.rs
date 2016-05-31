@@ -715,11 +715,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     }
                 }
             }
-            Request::Script(FromScriptMsg::SetVisible(pipeline_id, visible)) => {
+            FromScriptMsg::SetVisible(pipeline_id, visible) => {
                 debug!("constellation got set visible messsage");
                 self.handle_set_visible_msg(pipeline_id, visible);
             }
-            Request::Script(FromScriptMsg::VisibilityChangeComplete(pipeline_id, visible)) => {
+            FromScriptMsg::VisibilityChangeComplete(pipeline_id, visible) => {
                 debug!("constellation got set visibility change complete message");
                 self.handle_visibility_change_complete(pipeline_id, visible);
             }
@@ -882,7 +882,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if let Some(pipeline_id) = pipeline_id {
             let parent_info = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.parent_info);
             let window_size = self.pipelines.get(&pipeline_id).and_then(|pipeline| pipeline.size);
-            let parent_visibility = if let Some((parent_pipeline_id, _)) = parent_info {
+            let parent_visibility = if let Some((parent_pipeline_id, _, _)) = parent_info {
                 self.pipelines.get(&parent_pipeline_id).map(|pipeline| pipeline.visible)
             } else {
                 None
@@ -988,7 +988,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             .cloned();
 
         let (load_data, script_chan, window_size, source_visibility) = {
-
             let old_pipeline = old_pipeline_id
                 .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
 
@@ -1043,7 +1042,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // Create the new pipeline, attached to the parent and push to pending frames
         self.new_pipeline(load_info.new_pipeline_id,
                           Some((load_info.containing_pipeline_id, load_info.new_subpage_id, load_info.frame_type)),
-                          source_visibility,
+                          Some(source_visibility),
                           window_size,
                           script_chan,
                           load_data);
@@ -1476,11 +1475,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     fn handle_visibility_change_complete(&self, pipeline_id: PipelineId, visibility: bool) {
         let parent_pipeline_info = self.pipelines.get(&pipeline_id).and_then(|source| source.parent_info);
-        if let Some((parent_pipeline_id, _)) = parent_pipeline_info {
+        if let Some((parent_pipeline_id, _, _)) = parent_pipeline_info {
             if let Some(parent_pipeline) = self.pipelines.get(&parent_pipeline_id) {
                 parent_pipeline.script_chan.send(ConstellationControlMsg::NotifyVisibilityChange(parent_pipeline_id,
                                                                                                  pipeline_id,
-                                                                                                 visibility));
+                                                                                                 visibility)).unwrap();
             }
         }
     }

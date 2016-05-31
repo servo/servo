@@ -283,9 +283,8 @@ impl Pipeline {
            paint_shutdown_port: IpcReceiver<()>,
            url: Url,
            size: Option<TypedSize2D<PagePx, f32>>,
-           visible: bool,)
+           visible: bool)
            -> Pipeline {
-
         Pipeline {
             id: id,
             parent_info: parent_info,
@@ -397,7 +396,6 @@ impl Pipeline {
     }
 
     fn notify_visibility(&self) {
-
         self.script_chan.send(ConstellationControlMsg::ChangeFrameVisibilityStatus(self.id, self.visible))
                         .expect("Pipeline script chan");
 
