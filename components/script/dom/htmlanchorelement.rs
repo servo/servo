@@ -26,9 +26,11 @@ use dom::node::{Node, document_from_node, window_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
 use num_traits::ToPrimitive;
+use script_traits::MozBrowserEvent;
 use std::default::Default;
 use string_cache::Atom;
 use url::Url;
+use util::prefs::mozbrowser_enabled;
 
 #[dom_struct]
 pub struct HTMLAnchorElement {
@@ -542,30 +544,48 @@ impl Activatable for HTMLAnchorElement {
     }
 }
 
+/// https://html.spec.whatwg.org/multipage/#the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
+fn is_current_browsing_context(target: DOMString) -> bool {
+    target.is_empty() || target == "_self"
+}
+
 /// https://html.spec.whatwg.org/multipage/#following-hyperlinks-2
 fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
     // Step 1: replace.
     // Step 2: source browsing context.
     // Step 3: target browsing context.
+    let target = subject.get_attribute(&ns!(), &atom!("target"));
 
-    // Step 4.
+    // Step 4: disown target's opener if needed.
     let attribute = subject.get_attribute(&ns!(), &atom!("href")).unwrap();
     let mut href = attribute.Value();
 
-    // Step 6.
+    // Step 7: append a hyperlink suffix.
     // https://www.w3.org/Bugs/Public/show_bug.cgi?id=28925
     if let Some(suffix) = hyperlink_suffix {
         href.push_str(&suffix);
     }
 
-    // Step 4-5.
+    // Step 5: parse the URL.
+    // Step 6: navigate to an error document if parsing failed.
     let document = document_from_node(subject);
     let url = match document.url().join(&href) {
         Ok(url) => url,
         Err(_) => return,
     };
 
-    // Step 7.
+    // Step 8: navigate to the URL.
+    if let Some(target) = target {
+        if mozbrowser_enabled() && !is_current_browsing_context(target.Value()) {
+            // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowseropenwindow
+            // TODO: referrer and opener
+            // TODO: should we send the normalized url or the non-normalized href?
+            let event = MozBrowserEvent::OpenWindow(url.into_string(), Some(String::from(target.Value())), None);
+            document.trigger_mozbrowser_event(event);
+            return
+        }
+    }
+
     debug!("following hyperlink to {}", url);
     let window = document.window();
     window.load_url(url);

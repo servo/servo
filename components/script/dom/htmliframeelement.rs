@@ -8,6 +8,8 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementErrorEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementIconChangeEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementLocationChangeEventDetail;
+use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementOpenTabEventDetail;
+use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementOpenWindowEventDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserElementSecurityChangeDetail;
 use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserShowModalPromptEventDetail;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
@@ -310,7 +312,7 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
         match event {
             MozBrowserEvent::AsyncScroll | MozBrowserEvent::Close | MozBrowserEvent::ContextMenu |
             MozBrowserEvent::LoadEnd | MozBrowserEvent::LoadStart |
-            MozBrowserEvent::Connected | MozBrowserEvent::OpenWindow | MozBrowserEvent::OpenSearch  |
+            MozBrowserEvent::Connected | MozBrowserEvent::OpenSearch  |
             MozBrowserEvent::UsernameAndPasswordRequired => {
                 rval.set(NullValue());
             }
@@ -345,6 +347,18 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
                     uri: Some(DOMString::from(uri)),
                     canGoBack: Some(can_go_back),
                     canGoForward: Some(can_go_forward),
+                }.to_jsval(cx, rval);
+            }
+            MozBrowserEvent::OpenTab(url) => {
+                BrowserElementOpenTabEventDetail {
+                    url: Some(DOMString::from(url)),
+                }.to_jsval(cx, rval);
+            }
+            MozBrowserEvent::OpenWindow(url, target, features) => {
+                BrowserElementOpenWindowEventDetail {
+                    url: Some(DOMString::from(url)),
+                    target: target.map(DOMString::from),
+                    features: features.map(DOMString::from),
                 }.to_jsval(cx, rval);
             }
             MozBrowserEvent::IconChange(rel, href, sizes) => {
