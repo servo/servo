@@ -456,3 +456,8 @@ interface TestBinding {
   [Func="TestBinding::condition_satisfied"]
   const unsigned short funcControlledConstEnabled = 0;
 };
+
+partial interface TestBinding {
+  [Pref="dom.testable_crash.enabled"]
+  void crashHard();
+};
