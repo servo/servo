@@ -538,7 +538,7 @@ impl Activatable for HTMLAnchorElement {
     }
 }
 
-/// https://html.spec.whatwg.org/multipage/browsers.html#the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
+/// https://html.spec.whatwg.org/multipage/#the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
 fn is_current_browsing_context(target: DOMString) -> bool {
     target.is_empty() || target == "_self"
 }
@@ -549,7 +549,7 @@ fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
     // Step 2: source browsing context.
     // Step 3: target browsing context.
     let target = subject.get_attribute(&ns!(), &atom!("target"));
-    
+
     // Step 4: disown target's opener if needed.
     let attribute = subject.get_attribute(&ns!(), &atom!("href")).unwrap();
     let mut href = attribute.Value();
@@ -579,7 +579,7 @@ fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
             return
         }
     }
-    
+
     debug!("following hyperlink to {}", url);
     let window = document.window();
     window.load_url(url);
