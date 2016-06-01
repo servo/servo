@@ -17,7 +17,7 @@ debugmozjs = ['js/debugmozjs']
 tinyfiledialogs = {git = "https://github.com/jdm/tinyfiledialogs"}
 
 [dependencies]
-angle = {git = "https://github.com/emilio/angle", branch = "servo"}
+angle = {git = "https://github.com/servo/angle", branch = "servo"}
 app_units = {version = "0.2.3", features = ["plugins"]}
 bitflags = "0.7"
 canvas = {path = "../canvas"}

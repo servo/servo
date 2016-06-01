@@ -220,8 +220,15 @@ pub fn compute_damage(old: Option<&Arc<ServoComputedValues>>, new: &ServoCompute
         get_inheritedtable.border_spacing,
         get_column.column_gap,
         get_position.flex_direction,
+        get_position.flex_wrap,
+        get_position.justify_content,
+        get_position.align_items,
+        get_position.align_content,
+        get_position.order,
         get_position.flex_basis,
-        get_position.order
+        get_position.flex_grow,
+        get_position.flex_shrink,
+        get_position.align_self
     ]) || add_if_not_equal!(old, new, damage,
                             [ REPAINT, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW ], [
         get_position.top, get_position.left,

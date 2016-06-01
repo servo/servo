@@ -73,6 +73,7 @@ pub enum ProfilerCategory {
     ScriptParseHTML,
     ScriptPlannedNavigation,
     ScriptResize,
+    ScriptSetScrollState,
     ScriptSetViewport,
     ScriptTimerEvent,
     ScriptStylesheetLoad,

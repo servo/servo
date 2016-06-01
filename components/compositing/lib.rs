@@ -36,7 +36,8 @@ extern crate util;
 extern crate webrender;
 extern crate webrender_traits;
 
-pub use compositor_thread::{CompositorEventListener, CompositorProxy, CompositorThread};
+pub use compositor_thread::{CompositorProxy, CompositorThread};
+pub use compositor::IOCompositor;
 use euclid::size::TypedSize2D;
 use gfx::paint_thread::ChromeToPaintMsg;
 use ipc_channel::ipc::IpcSender;

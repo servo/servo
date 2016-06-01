@@ -62,6 +62,7 @@ pub enum ScriptThreadEventCategory {
     NetworkEvent,
     Resize,
     ScriptEvent,
+    SetScrollState,
     SetViewport,
     StylesheetLoad,
     TimerEvent,

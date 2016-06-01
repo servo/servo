@@ -28,7 +28,7 @@ use js::jsapi::{JSAutoCompartment, JSContext, RootedValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
-use net_traits::{LoadContext, load_whole_resource, CustomResponse};
+use net_traits::{LoadContext, load_whole_resource, CustomResponse, IpcSend};
 use rand::random;
 use script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
@@ -226,7 +226,7 @@ impl DedicatedWorkerGlobalScope {
             let roots = RootCollection::new();
             let _stack_roots_tls = StackRootTLS::new(&roots);
             let (url, source) = match load_whole_resource(LoadContext::Script,
-                                                          &init.core_resource_thread,
+                                                          &init.resource_threads.sender(),
                                                           worker_url,
                                                           &worker_load_origin) {
                 Err(_) => {

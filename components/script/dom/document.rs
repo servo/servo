@@ -983,13 +983,13 @@ impl Document {
         match event_type {
             TouchEventType::Down => {
                 // Add a new touch point
-                self.active_touch_points.borrow_mut().push(JS::from_rooted(&touch));
+                self.active_touch_points.borrow_mut().push(JS::from_ref(&*touch));
             }
             TouchEventType::Move => {
                 // Replace an existing touch point
                 let mut active_touch_points = self.active_touch_points.borrow_mut();
                 match active_touch_points.iter_mut().find(|t| t.Identifier() == identifier) {
-                    Some(t) => *t = JS::from_rooted(&touch),
+                    Some(t) => *t = JS::from_ref(&*touch),
                     None => warn!("Got a touchmove event for a non-active touch point"),
                 }
             }
@@ -1010,7 +1010,7 @@ impl Document {
         touches.extend(self.active_touch_points.borrow().iter().cloned());
 
         let mut changed_touches = RootedVec::new();
-        changed_touches.push(JS::from_rooted(&touch));
+        changed_touches.push(JS::from_ref(&*touch));
 
         let mut target_touches = RootedVec::new();
         target_touches.extend(self.active_touch_points
@@ -1775,7 +1775,7 @@ impl Document {
                             node.get_stylesheet()
                         } else {
                             None
-                        }.map(|stylesheet| (JS::from_rooted(&node), stylesheet))
+                        }.map(|stylesheet| (JS::from_ref(&*node), stylesheet))
                     })
                     .collect());
             };
@@ -1998,7 +1998,7 @@ impl DocumentMethods for Document {
                                                                 self.upcast(),
                                                                 tag_atom,
                                                                 ascii_lower_tag);
-                entry.insert(JS::from_rooted(&result));
+                entry.insert(JS::from_ref(&*result));
                 result
             }
         }
@@ -2016,7 +2016,7 @@ impl DocumentMethods for Document {
             Occupied(entry) => Root::from_ref(entry.get()),
             Vacant(entry) => {
                 let result = HTMLCollection::by_qual_tag_name(&self.window, self.upcast(), qname);
-                entry.insert(JS::from_rooted(&result));
+                entry.insert(JS::from_ref(&*result));
                 result
             }
         }
@@ -2033,7 +2033,7 @@ impl DocumentMethods for Document {
                 let result = HTMLCollection::by_atomic_class_name(&self.window,
                                                                   self.upcast(),
                                                                   class_atoms);
-                entry.insert(JS::from_rooted(&result));
+                entry.insert(JS::from_ref(&*result));
                 result
             }
         }

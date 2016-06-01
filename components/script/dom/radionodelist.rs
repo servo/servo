@@ -38,7 +38,7 @@ impl RadioNodeList {
 
     pub fn new_simple_list<T>(window: &Window, iter: T) -> Root<RadioNodeList>
                               where T: Iterator<Item=Root<Node>> {
-        RadioNodeList::new(window, NodeListType::Simple(iter.map(|r| JS::from_rooted(&r)).collect()))
+        RadioNodeList::new(window, NodeListType::Simple(iter.map(|r| JS::from_ref(&*r)).collect()))
     }
 
     pub fn empty(window: &Window) -> Root<RadioNodeList> {

@@ -5,15 +5,14 @@
 use dom::bindings::codegen::Bindings::FileBinding;
 use dom::bindings::codegen::Bindings::FileBinding::FileMethods;
 use dom::bindings::codegen::UnionTypes::BlobOrString;
-use dom::bindings::error::Fallible;
+use dom::bindings::error::{Error, Fallible};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::reflect_dom_object;
 use dom::bindings::str::DOMString;
-use dom::blob::{Blob, DataSlice, blob_parts_to_bytes};
+use dom::blob::{Blob, BlobImpl, DataSlice, blob_parts_to_bytes};
 use dom::window::Window;
 use net_traits::filemanager_thread::SelectedFile;
-use std::sync::Arc;
 use time;
 
 #[dom_struct]
@@ -24,10 +23,10 @@ pub struct File {
 }
 
 impl File {
-    fn new_inherited(slice: DataSlice, name: DOMString,
+    fn new_inherited(blob_impl: BlobImpl, name: DOMString,
                      modified: Option<i64>, typeString: &str) -> File {
         File {
-            blob: Blob::new_inherited(slice, typeString),
+            blob: Blob::new_inherited(blob_impl, typeString),
             name: name,
             // https://w3c.github.io/FileAPI/#dfn-lastModified
             modified: match modified {
@@ -40,9 +39,9 @@ impl File {
         }
     }
 
-    pub fn new(global: GlobalRef, slice: DataSlice,
+    pub fn new(global: GlobalRef, blob_impl: BlobImpl,
                name: DOMString, modified: Option<i64>, typeString: &str) -> Root<File> {
-        reflect_dom_object(box File::new_inherited(slice, name, modified, typeString),
+        reflect_dom_object(box File::new_inherited(blob_impl, name, modified, typeString),
                            global,
                            FileBinding::Wrap)
     }
@@ -51,11 +50,9 @@ impl File {
     pub fn new_from_selected(window: &Window, selected: SelectedFile) -> Root<File> {
         let name = DOMString::from(selected.filename.to_str().expect("File name encoding error"));
 
-        let slice = DataSlice::empty();
-
         let global = GlobalRef::Window(window);
 
-        File::new(global, slice, name, Some(selected.modified as i64), "")
+        File::new(global, BlobImpl::new_from_file(selected.id), name, Some(selected.modified as i64), "")
     }
 
     // https://w3c.github.io/FileAPI/#file-constructor
@@ -64,14 +61,17 @@ impl File {
                        filename: DOMString,
                        filePropertyBag: &FileBinding::FilePropertyBag)
                        -> Fallible<Root<File>> {
-        let bytes: Vec<u8> = blob_parts_to_bytes(fileBits);
+        let bytes: Vec<u8> = match blob_parts_to_bytes(fileBits) {
+            Ok(bytes) => bytes,
+            Err(_) => return Err(Error::InvalidCharacter),
+        };
 
         let ref blobPropertyBag = filePropertyBag.parent;
         let typeString = blobPropertyBag.get_typestring();
 
-        let slice = DataSlice::new(Arc::new(bytes), None, None);
+        let slice = DataSlice::from_bytes(bytes);
         let modified = filePropertyBag.lastModified;
-        Ok(File::new(global, slice, filename, modified, &typeString))
+        Ok(File::new(global, BlobImpl::new_from_slice(slice), filename, modified, &typeString))
     }
 
     pub fn name(&self) -> &DOMString {

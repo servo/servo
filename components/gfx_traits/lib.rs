@@ -149,3 +149,58 @@ impl FrameTreeId {
         self.0 += 1;
     }
 }
+
+/// A unique ID for every stacking context.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, HeapSizeOf, PartialEq, Serialize)]
+pub struct StackingContextId(
+    /// The identifier for this StackingContext, derived from the Flow's memory address
+    /// and fragment type.  As a space optimization, these are combined into a single word.
+    usize
+);
+
+impl StackingContextId {
+    #[inline(always)]
+    pub fn new(id: usize) -> StackingContextId {
+        StackingContextId::new_of_type(id, FragmentType::FragmentBody)
+    }
+
+    #[inline(always)]
+    pub fn new_of_type(id: usize, fragment_type: FragmentType) -> StackingContextId {
+        debug_assert_eq!(id & fragment_type as usize, 0);
+        StackingContextId(id | fragment_type as usize)
+    }
+
+    #[inline]
+    pub fn fragment_type(&self) -> FragmentType {
+        FragmentType::from_usize(self.0 & 3)
+    }
+
+    #[inline]
+    pub fn id(&self) -> usize {
+        self.0 & !3
+    }
+}
+
+
+#[derive(Clone, Debug, PartialEq, Eq, Copy, Hash, Deserialize, Serialize, HeapSizeOf)]
+pub enum FragmentType {
+    /// A StackingContext for the fragment body itself.
+    FragmentBody,
+    /// A StackingContext created to contain ::before pseudo-element content.
+    BeforePseudoContent,
+    /// A StackingContext created to contain ::after pseudo-element content.
+    AfterPseudoContent,
+}
+
+impl FragmentType {
+    #[inline]
+    pub fn from_usize(n: usize) -> FragmentType {
+        debug_assert!(n < 3);
+        match n {
+            0 => FragmentType::FragmentBody,
+            1 => FragmentType::BeforePseudoContent,
+            _ => FragmentType::AfterPseudoContent,
+        }
+    }
+}
+

@@ -55,5 +55,16 @@ async_test(function(t) {
 
 });
 
+async_test(function(t) {
+  var iframe = document.createElement("iframe");
+  iframe.mozbrowser = "true";
+  iframe.src = "mozbrowserlocationchange_event_iframe.html";
+  iframe.addEventListener("mozbrowserlocationchange", t.step_func(function(e) {
+    var url = e.detail.url || e.detail.uri || e.detail;
+    var filename = url.split("/").pop();
+    if (filename === "yes.html") { t.done(); }
+  }));
+  document.body.appendChild(iframe);
+});
 </script>
 </body>
