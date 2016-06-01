@@ -151,7 +151,7 @@ pub struct Request {
     pub origin: RefCell<Origin>,
     pub omit_origin_header: Cell<bool>,
     pub same_origin_data: Cell<bool>,
-    pub referer: Referer,
+    pub referer: RefCell<Referer>,
     // TODO: referrer policy
     pub synchronous: bool,
     pub mode: RequestMode,
@@ -190,7 +190,7 @@ impl Request {
             origin: RefCell::new(origin.unwrap_or(Origin::Client)),
             omit_origin_header: Cell::new(false),
             same_origin_data: Cell::new(false),
-            referer: Referer::Client,
+            referer: RefCell::new(Referer::Client),
             synchronous: false,
             mode: RequestMode::NoCORS,
             use_cors_preflight: false,
@@ -245,7 +245,7 @@ impl Request {
             origin: RefCell::new(Origin::Client),
             omit_origin_header: Cell::new(false),
             same_origin_data: Cell::new(false),
-            referer: Referer::Client,
+            referer: RefCell::new(Referer::Client),
             synchronous: false,
             // Step 1-2
             mode: match cors_attribute_state {
