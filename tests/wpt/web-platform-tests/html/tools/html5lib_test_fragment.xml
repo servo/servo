@@ -1,10 +1,12 @@
 <html xmlns:py="http://genshi.edgewall.org/">
-  <head>
-    <meta charset="utf8"/>
+
+<head>
+    <meta charset="utf8" />
     <title>HTML 5 Parser tests ${file_name}</title>
-    <meta name="timeout" content="long"/>
-  </head>
-  <body>
+    <meta name="timeout" content="long" />
+</head>
+
+<body>
     <h1>html5lib Parser Test</h1>
     <div id="log"></div>
     <script src="common.js"></script>
@@ -12,16 +14,18 @@
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script>
+        var num_iframes = 8;
 
-      var num_iframes = 8;
-
-      var order = [<py:for each="test in tests">'${test.id}',</py:for>];
-      var tests = {
-          <py:for each="test in tests">"${test.id}":[async_test('${file_name} ${test.id}'), ${test.string_uri_encoded_input}, ${test.string_escaped_expected}, '${test.container}'],</py:for>
-      }
+        var order = [ < py: for each = "test in tests" > '${test.id}', < /py:for>];
+      var tests = { < py: for each = "test in tests" > "${test.id}": [async_test('${file_name} ${test.id}'), $ {
+                        test.string_url_encoded_input
+                    }, $ {
+                        test.string_escaped_expected
+                    }, '${test.container}'], < /py:for>
+                }
 
       init_tests("innerHTML");
-
     </script>
-  </body>
+</body>
+
 </html>

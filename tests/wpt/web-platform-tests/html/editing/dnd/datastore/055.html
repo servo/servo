@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
 	<head>
-		<title>text/uri-list conversion</title>
+		<title>text/url-list conversion</title>
 		<style type="text/css">
 div { height: 100px; width: 100px; background: orange; }
 		</style>
@@ -12,15 +12,15 @@ window.onload = function () {
 		e.dataTransfer.setData('url','http://example.com/');
 		if( !e.dataTransfer.getData('url') ) {
 			document.getElementsByTagName('p')[0].innerHTML = "FAIL - getData('url') returned nothing";
-		} else if( e.dataTransfer.getData('url') != e.dataTransfer.getData('text/uri-list') ) {
-			document.getElementsByTagName('p')[0].innerHTML = 'FAIL - text/uri-list is not the same as url';
+		} else if( e.dataTransfer.getData('url') != e.dataTransfer.getData('text/url-list') ) {
+			document.getElementsByTagName('p')[0].innerHTML = 'FAIL - text/url-list is not the same as url';
 		} else {
 
 			e.dataTransfer.setData('url','#foo\r\n http://example.com/#bar \r\n http://example.org/');
 			if( e.dataTransfer.getData('url') != 'http://example.com/#bar' ) {
 				document.getElementsByTagName('p')[0].innerHTML = 'FAIL - only the first URL should be returned - "'+e.dataTransfer.getData('url')+'"';
-			} else if( e.dataTransfer.getData('text/uri-list') != '#foo\r\n http://example.com/#bar \r\n http://example.org/' ) {
-				document.getElementsByTagName('p')[0].innerHTML = 'FAIL - text/uri-list should return the full data';
+			} else if( e.dataTransfer.getData('text/url-list') != '#foo\r\n http://example.com/#bar \r\n http://example.org/' ) {
+				document.getElementsByTagName('p')[0].innerHTML = 'FAIL - text/url-list should return the full data';
 			} else {
 
 				e.dataTransfer.setData('url',' ');

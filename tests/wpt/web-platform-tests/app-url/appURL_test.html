@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-	<title>app:URI compliance tests</title>
+	<title>app:URL compliance tests</title>
 	<script src='resources/testharness.js'></script>
 	<script src='resources/testharnessreport.js'></script>
 	<link rel="help" href="http://app-uri.sysapps.org/" data-tested-assertations="following::OL[1]/LI[2]" />
@@ -16,7 +16,7 @@
 
   <script>
     /**********************************************************************************************
-     * This test suite checks your implementation for compliance with the app-URI specification	  *
+     * This test suite checks your implementation for compliance with the app-URL specification	  *
      **********************************************************************************************/
 
     /* Check if protocol is "app" */
@@ -27,19 +27,19 @@
         document.getElementById("logs").innerHTML = "Current domain: " + domain;
         
 	/* Function that will change HOST value if it is equal to currect application host */
-	function ChangeHostIfEqCurrent(URI){
-		/* Check if URI host is NOT the same as current application host */
-		if (URI.substring(6, 35) === window.location.host) {
-		    if (URI.substring(6, 7) !== 4)
-			URI = URI.replace(URI.substring(6, 7), "4");
+	function ChangeHostIfEqCurrent(URL){
+		/* Check if URL host is NOT the same as current application host */
+		if (URL.substring(6, 35) === window.location.host) {
+		    if (URL.substring(6, 7) !== 4)
+			URL = URL.replace(URL.substring(6, 7), "4");
 		    else
-			URI = URI.replace(URI.substring(6, 7), "5");
+			URL = URL.replace(URL.substring(6, 7), "5");
 		}
-		return URI;
+		return URL;
 	}
 
         /********************************************************
-         *	6.1 Synthesizing an app: URI 
+         *	6.1 Synthesizing an app: URL 
          *	
          *	link: http://app-uri.sysapps.org/#synthesizing
          *	
@@ -48,15 +48,15 @@
         /**
          *	Syntax-Based Normalization
          *
-         *	rules for dereferencing an app: URI => 3. Let URI be the value of the [HTTP] Request URI.
+         *	rules for dereferencing an app: URL => 3. Let URL be the value of the [HTTP] Request URL.
          */
 
-        var TC_name = "Test: Synthesizing an app:URI. Syntax-Based Normalization";
+        var TC_name = "Test: Synthesizing an app:URL. Syntax-Based Normalization";
 
 	// variable needed to test scheme-based normalization 
         var tmp_domain = window.location.protocol + "//" + window.location.host; 
 
-        var CaseNormalizationXHRtests = [ /* scheme: [ TC name, URI] */
+        var CaseNormalizationXHRtests = [ /* scheme: [ TC name, URL] */
             [TC_name + " XHR full path: {} => %7b%7d", 
             domain + 'resources/ExamPLE/%7bmY%7d/z...z/index.html'],
             [TC_name + " XHR full path: } => %7D", 
@@ -101,12 +101,12 @@
 
         CaseNormalizationXHRtests.forEach(function (data, i) {
             var name = data[0];
-            var URI = data[1];
+            var URL = data[1];
             var xhrTest = async_test(name + " [case " + i + "]");
             var xhr;
             xhrTest.step(function () {
                 xhr = new XMLHttpRequest();
-                xhr.open("GET", URI, true);
+                xhr.open("GET", URL, true);
                 xhr.onreadystatechange = xhrTest.step_func(function (ev) {
                     if (xhr.readyState === 4 && xhr.status === 200) {
                         assert_true(true);
@@ -119,7 +119,7 @@
                 });
                 xhr.send();
             });
-            delete name, URI, xhr, xhrTest;
+            delete name, URL, xhr, xhrTest;
         });
         delete CaseNormalizationXHRtests;
 
@@ -127,14 +127,14 @@
         /**
          *	ContentType response
          *
-         *	rules for dereferencing an app: URI => 
+         *	rules for dereferencing an app: URL => 
 		  8. Let potential-file be the result of attempting locate the file at path
          */
 
         TC_name = "Test: [HTTP] 200 response status (OK),value of content-type as the [HTTP] ";
         TC_name += "Content-Type header, and the contents of potential-file as the response body";
 
-        var ContentTypeResponsetests = [ /* scheme:[ TC name, URI, content-type] */
+        var ContentTypeResponsetests = [ /* scheme:[ TC name, URL, content-type] */
             [TC_name + ' [text/html]', 'resources/ExamPLE/mmY/index.html', 'text/html'],
             [TC_name + " [image/png]", 'resources/ImaGes/~t/%7b!a%7d/~sth.png', "image/png"],
             [TC_name + " [text/plain]", 'resources/ExamPLE/mmY/sth.txt', "text/plain"]
@@ -142,13 +142,13 @@
 
         ContentTypeResponsetests.forEach(function (data, i) {
             var name = data[0];
-            var URI = data[1];
+            var URL = data[1];
             var content_type = data[2];
             var xhrTest = async_test(name + " [case " + i + "]");
             var xhr;
             xhrTest.step(function () {
                 xhr = new XMLHttpRequest();
-                xhr.open("GET", URI, true);
+                xhr.open("GET", URL, true);
                 xhr.onreadystatechange = xhrTest.step_func(function (ev) {
                     if (xhr.readyState === 4 && xhr.status === 200) {
                         assert_true(xhr.getResponseHeader("Content-Type") === content_type, 
@@ -164,7 +164,7 @@
                 });
                 xhr.send();
             });
-            delete name, URI, xhr, xhrTest, content_type;
+            delete name, URL, xhr, xhrTest, content_type;
         });
         delete ContentTypeResponsetests;
 
@@ -172,17 +172,17 @@
         /**	
          *	Case Normalization in Path
          *
-         *	rules for dereferencing an app: URI => 
-		  4. Resolve URI into an absolute URL using the document's origin as the base.
-         *	rules for dereferencing an app: URI => 7. Let path be the path component of URI.
+         *	rules for dereferencing an app: URL => 
+		  4. Resolve URL into an absolute URL using the document's origin as the base.
+         *	rules for dereferencing an app: URL => 7. Let path be the path component of URL.
          *
          *	Character Normalization in domain name
          */
 
 
 
-        TC_name = "Test: Synthesizing an app:URI. Syntax-Based Normalization: Case Normalization";
-        var PathCaseNormalizationtests = [ /* scheme: [ TC name, URI] */
+        TC_name = "Test: Synthesizing an app:URL. Syntax-Based Normalization: Case Normalization";
+        var PathCaseNormalizationtests = [ /* scheme: [ TC name, URL] */
             [TC_name, "resources/ImaGes/{{a}}/Test_1/$a/sth34!.png", 
             domain + "resources/ImaGes/%7B%7Ba%7D%7D/Test_1/$a/sth34!.png", true],
             [TC_name, "resources/ImaGes/{{a}}/Test_1/$a/sth34!.png", 
@@ -230,18 +230,18 @@
         /**	
          *	501 Method Not Implemented error  - response body MUST be empty
          *
-         *	rules for dereferencing an app: URI => 
+         *	rules for dereferencing an app: URL => 
 		  1. If the request is not a [HTTP] GET request, 
 		     return a [HTTP] 501 Not Implemented response and terminate this algorithm.
          */
 
 
-        function Get_501_reponse(name, URI, expected_response) {
+        function Get_501_reponse(name, URL, expected_response) {
             var xhrTest = async_test(name);
             xhrTest.step(function () {
                 var xhr = new XMLHttpRequest();
                 /* on purpose wrong method "gett" instead of "get" was used */
-                xhr.open("gett", URI, true);
+                xhr.open("gett", URL, true);
                 xhr.onreadystatechange = xhrTest.step_func(function (ev) {
                     if (xhr.readyState !== 4 && xhr.status === 501) {
                         assert_true(xhr.response === expected_response, 
@@ -267,17 +267,17 @@
         /**	
          *	400 Bad Request error - response body MUST be empty
          *
-         *	rules for dereferencing an app: URI => 
-		  5. If the URI does not conform to the appuri ABNF, return a 
+         *	rules for dereferencing an app: URL => 
+		  5. If the URL does not conform to the appuri ABNF, return a 
 		      [HTTP] 400 Bad Request response and terminate this algorithm. 
          */
 
-        function Get_400_reponse(name, URI, expected_response) {
+        function Get_400_reponse(name, URL, expected_response) {
             var xhrTest = async_test(name);
             xhrTest.step(function () {
                 var xhr = new XMLHttpRequest();
-		//alert(URI);
-                xhr.open("GET", URI, true);
+		//alert(URL);
+                xhr.open("GET", URL, true);
                 xhr.onreadystatechange = xhrTest.step_func(function (ev) {
                     if (xhr.readyState !== 4 && xhr.status === 400) {
                         assert_true(xhr.response === expected_response, 
@@ -305,20 +305,20 @@
 	/**	
          *	403 Forbidden error - response body MUST be empty
          *
-         *	rules for dereferencing an app: URI => 
-		  6. If the URI uses the scheme 'app', but the authority does not match
+         *	rules for dereferencing an app: URL => 
+		  6. If the URL uses the scheme 'app', but the authority does not match
 		     the one assigned to this document, return a [HTTP] 403 Forbidden 
 		     response and terminate this algorithm 
 		     (i.e., prevent inter-application content access).
          */
 
-        function Get_403_reponse(name, URI, expected_response) {
+        function Get_403_reponse(name, URL, expected_response) {
             var xhrTest = async_test(name);
             xhrTest.step(function () {
-                /* Change if URI host is the same as current application host */
-                URI = ChangeHostIfEqCurrent(URI);
+                /* Change if URL host is the same as current application host */
+                URL = ChangeHostIfEqCurrent(URL);
                 var xhr = new XMLHttpRequest();
-                xhr.open("GET", URI, true);
+                xhr.open("GET", URL, true);
                 xhr.onreadystatechange = xhrTest.step_func(function (ev) {
                     if (xhr.readyState === 4 && xhr.status === 200) {
                         assert_true(false, "[403 error expected, got: 200 OK instead]");
@@ -333,34 +333,34 @@
                 xhr.send();
             });
         }
-        Get_403_reponse(TC_name + " Access to restricted URI - 403 Forbidden error expected", 
+        Get_403_reponse(TC_name + " Access to restricted URL - 403 Forbidden error expected", 
         window.location.protocol + "//f15a6d20-cefa-13e5-1972-800e20d19a76/" + 'resources/ExamPLE/mmY/index.html', "");
 
 
         /**	
          *	404 Not Found error - response body MUST be empty
          *
-         *	rules for dereferencing an app: URI => 
+         *	rules for dereferencing an app: URL => 
 		  9. If potential-file is not found at the given path inside the container, 
 		     return a [HTTP] 404 Not Found response.
          */
 
         TC_name = "Test: 6.4 Dereferencing and retrieval of files from a container";
 
-        var CompareResponseBodytests = [ /* scheme: [TC name, URI, expected_response]*/
+        var CompareResponseBodytests = [ /* scheme: [TC name, URL, expected_response]*/
             [TC_name + " 404 Not Found error expected", 
             'resources/ImaGes/~t/%7b!a%7d/~sth11.png', ""]
         ];
 
         CompareResponseBodytests.forEach(function (data, i) {
             var name = data[0];
-            var URI = data[1];
+            var URL = data[1];
             var expected_response = data[2];
             var xhrTest = async_test(name);
             var xhr;
             xhrTest.step(function () {
                 xhr = new XMLHttpRequest();
-                xhr.open("GET", URI, true);
+                xhr.open("GET", URL, true);
                 xhr.onreadystatechange = xhrTest.step_func(function (ev) {
                     if (xhr.readyState !== 4 && xhr.status === 404) {
                         assert_true(xhr.response === expected_response, 

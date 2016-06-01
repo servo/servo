@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>Javascript URI document.contentType === 'text/html'</title>
+<title>Data URL document.contentType === 'text/plain' when data URL MIME type is not set</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id=log></div>
@@ -7,10 +7,9 @@
 async_test(function() {
   var iframe = document.createElement('iframe');
   iframe.addEventListener('load', this.step_func_done(function() {
-    assert_equals(iframe.contentDocument.contentType, "text/html");
-    assert_equals(iframe.contentDocument.documentElement.textContent, "text/html");
+    assert_equals(iframe.contentDocument.contentType, "text/plain");
   }), false);
-  iframe.src = "javascript:document.contentType";
+  iframe.src = "data:;,<!DOCTYPE html>";
   document.body.appendChild(iframe);
 });
 </script>

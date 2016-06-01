@@ -20,7 +20,7 @@ connect-src *; script-src 'self' 'unsafe-inline';
     as that policy specifies a connect-src 'none', though
     this resource's policy is connect-src *.  No report
     should be sent since the worker's policy doesn't specify
-    a report-uri.</p>
+    a report-url.</p>
     <script>
     if(typeof SharedWorker != 'function') {
         t_alert.set_status(t_alert.NOTRUN, "No SharedWorker, cannot run test.");
