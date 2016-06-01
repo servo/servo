@@ -484,7 +484,7 @@ impl HTMLMediaElement {
                 sender: action_sender,
             };
             ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-                listener.notify(message.to().unwrap());
+                listener.notify_action(message.to().unwrap());
             });
 
             // FIXME: we're supposed to block the load event much earlier than now
