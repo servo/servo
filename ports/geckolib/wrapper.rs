@@ -41,6 +41,7 @@ use style::dom::{TDocument, TElement, TNode, TRestyleDamage, UnsafeNode};
 use style::element_state::ElementState;
 #[allow(unused_imports)] // Used in commented-out code.
 use style::error_reporting::StdoutErrorReporter;
+#[allow(unused_imports)] // Used in commented-out code.
 use style::parser::ParserContextExtraData;
 #[allow(unused_imports)] // Used in commented-out code.
 use style::properties::parse_style_attribute;

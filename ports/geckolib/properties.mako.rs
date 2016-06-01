@@ -20,7 +20,6 @@ use gecko_bindings::bindings::{Gecko_CopyMozBindingFrom, Gecko_CopyListStyleType
 use gecko_bindings::bindings::{Gecko_SetMozBinding, Gecko_SetListStyleType};
 use gecko_bindings::structs;
 use glue::ArcHelpers;
-use heapsize::HeapSizeOf;
 use std::fmt::{self, Debug};
 use std::mem::{transmute, zeroed};
 use std::sync::Arc;
@@ -146,6 +145,12 @@ pub struct ${style_struct.gecko_struct_name} {
 <%def name="impl_simple_copy(ident, gecko_ffi_name)">
     fn copy_${ident}_from(&mut self, other: &Self) {
         self.gecko.${gecko_ffi_name} = other.gecko.${gecko_ffi_name};
+    }
+</%def>
+
+<%def name="impl_coord_copy(ident, gecko_ffi_name)">
+    fn copy_${ident}_from(&mut self, other: &Self) {
+        self.gecko.${gecko_ffi_name}.copy_from(&other.gecko.${gecko_ffi_name});
     }
 </%def>
 
@@ -673,11 +678,8 @@ fn static_assert() {
             T::LengthOrPercentage(v) => self.gecko.mVerticalAlign.set(v),
         }
     }
-    fn copy_vertical_align_from(&mut self, other: &Self) {
-        debug_assert_unit_is_safe_to_copy(self.gecko.mVerticalAlign.mUnit);
-        self.gecko.mVerticalAlign.mUnit = other.gecko.mVerticalAlign.mUnit;
-        self.gecko.mVerticalAlign.mValue = other.gecko.mVerticalAlign.mValue;
-    }
+
+    <%call expr="impl_coord_copy('vertical_align', 'mVerticalAlign')"></%call>
 
     fn set__moz_binding(&mut self, v: longhands::_moz_binding::computed_value::T) {
         use style::properties::longhands::_moz_binding::SpecifiedValue as BindingValue;
@@ -719,11 +721,25 @@ fn static_assert() {
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedText"
-                  skip_longhands="text-align">
+                  skip_longhands="text-align line-height">
 
     <% text_align_keyword = Keyword("text-align", "start end left right center justify -moz-center -moz-left " +
                                                   "-moz-right match-parent") %>
     <%call expr="impl_keyword('text_align', 'mTextAlign', text_align_keyword, need_clone=False)"></%call>
+
+    fn set_line_height(&mut self, v: longhands::line_height::computed_value::T) {
+        use style::properties::longhands::line_height::computed_value::T;
+        // FIXME: Align binary representations and ditch |match| for cast + static_asserts
+        match v {
+            T::Normal => self.gecko.mLineHeight.set_normal(),
+            T::Length(val) => self.gecko.mLineHeight.set_coord(val),
+            T::Number(val) => self.gecko.mLineHeight.set_factor(val),
+            T::MozBlockHeight =>
+                self.gecko.mLineHeight.set_enum(structs::NS_STYLE_LINE_HEIGHT_BLOCK_HEIGHT as i32),
+        }
+    }
+
+    <%call expr="impl_coord_copy('line_height', 'mLineHeight')"></%call>
 
 </%self:impl_trait>
 
