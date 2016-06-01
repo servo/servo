@@ -27,8 +27,8 @@ thread_local!(pub static BROWSERS: RefCell<Vec<CefBrowser>> = RefCell::new(vec!(
 
 pub enum ServoBrowser {
     Invalid,
-    OnScreen(Browser),
-    OffScreen(Browser),
+    OnScreen(Browser<glutin_app::window::Window>),
+    OffScreen(Browser<window::Window>),
 }
 
 impl ServoBrowser {
