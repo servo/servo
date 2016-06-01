@@ -34,7 +34,8 @@ file_patterns_to_ignore = [
 ignored_files = [
     # Generated and upstream code combined with our own. Could use cleanup
     os.path.join(".", "ports", "geckolib", "gecko_bindings", "bindings.rs"),
-    os.path.join(".", "ports", "geckolib", "gecko_bindings", "structs.rs"),
+    os.path.join(".", "ports", "geckolib", "gecko_bindings", "structs_debug.rs"),
+    os.path.join(".", "ports", "geckolib", "gecko_bindings", "structs_release.rs"),
     os.path.join(".", "ports", "geckolib", "string_cache", "atom_macro.rs"),
     os.path.join(".", "resources", "hsts_preload.json"),
     os.path.join(".", "tests", "wpt", "metadata", "MANIFEST.json"),
