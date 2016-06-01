@@ -116,6 +116,8 @@ pub struct InitialPipelineState {
     pub pipeline_namespace_id: PipelineNamespaceId,
     /// Optional webrender api (if enabled).
     pub webrender_api_sender: Option<webrender_traits::RenderApiSender>,
+    /// Whether this pipeline is considered private.
+    pub is_private: bool,
 }
 
 impl Pipeline {
@@ -259,6 +261,7 @@ impl Pipeline {
                                      chrome_to_paint_chan,
                                      layout_shutdown_port,
                                      paint_shutdown_port,
+                                     state.is_private,
                                      state.load_data.url,
                                      state.window_size);
 
@@ -273,6 +276,7 @@ impl Pipeline {
            chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
            layout_shutdown_port: IpcReceiver<()>,
            paint_shutdown_port: IpcReceiver<()>,
+           is_private: bool,
            url: Url,
            size: Option<TypedSize2D<PagePx, f32>>)
            -> Pipeline {
@@ -290,7 +294,7 @@ impl Pipeline {
             children: vec!(),
             size: size,
             running_animations: false,
-            is_private: false,
+            is_private: is_private,
         }
     }
 

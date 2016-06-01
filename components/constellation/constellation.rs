@@ -324,8 +324,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let (compositor_sender, compositor_receiver) = channel();
         let compositor_sender_clone = compositor_sender.clone();
 
-        let (ipc_resource_msg_sender, ipc_resource_msg_receiver) = ipc::channel().expect("ipc channel failure");
-        let resource_msg_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_resource_msg_receiver);
+        let (ipc_resource_sender, ipc_resource_receiver) = ipc::channel().expect("ipc channel failure");
+        let resource_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_resource_receiver);
+
+        let _ = state.resource_threads.send(CoreResourceMsg::SendConstellationMsgChannel(ipc_resource_sender));
 
         spawn_named("Constellation".to_owned(), move || {
             let mut constellation: Constellation<Message, LTF, STF> = Constellation {
@@ -335,7 +337,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 script_receiver: script_receiver,
                 panic_sender: ipc_panic_sender,
                 compositor_receiver: compositor_receiver,
-                resource_msg_receiver: resource_msg_receiver,
+                resource_msg_receiver: resource_receiver,
                 layout_receiver: layout_receiver,
                 panic_receiver: panic_receiver,
                 compositor_proxy: state.compositor_proxy,
@@ -386,8 +388,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let namespace_id = constellation.next_pipeline_namespace_id();
             PipelineNamespace::install(namespace_id);
             constellation.run();
-            let _ = constellation.resource_threads.send(
-                CoreResourceMsg::SendConstellationMsgChannel(ipc_resource_msg_sender));
         });
         compositor_sender
     }
@@ -416,7 +416,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     parent_info: Option<(PipelineId, SubpageId, FrameType)>,
                     initial_window_size: Option<TypedSize2D<PagePx, f32>>,
                     script_channel: Option<IpcSender<ConstellationControlMsg>>,
-                    load_data: LoadData) {
+                    load_data: LoadData,
+                    is_private: bool) {
         let result = Pipeline::spawn::<Message, LTF, STF>(InitialPipelineState {
             id: pipeline_id,
             parent_info: parent_info,
@@ -438,6 +439,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             device_pixel_ratio: self.window_size.device_pixel_ratio,
             pipeline_namespace_id: self.next_pipeline_namespace_id(),
             webrender_api_sender: self.webrender_api_sender.clone(),
+            is_private: is_private,
         });
 
         let (pipeline, child_process) = match result {
@@ -932,7 +934,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                               parent_info,
                               window_size,
                               None,
-                              LoadData::new(Url::parse("about:failure").expect("infallible"), None, None));
+                              LoadData::new(Url::parse("about:failure").expect("infallible"), None, None),
+                              false);
 
             self.push_pending_frame(new_pipeline_id, Some(pipeline_id));
 
@@ -945,7 +948,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let window_size = self.window_size.visible_viewport;
         let root_pipeline_id = PipelineId::new();
         debug_assert!(PipelineId::fake_root_pipeline_id() == root_pipeline_id);
-        self.new_pipeline(root_pipeline_id, None, Some(window_size), None, LoadData::new(url.clone(), None, None));
+        self.new_pipeline(root_pipeline_id,
+                          None,
+                          Some(window_size),
+                          None,
+                          LoadData::new(url.clone(), None, None),
+                          false);
         self.handle_load_start_msg(&root_pipeline_id);
         self.push_pending_frame(root_pipeline_id, None);
         self.compositor_proxy.send(ToCompositorMsg::ChangePageUrl(root_pipeline_id, url));
@@ -1066,7 +1074,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                           Some((load_info.containing_pipeline_id, load_info.new_subpage_id, load_info.frame_type)),
                           window_size,
                           script_chan,
-                          load_data);
+                          load_data,
+                          load_info.is_private);
 
         self.subpage_map.insert((load_info.containing_pipeline_id, load_info.new_subpage_id),
                                 load_info.new_pipeline_id);
@@ -1197,7 +1206,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // Create the new pipeline
                 let window_size = self.pipelines.get(&source_id).and_then(|source| source.size);
                 let new_pipeline_id = PipelineId::new();
-                self.new_pipeline(new_pipeline_id, None, window_size, None, load_data);
+                self.new_pipeline(new_pipeline_id, None, window_size, None, load_data, false);
                 self.push_pending_frame(new_pipeline_id, Some(source_id));
 
                 // Send message to ScriptThread that will suspend all timers
