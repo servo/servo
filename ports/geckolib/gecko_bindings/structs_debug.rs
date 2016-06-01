@@ -2720,6 +2720,10 @@ extern "C" {
 pub struct nsTArray_CopyWithConstructors<ElemType> {
     pub _phantom0: ::std::marker::PhantomData<ElemType>,
 }
+extern "C" {
+    #[link_name = "_ZN29nsTArray_CopyWithConstructors12allowReallocE"]
+    pub static nsTArray_CopyWithConstructors_consts_allowRealloc: bool;
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct nsTArray_CopyChooser<E> {
@@ -2906,7 +2910,6 @@ pub struct piecewise_construct_t;
 impl ::std::clone::Clone for piecewise_construct_t {
     fn clone(&self) -> Self { *self }
 }
-pub enum tuple { }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct pair<_T1, _T2> {
@@ -3178,12 +3181,6 @@ pub struct tuple_size<_Tp> {
 #[derive(Debug, Copy, Clone)]
 pub struct tuple_element<_Tp> {
     pub _phantom0: ::std::marker::PhantomData<_Tp>,
-}
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct _Itup_cat<_Itup1, _Itup2> {
-    pub _phantom0: ::std::marker::PhantomData<_Itup1>,
-    pub _phantom1: ::std::marker::PhantomData<_Itup2>,
 }
 pub type nscoord = i32;
 #[repr(C)]
@@ -3848,63 +3845,64 @@ pub enum nsCSSProperty {
     eCSSPropertyAlias_MozBorderStartStyle = 382,
     eCSSPropertyAlias_MozBorderStartWidth = 383,
     eCSSPropertyAlias_MozHyphens = 384,
-    eCSSPropertyAlias_WebkitAnimation = 385,
-    eCSSPropertyAlias_WebkitAnimationDelay = 386,
-    eCSSPropertyAlias_WebkitAnimationDirection = 387,
-    eCSSPropertyAlias_WebkitAnimationDuration = 388,
-    eCSSPropertyAlias_WebkitAnimationFillMode = 389,
-    eCSSPropertyAlias_WebkitAnimationIterationCount = 390,
-    eCSSPropertyAlias_WebkitAnimationName = 391,
-    eCSSPropertyAlias_WebkitAnimationPlayState = 392,
-    eCSSPropertyAlias_WebkitAnimationTimingFunction = 393,
-    eCSSPropertyAlias_WebkitFilter = 394,
-    eCSSPropertyAlias_WebkitTextSizeAdjust = 395,
-    eCSSPropertyAlias_WebkitTransform = 396,
-    eCSSPropertyAlias_WebkitTransformOrigin = 397,
-    eCSSPropertyAlias_WebkitTransformStyle = 398,
-    eCSSPropertyAlias_WebkitBackfaceVisibility = 399,
-    eCSSPropertyAlias_WebkitPerspective = 400,
-    eCSSPropertyAlias_WebkitPerspectiveOrigin = 401,
-    eCSSPropertyAlias_WebkitTransition = 402,
-    eCSSPropertyAlias_WebkitTransitionDelay = 403,
-    eCSSPropertyAlias_WebkitTransitionDuration = 404,
-    eCSSPropertyAlias_WebkitTransitionProperty = 405,
-    eCSSPropertyAlias_WebkitTransitionTimingFunction = 406,
-    eCSSPropertyAlias_WebkitBorderRadius = 407,
-    eCSSPropertyAlias_WebkitBorderTopLeftRadius = 408,
-    eCSSPropertyAlias_WebkitBorderTopRightRadius = 409,
-    eCSSPropertyAlias_WebkitBorderBottomLeftRadius = 410,
-    eCSSPropertyAlias_WebkitBorderBottomRightRadius = 411,
-    eCSSPropertyAlias_WebkitBackgroundClip = 412,
-    eCSSPropertyAlias_WebkitBackgroundOrigin = 413,
-    eCSSPropertyAlias_WebkitBackgroundSize = 414,
-    eCSSPropertyAlias_WebkitBorderImage = 415,
-    eCSSPropertyAlias_WebkitBoxShadow = 416,
-    eCSSPropertyAlias_WebkitBoxSizing = 417,
-    eCSSPropertyAlias_WebkitBoxFlex = 418,
-    eCSSPropertyAlias_WebkitBoxOrdinalGroup = 419,
-    eCSSPropertyAlias_WebkitBoxOrient = 420,
-    eCSSPropertyAlias_WebkitBoxDirection = 421,
-    eCSSPropertyAlias_WebkitBoxAlign = 422,
-    eCSSPropertyAlias_WebkitBoxPack = 423,
-    eCSSPropertyAlias_WebkitFlexDirection = 424,
-    eCSSPropertyAlias_WebkitFlexWrap = 425,
-    eCSSPropertyAlias_WebkitFlexFlow = 426,
-    eCSSPropertyAlias_WebkitOrder = 427,
-    eCSSPropertyAlias_WebkitFlex = 428,
-    eCSSPropertyAlias_WebkitFlexGrow = 429,
-    eCSSPropertyAlias_WebkitFlexShrink = 430,
-    eCSSPropertyAlias_WebkitFlexBasis = 431,
-    eCSSPropertyAlias_WebkitJustifyContent = 432,
-    eCSSPropertyAlias_WebkitAlignItems = 433,
-    eCSSPropertyAlias_WebkitAlignSelf = 434,
-    eCSSPropertyAlias_WebkitAlignContent = 435,
-    eCSSPropertyAlias_WebkitUserSelect = 436,
-    eCSSProperty_COUNT_with_aliases = 437,
-    eCSSPropertyExtra_all_properties = 438,
-    eCSSPropertyExtra_x_none_value = 439,
-    eCSSPropertyExtra_x_auto_value = 440,
-    eCSSPropertyExtra_variable = 441,
+    eCSSPropertyAlias_MozTextAlignLast = 385,
+    eCSSPropertyAlias_WebkitAnimation = 386,
+    eCSSPropertyAlias_WebkitAnimationDelay = 387,
+    eCSSPropertyAlias_WebkitAnimationDirection = 388,
+    eCSSPropertyAlias_WebkitAnimationDuration = 389,
+    eCSSPropertyAlias_WebkitAnimationFillMode = 390,
+    eCSSPropertyAlias_WebkitAnimationIterationCount = 391,
+    eCSSPropertyAlias_WebkitAnimationName = 392,
+    eCSSPropertyAlias_WebkitAnimationPlayState = 393,
+    eCSSPropertyAlias_WebkitAnimationTimingFunction = 394,
+    eCSSPropertyAlias_WebkitFilter = 395,
+    eCSSPropertyAlias_WebkitTextSizeAdjust = 396,
+    eCSSPropertyAlias_WebkitTransform = 397,
+    eCSSPropertyAlias_WebkitTransformOrigin = 398,
+    eCSSPropertyAlias_WebkitTransformStyle = 399,
+    eCSSPropertyAlias_WebkitBackfaceVisibility = 400,
+    eCSSPropertyAlias_WebkitPerspective = 401,
+    eCSSPropertyAlias_WebkitPerspectiveOrigin = 402,
+    eCSSPropertyAlias_WebkitTransition = 403,
+    eCSSPropertyAlias_WebkitTransitionDelay = 404,
+    eCSSPropertyAlias_WebkitTransitionDuration = 405,
+    eCSSPropertyAlias_WebkitTransitionProperty = 406,
+    eCSSPropertyAlias_WebkitTransitionTimingFunction = 407,
+    eCSSPropertyAlias_WebkitBorderRadius = 408,
+    eCSSPropertyAlias_WebkitBorderTopLeftRadius = 409,
+    eCSSPropertyAlias_WebkitBorderTopRightRadius = 410,
+    eCSSPropertyAlias_WebkitBorderBottomLeftRadius = 411,
+    eCSSPropertyAlias_WebkitBorderBottomRightRadius = 412,
+    eCSSPropertyAlias_WebkitBackgroundClip = 413,
+    eCSSPropertyAlias_WebkitBackgroundOrigin = 414,
+    eCSSPropertyAlias_WebkitBackgroundSize = 415,
+    eCSSPropertyAlias_WebkitBorderImage = 416,
+    eCSSPropertyAlias_WebkitBoxShadow = 417,
+    eCSSPropertyAlias_WebkitBoxSizing = 418,
+    eCSSPropertyAlias_WebkitBoxFlex = 419,
+    eCSSPropertyAlias_WebkitBoxOrdinalGroup = 420,
+    eCSSPropertyAlias_WebkitBoxOrient = 421,
+    eCSSPropertyAlias_WebkitBoxDirection = 422,
+    eCSSPropertyAlias_WebkitBoxAlign = 423,
+    eCSSPropertyAlias_WebkitBoxPack = 424,
+    eCSSPropertyAlias_WebkitFlexDirection = 425,
+    eCSSPropertyAlias_WebkitFlexWrap = 426,
+    eCSSPropertyAlias_WebkitFlexFlow = 427,
+    eCSSPropertyAlias_WebkitOrder = 428,
+    eCSSPropertyAlias_WebkitFlex = 429,
+    eCSSPropertyAlias_WebkitFlexGrow = 430,
+    eCSSPropertyAlias_WebkitFlexShrink = 431,
+    eCSSPropertyAlias_WebkitFlexBasis = 432,
+    eCSSPropertyAlias_WebkitJustifyContent = 433,
+    eCSSPropertyAlias_WebkitAlignItems = 434,
+    eCSSPropertyAlias_WebkitAlignSelf = 435,
+    eCSSPropertyAlias_WebkitAlignContent = 436,
+    eCSSPropertyAlias_WebkitUserSelect = 437,
+    eCSSProperty_COUNT_with_aliases = 438,
+    eCSSPropertyExtra_all_properties = 439,
+    eCSSPropertyExtra_x_none_value = 440,
+    eCSSPropertyExtra_x_auto_value = 441,
+    eCSSPropertyExtra_variable = 442,
 }
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -6095,7 +6093,7 @@ pub enum nsStyleSVGPaintType {
     eStyleSVGPaintType_ContextFill = 4,
     eStyleSVGPaintType_ContextStroke = 5,
 }
-#[repr(u32)]
+#[repr(i8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsStyleSVGOpacitySource {
     eStyleSVGOpacitySource_Normal = 0,
@@ -6149,13 +6147,12 @@ pub struct nsStyleSVG {
     pub mMarkerEnd: nsCOMPtr<nsIURI>,
     pub mMarkerMid: nsCOMPtr<nsIURI>,
     pub mMarkerStart: nsCOMPtr<nsIURI>,
-    pub mStrokeDasharray: *mut nsStyleCoord,
+    pub mStrokeDasharray: nsTArray<nsStyleCoord>,
     pub mStrokeDashoffset: nsStyleCoord,
     pub mStrokeWidth: nsStyleCoord,
     pub mFillOpacity: f32,
     pub mStrokeMiterlimit: f32,
     pub mStrokeOpacity: f32,
-    pub mStrokeDasharrayLength: u32,
     pub mClipRule: u8,
     pub mColorInterpolation: u8,
     pub mColorInterpolationFilters: u8,
@@ -6165,44 +6162,22 @@ pub struct nsStyleSVG {
     pub mStrokeLinecap: u8,
     pub mStrokeLinejoin: u8,
     pub mTextAnchor: u8,
-    pub _bitfield_1: u32,
+    pub mContextFlags: u8,
 }
-impl nsStyleSVG {
-    pub fn set_mFillOpacitySource(&mut self, val: u8) {
-        self._bitfield_1 &= !(((1 << (3u32 as u32)) - 1) << 0usize);
-        self._bitfield_1 |= (val as u32) << 0usize;
-    }
-    pub fn set_mStrokeOpacitySource(&mut self, val: u8) {
-        self._bitfield_1 &= !(((1 << (3u32 as u32)) - 1) << 3usize);
-        self._bitfield_1 |= (val as u32) << 3usize;
-    }
-    pub fn set_mStrokeDasharrayFromObject(&mut self, val: bool) {
-        self._bitfield_1 &= !(((1 << (1u32 as u32)) - 1) << 6usize);
-        self._bitfield_1 |= (val as u32) << 6usize;
-    }
-    pub fn set_mStrokeDashoffsetFromObject(&mut self, val: bool) {
-        self._bitfield_1 &= !(((1 << (1u32 as u32)) - 1) << 7usize);
-        self._bitfield_1 |= (val as u32) << 7usize;
-    }
-    pub fn set_mStrokeWidthFromObject(&mut self, val: bool) {
-        self._bitfield_1 &= !(((1 << (1u32 as u32)) - 1) << 8usize);
-        self._bitfield_1 |= (val as u32) << 8usize;
-    }
-    pub const fn new_bitfield_1(mFillOpacitySource: u8,
-                                mStrokeOpacitySource: u8,
-                                mStrokeDasharrayFromObject: bool,
-                                mStrokeDashoffsetFromObject: bool,
-                                mStrokeWidthFromObject: bool) -> u32 {
-        0 | ((mFillOpacitySource as u32) << 0u32) |
-            ((mStrokeOpacitySource as u32) << 3u32) |
-            ((mStrokeDasharrayFromObject as u32) << 6u32) |
-            ((mStrokeDashoffsetFromObject as u32) << 7u32) |
-            ((mStrokeWidthFromObject as u32) << 8u32)
-    }
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+pub enum nsStyleSVG_nsStyleStruct_h_unnamed_25 {
+    FILL_OPACITY_SOURCE_MASK = 3,
+    STROKE_OPACITY_SOURCE_MASK = 12,
+    STROKE_DASHARRAY_CONTEXT = 16,
+    STROKE_DASHOFFSET_CONTEXT = 32,
+    STROKE_WIDTH_CONTEXT = 64,
+    FILL_OPACITY_SOURCE_SHIFT = 0,
+    STROKE_OPACITY_SOURCE_SHIFT = 2,
 }
 #[test]
 fn bindgen_test_layout_nsStyleSVG() {
-    assert_eq!(::std::mem::size_of::<nsStyleSVG>() , 128usize);
+    assert_eq!(::std::mem::size_of::<nsStyleSVG>() , 120usize);
     assert_eq!(::std::mem::align_of::<nsStyleSVG>() , 8usize);
 }
 #[repr(C)]
@@ -6233,17 +6208,17 @@ fn bindgen_test_layout_nsStyleBasicShape() {
 #[derive(Debug)]
 pub struct nsStyleClipPath {
     pub mType: i32,
-    pub nsStyleClipPath_nsStyleStruct_h_unnamed_25: nsStyleClipPath_nsStyleStruct_h_unnamed_25,
+    pub nsStyleClipPath_nsStyleStruct_h_unnamed_26: nsStyleClipPath_nsStyleStruct_h_unnamed_26,
     pub mSizingBox: u8,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleClipPath_nsStyleStruct_h_unnamed_25 {
+pub struct nsStyleClipPath_nsStyleStruct_h_unnamed_26 {
     pub mBasicShape: __BindgenUnionField<*mut nsStyleBasicShape>,
     pub mURL: __BindgenUnionField<*mut nsIURI>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleClipPath_nsStyleStruct_h_unnamed_25 {
+impl nsStyleClipPath_nsStyleStruct_h_unnamed_26 {
     pub unsafe fn mBasicShape(&mut self) -> *mut *mut nsStyleBasicShape {
         let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
         ::std::mem::transmute(raw.offset(0))
@@ -6253,14 +6228,14 @@ impl nsStyleClipPath_nsStyleStruct_h_unnamed_25 {
         ::std::mem::transmute(raw.offset(0))
     }
 }
-impl ::std::clone::Clone for nsStyleClipPath_nsStyleStruct_h_unnamed_25 {
+impl ::std::clone::Clone for nsStyleClipPath_nsStyleStruct_h_unnamed_26 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleClipPath_nsStyleStruct_h_unnamed_25() {
-    assert_eq!(::std::mem::size_of::<nsStyleClipPath_nsStyleStruct_h_unnamed_25>()
+fn bindgen_test_layout_nsStyleClipPath_nsStyleStruct_h_unnamed_26() {
+    assert_eq!(::std::mem::size_of::<nsStyleClipPath_nsStyleStruct_h_unnamed_26>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleClipPath_nsStyleStruct_h_unnamed_25>()
+    assert_eq!(::std::mem::align_of::<nsStyleClipPath_nsStyleStruct_h_unnamed_26>()
                , 8usize);
 }
 #[test]
@@ -6273,16 +6248,16 @@ fn bindgen_test_layout_nsStyleClipPath() {
 pub struct nsStyleFilter {
     pub mType: i32,
     pub mFilterParameter: nsStyleCoord,
-    pub nsStyleFilter_nsStyleStruct_h_unnamed_26: nsStyleFilter_nsStyleStruct_h_unnamed_26,
+    pub nsStyleFilter_nsStyleStruct_h_unnamed_27: nsStyleFilter_nsStyleStruct_h_unnamed_27,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleFilter_nsStyleStruct_h_unnamed_26 {
+pub struct nsStyleFilter_nsStyleStruct_h_unnamed_27 {
     pub mURL: __BindgenUnionField<*mut nsIURI>,
     pub mDropShadow: __BindgenUnionField<*mut nsCSSShadowArray>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleFilter_nsStyleStruct_h_unnamed_26 {
+impl nsStyleFilter_nsStyleStruct_h_unnamed_27 {
     pub unsafe fn mURL(&mut self) -> *mut *mut nsIURI {
         let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
         ::std::mem::transmute(raw.offset(0))
@@ -6292,14 +6267,14 @@ impl nsStyleFilter_nsStyleStruct_h_unnamed_26 {
         ::std::mem::transmute(raw.offset(0))
     }
 }
-impl ::std::clone::Clone for nsStyleFilter_nsStyleStruct_h_unnamed_26 {
+impl ::std::clone::Clone for nsStyleFilter_nsStyleStruct_h_unnamed_27 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleFilter_nsStyleStruct_h_unnamed_26() {
-    assert_eq!(::std::mem::size_of::<nsStyleFilter_nsStyleStruct_h_unnamed_26>()
+fn bindgen_test_layout_nsStyleFilter_nsStyleStruct_h_unnamed_27() {
+    assert_eq!(::std::mem::size_of::<nsStyleFilter_nsStyleStruct_h_unnamed_27>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleFilter_nsStyleStruct_h_unnamed_26>()
+    assert_eq!(::std::mem::align_of::<nsStyleFilter_nsStyleStruct_h_unnamed_27>()
                , 8usize);
 }
 #[test]
