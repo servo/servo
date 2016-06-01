@@ -598,7 +598,6 @@ pub fn modify_request_headers(headers: &mut Headers,
                               load_data: &LoadData,
                               block_cookies: bool,
                               referrer_url: &mut Option<Url>) {
-
     // Ensure that the host header is set from the original url
     let host = Host {
         hostname: url.host_str().unwrap().to_owned(),

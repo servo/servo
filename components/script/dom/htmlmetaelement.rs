@@ -2,18 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::AttrValue;
+use dom::attr::{Attr, AttrValue};
 use dom::bindings::cell::DOMRefCell;
-use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMethods;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::str::DOMString;
-use dom::document::{Document, determine_policy_for_token};
-use dom::element::Element;
+use dom::document::Document;
+use dom::element::{AttributeMutation, Element};
 use dom::htmlelement::HTMLElement;
-use dom::node::{Node, document_from_node};
+use dom::htmlheadelement::HTMLHeadElement;
+use dom::node::{Node, UnbindContext, document_from_node};
 use dom::virtualmethods::VirtualMethods;
 use std::ascii::AsciiExt;
 use std::sync::Arc;
@@ -91,24 +92,23 @@ impl HTMLMetaElement {
         }
     }
 
+    fn process_referrer_attribute(&self) {
+        let element = self.upcast::<Element>();
+        if let Some(name) = element.get_attribute(&ns!(), &atom!("name")).r() {
+            let name = name.value().to_ascii_lowercase();
+            let name = name.trim_matches(HTML_SPACE_CHARACTERS);
+
+            if name == "referrer" {
+                self.apply_referrer();
+            }
+        }
+    }
+
     /// https://html.spec.whatwg.org/multipage/#meta-referrer
     fn apply_referrer(&self) {
-        /*todo - I think this chould only run if document's policy hasnt yet
-        been set. unclear - see:
-        https://html.spec.whatwg.org/multipage/#meta-referrer
-        https://w3c.github.io/webappsec-referrer-policy/#set-referrer-policy
-        */
-        let doc = document_from_node(self);
-        if let Some(head) = doc.GetHead() {
-            if head.upcast::<Node>().is_parent_of(self.upcast::<Node>()) {
-                let element = self.upcast::<Element>();
-                if let Some(content) = element.get_attribute(&ns!(), &atom!("content")).r() {
-                    let content = content.value();
-                    let content_val = content.trim();
-                    if !content_val.is_empty() {
-                        doc.set_referrer_policy(determine_policy_for_token(content_val));
-                    }
-                }
+        if let Some(parent) = self.upcast::<Node>().GetParentElement() {
+            if let Some(head) = parent.downcast::<HTMLHeadElement>() {
+                head.set_document_referrer();
             }
         }
     }
@@ -147,6 +147,25 @@ impl VirtualMethods for HTMLMetaElement {
         match name {
             &atom!("name") => AttrValue::from_atomic(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
+        }
+    }
+
+    fn attribute_mutated(&self, attr: &Attr, mutation: AttributeMutation) {
+        if let Some(s) = self.super_type() {
+            s.attribute_mutated(attr, mutation);
+        }
+
+        //TODO any conditions here?
+        self.process_referrer_attribute();
+    }
+
+    fn unbind_from_tree(&self, context: &UnbindContext) {
+        if let Some(ref s) = self.super_type() {
+            s.unbind_from_tree(context);
+        }
+
+        if context.tree_in_doc {
+            self.process_referrer_attribute();
         }
     }
 }
