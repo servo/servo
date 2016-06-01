@@ -1787,6 +1787,7 @@ class CGImports(CGWrapper):
             types += relatedTypesForSignatures(c)
 
         imports += ['dom::types::%s' % getIdentifier(t).name for t in types if isImportable(t)]
+        imports += ['dom::browsingcontext::BrowsingContext']
 
         statements = []
         if len(ignored_warnings) > 0:
