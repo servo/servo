@@ -1804,7 +1804,7 @@ class CGNamespace(CGWrapper):
 def DOMClassTypeId(desc):
     protochain = desc.prototypeChain
     inner = ""
-    if desc.hasDescendants():
+    if desc.hasDescendants() and desc.name != "Window":
         if desc.interface.getExtendedAttribute("Abstract"):
             return "::dom::bindings::codegen::InheritTypes::TopTypeId::Abstract"
         name = desc.interface.identifier.name
@@ -3159,9 +3159,6 @@ class CGSpecializedGetter(CGAbstractExternMethod):
     def definition_body(self):
         nativeName = CGSpecializedGetter.makeNativeName(self.descriptor,
                                                         self.attr)
-
-        print self.attr.type
-        print nativeName
         return CGWrapper(CGGetterCall([], self.attr.type, nativeName,
                                       self.descriptor, self.attr),
                          pre="let this = &*this;\n")
