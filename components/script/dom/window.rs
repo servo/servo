@@ -1019,26 +1019,33 @@ impl Window {
     /// and no reflow is performed. If reflow is suppressed, no reflow will be
     /// performed for ForDisplay goals.
     ///
-    /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
-    pub fn force_reflow(&self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason) {
+    /// TODO(pcwalton): Only wait for style recalc, since we have
+    /// off-main-thread layout.
+    ///
+    /// Returns true if layout actually happened, false otherwise.
+    pub fn force_reflow(&self,
+                        goal: ReflowGoal,
+                        query_type: ReflowQueryType,
+                        reason: ReflowReason) -> bool {
         // Check if we need to unsuppress reflow. Note that this needs to be
         // *before* any early bailouts, or reflow might never be unsuppresed!
         match reason {
-            ReflowReason::FirstLoad | ReflowReason::RefreshTick => self.suppress_reflow.set(false),
+            ReflowReason::FirstLoad |
+            ReflowReason::RefreshTick => self.suppress_reflow.set(false),
             _ => (),
         }
 
         // If there is no window size, we have nothing to do.
         let window_size = match self.window_size.get() {
             Some(window_size) => window_size,
-            None => return,
+            None => return false,
         };
 
         let for_display = query_type == ReflowQueryType::NoQuery;
         if for_display && self.suppress_reflow.get() {
             debug!("Suppressing reflow pipeline {} for goal {:?} reason {:?} before FirstLoad or RefreshTick",
                    self.id, goal, reason);
-            return;
+            return false;
         }
 
         debug!("script: performing reflow for goal {:?} reason {:?}", goal, reason);
@@ -1100,18 +1107,32 @@ impl Window {
         if let Some(marker) = marker {
             self.emit_timeline_marker(marker.end());
         }
+
+        true
     }
 
-    /// Reflows the page if it's possible to do so and the page is dirty. This method will wait
-    /// for the layout thread to complete (but see the `TODO` below). If there is no window size
-    /// yet, the page is presumed invisible and no reflow is performed.
+    /// Reflows the page if it's possible to do so and the page is dirty. This
+    /// method will wait for the layout thread to complete (but see the `TODO`
+    /// below). If there is no window size yet, the page is presumed invisible
+    /// and no reflow is performed.
     ///
-    /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
-    pub fn reflow(&self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason) {
+    /// TODO(pcwalton): Only wait for style recalc, since we have
+    /// off-main-thread layout.
+    ///
+    /// Returns true if layout actually happened, false otherwise.
+    /// This return value is useful for script queries, that wait for a lock
+    /// that layout might hold if the first layout hasn't happened yet (which
+    /// may happen in the only case a query reflow may bail out, that is, if the
+    /// viewport size is not present). See #11223 for an example of that.
+    pub fn reflow(&self,
+                  goal: ReflowGoal,
+                  query_type: ReflowQueryType,
+                  reason: ReflowReason) -> bool {
         let for_display = query_type == ReflowQueryType::NoQuery;
 
+        let mut issued_reflow = false;
         if !for_display || self.Document().needs_reflow() {
-            self.force_reflow(goal, query_type, reason);
+            issued_reflow = self.force_reflow(goal, query_type, reason);
 
             // If window_size is `None`, we don't reflow, so the document stays dirty.
             // Otherwise, we shouldn't need a reflow immediately after a reflow.
@@ -1147,6 +1168,8 @@ impl Window {
                 self.constellation_chan().send(event).unwrap();
             }
         }
+
+        issued_reflow
     }
 
     pub fn layout(&self) -> &LayoutRPC {
@@ -1154,54 +1177,73 @@ impl Window {
     }
 
     pub fn content_box_query(&self, content_box_request: TrustedNodeAddress) -> Rect<Au> {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::ContentBoxQuery(content_box_request),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::ContentBoxQuery(content_box_request),
+                        ReflowReason::Query) {
+            return Rect::zero();
+        }
         let ContentBoxResponse(rect) = self.layout_rpc.content_box();
         rect
     }
 
     pub fn content_boxes_query(&self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>> {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::ContentBoxesQuery(content_boxes_request),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::ContentBoxesQuery(content_boxes_request),
+                        ReflowReason::Query) {
+            return vec![];
+        }
         let ContentBoxesResponse(rects) = self.layout_rpc.content_boxes();
         rects
     }
 
     pub fn client_rect_query(&self, node_geometry_request: TrustedNodeAddress) -> Rect<i32> {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::NodeGeometryQuery(node_geometry_request),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::NodeGeometryQuery(node_geometry_request),
+                        ReflowReason::Query) {
+            return Rect::zero();
+        }
         self.layout_rpc.node_geometry().client_rect
     }
 
     pub fn hit_test_query(&self, hit_test_request: Point2D<f32>, update_cursor: bool)
                           -> Option<UntrustedNodeAddress> {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::HitTestQuery(hit_test_request, update_cursor),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::HitTestQuery(hit_test_request, update_cursor),
+                        ReflowReason::Query) {
+            return None
+        }
+
         self.layout_rpc.hit_test().node_address
     }
 
     pub fn scroll_area_query(&self, node: TrustedNodeAddress) -> Rect<i32> {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::NodeScrollGeometryQuery(node),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::NodeScrollGeometryQuery(node),
+                        ReflowReason::Query) {
+            return Rect::zero();
+        }
         self.layout_rpc.node_scroll_area().client_rect
     }
 
-    pub fn overflow_query(&self, node: TrustedNodeAddress) -> Point2D<overflow_x::computed_value::T> {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::NodeOverflowQuery(node),
-                    ReflowReason::Query);
+    pub fn overflow_query(&self,
+                          node: TrustedNodeAddress) -> Point2D<overflow_x::computed_value::T> {
+        // NB: This is only called if the document is fully active, and the only
+        // reason to bail out from a query is if there's no viewport, so this
+        // *must* issue a reflow.
+        assert!(self.reflow(ReflowGoal::ForScriptQuery,
+                            ReflowQueryType::NodeOverflowQuery(node),
+                            ReflowReason::Query));
+
         self.layout_rpc.node_overflow().0.unwrap()
     }
 
     pub fn scroll_offset_query(&self, node: TrustedNodeAddress) -> Point2D<f32> {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::NodeLayerIdQuery(node),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::NodeLayerIdQuery(node),
+                        ReflowReason::Query) {
+            return Point2D::zero();
+        }
+
         let layer_id = self.layout_rpc.node_layer_id().layer_id;
         let pipeline_id = self.id;
 
@@ -1213,9 +1255,11 @@ impl Window {
     // https://drafts.csswg.org/cssom-view/#dom-element-scroll
     pub fn scroll_node(&self, node: TrustedNodeAddress,
                        x_: f64, y_: f64, behavior: ScrollBehavior) {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::NodeLayerIdQuery(node),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::NodeLayerIdQuery(node),
+                        ReflowReason::Query) {
+            return;
+        }
 
         let layer_id = self.layout_rpc.node_layer_id().layer_id;
 
@@ -1228,17 +1272,22 @@ impl Window {
                             element: TrustedNodeAddress,
                             pseudo: Option<PseudoElement>,
                             property: &Atom) -> Option<DOMString> {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::ResolvedStyleQuery(element, pseudo, property.clone()),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::ResolvedStyleQuery(element, pseudo, property.clone()),
+                        ReflowReason::Query) {
+            return None;
+        }
         let ResolvedStyleResponse(resolved) = self.layout_rpc.resolved_style();
         resolved.map(DOMString::from)
     }
 
     pub fn offset_parent_query(&self, node: TrustedNodeAddress) -> (Option<Root<Element>>, Rect<Au>) {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::OffsetParentQuery(node),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::OffsetParentQuery(node),
+                        ReflowReason::Query) {
+            return (None, Rect::zero());
+        }
+
         let response = self.layout_rpc.offset_parent();
         let js_runtime = self.js_runtime.borrow();
         let js_runtime = js_runtime.as_ref().unwrap();
@@ -1250,9 +1299,11 @@ impl Window {
     }
 
     pub fn margin_style_query(&self, node: TrustedNodeAddress) -> MarginStyleResponse {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::MarginStyleQuery(node),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::MarginStyleQuery(node),
+                        ReflowReason::Query) {
+            return MarginStyleResponse::empty();
+        }
         self.layout_rpc.margin_style()
     }
 
@@ -1276,7 +1327,9 @@ impl Window {
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
         self.timers.fire_timer(timer_id, self);
-        self.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::Timer);
+        self.reflow(ReflowGoal::ForDisplay,
+                    ReflowQueryType::NoQuery,
+                    ReflowReason::Timer);
     }
 
     pub fn set_fragment_name(&self, fragment: Option<String>) {
