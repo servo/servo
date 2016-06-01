@@ -1517,7 +1517,7 @@ impl Node {
         let mut new_nodes = RootedVec::new();
         let new_nodes = if let NodeTypeId::DocumentFragment = node.type_id() {
             // Step 3.
-            new_nodes.extend(node.children().map(|kid| JS::from_rooted(&kid)));
+            new_nodes.extend(node.children().map(|kid| JS::from_ref(&*kid)));
             // Step 4: mutation observers.
             // Step 5.
             for kid in new_nodes.r() {
@@ -1563,7 +1563,7 @@ impl Node {
         let mut added_nodes = RootedVec::new();
         let added_nodes = if let Some(node) = node.as_ref() {
             if let NodeTypeId::DocumentFragment = node.type_id() {
-                added_nodes.extend(node.children().map(|child| JS::from_rooted(&child)));
+                added_nodes.extend(node.children().map(|child| JS::from_ref(&*child)));
                 added_nodes.r()
             } else {
                 ref_slice(node)
@@ -2106,7 +2106,7 @@ impl NodeMethods for Node {
         // Step 12.
         let mut nodes = RootedVec::new();
         let nodes = if node.type_id() == NodeTypeId::DocumentFragment {
-            nodes.extend(node.children().map(|node| JS::from_rooted(&node)));
+            nodes.extend(node.children().map(|node| JS::from_ref(&*node)));
             nodes.r()
         } else {
             ref_slice(&node)

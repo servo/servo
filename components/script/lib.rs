@@ -19,6 +19,7 @@
 #![feature(plugin)]
 #![feature(slice_patterns)]
 #![feature(stmt_expr_attributes)]
+#![feature(question_mark)]
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
@@ -87,6 +88,7 @@ extern crate webrender_traits;
 extern crate websocket;
 extern crate xml5ever;
 
+pub mod bluetooth_blacklist;
 pub mod clipboard_provider;
 pub mod cors;
 mod devtools;

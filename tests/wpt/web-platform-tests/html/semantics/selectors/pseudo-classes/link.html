@@ -16,8 +16,8 @@
 <a href="http://[" id=link10></a>
 
 <script>
-  testSelector(":link", ["link1", "link2", "link3", "link7", "link8", "link9", "link10"], "Only <a>s, <area>s and <link>s that have a href attribute match ':link'");
+  testSelectorIdsMatch(":link", ["link1", "link2", "link3", "link7", "link8", "link9", "link10"], "Only <a>s, <area>s and <link>s that have a href attribute match ':link'");
 
   document.getElementById("link9").removeAttribute("href");
-  testSelector(":link", ["link1", "link2", "link3", "link7", "link8", "link10"], "':link' doesn't match elements whos href attribute has been removed");
+  testSelectorIdsMatch(":link", ["link1", "link2", "link3", "link7", "link8", "link10"], "':link' doesn't match elements whos href attribute has been removed");
 </script>

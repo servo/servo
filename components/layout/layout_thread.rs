@@ -21,14 +21,13 @@ use euclid::size::Size2D;
 use flow::{self, Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::{self, FlowRef};
 use fnv::FnvHasher;
-use gfx::display_list::WebRenderImageInfo;
 use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, LayerInfo};
-use gfx::display_list::{OpaqueNode, StackingContext, StackingContextId, StackingContextType};
+use gfx::display_list::{OpaqueNode, StackingContext, StackingContextType, WebRenderImageInfo};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
 use gfx::paint_thread::LayoutToPaintMsg;
-use gfx_traits::{color, Epoch, LayerId, ScrollPolicy};
+use gfx_traits::{color, Epoch, LayerId, ScrollPolicy, StackingContextId};
 use heapsize::HeapSizeOf;
 use incremental::LayoutDamageComputation;
 use incremental::{REPAINT, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW, REFLOW, REFLOW_ENTIRE_DOCUMENT};
@@ -52,8 +51,8 @@ use script::dom::node::OpaqueStyleAndLayoutData;
 use script::layout_interface::{LayoutRPC, OffsetParentResponse, NodeOverflowResponse, MarginStyleResponse};
 use script::layout_interface::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
 use script::reporter::CSSErrorReporter;
-use script_traits::ConstellationControlMsg;
-use script_traits::{LayoutControlMsg, LayoutMsg as ConstellationMsg};
+use script_traits::StackingContextScrollState;
+use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use sequential;
 use serde_json;
 use std::borrow::ToOwned;
@@ -500,7 +499,6 @@ impl LayoutThread {
     fn build_shared_layout_context(&self,
                                    rw_data: &LayoutThreadData,
                                    screen_size_changed: bool,
-                                   url: &Url,
                                    goal: ReflowGoal)
                                    -> SharedLayoutContext {
         SharedLayoutContext {
@@ -518,7 +516,6 @@ impl LayoutThread {
             image_cache_thread: self.image_cache_thread.clone(),
             image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
-            url: (*url).clone(),
             visible_rects: self.visible_rects.clone(),
             webrender_image_cache: self.webrender_image_cache.clone(),
         }
@@ -559,6 +556,11 @@ impl LayoutThread {
         match request {
             Request::FromPipeline(LayoutControlMsg::SetVisibleRects(new_visible_rects)) => {
                 self.handle_request_helper(Msg::SetVisibleRects(new_visible_rects),
+                                           possibly_locked_rw_data)
+            },
+            Request::FromPipeline(LayoutControlMsg::SetStackingContextScrollStates(
+                    new_scroll_states)) => {
+                self.handle_request_helper(Msg::SetStackingContextScrollStates(new_scroll_states),
                                            possibly_locked_rw_data)
             },
             Request::FromPipeline(LayoutControlMsg::TickAnimations) => {
@@ -609,7 +611,6 @@ impl LayoutThread {
         };
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  &self.url,
                                                                   reflow_info.goal);
 
         self.perform_post_style_recalc_layout_passes(&reflow_info,
@@ -646,6 +647,10 @@ impl LayoutThread {
             }
             Msg::SetVisibleRects(new_visible_rects) => {
                 self.set_visible_rects(new_visible_rects, possibly_locked_rw_data);
+            }
+            Msg::SetStackingContextScrollStates(new_scroll_states) => {
+                self.set_stacking_context_scroll_states(new_scroll_states,
+                                                        possibly_locked_rw_data);
             }
             Msg::ReapStyleAndLayoutData(dead_data) => {
                 unsafe {
@@ -886,19 +891,18 @@ impl LayoutThread {
 
             if flow::base(&**layout_root).restyle_damage.contains(REPAINT) ||
                     rw_data.display_list.is_none() {
-                let mut root_stacking_context =
-                    StackingContext::new(StackingContextId::new(0),
-                                         StackingContextType::Real,
-                                         &Rect::zero(),
-                                         &Rect::zero(),
-                                         0,
-                                         filter::T::new(Vec::new()),
-                                         mix_blend_mode::T::normal,
-                                         Matrix4D::identity(),
-                                         Matrix4D::identity(),
-                                         true,
-                                         false,
-                                         None);
+                let mut root_stacking_context = StackingContext::new(StackingContextId::new(0),
+                                                                     StackingContextType::Real,
+                                                                     &Rect::zero(),
+                                                                     &Rect::zero(),
+                                                                     0,
+                                                                     filter::T::new(Vec::new()),
+                                                                     mix_blend_mode::T::normal,
+                                                                     Matrix4D::identity(),
+                                                                     Matrix4D::identity(),
+                                                                     true,
+                                                                     false,
+                                                                     None);
 
                 let display_list_entries =
                     sequential::build_display_list_for_subtree(layout_root,
@@ -1113,7 +1117,6 @@ impl LayoutThread {
         // Create a layout context for use throughout the following passes.
         let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
                                                                          viewport_size_changed,
-                                                                         &self.url,
                                                                          data.reflow_info.goal);
 
         if node.is_dirty() || node.has_dirty_descendants() {
@@ -1262,11 +1265,23 @@ impl LayoutThread {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  &self.url,
                                                                   reflow_info.goal);
 
         self.perform_post_main_layout_passes(&reflow_info, &mut *rw_data, &mut layout_context);
         true
+    }
+
+    fn set_stacking_context_scroll_states<'a, 'b>(
+            &mut self,
+            new_scroll_states: Vec<StackingContextScrollState>,
+            _: &mut RwData<'a, 'b>) {
+        for new_scroll_state in &new_scroll_states {
+            if self.root_flow.is_some() && new_scroll_state.stacking_context_id.id() == 0 {
+                let _ = self.script_chan.send(ConstellationControlMsg::SetScrollState(
+                        self.id,
+                        new_scroll_state.scroll_offset));
+            }
+        }
     }
 
     fn tick_all_animations<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
@@ -1282,7 +1297,6 @@ impl LayoutThread {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  &self.url,
                                                                   reflow_info.goal);
 
         if let Some(mut root_flow) = self.root_flow.clone() {
@@ -1313,7 +1327,6 @@ impl LayoutThread {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  &self.url,
                                                                   reflow_info.goal);
 
         // No need to do a style recalc here.

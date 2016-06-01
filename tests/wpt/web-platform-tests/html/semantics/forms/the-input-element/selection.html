@@ -105,6 +105,8 @@ test(function() {
       input.selectionStart = 0;
       a = input.selectionEnd;
       input.selectionEnd = 0;
+      a = input.selectionDirection;
+      input.selectionDirection = "none";
       input.setSelectionRange(0, 0);
       input.setRangeText('', 0, 0);
 
@@ -118,10 +120,12 @@ test(function() {
       input.type = type;
       assert_equals(input.type, type, "the given input type is not supported");
 
-      assert_throws("INVALID_STATE_ERR", function() { var a = input.selectionStart; });
+      assert_equals(input.selectionStart, null, 'getting input.selectionStart');
       assert_throws("INVALID_STATE_ERR", function() { input.selectionStart = 0; });
-      assert_throws("INVALID_STATE_ERR", function() { var a = input.selectionEnd; });
+      assert_equals(input.selectionEnd, null, 'getting input.selectionEnd');
       assert_throws("INVALID_STATE_ERR", function() { input.selectionEnd = 0; });
+      assert_equals(input.selectionDirection, null, 'getting input.selectionDirection');
+      assert_throws("INVALID_STATE_ERR", function() { input.selectionDirection = "none"; });
       assert_throws("INVALID_STATE_ERR", function() { input.setSelectionRange(0, 0); });
       assert_throws("INVALID_STATE_ERR", function() { input.setRangeText('', 0, 0); });
 

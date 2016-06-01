@@ -143,6 +143,7 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::ScriptResize => "Script Resize",
             ProfilerCategory::ScriptEvent => "Script Event",
             ProfilerCategory::ScriptUpdateReplacedElement => "Script Update Replaced Element",
+            ProfilerCategory::ScriptSetScrollState => "Script Set Scroll State",
             ProfilerCategory::ScriptSetViewport => "Script Set Viewport",
             ProfilerCategory::ScriptTimerEvent => "Script Timer Event",
             ProfilerCategory::ScriptStylesheetLoad => "Script Stylesheet Load",

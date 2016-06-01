@@ -13,8 +13,8 @@ t.step(function() {
   events.push('after script');
 });
 onload = t.step_func(function() {
-  //assuming the order is sync
-  assert_array_equals(events, ['click', 'href', 'after script']);
+  // javascript: executions are async.
+  assert_array_equals(events, ['click', 'after script', 'href']);
   t.done();
 });
 </script>

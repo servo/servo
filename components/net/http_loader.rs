@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 use brotli::Decompressor;
 use connector::Connector;
+use content_blocker_parser::{LoadType, Reaction, Request as CBRequest, ResourceType};
+use content_blocker_parser::{RuleList, process_rules_for_request};
 use cookie;
 use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
@@ -104,6 +105,7 @@ pub struct HttpState {
     pub hsts_list: Arc<RwLock<HstsList>>,
     pub cookie_jar: Arc<RwLock<CookieStorage>>,
     pub auth_cache: Arc<RwLock<AuthCache>>,
+    pub blocked_content: Arc<Option<RuleList>>,
 }
 
 impl HttpState {
@@ -112,6 +114,7 @@ impl HttpState {
             hsts_list: Arc::new(RwLock::new(HstsList::new())),
             cookie_jar: Arc::new(RwLock::new(CookieStorage::new())),
             auth_cache: Arc::new(RwLock::new(AuthCache::new())),
+            blocked_content: Arc::new(None),
         }
     }
 }
@@ -327,6 +330,7 @@ pub enum LoadErrorType {
     Cancelled,
     Connection { reason: String },
     ConnectionAborted { reason: String },
+    ContentBlocked,
     // Preflight fetch inconsistent with main fetch
     CorsPreflightFetchInconsistent,
     Decoding { reason: String },
@@ -349,6 +353,7 @@ impl Error for LoadErrorType {
             LoadErrorType::Cancelled => "load cancelled",
             LoadErrorType::Connection { ref reason } => reason,
             LoadErrorType::ConnectionAborted { ref reason } => reason,
+            LoadErrorType::ContentBlocked => "content blocked",
             LoadErrorType::CorsPreflightFetchInconsistent => "preflight fetch inconsistent with main fetch",
             LoadErrorType::Decoding { ref reason } => reason,
             LoadErrorType::InvalidRedirect { ref reason } => reason,
@@ -590,7 +595,8 @@ pub fn modify_request_headers(headers: &mut Headers,
                               user_agent: &str,
                               cookie_jar: &Arc<RwLock<CookieStorage>>,
                               auth_cache: &Arc<RwLock<AuthCache>>,
-                              load_data: &LoadData) {
+                              load_data: &LoadData,
+                              block_cookies: bool) {
     // Ensure that the host header is set from the original url
     let host = Host {
         hostname: url.host_str().unwrap().to_owned(),
@@ -620,7 +626,9 @@ pub fn modify_request_headers(headers: &mut Headers,
 
     // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
     if load_data.credentials_flag {
-        set_request_cookies(url.clone(), headers, cookie_jar);
+        if !block_cookies {
+            set_request_cookies(url.clone(), headers, cookie_jar);
+        }
 
         // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch step 12
         set_auth_header(headers, url, auth_cache);
@@ -852,6 +860,29 @@ pub fn load<A, B>(load_data: &LoadData,
             return Err(LoadError::new(doc_url, LoadErrorType::Cancelled));
         }
 
+        let mut block_cookies = false;
+        if let Some(ref rules) = *http_state.blocked_content {
+            let same_origin =
+                load_data.referrer_url.as_ref()
+                         .map(|url| url.origin() == doc_url.origin())
+                         .unwrap_or(false);
+            let load_type = if same_origin { LoadType::FirstParty } else { LoadType::ThirdParty };
+            let actions = process_rules_for_request(rules, &CBRequest {
+                url: &doc_url,
+                resource_type: to_resource_type(&load_data.context),
+                load_type: load_type,
+            });
+            for action in actions {
+                match action {
+                    Reaction::Block => {
+                        return Err(LoadError::new(doc_url, LoadErrorType::ContentBlocked));
+                    },
+                    Reaction::BlockCookies => block_cookies = true,
+                    Reaction::HideMatchingElements(_) => (),
+                }
+            }
+        }
+
         info!("requesting {}", doc_url);
 
         // Avoid automatically preserving request headers when redirects occur.
@@ -870,7 +901,7 @@ pub fn load<A, B>(load_data: &LoadData,
 
         modify_request_headers(&mut request_headers, &doc_url,
                                &user_agent, &http_state.cookie_jar,
-                               &http_state.auth_cache, &load_data);
+                               &http_state.auth_cache, &load_data, block_cookies);
 
         //if there is a new auth header then set the request headers with it
         if let Some(ref auth_header) = new_auth_header {
@@ -1030,5 +1061,19 @@ fn is_cert_verify_error(error: &OpensslError) -> bool {
             function == "SSL3_GET_SERVER_CERTIFICATE" &&
             reason == "certificate verify failed"
         }
+    }
+}
+
+fn to_resource_type(context: &LoadContext) -> ResourceType {
+    match *context {
+        LoadContext::Browsing => ResourceType::Document,
+        LoadContext::Image => ResourceType::Image,
+        LoadContext::AudioVideo => ResourceType::Media,
+        LoadContext::Plugin => ResourceType::Raw,
+        LoadContext::Style => ResourceType::StyleSheet,
+        LoadContext::Script => ResourceType::Script,
+        LoadContext::Font => ResourceType::Font,
+        LoadContext::TextTrack => ResourceType::Media,
+        LoadContext::CacheManifest => ResourceType::Raw,
     }
 }

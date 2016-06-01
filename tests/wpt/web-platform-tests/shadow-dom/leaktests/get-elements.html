@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name='author' title='Google' href='http://www.google.com'>
+<meta name='assert' content='getElement* API in document should not leak any node in shadow tree.'>
+<link rel='help' href='https://w3c.github.io/webcomponents/spec/shadow/'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+
+<!-- This template will be filled in '#doc', '#host-open', and '#host-closed' below -->
+<template id='domtree-template'>
+  <span id='foo'></span>
+  <div class='bar'></div>
+  <form name='baz'></form>
+  <my-element></my-element>
+</template>
+
+<div id='doc'>
+  <div id='host-open'></div>
+  <div id='host-closed'></div>
+</div>
+
+</body>
+<script>
+'use strict';
+
+function fillTemplate(root, prefix) {
+    var tmpl = document.getElementById('domtree-template');
+    root.appendChild(document.importNode(tmpl.content, true));
+    for (var i = 0; i < root.childNodes.length; ++i) {
+        var el = root.childNodes[i];
+        if (el.nodeType != 1)
+            continue;
+        el.setAttribute('label', prefix + el.tagName.toLowerCase());
+    }
+
+    root.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient'));
+}
+
+// Construct subtree with 'doc-*' ids.
+var doc = document.getElementById('doc');
+fillTemplate(doc, 'doc-');
+
+// Construct shadow subtree with 'shadow-*' ids.
+var hostOpen = document.getElementById('host-open');
+var shadowOpen = hostOpen.attachShadow({mode: 'open'});
+fillTemplate(shadowOpen, 'shadow-open-');
+
+var hostClosed = document.getElementById('host-closed');
+var shadowClosed = hostClosed.attachShadow({mode: 'closed'});
+fillTemplate(shadowClosed, 'shadow-closed-');
+
+test(function() {
+    // getElementById() (NonElementParentNode)
+    assert_equals(document.querySelectorAll('#foo').length, 1);
+    assert_equals(document.getElementById('foo').getAttribute('label'), 'doc-span');
+    assert_equals(document.querySelector('#foo').getAttribute('label'), 'doc-span');
+
+    assert_equals(doc.querySelectorAll('#foo').length, 1);
+    assert_equals(doc.querySelector('#foo').getAttribute('label'), 'doc-span');
+
+    assert_equals(hostOpen.querySelectorAll('#foo').length, 0);
+
+    assert_equals(shadowOpen.querySelectorAll('#foo').length, 1);
+    assert_equals(shadowOpen.getElementById('foo').getAttribute('label'), 'shadow-open-span');
+    assert_equals(shadowOpen.querySelector('#foo').getAttribute('label'), 'shadow-open-span');
+
+    assert_equals(hostClosed.querySelectorAll('#foo').length, 0);
+
+    assert_equals(shadowClosed.querySelectorAll('#foo').length, 1);
+    assert_equals(shadowClosed.getElementById('foo').getAttribute('label'), 'shadow-closed-span');
+    assert_equals(shadowClosed.querySelector('#foo').getAttribute('label'), 'shadow-closed-span');
+}, 'getElementsById() should not leak nodes in shadow tree');
+
+test(function() {
+    // getElementsByClassName() (Element, Document)
+    assert_equals(document.getElementsByClassName('bar').length, 1);
+    assert_equals(document.getElementsByClassName('bar')[0].getAttribute('label'), 'doc-div');
+    assert_equals(document.getElementsByClassName('bar').length, 1);
+    assert_equals(document.getElementsByClassName('bar')[0].getAttribute('label'), 'doc-div');
+    assert_equals(document.querySelectorAll('.bar').length, 1);
+
+    assert_equals(doc.querySelectorAll('.bar').length, 1);
+    assert_equals(doc.getElementsByClassName('bar')[0].getAttribute('label'), 'doc-div');
+
+    assert_array_equals(hostOpen.querySelectorAll('.bar').length, 0);
+
+    assert_equals(shadowOpen.querySelectorAll('.bar').length, 1);
+    assert_equals(shadowOpen.querySelectorAll('.bar')[0].getAttribute('label'), 'shadow-open-div');
+
+    assert_array_equals(hostClosed.querySelectorAll('.bar').length, 0);
+
+    assert_equals(shadowClosed.querySelectorAll('.bar').length, 1);
+    assert_equals(shadowClosed.querySelectorAll('.bar')[0].getAttribute('label'), 'shadow-closed-div');
+}, 'getElementsByClassName() should not leak nodes in shadow tree');
+
+test(function() {
+    // getElementsByName (Document)
+    assert_equals(document.getElementsByName('baz').length, 1);
+    assert_equals(document.getElementsByName('baz')[0].getAttribute('label'), 'doc-form');
+    assert_equals(document.getElementsByName('baz').length, 1);
+    assert_equals(document.getElementsByName('baz')[0].getAttribute('label'), 'doc-form');
+    assert_equals(document.querySelectorAll('[name=baz]').length, 1);
+
+    assert_equals(doc.querySelectorAll('[name=baz]').length, 1);
+
+    assert_array_equals(hostOpen.querySelectorAll('[name=baz]').length, 0);
+    assert_equals(shadowOpen.querySelectorAll('[name=baz]').length, 1);
+    assert_equals(shadowOpen.querySelectorAll('[name=baz]')[0].getAttribute('label'), 'shadow-open-form');
+
+    assert_array_equals(hostClosed.querySelectorAll('[name=baz]').length, 0);
+    assert_equals(shadowClosed.querySelectorAll('[name=baz]').length, 1);
+    assert_equals(shadowClosed.querySelectorAll('[name=baz]')[0].getAttribute('label'), 'shadow-closed-form');
+}, 'getElementsByName() should not leak nodes in shadow tree');
+
+test(function() {
+    // getElementsByTagName (Element, Document)
+    assert_equals(document.getElementsByTagName('my-element').length, 1);
+    assert_equals(document.getElementsByTagName('my-element')[0].getAttribute('label'), 'doc-my-element');
+    assert_equals(document.getElementsByTagName('my-element').length, 1);
+    assert_equals(document.getElementsByTagName('my-element')[0].getAttribute('label'), 'doc-my-element');
+    assert_equals(document.querySelectorAll('my-element').length, 1);
+
+    assert_equals(doc.querySelectorAll('my-element').length, 1);
+    assert_equals(doc.getElementsByTagName('my-element')[0].getAttribute('label'), 'doc-my-element');
+
+    assert_array_equals(hostOpen.querySelectorAll('my-element').length, 0);
+    // ShadowRoot isn't an Element, does not have getElementsByTagName().
+    assert_equals(shadowOpen.querySelectorAll('my-element').length, 1);
+    assert_equals(shadowOpen.querySelectorAll('my-element')[0].getAttribute('label'), 'shadow-open-my-element');
+
+    assert_array_equals(hostClosed.querySelectorAll('my-element').length, 0);
+    assert_equals(shadowClosed.querySelectorAll('my-element').length, 1);
+    assert_equals(shadowClosed.querySelectorAll('my-element')[0].getAttribute('label'), 'shadow-closed-my-element');
+}, 'getElementsByTagName() should not leak nodes in shadow tree');
+
+test(function() {
+    // getElementsByTagNameNS (Element, Document)
+    assert_equals(document.getElementsByTagName('lineargradient').length, 0);
+    assert_equals(document.getElementsByTagNameNS('*', 'lineargradient').length, 0);
+    assert_equals(document.getElementsByTagNameNS('http://www.w3.org/2000/svg', 'lineargradient').length, 0);
+    assert_equals(document.getElementsByTagNameNS('http://www.w3.org/1999/xhtml', 'lineargradient').length, 0);
+
+    assert_equals(document.getElementsByTagName('linearGradient').length, 1);
+    assert_equals(document.getElementsByTagNameNS('*', 'linearGradient').length, 1);
+    assert_equals(document.getElementsByTagNameNS('http://www.w3.org/2000/svg', 'linearGradient').length, 1);
+    assert_equals(document.getElementsByTagNameNS('http://www.w3.org/1999/xhtml', 'linearGradient').length, 0);
+
+    assert_equals(doc.getElementsByTagName('lineargradient').length, 0);
+    assert_equals(doc.getElementsByTagNameNS('*', 'lineargradient').length, 0);
+    assert_equals(doc.getElementsByTagNameNS('http://www.w3.org/2000/svg', 'lineargradient').length, 0);
+    assert_equals(doc.getElementsByTagNameNS('http://www.w3.org/1999/xhtml', 'lineargradient').length, 0);
+
+    assert_equals(doc.getElementsByTagName('linearGradient').length, 1);
+    assert_equals(doc.getElementsByTagNameNS('*', 'linearGradient').length, 1);
+    assert_equals(doc.getElementsByTagNameNS('http://www.w3.org/2000/svg', 'linearGradient').length, 1);
+    assert_equals(doc.getElementsByTagNameNS('http://www.w3.org/1999/xhtml', 'linearGradient').length, 0);
+
+    assert_equals(hostOpen.getElementsByTagName('linearGradient').length, 0);
+    assert_equals(hostOpen.getElementsByTagNameNS('*', 'linearGradient').length, 0);
+    assert_equals(hostOpen.getElementsByTagNameNS('http://www.w3.org/2000/svg', 'linearGradient').length, 0);
+    assert_equals(hostOpen.getElementsByTagNameNS('http://www.w3.org/1999/xhtml', 'linearGradient').length, 0);
+
+    assert_equals(hostClosed.getElementsByTagName('linearGradient').length, 0);
+    assert_equals(hostClosed.getElementsByTagNameNS('*', 'linearGradient').length, 0);
+    assert_equals(hostClosed.getElementsByTagNameNS('http://www.w3.org/2000/svg', 'linearGradient').length, 0);
+    assert_equals(hostClosed.getElementsByTagNameNS('http://www.w3.org/1999/xhtml', 'linearGradient').length, 0);
+
+    // ShadowRoot isn't an Element, does not have getElementsByTagNameNS().
+}, 'getElementsByTagNameNS() should not leak nodes in shadow tree');
+</script>
+</html>

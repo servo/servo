@@ -57,11 +57,10 @@ fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
 #[cfg(not(feature = "webdriver"))]
 fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 
-use compositing::CompositorEventListener;
 use compositing::compositor_thread::InitialCompositorState;
 use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
-use compositing::{CompositorProxy, CompositorThread};
+use compositing::{CompositorProxy, CompositorThread, IOCompositor};
 #[cfg(not(target_os = "windows"))]
 use constellation::content_process_sandbox_profile;
 use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
@@ -97,13 +96,12 @@ pub use gleam::gl;
 /// application Servo is embedded in. Clients then create an event
 /// loop to pump messages between the embedding application and
 /// various browser components.
-pub struct Browser {
-    compositor: Box<CompositorEventListener + 'static>,
+pub struct Browser<Window: WindowMethods + 'static> {
+    compositor: IOCompositor<Window>,
 }
 
-impl Browser {
-    pub fn new<Window>(window: Rc<Window>) -> Browser
-                       where Window: WindowMethods + 'static {
+impl<Window> Browser<Window> where Window: WindowMethods + 'static {
+    pub fn new(window: Rc<Window>) -> Browser<Window> {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 

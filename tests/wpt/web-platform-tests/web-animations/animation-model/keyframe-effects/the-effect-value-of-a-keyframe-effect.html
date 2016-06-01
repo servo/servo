@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Keyframe handling tests</title>
+<link rel="help" href="https://w3c.github.io/web-animations/#the-effect-value-of-a-keyframe-animation-effect">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<div id="target"></div>
+<script>
+'use strict';
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate([ { offset: 0, opacity: 0 },
+                           { offset: 0, opacity: 0.1 },
+                           { offset: 0, opacity: 0.2 },
+                           { offset: 1, opacity: 0.8 },
+                           { offset: 1, opacity: 0.9 },
+                           { offset: 1, opacity: 1 } ],
+                         { duration: 1000,
+                           easing: 'cubic-bezier(0.5, -0.5, 0.5, 1.5)' });
+  assert_equals(getComputedStyle(div).opacity, '0.2',
+                'When progress is zero the last keyframe with offset 0 should'
+                + ' be used');
+  // http://cubic-bezier.com/#.5,-0.5,.5,1.5
+  // At t=0.15, the progress should be negative
+  anim.currentTime = 150;
+  assert_equals(getComputedStyle(div).opacity, '0',
+                'When progress is negative, the first keyframe with a 0 offset'
+                + ' should be used');
+  // At t=0.71, the progress should be just less than 1
+  anim.currentTime = 710;
+  assert_approx_equals(parseFloat(getComputedStyle(div).opacity), 0.8, 0.01,
+                'When progress is just less than 1, the first keyframe with an'
+                + ' offset of 1 should be used as the interval endpoint');
+  // At t=0.85, the progress should be > 1
+  anim.currentTime = 850;
+  assert_equals(getComputedStyle(div).opacity, '1',
+                'When progress is greater than 1.0, the last keyframe with a 1'
+                + ' offset should be used');
+  anim.finish();
+  assert_equals(getComputedStyle(div).opacity, '1',
+                'When progress is equal to 1.0, the last keyframe with a 1'
+                + ' offset should be used');
+}, 'Overlapping keyframes at 0 and 1 use the appropriate value when the'
+   + ' progress is outside the range [0, 1]');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate([ { offset: 0, opacity: 0 },
+                           { offset: 0.5, opacity: 0.3 },
+                           { offset: 0.5, opacity: 0.5 },
+                           { offset: 0.5, opacity: 0.7 },
+                           { offset: 1, opacity: 1 } ], 1000);
+  anim.currentTime = 250;
+  assert_equals(getComputedStyle(div).opacity, '0.15',
+                'Before the overlap point, the first keyframe from the'
+                + ' overlap point should be used as interval endpoint');
+  anim.currentTime = 500;
+  assert_equals(getComputedStyle(div).opacity, '0.7',
+                'At the overlap point, the last keyframe from the'
+                + ' overlap point should be used as interval startpoint');
+  anim.currentTime = 750;
+  assert_equals(getComputedStyle(div).opacity, '0.85',
+                'After the overlap point, the last keyframe from the'
+                + ' overlap point should be used as interval startpoint');
+}, 'Overlapping keyframes between 0 and 1 use the appropriate value on each'
+   + ' side of the overlap point');
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ visibility: ['hidden','visible'] },
+                         { duration: 100 * MS_PER_SEC, fill: 'both' });
+
+  anim.currentTime = 0;
+  assert_equals(getComputedStyle(div).visibility, 'hidden',
+                'Visibility when progress = 0.');
+
+  anim.currentTime = 10 * MS_PER_SEC + 1;
+  assert_equals(getComputedStyle(div).visibility, 'visible',
+                'Visibility when progress > 0 due to linear easing.');
+
+  anim.finish();
+  assert_equals(getComputedStyle(div).visibility, 'visible',
+                'Visibility when progress = 1.');
+
+}, "Test visibility clamping behavior.");
+
+test(function(t) {
+  var div = createDiv(t);
+  var anim = div.animate({ visibility: ['hidden', 'visible'] },
+                         { duration: 100 * MS_PER_SEC, fill: 'both',
+                           easing: 'cubic-bezier(0.25, -0.6, 0, 0.5)' });
+
+  anim.currentTime = 0;
+  assert_equals(getComputedStyle(div).visibility, 'hidden',
+                'Visibility when progress = 0.');
+
+  // Timing function is below zero. So we expected visibility is hidden.
+  anim.currentTime = 10 * MS_PER_SEC + 1;
+  assert_equals(getComputedStyle(div).visibility, 'hidden',
+                'Visibility when progress < 0 due to cubic-bezier easing.');
+
+  anim.currentTime = 60 * MS_PER_SEC;
+  assert_equals(getComputedStyle(div).visibility, 'visible',
+                'Visibility when progress > 0 due to cubic-bezier easing.');
+
+}, "Test visibility clamping behavior with an easing that has a negative component");
+
+done();
+</script>
+</body>

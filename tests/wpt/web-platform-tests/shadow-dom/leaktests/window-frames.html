@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name='author' title='Google' href='http://www.google.com'>
+<meta name='assert' content='Shadow DOM should not leak via window.frames.'>
+<link rel='help' href='https://w3c.github.io/webcomponents/spec/shadow/'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+</head>
+<body>
+<div id='log'></div>
+<iframe src='about:blank' name='mainFrame1'></iframe>
+<div id='host-open'></div>
+<div id='host-closed'></div>
+</body>
+<script>
+'use strict';
+
+var host_open = document.getElementById('host-open');
+var root_open = host_open.attachShadow({mode: 'open'});
+root_open.innerHTML = '<iframe src="about:blank" name="shadowFrame1"></iframe>';
+
+var host_closed = document.getElementById('host-closed');
+var root_closed = host_closed.attachShadow({mode: 'closed'});
+root_closed.innerHTML = '<iframe src="about:blank" name="shadowFrame2"></iframe>';
+
+test(() => {
+  assert_equals(window.frames.length, 1, 'window.frames should return only frames in document.');
+  assert_equals(window.frames[0].name, 'mainFrame1', 'window.frames[0] should be mainFrame1.');
+  assert_equals(window.frames['mainFrame1'], window.frames[0], 'window.frames[\'mainFrame1\'] should be equal to mainFrame1.');
+  assert_equals(window.frames['shadowFrame1'], undefined, 'shadowFrame1 should not leak.');
+  assert_equals(window.frames['shadowFrame2'], undefined, 'shadowFrame2 should not leak.');
+
+}, 'window.frames should not leak frames in Shadow DOM.');
+</script>
+</html>

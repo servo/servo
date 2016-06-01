@@ -700,7 +700,7 @@ impl Element {
 
     // this sync method is called upon modification of the style_attribute property,
     // therefore, it should not trigger subsequent mutation events
-    fn sync_property_with_attrs_style(&self) {
+    pub fn sync_property_with_attrs_style(&self) {
         let style_str = if let &Some(ref declarations) = &*self.style_attribute().borrow() {
             declarations.to_css_string()
         } else {
@@ -1299,7 +1299,10 @@ impl Element {
         }
 
         // Step 5
-        let win = doc.DefaultView();
+        let win = match doc.GetDefaultView() {
+            None => return,
+            Some(win) => win,
+        };
 
         // Step 7
         if *self.root_element() == *self {
@@ -1637,7 +1640,10 @@ impl ElementMethods for Element {
         }
 
         // Step 3
-        let win = doc.DefaultView();
+        let win = match doc.GetDefaultView() {
+            None => return 0.0,
+            Some(win) => win,
+        };
 
         // Step 5
         if *self.root_element() == *self {
@@ -1685,7 +1691,10 @@ impl ElementMethods for Element {
         }
 
         // Step 5
-        let win = doc.DefaultView();
+        let win = match doc.GetDefaultView() {
+            None => return,
+            Some(win) => win,
+        };
 
         // Step 7
         if *self.root_element() == *self {
@@ -1723,7 +1732,10 @@ impl ElementMethods for Element {
         }
 
         // Step 3
-        let win = doc.DefaultView();
+        let win = match doc.GetDefaultView() {
+            None => return 0.0,
+            Some(win) => win,
+        };
 
         // Step 5
         if *self.root_element() == *self {
@@ -1771,7 +1783,10 @@ impl ElementMethods for Element {
         }
 
         // Step 5
-        let win = doc.DefaultView();
+        let win = match doc.GetDefaultView() {
+            None => return,
+            Some(win) => win,
+        };
 
         // Step 7
         if *self.root_element() == *self {

@@ -6,6 +6,7 @@
 use about_loader;
 use chrome_loader;
 use connector::{Connector, create_http_connector};
+use content_blocker::BLOCKED_CONTENT_RULES;
 use cookie;
 use cookie_storage::CookieStorage;
 use data_loader;
@@ -210,7 +211,7 @@ impl ResourceChannelManager {
                 CoreResourceMsg::Synchronize(sender) => {
                     let _ = sender.send(());
                 }
-                CoreResourceMsg::Exit => {
+                CoreResourceMsg::Exit(sender) => {
                     if let Some(ref config_dir) = opts::get().config_dir {
                         match self.resource_manager.auth_cache.read() {
                             Ok(auth_cache) => write_json_to_file(&*auth_cache, config_dir, "auth_cache.json"),
@@ -225,6 +226,7 @@ impl ResourceChannelManager {
                             Err(_) => warn!("Error writing hsts list to disk"),
                         }
                     }
+                    let _ = sender.send(());
                     break;
                 }
 
@@ -453,7 +455,8 @@ impl CoreResourceManager {
                 let http_state = HttpState {
                     hsts_list: self.hsts_list.clone(),
                     cookie_jar: self.cookie_jar.clone(),
-                    auth_cache: self.auth_cache.clone()
+                    auth_cache: self.auth_cache.clone(),
+                    blocked_content: BLOCKED_CONTENT_RULES.clone(),
                 };
                 http_loader::factory(self.user_agent.clone(),
                                      http_state,

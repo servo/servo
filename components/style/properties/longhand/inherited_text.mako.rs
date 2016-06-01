@@ -15,6 +15,9 @@
     #[derive(Debug, Clone, PartialEq, Copy, HeapSizeOf)]
     pub enum SpecifiedValue {
         Normal,
+        % if product == "gecko":
+            MozBlockHeight,
+        % endif
         Number(CSSFloat),
         LengthOrPercentage(specified::LengthOrPercentage),
     }
@@ -23,6 +26,9 @@
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
                 SpecifiedValue::Normal => dest.write_str("normal"),
+                % if product == "gecko":
+                    SpecifiedValue::MozBlockHeight => dest.write_str("-moz-block-height"),
+                % endif
                 SpecifiedValue::LengthOrPercentage(value) => value.to_css(dest),
                 SpecifiedValue::Number(number) => write!(dest, "{}", number),
             }
@@ -42,6 +48,11 @@
                 Token::Ident(ref value) if value.eq_ignore_ascii_case("normal") => {
                     Ok(SpecifiedValue::Normal)
                 }
+                % if product == "gecko":
+                Token::Ident(ref value) if value.eq_ignore_ascii_case("-moz-block-height") => {
+                    Ok(SpecifiedValue::MozBlockHeight)
+                }
+                % endif
                 _ => Err(()),
             }
         })
@@ -53,6 +64,9 @@
         #[derive(PartialEq, Copy, Clone, HeapSizeOf, Debug)]
         pub enum T {
             Normal,
+            % if product == "gecko":
+                MozBlockHeight,
+            % endif
             Length(Au),
             Number(CSSFloat),
         }
@@ -61,6 +75,9 @@
         fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
             match *self {
                 computed_value::T::Normal => dest.write_str("normal"),
+                % if product == "gecko":
+                    computed_value::T::MozBlockHeight => dest.write_str("-moz-block-height"),
+                % endif
                 computed_value::T::Length(length) => length.to_css(dest),
                 computed_value::T::Number(number) => write!(dest, "{}", number),
             }
@@ -76,6 +93,9 @@
         fn to_computed_value<Cx: TContext>(&self, context: &Cx) -> computed_value::T {
             match *self {
                 SpecifiedValue::Normal => computed_value::T::Normal,
+                % if product == "gecko":
+                    SpecifiedValue::MozBlockHeight => computed_value::T::MozBlockHeight,
+                % endif
                 SpecifiedValue::Number(value) => computed_value::T::Number(value),
                 SpecifiedValue::LengthOrPercentage(value) => {
                     match value {

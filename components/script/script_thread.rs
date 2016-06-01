@@ -30,6 +30,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootCollection};
 use dom::bindings::js::{RootCollectionPtr, RootedReference};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted};
+use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WRAP_CALLBACKS;
@@ -54,7 +55,8 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{DOMProxyShadowsResult, HandleId, HandleObject, RootedValue};
-use js::jsapi::{JSContext, JS_SetWrapObjectCallbacks, JSTracer, SetWindowProxyClass};
+use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
+use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_interface::{self, NewLayoutThreadInfo, ReflowQueryType};
@@ -477,11 +479,11 @@ pub unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
 }
 
 impl ScriptThread {
-    pub fn page_fetch_complete(id: &PipelineId, subpage: Option<&SubpageId>, metadata: Option<Metadata>)
-                               -> Option<ParserRoot> {
+    pub fn page_headers_available(id: &PipelineId, subpage: Option<&SubpageId>, metadata: Option<Metadata>)
+                                  -> Option<ParserRoot> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.borrow().unwrap() };
-            script_thread.handle_page_fetch_complete(id, subpage, metadata)
+            script_thread.handle_page_headers_available(id, subpage, metadata)
         })
     }
 
@@ -519,7 +521,7 @@ impl ScriptThread {
                port: Receiver<MainThreadScriptMsg>,
                chan: Sender<MainThreadScriptMsg>)
                -> ScriptThread {
-        let runtime = unsafe { new_rt_and_cx(ptr::null_mut()) };
+        let runtime = unsafe { new_rt_and_cx() };
 
         unsafe {
             JS_SetWrapObjectCallbacks(runtime.rt(),
@@ -706,6 +708,11 @@ impl ScriptThread {
                         self.handle_viewport(id, rect);
                     })
                 }
+                FromConstellation(ConstellationControlMsg::SetScrollState(id, scroll_offset)) => {
+                    self.profile_event(ScriptThreadEventCategory::SetScrollState, || {
+                        self.handle_set_scroll_state(id, &scroll_offset);
+                    })
+                }
                 FromConstellation(ConstellationControlMsg::TickAllAnimations(
                         pipeline_id)) => {
                     if !animation_ticks.contains(&pipeline_id) {
@@ -848,6 +855,9 @@ impl ScriptThread {
                 ScriptThreadEventCategory::NetworkEvent => ProfilerCategory::ScriptNetworkEvent,
                 ScriptThreadEventCategory::Resize => ProfilerCategory::ScriptResize,
                 ScriptThreadEventCategory::ScriptEvent => ProfilerCategory::ScriptEvent,
+                ScriptThreadEventCategory::SetScrollState => {
+                    ProfilerCategory::ScriptSetScrollState
+                }
                 ScriptThreadEventCategory::UpdateReplacedElement => {
                     ProfilerCategory::ScriptUpdateReplacedElement
                 }
@@ -875,6 +885,8 @@ impl ScriptThread {
                 self.handle_resize_inactive_msg(id, new_size),
             ConstellationControlMsg::Viewport(..) =>
                 panic!("should have handled Viewport already"),
+            ConstellationControlMsg::SetScrollState(..) =>
+                panic!("should have handled SetScrollState already"),
             ConstellationControlMsg::Resize(..) =>
                 panic!("should have handled Resize already"),
             ConstellationControlMsg::ExitPipeline(..) =>
@@ -1073,6 +1085,19 @@ impl ScriptThread {
             return;
         }
         panic!("Page rect message sent to nonexistent pipeline");
+    }
+
+    fn handle_set_scroll_state(&self, id: PipelineId, scroll_state: &Point2D<f32>) {
+        let context = self.browsing_context.get();
+        if let Some(context) = context {
+            if let Some(inner_context) = context.find(id) {
+                let window = inner_context.active_window();
+                window.update_viewport_for_scroll(-scroll_state.x, -scroll_state.y);
+                return
+            }
+        }
+
+        panic!("Set scroll state message message sent to nonexistent pipeline: {:?}", id);
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {
@@ -1297,8 +1322,8 @@ impl ScriptThread {
 
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
-    fn handle_page_fetch_complete(&self, id: &PipelineId, subpage: Option<&SubpageId>,
-                                  metadata: Option<Metadata>) -> Option<ParserRoot> {
+    fn handle_page_headers_available(&self, id: &PipelineId, subpage: Option<&SubpageId>,
+                                     metadata: Option<Metadata>) -> Option<ParserRoot> {
         let idx = self.incomplete_loads.borrow().iter().position(|load| {
             load.pipeline_id == *id && load.parent_info.as_ref().map(|info| &info.1) == subpage
         });
@@ -1548,9 +1573,9 @@ impl ScriptThread {
             }
         });
 
-        let loader = DocumentLoader::new_with_thread(Arc::new(self.resource_threads.sender()),
-                                                     Some(browsing_context.pipeline()),
-                                                     Some(incomplete.url.clone()));
+        let loader = DocumentLoader::new_with_threads(self.resource_threads.clone(),
+                                                      Some(browsing_context.pipeline()),
+                                                      Some(incomplete.url.clone()));
 
         let is_html_document = match metadata.content_type {
             Some(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _))) |
@@ -1599,6 +1624,7 @@ impl ScriptThread {
 
             // Script source is ready to be evaluated (11.)
             unsafe {
+                let _ac = JSAutoCompartment::new(self.get_cx(), window.reflector().get_jsobject().get());
                 let mut jsval = RootedValue::new(self.get_cx(), UndefinedValue());
                 window.evaluate_js_on_global_with_result(&script_source, jsval.handle_mut());
                 let strval = DOMString::from_jsval(self.get_cx(),
