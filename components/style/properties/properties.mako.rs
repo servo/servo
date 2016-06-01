@@ -1166,6 +1166,13 @@ pub mod style_structs {
                 fn outline_has_nonzero_width(&self) -> bool {
                     self.outline_width != ::app_units::Au(0)
                 }
+            % elif style_struct.trait_name == "Position":
+                fn clone_align_items(&self) -> longhands::align_items::computed_value::T {
+                    self.align_items.clone()
+                }
+                fn clone_align_self(&self) -> longhands::align_self::computed_value::T {
+                    self.align_self.clone()
+                }
             % elif style_struct.trait_name == "Text":
                 <% text_decoration_field = 'text_decoration' if product == 'servo' else 'text_decoration_line' %>
                 fn has_underline(&self) -> bool {
@@ -1889,6 +1896,23 @@ pub fn cascade<C: ComputedValues>(
                 style.mutate_box().set_overflow_y(overflow_y::T(overflow::auto));
             }
             _ => {}
+        }
+    }
+
+    {
+        use self::style_struct_traits::Position;
+        use computed_values::align_self::T as align_self;
+        use computed_values::align_items::T as align_items;
+        if style.get_position().clone_align_self() == computed_values::align_self::T::auto && !positioned {
+            let self_align =
+                match context.inherited_style.get_position().clone_align_items() {
+                    align_items::stretch => align_self::stretch,
+                    align_items::baseline => align_self::baseline,
+                    align_items::flex_start => align_self::flex_start,
+                    align_items::flex_end => align_self::flex_end,
+                    align_items::center => align_self::center,
+                };
+            style.mutate_position().set_align_self(self_align);
         }
     }
 
