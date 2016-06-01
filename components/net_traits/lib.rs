@@ -411,7 +411,7 @@ pub struct WebSocketConnectData {
 pub enum CoreResourceMsg {
     /// Request the data associated with a particular URL
     Load(LoadData, LoadConsumer, Option<IpcSender<ResourceId>>),
-    Fetch(LoadData, IpcSender<FetchResponseMsg>),
+    Fetch(request::RequestInit, IpcSender<FetchResponseMsg>),
     /// Try to make a websocket connection to a URL.
     WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
     /// Store a set of cookies for a given originating URL

@@ -33,7 +33,7 @@ use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncoderTrap, Encoding, EncodingRef};
 use euclid::length::Length;
 use hyper::header::Headers;
-use hyper::header::{Accept, ContentLength, ContentType, qitem};
+use hyper::header::{ContentLength, ContentType};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{self, Mime};
@@ -45,7 +45,8 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::{FetchResponseListener, Metadata, NetworkError, RequestSource};
-use net_traits::{LoadContext, LoadData, CoreResourceThread, LoadOrigin};
+use net_traits::{CoreResourceThread, LoadOrigin};
+use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
 use network_listener::{NetworkListener, PreInvoke};
 use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
@@ -137,7 +138,6 @@ pub struct XMLHttpRequest {
     request_body_len: Cell<usize>,
     sync: Cell<bool>,
     upload_complete: Cell<bool>,
-    upload_events: Cell<bool>,
     send_flag: Cell<bool>,
 
     timeout_cancel: DOMRefCell<Option<OneshotTimerHandle>>,
@@ -172,7 +172,6 @@ impl XMLHttpRequest {
             request_body_len: Cell::new(0),
             sync: Cell::new(false),
             upload_complete: Cell::new(false),
-            upload_events: Cell::new(false),
             send_flag: Cell::new(false),
 
             timeout_cancel: DOMRefCell::new(None),
@@ -202,7 +201,7 @@ impl XMLHttpRequest {
     fn initiate_async_xhr(context: Arc<Mutex<XHRContext>>,
                           script_chan: Box<ScriptChan + Send>,
                           core_resource_thread: CoreResourceThread,
-                          load_data: LoadData) {
+                          init: RequestInit) {
         impl FetchResponseListener for XHRContext {
                 fn process_request_body(&mut self) {
                     // todo
@@ -251,7 +250,7 @@ impl XMLHttpRequest {
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify_fetch(message.to().unwrap());
         });
-        core_resource_thread.send(Fetch(load_data, action_sender)).unwrap();
+        core_resource_thread.send(Fetch(init, action_sender)).unwrap();
     }
 }
 
@@ -514,8 +513,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         let extracted = data.as_ref().map(|d| d.extract());
         self.request_body_len.set(extracted.as_ref().map_or(0, |e| e.0.len()));
 
+        // todo preserved headers?
+
         // Step 6
-        self.upload_events.set(false);
+        self.upload_complete.set(false);
         // Step 7
         self.upload_complete.set(match extracted {
             None => true,
@@ -527,11 +528,6 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
         // Step 9
         if !self.sync.get() {
-            let event_target = self.upload.upcast::<EventTarget>();
-            if event_target.has_handlers() {
-                self.upload_events.set(true);
-            }
-
             // If one of the event handlers below aborts the fetch by calling
             // abort or open we will need the current generation id to detect it.
             // Substep 1
@@ -551,45 +547,49 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         }
 
         // Step 5
-        let global = self.global();
-        //TODO - set referrer_policy/referrer_url in load_data
-        let mut load_data =
-            LoadData::new(LoadContext::Browsing,
-                          self.request_url.borrow().clone().unwrap(),
-                          self);
-        if load_data.url.origin().ne(&global.r().get_url().origin()) {
-            load_data.credentials_flag = self.WithCredentials();
-        }
-        load_data.data = extracted.as_ref().map(|e| e.0.clone());
-
+        //TODO - set referrer_policy/referrer_url in request
+        let has_handlers = self.upload.upcast::<EventTarget>().has_handlers();
+        let credentials_mode = if self.with_credentials.get() {
+            CredentialsMode::Include
+        } else {
+            CredentialsMode::CredentialsSameOrigin
+        };
+        let use_url_credentials = if let Some(ref url) = *self.request_url.borrow() {
+            url.username().len() != 0 || url.password().is_some()
+        } else {
+            unreachable!()
+        };
+        let mut request = RequestInit {
+            method: self.request_method.borrow().clone(),
+            url: self.request_url.borrow().clone().unwrap(),
+            headers: (*self.request_headers.borrow()).clone(),
+            unsafe_request: true,
+            same_origin_data: true,
+            // XXXManishearth figure out how to avoid this clone
+            body: extracted.as_ref().map(|e| e.0.clone()),
+            // XXXManishearth actually "subresource", but it doesn't exist
+            // https://github.com/whatwg/xhr/issues/71
+            destination: Destination::None,
+            synchronous: self.sync.get(),
+            mode: RequestMode::CORSMode,
+            use_cors_preflight: has_handlers,
+            credentials_mode: credentials_mode,
+            use_url_credentials: use_url_credentials,
+        };
         // XHR spec differs from http, and says UTF-8 should be in capitals,
         // instead of "utf-8", which is what Hyper defaults to. So not
         // using content types provided by Hyper.
         let n = "content-type";
         match extracted {
             Some((_, Some(ref content_type))) =>
-                load_data.headers.set_raw(n.to_owned(), vec![content_type.bytes().collect()]),
+                request.headers.set_raw(n.to_owned(), vec![content_type.bytes().collect()]),
             _ => (),
         }
-
-        load_data.preserved_headers = (*self.request_headers.borrow()).clone();
-
-        if !load_data.preserved_headers.has::<Accept>() {
-            let mime = Mime(mime::TopLevel::Star, mime::SubLevel::Star, vec![]);
-            load_data.preserved_headers.set(Accept(vec![qitem(mime)]));
-        }
-
-        load_data.method = (*self.request_method.borrow()).clone();
-
-        // CORS stuff
-        let global = self.global();
-        let mut combined_headers = load_data.headers.clone();
-        combined_headers.extend(load_data.preserved_headers.iter());
 
         debug!("request_headers = {:?}", *self.request_headers.borrow());
 
         self.fetch_time.set(time::now().to_timespec().sec);
-        let rv = self.fetch(load_data, global.r());
+        let rv = self.fetch(request, self.global().r());
         // Step 10
         if self.sync.get() {
             return rv;
@@ -1216,7 +1216,7 @@ impl XMLHttpRequest {
     }
 
     fn fetch(&self,
-              load_data: LoadData,
+              init: RequestInit,
               global: GlobalRef) -> ErrorResult {
 
         let xhr = Trusted::new(self);
@@ -1237,7 +1237,7 @@ impl XMLHttpRequest {
 
         let core_resource_thread = global.core_resource_thread();
         XMLHttpRequest::initiate_async_xhr(context.clone(), script_chan,
-                                           core_resource_thread, load_data);
+                                           core_resource_thread, init);
 
         if let Some(script_port) = script_port {
             loop {

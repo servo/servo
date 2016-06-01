@@ -25,7 +25,7 @@ pub enum Type {
 }
 
 /// A request [destination](https://fetch.spec.whatwg.org/#concept-request-destination)
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Destination {
     None, Document, Embed, Font, Image, Manifest,
     Media, Object, Report, Script, ServiceWorker,
@@ -49,7 +49,7 @@ pub enum Referer {
 }
 
 /// A [request mode](https://fetch.spec.whatwg.org/#concept-request-mode)
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum RequestMode {
     Navigate,
     SameOrigin,
@@ -58,7 +58,7 @@ pub enum RequestMode {
 }
 
 /// Request [credentials mode](https://fetch.spec.whatwg.org/#concept-request-credentials-mode)
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum CredentialsMode {
     Omit,
     CredentialsSameOrigin,
@@ -105,6 +105,23 @@ pub enum Window {
 pub enum CORSSettings {
     Anonymous,
     UseCredentials
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct RequestInit {
+    pub method: Method,
+    pub url: Url,
+    pub headers: Headers,
+    pub unsafe_request: bool,
+    pub same_origin_data: bool,
+    pub body: Option<Vec<u8>>,
+    // TODO: cleint object
+    pub destination: Destination,
+    pub synchronous: bool,
+    pub mode: RequestMode,
+    pub use_cors_preflight: bool,
+    pub credentials_mode: CredentialsMode,
+    pub use_url_credentials: bool,
 }
 
 /// A [Request](https://fetch.spec.whatwg.org/#requests) as defined by the Fetch spec
@@ -184,6 +201,22 @@ impl Request {
             response_tainting: Cell::new(ResponseTainting::Basic),
             done: Cell::new(false)
         }
+    }
+
+    pub fn from_init(init: RequestInit) -> Request {
+        let mut req = Request::new(init.url, None, false);
+        *req.method.borrow_mut() = init.method;
+        *req.headers.borrow_mut() = init.headers;
+        req.unsafe_request = init.unsafe_request;
+        req.same_origin_data.set(init.same_origin_data);
+        *req.body.borrow_mut() = init.body;
+        req.destination = init.destination;
+        req.synchronous = init.synchronous;
+        req.mode = init.mode;
+        req.use_cors_preflight = init.use_cors_preflight;
+        req.credentials_mode = init.credentials_mode;
+        req.use_url_credentials = init.use_url_credentials;
+        req
     }
 
     /// https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
