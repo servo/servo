@@ -88,6 +88,7 @@ extern crate webrender_traits;
 extern crate websocket;
 extern crate xml5ever;
 
+mod blob_url_store;
 pub mod bluetooth_blacklist;
 pub mod clipboard_provider;
 pub mod cors;

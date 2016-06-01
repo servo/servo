@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use blob_url_store::BlobURLStore;
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId, DevtoolsPageInfo};
+use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WorkerGlobalScopeBinding::WorkerGlobalScopeMethods;
 use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
@@ -113,6 +115,9 @@ pub struct WorkerGlobalScope {
     console: MutNullableHeap<JS<Console>>,
     crypto: MutNullableHeap<JS<Crypto>>,
     timers: OneshotTimers,
+    /// Blob URL store
+    blob_url_store: DOMRefCell<BlobURLStore>,
+
     #[ignore_heap_size_of = "Defined in std"]
     mem_profiler_chan: mem::ProfilerChan,
     #[ignore_heap_size_of = "Defined in std"]
@@ -172,6 +177,7 @@ impl WorkerGlobalScope {
             console: Default::default(),
             crypto: Default::default(),
             timers: OneshotTimers::new(timer_event_chan, init.scheduler_chan.clone()),
+            blob_url_store: DOMRefCell::new(BlobURLStore::new()),
             mem_profiler_chan: init.mem_profiler_chan,
             time_profiler_chan: init.time_profiler_chan,
             to_devtools_sender: init.to_devtools_sender,
