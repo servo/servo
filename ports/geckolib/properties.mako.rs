@@ -807,11 +807,10 @@ fn static_assert() {
                         };
 
                         unsafe {
-                            Gecko_SetGradientStop(gecko_gradient,
-                                                  index as u32,
-                                                  &coord,
-                                                  color,
-                                                  /* interpolation_hint = */ false);
+                            let mut stop = &mut (*gecko_gradient).mStops[index as u32];
+                            stop.mColor = color;
+                            stop.mIsInterpolationHint = false;
+                            stop.mLocation.copy_from(&coord);
                         }
                     }
 
