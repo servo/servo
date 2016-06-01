@@ -22,7 +22,7 @@ use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::WorkerGlobalScopeInit;
 use ipc_channel::ipc;
 use js::jsapi::{HandleValue, JSContext, JSRuntime, RootedValue};
-use js::jsapi::{JSAutoCompartment, JS_GetRuntime, JS_RequestInterruptCallback};
+use js::jsapi::{JSAutoCompartment, JS_RequestInterruptCallback};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
@@ -146,10 +146,8 @@ impl Worker {
             closing: closing,
         };
 
-        let shared_rt = SharedRt { rt: unsafe { JS_GetRuntime(global.get_cx()) } };
-
         DedicatedWorkerGlobalScope::run_worker_scope(
-            init, worker_url, global.pipeline(), devtools_receiver, shared_rt, worker.runtime.clone(), worker_ref,
+            init, worker_url, global.pipeline(), devtools_receiver, worker.runtime.clone(), worker_ref,
             global.script_chan(), sender, receiver, worker_load_origin);
 
         Ok(worker)

@@ -1932,12 +1932,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                     scroll_offset: scroll_layer_state.scroll_offset,
                 };
                 let pipeline_id = scroll_layer_state.pipeline_id;
-                match stacking_context_scroll_states_per_pipeline.entry(pipeline_id) {
-                    Vacant(mut entry) => {
-                        entry.insert(vec![stacking_context_scroll_state]);
-                    }
-                    Occupied(mut entry) => entry.get_mut().push(stacking_context_scroll_state),
-                }
+                stacking_context_scroll_states_per_pipeline
+                    .entry(pipeline_id)
+                    .or_insert(vec![])
+                    .push(stacking_context_scroll_state);
             }
 
             for (pipeline_id, stacking_context_scroll_states) in
