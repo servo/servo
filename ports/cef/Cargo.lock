@@ -39,7 +39,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "angle"
 version = "0.1.0"
-source = "git+https://github.com/emilio/angle?branch=servo#eefe3506ae13e8ace811ca544fd6b4a5f0db0a04"
+source = "git+https://github.com/servo/angle?branch=servo#eefe3506ae13e8ace811ca544fd6b4a5f0db0a04"
 dependencies = [
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -1724,7 +1724,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "script"
 version = "0.0.1"
 dependencies = [
- "angle 0.1.0 (git+https://github.com/emilio/angle?branch=servo)",
+ "angle 0.1.0 (git+https://github.com/servo/angle?branch=servo)",
  "app_units 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 0.7.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "canvas 0.0.1",
