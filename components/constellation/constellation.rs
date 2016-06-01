@@ -562,7 +562,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         match message {
             FromResourceMsg::IsPrivate(pipeline_id, sender) => {
                 debug!("constellation got IsPrivate message");
-                let _ = sender.send(self.check_is_pipeline_private(pipeline_id));
+                let is_private = match self.pipelines.get(&pipeline_id) {
+                    Some(pipeline) => pipeline.is_private,
+                    None => {
+                        warn!("Finding private status for pipeline {} after closure.", pipeline_id);
+                        false
+                    }
+                };
+
+                let _ = sender.send(is_private);
             }
         }
     }
@@ -1047,7 +1055,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             .and_then(|old_subpage_id| self.subpage_map.get(&(load_info.containing_pipeline_id, old_subpage_id)))
             .cloned();
 
-        let (load_data, script_chan, window_size) = {
+        let (load_data, script_chan, window_size, parent_is_private) = {
             let old_pipeline = old_pipeline_id
                 .and_then(|old_pipeline_id| self.pipelines.get(&old_pipeline_id));
 
@@ -1094,9 +1102,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 old_pipeline.freeze();
             }
 
-            (load_data, script_chan, window_size)
+            (load_data, script_chan, window_size, source_pipeline.is_private)
 
         };
+
+        let is_private = load_info.is_private || parent_is_private;
 
         // Create the new pipeline, attached to the parent and push to pending frames
         self.new_pipeline(load_info.new_pipeline_id,
@@ -1104,7 +1114,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                           window_size,
                           script_chan,
                           load_data,
-                          load_info.is_private);
+                          is_private);
 
         self.subpage_map.insert((load_info.containing_pipeline_id, load_info.new_subpage_id),
                                 load_info.new_pipeline_id);
@@ -1893,25 +1903,6 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
         // All script threads are idle and layout epochs match compositor, so output image!
         ReadyToSave::Ready
-    }
-
-    /// Checks whether the pipeline or its ancestors are private
-    #[allow(dead_code)]
-    fn check_is_pipeline_private(&self, mut pipeline_id: PipelineId) -> bool {
-        loop {
-            match self.pipelines.get(&pipeline_id) {
-                Some(pipeline) if pipeline.is_private => return true,
-                Some(pipeline) => match pipeline.parent_info {
-                    None => return false,
-                    Some((_, _, FrameType::MozBrowserIFrame)) => return false,
-                    Some((parent_id, _, _)) => pipeline_id = parent_id,
-                },
-                None => {
-                    warn!("Finding private ancestor for pipeline {} after closure.", pipeline_id);
-                    return false;
-                },
-            }
-        }
     }
 
     // Close a frame (and all children)

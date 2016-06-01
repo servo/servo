@@ -11,7 +11,15 @@
       privateFrame.mozbrowser = true;
       privateFrame.mozprivatebrowsing = true;
 
+      var gotGrandchildResult = false;
+      privateFrame.addEventListener("mozbrowsershowmodalprompt", t.step_func(e => {
+        assert_not_equals(e.detail.message, '');
+        gotGrandchildResult = true;
+      }));
+
       privateFrame.onload = t.step_func(function() {
+        assert_true(gotGrandchildResult);
+
         var parent = privateFrame.parentNode;
         parent.removeChild(privateFrame);
 
