@@ -71,7 +71,7 @@ Cache-Control: no-store, no-cache, must-revalidate
 Cache-Control: post-check=0, pre-check=0, false
 Pragma: no-cache
 Set-Cookie: <span class=highlight2>script-src-1_1</span>={{$id:uuid()}}; Path=<span class=highlight2>/content-security-policy/script-src/</span>
-Content-Security-Policy: <span class=highlight1>script-src 'self'</span>; report-uri  <span class=highlight2>..</span>/support/report.py?op=put&reportID={{$id}}
+Content-Security-Policy: <span class=highlight1>script-src 'self'</span>; report-url  <span class=highlight2>..</span>/support/report.py?op=put&reportID={{$id}}
         </code></pre>
     <p>This sets some headers to prevent caching (just so we are more likely to see our latest changes if we're actively developing this test) sets a cookie (more on that later) and sets the relevant <span class=code>Content-Security-Policy</span> header for our test case.</p>
 
@@ -83,7 +83,7 @@ Content-Security-Policy: <span class=highlight1>script-src 'self'</span>; report
         <span class=code>checkReport.sub.js</span> to check the value of the <span class=code>
         violated-directive</span> key in the report JSON. So it needs to match (after URL encoding) the directive we set in the header.</p>
 
-    <p>The <span class=highlight2>PINK</span> highlighted text is information that must be repeated from the path and filename of your test file into the headers file. The name of the cookie must match the name of the test file without its extension, the path for the cookie must be correct, and the relative path component to the report-uri must also be corrected if you nest your tests more than one directory deep.</p>
+    <p>The <span class=highlight2>PINK</span> highlighted text is information that must be repeated from the path and filename of your test file into the headers file. The name of the cookie must match the name of the test file without its extension, the path for the cookie must be correct, and the relative path component to the report-url must also be corrected if you nest your tests more than one directory deep.</p>
 
     <h2>Check Your Effects!</h2>
     <p>A good test case should also verify the state of the DOM in addition to checking the report - after all, a browser might send a report without actually blocking the banned content. Note that in a browser without CSP support there will be three failures on the example page as the inline script executes.</p>

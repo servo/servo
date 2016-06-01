@@ -1,12 +1,12 @@
 <!doctype html>
 <html>
 	<head>
-		<title>Data URI does not match /</title>
+		<title>Data URL does not match /</title>
 	</head>
 	<body>
 		<!--
 / sets an absolute URL pointing to the document's unique identifier - used as the script origin.
-The script origin will in fact be inherited from the parent page, which is actually the same data URI.
+The script origin will in fact be inherited from the parent page, which is actually the same data URL.
 That part works.
 However, when it comes to matching against it, it will not match, as the global identifier does not
 match because the origin does not match the scheme/host/port tuple required.
@@ -19,7 +19,7 @@ document.write('data:text/html,'+escape(
 '<!doctype html>\
 <html>\
 	<head>\
-		<title>Data URI does not match /<\/title>\
+		<title>Data URL does not match /<\/title>\
 		<style type="text/css">\
 html, body { margin: 0; padding: 0; }\
 div { height: 100px; width: 100px; background: orange; }\

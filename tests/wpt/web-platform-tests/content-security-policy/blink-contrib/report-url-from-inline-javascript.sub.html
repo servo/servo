@@ -3,18 +3,24 @@
 
 <head>
     <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
-    <title>report-blocked-data-uri</title>
+    <title>report-url-from-inline-javascript</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="../support/logTest.sub.js?logs=[]"></script>
     <script src="../support/alertAssert.sub.js?alerts=[]"></script>
     <!-- enforcing policy:
-img-src 'none'; report-uri resources/save-report.php?test=report-blocked-data-uri.html; script-src 'self' 'unsafe-inline'; connect-src 'self';
+img-src 'none'; report-url resources/save-report.php?test=report-url-from-inline-javascript.html; script-src 'self' 'unsafe-inline'; connect-src 'self';
 -->
 </head>
 
 <body>
-    <img src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==">
+    <script>
+        // This script block will trigger a violation report.
+        var i = document.createElement('img');
+        i.src = 'resources/abe.png';
+        document.body.appendChild(i);
+
+    </script>
     <div id="log"></div>
     <script async defer src="../support/checkReport.sub.js?reportExists=true&amp;reportField=violated-directive&amp;reportValue=img-src%20&apos;none&apos;"></script>
 </body>

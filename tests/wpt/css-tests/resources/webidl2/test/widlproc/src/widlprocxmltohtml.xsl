@@ -133,14 +133,14 @@ XSLT stylesheet to convert widlprocxml into html documentation.
         <xsl:if test="descriptive/def-api-feature-set">
             <div id="def-api-feature-sets" class="def-api-feature-sets">
                 <h3 id="features">Feature set</h3>
-                <p>This is the URI used to declare this API's feature set, for use in bondi.requestFeature. For the URL, the list of features included by the feature set is provided.</p>
+                <p>This is the URL used to declare this API's feature set, for use in bondi.requestFeature. For the URL, the list of features included by the feature set is provided.</p>
                 <xsl:apply-templates select="descriptive/def-api-feature-set"/>
             </div>
         </xsl:if>
         <xsl:if test="descriptive/def-api-feature">
             <div id="def-api-features" class="def-api-features">
                 <h3 id="features">Features</h3>
-                <p>This is the list of URIs used to declare this API's features, for use in bondi.requestFeature. For each URL, the list of functions covered is provided.</p>
+                <p>This is the list of URLs used to declare this API's features, for use in bondi.requestFeature. For each URL, the list of functions covered is provided.</p>
                 <xsl:apply-templates select="Interface/descriptive/def-instantiated"/>
                 <xsl:apply-templates select="descriptive/def-api-feature"/>
             </div>
