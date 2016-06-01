@@ -17,6 +17,7 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
+use blob_url_store::BlobURLStore;
 use devtools;
 use devtools_traits::CSSError;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
@@ -317,6 +318,9 @@ pub struct ScriptThread {
     /// A handle to the bluetooth thread.
     bluetooth_thread: IpcSender<BluetoothMethodMsg>,
 
+    /// Blob URL store
+    blob_url_store: BlobURLStore,
+
     /// The port on which the script thread receives messages (load URL, exit, etc.)
     port: Receiver<MainThreadScriptMsg>,
     /// A channel to hand out to script thread-based entities that need to be able to enqueue
@@ -556,6 +560,8 @@ impl ScriptThread {
 
             resource_threads: state.resource_threads,
             bluetooth_thread: state.bluetooth_thread,
+
+            blob_url_store: BlobURLStore::new(),
 
             port: port,
             custom_message_chan: ipc_custom_resp_chan,
