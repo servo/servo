@@ -289,7 +289,7 @@ impl XMLHttpRequest {
             sender: action_sender,
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-            listener.notify(message.to().unwrap());
+            listener.notify_action(message.to().unwrap());
         });
         core_resource_thread.send(Load(load_data, LoadConsumer::Listener(response_target), None)).unwrap();
     }
