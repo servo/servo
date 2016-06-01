@@ -8,18 +8,19 @@ use app_units::Au;
 use azure::AzFloat;
 use azure::azure_hl::{BackendType, Color, DrawTarget, SurfaceFormat};
 use display_list::{DisplayItem, DisplayList, DisplayListTraversal};
-use display_list::{LayerInfo, StackingContext, StackingContextId, StackingContextType};
+use display_list::{LayerInfo, StackingContext, StackingContextType};
 use euclid::Matrix4D;
 use euclid::point::Point2D;
 use euclid::rect::Rect;
 use euclid::size::Size2D;
 use font_cache_thread::FontCacheThread;
 use font_context::FontContext;
+use gfx_traits::StackingContextId;
 use gfx_traits::{Epoch, FrameTreeId, LayerId, LayerKind, LayerProperties, PaintListener};
 use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
-use msg::constellation_msg::{ConstellationChan, PanicMsg, PipelineId};
+use msg::constellation_msg::{PanicMsg, PipelineId};
 use paint_context::PaintContext;
 use profile_traits::mem::{self, ReportsChan};
 use profile_traits::time;
@@ -31,7 +32,7 @@ use std::mem as std_mem;
 use std::sync::Arc;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use url::Url;
-use util::geometry::{ExpandToPixelBoundaries};
+use util::geometry::ExpandToPixelBoundaries;
 use util::opts;
 use util::thread;
 use util::thread_state;
@@ -392,23 +393,20 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
                   chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
                   layout_to_paint_port: Receiver<LayoutToPaintMsg>,
                   chrome_to_paint_port: Receiver<ChromeToPaintMsg>,
-                  compositor: C,
-                  panic_chan: ConstellationChan<PanicMsg>,
+                  mut compositor: C,
+                  panic_chan: IpcSender<PanicMsg>,
                   font_cache_thread: FontCacheThread,
                   time_profiler_chan: time::ProfilerChan,
                   mem_profiler_chan: mem::ProfilerChan,
                   shutdown_chan: IpcSender<()>) {
-        let ConstellationChan(c) = panic_chan.clone();
         thread::spawn_named_with_send_on_panic(format!("PaintThread {:?}", id),
                                                thread_state::PAINT,
                                                move || {
             {
                 // Ensures that the paint thread and graphics context are destroyed before the
                 // shutdown message.
-                let mut compositor = compositor;
-                let native_display = compositor.native_display().map(
-                    |display| display);
-                let worker_threads = WorkerThreadProxy::spawn(native_display.clone(),
+                let native_display = compositor.native_display();
+                let worker_threads = WorkerThreadProxy::spawn(native_display,
                                                               font_cache_thread,
                                                               time_profiler_chan.clone());
 
@@ -439,7 +437,7 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
 
             debug!("paint_thread: shutdown_chan send");
             shutdown_chan.send(()).unwrap();
-        }, Some(id), c);
+        }, Some(id), panic_chan);
     }
 
     #[allow(unsafe_code)]

@@ -11,20 +11,15 @@ path = "lib.rs"
 [dependencies]
 gfx = {path = "../gfx"}
 gfx_traits = {path = "../gfx_traits"}
-layout_traits = {path = "../layout_traits"}
 script_traits = {path = "../script_traits"}
 style_traits = {path = "../style_traits"}
 msg = {path = "../msg"}
 profile_traits = {path = "../profile_traits"}
 net_traits = {path = "../net_traits"}
 util = {path = "../util"}
-devtools_traits = {path = "../devtools_traits"}
-canvas_traits = {path = "../canvas_traits"}
-canvas = {path = "../canvas"}
 plugins = {path = "../plugins"}
 azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
 layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
-clipboard = {git = "https://github.com/aweinstock314/rust-clipboard"}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 webrender_traits = {git = "https://github.com/servo/webrender_traits"}
 webrender = {git = "https://github.com/servo/webrender"}
@@ -33,12 +28,7 @@ euclid = {version = "0.6.4", features = ["plugins"]}
 gleam = "0.2.8"
 image = "0.10"
 log = "0.3.5"
-offscreen_gl_context = "0.1.2"
-rand = "0.3"
 serde = "0.7"
 serde_macros = "0.7"
 time = "0.1.17"
 url = {version = "1.0.0", features = ["heap_size"]}
-
-[target.'cfg(not(target_os = "windows"))'.dependencies]
-gaol = {git = "https://github.com/servo/gaol"}

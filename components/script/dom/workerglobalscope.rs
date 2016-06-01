@@ -10,6 +10,7 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::reflector::Reflectable;
+use dom::bindings::str::DOMString;
 use dom::console::Console;
 use dom::crypto::Crypto;
 use dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
@@ -17,13 +18,15 @@ use dom::eventtarget::EventTarget;
 use dom::window::{base64_atob, base64_btoa};
 use dom::workerlocation::WorkerLocation;
 use dom::workernavigator::WorkerNavigator;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
 use js::jsapi::{HandleValue, JSContext, JSRuntime, RootedValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use msg::constellation_msg::{ConstellationChan, PipelineId};
-use net_traits::{LoadContext, ResourceThread, load_whole_resource};
-use profile_traits::mem;
+use msg::constellation_msg::{PipelineId, ReferrerPolicy, PanicMsg};
+use net_traits::{LoadContext, ResourceThreads, load_whole_resource};
+use net_traits::{RequestSource, LoadOrigin, CustomResponseSender, IpcSend};
+use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_traits::ScriptMsg as ConstellationMsg;
 use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
@@ -35,7 +38,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback};
 use url::Url;
-use util::str::DOMString;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum WorkerGlobalScopeTypeId {
@@ -43,12 +45,14 @@ pub enum WorkerGlobalScopeTypeId {
 }
 
 pub struct WorkerGlobalScopeInit {
-    pub resource_thread: ResourceThread,
+    pub resource_threads: ResourceThreads,
     pub mem_profiler_chan: mem::ProfilerChan,
+    pub time_profiler_chan: time::ProfilerChan,
     pub to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
     pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
-    pub constellation_chan: ConstellationChan<ConstellationMsg>,
+    pub constellation_chan: IpcSender<ConstellationMsg>,
     pub scheduler_chan: IpcSender<TimerEventRequest>,
+    pub panic_chan: IpcSender<PanicMsg>,
     pub worker_id: WorkerId,
     pub closing: Arc<AtomicBool>,
 }
@@ -64,7 +68,7 @@ pub struct WorkerGlobalScope {
     runtime: Runtime,
     next_worker_id: Cell<WorkerId>,
     #[ignore_heap_size_of = "Defined in std"]
-    resource_thread: ResourceThread,
+    resource_threads: ResourceThreads,
     location: MutNullableHeap<JS<WorkerLocation>>,
     navigator: MutNullableHeap<JS<WorkerNavigator>>,
     console: MutNullableHeap<JS<Console>>,
@@ -72,6 +76,8 @@ pub struct WorkerGlobalScope {
     timers: OneshotTimers,
     #[ignore_heap_size_of = "Defined in std"]
     mem_profiler_chan: mem::ProfilerChan,
+    #[ignore_heap_size_of = "Defined in std"]
+    time_profiler_chan: time::ProfilerChan,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
 
@@ -90,10 +96,19 @@ pub struct WorkerGlobalScope {
     devtools_wants_updates: Cell<bool>,
 
     #[ignore_heap_size_of = "Defined in std"]
-    constellation_chan: ConstellationChan<ConstellationMsg>,
+    constellation_chan: IpcSender<ConstellationMsg>,
 
     #[ignore_heap_size_of = "Defined in std"]
     scheduler_chan: IpcSender<TimerEventRequest>,
+
+    #[ignore_heap_size_of = "Defined in ipc-channel"]
+    panic_chan: IpcSender<PanicMsg>,
+
+    #[ignore_heap_size_of = "Defined in ipc-channel"]
+    custom_msg_chan: IpcSender<CustomResponseSender>,
+
+    #[ignore_heap_size_of = "Defined in std"]
+    custom_msg_port: Receiver<CustomResponseSender>,
 }
 
 impl WorkerGlobalScope {
@@ -103,7 +118,8 @@ impl WorkerGlobalScope {
                          from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
                          timer_event_chan: IpcSender<TimerEvent>)
                          -> WorkerGlobalScope {
-
+        let (msg_chan, msg_port) = ipc::channel().unwrap();
+        let custom_msg_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(msg_port);
         WorkerGlobalScope {
             eventtarget: EventTarget::new_inherited(),
             next_worker_id: Cell::new(WorkerId(0)),
@@ -111,24 +127,32 @@ impl WorkerGlobalScope {
             worker_url: worker_url,
             closing: init.closing,
             runtime: runtime,
-            resource_thread: init.resource_thread,
+            resource_threads: init.resource_threads,
             location: Default::default(),
             navigator: Default::default(),
             console: Default::default(),
             crypto: Default::default(),
             timers: OneshotTimers::new(timer_event_chan, init.scheduler_chan.clone()),
             mem_profiler_chan: init.mem_profiler_chan,
+            time_profiler_chan: init.time_profiler_chan,
             to_devtools_sender: init.to_devtools_sender,
             from_devtools_sender: init.from_devtools_sender,
             from_devtools_receiver: from_devtools_receiver,
             devtools_wants_updates: Cell::new(false),
             constellation_chan: init.constellation_chan,
             scheduler_chan: init.scheduler_chan,
+            panic_chan: init.panic_chan,
+            custom_msg_chan: msg_chan,
+            custom_msg_port: custom_msg_port
         }
     }
 
     pub fn mem_profiler_chan(&self) -> &mem::ProfilerChan {
         &self.mem_profiler_chan
+    }
+
+    pub fn time_profiler_chan(&self) -> &time::ProfilerChan {
+        &self.time_profiler_chan
     }
 
     pub fn devtools_chan(&self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
@@ -143,7 +167,7 @@ impl WorkerGlobalScope {
         &self.from_devtools_receiver
     }
 
-    pub fn constellation_chan(&self) -> &ConstellationChan<ConstellationMsg> {
+    pub fn constellation_chan(&self) -> &IpcSender<ConstellationMsg> {
         &self.constellation_chan
     }
 
@@ -169,12 +193,20 @@ impl WorkerGlobalScope {
         self.runtime.cx()
     }
 
+    pub fn custom_message_chan(&self) -> IpcSender<CustomResponseSender> {
+        self.custom_msg_chan.clone()
+    }
+
+    pub fn custom_message_port(&self) -> &Receiver<CustomResponseSender> {
+        &self.custom_msg_port
+    }
+
     pub fn is_closing(&self) -> bool {
         self.closing.load(Ordering::SeqCst)
     }
 
-    pub fn resource_thread(&self) -> &ResourceThread {
-        &self.resource_thread
+    pub fn resource_threads(&self) -> &ResourceThreads {
+        &self.resource_threads
     }
 
     pub fn get_url(&self) -> &Url {
@@ -190,6 +222,25 @@ impl WorkerGlobalScope {
         let WorkerId(id_num) = worker_id;
         self.next_worker_id.set(WorkerId(id_num + 1));
         worker_id
+    }
+
+    pub fn panic_chan(&self) -> &IpcSender<PanicMsg> {
+        &self.panic_chan
+    }
+}
+
+impl LoadOrigin for WorkerGlobalScope {
+    fn referrer_url(&self) -> Option<Url> {
+        None
+    }
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        None
+    }
+    fn request_source(&self) -> RequestSource {
+        RequestSource::None
+    }
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        Some(self.pipeline())
     }
 }
 
@@ -219,7 +270,10 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
         let mut rval = RootedValue::new(self.runtime.cx(), UndefinedValue());
         for url in urls {
-            let (url, source) = match load_whole_resource(LoadContext::Script, &self.resource_thread, url, None) {
+            let (url, source) = match load_whole_resource(LoadContext::Script,
+                                                          &self.resource_threads.sender(),
+                                                          url,
+                                                          self) {
                 Err(_) => return Err(Error::Network),
                 Ok((metadata, bytes)) => {
                     (metadata.final_url, String::from_utf8(bytes).unwrap())

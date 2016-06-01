@@ -8,6 +8,7 @@ use dom::bindings::conversions::{ToJSValConvertible, root_from_handleobject};
 use dom::bindings::js::{JS, Root, RootedReference};
 use dom::bindings::proxyhandler::{fill_property_descriptor, get_property_descriptor};
 use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WindowProxyHandler;
 use dom::bindings::utils::get_array_index_from_id;
@@ -26,7 +27,6 @@ use js::jsval::{UndefinedValue, PrivateValue};
 use msg::constellation_msg::{PipelineId, SubpageId};
 use std::cell::Cell;
 use url::Url;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct BrowsingContext {
@@ -164,25 +164,14 @@ impl BrowsingContext {
         self.active_index.set(0);
         self.history.borrow_mut().clear();
     }
-}
 
-pub struct ContextIterator {
-    stack: Vec<Root<BrowsingContext>>,
-}
-
-pub trait IterableContext {
-    fn iter(&self) -> ContextIterator;
-    fn find(&self, id: PipelineId) -> Option<Root<BrowsingContext>>;
-}
-
-impl IterableContext for BrowsingContext {
-    fn iter(&self) -> ContextIterator {
+    pub fn iter(&self) -> ContextIterator {
         ContextIterator {
             stack: vec!(Root::from_ref(self)),
         }
     }
 
-    fn find(&self, id: PipelineId) -> Option<Root<BrowsingContext>> {
+    pub fn find(&self, id: PipelineId) -> Option<Root<BrowsingContext>> {
         if self.id == id {
             return Some(Root::from_ref(self));
         }
@@ -192,6 +181,10 @@ impl IterableContext for BrowsingContext {
                      .filter_map(|c| c.find(id))
                      .next()
     }
+}
+
+pub struct ContextIterator {
+    stack: Vec<Root<BrowsingContext>>,
 }
 
 impl Iterator for ContextIterator {

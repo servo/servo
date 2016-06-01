@@ -10,11 +10,11 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::reflector::reflect_dom_object;
+use dom::bindings::str::DOMString;
 use dom::htmlinputelement::HTMLInputElement;
 use dom::node::Node;
 use dom::nodelist::{NodeList, NodeListType};
 use dom::window::Window;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct RadioNodeList {
@@ -38,7 +38,7 @@ impl RadioNodeList {
 
     pub fn new_simple_list<T>(window: &Window, iter: T) -> Root<RadioNodeList>
                               where T: Iterator<Item=Root<Node>> {
-        RadioNodeList::new(window, NodeListType::Simple(iter.map(|r| JS::from_rooted(&r)).collect()))
+        RadioNodeList::new(window, NodeListType::Simple(iter.map(|r| JS::from_ref(&*r)).collect()))
     }
 
     pub fn empty(window: &Window) -> Root<RadioNodeList> {

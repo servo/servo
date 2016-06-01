@@ -14,10 +14,12 @@
 #![feature(mpsc_select)]
 #![feature(nonzero)]
 #![feature(on_unimplemented)]
+#![feature(optin_builtin_traits)]
 #![feature(peekable_is_empty)]
 #![feature(plugin)]
 #![feature(slice_patterns)]
 #![feature(stmt_expr_attributes)]
+#![feature(question_mark)]
 
 #![deny(unsafe_code)]
 #![allow(non_snake_case)]
@@ -58,6 +60,7 @@ extern crate msg;
 extern crate net_traits;
 extern crate num_traits;
 extern crate offscreen_gl_context;
+extern crate open;
 extern crate phf;
 #[macro_use]
 extern crate profile_traits;
@@ -85,6 +88,7 @@ extern crate webrender_traits;
 extern crate websocket;
 extern crate xml5ever;
 
+pub mod bluetooth_blacklist;
 pub mod clipboard_provider;
 pub mod cors;
 mod devtools;

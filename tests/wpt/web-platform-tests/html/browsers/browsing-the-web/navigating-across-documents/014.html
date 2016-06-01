@@ -14,8 +14,8 @@ t.step(function() {
   events.push('after script');
 });
 onload = t.step_func(function() {
-  //assuming the order is sync
-  assert_array_equals(events, ['javascript', 'after script']);
+  // javascript: executions are async.
+  assert_array_equals(events, ['after script', 'submit']);
   t.done();
 });
 </script>

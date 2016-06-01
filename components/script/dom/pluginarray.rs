@@ -7,8 +7,8 @@ use dom::bindings::codegen::Bindings::PluginArrayBinding::PluginArrayMethods;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::plugin::Plugin;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct PluginArray {
@@ -32,7 +32,6 @@ impl PluginArray {
 impl PluginArrayMethods for PluginArray {
     // https://html.spec.whatwg.org/multipage/#dom-pluginarray-refresh
     fn Refresh(&self, _reload: bool) {
-
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-pluginarray-length

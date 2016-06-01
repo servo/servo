@@ -7,6 +7,7 @@ use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::reflector::Reflectable;
+use dom::bindings::str::DOMString;
 use dom::window::ScriptHelpers;
 use dom::xmlhttprequest::XHRTimeoutCallback;
 use euclid::length::Length;
@@ -21,7 +22,6 @@ use std::cmp::{self, Ord, Ordering};
 use std::collections::HashMap;
 use std::default::Default;
 use std::rc::Rc;
-use util::str::DOMString;
 
 #[derive(JSTraceable, PartialEq, Eq, Copy, Clone, HeapSizeOf, Hash, PartialOrd, Ord, Debug)]
 pub struct OneshotTimerHandle(i32);
@@ -264,7 +264,6 @@ impl OneshotTimers {
                                is_interval: IsInterval,
                                source: TimerSource)
                                -> i32 {
-
         self.js_timers.set_timeout_or_interval(global,
                                                callback,
                                                arguments,
@@ -478,7 +477,6 @@ impl JsTimerTask {
         // reschedule repeating timers when they were not canceled as part of step 4.2.
         if self.is_interval == IsInterval::Interval &&
             timers.active_timers.borrow().contains_key(&self.handle) {
-
             timers.initialize_and_schedule(this.global().r(), self);
         }
     }

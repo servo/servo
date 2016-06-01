@@ -4,24 +4,22 @@
 
 use cssparser::RGBA;
 use dom::attr::{Attr, AttrValue};
-use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
+use dom::bindings::codegen::Bindings::EventHandlerBinding::{EventHandlerNonNull, OnBeforeUnloadEventHandlerNonNull};
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
 use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
-use msg::constellation_msg::ConstellationChan;
 use script_traits::ScriptMsg as ConstellationMsg;
-use std::rc::Rc;
 use string_cache::Atom;
 use time;
 use url::Url;
-use util::str::DOMString;
 
 /// How long we should wait before performing the initial reflow after `<body>` is parsed, in
 /// nanoseconds.
@@ -71,31 +69,14 @@ impl HTMLBodyElementMethods for HTMLBodyElement {
     // https://html.spec.whatwg.org/multipage/#dom-body-text
     make_legacy_color_setter!(SetText, "text");
 
-    // https://html.spec.whatwg.org/multipage/#the-body-element
-    fn GetOnunload(&self) -> Option<Rc<EventHandlerNonNull>> {
-        window_from_node(self).GetOnunload()
-    }
-
-    // https://html.spec.whatwg.org/multipage/#the-body-element
-    fn SetOnunload(&self, listener: Option<Rc<EventHandlerNonNull>>) {
-        window_from_node(self).SetOnunload(listener)
-    }
-
-    // https://html.spec.whatwg.org/multipage/#the-body-element
-    fn GetOnstorage(&self) -> Option<Rc<EventHandlerNonNull>> {
-        window_from_node(self).GetOnstorage()
-    }
-
-    // https://html.spec.whatwg.org/multipage/#the-body-element
-    fn SetOnstorage(&self, listener: Option<Rc<EventHandlerNonNull>>) {
-        window_from_node(self).SetOnstorage(listener)
-    }
-
     // https://html.spec.whatwg.org/multipage/#dom-body-background
     make_getter!(Background, "background");
 
     // https://html.spec.whatwg.org/multipage/#dom-body-background
     make_url_setter!(SetBackground, "background");
+
+    // https://html.spec.whatwg.org/multipage/#windoweventhandlers
+    window_event_handlers!(ForwardToWindow);
 }
 
 pub trait HTMLBodyElementLayoutHelpers {
@@ -153,16 +134,17 @@ impl VirtualMethods for HTMLBodyElement {
         let window = window_from_node(self);
         let document = window.Document();
         document.set_reflow_timeout(time::precise_time_ns() + INITIAL_REFLOW_DELAY);
-        let ConstellationChan(ref chan) = *window.constellation_chan();
         let event = ConstellationMsg::HeadParsed;
-        chan.send(event).unwrap();
+        window.constellation_chan().send(event).unwrap();
     }
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match *name {
             atom!("bgcolor") |
-            atom!("text") => AttrValue::from_legacy_color(value),
-            atom!("background") => AttrValue::from_url(document_from_node(self).url(), value),
+            atom!("text") => AttrValue::from_legacy_color(value.into()),
+            atom!("background") => {
+                AttrValue::from_url(document_from_node(self).url(), value.into())
+            },
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

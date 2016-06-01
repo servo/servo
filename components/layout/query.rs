@@ -13,9 +13,8 @@ use flow;
 use flow_ref::FlowRef;
 use fragment::{Fragment, FragmentBorderBoxIterator, SpecificFragmentInfo};
 use gfx::display_list::OpaqueNode;
-use gfx_traits::{LayerId};
+use gfx_traits::LayerId;
 use layout_thread::LayoutThreadData;
-use msg::constellation_msg::ConstellationChan;
 use opaque_node::OpaqueNodeMethods;
 use script::layout_interface::{ContentBoxResponse, NodeOverflowResponse, ContentBoxesResponse, NodeGeometryResponse};
 use script::layout_interface::{HitTestResponse, LayoutRPC, OffsetParentResponse, NodeLayerIdResponse};
@@ -52,7 +51,6 @@ fn overflow_direction(writing_mode: &WritingMode) -> OverflowDirection {
 }
 
 impl LayoutRPC for LayoutRPCImpl {
-
     // The neat thing here is that in order to answer the following two queries we only
     // need to compare nodes for equality. Thus we can safely work only with `OpaqueNode`.
     fn content_box(&self) -> ContentBoxResponse {
@@ -79,8 +77,7 @@ impl LayoutRPC for LayoutRPCImpl {
                 None => Cursor::DefaultCursor,
                 Some(dim) => dim.pointing.unwrap(),
             };
-            let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
-            constellation_chan.send(ConstellationMsg::SetCursor(cursor)).unwrap();
+            rw_data.constellation_chan.send(ConstellationMsg::SetCursor(cursor)).unwrap();
         }
         HitTestResponse {
             node_address: result.map(|dim| dim.node.to_untrusted_node_address()),

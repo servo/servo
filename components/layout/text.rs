@@ -21,8 +21,8 @@ use std::borrow::ToOwned;
 use std::collections::LinkedList;
 use std::mem;
 use std::sync::Arc;
+use style::computed_values::white_space;
 use style::computed_values::{line_height, text_orientation, text_rendering, text_transform};
-use style::computed_values::{white_space};
 use style::logical_geometry::{LogicalSize, WritingMode};
 use style::properties::style_structs::ServoFont;
 use style::properties::{ComputedValues, ServoComputedValues};
@@ -197,17 +197,12 @@ impl TextRunScanner {
                 for (byte_index, character) in text.char_indices() {
                     // Search for the first font in this font group that contains a glyph for this
                     // character.
-                    let mut font_index = 0;
+                    let font_index = fontgroup.fonts.iter().position(|font| {
+                        font.borrow().glyph_index(character).is_some()
+                    }).unwrap_or(0);
+
                     // The following code panics one way or another if this condition isn't met.
                     assert!(fontgroup.fonts.len() > 0);
-                    while font_index < fontgroup.fonts.len() - 1 {
-                        if fontgroup.fonts.get(font_index).unwrap().borrow()
-                                          .glyph_index(character)
-                                          .is_some() {
-                            break
-                        }
-                        font_index += 1;
-                    }
 
                     let bidi_level = match bidi_levels {
                         Some(levels) => levels[*paragraph_bytes_processed],
@@ -416,7 +411,6 @@ impl TextRunScanner {
 #[inline]
 fn bounding_box_for_run_metrics(metrics: &RunMetrics, writing_mode: WritingMode)
                                 -> LogicalSize<Au> {
-
     // This does nothing, but it will fail to build
     // when more values are added to the `text-orientation` CSS property.
     // This will be a reminder to update the code below.

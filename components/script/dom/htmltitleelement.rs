@@ -7,6 +7,7 @@ use dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementM
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
+use dom::bindings::str::DOMString;
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::htmlelement::HTMLElement;
@@ -14,7 +15,6 @@ use dom::node::{ChildrenMutation, Node};
 use dom::text::Text;
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLTitleElement {

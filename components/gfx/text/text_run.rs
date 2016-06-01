@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use font::ShapingOptions;
 use font::{Font, FontHandleMethods, FontMetrics, IS_WHITESPACE_SHAPING_FLAG, RunMetrics};
-use font::{ShapingOptions};
 use platform::font_template::FontTemplateData;
 use range::Range;
 use std::cell::Cell;

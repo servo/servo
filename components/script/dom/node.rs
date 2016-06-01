@@ -28,6 +28,7 @@ use dom::bindings::js::Root;
 use dom::bindings::js::RootedReference;
 use dom::bindings::js::{JS, LayoutJS, MutNullableHeap};
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
+use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::namespace_from_domstring;
 use dom::characterdata::{CharacterData, LayoutCharacterDataHelpers};
@@ -53,7 +54,7 @@ use euclid::size::Size2D;
 use heapsize::{HeapSizeOf, heap_size_of};
 use html5ever::tree_builder::QuirksMode;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
-use layout_interface::{LayoutChan, Msg};
+use layout_interface::Msg;
 use libc::{self, c_void, uintptr_t};
 use parse::html::parse_html_fragment;
 use ref_slice::ref_slice;
@@ -69,7 +70,6 @@ use std::iter::{self, FilterMap, Peekable};
 use std::mem;
 use string_cache::{Atom, Namespace, QualName};
 use style::selector_impl::ServoSelectorImpl;
-use util::str::DOMString;
 use util::thread_state;
 use uuid::Uuid;
 
@@ -195,9 +195,8 @@ impl OpaqueStyleAndLayoutData {
     pub fn dispose(self, node: &Node) {
         debug_assert!(thread_state::get().is_script());
         let win = window_from_node(node);
-        let LayoutChan(ref chan) = *win.layout_chan();
         node.style_and_layout_data.set(None);
-        chan.send(Msg::ReapStyleAndLayoutData(self)).unwrap();
+        win.layout_chan().send(Msg::ReapStyleAndLayoutData(self)).unwrap();
     }
 }
 
@@ -805,9 +804,10 @@ impl Node {
     }
 
     pub fn summarize(&self) -> NodeInfo {
+        let USVString(baseURI) = self.BaseURI();
         NodeInfo {
             uniqueId: self.unique_id(),
-            baseURI: String::from(self.BaseURI()),
+            baseURI: baseURI,
             parent: self.GetParentNode().map_or("".to_owned(), |node| node.unique_id()),
             nodeType: self.NodeType(),
             namespaceURI: String::new(), //FIXME
@@ -1517,7 +1517,7 @@ impl Node {
         let mut new_nodes = RootedVec::new();
         let new_nodes = if let NodeTypeId::DocumentFragment = node.type_id() {
             // Step 3.
-            new_nodes.extend(node.children().map(|kid| JS::from_rooted(&kid)));
+            new_nodes.extend(node.children().map(|kid| JS::from_ref(&*kid)));
             // Step 4: mutation observers.
             // Step 5.
             for kid in new_nodes.r() {
@@ -1563,7 +1563,7 @@ impl Node {
         let mut added_nodes = RootedVec::new();
         let added_nodes = if let Some(node) = node.as_ref() {
             if let NodeTypeId::DocumentFragment = node.type_id() {
-                added_nodes.extend(node.children().map(|child| JS::from_rooted(&child)));
+                added_nodes.extend(node.children().map(|child| JS::from_ref(&*child)));
                 added_nodes.r()
             } else {
                 ref_slice(node)
@@ -1638,7 +1638,6 @@ impl Node {
     // https://dom.spec.whatwg.org/#concept-node-clone
     pub fn clone(node: &Node, maybe_doc: Option<&Document>,
                  clone_children: CloneChildrenFlag) -> Root<Node> {
-
         // Step 1.
         let document = match maybe_doc {
             Some(doc) => Root::from_ref(doc),
@@ -1862,8 +1861,8 @@ impl NodeMethods for Node {
     }
 
     // https://dom.spec.whatwg.org/#dom-node-baseuri
-    fn BaseURI(&self) -> DOMString {
-        DOMString::from(self.owner_doc().base_url().as_str())
+    fn BaseURI(&self) -> USVString {
+        USVString(String::from(self.owner_doc().base_url().as_str()))
     }
 
     // https://dom.spec.whatwg.org/#dom-node-ownerdocument
@@ -1994,7 +1993,6 @@ impl NodeMethods for Node {
 
     // https://dom.spec.whatwg.org/#concept-node-replace
     fn ReplaceChild(&self, node: &Node, child: &Node) -> Fallible<Root<Node>> {
-
         // Step 1.
         match self.type_id() {
             NodeTypeId::Document(_) |
@@ -2108,7 +2106,7 @@ impl NodeMethods for Node {
         // Step 12.
         let mut nodes = RootedVec::new();
         let nodes = if node.type_id() == NodeTypeId::DocumentFragment {
-            nodes.extend(node.children().map(|node| JS::from_rooted(&node)));
+            nodes.extend(node.children().map(|node| JS::from_ref(&*node)));
             nodes.r()
         } else {
             ref_slice(&node)

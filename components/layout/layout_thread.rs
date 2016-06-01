@@ -22,43 +22,40 @@ use flow::{self, Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::{self, FlowRef};
 use fnv::FnvHasher;
 use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, LayerInfo};
-use gfx::display_list::{OpaqueNode, StackingContext, StackingContextId, StackingContextType};
-use gfx::display_list::{WebRenderImageInfo};
+use gfx::display_list::{OpaqueNode, StackingContext, StackingContextType, WebRenderImageInfo};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
 use gfx::paint_thread::LayoutToPaintMsg;
-use gfx_traits::{color, Epoch, LayerId, ScrollPolicy};
+use gfx_traits::{color, Epoch, LayerId, ScrollPolicy, StackingContextId};
 use heapsize::HeapSizeOf;
-use incremental::{LayoutDamageComputation, REFLOW, REFLOW_ENTIRE_DOCUMENT, REFLOW_OUT_OF_FLOW};
-use incremental::{REPAINT};
+use incremental::LayoutDamageComputation;
+use incremental::{REPAINT, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW, REFLOW, REFLOW_ENTIRE_DOCUMENT};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layout_debug;
-use layout_traits::{ConvertPipelineIdToWebRender, LayoutThreadFactory};
+use layout_traits::LayoutThreadFactory;
 use log;
-use msg::constellation_msg::{ConstellationChan, PanicMsg, PipelineId};
+use msg::constellation_msg::{PanicMsg, PipelineId};
+use net_traits::image_cache_thread::UsePlaceholder;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
-use net_traits::image_cache_thread::{UsePlaceholder};
 use parallel;
 use profile_traits::mem::{self, Report, ReportKind, ReportsChan};
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use profile_traits::time::{self, TimerMetadata, profile};
+use query::process_offset_parent_query;
 use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request};
 use query::{process_node_geometry_request, process_node_layer_id_request, process_node_scroll_area_request};
 use query::{process_node_overflow_request, process_resolved_style_request, process_margin_style_query};
-use query::{process_offset_parent_query};
 use script::dom::node::OpaqueStyleAndLayoutData;
 use script::layout_interface::{LayoutRPC, OffsetParentResponse, NodeOverflowResponse, MarginStyleResponse};
-use script::layout_interface::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType};
-use script::layout_interface::{ScriptLayoutChan, ScriptReflow};
+use script::layout_interface::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
 use script::reporter::CSSErrorReporter;
-use script_traits::ConstellationControlMsg;
-use script_traits::{LayoutControlMsg, LayoutMsg as ConstellationMsg, OpaqueScriptLayoutChannel};
+use script_traits::StackingContextScrollState;
+use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use sequential;
 use serde_json;
 use std::borrow::ToOwned;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::hash::BuildHasherDefault;
 use std::ops::{Deref, DerefMut};
@@ -67,7 +64,7 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 use std::sync::{Arc, Mutex, MutexGuard, RwLock};
 use style::animation::Animation;
 use style::computed_values::{filter, mix_blend_mode};
-use style::context::{ReflowGoal};
+use style::context::ReflowGoal;
 use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::ParseErrorReporter;
 use style::logical_geometry::LogicalPoint;
@@ -100,7 +97,7 @@ const DISPLAY_PORT_THRESHOLD_SIZE_FACTOR: i32 = 4;
 /// This needs to be protected by a mutex so we can do fast RPCs.
 pub struct LayoutThreadData {
     /// The channel on which messages can be sent to the constellation.
-    pub constellation_chan: ConstellationChan<ConstellationMsg>,
+    pub constellation_chan: IpcSender<ConstellationMsg>,
 
     /// The root stacking context.
     pub display_list: Option<Arc<DisplayList>>,
@@ -144,7 +141,7 @@ pub struct LayoutThread {
     id: PipelineId,
 
     /// The URL of the pipeline that we belong to.
-    url: RefCell<Url>,
+    url: Url,
 
     /// Is the current reflow of an iframe, as opposed to a root window?
     is_iframe: bool,
@@ -168,7 +165,7 @@ pub struct LayoutThread {
     font_cache_sender: IpcSender<()>,
 
     /// The channel on which messages can be sent to the constellation.
-    constellation_chan: ConstellationChan<ConstellationMsg>,
+    constellation_chan: IpcSender<ConstellationMsg>,
 
     /// The channel on which messages can be sent to the script thread.
     script_chan: IpcSender<ConstellationControlMsg>,
@@ -246,15 +243,16 @@ pub struct LayoutThread {
 }
 
 impl LayoutThreadFactory for LayoutThread {
+    type Message = Msg;
+
     /// Spawns a new layout thread.
-    fn create(_phantom: Option<&mut LayoutThread>,
-              id: PipelineId,
+    fn create(id: PipelineId,
               url: Url,
               is_iframe: bool,
-              chan: OpaqueScriptLayoutChannel,
+              chan: (Sender<Msg>, Receiver<Msg>),
               pipeline_port: IpcReceiver<LayoutControlMsg>,
-              constellation_chan: ConstellationChan<ConstellationMsg>,
-              panic_chan: ConstellationChan<PanicMsg>,
+              constellation_chan: IpcSender<ConstellationMsg>,
+              panic_chan: IpcSender<PanicMsg>,
               script_chan: IpcSender<ConstellationControlMsg>,
               paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
               image_cache_thread: ImageCacheThread,
@@ -264,16 +262,15 @@ impl LayoutThreadFactory for LayoutThread {
               shutdown_chan: IpcSender<()>,
               content_process_shutdown_chan: IpcSender<()>,
               webrender_api_sender: Option<webrender_traits::RenderApiSender>) {
-        let ConstellationChan(fail_chan) = panic_chan.clone();
         thread::spawn_named_with_send_on_panic(format!("LayoutThread {:?}", id),
                                                thread_state::LAYOUT,
                                                move || {
             { // Ensures layout thread is destroyed before we send shutdown message
-                let sender = chan.sender();
+                let sender = chan.0;
                 let layout = LayoutThread::new(id,
                                              url,
                                              is_iframe,
-                                             chan.receiver(),
+                                             chan.1,
                                              pipeline_port,
                                              constellation_chan,
                                              script_chan,
@@ -291,7 +288,7 @@ impl LayoutThreadFactory for LayoutThread {
             }
             let _ = shutdown_chan.send(());
             let _ = content_process_shutdown_chan.send(());
-        }, Some(id), fail_chan);
+        }, Some(id), panic_chan);
     }
 }
 
@@ -385,7 +382,7 @@ impl LayoutThread {
            is_iframe: bool,
            port: Receiver<Msg>,
            pipeline_port: IpcReceiver<LayoutControlMsg>,
-           constellation_chan: ConstellationChan<ConstellationMsg>,
+           constellation_chan: IpcSender<ConstellationMsg>,
            script_chan: IpcSender<ConstellationControlMsg>,
            paint_chan: OptionalIpcSender<LayoutToPaintMsg>,
            image_cache_thread: ImageCacheThread,
@@ -432,7 +429,7 @@ impl LayoutThread {
 
         LayoutThread {
             id: id,
-            url: RefCell::new(url),
+            url: url,
             is_iframe: is_iframe,
             port: port,
             pipeline_port: pipeline_receiver,
@@ -502,7 +499,6 @@ impl LayoutThread {
     fn build_shared_layout_context(&self,
                                    rw_data: &LayoutThreadData,
                                    screen_size_changed: bool,
-                                   url: &Url,
                                    goal: ReflowGoal)
                                    -> SharedLayoutContext {
         SharedLayoutContext {
@@ -520,7 +516,6 @@ impl LayoutThread {
             image_cache_thread: self.image_cache_thread.clone(),
             image_cache_sender: Mutex::new(self.image_cache_sender.clone()),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
-            url: (*url).clone(),
             visible_rects: self.visible_rects.clone(),
             webrender_image_cache: self.webrender_image_cache.clone(),
         }
@@ -561,6 +556,11 @@ impl LayoutThread {
         match request {
             Request::FromPipeline(LayoutControlMsg::SetVisibleRects(new_visible_rects)) => {
                 self.handle_request_helper(Msg::SetVisibleRects(new_visible_rects),
+                                           possibly_locked_rw_data)
+            },
+            Request::FromPipeline(LayoutControlMsg::SetStackingContextScrollStates(
+                    new_scroll_states)) => {
+                self.handle_request_helper(Msg::SetStackingContextScrollStates(new_scroll_states),
                                            possibly_locked_rw_data)
             },
             Request::FromPipeline(LayoutControlMsg::TickAnimations) => {
@@ -611,7 +611,6 @@ impl LayoutThread {
         };
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  &self.url.borrow(),
                                                                   reflow_info.goal);
 
         self.perform_post_style_recalc_layout_passes(&reflow_info,
@@ -649,6 +648,10 @@ impl LayoutThread {
             Msg::SetVisibleRects(new_visible_rects) => {
                 self.set_visible_rects(new_visible_rects, possibly_locked_rw_data);
             }
+            Msg::SetStackingContextScrollStates(new_scroll_states) => {
+                self.set_stacking_context_scroll_states(new_scroll_states,
+                                                        possibly_locked_rw_data);
+            }
             Msg::ReapStyleAndLayoutData(dead_data) => {
                 unsafe {
                     self.handle_reap_style_and_layout_data(dead_data)
@@ -670,7 +673,7 @@ impl LayoutThread {
                 self.create_layout_thread(info)
             }
             Msg::SetFinalUrl(final_url) => {
-                *self.url.borrow_mut() = final_url;
+                self.url = final_url;
             },
             Msg::PrepareToExit(response_chan) => {
                 self.prepare_to_exit(response_chan);
@@ -694,7 +697,7 @@ impl LayoutThread {
         // FIXME(njn): Just measuring the display tree for now.
         let rw_data = possibly_locked_rw_data.lock();
         let display_list = rw_data.display_list.as_ref();
-        let formatted_url = &format!("url({})", *self.url.borrow());
+        let formatted_url = &format!("url({})", self.url);
         reports.push(Report {
             path: path![formatted_url, "layout-thread", "display-list"],
             kind: ReportKind::ExplicitJemallocHeapSize,
@@ -732,23 +735,22 @@ impl LayoutThread {
     }
 
     fn create_layout_thread(&self, info: NewLayoutThreadInfo) {
-        LayoutThreadFactory::create(None::<&mut LayoutThread>,
-                                  info.id,
-                                  info.url.clone(),
-                                  info.is_parent,
-                                  info.layout_pair,
-                                  info.pipeline_port,
-                                  info.constellation_chan,
-                                  info.panic_chan,
-                                  info.script_chan.clone(),
-                                  info.paint_chan.to::<LayoutToPaintMsg>(),
-                                  self.image_cache_thread.clone(),
-                                  self.font_cache_thread.clone(),
-                                  self.time_profiler_chan.clone(),
-                                  self.mem_profiler_chan.clone(),
-                                  info.layout_shutdown_chan,
-                                  info.content_process_shutdown_chan,
-                                  self.webrender_api.as_ref().map(|wr| wr.clone_sender()));
+        LayoutThread::create(info.id,
+                             info.url.clone(),
+                             info.is_parent,
+                             info.layout_pair,
+                             info.pipeline_port,
+                             info.constellation_chan,
+                             info.panic_chan,
+                             info.script_chan.clone(),
+                             info.paint_chan.to::<LayoutToPaintMsg>(),
+                             self.image_cache_thread.clone(),
+                             self.font_cache_thread.clone(),
+                             self.time_profiler_chan.clone(),
+                             self.mem_profiler_chan.clone(),
+                             info.layout_shutdown_chan,
+                             info.content_process_shutdown_chan,
+                             self.webrender_api.as_ref().map(|wr| wr.clone_sender()));
     }
 
     /// Enters a quiescent state in which no new messages will be processed until an `ExitNow` is
@@ -889,19 +891,18 @@ impl LayoutThread {
 
             if flow::base(&**layout_root).restyle_damage.contains(REPAINT) ||
                     rw_data.display_list.is_none() {
-                let mut root_stacking_context =
-                    StackingContext::new(StackingContextId::new(0),
-                                         StackingContextType::Real,
-                                         &Rect::zero(),
-                                         &Rect::zero(),
-                                         0,
-                                         filter::T::new(Vec::new()),
-                                         mix_blend_mode::T::normal,
-                                         Matrix4D::identity(),
-                                         Matrix4D::identity(),
-                                         true,
-                                         false,
-                                         None);
+                let mut root_stacking_context = StackingContext::new(StackingContextId::new(0),
+                                                                     StackingContextType::Real,
+                                                                     &Rect::zero(),
+                                                                     &Rect::zero(),
+                                                                     0,
+                                                                     filter::T::new(Vec::new()),
+                                                                     mix_blend_mode::T::normal,
+                                                                     Matrix4D::identity(),
+                                                                     Matrix4D::identity(),
+                                                                     true,
+                                                                     false,
+                                                                     None);
 
                 let display_list_entries =
                     sequential::build_display_list_for_subtree(layout_root,
@@ -1001,7 +1002,7 @@ impl LayoutThread {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
 
-        debug!("layout: received layout request for: {}", *self.url.borrow());
+        debug!("layout: received layout request for: {}", self.url);
 
         let mut rw_data = possibly_locked_rw_data.lock();
 
@@ -1047,7 +1048,7 @@ impl LayoutThread {
             Some(x) => x,
         };
 
-        debug!("layout: received layout request for: {}", *self.url.borrow());
+        debug!("layout: received layout request for: {}", self.url);
         if log_enabled!(log::LogLevel::Debug) {
             node.dump();
         }
@@ -1080,9 +1081,9 @@ impl LayoutThread {
         if viewport_size_changed {
             if let Some(constraints) = constraints {
                 // let the constellation know about the viewport constraints
-                let ConstellationChan(ref constellation_chan) = rw_data.constellation_chan;
-                constellation_chan.send(ConstellationMsg::ViewportConstrained(
-                        self.id, constraints)).unwrap();
+                rw_data.constellation_chan
+                       .send(ConstellationMsg::ViewportConstrained(self.id, constraints))
+                       .unwrap();
             }
             // FIXME (#10104): Only dirty nodes affected by vh/vw/vmin/vmax styles.
             if data.document_stylesheets.iter().any(|sheet| sheet.dirty_on_viewport_size_change) {
@@ -1116,7 +1117,6 @@ impl LayoutThread {
         // Create a layout context for use throughout the following passes.
         let mut shared_layout_context = self.build_shared_layout_context(&*rw_data,
                                                                          viewport_size_changed,
-                                                                         &self.url.borrow(),
                                                                          data.reflow_info.goal);
 
         if node.is_dirty() || node.has_dirty_descendants() {
@@ -1265,11 +1265,23 @@ impl LayoutThread {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  &self.url.borrow(),
                                                                   reflow_info.goal);
 
         self.perform_post_main_layout_passes(&reflow_info, &mut *rw_data, &mut layout_context);
         true
+    }
+
+    fn set_stacking_context_scroll_states<'a, 'b>(
+            &mut self,
+            new_scroll_states: Vec<StackingContextScrollState>,
+            _: &mut RwData<'a, 'b>) {
+        for new_scroll_state in &new_scroll_states {
+            if self.root_flow.is_some() && new_scroll_state.stacking_context_id.id() == 0 {
+                let _ = self.script_chan.send(ConstellationControlMsg::SetScrollState(
+                        self.id,
+                        new_scroll_state.scroll_offset));
+            }
+        }
     }
 
     fn tick_all_animations<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {
@@ -1285,7 +1297,6 @@ impl LayoutThread {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  &self.url.borrow(),
                                                                   reflow_info.goal);
 
         if let Some(mut root_flow) = self.root_flow.clone() {
@@ -1316,7 +1327,6 @@ impl LayoutThread {
 
         let mut layout_context = self.build_shared_layout_context(&*rw_data,
                                                                   false,
-                                                                  &self.url.borrow(),
                                                                   reflow_info.goal);
 
         // No need to do a style recalc here.
@@ -1443,7 +1453,7 @@ impl LayoutThread {
 
     fn reflow_all_nodes(flow: &mut Flow) {
         debug!("reflowing all nodes!");
-        flow::mut_base(flow).restyle_damage.insert(REFLOW | REPAINT);
+        flow::mut_base(flow).restyle_damage.insert(REPAINT | STORE_OVERFLOW | REFLOW);
 
         for child in flow::child_iter_mut(flow) {
             LayoutThread::reflow_all_nodes(child);
@@ -1461,7 +1471,7 @@ impl LayoutThread {
     /// Returns profiling information which is passed to the time profiler.
     fn profiler_metadata(&self) -> Option<TimerMetadata> {
         Some(TimerMetadata {
-            url: self.url.borrow().to_string(),
+            url: self.url.to_string(),
             iframe: if self.is_iframe {
                 TimerMetadataFrameType::IFrame
             } else {

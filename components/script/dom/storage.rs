@@ -10,16 +10,16 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
-use dom::browsingcontext::IterableContext;
+use dom::bindings::str::DOMString;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::storageevent::StorageEvent;
 use dom::urlhelper::UrlHelper;
-use ipc_channel::ipc;
-use net_traits::storage_thread::{StorageThread, StorageThreadMsg, StorageType};
+use ipc_channel::ipc::{self, IpcSender};
+use net_traits::IpcSend;
+use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use script_thread::{MainThreadRunnable, ScriptThread};
 use task_source::dom_manipulation::DOMManipulationTask;
 use url::Url;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct Storage {
@@ -45,10 +45,10 @@ impl Storage {
         global_ref.get_url()
     }
 
-    fn get_storage_thread(&self) -> StorageThread {
+    fn get_storage_thread(&self) -> IpcSender<StorageThreadMsg> {
         let global_root = self.global();
         let global_ref = global_root.r();
-        global_ref.as_window().storage_thread()
+        global_ref.as_window().resource_threads().sender()
     }
 
 }

@@ -83,8 +83,7 @@ class MachCommands(CommandBase):
 
         cargo_paths = [path.join('components', 'servo'),
                        path.join('ports', 'cef'),
-                       path.join('ports', 'geckolib'),
-                       path.join('ports', 'gonk')]
+                       path.join('ports', 'geckolib')]
 
         for cargo_path in cargo_paths:
             with cd(cargo_path):

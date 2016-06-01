@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 use brotli::Decompressor;
 use connector::Connector;
+use content_blocker_parser::{LoadType, Reaction, Request as CBRequest, ResourceType};
+use content_blocker_parser::{RuleList, process_rules_for_request};
 use cookie;
 use cookie_storage::CookieStorage;
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest};
@@ -13,15 +14,16 @@ use flate2::read::{DeflateDecoder, GzDecoder};
 use hsts::{HstsEntry, HstsList, secure_url};
 use hyper::Error as HttpError;
 use hyper::client::{Pool, Request, Response};
-use hyper::header::{Accept, AcceptEncoding, ContentLength, ContentType, Host, Referer};
+use hyper::header::{Accept, AcceptEncoding, ContentLength, ContentEncoding, ContentType, Host, Referer};
 use hyper::header::{Authorization, Basic};
-use hyper::header::{ContentEncoding, Encoding, Header, Headers, Quality, QualityItem};
+use hyper::header::{Encoding, Header, Headers, Quality, QualityItem};
 use hyper::header::{Location, SetCookie, StrictTransportSecurity, UserAgent, qitem};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::net::Fresh;
 use hyper::status::{StatusClass, StatusCode};
+use ipc_channel::ipc;
 use log;
 use mime_classifier::MIMEClassifier;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
@@ -29,15 +31,17 @@ use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::response::HttpsState;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, LoadData};
-use net_traits::{Metadata, NetworkError};
+use net_traits::{Metadata, NetworkError, RequestSource, CustomResponse};
 use openssl::ssl::error::{SslError, OpensslError};
+use profile_traits::time::{ProfilerCategory, profile, ProfilerChan, TimerMetadata};
+use profile_traits::time::{TimerMetadataReflowType, TimerMetadataFrameType};
 use resource_thread::{CancellationListener, send_error, start_sending_sniffed_opt, AuthCache, AuthCacheEntry};
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::collections::HashSet;
 use std::error::Error;
 use std::fmt;
-use std::io::{self, Read, Write};
+use std::io::{self, Cursor, Read, Write};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, RwLock};
 use time;
@@ -52,6 +56,7 @@ use uuid;
 pub fn factory(user_agent: String,
                http_state: HttpState,
                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+               profiler_chan: ProfilerChan,
                connector: Arc<Pool<Connector>>)
                -> Box<FnBox(LoadData,
                             LoadConsumer,
@@ -59,14 +64,21 @@ pub fn factory(user_agent: String,
                             CancellationListener) + Send> {
     box move |load_data: LoadData, senders, classifier, cancel_listener| {
         spawn_named(format!("http_loader for {}", load_data.url), move || {
-            load_for_consumer(load_data,
-                              senders,
-                              classifier,
-                              connector,
-                              http_state,
-                              devtools_chan,
-                              cancel_listener,
-                              user_agent)
+            let metadata = TimerMetadata {
+                url: load_data.url.as_str().into(),
+                iframe: TimerMetadataFrameType::RootWindow,
+                incremental: TimerMetadataReflowType::FirstReflow,
+            };
+            profile(ProfilerCategory::NetHTTPRequestResponse, Some(metadata), profiler_chan, || {
+                load_for_consumer(load_data,
+                                  senders,
+                                  classifier,
+                                  connector,
+                                  http_state,
+                                  devtools_chan,
+                                  cancel_listener,
+                                  user_agent)
+            })
         })
     }
 }
@@ -93,6 +105,7 @@ pub struct HttpState {
     pub hsts_list: Arc<RwLock<HstsList>>,
     pub cookie_jar: Arc<RwLock<CookieStorage>>,
     pub auth_cache: Arc<RwLock<AuthCache>>,
+    pub blocked_content: Arc<Option<RuleList>>,
 }
 
 impl HttpState {
@@ -101,6 +114,7 @@ impl HttpState {
             hsts_list: Arc::new(RwLock::new(HstsList::new())),
             cookie_jar: Arc::new(RwLock::new(CookieStorage::new())),
             auth_cache: Arc::new(RwLock::new(AuthCache::new())),
+            blocked_content: Arc::new(None),
         }
     }
 }
@@ -113,7 +127,6 @@ fn load_for_consumer(load_data: LoadData,
                      devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                      cancel_listener: CancellationListener,
                      user_agent: String) {
-
     let factory = NetworkHttpRequestFactory {
         connector: connector,
     };
@@ -136,6 +149,17 @@ fn load_for_consumer(load_data: LoadData,
             let metadata = load_response.metadata.clone();
             send_data(load_data.context, &mut load_response, start_chan, metadata, classifier, &cancel_listener)
         }
+    }
+}
+
+pub struct WrappedHttpResponse {
+    pub response: Response
+}
+
+impl Read for WrappedHttpResponse {
+    #[inline]
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.response.read(buf)
     }
 }
 
@@ -163,20 +187,6 @@ pub trait HttpResponse: Read {
     }
 }
 
-
-pub struct WrappedHttpResponse {
-    pub response: Response
-}
-
-impl Read for WrappedHttpResponse {
-    #[inline]
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.response.read(buf)
-    }
-}
-
-
-
 impl HttpResponse for WrappedHttpResponse {
     fn headers(&self) -> &Headers {
         &self.response.headers
@@ -192,6 +202,34 @@ impl HttpResponse for WrappedHttpResponse {
 
     fn http_version(&self) -> String {
         self.response.version.to_string()
+    }
+}
+
+pub struct ReadableCustomResponse {
+    headers: Headers,
+    raw_status: RawStatus,
+    body: Cursor<Vec<u8>>
+}
+
+pub fn to_readable_response(custom_response: CustomResponse) -> ReadableCustomResponse {
+    ReadableCustomResponse {
+        headers: custom_response.headers,
+        raw_status: custom_response.raw_status,
+        body: Cursor::new(custom_response.body)
+    }
+}
+
+impl HttpResponse for ReadableCustomResponse {
+    fn headers(&self) -> &Headers { &self.headers }
+    fn status(&self) -> StatusCode {
+        StatusCode::Ok
+    }
+    fn status_raw(&self) -> &RawStatus { &self.raw_status }
+}
+
+impl Read for ReadableCustomResponse {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.body.read(buf)
     }
 }
 
@@ -292,6 +330,7 @@ pub enum LoadErrorType {
     Cancelled,
     Connection { reason: String },
     ConnectionAborted { reason: String },
+    ContentBlocked,
     // Preflight fetch inconsistent with main fetch
     CorsPreflightFetchInconsistent,
     Decoding { reason: String },
@@ -314,6 +353,7 @@ impl Error for LoadErrorType {
             LoadErrorType::Cancelled => "load cancelled",
             LoadErrorType::Connection { ref reason } => reason,
             LoadErrorType::ConnectionAborted { ref reason } => reason,
+            LoadErrorType::ContentBlocked => "content blocked",
             LoadErrorType::CorsPreflightFetchInconsistent => "preflight fetch inconsistent with main fetch",
             LoadErrorType::Decoding { ref reason } => reason,
             LoadErrorType::InvalidRedirect { ref reason } => reason,
@@ -456,13 +496,13 @@ fn update_sts_list_from_response(url: &Url, response: &HttpResponse, hsts_list: 
     }
 }
 
-pub struct StreamedResponse<R: HttpResponse> {
-    decoder: Decoder<R>,
+pub struct StreamedResponse {
+    decoder: Decoder,
     pub metadata: Metadata
 }
 
 
-impl<R: HttpResponse> Read for StreamedResponse<R> {
+impl Read for StreamedResponse {
     #[inline]
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self.decoder {
@@ -474,12 +514,12 @@ impl<R: HttpResponse> Read for StreamedResponse<R> {
     }
 }
 
-impl<R: HttpResponse> StreamedResponse<R> {
-    fn new(m: Metadata, d: Decoder<R>) -> StreamedResponse<R> {
+impl StreamedResponse {
+    fn new(m: Metadata, d: Decoder) -> StreamedResponse {
         StreamedResponse { metadata: m, decoder: d }
     }
 
-    fn from_http_response(response: R, m: Metadata) -> Result<StreamedResponse<R>, LoadError> {
+    fn from_http_response(response: Box<HttpResponse>, m: Metadata) -> Result<StreamedResponse, LoadError> {
         let decoder = match response.content_encoding() {
             Some(Encoding::Gzip) => {
                 let result = GzDecoder::new(response);
@@ -505,11 +545,11 @@ impl<R: HttpResponse> StreamedResponse<R> {
     }
 }
 
-enum Decoder<R: Read> {
-    Gzip(GzDecoder<R>),
-    Deflate(DeflateDecoder<R>),
-    Brotli(Decompressor<R>),
-    Plain(R)
+enum Decoder {
+    Gzip(GzDecoder<Box<HttpResponse>>),
+    Deflate(DeflateDecoder<Box<HttpResponse>>),
+    Brotli(Decompressor<Box<HttpResponse>>),
+    Plain(Box<HttpResponse>)
 }
 
 fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
@@ -519,7 +559,6 @@ fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
                             headers: Headers,
                             body: Option<Vec<u8>>,
                             pipeline_id: PipelineId, now: Tm) {
-
     if let Some(ref chan) = devtools_chan {
         let request = DevtoolsHttpRequest {
             url: url, method: method, headers: headers, body: body, pipeline_id: pipeline_id, startedDateTime: now };
@@ -556,7 +595,8 @@ pub fn modify_request_headers(headers: &mut Headers,
                               user_agent: &str,
                               cookie_jar: &Arc<RwLock<CookieStorage>>,
                               auth_cache: &Arc<RwLock<AuthCache>>,
-                              load_data: &LoadData) {
+                              load_data: &LoadData,
+                              block_cookies: bool) {
     // Ensure that the host header is set from the original url
     let host = Host {
         hostname: url.host_str().unwrap().to_owned(),
@@ -586,7 +626,9 @@ pub fn modify_request_headers(headers: &mut Headers,
 
     // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
     if load_data.credentials_flag {
-        set_request_cookies(url.clone(), headers, cookie_jar);
+        if !block_cookies {
+            set_request_cookies(url.clone(), headers, cookie_jar);
+        }
 
         // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch step 12
         set_auth_header(headers, url, auth_cache);
@@ -596,7 +638,6 @@ pub fn modify_request_headers(headers: &mut Headers,
 fn set_auth_header(headers: &mut Headers,
                    url: &Url,
                    auth_cache: &Arc<RwLock<AuthCache>>) {
-
     if !headers.has::<Authorization<Basic>>() {
         if let Some(auth) = auth_from_url(url) {
             headers.set(auth);
@@ -658,7 +699,6 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
                           devtools_chan: &Option<Sender<DevtoolsControlMsg>>,
                           request_id: &str)
                           -> Result<A::R, LoadError> where A: HttpRequest + 'static  {
-
     let null_data = None;
     let response;
     let connection_url = replace_hosts(&url);
@@ -761,7 +801,7 @@ pub fn load<A, B>(load_data: &LoadData,
                   request_factory: &HttpRequestFactory<R=A>,
                   user_agent: String,
                   cancel_listener: &CancellationListener)
-                  -> Result<StreamedResponse<A::R>, LoadError> where A: HttpRequest + 'static, B: UIProvider {
+                  -> Result<StreamedResponse, LoadError> where A: HttpRequest + 'static, B: UIProvider {
     let max_redirects = prefs::get_pref("network.http.redirection-limit").as_i64().unwrap() as u32;
     let mut iters = 0;
     // URL of the document being loaded, as seen by all the higher-level code.
@@ -773,6 +813,20 @@ pub fn load<A, B>(load_data: &LoadData,
 
     if cancel_listener.is_cancelled() {
         return Err(LoadError::new(doc_url, LoadErrorType::Cancelled));
+    }
+
+    let (msg_sender, msg_receiver) = ipc::channel().unwrap();
+    match load_data.source {
+        RequestSource::Window(ref sender) | RequestSource::Worker(ref sender) => {
+            sender.send(msg_sender.clone()).unwrap();
+            let received_msg = msg_receiver.recv().unwrap();
+            if let Some(custom_response) = received_msg {
+                let metadata = Metadata::default(doc_url.clone());
+                let readable_response = to_readable_response(custom_response);
+                return StreamedResponse::from_http_response(box readable_response, metadata);
+            }
+        }
+        RequestSource::None => {}
     }
 
     // If the URL is a view-source scheme then the scheme data contains the
@@ -806,6 +860,29 @@ pub fn load<A, B>(load_data: &LoadData,
             return Err(LoadError::new(doc_url, LoadErrorType::Cancelled));
         }
 
+        let mut block_cookies = false;
+        if let Some(ref rules) = *http_state.blocked_content {
+            let same_origin =
+                load_data.referrer_url.as_ref()
+                         .map(|url| url.origin() == doc_url.origin())
+                         .unwrap_or(false);
+            let load_type = if same_origin { LoadType::FirstParty } else { LoadType::ThirdParty };
+            let actions = process_rules_for_request(rules, &CBRequest {
+                url: &doc_url,
+                resource_type: to_resource_type(&load_data.context),
+                load_type: load_type,
+            });
+            for action in actions {
+                match action {
+                    Reaction::Block => {
+                        return Err(LoadError::new(doc_url, LoadErrorType::ContentBlocked));
+                    },
+                    Reaction::BlockCookies => block_cookies = true,
+                    Reaction::HideMatchingElements(_) => (),
+                }
+            }
+        }
+
         info!("requesting {}", doc_url);
 
         // Avoid automatically preserving request headers when redirects occur.
@@ -824,7 +901,7 @@ pub fn load<A, B>(load_data: &LoadData,
 
         modify_request_headers(&mut request_headers, &doc_url,
                                &user_agent, &http_state.cookie_jar,
-                               &http_state.auth_cache, &load_data);
+                               &http_state.auth_cache, &load_data, block_cookies);
 
         //if there is a new auth header then set the request headers with it
         if let Some(ref auth_header) = new_auth_header {
@@ -932,7 +1009,7 @@ pub fn load<A, B>(load_data: &LoadData,
                     metadata.headers.clone(), metadata.status.clone(),
                     pipeline_id);
          }
-        return StreamedResponse::from_http_response(response, metadata)
+        return StreamedResponse::from_http_response(box response, metadata)
     }
 }
 
@@ -984,5 +1061,19 @@ fn is_cert_verify_error(error: &OpensslError) -> bool {
             function == "SSL3_GET_SERVER_CERTIFICATE" &&
             reason == "certificate verify failed"
         }
+    }
+}
+
+fn to_resource_type(context: &LoadContext) -> ResourceType {
+    match *context {
+        LoadContext::Browsing => ResourceType::Document,
+        LoadContext::Image => ResourceType::Image,
+        LoadContext::AudioVideo => ResourceType::Media,
+        LoadContext::Plugin => ResourceType::Raw,
+        LoadContext::Style => ResourceType::StyleSheet,
+        LoadContext::Script => ResourceType::Script,
+        LoadContext::Font => ResourceType::Font,
+        LoadContext::TextTrack => ResourceType::Media,
+        LoadContext::CacheManifest => ResourceType::Raw,
     }
 }

@@ -373,7 +373,6 @@ impl NetworkEventActor {
      }
 
     pub fn response_cookies(&self) -> ResponseCookiesMsg {
-
         let mut cookies_size = 0;
         if let Some(ref headers) = self.response.headers {
             cookies_size = match headers.get() {
@@ -387,7 +386,6 @@ impl NetworkEventActor {
     }
 
     pub fn response_headers(&self) -> ResponseHeadersMsg {
-
         let mut headers_size = 0;
         let mut headers_byte_count = 0;
         if let Some(ref headers) = self.response.headers {
@@ -404,7 +402,6 @@ impl NetworkEventActor {
     }
 
     pub fn request_cookies(&self) -> RequestCookiesMsg {
-
         let mut cookies_size = 0;
         if let Some(ref headers) = self.response.headers {
             cookies_size = match headers.get() {

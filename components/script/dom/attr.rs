@@ -10,6 +10,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap};
 use dom::bindings::js::{LayoutJS, Root, RootedReference};
 use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::element::{AttributeMutation, Element};
 use dom::virtualmethods::vtable_for;
 use dom::window::Window;
@@ -18,7 +19,6 @@ use std::cell::Ref;
 use std::mem;
 use string_cache::{Atom, Namespace};
 pub use style::attr::{AttrIdentifier, AttrValue};
-use util::str::DOMString;
 
 // https://dom.spec.whatwg.org/#interface-attr
 #[dom_struct]
@@ -101,14 +101,13 @@ impl AttrMethods for Attr {
 
     // https://dom.spec.whatwg.org/#dom-attr-value
     fn SetValue(&self, value: DOMString) {
-        match self.owner() {
-            None => *self.value.borrow_mut() = AttrValue::String(value),
-            Some(owner) => {
-                let value = owner.parse_attribute(&self.identifier.namespace,
-                                                  self.local_name(),
-                                                  value);
-                self.set_value(value, owner.r());
-            }
+        if let Some(owner) = self.owner() {
+            let value = owner.parse_attribute(&self.identifier.namespace,
+                                              self.local_name(),
+                                              value);
+            self.set_value(value, owner.r());
+        } else {
+            *self.value.borrow_mut() = AttrValue::String(value.into());
         }
     }
 
@@ -174,11 +173,16 @@ impl Attr {
     pub fn set_value(&self, mut value: AttrValue, owner: &Element) {
         assert!(Some(owner) == self.owner().r());
         owner.will_mutate_attr();
-        mem::swap(&mut *self.value.borrow_mut(), &mut value);
+        self.swap_value(&mut value);
         if self.identifier.namespace == ns!() {
             vtable_for(owner.upcast())
                 .attribute_mutated(self, AttributeMutation::Set(Some(&value)));
         }
+    }
+
+    /// Used to swap the attribute's value without triggering mutation events
+    pub fn swap_value(&self, value: &mut AttrValue) {
+        mem::swap(&mut *self.value.borrow_mut(), value);
     }
 
     pub fn identifier(&self) -> &AttrIdentifier {

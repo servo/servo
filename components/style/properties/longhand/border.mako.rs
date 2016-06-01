@@ -63,3 +63,9 @@
 % endfor
 
 ${helpers.single_keyword("box-decoration-break", "slice clone", products="gecko")}
+
+${helpers.single_keyword("-moz-float-edge",
+                         "content-box margin-box",
+                         gecko_ffi_name="mFloatEdge",
+                         gecko_constant_prefix="NS_STYLE_FLOAT_EDGE",
+                         products="gecko")}

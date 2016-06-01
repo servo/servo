@@ -18,9 +18,10 @@ use ipc_channel::ipc::IpcSender;
 use js::jsapi::{CurrentGlobalOrNull, GetGlobalForObjectCrossCompartment};
 use js::jsapi::{JSContext, JSObject, JS_GetClass, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
-use msg::constellation_msg::{ConstellationChan, PipelineId};
-use net_traits::ResourceThread;
-use profile_traits::mem;
+use msg::constellation_msg::{PipelineId, PanicMsg};
+use net_traits::filemanager_thread::FileManagerThreadMsg;
+use net_traits::{ResourceThreads, CoreResourceThread, RequestSource, IpcSend};
+use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::{MainThreadScriptChan, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
@@ -65,6 +66,14 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
+    /// gets the custom message channel associated with global object
+    pub fn request_source(&self) -> RequestSource {
+        match *self {
+            GlobalRef::Window(ref window) => RequestSource::Window(window.custom_message_chan()),
+            GlobalRef::Worker(ref worker) => RequestSource::Worker(worker.custom_message_chan()),
+        }
+    }
+
     /// Get the `PipelineId` for this global scope.
     pub fn pipeline(&self) -> PipelineId {
         match *self {
@@ -81,8 +90,16 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// Get a `ConstellationChan` to send messages to the constellation channel when available.
-    pub fn constellation_chan(&self) -> &ConstellationChan<ConstellationMsg> {
+    /// Get a `time::ProfilerChan` to send messages to the time profiler thread.
+    pub fn time_profiler_chan(&self) -> &time::ProfilerChan {
+        match *self {
+            GlobalRef::Window(window) => window.time_profiler_chan(),
+            GlobalRef::Worker(worker) => worker.time_profiler_chan(),
+        }
+    }
+
+    /// Get a `IpcSender` to send messages to the constellation when available.
+    pub fn constellation_chan(&self) -> &IpcSender<ConstellationMsg> {
         match *self {
             GlobalRef::Window(window) => window.constellation_chan(),
             GlobalRef::Worker(worker) => worker.constellation_chan(),
@@ -106,17 +123,27 @@ impl<'a> GlobalRef<'a> {
         }
     }
 
-    /// Get the `ResourceThread` for this global scope.
-    pub fn resource_thread(&self) -> ResourceThread {
+    /// Get the `ResourceThreads` for this global scope.
+    pub fn resource_threads(&self) -> ResourceThreads {
         match *self {
             GlobalRef::Window(ref window) => {
                 let doc = window.Document();
                 let doc = doc.r();
                 let loader = doc.loader();
-                (*loader.resource_thread).clone()
+                loader.resource_threads().clone()
             }
-            GlobalRef::Worker(ref worker) => worker.resource_thread().clone(),
+            GlobalRef::Worker(ref worker) => worker.resource_threads().clone(),
         }
+    }
+
+    /// Get the `CoreResourceThread` for this global scope
+    pub fn core_resource_thread(&self) -> CoreResourceThread {
+        self.resource_threads().sender()
+    }
+
+    /// Get the port to file manager for this global scope
+    pub fn filemanager_thread(&self) -> IpcSender<FileManagerThreadMsg> {
+        self.resource_threads().sender()
     }
 
     /// Get the worker's id.
@@ -263,6 +290,14 @@ impl<'a> GlobalRef<'a> {
             GlobalRef::Worker(ref worker) => worker.reflector(),
         }
     }
+
+    /// Returns an `IpcSender` to report panics on.
+    pub fn panic_chan(&self) -> &IpcSender<PanicMsg> {
+        match *self {
+            GlobalRef::Window(ref window) => window.panic_chan(),
+            GlobalRef::Worker(ref worker) => worker.panic_chan(),
+        }
+    }
 }
 
 impl GlobalRoot {
@@ -278,44 +313,39 @@ impl GlobalRoot {
 
 /// Returns the global object of the realm that the given DOM object's reflector was created in.
 pub fn global_root_from_reflector<T: Reflectable>(reflector: &T) -> GlobalRoot {
-    global_root_from_object(*reflector.reflector().get_jsobject())
+    unsafe { global_root_from_object(*reflector.reflector().get_jsobject()) }
 }
 
 /// Returns the Rust global object from a JS global object.
 #[allow(unrooted_must_root)]
-pub fn global_root_from_global(global: *mut JSObject) -> GlobalRoot {
-    unsafe {
-        let clasp = JS_GetClass(global);
-        assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
-        match root_from_object(global) {
-            Ok(window) => return GlobalRoot::Window(window),
-            Err(_) => (),
-        }
-
-        match root_from_object(global) {
-            Ok(worker) => return GlobalRoot::Worker(worker),
-            Err(_) => (),
-        }
-
-        panic!("found DOM global that doesn't unwrap to Window or WorkerGlobalScope")
+unsafe fn global_root_from_global(global: *mut JSObject) -> GlobalRoot {
+    assert!(!global.is_null());
+    let clasp = JS_GetClass(global);
+    assert!(((*clasp).flags & (JSCLASS_IS_DOMJSCLASS | JSCLASS_IS_GLOBAL)) != 0);
+    match root_from_object(global) {
+        Ok(window) => return GlobalRoot::Window(window),
+        Err(_) => (),
     }
+
+    match root_from_object(global) {
+        Ok(worker) => return GlobalRoot::Worker(worker),
+        Err(_) => (),
+    }
+
+    panic!("found DOM global that doesn't unwrap to Window or WorkerGlobalScope")
 }
 
 /// Returns the global object of the realm that the given JS object was created in.
 #[allow(unrooted_must_root)]
-pub fn global_root_from_object(obj: *mut JSObject) -> GlobalRoot {
-    unsafe {
-        let global = GetGlobalForObjectCrossCompartment(obj);
-        global_root_from_global(global)
-    }
+pub unsafe fn global_root_from_object(obj: *mut JSObject) -> GlobalRoot {
+    assert!(!obj.is_null());
+    let global = GetGlobalForObjectCrossCompartment(obj);
+    global_root_from_global(global)
 }
 
 /// Returns the global object for the given JSContext
 #[allow(unrooted_must_root)]
-pub fn global_root_from_context(cx: *mut JSContext) -> GlobalRoot {
-    unsafe {
-        let global = CurrentGlobalOrNull(cx);
-        assert!(!global.is_null());
-        global_root_from_global(global)
-    }
+pub unsafe fn global_root_from_context(cx: *mut JSContext) -> GlobalRoot {
+    let global = CurrentGlobalOrNull(cx);
+    global_root_from_global(global)
 }

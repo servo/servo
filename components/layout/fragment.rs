@@ -14,10 +14,10 @@ use floats::ClearType;
 use flow::{self, ImmutableFlowUtils};
 use flow_ref::{self, FlowRef};
 use gfx;
-use gfx::display_list::{BLUR_INFLATION_FACTOR, FragmentType, OpaqueNode, StackingContextId};
+use gfx::display_list::{BLUR_INFLATION_FACTOR, OpaqueNode};
 use gfx::text::glyph::ByteIndex;
 use gfx::text::text_run::{TextRun, TextRunSlice};
-use gfx_traits::{LayerId, LayerType};
+use gfx_traits::{FragmentType, LayerId, LayerType, StackingContextId};
 use incremental::{RECONSTRUCT_FLOW, RestyleDamage};
 use inline::{FIRST_FRAGMENT_OF_ELEMENT, InlineFragmentContext, InlineFragmentNodeInfo};
 use inline::{InlineMetrics, LAST_FRAGMENT_OF_ELEMENT};
@@ -42,8 +42,8 @@ use style::computed_values::{vertical_align, white_space, word_break, z_index};
 use style::dom::TRestyleDamage;
 use style::logical_geometry::{LogicalMargin, LogicalRect, LogicalSize, WritingMode};
 use style::properties::{ComputedValues, ServoComputedValues};
+use style::values::computed::LengthOrPercentageOrNone;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto};
-use style::values::computed::{LengthOrPercentageOrNone};
 use text;
 use text::TextRunScanner;
 use url::Url;
@@ -1971,6 +1971,11 @@ impl Fragment {
                 }
             }
             SpecificFragmentInfo::ScannedText(ref text_fragment) => {
+                // Fragments with no glyphs don't contribute any inline metrics.
+                // TODO: Filter out these fragments during flow construction?
+                if text_fragment.content_size.inline == Au(0) {
+                    return InlineMetrics::new(Au(0), Au(0), Au(0));
+                }
                 // See CSS 2.1 § 10.8.1.
                 let line_height = self.calculate_line_height(layout_context);
                 let font_derived_metrics =

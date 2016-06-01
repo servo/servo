@@ -4,7 +4,7 @@
 
 use dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOMPointMethods};
 use dom::bindings::codegen::Bindings::DOMQuadBinding::{DOMQuadInit, DOMQuadMethods, Wrap};
-use dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::{DOMRectInit};
+use dom::bindings::codegen::Bindings::DOMRectReadOnlyBinding::DOMRectInit;
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{Root, JS};
@@ -28,7 +28,6 @@ impl DOMQuad {
                      p3: &DOMPoint,
                      p4: &DOMPoint)
                      -> DOMQuad {
-
         DOMQuad {
             reflector_: Reflector::new(),
             p1: JS::from_ref(p1),

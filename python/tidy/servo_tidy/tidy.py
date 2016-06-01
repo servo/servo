@@ -33,9 +33,9 @@ file_patterns_to_ignore = [
 # Files that are ignored for all tidy and lint checks.
 ignored_files = [
     # Generated and upstream code combined with our own. Could use cleanup
-    os.path.join(".", "ports", "gonk", "src", "native_window_glue.cpp"),
     os.path.join(".", "ports", "geckolib", "gecko_bindings", "bindings.rs"),
     os.path.join(".", "ports", "geckolib", "gecko_bindings", "structs.rs"),
+    os.path.join(".", "ports", "geckolib", "string_cache", "atom_macro.rs"),
     os.path.join(".", "resources", "hsts_preload.json"),
     os.path.join(".", "tests", "wpt", "metadata", "MANIFEST.json"),
     os.path.join(".", "tests", "wpt", "metadata-css", "MANIFEST.json"),
@@ -53,6 +53,7 @@ ignored_dirs = [
     os.path.join(".", "tests", "wpt", "harness"),
     os.path.join(".", "tests", "wpt", "update"),
     os.path.join(".", "tests", "wpt", "web-platform-tests"),
+    os.path.join(".", "tests", "wpt", "mozilla", "tests", "mozilla", "referrer-policy"),
     os.path.join(".", "tests", "wpt", "sync"),
     os.path.join(".", "tests", "wpt", "sync_css"),
     os.path.join(".", "python", "mach"),
@@ -100,8 +101,8 @@ def filter_file(file_name):
     return True
 
 
-def filter_files(start_dir, faster, progress):
-    file_iter = get_file_list(start_dir, faster, ignored_dirs)
+def filter_files(start_dir, only_changed_files, progress):
+    file_iter = get_file_list(start_dir, only_changed_files, ignored_dirs)
     (has_element, file_iter) = is_iter_empty(file_iter)
     if not has_element:
         raise StopIteration
@@ -231,7 +232,7 @@ def check_lock(file_name, contents):
         raise StopIteration
 
     # package names to be neglected (as named by cargo)
-    exceptions = ["bitflags", "lazy_static"]
+    exceptions = ["lazy_static"]
 
     import toml
     content = toml.loads(contents)
@@ -297,6 +298,7 @@ def check_rust(file_name, lines):
     whitespace = False
 
     prev_use = None
+    prev_open_brace = False
     current_indent = 0
     prev_crate = {}
     prev_mod = {}
@@ -340,10 +342,10 @@ def check_rust(file_name, lines):
             line = re.sub(r"'(\\.|[^\\'])*?'", "''", line)
 
         # get rid of comments
-        line = re.sub('//.*?$|/\*.*?$|^\*.*?$', '', line)
+        line = re.sub('//.*?$|/\*.*?$|^\*.*?$', '//', line)
 
         # get rid of attributes that do not contain =
-        line = re.sub('^#[A-Za-z0-9\(\)\[\]_]*?$', '', line)
+        line = re.sub('^#[A-Za-z0-9\(\)\[\]_]*?$', '#[]', line)
 
         # flag this line if it matches one of the following regular expressions
         # tuple format: (pattern, format_message, filter_function(match, line))
@@ -388,6 +390,8 @@ def check_rust(file_name, lines):
             # No benefit over using &str
             (r": &String", "use &str instead of &String", no_filter),
             (r"^&&", "operators should go at the end of the first line", no_filter),
+            (r"\{[A-Za-z0-9_]+\};", "use statement contains braces for single import",
+                lambda match, line: line.startswith('use ')),
         ]
 
         for pattern, message, filter_func in regex_rules:
@@ -396,6 +400,10 @@ def check_rust(file_name, lines):
                     continue
 
                 yield (idx + 1, message.format(*match.groups(), **match.groupdict()))
+
+        if prev_open_brace and not line:
+            yield (idx + 1, "found an empty line following a {")
+        prev_open_brace = line.endswith("{")
 
         # check alphabetical order of extern crates
         if line.startswith("extern crate "):
@@ -585,6 +593,9 @@ def collect_errors_for_files(files_to_check, checking_functions, line_checking_f
     if print_text:
         print '\rChecking files for tidiness...'
     for filename in files_to_check:
+        if not os.path.exists(filename):
+            continue
+
         with open(filename, "r") as f:
             contents = f.read()
             for check in checking_functions:
@@ -645,14 +656,14 @@ def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
                 yield os.path.join(root, f)
 
 
-def scan(faster=False, progress=True):
+def scan(only_changed_files=False, progress=True):
     # standard checks
-    files_to_check = filter_files('.', faster, progress)
+    files_to_check = filter_files('.', only_changed_files, progress)
     checking_functions = (check_flake8, check_lock, check_webidl_spec, check_json)
     line_checking_functions = (check_license, check_by_line, check_toml, check_rust, check_spec, check_modeline)
     errors = collect_errors_for_files(files_to_check, checking_functions, line_checking_functions)
     # wpt lint checks
-    wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(faster, progress))
+    wpt_lint_errors = check_wpt_lint_errors(get_wpt_files(only_changed_files, progress))
     # collect errors
     errors = itertools.chain(errors, wpt_lint_errors)
     error = None

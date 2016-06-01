@@ -58,8 +58,8 @@ impl WebGLPaintThread {
         }
     }
 
-    /// Creates a new `WebGLPaintThread` and returns the out-of-process sender and the in-process
-    /// sender for it.
+    /// Creates a new `WebGLPaintThread` and returns an `IpcSender` to
+    /// communicate with it.
     pub fn start(size: Size2D<i32>,
                  attrs: GLContextAttributes,
                  webrender_api_sender: Option<webrender_traits::RenderApiSender>)

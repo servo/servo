@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use net_traits::storage_thread::{StorageThread, StorageThreadMsg, StorageType};
+use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use resource_thread;
 use std::borrow::ToOwned;
 use std::collections::BTreeMap;
@@ -18,9 +18,9 @@ pub trait StorageThreadFactory {
     fn new() -> Self;
 }
 
-impl StorageThreadFactory for StorageThread {
-    /// Create a StorageThread
-    fn new() -> StorageThread {
+impl StorageThreadFactory for IpcSender<StorageThreadMsg> {
+    /// Create a storage thread
+    fn new() -> IpcSender<StorageThreadMsg> {
         let (chan, port) = ipc::channel().unwrap();
         spawn_named("StorageManager".to_owned(), move || {
             StorageManager::new(port).start();
@@ -38,8 +38,8 @@ struct StorageManager {
 impl StorageManager {
     fn new(port: IpcReceiver<StorageThreadMsg>) -> StorageManager {
         let mut local_data = HashMap::new();
-        if let Some(ref profile_dir) = opts::get().profile_dir {
-            resource_thread::read_json_from_file(&mut local_data, profile_dir, "local_data.json");
+        if let Some(ref config_dir) = opts::get().config_dir {
+            resource_thread::read_json_from_file(&mut local_data, config_dir, "local_data.json");
         }
         StorageManager {
             port: port,
@@ -74,10 +74,11 @@ impl StorageManager {
                 StorageThreadMsg::Clear(sender, url, storage_type) => {
                     self.clear(sender, url, storage_type)
                 }
-                StorageThreadMsg::Exit => {
-                    if let Some(ref profile_dir) = opts::get().profile_dir {
-                        resource_thread::write_json_to_file(&self.local_data, profile_dir, "local_data.json");
+                StorageThreadMsg::Exit(sender) => {
+                    if let Some(ref config_dir) = opts::get().config_dir {
+                        resource_thread::write_json_to_file(&self.local_data, config_dir, "local_data.json");
                     }
+                    let _ = sender.send(());
                     break
                 }
             }

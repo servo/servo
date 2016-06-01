@@ -16,6 +16,7 @@ use dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, Nod
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::Reflectable;
+use dom::bindings::str::DOMString;
 use dom::blob::Blob;
 use dom::document::Document;
 use dom::element::Element;
@@ -39,6 +40,7 @@ use dom::window::Window;
 use encoding::EncodingRef;
 use encoding::all::UTF_8;
 use encoding::label::encoding_from_whatwg_label;
+use encoding::types::DecoderTrap;
 use hyper::header::{Charset, ContentDisposition, ContentType, DispositionParam, DispositionType};
 use hyper::method::Method;
 use msg::constellation_msg::{LoadData, PipelineId};
@@ -46,12 +48,11 @@ use rand::random;
 use script_thread::{MainThreadScriptMsg, Runnable};
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::str::from_utf8;
 use std::sync::mpsc::Sender;
 use string_cache::Atom;
 use task_source::dom_manipulation::DOMManipulationTask;
 use url::form_urlencoded;
-use util::str::{DOMString, split_html_space_chars};
+use util::str::split_html_space_chars;
 
 #[derive(JSTraceable, PartialEq, Clone, Copy, HeapSizeOf)]
 pub struct GenerationId(u32);
@@ -280,7 +281,7 @@ impl HTMLFormElement {
         let encoding = encoding.unwrap_or(self.pick_encoding());
 
         //  Step 3
-        let charset = &*encoding.whatwg_name().unwrap();
+        let charset = &*encoding.whatwg_name().unwrap_or("UTF-8");
 
         // Step 4
         for entry in form_data.iter_mut() {
@@ -308,12 +309,18 @@ impl HTMLFormElement {
                         DispositionParam::Filename(Charset::Ext(String::from(charset.clone())),
                                                    None,
                                                    f.name().clone().into()));
-                    let content_type = ContentType(f.upcast::<Blob>().Type().parse().unwrap());
+                    // https://tools.ietf.org/html/rfc7578#section-4.4
+                    let content_type = ContentType(f.upcast::<Blob>().Type()
+                                                    .parse().unwrap_or(mime!(Text / Plain)));
                     result.push_str(&*format!("Content-Disposition: {}\r\n{}\r\n\r\n",
                         content_disposition,
                         content_type));
 
-                    result.push_str(from_utf8(&f.upcast::<Blob>().get_data().get_bytes()).unwrap());
+                    let slice = f.upcast::<Blob>().get_slice_or_empty();
+
+                    let decoded = encoding.decode(&slice.get_bytes(), DecoderTrap::Replace)
+                                          .expect("Invalid encoding in file");
+                    result.push_str(&decoded);
                 }
             }
         }
@@ -548,7 +555,12 @@ impl HTMLFormElement {
                             data_set.push(datum);
                         }
                     }
-                    HTMLElementTypeId::HTMLButtonElement |
+                    HTMLElementTypeId::HTMLButtonElement => {
+                        let button = child.downcast::<HTMLButtonElement>().unwrap();
+                        if let Some(datum) = button.form_datum(submitter) {
+                            data_set.push(datum);
+                        }
+                    }
                     HTMLElementTypeId::HTMLObjectElement => {
                         // Unimplemented
                         ()
@@ -615,7 +627,7 @@ impl HTMLFormElement {
         // Step 4
         for datum in &mut ret {
             match &*datum.ty {
-                "file" | "textarea" => (),
+                "file" | "textarea" => (), // TODO
                 _ => {
                     datum.name = clean_crlf(&datum.name);
                     datum.value = FormDatumValue::String(clean_crlf( match datum.value {
@@ -902,7 +914,7 @@ impl VirtualMethods for HTMLFormElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("name") => AttrValue::from_atomic(value),
+            &atom!("name") => AttrValue::from_atomic(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

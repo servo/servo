@@ -6,7 +6,6 @@
 #![feature(core_intrinsics)]
 #![feature(custom_derive)]
 #![feature(fnbox)]
-#![feature(optin_builtin_traits)]
 #![feature(plugin)]
 #![feature(panic_handler)]
 #![feature(reflect_marker)]
@@ -26,25 +25,25 @@ extern crate euclid;
 extern crate getopts;
 extern crate heapsize;
 extern crate ipc_channel;
-#[cfg(feature = "non-geckolib")]
-extern crate js;
 #[allow(unused_extern_crates)]
 #[macro_use]
 extern crate lazy_static;
 extern crate libc;
 #[macro_use]
 extern crate log;
-extern crate num;
 extern crate num_cpus;
+extern crate num_traits;
 extern crate rand;
 extern crate rustc_serialize;
 extern crate serde;
 extern crate smallvec;
-extern crate string_cache;
 extern crate url;
+#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios")))]
+extern crate xdg;
 
 use std::sync::Arc;
 
+pub mod basedir;
 pub mod cache;
 #[allow(unsafe_code)]
 pub mod debug_utils;
@@ -52,9 +51,6 @@ pub mod geometry;
 #[allow(unsafe_code)]
 pub mod ipc;
 pub mod linked_list;
-#[cfg(feature = "non-geckolib")]
-#[allow(unsafe_code)]
-pub mod non_geckolib;
 #[allow(unsafe_code)]
 pub mod opts;
 pub mod panicking;
@@ -80,7 +76,7 @@ pub fn breakpoint() {
 
 // Workaround for lack of `ptr_eq` on Arcs...
 #[inline]
-pub fn arc_ptr_eq<T: 'static + Send + Sync>(a: &Arc<T>, b: &Arc<T>) -> bool {
+pub fn arc_ptr_eq<T: 'static>(a: &Arc<T>, b: &Arc<T>) -> bool {
     let a: &T = &**a;
     let b: &T = &**b;
     (a as *const T) == (b as *const T)

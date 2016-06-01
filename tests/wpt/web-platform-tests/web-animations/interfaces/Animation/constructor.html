@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Animation constructor tests</title>
+<link rel="help" href="http://w3c.github.io/web-animations/#dom-animation-animation">
+<link rel="author" title="Hiroyuki Ikezoe" href="mailto:hiikezoe@mozilla-japan.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../../testcommon.js"></script>
+<body>
+<div id="log"></div>
+<div id="target"></div>
+<script>
+"use strict";
+
+var gTarget = document.getElementById("target");
+var gEffect = new KeyframeEffectReadOnly(gTarget, { opacity: [0, 1] });
+
+var gTestArguments = [
+  {
+    effect: null,
+    timeline: null,
+    description: "with null effect and null timeline"
+  },
+  {
+    effect: null,
+    timeline: document.timeline,
+    description: "with null effect and non-null timeline"
+  },
+  {
+    effect: gEffect,
+    timeline: null,
+    description: "with non-null effect and null timeline"
+  },
+  {
+    effect: gEffect,
+    timeline: document.timeline,
+    description: "with non-null effect and non-null timeline"
+  },
+];
+
+gTestArguments.forEach(function(args) {
+  test(function(t) {
+    var animation = new Animation(args.effect, args.timeline);
+
+    assert_not_equals(animation, null,
+                      "An animation sohuld be created");
+    assert_equals(animation.effect, args.effect,
+                  "Animation returns the same effect passed to " +
+                  "the Constructor");
+    assert_equals(animation.timeline, args.timeline,
+                  "Animation returns the same timeline passed to " +
+                  "the Constructor");
+    assert_equals(animation.playState, "idle",
+                  "Animation.playState should be initially 'idle'");
+  }, "Animation can be constructed " + args.description);
+});
+
+test(function(t) {
+  var effect = new KeyframeEffectReadOnly(null,
+                                          { left: ["10px", "20px"] },
+                                          { duration: 10000,
+                                            fill: "forwards" });
+  var anim = new Animation(effect, document.timeline);
+  anim.pause();
+  assert_equals(effect.getComputedTiming().progress, 0.0);
+  anim.currentTime += 5000;
+  assert_equals(effect.getComputedTiming().progress, 0.5);
+  anim.finish();
+  assert_equals(effect.getComputedTiming().progress, 1.0);
+}, "Animation constructed by an effect with null target runs normally");
+
+</script>
+</body>

@@ -11,12 +11,13 @@ use compositing::windowing::{WindowEvent, WindowMethods};
 use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use euclid::{Size2D, Point2D};
+#[cfg(target_os = "windows")] use gdi32;
 use gleam::gl;
 use glutin;
+use glutin::TouchPhase;
 #[cfg(target_os = "macos")]
 use glutin::os::macos::{ActivationPolicy, WindowBuilderExt};
 use glutin::{Api, ElementState, Event, GlRequest, MouseButton, VirtualKeyCode, MouseScrollDelta};
-use glutin::{TouchPhase};
 use layers::geometry::DevicePixel;
 use layers::platform::surface::NativeDisplay;
 use msg::constellation_msg::{KeyState, NONE, CONTROL, SHIFT, ALT, SUPER};
@@ -30,12 +31,14 @@ use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender};
 use style_traits::cursor::Cursor;
 use url::Url;
+#[cfg(target_os = "windows")] use user32;
 use util::geometry::ScreenPx;
 use util::opts;
 #[cfg(not(target_os = "android"))]
 use util::opts::RenderApi;
 use util::prefs;
 use util::resource_files;
+#[cfg(target_os = "windows")] use winapi;
 
 static mut g_nested_event_loop_listener: Option<*mut (NestedEventLoopListener + 'static)> = None;
 
@@ -77,7 +80,7 @@ fn builder_with_platform_options(mut builder: glutin::WindowBuilder) -> glutin::
         // output file.
         builder = builder.with_activation_policy(ActivationPolicy::Prohibited)
     }
-    builder
+    builder.with_app_name(String::from("Servo"))
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -98,12 +101,28 @@ pub struct Window {
     current_url: RefCell<Option<Url>>,
 }
 
+#[cfg(not(target_os = "windows"))]
+fn window_creation_scale_factor() -> ScaleFactor<ScreenPx, DevicePixel, f32> {
+    ScaleFactor::new(1.0)
+}
+
+#[cfg(target_os = "windows")]
+fn window_creation_scale_factor() -> ScaleFactor<ScreenPx, DevicePixel, f32> {
+        let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
+        let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
+        ScaleFactor::new(ppi as f32 / 96.0)
+}
+
+
 impl Window {
     pub fn new(is_foreground: bool,
-               window_size: TypedSize2D<DevicePixel, u32>,
+               window_size: TypedSize2D<ScreenPx, u32>,
                parent: Option<glutin::WindowID>) -> Rc<Window> {
-        let width = window_size.to_untyped().width;
-        let height = window_size.to_untyped().height;
+        let win_size: TypedSize2D<DevicePixel, u32> =
+            (window_size.as_f32() * window_creation_scale_factor())
+            .as_uint().cast().expect("Window size should fit in u32");
+        let width = win_size.to_untyped().width;
+        let height = win_size.to_untyped().height;
 
         // If there's no chrome, start off with the window invisible. It will be set to visible in
         // `load_end()`. This avoids an ugly flash of unstyled content (especially important since
@@ -139,7 +158,7 @@ impl Window {
 
         builder = builder_with_platform_options(builder);
 
-        let mut glutin_window = builder.build().unwrap();
+        let mut glutin_window = builder.build().expect("Failed to create window.");
 
         unsafe { glutin_window.make_current().expect("Failed to make context current!") }
 
@@ -213,31 +232,30 @@ impl Window {
 
     fn handle_window_event(&self, event: glutin::Event) -> bool {
         match event {
-            Event::KeyboardInput(element_state, _scan_code, virtual_key_code) => {
-                if virtual_key_code.is_some() {
-                    let virtual_key_code = virtual_key_code.unwrap();
-
-                    match (element_state, virtual_key_code) {
-                        (_, VirtualKeyCode::LControl) => self.toggle_modifier(LEFT_CONTROL),
-                        (_, VirtualKeyCode::RControl) => self.toggle_modifier(RIGHT_CONTROL),
-                        (_, VirtualKeyCode::LShift) => self.toggle_modifier(LEFT_SHIFT),
-                        (_, VirtualKeyCode::RShift) => self.toggle_modifier(RIGHT_SHIFT),
-                        (_, VirtualKeyCode::LAlt) => self.toggle_modifier(LEFT_ALT),
-                        (_, VirtualKeyCode::RAlt) => self.toggle_modifier(RIGHT_ALT),
-                        (_, VirtualKeyCode::LWin) => self.toggle_modifier(LEFT_SUPER),
-                        (_, VirtualKeyCode::RWin) => self.toggle_modifier(RIGHT_SUPER),
-                        (_, key_code) => {
-                            if let Ok(key) = Window::glutin_key_to_script_key(key_code) {
-                                let state = match element_state {
-                                    ElementState::Pressed => KeyState::Pressed,
-                                    ElementState::Released => KeyState::Released,
-                                };
-                                let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
-                                self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(key, state, modifiers));
-                            }
+            Event::KeyboardInput(element_state, _scan_code, Some(virtual_key_code)) => {
+                match virtual_key_code {
+                    VirtualKeyCode::LControl => self.toggle_modifier(LEFT_CONTROL),
+                    VirtualKeyCode::RControl => self.toggle_modifier(RIGHT_CONTROL),
+                    VirtualKeyCode::LShift => self.toggle_modifier(LEFT_SHIFT),
+                    VirtualKeyCode::RShift => self.toggle_modifier(RIGHT_SHIFT),
+                    VirtualKeyCode::LAlt => self.toggle_modifier(LEFT_ALT),
+                    VirtualKeyCode::RAlt => self.toggle_modifier(RIGHT_ALT),
+                    VirtualKeyCode::LWin => self.toggle_modifier(LEFT_SUPER),
+                    VirtualKeyCode::RWin => self.toggle_modifier(RIGHT_SUPER),
+                    _ => {
+                        if let Ok(key) = Window::glutin_key_to_script_key(virtual_key_code) {
+                            let state = match element_state {
+                                ElementState::Pressed => KeyState::Pressed,
+                                ElementState::Released => KeyState::Released,
+                            };
+                            let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
+                            self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(key, state, modifiers));
                         }
                     }
                 }
+            }
+            Event::KeyboardInput(_, _, None) => {
+                debug!("Keyboard input without virtual key.");
             }
             Event::Resized(width, height) => {
                 self.event_queue.borrow_mut().push(WindowEvent::Resize(Size2D::typed(width, height)));
@@ -346,7 +364,13 @@ impl Window {
 
     #[cfg(any(target_os = "macos", target_os = "windows"))]
     fn handle_next_event(&self) -> bool {
-        let event = self.window.wait_events().next().unwrap();
+        let event = match self.window.wait_events().next() {
+            None => {
+                warn!("Window event stream closed.");
+                return false;
+            },
+            Some(event) => event,
+        };
         let mut close = self.handle_window_event(event);
         if !close {
             while let Some(event) = self.window.poll_events().next() {
@@ -368,7 +392,13 @@ impl Window {
         // because it doesn't call X11 functions from another thread, so doesn't
         // hit the same issues explained below.
         if opts::get().use_webrender {
-            let event = self.window.wait_events().next().unwrap();
+            let event = match self.window.wait_events().next() {
+                None => {
+                    warn!("Window event stream closed.");
+                    return false;
+                },
+                Some(event) => event,
+            };
             let mut close = self.handle_window_event(event);
             if !close {
                 while let Some(event) = self.window.poll_events().next() {
@@ -536,7 +566,7 @@ impl Window {
     }
 
     fn glutin_mods_to_script_mods(modifiers: KeyModifiers) -> constellation_msg::KeyModifiers {
-        let mut result = constellation_msg::KeyModifiers::from_bits(0).unwrap();
+        let mut result = constellation_msg::KeyModifiers::from_bits(0).expect("infallible");
         if modifiers.intersects(LEFT_SHIFT | RIGHT_SHIFT) {
             result.insert(SHIFT);
         }
@@ -585,19 +615,23 @@ fn create_window_proxy(window: &Window) -> Option<glutin::WindowProxy> {
 impl WindowMethods for Window {
     fn framebuffer_size(&self) -> TypedSize2D<DevicePixel, u32> {
         let scale_factor = self.window.hidpi_factor() as u32;
-        let (width, height) = self.window.get_inner_size().unwrap();
+        // TODO(ajeffrey): can this fail?
+        let (width, height) = self.window.get_inner_size().expect("Failed to get window inner size.");
         Size2D::typed(width * scale_factor, height * scale_factor)
     }
 
     fn size(&self) -> TypedSize2D<ScreenPx, f32> {
-        let (width, height) = self.window.get_inner_size().unwrap();
+        // TODO(ajeffrey): can this fail?
+        let (width, height) = self.window.get_inner_size().expect("Failed to get window inner size.");
         Size2D::typed(width as f32, height as f32)
     }
 
     fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
-        let (width, height) = self.window.get_outer_size().unwrap();
+        // TODO(ajeffrey): can this fail?
+        let (width, height) = self.window.get_outer_size().expect("Failed to get window outer size.");
         let size = Size2D::new(width, height);
-        let (x, y) = self.window.get_position().unwrap();
+        // TODO(ajeffrey): can this fail?
+        let (x, y) = self.window.get_position().expect("Failed to get window position.");
         let origin = Point2D::new(x as i32, y as i32);
         (size, origin)
     }
@@ -611,7 +645,9 @@ impl WindowMethods for Window {
     }
 
     fn present(&self) {
-        self.window.swap_buffers().unwrap();
+        if let Err(err) = self.window.swap_buffers() {
+            warn!("Failed to swap window buffers ({}).", err);
+        }
     }
 
     fn create_compositor_channel(&self)
@@ -627,8 +663,16 @@ impl WindowMethods for Window {
          box receiver as Box<CompositorReceiver>)
     }
 
-    fn hidpi_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
+    #[cfg(not(target_os = "windows"))]
+    fn scale_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
         ScaleFactor::new(self.window.hidpi_factor())
+    }
+
+    #[cfg(target_os = "windows")]
+    fn scale_factor(&self) -> ScaleFactor<ScreenPx, DevicePixel, f32> {
+        let hdc = unsafe { user32::GetDC(::std::ptr::null_mut()) };
+        let ppi = unsafe { gdi32::GetDeviceCaps(hdc, winapi::wingdi::LOGPIXELSY) };
+        ScaleFactor::new(ppi as f32 / 96.0)
     }
 
     fn set_page_title(&self, title: Option<String>) {
@@ -741,7 +785,6 @@ impl WindowMethods for Window {
 
     /// Helper function to handle keyboard events.
     fn handle_key(&self, key: Key, mods: constellation_msg::KeyModifiers) {
-
         match (mods, key) {
             (_, Key::Equal) => {
                 if mods & !SHIFT == CMD_OR_CONTROL {
@@ -828,13 +871,12 @@ struct GlutinCompositorProxy {
     window_proxy: Option<glutin::WindowProxy>,
 }
 
-// TODO: Should this be implemented here or upstream in glutin::WindowProxy?
-unsafe impl Send for GlutinCompositorProxy {}
-
 impl CompositorProxy for GlutinCompositorProxy {
     fn send(&self, msg: compositor_thread::Msg) {
         // Send a message and kick the OS event loop awake.
-        self.sender.send(msg).unwrap();
+        if let Err(err) = self.sender.send(msg) {
+            warn!("Failed to send response ({}).", err);
+        }
         if let Some(ref window_proxy) = self.window_proxy {
             window_proxy.wakeup_event_loop()
         }

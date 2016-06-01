@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use AnimationTickType;
-use CompositorMsg as ConstellationMsg;
+use CompositionPipeline;
+use SendableFrameTree;
 use app_units::Au;
 use compositor_layer::{CompositorData, CompositorLayer, RcCompositorLayer, WantsScrollEventsFlag};
-use compositor_thread::{CompositorEventListener, CompositorProxy};
-use compositor_thread::{CompositorReceiver, InitialCompositorState, Msg, RenderListener};
-use constellation::SendableFrameTree;
+use compositor_thread::{CompositorProxy, CompositorReceiver};
+use compositor_thread::{InitialCompositorState, Msg, RenderListener};
 use delayed_composition::DelayedCompositionTimerProxy;
 use euclid::point::TypedPoint2D;
 use euclid::rect::TypedRect;
@@ -16,7 +15,8 @@ use euclid::scale_factor::ScaleFactor;
 use euclid::size::TypedSize2D;
 use euclid::{Matrix4D, Point2D, Rect, Size2D};
 use gfx::paint_thread::{ChromeToPaintMsg, PaintRequest};
-use gfx_traits::{color, Epoch, FrameTreeId, LayerId, LayerKind, LayerProperties, ScrollPolicy};
+use gfx_traits::{ScrollPolicy, StackingContextId};
+use gfx_traits::{color, Epoch, FrameTreeId, FragmentType, LayerId, LayerKind, LayerProperties};
 use gleam::gl;
 use gleam::gl::types::{GLint, GLsizei};
 use image::{DynamicImage, ImageFormat, RgbImage};
@@ -28,17 +28,16 @@ use layers::platform::surface::NativeDisplay;
 use layers::rendergl;
 use layers::rendergl::RenderContext;
 use layers::scene::Scene;
-use layout_traits::{ConvertPipelineIdToWebRender, LayoutControlChan};
 use msg::constellation_msg::{Image, PixelFormat};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, PipelineIndex, PipelineNamespaceId};
 use msg::constellation_msg::{WindowSizeData, WindowSizeType};
-use pipeline::CompositionPipeline;
 use profile_traits::mem::{self, ReportKind, Reporter, ReporterRequest};
 use profile_traits::time::{self, ProfilerCategory, profile};
 use script_traits::CompositorEvent::{MouseMoveEvent, MouseButtonEvent, TouchEvent};
-use script_traits::{AnimationState, ConstellationControlMsg, LayoutControlMsg};
-use script_traits::{MouseButton, MouseEventType, TouchpadPressurePhase, TouchEventType, TouchId};
+use script_traits::{AnimationState, AnimationTickType, ConstellationControlMsg};
+use script_traits::{ConstellationMsg, LayoutControlMsg, MouseButton, MouseEventType};
+use script_traits::{StackingContextScrollState, TouchpadPressurePhase, TouchEventType, TouchId};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -58,14 +57,14 @@ use webrender_traits::{self, ScrollEventPhase};
 use windowing::{self, MouseWindowEvent, WindowEvent, WindowMethods, WindowNavigateMsg};
 
 #[derive(Debug, PartialEq)]
-pub enum UnableToComposite {
+enum UnableToComposite {
     NoContext,
     WindowUnprepared,
     NotReadyToPaintImage(NotReadyToPaint),
 }
 
 #[derive(Debug, PartialEq)]
-pub enum NotReadyToPaint {
+enum NotReadyToPaint {
     LayerHasOutstandingPaintMessages,
     MissingRoot,
     PendingSubpages(usize),
@@ -80,7 +79,7 @@ const BUFFER_MAP_SIZE: usize = 10000000;
 const MAX_ZOOM: f32 = 8.0;
 const MIN_ZOOM: f32 = 0.1;
 
-pub trait ConvertPipelineIdFromWebRender {
+trait ConvertPipelineIdFromWebRender {
     fn from_webrender(&self) -> PipelineId;
 }
 
@@ -89,6 +88,32 @@ impl ConvertPipelineIdFromWebRender for webrender_traits::PipelineId {
         PipelineId {
             namespace_id: PipelineNamespaceId(self.0),
             index: PipelineIndex(self.1),
+        }
+    }
+}
+
+trait ConvertStackingContextFromWebRender {
+    fn from_webrender(&self) -> StackingContextId;
+}
+
+impl ConvertStackingContextFromWebRender for webrender_traits::ServoStackingContextId {
+    fn from_webrender(&self) -> StackingContextId {
+        StackingContextId::new_of_type(self.1, self.0.from_webrender())
+    }
+}
+
+trait ConvertFragmentTypeFromWebRender {
+    fn from_webrender(&self) -> FragmentType;
+}
+
+impl ConvertFragmentTypeFromWebRender for webrender_traits::FragmentType {
+    fn from_webrender(&self) -> FragmentType {
+        match *self {
+            webrender_traits::FragmentType::FragmentBody => FragmentType::FragmentBody,
+            webrender_traits::FragmentType::BeforePseudoContent => {
+                FragmentType::BeforePseudoContent
+            }
+            webrender_traits::FragmentType::AfterPseudoContent => FragmentType::AfterPseudoContent,
         }
     }
 }
@@ -144,7 +169,7 @@ pub struct IOCompositor<Window: WindowMethods> {
     page_zoom: ScaleFactor<ViewportPx, ScreenPx, f32>,
 
     /// The device pixel ratio for this window.
-    hidpi_factor: ScaleFactor<ScreenPx, DevicePixel, f32>,
+    scale_factor: ScaleFactor<ScreenPx, DevicePixel, f32>,
 
     channel_to_self: Box<CompositorProxy + Send>,
 
@@ -221,7 +246,7 @@ pub struct IOCompositor<Window: WindowMethods> {
 }
 
 #[derive(Copy, Clone)]
-pub struct ScrollZoomEvent {
+struct ScrollZoomEvent {
     /// Change the pinch zoom level by this factor
     magnification: f32,
     /// Scroll by this offset
@@ -253,7 +278,7 @@ struct HitTestResult {
     point: TypedPoint2D<LayerPixel, f32>,
 }
 
-pub struct PipelineDetails {
+struct PipelineDetails {
     /// The pipeline associated with this PipelineDetails object.
     pipeline: Option<CompositionPipeline>,
 
@@ -279,7 +304,7 @@ impl PipelineDetails {
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-pub enum CompositeTarget {
+enum CompositeTarget {
     /// Normal composition to a window
     Window,
 
@@ -346,7 +371,7 @@ fn initialize_png(width: usize, height: usize) -> RenderTargetInfo {
     }
 }
 
-pub fn reporter_name() -> String {
+fn reporter_name() -> String {
     "compositor-reporter".to_owned()
 }
 
@@ -405,7 +430,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             mem::ProfilerMsg::RegisterReporter(reporter_name(), reporter));
 
         let window_size = window.framebuffer_size();
-        let hidpi_factor = window.hidpi_factor();
+        let scale_factor = window.scale_factor();
         let composite_target = match opts::get().output_file {
             Some(_) => CompositeTarget::PngFile,
             None => CompositeTarget::Window
@@ -434,7 +459,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             }),
             window_size: window_size,
             viewport: None,
-            hidpi_factor: hidpi_factor,
+            scale_factor: scale_factor,
             channel_to_self: state.sender.clone_compositor_proxy(),
             delayed_composition_timer: DelayedCompositionTimerProxy::new(state.sender),
             composition_request: CompositionRequest::NoCompositingNecessary,
@@ -485,7 +510,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         compositor
     }
 
-    pub fn start_shutting_down(&mut self) {
+    fn start_shutting_down(&mut self) {
         debug!("Compositor sending Exit message to Constellation");
         if let Err(e) = self.constellation_chan.send(ConstellationMsg::Exit) {
             warn!("Sending exit message to constellation failed ({}).", e);
@@ -496,7 +521,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         self.shutdown_state = ShutdownState::ShuttingDown;
     }
 
-    pub fn finish_shutting_down(&mut self) {
+    fn finish_shutting_down(&mut self) {
         debug!("Compositor received message that constellation shutdown is complete");
 
         // Clear out the compositor layers so that painting threads can destroy the buffers.
@@ -529,9 +554,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 return false
             }
 
-            (Msg::Exit(channel), _) => {
+            (Msg::Exit, _) => {
                 self.start_shutting_down();
-                let _ = channel.send(());
             }
 
             (Msg::ShutdownComplete, _) => {
@@ -790,9 +814,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    pub fn pipeline_details (&mut self,
-                                              pipeline_id: PipelineId)
-                                              -> &mut PipelineDetails {
+    fn pipeline_details(&mut self, pipeline_id: PipelineId) -> &mut PipelineDetails {
         if !self.pipeline_details.contains_key(&pipeline_id) {
             self.pipeline_details.insert(pipeline_id, PipelineDetails::new());
         }
@@ -1124,11 +1146,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         }
     }
 
-    pub fn move_layer(&self,
-                      pipeline_id: PipelineId,
-                      layer_id: LayerId,
-                      origin: TypedPoint2D<LayerPixel, f32>)
-                      -> bool {
+    fn move_layer(&self,
+                  pipeline_id: PipelineId,
+                  layer_id: LayerId,
+                  origin: TypedPoint2D<LayerPixel, f32>)
+                  -> bool {
         match self.find_layer_with_pipeline_and_layer_id(pipeline_id, layer_id) {
             Some(ref layer) => {
                 if layer.wants_scroll_events() == WantsScrollEventsFlag::WantsScrollEvents {
@@ -1315,9 +1337,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         debug!("compositor resizing to {:?}", new_size.to_untyped());
 
         // A size change could also mean a resolution change.
-        let new_hidpi_factor = self.window.hidpi_factor();
-        if self.hidpi_factor != new_hidpi_factor {
-            self.hidpi_factor = new_hidpi_factor;
+        let new_scale_factor = self.window.scale_factor();
+        if self.scale_factor != new_scale_factor {
+            self.scale_factor = new_scale_factor;
             self.update_zoom_transform();
         }
 
@@ -1625,11 +1647,11 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
                     self.perform_updates_after_scroll();
                 }
-
-                if had_events {
-                    self.send_viewport_rects_for_all_layers();
-                }
             }
+        }
+
+        if had_events {
+            self.send_viewport_rects_for_all_layers();
         }
     }
 
@@ -1672,9 +1694,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
         for (pipeline_id, new_visible_rects) in &new_visible_rects {
             if let Some(pipeline_details) = self.pipeline_details.get(&pipeline_id) {
                 if let Some(ref pipeline) = pipeline_details.pipeline {
-                    let LayoutControlChan(ref sender) = pipeline.layout_chan;
                     let msg = LayoutControlMsg::SetVisibleRects((*new_visible_rects).clone());
-                    if let Err(e) = sender.send(msg) {
+                    if let Err(e) = pipeline.layout_chan.send(msg) {
                         warn!("Sending layout control message failed ({}).", e);
                     }
                 }
@@ -1744,7 +1765,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             Some(device_pixels_per_px) => ScaleFactor::new(device_pixels_per_px),
             None => match opts::get().output_file {
                 Some(_) => ScaleFactor::new(1.0),
-                None => self.hidpi_factor
+                None => self.scale_factor
             }
         }
     }
@@ -1893,9 +1914,40 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     }
 
     fn send_viewport_rects_for_all_layers(&self) {
-        match self.scene.root {
-            Some(ref root) => self.send_viewport_rect_for_layer(root.clone()),
-            None => {},
+        if opts::get().use_webrender {
+            return self.send_webrender_viewport_rects()
+        }
+
+        if let Some(ref root) = self.scene.root {
+            self.send_viewport_rect_for_layer(root.clone())
+        }
+    }
+
+    fn send_webrender_viewport_rects(&self) {
+        let mut stacking_context_scroll_states_per_pipeline = HashMap::new();
+        if let Some(ref webrender_api) = self.webrender_api {
+            for scroll_layer_state in webrender_api.get_scroll_layer_state() {
+                let stacking_context_scroll_state = StackingContextScrollState {
+                    stacking_context_id: scroll_layer_state.stacking_context_id.from_webrender(),
+                    scroll_offset: scroll_layer_state.scroll_offset,
+                };
+                let pipeline_id = scroll_layer_state.pipeline_id;
+                match stacking_context_scroll_states_per_pipeline.entry(pipeline_id) {
+                    Vacant(mut entry) => {
+                        entry.insert(vec![stacking_context_scroll_state]);
+                    }
+                    Occupied(mut entry) => entry.get_mut().push(stacking_context_scroll_state),
+                }
+            }
+
+            for (pipeline_id, stacking_context_scroll_states) in
+                    stacking_context_scroll_states_per_pipeline {
+                if let Some(pipeline) = self.pipeline(pipeline_id.from_webrender()) {
+                    let msg = LayoutControlMsg::SetStackingContextScrollStates(
+                        stacking_context_scroll_states);
+                    let _ = pipeline.layout_chan.send(msg);
+                }
+            }
         }
     }
 
@@ -2081,8 +2133,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
     /// for some reason. If CompositeTarget is Window or Png no image data is returned;
     /// in the latter case the image is written directly to a file. If CompositeTarget
     /// is WindowAndPng Ok(Some(png::Image)) is returned.
-    pub fn composite_specific_target(&mut self, target: CompositeTarget) -> Result<Option<Image>, UnableToComposite> {
-
+    fn composite_specific_target(&mut self,
+                                 target: CompositeTarget)
+                                 -> Result<Option<Image>, UnableToComposite> {
         if self.context.is_none() && self.webrender.is_none() {
             return Err(UnableToComposite::NoContext)
         }
@@ -2448,31 +2501,8 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             webrender_api.tick_scrolling_bounce_animations()
         }
     }
-}
 
-fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorData>>,
-                                                   pipeline_id: PipelineId,
-                                                   layer_id: LayerId)
-                                                   -> Option<Rc<Layer<CompositorData>>> {
-    if layer.extra_data.borrow().pipeline_id == pipeline_id &&
-       layer.extra_data.borrow().id == layer_id {
-        return Some(layer);
-    }
-
-    for kid in &*layer.children() {
-        let result = find_layer_with_pipeline_and_layer_id_for_layer(kid.clone(),
-                                                                     pipeline_id,
-                                                                     layer_id);
-        if result.is_some() {
-            return result;
-        }
-    }
-
-    None
-}
-
-impl<Window> CompositorEventListener for IOCompositor<Window> where Window: WindowMethods {
-    fn handle_events(&mut self, messages: Vec<WindowEvent>) -> bool {
+    pub fn handle_events(&mut self, messages: Vec<WindowEvent>) -> bool {
         // Check for new messages coming from the other threads in the system.
         while let Some(msg) = self.port.try_recv_compositor_msg() {
             if !self.handle_browser_message(msg) {
@@ -2515,7 +2545,7 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
     /// paint is not scheduled the compositor will hang forever.
     ///
     /// This is used when resizing the window.
-    fn repaint_synchronously(&mut self) {
+    pub fn repaint_synchronously(&mut self) {
         if self.webrender.is_none() {
             while self.shutdown_state != ShutdownState::ShuttingDown {
                 let msg = self.port.recv_compositor_msg();
@@ -2551,11 +2581,11 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
         }
     }
 
-    fn pinch_zoom_level(&self) -> f32 {
+    pub fn pinch_zoom_level(&self) -> f32 {
         self.viewport_zoom.get() as f32
     }
 
-    fn title_for_main_frame(&self) {
+    pub fn title_for_main_frame(&self) {
         let root_pipeline_id = match self.root_pipeline {
             None => return,
             Some(ref root_pipeline) => root_pipeline.id,
@@ -2565,6 +2595,27 @@ impl<Window> CompositorEventListener for IOCompositor<Window> where Window: Wind
             warn!("Failed to send pipeline title ({}).", e);
         }
     }
+}
+
+fn find_layer_with_pipeline_and_layer_id_for_layer(layer: Rc<Layer<CompositorData>>,
+                                                   pipeline_id: PipelineId,
+                                                   layer_id: LayerId)
+                                                   -> Option<Rc<Layer<CompositorData>>> {
+    if layer.extra_data.borrow().pipeline_id == pipeline_id &&
+       layer.extra_data.borrow().id == layer_id {
+        return Some(layer);
+    }
+
+    for kid in &*layer.children() {
+        let result = find_layer_with_pipeline_and_layer_id_for_layer(kid.clone(),
+                                                                     pipeline_id,
+                                                                     layer_id);
+        if result.is_some() {
+            return result;
+        }
+    }
+
+    None
 }
 
 /// Why we performed a composite. This is used for debugging.

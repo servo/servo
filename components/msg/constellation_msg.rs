@@ -6,34 +6,17 @@
 //! reduce coupling between these two components.
 
 use euclid::scale_factor::ScaleFactor;
-use euclid::size::TypedSize2D;
+use euclid::size::{Size2D, TypedSize2D};
 use hyper::header::Headers;
 use hyper::method::Method;
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcSharedMemory};
+use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use layers::geometry::DevicePixel;
-use serde::{Deserialize, Serialize};
 use std::cell::Cell;
 use std::fmt;
 use url::Url;
 use util::geometry::{PagePx, ViewportPx};
 use webdriver_msg::{LoadStatus, WebDriverScriptCommand};
 use webrender_traits;
-
-#[derive(Deserialize, Serialize)]
-pub struct ConstellationChan<T: Deserialize + Serialize>(pub IpcSender<T>);
-
-impl<T: Deserialize + Serialize> ConstellationChan<T> {
-    pub fn new() -> (IpcReceiver<T>, ConstellationChan<T>) {
-        let (chan, port) = ipc::channel().unwrap();
-        (port, ConstellationChan(chan))
-    }
-}
-
-impl<T: Serialize + Deserialize> Clone for ConstellationChan<T> {
-    fn clone(&self) -> ConstellationChan<T> {
-        ConstellationChan(self.0.clone())
-    }
-}
 
 pub type PanicMsg = (Option<PipelineId>, String, String);
 
@@ -205,10 +188,12 @@ bitflags! {
 
 #[derive(Deserialize, Serialize)]
 pub enum WebDriverCommandMsg {
+    GetWindowSize(PipelineId, IpcSender<WindowSizeData>),
     LoadUrl(PipelineId, LoadData, IpcSender<LoadStatus>),
     Refresh(PipelineId, IpcSender<LoadStatus>),
     ScriptCommand(PipelineId, WebDriverScriptCommand),
     SendKeys(PipelineId, Vec<(Key, KeyModifiers, KeyState)>),
+    SetWindowSize(PipelineId, Size2D<u32>, IpcSender<WindowSizeData>),
     TakeScreenshot(PipelineId, IpcSender<Option<Image>>),
 }
 
@@ -346,6 +331,12 @@ impl PipelineId {
             index: PipelineIndex(0),
         }
     }
+
+    pub fn to_webrender(&self) -> webrender_traits::PipelineId {
+        let PipelineNamespaceId(namespace_id) = self.namespace_id;
+        let PipelineIndex(index) = self.index;
+        webrender_traits::PipelineId(namespace_id, index)
+    }
 }
 
 impl fmt::Display for PipelineId {
@@ -358,6 +349,12 @@ impl fmt::Display for PipelineId {
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
 pub struct SubpageId(pub u32);
+
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub enum FrameType {
+    IFrame,
+    MozBrowserIFrame,
+}
 
 /// [Policies](https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states)
 /// for providing a referrer header for a request

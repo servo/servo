@@ -2,11 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use dom::beforeunloadevent::BeforeUnloadEvent;
 use dom::bindings::callback::{CallbackContainer, ExceptionHandling, CallbackFunction};
 use dom::bindings::cell::DOMRefCell;
+use dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnloadEventMethods;
 use dom::bindings::codegen::Bindings::ErrorEventBinding::ErrorEventMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
+use dom::bindings::codegen::Bindings::EventHandlerBinding::OnBeforeUnloadEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
@@ -16,6 +19,7 @@ use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::bindings::str::DOMString;
 use dom::element::Element;
 use dom::errorevent::ErrorEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -39,12 +43,12 @@ use std::ptr;
 use std::rc::Rc;
 use string_cache::Atom;
 use url::Url;
-use util::str::DOMString;
 
 #[derive(PartialEq, Clone, JSTraceable)]
 pub enum CommonEventHandler {
     EventHandler(Rc<EventHandlerNonNull>),
     ErrorEventHandler(Rc<OnErrorEventHandlerNonNull>),
+    BeforeUnloadEventHandler(Rc<OnBeforeUnloadEventHandlerNonNull>),
 }
 
 impl CommonEventHandler {
@@ -52,6 +56,7 @@ impl CommonEventHandler {
         match *self {
             CommonEventHandler::EventHandler(ref handler) => &handler.parent,
             CommonEventHandler::ErrorEventHandler(ref handler) => &handler.parent,
+            CommonEventHandler::BeforeUnloadEventHandler(ref handler) => &handler.parent,
         }
     }
 }
@@ -173,6 +178,27 @@ impl CompiledEventListener {
                                               None, None, None, None, exception_handle);
                     }
 
+                    CommonEventHandler::BeforeUnloadEventHandler(ref handler) => {
+                        if let Some(event) = event.downcast::<BeforeUnloadEvent>() {
+                            let rv = event.ReturnValue();
+
+                            if let Ok(value) = handler.Call_(object,
+                                                             event.upcast::<Event>(),
+                                                             exception_handle) {
+                                match value {
+                                    Some(value) => {
+                                        if rv.is_empty() {
+                                            event.SetReturnValue(value);
+                                        }
+                                    }
+                                    None => {
+                                        event.upcast::<Event>().PreventDefault();
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     CommonEventHandler::EventHandler(ref handler) => {
                         if let Ok(value) = handler.Call_(object, event, exception_handle) {
                             let global = object.global();
@@ -183,7 +209,6 @@ impl CompiledEventListener {
                             //Step 4
                             let should_cancel = match event.type_() {
                                 atom!("mouseover") => value.is_boolean() && value.to_boolean() == true,
-                                atom!("beforeunload") => value.is_null(),
                                 _ => value.is_boolean() && value.to_boolean() == false
                             };
                             if should_cancel {
@@ -412,7 +437,12 @@ impl EventTarget {
         if is_error {
             Some(CommonEventHandler::ErrorEventHandler(OnErrorEventHandlerNonNull::new(funobj)))
         } else {
-            Some(CommonEventHandler::EventHandler(EventHandlerNonNull::new(funobj)))
+            if ty == &atom!("beforeunload") {
+                Some(CommonEventHandler::BeforeUnloadEventHandler(
+                        OnBeforeUnloadEventHandlerNonNull::new(funobj)))
+            } else {
+                Some(CommonEventHandler::EventHandler(EventHandlerNonNull::new(funobj)))
+            }
         }
     }
 
@@ -433,6 +463,16 @@ impl EventTarget {
                                           InlineEventListener::Compiled(
                                               CommonEventHandler::ErrorEventHandler(
                                                   OnErrorEventHandlerNonNull::new(listener.callback()))));
+        self.set_inline_event_listener(Atom::from(ty), event_listener);
+    }
+
+    pub fn set_beforeunload_event_handler<T: CallbackContainer>(&self, ty: &str,
+            listener: Option<Rc<T>>) {
+        let event_listener = listener.map(|listener|
+            InlineEventListener::Compiled(
+                CommonEventHandler::BeforeUnloadEventHandler(
+                    OnBeforeUnloadEventHandlerNonNull::new(listener.callback())))
+        );
         self.set_inline_event_listener(Atom::from(ty), event_listener);
     }
 

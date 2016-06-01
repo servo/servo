@@ -6,7 +6,7 @@ use font_template::{FontTemplate, FontTemplateDescriptor};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use mime::{TopLevel, SubLevel};
-use net_traits::{AsyncResponseTarget, LoadContext, PendingAsyncLoad, ResourceThread, ResponseAction};
+use net_traits::{AsyncResponseTarget, LoadContext, PendingAsyncLoad, CoreResourceThread, ResponseAction, RequestSource};
 use platform::font_context::FontContextHandle;
 use platform::font_list::SANS_SERIF_FONT_FAMILY;
 use platform::font_list::for_each_available_family;
@@ -125,7 +125,7 @@ struct FontCache {
     local_families: HashMap<LowercaseString, FontTemplates>,
     web_families: HashMap<LowercaseString, FontTemplates>,
     font_context: FontContextHandle,
-    resource_thread: ResourceThread,
+    core_resource_thread: CoreResourceThread,
     webrender_api: Option<webrender_traits::RenderApi>,
     webrender_fonts: HashMap<Atom, webrender_traits::FontKey>,
 }
@@ -133,11 +133,11 @@ struct FontCache {
 fn populate_generic_fonts() -> HashMap<FontFamily, LowercaseString> {
     let mut generic_fonts = HashMap::with_capacity(5);
 
-    append_map(&mut generic_fonts, FontFamily::Serif, "Times New Roman");
-    append_map(&mut generic_fonts, FontFamily::SansSerif, SANS_SERIF_FONT_FAMILY);
-    append_map(&mut generic_fonts, FontFamily::Cursive, "Apple Chancery");
-    append_map(&mut generic_fonts, FontFamily::Fantasy, "Papyrus");
-    append_map(&mut generic_fonts, FontFamily::Monospace, "Menlo");
+    append_map(&mut generic_fonts, FontFamily::Generic(atom!("serif")), "Times New Roman");
+    append_map(&mut generic_fonts, FontFamily::Generic(atom!("sans-serif")), SANS_SERIF_FONT_FAMILY);
+    append_map(&mut generic_fonts, FontFamily::Generic(atom!("cursive")), "Apple Chancery");
+    append_map(&mut generic_fonts, FontFamily::Generic(atom!("fantasy")), "Papyrus");
+    append_map(&mut generic_fonts, FontFamily::Generic(atom!("monospace")), "Menlo");
 
     fn append_map(generic_fonts: &mut HashMap<FontFamily, LowercaseString>,
                   font_family: FontFamily,
@@ -182,11 +182,12 @@ impl FontCache {
                         Source::Url(ref url_source) => {
                             let url = &url_source.url;
                             let load = PendingAsyncLoad::new(LoadContext::Font,
-                                                             self.resource_thread.clone(),
+                                                             self.core_resource_thread.clone(),
                                                              url.clone(),
                                                              None,
                                                              None,
-                                                             None);
+                                                             None,
+                                                             RequestSource::None);
                             let (data_sender, data_receiver) = ipc::channel().unwrap();
                             let data_target = AsyncResponseTarget {
                                 sender: data_sender,
@@ -372,7 +373,7 @@ pub struct FontCacheThread {
 }
 
 impl FontCacheThread {
-    pub fn new(resource_thread: ResourceThread,
+    pub fn new(core_resource_thread: CoreResourceThread,
                webrender_api: Option<webrender_traits::RenderApi>) -> FontCacheThread {
         let (chan, port) = ipc::channel().unwrap();
 
@@ -388,7 +389,7 @@ impl FontCacheThread {
                 local_families: HashMap::new(),
                 web_families: HashMap::new(),
                 font_context: FontContextHandle::new(),
-                resource_thread: resource_thread,
+                core_resource_thread: core_resource_thread,
                 webrender_api: webrender_api,
                 webrender_fonts: HashMap::new(),
             };
@@ -404,7 +405,6 @@ impl FontCacheThread {
 
     pub fn find_font_template(&self, family: FontFamily, desc: FontTemplateDescriptor)
                                                 -> Option<FontTemplateInfo> {
-
         let (response_chan, response_port) = ipc::channel().unwrap();
         self.chan.send(Command::GetFontTemplate(family, desc, response_chan)).unwrap();
 
@@ -419,7 +419,6 @@ impl FontCacheThread {
 
     pub fn last_resort_font_template(&self, desc: FontTemplateDescriptor)
                                                 -> FontTemplateInfo {
-
         let (response_chan, response_port) = ipc::channel().unwrap();
         self.chan.send(Command::GetLastResortFontTemplate(desc, response_chan)).unwrap();
 

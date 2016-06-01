@@ -523,11 +523,13 @@ interface WebGLRenderingContextBase
                                  GLsizei width, GLsizei height, GLenum format,
                                  object data);
 
-    //void copyTexImage2D(GLenum target, GLint level, GLenum internalformat,
-    //                    GLint x, GLint y, GLsizei width, GLsizei height,
-    //                    GLint border);
-    //void copyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-    //                       GLint x, GLint y, GLsizei width, GLsizei height);
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    void copyTexImage2D(GLenum target, GLint level, GLenum internalformat,
+                        GLint x, GLint y, GLsizei width, GLsizei height,
+                        GLint border);
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    void copyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+                           GLint x, GLint y, GLsizei width, GLsizei height);
 
     WebGLBuffer? createBuffer();
     WebGLFramebuffer? createFramebuffer();
@@ -595,16 +597,16 @@ interface WebGLRenderingContextBase
 
     WebGLUniformLocation? getUniformLocation(WebGLProgram? program, DOMString name);
 
-    //any getVertexAttrib(GLuint index, GLenum pname);
+    any getVertexAttrib(GLuint index, GLenum pname);
 
     //[WebGLHandlesContextLoss] GLsizeiptr getVertexAttribOffset(GLuint index, GLenum pname);
 
     void hint(GLenum target, GLenum mode);
-    //[WebGLHandlesContextLoss] GLboolean isBuffer(WebGLBuffer? buffer);
+    [WebGLHandlesContextLoss] GLboolean isBuffer(WebGLBuffer? buffer);
     //[WebGLHandlesContextLoss] GLboolean isEnabled(GLenum cap);
-    //[WebGLHandlesContextLoss] GLboolean isFramebuffer(WebGLFramebuffer? framebuffer);
+    [WebGLHandlesContextLoss] GLboolean isFramebuffer(WebGLFramebuffer? framebuffer);
     //[WebGLHandlesContextLoss] GLboolean isProgram(WebGLProgram? program);
-    //[WebGLHandlesContextLoss] GLboolean isRenderbuffer(WebGLRenderbuffer? renderbuffer);
+    [WebGLHandlesContextLoss] GLboolean isRenderbuffer(WebGLRenderbuffer? renderbuffer);
     [WebGLHandlesContextLoss] GLboolean isShader(WebGLShader? shader);
     [WebGLHandlesContextLoss] GLboolean isTexture(WebGLTexture? texture);
     void lineWidth(GLfloat width);
@@ -619,7 +621,7 @@ interface WebGLRenderingContextBase
 
     //void renderbufferStorage(GLenum target, GLenum internalformat,
     //                         GLsizei width, GLsizei height);
-    //void sampleCoverage(GLclampf value, GLboolean invert);
+    void sampleCoverage(GLclampf value, GLboolean invert);
     void scissor(GLint x, GLint y, GLsizei width, GLsizei height);
 
     void shaderSource(WebGLShader? shader, DOMString source);

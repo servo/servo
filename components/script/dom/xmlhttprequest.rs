@@ -13,7 +13,7 @@ use dom::bindings::codegen::Bindings::XMLHttpRequestBinding;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::BodyInit;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
 use dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
-use dom::bindings::conversions::{ToJSValConvertible};
+use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult, Fallible};
 use dom::bindings::global::{GlobalRef, GlobalRoot};
 use dom::bindings::inheritance::Castable;
@@ -21,8 +21,8 @@ use dom::bindings::js::{JS, MutHeapJSVal, MutNullableHeap};
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
-use dom::bindings::str::{ByteString, USVString, is_token};
-use dom::blob::{Blob, DataSlice};
+use dom::bindings::str::{ByteString, DOMString, USVString, is_token};
+use dom::blob::{Blob, DataSlice, BlobImpl};
 use dom::document::DocumentSource;
 use dom::document::{Document, IsHTMLDocument};
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -44,9 +44,10 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::{JSContext, JS_ParseJSON, RootedValue};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
-use net_traits::ControlMsg::Load;
-use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError};
-use net_traits::{LoadConsumer, LoadContext, LoadData, ResourceCORSData, ResourceThread};
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use net_traits::CoreResourceMsg::Load;
+use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError, RequestSource};
+use net_traits::{LoadConsumer, LoadContext, LoadData, ResourceCORSData, CoreResourceThread, LoadOrigin};
 use network_listener::{NetworkListener, PreInvoke};
 use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
@@ -61,8 +62,7 @@ use string_cache::Atom;
 use time;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::{Url, Position};
-use util::prefs;
-use util::str::DOMString;
+use util::prefs::mozbrowser_enabled;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
 enum XMLHttpRequestState {
@@ -157,7 +157,7 @@ impl XMLHttpRequest {
             ready_state: Cell::new(XMLHttpRequestState::Unsent),
             timeout: Cell::new(0u32),
             with_credentials: Cell::new(false),
-            upload: JS::from_rooted(&XMLHttpRequestUpload::new(global)),
+            upload: JS::from_ref(&*XMLHttpRequestUpload::new(global)),
             response_url: DOMRefCell::new(String::from("")),
             status: Cell::new(0),
             status_text: DOMRefCell::new(ByteString::new(vec!())),
@@ -207,13 +207,13 @@ impl XMLHttpRequest {
                   load_data: LoadData,
                   req: CORSRequest,
                   script_chan: Box<ScriptChan + Send>,
-                  resource_thread: ResourceThread) {
+                  core_resource_thread: CoreResourceThread) {
         struct CORSContext {
             xhr: Arc<Mutex<XHRContext>>,
             load_data: RefCell<Option<LoadData>>,
             req: CORSRequest,
             script_chan: Box<ScriptChan + Send>,
-            resource_thread: ResourceThread,
+            core_resource_thread: CoreResourceThread,
         }
 
         impl AsyncCORSResponseListener for CORSContext {
@@ -233,7 +233,7 @@ impl XMLHttpRequest {
                 });
 
                 XMLHttpRequest::initiate_async_xhr(self.xhr.clone(), self.script_chan.clone(),
-                                                   self.resource_thread.clone(), load_data);
+                                                   self.core_resource_thread.clone(), load_data);
             }
         }
 
@@ -242,7 +242,7 @@ impl XMLHttpRequest {
             load_data: RefCell::new(Some(load_data)),
             req: req.clone(),
             script_chan: script_chan.clone(),
-            resource_thread: resource_thread,
+            core_resource_thread: core_resource_thread,
         };
 
         req.http_fetch_async(box cors_context, script_chan);
@@ -250,7 +250,7 @@ impl XMLHttpRequest {
 
     fn initiate_async_xhr(context: Arc<Mutex<XHRContext>>,
                           script_chan: Box<ScriptChan + Send>,
-                          resource_thread: ResourceThread,
+                          core_resource_thread: CoreResourceThread,
                           load_data: LoadData) {
         impl AsyncResponseListener for XHRContext {
             fn headers_available(&mut self, metadata: Result<Metadata, NetworkError>) {
@@ -291,7 +291,27 @@ impl XMLHttpRequest {
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
             listener.notify(message.to().unwrap());
         });
-        resource_thread.send(Load(load_data, LoadConsumer::Listener(response_target), None)).unwrap();
+        core_resource_thread.send(Load(load_data, LoadConsumer::Listener(response_target), None)).unwrap();
+    }
+}
+
+impl LoadOrigin for XMLHttpRequest {
+    fn referrer_url(&self) -> Option<Url> {
+        None
+    }
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        None
+    }
+    fn request_source(&self) -> RequestSource {
+        if self.sync.get() {
+            RequestSource::None
+        } else {
+            self.global().r().request_source()
+        }
+    }
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        let global = self.global();
+        Some(global.r().pipeline())
     }
 }
 
@@ -572,14 +592,11 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
         // Step 5
         let global = self.global();
-        let pipeline_id = global.r().pipeline();
         //TODO - set referrer_policy/referrer_url in load_data
         let mut load_data =
             LoadData::new(LoadContext::Browsing,
                           self.request_url.borrow().clone().unwrap(),
-                          Some(pipeline_id),
-                          None,
-                          None);
+                          self);
         if load_data.url.origin().ne(&global.r().get_url().origin()) {
             load_data.credentials_flag = self.WithCredentials();
         }
@@ -867,7 +884,7 @@ impl XMLHttpRequest {
             // story. See https://github.com/servo/servo/issues/9582
             if let GlobalRoot::Window(win) = self.global() {
                 let is_root_pipeline = win.parent_info().is_none();
-                let is_mozbrowser_enabled = prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false);
+                let is_mozbrowser_enabled = mozbrowser_enabled();
                 is_root_pipeline && is_mozbrowser_enabled
             } else {
                 false
@@ -1117,8 +1134,8 @@ impl XMLHttpRequest {
         let mime = self.final_mime_type().as_ref().map(Mime::to_string).unwrap_or("".to_owned());
 
         // Step 3, 4
-        let slice = DataSlice::new(Arc::new(self.response.borrow().to_vec()), None, None);
-        let blob = Blob::new(self.global().r(), slice, &mime);
+        let slice = DataSlice::from_bytes(self.response.borrow().to_vec());
+        let blob = Blob::new(self.global().r(), BlobImpl::new_from_slice(slice), &mime);
         self.response_blob.set(Some(blob.r()));
         blob
     }
@@ -1318,13 +1335,13 @@ impl XMLHttpRequest {
             (global.networking_task_source(), None)
         };
 
-        let resource_thread = global.resource_thread();
+        let core_resource_thread = global.core_resource_thread();
         if let Some(req) = cors_request {
             XMLHttpRequest::check_cors(context.clone(), load_data, req.clone(),
-                                       script_chan.clone(), resource_thread);
+                                       script_chan.clone(), core_resource_thread);
         } else {
             XMLHttpRequest::initiate_async_xhr(context.clone(), script_chan,
-                                               resource_thread, load_data);
+                                               core_resource_thread, load_data);
         }
 
         if let Some(script_port) = script_port {
@@ -1402,13 +1419,12 @@ impl Extractable for BodyInit {
                     Some(DOMString::from("application/x-www-form-urlencoded;charset=UTF-8")))
             },
             BodyInit::Blob(ref b) => {
-                let data = b.get_data();
                 let content_type = if b.Type().as_ref().is_empty() {
                     None
                 } else {
                     Some(b.Type())
                 };
-                (data.get_bytes().to_vec(), content_type)
+                (b.get_slice_or_empty().get_bytes().to_vec(), content_type)
             },
         }
     }

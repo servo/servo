@@ -25,6 +25,7 @@ extern crate gleam;
 pub extern crate canvas;
 pub extern crate canvas_traits;
 pub extern crate compositing;
+pub extern crate constellation;
 pub extern crate devtools;
 pub extern crate devtools_traits;
 pub extern crate euclid;
@@ -56,30 +57,27 @@ fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
 #[cfg(not(feature = "webdriver"))]
 fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 
-use compositing::CompositorEventListener;
-use compositing::CompositorMsg as ConstellationMsg;
 use compositing::compositor_thread::InitialCompositorState;
-use compositing::constellation::InitialConstellationState;
-use compositing::pipeline::UnprivilegedPipelineContent;
-#[cfg(not(target_os = "windows"))]
-use compositing::sandboxing;
 use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
-use compositing::{CompositorProxy, CompositorThread, Constellation};
+use compositing::{CompositorProxy, CompositorThread, IOCompositor};
+#[cfg(not(target_os = "windows"))]
+use constellation::content_process_sandbox_profile;
+use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
 #[cfg(not(target_os = "windows"))]
 use gaol::sandbox::{ChildSandbox, ChildSandboxMethods};
 use gfx::font_cache_thread::FontCacheThread;
 use ipc_channel::ipc::{self, IpcSender};
 use net::bluetooth_thread::BluetoothThreadFactory;
 use net::image_cache_thread::new_image_cache_thread;
-use net::resource_thread::new_resource_thread;
-use net::storage_thread::StorageThreadFactory;
+use net::resource_thread::new_resource_threads;
+use net_traits::IpcSend;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
-use net_traits::storage_thread::StorageThread;
 use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
+use script_traits::ConstellationMsg;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use util::resource_files::resources_dir_path;
@@ -98,13 +96,12 @@ pub use gleam::gl;
 /// application Servo is embedded in. Clients then create an event
 /// loop to pump messages between the embedding application and
 /// various browser components.
-pub struct Browser {
-    compositor: Box<CompositorEventListener + 'static>,
+pub struct Browser<Window: WindowMethods + 'static> {
+    compositor: IOCompositor<Window>,
 }
 
-impl Browser {
-    pub fn new<Window>(window: Rc<Window>) -> Browser
-                       where Window: WindowMethods + 'static {
+impl<Window> Browser<Window> where Window: WindowMethods + 'static {
+    pub fn new(window: Rc<Window>) -> Browser<Window> {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
@@ -129,12 +126,12 @@ impl Browser {
             resource_path.push("shaders");
 
             // TODO(gw): Duplicates device_pixels_per_screen_px from compositor. Tidy up!
-            let hidpi_factor = window.hidpi_factor().get();
+            let scale_factor = window.scale_factor().get();
             let device_pixel_ratio = match opts.device_pixels_per_px {
                 Some(device_pixels_per_px) => device_pixels_per_px,
                 None => match opts.output_file {
                     Some(_) => 1.0,
-                    None => hidpi_factor,
+                    None => scale_factor,
                 }
             };
 
@@ -210,12 +207,14 @@ fn create_constellation(opts: opts::Opts,
                         supports_clipboard: bool,
                         webrender_api_sender: Option<webrender_traits::RenderApiSender>) -> Sender<ConstellationMsg> {
     let bluetooth_thread: IpcSender<BluetoothMethodMsg> = BluetoothThreadFactory::new();
-    let resource_thread = new_resource_thread(opts.user_agent.clone(), devtools_chan.clone());
-    let image_cache_thread = new_image_cache_thread(resource_thread.clone(),
+
+    let resource_threads = new_resource_threads(opts.user_agent.clone(),
+                                                devtools_chan.clone(),
+                                                time_profiler_chan.clone());
+    let image_cache_thread = new_image_cache_thread(resource_threads.sender(),
                                                     webrender_api_sender.as_ref().map(|wr| wr.create_api()));
-    let font_cache_thread = FontCacheThread::new(resource_thread.clone(),
+    let font_cache_thread = FontCacheThread::new(resource_threads.sender(),
                                                  webrender_api_sender.as_ref().map(|wr| wr.create_api()));
-    let storage_thread: StorageThread = StorageThreadFactory::new();
 
     let initial_state = InitialConstellationState {
         compositor_proxy: compositor_proxy,
@@ -223,15 +222,15 @@ fn create_constellation(opts: opts::Opts,
         bluetooth_thread: bluetooth_thread,
         image_cache_thread: image_cache_thread,
         font_cache_thread: font_cache_thread,
-        resource_thread: resource_thread,
-        storage_thread: storage_thread,
+        resource_threads: resource_threads,
         time_profiler_chan: time_profiler_chan,
         mem_profiler_chan: mem_profiler_chan,
         supports_clipboard: supports_clipboard,
         webrender_api_sender: webrender_api_sender,
     };
     let constellation_chan =
-        Constellation::<layout::layout_thread::LayoutThread,
+        Constellation::<script::layout_interface::Msg,
+                        layout::layout_thread::LayoutThread,
                         script::script_thread::ScriptThread>::start(initial_state);
 
     // Send the URL command to the constellation.
@@ -264,7 +263,8 @@ pub fn run_content_process(token: String) {
 
     script::init();
 
-    unprivileged_content.start_all::<layout::layout_thread::LayoutThread,
+    unprivileged_content.start_all::<script::layout_interface::Msg,
+                                     layout::layout_thread::LayoutThread,
                                      script::script_thread::ScriptThread>(true);
 }
 
@@ -280,7 +280,7 @@ pub unsafe extern fn __errno_location() -> *mut i32 {
 
 #[cfg(not(target_os = "windows"))]
 fn create_sandbox() {
-    ChildSandbox::new(sandboxing::content_process_sandbox_profile()).activate()
+    ChildSandbox::new(content_process_sandbox_profile()).activate()
         .expect("Failed to activate sandbox!");
 }
 

@@ -23,6 +23,8 @@
 extern crate devtools_traits;
 extern crate hyper;
 extern crate ipc_channel;
+#[macro_use]
+extern crate log;
 extern crate msg;
 extern crate serde;
 extern crate serde_json;
@@ -204,7 +206,7 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
 
     /// Process the input from a single devtools client until EOF.
     fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream) {
-        println!("connection established to {}", stream.peer_addr().unwrap());
+        debug!("connection established to {}", stream.peer_addr().unwrap());
         {
             let actors = actors.lock().unwrap();
             let msg = actors.find::<RootActor>("root").encodable();
@@ -218,18 +220,18 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                                                                 &mut stream) {
                         Ok(()) => {},
                         Err(()) => {
-                            println!("error: devtools actor stopped responding");
+                            debug!("error: devtools actor stopped responding");
                             let _ = stream.shutdown(Shutdown::Both);
                             break 'outer
                         }
                     }
                 }
                 Ok(None) => {
-                    println!("error: EOF");
+                    debug!("error: EOF");
                     break 'outer
                 }
                 Err(err_msg) => {
-                    println!("error: {}", err_msg);
+                    debug!("error: {}", err_msg);
                     break 'outer
                 }
             }
@@ -385,7 +387,6 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                             pipeline_id: PipelineId,
                             request_id: String,
                             network_event: NetworkEvent) {
-
         let console_actor_name = match find_console_actor(actors.clone(), pipeline_id, None,
                                                           actor_workers, actor_pipelines) {
             Some(name) => name,

@@ -28,7 +28,6 @@ pub fn set_thread_local_hook(local: Box<FnBox(&Any)>) {
 /// Initiates the custom panic hook
 /// Should be called in main() after arguments have been parsed
 pub fn initiate_panic_hook() {
-
     // Set the panic handler only once. It is global.
     HOOK_SET.call_once(|| {
         // The original backtrace-printing hook. We still want to call this

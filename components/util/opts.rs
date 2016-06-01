@@ -14,13 +14,13 @@ use resource_files::set_resources_path;
 use std::cmp;
 use std::default::Default;
 use std::env;
-use std::fs;
-use std::fs::File;
-use std::io::{self, Read, Write};
+use std::fs::{self, File};
+use std::io::{self, Read, Write, stderr};
 use std::path::{Path, PathBuf};
 use std::process;
 use std::sync::atomic::{AtomicBool, ATOMIC_BOOL_INIT, Ordering};
 use url::{self, Url};
+
 
 /// Global flags for Servo, currently set on the command line.
 #[derive(Clone, Deserialize, Serialize)]
@@ -197,8 +197,8 @@ pub struct Opts {
     /// True if WebRender should use multisample antialiasing.
     pub use_msaa: bool,
 
-    /// Directory path for persistent session
-    pub profile_dir: Option<String>,
+    /// Directory for a default config directory
+    pub config_dir: Option<String>,
 
     // Which rendering API to use.
     pub render_api: RenderApi,
@@ -414,7 +414,6 @@ pub fn multiprocess() -> bool {
 enum UserAgent {
     Desktop,
     Android,
-    Gonk,
 }
 
 #[derive(Clone, Debug, Eq, Deserialize, PartialEq, Serialize)]
@@ -453,21 +452,13 @@ fn default_user_agent_string(agent: UserAgent) -> String {
         UserAgent::Android => {
             "Mozilla/5.0 (Android; Mobile; rv:37.0) Servo/1.0 Firefox/37.0"
         }
-        UserAgent::Gonk => {
-            "Mozilla/5.0 (Mobile; rv:37.0) Servo/1.0 Firefox/37.0"
-        }
     }.to_owned()
 }
 
 #[cfg(target_os = "android")]
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Android;
 
-// FIXME: This requires https://github.com/servo/servo/issues/7138 to provide the
-// correct string in Gonk builds (i.e., it will never be chosen today).
-#[cfg(target_os = "gonk")]
-const DEFAULT_USER_AGENT: UserAgent = UserAgent::Gonk;
-
-#[cfg(not(any(target_os = "android", target_os = "gonk")))]
+#[cfg(not(target_os = "android"))]
 const DEFAULT_USER_AGENT: UserAgent = UserAgent::Desktop;
 
 pub fn default_opts() -> Opts {
@@ -524,7 +515,7 @@ pub fn default_opts() -> Opts {
         webrender_stats: false,
         use_msaa: false,
         render_api: DEFAULT_RENDER_API,
-        profile_dir: None,
+        config_dir: None,
         full_backtraces: false,
     }
 }
@@ -539,9 +530,9 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optopt("s", "size", "Size of tiles", "512");
     opts.optopt("", "device-pixel-ratio", "Device pixels per px", "");
     opts.optopt("t", "threads", "Number of paint threads", "1");
-    opts.optflagopt("p", "profile", "Time profiler flag and either a CSV output filename \
+    opts.optflagopt("p", "profile", "Time profiler flag and either a TSV output filename \
         OR an interval for output to Stdout (blank for Stdout with interval of 5s)", "10 \
-        OR time.csv");
+        OR time.tsv");
     opts.optflagopt("", "profiler-trace-path",
                     "Path to dump a self-contained HTML timeline of profiler traces",
                     "");
@@ -549,7 +540,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optflag("x", "exit", "Exit after load flag");
     opts.optopt("y", "layout-threads", "Number of threads to use for layout", "1");
     opts.optflag("i", "nonincremental-layout", "Enable to turn off incremental layout.");
-    opts.optflag("", "no-ssl", "Disables ssl certificate verification.");
     opts.optflagopt("", "userscripts",
                     "Uses userscripts in resources/user-agent-js, or a specified full path", "");
     opts.optmulti("", "user-stylesheet",
@@ -562,7 +552,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optopt("", "resolution", "Set window resolution.", "800x600");
     opts.optopt("u",
                 "user-agent",
-                "Set custom user agent string (or android / gonk / desktop for platform default)",
+                "Set custom user agent string (or android / desktop for platform default)",
                 "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)");
     opts.optflag("M", "multiprocess", "Run in multiprocess mode");
     opts.optflag("S", "sandbox", "Run in a sandbox if multiprocess");
@@ -582,8 +572,9 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
     opts.optflag("w", "webrender", "Use webrender backend");
     opts.optopt("G", "graphics", "Select graphics backend (gl or es2)", "gl");
-    opts.optopt("", "profile-dir",
-                    "optional directory path for user sessions", "");
+    opts.optopt("", "config-dir",
+                    "config directory following xdg spec on linux platform", "");
+
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -596,12 +587,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         print_usage(app_name, &opts);
         process::exit(0);
     };
-
-    if let Some(ref profile_dir) = opt_match.opt_str("profile-dir") {
-        if let Err(why) = fs::create_dir_all(profile_dir) {
-            error!("Couldn't create/open {:?}: {:?}", Path::new(profile_dir).to_string_lossy(), why);
-        }
-    }
 
     // If this is the content process, we'll receive the real options over IPC. So just fill in
     // some dummy options for now.
@@ -749,7 +734,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
 
     let user_agent = match opt_match.opt_str("u") {
         Some(ref ua) if ua == "android" => default_user_agent_string(UserAgent::Android),
-        Some(ref ua) if ua == "gonk" => default_user_agent_string(UserAgent::Gonk),
         Some(ref ua) if ua == "desktop" => default_user_agent_string(UserAgent::Desktop),
         Some(ua) => ua,
         None => default_user_agent_string(DEFAULT_USER_AGENT),
@@ -834,7 +818,7 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         use_webrender: use_webrender,
         webrender_stats: debug_options.webrender_stats,
         use_msaa: debug_options.use_msaa,
-        profile_dir: opt_match.opt_str("profile-dir"),
+        config_dir: opt_match.opt_str("config-dir"),
         full_backtraces: debug_options.full_backtraces,
     };
 
@@ -843,9 +827,9 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
     // These must happen after setting the default options, since the prefs rely on
     // on the resource path.
     // Note that command line preferences have the highest precedence
-    if get().profile_dir.is_some() {
-        prefs::add_user_prefs();
-    }
+
+    prefs::add_user_prefs();
+
     for pref in opt_match.opt_strs("pref").iter() {
         let split: Vec<&str> = pref.splitn(2, '=').collect();
         let pref_name = split[0];

@@ -17,12 +17,21 @@ function redirectMethod(desc, redirectUrl, redirectLocation, redirectStatus, met
       assert_equals(resp.status, 200, "Response's status is 200");
       assert_equals(resp.type, "basic", "Response's type basic");
       assert_equals(resp.headers.get("x-request-method"), expectedMethod, "Request method after redirection is " + expectedMethod);
+      assert_true(resp.redirected);
       return resp.text().then(function(text) {
         assert_equals(text, expectedMethod == "POST" ? requestInit.body : "");
       });
     });
   }, desc);
 }
+
+promise_test(function(test) {
+  assert_false(new Response().redirected);
+  return fetch(RESOURCES_DIR + "method.py").then(function(resp) {
+    assert_equals(resp.status, 200, "Response's status is 200");
+    assert_false(resp.redirected);
+  });
+}, "Response.redirected should be false on not-redirected responses");
 
 var redirUrl = RESOURCES_DIR + "redirect.py";
 var locationUrl = "method.py";

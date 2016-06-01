@@ -8,7 +8,6 @@
 #![feature(plugin)]
 #![feature(slice_patterns)]
 #![feature(step_by)]
-#![feature(custom_attribute)]
 #![plugin(heapsize_plugin, serde_macros)]
 
 #![deny(unsafe_code)]
@@ -29,14 +28,18 @@ extern crate util;
 extern crate uuid;
 extern crate websocket;
 
+use filemanager_thread::FileManagerThreadMsg;
+use heapsize::HeapSizeOf;
 use hyper::header::{ContentType, Headers};
 use hyper::http::RawStatus;
 use hyper::method::Method;
 use hyper::mime::{Attr, Mime};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use std::io::Error as IOError;
 use std::sync::mpsc::Sender;
 use std::thread;
+use storage_thread::StorageThreadMsg;
 use url::Url;
 use websocket::header;
 
@@ -74,6 +77,30 @@ pub enum LoadContext {
     CacheManifest,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize, HeapSizeOf)]
+pub struct CustomResponse {
+    #[ignore_heap_size_of = "Defined in hyper"]
+    pub headers: Headers,
+    #[ignore_heap_size_of = "Defined in hyper"]
+    pub raw_status: RawStatus,
+    pub body: Vec<u8>
+}
+
+impl CustomResponse {
+    pub fn new(headers: Headers, raw_status: RawStatus, body: Vec<u8>) -> CustomResponse {
+        CustomResponse { headers: headers, raw_status: raw_status, body: body }
+    }
+}
+
+pub type CustomResponseSender = IpcSender<Option<CustomResponse>>;
+
+#[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
+pub enum RequestSource {
+    Window(#[ignore_heap_size_of = "Defined in ipc-channel"] IpcSender<CustomResponseSender>),
+    Worker(#[ignore_heap_size_of = "Defined in ipc-channel"] IpcSender<CustomResponseSender>),
+    None
+}
+
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub struct LoadData {
     pub url: Url,
@@ -94,15 +121,14 @@ pub struct LoadData {
     /// The policy and referring URL for the originator of this request
     pub referrer_policy: Option<ReferrerPolicy>,
     pub referrer_url: Option<Url>,
+    pub source: RequestSource,
 
 }
 
 impl LoadData {
     pub fn new(context: LoadContext,
                url: Url,
-               id: Option<PipelineId>,
-               referrer_policy: Option<ReferrerPolicy>,
-               referrer_url: Option<Url>) -> LoadData {
+               load_origin: &LoadOrigin) -> LoadData {
         LoadData {
             url: url,
             method: Method::Get,
@@ -110,13 +136,21 @@ impl LoadData {
             preserved_headers: Headers::new(),
             data: None,
             cors: None,
-            pipeline_id: id,
+            pipeline_id: load_origin.pipeline_id(),
             credentials_flag: true,
             context: context,
-            referrer_policy: referrer_policy,
-            referrer_url: referrer_url
+            referrer_policy: load_origin.referrer_policy(),
+            referrer_url: load_origin.referrer_url(),
+            source: load_origin.request_source()
         }
     }
+}
+
+pub trait LoadOrigin {
+    fn referrer_url(&self) -> Option<Url>;
+    fn referrer_policy(&self) -> Option<ReferrerPolicy>;
+    fn request_source(&self) -> RequestSource;
+    fn pipeline_id(&self) -> Option<PipelineId>;
 }
 
 /// Interface for observing the final response for an asynchronous fetch operation.
@@ -180,7 +214,78 @@ pub enum LoadConsumer {
 }
 
 /// Handle to a resource thread
-pub type ResourceThread = IpcSender<ControlMsg>;
+pub type CoreResourceThread = IpcSender<CoreResourceMsg>;
+
+pub type IpcSendResult = Result<(), IOError>;
+
+/// Abstraction of the ability to send a particular type of message,
+/// used by net_traits::ResourceThreads to ease the use its IpcSender sub-fields
+/// XXX: If this trait will be used more in future, some auto derive might be appealing
+pub trait IpcSend<T> where T: serde::Serialize + serde::Deserialize {
+    /// send message T
+    fn send(&self, T) -> IpcSendResult;
+    /// get underlying sender
+    fn sender(&self) -> IpcSender<T>;
+}
+
+// FIXME: Originally we will construct an Arc<ResourceThread> from ResourceThread
+// in script_thread to avoid some performance pitfall. Now we decide to deal with
+// the "Arc" hack implicitly in future.
+// See discussion: http://logs.glob.uno/?c=mozilla%23servo&s=16+May+2016&e=16+May+2016#c430412
+// See also: https://github.com/servo/servo/blob/735480/components/script/script_thread.rs#L313
+#[derive(Clone, Serialize, Deserialize)]
+pub struct ResourceThreads {
+    core_thread: CoreResourceThread,
+    storage_thread: IpcSender<StorageThreadMsg>,
+    filemanager_thread: IpcSender<FileManagerThreadMsg>,
+}
+
+impl ResourceThreads {
+    pub fn new(c: CoreResourceThread,
+               s: IpcSender<StorageThreadMsg>,
+               f: IpcSender<FileManagerThreadMsg>) -> ResourceThreads {
+        ResourceThreads {
+            core_thread: c,
+            storage_thread: s,
+            filemanager_thread: f,
+        }
+    }
+}
+
+impl IpcSend<CoreResourceMsg> for ResourceThreads {
+    fn send(&self, msg: CoreResourceMsg) -> IpcSendResult {
+        self.core_thread.send(msg)
+    }
+
+    fn sender(&self) -> IpcSender<CoreResourceMsg> {
+        self.core_thread.clone()
+    }
+}
+
+impl IpcSend<StorageThreadMsg> for ResourceThreads {
+    fn send(&self, msg: StorageThreadMsg) -> IpcSendResult {
+        self.storage_thread.send(msg)
+    }
+
+    fn sender(&self) -> IpcSender<StorageThreadMsg> {
+        self.storage_thread.clone()
+    }
+}
+
+impl IpcSend<FileManagerThreadMsg> for ResourceThreads {
+    fn send(&self, msg: FileManagerThreadMsg) -> IpcSendResult {
+        self.filemanager_thread.send(msg)
+    }
+
+    fn sender(&self) -> IpcSender<FileManagerThreadMsg> {
+        self.filemanager_thread.clone()
+    }
+}
+
+// Ignore the sub-fields
+impl HeapSizeOf for ResourceThreads {
+    fn heap_size_of_children(&self) -> usize { 0 }
+}
 
 #[derive(PartialEq, Copy, Clone, Deserialize, Serialize)]
 pub enum IncludeSubdomains {
@@ -222,7 +327,7 @@ pub struct WebSocketConnectData {
 }
 
 #[derive(Deserialize, Serialize)]
-pub enum ControlMsg {
+pub enum CoreResourceMsg {
     /// Request the data associated with a particular URL
     Load(LoadData, LoadConsumer, Option<IpcSender<ResourceId>>),
     /// Try to make a websocket connection to a URL.
@@ -235,21 +340,23 @@ pub enum ControlMsg {
     Cancel(ResourceId),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
     Synchronize(IpcSender<()>),
-    /// Break the load handler loop and exit
-    Exit,
+    /// Break the load handler loop, send a reply when done cleaning up local resources
+    //  and exit
+    Exit(IpcSender<()>),
 }
 
 /// Initialized but unsent request. Encapsulates everything necessary to instruct
 /// the resource thread to make a new request. The `load` method *must* be called before
 /// destruction or the thread will panic.
 pub struct PendingAsyncLoad {
-    resource_thread: ResourceThread,
+    core_resource_thread: CoreResourceThread,
     url: Url,
     pipeline: Option<PipelineId>,
     guard: PendingLoadGuard,
     context: LoadContext,
     referrer_policy: Option<ReferrerPolicy>,
     referrer_url: Option<Url>,
+    source: RequestSource
 }
 
 struct PendingLoadGuard {
@@ -270,31 +377,51 @@ impl Drop for PendingLoadGuard {
     }
 }
 
+impl LoadOrigin for PendingAsyncLoad {
+    fn referrer_url(&self) -> Option<Url> {
+        self.referrer_url.clone()
+    }
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        self.referrer_policy.clone()
+    }
+    fn request_source(&self) -> RequestSource {
+        self.source.clone()
+    }
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        self.pipeline
+    }
+}
+
 impl PendingAsyncLoad {
     pub fn new(context: LoadContext,
-               resource_thread: ResourceThread,
+               core_resource_thread: CoreResourceThread,
                url: Url,
                pipeline: Option<PipelineId>,
                referrer_policy: Option<ReferrerPolicy>,
-               referrer_url: Option<Url>)
+               referrer_url: Option<Url>,
+               source: RequestSource)
                -> PendingAsyncLoad {
         PendingAsyncLoad {
-            resource_thread: resource_thread,
+            core_resource_thread: core_resource_thread,
             url: url,
             pipeline: pipeline,
             guard: PendingLoadGuard { loaded: false, },
             context: context,
             referrer_policy: referrer_policy,
-            referrer_url: referrer_url
+            referrer_url: referrer_url,
+            source: source
         }
     }
 
     /// Initiate the network request associated with this pending load, using the provided target.
     pub fn load_async(mut self, listener: AsyncResponseTarget) {
         self.guard.neuter();
-        let load_data = LoadData::new(self.context, self.url, self.pipeline, self.referrer_policy, self.referrer_url);
+
+        let load_data = LoadData::new(self.context.clone(),
+                                      self.url.clone(),
+                                      &self);
         let consumer = LoadConsumer::Listener(listener);
-        self.resource_thread.send(ControlMsg::Load(load_data, consumer, None)).unwrap();
+        self.core_resource_thread.send(CoreResourceMsg::Load(load_data, consumer, None)).unwrap();
     }
 }
 
@@ -404,13 +531,13 @@ pub enum ProgressMsg {
 
 /// Convenience function for synchronously loading a whole resource.
 pub fn load_whole_resource(context: LoadContext,
-                           resource_thread: &ResourceThread,
+                           core_resource_thread: &CoreResourceThread,
                            url: Url,
-                           pipeline_id: Option<PipelineId>)
+                           load_origin: &LoadOrigin)
         -> Result<(Metadata, Vec<u8>), NetworkError> {
     let (start_chan, start_port) = ipc::channel().unwrap();
-    resource_thread.send(ControlMsg::Load(LoadData::new(context, url, pipeline_id, None, None),
-                       LoadConsumer::Channel(start_chan), None)).unwrap();
+    let load_data = LoadData::new(context, url, load_origin);
+    core_resource_thread.send(CoreResourceMsg::Load(load_data, LoadConsumer::Channel(start_chan), None)).unwrap();
     let response = start_port.recv().unwrap();
 
     let mut buf = vec!();

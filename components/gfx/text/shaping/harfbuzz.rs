@@ -5,32 +5,32 @@
 use app_units::Au;
 use euclid::Point2D;
 use font::{DISABLE_KERNING_SHAPING_FLAG, Font, FontTableMethods, FontTableTag};
-use font::{IGNORE_LIGATURES_SHAPING_FLAG, RTL_FLAG, ShapingOptions};
+use font::{IGNORE_LIGATURES_SHAPING_FLAG, KERN, RTL_FLAG, ShapingOptions};
+use harfbuzz::hb_blob_t;
+use harfbuzz::hb_bool_t;
+use harfbuzz::hb_buffer_add_utf8;
+use harfbuzz::hb_buffer_destroy;
+use harfbuzz::hb_buffer_get_glyph_positions;
+use harfbuzz::hb_buffer_get_length;
+use harfbuzz::hb_face_destroy;
+use harfbuzz::hb_feature_t;
+use harfbuzz::hb_font_create;
+use harfbuzz::hb_font_funcs_create;
+use harfbuzz::hb_font_funcs_set_glyph_func;
+use harfbuzz::hb_font_funcs_set_glyph_h_advance_func;
+use harfbuzz::hb_font_funcs_set_glyph_h_kerning_func;
+use harfbuzz::hb_font_set_funcs;
+use harfbuzz::hb_font_set_ppem;
+use harfbuzz::hb_font_set_scale;
+use harfbuzz::hb_glyph_info_t;
+use harfbuzz::hb_glyph_position_t;
 use harfbuzz::{HB_DIRECTION_LTR, HB_DIRECTION_RTL, HB_MEMORY_MODE_READONLY};
 use harfbuzz::{hb_blob_create, hb_face_create_for_tables};
-use harfbuzz::{hb_blob_t};
-use harfbuzz::{hb_bool_t};
-use harfbuzz::{hb_buffer_add_utf8};
 use harfbuzz::{hb_buffer_create, hb_font_destroy};
-use harfbuzz::{hb_buffer_destroy};
 use harfbuzz::{hb_buffer_get_glyph_infos, hb_shape};
-use harfbuzz::{hb_buffer_get_glyph_positions};
-use harfbuzz::{hb_buffer_get_length};
 use harfbuzz::{hb_buffer_set_direction, hb_buffer_set_script};
 use harfbuzz::{hb_buffer_t, hb_codepoint_t, hb_font_funcs_t};
-use harfbuzz::{hb_face_destroy};
 use harfbuzz::{hb_face_t, hb_font_t};
-use harfbuzz::{hb_feature_t};
-use harfbuzz::{hb_font_create};
-use harfbuzz::{hb_font_funcs_create};
-use harfbuzz::{hb_font_funcs_set_glyph_func};
-use harfbuzz::{hb_font_funcs_set_glyph_h_advance_func};
-use harfbuzz::{hb_font_funcs_set_glyph_h_kerning_func};
-use harfbuzz::{hb_font_set_funcs};
-use harfbuzz::{hb_font_set_ppem};
-use harfbuzz::{hb_font_set_scale};
-use harfbuzz::{hb_glyph_info_t};
-use harfbuzz::{hb_glyph_position_t};
 use harfbuzz::{hb_position_t, hb_tag_t};
 use libc::{c_char, c_int, c_uint, c_void};
 use platform::font::FontTable;
@@ -39,16 +39,8 @@ use text::glyph::{ByteIndex, GlyphData, GlyphId, GlyphStore};
 use text::shaping::ShaperMethods;
 use text::util::{fixed_to_float, float_to_fixed, is_bidi_control};
 
-macro_rules! hb_tag {
-    ($t1:expr, $t2:expr, $t3:expr, $t4:expr) => (
-        (($t1 as u32) << 24) | (($t2 as u32) << 16) | (($t3 as u32) << 8) | ($t4 as u32)
-    );
-}
-
 const NO_GLYPH: i32 = -1;
-
-static KERN: u32 = hb_tag!('k', 'e', 'r', 'n');
-static LIGA: u32 = hb_tag!('l', 'i', 'g', 'a');
+const LIGA: u32 = ot_tag!('l', 'i', 'g', 'a');
 
 pub struct ShapedGlyphData {
     count: usize,
@@ -133,16 +125,10 @@ impl ShapedGlyphData {
 }
 
 #[derive(Debug)]
-struct FontAndShapingOptions {
-    font: *mut Font,
-    options: ShapingOptions,
-}
-
-#[derive(Debug)]
 pub struct Shaper {
     hb_face: *mut hb_face_t,
     hb_font: *mut hb_font_t,
-    font_and_shaping_options: Box<FontAndShapingOptions>,
+    font: *const Font,
 }
 
 impl Drop for Shaper {
@@ -158,20 +144,16 @@ impl Drop for Shaper {
 }
 
 impl Shaper {
-    pub fn new(font: &mut Font, options: &ShapingOptions) -> Shaper {
+    pub fn new(font: *const Font) -> Shaper {
         unsafe {
-            let mut font_and_shaping_options = box FontAndShapingOptions {
-                font: font,
-                options: *options,
-            };
             let hb_face: *mut hb_face_t =
                 hb_face_create_for_tables(Some(font_table_func),
-                                          &mut *font_and_shaping_options as *mut _ as *mut c_void,
+                                          font as *const c_void as *mut c_void,
                                           None);
             let hb_font: *mut hb_font_t = hb_font_create(hb_face);
 
             // Set points-per-em. if zero, performs no hinting in that direction.
-            let pt_size = font.actual_pt_size.to_f64_px();
+            let pt_size = (*font).actual_pt_size.to_f64_px();
             hb_font_set_ppem(hb_font, pt_size as c_uint, pt_size as c_uint);
 
             // Set scaling. Note that this takes 16.16 fixed point.
@@ -185,13 +167,9 @@ impl Shaper {
             Shaper {
                 hb_face: hb_face,
                 hb_font: hb_font,
-                font_and_shaping_options: font_and_shaping_options,
+                font: font,
             }
         }
-    }
-
-    pub fn set_options(&mut self, options: &ShapingOptions) {
-        self.font_and_shaping_options.options = *options
     }
 
     fn float_to_fixed(f: f64) -> i32 {
@@ -367,8 +345,7 @@ impl Shaper {
                     //
                     // TODO: Proper tab stops.
                     const TAB_COLS: i32 = 8;
-                    let font = self.font_and_shaping_options.font;
-                    let (space_glyph_id, space_advance) = glyph_space_advance(font);
+                    let (space_glyph_id, space_advance) = glyph_space_advance(self.font);
                     let advance = Au::from_f64_px(space_advance) * TAB_COLS;
                     let data = GlyphData::new(space_glyph_id,
                                               advance,
@@ -480,7 +457,7 @@ extern fn glyph_h_advance_func(_: *mut hb_font_t,
     }
 }
 
-fn glyph_space_advance(font: *mut Font) -> (hb_codepoint_t, f64) {
+fn glyph_space_advance(font: *const Font) -> (hb_codepoint_t, f64) {
     let space_unicode = ' ';
     let space_glyph: hb_codepoint_t;
     match unsafe { (*font).glyph_index(space_unicode) } {
@@ -515,29 +492,25 @@ extern fn font_table_func(_: *mut hb_face_t,
                               -> *mut hb_blob_t {
     unsafe {
         // NB: These asserts have security implications.
-        let font_and_shaping_options: *const FontAndShapingOptions =
-            user_data as *const FontAndShapingOptions;
-        assert!(!font_and_shaping_options.is_null());
-        assert!(!(*font_and_shaping_options).font.is_null());
+        let font = user_data as *const Font;
+        assert!(!font.is_null());
 
         // TODO(Issue #197): reuse font table data, which will change the unsound trickery here.
-        match (*(*font_and_shaping_options).font).table_for_tag(tag as FontTableTag) {
+        match (*font).table_for_tag(tag as FontTableTag) {
             None => ptr::null_mut(),
             Some(font_table) => {
                 // `Box::into_raw` intentionally leaks the FontTable so we don't destroy the buffer
                 // while HarfBuzz is using it.  When HarfBuzz is done with the buffer, it will pass
                 // this raw pointer back to `destroy_blob_func` which will deallocate the Box.
-                let font_table_ptr = Box::into_raw(font_table);
+                let font_table_ptr = Box::into_raw(box font_table);
 
-                let mut blob: *mut hb_blob_t = ptr::null_mut();
-                (*font_table_ptr).with_buffer(|buf: *const u8, len: usize| {
-                    // HarfBuzz calls `destroy_blob_func` when the buffer is no longer needed.
-                    blob = hb_blob_create(buf as *const c_char,
-                                          len as c_uint,
+                let buf = (*font_table_ptr).buffer();
+                // HarfBuzz calls `destroy_blob_func` when the buffer is no longer needed.
+                let blob = hb_blob_create(buf.as_ptr() as *const c_char,
+                                          buf.len() as c_uint,
                                           HB_MEMORY_MODE_READONLY,
                                           font_table_ptr as *mut c_void,
                                           Some(destroy_blob_func));
-                });
 
                 assert!(!blob.is_null());
                 blob

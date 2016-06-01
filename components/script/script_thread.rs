@@ -30,9 +30,11 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootCollection};
 use dom::bindings::js::{RootCollectionPtr, RootedReference};
 use dom::bindings::refcounted::{LiveDOMReferences, Trusted};
+use dom::bindings::reflector::Reflectable;
+use dom::bindings::str::DOMString;
 use dom::bindings::trace::JSTraceable;
 use dom::bindings::utils::WRAP_CALLBACKS;
-use dom::browsingcontext::{BrowsingContext, IterableContext};
+use dom::browsingcontext::BrowsingContext;
 use dom::document::{Document, DocumentProgressHandler, DocumentSource, FocusType, IsHTMLDocument};
 use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
@@ -53,21 +55,20 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
 use js::jsapi::{DOMProxyShadowsResult, HandleId, HandleObject, RootedValue};
-use js::jsapi::{JSContext, JS_SetWrapObjectCallbacks, JSTracer, SetWindowProxyClass};
+use js::jsapi::{JSAutoCompartment, JSContext, JS_SetWrapObjectCallbacks};
+use js::jsapi::{JSTracer, SetWindowProxyClass};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
-use layout_interface::{ReflowQueryType};
-use layout_interface::{self, LayoutChan, NewLayoutThreadInfo, ScriptLayoutChan};
+use layout_interface::{self, NewLayoutThreadInfo, ReflowQueryType};
 use mem::heap_size_of_self_and_children;
-use msg::constellation_msg::{ConstellationChan, LoadData};
-use msg::constellation_msg::{PipelineId, PipelineNamespace};
+use msg::constellation_msg::{LoadData, PanicMsg, PipelineId, PipelineNamespace};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
-use net_traits::storage_thread::StorageThread;
-use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadContext, Metadata, ResourceThread};
+use net_traits::{AsyncResponseTarget, CoreResourceMsg, LoadConsumer, LoadContext, Metadata, ResourceThreads};
+use net_traits::{RequestSource, CustomResponse, CustomResponseSender, IpcSend};
 use network_listener::NetworkListener;
 use parse::ParserRoot;
 use parse::html::{ParseContext, parse_html};
@@ -79,15 +80,15 @@ use script_runtime::{ScriptPort, StackRootTLS, new_rt_and_cx, get_reports};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
 use script_traits::{CompositorEvent, ConstellationControlMsg, EventResult};
-use script_traits::{InitialScriptState, MouseButton, MouseEventType, MozBrowserEvent, NewLayoutInfo};
-use script_traits::{LayoutMsg, OpaqueScriptLayoutChannel, ScriptMsg as ConstellationMsg};
-use script_traits::{ScriptThreadFactory, ScriptToCompositorMsg, TimerEvent, TimerEventRequest, TimerSource};
+use script_traits::{InitialScriptState, MouseButton, MouseEventType, MozBrowserEvent};
+use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg};
+use script_traits::{ScriptThreadFactory, TimerEvent, TimerEventRequest, TimerSource};
 use script_traits::{TouchEventType, TouchId};
-use std::any::Any;
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::HashSet;
 use std::option::Option;
+use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
 use std::sync::atomic::{Ordering, AtomicBool};
@@ -103,7 +104,6 @@ use task_source::user_interaction::{UserInteractionTaskSource, UserInteractionTa
 use time::Tm;
 use url::{Url, Position};
 use util::opts;
-use util::str::DOMString;
 use util::thread;
 use util::thread_state;
 use webdriver_handlers;
@@ -133,7 +133,7 @@ struct InProgressLoad {
     /// The current window size associated with this pipeline.
     window_size: Option<WindowSizeData>,
     /// Channel to the layout thread associated with this pipeline.
-    layout_chan: LayoutChan,
+    layout_chan: Sender<layout_interface::Msg>,
     /// The current viewport clipping rectangle applying to this pipeline, if any.
     clip_rect: Option<Rect<f32>>,
     /// Window is frozen (navigated away while loading for example).
@@ -146,7 +146,7 @@ impl InProgressLoad {
     /// Create a new InProgressLoad object.
     fn new(id: PipelineId,
            parent_info: Option<(PipelineId, SubpageId)>,
-           layout_chan: LayoutChan,
+           layout_chan: Sender<layout_interface::Msg>,
            window_size: Option<WindowSizeData>,
            url: Url) -> InProgressLoad {
         InProgressLoad {
@@ -206,6 +206,7 @@ enum MixedMessage {
     FromDevtools(DevtoolScriptControlMsg),
     FromImageCache(ImageCacheResult),
     FromScheduler(TimerEvent),
+    FromNetwork(IpcSender<Option<CustomResponse>>),
 }
 
 /// Messages used to control the script event loop
@@ -312,17 +313,21 @@ pub struct ScriptThread {
     image_cache_thread: ImageCacheThread,
     /// A handle to the resource thread. This is an `Arc` to avoid running out of file descriptors if
     /// there are many iframes.
-    resource_thread: Arc<ResourceThread>,
+    resource_threads: ResourceThreads,
     /// A handle to the bluetooth thread.
     bluetooth_thread: IpcSender<BluetoothMethodMsg>,
-    /// A handle to the storage thread.
-    storage_thread: StorageThread,
 
     /// The port on which the script thread receives messages (load URL, exit, etc.)
     port: Receiver<MainThreadScriptMsg>,
     /// A channel to hand out to script thread-based entities that need to be able to enqueue
     /// events in the event queue.
     chan: MainThreadScriptChan,
+
+    /// A handle to network event messages
+    custom_message_chan: IpcSender<CustomResponseSender>,
+
+    /// The port which receives a sender from the network
+    custom_message_port: Receiver<CustomResponseSender>,
 
     dom_manipulation_task_source: DOMManipulationTaskSource,
 
@@ -342,13 +347,7 @@ pub struct ScriptThread {
     control_port: Receiver<ConstellationControlMsg>,
 
     /// For communicating load url messages to the constellation
-    constellation_chan: ConstellationChan<ConstellationMsg>,
-
-    /// For communicating layout messages to the constellation
-    layout_to_constellation_chan: ConstellationChan<LayoutMsg>,
-
-    /// A handle to the compositor for communicating ready state messages.
-    compositor: DOMRefCell<IpcSender<ScriptToCompositorMsg>>,
+    constellation_chan: IpcSender<ConstellationMsg>,
 
     /// The port on which we receive messages from the image cache
     image_cache_port: Receiver<ImageCacheResult>,
@@ -383,6 +382,8 @@ pub struct ScriptThread {
     timer_event_port: Receiver<TimerEvent>,
 
     content_process_shutdown_chan: IpcSender<()>,
+
+    panic_chan: IpcSender<PanicMsg>,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -422,23 +423,16 @@ impl<'a> Drop for ScriptMemoryFailsafe<'a> {
 }
 
 impl ScriptThreadFactory for ScriptThread {
-    fn create_layout_channel(_phantom: Option<&mut ScriptThread>) -> OpaqueScriptLayoutChannel {
-        let (chan, port) = channel();
-        ScriptLayoutChan::new(chan, port)
-    }
+    type Message = layout_interface::Msg;
 
-    fn clone_layout_channel(_phantom: Option<&mut ScriptThread>, pair: &OpaqueScriptLayoutChannel)
-                            -> Box<Any + Send> {
-        box pair.sender() as Box<Any + Send>
-    }
-
-    fn create(_phantom: Option<&mut ScriptThread>,
-              state: InitialScriptState,
-              layout_chan: &OpaqueScriptLayoutChannel,
-              load_data: LoadData) {
-        let ConstellationChan(panic_chan) = state.panic_chan.clone();
+    fn create(state: InitialScriptState,
+              load_data: LoadData)
+              -> (Sender<layout_interface::Msg>, Receiver<layout_interface::Msg>) {
+        let panic_chan = state.panic_chan.clone();
         let (script_chan, script_port) = channel();
-        let layout_chan = LayoutChan(layout_chan.sender());
+
+        let (sender, receiver) = channel();
+        let layout_chan = sender.clone();
         let pipeline_id = state.id;
         thread::spawn_named_with_send_on_panic(format!("ScriptThread {:?}", state.id),
                                                thread_state::SCRIPT,
@@ -451,8 +445,8 @@ impl ScriptThreadFactory for ScriptThread {
             let mem_profiler_chan = state.mem_profiler_chan.clone();
             let window_size = state.window_size;
             let script_thread = ScriptThread::new(state,
-                                              script_port,
-                                              script_chan.clone());
+                                                  script_port,
+                                                  script_chan.clone());
 
             SCRIPT_THREAD_ROOT.with(|root| {
                 *root.borrow_mut() = Some(&script_thread as *const _);
@@ -467,13 +461,14 @@ impl ScriptThreadFactory for ScriptThread {
             let reporter_name = format!("script-reporter-{}", id);
             mem_profiler_chan.run_with_memory_reporting(|| {
                 script_thread.start();
-                let _ = script_thread.compositor.borrow_mut().send(ScriptToCompositorMsg::Exited);
                 let _ = script_thread.content_process_shutdown_chan.send(());
             }, reporter_name, script_chan, CommonScriptMsg::CollectReports);
 
             // This must always be the very last operation performed before the thread completes
             failsafe.neuter();
         }, Some(pipeline_id), panic_chan);
+
+        (sender, receiver)
     }
 }
 
@@ -484,11 +479,11 @@ pub unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
 }
 
 impl ScriptThread {
-    pub fn page_fetch_complete(id: &PipelineId, subpage: Option<&SubpageId>, metadata: Option<Metadata>)
-                               -> Option<ParserRoot> {
+    pub fn page_headers_available(id: &PipelineId, subpage: Option<&SubpageId>, metadata: Option<Metadata>)
+                                  -> Option<ParserRoot> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.borrow().unwrap() };
-            script_thread.handle_page_fetch_complete(id, subpage, metadata)
+            script_thread.handle_page_headers_available(id, subpage, metadata)
         })
     }
 
@@ -538,6 +533,9 @@ impl ScriptThread {
         let (ipc_devtools_sender, ipc_devtools_receiver) = ipc::channel().unwrap();
         let devtools_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_devtools_receiver);
 
+        let (ipc_custom_resp_chan, ipc_custom_resp_port) = ipc::channel().unwrap();
+        let custom_msg_port = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_custom_resp_port);
+
         // Ask the router to proxy IPC messages from the image cache thread to us.
         let (ipc_image_cache_channel, ipc_image_cache_port) = ipc::channel().unwrap();
         let image_cache_port =
@@ -556,11 +554,13 @@ impl ScriptThread {
             image_cache_channel: ImageCacheChan(ipc_image_cache_channel),
             image_cache_port: image_cache_port,
 
-            resource_thread: Arc::new(state.resource_thread),
+            resource_threads: state.resource_threads,
             bluetooth_thread: state.bluetooth_thread,
-            storage_thread: state.storage_thread,
 
             port: port,
+            custom_message_chan: ipc_custom_resp_chan,
+            custom_message_port: custom_msg_port,
+
             chan: MainThreadScriptChan(chan.clone()),
             dom_manipulation_task_source: DOMManipulationTaskSource(chan.clone()),
             user_interaction_task_source: UserInteractionTaskSource(chan.clone()),
@@ -571,10 +571,9 @@ impl ScriptThread {
             control_chan: state.control_chan,
             control_port: control_port,
             constellation_chan: state.constellation_chan,
-            layout_to_constellation_chan: state.layout_to_constellation_chan,
-            compositor: DOMRefCell::new(state.compositor),
             time_profiler_chan: state.time_profiler_chan,
             mem_profiler_chan: state.mem_profiler_chan,
+            panic_chan: state.panic_chan,
 
             devtools_chan: state.devtools_chan,
             devtools_port: devtools_port,
@@ -621,7 +620,8 @@ impl ScriptThread {
 
     /// Handle incoming control messages.
     fn handle_msgs(&self) -> bool {
-        use self::MixedMessage::{FromScript, FromConstellation, FromScheduler, FromDevtools, FromImageCache};
+        use self::MixedMessage::{FromConstellation, FromDevtools, FromImageCache};
+        use self::MixedMessage::{FromScheduler, FromScript, FromNetwork};
 
         // Handle pending resize events.
         // Gather them first to avoid a double mut borrow on self.
@@ -655,6 +655,7 @@ impl ScriptThread {
             let mut timer_event_port = sel.handle(&self.timer_event_port);
             let mut devtools_port = sel.handle(&self.devtools_port);
             let mut image_cache_port = sel.handle(&self.image_cache_port);
+            let mut custom_message_port = sel.handle(&self.custom_message_port);
             unsafe {
                 script_port.add();
                 control_port.add();
@@ -663,6 +664,7 @@ impl ScriptThread {
                     devtools_port.add();
                 }
                 image_cache_port.add();
+                custom_message_port.add();
             }
             let ret = sel.wait();
             if ret == script_port.id() {
@@ -675,6 +677,8 @@ impl ScriptThread {
                 FromDevtools(self.devtools_port.recv().unwrap())
             } else if ret == image_cache_port.id() {
                 FromImageCache(self.image_cache_port.recv().unwrap())
+            } else if ret == custom_message_port.id() {
+                FromNetwork(self.custom_message_port.recv().unwrap())
             } else {
                 panic!("unexpected select result")
             }
@@ -702,6 +706,11 @@ impl ScriptThread {
                 FromConstellation(ConstellationControlMsg::Viewport(id, rect)) => {
                     self.profile_event(ScriptThreadEventCategory::SetViewport, || {
                         self.handle_viewport(id, rect);
+                    })
+                }
+                FromConstellation(ConstellationControlMsg::SetScrollState(id, scroll_offset)) => {
+                    self.profile_event(ScriptThreadEventCategory::SetScrollState, || {
+                        self.handle_set_scroll_state(id, &scroll_offset);
                     })
                 }
                 FromConstellation(ConstellationControlMsg::TickAllAnimations(
@@ -737,7 +746,10 @@ impl ScriptThread {
                     Err(_) => match self.timer_event_port.try_recv() {
                         Err(_) => match self.devtools_port.try_recv() {
                             Err(_) => match self.image_cache_port.try_recv() {
-                                Err(_) => break,
+                                Err(_) => match self.custom_message_port.try_recv() {
+                                    Err(_) => break,
+                                    Ok(ev) => event = FromNetwork(ev)
+                                },
                                 Ok(ev) => event = FromImageCache(ev),
                             },
                             Ok(ev) => event = FromDevtools(ev),
@@ -763,6 +775,7 @@ impl ScriptThread {
                     },
                     FromConstellation(inner_msg) => self.handle_msg_from_constellation(inner_msg),
                     FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
+                    FromNetwork(inner_msg) => self.handle_msg_from_network(inner_msg),
                     FromScheduler(inner_msg) => self.handle_timer_event(inner_msg),
                     FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
                     FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
@@ -822,12 +835,12 @@ impl ScriptThread {
                 }
             },
             MixedMessage::FromScheduler(_) => ScriptThreadEventCategory::TimerEvent,
+            MixedMessage::FromNetwork(_) => ScriptThreadEventCategory::NetworkEvent
         }
     }
 
     fn profile_event<F, R>(&self, category: ScriptThreadEventCategory, f: F) -> R
         where F: FnOnce() -> R {
-
         if opts::get().profile_script_events {
             let profiler_cat = match category {
                 ScriptThreadEventCategory::AttachLayout => ProfilerCategory::ScriptAttachLayout,
@@ -842,6 +855,9 @@ impl ScriptThread {
                 ScriptThreadEventCategory::NetworkEvent => ProfilerCategory::ScriptNetworkEvent,
                 ScriptThreadEventCategory::Resize => ProfilerCategory::ScriptResize,
                 ScriptThreadEventCategory::ScriptEvent => ProfilerCategory::ScriptEvent,
+                ScriptThreadEventCategory::SetScrollState => {
+                    ProfilerCategory::ScriptSetScrollState
+                }
                 ScriptThreadEventCategory::UpdateReplacedElement => {
                     ProfilerCategory::ScriptUpdateReplacedElement
                 }
@@ -869,6 +885,8 @@ impl ScriptThread {
                 self.handle_resize_inactive_msg(id, new_size),
             ConstellationControlMsg::Viewport(..) =>
                 panic!("should have handled Viewport already"),
+            ConstellationControlMsg::SetScrollState(..) =>
+                panic!("should have handled SetScrollState already"),
             ConstellationControlMsg::Resize(..) =>
                 panic!("should have handled Resize already"),
             ConstellationControlMsg::ExitPipeline(..) =>
@@ -991,6 +1009,12 @@ impl ScriptThread {
         msg.responder.unwrap().respond(msg.image_response);
     }
 
+    fn handle_msg_from_network(&self, msg: IpcSender<Option<CustomResponse>>) {
+        // We may detect controlling service workers here
+        // We send None as default
+        let _ = msg.send(None);
+    }
+
     fn handle_webdriver_msg(&self, pipeline_id: PipelineId, msg: WebDriverScriptCommand) {
         let context = self.root_browsing_context();
         match msg {
@@ -1018,8 +1042,6 @@ impl ScriptThread {
                 webdriver_handlers::handle_get_frame_id(&context, pipeline_id, frame_id, reply),
             WebDriverScriptCommand::GetUrl(reply) =>
                 webdriver_handlers::handle_get_url(&context, pipeline_id, reply),
-            WebDriverScriptCommand::GetWindowSize(reply) =>
-                webdriver_handlers::handle_get_window_size(&context, pipeline_id, reply),
             WebDriverScriptCommand::IsEnabled(element_id, reply) =>
                 webdriver_handlers::handle_is_enabled(&context, pipeline_id, element_id, reply),
             WebDriverScriptCommand::IsSelected(element_id, reply) =>
@@ -1065,6 +1087,19 @@ impl ScriptThread {
         panic!("Page rect message sent to nonexistent pipeline");
     }
 
+    fn handle_set_scroll_state(&self, id: PipelineId, scroll_state: &Point2D<f32>) {
+        let context = self.browsing_context.get();
+        if let Some(context) = context {
+            if let Some(inner_context) = context.find(id) {
+                let window = inner_context.active_window();
+                window.update_viewport_for_scroll(-scroll_state.x, -scroll_state.y);
+                return
+            }
+        }
+
+        panic!("Set scroll state message message sent to nonexistent pipeline: {:?}", id);
+    }
+
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {
         let NewLayoutInfo {
             containing_pipeline_id,
@@ -1074,14 +1109,13 @@ impl ScriptThread {
             paint_chan,
             panic_chan,
             pipeline_port,
+            layout_to_constellation_chan,
             layout_shutdown_chan,
             content_process_shutdown_chan,
         } = new_layout_info;
 
-        let layout_pair = ScriptThread::create_layout_channel(None::<&mut ScriptThread>);
-        let layout_chan = LayoutChan(*ScriptThread::clone_layout_channel(
-            None::<&mut ScriptThread>,
-            &layout_pair).downcast::<Sender<layout_interface::Msg>>().unwrap());
+        let layout_pair = channel();
+        let layout_chan = layout_pair.0.clone();
 
         let layout_creation_info = NewLayoutThreadInfo {
             id: new_pipeline_id,
@@ -1089,7 +1123,7 @@ impl ScriptThread {
             is_parent: false,
             layout_pair: layout_pair,
             pipeline_port: pipeline_port,
-            constellation_chan: self.layout_to_constellation_chan.clone(),
+            constellation_chan: layout_to_constellation_chan,
             panic_chan: panic_chan,
             paint_chan: paint_chan,
             script_chan: self.control_chan.clone(),
@@ -1106,7 +1140,6 @@ impl ScriptThread {
 
         // Tell layout to actually spawn the thread.
         parent_window.layout_chan()
-                     .0
                      .send(layout_interface::Msg::CreateLayoutThread(layout_creation_info))
                      .unwrap();
 
@@ -1131,8 +1164,7 @@ impl ScriptThread {
         let handler = box DocumentProgressHandler::new(Trusted::new(doc));
         self.dom_manipulation_task_source.queue(DOMManipulationTask::DocumentProgress(handler)).unwrap();
 
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::LoadComplete(pipeline)).unwrap();
     }
 
     fn collect_reports(&self, reports_chan: ReportsChan) {
@@ -1284,14 +1316,14 @@ impl ScriptThread {
 
         // TODO(tkuehn): currently there is only one window,
         // so this can afford to be naive and just shut down the
-        // compositor. In the future it'll need to be smarter.
-        self.compositor.borrow_mut().send(ScriptToCompositorMsg::Exit).unwrap();
+        // constellation. In the future it'll need to be smarter.
+        self.constellation_chan.send(ConstellationMsg::Exit).unwrap();
     }
 
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
-    fn handle_page_fetch_complete(&self, id: &PipelineId, subpage: Option<&SubpageId>,
-                                  metadata: Option<Metadata>) -> Option<ParserRoot> {
+    fn handle_page_headers_available(&self, id: &PipelineId, subpage: Option<&SubpageId>,
+                                     metadata: Option<Metadata>) -> Option<ParserRoot> {
         let idx = self.incomplete_loads.borrow().iter().position(|load| {
             load.pipeline_id == *id && load.parent_info.as_ref().map(|info| &info.1) == subpage
         });
@@ -1332,7 +1364,7 @@ impl ScriptThread {
             // Tell the layout thread to begin shutting down, and wait until it
             // processed this message.
             let (response_chan, response_port) = channel();
-            let LayoutChan(chan) = load.layout_chan;
+            let chan = &load.layout_chan;
             if chan.send(layout_interface::Msg::PrepareToExit(response_chan)).is_ok() {
                 debug!("shutting down layout for page {:?}", id);
                 response_port.recv().unwrap();
@@ -1391,12 +1423,14 @@ impl ScriptThread {
         let final_url = metadata.final_url.clone();
         {
             // send the final url to the layout thread.
-            let LayoutChan(ref chan) = incomplete.layout_chan;
-            chan.send(layout_interface::Msg::SetFinalUrl(final_url.clone())).unwrap();
+            incomplete.layout_chan
+                      .send(layout_interface::Msg::SetFinalUrl(final_url.clone()))
+                      .unwrap();
 
             // update the pipeline url
-            let ConstellationChan(ref chan) = self.constellation_chan;
-            chan.send(ConstellationMsg::SetFinalUrl(incomplete.pipeline_id, final_url.clone())).unwrap();
+            self.constellation_chan
+                .send(ConstellationMsg::SetFinalUrl(incomplete.pipeline_id, final_url.clone()))
+                .unwrap();
         }
         debug!("ScriptThread: loading {} on pipeline {:?}", incomplete.url, incomplete.pipeline_id);
 
@@ -1440,16 +1474,17 @@ impl ScriptThread {
                                  HistoryTraversalTaskSource(history_sender.clone()),
                                  FileReadingTaskSource(file_sender.clone()),
                                  self.image_cache_channel.clone(),
-                                 self.compositor.borrow_mut().clone(),
+                                 self.custom_message_chan.clone(),
                                  self.image_cache_thread.clone(),
-                                 self.resource_thread.clone(),
+                                 self.resource_threads.clone(),
                                  self.bluetooth_thread.clone(),
-                                 self.storage_thread.clone(),
                                  self.mem_profiler_chan.clone(),
+                                 self.time_profiler_chan.clone(),
                                  self.devtools_chan.clone(),
                                  self.constellation_chan.clone(),
                                  self.control_chan.clone(),
                                  self.scheduler_chan.clone(),
+                                 self.panic_chan.clone(),
                                  ipc_timer_event_chan,
                                  incomplete.layout_chan,
                                  incomplete.pipeline_id,
@@ -1538,9 +1573,9 @@ impl ScriptThread {
             }
         });
 
-        let loader = DocumentLoader::new_with_thread(self.resource_thread.clone(),
-                                                     Some(browsing_context.pipeline()),
-                                                     Some(incomplete.url.clone()));
+        let loader = DocumentLoader::new_with_threads(self.resource_threads.clone(),
+                                                      Some(browsing_context.pipeline()),
+                                                      Some(incomplete.url.clone()));
 
         let is_html_document = match metadata.content_type {
             Some(ContentType(Mime(TopLevel::Application, SubLevel::Xml, _))) |
@@ -1564,8 +1599,9 @@ impl ScriptThread {
         }
         document.set_ready_state(DocumentReadyState::Loading);
 
-        let ConstellationChan(ref chan) = self.constellation_chan;
-        chan.send(ConstellationMsg::ActivateDocument(incomplete.pipeline_id)).unwrap();
+        self.constellation_chan
+            .send(ConstellationMsg::ActivateDocument(incomplete.pipeline_id))
+            .unwrap();
 
         // Notify devtools that a new script global exists.
         self.notify_devtools(document.Title(), final_url.clone(), (browsing_context.pipeline(), None));
@@ -1588,6 +1624,7 @@ impl ScriptThread {
 
             // Script source is ready to be evaluated (11.)
             unsafe {
+                let _ac = JSAutoCompartment::new(self.get_cx(), window.reflector().get_jsobject().get());
                 let mut jsval = RootedValue::new(self.get_cx(), UndefinedValue());
                 window.evaluate_js_on_global_with_result(&script_source, jsval.handle_mut());
                 let strval = DOMString::from_jsval(self.get_cx(),
@@ -1661,8 +1698,11 @@ impl ScriptThread {
         let point = Point2D::new(rect.origin.x.to_nearest_px() as f32,
                                  rect.origin.y.to_nearest_px() as f32);
 
-        self.compositor.borrow_mut().send(ScriptToCompositorMsg::ScrollFragmentPoint(
-                                                 pipeline_id, LayerId::null(), point, false)).unwrap();
+        let message = ConstellationMsg::ScrollFragmentPoint(pipeline_id,
+                                                            LayerId::null(),
+                                                            point,
+                                                            false);
+        self.constellation_chan.send(message).unwrap();
     }
 
     /// Reflows non-incrementally, rebuilding the entire layout tree in the process.
@@ -1677,7 +1717,6 @@ impl ScriptThread {
     ///
     /// TODO: Actually perform DOM event dispatch.
     fn handle_event(&self, pipeline_id: PipelineId, event: CompositorEvent) {
-
         // DOM events can only be handled if there's a root browsing context.
         if !self.root_browsing_context_exists() {
             return;
@@ -1724,8 +1763,7 @@ impl ScriptThread {
                                            });
 
                         let event = ConstellationMsg::NodeStatus(status);
-                        let ConstellationChan(ref chan) = self.constellation_chan;
-                        chan.send(event).unwrap();
+                        self.constellation_chan.send(event).unwrap();
 
                         state_already_changed = true;
                     }
@@ -1739,8 +1777,7 @@ impl ScriptThread {
                                                .filter_map(Root::downcast::<HTMLAnchorElement>)
                                                .next() {
                             let event = ConstellationMsg::NodeStatus(None);
-                            let ConstellationChan(ref chan) = self.constellation_chan;
-                            chan.send(event).unwrap();
+                            self.constellation_chan.send(event).unwrap();
                         }
                     }
                 }
@@ -1749,16 +1786,14 @@ impl ScriptThread {
                 let handled = self.handle_touch_event(pipeline_id, event_type, identifier, point);
                 match event_type {
                     TouchEventType::Down => {
-                        if handled {
+                        let result = if handled {
                             // TODO: Wait to see if preventDefault is called on the first touchmove event.
-                            self.compositor.borrow_mut()
-                                .send(ScriptToCompositorMsg::TouchEventProcessed(
-                                        EventResult::DefaultAllowed)).unwrap();
+                            EventResult::DefaultAllowed
                         } else {
-                            self.compositor.borrow_mut()
-                                .send(ScriptToCompositorMsg::TouchEventProcessed(
-                                        EventResult::DefaultPrevented)).unwrap();
-                        }
+                            EventResult::DefaultPrevented
+                        };
+                        let message = ConstellationMsg::TouchEventProcessed(result);
+                        self.constellation_chan.send(message).unwrap();
                     }
                     _ => {
                         // TODO: Calling preventDefault on a touchup event should prevent clicks.
@@ -1775,8 +1810,7 @@ impl ScriptThread {
             KeyEvent(key, state, modifiers) => {
                 let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
                 let document = context.active_document();
-                document.dispatch_key_event(
-                    key, state, modifiers, &mut self.compositor.borrow_mut());
+                document.dispatch_key_event(key, state, modifiers, &self.constellation_chan);
             }
         }
     }
@@ -1839,8 +1873,9 @@ impl ScriptThread {
                 }
             }
             None => {
-                let ConstellationChan(ref const_chan) = self.constellation_chan;
-                const_chan.send(ConstellationMsg::LoadUrl(pipeline_id, load_data)).unwrap();
+                self.constellation_chan
+                    .send(ConstellationMsg::LoadUrl(pipeline_id, load_data))
+                    .unwrap();
             }
         }
     }
@@ -1895,7 +1930,7 @@ impl ScriptThread {
             load_data.url = Url::parse("about:blank").unwrap();
         }
 
-        self.resource_thread.send(ControlMsg::Load(NetLoadData {
+        self.resource_threads.send(CoreResourceMsg::Load(NetLoadData {
             context: LoadContext::Browsing,
             url: load_data.url,
             method: load_data.method,
@@ -1907,6 +1942,7 @@ impl ScriptThread {
             credentials_flag: true,
             referrer_policy: load_data.referrer_policy,
             referrer_url: load_data.referrer_url,
+            source: RequestSource::Window(self.custom_message_chan.clone())
         }, LoadConsumer::Listener(response_target), None)).unwrap();
 
         self.incomplete_loads.borrow_mut().push(incomplete);
@@ -1945,29 +1981,27 @@ impl ScriptThread {
 
     fn handle_css_error_reporting(&self, pipeline_id: PipelineId, filename: String,
                                   line: usize, column: usize, msg: String) {
+        let sender = match self.devtools_chan {
+            Some(ref sender) => sender,
+            None => return,
+        };
+
         let parent_context = self.root_browsing_context();
         let context = match parent_context.find(pipeline_id) {
             Some(context) => context,
             None => return,
         };
 
-        let document = context.active_document();
-        let css_error = CSSError {
-            filename: filename,
-            line: line,
-            column: column,
-            msg: msg
-        };
-
-        document.report_css_error(css_error.clone());
         let window = context.active_window();
-
         if window.live_devtools_updates() {
-            if let Some(ref chan) = self.devtools_chan {
-                chan.send(ScriptToDevtoolsControlMsg::ReportCSSError(
-                    pipeline_id,
-                    css_error)).unwrap();
-             }
+            let css_error = CSSError {
+                filename: filename,
+                line: line,
+                column: column,
+                msg: msg
+            };
+            let message = ScriptToDevtoolsControlMsg::ReportCSSError(pipeline_id, css_error);
+            sender.send(message).unwrap();
         }
     }
 }
@@ -1989,7 +2023,7 @@ fn shut_down_layout(context_tree: &BrowsingContext) {
         // processed this message.
         let (response_chan, response_port) = channel();
         let window = context.active_window();
-        let LayoutChan(chan) = window.layout_chan().clone();
+        let chan = window.layout_chan().clone();
         if chan.send(layout_interface::Msg::PrepareToExit(response_chan)).is_ok() {
             channels.push(chan);
             response_port.recv().unwrap();

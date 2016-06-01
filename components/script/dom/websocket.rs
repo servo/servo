@@ -8,15 +8,15 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WebSocketBinding;
 use dom::bindings::codegen::Bindings::WebSocketBinding::{BinaryType, WebSocketMethods};
 use dom::bindings::codegen::UnionTypes::StringOrStringSequence;
-use dom::bindings::conversions::{ToJSValConvertible};
+use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, Fallible, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
-use dom::bindings::str::{USVString, is_token};
-use dom::blob::{Blob, DataSlice};
+use dom::bindings::str::{DOMString, USVString, is_token};
+use dom::blob::{Blob, BlobImpl, DataSlice};
 use dom::closeevent::CloseEvent;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::eventtarget::EventTarget;
@@ -27,8 +27,8 @@ use js::jsapi::{JSAutoCompartment, RootedValue};
 use js::jsapi::{JS_GetArrayBufferData, JS_NewArrayBuffer};
 use js::jsval::UndefinedValue;
 use libc::{uint32_t, uint8_t};
-use net_traits::ControlMsg::{WebsocketConnect, SetCookiesForUrl};
 use net_traits::CookieSource::HTTP;
+use net_traits::CoreResourceMsg::{WebsocketConnect, SetCookiesForUrl};
 use net_traits::MessageData;
 use net_traits::hosts::replace_hosts;
 use net_traits::unwrap_websocket_protocol;
@@ -40,9 +40,7 @@ use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ptr;
-use std::sync::Arc;
 use std::thread;
-use util::str::DOMString;
 use websocket::client::request::Url;
 use websocket::header::{Headers, WebSocketProtocol};
 use websocket::ws::util::url::parse_url;
@@ -265,8 +263,7 @@ impl WebSocket {
             action_receiver: resource_action_receiver,
         };
 
-        let resource_thread = global.resource_thread();
-        let _ = resource_thread.send(WebsocketConnect(connect, connect_data));
+        let _ = global.core_resource_thread().send(WebsocketConnect(connect, connect_data));
 
         *ws.sender.borrow_mut() = Some(dom_action_sender);
 
@@ -384,7 +381,6 @@ impl WebSocketMethods for WebSocket {
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
     fn Send(&self, data: USVString) -> ErrorResult {
-
         let data_byte_len = data.0.as_bytes().len() as u64;
         let send_data = try!(self.send_impl(data_byte_len));
 
@@ -399,7 +395,6 @@ impl WebSocketMethods for WebSocket {
 
     // https://html.spec.whatwg.org/multipage/#dom-websocket-send
     fn Send_(&self, blob: &Blob) -> ErrorResult {
-
         /* As per https://html.spec.whatwg.org/multipage/#websocket
            the buffered amount needs to be clamped to u32, even though Blob.Size() is u64
            If the buffer limit is reached in the first place, there are likely other major problems
@@ -410,7 +405,7 @@ impl WebSocketMethods for WebSocket {
         if send_data {
             let mut other_sender = self.sender.borrow_mut();
             let my_sender = other_sender.as_mut().unwrap();
-            let bytes = blob.get_data().get_bytes().to_vec();
+            let bytes = blob.get_slice_or_empty().get_bytes().to_vec();
             let _ = my_sender.send(WebSocketDomAction::SendMessage(MessageData::Binary(bytes)));
         }
 
@@ -493,7 +488,7 @@ impl Runnable for ConnectionEstablishedTask {
         if let Some(cookies) = self.headers.get_raw("set-cookie") {
             for cookie in cookies.iter() {
                 if let Ok(cookie_value) = String::from_utf8(cookie.clone()) {
-                    let _ = ws.global().r().resource_thread().send(SetCookiesForUrl(ws.url.clone(),
+                    let _ = ws.global().r().core_resource_thread().send(SetCookiesForUrl(ws.url.clone(),
                                                                                     cookie_value,
                                                                                     HTTP));
                 }
@@ -596,8 +591,8 @@ impl Runnable for MessageReceivedTask {
                 MessageData::Binary(data) => {
                     match ws.binary_type.get() {
                         BinaryType::Blob => {
-                            let slice = DataSlice::new(Arc::new(data), None, None);
-                            let blob = Blob::new(global.r(), slice, "");
+                            let slice = DataSlice::from_bytes(data);
+                            let blob = Blob::new(global.r(), BlobImpl::new_from_slice(slice), "");
                             blob.to_jsval(cx, message.handle_mut());
                         }
                         BinaryType::Arraybuffer => {

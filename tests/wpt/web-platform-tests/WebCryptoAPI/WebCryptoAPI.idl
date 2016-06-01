@@ -1,0 +1,277 @@
+[NoInterfaceObject]
+interface GlobalCrypto {
+  readonly attribute Crypto crypto;
+};
+
+//Window implements GlobalCrypto;
+//WorkerGlobalScope implements GlobalCrypto;
+
+[Exposed=(Window,Worker)]
+interface Crypto {
+  readonly attribute SubtleCrypto subtle;
+  ArrayBufferView getRandomValues(ArrayBufferView array);
+};
+
+typedef (object or DOMString) AlgorithmIdentifier;
+
+typedef AlgorithmIdentifier HashAlgorithmIdentifier;
+
+dictionary Algorithm {
+  required DOMString name;
+};
+
+dictionary KeyAlgorithm {
+  required DOMString name;
+};
+
+enum KeyType { "public", "private", "secret" };
+
+enum KeyUsage { "encrypt", "decrypt", "sign", "verify", "deriveKey", "deriveBits", "wrapKey", "unwrapKey" };
+
+[Exposed=(Window,Worker)]
+interface CryptoKey {
+  readonly attribute KeyType type;
+  readonly attribute boolean extractable;
+  readonly attribute object algorithm;
+  readonly attribute object usages;
+};
+
+
+enum KeyFormat { "raw", "spki", "pkcs8", "jwk" };
+
+[Exposed=(Window,Worker)]
+interface SubtleCrypto {
+  Promise<any> encrypt(AlgorithmIdentifier algorithm,
+                       CryptoKey key,
+                       BufferSource data);
+  Promise<any> decrypt(AlgorithmIdentifier algorithm,
+                       CryptoKey key,
+                       BufferSource data);
+  Promise<any> sign(AlgorithmIdentifier algorithm,
+                    CryptoKey key,
+                    BufferSource data);
+  Promise<any> verify(AlgorithmIdentifier algorithm,
+                      CryptoKey key,
+                      BufferSource signature,
+                      BufferSource data);
+  Promise<any> digest(AlgorithmIdentifier algorithm,
+                      BufferSource data);
+
+  Promise<any> generateKey(AlgorithmIdentifier algorithm,
+                          boolean extractable,
+                          sequence<KeyUsage> keyUsages );
+  Promise<any> deriveKey(AlgorithmIdentifier algorithm,
+                         CryptoKey baseKey,
+                         AlgorithmIdentifier derivedKeyType,
+                         boolean extractable,
+                         sequence<KeyUsage> keyUsages );
+  Promise<any> deriveBits(AlgorithmIdentifier algorithm,
+                          CryptoKey baseKey,
+                          unsigned long length);
+
+  Promise<any> importKey(KeyFormat format,
+                         (BufferSource or JsonWebKey) keyData,
+                         AlgorithmIdentifier algorithm,
+                         boolean extractable,
+                         sequence<KeyUsage> keyUsages );
+  Promise<any> exportKey(KeyFormat format, CryptoKey key);
+
+  Promise<any> wrapKey(KeyFormat format,
+                       CryptoKey key,
+                       CryptoKey wrappingKey,
+                       AlgorithmIdentifier wrapAlgorithm);
+  Promise<any> unwrapKey(KeyFormat format,
+                         BufferSource wrappedKey,
+                         CryptoKey unwrappingKey,
+                         AlgorithmIdentifier unwrapAlgorithm,
+                         AlgorithmIdentifier unwrappedKeyAlgorithm,
+                         boolean extractable,
+                         sequence<KeyUsage> keyUsages );
+};
+
+dictionary RsaOtherPrimesInfo {
+ // The following fields are defined in Section 6.3.2.7 of JSON Web Algorithms
+  DOMString r;
+  DOMString d;
+  DOMString t;
+};
+
+dictionary JsonWebKey {
+  // The following fields are defined in Section 3.1 of JSON Web Key
+  DOMString kty;
+  DOMString use;
+  sequence<DOMString> key_ops;
+  DOMString alg;
+
+  // The following fields are defined in JSON Web Key Parameters Registration
+  boolean ext;
+
+  // The following fields are defined in Section 6 of JSON Web Algorithms
+  DOMString crv;
+  DOMString x;
+  DOMString y;
+  DOMString d;
+  DOMString n;
+  DOMString e;
+  DOMString p;
+  DOMString q;
+  DOMString dp;
+  DOMString dq;
+  DOMString qi;
+  sequence<RsaOtherPrimesInfo> oth;
+  DOMString k;
+};
+
+typedef Uint8Array BigInteger;
+
+dictionary CryptoKeyPair {
+  CryptoKey publicKey;
+  CryptoKey privateKey;
+};
+
+dictionary RsaKeyGenParams : Algorithm {
+  // The length, in bits, of the RSA modulus
+  [EnforceRange] required unsigned long modulusLength;
+  // The RSA public exponent
+  required BigInteger publicExponent;
+};
+
+dictionary RsaHashedKeyGenParams : RsaKeyGenParams {
+  // The hash algorithm to use
+  required HashAlgorithmIdentifier hash;
+};
+
+dictionary RsaKeyAlgorithm : KeyAlgorithm {
+  // The length, in bits, of the RSA modulus
+  required unsigned long modulusLength;
+  // The RSA public exponent
+  required BigInteger publicExponent;
+};
+
+dictionary RsaHashedKeyAlgorithm : RsaKeyAlgorithm {
+  // The hash algorithm that is used with this key
+  required KeyAlgorithm hash;
+};
+
+dictionary RsaHashedImportParams {
+  // The hash algorithm to use
+  required HashAlgorithmIdentifier hash;
+};
+
+dictionary RsaPssParams : Algorithm {
+// The desired length of the random salt
+[EnforceRange] required unsigned long saltLength;
+};
+
+dictionary RsaOaepParams : Algorithm {
+// The optional label/application data to associate with the message
+BufferSource label;
+};
+
+dictionary EcdsaParams : Algorithm {
+// The hash algorithm to use
+required HashAlgorithmIdentifier hash;
+};
+
+typedef DOMString NamedCurve;
+
+dictionary EcKeyGenParams : Algorithm {
+// A named curve
+required NamedCurve namedCurve;
+};
+
+dictionary EcKeyAlgorithm : KeyAlgorithm {
+// The named curve that the key uses
+required NamedCurve namedCurve;
+};
+
+dictionary EcKeyImportParams : Algorithm {
+// A named curve
+required NamedCurve namedCurve;
+};
+
+dictionary EcdhKeyDeriveParams : Algorithm {
+// The peer's EC public key.
+required CryptoKey public;
+};
+
+dictionary AesCtrParams : Algorithm {
+// The initial value of the counter block. counter MUST be 16 bytes
+// (the AES block size). The counter bits are the rightmost length
+// bits of the counter block. The rest of the counter block is for
+// the nonce. The counter bits are incremented using the standard
+// incrementing function specified in NIST SP 800-38A Appendix B.1:
+// the counter bits are interpreted as a big-endian integer and
+// incremented by one.
+required BufferSource counter;
+// The length, in bits, of the rightmost part of the counter block
+// that is incremented.
+[EnforceRange] required octet length;
+};
+
+dictionary AesKeyAlgorithm : KeyAlgorithm {
+// The length, in bits, of the key.
+required unsigned short length;
+};
+
+dictionary AesKeyGenParams : Algorithm {
+// The length, in bits, of the key.
+[EnforceRange] required unsigned short length;
+};
+
+dictionary AesDerivedKeyParams : Algorithm {
+// The length, in bits, of the key.
+[EnforceRange] required unsigned short length;
+};
+
+dictionary AesCbcParams : Algorithm {
+// The initialization vector. MUST be 16 bytes.
+required BufferSource iv;
+};
+
+dictionary AesGcmParams : Algorithm {
+// The initialization vector to use. May be up to 2^64-1 bytes long.
+required BufferSource iv;
+// The additional authentication data to include.
+BufferSource additionalData;
+// The desired length of the authentication tag. May be 0 - 128.
+[EnforceRange] octet tagLength;
+};
+
+dictionary HmacImportParams : Algorithm {
+// The inner hash function to use.
+HashAlgorithmIdentifier hash;
+// The length (in bits) of the key.
+[EnforceRange] unsigned long length;
+};
+
+dictionary HmacKeyAlgorithm : KeyAlgorithm {
+// The inner hash function to use.
+required KeyAlgorithm hash;
+// The length (in bits) of the key.
+required unsigned long length;
+};
+
+dictionary HmacKeyGenParams : Algorithm {
+// The inner hash function to use.
+required HashAlgorithmIdentifier hash;
+// The length (in bits) of the key to generate. If unspecified, the
+// recommended length will be used, which is the size of the associated hash function's block
+// size.
+[EnforceRange] unsigned long length;
+};
+
+dictionary HkdfCtrParams : Algorithm {
+// The algorithm to use with HMAC (e.g.: SHA-256)
+required HashAlgorithmIdentifier hash;
+// A bit string that corresponds to the label that identifies the purpose for the derived keying material.
+required BufferSource label;
+// A bit string that corresponds to the context of the key derivation, as described in Section 5 of [NIST SP800-108]
+required BufferSource context;
+};
+
+dictionary Pbkdf2Params : Algorithm {
+required BufferSource salt;
+[EnforceRange] required unsigned long iterations;
+required HashAlgorithmIdentifier hash;
+};

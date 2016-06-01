@@ -7,9 +7,9 @@ use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMet
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, Root, MutHeap, MutNullableHeap};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::bluetoothadvertisingdata::BluetoothAdvertisingData;
 use dom::bluetoothremotegattserver::BluetoothRemoteGATTServer;
-use util::str::DOMString;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothdevice
 #[dom_struct]
@@ -49,7 +49,6 @@ impl BluetoothDevice {
 }
 
 impl BluetoothDeviceMethods for BluetoothDevice {
-
      // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-id
     fn Id(&self) -> DOMString {
         self.id.clone()

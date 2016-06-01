@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use devtools_traits::CSSError;
 use document_loader::{DocumentLoader, LoadType};
 use dom::activation::{ActivationSource, synthetic_click_activation};
 use dom::attr::{Attr, AttrValue};
@@ -28,6 +27,7 @@ use dom::bindings::js::{JS, LayoutJS, MutNullableHeap, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
+use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::trace::RootedVec;
 use dom::bindings::xmlname::XMLName::InvalidXMLName;
 use dom::bindings::xmlname::{validate_and_extract, namespace_from_domstring, xml_name_type};
@@ -56,7 +56,7 @@ use dom::htmlembedelement::HTMLEmbedElement;
 use dom::htmlformelement::HTMLFormElement;
 use dom::htmlheadelement::HTMLHeadElement;
 use dom::htmlhtmlelement::HTMLHtmlElement;
-use dom::htmliframeelement::{self, HTMLIFrameElement};
+use dom::htmliframeelement::HTMLIFrameElement;
 use dom::htmlimageelement::HTMLImageElement;
 use dom::htmllinkelement::HTMLLinkElement;
 use dom::htmlmetaelement::HTMLMetaElement;
@@ -92,28 +92,28 @@ use html5ever::tree_builder::{LimitedQuirks, NoQuirks, Quirks, QuirksMode};
 use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::JS_GetRuntime;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
-use layout_interface::{LayoutChan, Msg, ReflowQueryType};
+use layout_interface::{Msg, ReflowQueryType};
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
-use msg::constellation_msg::{ConstellationChan, Key, KeyModifiers, KeyState};
+use msg::constellation_msg::{Key, KeyModifiers, KeyState};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy, SubpageId};
-use net_traits::ControlMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::CookieSource::NonHTTP;
+use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::response::HttpsState;
-use net_traits::{AsyncResponseTarget, PendingAsyncLoad};
+use net_traits::{AsyncResponseTarget, PendingAsyncLoad, IpcSend};
 use num_traits::ToPrimitive;
 use origin::Origin;
 use parse::{ParserRoot, ParserRef, MutNullableParserField};
 use script_thread::{MainThreadScriptMsg, Runnable};
 use script_traits::UntrustedNodeAddress;
 use script_traits::{AnimationState, MouseButton, MouseEventType, MozBrowserEvent};
-use script_traits::{ScriptMsg as ConstellationMsg, ScriptToCompositorMsg};
-use script_traits::{TouchpadPressurePhase, TouchEventType, TouchId};
+use script_traits::{ScriptMsg as ConstellationMsg, TouchpadPressurePhase};
+use script_traits::{TouchEventType, TouchId};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::boxed::FnBox;
 use std::cell::{Cell, Ref, RefMut};
+use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
-use std::collections::{BTreeMap, HashMap};
 use std::default::Default;
 use std::mem;
 use std::ptr;
@@ -127,7 +127,8 @@ use task_source::dom_manipulation::DOMManipulationTask;
 use time;
 use url::Url;
 use url::percent_encoding::percent_decode;
-use util::str::{DOMString, split_html_space_chars, str_join};
+use util::prefs::mozbrowser_enabled;
+use util::str::{split_html_space_chars, str_join};
 
 #[derive(JSTraceable, PartialEq, HeapSizeOf)]
 pub enum IsHTMLDocument {
@@ -200,7 +201,12 @@ pub struct Document {
     /// https://html.spec.whatwg.org/multipage/#list-of-animation-frame-callbacks
     /// List of animation frame callbacks
     #[ignore_heap_size_of = "closures are hard"]
-    animation_frame_list: DOMRefCell<BTreeMap<u32, Box<FnBox(f64)>>>,
+    animation_frame_list: DOMRefCell<Vec<(u32, Option<Box<FnBox(f64)>>)>>,
+    /// Whether we're in the process of running animation callbacks.
+    ///
+    /// Tracking this is not necessary for correctness. Instead, it is an optimization to avoid
+    /// sending needless `ChangeRunningAnimationsState` messages to the compositor.
+    running_animation_callbacks: Cell<bool>,
     /// Tracks all outstanding loads related to this document.
     loader: DOMRefCell<DocumentLoader>,
     /// The current active HTML parser, to allow resuming after interruptions.
@@ -226,8 +232,6 @@ pub struct Document {
     dom_complete: Cell<u64>,
     load_event_start: Cell<u64>,
     load_event_end: Cell<u64>,
-    /// Vector to store CSS errors
-    css_errors_store: DOMRefCell<Vec<CSSError>>,
     /// https://html.spec.whatwg.org/multipage/#concept-document-https-state
     https_state: Cell<HttpsState>,
     touchpad_pressure_phase: Cell<TouchpadPressurePhase>,
@@ -326,10 +330,6 @@ impl Document {
         self.trigger_mozbrowser_event(MozBrowserEvent::SecurityChange(https_state));
     }
 
-    pub fn report_css_error(&self, css_error: CSSError) {
-        self.css_errors_store.borrow_mut().push(css_error);
-    }
-
     // https://html.spec.whatwg.org/multipage/#fully-active
     pub fn is_fully_active(&self) -> bool {
         let browsing_context = match self.browsing_context() {
@@ -404,8 +404,7 @@ impl Document {
         self.quirks_mode.set(mode);
 
         if mode == Quirks {
-            let LayoutChan(ref layout_chan) = *self.window.layout_chan();
-            layout_chan.send(Msg::SetQuirksMode).unwrap();
+            self.window.layout_chan().send(Msg::SetQuirksMode).unwrap();
         }
     }
 
@@ -600,7 +599,6 @@ impl Document {
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or none if no elements requested it.
     pub fn commit_focus_transaction(&self, focus_type: FocusType) {
-
         if let Some(ref elem) = self.focused.get() {
             let node = elem.upcast::<Node>();
             elem.set_focus_state(false);
@@ -618,9 +616,8 @@ impl Document {
             // Update the focus state for all elements in the focus chain.
             // https://html.spec.whatwg.org/multipage/#focus-chain
             if focus_type == FocusType::Element {
-                let ConstellationChan(ref chan) = *self.window.constellation_chan();
                 let event = ConstellationMsg::Focus(self.window.pipeline());
-                chan.send(event).unwrap();
+                self.window.constellation_chan().send(event).unwrap();
             }
         }
     }
@@ -638,10 +635,10 @@ impl Document {
     /// Sends this document's title to the compositor.
     pub fn send_title_to_compositor(&self) {
         let window = self.window();
-        let compositor = window.compositor();
-        compositor.send(ScriptToCompositorMsg::SetTitle(window.pipeline(),
-                                                        Some(String::from(self.Title()))))
-                  .unwrap();
+        window.constellation_chan()
+              .send(ConstellationMsg::SetTitle(window.pipeline(),
+                                               Some(String::from(self.Title()))))
+              .unwrap();
     }
 
     pub fn dirty_all_nodes(&self) {
@@ -694,7 +691,7 @@ impl Document {
                 let event = ConstellationMsg::ForwardMouseButtonEvent(pipeline_id,
                                                                       mouse_event_type,
                                                                       button, child_point);
-                self.window.constellation_chan().0.send(event).unwrap();
+                self.window.constellation_chan().send(event).unwrap();
             }
             return;
         }
@@ -756,7 +753,6 @@ impl Document {
                                           client_point: Point2D<f32>,
                                           pressure: f32,
                                           phase_now: TouchpadPressurePhase) {
-
         let phase_before = self.touchpad_pressure_phase.get();
         self.touchpad_pressure_phase.set(phase_now);
 
@@ -875,7 +871,7 @@ impl Document {
                     let child_point = client_point - child_origin;
 
                     let event = ConstellationMsg::ForwardMouseMoveEvent(pipeline_id, child_point);
-                    self.window.constellation_chan().0.send(event).unwrap();
+                    self.window.constellation_chan().send(event).unwrap();
                 }
                 return;
             }
@@ -987,13 +983,13 @@ impl Document {
         match event_type {
             TouchEventType::Down => {
                 // Add a new touch point
-                self.active_touch_points.borrow_mut().push(JS::from_rooted(&touch));
+                self.active_touch_points.borrow_mut().push(JS::from_ref(&*touch));
             }
             TouchEventType::Move => {
                 // Replace an existing touch point
                 let mut active_touch_points = self.active_touch_points.borrow_mut();
                 match active_touch_points.iter_mut().find(|t| t.Identifier() == identifier) {
-                    Some(t) => *t = JS::from_rooted(&touch),
+                    Some(t) => *t = JS::from_ref(&*touch),
                     None => warn!("Got a touchmove event for a non-active touch point"),
                 }
             }
@@ -1014,7 +1010,7 @@ impl Document {
         touches.extend(self.active_touch_points.borrow().iter().cloned());
 
         let mut changed_touches = RootedVec::new();
-        changed_touches.push(JS::from_rooted(&touch));
+        changed_touches.push(JS::from_ref(&*touch));
 
         let mut target_touches = RootedVec::new();
         target_touches.extend(self.active_touch_points
@@ -1051,7 +1047,7 @@ impl Document {
                               key: Key,
                               state: KeyState,
                               modifiers: KeyModifiers,
-                              compositor: &mut IpcSender<ScriptToCompositorMsg>) {
+                              constellation: &IpcSender<ConstellationMsg>) {
         let focused = self.get_focused_element();
         let body = self.GetBody();
 
@@ -1126,7 +1122,7 @@ impl Document {
         }
 
         if !prevented {
-            compositor.send(ScriptToCompositorMsg::SendKeyEvent(key, state, modifiers)).unwrap();
+            constellation.send(ConstellationMsg::SendKeyEvent(key, state, modifiers)).unwrap();
         }
 
         // This behavior is unspecced
@@ -1230,9 +1226,9 @@ impl Document {
         self.stylesheets_changed_since_reflow.set(true);
         *self.stylesheets.borrow_mut() = None;
         // Mark the document element dirty so a reflow will be performed.
-        self.get_html_element().map(|root| {
-            root.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged);
-        });
+        if let Some(element) = self.GetDocumentElement() {
+            element.upcast::<Node>().dirty(NodeDamage::NodeStyleDamaged);
+        }
     }
 
     pub fn get_and_reset_stylesheets_changed_since_reflow(&self) -> bool {
@@ -1263,13 +1259,12 @@ impl Document {
     }
 
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
-        if htmliframeelement::mozbrowser_enabled() {
+        if mozbrowser_enabled() {
             if let Some((containing_pipeline_id, subpage_id)) = self.window.parent_info() {
-                let ConstellationChan(ref chan) = *self.window.constellation_chan();
                 let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
                                                               subpage_id,
                                                               event);
-                chan.send(event).unwrap();
+                self.window.constellation_chan().send(event).unwrap();
             }
         }
     }
@@ -1279,38 +1274,46 @@ impl Document {
         let ident = self.animation_frame_ident.get() + 1;
 
         self.animation_frame_ident.set(ident);
-        self.animation_frame_list.borrow_mut().insert(ident, callback);
+        self.animation_frame_list.borrow_mut().push((ident, Some(callback)));
 
+        // No need to send a `ChangeRunningAnimationsState` if we're running animation callbacks:
+        // we're guaranteed to already be in the "animation callbacks present" state.
+        //
+        // This reduces CPU usage by avoiding needless thread wakeups in the common case of
+        // repeated rAF.
+        //
         // TODO: Should tick animation only when document is visible
-        let ConstellationChan(ref chan) = *self.window.constellation_chan();
-        let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
-                                                                   AnimationState::AnimationCallbacksPresent);
-        chan.send(event).unwrap();
+        if !self.running_animation_callbacks.get() {
+            let event = ConstellationMsg::ChangeRunningAnimationsState(
+                self.window.pipeline(),
+                AnimationState::AnimationCallbacksPresent);
+            self.window.constellation_chan().send(event).unwrap();
+        }
 
         ident
     }
 
     /// https://html.spec.whatwg.org/multipage/#dom-window-cancelanimationframe
     pub fn cancel_animation_frame(&self, ident: u32) {
-        self.animation_frame_list.borrow_mut().remove(&ident);
-        if self.animation_frame_list.borrow().is_empty() {
-            let ConstellationChan(ref chan) = *self.window.constellation_chan();
-            let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
-                                                                       AnimationState::NoAnimationCallbacksPresent);
-            chan.send(event).unwrap();
+        let mut list = self.animation_frame_list.borrow_mut();
+        if let Some(mut pair) = list.iter_mut().find(|pair| pair.0 == ident) {
+            pair.1 = None;
         }
     }
 
     /// https://html.spec.whatwg.org/multipage/#run-the-animation-frame-callbacks
     pub fn run_the_animation_frame_callbacks(&self) {
-        let animation_frame_list =
-            mem::replace(&mut *self.animation_frame_list.borrow_mut(), BTreeMap::new());
+        let mut animation_frame_list =
+            mem::replace(&mut *self.animation_frame_list.borrow_mut(), vec![]);
+        self.running_animation_callbacks.set(true);
         let performance = self.window.Performance();
         let performance = performance.r();
         let timing = performance.Now();
 
-        for (_, callback) in animation_frame_list {
-            callback(*timing);
+        for (_, callback) in animation_frame_list.drain(..) {
+            if let Some(callback) = callback {
+                callback(*timing);
+            }
         }
 
         // Only send the animation change state message after running any callbacks.
@@ -1318,11 +1321,14 @@ impl Document {
         // the next frame (which is the common case), we won't send a NoAnimationCallbacksPresent
         // message quickly followed by an AnimationCallbacksPresent message.
         if self.animation_frame_list.borrow().is_empty() {
-            let ConstellationChan(ref chan) = *self.window.constellation_chan();
+            mem::swap(&mut *self.animation_frame_list.borrow_mut(),
+                      &mut animation_frame_list);
             let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
                                                                        AnimationState::NoAnimationCallbacksPresent);
-            chan.send(event).unwrap();
+            self.window.constellation_chan().send(event).unwrap();
         }
+
+        self.running_animation_callbacks.set(false);
 
         self.window.reflow(ReflowGoal::ForDisplay,
                            ReflowQueryType::NoQuery,
@@ -1342,7 +1348,7 @@ impl Document {
 
     pub fn load_async(&self, load: LoadType, listener: AsyncResponseTarget) {
         let mut loader = self.loader.borrow_mut();
-        loader.load_async(load, listener, self)
+        loader.load_async(load, listener, self);
     }
 
     pub fn finish_load(&self, load: LoadType) {
@@ -1478,9 +1484,8 @@ impl Document {
 
     pub fn notify_constellation_load(&self) {
         let pipeline_id = self.window.pipeline();
-        let ConstellationChan(ref chan) = *self.window.constellation_chan();
         let event = ConstellationMsg::DOMLoad(pipeline_id);
-        chan.send(event).unwrap();
+        self.window.constellation_chan().send(event).unwrap();
 
     }
 
@@ -1675,7 +1680,8 @@ impl Document {
             asap_scripts_set: DOMRefCell::new(vec![]),
             scripting_enabled: Cell::new(browsing_context.is_some()),
             animation_frame_ident: Cell::new(0),
-            animation_frame_list: DOMRefCell::new(BTreeMap::new()),
+            animation_frame_list: DOMRefCell::new(vec![]),
+            running_animation_callbacks: Cell::new(false),
             loader: DOMRefCell::new(doc_loader),
             current_parser: Default::default(),
             reflow_timeout: Cell::new(None),
@@ -1690,7 +1696,6 @@ impl Document {
             dom_complete: Cell::new(Default::default()),
             load_event_start: Cell::new(Default::default()),
             load_event_end: Cell::new(Default::default()),
-            css_errors_store: DOMRefCell::new(vec![]),
             https_state: Cell::new(HttpsState::None),
             touchpad_pressure_phase: Cell::new(TouchpadPressurePhase::BeforeClick),
             origin: origin,
@@ -1770,7 +1775,7 @@ impl Document {
                             node.get_stylesheet()
                         } else {
                             None
-                        }.map(|stylesheet| (JS::from_rooted(&node), stylesheet))
+                        }.map(|stylesheet| (JS::from_ref(&*node), stylesheet))
                     })
                     .collect());
             };
@@ -1860,8 +1865,8 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-url
-    fn URL(&self) -> DOMString {
-        DOMString::from(self.url().as_str())
+    fn URL(&self) -> USVString {
+        USVString(String::from(self.url().as_str()))
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-activeelement
@@ -1911,7 +1916,7 @@ impl DocumentMethods for Document {
     }
 
     // https://dom.spec.whatwg.org/#dom-document-documenturi
-    fn DocumentURI(&self) -> DOMString {
+    fn DocumentURI(&self) -> USVString {
         self.URL()
     }
 
@@ -1993,7 +1998,7 @@ impl DocumentMethods for Document {
                                                                 self.upcast(),
                                                                 tag_atom,
                                                                 ascii_lower_tag);
-                entry.insert(JS::from_rooted(&result));
+                entry.insert(JS::from_ref(&*result));
                 result
             }
         }
@@ -2011,7 +2016,7 @@ impl DocumentMethods for Document {
             Occupied(entry) => Root::from_ref(entry.get()),
             Vacant(entry) => {
                 let result = HTMLCollection::by_qual_tag_name(&self.window, self.upcast(), qname);
-                entry.insert(JS::from_rooted(&result));
+                entry.insert(JS::from_ref(&*result));
                 result
             }
         }
@@ -2028,7 +2033,7 @@ impl DocumentMethods for Document {
                 let result = HTMLCollection::by_atomic_class_name(&self.window,
                                                                   self.upcast(),
                                                                   class_atoms);
-                entry.insert(JS::from_rooted(&result));
+                entry.insert(JS::from_ref(&*result));
                 result
             }
         }
@@ -2073,7 +2078,7 @@ impl DocumentMethods for Document {
             local_name.make_ascii_lowercase();
         }
         let name = Atom::from(local_name);
-        let value = AttrValue::String(DOMString::new());
+        let value = AttrValue::String("".to_owned());
 
         Ok(Attr::new(&self.window, name.clone(), value, name, ns!(), None, None))
     }
@@ -2085,7 +2090,7 @@ impl DocumentMethods for Document {
                          -> Fallible<Root<Attr>> {
         let (namespace, prefix, local_name) = try!(validate_and_extract(namespace,
                                                                         &qualified_name));
-        let value = AttrValue::String(DOMString::new());
+        let value = AttrValue::String("".to_owned());
         let qualified_name = Atom::from(qualified_name);
         Ok(Attr::new(&self.window,
                      local_name,
@@ -2187,8 +2192,10 @@ impl DocumentMethods for Document {
                 )),
             "webglcontextevent" =>
                 Ok(Root::upcast(WebGLContextEvent::new_uninitialized(GlobalRef::Window(&self.window)))),
-            "storageevent" =>
-                Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, self.URL()))),
+            "storageevent" => {
+                let USVString(url) = self.URL();
+                Ok(Root::upcast(StorageEvent::new_uninitialized(&self.window, DOMString::from(url))))
+            },
             "progressevent" =>
                 Ok(Root::upcast(ProgressEvent::new_uninitialized(&self.window))),
             "focusevent" =>
@@ -2558,7 +2565,7 @@ impl DocumentMethods for Document {
 
         let url = self.url();
         let (tx, rx) = ipc::channel().unwrap();
-        let _ = self.window.resource_thread().send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
+        let _ = self.window.resource_threads().send(GetCookiesForUrl((*url).clone(), tx, NonHTTP));
         let cookies = rx.recv().unwrap();
         Ok(cookies.map_or(DOMString::new(), DOMString::from))
     }
@@ -2575,7 +2582,7 @@ impl DocumentMethods for Document {
 
         let url = self.url();
         let _ = self.window
-                    .resource_thread()
+                    .resource_threads()
                     .send(SetCookiesForUrl((*url).clone(), String::from(cookie), NonHTTP));
         Ok(())
     }
@@ -2783,6 +2790,9 @@ impl DocumentMethods for Document {
         // Step 5
         elements
     }
+
+    // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
+    document_and_element_event_handlers!();
 }
 
 fn update_with_current_time_ms(marker: &Cell<u64>) {

@@ -43,7 +43,7 @@ impl NodeList {
 
     pub fn new_simple_list<T>(window: &Window, iter: T) -> Root<NodeList>
                               where T: Iterator<Item=Root<Node>> {
-        NodeList::new(window, NodeListType::Simple(iter.map(|r| JS::from_rooted(&r)).collect()))
+        NodeList::new(window, NodeListType::Simple(iter.map(|r| JS::from_ref(&*r)).collect()))
     }
 
     pub fn new_child_list(window: &Window, node: &Node) -> Root<NodeList> {

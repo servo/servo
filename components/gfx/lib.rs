@@ -28,6 +28,7 @@ extern crate azure;
 extern crate bitflags;
 
 // Mac OS-specific library dependencies
+#[cfg(target_os = "macos")] extern crate byteorder;
 #[cfg(target_os = "macos")] extern crate core_foundation;
 #[cfg(target_os = "macos")] extern crate core_graphics;
 #[cfg(target_os = "macos")] extern crate core_text;
@@ -72,6 +73,7 @@ extern crate simd;
 
 extern crate skia;
 extern crate smallvec;
+#[macro_use]
 extern crate string_cache;
 extern crate style;
 extern crate style_traits;
@@ -94,7 +96,7 @@ mod paint_context;
 pub mod display_list;
 
 // Fonts
-pub mod font;
+#[macro_use] pub mod font;
 pub mod font_cache_thread;
 pub mod font_context;
 pub mod font_template;

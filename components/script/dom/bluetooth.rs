@@ -2,15 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use bluetooth_blacklist::{Blacklist, uuid_is_blacklisted};
 use core::clone::Clone;
 use dom::bindings::codegen::Bindings::BluetoothBinding;
 use dom::bindings::codegen::Bindings::BluetoothBinding::RequestDeviceOptions;
 use dom::bindings::codegen::Bindings::BluetoothBinding::{BluetoothScanFilter, BluetoothMethods};
-use dom::bindings::error::Error::Type;
+use dom::bindings::error::Error::{Security, Type};
 use dom::bindings::error::Fallible;
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::bluetoothadvertisingdata::BluetoothAdvertisingData;
 use dom::bluetoothdevice::BluetoothDevice;
 use dom::bluetoothuuid::BluetoothUUID;
@@ -18,7 +20,6 @@ use ipc_channel::ipc::{self, IpcSender};
 use net_traits::bluetooth_scanfilter::{BluetoothScanfilter, BluetoothScanfilterSequence};
 use net_traits::bluetooth_scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
-use util::str::DOMString;
 
 const FILTER_EMPTY_ERROR: &'static str = "'filters' member must be non - empty to find any devices.";
 const FILTER_ERROR: &'static str = "A filter must restrict the devices in some way.";
@@ -71,7 +72,11 @@ fn canonicalize_filter(filter: &BluetoothScanFilter, global: GlobalRef) -> Falli
             return Err(Type(SERVICE_ERROR.to_owned()));
         }
         for service in services {
-            services_vec.push(try!(BluetoothUUID::GetService(global, service.clone())).to_string());
+            let uuid = try!(BluetoothUUID::GetService(global, service.clone())).to_string();
+            if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
+                return Err(Security)
+            }
+            services_vec.push(uuid);
         }
     }
 
@@ -119,7 +124,11 @@ fn convert_request_device_options(options: &RequestDeviceOptions,
     let mut optional_services = vec!();
     if let Some(ref opt_services) = options.optionalServices {
         for opt_service in opt_services {
-            optional_services.push(try!(BluetoothUUID::GetService(global, opt_service.clone())).to_string());
+            let uuid = try!(BluetoothUUID::GetService(global, opt_service.clone())).to_string();
+            if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
+                return Err(Security)
+            }
+            optional_services.push(uuid);
         }
     }
 
@@ -128,7 +137,6 @@ fn convert_request_device_options(options: &RequestDeviceOptions,
 }
 
 impl BluetoothMethods for Bluetooth {
-
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-requestdevice
     fn RequestDevice(&self, option: &RequestDeviceOptions) -> Fallible<Root<BluetoothDevice>> {
         let (sender, receiver) = ipc::channel().unwrap();

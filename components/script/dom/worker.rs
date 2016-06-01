@@ -12,6 +12,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::Root;
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, reflect_dom_object};
+use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::dedicatedworkerglobalscope::{DedicatedWorkerGlobalScope, WorkerScriptMsg};
 use dom::errorevent::ErrorEvent;
@@ -21,14 +22,16 @@ use dom::messageevent::MessageEvent;
 use dom::workerglobalscope::WorkerGlobalScopeInit;
 use ipc_channel::ipc;
 use js::jsapi::{HandleValue, JSContext, JSRuntime, RootedValue};
-use js::jsapi::{JSAutoCompartment, JS_RequestInterruptCallback};
+use js::jsapi::{JSAutoCompartment, JS_GetRuntime, JS_RequestInterruptCallback};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use net_traits::{RequestSource, LoadOrigin};
 use script_thread::Runnable;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Sender, channel};
 use std::sync::{Arc, Mutex};
-use util::str::DOMString;
+use url::Url;
 
 pub type TrustedWorkerAddress = Trusted<Worker>;
 
@@ -43,6 +46,29 @@ pub struct Worker {
     closing: Arc<AtomicBool>,
     #[ignore_heap_size_of = "Defined in rust-mozjs"]
     runtime: Arc<Mutex<Option<SharedRt>>>
+}
+
+#[derive(Clone)]
+pub struct WorkerScriptLoadOrigin {
+    referrer_url: Option<Url>,
+    referrer_policy: Option<ReferrerPolicy>,
+    request_source: RequestSource,
+    pipeline_id: Option<PipelineId>
+}
+
+impl LoadOrigin for WorkerScriptLoadOrigin {
+    fn referrer_url(&self) -> Option<Url> {
+        self.referrer_url.clone()
+    }
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        self.referrer_policy.clone()
+    }
+    fn request_source(&self) -> RequestSource {
+        self.request_source.clone()
+    }
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        self.pipeline_id.clone()
+    }
 }
 
 impl Worker {
@@ -65,6 +91,7 @@ impl Worker {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-worker
+    #[allow(unsafe_code)]
     pub fn Constructor(global: GlobalRef, script_url: DOMString) -> Fallible<Root<Worker>> {
         // Step 2-4.
         let worker_url = match global.api_base_url().join(&script_url) {
@@ -72,7 +99,7 @@ impl Worker {
             Err(_) => return Err(Error::Syntax),
         };
 
-        let resource_thread = global.resource_thread();
+        let resource_threads = global.resource_threads();
         let constellation_chan = global.constellation_chan().clone();
         let scheduler_chan = global.scheduler_chan().clone();
 
@@ -81,6 +108,13 @@ impl Worker {
         let worker = Worker::new(global, sender.clone(), closing.clone());
         let worker_ref = Trusted::new(worker.r());
         let worker_id = global.get_next_worker_id();
+
+        let worker_load_origin = WorkerScriptLoadOrigin {
+            referrer_url: None,
+            referrer_policy: None,
+            request_source: global.request_source(),
+            pipeline_id: Some(global.pipeline())
+        };
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
         let optional_sender = match global.devtools_chan() {
@@ -100,19 +134,23 @@ impl Worker {
         };
 
         let init = WorkerGlobalScopeInit {
-            resource_thread: resource_thread,
+            resource_threads: resource_threads,
             mem_profiler_chan: global.mem_profiler_chan().clone(),
+            time_profiler_chan: global.time_profiler_chan().clone(),
             to_devtools_sender: global.devtools_chan(),
             from_devtools_sender: optional_sender,
             constellation_chan: constellation_chan,
             scheduler_chan: scheduler_chan,
+            panic_chan: global.panic_chan().clone(),
             worker_id: worker_id,
             closing: closing,
         };
 
+        let shared_rt = SharedRt { rt: unsafe { JS_GetRuntime(global.get_cx()) } };
+
         DedicatedWorkerGlobalScope::run_worker_scope(
-            init, worker_url, global.pipeline(), devtools_receiver, worker.runtime.clone(), worker_ref,
-            global.script_chan(), sender, receiver);
+            init, worker_url, global.pipeline(), devtools_receiver, shared_rt, worker.runtime.clone(), worker_ref,
+            global.script_chan(), sender, receiver, worker_load_origin);
 
         Ok(worker)
     }
@@ -273,6 +311,10 @@ impl SharedRt {
         unsafe {
             JS_RequestInterruptCallback(self.rt);
         }
+    }
+
+    pub fn rt(&self) -> *mut JSRuntime {
+        self.rt
     }
 }
 

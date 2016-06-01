@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use bluetooth_blacklist::{Blacklist, uuid_is_blacklisted};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::BluetoothDeviceBinding::BluetoothDeviceMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding;
@@ -9,19 +10,18 @@ use dom::bindings::codegen::Bindings::BluetoothRemoteGATTCharacteristicBinding::
     BluetoothRemoteGATTCharacteristicMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::BluetoothRemoteGATTServerMethods;
 use dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
-use dom::bindings::error::Error::{Network, Type};
+use dom::bindings::error::Error::{Network, Security, Type};
 use dom::bindings::error::{Fallible, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::js::{JS, MutHeap, Root};
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::str::ByteString;
+use dom::bindings::str::{ByteString, DOMString};
 use dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use dom::bluetoothremotegattdescriptor::BluetoothRemoteGATTDescriptor;
 use dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use dom::bluetoothuuid::{BluetoothDescriptorUUID, BluetoothUUID};
 use ipc_channel::ipc::{self, IpcSender};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
-use util::str::DOMString;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothremotegattcharacteristic
 #[dom_struct]
@@ -76,7 +76,6 @@ impl BluetoothRemoteGATTCharacteristic {
 }
 
 impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteristic {
-
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-properties
     fn Properties(&self) -> Root<BluetoothCharacteristicProperties> {
         self.properties.get()
@@ -95,6 +94,9 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-getdescriptor
     fn GetDescriptor(&self, descriptor: BluetoothDescriptorUUID) -> Fallible<Root<BluetoothRemoteGATTDescriptor>> {
         let uuid = try!(BluetoothUUID::GetDescriptor(self.global().r(), descriptor)).to_string();
+        if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
+            return Err(Security)
+        }
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetDescriptor(self.get_instance_id(), uuid, sender)).unwrap();
@@ -118,7 +120,12 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
                       -> Fallible<Vec<Root<BluetoothRemoteGATTDescriptor>>> {
         let mut uuid: Option<String> = None;
         if let Some(d) = descriptor {
-            uuid = Some(try!(BluetoothUUID::GetDescriptor(self.global().r(), d)).to_string())
+            uuid = Some(try!(BluetoothUUID::GetDescriptor(self.global().r(), d)).to_string());
+            if let Some(ref uuid) = uuid {
+                if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
+                    return Err(Security)
+                }
+            }
         };
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
@@ -146,6 +153,9 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-readvalue
     fn ReadValue(&self) -> Fallible<ByteString> {
+        if uuid_is_blacklisted(self.uuid.as_ref(), Blacklist::Reads) {
+            return Err(Security)
+        }
         let (sender, receiver) = ipc::channel().unwrap();
         if !self.Service().Device().Gatt().Connected() {
             return Err(Network)
@@ -167,6 +177,9 @@ impl BluetoothRemoteGATTCharacteristicMethods for BluetoothRemoteGATTCharacteris
 
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-writevalue
     fn WriteValue(&self, value: Vec<u8>) -> ErrorResult {
+        if uuid_is_blacklisted(self.uuid.as_ref(), Blacklist::Writes) {
+            return Err(Security)
+        }
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::WriteValue(self.get_instance_id(), value, sender)).unwrap();

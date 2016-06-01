@@ -37,6 +37,7 @@ use devtools_traits::WorkerId;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, Reflector};
+use dom::bindings::str::DOMString;
 use dom::bindings::utils::WindowProxyHandler;
 use dom::worker::SharedRt;
 use encoding::types::EncodingRef;
@@ -53,20 +54,19 @@ use js::glue::{CallObjectTracer, CallUnbarrieredObjectTracer, CallValueTracer};
 use js::jsapi::{GCTraceKindToAscii, Heap, TraceKind, JSObject, JSTracer};
 use js::jsval::JSVal;
 use js::rust::Runtime;
-use layout_interface::{LayoutChan, LayoutRPC};
+use layout_interface::LayoutRPC;
 use libc;
-use msg::constellation_msg::ConstellationChan;
-use msg::constellation_msg::{PipelineId, SubpageId, WindowSizeData, WindowSizeType, ReferrerPolicy};
+use msg::constellation_msg::{FrameType, PipelineId, SubpageId, WindowSizeData, WindowSizeType, ReferrerPolicy};
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::response::HttpsState;
 use net_traits::storage_thread::StorageType;
-use net_traits::{Metadata, NetworkError};
+use net_traits::{Metadata, NetworkError, ResourceThreads};
 use offscreen_gl_context::GLLimits;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use script_runtime::ScriptChan;
-use script_traits::{LayoutMsg, ScriptMsg, TimerEventId, TimerSource, TouchpadPressurePhase, UntrustedNodeAddress};
+use script_traits::{TimerEventId, TimerSource, TouchpadPressurePhase, UntrustedNodeAddress};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 use std::boxed::FnBox;
@@ -90,7 +90,7 @@ use style::selector_impl::PseudoElement;
 use style::values::specified::Length;
 use url::Origin as UrlOrigin;
 use url::Url;
-use util::str::{DOMString, LengthOrPercentageOrAuto};
+use util::str::LengthOrPercentageOrAuto;
 use uuid::Uuid;
 use webrender_traits::WebGLError;
 
@@ -193,6 +193,15 @@ impl<T: JSTraceable> JSTraceable for Vec<T> {
     }
 }
 
+impl<T: JSTraceable> JSTraceable for (T, T, T, T) {
+    fn trace(&self, trc: *mut JSTracer) {
+        self.0.trace(trc);
+        self.1.trace(trc);
+        self.2.trace(trc);
+        self.3.trace(trc);
+    }
+}
+
 // XXXManishearth Check if the following three are optimized to no-ops
 // if e.trace() is a no-op (e.g it is an no_jsmanaged_fields type)
 impl<T: JSTraceable + 'static> JSTraceable for SmallVec<[T; 1]> {
@@ -281,13 +290,12 @@ no_jsmanaged_fields!(PropertyDeclarationBlock);
 no_jsmanaged_fields!(HashSet<T>);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
-no_jsmanaged_fields!(SubpageId, WindowSizeData, WindowSizeType, PipelineId);
+no_jsmanaged_fields!(FrameType, SubpageId, WindowSizeData, WindowSizeType, PipelineId);
 no_jsmanaged_fields!(TimerEventId, TimerSource);
 no_jsmanaged_fields!(WorkerId);
 no_jsmanaged_fields!(QuirksMode);
 no_jsmanaged_fields!(Runtime);
 no_jsmanaged_fields!(Headers, Method);
-no_jsmanaged_fields!(LayoutChan);
 no_jsmanaged_fields!(WindowProxyHandler);
 no_jsmanaged_fields!(UntrustedNodeAddress);
 no_jsmanaged_fields!(LengthOrPercentageOrAuto);
@@ -313,20 +321,7 @@ no_jsmanaged_fields!(HttpsState);
 no_jsmanaged_fields!(SharedRt);
 no_jsmanaged_fields!(TouchpadPressurePhase);
 no_jsmanaged_fields!(ReferrerPolicy);
-
-impl JSTraceable for ConstellationChan<ScriptMsg> {
-    #[inline]
-    fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
-
-impl JSTraceable for ConstellationChan<LayoutMsg> {
-    #[inline]
-    fn trace(&self, _trc: *mut JSTracer) {
-        // Do nothing
-    }
-}
+no_jsmanaged_fields!(ResourceThreads);
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]
@@ -545,7 +540,7 @@ impl<A: JSTraceable + Reflectable> FromIterator<Root<A>> for RootedVec<JS<A>> {
         let mut vec = unsafe {
             RootedVec::new_with_destination_address(return_address() as *const libc::c_void)
         };
-        vec.extend(iterable.into_iter().map(|item| JS::from_rooted(&item)));
+        vec.extend(iterable.into_iter().map(|item| JS::from_ref(&*item)));
         vec
     }
 }

@@ -57,10 +57,6 @@ impl CookieStorage {
             return;
         }
 
-        if cookie.cookie.value.is_empty() {
-            return;
-        }
-
         // Step 11
         if let Some(old_cookie) = old_cookie.unwrap() {
             // Step 11.3
@@ -107,7 +103,7 @@ impl CookieStorage {
             // Step 4
             (match acc.len() {
                 0 => acc,
-                _ => acc + ";"
+                _ => acc + "; "
             }) + &c.cookie.name + "=" + &c.cookie.value
         };
         let result = url_cookies.iter_mut().fold("".to_owned(), reducer);

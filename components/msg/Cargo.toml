@@ -9,18 +9,18 @@ name = "msg"
 path = "lib.rs"
 
 [dependencies]
-util = {path = "../util"}
-layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
-ipc-channel = {git = "https://github.com/servo/ipc-channel"}
-plugins = {path = "../plugins"}
-webrender_traits = {git = "https://github.com/servo/webrender_traits"}
-bitflags = "0.6.0"
+bitflags = "0.7"
 cssparser = {version = "0.5.4", features = ["heap_size", "serde-serialization"]}
 euclid = {version = "0.6.4", features = ["plugins"]}
 heapsize = "0.3.0"
 heapsize_plugin = "0.1.2"
-hyper = { version = "0.9", features = [ "serde-serialization" ] }
+hyper = {version = "0.9", features = ["serde-serialization"]}
+ipc-channel = {git = "https://github.com/servo/ipc-channel"}
+layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
+plugins = {path = "../plugins"}
 rustc-serialize = "0.3.4"
 serde = "0.7"
 serde_macros = "0.7"
 url = {version = "1.0.0", features = ["heap_size"]}
+util = {path = "../util"}
+webrender_traits = {git = "https://github.com/servo/webrender_traits"}

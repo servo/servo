@@ -6,9 +6,15 @@ function getElementsByIds(ids) {
   return result;
 }
 
-function testSelector(selector, expected, testName) {
+function testSelectorIdsMatch(selector, ids, testName) {
   test(function(){
     var elements = document.querySelectorAll(selector);
-    assert_array_equals(elements, getElementsByIds(expected));
+    assert_array_equals(elements, getElementsByIds(ids));
+  }, testName);
+}
+
+function testSelectorElementsMatch(selector, elements, testName) {
+  test(function(){
+    assert_array_equals(document.querySelectorAll(selector), elements);
   }, testName);
 }

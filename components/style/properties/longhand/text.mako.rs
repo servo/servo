@@ -16,7 +16,8 @@ ${helpers.single_keyword("text-overflow", "clip ellipsis")}
 
 ${helpers.single_keyword("unicode-bidi", "normal embed isolate bidi-override isolate-override plaintext")}
 
-<%helpers:longhand name="text-decoration" custom_cascade="${product == 'servo'}">
+<%helpers:longhand name="${'text-decoration' if product == 'servo' else 'text-decoration-line'}"
+                   custom_cascade="${product == 'servo'}">
     use cssparser::ToCss;
     use std::fmt;
     use values::computed::ComputedValueAsSpecified;
@@ -75,19 +76,27 @@ ${helpers.single_keyword("unicode-bidi", "normal embed isolate bidi-override iso
         }
         let mut blink = false;
         let mut empty = true;
-        while let Ok(ident) = input.expect_ident() {
-            match_ignore_ascii_case! { ident,
-                "underline" => if result.underline { return Err(()) }
-                              else { empty = false; result.underline = true },
-                "overline" => if result.overline { return Err(()) }
-                              else { empty = false; result.overline = true },
-                "line-through" => if result.line_through { return Err(()) }
-                                  else { empty = false; result.line_through = true },
-                "blink" => if blink { return Err(()) }
-                           else { empty = false; blink = true },
-                _ => break
-            }
+
+        while input.try(|input| {
+                if let Ok(ident) = input.expect_ident() {
+                    match_ignore_ascii_case! { ident,
+                        "underline" => if result.underline { return Err(()) }
+                                       else { empty = false; result.underline = true },
+                        "overline" => if result.overline { return Err(()) }
+                                      else { empty = false; result.overline = true },
+                        "line-through" => if result.line_through { return Err(()) }
+                                          else { empty = false; result.line_through = true },
+                        "blink" => if blink { return Err(()) }
+                                   else { empty = false; blink = true },
+                        _ => return Err(())
+                    }
+                } else {
+                    return Err(());
+                }
+                Ok(())
+            }).is_ok() {
         }
+
         if !empty { Ok(result) } else { Err(()) }
     }
 
@@ -105,7 +114,7 @@ ${helpers.single_keyword("unicode-bidi", "normal embed isolate bidi-override iso
 </%helpers:longhand>
 
 ${helpers.single_keyword("text-decoration-style",
-                         "-moz-none solid double dotted dashed wavy",
+                         "solid double dotted dashed wavy -moz-none",
                          products="gecko")}
 
 ${helpers.predefined_type(

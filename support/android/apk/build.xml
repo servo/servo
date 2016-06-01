@@ -36,17 +36,9 @@
     <condition property="sdk.dir" value="${env.ANDROID_HOME}">
         <isset property="env.ANDROID_HOME" />
     </condition>
-
-    <!-- The project.properties file is created and updated by the 'android'
-         tool, as well as ADT.
-
-         This contains project specific properties such as project target, and library
-         dependencies. Lower level build properties are stored in ant.properties
-         (or in .classpath for Eclipse projects).
-
-         This file is an integral part of the build system for your
-         application and should be checked into Version Control Systems. -->
-    <loadproperties srcFile="project.properties" />
+    <condition property="target" value="${env.ANDROID_PLATFORM}">
+        <isset property="env.ANDROID_PLATFORM" />
+    </condition>
 
     <!-- quick check on sdk.dir -->
     <fail

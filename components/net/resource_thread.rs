@@ -6,11 +6,13 @@
 use about_loader;
 use chrome_loader;
 use connector::{Connector, create_http_connector};
+use content_blocker::BLOCKED_CONTENT_RULES;
 use cookie;
 use cookie_storage::CookieStorage;
 use data_loader;
-use devtools_traits::{DevtoolsControlMsg};
+use devtools_traits::DevtoolsControlMsg;
 use file_loader;
+use filemanager_thread::FileManagerThreadFactory;
 use hsts::HstsList;
 use http_loader::{self, HttpState};
 use hyper::client::pool::Pool;
@@ -20,9 +22,10 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
 use net_traits::LoadContext;
 use net_traits::ProgressMsg::Done;
-use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResourceThread, ResponseAction};
-use net_traits::{ControlMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
-use net_traits::{NetworkError, WebSocketCommunicate, WebSocketConnectData};
+use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResponseAction, CoreResourceThread};
+use net_traits::{CoreResourceMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
+use net_traits::{NetworkError, WebSocketCommunicate, WebSocketConnectData, ResourceThreads};
+use profile_traits::time::ProfilerChan;
 use rustc_serialize::json;
 use rustc_serialize::{Decodable, Encodable};
 use std::borrow::ToOwned;
@@ -35,6 +38,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, RwLock};
+use storage_thread::StorageThreadFactory;
 use url::Url;
 use util::opts;
 use util::prefs;
@@ -148,15 +152,25 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata,
     }
 }
 
-/// Create a ResourceThread
-pub fn new_resource_thread(user_agent: String,
-                           devtools_chan: Option<Sender<DevtoolsControlMsg>>) -> ResourceThread {
+pub fn new_resource_threads(user_agent: String,
+                            devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+                            profiler_chan: ProfilerChan) -> ResourceThreads {
+    ResourceThreads::new(new_core_resource_thread(user_agent, devtools_chan, profiler_chan),
+                         StorageThreadFactory::new(),
+                         FileManagerThreadFactory::new())
+}
+
+
+/// Create a CoreResourceThread
+pub fn new_core_resource_thread(user_agent: String,
+                                devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+                                profiler_chan: ProfilerChan) -> CoreResourceThread {
     let hsts_preload = HstsList::from_servo_preload();
     let (setup_chan, setup_port) = ipc::channel().unwrap();
     let setup_chan_clone = setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
-        let resource_manager = ResourceManager::new(
-            user_agent, hsts_preload, devtools_chan
+        let resource_manager = CoreResourceManager::new(
+            user_agent, hsts_preload, devtools_chan, profiler_chan
         );
 
         let mut channel_manager = ResourceChannelManager {
@@ -169,49 +183,50 @@ pub fn new_resource_thread(user_agent: String,
 }
 
 struct ResourceChannelManager {
-    from_client: IpcReceiver<ControlMsg>,
-    resource_manager: ResourceManager
+    from_client: IpcReceiver<CoreResourceMsg>,
+    resource_manager: CoreResourceManager
 }
 
 impl ResourceChannelManager {
-    fn start(&mut self, control_sender: ResourceThread) {
+    fn start(&mut self, control_sender: CoreResourceThread) {
         loop {
             match self.from_client.recv().unwrap() {
-                ControlMsg::Load(load_data, consumer, id_sender) =>
+                CoreResourceMsg::Load(load_data, consumer, id_sender) =>
                     self.resource_manager.load(load_data, consumer, id_sender, control_sender.clone()),
-                ControlMsg::WebsocketConnect(connect, connect_data) =>
+                CoreResourceMsg::WebsocketConnect(connect, connect_data) =>
                     self.resource_manager.websocket_connect(connect, connect_data),
-                ControlMsg::SetCookiesForUrl(request, cookie_list, source) =>
+                CoreResourceMsg::SetCookiesForUrl(request, cookie_list, source) =>
                     self.resource_manager.set_cookies_for_url(request, cookie_list, source),
-                ControlMsg::GetCookiesForUrl(url, consumer, source) => {
+                CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
                     let cookie_jar = &self.resource_manager.cookie_jar;
                     let mut cookie_jar = cookie_jar.write().unwrap();
                     consumer.send(cookie_jar.cookies_for_url(&url, source)).unwrap();
                 }
-                ControlMsg::Cancel(res_id) => {
+                CoreResourceMsg::Cancel(res_id) => {
                     if let Some(cancel_sender) = self.resource_manager.cancel_load_map.get(&res_id) {
                         let _ = cancel_sender.send(());
                     }
                     self.resource_manager.cancel_load_map.remove(&res_id);
                 }
-                ControlMsg::Synchronize(sender) => {
+                CoreResourceMsg::Synchronize(sender) => {
                     let _ = sender.send(());
                 }
-                ControlMsg::Exit => {
-                    if let Some(ref profile_dir) = opts::get().profile_dir {
+                CoreResourceMsg::Exit(sender) => {
+                    if let Some(ref config_dir) = opts::get().config_dir {
                         match self.resource_manager.auth_cache.read() {
-                            Ok(auth_cache) => write_json_to_file(&*auth_cache, profile_dir, "auth_cache.json"),
+                            Ok(auth_cache) => write_json_to_file(&*auth_cache, config_dir, "auth_cache.json"),
                             Err(_) => warn!("Error writing auth cache to disk"),
                         }
                         match self.resource_manager.cookie_jar.read() {
-                            Ok(jar) => write_json_to_file(&*jar, profile_dir, "cookie_jar.json"),
+                            Ok(jar) => write_json_to_file(&*jar, config_dir, "cookie_jar.json"),
                             Err(_) => warn!("Error writing cookie jar to disk"),
                         }
                         match self.resource_manager.hsts_list.read() {
-                            Ok(hsts) => write_json_to_file(&*hsts, profile_dir, "hsts_list.json"),
+                            Ok(hsts) => write_json_to_file(&*hsts, config_dir, "hsts_list.json"),
                             Err(_) => warn!("Error writing hsts list to disk"),
                         }
                     }
+                    let _ = sender.send(());
                     break;
                 }
 
@@ -220,9 +235,8 @@ impl ResourceChannelManager {
     }
 }
 
-pub fn read_json_from_file<T: Decodable>(data: &mut T, profile_dir: &str, filename: &str) {
-
-    let path = Path::new(profile_dir).join(filename);
+pub fn read_json_from_file<T: Decodable>(data: &mut T, config_dir: &str, filename: &str) {
+    let path = Path::new(config_dir).join(filename);
     let display = path.display();
 
     let mut file = match File::open(&path) {
@@ -248,13 +262,13 @@ pub fn read_json_from_file<T: Decodable>(data: &mut T, profile_dir: &str, filena
     }
 }
 
-pub fn write_json_to_file<T: Encodable>(data: &T, profile_dir: &str, filename: &str) {
+pub fn write_json_to_file<T: Encodable>(data: &T, config_dir: &str, filename: &str) {
     let json_encoded: String;
     match json::encode(&data) {
         Ok(d) => json_encoded = d,
         Err(_) => return,
     }
-    let path = Path::new(profile_dir).join(filename);
+    let path = Path::new(config_dir).join(filename);
     let display = path.display();
 
     let mut file = match File::create(&path) {
@@ -281,12 +295,12 @@ pub struct CancellableResource {
     resource_id: ResourceId,
     /// If we haven't initiated any cancel requests, then the loaders ask
     /// the listener to remove the `ResourceId` in the `HashMap` of
-    /// `ResourceManager` once they finish loading
-    resource_thread: ResourceThread,
+    /// `CoreResourceManager` once they finish loading
+    resource_thread: CoreResourceThread,
 }
 
 impl CancellableResource {
-    pub fn new(receiver: Receiver<()>, res_id: ResourceId, res_thread: ResourceThread) -> CancellableResource {
+    pub fn new(receiver: Receiver<()>, res_id: ResourceId, res_thread: CoreResourceThread) -> CancellableResource {
         CancellableResource {
             cancel_receiver: receiver,
             resource_id: res_id,
@@ -331,7 +345,7 @@ impl Drop for CancellationListener {
     fn drop(&mut self) {
         if let Some(ref resource) = self.cancel_resource {
             // Ensure that the resource manager stops tracking this request now that it's terminated.
-            let _ = resource.resource_thread.send(ControlMsg::Cancel(resource.resource_id));
+            let _ = resource.resource_thread.send(CoreResourceMsg::Cancel(resource.resource_id));
         }
     }
 }
@@ -343,7 +357,6 @@ pub struct AuthCacheEntry {
 }
 
 impl AuthCache {
-
     pub fn new() -> AuthCache {
         AuthCache {
             version: 1,
@@ -358,35 +371,38 @@ pub struct AuthCache {
     pub entries: HashMap<Url, AuthCacheEntry>,
 }
 
-pub struct ResourceManager {
+pub struct CoreResourceManager {
     user_agent: String,
     cookie_jar: Arc<RwLock<CookieStorage>>,
     auth_cache: Arc<RwLock<AuthCache>>,
     mime_classifier: Arc<MIMEClassifier>,
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
+    profiler_chan: ProfilerChan,
     hsts_list: Arc<RwLock<HstsList>>,
     connector: Arc<Pool<Connector>>,
     cancel_load_map: HashMap<ResourceId, Sender<()>>,
     next_resource_id: ResourceId,
 }
 
-impl ResourceManager {
+impl CoreResourceManager {
     pub fn new(user_agent: String,
                mut hsts_list: HstsList,
-               devtools_channel: Option<Sender<DevtoolsControlMsg>>) -> ResourceManager {
+               devtools_channel: Option<Sender<DevtoolsControlMsg>>,
+               profiler_chan: ProfilerChan) -> CoreResourceManager {
         let mut auth_cache = AuthCache::new();
         let mut cookie_jar = CookieStorage::new();
-        if let Some(ref profile_dir) = opts::get().profile_dir {
-            read_json_from_file(&mut auth_cache, profile_dir, "auth_cache.json");
-            read_json_from_file(&mut hsts_list, profile_dir, "hsts_list.json");
-            read_json_from_file(&mut cookie_jar, profile_dir, "cookie_jar.json");
+        if let Some(ref config_dir) = opts::get().config_dir {
+            read_json_from_file(&mut auth_cache, config_dir, "auth_cache.json");
+            read_json_from_file(&mut hsts_list, config_dir, "hsts_list.json");
+            read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
         }
-        ResourceManager {
+        CoreResourceManager {
             user_agent: user_agent,
             cookie_jar: Arc::new(RwLock::new(cookie_jar)),
             auth_cache: Arc::new(RwLock::new(auth_cache)),
             mime_classifier: Arc::new(MIMEClassifier::new()),
             devtools_chan: devtools_channel,
+            profiler_chan: profiler_chan,
             hsts_list: Arc::new(RwLock::new(hsts_list)),
             connector: create_http_connector(),
             cancel_load_map: HashMap::new(),
@@ -411,8 +427,7 @@ impl ResourceManager {
             load_data: LoadData,
             consumer: LoadConsumer,
             id_sender: Option<IpcSender<ResourceId>>,
-            resource_thread: ResourceThread) {
-
+            resource_thread: CoreResourceThread) {
         fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>, CancellationListener))
                         -> Box<FnBox(LoadData,
                                      LoadConsumer,
@@ -440,11 +455,13 @@ impl ResourceManager {
                 let http_state = HttpState {
                     hsts_list: self.hsts_list.clone(),
                     cookie_jar: self.cookie_jar.clone(),
-                    auth_cache: self.auth_cache.clone()
+                    auth_cache: self.auth_cache.clone(),
+                    blocked_content: BLOCKED_CONTENT_RULES.clone(),
                 };
                 http_loader::factory(self.user_agent.clone(),
                                      http_state,
                                      self.devtools_chan.clone(),
+                                     self.profiler_chan.clone(),
                                      self.connector.clone())
             },
             "data" => from_factory(data_loader::factory),

@@ -17,6 +17,7 @@ use webrender_traits::WebGLCommand;
 pub struct WebGLRenderbuffer {
     webgl_object: WebGLObject,
     id: u32,
+    ever_bound: Cell<bool>,
     is_deleted: Cell<bool>,
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     renderer: IpcSender<CanvasMsg>,
@@ -27,6 +28,7 @@ impl WebGLRenderbuffer {
         WebGLRenderbuffer {
             webgl_object: WebGLObject::new_inherited(),
             id: id,
+            ever_bound: Cell::new(false),
             is_deleted: Cell::new(false),
             renderer: renderer,
         }
@@ -54,6 +56,7 @@ impl WebGLRenderbuffer {
     }
 
     pub fn bind(&self, target: u32) {
+        self.ever_bound.set(true);
         self.renderer.send(CanvasMsg::WebGL(WebGLCommand::BindRenderbuffer(target, self.id))).unwrap();
     }
 
@@ -62,5 +65,13 @@ impl WebGLRenderbuffer {
             self.is_deleted.set(true);
             let _ = self.renderer.send(CanvasMsg::WebGL(WebGLCommand::DeleteRenderbuffer(self.id)));
         }
+    }
+
+    pub fn is_deleted(&self) -> bool {
+        self.is_deleted.get()
+    }
+
+    pub fn ever_bound(&self) -> bool {
+        self.ever_bound.get()
     }
 }

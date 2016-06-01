@@ -15,6 +15,7 @@ use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use dom::bindings::js::{JS, MutNullableHeap, Root, RootedReference};
+use dom::bindings::str::DOMString;
 use dom::cssstyledeclaration::{CSSModificationAccess, CSSStyleDeclaration};
 use dom::document::{Document, FocusType};
 use dom::domstringmap::DOMStringMap;
@@ -35,7 +36,6 @@ use std::default::Default;
 use std::rc::Rc;
 use string_cache::Atom;
 use style::element_state::*;
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLElement {
@@ -137,6 +137,9 @@ impl HTMLElementMethods for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!(NoOnload);
 
+    // https://html.spec.whatwg.org/multipage/#documentandelementeventhandlers
+    document_and_element_event_handlers!();
+
     // https://html.spec.whatwg.org/multipage/#dom-dataset
     fn Dataset(&self) -> Root<DOMStringMap> {
         self.dataset.or_init(|| DOMStringMap::new(self))
@@ -193,6 +196,42 @@ impl HTMLElementMethods for HTMLElement {
             window_from_node(self).SetOnblur(listener)
         } else {
             self.upcast::<EventTarget>().set_event_handler_common("blur", listener)
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#handler-onfocus
+    fn GetOnfocus(&self) -> Option<Rc<EventHandlerNonNull>> {
+        if self.is_body_or_frameset() {
+            window_from_node(self).GetOnfocus()
+        } else {
+            self.upcast::<EventTarget>().get_event_handler_common("focus")
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#handler-onfocus
+    fn SetOnfocus(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+        if self.is_body_or_frameset() {
+            window_from_node(self).SetOnfocus(listener)
+        } else {
+            self.upcast::<EventTarget>().set_event_handler_common("focus", listener)
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#handler-onscroll
+    fn GetOnscroll(&self) -> Option<Rc<EventHandlerNonNull>> {
+        if self.is_body_or_frameset() {
+            window_from_node(self).GetOnscroll()
+        } else {
+            self.upcast::<EventTarget>().get_event_handler_common("scroll")
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#handler-onscroll
+    fn SetOnscroll(&self, listener: Option<Rc<EventHandlerNonNull>>) {
+        if self.is_body_or_frameset() {
+            window_from_node(self).SetOnscroll(listener)
+        } else {
+            self.upcast::<EventTarget>().set_event_handler_common("scroll", listener)
         }
     }
 

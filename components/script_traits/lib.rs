@@ -39,22 +39,25 @@ use euclid::point::Point2D;
 use euclid::rect::Rect;
 use gfx_traits::Epoch;
 use gfx_traits::LayerId;
+use gfx_traits::StackingContextId;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
-use msg::constellation_msg::{ConstellationChan, PanicMsg, PipelineId, WindowSizeData, WindowSizeType};
-use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{PipelineNamespaceId, SubpageId};
+use msg::constellation_msg::{FrameId, FrameType, Key, KeyModifiers, KeyState, LoadData};
+use msg::constellation_msg::{NavigationDirection, PanicMsg, PipelineId};
+use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeData};
+use msg::constellation_msg::{WebDriverCommandMsg, WindowSizeType};
 use msg::webdriver_msg::WebDriverScriptCommand;
-use net_traits::ResourceThread;
+use net_traits::ResourceThreads;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::response::HttpsState;
-use net_traits::storage_thread::StorageThread;
 use profile_traits::mem;
-use std::any::Any;
+use std::collections::HashMap;
+use std::sync::mpsc::{Sender, Receiver};
+use url::Url;
 use util::ipc::OptionalOpaqueIpcSender;
 
-pub use script_msg::{LayoutMsg, ScriptMsg};
+pub use script_msg::{LayoutMsg, ScriptMsg, EventResult};
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
@@ -74,6 +77,8 @@ pub enum LayoutControlMsg {
     TickAnimations,
     /// Informs layout as to which regions of the page are visible.
     SetVisibleRects(Vec<(LayerId, Rect<Au>)>),
+    /// Tells layout about the new scrolling offsets of each scrollable stacking context.
+    SetStackingContextScrollStates(Vec<StackingContextScrollState>),
     /// Requests the current load state of Web fonts. `true` is returned if fonts are still loading
     /// and `false` is returned if all fonts have loaded.
     GetWebFontLoadState(IpcSender<bool>),
@@ -96,7 +101,9 @@ pub struct NewLayoutInfo {
     /// A port on which layout can receive messages from the pipeline.
     pub pipeline_port: IpcReceiver<LayoutControlMsg>,
     /// A channel for sending panics on
-    pub panic_chan: ConstellationChan<PanicMsg>,
+    pub panic_chan: IpcSender<PanicMsg>,
+    /// A sender for the layout thread to communicate to the constellation.
+    pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
     /// A shutdown channel so that layout can notify others when it's done.
     pub layout_shutdown_chan: IpcSender<()>,
     /// A shutdown channel so that layout can tell the content process to shut down when it's done.
@@ -118,6 +125,8 @@ pub enum ConstellationControlMsg {
     SendEvent(PipelineId, CompositorEvent),
     /// Notifies script of the viewport.
     Viewport(PipelineId, Rect<f32>),
+    /// Notifies script of a new scroll offset.
+    SetScrollState(PipelineId, Point2D<f32>),
     /// Requests that the script thread immediately send the constellation the title of a pipeline.
     GetTitle(PipelineId),
     /// Notifies script thread to suspend all its timers
@@ -244,10 +253,6 @@ pub enum TouchpadPressurePhase {
     AfterSecondClick,
 }
 
-/// An opaque wrapper around script<->layout channels to avoid leaking message types into
-/// crates that don't need to know about them.
-pub struct OpaqueScriptLayoutChannel(pub (Box<Any + Send>, Box<Any + Send>));
-
 /// Requests a TimerEvent-Message be sent after the given duration.
 #[derive(Deserialize, Serialize)]
 pub struct TimerEventRequest(pub IpcSender<TimerEvent>,
@@ -305,26 +310,20 @@ pub struct InitialScriptState {
     /// The subpage ID of this pipeline to create in its pipeline parent.
     /// If `None`, this is the root.
     pub parent_info: Option<(PipelineId, SubpageId)>,
-    /// The compositor.
-    pub compositor: IpcSender<ScriptToCompositorMsg>,
     /// A channel with which messages can be sent to us (the script thread).
     pub control_chan: IpcSender<ConstellationControlMsg>,
     /// A port on which messages sent by the constellation to script can be received.
     pub control_port: IpcReceiver<ConstellationControlMsg>,
     /// A channel on which messages can be sent to the constellation from script.
-    pub constellation_chan: ConstellationChan<ScriptMsg>,
-    /// A channel for the layout thread to send messages to the constellation.
-    pub layout_to_constellation_chan: ConstellationChan<LayoutMsg>,
+    pub constellation_chan: IpcSender<ScriptMsg>,
     /// A channel for sending panics to the constellation.
-    pub panic_chan: ConstellationChan<PanicMsg>,
+    pub panic_chan: IpcSender<PanicMsg>,
     /// A channel to schedule timer events.
     pub scheduler_chan: IpcSender<TimerEventRequest>,
     /// A channel to the resource manager thread.
-    pub resource_thread: ResourceThread,
+    pub resource_threads: ResourceThreads,
     /// A channel to the bluetooth thread.
     pub bluetooth_thread: IpcSender<BluetoothMethodMsg>,
-    /// A channel to the storage thread.
-    pub storage_thread: StorageThread,
     /// A channel to the image cache thread.
     pub image_cache_thread: ImageCacheThread,
     /// A channel to the time profiler thread.
@@ -341,58 +340,15 @@ pub struct InitialScriptState {
     pub content_process_shutdown_chan: IpcSender<()>,
 }
 
-/// Encapsulates external communication with the script thread.
-#[derive(Clone, Deserialize, Serialize)]
-pub struct ScriptControlChan(pub IpcSender<ConstellationControlMsg>);
-
 /// This trait allows creating a `ScriptThread` without depending on the `script`
 /// crate.
 pub trait ScriptThreadFactory {
+    /// Type of message sent from script to layout.
+    type Message;
     /// Create a `ScriptThread`.
-    fn create(_phantom: Option<&mut Self>,
-              state: InitialScriptState,
-              layout_chan: &OpaqueScriptLayoutChannel,
-              load_data: LoadData);
-    /// Create a script -> layout channel (`Sender`, `Receiver` pair).
-    fn create_layout_channel(_phantom: Option<&mut Self>) -> OpaqueScriptLayoutChannel;
-    /// Clone the `Sender` in `pair`.
-    fn clone_layout_channel(_phantom: Option<&mut Self>, pair: &OpaqueScriptLayoutChannel)
-                            -> Box<Any + Send>;
-}
-
-/// Messages sent from the script thread to the compositor
-#[derive(Deserialize, Serialize)]
-pub enum ScriptToCompositorMsg {
-    /// Scroll a page in a window
-    ScrollFragmentPoint(PipelineId, LayerId, Point2D<f32>, bool),
-    /// Set title of current page
-    /// https://html.spec.whatwg.org/multipage/#document.title
-    SetTitle(PipelineId, Option<String>),
-    /// Send a key event
-    SendKeyEvent(Key, KeyState, KeyModifiers),
-    /// Get Window Informations size and position
-    GetClientWindow(IpcSender<(Size2D<u32>, Point2D<i32>)>),
-    /// Move the window to a point
-    MoveTo(Point2D<i32>),
-    /// Resize the window to size
-    ResizeTo(Size2D<u32>),
-    /// Script has handled a touch event, and either prevented or allowed default actions.
-    TouchEventProcessed(EventResult),
-    /// Get Scroll Offset
-    GetScrollOffset(PipelineId, LayerId, IpcSender<Point2D<f32>>),
-    /// Requests that the compositor shut down.
-    Exit,
-    /// Allow the compositor to free script-specific resources.
-    Exited,
-}
-
-/// Whether a DOM event was prevented by web content
-#[derive(Deserialize, Serialize)]
-pub enum EventResult {
-    /// Allowed by web content
-    DefaultAllowed,
-    /// Prevented by web content
-    DefaultPrevented,
+    fn create(state: InitialScriptState,
+              load_data: LoadData)
+              -> (Sender<Self::Message>, Receiver<Self::Message>);
 }
 
 /// Whether the sandbox attribute is present for an iframe element
@@ -421,6 +377,8 @@ pub struct IFrameLoadInfo {
     pub sandbox: IFrameSandboxState,
     ///  Whether this iframe should be considered private
     pub is_private: bool,
+    /// Whether this iframe is a mozbrowser iframe
+    pub frame_type: FrameType,
 }
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API#Events
@@ -499,4 +457,57 @@ impl MozBrowserErrorType {
             MozBrowserErrorType::Fatal => "fatal",
         }
     }
+}
+
+/// Specifies whether the script or layout thread needs to be ticked for animation.
+#[derive(Deserialize, Serialize)]
+pub enum AnimationTickType {
+    /// The script thread.
+    Script,
+    /// The layout thread.
+    Layout,
+}
+
+/// The scroll state of a stacking context.
+#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
+pub struct StackingContextScrollState {
+    /// The ID of the stacking context.
+    pub stacking_context_id: StackingContextId,
+    /// The scrolling offset of this stacking context.
+    pub scroll_offset: Point2D<f32>,
+}
+
+/// Messages to the constellation.
+#[derive(Deserialize, Serialize)]
+pub enum ConstellationMsg {
+    /// Exit the constellation.
+    Exit,
+    /// Inform the constellation of the size of the viewport.
+    FrameSize(PipelineId, Size2D<f32>),
+    /// Request that the constellation send the FrameId corresponding to the document
+    /// with the provided pipeline id
+    GetFrame(PipelineId, IpcSender<Option<FrameId>>),
+    /// Request that the constellation send the current pipeline id for the provided frame
+    /// id, or for the root frame if this is None, over a provided channel.
+    /// Also returns a boolean saying whether the document has finished loading or not.
+    GetPipeline(Option<FrameId>, IpcSender<Option<(PipelineId, bool)>>),
+    /// Requests that the constellation inform the compositor of the title of the pipeline
+    /// immediately.
+    GetPipelineTitle(PipelineId),
+    /// Request to load the initial page.
+    InitLoadUrl(Url),
+    /// Query the constellation to see if the current compositor output is stable
+    IsReadyToSaveImage(HashMap<PipelineId, Epoch>),
+    /// Inform the constellation of a key event.
+    KeyEvent(Key, KeyState, KeyModifiers),
+    /// Request to load a page.
+    LoadUrl(PipelineId, LoadData),
+    /// Request to navigate a frame.
+    Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
+    /// Inform the constellation of a window being resized.
+    WindowSize(WindowSizeData, WindowSizeType),
+    /// Requests that the constellation instruct layout to begin a new tick of the animation.
+    TickAnimation(PipelineId, AnimationTickType),
+    /// Dispatch a webdriver command
+    WebDriverCommand(WebDriverCommandMsg),
 }

@@ -5,12 +5,13 @@
 use immeta::load_from_buf;
 use ipc_channel::ipc::{self, IpcSender, IpcReceiver};
 use ipc_channel::router::ROUTER;
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::image::base::{Image, ImageMetadata, load_from_memory, PixelFormat};
 use net_traits::image_cache_thread::ImageResponder;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheCommand, ImageCacheThread, ImageState};
 use net_traits::image_cache_thread::{ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, UsePlaceholder};
-use net_traits::{AsyncResponseTarget, ControlMsg, LoadConsumer, LoadData, ResourceThread};
-use net_traits::{ResponseAction, LoadContext, NetworkError};
+use net_traits::{AsyncResponseTarget, CoreResourceMsg, LoadConsumer, LoadData, CoreResourceThread, LoadOrigin};
+use net_traits::{ResponseAction, LoadContext, NetworkError, RequestSource};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
@@ -240,7 +241,7 @@ struct ImageCache {
     thread_pool: ThreadPool,
 
     // Resource thread handle
-    resource_thread: ResourceThread,
+    core_resource_thread: CoreResourceThread,
 
     // Images that are loading over network, or decoding.
     pending_loads: AllPendingLoads,
@@ -304,8 +305,25 @@ fn convert_format(format: PixelFormat) -> webrender_traits::ImageFormat {
     }
 }
 
+struct ImageCacheOrigin;
+impl LoadOrigin for ImageCacheOrigin {
+    fn referrer_url(&self) -> Option<Url> {
+        None
+    }
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        None
+    }
+    fn request_source(&self) -> RequestSource {
+        RequestSource::None
+    }
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        None
+    }
+}
+
+
 impl ImageCache {
-    fn run(resource_thread: ResourceThread,
+    fn run(core_resource_thread: CoreResourceThread,
            webrender_api: Option<webrender_traits::RenderApi>,
            ipc_command_receiver: IpcReceiver<ImageCacheCommand>) {
         // Preload the placeholder image, used when images fail to load.
@@ -338,7 +356,7 @@ impl ImageCache {
             thread_pool: ThreadPool::new(4),
             pending_loads: AllPendingLoads::new(),
             completed_loads: HashMap::new(),
-            resource_thread: resource_thread,
+            core_resource_thread: core_resource_thread,
             placeholder_image: placeholder_image,
             webrender_api: webrender_api,
         };
@@ -520,12 +538,14 @@ impl ImageCache {
                     CacheResult::Miss => {
                         // A new load request! Request the load from
                         // the resource thread.
-                        let load_data = LoadData::new(LoadContext::Image, (*ref_url).clone(), None, None, None);
+                        let load_data = LoadData::new(LoadContext::Image,
+                                                        (*ref_url).clone(),
+                                                        &ImageCacheOrigin);
                         let (action_sender, action_receiver) = ipc::channel().unwrap();
                         let response_target = AsyncResponseTarget {
                             sender: action_sender,
                         };
-                        let msg = ControlMsg::Load(load_data,
+                        let msg = CoreResourceMsg::Load(load_data,
                                                    LoadConsumer::Listener(response_target),
                                                    None);
                         let progress_sender = self.progress_sender.clone();
@@ -536,7 +556,7 @@ impl ImageCache {
                                 key: load_key,
                             }).unwrap();
                         });
-                        self.resource_thread.send(msg).unwrap();
+                        self.core_resource_thread.send(msg).unwrap();
                     }
                     CacheResult::Hit => {
                         // Request is already on its way.
@@ -611,12 +631,12 @@ impl ImageCache {
 }
 
 /// Create a new image cache.
-pub fn new_image_cache_thread(resource_thread: ResourceThread,
+pub fn new_image_cache_thread(core_resource_thread: CoreResourceThread,
                               webrender_api: Option<webrender_traits::RenderApi>) -> ImageCacheThread {
     let (ipc_command_sender, ipc_command_receiver) = ipc::channel().unwrap();
 
     spawn_named("ImageCacheThread".to_owned(), move || {
-        ImageCache::run(resource_thread, webrender_api, ipc_command_receiver)
+        ImageCache::run(core_resource_thread, webrender_api, ipc_command_receiver)
     });
 
     ImageCacheThread::new(ipc_command_sender)

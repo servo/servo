@@ -252,7 +252,7 @@ impl WindowMethods for Window {
         }
     }
 
-    fn hidpi_factor(&self) -> ScaleFactor<ScreenPx,DevicePixel,f32> {
+    fn scale_factor(&self) -> ScaleFactor<ScreenPx,DevicePixel,f32> {
         if cfg!(target_os="macos") {
             let browser = self.cef_browser.borrow();
             match *browser {

@@ -5,6 +5,7 @@
 #![feature(plugin)]
 #![plugin(plugins)]
 
+extern crate content_blocker;
 extern crate cookie as cookie_rs;
 extern crate devtools_traits;
 extern crate flate2;
@@ -13,6 +14,7 @@ extern crate ipc_channel;
 extern crate msg;
 extern crate net;
 extern crate net_traits;
+extern crate profile_traits;
 extern crate time;
 extern crate unicase;
 extern crate url;
@@ -20,6 +22,7 @@ extern crate util;
 
 #[cfg(test)] mod chrome_loader;
 #[cfg(test)] mod cookie;
+#[cfg(test)] mod cookie_http_state;
 #[cfg(test)] mod data_loader;
 #[cfg(test)] mod file_loader;
 #[cfg(test)] mod fetch;
@@ -27,3 +30,4 @@ extern crate util;
 #[cfg(test)] mod resource_thread;
 #[cfg(test)] mod hsts;
 #[cfg(test)] mod http_loader;
+#[cfg(test)] mod filemanager_thread;

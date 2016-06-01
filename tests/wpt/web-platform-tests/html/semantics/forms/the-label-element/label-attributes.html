@@ -121,14 +121,14 @@
 
   // form attribute
   test(function () {
-    assert_equals(document.getElementById("lbl0").form, document.getElementById("fm"),
-                  "The 'form' property for a label with a form owner should return the form owner.");
-  }, "A label's form attribute should return its form owner.");
+    assert_equals(document.getElementById("lbl0").form, null,
+                  "The 'form' property for a label should return null if label.control is null.");
+  }, "A label in a form without a control");
 
   test(function () {
-    assert_equals(document.getElementById("lbl6").form, null,
-                  "The 'form' property for a label without a form owner should return null.");
-  }, "Check that the labels property of a form control with no label returns a zero-length NodeList.");
+    assert_equals(document.getElementById("lbl6").form, document.getElementById("fm"),
+                  "The 'form' property for a label should return label.control.form.");
+  }, "A label outside a form with a control inside the form");
 
   // htmlFor attribute
   test(function () {

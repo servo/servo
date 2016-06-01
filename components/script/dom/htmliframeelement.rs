@@ -13,12 +13,13 @@ use dom::bindings::codegen::Bindings::BrowserElementBinding::BrowserShowModalPro
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding;
 use dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
-use dom::bindings::conversions::{ToJSValConvertible};
+use dom::bindings::conversions::ToJSValConvertible;
 use dom::bindings::error::{Error, ErrorResult};
 use dom::bindings::global::GlobalRef;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, LayoutJS};
 use dom::bindings::reflector::Reflectable;
+use dom::bindings::str::DOMString;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -33,8 +34,7 @@ use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, RootedValue, JSContext, MutableHandleValue};
 use js::jsval::{UndefinedValue, NullValue};
 use layout_interface::ReflowQueryType;
-use msg::constellation_msg::{ConstellationChan, LoadData};
-use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
+use msg::constellation_msg::{FrameType, LoadData, NavigationDirection, PipelineId, SubpageId};
 use net_traits::response::HttpsState;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{IFrameLoadInfo, MozBrowserEvent, ScriptMsg as ConstellationMsg};
@@ -42,12 +42,8 @@ use std::cell::Cell;
 use string_cache::Atom;
 use style::context::ReflowGoal;
 use url::Url;
-use util::prefs;
-use util::str::{DOMString, LengthOrPercentageOrAuto};
-
-pub fn mozbrowser_enabled() -> bool {
-    prefs::get_pref("dom.mozbrowser.enabled").as_boolean().unwrap_or(false)
-}
+use util::prefs::mozbrowser_enabled;
+use util::str::LengthOrPercentageOrAuto;
 
 #[derive(HeapSizeOf)]
 enum SandboxAllowance {
@@ -120,12 +116,11 @@ impl HTMLIFrameElement {
         }
 
         let window = window_from_node(self);
-        let window = window.r();
         let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id();
         let new_pipeline_id = self.pipeline_id.get().unwrap();
         let private_iframe = self.privatebrowsing();
+        let frame_type = if self.Mozbrowser() { FrameType::MozBrowserIFrame } else { FrameType::IFrame };
 
-        let ConstellationChan(ref chan) = *window.constellation_chan();
         let load_info = IFrameLoadInfo {
             load_data: load_data,
             containing_pipeline_id: window.pipeline(),
@@ -134,8 +129,11 @@ impl HTMLIFrameElement {
             new_pipeline_id: new_pipeline_id,
             sandbox: sandboxed,
             is_private: private_iframe,
+            frame_type: frame_type,
         };
-        chan.send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info)).unwrap();
+        window.constellation_chan()
+              .send(ConstellationMsg::ScriptLoadedURLInIFrame(load_info))
+              .unwrap();
 
         if mozbrowser_enabled() {
             // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowserloadstart
@@ -372,13 +370,11 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> E
     if iframe.Mozbrowser() {
         if iframe.upcast::<Node>().is_in_doc() {
             let window = window_from_node(iframe);
-            let window = window.r();
 
             let pipeline_info = Some((window.pipeline(),
                                       iframe.subpage_id().unwrap()));
-            let ConstellationChan(ref chan) = *window.constellation_chan();
             let msg = ConstellationMsg::Navigate(pipeline_info, direction);
-            chan.send(msg).unwrap();
+            window.constellation_chan().send(msg).unwrap();
         }
 
         Ok(())
@@ -439,15 +435,9 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     // Experimental mozbrowser implementation is based on the webidl
     // present in the gecko source tree, and the documentation here:
     // https://developer.mozilla.org/en-US/docs/Web/API/Using_the_Browser_API
-
-    // TODO(gw): Use experimental codegen when it is available to avoid
-    // exposing these APIs. See https://github.com/servo/servo/issues/5264.
-
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
     fn Mozbrowser(&self) -> bool {
-        // We don't want to allow mozbrowser iframes within iframes
-        let is_root_pipeline = window_from_node(self).parent_info().is_none();
-        if mozbrowser_enabled() && is_root_pipeline {
+        if window_from_node(self).is_mozbrowser() {
             let element = self.upcast::<Element>();
             element.has_attribute(&atom!("mozbrowser"))
         } else {
@@ -456,12 +446,9 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-mozbrowser
-    fn SetMozbrowser(&self, value: bool) -> ErrorResult {
-        if mozbrowser_enabled() {
-            let element = self.upcast::<Element>();
-            element.set_bool_attribute(&atom!("mozbrowser"), value);
-        }
-        Ok(())
+    fn SetMozbrowser(&self, value: bool) {
+        let element = self.upcast::<Element>();
+        element.set_bool_attribute(&atom!("mozbrowser"), value);
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
@@ -542,9 +529,9 @@ impl VirtualMethods for HTMLIFrameElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match name {
-            &atom!("sandbox") => AttrValue::from_serialized_tokenlist(value),
-            &atom!("width") => AttrValue::from_dimension(value),
-            &atom!("height") => AttrValue::from_dimension(value),
+            &atom!("sandbox") => AttrValue::from_serialized_tokenlist(value.into()),
+            &atom!("width") => AttrValue::from_dimension(value.into()),
+            &atom!("height") => AttrValue::from_dimension(value.into()),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }
@@ -568,7 +555,6 @@ impl VirtualMethods for HTMLIFrameElement {
         // https://html.spec.whatwg.org/multipage/#a-browsing-context-is-discarded
         if let Some(pipeline_id) = self.pipeline_id.get() {
             let window = window_from_node(self);
-            let window = window.r();
 
             // The only reason we're waiting for the iframe to be totally
             // removed is to ensure the script thread can't add iframes faster
@@ -576,7 +562,6 @@ impl VirtualMethods for HTMLIFrameElement {
             //
             // Since most of this cleanup doesn't happen on same-origin
             // iframes, and since that would cause a deadlock, don't do it.
-            let ConstellationChan(ref chan) = *window.constellation_chan();
             let same_origin = {
                 // FIXME(#10968): this should probably match the origin check in
                 //                HTMLIFrameElement::contentDocument.
@@ -591,7 +576,7 @@ impl VirtualMethods for HTMLIFrameElement {
                 (Some(sender), Some(receiver))
             };
             let msg = ConstellationMsg::RemoveIFrame(pipeline_id, sender);
-            chan.send(msg).unwrap();
+            window.constellation_chan().send(msg).unwrap();
             if let Some(receiver) = receiver {
                 receiver.recv().unwrap()
             }

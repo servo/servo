@@ -41,15 +41,8 @@ debug-mozjs = false
 
 # Android information
 [android]
-# Defaults to the value of $ANDROID_SDK, $ANDROID_NDK, $ANDROID_TOOLCHAIN respectively
+# Defaults to the value of $ANDROID_SDK, $ANDROID_NDK, $ANDROID_TOOLCHAIN, $ANDROID_PLATFORM respectively
 #sdk = "/opt/android-sdk"
 #ndk = "/opt/android-ndk"
 #toolchain = "/opt/android-toolchain"
-
-# Gonk information
-# Please fill the ndk/toolchain for Android too
-[gonk]
-# Path to B2G repo and build
-# Defaults to the value of $GONKDIR
-#b2g = "/opt/B2G"
-product = "flame"
+#platform = "android-18"

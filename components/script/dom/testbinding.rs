@@ -20,17 +20,16 @@ use dom::bindings::global::GlobalRef;
 use dom::bindings::js::Root;
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::{Reflectable, Reflector, reflect_dom_object};
-use dom::bindings::str::{ByteString, USVString};
+use dom::bindings::str::{ByteString, DOMString, USVString};
 use dom::bindings::weakref::MutableWeakRef;
-use dom::blob::{Blob, DataSlice};
+use dom::blob::{Blob, BlobImpl};
 use dom::url::URL;
-use js::jsapi::{HandleValue, JSContext, JSObject};
+use js::jsapi::{HandleObject, HandleValue, JSContext, JSObject};
 use js::jsval::{JSVal, NullValue};
 use std::borrow::ToOwned;
 use std::ptr;
 use std::rc::Rc;
-use util::prefs::{get_pref};
-use util::str::DOMString;
+use util::prefs::get_pref;
 
 #[dom_struct]
 pub struct TestBinding {
@@ -102,7 +101,7 @@ impl TestBindingMethods for TestBinding {
     fn EnumAttribute(&self) -> TestEnum { TestEnum::_empty }
     fn SetEnumAttribute(&self, _: TestEnum) {}
     fn InterfaceAttribute(&self) -> Root<Blob> {
-        Blob::new(self.global().r(), DataSlice::empty(), "")
+        Blob::new(self.global().r(), BlobImpl::new_from_empty_slice(), "")
     }
     fn SetInterfaceAttribute(&self, _: &Blob) {}
     fn UnionAttribute(&self) -> HTMLElementOrLong { HTMLElementOrLong::Long(0) }
@@ -180,7 +179,7 @@ impl TestBindingMethods for TestBinding {
     fn SetAttr_to_automatically_rename(&self, _: DOMString) {}
     fn GetEnumAttributeNullable(&self) -> Option<TestEnum> { Some(TestEnum::_empty) }
     fn GetInterfaceAttributeNullable(&self) -> Option<Root<Blob>> {
-        Some(Blob::new(self.global().r(), DataSlice::empty(), ""))
+        Some(Blob::new(self.global().r(), BlobImpl::new_from_empty_slice(), ""))
     }
     fn SetInterfaceAttributeNullable(&self, _: Option<&Blob>) {}
     fn GetInterfaceAttributeWeak(&self) -> Option<Root<URL>> {
@@ -231,7 +230,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveByteString(&self) -> ByteString { ByteString::new(vec!()) }
     fn ReceiveEnum(&self) -> TestEnum { TestEnum::_empty }
     fn ReceiveInterface(&self) -> Root<Blob> {
-        Blob::new(self.global().r(), DataSlice::empty(), "")
+        Blob::new(self.global().r(), BlobImpl::new_from_empty_slice(), "")
     }
     fn ReceiveAny(&self, _: *mut JSContext) -> JSVal { NullValue() }
     fn ReceiveObject(&self, _: *mut JSContext) -> *mut JSObject { panic!() }
@@ -248,7 +247,7 @@ impl TestBindingMethods for TestBinding {
     }
     fn ReceiveSequence(&self) -> Vec<i32> { vec![1] }
     fn ReceiveInterfaceSequence(&self) -> Vec<Root<Blob>> {
-        vec![Blob::new(self.global().r(), DataSlice::empty(), "")]
+        vec![Blob::new(self.global().r(), BlobImpl::new_from_empty_slice(), "")]
     }
 
     fn ReceiveNullableBoolean(&self) -> Option<bool> { Some(false) }
@@ -269,7 +268,7 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveNullableByteString(&self) -> Option<ByteString> { Some(ByteString::new(vec!())) }
     fn ReceiveNullableEnum(&self) -> Option<TestEnum> { Some(TestEnum::_empty) }
     fn ReceiveNullableInterface(&self) -> Option<Root<Blob>> {
-        Some(Blob::new(self.global().r(), DataSlice::empty(), ""))
+        Some(Blob::new(self.global().r(), BlobImpl::new_from_empty_slice(), ""))
     }
     fn ReceiveNullableObject(&self, _: *mut JSContext) -> *mut JSObject { ptr::null_mut() }
     fn ReceiveNullableUnion(&self) -> Option<HTMLElementOrLong> {
@@ -568,6 +567,10 @@ impl TestBindingMethods for TestBinding {
     fn PrefControlledAttributeEnabled(&self) -> bool { false }
     fn PrefControlledMethodDisabled(&self) {}
     fn PrefControlledMethodEnabled(&self) {}
+    fn FuncControlledAttributeDisabled(&self) -> bool { false }
+    fn FuncControlledAttributeEnabled(&self) -> bool { false }
+    fn FuncControlledMethodDisabled(&self) {}
+    fn FuncControlledMethodEnabled(&self) {}
 }
 
 impl TestBinding {
@@ -578,4 +581,14 @@ impl TestBinding {
     pub fn PrefControlledStaticAttributeEnabled(_: GlobalRef) -> bool { false }
     pub fn PrefControlledStaticMethodDisabled(_: GlobalRef) {}
     pub fn PrefControlledStaticMethodEnabled(_: GlobalRef) {}
+    pub fn FuncControlledStaticAttributeDisabled(_: GlobalRef) -> bool { false }
+    pub fn FuncControlledStaticAttributeEnabled(_: GlobalRef) -> bool { false }
+    pub fn FuncControlledStaticMethodDisabled(_: GlobalRef) {}
+    pub fn FuncControlledStaticMethodEnabled(_: GlobalRef) {}
+}
+
+#[allow(unsafe_code)]
+impl TestBinding {
+    pub unsafe fn condition_satisfied(_: *mut JSContext, _: HandleObject) -> bool { true }
+    pub unsafe fn condition_unsatisfied(_: *mut JSContext, _: HandleObject) -> bool { false }
 }

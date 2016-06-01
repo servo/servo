@@ -9,6 +9,7 @@ use dom::PresentationalHintsSynthetizer;
 use element_state::*;
 use error_reporting::StdoutErrorReporter;
 use media_queries::{Device, MediaType};
+use parser::ParserContextExtraData;
 use properties::{self, PropertyDeclaration, PropertyDeclarationBlock};
 use restyle_hints::{ElementSnapshot, RestyleHint, DependencySet};
 use selector_impl::{SelectorImplExt, ServoSelectorImpl};
@@ -46,7 +47,8 @@ lazy_static! {
                         None,
                         None,
                         Origin::UserAgent,
-                        box StdoutErrorReporter);
+                        box StdoutErrorReporter,
+                        ParserContextExtraData::default());
                     stylesheets.push(ua_stylesheet);
                 }
                 Err(..) => {
@@ -57,7 +59,8 @@ lazy_static! {
         }
         for &(ref contents, ref url) in &opts::get().user_stylesheets {
             stylesheets.push(Stylesheet::from_bytes(
-                &contents, url.clone(), None, None, Origin::User, box StdoutErrorReporter));
+                &contents, url.clone(), None, None, Origin::User, box StdoutErrorReporter,
+                ParserContextExtraData::default()));
         }
         stylesheets
     };
@@ -73,7 +76,8 @@ lazy_static! {
                     None,
                     None,
                     Origin::UserAgent,
-                    box StdoutErrorReporter)
+                    box StdoutErrorReporter,
+                    ParserContextExtraData::default())
             },
             Err(..) => {
                 error!("Stylist failed to load 'quirks-mode.css'!");
@@ -264,7 +268,6 @@ impl<Impl: SelectorImplExt> Stylist<Impl> {
                                          -> Option<Arc<Impl::ComputedValues>> {
         debug_assert!(Impl::pseudo_element_cascade_type(pseudo).is_precomputed());
         if let Some(declarations) = self.precomputed_pseudo_element_decls.get(pseudo) {
-
             let (computed, _) =
                 properties::cascade(self.device.au_viewport_size(),
                                     &declarations, false,

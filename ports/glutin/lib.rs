@@ -14,6 +14,7 @@ extern crate euclid;
 extern crate gleam;
 extern crate glutin;
 extern crate layers;
+#[macro_use] extern crate log;
 extern crate msg;
 extern crate net_traits;
 extern crate script_traits;
@@ -21,9 +22,11 @@ extern crate style_traits;
 extern crate url;
 extern crate util;
 #[cfg(target_os = "linux")] extern crate x11;
+#[cfg(target_os = "windows")] extern crate winapi;
+#[cfg(target_os = "windows")] extern crate user32;
+#[cfg(target_os = "windows")] extern crate gdi32;
 
 use compositing::windowing::WindowEvent;
-use euclid::scale_factor::ScaleFactor;
 use std::rc::Rc;
 use util::opts;
 use window::Window;
@@ -40,9 +43,7 @@ pub fn create_window(parent: Option<WindowID>) -> Rc<Window> {
     // Read command-line options.
     let opts = opts::get();
     let foreground = opts.output_file.is_none() && !opts.headless;
-    let scale_factor = ScaleFactor::new(opts.device_pixels_per_px.unwrap_or(1.0));
-    let size = opts.initial_window_size.as_f32() * scale_factor;
 
     // Open a window.
-    Window::new(foreground, size.as_uint().cast().unwrap(), parent)
+    Window::new(foreground, opts.initial_window_size, parent)
 }

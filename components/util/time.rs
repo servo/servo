@@ -8,7 +8,6 @@ use std::{u32, u64};
 pub const NANOS_PER_SEC: u32 = 1_000_000_000;
 
 pub fn duration_from_seconds(secs: f64) -> Duration {
-
     // Get number of seconds and check that it fits in a u64.
     let whole_secs = secs.trunc();
     assert!(whole_secs >= 0.0 && whole_secs <= u64::MAX as f64);

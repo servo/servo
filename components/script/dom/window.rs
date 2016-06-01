@@ -7,16 +7,19 @@ use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarker
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DocumentBinding::{DocumentMethods, DocumentReadyState};
-use dom::bindings::codegen::Bindings::EventHandlerBinding::{EventHandlerNonNull, OnErrorEventHandlerNonNull};
+use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
+use dom::bindings::codegen::Bindings::EventHandlerBinding::OnBeforeUnloadEventHandlerNonNull;
+use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
-use dom::bindings::error::{Error, Fallible, report_pending_exception};
-use dom::bindings::global::GlobalRef;
+use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
+use dom::bindings::global::{GlobalRef, global_root_from_object};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, MutNullableHeap, Root};
 use dom::bindings::num::Finite;
 use dom::bindings::reflector::Reflectable;
+use dom::bindings::str::DOMString;
 use dom::bindings::utils::{GlobalStaticData, WindowProxyHandler};
 use dom::browsingcontext::BrowsingContext;
 use dom::console::Console;
@@ -34,30 +37,32 @@ use dom::storage::Storage;
 use euclid::{Point2D, Rect, Size2D};
 use gfx_traits::LayerId;
 use ipc_channel::ipc::{self, IpcSender};
-use js::jsapi::{Evaluate2, MutableHandleValue};
-use js::jsapi::{HandleValue, JSContext};
-use js::jsapi::{JSAutoCompartment, JS_GC, JS_GetRuntime, SetWindowProxy};
+use js::jsapi::{Evaluate2, HandleObject, HandleValue, JSAutoCompartment, JSContext};
+use js::jsapi::{JS_GetRuntime, JS_GC, MutableHandleValue, SetWindowProxy};
 use js::rust::CompileOptionsWrapper;
 use js::rust::Runtime;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
-use layout_interface::{LayoutChan, LayoutRPC, Msg, Reflow, ReflowQueryType, MarginStyleResponse};
+use layout_interface::{LayoutRPC, Msg, Reflow, ReflowQueryType, MarginStyleResponse};
 use libc;
-use msg::constellation_msg::{ConstellationChan, LoadData, PipelineId, SubpageId};
+use msg::constellation_msg::{LoadData, PanicMsg, PipelineId, SubpageId};
 use msg::constellation_msg::{WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
-use net_traits::ResourceThread;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
-use net_traits::storage_thread::{StorageThread, StorageType};
+use net_traits::storage_thread::StorageType;
+use net_traits::{ResourceThreads, CustomResponseSender};
 use num_traits::ToPrimitive;
+use open;
 use profile_traits::mem;
+use profile_traits::time::{ProfilerCategory, TimerMetadata, TimerMetadataFrameType};
+use profile_traits::time::{ProfilerChan, TimerMetadataReflowType, profile};
 use reporter::CSSErrorReporter;
 use rustc_serialize::base64::{FromBase64, STANDARD, ToBase64};
 use script_runtime::{ScriptChan, ScriptPort};
 use script_thread::SendableMainThreadScriptChan;
 use script_thread::{MainThreadScriptChan, MainThreadScriptMsg, RunnableWrapper};
 use script_traits::{ConstellationControlMsg, UntrustedNodeAddress};
-use script_traits::{DocumentState, MsDuration, ScriptToCompositorMsg, TimerEvent, TimerEventId};
+use script_traits::{DocumentState, MsDuration, TimerEvent, TimerEventId};
 use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSource};
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
@@ -74,7 +79,7 @@ use std::sync::{Arc, Mutex};
 use string_cache::Atom;
 use style::context::ReflowGoal;
 use style::error_reporting::ParseErrorReporter;
-use style::properties::longhands::{overflow_x};
+use style::properties::longhands::overflow_x;
 use style::selector_impl::PseudoElement;
 use task_source::TaskSource;
 use task_source::dom_manipulation::{DOMManipulationTaskSource, DOMManipulationTask};
@@ -88,7 +93,8 @@ use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers
 use tinyfiledialogs::{self, MessageBoxIcon};
 use url::Url;
 use util::geometry::{self, MAX_RECT};
-use util::str::{DOMString, HTML_SPACE_CHARACTERS};
+use util::prefs::mozbrowser_enabled;
+use util::str::HTML_SPACE_CHARACTERS;
 use util::{breakpoint, opts};
 use webdriver_handlers::jsval_to_webdriver;
 
@@ -146,8 +152,8 @@ pub struct Window {
     image_cache_thread: ImageCacheThread,
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_chan: ImageCacheChan,
-    #[ignore_heap_size_of = "TODO(#6911) newtypes containing unmeasurable types are hard"]
-    compositor: IpcSender<ScriptToCompositorMsg>,
+    #[ignore_heap_size_of = "channels are hard"]
+    custom_message_chan: IpcSender<CustomResponseSender>,
     browsing_context: MutNullableHeap<JS<BrowsingContext>>,
     performance: MutNullableHeap<JS<Performance>>,
     navigation_start: u64,
@@ -155,6 +161,7 @@ pub struct Window {
     screen: MutNullableHeap<JS<Screen>>,
     session_storage: MutNullableHeap<JS<Storage>>,
     local_storage: MutNullableHeap<JS<Storage>>,
+    status: DOMRefCell<DOMString>,
     #[ignore_heap_size_of = "channels are hard"]
     scheduler_chan: IpcSender<TimerEventRequest>,
     timers: OneshotTimers,
@@ -164,6 +171,10 @@ pub struct Window {
     /// For sending messages to the memory profiler.
     #[ignore_heap_size_of = "channels are hard"]
     mem_profiler_chan: mem::ProfilerChan,
+
+    /// For sending messages to the memory profiler.
+    #[ignore_heap_size_of = "channels are hard"]
+    time_profiler_chan: ProfilerChan,
 
     /// For providing instructions to an optional devtools server.
     #[ignore_heap_size_of = "channels are hard"]
@@ -199,7 +210,7 @@ pub struct Window {
 
     /// A handle for communicating messages to the layout thread.
     #[ignore_heap_size_of = "channels are hard"]
-    layout_chan: LayoutChan,
+    layout_chan: Sender<Msg>,
 
     /// A handle to perform RPC calls into the layout, quickly.
     #[ignore_heap_size_of = "trait objects are hard"]
@@ -208,21 +219,17 @@ pub struct Window {
     /// The current size of the window, in pixels.
     window_size: Cell<Option<WindowSizeData>>,
 
-    /// Associated resource thread for use by DOM objects like XMLHttpRequest
-    #[ignore_heap_size_of = "channels are hard"]
-    resource_thread: Arc<ResourceThread>,
+    /// Associated resource threads for use by DOM objects like XMLHttpRequest,
+    /// including resource_thread, filemanager_thread and storage_thread
+    resource_threads: ResourceThreads,
 
     /// A handle for communicating messages to the bluetooth thread.
     #[ignore_heap_size_of = "channels are hard"]
     bluetooth_thread: IpcSender<BluetoothMethodMsg>,
 
-    /// A handle for communicating messages to the storage thread.
-    #[ignore_heap_size_of = "channels are hard"]
-    storage_thread: StorageThread,
-
     /// A handle for communicating messages to the constellation thread.
     #[ignore_heap_size_of = "channels are hard"]
-    constellation_chan: ConstellationChan<ConstellationMsg>,
+    constellation_chan: IpcSender<ConstellationMsg>,
 
     /// Pending scroll to fragment event, if any
     fragment_name: DOMRefCell<Option<String>>,
@@ -253,6 +260,9 @@ pub struct Window {
     ignore_further_async_events: Arc<AtomicBool>,
 
     error_reporter: CSSErrorReporter,
+
+    #[ignore_heap_size_of = "Defined in ipc-channel"]
+    panic_chan: IpcSender<PanicMsg>,
 }
 
 impl Window {
@@ -298,6 +308,10 @@ impl Window {
         self.image_cache_chan.clone()
     }
 
+    pub fn custom_message_chan(&self) -> IpcSender<CustomResponseSender> {
+        self.custom_message_chan.clone()
+    }
+
     pub fn get_next_worker_id(&self) -> WorkerId {
         let worker_id = self.next_worker_id.get();
         let WorkerId(id_num) = worker_id;
@@ -326,20 +340,12 @@ impl Window {
         &self.image_cache_thread
     }
 
-    pub fn compositor(&self) -> &IpcSender<ScriptToCompositorMsg> {
-        &self.compositor
-    }
-
     pub fn browsing_context(&self) -> Root<BrowsingContext> {
         self.browsing_context.get().unwrap()
     }
 
     pub fn bluetooth_thread(&self) -> IpcSender<BluetoothMethodMsg> {
         self.bluetooth_thread.clone()
-    }
-
-    pub fn storage_thread(&self) -> StorageThread {
-        self.storage_thread.clone()
     }
 
     pub fn css_error_reporter(&self) -> Box<ParseErrorReporter + Send> {
@@ -427,6 +433,11 @@ pub fn base64_atob(input: DOMString) -> Fallible<DOMString> {
 
 impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#dom-alert
+    fn Alert_(&self) {
+        self.Alert(DOMString::new());
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-alert
     fn Alert(&self, s: DOMString) {
         // Right now, just print to the console
         // Ensure that stderr doesn't trample through the alert() we use to
@@ -440,7 +451,7 @@ impl WindowMethods for Window {
         stderr.flush().unwrap();
 
         let (sender, receiver) = ipc::channel().unwrap();
-        self.constellation_chan().0.send(ConstellationMsg::Alert(self.pipeline(), s.to_string(), sender)).unwrap();
+        self.constellation_chan().send(ConstellationMsg::Alert(self.pipeline(), s.to_string(), sender)).unwrap();
 
         let should_display_alert_dialog = receiver.recv().unwrap();
         if should_display_alert_dialog {
@@ -587,11 +598,8 @@ impl WindowMethods for Window {
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!();
 
-    // https://html.spec.whatwg.org/multipage/#handler-window-onunload
-    event_handler!(unload, GetOnunload, SetOnunload);
-
-    // https://html.spec.whatwg.org/multipage/#handler-window-onstorage
-    event_handler!(storage, GetOnstorage, SetOnstorage);
+    // https://html.spec.whatwg.org/multipage/#windoweventhandlers
+    window_event_handlers!();
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/screen
     fn Screen(&self) -> Root<Screen> {
@@ -771,7 +779,7 @@ impl WindowMethods for Window {
         // Step 1
         //TODO determine if this operation is allowed
         let size = Size2D::new(x.to_u32().unwrap_or(1), y.to_u32().unwrap_or(1));
-        self.compositor.send(ScriptToCompositorMsg::ResizeTo(size)).unwrap()
+        self.constellation_chan.send(ConstellationMsg::ResizeTo(size)).unwrap()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-resizeby
@@ -786,7 +794,7 @@ impl WindowMethods for Window {
         // Step 1
         //TODO determine if this operation is allowed
         let point = Point2D::new(x, y);
-        self.compositor.send(ScriptToCompositorMsg::MoveTo(point)).unwrap()
+        self.constellation_chan.send(ConstellationMsg::MoveTo(point)).unwrap()
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-window-moveby
@@ -825,6 +833,27 @@ impl WindowMethods for Window {
         let dpr = self.window_size.get().map_or(1.0f32, |data| data.device_pixel_ratio.get());
         Finite::wrap(dpr as f64)
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-window-status
+    fn Status(&self) -> DOMString {
+        self.status.borrow().clone()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-window-status
+    fn SetStatus(&self, status: DOMString) {
+        *self.status.borrow_mut() = status
+    }
+
+    // check-tidy: no specs after this line
+    fn OpenURLInDefaultBrowser(&self, href: DOMString) -> ErrorResult {
+        let url = try!(Url::parse(&href).map_err(|e| {
+            Error::Type(format!("Couldn't parse URL: {}", e))
+        }));
+        match open::that(url.as_str()) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(Error::Type(format!("Couldn't open URL: {}", e))),
+        }
+    }
 }
 
 pub trait ScriptHelpers {
@@ -844,21 +873,37 @@ impl<'a, T: Reflectable> ScriptHelpers for &'a T {
     fn evaluate_script_on_global_with_result(self, code: &str, filename: &str,
                                              rval: MutableHandleValue) {
         let global = self.global();
-        let cx = global.r().get_cx();
-        let globalhandle = global.r().reflector().get_jsobject();
-        let code: Vec<u16> = code.encode_utf16().collect();
-        let filename = CString::new(filename).unwrap();
+        let metadata = TimerMetadata {
+            url: if filename.is_empty() {
+                global.r().get_url().as_str().into()
+            } else {
+                filename.into()
+            },
+            iframe: TimerMetadataFrameType::RootWindow,
+            incremental: TimerMetadataReflowType::FirstReflow,
+        };
+        profile(
+            ProfilerCategory::ScriptEvaluate,
+            Some(metadata),
+            global.r().time_profiler_chan().clone(),
+            || {
+                let cx = global.r().get_cx();
+                let globalhandle = global.r().reflector().get_jsobject();
+                let code: Vec<u16> = code.encode_utf16().collect();
+                let filename = CString::new(filename).unwrap();
 
-        let _ac = JSAutoCompartment::new(cx, globalhandle.get());
-        let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), 0);
-        unsafe {
-            if !Evaluate2(cx, options.ptr, code.as_ptr(),
-                          code.len() as libc::size_t,
-                          rval) {
-                debug!("error evaluating JS string");
-                report_pending_exception(cx, globalhandle.get());
+                let _ac = JSAutoCompartment::new(cx, globalhandle.get());
+                let options = CompileOptionsWrapper::new(cx, filename.as_ptr(), 0);
+                unsafe {
+                    if !Evaluate2(cx, options.ptr, code.as_ptr(),
+                                  code.len() as libc::size_t,
+                                  rval) {
+                        debug!("error evaluating JS string");
+                        report_pending_exception(cx, globalhandle.get());
+                    }
+                }
             }
-        }
+        )
     }
 }
 
@@ -953,16 +998,21 @@ impl Window {
         };
 
         // TODO (farodin91): Raise an event to stop the current_viewport
-        let size = self.current_viewport.get().size;
-        self.current_viewport.set(Rect::new(Point2D::new(Au::from_f32_px(x), Au::from_f32_px(y)), size));
+        self.update_viewport_for_scroll(x, y);
 
-        self.compositor.send(ScriptToCompositorMsg::ScrollFragmentPoint(
-                                                         self.pipeline(), layer_id, point, smooth)).unwrap()
+        let message = ConstellationMsg::ScrollFragmentPoint(self.pipeline(), layer_id, point, smooth);
+        self.constellation_chan.send(message).unwrap();
+    }
+
+    pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
+        let size = self.current_viewport.get().size;
+        let new_viewport = Rect::new(Point2D::new(Au::from_f32_px(x), Au::from_f32_px(y)), size);
+        self.current_viewport.set(new_viewport)
     }
 
     pub fn client_window(&self) -> (Size2D<u32>, Point2D<i32>) {
         let (send, recv) = ipc::channel::<(Size2D<u32>, Point2D<i32>)>().unwrap();
-        self.compositor.send(ScriptToCompositorMsg::GetClientWindow(send)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::GetClientWindow(send)).unwrap();
         recv.recv().unwrap_or((Size2D::zero(), Point2D::zero()))
     }
 
@@ -972,26 +1022,33 @@ impl Window {
     /// and no reflow is performed. If reflow is suppressed, no reflow will be
     /// performed for ForDisplay goals.
     ///
-    /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
-    pub fn force_reflow(&self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason) {
+    /// TODO(pcwalton): Only wait for style recalc, since we have
+    /// off-main-thread layout.
+    ///
+    /// Returns true if layout actually happened, false otherwise.
+    pub fn force_reflow(&self,
+                        goal: ReflowGoal,
+                        query_type: ReflowQueryType,
+                        reason: ReflowReason) -> bool {
         // Check if we need to unsuppress reflow. Note that this needs to be
         // *before* any early bailouts, or reflow might never be unsuppresed!
         match reason {
-            ReflowReason::FirstLoad | ReflowReason::RefreshTick => self.suppress_reflow.set(false),
+            ReflowReason::FirstLoad |
+            ReflowReason::RefreshTick => self.suppress_reflow.set(false),
             _ => (),
         }
 
         // If there is no window size, we have nothing to do.
         let window_size = match self.window_size.get() {
             Some(window_size) => window_size,
-            None => return,
+            None => return false,
         };
 
         let for_display = query_type == ReflowQueryType::NoQuery;
         if for_display && self.suppress_reflow.get() {
             debug!("Suppressing reflow pipeline {} for goal {:?} reason {:?} before FirstLoad or RefreshTick",
                    self.id, goal, reason);
-            return;
+            return false;
         }
 
         debug!("script: performing reflow for goal {:?} reason {:?}", goal, reason);
@@ -1027,8 +1084,7 @@ impl Window {
             query_type: query_type,
         };
 
-        let LayoutChan(ref chan) = self.layout_chan;
-        chan.send(Msg::Reflow(reflow)).unwrap();
+        self.layout_chan.send(Msg::Reflow(reflow)).unwrap();
 
         debug!("script: layout forked");
 
@@ -1054,18 +1110,32 @@ impl Window {
         if let Some(marker) = marker {
             self.emit_timeline_marker(marker.end());
         }
+
+        true
     }
 
-    /// Reflows the page if it's possible to do so and the page is dirty. This method will wait
-    /// for the layout thread to complete (but see the `TODO` below). If there is no window size
-    /// yet, the page is presumed invisible and no reflow is performed.
+    /// Reflows the page if it's possible to do so and the page is dirty. This
+    /// method will wait for the layout thread to complete (but see the `TODO`
+    /// below). If there is no window size yet, the page is presumed invisible
+    /// and no reflow is performed.
     ///
-    /// TODO(pcwalton): Only wait for style recalc, since we have off-main-thread layout.
-    pub fn reflow(&self, goal: ReflowGoal, query_type: ReflowQueryType, reason: ReflowReason) {
+    /// TODO(pcwalton): Only wait for style recalc, since we have
+    /// off-main-thread layout.
+    ///
+    /// Returns true if layout actually happened, false otherwise.
+    /// This return value is useful for script queries, that wait for a lock
+    /// that layout might hold if the first layout hasn't happened yet (which
+    /// may happen in the only case a query reflow may bail out, that is, if the
+    /// viewport size is not present). See #11223 for an example of that.
+    pub fn reflow(&self,
+                  goal: ReflowGoal,
+                  query_type: ReflowQueryType,
+                  reason: ReflowReason) -> bool {
         let for_display = query_type == ReflowQueryType::NoQuery;
 
+        let mut issued_reflow = false;
         if !for_display || self.Document().needs_reflow() {
-            self.force_reflow(goal, query_type, reason);
+            issued_reflow = self.force_reflow(goal, query_type, reason);
 
             // If window_size is `None`, we don't reflow, so the document stays dirty.
             // Otherwise, we shouldn't need a reflow immediately after a reflow.
@@ -1098,9 +1168,11 @@ impl Window {
 
             if ready_state == DocumentReadyState::Complete && !reftest_wait {
                 let event = ConstellationMsg::SetDocumentState(self.id, DocumentState::Idle);
-                self.constellation_chan().0.send(event).unwrap();
+                self.constellation_chan().send(event).unwrap();
             }
         }
+
+        issued_reflow
     }
 
     pub fn layout(&self) -> &LayoutRPC {
@@ -1108,69 +1180,89 @@ impl Window {
     }
 
     pub fn content_box_query(&self, content_box_request: TrustedNodeAddress) -> Rect<Au> {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::ContentBoxQuery(content_box_request),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::ContentBoxQuery(content_box_request),
+                        ReflowReason::Query) {
+            return Rect::zero();
+        }
         let ContentBoxResponse(rect) = self.layout_rpc.content_box();
         rect
     }
 
     pub fn content_boxes_query(&self, content_boxes_request: TrustedNodeAddress) -> Vec<Rect<Au>> {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::ContentBoxesQuery(content_boxes_request),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::ContentBoxesQuery(content_boxes_request),
+                        ReflowReason::Query) {
+            return vec![];
+        }
         let ContentBoxesResponse(rects) = self.layout_rpc.content_boxes();
         rects
     }
 
     pub fn client_rect_query(&self, node_geometry_request: TrustedNodeAddress) -> Rect<i32> {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::NodeGeometryQuery(node_geometry_request),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::NodeGeometryQuery(node_geometry_request),
+                        ReflowReason::Query) {
+            return Rect::zero();
+        }
         self.layout_rpc.node_geometry().client_rect
     }
 
     pub fn hit_test_query(&self, hit_test_request: Point2D<f32>, update_cursor: bool)
                           -> Option<UntrustedNodeAddress> {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::HitTestQuery(hit_test_request, update_cursor),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::HitTestQuery(hit_test_request, update_cursor),
+                        ReflowReason::Query) {
+            return None
+        }
+
         self.layout_rpc.hit_test().node_address
     }
 
     pub fn scroll_area_query(&self, node: TrustedNodeAddress) -> Rect<i32> {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::NodeScrollGeometryQuery(node),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::NodeScrollGeometryQuery(node),
+                        ReflowReason::Query) {
+            return Rect::zero();
+        }
         self.layout_rpc.node_scroll_area().client_rect
     }
 
-    pub fn overflow_query(&self, node: TrustedNodeAddress) -> Point2D<overflow_x::computed_value::T> {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::NodeOverflowQuery(node),
-                    ReflowReason::Query);
+    pub fn overflow_query(&self,
+                          node: TrustedNodeAddress) -> Point2D<overflow_x::computed_value::T> {
+        // NB: This is only called if the document is fully active, and the only
+        // reason to bail out from a query is if there's no viewport, so this
+        // *must* issue a reflow.
+        assert!(self.reflow(ReflowGoal::ForScriptQuery,
+                            ReflowQueryType::NodeOverflowQuery(node),
+                            ReflowReason::Query));
+
         self.layout_rpc.node_overflow().0.unwrap()
     }
 
     pub fn scroll_offset_query(&self, node: TrustedNodeAddress) -> Point2D<f32> {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::NodeLayerIdQuery(node),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::NodeLayerIdQuery(node),
+                        ReflowReason::Query) {
+            return Point2D::zero();
+        }
+
         let layer_id = self.layout_rpc.node_layer_id().layer_id;
         let pipeline_id = self.id;
 
         let (send, recv) = ipc::channel::<Point2D<f32>>().unwrap();
-        self.compositor.send(ScriptToCompositorMsg::GetScrollOffset(pipeline_id, layer_id, send)).unwrap();
+        self.constellation_chan.send(ConstellationMsg::GetScrollOffset(pipeline_id, layer_id, send)).unwrap();
         recv.recv().unwrap_or(Point2D::zero())
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-element-scroll
     pub fn scroll_node(&self, node: TrustedNodeAddress,
                        x_: f64, y_: f64, behavior: ScrollBehavior) {
-
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::NodeLayerIdQuery(node),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::NodeLayerIdQuery(node),
+                        ReflowReason::Query) {
+            return;
+        }
 
         let layer_id = self.layout_rpc.node_layer_id().layer_id;
 
@@ -1183,17 +1275,22 @@ impl Window {
                             element: TrustedNodeAddress,
                             pseudo: Option<PseudoElement>,
                             property: &Atom) -> Option<DOMString> {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::ResolvedStyleQuery(element, pseudo, property.clone()),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::ResolvedStyleQuery(element, pseudo, property.clone()),
+                        ReflowReason::Query) {
+            return None;
+        }
         let ResolvedStyleResponse(resolved) = self.layout_rpc.resolved_style();
         resolved.map(DOMString::from)
     }
 
     pub fn offset_parent_query(&self, node: TrustedNodeAddress) -> (Option<Root<Element>>, Rect<Au>) {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::OffsetParentQuery(node),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::OffsetParentQuery(node),
+                        ReflowReason::Query) {
+            return (None, Rect::zero());
+        }
+
         let response = self.layout_rpc.offset_parent();
         let js_runtime = self.js_runtime.borrow();
         let js_runtime = js_runtime.as_ref().unwrap();
@@ -1205,9 +1302,11 @@ impl Window {
     }
 
     pub fn margin_style_query(&self, node: TrustedNodeAddress) -> MarginStyleResponse {
-        self.reflow(ReflowGoal::ForScriptQuery,
-                    ReflowQueryType::MarginStyleQuery(node),
-                    ReflowReason::Query);
+        if !self.reflow(ReflowGoal::ForScriptQuery,
+                        ReflowQueryType::MarginStyleQuery(node),
+                        ReflowReason::Query) {
+            return MarginStyleResponse::empty();
+        }
         self.layout_rpc.margin_style()
     }
 
@@ -1231,7 +1330,9 @@ impl Window {
 
     pub fn handle_fire_timer(&self, timer_id: TimerEventId) {
         self.timers.fire_timer(timer_id, self);
-        self.reflow(ReflowGoal::ForDisplay, ReflowQueryType::NoQuery, ReflowReason::Timer);
+        self.reflow(ReflowGoal::ForDisplay,
+                    ReflowQueryType::NoQuery,
+                    ReflowReason::Timer);
     }
 
     pub fn set_fragment_name(&self, fragment: Option<String>) {
@@ -1254,28 +1355,36 @@ impl Window {
         (*self.Document().url()).clone()
     }
 
-    pub fn resource_thread(&self) -> ResourceThread {
-        (*self.resource_thread).clone()
+    pub fn resource_threads(&self) -> &ResourceThreads {
+        &self.resource_threads
     }
 
     pub fn mem_profiler_chan(&self) -> &mem::ProfilerChan {
         &self.mem_profiler_chan
     }
 
+    pub fn time_profiler_chan(&self) -> &ProfilerChan {
+        &self.time_profiler_chan
+    }
+
     pub fn devtools_chan(&self) -> Option<IpcSender<ScriptToDevtoolsControlMsg>> {
         self.devtools_chan.clone()
     }
 
-    pub fn layout_chan(&self) -> &LayoutChan {
+    pub fn layout_chan(&self) -> &Sender<Msg> {
         &self.layout_chan
     }
 
-    pub fn constellation_chan(&self) -> &ConstellationChan<ConstellationMsg> {
+    pub fn constellation_chan(&self) -> &IpcSender<ConstellationMsg> {
         &self.constellation_chan
     }
 
     pub fn scheduler_chan(&self) -> &IpcSender<TimerEventRequest> {
         &self.scheduler_chan
+    }
+
+    pub fn panic_chan(&self) -> &IpcSender<PanicMsg> {
+        &self.panic_chan
     }
 
     pub fn schedule_callback(&self, callback: OneshotTimerCallback, duration: MsDuration) -> OneshotTimerHandle {
@@ -1410,6 +1519,21 @@ impl Window {
             context.active_window()
         })
     }
+
+    /// Returns whether this window is mozbrowser.
+    pub fn is_mozbrowser(&self) -> bool {
+        mozbrowser_enabled() && self.parent_info().is_none()
+    }
+
+    /// Returns whether mozbrowser is enabled and `obj` has been created
+    /// in a top-level `Window` global.
+    #[allow(unsafe_code)]
+    pub unsafe fn global_is_mozbrowser(_: *mut JSContext, obj: HandleObject) -> bool {
+        match global_root_from_object(obj.get()).r() {
+            GlobalRef::Window(window) => window.is_mozbrowser(),
+            _ => false,
+        }
+    }
 }
 
 impl Window {
@@ -1421,26 +1545,26 @@ impl Window {
                history_task_source: HistoryTraversalTaskSource,
                file_task_source: FileReadingTaskSource,
                image_cache_chan: ImageCacheChan,
-               compositor: IpcSender<ScriptToCompositorMsg>,
+               custom_message_chan: IpcSender<CustomResponseSender>,
                image_cache_thread: ImageCacheThread,
-               resource_thread: Arc<ResourceThread>,
+               resource_threads: ResourceThreads,
                bluetooth_thread: IpcSender<BluetoothMethodMsg>,
-               storage_thread: StorageThread,
                mem_profiler_chan: mem::ProfilerChan,
+               time_profiler_chan: ProfilerChan,
                devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-               constellation_chan: ConstellationChan<ConstellationMsg>,
+               constellation_chan: IpcSender<ConstellationMsg>,
                control_chan: IpcSender<ConstellationControlMsg>,
                scheduler_chan: IpcSender<TimerEventRequest>,
+               panic_chan: IpcSender<PanicMsg>,
                timer_event_chan: IpcSender<TimerEvent>,
-               layout_chan: LayoutChan,
+               layout_chan: Sender<Msg>,
                id: PipelineId,
                parent_info: Option<(PipelineId, SubpageId)>,
                window_size: Option<WindowSizeData>)
                -> Root<Window> {
         let layout_rpc: Box<LayoutRPC> = {
             let (rpc_send, rpc_recv) = channel();
-            let LayoutChan(ref lchan) = layout_chan;
-            lchan.send(Msg::GetRPC(rpc_send)).unwrap();
+            layout_chan.send(Msg::GetRPC(rpc_send)).unwrap();
             rpc_recv.recv().unwrap()
         };
         let error_reporter = CSSErrorReporter {
@@ -1457,12 +1581,13 @@ impl Window {
             history_traversal_task_source: history_task_source,
             file_reading_task_source: file_task_source,
             image_cache_chan: image_cache_chan,
+            custom_message_chan: custom_message_chan,
             console: Default::default(),
             crypto: Default::default(),
-            compositor: compositor,
             navigator: Default::default(),
             image_cache_thread: image_cache_thread,
             mem_profiler_chan: mem_profiler_chan,
+            time_profiler_chan: time_profiler_chan,
             devtools_chan: devtools_chan,
             browsing_context: Default::default(),
             performance: Default::default(),
@@ -1471,6 +1596,7 @@ impl Window {
             screen: Default::default(),
             session_storage: Default::default(),
             local_storage: Default::default(),
+            status: DOMRefCell::new(DOMString::new()),
             scheduler_chan: scheduler_chan.clone(),
             timers: OneshotTimers::new(timer_event_chan, scheduler_chan),
             next_worker_id: Cell::new(WorkerId(0)),
@@ -1478,9 +1604,8 @@ impl Window {
             parent_info: parent_info,
             dom_static: GlobalStaticData::new(),
             js_runtime: DOMRefCell::new(Some(runtime.clone())),
-            resource_thread: resource_thread,
+            resource_threads: resource_threads,
             bluetooth_thread: bluetooth_thread,
-            storage_thread: storage_thread,
             constellation_chan: constellation_chan,
             page_clip_rect: Cell::new(MAX_RECT),
             fragment_name: DOMRefCell::new(None),
@@ -1499,7 +1624,8 @@ impl Window {
             devtools_wants_updates: Cell::new(false),
             webdriver_script_chan: DOMRefCell::new(None),
             ignore_further_async_events: Arc::new(AtomicBool::new(false)),
-            error_reporter: error_reporter
+            error_reporter: error_reporter,
+            panic_chan: panic_chan,
         };
 
         WindowBinding::Wrap(runtime.cx(), win)
@@ -1571,3 +1697,4 @@ fn debug_reflow_events(id: PipelineId, goal: &ReflowGoal, query_type: &ReflowQue
 
     println!("{}", debug_msg);
 }
+

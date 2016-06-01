@@ -10,6 +10,7 @@ use dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaEl
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{LayoutJS, Root};
+use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::RawLayoutElementHelpers;
 use dom::element::{AttributeMutation, Element};
@@ -23,20 +24,19 @@ use dom::node::{document_from_node, window_from_node};
 use dom::nodelist::NodeList;
 use dom::validation::Validatable;
 use dom::virtualmethods::VirtualMethods;
-use msg::constellation_msg::ConstellationChan;
+use ipc_channel::ipc::IpcSender;
 use script_traits::ScriptMsg as ConstellationMsg;
 use std::cell::Cell;
 use std::ops::Range;
 use string_cache::Atom;
 use style::element_state::*;
 use textinput::{KeyReaction, Lines, TextInput, SelectionDirection};
-use util::str::DOMString;
 
 #[dom_struct]
 pub struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
     #[ignore_heap_size_of = "#7193"]
-    textinput: DOMRefCell<TextInput<ConstellationChan<ConstellationMsg>>>,
+    textinput: DOMRefCell<TextInput<IpcSender<ConstellationMsg>>>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_changed: Cell<bool>,
 }
@@ -332,8 +332,8 @@ impl VirtualMethods for HTMLTextAreaElement {
 
     fn parse_plain_attribute(&self, name: &Atom, value: DOMString) -> AttrValue {
         match *name {
-            atom!("cols") => AttrValue::from_limited_u32(value, DEFAULT_COLS),
-            atom!("rows") => AttrValue::from_limited_u32(value, DEFAULT_ROWS),
+            atom!("cols") => AttrValue::from_limited_u32(value.into(), DEFAULT_COLS),
+            atom!("rows") => AttrValue::from_limited_u32(value.into(), DEFAULT_ROWS),
             _ => self.super_type().unwrap().parse_plain_attribute(name, value),
         }
     }

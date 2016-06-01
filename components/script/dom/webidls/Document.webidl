@@ -13,10 +13,10 @@ interface Document : Node {
   [SameObject]
   readonly attribute DOMImplementation implementation;
   [Constant]
-  readonly attribute DOMString URL;
+  readonly attribute USVString URL;
   readonly attribute Element? activeElement;
   [Constant]
-  readonly attribute DOMString documentURI;
+  readonly attribute USVString documentURI;
   readonly attribute DOMString compatMode;
   readonly attribute DOMString characterSet;
   readonly attribute DOMString charset; // legacy alias of .characterSet
@@ -138,6 +138,7 @@ partial /*sealed*/ interface Document {
   // also has obsolete members
 };
 Document implements GlobalEventHandlers;
+Document implements DocumentAndElementEventHandlers;
 
 // https://html.spec.whatwg.org/multipage/#Document-partial
 partial interface Document {

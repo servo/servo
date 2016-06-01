@@ -110,7 +110,7 @@ impl Actor for ConsoleActor {
                     match str_type {
                         "PageError" => message_types.insert(PAGE_ERROR),
                         "ConsoleAPI" => message_types.insert(CONSOLE_API),
-                        s => println!("unrecognized message type requested: \"{}\"", s),
+                        s => debug!("unrecognized message type requested: \"{}\"", s),
                     };
                 };
                 let (chan, port) = ipc::channel().unwrap();

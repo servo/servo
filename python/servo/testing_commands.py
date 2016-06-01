@@ -178,6 +178,10 @@ class MachCommands(CommandBase):
             args += ["-p", "%s_tests" % crate]
         args += test_patterns
 
+        features = self.servo_features()
+        if features:
+            args += ["--features", "%s" % ' '.join(features)]
+
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
@@ -255,18 +259,18 @@ class MachCommands(CommandBase):
     @Command('test-tidy',
              description='Run the source code tidiness check',
              category='testing')
-    @CommandArgument('--faster', default=False, action="store_true",
-                     help="Only check changed files and skip the WPT lint in tidy, "
-                          "if there are no changes in the WPT files")
+    @CommandArgument('--all', default=False, action="store_true", dest="all_files",
+                     help="Check all files, and run the WPT lint in tidy, "
+                          "even if unchanged")
     @CommandArgument('--no-progress', default=False, action="store_true",
                      help="Don't show progress for tidy")
     @CommandArgument('--self-test', default=False, action="store_true",
                      help="Run unit tests for tidy")
-    def test_tidy(self, faster, no_progress, self_test):
+    def test_tidy(self, all_files, no_progress, self_test):
         if self_test:
             return test_tidy.do_tests()
         else:
-            return tidy.scan(faster, not no_progress)
+            return tidy.scan(not all_files, not no_progress)
 
     @Command('test-webidl',
              description='Run the WebIDL parser tests',
@@ -344,6 +348,11 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
         run_file = path.abspath(path.join("tests", "wpt", "update.py"))
         kwargs["no_patch"] = not patch
+
+        if kwargs["no_patch"] and kwargs["sync"]:
+            print("Are you sure you don't want a patch?")
+            return 1
+
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
         return run_globals["update_tests"](**kwargs)
@@ -399,6 +408,11 @@ class MachCommands(CommandBase):
         self.ensure_bootstrapped()
         run_file = path.abspath(path.join("tests", "wpt", "update_css.py"))
         kwargs["no_patch"] = not patch
+
+        if kwargs["no_patch"] and kwargs["sync"]:
+            print("Are you sure you don't want a patch?")
+            return 1
+
         run_globals = {"__file__": run_file}
         execfile(run_file, run_globals)
         return run_globals["update_tests"](**kwargs)
@@ -664,3 +678,15 @@ testing/web-platform/mozilla/tests for Servo-only tests""" % reference_path)
 
         if editor:
             proc.wait()
+
+    @Command('update-net-cookies',
+             description='Update the net unit tests with cookie tests from http-state',
+             category='testing')
+    def update_net_cookies(self):
+        cache_dir = path.join(self.config["tools"]["cache-dir"], "tests")
+        run_file = path.abspath(path.join(PROJECT_TOPLEVEL_PATH,
+                                          "tests", "unit", "net",
+                                          "cookie_http_state_utils.py"))
+        run_globals = {"__file__": run_file}
+        execfile(run_file, run_globals)
+        return run_globals["update_test_file"](cache_dir)

@@ -19,6 +19,8 @@
             list-item flex
             none
         """.split()
+        if product == "gecko":
+            values += "-moz-box -moz-inline-box".split()
         experimental_values = set("flex".split())
     %>
     pub use self::computed_value::T as SpecifiedValue;
@@ -78,6 +80,7 @@
                                    _error_reporter: &mut StdBox<ParseErrorReporter + Send>) {
             longhands::_servo_display_for_hypothetical_box::derive_from_display(context);
             longhands::_servo_text_decorations_in_effect::derive_from_display(context);
+            longhands::_servo_under_display_none::derive_from_display(context);
         }
     % endif
 
@@ -824,3 +827,105 @@ ${helpers.single_keyword("page-break-inside",
 ${helpers.single_keyword("resize",
                          "none both horizontal vertical",
                          products="gecko")}
+
+// Non-standard
+${helpers.single_keyword("-moz-appearance",
+                         """none button button-arrow-down button-arrow-next button-arrow-previous button-arrow-up
+                            button-bevel button-focus caret checkbox checkbox-container checkbox-label checkmenuitem
+                            dualbutton groupbox listbox listitem menuarrow menubar menucheckbox menuimage menuitem
+                            menuitemtext menulist menulist-button menulist-text menulist-textfield menupopup menuradio
+                            menuseparator meterbar meterchunk progressbar progressbar-vertical progresschunk
+                            progresschunk-vertical radio radio-container radio-label radiomenuitem range range-thumb
+                            resizer resizerpanel scale-horizontal scalethumbend scalethumb-horizontal scalethumbstart
+                            scalethumbtick scalethumb-vertical scale-vertical scrollbarbutton-down scrollbarbutton-left
+                            scrollbarbutton-right scrollbarbutton-up scrollbarthumb-horizontal scrollbarthumb-vertical
+                            scrollbartrack-horizontal scrollbartrack-vertical searchfield separator spinner
+                            spinner-downbutton spinner-textfield spinner-upbutton splitter statusbar statusbarpanel tab
+                            tabpanel tabpanels tab-scroll-arrow-back tab-scroll-arrow-forward textfield
+                            textfield-multiline toolbar toolbarbutton toolbarbutton-dropdown toolbargripper toolbox
+                            tooltip treeheader treeheadercell treeheadersortarrow treeitem treeline treetwisty
+                            treetwistyopen treeview -moz-win-borderless-glass -moz-win-browsertabbar-toolbox
+                            -moz-win-communications-toolbox -moz-win-exclude-glass -moz-win-glass -moz-win-media-toolbox
+                            -moz-window-button-box -moz-window-button-box-maximized -moz-window-button-close
+                            -moz-window-button-maximize -moz-window-button-minimize -moz-window-button-restore
+                            -moz-window-frame-bottom -moz-window-frame-left -moz-window-frame-right -moz-window-titlebar
+                            -moz-window-titlebar-maximized
+                         """,
+                         gecko_ffi_name="mAppearance",
+                         gecko_constant_prefix="NS_THEME",
+                         products="gecko")}
+
+// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-binding
+<%helpers:longhand name="-moz-binding" products="gecko">
+    use cssparser::{CssStringWriter, ToCss};
+    use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
+    use std::fmt::{self, Write};
+    use url::Url;
+    use values::computed::ComputedValueAsSpecified;
+
+    #[derive(PartialEq, Clone, Debug, HeapSizeOf)]
+    pub struct UrlExtraData {
+        pub base: GeckoArcURI,
+        pub referrer: GeckoArcURI,
+        pub principal: GeckoArcPrincipal,
+    }
+
+    #[derive(PartialEq, Clone, Debug, HeapSizeOf)]
+    pub enum SpecifiedValue {
+        Url(Url, UrlExtraData),
+        None,
+    }
+
+    impl ComputedValueAsSpecified for SpecifiedValue {}
+
+    impl ToCss for SpecifiedValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result where W: fmt::Write {
+            use values::LocalToCss;
+            match *self {
+                SpecifiedValue::Url(ref url, _) => {
+                    url.to_css(dest)
+                }
+                SpecifiedValue::None => {
+                    try!(dest.write_str("none"));
+                    Ok(())
+                }
+            }
+        }
+    }
+
+    pub mod computed_value {
+        pub type T = super::SpecifiedValue;
+    }
+
+    #[inline] pub fn get_initial_value() -> SpecifiedValue {
+        SpecifiedValue::None
+    }
+
+    pub fn parse(context: &ParserContext, input: &mut Parser) -> Result<SpecifiedValue, ()> {
+        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+            return Ok(SpecifiedValue::None);
+        }
+
+        let url = context.parse_url(&*try!(input.expect_url()));
+        match context.extra_data {
+            ParserContextExtraData {
+                base: Some(ref base),
+                referrer: Some(ref referrer),
+                principal: Some(ref principal),
+            } => {
+                let extra_data = UrlExtraData {
+                    base: base.clone(),
+                    referrer: referrer.clone(),
+                    principal: principal.clone(),
+                };
+                Ok(SpecifiedValue::Url(url, extra_data))
+            },
+            _ => {
+                // FIXME(heycam) should ensure we always have a principal, etc., when parsing
+                // style attributes and re-parsing due to CSS Variables.
+                println!("stylo: skipping -moz-binding declaration without ParserContextExtraData");
+                Err(())
+            },
+        }
+    }
+</%helpers:longhand>

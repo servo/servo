@@ -72,7 +72,7 @@ impl<'lc, 'ln> DomTraversalContext<ServoLayoutNode<'ln>> for RecalcStyleAndConst
 /// A bottom-up, parallelizable traversal.
 pub trait PostorderNodeMutTraversal<ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode> {
     /// The operation to perform. Return true to continue or false to stop.
-    fn process(&mut self, node: &ConcreteThreadSafeLayoutNode) -> bool;
+    fn process(&mut self, node: &ConcreteThreadSafeLayoutNode);
 }
 
 /// The flow construction traversal, which builds flows for styled nodes.
