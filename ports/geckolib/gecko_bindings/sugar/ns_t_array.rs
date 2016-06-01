@@ -32,19 +32,25 @@ impl<T> nsTArray<T> {
         self.header().mLength
     }
 
+    #[inline]
+    unsafe fn slice_begin(&self) -> *mut T {
+        debug_assert!(!self.mBuffer.is_null());
+        (self.mBuffer as *const nsTArrayHeader).offset(1) as *mut _
+    }
+
+    #[inline]
     fn ptr_at_mut(&mut self, index: u32) -> *mut T {
         debug_assert!(index <= self.len());
         unsafe {
-            let slice_begin = (self.mBuffer as *const nsTArrayHeader).offset(1) as *mut T;
-            slice_begin.offset(index as isize)
+            self.slice_begin().offset(index as isize)
         }
     }
 
+    #[inline]
     fn ptr_at(&self, index: u32) -> *const T {
         debug_assert!(index <= self.len());
         unsafe {
-            let slice_begin = (self.mBuffer as *const nsTArrayHeader).offset(1) as *const T;
-            slice_begin.offset(index as isize)
+            self.slice_begin().offset(index as isize)
         }
     }
 }
