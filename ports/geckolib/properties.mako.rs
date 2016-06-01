@@ -20,7 +20,7 @@ use gecko_bindings::bindings::{Gecko_CopyMozBindingFrom, Gecko_CopyListStyleType
 use gecko_bindings::bindings::{Gecko_SetMozBinding, Gecko_SetListStyleType};
 use gecko_bindings::bindings::{Gecko_SetNullImageValue, Gecko_SetGradientImageValue};
 use gecko_bindings::bindings::{Gecko_CreateGradient};
-use gecko_bindings::bindings::{Gecko_SetGradientStop, Gecko_CopyImageValueFrom};
+use gecko_bindings::bindings::{Gecko_CopyImageValueFrom};
 use gecko_bindings::structs;
 use glue::ArcHelpers;
 use heapsize::HeapSizeOf;
