@@ -349,7 +349,7 @@ impl FileReader {
         self.change_ready_state(FileReaderReadyState::Loading);
 
         // Step 4
-        let blob_contents = blob.get_data().clone();
+        let blob_contents = blob.get_slice_or_empty();
 
         let type_ = blob.Type();
 
