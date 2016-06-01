@@ -270,6 +270,16 @@ impl Frame {
         self.current = FrameEntry::new(pipeline_id, 0, EntryReason::Load);
         replace(&mut self.next, vec!())
     }
+
+    fn pipelines(&self) -> Vec<PipelineId> {
+        let mut pipelines = vec!();
+        pipelines.extend(self.next.iter().map(|entry| entry.id));
+        pipelines.extend(self.prev.iter().map(|entry| entry.id));
+        pipelines.push(self.current.id);
+        // There may be duplicate pipelines in the case of a state or hash change
+        pipelines.dedup();
+        pipelines
+    }
 }
 
 struct HistoryIterator {
@@ -529,6 +539,31 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
     }
 
+    fn get_all_frames_for_frame(&self, frame_id: Option<FrameId>) -> Vec<FrameId> {
+        let frame_id = match frame_id {
+            Some(frame_id) => frame_id,
+            None => return vec!(),
+        };
+
+        let frame = match self.frames.get(&frame_id) {
+            Some(frame) => frame,
+            None => {
+                warn!("Frame {:?} closed while trying to get history frame tree", frame_id);
+                return vec!();
+            },
+        };
+        let pipelines = frame.pipelines();
+        let mut frames = vec!(frame_id);
+        for pipeline_id in &pipelines {
+            if let Some(pipeline) = self.pipelines.get(&pipeline_id) {
+                for &frame_id in &pipeline.children {
+                    frames.extend_from_slice(&self.get_all_frames_for_frame(Some(frame_id)));
+                }
+            }
+        }
+        frames
+    }
+
     // Get an iterator for the current history in the frame tree. This iterator
     // interleaves the history of each `Frame` in the frame tree according to the
     // time at which each entry was added
@@ -536,8 +571,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                         frame_id_root: Option<FrameId>,
                         direction: NavigationDirection)
                         -> HistoryIterator {
-        let frame_tree_iter = self.current_frame_tree_iter(frame_id_root);
-        let iters = frame_tree_iter.map(|frame| {
+        let frame_tree_iter = self.get_all_frames_for_frame(frame_id_root);
+        let iters = frame_tree_iter.iter().filter_map(|frame_id| self.frames.get(&frame_id)).map(|frame| {
             let iter = match direction {
                 NavigationDirection::Forward(_) => {
                     frame.next.iter().map(|entry| entry.time).collect::<Vec<u64>>()
@@ -1559,11 +1594,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn handle_history_length(&mut self, pipeline_id: PipelineId, sender: IpcSender<usize>) {
         let frame_id = self.get_top_level_frame_for_pipeline(Some(pipeline_id));
 
-        let frame_tree = self.current_frame_tree_iter(frame_id);
+        let frame_tree = self.get_all_frames_for_frame(frame_id);
         let mut len = 1;
 
-        for frame in frame_tree {
-            len += frame.next.len() + frame.prev.len();
+        for frame_id in frame_tree {
+            if let Some(frame) = self.frames.get(&frame_id) {
+                len += frame.next.len() + frame.prev.len();
+            }
         }
 
         let _ = sender.send(len);
