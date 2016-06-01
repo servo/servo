@@ -211,7 +211,7 @@ impl ResourceChannelManager {
                 CoreResourceMsg::Synchronize(sender) => {
                     let _ = sender.send(());
                 }
-                CoreResourceMsg::Exit => {
+                CoreResourceMsg::Exit(sender) => {
                     if let Some(ref config_dir) = opts::get().config_dir {
                         match self.resource_manager.auth_cache.read() {
                             Ok(auth_cache) => write_json_to_file(&*auth_cache, config_dir, "auth_cache.json"),
@@ -226,6 +226,7 @@ impl ResourceChannelManager {
                             Err(_) => warn!("Error writing hsts list to disk"),
                         }
                     }
+                    let _ = sender.send(());
                     break;
                 }
 

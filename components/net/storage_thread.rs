@@ -74,10 +74,11 @@ impl StorageManager {
                 StorageThreadMsg::Clear(sender, url, storage_type) => {
                     self.clear(sender, url, storage_type)
                 }
-                StorageThreadMsg::Exit => {
+                StorageThreadMsg::Exit(sender) => {
                     if let Some(ref config_dir) = opts::get().config_dir {
                         resource_thread::write_json_to_file(&self.local_data, config_dir, "local_data.json");
                     }
+                    let _ = sender.send(());
                     break
                 }
             }

@@ -817,11 +817,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_exit(&mut self) {
+        // Channels to recieve signals when threads are done exiting.
+        let (core_sender, core_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+        let (storage_sender, storage_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+
         for (_id, ref pipeline) in &self.pipelines {
             pipeline.exit();
         }
         self.image_cache_thread.exit();
-        if let Err(e) = self.resource_threads.send(net_traits::CoreResourceMsg::Exit) {
+        if let Err(e) = self.resource_threads.send(net_traits::CoreResourceMsg::Exit(core_sender)) {
             warn!("Exit resource thread failed ({})", e);
         }
         if let Some(ref chan) = self.devtools_chan {
@@ -830,7 +834,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 warn!("Exit devtools failed ({})", e);
             }
         }
-        if let Err(e) = self.resource_threads.send(StorageThreadMsg::Exit) {
+        if let Err(e) = self.resource_threads.send(StorageThreadMsg::Exit(storage_sender)) {
             warn!("Exit storage thread failed ({})", e);
         }
 
@@ -842,6 +846,15 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             warn!("Exit bluetooth thread failed ({})", e);
         }
         self.font_cache_thread.exit();
+
+        // Receive exit signals from threads.
+        if let Err(e) = core_receiver.recv() {
+            warn!("Exit resource thread failed ({})", e);
+        }
+        if let Err(e) = storage_receiver.recv() {
+            warn!("Exit storage thread failed ({})", e);
+        }
+
         self.compositor_proxy.send(ToCompositorMsg::ShutdownComplete);
     }
 
