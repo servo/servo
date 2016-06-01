@@ -7,10 +7,7 @@
 /*sealed*/ interface Window : EventTarget {
   // the current browsing context
   [Unforgeable] readonly attribute WindowProxy window;
-  //[Unforgeable] readonly attribute BrowsingContext window;
-  //[Replaceable] readonly attribute WindowProxy self;
-  //readonly attribute Window window;
-  [BinaryName="Self_"] readonly attribute Window self;
+  [BinaryName="Self_", Replaceable] readonly attribute WindowProxy self;
   [Unforgeable] readonly attribute Document document;
   //         attribute DOMString name;
   [/*PutForwards=href, */Unforgeable] readonly attribute Location location;
@@ -29,14 +26,11 @@
   //void blur();
 
   // other browsing contexts
-  //[Replaceable] readonly attribute WindowProxy frames;
-  readonly attribute Window frames;
+  [Replaceable] readonly attribute WindowProxy frames;
   //[Replaceable] readonly attribute unsigned long length;
-  //[Unforgeable] readonly attribute WindowProxy top;
-  readonly attribute Window top;
+  [Unforgeable] readonly attribute WindowProxy top;
   //         attribute any opener;
-  //readonly attribute WindowProxy parent;
-  readonly attribute Window parent;
+  readonly attribute WindowProxy parent;
   readonly attribute Element? frameElement;
   //WindowProxy open(optional DOMString url = "about:blank", optional DOMString target = "_blank",
   //                 optional DOMString features = "", optional boolean replace = false);
