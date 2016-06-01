@@ -2947,7 +2947,6 @@ class CGPerSignatureCall(CGThing):
             static))
         self.cgRoot = CGList(cgThings, "\n")
 
-
     def getArgs(self):
         return "args" if self.argCount > 0 else ""
 
