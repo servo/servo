@@ -143,7 +143,7 @@ impl HTMLTableElementMethods for HTMLTableElement {
             sections: self.upcast::<Node>()
                           .children()
                           .filter_map(|ref node|
-                                node.downcast::<HTMLTableSectionElement>().map(|_| JS::from_rooted(node)))
+                                node.downcast::<HTMLTableSectionElement>().map(|_| JS::from_ref(&**node)))
                           .collect()
         };
         HTMLCollection::new(window_from_node(self).r(), self.upcast(), box filter)

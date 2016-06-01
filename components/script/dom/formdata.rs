@@ -66,7 +66,7 @@ impl FormDataMethods for FormData {
     #[allow(unrooted_must_root)]
     // https://xhr.spec.whatwg.org/#dom-formdata-append
     fn Append_(&self, name: USVString, value: &Blob, filename: Option<USVString>) {
-        let blob = FormDatum::BlobData(JS::from_rooted(&self.get_file_or_blob(value, filename)));
+        let blob = FormDatum::BlobData(JS::from_ref(&*self.get_file_or_blob(value, filename)));
         let mut data = self.data.borrow_mut();
         match data.entry(Atom::from(name.0)) {
             Occupied(entry) => entry.into_mut().push(blob),
@@ -113,7 +113,7 @@ impl FormDataMethods for FormData {
     fn Set(&self, name: USVString, value: BlobOrUSVString) {
         let val = match value {
             BlobOrUSVString::USVString(s) => FormDatum::StringData(s.0),
-            BlobOrUSVString::Blob(b) => FormDatum::BlobData(JS::from_rooted(&b))
+            BlobOrUSVString::Blob(b) => FormDatum::BlobData(JS::from_ref(&*b))
         };
         self.data.borrow_mut().insert(Atom::from(name.0), vec!(val));
     }
