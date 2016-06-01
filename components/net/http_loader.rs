@@ -427,9 +427,9 @@ fn determine_request_referrer(headers: &mut Headers,
     return None;
 }
 
-pub fn set_request_cookies(url: Url, headers: &mut Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
+pub fn set_request_cookies(url: &Url, headers: &mut Headers, cookie_jar: &Arc<RwLock<CookieStorage>>) {
     let mut cookie_jar = cookie_jar.write().unwrap();
-    if let Some(cookie_list) = cookie_jar.cookies_for_url(&url, CookieSource::HTTP) {
+    if let Some(cookie_list) = cookie_jar.cookies_for_url(url, CookieSource::HTTP) {
         let mut v = Vec::new();
         v.push(cookie_list.into_bytes());
         headers.set_raw("Cookie".to_owned(), v);
@@ -620,7 +620,7 @@ pub fn modify_request_headers(headers: &mut Headers,
 
     // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
     if load_data.credentials_flag {
-        set_request_cookies(url.clone(), headers, cookie_jar);
+        set_request_cookies(&url, headers, cookie_jar);
 
         // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch step 12
         set_auth_header(headers, url, auth_cache);
