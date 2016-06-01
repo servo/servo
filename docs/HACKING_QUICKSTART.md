@@ -2,7 +2,10 @@
 
 This guide covers the basics things one needs to know to start hacking Servo.
 It doesn't cover how Servo works (see the [documentation](#documentation) section for that),
-but describe how to setup your environment to compile, run and debug Servo.
+but describe how to setup your environment to compile, run, and debug Servo. For information
+on the [Github Workflow](https://github.com/servo/servo/wiki/Github-workflow) and some helpful
+[Git Tips](https://github.com/servo/servo/wiki/Github-workflow#git-tips) see the
+[Wiki](https://github.com/servo/servo/wiki).
 
 ## Building Servo
 
