@@ -212,7 +212,6 @@ impl DedicatedWorkerGlobalScope {
                             worker_url: Url,
                             id: PipelineId,
                             from_devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
-                            parent_rt: SharedRt,
                             worker_rt_for_mainthread: Arc<Mutex<Option<SharedRt>>>,
                             worker: TrustedWorkerAddress,
                             parent_sender: Box<ScriptChan + Send>,
