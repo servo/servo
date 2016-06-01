@@ -272,6 +272,7 @@ impl WebGLRenderingContext {
             None => return Err(()),
         };
 
+
         // NOTE: Getting the pixels probably can be short-circuited if some
         // parameter is invalid.
         //
