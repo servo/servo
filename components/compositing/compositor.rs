@@ -1387,31 +1387,27 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             MouseWindowEvent::MouseUp(_, p) => p,
         };
 
-        if let Some(ref webrender_api) = self.webrender_api {
+        if self.webrender_api.is_some() {
             let root_pipeline_id = match self.get_root_pipeline_id() {
                 Some(root_pipeline_id) => root_pipeline_id,
                 None => return,
             };
-            if self.pipeline(root_pipeline_id).is_none() {
-                return;
-            }
 
-            let (translated_point, translated_pipeline_id) =
-                webrender_api.translate_point_to_layer_space(&point.to_untyped());
-            let event_to_send = match mouse_window_event {
-                MouseWindowEvent::Click(button, _) => {
-                    MouseButtonEvent(MouseEventType::Click, button, translated_point)
-                }
-                MouseWindowEvent::MouseDown(button, _) => {
-                    MouseButtonEvent(MouseEventType::MouseDown, button, translated_point)
-                }
-                MouseWindowEvent::MouseUp(button, _) => {
-                    MouseButtonEvent(MouseEventType::MouseUp, button, translated_point)
-                }
-            };
-            let translated_pipeline_id = translated_pipeline_id.from_webrender();
-            let msg = ConstellationControlMsg::SendEvent(translated_pipeline_id, event_to_send);
-            if let Some(pipeline) = self.pipeline(translated_pipeline_id) {
+            if let Some(pipeline) = self.pipeline(root_pipeline_id) {
+                let dppx = self.page_zoom * self.device_pixels_per_screen_px();
+                let translated_point = (point / dppx).to_untyped();
+                let event_to_send = match mouse_window_event {
+                    MouseWindowEvent::Click(button, _) => {
+                        MouseButtonEvent(MouseEventType::Click, button, translated_point)
+                    }
+                    MouseWindowEvent::MouseDown(button, _) => {
+                        MouseButtonEvent(MouseEventType::MouseDown, button, translated_point)
+                    }
+                    MouseWindowEvent::MouseUp(button, _) => {
+                        MouseButtonEvent(MouseEventType::MouseUp, button, translated_point)
+                    }
+                };
+                let msg = ConstellationControlMsg::SendEvent(root_pipeline_id, event_to_send);
                 if let Err(e) = pipeline.script_chan.send(msg) {
                     warn!("Sending control event to script failed ({}).", e);
                 }
@@ -1431,7 +1427,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
             return
         }
 
-        if let Some(ref webrender_api) = self.webrender_api {
+        if self.webrender_api.is_some() {
             let root_pipeline_id = match self.get_root_pipeline_id() {
                 Some(root_pipeline_id) => root_pipeline_id,
                 None => return,
@@ -1440,12 +1436,10 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 return;
             }
 
-            let (translated_point, translated_pipeline_id) =
-                webrender_api.translate_point_to_layer_space(&cursor.to_untyped());
-            let translated_pipeline_id = translated_pipeline_id.from_webrender();
-            let event_to_send = MouseMoveEvent(Some(translated_point));
-            let msg = ConstellationControlMsg::SendEvent(translated_pipeline_id, event_to_send);
-            if let Some(pipeline) = self.pipeline(translated_pipeline_id) {
+            let dppx = self.page_zoom * self.device_pixels_per_screen_px();
+            let event_to_send = MouseMoveEvent(Some((cursor / dppx).to_untyped()));
+            let msg = ConstellationControlMsg::SendEvent(root_pipeline_id, event_to_send);
+            if let Some(pipeline) = self.pipeline(root_pipeline_id) {
                 if let Err(e) = pipeline.script_chan.send(msg) {
                     warn!("Sending mouse control event to script failed ({}).", e);
                 }
