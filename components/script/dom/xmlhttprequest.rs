@@ -230,12 +230,14 @@ impl XMLHttpRequest {
                         *self.sync_status.borrow_mut() = Some(rv);
                     }
                 }
-                fn process_response_eof(&mut self, response: Result<Vec<u8>, NetworkError>) {
+                fn process_response_eof(&mut self, response: Result<Option<Vec<u8>>, NetworkError>) {
                     match response {
                         Ok(buf) => {
-                            *self.buf.borrow_mut() = buf;
-                            // todo move to a process_chunk
-                            self.xhr.root().process_data_available(self.gen_id, self.buf.borrow().clone());
+                            if let Some(buf) = buf {
+                                *self.buf.borrow_mut() = buf;
+                                // todo move to a process_chunk
+                                self.xhr.root().process_data_available(self.gen_id, self.buf.borrow().clone());   
+                            }
                             let rv = self.xhr.root().process_response_complete(self.gen_id, Ok(()));
                             *self.sync_status.borrow_mut() = Some(rv);
                         }
@@ -244,8 +246,17 @@ impl XMLHttpRequest {
                             *self.sync_status.borrow_mut() = Some(rv);
                         }
                     }
-                    
-                    
+                }
+                fn fetch_done(&mut self, response: Result<(Metadata, Option<Vec<u8>>), NetworkError>) {
+                    match response {
+                        Ok(response) => {
+                            self.process_response(Ok(response.0));
+                            self.process_response_eof(Ok(response.1));
+                        }
+                        Err(err) => {
+                            self.process_response_eof(Err(err));
+                        }
+                    }
                 }
         }
 
@@ -261,7 +272,6 @@ impl XMLHttpRequest {
             script_chan: script_chan,
         };
         ROUTER.add_route(action_receiver.to_opaque(), box move |message| {
-            println!("routing");
             listener.notify_fetch(message.to().unwrap());
         });
         core_resource_thread.send(Fetch(init, action_sender)).unwrap();
@@ -525,6 +535,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         };
         // Step 4
         let extracted = data.as_ref().map(|d| d.extract());
+
         self.request_body_len.set(extracted.as_ref().map_or(0, |e| e.0.len()));
 
         // todo preserved headers?
@@ -604,6 +615,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         debug!("request_headers = {:?}", *self.request_headers.borrow());
 
         self.fetch_time.set(time::now().to_timespec().sec);
+
         let rv = self.fetch(request, self.global().r());
         // Step 10
         if self.sync.get() {

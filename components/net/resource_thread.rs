@@ -24,7 +24,7 @@ use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
 use net_traits::LoadContext;
 use net_traits::ProgressMsg::Done;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResponseAction, CoreResourceThread};
-use net_traits::{CoreResourceMsg, CookieSource, FetchResponseMsg, LoadConsumer};
+use net_traits::{CoreResourceMsg, CookieSource, FetchResponseMsg, FetchTaskTarget, LoadConsumer};
 use net_traits::{LoadData, LoadResponse, NetworkError, ResourceId};
 use net_traits::{WebSocketCommunicate, WebSocketConnectData, ResourceThreads};
 use net_traits::request::{Request, RequestInit};
@@ -486,16 +486,24 @@ impl CoreResourceManager {
                          cancel_listener));
     }
 
-    fn fetch(&self, init: RequestInit, sender: IpcSender<FetchResponseMsg>) {
+    fn fetch(&self, init: RequestInit, sender: IpcSender<FetchResponseMsg>) {        
+        let http_state = HttpState {
+            hsts_list: self.hsts_list.clone(),
+            cookie_jar: self.cookie_jar.clone(),
+            auth_cache: self.auth_cache.clone(),
+            blocked_content: BLOCKED_CONTENT_RULES.clone(),
+        };
         spawn_named(format!("fetch thread for {}", init.url), move || {
+            let sync = init.synchronous;
             let request = Request::from_init(init);
             // XXXManishearth: Check origin against pipeline id
             // todo load context / mimesniff in fetch
             // todo referrer policy?
-            // todo worker stuff
-            fetch(Rc::new(request), Some(Box::new(sender)));
+            // todo service worker stuff
+            let mut target = Some(Box::new(sender) as Box<FetchTaskTarget + Send + 'static>);
+            let response = fetch(Rc::new(request), &mut target, http_state);
+            target.unwrap().fetch_done(&response, sync);
         })
-
     }
 
     fn websocket_connect(&self,

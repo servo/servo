@@ -43,7 +43,7 @@ fn establish_a_websocket_connection(resource_url: &Url, net_url: (Host, String, 
         request.headers.set(WebSocketProtocol(protocols.clone()));
     };
 
-    http_loader::set_request_cookies(resource_url.clone(), &mut request.headers, &cookie_jar);
+    http_loader::set_request_cookies(&resource_url, &mut request.headers, &cookie_jar);
 
     let response = try!(request.send());
     try!(response.validate());

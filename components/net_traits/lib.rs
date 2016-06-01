@@ -36,6 +36,8 @@ use hyper::method::Method;
 use hyper::mime::{Attr, Mime};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
+use request::{Request, RequestInit};
+use response::{HttpsState, Response, ResponseBody};
 use std::io::Error as IOError;
 use std::sync::mpsc::Sender;
 use std::thread;
@@ -162,71 +164,110 @@ pub enum FetchResponseMsg {
     ProcessRequestEOF,
     // todo: send more info about the response (or perhaps the entire Response)
     ProcessResponse(Result<Metadata, NetworkError>),
-    ProcessResponseEOF(Result<Vec<u8>, NetworkError>),
+    ProcessResponseEOF(Result<Option<Vec<u8>>, NetworkError>),
+    FetchDone(Result<(Metadata, Option<Vec<u8>>), NetworkError>),
 }
 
 pub trait FetchTaskTarget {
     /// https://fetch.spec.whatwg.org/#process-request-body
     ///
     /// Fired when a chunk of the request body is transmitted
-    fn process_request_body(&mut self, request: &request::Request);
+    fn process_request_body(&mut self, request: &Request);
 
     /// https://fetch.spec.whatwg.org/#process-request-end-of-file
     ///
     /// Fired when the entire request finishes being transmitted
-    fn process_request_eof(&mut self, request: &request::Request);
+    fn process_request_eof(&mut self, request: &Request);
 
     /// https://fetch.spec.whatwg.org/#process-response
     ///
     /// Fired when headers are received
-    fn process_response(&mut self, response: &response::Response);
+    fn process_response(&mut self, response: &Response);
 
     /// https://fetch.spec.whatwg.org/#process-response-end-of-file
     ///
     /// Fired when the response is fully fetched
-    fn process_response_eof(&mut self, response: &response::Response);
+    fn process_response_eof(&mut self, response: &Response);
+
+    /// Called when fetch terminates, useful for sync
+    fn fetch_done(&mut self, response: &Response, sync: bool);
 }
 
 pub trait FetchResponseListener {
     fn process_request_body(&mut self);
     fn process_request_eof(&mut self);
     fn process_response(&mut self, metadata: Result<Metadata, NetworkError>);
-    fn process_response_eof(&mut self, response: Result<Vec<u8>, NetworkError>);
+    fn process_response_eof(&mut self, response: Result<Option<Vec<u8>>, NetworkError>);
+
+    fn fetch_done(&mut self, response: Result<(Metadata, Option<Vec<u8>>), NetworkError>);
 }
 
 impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
-    fn process_request_body(&mut self, _: &request::Request) {
-        println!("PRqB");
+    fn process_request_body(&mut self, _: &Request) {
         let _ = self.send(FetchResponseMsg::ProcessRequestBody);
     }
 
-    fn process_request_eof(&mut self, _: &request::Request) {
-        println!("PRqE");
+    fn process_request_eof(&mut self, _: &Request) {
         let _ = self.send(FetchResponseMsg::ProcessRequestEOF);
     }
 
-    fn process_response(&mut self, response: &response::Response) {
-        println!("PR");
+    fn process_response(&mut self, response: &Response) {
         let _ = self.send(FetchResponseMsg::ProcessResponse(response.metadata()));
     }
 
-    fn process_response_eof(&mut self, response: &response::Response) {
-        println!("PRE");
+    fn process_response_eof(&mut self, response: &Response) {
         if response.is_network_error() {
             // todo: finer grained errors
-            let _ = self.send(FetchResponseMsg::ProcessResponse(Err(NetworkError::Internal("Network error".into()))));
+            let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Err(NetworkError::Internal("Network error".into()))));
         }
         if let Ok(ref guard) = response.body.lock() {
-            if let response::ResponseBody::Done(ref vec) = **guard {  
-                let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Ok(vec.clone())));
-                return;
+            match **guard {
+                ResponseBody::Done(ref vec) => {
+                    let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Ok(Some(vec.clone()))));
+                    return;
+                }
+                ResponseBody::Empty => {
+                    let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Ok(None)));
+                    return;
+                }
+                _ => ()
             }
         }
 
         // If something goes wrong, log it instead of crashing the resource thread
         let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Err(NetworkError::Internal("Incomplete body".into()))));
     }
+
+    fn fetch_done(&mut self, response: &Response, sync: bool) {
+        if !sync {
+            // fetch_done is only used by sync XHR, avoid pointless data cloning
+            return;
+        }
+        if response.is_network_error() {
+            // todo: finer grained errors
+            let _ = self.send(FetchResponseMsg::FetchDone(Err(NetworkError::Internal("Network error".into()))));
+        }
+        if let Ok(ref guard) = response.body.lock() {
+            match **guard {
+                ResponseBody::Done(ref vec) => {
+                    let ret = response.metadata().map(|m| (m, Some(vec.clone())));
+                    let _ = self.send(FetchResponseMsg::FetchDone(ret));
+                    return;
+                }
+                ResponseBody::Empty => {
+                    let ret = response.metadata().map(|m| (m, None));
+                    let _ = self.send(FetchResponseMsg::FetchDone(ret));
+                    return;
+                }
+                _ => ()
+            }
+        }
+
+        // If something goes wrong, log it instead of crashing the resource thread
+        let _ = self.send(FetchResponseMsg::FetchDone(Err(NetworkError::Internal("Incomplete body".into()))));
+    }
 }
+
 
 pub trait Action<Listener> {
     fn process(self, listener: &mut Listener);
@@ -275,6 +316,7 @@ impl<T: FetchResponseListener> Action<T> for FetchResponseMsg {
             FetchResponseMsg::ProcessRequestEOF => listener.process_request_eof(),
             FetchResponseMsg::ProcessResponse(meta) => listener.process_response(meta),
             FetchResponseMsg::ProcessResponseEOF(data) => listener.process_response_eof(data),
+            FetchResponseMsg::FetchDone(response) => listener.fetch_done(response),
         }
     }
 }
@@ -416,7 +458,7 @@ pub struct WebSocketConnectData {
 pub enum CoreResourceMsg {
     /// Request the data associated with a particular URL
     Load(LoadData, LoadConsumer, Option<IpcSender<ResourceId>>),
-    Fetch(request::RequestInit, IpcSender<FetchResponseMsg>),
+    Fetch(RequestInit, IpcSender<FetchResponseMsg>),
     /// Try to make a websocket connection to a URL.
     WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
     /// Store a set of cookies for a given originating URL
@@ -555,7 +597,7 @@ pub struct Metadata {
     pub status: Option<RawStatus>,
 
     /// Is successful HTTPS connection
-    pub https_state: response::HttpsState,
+    pub https_state: HttpsState,
 }
 
 impl Metadata {
@@ -568,7 +610,7 @@ impl Metadata {
             headers: None,
             // https://fetch.spec.whatwg.org/#concept-response-status-message
             status: Some(RawStatus(200, "OK".into())),
-            https_state: response::HttpsState::None,
+            https_state: HttpsState::None,
         }
     }
 
