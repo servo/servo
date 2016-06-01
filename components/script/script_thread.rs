@@ -479,11 +479,11 @@ pub unsafe extern "C" fn shadow_check_callback(_cx: *mut JSContext,
 }
 
 impl ScriptThread {
-    pub fn page_fetch_complete(id: &PipelineId, subpage: Option<&SubpageId>, metadata: Option<Metadata>)
-                               -> Option<ParserRoot> {
+    pub fn page_headers_available(id: &PipelineId, subpage: Option<&SubpageId>, metadata: Option<Metadata>)
+                                  -> Option<ParserRoot> {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.borrow().unwrap() };
-            script_thread.handle_page_fetch_complete(id, subpage, metadata)
+            script_thread.handle_page_headers_available(id, subpage, metadata)
         })
     }
 
@@ -1322,8 +1322,8 @@ impl ScriptThread {
 
     /// We have received notification that the response associated with a load has completed.
     /// Kick off the document and frame tree creation process using the result.
-    fn handle_page_fetch_complete(&self, id: &PipelineId, subpage: Option<&SubpageId>,
-                                  metadata: Option<Metadata>) -> Option<ParserRoot> {
+    fn handle_page_headers_available(&self, id: &PipelineId, subpage: Option<&SubpageId>,
+                                     metadata: Option<Metadata>) -> Option<ParserRoot> {
         let idx = self.incomplete_loads.borrow().iter().position(|load| {
             load.pipeline_id == *id && load.parent_info.as_ref().map(|info| &info.1) == subpage
         });
