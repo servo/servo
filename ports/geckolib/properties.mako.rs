@@ -778,11 +778,7 @@ fn static_assert() {
                                              stop_count as u32)
                     };
 
-                    if gecko_gradient.is_null() {
-                        warn!("stylo: Couldn't allocate gradient");
-                        return;
-                    }
-
+                    // TODO: figure out what gecko does in the `corner` case.
                     if let AngleOrCorner::Angle(angle) = gradient.angle_or_corner {
                         unsafe {
                             (*gecko_gradient).mAngle.set(angle);
@@ -808,12 +804,13 @@ fn static_assert() {
                             CSSColor::RGBA(ref rgba) => convert_rgba_to_nscolor(rgba),
                         };
 
-                        unsafe {
-                            let mut stop = &mut (*gecko_gradient).mStops[index as u32];
-                            stop.mColor = color;
-                            stop.mIsInterpolationHint = false;
-                            stop.mLocation.copy_from(&coord);
-                        }
+                        let mut stop = unsafe {
+                            &mut (*gecko_gradient).mStops[index as u32]
+                        };
+
+                        stop.mColor = color;
+                        stop.mIsInterpolationHint = false;
+                        stop.mLocation.copy_from(&coord);
                     }
 
                     unsafe {
