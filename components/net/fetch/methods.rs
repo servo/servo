@@ -5,6 +5,7 @@
 use connector::create_http_connector;
 use data_loader::decode;
 use fetch::cors_cache::CORSCache;
+use http_loader::{HttpState, set_request_cookies};
 use http_loader::{NetworkHttpRequestFactory, ReadResult, obtain_response, read_block};
 use hyper::header::{Accept, AcceptLanguage, Authorization, AccessControlAllowCredentials};
 use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
@@ -38,13 +39,14 @@ pub type Target = Option<Box<FetchTaskTarget + Send>>;
 type DoneChannel = Option<(Sender<()>, Receiver<()>)>;
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
-pub fn fetch(request: Rc<Request>, target: Target) -> Response {
-    fetch_with_cors_cache(request, &mut CORSCache::new(), target)
+pub fn fetch(request: Rc<Request>, target: &mut Target, state: HttpState) -> Response {
+    fetch_with_cors_cache(request, &mut CORSCache::new(), target, state)
 }
 
 pub fn fetch_with_cors_cache(request: Rc<Request>,
                              cache: &mut CORSCache,
-                             mut target: Target) -> Response {
+                             target: &mut Target,
+                             state: HttpState) -> Response {
     // Step 1
     if request.window.get() == Window::Client {
         // TODO: Set window to request's client object if client is a Window object
@@ -105,12 +107,13 @@ pub fn fetch_with_cors_cache(request: Rc<Request>,
     }
 
     // Step 7
-    main_fetch(request, cache, false, false, &mut target, &mut None)
+    main_fetch(request, cache, false, false, target, &mut None, &state)
 }
 
 /// [Main fetch](https://fetch.spec.whatwg.org/#concept-main-fetch)
 fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
-              recursive_flag: bool, target: &mut Target, done_chan: &mut DoneChannel) -> Response {
+              recursive_flag: bool, target: &mut Target, done_chan: &mut DoneChannel,
+              state: &HttpState) -> Response {
     // TODO: Implement main fetch spec
 
     // Step 1
@@ -137,8 +140,10 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
     // TODO this step (referer policy)
 
     // Step 8
-    if request.referer != Referer::NoReferer {
+    if *request.referer.borrow() != Referer::NoReferer {
         // TODO be able to invoke "determine request's referer"
+        // once this is filled in be sure to update the match
+        // referer below to have an unreachable branch for client
     }
 
     // Step 9
@@ -163,14 +168,14 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
                 (current_url.scheme() == "file" && request.same_origin_data.get()) ||
                 current_url.scheme() == "about" ||
                 request.mode == RequestMode::Navigate {
-                basic_fetch(request.clone(), cache, target, done_chan)
+                basic_fetch(request.clone(), cache, target, done_chan, state)
 
             } else if request.mode == RequestMode::SameOrigin {
                 Response::network_error()
 
             } else if request.mode == RequestMode::NoCORS {
                 request.response_tainting.set(ResponseTainting::Opaque);
-                basic_fetch(request.clone(), cache, target, done_chan)
+                basic_fetch(request.clone(), cache, target, done_chan, state)
 
             } else if !matches!(current_url.scheme(), "http" | "https") {
                 Response::network_error()
@@ -181,7 +186,7 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
                   request.headers.borrow().iter().any(|h| !is_simple_header(&h)))) {
                 request.response_tainting.set(ResponseTainting::CORSTainting);
                 request.redirect_mode.set(RedirectMode::Error);
-                let response = http_fetch(request.clone(), cache, true, true, false, target, done_chan);
+                let response = http_fetch(request.clone(), cache, true, true, false, target, done_chan, state);
                 if response.is_network_error() {
                     // TODO clear cache entries using request
                 }
@@ -189,7 +194,7 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
 
             } else {
                 request.response_tainting.set(ResponseTainting::CORSTainting);
-                http_fetch(request.clone(), cache, true, false, false, target, done_chan)
+                http_fetch(request.clone(), cache, true, false, false, target, done_chan, state)
             }
         }
     };
@@ -298,19 +303,22 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
 
 /// [Basic fetch](https://fetch.spec.whatwg.org#basic-fetch)
 fn basic_fetch(request: Rc<Request>, cache: &mut CORSCache,
-               target: &mut Target, done_chan: &mut DoneChannel) -> Response {
+               target: &mut Target, done_chan: &mut DoneChannel,
+               state: &HttpState) -> Response {
     let url = request.current_url();
 
     match url.scheme() {
         "about" if url.path() == "blank" => {
             let mut response = Response::new();
+            // https://github.com/whatwg/fetch/issues/312
+            response.url = Some(url);
             response.headers.set(ContentType(mime!(Text / Html; Charset = Utf8)));
             *response.body.lock().unwrap() = ResponseBody::Done(vec![]);
             response
         },
 
         "http" | "https" => {
-            http_fetch(request.clone(), cache, false, false, false, target, done_chan)
+            http_fetch(request.clone(), cache, false, false, false, target, done_chan, state)
         },
 
         "data" => {
@@ -318,6 +326,8 @@ fn basic_fetch(request: Rc<Request>, cache: &mut CORSCache,
                 match decode(&url) {
                     Ok((mime, bytes)) => {
                         let mut response = Response::new();
+                        // https://github.com/whatwg/fetch/issues/312
+                        response.url = Some(url.clone());
                         *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                         response.headers.set(ContentType(mime));
                         response
@@ -339,6 +349,8 @@ fn basic_fetch(request: Rc<Request>, cache: &mut CORSCache,
                             let mime = guess_mime_type(file_path);
 
                             let mut response = Response::new();
+                            // https://github.com/whatwg/fetch/issues/312
+                            response.url = Some(url.clone());
                             *response.body.lock().unwrap() = ResponseBody::Done(bytes);
                             response.headers.set(ContentType(mime));
                             response
@@ -367,7 +379,8 @@ fn http_fetch(request: Rc<Request>,
               cors_preflight_flag: bool,
               authentication_fetch_flag: bool,
               target: &mut Target,
-              done_chan: &mut DoneChannel) -> Response {
+              done_chan: &mut DoneChannel,
+              state: &HttpState) -> Response {
 
     // This is a new async fetch, reset the channel we are waiting on
     *done_chan = None;
@@ -423,7 +436,7 @@ fn http_fetch(request: Rc<Request>,
 
             // Sub-substep 1
             if method_mismatch || header_mismatch {
-                let preflight_result = cors_preflight_fetch(request.clone(), cache);
+                let preflight_result = cors_preflight_fetch(request.clone(), cache, state);
                 // Sub-substep 2
                 if preflight_result.response_type == ResponseType::Error {
                     return Response::network_error();
@@ -444,7 +457,7 @@ fn http_fetch(request: Rc<Request>,
 
         // Substep 4
         let fetch_result = http_network_or_cache_fetch(request.clone(), credentials, authentication_fetch_flag,
-                                                       done_chan);
+                                                       done_chan, state);
 
         // Substep 5
         if cors_flag && cors_check(request.clone(), &fetch_result).is_err() {
@@ -472,7 +485,7 @@ fn http_fetch(request: Rc<Request>,
                     // set back to default
                     response.return_internal.set(true);
                     http_redirect_fetch(request, cache, Rc::new(response),
-                                        cors_flag, target, done_chan)
+                                        cors_flag, target, done_chan, state)
                 }
             }
         },
@@ -495,7 +508,7 @@ fn http_fetch(request: Rc<Request>,
 
             // Step 4
             return http_fetch(request, cache, cors_flag, cors_preflight_flag,
-                              true, target, done_chan);
+                              true, target, done_chan, state);
         }
 
         // Code 407
@@ -513,7 +526,7 @@ fn http_fetch(request: Rc<Request>,
             return http_fetch(request, cache,
                               cors_flag, cors_preflight_flag,
                               authentication_fetch_flag, target,
-                              done_chan);
+                              done_chan, state);
         }
 
         _ => { }
@@ -536,7 +549,8 @@ fn http_redirect_fetch(request: Rc<Request>,
                        response: Rc<Response>,
                        cors_flag: bool,
                        target: &mut Target,
-                       done_chan: &mut DoneChannel) -> Response {
+                       done_chan: &mut DoneChannel,
+                       state: &HttpState) -> Response {
     // Step 1
     assert_eq!(response.return_internal.get(), true);
 
@@ -610,14 +624,15 @@ fn http_redirect_fetch(request: Rc<Request>,
     request.url_list.borrow_mut().push(location_url);
 
     // Step 15
-    main_fetch(request, cache, cors_flag, true, target, done_chan)
+    main_fetch(request, cache, cors_flag, true, target, done_chan, state)
 }
 
 /// [HTTP network or cache fetch](https://fetch.spec.whatwg.org#http-network-or-cache-fetch)
 fn http_network_or_cache_fetch(request: Rc<Request>,
                                credentials_flag: bool,
                                authentication_fetch_flag: bool,
-                               done_chan: &mut DoneChannel) -> Response {
+                               done_chan: &mut DoneChannel,
+                               state: &HttpState) -> Response {
     // TODO: Implement Window enum for Request
     let request_has_no_window = true;
 
@@ -629,6 +644,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         Rc::new((*request).clone())
     };
 
+    println!("ncf {:?}", http_request.body);
     let content_length_value = match *http_request.body.borrow() {
         None =>
             match *http_request.method.borrow() {
@@ -648,15 +664,17 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
     }
 
     // Step 6
-    match http_request.referer {
-        Referer::NoReferer =>
+    match *http_request.referer.borrow() {
+        // Referer::Client should not be here, but we don't set
+        // the referer yet, so we club it with NoReferer
+        Referer::NoReferer | Referer::Client =>
             http_request.headers.borrow_mut().set(RefererHeader("".to_owned())),
         Referer::RefererUrl(ref http_request_referer) =>
             http_request.headers.borrow_mut().set(RefererHeader(http_request_referer.to_string())),
-        Referer::Client =>
-            // it should be impossible for referer to be anything else during fetching
-            // https://fetch.spec.whatwg.org/#concept-request-referrer
-            unreachable!()
+        // Referer::Client =>
+        //     // it should be impossible for referer to be anything else during fetching
+        //     // https://fetch.spec.whatwg.org/#concept-request-referrer
+        //     unreachable!()
     };
 
     // Step 7
@@ -705,7 +723,9 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
     if credentials_flag {
         // Substep 1
         // TODO http://mxr.mozilla.org/servo/source/components/net/http_loader.rs#504
-
+        set_request_cookies(&http_request.current_url(),
+                            &mut *http_request.headers.borrow_mut(),
+                            &state.cookie_jar);
         // Substep 2
         if !http_request.headers.borrow().has::<Authorization<String>>() {
             // Substep 3
@@ -780,7 +800,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 
     // Step 18
     if response.is_none() {
-        response = Some(http_network_fetch(request.clone(), http_request.clone(), credentials_flag, done_chan));
+        response = Some(http_network_fetch(http_request.clone(), http_request.clone(), credentials_flag, done_chan));
     }
     let response = response.unwrap();
 
@@ -839,8 +859,8 @@ fn http_network_fetch(request: Rc<Request>,
 
     let wrapped_response = obtain_response(&factory, &url, &request.method.borrow(),
                                            &request.headers.borrow(),
-                                           &cancellation_listener, &None, &request.method.borrow(),
-                                           &None, request.redirect_count.get(), &None, "");
+                                           &cancellation_listener, &request.body.borrow(), &request.method.borrow(),
+                                           &None, request.redirect_count.get()+1, &None, "");
 
     let mut response = Response::new();
     match wrapped_response {
@@ -938,14 +958,14 @@ fn http_network_fetch(request: Rc<Request>,
 }
 
 /// [CORS preflight fetch](https://fetch.spec.whatwg.org#cors-preflight-fetch)
-fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache) -> Response {
+fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache, state: &HttpState) -> Response {
     // Step 1
     let mut preflight = Request::new(request.current_url(), Some(request.origin.borrow().clone()), false);
     *preflight.method.borrow_mut() = Method::Options;
     preflight.initiator = request.initiator.clone();
     preflight.type_ = request.type_.clone();
     preflight.destination = request.destination.clone();
-    preflight.referer = request.referer.clone();
+    *preflight.referer.borrow_mut() = request.referer.borrow().clone();
 
     // Step 2
     preflight.headers.borrow_mut().set::<AccessControlRequestMethod>(
@@ -966,7 +986,7 @@ fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache) -> Response
 
     // Step 6
     let preflight = Rc::new(preflight);
-    let response = http_network_or_cache_fetch(preflight.clone(), false, false, &mut None);
+    let response = http_network_or_cache_fetch(preflight.clone(), false, false, &mut None, state);
 
     // Step 7
     if cors_check(request.clone(), &response).is_ok() &&
