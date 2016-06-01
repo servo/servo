@@ -195,22 +195,18 @@ pub trait FetchResponseListener {
 
 impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     fn process_request_body(&mut self, _: &request::Request) {
-        println!("PRqB");
         let _ = self.send(FetchResponseMsg::ProcessRequestBody);
     }
 
     fn process_request_eof(&mut self, _: &request::Request) {
-        println!("PRqE");
         let _ = self.send(FetchResponseMsg::ProcessRequestEOF);
     }
 
     fn process_response(&mut self, response: &response::Response) {
-        println!("PR");
         let _ = self.send(FetchResponseMsg::ProcessResponse(response.metadata()));
     }
 
     fn process_response_eof(&mut self, response: &response::Response) {
-        println!("PRE");
         if response.is_network_error() {
             // todo: finer grained errors
             let _ = self.send(FetchResponseMsg::ProcessResponse(Err(NetworkError::Internal("Network error".into()))));

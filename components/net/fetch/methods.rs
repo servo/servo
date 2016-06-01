@@ -137,8 +137,10 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
     // TODO this step (referer policy)
 
     // Step 8
-    if request.referer != Referer::NoReferer {
+    if *request.referer.borrow() != Referer::NoReferer {
         // TODO be able to invoke "determine request's referer"
+        // once this is filled in be sure to update the match
+        // referer below to have an unreachable branch for client
     }
 
     // Step 9
@@ -648,15 +650,17 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
     }
 
     // Step 6
-    match http_request.referer {
-        Referer::NoReferer =>
+    match *http_request.referer.borrow() {
+        // Referer::Client should not be here, but we don't set
+        // the referer yet, so we club it with NoReferer
+        Referer::NoReferer | Referer::Client =>
             http_request.headers.borrow_mut().set(RefererHeader("".to_owned())),
         Referer::RefererUrl(ref http_request_referer) =>
             http_request.headers.borrow_mut().set(RefererHeader(http_request_referer.to_string())),
-        Referer::Client =>
-            // it should be impossible for referer to be anything else during fetching
-            // https://fetch.spec.whatwg.org/#concept-request-referrer
-            unreachable!()
+        // Referer::Client =>
+        //     // it should be impossible for referer to be anything else during fetching
+        //     // https://fetch.spec.whatwg.org/#concept-request-referrer
+        //     unreachable!()
     };
 
     // Step 7
@@ -945,7 +949,7 @@ fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache) -> Response
     preflight.initiator = request.initiator.clone();
     preflight.type_ = request.type_.clone();
     preflight.destination = request.destination.clone();
-    preflight.referer = request.referer.clone();
+    *preflight.referer.borrow_mut() = request.referer.borrow().clone();
 
     // Step 2
     preflight.headers.borrow_mut().set::<AccessControlRequestMethod>(
