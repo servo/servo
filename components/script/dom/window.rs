@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
+use blob_url_store::BlobURLStore;
 use devtools_traits::{ScriptToDevtoolsControlMsg, TimelineMarker, TimelineMarkerType, WorkerId};
 use dom::bindings::callback::ExceptionHandling;
 use dom::bindings::cell::DOMRefCell;
@@ -165,6 +166,9 @@ pub struct Window {
     #[ignore_heap_size_of = "channels are hard"]
     scheduler_chan: IpcSender<TimerEventRequest>,
     timers: OneshotTimers,
+
+    /// Blob URL store
+    blob_url_store: DOMRefCell<BlobURLStore>,
 
     next_worker_id: Cell<WorkerId>,
 
@@ -1529,6 +1533,7 @@ impl Window {
             console: Default::default(),
             crypto: Default::default(),
             navigator: Default::default(),
+            blob_url_store: DOMRefCell::new(BlobURLStore::new()),
             image_cache_thread: image_cache_thread,
             mem_profiler_chan: mem_profiler_chan,
             time_profiler_chan: time_profiler_chan,
