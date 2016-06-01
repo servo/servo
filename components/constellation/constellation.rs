@@ -50,7 +50,7 @@ use script_traits::{MozBrowserEvent, MozBrowserErrorType};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::Error as IOError;
-use std::iter::Peekable;
+use std::iter::{Peekable, Rev};
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::process;
@@ -218,14 +218,14 @@ pub struct InitialConstellationState {
 /// Used to determine the reason why the navigation entry was added
 /// This is used to decide whether a pipeline should be closed after
 /// a new frame entry is pushed and the forward history is cleared.
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 enum EntryReason {
     Load,
     StateChange,
 }
 
 /// Stores information about a single navigation entry
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 struct FrameEntry {
     id: PipelineId,
     context_index: usize,
@@ -272,33 +272,33 @@ impl Frame {
     }
 }
 
-struct HistoryIterator<'a> {
-    stack: Vec<(FrameId, Peekable<Iter<'a, FrameEntry>>)>,
+struct HistoryIterator {
+    stack: Vec<(FrameId, Vec<u64>)>,
     direction: NavigationDirection,
 }
 
-impl<'a> Iterator for HistoryIterator<'a> {
+impl Iterator for HistoryIterator {
     type Item = FrameId;
     fn next(&mut self) -> Option<FrameId> {
         let mut smallest = (None, 0, 0);
-        for (index, &mut (id, ref mut entry_iter)) in self.stack.iter_mut().enumerate() {
-            if let Some(entry) = entry_iter.peek() {
+        for (index, &mut (id, ref mut entry_times)) in self.stack.iter_mut().enumerate() {
+            if let Some(time) = entry_times.last() {
                 if smallest.0.is_none() {
-                    smallest = (Some(id), index, entry.time);
+                    smallest = (Some(id), index, *time);
                     continue;
                 }
                 let predicate = match self.direction {
-                    NavigationDirection::Forward(_) => entry.time < smallest.2,
-                    NavigationDirection::Back(_) => entry.time > smallest.2,
+                    NavigationDirection::Forward(_) => *time < smallest.2,
+                    NavigationDirection::Back(_) => *time > smallest.2,
                 };
                 if predicate {
-                    smallest = (Some(id), index, entry.time);
+                    smallest = (Some(id), index, *time);
                 }
             }
         }
         if smallest.0.is_some() {
             // Pop the entry that occurred most recently
-            self.stack[smallest.1].1.next();
+            self.stack[smallest.1].1.pop();
         }
         smallest.0
     }
@@ -539,8 +539,17 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let frame_tree_iter = self.current_frame_tree_iter(frame_id_root);
         let iters = frame_tree_iter.map(|frame| {
             let iter = match direction {
-                NavigationDirection::Forward(_) => frame.next.iter().peekable(),
-                NavigationDirection::Back(_) => frame.prev.iter().peekable(),
+                NavigationDirection::Forward(_) => {
+                    frame.next.iter().map(|entry| entry.time).collect::<Vec<u64>>()
+                },
+                NavigationDirection::Back(_) => {
+                    let mut prev = frame.prev.iter().map(|entry| entry.time).collect::<Vec<u64>>();
+                    prev.push(frame.current.time);
+                    // Remove the first entry time as it should not be used to calculate which
+                    // frame needs to navigate
+                    prev.remove(0);
+                    prev
+                },
             };
             (frame.id, iter)
         }).collect();
