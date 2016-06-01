@@ -4,11 +4,13 @@
 
 use dom::bindings::codegen::Bindings::HTMLHeadElementBinding;
 use dom::bindings::inheritance::Castable;
-use dom::bindings::js::Root;
+use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::str::DOMString;
-use dom::document::Document;
+use dom::document::{Document, determine_policy_for_token};
+use dom::element::Element;
 use dom::htmlelement::HTMLElement;
-use dom::node::Node;
+use dom::htmlmetaelement::HTMLMetaElement;
+use dom::node::{Node, document_from_node};
 use dom::userscripts::load_script;
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
@@ -33,6 +35,30 @@ impl HTMLHeadElement {
                document: &Document) -> Root<HTMLHeadElement> {
         let element = HTMLHeadElement::new_inherited(localName, prefix, document);
         Node::reflect_node(box element, document, HTMLHeadElementBinding::Wrap)
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#meta-referrer
+    pub fn set_document_referrer(&self) {
+        //TODO is this THE head element, or any? If any, should confirm it's the one
+        //on second thought, may not matter if this is only called from the metaelements
+        let node = self.upcast::<Node>();
+        let children = node.traverse_preorder()
+                           .filter_map(Root::downcast::<Element>)
+                           .filter(|elem| elem.is::<HTMLMetaElement>())
+                           .filter(|elem| elem.get_string_attribute(&atom!("name")) == "referrer")
+                           .filter(|elem| elem.get_attribute(&ns!(), &atom!("content")).is_some());
+        
+        let doc = document_from_node(self);
+        for meta in children {
+            if let Some(content) = meta.get_attribute(&ns!(), &atom!("content")).r() {
+                let content = content.value();
+                let content_val = content.trim();
+                if !content_val.is_empty() {
+                    doc.set_referrer_policy(determine_policy_for_token(content_val));
+                    return;
+                }
+            }
+        }
     }
 }
 

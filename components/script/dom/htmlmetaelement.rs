@@ -10,7 +10,7 @@ use dom::bindings::codegen::Bindings::HTMLMetaElementBinding::HTMLMetaElementMet
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::str::DOMString;
-use dom::document::{Document, determine_policy_for_token};
+use dom::document::Document;
 use dom::element::Element;
 use dom::htmlelement::HTMLElement;
 use dom::node::{Node, document_from_node};
@@ -93,22 +93,21 @@ impl HTMLMetaElement {
 
     /// https://html.spec.whatwg.org/multipage/#meta-referrer
     fn apply_referrer(&self) {
-        /*todo - I think this chould only run if document's policy hasnt yet
-        been set. unclear - see:
-        https://html.spec.whatwg.org/multipage/#meta-referrer
-        https://w3c.github.io/webappsec-referrer-policy/#set-referrer-policy
+        /*how far into this logic do we want to call the setter? I dont wanna have 
+        too much unnecessary work on either side
         */
         let doc = document_from_node(self);
         if let Some(head) = doc.GetHead() {
             if head.upcast::<Node>().is_parent_of(self.upcast::<Node>()) {
-                let element = self.upcast::<Element>();
+                head.set_document_referrer();
+                /*let element = self.upcast::<Element>();
                 if let Some(content) = element.get_attribute(&ns!(), &atom!("content")).r() {
                     let content = content.value();
                     let content_val = content.trim();
                     if !content_val.is_empty() {
                         doc.set_referrer_policy(determine_policy_for_token(content_val));
                     }
-                }
+                } */
             }
         }
     }
