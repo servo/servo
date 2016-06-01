@@ -5,6 +5,7 @@
 use ipc_channel::ipc::IpcSender;
 use std::path::PathBuf;
 use uuid::Uuid;
+use super::{LoadConsumer, LoadData};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SelectedFile {
@@ -28,6 +29,9 @@ pub enum FileManagerThreadMsg {
 
     /// Delete the FileID entry
     DeleteFileID(Uuid),
+
+    /// Load resource by Blob URL
+    LoadBlob(LoadData, LoadConsumer),
 
     /// Shut down this thread
     Exit,
