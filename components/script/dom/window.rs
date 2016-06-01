@@ -558,8 +558,8 @@ impl WindowMethods for Window {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window
-    fn Window(&self) -> Root<Window> {
-        Root::from_ref(self)
+    fn Window(&self) -> Root<BrowsingContext> {
+        self.browsing_context()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-self
