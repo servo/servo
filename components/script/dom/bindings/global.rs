@@ -25,6 +25,7 @@ use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::{MainThreadScriptChan, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
+use task_source::TaskSource;
 use task_source::dom_manipulation::DOMManipulationTaskSource;
 use task_source::history_traversal::HistoryTraversalTask;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
