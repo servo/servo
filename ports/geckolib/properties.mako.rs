@@ -18,11 +18,15 @@ use gecko_bindings::bindings::Gecko_Destroy_${style_struct.gecko_ffi_name};
 % endfor
 use gecko_bindings::bindings::{Gecko_CopyMozBindingFrom, Gecko_CopyListStyleTypeFrom};
 use gecko_bindings::bindings::{Gecko_SetMozBinding, Gecko_SetListStyleType};
+use gecko_bindings::bindings::{Gecko_SetNullImageValue, Gecko_SetGradientImageValue};
+use gecko_bindings::bindings::{Gecko_CreateGradient};
+use gecko_bindings::bindings::{Gecko_CopyImageValueFrom};
 use gecko_bindings::structs;
 use glue::ArcHelpers;
 use std::fmt::{self, Debug};
-use std::mem::{transmute, zeroed};
+use std::mem::{transmute, uninitialized, zeroed};
 use std::sync::Arc;
+use std::cmp;
 use style::custom_properties::ComputedValuesMap;
 use style::logical_geometry::WritingMode;
 use style::properties::{CascadePropertyFn, ServoComputedValues, ComputedValues};
@@ -379,7 +383,7 @@ impl Debug for ${style_struct.gecko_struct_name} {
    # These are currently being shuffled to a different style struct on the gecko side.
    force_stub += ["backface-visibility", "transform-box", "transform-style"]
    # These live in nsStyleImageLayers in gecko. Need to figure out what to do about that.
-   force_stub += ["background-repeat", "background-attachment", "background-clip", "background-origin"];
+   force_stub += ["background-attachment", "background-clip", "background-origin"];
    # These live in an nsFont member in Gecko. Should be straightforward to do manually.
    force_stub += ["font-kerning", "font-stretch", "font-variant"]
    # These have unusual representations in gecko.
@@ -489,6 +493,7 @@ fn static_assert() {
     { const DETAIL: u32 = [0][(structs::Side::eSide${side.name} as usize != ${side.index}) as usize]; let _ = DETAIL; }
     % endfor
 }
+
 
 <% border_style_keyword = Keyword("border-style",
                                   "none solid double dotted dashed hidden groove ridge inset outset") %>
@@ -706,10 +711,128 @@ fn static_assert() {
     }
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Background" skip_longhands="background-color" skip_additionals="*">
+<%self:impl_trait style_struct_name="Background"
+                  skip_longhands="background-color background-repeat background-image"
+                  skip_additionals="*">
 
     <% impl_color("background_color", "mBackgroundColor") %>
 
+    fn copy_background_repeat_from(&mut self, other: &Self) {
+        self.gecko.mImage.mRepeatCount = other.gecko.mImage.mRepeatCount;
+        self.gecko.mImage.mLayers.mFirstElement.mRepeat =
+            other.gecko.mImage.mLayers.mFirstElement.mRepeat;
+    }
+
+    fn set_background_repeat(&mut self, v: longhands::background_repeat::computed_value::T) {
+        use style::properties::longhands::background_repeat::computed_value::T as Computed;
+        use gecko_bindings::structs::{NS_STYLE_IMAGELAYER_REPEAT_REPEAT, NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT};
+        use gecko_bindings::structs::nsStyleImageLayers_Repeat;
+        let (repeat_x, repeat_y) = match v {
+            Computed::repeat_x => (NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
+                                   NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT),
+            Computed::repeat_y => (NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
+                                   NS_STYLE_IMAGELAYER_REPEAT_REPEAT),
+            Computed::repeat => (NS_STYLE_IMAGELAYER_REPEAT_REPEAT,
+                                 NS_STYLE_IMAGELAYER_REPEAT_REPEAT),
+            Computed::no_repeat => (NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT,
+                                    NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT),
+        };
+
+        self.gecko.mImage.mRepeatCount = 1;
+        self.gecko.mImage.mLayers.mFirstElement.mRepeat = nsStyleImageLayers_Repeat {
+            mXRepeat: repeat_x as u8,
+            mYRepeat: repeat_y as u8,
+        };
+    }
+
+    fn copy_background_image_from(&mut self, other: &Self) {
+        unsafe {
+            Gecko_CopyImageValueFrom(&mut self.gecko.mImage.mLayers.mFirstElement.mImage,
+                                     &other.gecko.mImage.mLayers.mFirstElement.mImage);
+        }
+    }
+
+    fn set_background_image(&mut self, image: longhands::background_image::computed_value::T) {
+        use gecko_bindings::structs::{NS_STYLE_GRADIENT_SHAPE_LINEAR, NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER};
+        use gecko_bindings::structs::nsStyleCoord;
+        use style::values::computed::Image;
+        use style::values::specified::AngleOrCorner;
+        use cssparser::Color as CSSColor;
+
+        unsafe {
+            // Prevent leaking of the last element we did set
+            Gecko_SetNullImageValue(&mut self.gecko.mImage.mLayers.mFirstElement.mImage);
+        }
+
+        self.gecko.mImage.mImageCount = cmp::max(1, self.gecko.mImage.mImageCount);
+        if let Some(image) = image.0 {
+            match image {
+                Image::LinearGradient(ref gradient) => {
+                    let stop_count = gradient.stops.len();
+                    if stop_count >= ::std::u32::MAX as usize {
+                        warn!("stylo: Prevented overflow due to too many gradient stops");
+                        return;
+                    }
+
+                    let gecko_gradient = unsafe {
+                        Gecko_CreateGradient(NS_STYLE_GRADIENT_SHAPE_LINEAR as u8,
+                                             NS_STYLE_GRADIENT_SIZE_FARTHEST_CORNER as u8,
+                                             /* repeating = */ false,
+                                             /* legacy_syntax = */ false,
+                                             stop_count as u32)
+                    };
+
+                    // TODO: figure out what gecko does in the `corner` case.
+                    if let AngleOrCorner::Angle(angle) = gradient.angle_or_corner {
+                        unsafe {
+                            (*gecko_gradient).mAngle.set(angle);
+                        }
+                    }
+
+                    let mut coord: nsStyleCoord = unsafe { uninitialized() };
+                    for (index, stop) in gradient.stops.iter().enumerate() {
+                        // NB: stops are guaranteed to be none in the gecko side by
+                        // default.
+                        coord.set(stop.position);
+                        let color = match stop.color {
+                            CSSColor::CurrentColor => {
+                                // TODO(emilio): gecko just stores an nscolor,
+                                // and it doesn't seem to support currentColor
+                                // as value in a gradient.
+                                //
+                                // Double-check it and either remove
+                                // currentColor for servo or see how gecko
+                                // handles this.
+                                0
+                            },
+                            CSSColor::RGBA(ref rgba) => convert_rgba_to_nscolor(rgba),
+                        };
+
+                        let mut stop = unsafe {
+                            &mut (*gecko_gradient).mStops[index]
+                        };
+
+                        stop.mColor = color;
+                        stop.mIsInterpolationHint = false;
+                        stop.mLocation.copy_from(&coord);
+                    }
+
+                    unsafe {
+                        Gecko_SetGradientImageValue(&mut self.gecko.mImage.mLayers.mFirstElement.mImage,
+                                                    gecko_gradient);
+                    }
+                },
+                Image::Url(_) => {
+                    // let utf8_bytes = url.as_bytes();
+                    // Gecko_SetUrlImageValue(&mut self.gecko.mImage.mLayers.mFirstElement,
+                    //                        utf8_bytes.as_ptr() as *const _,
+                    //                        utf8_bytes.len());
+                    warn!("stylo: imgRequestProxies are not threadsafe in gecko, \
+                           background-image: url() not yet implemented");
+                }
+            }
+        }
+    }
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="List" skip_longhands="list-style-type" skip_additionals="*">

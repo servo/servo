@@ -337,6 +337,8 @@ pub const NS_STYLE_IMAGELAYER_REPEAT_NO_REPEAT: ::std::os::raw::c_uint = 0;
 pub const NS_STYLE_IMAGELAYER_REPEAT_REPEAT_X: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_IMAGELAYER_REPEAT_REPEAT_Y: ::std::os::raw::c_uint = 2;
 pub const NS_STYLE_IMAGELAYER_REPEAT_REPEAT: ::std::os::raw::c_uint = 3;
+pub const NS_STYLE_IMAGELAYER_REPEAT_SPACE: ::std::os::raw::c_uint = 4;
+pub const NS_STYLE_IMAGELAYER_REPEAT_ROUND: ::std::os::raw::c_uint = 5;
 pub const NS_STYLE_IMAGELAYER_SIZE_CONTAIN: ::std::os::raw::c_uint = 0;
 pub const NS_STYLE_IMAGELAYER_SIZE_COVER: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_MASK_MODE_ALPHA: ::std::os::raw::c_uint = 0;
@@ -748,8 +750,8 @@ pub const NS_STYLE_WHITESPACE_PRE_SPACE: ::std::os::raw::c_uint = 5;
 pub const NS_STYLE_WORDBREAK_NORMAL: ::std::os::raw::c_uint = 0;
 pub const NS_STYLE_WORDBREAK_BREAK_ALL: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_WORDBREAK_KEEP_ALL: ::std::os::raw::c_uint = 2;
-pub const NS_STYLE_WORDWRAP_NORMAL: ::std::os::raw::c_uint = 0;
-pub const NS_STYLE_WORDWRAP_BREAK_WORD: ::std::os::raw::c_uint = 1;
+pub const NS_STYLE_OVERFLOWWRAP_NORMAL: ::std::os::raw::c_uint = 0;
+pub const NS_STYLE_OVERFLOWWRAP_BREAK_WORD: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_HYPHENS_NONE: ::std::os::raw::c_uint = 0;
 pub const NS_STYLE_HYPHENS_MANUAL: ::std::os::raw::c_uint = 1;
 pub const NS_STYLE_HYPHENS_AUTO: ::std::os::raw::c_uint = 2;
@@ -1486,8 +1488,7 @@ pub enum nsresult {
     NS_ERROR_DOM_BLUETOOTH_AUTH_REJECTED = -2140536821,
     NS_ERROR_SIGNED_APP_MANIFEST_INVALID = -2140471295,
     NS_ERROR_DOM_ANIM_MISSING_PROPS_ERR = -2140405759,
-    NS_ERROR_DOM_ANIM_NO_TIMELINE_ERR = -2140405758,
-    NS_ERROR_DOM_ANIM_NO_EFFECT_ERR = -2140405757,
+    NS_ERROR_DOM_ANIM_NO_EFFECT_ERR = -2140405758,
     NS_ERROR_DOM_PUSH_INVALID_REGISTRATION_ERR = -2140340223,
     NS_ERROR_DOM_PUSH_DENIED_ERR = -2140340222,
     NS_ERROR_DOM_PUSH_ABORT_ERR = -2140340221,
@@ -2592,6 +2593,164 @@ pub struct nsTHashtable_Iterator<EntryType> {
 }
 #[repr(C)]
 pub struct nsDataHashtable;
+pub enum TileClient { }
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsTArrayFallibleResult {
+    pub mResult: bool,
+}
+impl ::std::clone::Clone for nsTArrayFallibleResult {
+    fn clone(&self) -> Self { *self }
+}
+#[test]
+fn bindgen_test_layout_nsTArrayFallibleResult() {
+    assert_eq!(::std::mem::size_of::<nsTArrayFallibleResult>() , 1usize);
+    assert_eq!(::std::mem::align_of::<nsTArrayFallibleResult>() , 1usize);
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsTArrayInfallibleResult;
+impl ::std::clone::Clone for nsTArrayInfallibleResult {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsTArrayFallibleAllocatorBase;
+impl ::std::clone::Clone for nsTArrayFallibleAllocatorBase {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsTArrayInfallibleAllocatorBase;
+impl ::std::clone::Clone for nsTArrayInfallibleAllocatorBase {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsTArrayFallibleAllocator {
+    pub _base: nsTArrayFallibleAllocatorBase,
+}
+impl ::std::clone::Clone for nsTArrayFallibleAllocator {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsTArrayInfallibleAllocator {
+    pub _base: nsTArrayInfallibleAllocatorBase,
+}
+impl ::std::clone::Clone for nsTArrayInfallibleAllocator {
+    fn clone(&self) -> Self { *self }
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsTArrayHeader {
+    pub mLength: u32,
+    pub _bitfield_1: u32,
+}
+impl nsTArrayHeader {
+    pub fn set_mCapacity(&mut self, val: u32) {
+        self._bitfield_1 &= !(((1 << (31u32 as u32)) - 1) << 0usize);
+        self._bitfield_1 |= (val as u32) << 0usize;
+    }
+    pub fn set_mIsAutoArray(&mut self, val: bool) {
+        self._bitfield_1 &= !(((1 << (1u32 as u32)) - 1) << 31usize);
+        self._bitfield_1 |= (val as u32) << 31usize;
+    }
+    pub const fn new_bitfield_1(mCapacity: u32, mIsAutoArray: bool) -> u32 {
+        0 | ((mCapacity as u32) << 0u32) | ((mIsAutoArray as u32) << 31u32)
+    }
+}
+impl ::std::clone::Clone for nsTArrayHeader {
+    fn clone(&self) -> Self { *self }
+}
+#[test]
+fn bindgen_test_layout_nsTArrayHeader() {
+    assert_eq!(::std::mem::size_of::<nsTArrayHeader>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsTArrayHeader>() , 4usize);
+}
+extern "C" {
+    #[link_name = "_ZN14nsTArrayHeader9sEmptyHdrE"]
+    pub static mut nsTArrayHeader_consts_sEmptyHdr: nsTArrayHeader;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nsTArray_SafeElementAtHelper<E, Derived> {
+    pub _phantom0: ::std::marker::PhantomData<E>,
+    pub _phantom1: ::std::marker::PhantomData<Derived>,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nsTArray_SafeElementAtSmartPtrHelper<E, Derived> {
+    pub _phantom0: ::std::marker::PhantomData<E>,
+    pub _phantom1: ::std::marker::PhantomData<Derived>,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nsTArray_base<Alloc, Copy> {
+    pub mHdr: *mut nsTArrayHeader,
+    pub _phantom0: ::std::marker::PhantomData<Alloc>,
+    pub _phantom1: ::std::marker::PhantomData<Copy>,
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct nsTArray_base_IsAutoArrayRestorer<Alloc, Copy> {
+    pub mArray: *mut nsTArray_base<Alloc, Copy>,
+    pub mElemAlign: usize,
+    pub mIsAuto: bool,
+    pub _phantom0: ::std::marker::PhantomData<Copy>,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nsDefaultComparator<A, B> {
+    pub _phantom0: ::std::marker::PhantomData<A>,
+    pub _phantom1: ::std::marker::PhantomData<B>,
+}
+#[repr(C)]
+#[derive(Debug, Copy)]
+pub struct nsTArray_CopyWithMemutils;
+impl ::std::clone::Clone for nsTArray_CopyWithMemutils {
+    fn clone(&self) -> Self { *self }
+}
+extern "C" {
+    #[link_name = "_ZN25nsTArray_CopyWithMemutils12allowReallocE"]
+    pub static nsTArray_CopyWithMemutils_consts_allowRealloc: bool;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nsTArray_CopyWithConstructors<ElemType> {
+    pub _phantom0: ::std::marker::PhantomData<ElemType>,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nsTArray_CopyChooser<E> {
+    pub _phantom0: ::std::marker::PhantomData<E>,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct nsTArray_TypedBase<E, Derived> {
+    pub _base: nsTArray_SafeElementAtHelper<E, Derived>,
+    pub _phantom0: ::std::marker::PhantomData<Derived>,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ItemComparatorEq<Item, Comparator> {
+    pub mItem: *const Item,
+    pub mComp: *const Comparator,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ItemComparatorFirstElementGT<Item, Comparator> {
+    pub mItem: *const Item,
+    pub mComp: *const Comparator,
+}
+/**
+ * <div rustbindgen replaces="nsTArray"></div>
+ */
+#[repr(C)]
+#[derive(Debug)]
+pub struct nsTArray<T> {
+    pub mBuffer: *mut T,
+}
 pub enum CSSVariableResolver { }
 #[repr(C)]
 pub struct CSSVariableValues {
@@ -2683,7 +2842,7 @@ pub type gfxFloat = f64;
  *
  * eNoBreak       The line has no break opportunities
  * eWordWrapBreak The line has a break opportunity only within a word. With
- *                word-wrap: break-word we will break at this point only if
+ *                overflow-wrap|word-wrap: break-word we will break at this point only if
  *                there are no other break opportunities in the line.
  * eNormalBreak   The line has a break opportunity determined by the standard
  *                line-breaking algorithm.
@@ -2747,6 +2906,7 @@ pub struct piecewise_construct_t;
 impl ::std::clone::Clone for piecewise_construct_t {
     fn clone(&self) -> Self { *self }
 }
+pub enum tuple { }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct pair<_T1, _T2> {
@@ -2979,7 +3139,7 @@ pub type gfxImageFormat = SurfaceFormat;
 pub struct RectCorner;
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum RectCorner_Types_h_unnamed_5 {
+pub enum RectCorner_Types_h_unnamed_6 {
     TopLeft = 0,
     TopRight = 1,
     BottomRight = 2,
@@ -3018,6 +3178,12 @@ pub struct tuple_size<_Tp> {
 #[derive(Debug, Copy, Clone)]
 pub struct tuple_element<_Tp> {
     pub _phantom0: ::std::marker::PhantomData<_Tp>,
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct _Itup_cat<_Itup1, _Itup2> {
+    pub _phantom0: ::std::marker::PhantomData<_Itup1>,
+    pub _phantom1: ::std::marker::PhantomData<_Itup2>,
 }
 pub type nscoord = i32;
 #[repr(C)]
@@ -3287,7 +3453,7 @@ pub const eCSSProperty_all: nsCSSProperty =
     nsCSSProperty::eCSSProperty_COUNT_no_shorthands;
 pub const eCSSProperty_COUNT_DUMMY2: nsCSSProperty =
     nsCSSProperty::eCSSProperty_transition;
-pub const eCSSPropertyAlias_MozTransformOrigin: nsCSSProperty =
+pub const eCSSPropertyAlias_WordWrap: nsCSSProperty =
     nsCSSProperty::eCSSProperty_COUNT;
 pub const eCSSProperty_COUNT_DUMMY3: nsCSSProperty =
     nsCSSProperty::eCSSPropertyAlias_WebkitUserSelect;
@@ -3599,7 +3765,7 @@ pub enum nsCSSProperty {
     eCSSProperty__moz_window_shadow = 299,
     eCSSProperty_word_break = 300,
     eCSSProperty_word_spacing = 301,
-    eCSSProperty_word_wrap = 302,
+    eCSSProperty_overflow_wrap = 302,
     eCSSProperty_writing_mode = 303,
     eCSSProperty_z_index = 304,
     eCSSProperty_COUNT_no_shorthands = 305,
@@ -3646,86 +3812,99 @@ pub enum nsCSSProperty {
     eCSSProperty__moz_transform = 346,
     eCSSProperty_transition = 347,
     eCSSProperty_COUNT = 348,
-    eCSSPropertyAlias_MozPerspectiveOrigin = 349,
-    eCSSPropertyAlias_MozPerspective = 350,
-    eCSSPropertyAlias_MozTransformStyle = 351,
-    eCSSPropertyAlias_MozBackfaceVisibility = 352,
-    eCSSPropertyAlias_MozBorderImage = 353,
-    eCSSPropertyAlias_MozTransition = 354,
-    eCSSPropertyAlias_MozTransitionDelay = 355,
-    eCSSPropertyAlias_MozTransitionDuration = 356,
-    eCSSPropertyAlias_MozTransitionProperty = 357,
-    eCSSPropertyAlias_MozTransitionTimingFunction = 358,
-    eCSSPropertyAlias_MozAnimation = 359,
-    eCSSPropertyAlias_MozAnimationDelay = 360,
-    eCSSPropertyAlias_MozAnimationDirection = 361,
-    eCSSPropertyAlias_MozAnimationDuration = 362,
-    eCSSPropertyAlias_MozAnimationFillMode = 363,
-    eCSSPropertyAlias_MozAnimationIterationCount = 364,
-    eCSSPropertyAlias_MozAnimationName = 365,
-    eCSSPropertyAlias_MozAnimationPlayState = 366,
-    eCSSPropertyAlias_MozAnimationTimingFunction = 367,
-    eCSSPropertyAlias_MozBoxSizing = 368,
-    eCSSPropertyAlias_MozFontFeatureSettings = 369,
-    eCSSPropertyAlias_MozFontLanguageOverride = 370,
-    eCSSPropertyAlias_MozPaddingEnd = 371,
-    eCSSPropertyAlias_MozPaddingStart = 372,
-    eCSSPropertyAlias_MozMarginEnd = 373,
-    eCSSPropertyAlias_MozMarginStart = 374,
-    eCSSPropertyAlias_MozBorderEnd = 375,
-    eCSSPropertyAlias_MozBorderEndColor = 376,
-    eCSSPropertyAlias_MozBorderEndStyle = 377,
-    eCSSPropertyAlias_MozBorderEndWidth = 378,
-    eCSSPropertyAlias_MozBorderStart = 379,
-    eCSSPropertyAlias_MozBorderStartColor = 380,
-    eCSSPropertyAlias_MozBorderStartStyle = 381,
-    eCSSPropertyAlias_MozBorderStartWidth = 382,
-    eCSSPropertyAlias_MozHyphens = 383,
-    eCSSPropertyAlias_WebkitAnimation = 384,
-    eCSSPropertyAlias_WebkitAnimationDelay = 385,
-    eCSSPropertyAlias_WebkitAnimationDirection = 386,
-    eCSSPropertyAlias_WebkitAnimationDuration = 387,
-    eCSSPropertyAlias_WebkitAnimationFillMode = 388,
-    eCSSPropertyAlias_WebkitAnimationIterationCount = 389,
-    eCSSPropertyAlias_WebkitAnimationName = 390,
-    eCSSPropertyAlias_WebkitAnimationPlayState = 391,
-    eCSSPropertyAlias_WebkitAnimationTimingFunction = 392,
-    eCSSPropertyAlias_WebkitFilter = 393,
-    eCSSPropertyAlias_WebkitTextSizeAdjust = 394,
-    eCSSPropertyAlias_WebkitTransform = 395,
-    eCSSPropertyAlias_WebkitTransformOrigin = 396,
-    eCSSPropertyAlias_WebkitTransformStyle = 397,
-    eCSSPropertyAlias_WebkitBackfaceVisibility = 398,
-    eCSSPropertyAlias_WebkitPerspective = 399,
-    eCSSPropertyAlias_WebkitPerspectiveOrigin = 400,
-    eCSSPropertyAlias_WebkitTransition = 401,
-    eCSSPropertyAlias_WebkitTransitionDelay = 402,
-    eCSSPropertyAlias_WebkitTransitionDuration = 403,
-    eCSSPropertyAlias_WebkitTransitionProperty = 404,
-    eCSSPropertyAlias_WebkitTransitionTimingFunction = 405,
-    eCSSPropertyAlias_WebkitBorderRadius = 406,
-    eCSSPropertyAlias_WebkitBorderTopLeftRadius = 407,
-    eCSSPropertyAlias_WebkitBorderTopRightRadius = 408,
-    eCSSPropertyAlias_WebkitBorderBottomLeftRadius = 409,
-    eCSSPropertyAlias_WebkitBorderBottomRightRadius = 410,
-    eCSSPropertyAlias_WebkitBackgroundClip = 411,
-    eCSSPropertyAlias_WebkitBackgroundOrigin = 412,
-    eCSSPropertyAlias_WebkitBackgroundSize = 413,
-    eCSSPropertyAlias_WebkitBorderImage = 414,
-    eCSSPropertyAlias_WebkitBoxShadow = 415,
-    eCSSPropertyAlias_WebkitBoxSizing = 416,
-    eCSSPropertyAlias_WebkitBoxFlex = 417,
-    eCSSPropertyAlias_WebkitBoxOrdinalGroup = 418,
-    eCSSPropertyAlias_WebkitBoxOrient = 419,
-    eCSSPropertyAlias_WebkitBoxDirection = 420,
-    eCSSPropertyAlias_WebkitBoxAlign = 421,
-    eCSSPropertyAlias_WebkitBoxPack = 422,
-    eCSSPropertyAlias_WebkitUserSelect = 423,
-    eCSSProperty_COUNT_with_aliases = 424,
-    eCSSPropertyExtra_all_properties = 425,
-    eCSSPropertyExtra_x_none_value = 426,
-    eCSSPropertyExtra_x_auto_value = 427,
-    eCSSPropertyExtra_variable = 428,
+    eCSSPropertyAlias_MozTransformOrigin = 349,
+    eCSSPropertyAlias_MozPerspectiveOrigin = 350,
+    eCSSPropertyAlias_MozPerspective = 351,
+    eCSSPropertyAlias_MozTransformStyle = 352,
+    eCSSPropertyAlias_MozBackfaceVisibility = 353,
+    eCSSPropertyAlias_MozBorderImage = 354,
+    eCSSPropertyAlias_MozTransition = 355,
+    eCSSPropertyAlias_MozTransitionDelay = 356,
+    eCSSPropertyAlias_MozTransitionDuration = 357,
+    eCSSPropertyAlias_MozTransitionProperty = 358,
+    eCSSPropertyAlias_MozTransitionTimingFunction = 359,
+    eCSSPropertyAlias_MozAnimation = 360,
+    eCSSPropertyAlias_MozAnimationDelay = 361,
+    eCSSPropertyAlias_MozAnimationDirection = 362,
+    eCSSPropertyAlias_MozAnimationDuration = 363,
+    eCSSPropertyAlias_MozAnimationFillMode = 364,
+    eCSSPropertyAlias_MozAnimationIterationCount = 365,
+    eCSSPropertyAlias_MozAnimationName = 366,
+    eCSSPropertyAlias_MozAnimationPlayState = 367,
+    eCSSPropertyAlias_MozAnimationTimingFunction = 368,
+    eCSSPropertyAlias_MozBoxSizing = 369,
+    eCSSPropertyAlias_MozFontFeatureSettings = 370,
+    eCSSPropertyAlias_MozFontLanguageOverride = 371,
+    eCSSPropertyAlias_MozPaddingEnd = 372,
+    eCSSPropertyAlias_MozPaddingStart = 373,
+    eCSSPropertyAlias_MozMarginEnd = 374,
+    eCSSPropertyAlias_MozMarginStart = 375,
+    eCSSPropertyAlias_MozBorderEnd = 376,
+    eCSSPropertyAlias_MozBorderEndColor = 377,
+    eCSSPropertyAlias_MozBorderEndStyle = 378,
+    eCSSPropertyAlias_MozBorderEndWidth = 379,
+    eCSSPropertyAlias_MozBorderStart = 380,
+    eCSSPropertyAlias_MozBorderStartColor = 381,
+    eCSSPropertyAlias_MozBorderStartStyle = 382,
+    eCSSPropertyAlias_MozBorderStartWidth = 383,
+    eCSSPropertyAlias_MozHyphens = 384,
+    eCSSPropertyAlias_WebkitAnimation = 385,
+    eCSSPropertyAlias_WebkitAnimationDelay = 386,
+    eCSSPropertyAlias_WebkitAnimationDirection = 387,
+    eCSSPropertyAlias_WebkitAnimationDuration = 388,
+    eCSSPropertyAlias_WebkitAnimationFillMode = 389,
+    eCSSPropertyAlias_WebkitAnimationIterationCount = 390,
+    eCSSPropertyAlias_WebkitAnimationName = 391,
+    eCSSPropertyAlias_WebkitAnimationPlayState = 392,
+    eCSSPropertyAlias_WebkitAnimationTimingFunction = 393,
+    eCSSPropertyAlias_WebkitFilter = 394,
+    eCSSPropertyAlias_WebkitTextSizeAdjust = 395,
+    eCSSPropertyAlias_WebkitTransform = 396,
+    eCSSPropertyAlias_WebkitTransformOrigin = 397,
+    eCSSPropertyAlias_WebkitTransformStyle = 398,
+    eCSSPropertyAlias_WebkitBackfaceVisibility = 399,
+    eCSSPropertyAlias_WebkitPerspective = 400,
+    eCSSPropertyAlias_WebkitPerspectiveOrigin = 401,
+    eCSSPropertyAlias_WebkitTransition = 402,
+    eCSSPropertyAlias_WebkitTransitionDelay = 403,
+    eCSSPropertyAlias_WebkitTransitionDuration = 404,
+    eCSSPropertyAlias_WebkitTransitionProperty = 405,
+    eCSSPropertyAlias_WebkitTransitionTimingFunction = 406,
+    eCSSPropertyAlias_WebkitBorderRadius = 407,
+    eCSSPropertyAlias_WebkitBorderTopLeftRadius = 408,
+    eCSSPropertyAlias_WebkitBorderTopRightRadius = 409,
+    eCSSPropertyAlias_WebkitBorderBottomLeftRadius = 410,
+    eCSSPropertyAlias_WebkitBorderBottomRightRadius = 411,
+    eCSSPropertyAlias_WebkitBackgroundClip = 412,
+    eCSSPropertyAlias_WebkitBackgroundOrigin = 413,
+    eCSSPropertyAlias_WebkitBackgroundSize = 414,
+    eCSSPropertyAlias_WebkitBorderImage = 415,
+    eCSSPropertyAlias_WebkitBoxShadow = 416,
+    eCSSPropertyAlias_WebkitBoxSizing = 417,
+    eCSSPropertyAlias_WebkitBoxFlex = 418,
+    eCSSPropertyAlias_WebkitBoxOrdinalGroup = 419,
+    eCSSPropertyAlias_WebkitBoxOrient = 420,
+    eCSSPropertyAlias_WebkitBoxDirection = 421,
+    eCSSPropertyAlias_WebkitBoxAlign = 422,
+    eCSSPropertyAlias_WebkitBoxPack = 423,
+    eCSSPropertyAlias_WebkitFlexDirection = 424,
+    eCSSPropertyAlias_WebkitFlexWrap = 425,
+    eCSSPropertyAlias_WebkitFlexFlow = 426,
+    eCSSPropertyAlias_WebkitOrder = 427,
+    eCSSPropertyAlias_WebkitFlex = 428,
+    eCSSPropertyAlias_WebkitFlexGrow = 429,
+    eCSSPropertyAlias_WebkitFlexShrink = 430,
+    eCSSPropertyAlias_WebkitFlexBasis = 431,
+    eCSSPropertyAlias_WebkitJustifyContent = 432,
+    eCSSPropertyAlias_WebkitAlignItems = 433,
+    eCSSPropertyAlias_WebkitAlignSelf = 434,
+    eCSSPropertyAlias_WebkitAlignContent = 435,
+    eCSSPropertyAlias_WebkitUserSelect = 436,
+    eCSSProperty_COUNT_with_aliases = 437,
+    eCSSPropertyExtra_all_properties = 438,
+    eCSSPropertyExtra_x_none_value = 439,
+    eCSSPropertyExtra_x_auto_value = 440,
+    eCSSPropertyExtra_variable = 441,
 }
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -3991,7 +4170,8 @@ pub enum nsCSSUnit {
     eCSSUnit_Millimeter = 902,
     eCSSUnit_Centimeter = 903,
     eCSSUnit_Pica = 904,
-    eCSSUnit_Pixel = 905,
+    eCSSUnit_Quarter = 905,
+    eCSSUnit_Pixel = 906,
     eCSSUnit_Degree = 1000,
     eCSSUnit_Grad = 1001,
     eCSSUnit_Radian = 1002,
@@ -4006,14 +4186,14 @@ pub enum nsCSSUnit {
 #[derive(Debug)]
 pub struct nsCSSValue {
     pub mUnit: nsCSSUnit,
-    pub mValue: nsCSSValue_nsCSSValue_h_unnamed_8,
+    pub mValue: nsCSSValue_nsCSSValue_h_unnamed_9,
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum nsCSSValue_Serialization { eNormalized = 0, eAuthorSpecified = 1, }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsCSSValue_nsCSSValue_h_unnamed_8 {
+pub struct nsCSSValue_nsCSSValue_h_unnamed_9 {
     pub mInt: __BindgenUnionField<i32>,
     pub mFloat: __BindgenUnionField<f32>,
     pub mString: __BindgenUnionField<*mut nsStringBuffer>,
@@ -4036,15 +4216,99 @@ pub struct nsCSSValue_nsCSSValue_h_unnamed_8 {
     pub mFontFamilyList: __BindgenUnionField<*mut FontFamilyListRefCnt>,
     pub _bindgen_data_: u64,
 }
-impl nsCSSValue_nsCSSValue_h_unnamed_8 { }
-impl ::std::clone::Clone for nsCSSValue_nsCSSValue_h_unnamed_8 {
+impl nsCSSValue_nsCSSValue_h_unnamed_9 {
+    pub unsafe fn mInt(&mut self) -> *mut i32 {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mFloat(&mut self) -> *mut f32 {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mString(&mut self) -> *mut *mut nsStringBuffer {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mColor(&mut self) -> *mut nscolor {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mArray(&mut self) -> *mut *mut Array {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mURL(&mut self) -> *mut *mut URLValue {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mImage(&mut self) -> *mut *mut ImageValue {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mGridTemplateAreas(&mut self)
+     -> *mut *mut GridTemplateAreasValue {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mGradient(&mut self) -> *mut *mut nsCSSValueGradient {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mTokenStream(&mut self) -> *mut *mut nsCSSValueTokenStream {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mPair(&mut self) -> *mut *mut nsCSSValuePair_heap {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mRect(&mut self) -> *mut *mut nsCSSRect_heap {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mTriplet(&mut self) -> *mut *mut nsCSSValueTriplet_heap {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mList(&mut self) -> *mut *mut nsCSSValueList_heap {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mListDependent(&mut self) -> *mut *mut nsCSSValueList {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mSharedList(&mut self) -> *mut *mut nsCSSValueSharedList {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mPairList(&mut self) -> *mut *mut nsCSSValuePairList_heap {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mPairListDependent(&mut self)
+     -> *mut *mut nsCSSValuePairList {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mFloatColor(&mut self) -> *mut *mut nsCSSValueFloatColor {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mFontFamilyList(&mut self)
+     -> *mut *mut FontFamilyListRefCnt {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+}
+impl ::std::clone::Clone for nsCSSValue_nsCSSValue_h_unnamed_9 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsCSSValue_nsCSSValue_h_unnamed_8() {
-    assert_eq!(::std::mem::size_of::<nsCSSValue_nsCSSValue_h_unnamed_8>() ,
+fn bindgen_test_layout_nsCSSValue_nsCSSValue_h_unnamed_9() {
+    assert_eq!(::std::mem::size_of::<nsCSSValue_nsCSSValue_h_unnamed_9>() ,
                8usize);
-    assert_eq!(::std::mem::align_of::<nsCSSValue_nsCSSValue_h_unnamed_8>() ,
+    assert_eq!(::std::mem::align_of::<nsCSSValue_nsCSSValue_h_unnamed_9>() ,
                8usize);
 }
 #[test]
@@ -4372,7 +4636,7 @@ pub struct _vftable_nsIRequest {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum nsIRequest_nsIRequest_h_unnamed_9 {
+pub enum nsIRequest_nsIRequest_h_unnamed_10 {
     LOAD_REQUESTMASK = 65535,
     LOAD_NORMAL = 0,
     LOAD_BACKGROUND = 1,
@@ -4406,6 +4670,19 @@ pub struct nsIAtom {
 #[repr(C)]
 pub struct _vftable_nsIAtom {
     pub _base: _vftable_nsISupports,
+}
+impl nsIAtom {
+    pub fn set_mLength(&mut self, val: u32) {
+        self._bitfield_1 &= !(((1 << (31u32 as u32)) - 1) << 0usize);
+        self._bitfield_1 |= (val as u32) << 0usize;
+    }
+    pub fn set_mIsStatic(&mut self, val: bool) {
+        self._bitfield_1 &= !(((1 << (1u32 as u32)) - 1) << 31usize);
+        self._bitfield_1 |= (val as u32) << 31usize;
+    }
+    pub const fn new_bitfield_1(mLength: u32, mIsStatic: bool) -> u32 {
+        0 | ((mLength as u32) << 0u32) | ((mIsStatic as u32) << 31u32)
+    }
 }
 impl ::std::clone::Clone for nsIAtom {
     fn clone(&self) -> Self { *self }
@@ -4484,7 +4761,7 @@ pub struct ArenaRefPtr<T> {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum gfxFontConstants_h_unnamed_10 {
+pub enum gfxFontConstants_h_unnamed_11 {
     eFeatureAlternates_historical = 0,
     eFeatureAlternates_stylistic = 1,
     eFeatureAlternates_styleset = 2,
@@ -4496,7 +4773,7 @@ pub enum gfxFontConstants_h_unnamed_10 {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum gfxFontConstants_h_unnamed_11 {
+pub enum gfxFontConstants_h_unnamed_12 {
     eFeatureEastAsian_jis78 = 0,
     eFeatureEastAsian_jis83 = 1,
     eFeatureEastAsian_jis90 = 2,
@@ -4510,7 +4787,7 @@ pub enum gfxFontConstants_h_unnamed_11 {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum gfxFontConstants_h_unnamed_12 {
+pub enum gfxFontConstants_h_unnamed_13 {
     eFeatureLigatures_none = 0,
     eFeatureLigatures_common = 1,
     eFeatureLigatures_no_common = 2,
@@ -4524,7 +4801,7 @@ pub enum gfxFontConstants_h_unnamed_12 {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum gfxFontConstants_h_unnamed_13 {
+pub enum gfxFontConstants_h_unnamed_14 {
     eFeatureNumeric_lining = 0,
     eFeatureNumeric_oldstyle = 1,
     eFeatureNumeric_proportional = 2,
@@ -4611,22 +4888,35 @@ pub enum nsStyleUnit {
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleCoord_h_unnamed_14 {
+pub struct nsStyleCoord_h_unnamed_15 {
     pub mInt: __BindgenUnionField<i32>,
     pub mFloat: __BindgenUnionField<f32>,
     pub mPointer: __BindgenUnionField<*mut ::std::os::raw::c_void>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleCoord_h_unnamed_14 { }
-impl ::std::clone::Clone for nsStyleCoord_h_unnamed_14 {
+impl nsStyleCoord_h_unnamed_15 {
+    pub unsafe fn mInt(&mut self) -> *mut i32 {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mFloat(&mut self) -> *mut f32 {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mPointer(&mut self) -> *mut *mut ::std::os::raw::c_void {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+}
+impl ::std::clone::Clone for nsStyleCoord_h_unnamed_15 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleCoord_h_unnamed_14() {
-    assert_eq!(::std::mem::size_of::<nsStyleCoord_h_unnamed_14>() , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleCoord_h_unnamed_14>() , 8usize);
+fn bindgen_test_layout_nsStyleCoord_h_unnamed_15() {
+    assert_eq!(::std::mem::size_of::<nsStyleCoord_h_unnamed_15>() , 8usize);
+    assert_eq!(::std::mem::align_of::<nsStyleCoord_h_unnamed_15>() , 8usize);
 }
-pub type nsStyleUnion = nsStyleCoord_h_unnamed_14;
+pub type nsStyleUnion = nsStyleCoord_h_unnamed_15;
 /**
  * Class that hold a single size specification used by the style
  * system.  The size specification consists of two parts -- a number
@@ -4791,12 +5081,11 @@ pub struct nsStyleGradient {
     pub mRadiusX: nsStyleCoord,
     pub mRadiusY: nsStyleCoord,
     pub mStops: nsTArray<nsStyleGradientStop>,
-    pub mRefCnt: nsAutoRefCnt,
-    pub _mOwningThread: nsAutoOwningThread,
+    pub mRefCnt: ThreadSafeAutoRefCnt,
 }
 #[test]
 fn bindgen_test_layout_nsStyleGradient() {
-    assert_eq!(::std::mem::size_of::<nsStyleGradient>() , 112usize);
+    assert_eq!(::std::mem::size_of::<nsStyleGradient>() , 104usize);
     assert_eq!(::std::mem::align_of::<nsStyleGradient>() , 8usize);
 }
 #[repr(u32)]
@@ -4821,27 +5110,41 @@ pub enum nsStyleImageType {
 pub struct nsStyleImage {
     pub mSubImages: u64,
     pub mType: nsStyleImageType,
-    pub nsStyleImage_nsStyleStruct_h_unnamed_17: nsStyleImage_nsStyleStruct_h_unnamed_17,
+    pub nsStyleImage_nsStyleStruct_h_unnamed_18: nsStyleImage_nsStyleStruct_h_unnamed_18,
     pub mCropRect: nsAutoPtr<nsStyleSides>,
     pub mImageTracked: bool,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleImage_nsStyleStruct_h_unnamed_17 {
+pub struct nsStyleImage_nsStyleStruct_h_unnamed_18 {
     pub mImage: __BindgenUnionField<*mut imgRequestProxy>,
     pub mGradient: __BindgenUnionField<*mut nsStyleGradient>,
     pub mElementId: __BindgenUnionField<*mut ::std::os::raw::c_ushort>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleImage_nsStyleStruct_h_unnamed_17 { }
-impl ::std::clone::Clone for nsStyleImage_nsStyleStruct_h_unnamed_17 {
+impl nsStyleImage_nsStyleStruct_h_unnamed_18 {
+    pub unsafe fn mImage(&mut self) -> *mut *mut imgRequestProxy {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mGradient(&mut self) -> *mut *mut nsStyleGradient {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mElementId(&mut self)
+     -> *mut *mut ::std::os::raw::c_ushort {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+}
+impl ::std::clone::Clone for nsStyleImage_nsStyleStruct_h_unnamed_18 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleImage_nsStyleStruct_h_unnamed_17() {
-    assert_eq!(::std::mem::size_of::<nsStyleImage_nsStyleStruct_h_unnamed_17>()
+fn bindgen_test_layout_nsStyleImage_nsStyleStruct_h_unnamed_18() {
+    assert_eq!(::std::mem::size_of::<nsStyleImage_nsStyleStruct_h_unnamed_18>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleImage_nsStyleStruct_h_unnamed_17>()
+    assert_eq!(::std::mem::align_of::<nsStyleImage_nsStyleStruct_h_unnamed_18>()
                , 8usize);
 }
 #[test]
@@ -4891,7 +5194,7 @@ pub struct nsStyleImageLayers {
 }
 #[repr(u32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
-pub enum nsStyleImageLayers_nsStyleStruct_h_unnamed_18 {
+pub enum nsStyleImageLayers_nsStyleStruct_h_unnamed_19 {
     shorthand = 0,
     color = 1,
     image = 2,
@@ -5125,13 +5428,12 @@ fn bindgen_test_layout_nsStyleOutline() {
 #[repr(C)]
 #[derive(Debug)]
 pub struct nsStyleQuoteValues {
-    pub mRefCnt: nsAutoRefCnt,
-    pub _mOwningThread: nsAutoOwningThread,
+    pub mRefCnt: ThreadSafeAutoRefCnt,
     pub mQuotePairs: nsTArray<pair<nsString, nsString>>,
 }
 #[test]
 fn bindgen_test_layout_nsStyleQuoteValues() {
-    assert_eq!(::std::mem::size_of::<nsStyleQuoteValues>() , 24usize);
+    assert_eq!(::std::mem::size_of::<nsStyleQuoteValues>() , 16usize);
     assert_eq!(::std::mem::align_of::<nsStyleQuoteValues>() , 8usize);
 }
 #[repr(C)]
@@ -5184,6 +5486,19 @@ pub struct nsStyleGridTemplate {
     pub mRepeatAutoIndex: i16,
     pub _bitfield_1: u8,
 }
+impl nsStyleGridTemplate {
+    pub fn set_mIsAutoFill(&mut self, val: bool) {
+        self._bitfield_1 &= !(((1 << (1u32 as u8)) - 1) << 0usize);
+        self._bitfield_1 |= (val as u8) << 0usize;
+    }
+    pub fn set_mIsSubgrid(&mut self, val: bool) {
+        self._bitfield_1 &= !(((1 << (1u32 as u8)) - 1) << 1usize);
+        self._bitfield_1 |= (val as u8) << 1usize;
+    }
+    pub const fn new_bitfield_1(mIsAutoFill: bool, mIsSubgrid: bool) -> u8 {
+        0 | ((mIsAutoFill as u8) << 0u32) | ((mIsSubgrid as u8) << 1u32)
+    }
+}
 #[test]
 fn bindgen_test_layout_nsStyleGridTemplate() {
     assert_eq!(::std::mem::size_of::<nsStyleGridTemplate>() , 48usize);
@@ -5227,12 +5542,12 @@ pub struct nsStylePosition {
     pub mGridColumnEnd: nsStyleGridLine,
     pub mGridRowStart: nsStyleGridLine,
     pub mGridRowEnd: nsStyleGridLine,
-    pub mGridColumnGap: nscoord,
-    pub mGridRowGap: nscoord,
+    pub mGridColumnGap: nsStyleCoord,
+    pub mGridRowGap: nsStyleCoord,
 }
 #[test]
 fn bindgen_test_layout_nsStylePosition() {
-    assert_eq!(::std::mem::size_of::<nsStylePosition>() , 496usize);
+    assert_eq!(::std::mem::size_of::<nsStylePosition>() , 520usize);
     assert_eq!(::std::mem::align_of::<nsStylePosition>() , 8usize);
 }
 #[repr(C)]
@@ -5281,7 +5596,7 @@ pub struct nsStyleText {
     pub mTextTransform: u8,
     pub mWhiteSpace: u8,
     pub mWordBreak: u8,
-    pub mWordWrap: u8,
+    pub mOverflowWrap: u8,
     pub mHyphens: u8,
     pub mRubyAlign: u8,
     pub mRubyPosition: u8,
@@ -5302,6 +5617,40 @@ pub struct nsStyleText {
     pub mWebkitTextStrokeWidth: nsStyleCoord,
     pub mTextShadow: RefPtr<nsCSSShadowArray>,
     pub mTextEmphasisStyleString: nsString,
+}
+impl nsStyleText {
+    pub fn set_mTextAlignTrue(&mut self, val: bool) {
+        self._bitfield_1 &= !(((1 << (1u32 as u8)) - 1) << 0usize);
+        self._bitfield_1 |= (val as u8) << 0usize;
+    }
+    pub fn set_mTextAlignLastTrue(&mut self, val: bool) {
+        self._bitfield_1 &= !(((1 << (1u32 as u8)) - 1) << 1usize);
+        self._bitfield_1 |= (val as u8) << 1usize;
+    }
+    pub fn set_mTextEmphasisColorForeground(&mut self, val: bool) {
+        self._bitfield_1 &= !(((1 << (1u32 as u8)) - 1) << 2usize);
+        self._bitfield_1 |= (val as u8) << 2usize;
+    }
+    pub fn set_mWebkitTextFillColorForeground(&mut self, val: bool) {
+        self._bitfield_1 &= !(((1 << (1u32 as u8)) - 1) << 3usize);
+        self._bitfield_1 |= (val as u8) << 3usize;
+    }
+    pub fn set_mWebkitTextStrokeColorForeground(&mut self, val: bool) {
+        self._bitfield_1 &= !(((1 << (1u32 as u8)) - 1) << 4usize);
+        self._bitfield_1 |= (val as u8) << 4usize;
+    }
+    pub const fn new_bitfield_1(mTextAlignTrue: bool,
+                                mTextAlignLastTrue: bool,
+                                mTextEmphasisColorForeground: bool,
+                                mWebkitTextFillColorForeground: bool,
+                                mWebkitTextStrokeColorForeground: bool)
+     -> u8 {
+        0 | ((mTextAlignTrue as u8) << 0u32) |
+            ((mTextAlignLastTrue as u8) << 1u32) |
+            ((mTextEmphasisColorForeground as u8) << 2u32) |
+            ((mWebkitTextFillColorForeground as u8) << 3u32) |
+            ((mWebkitTextStrokeColorForeground as u8) << 4u32)
+    }
 }
 #[test]
 fn bindgen_test_layout_nsStyleText() {
@@ -5356,7 +5705,7 @@ fn bindgen_test_layout_nsStyleVisibility() {
 #[derive(Debug, Copy)]
 pub struct nsTimingFunction {
     pub mType: nsTimingFunction_Type,
-    pub nsTimingFunction_nsStyleStruct_h_unnamed_19: nsTimingFunction_nsStyleStruct_h_unnamed_19,
+    pub nsTimingFunction_nsStyleStruct_h_unnamed_20: nsTimingFunction_nsStyleStruct_h_unnamed_20,
 }
 #[repr(i32)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
@@ -5383,56 +5732,69 @@ pub enum nsTimingFunction_StepSyntax {
 pub enum nsTimingFunction_Keyword { Implicit = 0, Explicit = 1, }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsTimingFunction_nsStyleStruct_h_unnamed_19 {
-    pub mFunc: __BindgenUnionField<nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_20>,
-    pub nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21: __BindgenUnionField<nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21>,
+pub struct nsTimingFunction_nsStyleStruct_h_unnamed_20 {
+    pub mFunc: __BindgenUnionField<nsTimingFunction_nsStyleStruct_h_unnamed_20_nsStyleStruct_h_unnamed_21>,
+    pub nsTimingFunction_nsStyleStruct_h_unnamed_20_nsStyleStruct_h_unnamed_22: __BindgenUnionField<nsTimingFunction_nsStyleStruct_h_unnamed_20_nsStyleStruct_h_unnamed_22>,
     pub _bindgen_data_: [u32; 4usize],
 }
-impl nsTimingFunction_nsStyleStruct_h_unnamed_19 { }
-impl ::std::clone::Clone for nsTimingFunction_nsStyleStruct_h_unnamed_19 {
+impl nsTimingFunction_nsStyleStruct_h_unnamed_20 {
+    pub unsafe fn mFunc(&mut self)
+     ->
+         *mut nsTimingFunction_nsStyleStruct_h_unnamed_20_nsStyleStruct_h_unnamed_21 {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn nsTimingFunction_nsStyleStruct_h_unnamed_20_nsStyleStruct_h_unnamed_22(&mut self)
+     ->
+         *mut nsTimingFunction_nsStyleStruct_h_unnamed_20_nsStyleStruct_h_unnamed_22 {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+}
+impl ::std::clone::Clone for nsTimingFunction_nsStyleStruct_h_unnamed_20 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsTimingFunction_nsStyleStruct_h_unnamed_19() {
-    assert_eq!(::std::mem::size_of::<nsTimingFunction_nsStyleStruct_h_unnamed_19>()
+fn bindgen_test_layout_nsTimingFunction_nsStyleStruct_h_unnamed_20() {
+    assert_eq!(::std::mem::size_of::<nsTimingFunction_nsStyleStruct_h_unnamed_20>()
                , 16usize);
-    assert_eq!(::std::mem::align_of::<nsTimingFunction_nsStyleStruct_h_unnamed_19>()
+    assert_eq!(::std::mem::align_of::<nsTimingFunction_nsStyleStruct_h_unnamed_20>()
                , 4usize);
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_20 {
+pub struct nsTimingFunction_nsStyleStruct_h_unnamed_20_nsStyleStruct_h_unnamed_21 {
     pub mX1: f32,
     pub mY1: f32,
     pub mX2: f32,
     pub mY2: f32,
 }
 impl ::std::clone::Clone for
- nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_20 {
+ nsTimingFunction_nsStyleStruct_h_unnamed_20_nsStyleStruct_h_unnamed_21 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_20() {
-    assert_eq!(::std::mem::size_of::<nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_20>()
+fn bindgen_test_layout_nsTimingFunction_nsStyleStruct_h_unnamed_20_nsStyleStruct_h_unnamed_21() {
+    assert_eq!(::std::mem::size_of::<nsTimingFunction_nsStyleStruct_h_unnamed_20_nsStyleStruct_h_unnamed_21>()
                , 16usize);
-    assert_eq!(::std::mem::align_of::<nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_20>()
+    assert_eq!(::std::mem::align_of::<nsTimingFunction_nsStyleStruct_h_unnamed_20_nsStyleStruct_h_unnamed_21>()
                , 4usize);
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21 {
+pub struct nsTimingFunction_nsStyleStruct_h_unnamed_20_nsStyleStruct_h_unnamed_22 {
     pub mStepSyntax: nsTimingFunction_StepSyntax,
     pub mSteps: u32,
 }
 impl ::std::clone::Clone for
- nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21 {
+ nsTimingFunction_nsStyleStruct_h_unnamed_20_nsStyleStruct_h_unnamed_22 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21() {
-    assert_eq!(::std::mem::size_of::<nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21>()
+fn bindgen_test_layout_nsTimingFunction_nsStyleStruct_h_unnamed_20_nsStyleStruct_h_unnamed_22() {
+    assert_eq!(::std::mem::size_of::<nsTimingFunction_nsStyleStruct_h_unnamed_20_nsStyleStruct_h_unnamed_22>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsTimingFunction_nsStyleStruct_h_unnamed_19_nsStyleStruct_h_unnamed_21>()
+    assert_eq!(::std::mem::align_of::<nsTimingFunction_nsStyleStruct_h_unnamed_20_nsStyleStruct_h_unnamed_22>()
                , 4usize);
 }
 impl ::std::clone::Clone for nsTimingFunction {
@@ -5577,26 +5939,39 @@ pub enum nsStyleContentType {
 #[derive(Debug)]
 pub struct nsStyleContentData {
     pub mType: nsStyleContentType,
-    pub mContent: nsStyleContentData_nsStyleStruct_h_unnamed_22,
+    pub mContent: nsStyleContentData_nsStyleStruct_h_unnamed_23,
     pub mImageTracked: bool,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleContentData_nsStyleStruct_h_unnamed_22 {
+pub struct nsStyleContentData_nsStyleStruct_h_unnamed_23 {
     pub mString: __BindgenUnionField<*mut ::std::os::raw::c_ushort>,
     pub mImage: __BindgenUnionField<*mut imgRequestProxy>,
     pub mCounters: __BindgenUnionField<*mut Array>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleContentData_nsStyleStruct_h_unnamed_22 { }
-impl ::std::clone::Clone for nsStyleContentData_nsStyleStruct_h_unnamed_22 {
+impl nsStyleContentData_nsStyleStruct_h_unnamed_23 {
+    pub unsafe fn mString(&mut self) -> *mut *mut ::std::os::raw::c_ushort {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mImage(&mut self) -> *mut *mut imgRequestProxy {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mCounters(&mut self) -> *mut *mut Array {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+}
+impl ::std::clone::Clone for nsStyleContentData_nsStyleStruct_h_unnamed_23 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleContentData_nsStyleStruct_h_unnamed_22() {
-    assert_eq!(::std::mem::size_of::<nsStyleContentData_nsStyleStruct_h_unnamed_22>()
+fn bindgen_test_layout_nsStyleContentData_nsStyleStruct_h_unnamed_23() {
+    assert_eq!(::std::mem::size_of::<nsStyleContentData_nsStyleStruct_h_unnamed_23>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleContentData_nsStyleStruct_h_unnamed_22>()
+    assert_eq!(::std::mem::align_of::<nsStyleContentData_nsStyleStruct_h_unnamed_23>()
                , 8usize);
 }
 #[test]
@@ -5730,26 +6105,35 @@ pub enum nsStyleSVGOpacitySource {
 #[repr(C)]
 #[derive(Debug)]
 pub struct nsStyleSVGPaint {
-    pub mPaint: nsStyleSVGPaint_nsStyleStruct_h_unnamed_23,
+    pub mPaint: nsStyleSVGPaint_nsStyleStruct_h_unnamed_24,
     pub mType: nsStyleSVGPaintType,
     pub mFallbackColor: nscolor,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleSVGPaint_nsStyleStruct_h_unnamed_23 {
+pub struct nsStyleSVGPaint_nsStyleStruct_h_unnamed_24 {
     pub mColor: __BindgenUnionField<nscolor>,
     pub mPaintServer: __BindgenUnionField<*mut nsIURI>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleSVGPaint_nsStyleStruct_h_unnamed_23 { }
-impl ::std::clone::Clone for nsStyleSVGPaint_nsStyleStruct_h_unnamed_23 {
+impl nsStyleSVGPaint_nsStyleStruct_h_unnamed_24 {
+    pub unsafe fn mColor(&mut self) -> *mut nscolor {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mPaintServer(&mut self) -> *mut *mut nsIURI {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+}
+impl ::std::clone::Clone for nsStyleSVGPaint_nsStyleStruct_h_unnamed_24 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleSVGPaint_nsStyleStruct_h_unnamed_23() {
-    assert_eq!(::std::mem::size_of::<nsStyleSVGPaint_nsStyleStruct_h_unnamed_23>()
+fn bindgen_test_layout_nsStyleSVGPaint_nsStyleStruct_h_unnamed_24() {
+    assert_eq!(::std::mem::size_of::<nsStyleSVGPaint_nsStyleStruct_h_unnamed_24>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleSVGPaint_nsStyleStruct_h_unnamed_23>()
+    assert_eq!(::std::mem::align_of::<nsStyleSVGPaint_nsStyleStruct_h_unnamed_24>()
                , 8usize);
 }
 #[test]
@@ -5782,6 +6166,39 @@ pub struct nsStyleSVG {
     pub mStrokeLinejoin: u8,
     pub mTextAnchor: u8,
     pub _bitfield_1: u32,
+}
+impl nsStyleSVG {
+    pub fn set_mFillOpacitySource(&mut self, val: u8) {
+        self._bitfield_1 &= !(((1 << (3u32 as u32)) - 1) << 0usize);
+        self._bitfield_1 |= (val as u32) << 0usize;
+    }
+    pub fn set_mStrokeOpacitySource(&mut self, val: u8) {
+        self._bitfield_1 &= !(((1 << (3u32 as u32)) - 1) << 3usize);
+        self._bitfield_1 |= (val as u32) << 3usize;
+    }
+    pub fn set_mStrokeDasharrayFromObject(&mut self, val: bool) {
+        self._bitfield_1 &= !(((1 << (1u32 as u32)) - 1) << 6usize);
+        self._bitfield_1 |= (val as u32) << 6usize;
+    }
+    pub fn set_mStrokeDashoffsetFromObject(&mut self, val: bool) {
+        self._bitfield_1 &= !(((1 << (1u32 as u32)) - 1) << 7usize);
+        self._bitfield_1 |= (val as u32) << 7usize;
+    }
+    pub fn set_mStrokeWidthFromObject(&mut self, val: bool) {
+        self._bitfield_1 &= !(((1 << (1u32 as u32)) - 1) << 8usize);
+        self._bitfield_1 |= (val as u32) << 8usize;
+    }
+    pub const fn new_bitfield_1(mFillOpacitySource: u8,
+                                mStrokeOpacitySource: u8,
+                                mStrokeDasharrayFromObject: bool,
+                                mStrokeDashoffsetFromObject: bool,
+                                mStrokeWidthFromObject: bool) -> u32 {
+        0 | ((mFillOpacitySource as u32) << 0u32) |
+            ((mStrokeOpacitySource as u32) << 3u32) |
+            ((mStrokeDasharrayFromObject as u32) << 6u32) |
+            ((mStrokeDashoffsetFromObject as u32) << 7u32) |
+            ((mStrokeWidthFromObject as u32) << 8u32)
+    }
 }
 #[test]
 fn bindgen_test_layout_nsStyleSVG() {
@@ -5816,25 +6233,34 @@ fn bindgen_test_layout_nsStyleBasicShape() {
 #[derive(Debug)]
 pub struct nsStyleClipPath {
     pub mType: i32,
-    pub nsStyleClipPath_nsStyleStruct_h_unnamed_24: nsStyleClipPath_nsStyleStruct_h_unnamed_24,
+    pub nsStyleClipPath_nsStyleStruct_h_unnamed_25: nsStyleClipPath_nsStyleStruct_h_unnamed_25,
     pub mSizingBox: u8,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleClipPath_nsStyleStruct_h_unnamed_24 {
+pub struct nsStyleClipPath_nsStyleStruct_h_unnamed_25 {
     pub mBasicShape: __BindgenUnionField<*mut nsStyleBasicShape>,
     pub mURL: __BindgenUnionField<*mut nsIURI>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleClipPath_nsStyleStruct_h_unnamed_24 { }
-impl ::std::clone::Clone for nsStyleClipPath_nsStyleStruct_h_unnamed_24 {
+impl nsStyleClipPath_nsStyleStruct_h_unnamed_25 {
+    pub unsafe fn mBasicShape(&mut self) -> *mut *mut nsStyleBasicShape {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mURL(&mut self) -> *mut *mut nsIURI {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+}
+impl ::std::clone::Clone for nsStyleClipPath_nsStyleStruct_h_unnamed_25 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleClipPath_nsStyleStruct_h_unnamed_24() {
-    assert_eq!(::std::mem::size_of::<nsStyleClipPath_nsStyleStruct_h_unnamed_24>()
+fn bindgen_test_layout_nsStyleClipPath_nsStyleStruct_h_unnamed_25() {
+    assert_eq!(::std::mem::size_of::<nsStyleClipPath_nsStyleStruct_h_unnamed_25>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleClipPath_nsStyleStruct_h_unnamed_24>()
+    assert_eq!(::std::mem::align_of::<nsStyleClipPath_nsStyleStruct_h_unnamed_25>()
                , 8usize);
 }
 #[test]
@@ -5847,36 +6273,39 @@ fn bindgen_test_layout_nsStyleClipPath() {
 pub struct nsStyleFilter {
     pub mType: i32,
     pub mFilterParameter: nsStyleCoord,
-    pub nsStyleFilter_nsStyleStruct_h_unnamed_25: nsStyleFilter_nsStyleStruct_h_unnamed_25,
+    pub nsStyleFilter_nsStyleStruct_h_unnamed_26: nsStyleFilter_nsStyleStruct_h_unnamed_26,
 }
 #[repr(C)]
 #[derive(Debug, Copy)]
-pub struct nsStyleFilter_nsStyleStruct_h_unnamed_25 {
+pub struct nsStyleFilter_nsStyleStruct_h_unnamed_26 {
     pub mURL: __BindgenUnionField<*mut nsIURI>,
     pub mDropShadow: __BindgenUnionField<*mut nsCSSShadowArray>,
     pub _bindgen_data_: u64,
 }
-impl nsStyleFilter_nsStyleStruct_h_unnamed_25 { }
-impl ::std::clone::Clone for nsStyleFilter_nsStyleStruct_h_unnamed_25 {
+impl nsStyleFilter_nsStyleStruct_h_unnamed_26 {
+    pub unsafe fn mURL(&mut self) -> *mut *mut nsIURI {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+    pub unsafe fn mDropShadow(&mut self) -> *mut *mut nsCSSShadowArray {
+        let raw: *mut u8 = ::std::mem::transmute(&self._bindgen_data_);
+        ::std::mem::transmute(raw.offset(0))
+    }
+}
+impl ::std::clone::Clone for nsStyleFilter_nsStyleStruct_h_unnamed_26 {
     fn clone(&self) -> Self { *self }
 }
 #[test]
-fn bindgen_test_layout_nsStyleFilter_nsStyleStruct_h_unnamed_25() {
-    assert_eq!(::std::mem::size_of::<nsStyleFilter_nsStyleStruct_h_unnamed_25>()
+fn bindgen_test_layout_nsStyleFilter_nsStyleStruct_h_unnamed_26() {
+    assert_eq!(::std::mem::size_of::<nsStyleFilter_nsStyleStruct_h_unnamed_26>()
                , 8usize);
-    assert_eq!(::std::mem::align_of::<nsStyleFilter_nsStyleStruct_h_unnamed_25>()
+    assert_eq!(::std::mem::align_of::<nsStyleFilter_nsStyleStruct_h_unnamed_26>()
                , 8usize);
 }
 #[test]
 fn bindgen_test_layout_nsStyleFilter() {
     assert_eq!(::std::mem::size_of::<nsStyleFilter>() , 32usize);
     assert_eq!(::std::mem::align_of::<nsStyleFilter>() , 8usize);
-}
-#[repr(C)]
-#[derive(Debug, Copy)]
-pub struct nsTArray_CopyChooser;
-impl ::std::clone::Clone for nsTArray_CopyChooser {
-    fn clone(&self) -> Self { *self }
 }
 #[repr(C)]
 pub struct nsStyleSVGReset {
@@ -5919,12 +6348,4 @@ pub struct nsStyleEffects {
 fn bindgen_test_layout_nsStyleEffects() {
     assert_eq!(::std::mem::size_of::<nsStyleEffects>() , 40usize);
     assert_eq!(::std::mem::align_of::<nsStyleEffects>() , 8usize);
-}
-/**
- * <div rustbindgen replaces="nsTArray"></div>
- */
-#[repr(C)]
-#[derive(Debug)]
-pub struct nsTArray<T> {
-    pub mBuffer: *mut T,
 }
