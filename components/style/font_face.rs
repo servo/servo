@@ -6,6 +6,8 @@ use computed_values::font_family::FontFamily;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use parser::{ParserContext, log_css_error};
 use properties::longhands::font_family::parse_one_family;
+use std::iter;
+use std::slice;
 use string_cache::Atom;
 use url::Url;
 
@@ -56,6 +58,29 @@ pub fn parse_font_face_block(context: &ParserContext, input: &mut Parser)
             })
         }
         _ => Err(())
+    }
+}
+
+pub struct EffectiveSourcesIter<'a>(slice::Iter<'a, Source>);
+
+impl FontFaceRule {
+    pub fn effective_sources(&self) -> EffectiveSourcesIter {
+        EffectiveSourcesIter(self.sources.iter())
+    }
+}
+
+impl<'a> iter::Iterator for EffectiveSourcesIter<'a> {
+    type Item = &'a Source;
+    fn next(&mut self) -> Option<&'a Source> {
+        self.0.find(|source| {
+            if let Source::Url(ref url_source) = **source {
+                !url_source.format_hints.iter().all(|hint| {
+                    hint != "truetype" && hint != "opentype"
+                })
+            } else {
+                true
+            }
+        })
     }
 }
 
