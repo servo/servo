@@ -19,7 +19,6 @@ use dom::bindings::str::DOMString;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, ElementCreator};
 use dom::event::{Event, EventBubbles, EventCancelable};
-use dom::eventtarget::EventTarget;
 use dom::htmlelement::HTMLElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node};
 use dom::node::{document_from_node, window_from_node};
@@ -40,7 +39,6 @@ use std::cell::Cell;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
-use task_source::dom_manipulation::DOMManipulationTask;
 use url::Url;
 use util::str::{HTML_SPACE_CHARACTERS, StaticStringVec};
 
