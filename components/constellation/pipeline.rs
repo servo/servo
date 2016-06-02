@@ -309,6 +309,8 @@ impl Pipeline {
         // The compositor wants to know when pipelines shut down too.
         // It may still have messages to process from these other threads
         // before they can be safely shut down.
+        // It's OK for the constellation to block on the compositor,
+        // since the compositor never blocks on the constellation.
         if let Ok((sender, receiver)) = ipc::channel() {
             self.compositor_proxy.send(CompositorMsg::PipelineExited(self.id, sender));
             if let Err(e) = receiver.recv() {
@@ -318,13 +320,8 @@ impl Pipeline {
 
         // Script thread handles shutting down layout, and layout handles shutting down the painter.
         // For now, if the script thread has failed, we give up on clean shutdown.
-        if self.script_chan
-               .send(ConstellationControlMsg::ExitPipeline(self.id))
-               .is_ok() {
-            // Wait until all slave threads have terminated and run destructors
-            // NOTE: We don't wait for script thread as we don't always own it
-            let _ = self.paint_shutdown_port.recv();
-            let _ = self.layout_shutdown_port.recv();
+        if let Err(e) = self.script_chan.send(ConstellationControlMsg::ExitPipeline(self.id)) {
+            warn!("Sending script exit message failed ({}).", e);
         }
     }
 

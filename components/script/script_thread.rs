@@ -1407,6 +1407,7 @@ impl ScriptThread {
         if window.pipeline() == id {
             debug!("shutting down layout for root context {:?}", id);
             shut_down_layout(&context);
+            let _ = self.constellation_chan.send(ConstellationMsg::PipelineExited(id));
             return true
         }
 
@@ -1414,6 +1415,7 @@ impl ScriptThread {
         if let Some(ref mut child_context) = context.remove(id) {
             shut_down_layout(&child_context);
         }
+        let _ = self.constellation_chan.send(ConstellationMsg::PipelineExited(id));
         false
     }
 

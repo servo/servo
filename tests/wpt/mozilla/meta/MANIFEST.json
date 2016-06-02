@@ -6466,6 +6466,12 @@
             "url": "/_mozilla/mozilla/iframe_hierarchy.html"
           }
         ],
+        "mozilla/iframe_replacement.html": [
+          {
+            "path": "mozilla/iframe_replacement.html",
+            "url": "/_mozilla/mozilla/iframe_replacement.html"
+          }
+        ],
         "mozilla/img_width_height.html": [
           {
             "path": "mozilla/img_width_height.html",
