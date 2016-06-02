@@ -5,7 +5,10 @@
 use document_loader::DocumentLoader;
 use dom::bindings::codegen::Bindings::DOMParserBinding;
 use dom::bindings::codegen::Bindings::DOMParserBinding::DOMParserMethods;
-use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedType::{Text_html, Text_xml};
+use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedType::Application_xhtml_xml;
+use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedType::Application_xml;
+use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedType::Text_html;
+use dom::bindings::codegen::Bindings::DOMParserBinding::SupportedType::Text_xml;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentReadyState;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::error::Fallible;
@@ -70,7 +73,7 @@ impl DOMParserMethods for DOMParser {
                 document.set_ready_state(DocumentReadyState::Complete);
                 Ok(document)
             }
-            Text_xml => {
+            Text_xml | Application_xml | Application_xhtml_xml => {
                 // FIXME: this should probably be FromParser when we actually parse the string (#3756).
                 let document = Document::new(&self.window,
                                              None,
