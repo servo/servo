@@ -81,6 +81,7 @@ fn builder_with_platform_options(mut builder: glutin::WindowBuilder) -> glutin::
         builder = builder.with_activation_policy(ActivationPolicy::Prohibited)
     }
     builder.with_app_name(String::from("Servo"))
+           .with_transparent_corner_radius(8)
 }
 
 #[cfg(not(target_os = "macos"))]
