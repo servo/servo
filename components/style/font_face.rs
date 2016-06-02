@@ -6,6 +6,7 @@ use computed_values::font_family::FontFamily;
 use cssparser::{AtRuleParser, DeclarationListParser, DeclarationParser, Parser};
 use parser::{ParserContext, log_css_error};
 use properties::longhands::font_family::parse_one_family;
+use string_cache::Atom;
 use url::Url;
 
 #[derive(Clone, Debug, HeapSizeOf, PartialEq, Eq, Deserialize, Serialize)]
@@ -17,7 +18,7 @@ pub enum Source {
 #[derive(Clone, Debug, HeapSizeOf, PartialEq, Eq, Deserialize, Serialize)]
 pub struct UrlSource {
     pub url: Url,
-    pub format_hints: Vec<String>,
+    pub format_hints: Vec<Atom>,
 }
 
 #[derive(Debug, HeapSizeOf, PartialEq, Eq)]
@@ -107,7 +108,7 @@ fn parse_one_src(context: &ParserContext, input: &mut Parser) -> Result<Source, 
     let format_hints = if input.try(|input| input.expect_function_matching("format")).is_ok() {
         try!(input.parse_nested_block(|input| {
             input.parse_comma_separated(|input| {
-                Ok((try!(input.expect_string())).into_owned())
+                Ok((try!(input.expect_string())).into())
             })
         }))
     } else {
