@@ -57,6 +57,7 @@ use js::rust::Runtime;
 use layout_interface::LayoutRPC;
 use libc;
 use msg::constellation_msg::{FrameType, PipelineId, SubpageId, WindowSizeData, WindowSizeType, ReferrerPolicy};
+use net_traits::filemanager_thread::SelectedFileId;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::response::HttpsState;
@@ -324,6 +325,7 @@ no_jsmanaged_fields!(USVString);
 no_jsmanaged_fields!(ReferrerPolicy);
 no_jsmanaged_fields!(ResourceThreads);
 no_jsmanaged_fields!(SystemTime);
+no_jsmanaged_fields!(SelectedFileId);
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]
