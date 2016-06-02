@@ -123,7 +123,6 @@ use string_cache::{Atom, QualName};
 use style::context::ReflowGoal;
 use style::restyle_hints::ElementSnapshot;
 use style::servo::Stylesheet;
-use task_source::dom_manipulation::DOMManipulationTask;
 use time;
 use url::Url;
 use url::percent_encoding::percent_decode;
