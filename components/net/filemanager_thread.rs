@@ -6,7 +6,6 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime_guess::guess_mime_type_opt;
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FileManagerResult};
 use net_traits::filemanager_thread::{SelectedFile, FileManagerThreadError};
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
@@ -16,7 +15,7 @@ use uuid::Uuid;
 
 pub struct FileManager {
     receiver: IpcReceiver<FileManagerThreadMsg>,
-    idmap: RefCell<HashMap<Uuid, PathBuf>>,
+    idmap: HashMap<Uuid, PathBuf>,
 }
 
 pub trait FileManagerThreadFactory {
@@ -41,7 +40,7 @@ impl FileManager {
     fn new(recv: IpcReceiver<FileManagerThreadMsg>) -> FileManager {
         FileManager {
             receiver: recv,
-            idmap: RefCell::new(HashMap::new()),
+            idmap: HashMap::new(),
         }
     }
 
@@ -96,7 +95,7 @@ impl FileManager {
         match File::open(file_path) {
             Ok(handler) => {
                 let id = Uuid::new_v4();
-                self.idmap.borrow_mut().insert(id, file_path.to_path_buf());
+                self.idmap.insert(id, file_path.to_path_buf());
 
                 // Unix Epoch: https://doc.servo.org/std/time/constant.UNIX_EPOCH.html
                 let epoch = handler.metadata().and_then(|metadata| metadata.modified()).map_err(|_| ())
@@ -132,7 +131,7 @@ impl FileManager {
     }
 
     fn read_file(&mut self, sender: IpcSender<FileManagerResult<Vec<u8>>>, id: Uuid) {
-        match self.idmap.borrow().get(&id).and_then(|filepath| {
+        match self.idmap.get(&id).and_then(|filepath| {
             let mut buffer = vec![];
             match File::open(&filepath) {
                 Ok(mut handler) => {
@@ -154,6 +153,6 @@ impl FileManager {
     }
 
     fn delete_fileid(&mut self, id: Uuid) {
-        self.idmap.borrow_mut().remove(&id);
+        self.idmap.remove(&id);
     }
 }
