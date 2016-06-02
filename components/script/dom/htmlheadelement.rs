@@ -4,7 +4,6 @@
 
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::HTMLHeadElementBinding;
-use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, RootedReference};
 use dom::bindings::str::DOMString;
@@ -42,25 +41,25 @@ impl HTMLHeadElement {
     /// https://html.spec.whatwg.org/multipage/#meta-referrer
     pub fn set_document_referrer(&self) {
         let doc = document_from_node(self);
+
+        if doc.GetHead().r() != Some(self) {
+            return;
+        }
+
         let node = self.upcast::<Node>();
+        let candidates = node.traverse_preorder()
+                             .filter_map(Root::downcast::<Element>)
+                             .filter(|elem| elem.is::<HTMLMetaElement>())
+                             .filter(|elem| elem.get_string_attribute(&atom!("name")) == "referrer")
+                             .filter(|elem| elem.get_attribute(&ns!(), &atom!("content")).is_some());
 
-        if let Some(head) = doc.GetHead() {
-            if node.IsSameNode(Some(head.upcast::<Node>())) {
-                let candidates = node.traverse_preorder()
-                     .filter_map(Root::downcast::<Element>)
-                     .filter(|elem| elem.is::<HTMLMetaElement>())
-                     .filter(|elem| elem.get_string_attribute(&atom!("name")) == "referrer")
-                     .filter(|elem| elem.get_attribute(&ns!(), &atom!("content")).is_some());
-
-                for meta in candidates {
-                    if let Some(content) = meta.get_attribute(&ns!(), &atom!("content")).r() {
-                        let content = content.value();
-                        let content_val = content.trim();
-                        if !content_val.is_empty() {
-                            doc.set_referrer_policy(determine_policy_for_token(content_val));
-                            return;
-                        }
-                    }
+        for meta in candidates {
+            if let Some(content) = meta.get_attribute(&ns!(), &atom!("content")).r() {
+                let content = content.value();
+                let content_val = content.trim();
+                if !content_val.is_empty() {
+                    doc.set_referrer_policy(determine_policy_for_token(content_val));
+                    return;
                 }
             }
         }

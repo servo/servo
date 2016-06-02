@@ -155,7 +155,6 @@ impl VirtualMethods for HTMLMetaElement {
             s.attribute_mutated(attr, mutation);
         }
 
-        //TODO any conditions here?
         self.process_referrer_attribute();
     }
 
