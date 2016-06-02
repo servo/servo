@@ -26,7 +26,7 @@ use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::{MainThreadScriptChan, ScriptThread};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
 use task_source::TaskSource;
-use task_source::dom_manipulation::DOMManipulationTask;
+use task_source::dom_manipulation::{DOMManipulationTask, DOMManipulationTaskSource};
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::Url;
 
@@ -193,7 +193,7 @@ impl<'a> GlobalRef<'a> {
 
     /// `TaskSource` used to queue DOM manipulation messages to the event loop of this global's
     /// thread.
-    pub fn dom_manipulation_task_source(&self) -> Box<TaskSource<DOMManipulationTask> + Send> {
+    pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
         match *self {
             GlobalRef::Window(ref window) => window.dom_manipulation_task_source(),
             GlobalRef::Worker(_) => unimplemented!(),
