@@ -30,7 +30,7 @@ partial interface HTMLIFrameElement {
 };
 
 partial interface HTMLIFrameElement {
-    [Func="Window::global_is_mozbrowser"]
+    [Func="::dom::window::Window::global_is_mozbrowser"]
     attribute boolean mozbrowser;
 };
 

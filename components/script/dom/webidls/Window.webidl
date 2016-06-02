@@ -61,7 +61,7 @@ Window implements GlobalEventHandlers;
 Window implements WindowEventHandlers;
 
 [NoInterfaceObject]
-interface WindowProxy : Window {};
+interface WindowProxy {};
 
 // https://html.spec.whatwg.org/multipage/#timers
 [NoInterfaceObject/*, Exposed=Window,Worker*/]
