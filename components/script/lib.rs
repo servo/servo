@@ -158,7 +158,6 @@ fn perform_platform_specific_initialization() {}
 #[allow(unsafe_code)]
 pub fn init() {
     unsafe {
-        assert_eq!(js::jsapi::JS_Init(), true);
         SetDOMProxyInformation(ptr::null(), 0, Some(script_thread::shadow_check_callback));
     }
 
