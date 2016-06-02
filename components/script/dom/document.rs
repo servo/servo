@@ -1471,10 +1471,8 @@ impl Document {
 
         update_with_current_time_ms(&self.dom_content_loaded_event_start);
 
-        let doctarget = Trusted::new(self.upcast::<EventTarget>());
-        let task_source = self.window().dom_manipulation_task_source();
-        let _ = task_source.queue(DOMManipulationTask::FireEvent(
-            atom!("DOMContentLoaded"), doctarget, EventBubbles::Bubbles, EventCancelable::NotCancelable));
+        self.window().dom_manipulation_task_source().queue_event(self.upcast(), atom!("DOMContentLoaded"),
+            EventBubbles::Bubbles, EventCancelable::NotCancelable);
         self.window().reflow(ReflowGoal::ForDisplay,
                              ReflowQueryType::NoQuery,
                              ReflowReason::DOMContentLoaded);

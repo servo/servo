@@ -280,7 +280,7 @@ impl Window {
         self.js_runtime.borrow().as_ref().unwrap().cx()
     }
 
-    pub fn dom_manipulation_task_source(&self) -> Box<TaskSource<DOMManipulationTask> + Send> {
+    pub fn dom_manipulation_task_source(&self) -> DOMManipulationTaskSource {
         self.dom_manipulation_task_source.clone()
     }
 

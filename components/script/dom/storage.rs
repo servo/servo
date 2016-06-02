@@ -18,6 +18,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use net_traits::IpcSend;
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use script_thread::{MainThreadRunnable, ScriptThread};
+use task_source::TaskSource;
 use task_source::dom_manipulation::DOMManipulationTask;
 use url::Url;
 
