@@ -6,6 +6,7 @@ use app_units::Au;
 use cssparser::RGBA;
 use gecko_bindings::structs::{nsStyleCoord, nsStyleUnion, nsStyleUnit};
 use std::cmp::max;
+use style::values::computed::Angle;
 use style::values::computed::{LengthOrPercentage, LengthOrPercentageOrAuto, LengthOrPercentageOrNone};
 
 pub trait StyleCoordHelpers {
@@ -125,6 +126,26 @@ impl ToGeckoStyleCoord for LengthOrPercentageOrNone {
             },
             LengthOrPercentageOrNone::Calc(_) => unimplemented!(),
         };
+    }
+}
+
+impl<T: ToGeckoStyleCoord> ToGeckoStyleCoord for Option<T> {
+    fn to_gecko_style_coord(&self, unit: &mut nsStyleUnit, union: &mut nsStyleUnion) {
+        if let Some(ref me) = *self {
+            me.to_gecko_style_coord(unit, union);
+        } else {
+            *unit = nsStyleUnit::eStyleUnit_None;
+            unsafe { *union.mInt.as_mut() = 0; }
+        }
+    }
+}
+
+impl ToGeckoStyleCoord for Angle {
+    fn to_gecko_style_coord(&self,
+                            unit: &mut nsStyleUnit,
+                            union: &mut nsStyleUnion) {
+        *unit = nsStyleUnit::eStyleUnit_Radian;
+        unsafe { *union.mFloat.as_mut() = self.radians() };
     }
 }
 

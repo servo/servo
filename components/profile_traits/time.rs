@@ -80,6 +80,7 @@ pub enum ProfilerCategory {
     ScriptUpdateReplacedElement,
     ScriptWebSocketEvent,
     ScriptWorkerEvent,
+    ScriptServiceWorkerEvent,
     ApplicationHeartbeat,
 }
 

@@ -4,6 +4,8 @@
 
 use devtools;
 use devtools_traits::DevtoolScriptControlMsg;
+use dom::abstractworker::{WorkerScriptLoadOrigin, WorkerScriptMsg, SharedRt , SimpleWorkerErrorHandler};
+use dom::abstractworkerglobalscope::{SendableWorkerScriptChan, WorkerThreadWorkerChan};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding::DedicatedWorkerGlobalScopeMethods;
@@ -17,8 +19,7 @@ use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
 use dom::bindings::structuredclone::StructuredCloneData;
 use dom::messageevent::MessageEvent;
-use dom::worker::{SimpleWorkerErrorHandler, SharedRt, TrustedWorkerAddress};
-use dom::worker::{WorkerScriptLoadOrigin, WorkerMessageHandler};
+use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler};
 use dom::workerglobalscope::WorkerGlobalScope;
 use dom::workerglobalscope::WorkerGlobalScopeInit;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -39,70 +40,6 @@ use std::sync::{Arc, Mutex};
 use url::Url;
 use util::thread::spawn_named_with_send_on_panic;
 use util::thread_state::{IN_WORKER, SCRIPT};
-
-/// Messages used to control the worker event loops
-pub enum WorkerScriptMsg {
-    /// Common variants associated with the script messages
-    Common(CommonScriptMsg),
-    /// Message sent through Worker.postMessage
-    DOMMessage(StructuredCloneData),
-}
-
-/// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
-/// common event loop messages. While this SendableWorkerScriptChan is alive, the associated
-/// Worker object will remain alive.
-#[derive(JSTraceable, Clone)]
-pub struct SendableWorkerScriptChan {
-    sender: Sender<(TrustedWorkerAddress, CommonScriptMsg)>,
-    worker: TrustedWorkerAddress,
-}
-
-impl ScriptChan for SendableWorkerScriptChan {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        self.sender.send((self.worker.clone(), msg)).map_err(|_| ())
-    }
-
-    fn clone(&self) -> Box<ScriptChan + Send> {
-        box SendableWorkerScriptChan {
-            sender: self.sender.clone(),
-            worker: self.worker.clone(),
-        }
-    }
-}
-
-/// A ScriptChan that can be cloned freely and will silently send a TrustedWorkerAddress with
-/// worker event loop messages. While this SendableWorkerScriptChan is alive, the associated
-/// Worker object will remain alive.
-#[derive(JSTraceable, Clone)]
-pub struct WorkerThreadWorkerChan {
-    sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
-    worker: TrustedWorkerAddress,
-}
-
-impl ScriptChan for WorkerThreadWorkerChan {
-    fn send(&self, msg: CommonScriptMsg) -> Result<(), ()> {
-        self.sender
-            .send((self.worker.clone(), WorkerScriptMsg::Common(msg)))
-            .map_err(|_| ())
-    }
-
-    fn clone(&self) -> Box<ScriptChan + Send> {
-        box WorkerThreadWorkerChan {
-            sender: self.sender.clone(),
-            worker: self.worker.clone(),
-        }
-    }
-}
-
-impl ScriptPort for Receiver<(TrustedWorkerAddress, WorkerScriptMsg)> {
-    fn recv(&self) -> Result<CommonScriptMsg, ()> {
-        match self.recv().map(|(_, msg)| msg) {
-            Ok(WorkerScriptMsg::Common(script_msg)) => Ok(script_msg),
-            Ok(WorkerScriptMsg::DOMMessage(_)) => panic!("unexpected worker event message!"),
-            Err(_) => Err(()),
-        }
-    }
-}
 
 /// Set the `worker` field of a related DedicatedWorkerGlobalScope object to a particular
 /// value for the duration of this object's lifetime. This ensures that the related Worker
@@ -212,7 +149,6 @@ impl DedicatedWorkerGlobalScope {
                             worker_url: Url,
                             id: PipelineId,
                             from_devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
-                            parent_rt: SharedRt,
                             worker_rt_for_mainthread: Arc<Mutex<Option<SharedRt>>>,
                             worker: TrustedWorkerAddress,
                             parent_sender: Box<ScriptChan + Send>,

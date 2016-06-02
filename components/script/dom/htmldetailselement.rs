@@ -18,6 +18,7 @@ use dom::virtualmethods::VirtualMethods;
 use script_thread::Runnable;
 use std::cell::Cell;
 use string_cache::Atom;
+use task_source::TaskSource;
 use task_source::dom_manipulation::DOMManipulationTask;
 
 #[dom_struct]

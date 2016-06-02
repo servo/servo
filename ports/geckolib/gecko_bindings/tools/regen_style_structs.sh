@@ -46,7 +46,6 @@ export RUST_BACKTRACE=1
   "-I$1/../nsprpub/pr/include"                                      \
   $PLATFORM_DEPENDENT_DEFINES                                       \
   -ignore-functions                                                 \
-  -no-bitfield-methods                                              \
   -no-type-renaming                                                 \
   -DMOZILLA_INTERNAL_API                                            \
   -DMOZ_STYLO_BINDINGS=1                                            \
@@ -99,6 +98,7 @@ export RUST_BACKTRACE=1
   -match "nsCSSScanner.h"                                           \
   -match "Types.h"                                                  \
   -match "utility"                                                  \
+  -match "nsTArray"                                                 \
   -match "pair"                                                     \
   -match "SheetParsingMode.h"                                       \
   -match "StaticPtr.h"                                              \
@@ -106,6 +106,9 @@ export RUST_BACKTRACE=1
   -blacklist-type "IsDestructibleFallbackImpl"                      \
   -blacklist-type "IsDestructibleFallback"                          \
   -blacklist-type "nsProxyReleaseEvent"                             \
+  -blacklist-type "FallibleTArray"                                  \
+  -blacklist-type "nsTArray_Impl"                                   \
+  -blacklist-type "__is_tuple_like_impl"                            \
   -opaque-type "nsIntMargin"                                        \
   -opaque-type "nsIntPoint"                                         \
   -opaque-type "nsIntRect"                                          \
@@ -130,7 +133,11 @@ if [ $? -ne 0 ]; then
 else
   echo -e "\e[34minfo:\e[0m bindgen exited successfully, running tests"
   TESTS_FILE=$(mktemp)
-  rustc ../structs.rs --test -o $TESTS_FILE
+  TESTS_SRC=$(mktemp)
+  echo "#![feature(const_fn)]" > $TESTS_SRC
+  cat ../structs.rs >> $TESTS_SRC
+  rustc $TESTS_SRC --test -o $TESTS_FILE
   $TESTS_FILE
   rm $TESTS_FILE
+  rm $TESTS_SRC
 fi

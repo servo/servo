@@ -34,12 +34,12 @@ use canvas_traits::{CompositionOrBlending, LineCapStyle, LineJoinStyle, Repetiti
 use cssparser::RGBA;
 use devtools_traits::CSSError;
 use devtools_traits::WorkerId;
+use dom::abstractworker::SharedRt;
 use dom::bindings::js::{JS, Root};
 use dom::bindings::refcounted::Trusted;
 use dom::bindings::reflector::{Reflectable, Reflector};
-use dom::bindings::str::DOMString;
+use dom::bindings::str::{DOMString, USVString};
 use dom::bindings::utils::WindowProxyHandler;
-use dom::worker::SharedRt;
 use encoding::types::EncodingRef;
 use euclid::length::Length as EuclidLength;
 use euclid::matrix2d::Matrix2D;
@@ -81,6 +81,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::mpsc::{Receiver, Sender};
+use std::time::SystemTime;
 use string_cache::{Atom, Namespace, QualName};
 use style::attr::{AttrIdentifier, AttrValue};
 use style::element_state::*;
@@ -320,8 +321,10 @@ no_jsmanaged_fields!(ElementSnapshot);
 no_jsmanaged_fields!(HttpsState);
 no_jsmanaged_fields!(SharedRt);
 no_jsmanaged_fields!(TouchpadPressurePhase);
+no_jsmanaged_fields!(USVString);
 no_jsmanaged_fields!(ReferrerPolicy);
 no_jsmanaged_fields!(ResourceThreads);
+no_jsmanaged_fields!(SystemTime);
 
 impl JSTraceable for Box<ScriptChan + Send> {
     #[inline]
