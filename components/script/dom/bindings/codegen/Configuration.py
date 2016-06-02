@@ -173,10 +173,13 @@ class Descriptor(DescriptorProvider):
 
         # Read the desc, and fill in the relevant defaults.
         ifaceName = self.interface.identifier.name
+        self.register = desc.get('register', True)
+        self.outerObjectHook = desc.get('outerObjectHook', 'None')
+        self.correspondToBrowsingContext = desc.get('correspondToBrowsingContext', False)
+        self.importTypes = desc.get('importTypes', [])
 
         # Callback types do not use JS smart pointers, so we should not use the
         # built-in rooting mechanisms for them.
-        self.correspondToBrowsingContext = desc.get('correspondToBrowsingContext', False)
         if self.interface.isCallback():
             self.needsRooting = False
             ty = "%sBinding::%s" % (ifaceName, ifaceName)
@@ -195,8 +198,6 @@ class Descriptor(DescriptorProvider):
             self.nativeType = "*const %s" % ifaceName
 
         self.concreteType = ifaceName
-        self.register = desc.get('register', True)
-        self.outerObjectHook = desc.get('outerObjectHook', 'None')
         self.proxy = False
         self.weakReferenceable = desc.get('weakReferenceable', False)
 

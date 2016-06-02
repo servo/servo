@@ -22,6 +22,7 @@ use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{Root, LayoutJS};
 use dom::bindings::reflector::Reflectable;
 use dom::bindings::str::DOMString;
+use dom::browsingcontext::BrowsingContext;
 use dom::customevent::CustomEvent;
 use dom::document::Document;
 use dom::element::{AttributeMutation, Element, RawLayoutElementHelpers};
@@ -31,7 +32,7 @@ use dom::htmlelement::HTMLElement;
 use dom::node::{Node, NodeDamage, UnbindContext, window_from_node, document_from_node};
 use dom::urlhelper::UrlHelper;
 use dom::virtualmethods::VirtualMethods;
-use dom::window::{ReflowReason, Window};
+use dom::window::ReflowReason;
 use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, RootedValue, JSContext, MutableHandleValue};
 use js::jsval::{UndefinedValue, NullValue};
@@ -422,25 +423,32 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow
-    fn GetContentWindow(&self) -> Option<Root<Window>> {
+    fn GetContentWindow(&self) -> Option<Root<BrowsingContext>> {
         self.subpage_id.get().and_then(|subpage_id| {
             let window = window_from_node(self);
             let window = window.r();
             let browsing_context = window.browsing_context();
-            browsing_context.find_child_by_subpage(subpage_id)
+            browsing_context.find_child_by_subpage(subpage_id).and_then(|window| {
+                Some(window.browsing_context())
+            })
         })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentdocument
     fn GetContentDocument(&self) -> Option<Root<Document>> {
-        self.GetContentWindow().and_then(|window| {
+        self.subpage_id.get().and_then(|subpage_id| {
+            let window = window_from_node(self);
             // FIXME(#10964): this should use the Document's origin and the
             //                origin of the incumbent settings object.
             let self_url = self.get_url();
-            let win_url = window_from_node(self).get_url();
+            let win_url = window.get_url();
+            let window = window.r();
+            let browsing_context = window.browsing_context();
 
             if UrlHelper::SameOrigin(&self_url, &win_url) {
-                Some(window.Document())
+                browsing_context.find_child_by_subpage(subpage_id).and_then(|window| {
+                    Some(window.Document())
+                })
             } else {
                 None
             }
