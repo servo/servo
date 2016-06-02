@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Anchor target attribute setter/getter</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<p><a id=link>test</a></p>
+<script>
+  test(function() {
+    var a = document.querySelector("#link");
+    a.target = "foo";
+    assert_equals(a.getAttribute("target"), "foo");
+    a.setAttribute("target", "bar");
+    assert_equals(a.target, "bar");
+  });
+</script>
+

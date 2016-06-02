@@ -6082,6 +6082,12 @@
             "url": "/_mozilla/mozilla/MouseEvent.html"
           }
         ],
+        "mozilla/anchor_target.html": [
+          {
+            "path": "mozilla/anchor_target.html",
+            "url": "/_mozilla/mozilla/anchor_target.html"
+          }
+        ],
         "mozilla/bad_cert_detected.html": [
           {
             "path": "mozilla/bad_cert_detected.html",
