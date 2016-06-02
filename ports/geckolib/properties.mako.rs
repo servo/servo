@@ -805,7 +805,7 @@ fn static_assert() {
                         };
 
                         let mut stop = unsafe {
-                            &mut (*gecko_gradient).mStops[index as u32]
+                            &mut (*gecko_gradient).mStops[index]
                         };
 
                         stop.mColor = color;

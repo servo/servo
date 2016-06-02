@@ -3,20 +3,27 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::mem;
-use std::ops::{Index, IndexMut};
+use std::ops::{Deref, DerefMut};
+use std::slice;
 use structs::{nsTArray, nsTArrayHeader};
 
-impl<T> Index<u32> for nsTArray<T> {
-    type Output = T;
+impl<T> Deref for nsTArray<T> {
+    type Target = [T];
 
-    fn index<'a>(&'a self, index: u32) -> &'a T {
-        unsafe { mem::transmute(self.ptr_at(index)) }
+    fn deref<'a>(&'a self) -> &'a [T] {
+        unsafe {
+            slice::from_raw_parts(self.slice_begin(),
+                                  self.header().mLength as usize)
+        }
     }
 }
 
-impl<T> IndexMut<u32> for nsTArray<T> {
-    fn index_mut<'a>(&'a mut self, index: u32) -> &'a mut T {
-        unsafe { mem::transmute(self.ptr_at_mut(index)) }
+impl<T> DerefMut for nsTArray<T> {
+    fn deref_mut<'a>(&'a mut self) -> &'a mut [T] {
+        unsafe {
+            slice::from_raw_parts_mut(self.slice_begin(),
+                                      self.header().mLength as usize)
+        }
     }
 }
 
@@ -28,29 +35,8 @@ impl<T> nsTArray<T> {
     }
 
     #[inline]
-    pub fn len(&self) -> u32 {
-        self.header().mLength
-    }
-
-    #[inline]
     unsafe fn slice_begin(&self) -> *mut T {
         debug_assert!(!self.mBuffer.is_null());
         (self.mBuffer as *const nsTArrayHeader).offset(1) as *mut _
-    }
-
-    #[inline]
-    fn ptr_at_mut(&mut self, index: u32) -> *mut T {
-        debug_assert!(index <= self.len());
-        unsafe {
-            self.slice_begin().offset(index as isize)
-        }
-    }
-
-    #[inline]
-    fn ptr_at(&self, index: u32) -> *const T {
-        debug_assert!(index <= self.len());
-        unsafe {
-            self.slice_begin().offset(index as isize)
-        }
     }
 }
