@@ -8,7 +8,7 @@ input {
   border: solid lightgrey 1px;
   color: black;
   font-family: sans-serif;
-  font-size: 0.7em;
+  font-size: 0.8333em;
   white-space: nowrap;
   text-align: left;
   line-height: 1.8;
@@ -23,7 +23,7 @@ textarea {
   border: solid lightgrey 1px;
   color: black;
   font-family: sans-serif;
-  font-size: 0.7em;
+  font-size: 0.8333em;
   white-space: pre;
 }
 
