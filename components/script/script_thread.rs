@@ -40,6 +40,8 @@ use dom::element::Element;
 use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::node::{Node, NodeDamage, window_from_node};
+use dom::serviceworker::TrustedServiceWorkerAddress;
+use dom::serviceworkerregistration::ServiceWorkerRegistration;
 use dom::servohtmlparser::ParserContext;
 use dom::uievent::UIEvent;
 use dom::window::{ReflowReason, ScriptHelpers, Window};
@@ -86,7 +88,7 @@ use script_traits::{ScriptThreadFactory, TimerEvent, TimerEventRequest, TimerSou
 use script_traits::{TouchEventType, TouchId};
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::option::Option;
 use std::rc::Rc;
 use std::result::Result;
@@ -264,6 +266,12 @@ impl ScriptPort for Receiver<(TrustedWorkerAddress, MainThreadScriptMsg)> {
     }
 }
 
+impl ScriptPort for Receiver<(TrustedServiceWorkerAddress, CommonScriptMsg)> {
+    fn recv(&self) -> Result<CommonScriptMsg, ()> {
+        self.recv().map(|(_, msg)| msg).map_err(|_| ())
+    }
+}
+
 /// Encapsulates internal communication of shared messages within the script thread.
 #[derive(JSTraceable)]
 pub struct SendableMainThreadScriptChan(pub Sender<CommonScriptMsg>);
@@ -308,6 +316,8 @@ pub struct ScriptThread {
     browsing_context: MutNullableHeap<JS<BrowsingContext>>,
     /// A list of data pertaining to loads that have not yet received a network response
     incomplete_loads: DOMRefCell<Vec<InProgressLoad>>,
+    /// A map to store service worker registrations for a given origin
+    registration_map: DOMRefCell<HashMap<Url, JS<ServiceWorkerRegistration>>>,
     /// A handle to the image cache thread.
     image_cache_thread: ImageCacheThread,
     /// A handle to the resource thread. This is an `Arc` to avoid running out of file descriptors if
@@ -486,6 +496,14 @@ impl ScriptThread {
         })
     }
 
+    // stores a service worker registration
+    pub fn set_registration(scope_url: Url, registration:&ServiceWorkerRegistration) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.borrow().unwrap() };
+            script_thread.handle_serviceworker_registration(scope_url, registration);
+        });
+    }
+
     pub fn parsing_complete(id: PipelineId) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.borrow().unwrap() };
@@ -548,6 +566,7 @@ impl ScriptThread {
         ScriptThread {
             browsing_context: MutNullableHeap::new(None),
             incomplete_loads: DOMRefCell::new(vec!()),
+            registration_map: DOMRefCell::new(HashMap::new()),
 
             image_cache_thread: state.image_cache_thread,
             image_cache_channel: ImageCacheChan(ipc_image_cache_channel),
@@ -865,6 +884,7 @@ impl ScriptThread {
                 ScriptThreadEventCategory::TimerEvent => ProfilerCategory::ScriptTimerEvent,
                 ScriptThreadEventCategory::WebSocketEvent => ProfilerCategory::ScriptWebSocketEvent,
                 ScriptThreadEventCategory::WorkerEvent => ProfilerCategory::ScriptWorkerEvent,
+                ScriptThreadEventCategory::ServiceWorkerEvent => ProfilerCategory::ScriptServiceWorkerEvent
             };
             profile(profiler_cat, None, self.time_profiler_chan.clone(), f)
         } else {
@@ -1338,6 +1358,10 @@ impl ScriptThread {
                 None
             }
         }
+    }
+
+    fn handle_serviceworker_registration(&self, scope: Url, registration: &ServiceWorkerRegistration) {
+        self.registration_map.borrow_mut().insert(scope, JS::from_ref(registration));
     }
 
     /// Handles a request for the window title.
