@@ -35,6 +35,7 @@ extern crate net_traits;
 extern crate openssl;
 extern crate openssl_verify;
 extern crate profile_traits;
+extern crate rand;
 extern crate rustc_serialize;
 extern crate threadpool;
 extern crate time;
