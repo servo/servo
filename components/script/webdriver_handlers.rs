@@ -105,7 +105,12 @@ pub fn handle_get_frame_id(context: &BrowsingContext,
             match find_node_by_unique_id(context, pipeline, x) {
                 Some(ref node) => {
                     match node.downcast::<HTMLIFrameElement>() {
-                        Some(ref elem) => Ok(elem.GetContentWindow()),
+                        Some(ref elem) => {
+                            match elem.GetContentDocument() {
+                                Some(ref doc) => Ok(Some(doc.DefaultView())),
+                                None => Err(())
+                            }
+                        },
                         None => Err(())
                     }
                 },

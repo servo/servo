@@ -1741,7 +1741,10 @@ class CGImports(CGWrapper):
         for d in descriptors:
             if not d.correspondToBrowsingContext:
                 types += [d.interface]
+            else:
+                imports += ['dom::browsingcontext::BrowsingContext']
 
+            imports += d.importTypes
             members = d.interface.members + d.interface.namedConstructors
             constructor = d.interface.ctor()
             if constructor:
@@ -1760,7 +1763,6 @@ class CGImports(CGWrapper):
             types += relatedTypesForSignatures(c)
 
         imports += ['dom::types::%s' % getIdentifier(t).name for t in types if isImportable(t)]
-        imports += ['dom::browsingcontext::BrowsingContext']
 
         statements = []
         if len(ignored_warnings) > 0:

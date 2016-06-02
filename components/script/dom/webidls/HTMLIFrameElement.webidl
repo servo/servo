@@ -14,8 +14,7 @@ interface HTMLIFrameElement : HTMLElement {
            attribute DOMString width;
            attribute DOMString height;
   readonly attribute Document? contentDocument;
-  //readonly attribute WindowProxy? contentWindow;
-  readonly attribute Window? contentWindow;
+  readonly attribute WindowProxy? contentWindow;
 
   // also has obsolete members
 };
