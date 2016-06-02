@@ -8,9 +8,9 @@
 
 enum SupportedType {
   "text/html",
-  "text/xml"/*,
+  "text/xml",
   "application/xml",
-  "application/xhtml+xml",
+  "application/xhtml+xml"/*,
   "image/svg+xml"*/
 };
 
