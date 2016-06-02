@@ -435,7 +435,7 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
             }
 
             debug!("paint_thread: shutdown_chan send");
-            shutdown_chan.send(()).unwrap();
+            let _ = shutdown_chan.send(());
         }, Some(id), panic_chan);
     }
 

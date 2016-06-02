@@ -110,6 +110,8 @@ pub enum ScriptMsg {
     TouchEventProcessed(EventResult),
     /// Get Scroll Offset
     GetScrollOffset(PipelineId, LayerId, IpcSender<Point2D<f32>>),
+    /// Notifies the constellation that this pipeline has exited.
+    PipelineExited(PipelineId),
     /// Requests that the compositor shut down.
     Exit,
 }
