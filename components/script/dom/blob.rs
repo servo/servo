@@ -14,14 +14,13 @@ use dom::bindings::str::DOMString;
 use encoding::all::UTF_8;
 use encoding::types::{EncoderTrap, Encoding};
 use ipc_channel::ipc;
-use net_traits::filemanager_thread::FileManagerThreadMsg;
+use net_traits::filemanager_thread::{FileManagerThreadMsg, SelectedFileId};
 use num_traits::ToPrimitive;
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::cmp::{max, min};
 use std::sync::Arc;
-use uuid::Uuid;
 
 #[derive(Clone, JSTraceable)]
 pub struct DataSlice {
@@ -95,7 +94,7 @@ impl DataSlice {
 #[derive(Clone, JSTraceable)]
 pub enum BlobImpl {
     /// File-based, cached backend
-    File(Uuid, DOMRefCell<Option<DataSlice>>),
+    File(SelectedFileId, DOMRefCell<Option<DataSlice>>),
     /// Memory-based backend
     Memory(DataSlice),
 }
@@ -107,7 +106,7 @@ impl BlobImpl {
     }
 
     /// Construct file-backed BlobImpl from File ID
-    pub fn new_from_file(file_id: Uuid) -> BlobImpl {
+    pub fn new_from_file(file_id: SelectedFileId) -> BlobImpl {
         BlobImpl::File(file_id, DOMRefCell::new(None))
     }
 
@@ -184,7 +183,7 @@ impl Blob {
     }
 }
 
-fn read_file(global: GlobalRef, id: Uuid) -> Result<DataSlice, ()> {
+fn read_file(global: GlobalRef, id: SelectedFileId) -> Result<DataSlice, ()> {
     let file_manager = global.filemanager_thread();
     let (chan, recv) = ipc::channel().map_err(|_|())?;
     let _ = file_manager.send(FileManagerThreadMsg::ReadFile(chan, id));
