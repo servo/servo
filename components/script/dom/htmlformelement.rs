@@ -50,6 +50,7 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::sync::mpsc::Sender;
 use string_cache::Atom;
+use task_source::TaskSource;
 use task_source::dom_manipulation::DOMManipulationTask;
 use url::form_urlencoded;
 use util::str::split_html_space_chars;

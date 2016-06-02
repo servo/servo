@@ -32,6 +32,7 @@ use script_thread::{Runnable, ScriptThread};
 use std::cell::Cell;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
+use task_source::TaskSource;
 use task_source::dom_manipulation::DOMManipulationTask;
 use time::{self, Timespec, Duration};
 use url::Url;
