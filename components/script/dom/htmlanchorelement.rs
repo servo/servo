@@ -139,6 +139,12 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
     // https://html.spec.whatwg.org/multipage/#dom-a-shape
     make_setter!(SetShape, "shape");
 
+    // https://html.spec.whatwg.org/multipage/#attr-hyperlink-target
+    make_getter!(Target, "target");
+
+    // https://html.spec.whatwg.org/multipage/#attr-hyperlink-target
+    make_setter!(SetTarget, "target");
+
     // https://html.spec.whatwg.org/multipage/#dom-hyperlink-hash
     fn Hash(&self) -> USVString {
         // Step 1.
