@@ -4,11 +4,13 @@
 
 use ipc_channel::ipc::IpcSender;
 use std::path::PathBuf;
-use uuid::Uuid;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SelectedFileId(pub String);
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SelectedFile {
-    pub id: Uuid,
+    pub id: SelectedFileId,
     pub filename: PathBuf,
     pub modified: u64,
     // https://w3c.github.io/FileAPI/#dfn-type
@@ -24,10 +26,10 @@ pub enum FileManagerThreadMsg {
     SelectFiles(IpcSender<FileManagerResult<Vec<SelectedFile>>>),
 
     /// Read file, return the bytes
-    ReadFile(IpcSender<FileManagerResult<Vec<u8>>>, Uuid),
+    ReadFile(IpcSender<FileManagerResult<Vec<u8>>>, SelectedFileId),
 
     /// Delete the FileID entry
-    DeleteFileID(Uuid),
+    DeleteFileID(SelectedFileId),
 
     /// Shut down this thread
     Exit,

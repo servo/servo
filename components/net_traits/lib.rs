@@ -25,7 +25,6 @@ extern crate msg;
 extern crate serde;
 extern crate url;
 extern crate util;
-extern crate uuid;
 extern crate websocket;
 
 use filemanager_thread::FileManagerThreadMsg;
