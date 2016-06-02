@@ -399,9 +399,10 @@ pub enum MozBrowserEvent {
     LoadStart,
     /// Sent when a browser `<iframe>`'s location changes.
     LocationChange(String, bool, bool),
-    /// Sent when a new tab is opened within a browser `<iframe>`.
-    /// Includes the URL and the target browsing context name.
-    OpenTab(String, Option<String>),
+    /// Sent when a new tab is opened within a browser `<iframe>` as a result of the user
+    /// issuing a command to open a link target in a new tab (for example ctrl/cmd + click.)
+    /// Includes the URL.
+    OpenTab(String),
     /// Sent when a new window is opened within a browser `<iframe>`.
     /// Includes the URL, target browsing context name, and features.
     OpenWindow(String, Option<String>, Option<String>),
@@ -430,7 +431,7 @@ impl MozBrowserEvent {
             MozBrowserEvent::LoadEnd => "mozbrowserloadend",
             MozBrowserEvent::LoadStart => "mozbrowserloadstart",
             MozBrowserEvent::LocationChange(_, _, _) => "mozbrowserlocationchange",
-            MozBrowserEvent::OpenTab(_, _) => "mozbrowseropentab",
+            MozBrowserEvent::OpenTab(_) => "mozbrowseropentab",
             MozBrowserEvent::OpenWindow(_, _, _) => "mozbrowseropenwindow",
             MozBrowserEvent::SecurityChange(_) => "mozbrowsersecuritychange",
             MozBrowserEvent::ShowModalPrompt(_, _, _, _) => "mozbrowsershowmodalprompt",

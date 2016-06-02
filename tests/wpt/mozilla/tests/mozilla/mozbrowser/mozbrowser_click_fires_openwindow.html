@@ -14,7 +14,7 @@ async_test(function(t) {
 
   iframe.addEventListener("mozbrowseropenwindow", t.step_func(function(e) {
     assert_equals(e.detail.target, "_blank");
-    assert_equals(e.detail.url.split("/").pop(), "mozbrowser_click_fires_openwindow_iframe3.html");
+    assert_equals(e.detail.url, new URL("mozbrowser_click_fires_openwindow_iframe3.html", window.location.href));
     t.done();
   }));
 

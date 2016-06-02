@@ -349,15 +349,14 @@ impl MozBrowserEventDetailBuilder for HTMLIFrameElement {
                     canGoForward: Some(can_go_forward),
                 }.to_jsval(cx, rval);
             }
-            MozBrowserEvent::OpenTab(url, target) => {
+            MozBrowserEvent::OpenTab(url) => {
                 BrowserElementOpenTabEventDetail {
-                    url: Some(DOMString::from(String::from(url))),
-                    target: target.map(DOMString::from),
+                    url: Some(DOMString::from(url)),
                 }.to_jsval(cx, rval);
             }
             MozBrowserEvent::OpenWindow(url, target, features) => {
                 BrowserElementOpenWindowEventDetail {
-                    url: Some(DOMString::from(String::from(url))),
+                    url: Some(DOMString::from(url)),
                     target: target.map(DOMString::from),
                     features: features.map(DOMString::from),
                 }.to_jsval(cx, rval);

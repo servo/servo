@@ -86,8 +86,6 @@ dictionary BrowserShowModalPromptEventDetail {
 dictionary BrowserElementOpenTabEventDetail {
   // https://developer.mozilla.org/en-US/docs/Web/Events/mozbrowseropentab
   DOMString url;
-  // TODO(ajeffrey) this isn't part of the Browser API.
-  DOMString target;
 };
 
 dictionary BrowserElementOpenWindowEventDetail {
