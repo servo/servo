@@ -22,4 +22,3 @@ serde = "0.7"
 serde_macros = "0.7"
 url = {version = "1.0.0", features = ["heap_size"]}
 websocket = "0.17"
-uuid = { version = "0.2.2", features = ["v4", "serde"] }
