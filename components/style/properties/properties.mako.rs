@@ -1921,6 +1921,7 @@ pub fn cascade<C: ComputedValues>(
         }
     }
 
+    % if "align-items" in data.longhands_by_name:
     {
         use self::style_struct_traits::Position;
         use computed_values::align_self::T as align_self;
@@ -1937,6 +1938,7 @@ pub fn cascade<C: ComputedValues>(
             style.mutate_position().set_align_self(self_align);
         }
     }
+    % endif
 
     // The initial value of border-*-width may be changed at computed value time.
     % for side in ["top", "right", "bottom", "left"]:
