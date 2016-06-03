@@ -173,10 +173,7 @@ class Descriptor(DescriptorProvider):
 
         # Read the desc, and fill in the relevant defaults.
         ifaceName = self.interface.identifier.name
-        self.register = desc.get('register', True)
-        self.outerObjectHook = desc.get('outerObjectHook', 'None')
-        self.correspondToBrowsingContext = desc.get('correspondToBrowsingContext', False)
-        self.importTypes = desc.get('importTypes', [])
+        typeName = desc.get('nativeType', ifaceName)
 
         # Callback types do not use JS smart pointers, so we should not use the
         # built-in rooting mechanisms for them.
@@ -186,18 +183,16 @@ class Descriptor(DescriptorProvider):
             self.returnType = "Rc<%s>" % ty
             self.argumentType = "???"
             self.nativeType = ty
-        elif self.correspondToBrowsingContext:
-            self.needsRooting = True
-            self.returnType = "Root<BrowsingContext>"
-            self.argumentType = "&BrowsingContext"
-            self.nativeType = "*const BrowsingContext"
         else:
             self.needsRooting = True
-            self.returnType = "Root<%s>" % ifaceName
-            self.argumentType = "&%s" % ifaceName
-            self.nativeType = "*const %s" % ifaceName
+            self.returnType = "Root<%s>" % typeName
+            self.argumentType = "&%s" % typeName
+            self.nativeType = "*const %s" % typeName
 
-        self.concreteType = ifaceName
+        self.concreteType = typeName
+        self.register = desc.get('register', True)
+        self.path = desc.get('path', 'dom::types::%s' % typeName)
+        self.outerObjectHook = desc.get('outerObjectHook', 'None')
         self.proxy = False
         self.weakReferenceable = desc.get('weakReferenceable', False)
 
