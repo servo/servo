@@ -2223,7 +2223,8 @@ impl<'a> ::selectors::Element for Root<Element> {
             NonTSPseudoClass::Disabled |
             NonTSPseudoClass::Checked |
             NonTSPseudoClass::Indeterminate |
-            NonTSPseudoClass::ReadWrite =>
+            NonTSPseudoClass::ReadWrite |
+            NonTSPseudoClass::PlaceholderShown =>
                 Element::state(self).contains(pseudo_class.state_flag()),
         }
     }
@@ -2493,6 +2494,17 @@ impl Element {
 
     pub fn set_read_write_state(&self, value: bool) {
         self.set_state(IN_READ_WRITE_STATE, value)
+    }
+
+    pub fn placeholder_shown_state(&self) -> bool {
+        self.state.get().contains(IN_PLACEHOLDER_SHOWN_STATE)
+    }
+
+    pub fn set_placeholder_shown_state(&self, value: bool) {
+        if self.placeholder_shown_state() != value {
+            self.set_state(IN_PLACEHOLDER_SHOWN_STATE, value);
+            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
+        }
     }
 }
 
