@@ -1021,6 +1021,8 @@ impl ScriptThread {
                 devtools::handle_drop_timeline_markers(&context, marker_types),
             DevtoolScriptControlMsg::RequestAnimationFrame(pipeline_id, name) =>
                 devtools::handle_request_animation_frame(&context, pipeline_id, name),
+            DevtoolScriptControlMsg::Reload(pipeline_id) =>
+                devtools::handle_reload(&context, pipeline_id),
         }
     }
 
