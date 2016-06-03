@@ -80,8 +80,9 @@ impl ImageDataMethods for ImageData {
         self.height
     }
 
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-imagedata-data
-    fn Data(&self, _: *mut JSContext) -> *mut JSObject {
+    unsafe fn Data(&self, _: *mut JSContext) -> *mut JSObject {
         self.data.get()
     }
 }

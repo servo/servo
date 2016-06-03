@@ -2608,8 +2608,9 @@ impl DocumentMethods for Document {
         self.set_body_attribute(&atom!("text"), value)
     }
 
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
-    fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString, found: &mut bool) -> *mut JSObject {
+    unsafe fn NamedGetter(&self, _cx: *mut JSContext, name: DOMString, found: &mut bool) -> *mut JSObject {
         #[derive(JSTraceable, HeapSizeOf)]
         struct NamedElementFilter {
             name: Atom,

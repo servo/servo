@@ -123,6 +123,7 @@ impl ServiceWorkerGlobalScope {
         }
     }
 
+    #[allow(unsafe_code)]
     pub fn new(init: WorkerGlobalScopeInit,
                worker_url: Url,
                id: PipelineId,
@@ -147,7 +148,9 @@ impl ServiceWorkerGlobalScope {
                                                                   timer_event_chan,
                                                                   timer_event_port,
                                                                   client);
-        ServiceWorkerGlobalScopeBinding::Wrap(cx, scope)
+        unsafe {
+            ServiceWorkerGlobalScopeBinding::Wrap(cx, scope)
+        }
     }
 
     #[allow(unsafe_code)]
