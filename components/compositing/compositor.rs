@@ -576,9 +576,9 @@ impl<Window: WindowMethods> IOCompositor<Window> {
                 self.change_page_url(pipeline_id, url);
             }
 
-            (Msg::SetFrameTree(frame_tree, response_chan, new_constellation_chan),
+            (Msg::SetFrameTree(frame_tree, response_chan),
              ShutdownState::NotShuttingDown) => {
-                self.set_frame_tree(&frame_tree, response_chan, new_constellation_chan);
+                self.set_frame_tree(&frame_tree, response_chan);
                 self.send_viewport_rects_for_all_layers();
                 self.title_for_main_frame();
             }
@@ -846,8 +846,7 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
     fn set_frame_tree(&mut self,
                       frame_tree: &SendableFrameTree,
-                      response_chan: IpcSender<()>,
-                      new_constellation_chan: Sender<ConstellationMsg>) {
+                      response_chan: IpcSender<()>) {
         if let Err(e) = response_chan.send(()) {
             warn!("Sending reponse to set frame tree failed ({}).", e);
         }
@@ -874,8 +873,6 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         self.create_pipeline_details_for_frame_tree(&frame_tree);
 
-        // Initialize the new constellation channel by sending it the root window size.
-        self.constellation_chan = new_constellation_chan;
         self.send_window_size(WindowSizeType::Initial);
 
         self.frame_tree_id.next();
