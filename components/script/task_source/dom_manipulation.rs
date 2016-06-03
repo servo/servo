@@ -11,7 +11,7 @@ use std::sync::mpsc::Sender;
 use string_cache::Atom;
 use task_source::TaskSource;
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, Clone)]
 pub struct DOMManipulationTaskSource(pub Sender<MainThreadScriptMsg>);
 
 impl TaskSource<DOMManipulationTask> for DOMManipulationTaskSource {
@@ -35,10 +35,6 @@ impl DOMManipulationTaskSource {
         let target = Trusted::new(target);
         let _ = self.0.send(MainThreadScriptMsg::DOMManipulation(DOMManipulationTask::FireSimpleEvent(
             target, name)));
-    }
-
-    pub fn clone(&self) -> DOMManipulationTaskSource {
-        DOMManipulationTaskSource((&self.0).clone())
     }
 }
 

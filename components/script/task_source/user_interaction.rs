@@ -11,7 +11,7 @@ use std::sync::mpsc::Sender;
 use string_cache::Atom;
 use task_source::TaskSource;
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, Clone)]
 pub struct UserInteractionTaskSource(pub Sender<MainThreadScriptMsg>);
 
 impl TaskSource<UserInteractionTask> for UserInteractionTaskSource {
@@ -29,10 +29,6 @@ impl UserInteractionTaskSource {
         let target = Trusted::new(target);
         let _ = self.0.send(MainThreadScriptMsg::UserInteraction(UserInteractionTask::FireEvent(
             target, name, bubbles, cancelable)));
-    }
-
-    pub fn clone(&self) -> UserInteractionTaskSource {
-        UserInteractionTaskSource((&self.0).clone())
     }
 }
 
