@@ -849,15 +849,6 @@ pub enum ArgumentParsingResult {
     ContentProcess(String),
 }
 
-static EXPERIMENTAL_ENABLED: AtomicBool = ATOMIC_BOOL_INIT;
-
-/// Turn on experimental features globally. Normally this is done
-/// during initialization by `set` or `from_cmdline_args`, but
-/// tests that require experimental features will also set it.
-pub fn set_experimental_enabled(new_value: bool) {
-    EXPERIMENTAL_ENABLED.store(new_value, Ordering::SeqCst);
-}
-
 // Make Opts available globally. This saves having to clone and pass
 // opts everywhere it is used, which gets particularly cumbersome
 // when passing through the DOM structures.
