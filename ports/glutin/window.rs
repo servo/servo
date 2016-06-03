@@ -243,16 +243,16 @@ impl Window {
                     VirtualKeyCode::RAlt => self.toggle_modifier(RIGHT_ALT),
                     VirtualKeyCode::LWin => self.toggle_modifier(LEFT_SUPER),
                     VirtualKeyCode::RWin => self.toggle_modifier(RIGHT_SUPER),
-                    _ => {
-                        if let Ok(key) = Window::glutin_key_to_script_key(virtual_key_code) {
-                            let state = match element_state {
-                                ElementState::Pressed => KeyState::Pressed,
-                                ElementState::Released => KeyState::Released,
-                            };
-                            let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
-                            self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(key, state, modifiers));
-                        }
-                    }
+                    _ => {}
+                }
+
+                if let Ok(key) = Window::glutin_key_to_script_key(virtual_key_code) {
+                    let state = match element_state {
+                        ElementState::Pressed => KeyState::Pressed,
+                        ElementState::Released => KeyState::Released,
+                    };
+                    let modifiers = Window::glutin_mods_to_script_mods(self.key_modifiers.get());
+                    self.event_queue.borrow_mut().push(WindowEvent::KeyEvent(key, state, modifiers));
                 }
             }
             Event::KeyboardInput(_, _, None) => {
@@ -547,6 +547,15 @@ impl Window {
             VirtualKeyCode::Up => Ok(Key::Up),
             VirtualKeyCode::Right => Ok(Key::Right),
             VirtualKeyCode::Down => Ok(Key::Down),
+
+            VirtualKeyCode::LShift => Ok(Key::LeftShift),
+            VirtualKeyCode::LControl => Ok(Key::LeftControl),
+            VirtualKeyCode::LAlt => Ok(Key::LeftAlt),
+            VirtualKeyCode::LWin => Ok(Key::LeftSuper),
+            VirtualKeyCode::RShift => Ok(Key::RightShift),
+            VirtualKeyCode::RControl => Ok(Key::RightControl),
+            VirtualKeyCode::RAlt => Ok(Key::RightAlt),
+            VirtualKeyCode::RWin => Ok(Key::RightSuper),
 
             VirtualKeyCode::Apostrophe => Ok(Key::Apostrophe),
             VirtualKeyCode::Backslash => Ok(Key::Backslash),
