@@ -46,7 +46,7 @@ use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::{FetchResponseListener, Metadata, NetworkError, RequestSource};
 use net_traits::{CoreResourceThread, LoadOrigin};
-use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode, Origin};
+use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
 use network_listener::{NetworkListener, PreInvoke};
 use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
@@ -229,31 +229,19 @@ impl XMLHttpRequest {
                         *self.sync_status.borrow_mut() = Some(rv);
                     }
                 }
-                fn process_response_eof(&mut self, response: Result<Option<Vec<u8>>, NetworkError>) {
+                fn process_response_chunk(&mut self, mut chunk: Vec<u8>) {
+                    self.buf.borrow_mut().append(&mut chunk);
+                    self.xhr.root().process_data_available(self.gen_id, self.buf.borrow().clone());
+                }
+                fn process_response_eof(&mut self, response: Result<(), NetworkError>) {
                     match response {
-                        Ok(buf) => {
-                            if let Some(buf) = buf {
-                                *self.buf.borrow_mut() = buf;
-                                // todo move to a process_chunk
-                                self.xhr.root().process_data_available(self.gen_id, self.buf.borrow().clone());   
-                            }
+                        Ok(()) => {
                             let rv = self.xhr.root().process_response_complete(self.gen_id, Ok(()));
                             *self.sync_status.borrow_mut() = Some(rv);
                         }
                         Err(e) => {
                             let rv = self.xhr.root().process_response_complete(self.gen_id, Err(e));
                             *self.sync_status.borrow_mut() = Some(rv);
-                        }
-                    }
-                }
-                fn fetch_done(&mut self, response: Result<(Metadata, Option<Vec<u8>>), NetworkError>) {
-                    match response {
-                        Ok(response) => {
-                            self.process_response(Ok(response.0));
-                            self.process_response_eof(Ok(response.1));
-                        }
-                        Err(err) => {
-                            self.process_response_eof(Err(err));
                         }
                     }
                 }
