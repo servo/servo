@@ -95,8 +95,9 @@ impl MessageEvent {
 }
 
 impl MessageEventMethods for MessageEvent {
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-messageevent-data
-    fn Data(&self, _cx: *mut JSContext) -> JSVal {
+    unsafe fn Data(&self, _cx: *mut JSContext) -> JSVal {
         self.data.get()
     }
 

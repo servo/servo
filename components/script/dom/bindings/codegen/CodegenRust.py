@@ -2316,10 +2316,13 @@ class CGAbstractMethod(CGThing):
     arguments.
 
     docs is None or documentation for the method in a string.
+
+    unsafe is used to add the decorator 'unsafe' to a function, giving as a result
+    an 'unsafe fn()' declaration.
     """
     def __init__(self, descriptor, name, returnType, args, inline=False,
-                 alwaysInline=False, extern=False, unsafe_fn=False, pub=False,
-                 templateArgs=None, unsafe=False, docs=None, doesNotPanic=False):
+                 alwaysInline=False, extern=False, unsafe=False, pub=False,
+                 templateArgs=None, docs=None, doesNotPanic=False):
         CGThing.__init__(self)
         self.descriptor = descriptor
         self.name = name
@@ -2327,10 +2330,9 @@ class CGAbstractMethod(CGThing):
         self.args = args
         self.alwaysInline = alwaysInline
         self.extern = extern
-        self.unsafe_fn = extern or unsafe_fn
+        self.unsafe = extern or unsafe
         self.templateArgs = templateArgs
         self.pub = pub
-        self.unsafe = unsafe
         self.docs = docs
         self.catchPanic = self.extern and not doesNotPanic
 
@@ -2357,7 +2359,7 @@ class CGAbstractMethod(CGThing):
         if self.pub:
             decorators.append('pub')
 
-        if self.unsafe_fn:
+        if self.unsafe:
             decorators.append('unsafe')
 
         if self.extern:
@@ -2372,10 +2374,6 @@ class CGAbstractMethod(CGThing):
 
     def define(self):
         body = self.definition_body()
-
-        # Method will already be marked `unsafe` if `self.extern == True`
-        if self.unsafe and not self.extern:
-            body = CGWrapper(CGIndenter(body), pre="unsafe {\n", post="\n}")
 
         if self.catchPanic:
             body = CGWrapper(CGIndenter(body),
@@ -2409,7 +2407,7 @@ class CGConstructorEnabled(CGAbstractMethod):
                                   'ConstructorEnabled', 'bool',
                                   [Argument("*mut JSContext", "aCx"),
                                    Argument("HandleObject", "aObj")],
-                                  unsafe_fn=True)
+                                  unsafe=True)
 
     def definition_body(self):
         conditions = []
@@ -3089,7 +3087,7 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
             Argument('HandleObject', 'global'),
         ]
         CGAbstractMethod.__init__(self, descriptor, 'DefineDOMInterface',
-                                  'void', args, pub=True, unsafe_fn=True)
+                                  'void', args, pub=True, unsafe=True)
 
     def define(self):
         return CGAbstractMethod.define(self)
@@ -5349,10 +5347,19 @@ class CGInterfaceTrait(CGThing):
         def fmt(arguments):
             return "".join(", %s: %s" % argument for argument in arguments)
 
-        methods = [
-            CGGeneric("fn %s(&self%s) -> %s;\n" % (name, fmt(arguments), rettype))
-            for name, arguments, rettype in members()
-        ]
+        def contains_unsafe_arg(arguments):
+            if not arguments or len(arguments) == 0:
+                return False
+            return reduce((lambda x, y: x or y[1] == '*mut JSContext'), arguments, False)
+
+        methods = []
+        for name, arguments, rettype in members():
+            arguments = list(arguments)
+            methods.append(CGGeneric("%sfn %s(&self%s) -> %s;\n" % (
+                'unsafe ' if contains_unsafe_arg(arguments) else '',
+                name, fmt(arguments), rettype))
+            )
+
         if methods:
             self.cgRoot = CGWrapper(CGIndenter(CGList(methods, "")),
                                     pre="pub trait %sMethods {\n" % descriptor.interface.identifier.name,

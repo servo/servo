@@ -41,12 +41,12 @@ impl Crypto {
 impl CryptoMethods for Crypto {
     #[allow(unsafe_code)]
     // https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#Crypto-method-getRandomValues
-    fn GetRandomValues(&self,
+    unsafe fn GetRandomValues(&self,
                        _cx: *mut JSContext,
                        input: *mut JSObject)
                        -> Fallible<NonZero<*mut JSObject>> {
         assert!(!input.is_null());
-        let mut data = match unsafe { array_buffer_view_data::<u8>(input) } {
+        let mut data = match array_buffer_view_data::<u8>(input) {
             Some(data) => data,
             None => {
                 return Err(Error::Type("Argument to Crypto.getRandomValues is not an ArrayBufferView"
@@ -64,7 +64,7 @@ impl CryptoMethods for Crypto {
 
         self.rng.borrow_mut().fill_bytes(&mut data);
 
-        Ok(unsafe { NonZero::new(input) })
+        Ok(NonZero::new(input))
     }
 }
 

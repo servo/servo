@@ -50,17 +50,15 @@ impl TextEncoderMethods for TextEncoder {
 
     #[allow(unsafe_code)]
     // https://encoding.spec.whatwg.org/#dom-textencoder-encode
-    fn Encode(&self, cx: *mut JSContext, input: USVString) -> NonZero<*mut JSObject> {
-        unsafe {
-            let encoded = UTF_8.encode(&input.0, EncoderTrap::Strict).unwrap();
-            let length = encoded.len() as u32;
-            rooted!(in(cx) let js_object = JS_NewUint8Array(cx, length));
-            assert!(!js_object.is_null());
-            let mut is_shared = false;
-            let js_object_data: *mut uint8_t = JS_GetUint8ArrayData(js_object.get(), &mut is_shared, ptr::null());
-            assert!(!is_shared);
-            ptr::copy_nonoverlapping(encoded.as_ptr(), js_object_data, length as usize);
-            NonZero::new(js_object.get())
-        }
+    unsafe fn Encode(&self, cx: *mut JSContext, input: USVString) -> NonZero<*mut JSObject> {
+        let encoded = UTF_8.encode(&input.0, EncoderTrap::Strict).unwrap();
+        let length = encoded.len() as u32;
+        rooted!(in(cx) let js_object = JS_NewUint8Array(cx, length));
+        assert!(!js_object.is_null());
+        let mut is_shared = false;
+        let js_object_data: *mut uint8_t = JS_GetUint8ArrayData(js_object.get(), &mut is_shared, ptr::null());
+        assert!(!is_shared);
+        ptr::copy_nonoverlapping(encoded.as_ptr(), js_object_data, length as usize);
+        NonZero::new(js_object.get())
     }
 }
