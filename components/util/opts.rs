@@ -35,10 +35,6 @@ pub struct Opts {
     /// Note that painting is sequentialized when using GPU painting.
     pub paint_threads: usize,
 
-    /// True to use GPU painting via Skia-GL, false to use CPU painting via Skia (`-g`). Note that
-    /// compositing is always done on the GPU.
-    pub gpu_painting: bool,
-
     /// The maximum size of each tile in pixels (`-s`).
     pub tile_size: usize,
 
@@ -396,14 +392,6 @@ fn args_fail(msg: &str) -> ! {
     process::exit(1)
 }
 
-// Always use CPU painting on android.
-
-#[cfg(target_os = "android")]
-static FORCE_CPU_PAINTING: bool = true;
-
-#[cfg(not(target_os = "android"))]
-static FORCE_CPU_PAINTING: bool = false;
-
 static MULTIPROCESS: AtomicBool = ATOMIC_BOOL_INIT;
 
 #[inline]
@@ -466,7 +454,6 @@ pub fn default_opts() -> Opts {
         is_running_problem_test: false,
         url: Some(Url::parse("about:blank").unwrap()),
         paint_threads: 1,
-        gpu_painting: false,
         tile_size: 512,
         device_pixels_per_px: None,
         time_profiling: None,
@@ -679,8 +666,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         period.parse().unwrap_or_else(|err| args_fail(&format!("Error parsing option: -m ({})", err)))
     });
 
-    let gpu_painting = !FORCE_CPU_PAINTING && opt_match.opt_present("g");
-
     let mut layout_threads: usize = match opt_match.opt_str("y") {
         Some(layout_threads_str) => layout_threads_str.parse()
             .unwrap_or_else(|err| args_fail(&format!("Error parsing option: -y ({})", err))),
@@ -769,7 +754,6 @@ pub fn from_cmdline_args(args: &[String]) -> ArgumentParsingResult {
         is_running_problem_test: is_running_problem_test,
         url: Some(url),
         paint_threads: paint_threads,
-        gpu_painting: gpu_painting,
         tile_size: tile_size,
         device_pixels_per_px: device_pixels_per_px,
         time_profiling: time_profiling,
