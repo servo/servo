@@ -28,6 +28,7 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::Read;
 use std::iter::FromIterator;
+use std::mem::swap;
 use std::rc::Rc;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use unicase::UniCase;
@@ -36,7 +37,12 @@ use util::thread::spawn_named;
 
 pub type Target = Option<Box<FetchTaskTarget + Send>>;
 
-type DoneChannel = Option<(Sender<()>, Receiver<()>)>;
+enum Data {
+    Payload(Vec<u8>),
+    Done,
+}
+
+type DoneChannel = Option<(Sender<Data>, Receiver<Data>)>;
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
 pub fn fetch(request: Rc<Request>, target: &mut Target, state: HttpState) -> Response {
@@ -258,8 +264,38 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
 
     // Step 18
     if request.synchronous {
+        if let Some(ref mut target) = *target {
+            // process_response is not supposed to be used
+            // by sync fetch, but we overload it here for simplicity
+            target.process_response(&response);
+        }
+
         if let Some(ref ch) = *done_chan {
-            let _ = ch.1.recv();
+            loop {
+                match ch.1.recv()
+                        .expect("fetch worker should always send Done before terminating") {
+                    Data::Payload(vec) => {
+                        if let Some(ref mut target) = *target {
+                            target.process_response_chunk(vec);
+                        }
+                    }
+                    Data::Done => break,
+                }
+            }
+        } else {
+            if let ResponseBody::Done(ref vec) = *response.body.lock().unwrap() {
+                // in case there was no channel to wait for, the body was
+                // obtained synchronously via basic_fetch for data/file/about/etc
+                // We should still send the body across as a chunk
+                if let Some(ref mut target) = *target {
+                    target.process_response_chunk(vec.clone());
+                }
+            }
+        }
+
+        // overloaded similarly to process_response
+        if let Some(ref mut target) = *target {
+            target.process_response_eof(&response);
         }
         return response;
     }
@@ -283,7 +319,26 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
 
     // Step 21
     if let Some(ref ch) = *done_chan {
-        let _ = ch.1.recv();
+        loop {
+            match ch.1.recv()
+                    .expect("fetch worker should always send Done before terminating") {
+                Data::Payload(vec) => {
+                    if let Some(ref mut target) = *target {
+                        target.process_response_chunk(vec);
+                    }
+                }
+                Data::Done => break,
+            }
+        }
+    } else {
+        if let Some(ref mut target) = *target {
+            if let ResponseBody::Done(ref vec) = *response.body.lock().unwrap() {
+                // in case there was no channel to wait for, the body was
+                // obtained synchronously via basic_fetch for data/file/about/etc
+                // We should still send the body across as a chunk
+                target.process_response_chunk(vec.clone());
+            }
+        }
     }
 
     // Step 22
@@ -876,19 +931,28 @@ fn http_network_fetch(request: Rc<Request>,
 
                 loop {
                     match read_block(&mut res.response) {
-                        Ok(ReadResult::Payload(ref mut chunk)) => {
+                        Ok(ReadResult::Payload(chunk)) => {
                             if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
-                                body.append(chunk);
+
+                                body.extend_from_slice(&chunk);
+                                if let Some(ref sender) = done_sender {
+                                    let _ = sender.send(Data::Payload(chunk));
+                                }
                             }
                         },
                         Ok(ReadResult::EOF) | Err(_) => {
+                            let mut empty_vec = Vec::new();
                             let completed_body = match *res_body.lock().unwrap() {
-                                ResponseBody::Receiving(ref body) => (*body).clone(),
-                                _ => vec![]
+                                ResponseBody::Receiving(ref mut body) => {
+                                    // avoid cloning the body
+                                    swap(body, &mut empty_vec);
+                                    empty_vec
+                                },
+                                _ => empty_vec,
                             };
                             *res_body.lock().unwrap() = ResponseBody::Done(completed_body);
-                            if let Some(sender) = done_sender {
-                                let _ = sender.send(());
+                            if let Some(ref sender) = done_sender {
+                                let _ = sender.send(Data::Done);
                             }
                             break;
                         }
