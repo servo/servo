@@ -5,7 +5,7 @@
 use connector::create_http_connector;
 use data_loader::decode;
 use fetch::cors_cache::CORSCache;
-use http_loader::{HttpState, set_request_cookies};
+use http_loader::{HttpState, modify_request_headers, set_request_cookies};
 use http_loader::{NetworkHttpRequestFactory, ReadResult, obtain_response, read_block};
 use hyper::header::{Accept, AcceptLanguage, Authorization, AccessControlAllowCredentials};
 use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
@@ -766,15 +766,20 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         _ => {}
     }
 
+    let current_url = http_request.current_url();
     // Step 12
-    // modify_request_headers(http_request.headers.borrow());
+    // todo: pass referrer url and policy
+    // we pass None for the user agent since we already set that header
+    modify_request_headers(&mut http_request.headers.borrow_mut(), &current_url,
+                           None, None, None);
 
     // Step 13
     // TODO some of this step can't be implemented yet
     if credentials_flag {
         // Substep 1
         // TODO http://mxr.mozilla.org/servo/source/components/net/http_loader.rs#504
-        set_request_cookies(&http_request.current_url(),
+        // XXXManishearth http_loader has block_cookies, should we do this too?
+        set_request_cookies(&current_url,
                             &mut *http_request.headers.borrow_mut(),
                             &state.cookie_jar);
         // Substep 2
@@ -787,7 +792,6 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 
             // Substep 5
             if authentication_fetch_flag {
-                let current_url = http_request.current_url();
 
                 authorization_value = if has_credentials(&current_url) {
                     Some(Basic {
