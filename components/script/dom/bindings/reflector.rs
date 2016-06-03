@@ -16,12 +16,14 @@ use std::ptr;
 pub fn reflect_dom_object<T, U>(
         obj: Box<T>,
         global: &U,
-        wrap_fn: fn(*mut JSContext, &GlobalScope, Box<T>) -> Root<T>)
+        wrap_fn: unsafe fn(*mut JSContext, &GlobalScope, Box<T>) -> Root<T>)
         -> Root<T>
     where T: Reflectable, U: DerivedFrom<GlobalScope>
 {
     let global_scope = global.upcast();
-    wrap_fn(global_scope.get_cx(), global_scope, obj)
+    unsafe {
+        wrap_fn(global_scope.get_cx(), global_scope, obj)
+    }
 }
 
 /// A struct to store a reference to the reflector of a DOM object.

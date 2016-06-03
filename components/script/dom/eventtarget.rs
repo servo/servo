@@ -140,6 +140,7 @@ pub enum CompiledEventListener {
 }
 
 impl CompiledEventListener {
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#the-event-handler-processing-algorithm
     pub fn call_or_handle_event<T: Reflectable>(&self,
                                                 object: &T,

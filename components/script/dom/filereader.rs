@@ -339,7 +339,7 @@ impl FileReaderMethods for FileReader {
 
     #[allow(unsafe_code)]
     // https://w3c.github.io/FileAPI/#dfn-result
-    fn GetResult(&self, _: *mut JSContext) -> Option<StringOrObject> {
+    unsafe fn GetResult(&self, _: *mut JSContext) -> Option<StringOrObject> {
         self.result.borrow().as_ref().map(|r| match *r {
             FileReaderResult::String(ref string) =>
                 StringOrObject::String(string.clone()),

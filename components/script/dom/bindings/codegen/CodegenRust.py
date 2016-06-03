@@ -2316,6 +2316,11 @@ class CGAbstractMethod(CGThing):
     arguments.
 
     docs is None or documentation for the method in a string.
+
+    unsafe_fn is used to add the decorator 'unsafe' to a function, giving as a result
+    an 'unsafe fn()' declaration.
+
+    unsafe is used to wrap the body of a function in an unsafe block.
     """
     def __init__(self, descriptor, name, returnType, args, inline=False,
                  alwaysInline=False, extern=False, unsafe_fn=False, pub=False,
@@ -2531,7 +2536,7 @@ class CGWrapMethod(CGAbstractMethod):
                 Argument("Box<%s>" % descriptor.concreteType, 'object')]
         retval = 'Root<%s>' % descriptor.concreteType
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
-                                  pub=True, unsafe=True)
+                                  pub=True, unsafe_fn=True)
 
     def definition_body(self):
         unforgeable = CopyUnforgeablePropertiesToInstance(self.descriptor)
@@ -2565,7 +2570,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
                 Argument("Box<%s>" % descriptor.concreteType, 'object')]
         retval = 'Root<%s>' % descriptor.concreteType
         CGAbstractMethod.__init__(self, descriptor, 'Wrap', retval, args,
-                                  pub=True, unsafe=True)
+                                  pub=True, unsafe_fn=True)
         self.properties = properties
 
     def definition_body(self):
@@ -2708,7 +2713,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'global'),
                 Argument('*mut ProtoOrIfaceArray', 'cache')]
         CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', 'void', args,
-                                  unsafe=True)
+                                  unsafe_fn=True)
         self.properties = properties
         self.haveUnscopables = haveUnscopables
 
@@ -2951,7 +2956,7 @@ class CGGetPerInterfaceObject(CGAbstractMethod):
                 Argument('HandleObject', 'global'),
                 Argument('MutableHandleObject', 'rval')]
         CGAbstractMethod.__init__(self, descriptor, name,
-                                  'void', args, pub=pub, unsafe=True)
+                                  'void', args, pub=pub, unsafe_fn=True)
         self.id = idPrefix + "::" + MakeNativeName(self.descriptor.name)
 
     def definition_body(self):
@@ -5349,10 +5354,19 @@ class CGInterfaceTrait(CGThing):
         def fmt(arguments):
             return "".join(", %s: %s" % argument for argument in arguments)
 
-        methods = [
-            CGGeneric("fn %s(&self%s) -> %s;\n" % (name, fmt(arguments), rettype))
-            for name, arguments, rettype in members()
-        ]
+        def contains_unsafe_arg(arguments):
+            if not arguments or len(arguments) == 0:
+                return False
+            return reduce((lambda x, y: x or y[1] == '*mut JSContext'), arguments, False)
+
+        methods = []
+        for name, arguments, rettype in members():
+            arguments = list(arguments)
+            methods.append(CGGeneric("%sfn %s(&self%s) -> %s;\n" % (
+                'unsafe ' if contains_unsafe_arg(arguments) else '',
+                name, fmt(arguments), rettype))
+            )
+
         if methods:
             self.cgRoot = CGWrapper(CGIndenter(CGList(methods, "")),
                                     pre="pub trait %sMethods {\n" % descriptor.interface.identifier.name,
