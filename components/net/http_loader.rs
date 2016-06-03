@@ -369,7 +369,7 @@ impl Error for LoadErrorType {
     }
 }
 
-fn set_default_accept_encoding(headers: &mut Headers) {
+pub fn set_default_accept_encoding(headers: &mut Headers) {
     if headers.has::<AcceptEncoding>() {
         return
     }
@@ -610,10 +610,7 @@ fn request_must_be_secured(url: &Url, hsts_list: &Arc<RwLock<HstsList>>) -> bool
 pub fn modify_request_headers(headers: &mut Headers,
                               url: &Url,
                               user_agent: &str,
-                              cookie_jar: &Arc<RwLock<CookieStorage>>,
-                              auth_cache: &Arc<RwLock<AuthCache>>,
-                              load_data: &LoadData,
-                              block_cookies: bool,
+                              referrer_policy: Option<ReferrerPolicy>,
                               referrer_url: &mut Option<Url>) {
     // Ensure that the host header is set from the original url
     let host = Host {
@@ -636,22 +633,12 @@ pub fn modify_request_headers(headers: &mut Headers,
     set_default_accept_encoding(headers);
 
     *referrer_url = determine_request_referrer(headers,
-                                               load_data.referrer_policy.clone(),
+                                               referrer_policy.clone(),
                                                referrer_url.clone(),
                                                url.clone());
 
     if let Some(referer_val) = referrer_url.clone() {
         headers.set(Referer(referer_val.into_string()));
-    }
-
-    // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
-    if load_data.credentials_flag {
-        if !block_cookies {
-            set_request_cookies(&url, headers, cookie_jar);
-        }
-
-        // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch step 12
-        set_auth_header(headers, url, auth_cache);
     }
 }
 
@@ -938,10 +925,18 @@ pub fn load<A, B>(load_data: &LoadData,
         let request_id = uuid::Uuid::new_v4().simple().to_string();
 
         modify_request_headers(&mut request_headers, &doc_url,
-                               &user_agent, &http_state.cookie_jar,
-                               &http_state.auth_cache, &load_data,
-                               block_cookies, &mut referrer_url);
+                               &user_agent, load_data.referrer_policy,
+                               &mut referrer_url);
 
+        // https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch step 11
+        if load_data.credentials_flag {
+            if !block_cookies {
+                set_request_cookies(&doc_url, &mut request_headers, &http_state.cookie_jar);
+            }
+
+            // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch step 12
+            set_auth_header(&mut request_headers, &doc_url, &http_state.auth_cache);
+        }
         //if there is a new auth header then set the request headers with it
         if let Some(ref auth_header) = new_auth_header {
             request_headers.set(auth_header.clone());
