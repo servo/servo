@@ -16,7 +16,7 @@ use net_traits::bluetooth_thread::{BluetoothDeviceMsg, BluetoothMethodMsg};
 use net_traits::bluetooth_thread::{BluetoothResult, BluetoothServiceMsg, BluetoothServicesMsg};
 use rand::{self, Rng};
 use std::borrow::ToOwned;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::string::String;
 use std::thread;
 use std::time::Duration;
@@ -32,6 +32,7 @@ const INCLUDED_SERVICE_ERROR: &'static str = "No included service found";
 const CHARACTERISTIC_ERROR: &'static str = "No characteristic found";
 const DESCRIPTOR_ERROR: &'static str = "No descriptor found";
 const VALUE_ERROR: &'static str = "No characteristic or descriptor found with that id";
+const SECURITY_ERROR: &'static str = "The operation is insecure";
 // The discovery session needs some time to find any nearby devices
 const DISCOVERY_TIMEOUT_MS: u64 = 1500;
 #[cfg(target_os = "linux")]
@@ -139,6 +140,7 @@ pub struct BluetoothManager {
     cached_services: HashMap<String, BluetoothGATTService>,
     cached_characteristics: HashMap<String, BluetoothGATTCharacteristic>,
     cached_descriptors: HashMap<String, BluetoothGATTDescriptor>,
+    allowed_services: HashMap<String, HashSet<String>>,
 }
 
 impl BluetoothManager {
@@ -154,6 +156,7 @@ impl BluetoothManager {
             cached_services: HashMap::new(),
             cached_characteristics: HashMap::new(),
             cached_descriptors: HashMap::new(),
+            allowed_services: HashMap::new(),
         }
     }
 
@@ -225,7 +228,8 @@ impl BluetoothManager {
                 if !self.address_to_id.contains_key(&address) {
                     let generated_id = self.generate_device_id();
                     self.address_to_id.insert(address, generated_id.clone());
-                    self.cached_devices.insert(generated_id, device.clone());
+                    self.cached_devices.insert(generated_id.clone(), device.clone());
+                    self.allowed_services.insert(generated_id, HashSet::new());
                 }
             }
         }
@@ -446,6 +450,11 @@ impl BluetoothManager {
                 Some(id) => id.clone(),
                 None => return drop(sender.send(Err(String::from(DEVICE_MATCH_ERROR)))),
             };
+            let mut services = options.get_services_set();
+            if let Some(services_set) = self.allowed_services.get(&device_id) {
+                services = services_set | &services;
+            }
+            self.allowed_services.insert(device_id.clone(), services);
             if let Some(device) = self.get_device(&mut adapter, &device_id) {
                 let message = Ok(BluetoothDeviceMsg {
                                      id: device_id,
@@ -499,6 +508,9 @@ impl BluetoothManager {
                            uuid: String,
                            sender: IpcSender<BluetoothResult<BluetoothServiceMsg>>) {
         let mut adapter = get_adapter_or_return_error!(self, sender);
+        if !self.allowed_services.get(&device_id).map_or(false, |s| s.contains(&uuid)) {
+            return drop(sender.send(Err(String::from(SECURITY_ERROR))));
+        }
         let services = self.get_gatt_services_by_uuid(&mut adapter, &device_id, &uuid);
         if services.is_empty() {
             return drop(sender.send(Err(String::from(PRIMARY_SERVICE_ERROR))));
@@ -523,7 +535,12 @@ impl BluetoothManager {
                             sender: IpcSender<BluetoothResult<BluetoothServicesMsg>>) {
         let mut adapter = get_adapter_or_return_error!(self, sender);
         let services = match uuid {
-            Some(id) => self.get_gatt_services_by_uuid(&mut adapter, &device_id, &id),
+            Some(ref id) => {
+                if !self.allowed_services.get(&device_id).map_or(false, |s| s.contains(id)) {
+                    return drop(sender.send(Err(String::from(SECURITY_ERROR))))
+                }
+                self.get_gatt_services_by_uuid(&mut adapter, &device_id, id)
+            },
             None => self.get_and_cache_gatt_services(&mut adapter, &device_id),
         };
         if services.is_empty() {
