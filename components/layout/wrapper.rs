@@ -554,6 +554,11 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
             NonTSPseudoClass::ReadOnly =>
                 !self.element.get_state_for_layout().contains(pseudo_class.state_flag()),
 
+            NonTSPseudoClass::PlaceholderShown => {
+                let state = self.element.get_state_for_layout();
+                !state.contains(IN_FOCUS_STATE) && state.contains(IN_PLACEHOLDER_SHOWN_STATE)
+            },
+
             NonTSPseudoClass::Active |
             NonTSPseudoClass::Focus |
             NonTSPseudoClass::Hover |

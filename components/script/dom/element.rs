@@ -2216,6 +2216,11 @@ impl<'a> ::selectors::Element for Root<Element> {
             NonTSPseudoClass::ReadOnly =>
                 !Element::state(self).contains(pseudo_class.state_flag()),
 
+            NonTSPseudoClass::PlaceholderShown => {
+                let state = Element::state(self);
+                !state.contains(IN_FOCUS_STATE) && state.contains(IN_PLACEHOLDER_SHOWN_STATE)
+            }
+
             NonTSPseudoClass::Active |
             NonTSPseudoClass::Focus |
             NonTSPseudoClass::Hover |
@@ -2493,6 +2498,15 @@ impl Element {
 
     pub fn set_read_write_state(&self, value: bool) {
         self.set_state(IN_READ_WRITE_STATE, value)
+    }
+
+    pub fn placeholder_shown_state(&self) -> bool {
+        self.state.get().contains(IN_PLACEHOLDER_SHOWN_STATE)
+    }
+
+    pub fn set_placeholder_shown_state(&self, value: bool) {
+        self.set_state(IN_PLACEHOLDER_SHOWN_STATE, value);
+        self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
 }
 

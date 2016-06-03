@@ -709,6 +709,13 @@ impl HTMLInputElement {
         self.value_changed.set(false);
         self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage);
     }
+
+    pub fn placeholder_applies(&self) -> bool {
+        match self.input_type.get() {
+            InputType::InputText | InputType::InputPassword => true,
+            _ => false,
+        }
+    }
 }
 
 impl VirtualMethods for HTMLInputElement {
@@ -757,6 +764,7 @@ impl VirtualMethods for HTMLInputElement {
                 self.size.set(size.unwrap_or(DEFAULT_INPUT_SIZE));
             }
             &atom!("type") => {
+                let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
                         let new_type = match attr.value().as_atom() {
@@ -774,7 +782,6 @@ impl VirtualMethods for HTMLInputElement {
                         let (old_value_mode, old_idl_value) = (self.value_mode(), self.Value());
                         self.input_type.set(new_type);
 
-                        let el = self.upcast::<Element>();
                         if new_type == InputType::InputText {
                             let read_write = !(self.ReadOnly() || el.disabled_state());
                             el.set_read_write_state(read_write);
@@ -831,11 +838,25 @@ impl VirtualMethods for HTMLInputElement {
                         el.set_read_write_state(read_write);
                     }
                 }
+
+                if self.placeholder_applies() {
+                    let has_placeholder = !self.placeholder.borrow().is_empty();
+                    let has_value = !self.textinput.borrow().is_empty();
+                    el.set_placeholder_shown_state(has_placeholder && !has_value);
+                } else {
+                    el.set_placeholder_shown_state(false);
+                }
             },
             &atom!("value") if !self.value_changed.get() => {
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
                 self.textinput.borrow_mut().set_content(
                     value.map_or(DOMString::new(), DOMString::from));
+                if self.placeholder_applies() {
+                    let has_placeholder = !self.placeholder.borrow().is_empty();
+                    let has_value = !self.textinput.borrow().is_empty();
+                    self.upcast::<Element>().set_placeholder_shown_state(
+                        has_placeholder && !has_value);
+                }
             },
             &atom!("name") if self.input_type.get() == InputType::InputRadio => {
                 self.radio_group_updated(
@@ -854,12 +875,18 @@ impl VirtualMethods for HTMLInputElement {
                 }
             }
             &atom!("placeholder") => {
-                // FIXME(ajeffrey): Should we do in-place mutation of the placeholder?
+                let el = self.upcast::<Element>();
                 let mut placeholder = self.placeholder.borrow_mut();
                 placeholder.clear();
+                el.set_placeholder_shown_state(false);
                 if let AttributeMutation::Set(_) = mutation {
                     placeholder.extend(
                         attr.value().chars().filter(|&c| c != '\n' && c != '\r'));
+                    let has_placeholder = !placeholder.is_empty();
+                    let has_value = !self.textinput.borrow().is_empty();
+                    if has_placeholder && self.placeholder_applies() {
+                        el.set_placeholder_shown_state(!has_value);
+                    }
                 }
             },
             &atom!("readonly") if self.input_type.get() == InputType::InputText => {
