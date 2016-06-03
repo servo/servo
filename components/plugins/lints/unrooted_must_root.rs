@@ -5,7 +5,6 @@
 use rustc::hir;
 use rustc::hir::intravisit as visit;
 use rustc::hir::map as ast_map;
-use rustc::hir::pat_util::pat_is_binding;
 use rustc::lint::{LateContext, LintPass, LintArray, LateLintPass, LintContext};
 use rustc::ty;
 use syntax::attr::AttrMetaMethods;
@@ -199,14 +198,12 @@ impl<'a, 'b: 'a, 'tcx: 'a+'b> visit::Visitor<'a> for FnDefVisitor<'a, 'b, 'tcx> 
     fn visit_pat(&mut self, pat: &'a hir::Pat) {
         let cx = self.cx;
 
-        if let hir::PatKind::Ident(hir::BindingMode::BindByValue(_), _, _) = pat.node {
-            if pat_is_binding(&cx.tcx.def_map.borrow(), pat) {
-                let ty = cx.tcx.pat_ty(pat);
-                if is_unrooted_ty(cx, ty, self.in_new_function) {
-                    cx.span_lint(UNROOTED_MUST_ROOT,
-                                pat.span,
-                                &format!("Expression of type {:?} must be rooted", ty))
-                }
+        if let hir::PatKind::Binding(hir::BindingMode::BindByValue(_), _, _) = pat.node {
+            let ty = cx.tcx.pat_ty(pat);
+            if is_unrooted_ty(cx, ty, self.in_new_function) {
+                cx.span_lint(UNROOTED_MUST_ROOT,
+                            pat.span,
+                            &format!("Expression of type {:?} must be rooted", ty))
             }
         }
 
