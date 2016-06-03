@@ -499,7 +499,7 @@ impl CoreResourceManager {
             // XXXManishearth: Check origin against pipeline id
             // todo load context / mimesniff in fetch
             // todo referrer policy?
-            // todo worker stuff
+            // todo service worker stuff
             let mut target = Some(Box::new(sender) as Box<FetchTaskTarget + Send + 'static>);
             let response = fetch(Rc::new(request), &mut target, http_state);
             target.unwrap().fetch_done(&response, sync);
