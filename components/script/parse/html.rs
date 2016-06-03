@@ -150,7 +150,7 @@ impl<'a> TreeSink for servohtmlparser::Sink {
 
     fn mark_script_already_started(&mut self, node: JS<Node>) {
         let script = node.downcast::<HTMLScriptElement>();
-        script.map(|script| script.mark_already_started());
+        script.map(|script| script.set_already_started(true));
     }
 
     fn complete_script(&mut self, node: JS<Node>) -> NextParserState {
