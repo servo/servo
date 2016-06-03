@@ -823,9 +823,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         if self.shutting_down { return; }
         self.shutting_down = true;
 
-        for (pipeline_id, ref pipeline) in &self.pipelines {
-            debug!("Exiting pipeline {:?}.", pipeline_id);
-            pipeline.exit();
+        // TODO: exit before the root frame is set?
+        if let Some(root_id) = self.root_frame_id {
+            self.close_frame(root_id, ExitPipelineMode::Normal);
         }
     }
 
