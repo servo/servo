@@ -258,10 +258,8 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
 
     // Step 18
     if request.synchronous {
-        if !response.is_network_error() {
-            if let Some(ref ch) = *done_chan {
-                let _ = ch.1.recv();
-            }
+        if let Some(ref ch) = *done_chan {
+            let _ = ch.1.recv();
         }
         return response;
     }
@@ -278,23 +276,22 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
         }
     }
 
-    {
-        // Step 20
-        if let Some(ref mut target) = *target {
-            target.process_response(&response);
-        }
+    // Step 20
+    if let Some(ref mut target) = *target {
+        target.process_response(&response);
+    }
 
-        // Step 21
-        if !response.is_network_error() {
-            if let Some(ref ch) = *done_chan {
-                let _ = ch.1.recv();
-            }
-        }
+    // Step 21
+    if let Some(ref ch) = *done_chan {
+        let _ = ch.1.recv();
+    }
 
-        // Step 22
-        if let Some(ref mut target) = *target {
-            target.process_response_eof(&response);
-        }
+    // Step 22
+    request.done.set(true);
+
+    // Step 23
+    if let Some(ref mut target) = *target {
+        target.process_response_eof(&response);
     }
 
     // TODO remove this line when only asynchronous fetches are used
@@ -644,7 +641,6 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         Rc::new((*request).clone())
     };
 
-    println!("ncf {:?}", http_request.body);
     let content_length_value = match *http_request.body.borrow() {
         None =>
             match *http_request.method.borrow() {
