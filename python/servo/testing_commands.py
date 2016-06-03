@@ -58,7 +58,7 @@ class MachCommands(CommandBase):
             self.context.built_tests = False
 
     @Command('test',
-             description='Run all Servo tests',
+             description='Run specified Servo tests',
              category='testing')
     @CommandArgument('params', default=None, nargs="...",
                      help="Optionally select test based on "
@@ -68,16 +68,19 @@ class MachCommands(CommandBase):
                           HELP_RENDER_MODE)
     @CommandArgument('--release', default=False, action="store_true",
                      help="Run with a release build of servo")
-    @CommandArgument('--faster', default=False, action="store_true",
-                     help="Only check changed files and skip the WPT lint in tidy")
+    @CommandArgument('--tidy-all', default=False, action="store_true",
+                     help="Check all files, and run the WPT lint in tidy, "
+                          "even if unchanged")
     @CommandArgument('--no-progress', default=False, action="store_true",
                      help="Don't show progress for tidy")
     @CommandArgument('--self-test', default=False, action="store_true",
                      help="Run unit tests for tidy")
-    def test(self, params, render_mode=DEFAULT_RENDER_MODE, release=False, faster=False, no_progress=False,
-             self_test=False):
+    @CommandArgument('--all', default=False, action="store_true", dest="all_suites",
+                     help="Run all test suites")
+    def test(self, params, render_mode=DEFAULT_RENDER_MODE, release=False, tidy_all=False,
+             no_progress=False, self_test=False, all_suites=False):
         suites = OrderedDict([
-            ("tidy", {"kwargs": {"faster": faster, "no_progress": no_progress, "self_test": self_test},
+            ("tidy", {"kwargs": {"all_files": tidy_all, "no_progress": no_progress, "self_test": self_test},
                       "include_arg": "include"}),
             ("wpt", {"kwargs": {"release": release},
                      "paths": [path.abspath(path.join("tests", "wpt", "web-platform-tests")),
@@ -99,7 +102,13 @@ class MachCommands(CommandBase):
         selected_suites = OrderedDict()
 
         if params is None:
-            params = suites.keys()
+            if all_suites:
+                params = suites.keys()
+            else:
+                print("Specify a test path or suite name, or pass --all to run all test suites.\n\nAvailable suites:")
+                for s in suites:
+                    print("    %s" % s)
+                return 1
 
         for arg in params:
             found = False
