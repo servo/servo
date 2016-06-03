@@ -919,6 +919,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.trigger_mozbrowsererror(pipeline_id, reason, backtrace);
 
             self.close_pipeline(pipeline_id, ExitPipelineMode::Force);
+            self.pipelines.remove(&pipeline_id);
 
             while let Some(pending_pipeline_id) = self.pending_frames.iter().find(|pending| {
                 pending.old_pipeline_id == Some(pipeline_id)
