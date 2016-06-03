@@ -3,6 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterDataMethods;
+use dom::bindings::codegen::Bindings::DOMRectListBinding::DOMRectListMethods;
+use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
@@ -22,7 +24,11 @@ use dom::bindings::weakref::{WeakRef, WeakRefVec};
 use dom::characterdata::CharacterData;
 use dom::document::Document;
 use dom::documentfragment::DocumentFragment;
+use dom::domrect::DOMRect;
+use dom::domrectlist::DOMRectList;
+use dom::element::Element;
 use dom::node::{Node, UnbindContext};
+use dom::node::{window_from_node};
 use dom::text::Text;
 use heapsize::HeapSizeOf;
 use js::jsapi::JSTracer;
@@ -892,6 +898,87 @@ impl RangeMethods for Range {
 
         // Step 6.
         s
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-range-getclientrects
+    fn GetClientRects(&self) -> Option<Root<DOMRectList>> {
+        let start_node = self.StartContainer();
+        let end_node = self.EndContainer();
+        let win = window_from_node(start_node.r());
+
+        fn push_rects(node: Option<Root<Node>>, rects: &mut Vec<Root<DOMRect>>, range: &Range) {
+            let node = match node {
+                Some(node) => node,
+                None => return
+            };
+
+            if let Some(element) = node.downcast::<Element>() {
+                let element_rects = element.GetClientRects();
+
+                for i in 0..element_rects.r().Length() {
+                    match element_rects.r().Item(i) {
+                        Some(rect) => rects.push(rect),
+                        None => ()
+                    }
+                }
+            }
+
+            if let Some(text) = node.downcast::<Text>() {
+                let start_node = range.StartContainer();
+                let end_node = range.EndContainer();
+                let win = window_from_node(start_node.r());
+
+                let cut_text = if node == start_node {
+                    let text = start_node.downcast::<Text>().unwrap();
+                    text.SplitText(range.StartOffset()).unwrap()
+                } else if node == end_node {
+                    let text = end_node.downcast::<Text>().unwrap();
+                    text.SplitText(range.EndOffset()).unwrap()
+                } else {
+                    Root::from_ref(text)
+                };
+
+                let node = cut_text.upcast::<Node>();
+                let node_rects = node.content_boxes();
+                for rect in &node_rects {
+                    rects.push(DOMRect::new(GlobalRef::Window(win.r()),
+                                            rect.origin.x.to_f64_px(),
+                                            rect.origin.y.to_f64_px(),
+                                            rect.size.width.to_f64_px(),
+                                            rect.size.height.to_f64_px()))
+                }
+
+                debug!("Some text received {:?}", text.WholeText());
+            }
+        }
+
+        let mut rects = Vec::new();
+
+        if start_node == end_node {
+            push_rects(Some(start_node), &mut rects, &self);
+            return Some(DOMRectList::new(win.r(), rects.into_iter()))
+        }
+
+        let (first, last, children) = self.contained_children().unwrap();
+
+        push_rects(first, &mut rects, &self);
+        for node in children {
+            push_rects(Some(node), &mut rects, &self);
+        }
+        push_rects(last, &mut rects, &self);
+
+        Some(DOMRectList::new(win.r(), rects.into_iter()))
+    }
+
+    // https://drafts.csswg.org/cssom-view/#dom-range-getboundingclientrect
+    fn GetBoundingClientRect(&self) -> Root<DOMRect> {
+        let node = self.StartContainer();
+        let win = window_from_node(node.r());
+
+        match self.GetClientRects() {
+            Some(rv) => rv.r().Item(0).unwrap(),
+            None => DOMRect::new(GlobalRef::Window(win.r()), 0.0, 0.0, 0.0, 0.0)
+        }
     }
 }
 
