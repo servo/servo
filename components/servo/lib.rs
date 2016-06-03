@@ -60,7 +60,7 @@ fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) { }
 use compositing::compositor_thread::InitialCompositorState;
 use compositing::windowing::WindowEvent;
 use compositing::windowing::WindowMethods;
-use compositing::{CompositorProxy, CompositorThread, IOCompositor};
+use compositing::{CompositorProxy, IOCompositor};
 #[cfg(not(target_os = "windows"))]
 use constellation::content_process_sandbox_profile;
 use constellation::{Constellation, InitialConstellationState, UnprivilegedPipelineContent};
@@ -167,7 +167,7 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
 
         // The compositor coordinates with the client window to create the final
         // rendered page and display it somewhere.
-        let compositor = CompositorThread::create(window, InitialCompositorState {
+        let compositor = IOCompositor::create(window, InitialCompositorState {
             sender: compositor_proxy,
             receiver: compositor_receiver,
             constellation_chan: constellation_chan,
