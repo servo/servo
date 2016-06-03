@@ -35,8 +35,7 @@ use actor::{Actor, ActorRegistry};
 use actors::console::ConsoleActor;
 use actors::framerate::FramerateActor;
 use actors::inspector::InspectorActor;
-use actors::network_event::{EventActor, NetworkEventActor, RequestCookiesMsg, ResponseCookiesMsg };
-use actors::network_event::{ResponseContentMsg, ResponseHeadersMsg, ResponseStartMsg };
+use actors::network_event::{EventActor, NetworkEventActor, ResponseStartMsg};
 use actors::performance::PerformanceActor;
 use actors::profiler::ProfilerActor;
 use actors::root::RootActor;
@@ -106,66 +105,30 @@ struct NetworkEventMsg {
 }
 
 #[derive(Serialize)]
+struct NetworkEventUpdateMsg {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
+    updateType: String,
+}
+
+#[derive(Serialize)]
+struct EventTimingsUpdateMsg {
+    totalTime: u64,
+}
+
+#[derive(Serialize)]
+struct SecurityInfoUpdateMsg {
+    state: String,
+}
+
+#[derive(Serialize)]
 struct ResponseStartUpdateMsg {
     from: String,
     #[serde(rename = "type")]
     type_: String,
     updateType: String,
     response: ResponseStartMsg,
-}
-
-#[derive(Serialize)]
-struct ResponseContentUpdateMsg {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    updateType: String,
-    responseContent: ResponseContentMsg,
-}
-
-#[derive(Serialize)]
-struct ResponseCookiesUpdateMsg {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    updateType: String,
-    responseCookies: ResponseCookiesMsg,
-}
-
-#[derive(Serialize)]
-struct ResponseHeadersUpdateMsg {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    updateType: String,
-    responseHeaders: ResponseHeadersMsg,
-}
-
-#[derive(Serialize)]
-struct RequestCookiesUpdateMsg {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    updateType: String,
-    requestcookies: RequestCookiesMsg,
-}
-
-#[derive(Serialize)]
-struct EventTimingsUpdateMsg {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    updateType: String,
-    totalTime: u32,
-}
-
-#[derive(Serialize)]
-struct SecurityInfoUpdateMsg {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    updateType: String,
-    securityState: String,
 }
 
 /// Spin up a devtools server that listens for connections on the specified port.
@@ -416,14 +379,22 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 //Store the response information in the actor
                 actor.add_response(httpresponse);
 
-                let msg7 = RequestCookiesUpdateMsg {
+                let msg = NetworkEventUpdateMsg {
+                    from: netevent_actor_name.clone(),
+                    type_: "networkEventUpdate".to_owned(),
+                    updateType: "requestHeaders".to_owned(),
+                };
+                for stream in &mut connections {
+                    stream.write_merged_json_packet(&msg, &actor.request_headers());
+                }
+
+                let msg = NetworkEventUpdateMsg {
                     from: netevent_actor_name.clone(),
                     type_: "networkEventUpdate".to_owned(),
                     updateType: "requestCookies".to_owned(),
-                    requestcookies: actor.request_cookies(),
                 };
                 for stream in &mut connections {
-                    stream.write_json_packet(&msg7);
+                    stream.write_merged_json_packet(&msg, &actor.request_cookies());
                 }
 
                 //Send a networkEventUpdate (responseStart) to the client
@@ -437,61 +408,56 @@ fn run_server(sender: Sender<DevtoolsControlMsg>,
                 for stream in &mut connections {
                     stream.write_json_packet(&msg);
                 }
-                let msg2 = EventTimingsUpdateMsg {
+                let msg = NetworkEventUpdateMsg {
                     from: netevent_actor_name.clone(),
                     type_: "networkEventUpdate".to_owned(),
                     updateType: "eventTimings".to_owned(),
-                    totalTime: 0
                 };
-
+                let extra = EventTimingsUpdateMsg {
+                    totalTime: actor.total_time(),
+                };
                 for stream in &mut connections {
-                    stream.write_json_packet(&msg2);
+                    stream.write_merged_json_packet(&msg, &extra);
                 }
 
-                let msg3 = SecurityInfoUpdateMsg {
+                let msg = NetworkEventUpdateMsg {
                     from: netevent_actor_name.clone(),
                     type_: "networkEventUpdate".to_owned(),
                     updateType: "securityInfo".to_owned(),
-                    securityState: "".to_owned(),
                 };
-
+                let extra = SecurityInfoUpdateMsg {
+                    state: "insecure".to_owned(),
+                };
                 for stream in &mut connections {
-                    stream.write_json_packet(&msg3);
+                    stream.write_merged_json_packet(&msg, &extra);
                 }
 
-                let msg4 = ResponseContentUpdateMsg {
+                let msg = NetworkEventUpdateMsg {
                     from: netevent_actor_name.clone(),
                     type_: "networkEventUpdate".to_owned(),
                     updateType: "responseContent".to_owned(),
-                    responseContent: actor.response_content(),
                 };
-
                 for stream in &mut connections {
-                    stream.write_json_packet(&msg4);
+                    stream.write_merged_json_packet(&msg, &actor.response_content());
                 }
 
-                let msg5 = ResponseCookiesUpdateMsg {
+                let msg = NetworkEventUpdateMsg {
                     from: netevent_actor_name.clone(),
                     type_: "networkEventUpdate".to_owned(),
                     updateType: "responseCookies".to_owned(),
-                    responseCookies: actor.response_cookies(),
                 };
-
                 for stream in &mut connections {
-                    stream.write_json_packet(&msg5);
+                    stream.write_merged_json_packet(&msg, &actor.response_cookies());
                 }
 
-                let msg6 = ResponseHeadersUpdateMsg {
+                let msg = NetworkEventUpdateMsg {
                     from: netevent_actor_name.clone(),
                     type_: "networkEventUpdate".to_owned(),
                     updateType: "responseHeaders".to_owned(),
-                    responseHeaders: actor.response_headers(),
                 };
-
                 for stream in &mut connections {
-                    stream.write_json_packet(&msg6);
+                    stream.write_merged_json_packet(&msg, &actor.response_headers());
                 }
-
             }
         }
     }

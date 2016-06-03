@@ -119,6 +119,10 @@ impl HttpState {
     }
 }
 
+fn precise_time_ms() -> u64 {
+    time::precise_time_ns() / (1000 * 1000)
+}
+
 fn load_for_consumer(load_data: LoadData,
                      start_chan: LoadConsumer,
                      classifier: Arc<MIMEClassifier>,
@@ -552,21 +556,34 @@ enum Decoder {
     Plain(Box<HttpResponse>)
 }
 
-fn send_request_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-                            request_id: String,
+fn prepare_devtools_request(request_id: String,
                             url: Url,
                             method: Method,
                             headers: Headers,
                             body: Option<Vec<u8>>,
-                            pipeline_id: PipelineId, now: Tm) {
-    if let Some(ref chan) = devtools_chan {
-        let request = DevtoolsHttpRequest {
-            url: url, method: method, headers: headers, body: body, pipeline_id: pipeline_id, startedDateTime: now };
-        let net_event = NetworkEvent::HttpRequest(request);
+                            pipeline_id: PipelineId,
+                            now: Tm,
+                            connect_time: u64,
+                            send_time: u64) -> ChromeToDevtoolsControlMsg {
+    let request = DevtoolsHttpRequest {
+        url: url,
+        method: method,
+        headers: headers,
+        body: body,
+        pipeline_id: pipeline_id,
+        startedDateTime: now,
+        timeStamp: now.to_timespec().sec,
+        connect_time: connect_time,
+        send_time: send_time,
+    };
+    let net_event = NetworkEvent::HttpRequest(request);
 
-        let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event);
-        chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
-    }
+    ChromeToDevtoolsControlMsg::NetworkEvent(request_id, net_event)
+}
+
+fn send_request_to_devtools(msg: ChromeToDevtoolsControlMsg,
+                            devtools_chan: &Sender<DevtoolsControlMsg>) {
+    devtools_chan.send(DevtoolsControlMsg::FromChrome(msg)).unwrap();
 }
 
 fn send_response_to_devtools(devtools_chan: Option<Sender<DevtoolsControlMsg>>,
@@ -701,10 +718,12 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
                           iters: u32,
                           devtools_chan: &Option<Sender<DevtoolsControlMsg>>,
                           request_id: &str)
-                          -> Result<A::R, LoadError> where A: HttpRequest + 'static  {
+                          -> Result<(A::R, Option<ChromeToDevtoolsControlMsg>), LoadError>
+                          where A: HttpRequest + 'static  {
     let null_data = None;
     let response;
     let connection_url = replace_hosts(&url);
+    let mut msg;
 
     // loop trying connections in connection pool
     // they may have grown stale (disconnected), in which case we'll get
@@ -742,22 +761,36 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
             info!("{:?}", data);
         }
 
+        let connect_start = precise_time_ms();
+
         let req = try!(request_factory.create(connection_url.clone(), method.clone(),
                                               headers.clone()));
+
+        let connect_end = precise_time_ms();
 
         if cancel_listener.is_cancelled() {
             return Err(LoadError::new(connection_url.clone(), LoadErrorType::Cancelled));
         }
 
+        let send_start = precise_time_ms();
+
         let maybe_response = req.send(request_body);
 
-        if let Some(pipeline_id) = *pipeline_id {
-            send_request_to_devtools(
-                devtools_chan.clone(), request_id.clone().into(),
-                url.clone(), method.clone(), headers,
-                request_body.clone(), pipeline_id, time::now()
-            );
-        }
+        let send_end = precise_time_ms();
+
+        msg = if devtools_chan.is_some() {
+            if let Some(pipeline_id) = *pipeline_id {
+                Some(prepare_devtools_request(
+                    request_id.clone().into(),
+                    url.clone(), method.clone(), headers,
+                    request_body.clone(), pipeline_id, time::now(),
+                    connect_end - connect_start, send_end - send_start))
+            } else {
+                None
+            }
+        } else {
+            None
+        };
 
         response = match maybe_response {
             Ok(r) => r,
@@ -775,7 +808,7 @@ pub fn obtain_response<A>(request_factory: &HttpRequestFactory<R=A>,
         break;
     }
 
-    Ok(response)
+    Ok((response, msg))
 }
 
 pub trait UIProvider {
@@ -914,9 +947,10 @@ pub fn load<A, B>(load_data: &LoadData,
             request_headers.set(auth_header.clone());
         }
 
-        let response = try!(obtain_response(request_factory, &doc_url, &method, &request_headers,
-                                            &cancel_listener, &load_data.data, &load_data.method,
-                                            &load_data.pipeline_id, iters, &devtools_chan, &request_id));
+        let (response, msg) =
+            try!(obtain_response(request_factory, &doc_url, &method, &request_headers,
+                                 &cancel_listener, &load_data.data, &load_data.method,
+                                 &load_data.pipeline_id, iters, &devtools_chan, &request_id));
 
         process_response_headers(&response, &doc_url, &http_state.cookie_jar, &http_state.hsts_list, &load_data);
 
@@ -1005,6 +1039,11 @@ pub fn load<A, B>(load_data: &LoadData,
         } else {
             HttpsState::None
         };
+
+        // Only notify the devtools about the final request that received a response.
+        if let Some(msg) = msg {
+            send_request_to_devtools(msg, devtools_chan.as_ref().unwrap());
+        }
 
         // --- Tell devtools that we got a response
         // Send an HttpResponse message to devtools with the corresponding request_id
