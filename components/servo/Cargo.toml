@@ -31,7 +31,6 @@ opt-level = 3
 # lto = false
 
 [dev-dependencies]
-image = "0.10"
 gfx_tests = {path = "../../tests/unit/gfx"}
 layout_tests = {path = "../../tests/unit/layout"}
 net_tests = {path = "../../tests/unit/net"}
