@@ -28,6 +28,7 @@ pub struct Method {
 
 pub trait JsonPacketStream {
     fn write_json_packet<T: Serialize>(&mut self, obj: &T);
+    fn write_merged_json_packet<T: Serialize, U: Serialize>(&mut self, base: &T, extra: &U);
     fn read_json_packet(&mut self) -> Result<Option<Value>, String>;
 }
 
@@ -36,6 +37,19 @@ impl JsonPacketStream for TcpStream {
         let s = serde_json::to_string(obj).unwrap();
         debug!("<- {}", s);
         write!(self, "{}:{}", s.len(), s).unwrap();
+    }
+
+    fn write_merged_json_packet<T: Serialize, U: Serialize>(&mut self, base: &T, extra: &U) {
+        let mut obj = serde_json::to_value(base);
+        let obj = obj.as_object_mut().unwrap();
+        let extra = serde_json::to_value(extra);
+        let extra = extra.as_object().unwrap();
+
+        for (key, value) in extra {
+            obj.insert(key.to_owned(), value.to_owned());
+        }
+
+        self.write_json_packet(obj);
     }
 
     fn read_json_packet(&mut self) -> Result<Option<Value>, String> {

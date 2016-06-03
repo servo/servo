@@ -19,7 +19,8 @@ use std::net::TcpStream;
 struct ActorTraits {
     sources: bool,
     highlightable: bool,
-    customHighlighters: Vec<String>,
+    customHighlighters: bool,
+    networkMonitor: bool,
 }
 
 #[derive(Serialize)]
@@ -117,7 +118,8 @@ impl RootActor {
             traits: ActorTraits {
                 sources: true,
                 highlightable: true,
-                customHighlighters: vec!("BoxModelHighlighter".to_owned()),
+                customHighlighters: true,
+                networkMonitor: true
             },
         }
     }

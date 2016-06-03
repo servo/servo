@@ -503,7 +503,10 @@ fn test_request_and_response_data_with_network_messages() {
         headers: headers,
         body: None,
         pipeline_id: pipeline_id,
-        startedDateTime: devhttprequest.startedDateTime
+        startedDateTime: devhttprequest.startedDateTime,
+        timeStamp: devhttprequest.timeStamp,
+        connect_time: devhttprequest.connect_time,
+        send_time: devhttprequest.send_time,
     };
 
     let content = "Yay!";
