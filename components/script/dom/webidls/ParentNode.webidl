@@ -22,9 +22,6 @@ interface ParentNode {
   [Throws]
   void append((Node or DOMString)... nodes);
 
-  //Element? query(DOMString relativeSelectors);
-  //[NewObject]
-  //Elements queryAll(DOMString relativeSelectors);
   [Pure, Throws]
   Element? querySelector(DOMString selectors);
   [NewObject, Throws]
