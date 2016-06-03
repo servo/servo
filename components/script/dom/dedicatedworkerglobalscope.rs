@@ -182,6 +182,7 @@ impl DedicatedWorkerGlobalScope {
         }
     }
 
+    #[allow(unsafe_code)]
     pub fn new(init: WorkerGlobalScopeInit,
                worker_url: Url,
                id: PipelineId,
@@ -204,7 +205,9 @@ impl DedicatedWorkerGlobalScope {
                                                                   receiver,
                                                                   timer_event_chan,
                                                                   timer_event_port);
-        DedicatedWorkerGlobalScopeBinding::Wrap(cx, scope)
+        unsafe {
+            DedicatedWorkerGlobalScopeBinding::Wrap(cx, scope)
+        }
     }
 
     #[allow(unsafe_code)]
@@ -426,8 +429,9 @@ unsafe extern "C" fn interrupt_callback(cx: *mut JSContext) -> bool {
 }
 
 impl DedicatedWorkerGlobalScopeMethods for DedicatedWorkerGlobalScope {
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-dedicatedworkerglobalscope-postmessage
-    fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
+    unsafe fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
         let worker = self.worker.borrow().as_ref().unwrap().clone();
         self.parent_sender

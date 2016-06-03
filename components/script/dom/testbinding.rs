@@ -132,11 +132,16 @@ impl TestBindingMethods for TestBinding {
         BlobOrUnsignedLong::UnsignedLong(0u32)
     }
     fn SetUnion8Attribute(&self, _: BlobOrUnsignedLong) {}
-    fn ArrayAttribute(&self, _: *mut JSContext) -> *mut JSObject { NullValue().to_object_or_null() }
-    fn AnyAttribute(&self, _: *mut JSContext) -> JSVal { NullValue() }
-    fn SetAnyAttribute(&self, _: *mut JSContext, _: HandleValue) {}
-    fn ObjectAttribute(&self, _: *mut JSContext) -> *mut JSObject { panic!() }
-    fn SetObjectAttribute(&self, _: *mut JSContext, _: *mut JSObject) {}
+    #[allow(unsafe_code)]
+    unsafe fn ArrayAttribute(&self, _: *mut JSContext) -> *mut JSObject { NullValue().to_object_or_null() }
+    #[allow(unsafe_code)]
+    unsafe fn AnyAttribute(&self, _: *mut JSContext) -> JSVal { NullValue() }
+    #[allow(unsafe_code)]
+    unsafe fn SetAnyAttribute(&self, _: *mut JSContext, _: HandleValue) {}
+    #[allow(unsafe_code)]
+    unsafe fn ObjectAttribute(&self, _: *mut JSContext) -> *mut JSObject { panic!() }
+    #[allow(unsafe_code)]
+    unsafe fn SetObjectAttribute(&self, _: *mut JSContext, _: *mut JSObject) {}
 
     fn GetBooleanAttributeNullable(&self) -> Option<bool> { Some(false) }
     fn SetBooleanAttributeNullable(&self, _: Option<bool>) {}
@@ -188,8 +193,10 @@ impl TestBindingMethods for TestBinding {
     fn SetInterfaceAttributeWeak(&self, url: Option<&URL>) {
         self.url.set(url);
     }
-    fn GetObjectAttributeNullable(&self, _: *mut JSContext) -> *mut JSObject { ptr::null_mut() }
-    fn SetObjectAttributeNullable(&self, _: *mut JSContext, _: *mut JSObject) {}
+    #[allow(unsafe_code)]
+    unsafe fn GetObjectAttributeNullable(&self, _: *mut JSContext) -> *mut JSObject { ptr::null_mut() }
+    #[allow(unsafe_code)]
+    unsafe fn SetObjectAttributeNullable(&self, _: *mut JSContext, _: *mut JSObject) {}
     fn GetUnionAttributeNullable(&self) -> Option<HTMLElementOrLong> {
         Some(HTMLElementOrLong::Long(0))
     }
@@ -232,8 +239,10 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveInterface(&self) -> Root<Blob> {
         Blob::new(self.global().r(), BlobImpl::new_from_empty_slice(), "")
     }
-    fn ReceiveAny(&self, _: *mut JSContext) -> JSVal { NullValue() }
-    fn ReceiveObject(&self, _: *mut JSContext) -> *mut JSObject { panic!() }
+    #[allow(unsafe_code)]
+    unsafe fn ReceiveAny(&self, _: *mut JSContext) -> JSVal { NullValue() }
+    #[allow(unsafe_code)]
+    unsafe fn ReceiveObject(&self, _: *mut JSContext) -> *mut JSObject { panic!() }
     fn ReceiveUnion(&self) -> HTMLElementOrLong { HTMLElementOrLong::Long(0) }
     fn ReceiveUnion2(&self) -> EventOrString { EventOrString::String(DOMString::new()) }
     fn ReceiveUnion3(&self) -> StringOrLongSequence { StringOrLongSequence::LongSequence(vec![]) }
@@ -270,7 +279,8 @@ impl TestBindingMethods for TestBinding {
     fn ReceiveNullableInterface(&self) -> Option<Root<Blob>> {
         Some(Blob::new(self.global().r(), BlobImpl::new_from_empty_slice(), ""))
     }
-    fn ReceiveNullableObject(&self, _: *mut JSContext) -> *mut JSObject { ptr::null_mut() }
+    #[allow(unsafe_code)]
+    unsafe fn ReceiveNullableObject(&self, _: *mut JSContext) -> *mut JSObject { ptr::null_mut() }
     fn ReceiveNullableUnion(&self) -> Option<HTMLElementOrLong> {
         Some(HTMLElementOrLong::Long(0))
     }
@@ -382,8 +392,10 @@ impl TestBindingMethods for TestBinding {
     fn PassUnion5(&self, _: StringOrBoolean) {}
     fn PassUnion6(&self, _: UnsignedLongOrBoolean) {}
     fn PassUnion7(&self, _: StringSequenceOrUnsignedLong) {}
-    fn PassAny(&self, _: *mut JSContext, _: HandleValue) {}
-    fn PassObject(&self, _: *mut JSContext, _: *mut JSObject) {}
+    #[allow(unsafe_code)]
+    unsafe fn PassAny(&self, _: *mut JSContext, _: HandleValue) {}
+    #[allow(unsafe_code)]
+    unsafe fn PassObject(&self, _: *mut JSContext, _: *mut JSObject) {}
     fn PassCallbackFunction(&self, _: Rc<Function>) {}
     fn PassCallbackInterface(&self, _: Rc<EventListener>) {}
     fn PassSequence(&self, _: Vec<i32>) {}
@@ -408,7 +420,8 @@ impl TestBindingMethods for TestBinding {
     fn PassNullableByteString(&self, _: Option<ByteString>) {}
     // fn PassNullableEnum(self, _: Option<TestEnum>) {}
     fn PassNullableInterface(&self, _: Option<&Blob>) {}
-    fn PassNullableObject(&self, _: *mut JSContext, _: *mut JSObject) {}
+    #[allow(unsafe_code)]
+    unsafe fn PassNullableObject(&self, _: *mut JSContext, _: *mut JSObject) {}
     fn PassNullableUnion(&self, _: Option<HTMLElementOrLong>) {}
     fn PassNullableUnion2(&self, _: Option<EventOrString>) {}
     fn PassNullableUnion3(&self, _: Option<StringOrLongSequence>) {}
@@ -441,8 +454,10 @@ impl TestBindingMethods for TestBinding {
     fn PassOptionalUnion3(&self, _: Option<StringOrLongSequence>) {}
     fn PassOptionalUnion4(&self, _: Option<LongSequenceOrBoolean>) {}
     fn PassOptionalUnion5(&self, _: Option<UnsignedLongOrBoolean>) {}
-    fn PassOptionalAny(&self, _: *mut JSContext, _: HandleValue) {}
-    fn PassOptionalObject(&self, _: *mut JSContext, _: Option<*mut JSObject>) {}
+    #[allow(unsafe_code)]
+    unsafe fn PassOptionalAny(&self, _: *mut JSContext, _: HandleValue) {}
+    #[allow(unsafe_code)]
+    unsafe fn PassOptionalObject(&self, _: *mut JSContext, _: Option<*mut JSObject>) {}
     fn PassOptionalCallbackFunction(&self, _: Option<Rc<Function>>) {}
     fn PassOptionalCallbackInterface(&self, _: Option<Rc<EventListener>>) {}
     fn PassOptionalSequence(&self, _: Option<Vec<i32>>) {}
@@ -465,7 +480,8 @@ impl TestBindingMethods for TestBinding {
     fn PassOptionalNullableByteString(&self, _: Option<Option<ByteString>>) {}
     // fn PassOptionalNullableEnum(self, _: Option<Option<TestEnum>>) {}
     fn PassOptionalNullableInterface(&self, _: Option<Option<&Blob>>) {}
-    fn PassOptionalNullableObject(&self, _: *mut JSContext, _: Option<*mut JSObject>) {}
+    #[allow(unsafe_code)]
+    unsafe fn PassOptionalNullableObject(&self, _: *mut JSContext, _: Option<*mut JSObject>) {}
     fn PassOptionalNullableUnion(&self, _: Option<Option<HTMLElementOrLong>>) {}
     fn PassOptionalNullableUnion2(&self, _: Option<Option<EventOrString>>) {}
     fn PassOptionalNullableUnion3(&self, _: Option<Option<StringOrLongSequence>>) {}
@@ -506,12 +522,14 @@ impl TestBindingMethods for TestBinding {
     fn PassOptionalNullableByteStringWithDefault(&self, _: Option<ByteString>) {}
     // fn PassOptionalNullableEnumWithDefault(self, _: Option<TestEnum>) {}
     fn PassOptionalNullableInterfaceWithDefault(&self, _: Option<&Blob>) {}
-    fn PassOptionalNullableObjectWithDefault(&self, _: *mut JSContext, _: *mut JSObject) {}
+    #[allow(unsafe_code)]
+    unsafe fn PassOptionalNullableObjectWithDefault(&self, _: *mut JSContext, _: *mut JSObject) {}
     fn PassOptionalNullableUnionWithDefault(&self, _: Option<HTMLElementOrLong>) {}
     fn PassOptionalNullableUnion2WithDefault(&self, _: Option<EventOrString>) {}
     // fn PassOptionalNullableCallbackFunctionWithDefault(self, _: Option<Function>) {}
     fn PassOptionalNullableCallbackInterfaceWithDefault(&self, _: Option<Rc<EventListener>>) {}
-    fn PassOptionalAnyWithDefault(&self, _: *mut JSContext, _: HandleValue) {}
+    #[allow(unsafe_code)]
+    unsafe fn PassOptionalAnyWithDefault(&self, _: *mut JSContext, _: HandleValue) {}
 
     fn PassOptionalNullableBooleanWithNonNullDefault(&self, _: Option<bool>) {}
     fn PassOptionalNullableByteWithNonNullDefault(&self, _: Option<i8>) {}
@@ -555,8 +573,10 @@ impl TestBindingMethods for TestBinding {
     fn PassVariadicUnion4(&self, _: Vec<BlobOrBoolean>) {}
     fn PassVariadicUnion5(&self, _: Vec<StringOrUnsignedLong>) {}
     fn PassVariadicUnion6(&self, _: Vec<UnsignedLongOrBoolean>) {}
-    fn PassVariadicAny(&self, _: *mut JSContext, _: Vec<HandleValue>) {}
-    fn PassVariadicObject(&self, _: *mut JSContext, _: Vec<*mut JSObject>) {}
+    #[allow(unsafe_code)]
+    unsafe fn PassVariadicAny(&self, _: *mut JSContext, _: Vec<HandleValue>) {}
+    #[allow(unsafe_code)]
+    unsafe fn PassVariadicObject(&self, _: *mut JSContext, _: Vec<*mut JSObject>) {}
     fn BooleanMozPreference(&self, pref_name: DOMString) -> bool {
         get_pref(pref_name.as_ref()).as_boolean().unwrap_or(false)
     }

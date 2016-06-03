@@ -78,14 +78,14 @@ impl TextDecoderMethods for TextDecoder {
 
     #[allow(unsafe_code)]
     // https://encoding.spec.whatwg.org/#dom-textdecoder-decode
-    fn Decode(&self, _cx: *mut JSContext, input: Option<*mut JSObject>)
+    unsafe fn Decode(&self, _cx: *mut JSContext, input: Option<*mut JSObject>)
               -> Fallible<USVString> {
         let input = match input {
             Some(input) => input,
             None => return Ok(USVString("".to_owned())),
         };
 
-        let data = match unsafe { array_buffer_view_data::<u8>(input) } {
+        let data = match array_buffer_view_data::<u8>(input) {
             Some(data) => data,
             None => {
                 return Err(Error::Type("Argument to TextDecoder.decode is not an ArrayBufferView".to_owned()));

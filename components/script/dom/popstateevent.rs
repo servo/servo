@@ -67,8 +67,9 @@ impl PopStateEvent {
 }
 
 impl PopStateEventMethods for PopStateEvent {
+    #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-popstateevent-state
-    fn State(&self, _cx: *mut JSContext) -> JSVal {
+    unsafe fn State(&self, _cx: *mut JSContext) -> JSVal {
         self.state.get()
     }
 

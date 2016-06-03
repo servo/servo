@@ -522,7 +522,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn GetBufferParameter(&self, _cx: *mut JSContext, target: u32, parameter: u32) -> JSVal {
+    unsafe fn GetBufferParameter(&self, _cx: *mut JSContext, target: u32, parameter: u32) -> JSVal {
         let (sender, receiver) = ipc::channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::GetBufferParameter(target, parameter, sender)))
@@ -539,7 +539,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3
-    fn GetParameter(&self, cx: *mut JSContext, parameter: u32) -> JSVal {
+    unsafe fn GetParameter(&self, cx: *mut JSContext, parameter: u32) -> JSVal {
         let (sender, receiver) = ipc::channel().unwrap();
         self.ipc_renderer
             .send(CanvasMsg::WebGL(WebGLCommand::GetParameter(parameter, sender)))
@@ -551,9 +551,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             WebGLParameter::FloatArray(_) => panic!("Parameter should not be float array"),
             WebGLParameter::String(val) => {
                 let mut rval = RootedValue::new(cx, UndefinedValue());
-                unsafe {
-                    val.to_jsval(cx, rval.handle_mut());
-                }
+                val.to_jsval(cx, rval.handle_mut());
                 rval.ptr
             }
             WebGLParameter::Invalid => NullValue(),
@@ -605,8 +603,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         Some(vec![])
     }
 
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
-    fn GetExtension(&self, _cx: *mut JSContext, _name: DOMString) -> *mut JSObject {
+    unsafe fn GetExtension(&self, _cx: *mut JSContext, _name: DOMString) -> *mut JSObject {
         0 as *mut JSObject
     }
 
@@ -763,7 +762,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BufferData(&self, _cx: *mut JSContext, target: u32, data: Option<*mut JSObject>, usage: u32) {
+    unsafe fn BufferData(&self, _cx: *mut JSContext, target: u32, data: Option<*mut JSObject>, usage: u32) {
         let bound_buffer = match target {
             constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
             constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
@@ -798,7 +797,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BufferSubData(&self, _cx: *mut JSContext, target: u32, offset: i64, data: Option<*mut JSObject>) {
+    unsafe fn BufferSubData(&self, _cx: *mut JSContext, target: u32, offset: i64, data: Option<*mut JSObject>) {
         let bound_buffer = match target {
             constants::ARRAY_BUFFER => self.bound_buffer_array.get(),
             constants::ELEMENT_ARRAY_BUFFER => self.bound_buffer_element_array.get(),
@@ -828,16 +827,18 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn CompressedTexImage2D(&self, _cx: *mut JSContext, _target: u32, _level: i32, _internal_format: u32,
+    unsafe fn CompressedTexImage2D(&self, _cx: *mut JSContext, _target: u32, _level: i32, _internal_format: u32,
                             _width: i32, _height: i32, _border: i32, _pixels: *mut JSObject) {
         // FIXME: No compressed texture format is currently supported, so error out as per
         // https://www.khronos.org/registry/webgl/specs/latest/1.0/#COMPRESSED_TEXTURE_SUPPORT
         self.webgl_error(InvalidEnum)
     }
 
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn CompressedTexSubImage2D(&self, _cx: *mut JSContext, _target: u32, _level: i32,
+    unsafe fn CompressedTexSubImage2D(&self, _cx: *mut JSContext, _target: u32, _level: i32,
                                _xoffset: i32, _yoffset: i32, _width: i32, _height: i32,
                                _format: u32, _pixels: *mut JSObject) {
         // FIXME: No compressed texture format is currently supported, so error out as per
@@ -1229,8 +1230,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetProgramParameter(&self, _: *mut JSContext, program: Option<&WebGLProgram>, param_id: u32) -> JSVal {
+    unsafe fn GetProgramParameter(&self, _: *mut JSContext, program: Option<&WebGLProgram>, param_id: u32) -> JSVal {
         if let Some(program) = program {
             match handle_potential_webgl_error!(self, program.parameter(param_id), WebGLParameter::Invalid) {
                 WebGLParameter::Int(val) => Int32Value(val),
@@ -1252,8 +1254,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         shader.and_then(|s| s.info_log()).map(DOMString::from)
     }
 
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetShaderParameter(&self, _: *mut JSContext, shader: Option<&WebGLShader>, param_id: u32) -> JSVal {
+    unsafe fn GetShaderParameter(&self, _: *mut JSContext, shader: Option<&WebGLShader>, param_id: u32) -> JSVal {
         if let Some(shader) = shader {
             match handle_potential_webgl_error!(self, shader.parameter(param_id), WebGLParameter::Invalid) {
                 WebGLParameter::Int(val) => Int32Value(val),
@@ -1282,14 +1285,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9
-    fn GetVertexAttrib(&self, cx: *mut JSContext, index: u32, pname: u32) -> JSVal {
+    unsafe fn GetVertexAttrib(&self, cx: *mut JSContext, index: u32, pname: u32) -> JSVal {
         if index == 0 && pname == constants::CURRENT_VERTEX_ATTRIB {
             let mut result = RootedValue::new(cx, UndefinedValue());
             let (x, y, z, w) = self.current_vertex_attrib_0.get();
             let attrib = vec![x, y, z, w];
-            unsafe {
-                attrib.to_jsval(cx, result.handle_mut());
-            }
+            attrib.to_jsval(cx, result.handle_mut());
             return result.ptr
         }
 
@@ -1303,9 +1304,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             WebGLParameter::Float(_) => panic!("Vertex attrib should not be float"),
             WebGLParameter::FloatArray(val) => {
                 let mut result = RootedValue::new(cx, UndefinedValue());
-                unsafe {
-                    val.to_jsval(cx, result.handle_mut());
-                }
+                val.to_jsval(cx, result.handle_mut());
                 result.ptr
             }
             WebGLParameter::Invalid => NullValue(),
@@ -1429,14 +1428,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.12
-    fn ReadPixels(&self, _cx: *mut JSContext, x: i32, y: i32, width: i32, height: i32,
+    unsafe fn ReadPixels(&self, _cx: *mut JSContext, x: i32, y: i32, width: i32, height: i32,
                   format: u32, pixel_type: u32, pixels: *mut JSObject) {
-        let mut data = match unsafe { array_buffer_view_data::<u8>(pixels) } {
+        let mut data = match array_buffer_view_data::<u8>(pixels) {
             Some(data) => data,
             None => return self.webgl_error(InvalidValue),
         };
 
-        match unsafe { JS_GetArrayBufferViewType(pixels) } {
+        match JS_GetArrayBufferViewType(pixels) {
             Type::Uint8 => (),
             _ => return self.webgl_error(InvalidOperation)
         }
@@ -1586,8 +1585,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform1iv(&self,
+    unsafe fn Uniform1iv(&self,
                   _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
@@ -1599,8 +1599,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform1fv(&self,
+    unsafe fn Uniform1fv(&self,
                   _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
@@ -1623,8 +1624,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform2fv(&self,
+    unsafe fn Uniform2fv(&self,
                   _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
@@ -1651,8 +1653,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform2iv(&self,
+    unsafe fn Uniform2iv(&self,
                   _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
@@ -1679,8 +1682,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform3fv(&self,
+    unsafe fn Uniform3fv(&self,
                   _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
@@ -1707,8 +1711,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform3iv(&self,
+    unsafe fn Uniform3iv(&self,
                   _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
@@ -1736,8 +1741,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
 
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform4iv(&self,
+    unsafe fn Uniform4iv(&self,
                   _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
@@ -1764,8 +1770,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
     }
 
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform4fv(&self,
+    unsafe fn Uniform4fv(&self,
                   _cx: *mut JSContext,
                   uniform: Option<&WebGLUniformLocation>,
                   data: Option<*mut JSObject>) {
@@ -1794,8 +1801,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         self.vertex_attrib(indx, x, 0f32, 0f32, 1f32)
     }
 
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn VertexAttrib1fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
+    unsafe fn VertexAttrib1fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
         if let Some(data_vec) = array_buffer_view_to_vec_checked::<f32>(data) {
             if data_vec.len() < 4 {
                 return self.webgl_error(InvalidOperation);
@@ -1811,8 +1819,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         self.vertex_attrib(indx, x, y, 0f32, 1f32)
     }
 
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn VertexAttrib2fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
+    unsafe fn VertexAttrib2fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
         if let Some(data_vec) = array_buffer_view_to_vec_checked::<f32>(data) {
             if data_vec.len() < 2 {
                 return self.webgl_error(InvalidOperation);
@@ -1830,7 +1839,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn VertexAttrib3fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
+    unsafe fn VertexAttrib3fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
         if let Some(data_vec) = array_buffer_view_to_vec_checked::<f32>(data) {
             if data_vec.len() < 3 {
                 return self.webgl_error(InvalidOperation);
@@ -1846,8 +1855,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         self.vertex_attrib(indx, x, y, z, w)
     }
 
+    #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn VertexAttrib4fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
+    unsafe fn VertexAttrib4fv(&self, _cx: *mut JSContext, indx: u32, data: *mut JSObject) {
         if let Some(data_vec) = array_buffer_view_to_vec_checked::<f32>(data) {
             if data_vec.len() < 4 {
                 return self.webgl_error(InvalidOperation);
@@ -1883,7 +1893,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     #[allow(unsafe_code)]
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn TexImage2D(&self,
+    unsafe fn TexImage2D(&self,
                   _cx: *mut JSContext,
                   target: u32,
                   level: i32,
@@ -1930,9 +1940,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         // or UNSIGNED_SHORT_5_5_5_1, a Uint16Array must be supplied.
         // If the types do not match, an INVALID_OPERATION error is generated.
         let received_size = if let Some(data) = data {
-            if unsafe { array_buffer_view_data_checked::<u16>(data).is_some() } {
+            if array_buffer_view_data_checked::<u16>(data).is_some() {
                 2
-            } else if unsafe { array_buffer_view_data_checked::<u8>(data).is_some() } {
+            } else if array_buffer_view_data_checked::<u8>(data).is_some() {
                 1
             } else {
                 return self.webgl_error(InvalidOperation);

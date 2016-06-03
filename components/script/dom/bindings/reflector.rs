@@ -14,9 +14,11 @@ use std::ptr;
 /// reflector.
 pub fn reflect_dom_object<T: Reflectable>(obj: Box<T>,
                                           global: GlobalRef,
-                                          wrap_fn: fn(*mut JSContext, GlobalRef, Box<T>) -> Root<T>)
+                                          wrap_fn: unsafe fn(*mut JSContext, GlobalRef, Box<T>) -> Root<T>)
                                           -> Root<T> {
-    wrap_fn(global.get_cx(), global, obj)
+    unsafe {
+        wrap_fn(global.get_cx(), global, obj)
+    }
 }
 
 /// A struct to store a reference to the reflector of a DOM object.
