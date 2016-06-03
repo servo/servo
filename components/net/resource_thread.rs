@@ -494,15 +494,13 @@ impl CoreResourceManager {
             blocked_content: BLOCKED_CONTENT_RULES.clone(),
         };
         spawn_named(format!("fetch thread for {}", init.url), move || {
-            let sync = init.synchronous;
             let request = Request::from_init(init);
             // XXXManishearth: Check origin against pipeline id
             // todo load context / mimesniff in fetch
             // todo referrer policy?
             // todo service worker stuff
             let mut target = Some(Box::new(sender) as Box<FetchTaskTarget + Send + 'static>);
-            let response = fetch(Rc::new(request), &mut target, http_state);
-            target.unwrap().fetch_done(&response, sync);
+            fetch(Rc::new(request), &mut target, http_state);
         })
     }
 

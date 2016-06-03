@@ -41,11 +41,11 @@ impl FetchTaskTarget for FetchResponseCollector {
     fn process_request_body(&mut self, _: &Request) {}
     fn process_request_eof(&mut self, _: &Request) {}
     fn process_response(&mut self, _: &Response) {}
+    fn process_response_chunk(&mut self, _: Vec<u8>) {}
     /// Fired when the response is fully fetched
     fn process_response_eof(&mut self, response: &Response) {
         self.sender.send(response.clone());
     }
-    fn fetch_done(&mut self, _: &Response, _: bool) {}
 }
 
 fn fetch_async(request: Request, target: Box<FetchTaskTarget + Send>) {
