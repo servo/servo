@@ -9,7 +9,7 @@ interface DOMTokenList {
   [Pure]
   getter DOMString? item(unsigned long index);
 
-  [Pure, Throws]
+  [Pure]
   boolean contains(DOMString token);
   [Throws]
   void add(DOMString... tokens);

@@ -70,8 +70,8 @@ impl DOMTokenListMethods for DOMTokenList {
     }
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-contains
-    fn Contains(&self, token: DOMString) -> Fallible<bool> {
-        self.check_token_exceptions(&token).map(|token| {
+    fn Contains(&self, token: DOMString) -> bool {
+        if let Ok(token) = self.check_token_exceptions(&token) {
             self.attribute().map_or(false, |attr| {
                 let attr = attr.r();
                 attr.value()
@@ -79,7 +79,9 @@ impl DOMTokenListMethods for DOMTokenList {
                     .iter()
                     .any(|atom: &Atom| *atom == token)
             })
-        })
+        } else {
+            false
+        }
     }
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-add
