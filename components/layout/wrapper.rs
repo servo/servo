@@ -561,7 +561,8 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
             NonTSPseudoClass::Disabled |
             NonTSPseudoClass::Checked |
             NonTSPseudoClass::Indeterminate |
-            NonTSPseudoClass::ReadWrite =>
+            NonTSPseudoClass::ReadWrite |
+            NonTSPseudoClass::PlaceholderShown =>
                 self.element.get_state_for_layout().contains(pseudo_class.state_flag())
         }
     }
