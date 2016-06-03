@@ -5,13 +5,13 @@
 use connector::create_http_connector;
 use data_loader::decode;
 use fetch::cors_cache::CORSCache;
-use http_loader::{HttpState, set_request_cookies};
+use http_loader::{HttpState, set_default_accept_encoding, set_request_cookies};
 use http_loader::{NetworkHttpRequestFactory, ReadResult, obtain_response, read_block};
 use hyper::header::{Accept, AcceptLanguage, Authorization, AccessControlAllowCredentials};
 use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
 use hyper::header::{AccessControlRequestHeaders, AccessControlMaxAge, AccessControlRequestMethod, Basic};
 use hyper::header::{CacheControl, CacheDirective, ContentEncoding, ContentLength, ContentLanguage, ContentType};
-use hyper::header::{Encoding, HeaderView, Headers, IfMatch, IfRange, IfUnmodifiedSince, IfModifiedSince};
+use hyper::header::{Encoding, HeaderView, Headers, Host, IfMatch, IfRange, IfUnmodifiedSince, IfModifiedSince};
 use hyper::header::{IfNoneMatch, Pragma, Location, QualityItem, Referer as RefererHeader, UserAgent, q, qitem};
 use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
@@ -766,15 +766,31 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         _ => {}
     }
 
+    let current_url = http_request.current_url();
     // Step 12
-    // modify_request_headers(http_request.headers.borrow());
+    // todo: pass referrer url and policy
+    // this can only be uncommented when the referer header is set, else it crashes
+    // in the meantime, we manually set the headers in the block below
+    // modify_request_headers(&mut http_request.headers.borrow_mut(), &current_url,
+    //                        None, None, None);
+    {
+        let headers = &mut *http_request.headers.borrow_mut();
+        let host = Host {
+            hostname: current_url.host_str().unwrap().to_owned(),
+            port: current_url.port_or_known_default()
+        };
+        headers.set(host);
+        // accept header should not be set here, unlike http
+        set_default_accept_encoding(headers);
+    }
 
     // Step 13
     // TODO some of this step can't be implemented yet
     if credentials_flag {
         // Substep 1
         // TODO http://mxr.mozilla.org/servo/source/components/net/http_loader.rs#504
-        set_request_cookies(&http_request.current_url(),
+        // XXXManishearth http_loader has block_cookies, should we do this too?
+        set_request_cookies(&current_url,
                             &mut *http_request.headers.borrow_mut(),
                             &state.cookie_jar);
         // Substep 2
@@ -787,7 +803,6 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 
             // Substep 5
             if authentication_fetch_flag {
-                let current_url = http_request.current_url();
 
                 authorization_value = if has_credentials(&current_url) {
                     Some(Basic {
