@@ -819,13 +819,27 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_exit(&mut self) {
-        // TODO: add a timer, which forces shutdown if threads aren't responsive.
-        if self.shutting_down { return; }
-        self.shutting_down = true;
-
-        for (pipeline_id, ref pipeline) in &self.pipelines {
-            debug!("Exiting pipeline {:?}.", pipeline_id);
-            pipeline.exit();
+        if self.shutting_down {
+            // If we're already shutting down, we ping each of the pipelines to remind
+            // them that they're meant to be shutting down.
+            let mut errors = Vec::new();
+            for (pipeline_id, ref pipeline) in &self.pipelines {
+                debug!("Pinging exiting pipeline {:?}.", pipeline_id);
+                if let Err(err) = pipeline.script_chan.send(ConstellationControlMsg::ExitPipeline(*pipeline_id)) {
+                    errors.push((*pipeline_id, err));
+                }
+            }
+            // We treat any send errors as if the pipeline panicked, which will remove it from the pipelines set.
+            for (pipeline_id, err) in errors {
+                self.handle_send_error(pipeline_id, err);
+            }
+        } else {
+            // Otherwise, we ask each pipeline to shut itself down gracefully.
+            self.shutting_down = true;
+            for (pipeline_id, ref pipeline) in &self.pipelines {
+                debug!("Exiting pipeline {:?}.", pipeline_id);
+                pipeline.exit();
+            }
         }
     }
 

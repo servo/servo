@@ -44,6 +44,8 @@ use std::fs::File;
 use std::mem as std_mem;
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
+use std::thread;
+use std::time::Duration;
 use style_traits::viewport::ViewportConstraints;
 use surface_map::SurfaceMap;
 use time::{precise_time_ns, precise_time_s};
@@ -51,6 +53,7 @@ use touch::{TouchHandler, TouchAction};
 use url::Url;
 use util::geometry::{PagePx, ScreenPx, ViewportPx};
 use util::print_tree::PrintTree;
+use util::thread::spawn_named;
 use util::{opts, prefs};
 use webrender;
 use webrender_traits::{self, ScrollEventPhase};
@@ -518,7 +521,20 @@ impl<Window: WindowMethods> IOCompositor<Window> {
 
         self.mem_profiler_chan.send(mem::ProfilerMsg::UnregisterReporter(reporter_name()));
 
-        self.shutdown_state = ShutdownState::ShuttingDown;
+        if self.shutdown_state != ShutdownState::ShuttingDown {
+            self.shutdown_state = ShutdownState::ShuttingDown;
+            let constellation_chan = self.constellation_chan.clone();
+            spawn_named(String::from("ShutdownThread"), move || {
+                // Keep pinging the constellation asking it to shut down.
+                loop {
+                    thread::sleep(Duration::from_millis(100));
+                    if let Err(e) = constellation_chan.send(ConstellationMsg::Exit) {
+                        info!("Sending exit message to constellation failed ({}).", e);
+                        break;
+                    }
+                }
+            });
+        }
     }
 
     fn finish_shutting_down(&mut self) {
