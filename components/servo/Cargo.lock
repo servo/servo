@@ -18,7 +18,6 @@ dependencies = [
  "gfx_tests 0.0.1",
  "gleam 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "glutin_app 0.0.1",
- "image 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ipc-channel 0.2.3 (git+https://github.com/servo/ipc-channel)",
  "layout 0.0.1",
  "layout_tests 0.0.1",
