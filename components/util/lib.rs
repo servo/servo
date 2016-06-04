@@ -54,10 +54,8 @@ pub mod linked_list;
 #[allow(unsafe_code)]
 pub mod opts;
 pub mod panicking;
-#[allow(unsafe_code)]
 pub mod prefs;
 pub mod print_tree;
-#[allow(unsafe_code)]
 pub mod resource_files;
 #[allow(unsafe_code)]
 pub mod str;
