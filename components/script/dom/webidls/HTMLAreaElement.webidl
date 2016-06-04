@@ -9,7 +9,6 @@ interface HTMLAreaElement : HTMLElement {
   //         attribute DOMString shape;
   //         attribute DOMString target;
   //         attribute DOMString download;
-  //[PutForwards=value] attribute DOMSettableTokenList ping;
   //         attribute DOMString rel;
   readonly attribute DOMTokenList relList;
   // hreflang and type are not reflected
