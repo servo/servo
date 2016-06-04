@@ -14,6 +14,7 @@ import re
 import sys
 import os
 import os.path as path
+import copy
 from collections import OrderedDict
 from time import time
 
@@ -99,7 +100,7 @@ class MachCommands(CommandBase):
                      help="Run all test suites")
     def test(self, params, render_mode=DEFAULT_RENDER_MODE, release=False, tidy_all=False,
              no_progress=False, self_test=False, all_suites=False):
-        suites = OrderedDict(TEST_SUITES)
+        suites = copy.deepcopy(TEST_SUITES)
         suites["tidy"]["kwargs"] = {"all_files": tidy_all, "no_progress": no_progress, "self_test": self_test}
         suites["wpt"]["kwargs"] = {"release": release}
         suites["css"]["kwargs"] = {"release": release}
