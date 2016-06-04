@@ -1108,7 +1108,7 @@ impl Activatable for HTMLInputElement {
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 // Check if document owner is fully active
                 self.form_owner().map(|o| {
-                    o.submit(SubmittedFrom::NotFromFormSubmitMethod,
+                    o.submit(SubmittedFrom::NotFromForm,
                              FormSubmitter::InputElement(self.clone()))
                 });
             },
@@ -1117,7 +1117,7 @@ impl Activatable for HTMLInputElement {
                 // FIXME (Manishearth): support document owners (needs ability to get parent browsing context)
                 // Check if document owner is fully active
                 self.form_owner().map(|o| {
-                    o.reset(ResetFrom::NotFromFormResetMethod)
+                    o.reset(ResetFrom::NotFromForm)
                 });
             },
             InputType::InputCheckbox | InputType::InputRadio => {
@@ -1221,7 +1221,7 @@ impl Activatable for HTMLInputElement {
                     // lazily test for > 1 submission-blocking inputs
                     return;
                 }
-                form.submit(SubmittedFrom::NotFromFormSubmitMethod,
+                form.submit(SubmittedFrom::NotFromForm,
                             FormSubmitter::FormElement(form.r()));
             }
         }
