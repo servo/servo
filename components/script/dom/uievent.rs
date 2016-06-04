@@ -18,7 +18,7 @@ use std::cell::Cell;
 use std::default::Default;
 use string_cache::Atom;
 
-// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#interface-UIEvent
+// https://w3c.github.io/uievents/#interface-uievent
 #[dom_struct]
 pub struct UIEvent {
     event: Event,

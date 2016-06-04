@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
- * https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#interface-KeyboardEvent
+ * https://w3c.github.io/uievents/#interface-keyboardevent
  *
  */
 
@@ -26,7 +26,7 @@ interface KeyboardEvent : UIEvent {
     boolean getModifierState (DOMString keyArg);
 };
 
-// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#idl-interface-KeyboardEvent-initializers
+// https://w3c.github.io/uievents/#idl-interface-KeyboardEvent-initializers
 partial interface KeyboardEvent {
     // Originally introduced (and deprecated) in DOM Level 3
     void initKeyboardEvent (DOMString typeArg, boolean bubblesArg, boolean cancelableArg, Window? viewArg,
@@ -34,7 +34,7 @@ partial interface KeyboardEvent {
                             boolean repeat, DOMString locale);
 };
 
-// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#KeyboardEvent-supplemental-interface
+// https://w3c.github.io/uievents/#legacy-interface-KeyboardEvent
 partial interface KeyboardEvent {
     // The following support legacy user agents
     readonly    attribute unsigned long charCode;
@@ -42,7 +42,7 @@ partial interface KeyboardEvent {
     readonly    attribute unsigned long which;
 };
 
-// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#interface-KeyboardEvent
+// https://w3c.github.io/uievents/#dictdef-keyboardeventinit
 dictionary KeyboardEventInit : SharedKeyboardAndMouseEventInit {
     DOMString     key = "";
     DOMString     code = "";
@@ -51,7 +51,7 @@ dictionary KeyboardEventInit : SharedKeyboardAndMouseEventInit {
     boolean       isComposing = false;
 };
 
-// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#events-KeyboardEventInit-supplemental
+// https://w3c.github.io/uievents/#legacy-dictionary-KeyboardEventInit
 /*partial dictionary KeyboardEventInit {
     unsigned long charCode = 0;
     unsigned long keyCode = 0;
