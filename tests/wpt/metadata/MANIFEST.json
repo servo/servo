@@ -36030,6 +36030,12 @@
     "deleted_reftests": {},
     "items": {
       "testharness": {
+        "cssom-view/scrolling-no-browsing-context.html": [
+          {
+            "path": "cssom-view/scrolling-no-browsing-context.html",
+            "url": "/cssom-view/scrolling-no-browsing-context.html"
+          }
+        ],
         "url/url-domainToUnicode.html": [
           {
             "path": "url/url-domainToUnicode.html",
