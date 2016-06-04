@@ -35,6 +35,26 @@ PROJECT_TOPLEVEL_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, "..", ".."))
 WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "web-platform-tests")
 SERVO_TESTS_PATH = os.path.join("tests", "wpt", "mozilla", "tests")
 
+TEST_SUITES = OrderedDict([
+    ("tidy", {"kwargs": {"all_files": False, "no_progress": False, "self_test": False},
+              "include_arg": "include"}),
+    ("wpt", {"kwargs": {"release": False},
+             "paths": [path.abspath(WEB_PLATFORM_TESTS_PATH),
+                       path.abspath(SERVO_TESTS_PATH)],
+             "include_arg": "include"}),
+    ("css", {"kwargs": {"release": False},
+             "paths": [path.abspath(path.join("tests", "wpt", "css-tests"))],
+             "include_arg": "include"}),
+    ("unit", {"kwargs": {},
+              "paths": [path.abspath(path.join("tests", "unit"))],
+              "include_arg": "test_name"}),
+    ("compiletest", {"kwargs": {"release": False},
+                     "paths": [path.abspath(path.join("tests", "compiletest"))],
+                     "include_arg": "test_name"})
+])
+
+TEST_SUITES_BY_PREFIX = {path: k for k, v in TEST_SUITES.iteritems() if "paths" in v for path in v["paths"]}
+
 
 def create_parser_wpt():
     parser = wptcommandline.create_parser()
@@ -79,25 +99,12 @@ class MachCommands(CommandBase):
                      help="Run all test suites")
     def test(self, params, render_mode=DEFAULT_RENDER_MODE, release=False, tidy_all=False,
              no_progress=False, self_test=False, all_suites=False):
-        suites = OrderedDict([
-            ("tidy", {"kwargs": {"all_files": tidy_all, "no_progress": no_progress, "self_test": self_test},
-                      "include_arg": "include"}),
-            ("wpt", {"kwargs": {"release": release},
-                     "paths": [path.abspath(path.join("tests", "wpt", "web-platform-tests")),
-                               path.abspath(path.join("tests", "wpt", "mozilla"))],
-                     "include_arg": "include"}),
-            ("css", {"kwargs": {"release": release},
-                     "paths": [path.abspath(path.join("tests", "wpt", "css-tests"))],
-                     "include_arg": "include"}),
-            ("unit", {"kwargs": {},
-                      "paths": [path.abspath(path.join("tests", "unit"))],
-                      "include_arg": "test_name"}),
-            ("compiletest", {"kwargs": {"release": release},
-                             "paths": [path.abspath(path.join("tests", "compiletest"))],
-                             "include_arg": "test_name"})
-        ])
-
-        suites_by_prefix = {path: k for k, v in suites.iteritems() if "paths" in v for path in v["paths"]}
+        suites = OrderedDict(TEST_SUITES)
+        suites["tidy"]["kwargs"] = {"all_files": tidy_all, "no_progress": no_progress, "self_test": self_test}
+        suites["wpt"]["kwargs"] = {"release": release}
+        suites["css"]["kwargs"] = {"release": release}
+        suites["unit"]["kwargs"] = {}
+        suites["compiletest"]["kwargs"] = {"release": release}
 
         selected_suites = OrderedDict()
 
@@ -115,16 +122,14 @@ class MachCommands(CommandBase):
             if arg in suites and arg not in selected_suites:
                 selected_suites[arg] = []
                 found = True
-
-            elif os.path.exists(path.abspath(arg)):
-                abs_path = path.abspath(arg)
-                for prefix, suite in suites_by_prefix.iteritems():
-                    if abs_path.startswith(prefix):
-                        if suite not in selected_suites:
-                            selected_suites[suite] = []
-                        selected_suites[suite].append(arg)
-                        found = True
-                        break
+            else:
+                suite = self.suite_for_path(arg)
+                if suite is not None:
+                    if suite not in selected_suites:
+                        selected_suites[suite] = []
+                    selected_suites[suite].append(arg)
+                    found = True
+                    break
 
             if not found:
                 print("%s is not a valid test path or suite name" % arg)
@@ -142,6 +147,15 @@ class MachCommands(CommandBase):
         elapsed = time() - test_start
 
         print("Tests completed in %0.2fs" % elapsed)
+
+    # Helper to determine which test suite owns the path
+    def suite_for_path(self, path_arg):
+        if os.path.exists(path.abspath(path_arg)):
+            abs_path = path.abspath(path_arg)
+            for prefix, suite in TEST_SUITES_BY_PREFIX.iteritems():
+                if abs_path.startswith(prefix):
+                    return suite
+        return None
 
     @Command('test-unit',
              description='Run unit tests',
