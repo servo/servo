@@ -396,46 +396,38 @@ impl<C> PaintThread<C> where C: PaintListener + Send + 'static {
                   panic_chan: IpcSender<PanicMsg>,
                   font_cache_thread: FontCacheThread,
                   time_profiler_chan: time::ProfilerChan,
-                  mem_profiler_chan: mem::ProfilerChan,
-                  shutdown_chan: IpcSender<()>) {
+                  mem_profiler_chan: mem::ProfilerChan) {
         thread::spawn_named_with_send_on_panic(format!("PaintThread {:?}", id),
                                                thread_state::PAINT,
                                                move || {
-            {
-                // Ensures that the paint thread and graphics context are destroyed before the
-                // shutdown message.
-                let native_display = compositor.native_display();
-                let worker_threads = WorkerThreadProxy::spawn(native_display,
-                                                              font_cache_thread,
-                                                              time_profiler_chan.clone());
+            let native_display = compositor.native_display();
+            let worker_threads = WorkerThreadProxy::spawn(native_display,
+                                                          font_cache_thread,
+                                                          time_profiler_chan.clone());
 
-                let mut paint_thread = PaintThread {
-                    id: id,
-                    _url: url,
-                    layout_to_paint_port: layout_to_paint_port,
-                    chrome_to_paint_port: chrome_to_paint_port,
-                    compositor: compositor,
-                    time_profiler_chan: time_profiler_chan,
-                    root_display_list: None,
-                    layer_map: HashMap::new(),
-                    paint_permission: false,
-                    current_epoch: None,
-                    worker_threads: worker_threads,
-                };
+            let mut paint_thread = PaintThread {
+                id: id,
+                _url: url,
+                layout_to_paint_port: layout_to_paint_port,
+                chrome_to_paint_port: chrome_to_paint_port,
+                compositor: compositor,
+                time_profiler_chan: time_profiler_chan,
+                root_display_list: None,
+                layer_map: HashMap::new(),
+                paint_permission: false,
+                current_epoch: None,
+                worker_threads: worker_threads,
+            };
 
-                let reporter_name = format!("paint-reporter-{}", id);
-                mem_profiler_chan.run_with_memory_reporting(|| {
-                    paint_thread.start();
-                }, reporter_name, chrome_to_paint_chan, ChromeToPaintMsg::CollectReports);
+            let reporter_name = format!("paint-reporter-{}", id);
+            mem_profiler_chan.run_with_memory_reporting(|| {
+                paint_thread.start();
+            }, reporter_name, chrome_to_paint_chan, ChromeToPaintMsg::CollectReports);
 
-                // Tell all the worker threads to shut down.
-                for worker_thread in &mut paint_thread.worker_threads {
-                    worker_thread.exit()
-                }
+            // Tell all the worker threads to shut down.
+            for worker_thread in &mut paint_thread.worker_threads {
+                worker_thread.exit()
             }
-
-            debug!("paint_thread: shutdown_chan send");
-            let _ = shutdown_chan.send(());
         }, Some(id), panic_chan);
     }
 

@@ -55,7 +55,6 @@ pub struct Pipeline {
     /// A channel to the compositor.
     pub compositor_proxy: Box<CompositorProxy + 'static + Send>,
     pub chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
-    pub paint_shutdown_port: IpcReceiver<()>,
     /// URL corresponding to the most recently-loaded page.
     pub url: Url,
     /// The title of the most recently-loaded page.
@@ -129,8 +128,6 @@ impl Pipeline {
         // probably requires a general low-memory strategy.
         let (layout_to_paint_chan, layout_to_paint_port) = util::ipc::optional_ipc_channel();
         let (chrome_to_paint_chan, chrome_to_paint_port) = channel();
-        let (paint_shutdown_chan, paint_shutdown_port) = ipc::channel()
-            .expect("Pipeline paint shutdown chan");
         let (pipeline_chan, pipeline_port) = ipc::channel()
             .expect("Pipeline main chan");;
 
@@ -173,8 +170,7 @@ impl Pipeline {
                             state.panic_chan.clone(),
                             state.font_cache_thread.clone(),
                             state.time_profiler_chan.clone(),
-                            state.mem_profiler_chan.clone(),
-                            paint_shutdown_chan);
+                            state.mem_profiler_chan.clone());
 
         let mut child_process = None;
         if let Some((script_port, pipeline_port)) = content_ports {
@@ -252,7 +248,6 @@ impl Pipeline {
                                      pipeline_chan,
                                      state.compositor_proxy,
                                      chrome_to_paint_chan,
-                                     paint_shutdown_port,
                                      state.load_data.url,
                                      state.window_size);
 
@@ -265,7 +260,6 @@ impl Pipeline {
            layout_chan: IpcSender<LayoutControlMsg>,
            compositor_proxy: Box<CompositorProxy + 'static + Send>,
            chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
-           paint_shutdown_port: IpcReceiver<()>,
            url: Url,
            size: Option<TypedSize2D<PagePx, f32>>)
            -> Pipeline {
@@ -276,7 +270,6 @@ impl Pipeline {
             layout_chan: layout_chan,
             compositor_proxy: compositor_proxy,
             chrome_to_paint_chan: chrome_to_paint_chan,
-            paint_shutdown_port: paint_shutdown_port,
             url: url,
             title: None,
             children: vec!(),
