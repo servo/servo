@@ -4,7 +4,8 @@
 
 use dom::bindings::cell::DomRefCell;
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
-use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
+use dom::bindings::codegen::Bindings::EventTargetBinding::AddEventListenerOptions;
+use dom::bindings::codegen::Bindings::EventTargetBinding::EventListenerOptions;
 use dom::bindings::codegen::Bindings::MediaQueryListBinding::{self, MediaQueryListMethods};
 use dom::bindings::inheritance::Castable;
 use dom::bindings::reflector::DomObject;
@@ -97,14 +98,20 @@ impl MediaQueryListMethods for MediaQueryList {
 
     // https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-addlistener
     fn AddListener(&self, listener: Option<Rc<EventListener>>) {
-        self.upcast::<EventTarget>().AddEventListener(DOMString::from_string("change".to_owned()),
-                                                      listener, false);
+        self.upcast::<EventTarget>().add_event_listener(
+            DOMString::from_string("change".to_owned()),
+            listener,
+            AddEventListenerOptions { parent: EventListenerOptions { capture: false } },
+        );
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-removelistener
     fn RemoveListener(&self, listener: Option<Rc<EventListener>>) {
-        self.upcast::<EventTarget>().RemoveEventListener(DOMString::from_string("change".to_owned()),
-                                                         listener, false);
+        self.upcast::<EventTarget>().remove_event_listener(
+            DOMString::from_string("change".to_owned()),
+            listener,
+            EventListenerOptions { capture: false },
+        );
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-onchange
