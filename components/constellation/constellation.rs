@@ -180,6 +180,9 @@ pub struct Constellation<Message, LTF, STF> {
     // Webrender interface, if enabled.
     webrender_api_sender: Option<webrender_traits::RenderApiSender>,
 
+    /// Are we shutting down?
+    shutting_down: bool,
+
     /// Have we seen any panics? Hopefully always false!
     handled_panic: bool,
 
@@ -366,6 +369,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 child_processes: Vec::new(),
                 document_states: HashMap::new(),
                 webrender_api_sender: state.webrender_api_sender,
+                shutting_down: false,
                 handled_panic: false,
                 random_pipeline_closure: opts::get().random_pipeline_closure_probability.map(|prob| {
                     let seed = opts::get().random_pipeline_closure_seed.unwrap_or_else(random);
@@ -383,14 +387,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn run(&mut self) {
-        loop {
+        while !self.shutting_down || !self.pipelines.is_empty() {
             // Randomly close a pipeline if --random-pipeline-closure-probability is set
             // This is for testing the hardening of the constellation.
             self.maybe_close_random_pipeline();
-            if !self.handle_request() {
-                break;
-            }
+            self.handle_request();
         }
+        self.handle_shutdown();
     }
 
     fn next_pipeline_namespace_id(&mut self) -> PipelineNamespaceId {
@@ -407,6 +410,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     initial_window_size: Option<TypedSize2D<PagePx, f32>>,
                     script_channel: Option<IpcSender<ConstellationControlMsg>>,
                     load_data: LoadData) {
+        if self.shutting_down { return; }
+
         let result = Pipeline::spawn::<Message, LTF, STF>(InitialPipelineState {
             id: pipeline_id,
             parent_info: parent_info,
@@ -482,12 +487,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
     /// Handles loading pages, navigation, and granting access to the compositor
     #[allow(unsafe_code)]
-    fn handle_request(&mut self) -> bool {
+    fn handle_request(&mut self) {
         enum Request {
             Script(FromScriptMsg),
             Compositor(FromCompositorMsg),
             Layout(FromLayoutMsg),
-            Panic(PanicMsg)
+            Panic(PanicMsg),
         }
 
         // Get one incoming request.
@@ -524,25 +529,21 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             },
             Request::Script(message) => {
                 self.handle_request_from_script(message);
-                true
             },
             Request::Layout(message) => {
                 self.handle_request_from_layout(message);
-                true
             },
             Request::Panic(message) => {
                 self.handle_request_from_panic(message);
-                true
             },
         }
     }
 
-    fn handle_request_from_compositor(&mut self, message: FromCompositorMsg) -> bool {
+    fn handle_request_from_compositor(&mut self, message: FromCompositorMsg) {
         match message {
             FromCompositorMsg::Exit => {
                 debug!("constellation exiting");
                 self.handle_exit();
-                return false;
             }
             // The compositor discovered the size of a subframe. This needs to be reflected by all
             // frame trees in the navigation context containing the subframe.
@@ -606,12 +607,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_webdriver_msg(command);
             }
         }
-
-        true
     }
 
     fn handle_request_from_script(&mut self, message: FromScriptMsg) {
         match message {
+            FromScriptMsg::PipelineExited(pipeline_id) => {
+                self.handle_pipeline_exited(pipeline_id);
+            }
             FromScriptMsg::ScriptLoadedURLInIFrame(load_info) => {
                 debug!("constellation got iframe URL load message {:?} {:?} {:?}",
                        load_info.containing_pipeline_id,
@@ -817,34 +819,55 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_exit(&mut self) {
+        // TODO: add a timer, which forces shutdown if threads aren't responsive.
+        if self.shutting_down { return; }
+        self.shutting_down = true;
+
+        // TODO: exit before the root frame is set?
+        if let Some(root_id) = self.root_frame_id {
+            self.close_frame(root_id, ExitPipelineMode::Normal);
+        }
+    }
+
+    fn handle_shutdown(&mut self) {
+        // At this point, there are no active pipelines,
+        // so we can safely block on other threads, without worrying about deadlock.
         // Channels to recieve signals when threads are done exiting.
         let (core_sender, core_receiver) = ipc::channel().expect("Failed to create IPC channel!");
         let (storage_sender, storage_receiver) = ipc::channel().expect("Failed to create IPC channel!");
 
-        for (_id, ref pipeline) in &self.pipelines {
-            pipeline.exit();
-        }
+        debug!("Exiting image cache.");
         self.image_cache_thread.exit();
+
+        debug!("Exiting core resource threads.");
         if let Err(e) = self.resource_threads.send(net_traits::CoreResourceMsg::Exit(core_sender)) {
             warn!("Exit resource thread failed ({})", e);
         }
+
         if let Some(ref chan) = self.devtools_chan {
+            debug!("Exiting devtools.");
             let msg = DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::ServerExitMsg);
             if let Err(e) = chan.send(msg) {
                 warn!("Exit devtools failed ({})", e);
             }
         }
+
+        debug!("Exiting storage resource threads.");
         if let Err(e) = self.resource_threads.send(StorageThreadMsg::Exit(storage_sender)) {
             warn!("Exit storage thread failed ({})", e);
         }
 
+        debug!("Exiting file manager resource threads.");
         if let Err(e) = self.resource_threads.send(FileManagerThreadMsg::Exit) {
             warn!("Exit storage thread failed ({})", e);
         }
 
+        debug!("Exiting bluetooth thread.");
         if let Err(e) = self.bluetooth_thread.send(BluetoothMethodMsg::Exit) {
             warn!("Exit bluetooth thread failed ({})", e);
         }
+
+        debug!("Exiting font cache thread.");
         self.font_cache_thread.exit();
 
         // Receive exit signals from threads.
@@ -855,7 +878,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             warn!("Exit storage thread failed ({})", e);
         }
 
+        debug!("Asking compositor to complete shutdown.");
         self.compositor_proxy.send(ToCompositorMsg::ShutdownComplete);
+    }
+
+    fn handle_pipeline_exited(&mut self, pipeline_id: PipelineId) {
+        debug!("Pipeline {:?} exited.", pipeline_id);
+        self.pipelines.remove(&pipeline_id);
     }
 
     fn handle_send_error(&mut self, pipeline_id: PipelineId, err: IOError) {
@@ -890,6 +919,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.trigger_mozbrowsererror(pipeline_id, reason, backtrace);
 
             self.close_pipeline(pipeline_id, ExitPipelineMode::Force);
+            self.pipelines.remove(&pipeline_id);
 
             while let Some(pending_pipeline_id) = self.pending_frames.iter().find(|pending| {
                 pending.old_pipeline_id == Some(pipeline_id)
@@ -1417,7 +1447,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         };
         let (containing_pipeline_id, subpage_id, _) = match parent_info {
             Some(info) => info,
-            None => return warn!("Pipeline {:?} focus has no parent.", pipeline_id),
+            None => return debug!("Pipeline {:?} focus has no parent.", pipeline_id),
         };
 
         // Send a message to the parent of the provided pipeline (if it exists)
@@ -1908,7 +1938,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             self.close_frame(*child_frame, exit_mode);
         }
 
-        let pipeline = match self.pipelines.remove(&pipeline_id) {
+        let pipeline = match self.pipelines.get(&pipeline_id) {
             Some(pipeline) => pipeline,
             None => return warn!("Closing pipeline {:?} twice.", pipeline_id),
         };
