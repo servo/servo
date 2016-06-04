@@ -6286,12 +6286,6 @@
             "url": "/_mozilla/mozilla/document_url.html"
           }
         ],
-        "mozilla/domtokenlist.html": [
-          {
-            "path": "mozilla/domtokenlist.html",
-            "url": "/_mozilla/mozilla/domtokenlist.html"
-          }
-        ],
         "mozilla/element_attribute.html": [
           {
             "path": "mozilla/element_attribute.html",

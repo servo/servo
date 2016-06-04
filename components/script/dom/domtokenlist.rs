@@ -70,15 +70,14 @@ impl DOMTokenListMethods for DOMTokenList {
     }
 
     // https://dom.spec.whatwg.org/#dom-domtokenlist-contains
-    fn Contains(&self, token: DOMString) -> Fallible<bool> {
-        self.check_token_exceptions(&token).map(|token| {
-            self.attribute().map_or(false, |attr| {
-                let attr = attr.r();
-                attr.value()
-                    .as_tokens()
-                    .iter()
-                    .any(|atom: &Atom| *atom == token)
-            })
+    fn Contains(&self, token: DOMString) -> bool {
+        let token = Atom::from(token);
+        self.attribute().map_or(false, |attr| {
+            let attr = attr.r();
+            attr.value()
+                .as_tokens()
+                .iter()
+                .any(|atom: &Atom| *atom == token)
         })
     }
 
