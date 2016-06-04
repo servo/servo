@@ -118,7 +118,7 @@ partial /*sealed*/ interface Document {
   // void writeln(DOMString... text);
 
   // user interaction
-  readonly attribute Window/*Proxy?*/ defaultView;
+  readonly attribute Window?/*Proxy?*/ defaultView;
   readonly attribute Element? activeElement;
   boolean hasFocus();
   // attribute DOMString designMode;

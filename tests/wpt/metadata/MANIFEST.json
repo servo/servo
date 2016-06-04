@@ -36028,7 +36028,16 @@
   "local_changes": {
     "deleted": [],
     "deleted_reftests": {},
-    "items": {},
+    "items": {
+      "testharness": {
+        "cssom-view/scrolling-no-browsing-context.html": [
+          {
+            "path": "cssom-view/scrolling-no-browsing-context.html",
+            "url": "/cssom-view/scrolling-no-browsing-context.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {
