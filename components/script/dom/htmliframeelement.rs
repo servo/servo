@@ -468,12 +468,12 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
     fn GoBack(&self) -> ErrorResult {
-        Navigate(self, NavigationDirection::Back)
+        Navigate(self, NavigationDirection::Back(1))
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goForward
     fn GoForward(&self) -> ErrorResult {
-        Navigate(self, NavigationDirection::Forward)
+        Navigate(self, NavigationDirection::Forward(1))
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/reload
