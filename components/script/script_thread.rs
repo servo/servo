@@ -1129,7 +1129,6 @@ impl ScriptThread {
             panic_chan,
             pipeline_port,
             layout_to_constellation_chan,
-            layout_shutdown_chan,
             content_process_shutdown_chan,
         } = new_layout_info;
 
@@ -1147,7 +1146,6 @@ impl ScriptThread {
             paint_chan: paint_chan,
             script_chan: self.control_chan.clone(),
             image_cache_thread: self.image_cache_thread.clone(),
-            layout_shutdown_chan: layout_shutdown_chan,
             content_process_shutdown_chan: content_process_shutdown_chan,
         };
 

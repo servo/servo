@@ -104,8 +104,6 @@ pub struct NewLayoutInfo {
     pub panic_chan: IpcSender<PanicMsg>,
     /// A sender for the layout thread to communicate to the constellation.
     pub layout_to_constellation_chan: IpcSender<LayoutMsg>,
-    /// A shutdown channel so that layout can notify others when it's done.
-    pub layout_shutdown_chan: IpcSender<()>,
     /// A shutdown channel so that layout can tell the content process to shut down when it's done.
     pub content_process_shutdown_chan: IpcSender<()>,
 }
