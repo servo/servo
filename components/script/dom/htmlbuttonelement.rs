@@ -266,14 +266,14 @@ impl Activatable for HTMLButtonElement {
             ButtonType::Submit => {
                 // TODO: is document owner fully active?
                 if let Some(owner) = self.form_owner() {
-                    owner.submit(SubmittedFrom::NotFromFormSubmitMethod,
+                    owner.submit(SubmittedFrom::NotFromForm,
                                  FormSubmitter::ButtonElement(self.clone()));
                 }
             }
             ButtonType::Reset => {
                 // TODO: is document owner fully active?
                 if let Some(owner) = self.form_owner() {
-                    owner.reset(ResetFrom::NotFromFormResetMethod);
+                    owner.reset(ResetFrom::NotFromForm);
                 }
             }
             _ => (),

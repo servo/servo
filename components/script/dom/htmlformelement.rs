@@ -155,12 +155,12 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#the-form-element:concept-form-submit
     fn Submit(&self) {
-        self.submit(SubmittedFrom::FromFormSubmitMethod, FormSubmitter::FormElement(self));
+        self.submit(SubmittedFrom::FromForm, FormSubmitter::FormElement(self));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-reset
     fn Reset(&self) {
-        self.reset(ResetFrom::FromFormResetMethod);
+        self.reset(ResetFrom::FromForm);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-form-elements
@@ -233,14 +233,14 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
 #[derive(Copy, Clone, HeapSizeOf, PartialEq)]
 pub enum SubmittedFrom {
-    FromFormSubmitMethod,
-    NotFromFormSubmitMethod
+    FromForm,
+    NotFromForm
 }
 
 #[derive(Copy, Clone, HeapSizeOf)]
 pub enum ResetFrom {
-    FromFormResetMethod,
-    NotFromFormResetMethod
+    FromForm,
+    NotFromForm
 }
 
 
@@ -368,7 +368,7 @@ impl HTMLFormElement {
         let base = doc.url();
         // TODO: Handle browsing contexts
         // Step 4
-        if submit_method_flag == SubmittedFrom::NotFromFormSubmitMethod &&
+        if submit_method_flag == SubmittedFrom::NotFromForm &&
            !submitter.no_validate(self)
         {
             if self.interactive_validation().is_err() {
@@ -378,7 +378,7 @@ impl HTMLFormElement {
             }
         }
         // Step 5
-        if submit_method_flag == SubmittedFrom::NotFromFormSubmitMethod {
+        if submit_method_flag == SubmittedFrom::NotFromForm {
             let event = self.upcast::<EventTarget>()
                 .fire_event("submit",
                             EventBubbles::Bubbles,
