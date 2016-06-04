@@ -55,8 +55,6 @@ pub struct Pipeline {
     /// A channel to the compositor.
     pub compositor_proxy: Box<CompositorProxy + 'static + Send>,
     pub chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
-    pub layout_shutdown_port: IpcReceiver<()>,
-    pub paint_shutdown_port: IpcReceiver<()>,
     /// URL corresponding to the most recently-loaded page.
     pub url: Url,
     /// The title of the most recently-loaded page.
@@ -130,10 +128,6 @@ impl Pipeline {
         // probably requires a general low-memory strategy.
         let (layout_to_paint_chan, layout_to_paint_port) = util::ipc::optional_ipc_channel();
         let (chrome_to_paint_chan, chrome_to_paint_port) = channel();
-        let (paint_shutdown_chan, paint_shutdown_port) = ipc::channel()
-            .expect("Pipeline paint shutdown chan");
-        let (layout_shutdown_chan, layout_shutdown_port) = ipc::channel()
-            .expect("Pipeline layout shutdown chan");
         let (pipeline_chan, pipeline_port) = ipc::channel()
             .expect("Pipeline main chan");;
 
@@ -153,7 +147,6 @@ impl Pipeline {
                     panic_chan: state.panic_chan.clone(),
                     pipeline_port: pipeline_port,
                     layout_to_constellation_chan: state.layout_to_constellation_chan.clone(),
-                    layout_shutdown_chan: layout_shutdown_chan.clone(),
                     content_process_shutdown_chan: layout_content_process_shutdown_chan.clone(),
                 };
 
@@ -177,8 +170,7 @@ impl Pipeline {
                             state.panic_chan.clone(),
                             state.font_cache_thread.clone(),
                             state.time_profiler_chan.clone(),
-                            state.mem_profiler_chan.clone(),
-                            paint_shutdown_chan);
+                            state.mem_profiler_chan.clone());
 
         let mut child_process = None;
         if let Some((script_port, pipeline_port)) = content_ports {
@@ -232,7 +224,6 @@ impl Pipeline {
                 prefs: prefs::get_cloned(),
                 layout_to_paint_chan: layout_to_paint_chan,
                 pipeline_port: pipeline_port,
-                layout_shutdown_chan: layout_shutdown_chan,
                 pipeline_namespace_id: state.pipeline_namespace_id,
                 layout_content_process_shutdown_chan: layout_content_process_shutdown_chan,
                 layout_content_process_shutdown_port: layout_content_process_shutdown_port,
@@ -257,8 +248,6 @@ impl Pipeline {
                                      pipeline_chan,
                                      state.compositor_proxy,
                                      chrome_to_paint_chan,
-                                     layout_shutdown_port,
-                                     paint_shutdown_port,
                                      state.load_data.url,
                                      state.window_size);
 
@@ -271,8 +260,6 @@ impl Pipeline {
            layout_chan: IpcSender<LayoutControlMsg>,
            compositor_proxy: Box<CompositorProxy + 'static + Send>,
            chrome_to_paint_chan: Sender<ChromeToPaintMsg>,
-           layout_shutdown_port: IpcReceiver<()>,
-           paint_shutdown_port: IpcReceiver<()>,
            url: Url,
            size: Option<TypedSize2D<PagePx, f32>>)
            -> Pipeline {
@@ -283,8 +270,6 @@ impl Pipeline {
             layout_chan: layout_chan,
             compositor_proxy: compositor_proxy,
             chrome_to_paint_chan: chrome_to_paint_chan,
-            layout_shutdown_port: layout_shutdown_port,
-            paint_shutdown_port: paint_shutdown_port,
             url: url,
             title: None,
             children: vec!(),
@@ -407,7 +392,6 @@ pub struct UnprivilegedPipelineContent {
     prefs: HashMap<String, Pref>,
     pipeline_port: IpcReceiver<LayoutControlMsg>,
     pipeline_namespace_id: PipelineNamespaceId,
-    layout_shutdown_chan: IpcSender<()>,
     layout_content_process_shutdown_chan: IpcSender<()>,
     layout_content_process_shutdown_port: IpcReceiver<()>,
     script_content_process_shutdown_chan: IpcSender<()>,
@@ -452,7 +436,6 @@ impl UnprivilegedPipelineContent {
                     self.font_cache_thread,
                     self.time_profiler_chan,
                     self.mem_profiler_chan,
-                    self.layout_shutdown_chan,
                     self.layout_content_process_shutdown_chan,
                     self.webrender_api_sender);
 

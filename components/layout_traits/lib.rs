@@ -48,7 +48,6 @@ pub trait LayoutThreadFactory {
               font_cache_thread: FontCacheThread,
               time_profiler_chan: time::ProfilerChan,
               mem_profiler_chan: mem::ProfilerChan,
-              shutdown_chan: IpcSender<()>,
               content_process_shutdown_chan: IpcSender<()>,
               webrender_api_sender: Option<webrender_traits::RenderApiSender>);
 }
