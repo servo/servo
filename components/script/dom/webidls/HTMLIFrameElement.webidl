@@ -7,7 +7,6 @@ interface HTMLIFrameElement : HTMLElement {
            attribute DOMString src;
   //         attribute DOMString srcdoc;
   //         attribute DOMString name;
-  //[PutForwards=value] readonly attribute DOMSettableTokenList sandbox;
            attribute DOMString sandbox;
   //         attribute boolean seamless;
   //         attribute boolean allowFullscreen;
