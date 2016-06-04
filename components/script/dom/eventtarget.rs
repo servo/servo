@@ -14,6 +14,8 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNo
 use dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use dom::bindings::codegen::UnionTypes::AddEventListenerOptionsOrBoolean;
+use dom::bindings::codegen::UnionTypes::EventListenerOptionsOrBoolean;
 use dom::bindings::codegen::UnionTypes::EventOrString;
 use dom::bindings::error::{Error, Fallible, report_pending_exception};
 use dom::bindings::inheritance::Castable;
@@ -225,7 +227,7 @@ impl CompiledEventListener {
 /// A listener in a collection of event listeners.
 struct EventListenerEntry {
     phase: ListenerPhase,
-    listener: EventListenerType
+    listener: EventListenerType,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -550,11 +552,16 @@ impl EventTargetMethods for EventTarget {
     fn AddEventListener(&self,
                         ty: DOMString,
                         listener: Option<Rc<EventListener>>,
-                        capture: bool) {
+                        options: AddEventListenerOptionsOrBoolean) {
         let listener = match listener {
             Some(l) => l,
             None => return,
         };
+        let capture = match options {
+            AddEventListenerOptionsOrBoolean::AddEventListenerOptions(options) => options.parent.capture,
+            AddEventListenerOptionsOrBoolean::Boolean(capture) => capture,
+        };
+
         let mut handlers = self.handlers.borrow_mut();
         let entry = match handlers.entry(Atom::from(ty)) {
             Occupied(entry) => entry.into_mut(),
@@ -564,7 +571,7 @@ impl EventTargetMethods for EventTarget {
         let phase = if capture { ListenerPhase::Capturing } else { ListenerPhase::Bubbling };
         let new_entry = EventListenerEntry {
             phase: phase,
-            listener: EventListenerType::Additive(listener)
+            listener: EventListenerType::Additive(listener),
         };
         if !entry.contains(&new_entry) {
             entry.push(new_entry);
@@ -575,10 +582,14 @@ impl EventTargetMethods for EventTarget {
     fn RemoveEventListener(&self,
                            ty: DOMString,
                            listener: Option<Rc<EventListener>>,
-                           capture: bool) {
-        let ref listener = match listener {
+                           options: EventListenerOptionsOrBoolean) {
+        let listener = match listener {
             Some(l) => l,
             None => return,
+        };
+        let capture = match options {
+            EventListenerOptionsOrBoolean::EventListenerOptions(capture) => capture.capture,
+            EventListenerOptionsOrBoolean::Boolean(o) => o,
         };
         let mut handlers = self.handlers.borrow_mut();
         let entry = handlers.get_mut(&Atom::from(ty));
@@ -586,7 +597,7 @@ impl EventTargetMethods for EventTarget {
             let phase = if capture { ListenerPhase::Capturing } else { ListenerPhase::Bubbling };
             let old_entry = EventListenerEntry {
                 phase: phase,
-                listener: EventListenerType::Additive(listener.clone())
+                listener: EventListenerType::Additive(listener.clone()),
             };
             if let Some(position) = entry.iter().position(|e| *e == old_entry) {
                 entry.remove(position);
