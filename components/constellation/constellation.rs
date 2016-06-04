@@ -1278,33 +1278,49 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // Get the ids for the previous and next pipelines.
         let (prev_pipeline_id, next_pipeline_id) = match self.frames.get_mut(&frame_id) {
             Some(frame) => {
+                let prev = frame.current;
                 let next = match direction {
-                    NavigationDirection::Forward => {
-                        match frame.next.pop() {
-                            None => {
-                                warn!("no next page to navigate to");
-                                return;
-                            },
-                            Some(next) => {
-                                frame.prev.push(frame.current);
-                                next
-                            },
+                    NavigationDirection::Forward(delta) => {
+                        if frame.next.len() < delta {
+                            return warn!("Invalid navigation delta");
                         }
+                        let mut new_current = frame.current;
+                        for _ in 0..delta {
+                            match frame.next.pop() {
+                                None => {
+                                    warn!("no next page to navigate to");
+                                    return;
+                                },
+                                Some(next) => {
+                                    frame.prev.push(frame.current);
+                                    frame.current = next;
+                                    new_current = next;
+                                },
+                            }
+                        }
+                        new_current
                     }
-                    NavigationDirection::Back => {
-                        match frame.prev.pop() {
-                            None => {
-                                warn!("no previous page to navigate to");
-                                return;
-                            },
-                            Some(prev) => {
-                                frame.next.push(frame.current);
-                                prev
-                            },
+                    NavigationDirection::Back(delta) => {
+                        if frame.prev.len() < delta {
+                            return warn!("Invalid navigation delta");
                         }
+                        let mut new_current = frame.current;
+                        for _ in 0..delta {
+                            match frame.prev.pop() {
+                                None => {
+                                    warn!("no prev page to navigate to");
+                                    return;
+                                },
+                                Some(prev) => {
+                                    frame.next.push(frame.current);
+                                    frame.current = prev;
+                                    new_current = prev;
+                                },
+                            }
+                        }
+                        new_current
                     }
                 };
-                let prev = frame.current;
                 frame.current = next;
                 (prev, next)
             },
