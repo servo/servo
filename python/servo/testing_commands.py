@@ -337,28 +337,32 @@ class MachCommands(CommandBase):
              parser=create_parser_wpt)
     def test_wpt(self, **kwargs):
         self.ensure_bootstrapped()
-        test_list = kwargs["test_list"]
-        if not test_list:
-            return self._test_wpt(**kwargs)
-        else:
-            # Paths specified on command line. Ensure they are WPT, re-dispatch otherwise.
-            all_wpt = True
-            for test_path in test_list:
-                suite = self.suite_for_path(test_path)
-                if "wpt" != suite:
-                    all_wpt = False
-                    print("Warning: %s is not a WPT test. Delegating to test-%s." % (test_path, suite))
-            if all_wpt:
-                return self._test_wpt(**kwargs)
-            else:
-                # Dispatch each test to the correct suite
-                Registrar.dispatch("test", context=self.context, params=test_list)
+        return self.run_test_list_or_dispatch("wpt", self._test_wpt, **kwargs)
 
     def _test_wpt(self, **kwargs):
         hosts_file_path = path.join(self.context.topdir, 'tests', 'wpt', 'hosts')
         os.environ["hosts_file_path"] = hosts_file_path
         run_file = path.abspath(path.join(self.context.topdir, "tests", "wpt", "run_wpt.py"))
         return self.wptrunner(run_file, **kwargs)
+
+    # Helper to ensure all specified paths are handled, otherwise dispatch to appropriate test suite.
+    def run_test_list_or_dispatch(self, correct_suite, correct_function, **kwargs):
+        test_list = kwargs["test_list"]
+        if not test_list:
+            return correct_function(**kwargs)
+        else:
+            # Paths specified on command line. Ensure they can be handled, re-dispatch otherwise.
+            all_handled = True
+            for test_path in test_list:
+                suite = self.suite_for_path(test_path)
+                if correct_suite != suite:
+                    all_handled = False
+                    print("Warning: %s is not a %s test. Delegating to test-%s." % (test_path, correct_suite, suite))
+            if all_handled:
+                return correct_function(**kwargs)
+            else:
+                # Dispatch each test to the correct suite via test()
+                Registrar.dispatch("test", context=self.context, params=test_list)
 
     # Helper for test_css and test_wpt:
     def wptrunner(self, run_file, **kwargs):
@@ -437,6 +441,9 @@ class MachCommands(CommandBase):
              parser=create_parser_wpt)
     def test_css(self, **kwargs):
         self.ensure_bootstrapped()
+        return self.run_test_list_or_dispatch("css", self._test_css, **kwargs)
+
+    def _test_css(self, **kwargs):
         run_file = path.abspath(path.join("tests", "wpt", "run_css.py"))
         return self.wptrunner(run_file, **kwargs)
 
