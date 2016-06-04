@@ -9,10 +9,19 @@
 interface EventTarget {
   void addEventListener(DOMString type,
                         EventListener? listener,
-                        optional boolean capture = false);
+                        optional (AddEventListenerOptions or boolean) options);
   void removeEventListener(DOMString type,
                            EventListener? listener,
-                           optional boolean capture = false);
+                           optional (EventListenerOptions or boolean) options);
   [Throws]
   boolean dispatchEvent(Event event);
+};
+
+dictionary EventListenerOptions {
+  boolean capture = false;
+};
+
+dictionary AddEventListenerOptions : EventListenerOptions {
+  boolean passive = false;
+  boolean once = false;
 };
