@@ -42,9 +42,9 @@ use dom::bindings::utils::WindowProxyHandler;
 use dom::worker::SharedRt;
 use encoding::types::EncodingRef;
 use euclid::length::Length as EuclidLength;
-use euclid::{Matrix2D, Matrix4D};
 use euclid::rect::Rect;
 use euclid::size::Size2D;
+use euclid::{Matrix2D, Matrix4D};
 use html5ever::tree_builder::QuirksMode;
 use hyper::header::Headers;
 use hyper::method::Method;
@@ -303,7 +303,8 @@ no_jsmanaged_fields!(RGBA);
 no_jsmanaged_fields!(EuclidLength<Unit, T>);
 no_jsmanaged_fields!(Matrix2D<T>);
 no_jsmanaged_fields!(Matrix4D<T>);
-type RefCellMatrix4D<T> = RefCell<Matrix4D<T>>; // workaround that no_jsmanaged_fields! supports only one level of generics
+// workaround that no_jsmanaged_fields! supports only one level of generics
+type RefCellMatrix4D<T> = RefCell<Matrix4D<T>>;
 no_jsmanaged_fields!(RefCellMatrix4D<T>);
 no_jsmanaged_fields!(StorageType);
 no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyle);

@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 use dom::bindings::codegen::Bindings::DOMMatrixBinding::{DOMMatrixInit, DOMMatrixMethods};
 use dom::bindings::codegen::Bindings::DOMMatrixReadOnlyBinding::{DOMMatrixReadOnlyMethods, Wrap};
 use dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
@@ -21,7 +25,6 @@ pub struct DOMMatrixReadOnly {
 }
 
 impl DOMMatrixReadOnly {
-
     pub fn new_from_vec(entries: Vec<f64>) -> Fallible<DOMMatrixReadOnly> {
         if entries.len() == 6 {
             Ok(DOMMatrixReadOnly::new_from_matrix4D(
@@ -83,122 +86,144 @@ impl DOMMatrixReadOnly {
 
 
 impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
-
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m11
     fn M11(&self) -> f64 {
         self.matrix.borrow().m11 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m12
     fn M12(&self) -> f64 {
         self.matrix.borrow().m12 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m13
     fn M13(&self) -> f64 {
         self.matrix.borrow().m13 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m14
     fn M14(&self) -> f64 {
         self.matrix.borrow().m14 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m21
     fn M21(&self) -> f64 {
         self.matrix.borrow().m21 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m22
     fn M22(&self) -> f64 {
         self.matrix.borrow().m22 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m23
     fn M23(&self) -> f64 {
         self.matrix.borrow().m23 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m24
     fn M24(&self) -> f64 {
         self.matrix.borrow().m24 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m31
     fn M31(&self) -> f64 {
         self.matrix.borrow().m31 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m32
     fn M32(&self) -> f64 {
         self.matrix.borrow().m32 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m33
     fn M33(&self) -> f64 {
         self.matrix.borrow().m33 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m34
     fn M34(&self) -> f64 {
         self.matrix.borrow().m34 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m41
     fn M41(&self) -> f64 {
         self.matrix.borrow().m41 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m42
     fn M42(&self) -> f64 {
         self.matrix.borrow().m42 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m43
     fn M43(&self) -> f64 {
         self.matrix.borrow().m43 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-m44
     fn M44(&self) -> f64 {
         self.matrix.borrow().m44 as f64
     }
-    // Aliases
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-a
     fn A(&self) -> f64 {
         self.matrix.borrow().m11 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-b
     fn B(&self) -> f64 {
         self.matrix.borrow().m12 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-c
     fn C(&self) -> f64 {
         self.matrix.borrow().m21 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-d
     fn D(&self) -> f64 {
         self.matrix.borrow().m22 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-e
     fn E(&self) -> f64 {
         self.matrix.borrow().m41 as f64
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-f
     fn F(&self) -> f64 {
         self.matrix.borrow().m42 as f64
     }
-    //
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-is2d
     fn Is2D(&self) -> bool {
         self.is2D.get()
     }
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-isidentity
     fn IsIdentity(&self) -> bool {
         let matrix = self.matrix.borrow();
-        matrix.m12 == 0.0 && matrix.m13 == 0.0 && matrix.m14 == 0.0 && matrix.m21 == 0.0
-            && matrix.m23 == 0.0 && matrix.m24 == 0.0 && matrix.m31 == 0.0 && matrix.m32 == 0.0
-            && matrix.m34 == 0.0 && matrix.m41 == 0.0 && matrix.m42 == 0.0 && matrix.m43 == 0.0
-            && matrix.m11 == 1.0 && matrix.m22 == 1.0 && matrix.m33 == 1.0 && matrix.m44 == 1.0
+        matrix.m12 == 0.0 && matrix.m13 == 0.0 && matrix.m14 == 0.0 && matrix.m21 == 0.0 &&
+            matrix.m23 == 0.0 && matrix.m24 == 0.0 && matrix.m31 == 0.0 && matrix.m32 == 0.0 &&
+            matrix.m34 == 0.0 && matrix.m41 == 0.0 && matrix.m42 == 0.0 && matrix.m43 == 0.0 &&
+            matrix.m11 == 1.0 && matrix.m22 == 1.0 && matrix.m33 == 1.0 && matrix.m44 == 1.0
     }
-
-    fn Translate(&self, tx:f64, ty:f64, tz:f64) -> Root<DOMMatrix> {
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-translate
+    fn Translate(&self, tx: f64, ty: f64, tz: f64) -> Root<DOMMatrix> {
         self.to_DOMMatrix().TranslateSelf(tx, ty, tz)
     }
-
-    fn Scale(&self, scaleX:f64, scaleY:Option<f64>, scaleZ:f64, originX: f64, originY: f64, originZ: f64) -> Root<DOMMatrix> {
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-scale
+    fn Scale(&self, scaleX: f64, scaleY: Option<f64>, scaleZ: f64,
+                    originX: f64, originY: f64, originZ: f64) -> Root<DOMMatrix> {
         self.to_DOMMatrix().ScaleSelf(scaleX, scaleY, scaleZ, originX, originY, originZ)
     }
-
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-scale3d
     fn Scale3d(&self, scale: f64, originX: f64, originY: f64, originZ: f64) -> Root<DOMMatrix> {
         self.to_DOMMatrix().Scale3dSelf(scale, originX, originY, originZ)
     }
-
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-rotate
     fn Rotate(&self, rotX: f64, rotY: Option<f64>, rotZ: Option<f64>) -> Root<DOMMatrix> {
         self.to_DOMMatrix().RotateSelf(rotX, rotY, rotZ)
     }
-
-    fn RotateFromVector(&self, x: f64, y:f64) -> Root<DOMMatrix> {
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-rotatefromvector
+    fn RotateFromVector(&self, x: f64, y: f64) -> Root<DOMMatrix> {
         self.to_DOMMatrix().RotateFromVectorSelf(x, y)
     }
-
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-rotateaxisangle
     fn RotateAxisAngle(&self, x: f64, y: f64, z: f64, angle: f64) -> Root<DOMMatrix> {
         self.to_DOMMatrix().RotateAxisAngleSelf(x, y, z, angle)
     }
-
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-skewx
     fn SkewX(&self, sx: f64) -> Root<DOMMatrix> {
         self.to_DOMMatrix().SkewXSelf(sx)
     }
-
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-skewy
     fn SkewY(&self, sy: f64) -> Root<DOMMatrix> {
         self.to_DOMMatrix().SkewYSelf(sy)
     }
-
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-multiply
     fn Multiply(&self, other: &DOMMatrixInit) -> Root<DOMMatrix> {
         self.to_DOMMatrix().MultiplySelf(&other)
     }
-
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-flipx
     fn FlipX(&self) -> Root<DOMMatrix> {
         let is2D = self.is2D.get();
         let flip = Matrix4D::new(-1.0, 0.0, 0.0, 0.0,
@@ -208,7 +233,7 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
         let matrix = self.matrix.borrow().mul(&flip);
         DOMMatrix::new_from_matrix4D_rooted(self.global().r(), is2D, matrix)
     }
-
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-flipy
     fn FlipY(&self) -> Root<DOMMatrix> {
         let is2D = self.is2D.get();
         let flip = Matrix4D::new(1.0,  0.0, 0.0, 0.0,
@@ -218,11 +243,11 @@ impl DOMMatrixReadOnlyMethods for DOMMatrixReadOnly {
         let matrix = self.matrix.borrow().mul(&flip);
         DOMMatrix::new_from_matrix4D_rooted(self.global().r(), is2D, matrix)
     }
-
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-inverse
     fn Inverse(&self) -> Root<DOMMatrix> {
         self.to_DOMMatrix().InvertSelf()
     }
-
+    // https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-transformpoint
     fn TransformPoint(&self, point: &DOMPointInit) -> Root<DOMPoint> {
         let matrix = self.matrix.borrow();
         let result = matrix.transform_point4d(&Point4D::new(point.x, point.y, point.z, point.w));
@@ -257,70 +282,70 @@ pub trait DOMMatrixWriteMethods {
 }
 
 impl DOMMatrixWriteMethods for DOMMatrixReadOnly {
-    fn SetM11(&self, value: f64){
+    fn SetM11(&self, value: f64) {
         self.matrix.borrow_mut().m11 = value;
     }
-    fn SetM12(&self, value: f64){
+    fn SetM12(&self, value: f64) {
         self.matrix.borrow_mut().m12 = value;
     }
-    fn SetM13(&self, value: f64){
+    fn SetM13(&self, value: f64) {
         self.matrix.borrow_mut().m13 = value;
     }
-    fn SetM14(&self, value: f64){
+    fn SetM14(&self, value: f64) {
         self.matrix.borrow_mut().m14 = value;
     }
-    fn SetM21(&self, value: f64){
+    fn SetM21(&self, value: f64) {
         self.matrix.borrow_mut().m21 = value;
     }
-    fn SetM22(&self, value: f64){
+    fn SetM22(&self, value: f64) {
         self.matrix.borrow_mut().m22 = value;
     }
-    fn SetM23(&self, value: f64){
+    fn SetM23(&self, value: f64) {
         self.matrix.borrow_mut().m23 = value;
     }
-    fn SetM24(&self, value: f64){
+    fn SetM24(&self, value: f64) {
         self.matrix.borrow_mut().m24 = value;
     }
-    fn SetM31(&self, value: f64){
+    fn SetM31(&self, value: f64) {
         self.matrix.borrow_mut().m31 = value;
     }
-    fn SetM32(&self, value: f64){
+    fn SetM32(&self, value: f64) {
         self.matrix.borrow_mut().m32 = value;
     }
-    fn SetM33(&self, value: f64){
+    fn SetM33(&self, value: f64) {
         self.matrix.borrow_mut().m33 = value;
     }
-    fn SetM34(&self, value: f64){
+    fn SetM34(&self, value: f64) {
         self.matrix.borrow_mut().m34 = value;
     }
-    fn SetM41(&self, value: f64){
+    fn SetM41(&self, value: f64) {
         self.matrix.borrow_mut().m41 = value;
     }
-    fn SetM42(&self, value: f64){
+    fn SetM42(&self, value: f64) {
         self.matrix.borrow_mut().m42 = value;
     }
-    fn SetM43(&self, value: f64){
+    fn SetM43(&self, value: f64) {
         self.matrix.borrow_mut().m43 = value;
     }
-    fn SetM44(&self, value: f64){
+    fn SetM44(&self, value: f64) {
         self.matrix.borrow_mut().m44 = value;
     }
-    fn SetA(&self, value: f64){
+    fn SetA(&self, value: f64) {
         self.matrix.borrow_mut().m11 = value;
     }
-    fn SetB(&self, value: f64){
+    fn SetB(&self, value: f64) {
         self.matrix.borrow_mut().m12 = value;
     }
-    fn SetC(&self, value: f64){
+    fn SetC(&self, value: f64) {
         self.matrix.borrow_mut().m21 = value;
     }
-    fn SetD(&self, value: f64){
+    fn SetD(&self, value: f64) {
         self.matrix.borrow_mut().m22 = value;
     }
-    fn SetE(&self, value: f64){
+    fn SetE(&self, value: f64) {
         self.matrix.borrow_mut().m41 = value;
     }
-    fn SetF(&self, value: f64){
+    fn SetF(&self, value: f64) {
         self.matrix.borrow_mut().m42 = value;
     }
 }
