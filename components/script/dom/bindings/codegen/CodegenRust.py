@@ -2494,12 +2494,13 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 
     properties should be a PropertyArrays instance.
     """
-    def __init__(self, descriptor, properties):
+    def __init__(self, descriptor, properties, haveUnscopables):
         args = [Argument('*mut JSContext', 'cx'), Argument('HandleObject', 'global'),
                 Argument('*mut ProtoOrIfaceArray', 'cache')]
         CGAbstractMethod.__init__(self, descriptor, 'CreateInterfaceObjects', 'void', args,
                                   unsafe=True)
         self.properties = properties
+        self.haveUnscopables = haveUnscopables
 
     def definition_body(self):
         name = self.descriptor.interface.identifier.name
@@ -2530,7 +2531,10 @@ let mut prototype_proto = RootedObject::new(cx, ptr::null_mut());
 %s;
 assert!(!prototype_proto.ptr.is_null());""" % getPrototypeProto)]
 
-        properties = {"id": name}
+        properties = {
+            "id": name,
+            "unscopables": "unscopable_names" if self.haveUnscopables else "&[]"
+        }
         for arrayName in self.properties.arrayNames():
             array = getattr(self.properties, arrayName)
             if array.length():
@@ -2546,6 +2550,7 @@ create_interface_prototype_object(cx,
                                   %(methods)s,
                                   %(attrs)s,
                                   %(consts)s,
+                                  %(unscopables)s,
                                   prototype.handle_mut());
 assert!(!prototype.ptr.is_null());
 assert!((*cache)[PrototypeList::ID::%(id)s as usize].is_null());
@@ -5058,9 +5063,13 @@ class CGDescriptor(CGThing):
                 descriptor.shouldHaveGetConstructorObjectMethod()):
             cgThings.append(CGGetConstructorObjectMethod(descriptor))
 
+        unscopableNames = []
         for m in descriptor.interface.members:
             if (m.isMethod() and
                     (not m.isIdentifierLess() or m == descriptor.operations["Stringifier"])):
+                if m.getExtendedAttribute("Unscopable"):
+                    assert not m.isStatic()
+                    unscopableNames.append(m.identifier.name)
                 if m.isStatic():
                     assert descriptor.interface.hasInterfaceObject()
                     cgThings.append(CGStaticMethod(descriptor, m))
@@ -5072,7 +5081,9 @@ class CGDescriptor(CGThing):
                     raise TypeError("Stringifier attributes not supported yet. "
                                     "See https://github.com/servo/servo/issues/7590\n"
                                     "%s" % m.location)
-
+                if m.getExtendedAttribute("Unscopable"):
+                    assert not m.isStatic()
+                    unscopableNames.append(m.identifier.name)
                 if m.isStatic():
                     assert descriptor.interface.hasInterfaceObject()
                     cgThings.append(CGStaticGetter(descriptor, m))
@@ -5106,9 +5117,18 @@ class CGDescriptor(CGThing):
         if not descriptor.interface.isCallback():
             cgThings.append(CGPrototypeJSClass(descriptor))
 
+        haveUnscopables = (len(unscopableNames) != 0 and
+                           descriptor.interface.hasInterfacePrototypeObject())
+        if haveUnscopables:
+            cgThings.append(
+                CGList([CGGeneric("const unscopable_names: &'static [&'static [u8]] = &["),
+                        CGIndenter(CGList([CGGeneric(str_to_const_array(name)) for
+                                           name in unscopableNames], ",\n")),
+                        CGGeneric("];\n")], "\n"))
+
         properties = PropertyArrays(descriptor)
         cgThings.append(CGGeneric(str(properties)))
-        cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties))
+        cgThings.append(CGCreateInterfaceObjectsMethod(descriptor, properties, haveUnscopables))
 
         # If there are no constant members, don't make a module for constants
         constMembers = [m for m in descriptor.interface.members if m.isConst()]

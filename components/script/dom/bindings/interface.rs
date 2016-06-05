@@ -9,16 +9,18 @@ use dom::bindings::conversions::get_dom_class;
 use dom::bindings::guard::Guard;
 use dom::bindings::utils::get_proto_or_iface_array;
 use js::error::throw_type_error;
-use js::glue::UncheckedUnwrapObject;
+use js::glue::{RUST_SYMBOL_TO_JSID, UncheckedUnwrapObject};
 use js::jsapi::{Class, ClassExtension, ClassSpec, GetGlobalForObjectCrossCompartment};
-use js::jsapi::{HandleObject, HandleValue, JSClass, JSContext, JSFunctionSpec};
-use js::jsapi::{JSNative, JSFUN_CONSTRUCTOR, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY};
-use js::jsapi::{JSPROP_RESOLVING, JSPropertySpec, JSString, JS_AtomizeAndPinString};
-use js::jsapi::{JS_DefineProperty, JS_DefineProperty1, JS_DefineProperty2, JS_DefineProperty4};
+use js::jsapi::{GetWellKnownSymbol, HandleObject, HandleValue, JSClass, JSContext};
+use js::jsapi::{JSFunctionSpec, JSNative, JSFUN_CONSTRUCTOR, JSPROP_ENUMERATE};
+use js::jsapi::{JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING, JSPropertySpec};
+use js::jsapi::{JSString, JS_AtomizeAndPinString, JS_DefineProperty, JS_DefineProperty1};
+use js::jsapi::{JS_DefineProperty2, JS_DefineProperty4, JS_DefinePropertyById3};
 use js::jsapi::{JS_GetClass, JS_GetFunctionObject, JS_GetPrototype, JS_LinkConstructorAndPrototype};
-use js::jsapi::{JS_NewFunction, JS_NewObject, JS_NewObjectWithUniqueType, JS_NewStringCopyN};
-use js::jsapi::{MutableHandleObject, MutableHandleValue, ObjectOps, RootedObject, RootedString};
-use js::jsapi::{RootedValue, Value};
+use js::jsapi::{JS_NewFunction, JS_NewObject, JS_NewObjectWithUniqueType};
+use js::jsapi::{JS_NewPlainObject, JS_NewStringCopyN, MutableHandleObject};
+use js::jsapi::{MutableHandleValue, ObjectOps, RootedId, RootedObject};
+use js::jsapi::{RootedString, RootedValue, SymbolCode, TrueHandleValue, Value};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
 use js::rust::{define_methods, define_properties};
 use libc;
@@ -236,8 +238,19 @@ pub unsafe fn create_interface_prototype_object(
         regular_methods: &[Guard<&'static [JSFunctionSpec]>],
         regular_properties: &[Guard<&'static [JSPropertySpec]>],
         constants: &[Guard<&[ConstantSpec]>],
+        unscopable_names: &[&[u8]],
         rval: MutableHandleObject) {
     create_object(cx, proto, class, regular_methods, regular_properties, constants, rval);
+    if !unscopable_names.is_empty() {
+        let mut unscopable_obj = RootedObject::new(cx, ptr::null_mut());
+        create_unscopable_object(cx, unscopable_names, unscopable_obj.handle_mut());
+        let unscopable_symbol = GetWellKnownSymbol(cx, SymbolCode::unscopables);
+        assert!(!unscopable_symbol.is_null());
+        let unscopable_id = RootedId::new(cx, RUST_SYMBOL_TO_JSID(unscopable_symbol));
+        assert!(JS_DefinePropertyById3(
+            cx, rval.handle(), unscopable_id.handle(), unscopable_obj.handle(),
+            JSPROP_READONLY, None, None))
+    }
 }
 
 /// Create and define the interface object of a non-callback interface.
@@ -372,6 +385,22 @@ unsafe fn create_object(
         if let Some(specs) = guard.expose(cx, rval.handle()) {
             define_constants(cx, rval.handle(), specs);
         }
+    }
+}
+
+unsafe fn create_unscopable_object(
+        cx: *mut JSContext,
+        names: &[&[u8]],
+        rval: MutableHandleObject) {
+    assert!(!names.is_empty());
+    assert!(rval.is_null());
+    rval.set(JS_NewPlainObject(cx));
+    assert!(!rval.ptr.is_null());
+    for &name in names {
+        assert!(*name.last().unwrap() == b'\0');
+        assert!(JS_DefineProperty(
+            cx, rval.handle(), name.as_ptr() as *const libc::c_char, TrueHandleValue,
+            JSPROP_READONLY, None, None));
     }
 }
 
