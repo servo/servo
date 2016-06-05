@@ -645,11 +645,13 @@ def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
         args = ["git", "ls-files", "--others", "--exclude-standard", directory]
         file_list += subprocess.check_output(args)
         for f in file_list.splitlines():
-            yield os.path.join('.', f)
+            if os.path.join('.', os.path.dirname(f)) not in ignored_dirs:
+                yield os.path.join('.', f)
+
     elif exclude_dirs:
         for root, dirs, files in os.walk(directory, topdown=True):
             # modify 'dirs' in-place so that we don't do unwanted traversals in excluded directories
-            dirs[:] = [d for d in dirs if not any(os.path.join(root, d).startswith(name) for name in ignored_dirs)]
+            dirs[:] = [d for d in dirs if not any(os.path.join(root, d).startswith(name) for name in exclude_dirs)]
             for rel_path in files:
                 yield os.path.join(root, rel_path)
     else:
