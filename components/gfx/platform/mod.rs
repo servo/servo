@@ -9,7 +9,7 @@ pub use platform::freetype::{font, font_context, font_list, font_template};
 pub use platform::macos::{font, font_context, font_list, font_template};
 
 #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))]
-pub mod freetype {
+mod freetype {
     use libc::c_char;
     use std::ffi::CStr;
     use std::str;
@@ -27,7 +27,7 @@ pub mod freetype {
 }
 
 #[cfg(target_os = "macos")]
-pub mod macos {
+mod macos {
     pub mod font;
     pub mod font_context;
     pub mod font_list;
