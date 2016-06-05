@@ -43,6 +43,8 @@ def host_triple():
         os_type = "linux-androideabi"
     elif os_type == "windows" or os_type.startswith("mingw64_nt-") or os_type.startswith("cygwin_nt-"):
         os_type = "pc-windows-gnu"
+    elif os_type == "freebsd":
+        os_type = "unknown-freebsd"
     else:
         os_type = "unknown"
 
