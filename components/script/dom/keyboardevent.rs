@@ -647,7 +647,7 @@ fn key_location(key: Key) -> u32 {
     }
 }
 
-// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#widl-KeyboardEvent-charCode
+// https://w3c.github.io/uievents/#dom-keyboardevent-charcode
 fn key_charcode(key: Key, mods: KeyModifiers) -> Option<u32> {
     let key_string = key_value(key, mods);
     if key_string.len() == 1 {
@@ -657,10 +657,10 @@ fn key_charcode(key: Key, mods: KeyModifiers) -> Option<u32> {
     }
 }
 
-// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#legacy-key-models
+// https://w3c.github.io/uievents/#legacy-key-models
 fn key_keycode(key: Key) -> u32 {
     match key {
-        // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#legacy-key-models
+        // https://w3c.github.io/uievents/#legacy-key-models
         Key::Backspace => 8,
         Key::Tab => 9,
         Key::Enter => 13,
@@ -680,7 +680,7 @@ fn key_keycode(key: Key) -> u32 {
         Key::Down => 40,
         Key::Delete => 46,
 
-        // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#optionally-fixed-virtual-key-codes
+        // https://w3c.github.io/uievents/#optionally-fixed-virtual-key-codes
         Key::Semicolon => 186,
         Key::Equal => 187,
         Key::Comma => 188,
@@ -820,7 +820,7 @@ impl KeyboardEventMethods for KeyboardEvent {
         self.is_composing.get()
     }
 
-    // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#widl-KeyboardEvent-getModifierState
+    // https://w3c.github.io/uievents/#dom-keyboardevent-getmodifierstate
     fn GetModifierState(&self, keyArg: DOMString) -> bool {
         match &*keyArg {
             "Ctrl" => self.CtrlKey(),

@@ -1920,7 +1920,6 @@ impl ScriptThread {
         }
 
         // http://dev.w3.org/csswg/cssom-view/#resizing-viewports
-        // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-resize
         if size_type == WindowSizeType::Resize {
             let uievent = UIEvent::new(window.r(),
                                        DOMString::from("resize"), EventBubbles::DoesNotBubble,

@@ -577,7 +577,7 @@ impl Document {
     }
 
     /// Return the element that currently has focus.
-    // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#events-focusevent-doc-focus
+    // https://w3c.github.io/uievents/#events-focusevent-doc-focus
     pub fn get_focused_element(&self) -> Option<Root<Element>> {
         self.focused.get()
     }
@@ -706,7 +706,7 @@ impl Document {
             self.begin_focus_transaction();
         }
 
-        // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#event-type-click
+        // https://w3c.github.io/uievents/#event-type-click
         let client_x = client_point.x as i32;
         let client_y = client_point.y as i32;
         let clickCount = 1;
@@ -728,7 +728,7 @@ impl Document {
                                     None);
         let event = event.upcast::<Event>();
 
-        // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#trusted-events
+        // https://w3c.github.io/uievents/#trusted-events
         event.set_trusted(true);
         // https://html.spec.whatwg.org/multipage/#run-authentic-click-activation-steps
         match mouse_event_type {
@@ -1093,9 +1093,9 @@ impl Document {
         event.fire(target);
         let mut prevented = event.DefaultPrevented();
 
-        // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keys-cancelable-keys
+        // https://w3c.github.io/uievents/#keys-cancelable-keys
         if state != KeyState::Released && props.is_printable() && !prevented {
-            // https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#keypress-event-order
+            // https://w3c.github.io/uievents/#keypress-event-order
             let event = KeyboardEvent::new(&self.window,
                                            DOMString::from("keypress"),
                                            true,

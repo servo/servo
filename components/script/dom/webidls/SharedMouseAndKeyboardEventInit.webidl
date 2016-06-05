@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#idl-def-SharedKeyboardAndMouseEventInit
+// https://w3c.github.io/uievents/#dictdef-eventmodifierinit
 dictionary SharedKeyboardAndMouseEventInit : UIEventInit {
     boolean ctrlKey = false;
     boolean shiftKey = false;

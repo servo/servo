@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#idl-def-MouseEvent
+// https://w3c.github.io/uievents/#interface-mouseevent
 [Constructor(DOMString typeArg, optional MouseEventInit mouseEventInitDict)]
 interface MouseEvent : UIEvent {
     readonly    attribute long           screenX;
@@ -23,7 +23,7 @@ interface MouseEvent : UIEvent {
     readonly    attribute long           which;
 };
 
-// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#idl-def-MouseEventInit
+// https://w3c.github.io/uievents/#dictdef-eventmodifierinit
 dictionary MouseEventInit : SharedKeyboardAndMouseEventInit {
     long           screenX = 0;
     long           screenY = 0;
@@ -34,7 +34,7 @@ dictionary MouseEventInit : SharedKeyboardAndMouseEventInit {
     EventTarget?   relatedTarget = null;
 };
 
-// https://dvcs.w3.org/hg/dom3events/raw-file/tip/html/DOM3-Events.html#idl-def-MouseEvent-1
+// https://w3c.github.io/uievents/#idl-interface-MouseEvent-initializers
 partial interface MouseEvent {
     // Deprecated in DOM Level 3
     void initMouseEvent (DOMString typeArg, boolean bubblesArg, boolean cancelableArg,
