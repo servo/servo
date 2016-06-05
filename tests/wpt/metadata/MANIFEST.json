@@ -36072,6 +36072,12 @@
             "url": "/cookies/path/no-match-no-cookie-trailing-slash.sub.html"
           }
         ],
+        "cookies/path/no-match-no-request-slash-next-char.sub.html": [
+          {
+            "path": "cookies/path/no-match-no-request-slash-next-char.sub.html",
+            "url": "/cookies/path/no-match-no-request-slash-next-char.sub.html"
+          }
+        ],
         "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html": [
           {
             "path": "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html",
