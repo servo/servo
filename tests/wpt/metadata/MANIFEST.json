@@ -36036,16 +36036,16 @@
             "url": "/url/url-domainToUnicode.html"
           }
         ],
-        "cookies/path/match-exact-slash.sub.html": [
-          {
-            "path": "cookies/path/match-exact-slash.sub.html",
-            "url": "/cookies/path/match-exact-slash.sub.html"
-          }
-        ],
         "cookies/path/match-exact-page.sub.html": [
           {
             "path": "cookies/path/match-exact-page.sub.html",
             "url": "/cookies/path/match-exact-page.sub.html"
+          }
+        ],
+        "cookies/path/match-exact-slash.sub.html": [
+          {
+            "path": "cookies/path/match-exact-slash.sub.html",
+            "url": "/cookies/path/match-exact-slash.sub.html"
           }
         ],
         "cookies/path/match-prefix-cookie-trailing-slash.sub.html": [
