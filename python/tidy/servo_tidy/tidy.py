@@ -48,7 +48,6 @@ ignored_files = [
 # Directories that are ignored for the non-WPT tidy check.
 ignored_dirs = [
     # Upstream
-    os.path.join(".", "components", "whee"),
     os.path.join(".", "support", "android", "apk"),
     os.path.join(".", "support", "rust-task_info"),
     os.path.join(".", "tests", "wpt", "css-tests"),
@@ -646,10 +645,9 @@ def get_file_list(directory, only_changed_files=False, exclude_dirs=[]):
         args = ["git", "ls-files", "--others", "--exclude-standard", directory]
         file_list += subprocess.check_output(args)
         for f in file_list.splitlines():
-            if os.path.join('.', os.path.dirname(f)) in ignored_dirs:
-                continue
-            else:
+            if os.path.join('.', os.path.dirname(f)) not in ignored_dirs:
                 yield os.path.join('.', f)
+
     elif exclude_dirs:
         for root, dirs, files in os.walk(directory, topdown=True):
             # modify 'dirs' in-place so that we don't do unwanted traversals in excluded directories
