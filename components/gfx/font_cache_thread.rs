@@ -17,6 +17,7 @@ use platform::font_template::FontTemplateData;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::mem;
+use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use std::u32;
 use string_cache::Atom;
@@ -24,7 +25,6 @@ use style::font_face::Source;
 use style::properties::longhands::font_family::computed_value::FontFamily;
 use url::Url;
 use util::prefs;
-use util::str::LowercaseString;
 use util::thread::spawn_named;
 use webrender_traits;
 
@@ -458,5 +458,28 @@ fn is_supported_font_type(toplevel: &TopLevel, sublevel: &SubLevel) -> bool {
             }
         }
         _ => false,
+    }
+}
+
+
+#[derive(Clone, Eq, PartialEq, Hash, Debug, Deserialize, Serialize)]
+pub struct LowercaseString {
+    inner: String,
+}
+
+impl LowercaseString {
+    pub fn new(s: &str) -> LowercaseString {
+        LowercaseString {
+            inner: s.to_lowercase(),
+        }
+    }
+}
+
+impl Deref for LowercaseString {
+    type Target = str;
+
+    #[inline]
+    fn deref(&self) -> &str {
+        &*self.inner
     }
 }

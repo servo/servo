@@ -5,7 +5,6 @@
 use num_traits::ToPrimitive;
 use std::convert::AsRef;
 use std::iter::{Filter, Peekable};
-use std::ops::Deref;
 use std::str::Split;
 
 pub type StaticCharVec = &'static [char];
@@ -114,28 +113,6 @@ pub fn read_exponent<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> Option<i3
             read_numbers(iter).0.map(|exp| exp.to_i32().unwrap_or(0))
         }
         Some(_) => read_numbers(iter).0.map(|exp| exp.to_i32().unwrap_or(0))
-    }
-}
-
-#[derive(Clone, Eq, PartialEq, Hash, Debug, Deserialize, Serialize)]
-pub struct LowercaseString {
-    inner: String,
-}
-
-impl LowercaseString {
-    pub fn new(s: &str) -> LowercaseString {
-        LowercaseString {
-            inner: s.to_lowercase(),
-        }
-    }
-}
-
-impl Deref for LowercaseString {
-    type Target = str;
-
-    #[inline]
-    fn deref(&self) -> &str {
-        &*self.inner
     }
 }
 
