@@ -36030,10 +36030,11 @@
     "deleted_reftests": {},
     "items": {
       "testharness": {
-        "cookies/path/set-from-http.sub.html": [
+        "cookies/path/match-exact-slash.sub.html": [
           {
-            "path": "cookies/path/set-from-http.sub.html",
-            "url": "/cookies/path/set-from-http.sub.html"
+            "path": "cookies/path/match-exact-slash.sub.html",
+            "url": "/cookies/path/match-exact-slash.sub.html"
+          }
           }
         ],
         "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html": [
