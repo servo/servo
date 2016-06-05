@@ -11,7 +11,8 @@ use euclid::size::TypedSize2D;
 #[cfg(not(target_os = "windows"))]
 use gaol;
 use gfx::font_cache_thread::FontCacheThread;
-use gfx::paint_thread::{ChromeToPaintMsg, LayoutToPaintMsg, PaintThread};
+use gfx::paint_thread::{LayoutToPaintMsg, PaintThread};
+use gfx_traits::ChromeToPaintMsg;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use layers::geometry::DevicePixel;

@@ -15,14 +15,14 @@ use euclid::rect::Rect;
 use euclid::size::Size2D;
 use font_cache_thread::FontCacheThread;
 use font_context::FontContext;
-use gfx_traits::StackingContextId;
-use gfx_traits::{Epoch, FrameTreeId, LayerId, LayerKind, LayerProperties, PaintListener};
+use gfx_traits::{ChromeToPaintMsg, Epoch, LayerId, LayerKind, LayerProperties};
+use gfx_traits::{PaintListener, PaintRequest, StackingContextId};
 use ipc_channel::ipc::IpcSender;
 use layers::layers::{BufferRequest, LayerBuffer, LayerBufferSet};
 use layers::platform::surface::{NativeDisplay, NativeSurface};
 use msg::constellation_msg::{PanicMsg, PipelineId};
 use paint_context::PaintContext;
-use profile_traits::mem::{self, ReportsChan};
+use profile_traits::mem;
 use profile_traits::time;
 use rand::{self, Rng};
 use std::borrow::ToOwned;
@@ -325,14 +325,6 @@ impl LayerCreator {
     }
 }
 
-pub struct PaintRequest {
-    pub buffer_requests: Vec<BufferRequest>,
-    pub scale: f32,
-    pub layer_id: LayerId,
-    pub epoch: Epoch,
-    pub layer_kind: LayerKind,
-}
-
 pub enum Msg {
     FromLayout(LayoutToPaintMsg),
     FromChrome(ChromeToPaintMsg),
@@ -341,14 +333,6 @@ pub enum Msg {
 #[derive(Deserialize, Serialize)]
 pub enum LayoutToPaintMsg {
     PaintInit(Epoch, Arc<DisplayList>),
-    Exit,
-}
-
-pub enum ChromeToPaintMsg {
-    Paint(Vec<PaintRequest>, FrameTreeId),
-    PaintPermissionGranted,
-    PaintPermissionRevoked,
-    CollectReports(ReportsChan),
     Exit,
 }
 

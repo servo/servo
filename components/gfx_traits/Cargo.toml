@@ -13,6 +13,7 @@ azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
 layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
 msg = {path = "../msg"}
 plugins = {path = "../plugins"}
+profile_traits = {path = "../profile_traits"}
 range = {path = "../range"}
 rustc-serialize = "0.3"
 euclid = {version = "0.6.5", features = ["plugins"]}
