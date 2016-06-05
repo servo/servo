@@ -24,8 +24,7 @@ use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use string_cache::Atom;
-use style::attr::parse_unsigned_integer;
-use util::str::LengthOrPercentageOrAuto;
+use style::attr::{LengthOrPercentageOrAuto, parse_unsigned_integer};
 
 #[dom_struct]
 pub struct HTMLTableElement {

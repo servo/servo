@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use app_units::Au;
 use num_traits::ToPrimitive;
 use std::convert::AsRef;
 use std::iter::{Filter, Peekable};
@@ -116,13 +115,6 @@ pub fn read_exponent<I: Iterator<Item=char>>(mut iter: Peekable<I>) -> Option<i3
         }
         Some(_) => read_numbers(iter).0.map(|exp| exp.to_i32().unwrap_or(0))
     }
-}
-
-#[derive(Clone, Copy, Debug, HeapSizeOf, PartialEq)]
-pub enum LengthOrPercentageOrAuto {
-    Auto,
-    Percentage(f32),
-    Length(Au),
 }
 
 #[derive(Clone, Eq, PartialEq, Hash, Debug, Deserialize, Serialize)]
