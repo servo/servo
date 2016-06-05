@@ -104,8 +104,7 @@ pub mod paint_thread;
 
 // Platform-specific implementations.
 #[allow(unsafe_code)]
-pub mod platform;
+mod platform;
 
 // Text
-#[allow(unsafe_code)]
 pub mod text;

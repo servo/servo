@@ -627,6 +627,7 @@ impl<'a> GlyphStore {
     /// Used for SIMD.
     #[inline]
     #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+    #[allow(unsafe_code)]
     fn transmute_entry_buffer_to_u32_buffer(&self) -> &[u32] {
         unsafe { mem::transmute(self.entry_buffer.as_slice()) }
     }
