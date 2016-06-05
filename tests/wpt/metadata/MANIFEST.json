@@ -36045,7 +36045,7 @@
         "cookies/path/match-exact-page.sub.html": [
           {
             "path": "cookies/path/match-exact-page.sub.html",
-            "url": "/cookies/resources/match-exact-page.sub.html"
+            "url": "/cookies/path/match-exact-page.sub.html"
           }
         ],
         "cookies/path/match-prefix-cookie-trailing-slash.sub.html": [
