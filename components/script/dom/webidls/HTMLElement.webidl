@@ -13,10 +13,7 @@ interface HTMLElement : Element {
 
   // microdata
   //         attribute boolean itemScope;
-  //[PutForwards=value] readonly attribute DOMSettableTokenList itemType;
   //         attribute DOMString itemId;
-  //[PutForwards=value] readonly attribute DOMSettableTokenList itemRef;
-  //[PutForwards=value] readonly attribute DOMSettableTokenList itemProp;
   //readonly attribute HTMLPropertiesCollection properties;
   //         attribute any itemValue; // acts as DOMString on setting
 
@@ -29,7 +26,7 @@ interface HTMLElement : Element {
   //         attribute DOMString accessKey;
   //readonly attribute DOMString accessKeyLabel;
   //         attribute boolean draggable;
-  //[PutForwards=value] readonly attribute DOMSettableTokenList dropzone;
+  //[SameObject, PutForwards=value] readonly attribute DOMTokenList dropzone;
   //         attribute HTMLMenuElement? contextMenu;
   //         attribute boolean spellcheck;
   //void forceSpellCheck();

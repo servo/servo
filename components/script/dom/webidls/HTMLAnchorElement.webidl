@@ -14,7 +14,7 @@
 interface HTMLAnchorElement : HTMLElement {
   attribute DOMString target;
   //         attribute DOMString download;
-  //[PutForwards=value] attribute DOMSettableTokenList ping;
+  //         attribute USVString ping;
   //         attribute DOMString rel;
   readonly attribute DOMTokenList relList;
   //         attribute DOMString hreflang;
