@@ -107,5 +107,4 @@ pub mod paint_thread;
 mod platform;
 
 // Text
-#[allow(unsafe_code)]
 pub mod text;
