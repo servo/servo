@@ -10,6 +10,16 @@ pub use platform::macos::{font, font_context, font_list, font_template};
 
 #[cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))]
 pub mod freetype {
+    use libc::c_char;
+    use std::ffi::CStr;
+    use std::str;
+
+    /// Creates a String from the given null-terminated buffer.
+    /// Panics if the buffer does not contain UTF-8.
+    unsafe fn c_str_to_string(s: *const c_char) -> String {
+        str::from_utf8(CStr::from_ptr(s).to_bytes()).unwrap().to_owned()
+    }
+
     pub mod font;
     pub mod font_context;
     pub mod font_list;

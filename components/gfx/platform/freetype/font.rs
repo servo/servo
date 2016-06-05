@@ -23,9 +23,9 @@ use platform::font_template::FontTemplateData;
 use std::sync::Arc;
 use std::{mem, ptr};
 use style::computed_values::{font_stretch, font_weight};
+use super::c_str_to_string;
 use text::glyph::GlyphId;
 use text::util::{fixed_to_float, float_to_fixed};
-use util::str::c_str_to_string;
 
 fn float_to_fixed_ft(f: f64) -> i32 {
     float_to_fixed(6, f)
