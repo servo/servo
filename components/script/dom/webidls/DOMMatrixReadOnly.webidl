@@ -1,4 +1,3 @@
-/* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -12,15 +11,16 @@
  */
 
 [Constructor,
- /*Constructor(DOMString transformList),*/
- Constructor(sequence<unrestricted double> numberSequence),
- /*Exposed=(Window,Worker)*/]
+// Constructor(DOMString transformList)
+Constructor(sequence<unrestricted double> numberSequence),
+// Exposed=(Window,Worker)
+]
 interface DOMMatrixReadOnly {
 
     [NewObject] static DOMMatrixReadOnly fromMatrix(optional DOMMatrixInit other);
-/*  [NewObject] static DOMMatrixReadOnly fromFloat32Array(Float32Array array32);
-    [NewObject] static DOMMatrixReadOnly fromFloat64Array(Float64Array array64);
-*/
+//  [NewObject] static DOMMatrixReadOnly fromFloat32Array(Float32Array array32);
+//  [NewObject] static DOMMatrixReadOnly fromFloat64Array(Float64Array array64);
+
     // These attributes are simple aliases for certain elements of the 4x4 matrix
     readonly attribute unrestricted double a;
     readonly attribute unrestricted double b;
@@ -80,9 +80,9 @@ interface DOMMatrixReadOnly {
     DOMMatrix inverse();
 
     DOMPoint            transformPoint(optional DOMPointInit point);
-/*  Float32Array        toFloat32Array();
-    Float64Array        toFloat64Array();
-                        stringifier;
-                        serializer = { attribute };
-*/
+//  Float32Array        toFloat32Array();
+//  Float64Array        toFloat64Array();
+//                      stringifier;
+//                      serializer = { attribute };
+
 };

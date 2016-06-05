@@ -1,4 +1,3 @@
-/* -*- Mode: IDL; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -10,17 +9,18 @@
  * To the extent possible under law, the editors have waived all copyright and
  * related or neighboring rights to this work.
  */
- 
+
 [Constructor,
- /*Constructor(DOMString transformList),*/
- Constructor(sequence<unrestricted double> numberSequence),
- /*Exposed=(Window,Worker)*/]
+// Constructor(DOMString transformList),
+Constructor(sequence<unrestricted double> numberSequence)
+// Exposed=(Window,Worker)
+]
 interface DOMMatrix : DOMMatrixReadOnly {
 
     [NewObject] static DOMMatrix fromMatrix(optional DOMMatrixInit other);
-/*  [NewObject] static DOMMatrix fromFloat32Array(Float32Array array32);
-    [NewObject] static DOMMatrix fromFloat64Array(Float64Array array64);
-*/
+//  [NewObject] static DOMMatrix fromFloat32Array(Float32Array array32);
+//  [NewObject] static DOMMatrix fromFloat64Array(Float64Array array64);
+
     // These attributes are simple aliases for certain elements of the 4x4 matrix
     inherit attribute unrestricted double a;
     inherit attribute unrestricted double b;
@@ -74,9 +74,8 @@ interface DOMMatrix : DOMMatrixReadOnly {
     DOMMatrix skewXSelf(optional unrestricted double sx = 0);
     DOMMatrix skewYSelf(optional unrestricted double sy = 0);
     DOMMatrix invertSelf();
-/*
-    DOMMatrix setMatrixValue(DOMString transformList);
-    */
+
+//  DOMMatrix setMatrixValue(DOMString transformList);
 };
 
 
