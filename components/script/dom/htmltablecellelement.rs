@@ -16,7 +16,7 @@ use dom::htmltablerowelement::HTMLTableRowElement;
 use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
-use util::str::LengthOrPercentageOrAuto;
+use style::attr::LengthOrPercentageOrAuto;
 
 const DEFAULT_COLSPAN: u32 = 1;
 
