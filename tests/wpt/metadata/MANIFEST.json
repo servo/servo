@@ -36071,18 +36071,6 @@
             "path": "cookies/path/no-match-no-request-slash-next-char.sub.html",
             "url": "/cookies/path/no-match-no-request-slash-next-char.sub.html"
           }
-        ],
-        "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html": [
-          {
-            "path": "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html",
-            "url": "/html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_attribute-getter-setter.html"
-          }
-        ],
-        "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_getter.html": [
-          {
-            "path": "html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_getter.html",
-            "url": "/html/semantics/links/links-created-by-a-and-area-elements/htmlanchorelement_getter.html"
-          }
         ]
       }
     },
