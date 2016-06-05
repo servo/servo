@@ -36048,6 +36048,12 @@
             "url": "/cookies/path/match-prefix-cookie-trailing-slash.sub.html"
           }
         ],
+        "cookies/path/match-prefix-request-slash.sub.html": [
+          {
+            "path": "cookies/path/match-prefix-request-slash.sub.html",
+            "url": "/cookies/path/match-prefix-request-slash.sub.html"
+          }
+        ],
         "cookies/path/no-match-exact.sub.html": [
           {
             "path": "cookies/path/no-match-exact.sub.html",
