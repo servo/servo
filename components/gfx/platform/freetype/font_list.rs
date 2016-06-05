@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#![allow(non_snake_case)]
-
 extern crate fontconfig;
 extern crate freetype;
 
@@ -28,9 +26,9 @@ static FC_FONTFORMAT: &'static [u8] = b"fontformat\0";
 pub fn for_each_available_family<F>(mut callback: F) where F: FnMut(String) {
     unsafe {
         let config = FcConfigGetCurrent();
-        let fontSet = FcConfigGetFonts(config, FcSetSystem);
-        for i in 0..((*fontSet).nfont as isize) {
-            let font = (*fontSet).fonts.offset(i);
+        let font_set = FcConfigGetFonts(config, FcSetSystem);
+        for i in 0..((*font_set).nfont as isize) {
+            let font = (*font_set).fonts.offset(i);
             let mut family: *mut FcChar8 = ptr::null_mut();
             let mut format: *mut FcChar8 = ptr::null_mut();
             let mut v: c_int = 0;
