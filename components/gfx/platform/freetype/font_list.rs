@@ -16,7 +16,7 @@ use libc::{c_char, c_int};
 use std::borrow::ToOwned;
 use std::ffi::CString;
 use std::ptr;
-use util::str::c_str_to_string;
+use super::c_str_to_string;
 
 static FC_FAMILY: &'static [u8] = b"family\0";
 static FC_FILE: &'static [u8] = b"file\0";

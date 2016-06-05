@@ -3,14 +3,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use app_units::Au;
-use libc::c_char;
 use num_traits::ToPrimitive;
-use std::borrow::ToOwned;
 use std::convert::AsRef;
-use std::ffi::CStr;
 use std::iter::{Filter, Peekable};
 use std::ops::Deref;
-use std::str::{Split, from_utf8};
+use std::str::Split;
 
 pub type StaticCharVec = &'static [char];
 pub type StaticStringVec = &'static [&'static str];
@@ -148,12 +145,6 @@ impl Deref for LowercaseString {
     fn deref(&self) -> &str {
         &*self.inner
     }
-}
-
-/// Creates a String from the given null-terminated buffer.
-/// Panics if the buffer does not contain UTF-8.
-pub unsafe fn c_str_to_string(s: *const c_char) -> String {
-    from_utf8(CStr::from_ptr(s).to_bytes()).unwrap().to_owned()
 }
 
 pub fn str_join<I, T>(strs: I, join: &str) -> String
