@@ -649,18 +649,21 @@ fn set_auth_header(headers: &mut Headers,
         if let Some(auth) = auth_from_url(url) {
             headers.set(auth);
         } else {
-            if let Some(ref auth_entry) = auth_cache.read().unwrap().entries.get(url) {
-                auth_from_entry(&auth_entry, headers);
+            if let Some(basic) = auth_from_cache(auth_cache, url) {
+                headers.set(Authorization(basic));
             }
         }
     }
 }
 
-fn auth_from_entry(auth_entry: &AuthCacheEntry, headers: &mut Headers) {
-    let user_name = auth_entry.user_name.clone();
-    let password  = Some(auth_entry.password.clone());
-
-    headers.set(Authorization(Basic { username: user_name, password: password }));
+pub fn auth_from_cache(auth_cache: &Arc<RwLock<AuthCache>>, url: &Url) -> Option<Basic> {
+    if let Some(ref auth_entry) = auth_cache.read().unwrap().entries.get(url) {
+        let user_name = auth_entry.user_name.clone();
+        let password  = Some(auth_entry.password.clone());
+        Some(Basic { username: user_name, password: password })
+    } else {
+        None
+    }
 }
 
 fn auth_from_url(doc_url: &Url) -> Option<Authorization<Basic>> {

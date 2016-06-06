@@ -5,7 +5,7 @@
 use connector::create_http_connector;
 use data_loader::decode;
 use fetch::cors_cache::CORSCache;
-use http_loader::{HttpState, set_default_accept_encoding, set_request_cookies};
+use http_loader::{auth_from_cache, HttpState, set_default_accept_encoding, set_request_cookies};
 use http_loader::{NetworkHttpRequestFactory, ReadResult, StreamedResponse, obtain_response, read_block};
 use hyper::header::{Accept, AcceptLanguage, Authorization, AccessControlAllowCredentials};
 use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
@@ -815,7 +815,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
                         password: current_url.password().map(str::to_owned)
                     })
                 } else {
-                    None
+                    auth_from_cache(&context.state.auth_cache, &current_url)
                 }
             }
 
