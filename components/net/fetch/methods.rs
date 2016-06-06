@@ -931,7 +931,7 @@ fn http_network_fetch(request: Rc<Request>,
     let mut response = Response::new();
     match wrapped_response {
         Ok((mut res, _)) => {
-            response.url = Some(res.response.url.clone());
+            response.url = Some(url.clone());
             response.status = Some(res.response.status);
             response.raw_status = Some(res.response.status_raw().clone());
             response.headers = res.response.headers.clone();
