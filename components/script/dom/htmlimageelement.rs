@@ -31,8 +31,8 @@ use script_runtime::ScriptThreadEventCategory::UpdateReplacedElement;
 use script_thread::Runnable;
 use std::sync::Arc;
 use string_cache::Atom;
+use style::attr::LengthOrPercentageOrAuto;
 use url::Url;
-use util::str::LengthOrPercentageOrAuto;
 
 #[derive(JSTraceable, HeapSizeOf)]
 #[allow(dead_code)]

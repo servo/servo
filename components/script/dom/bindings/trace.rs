@@ -83,7 +83,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::SystemTime;
 use string_cache::{Atom, Namespace, QualName};
-use style::attr::{AttrIdentifier, AttrValue};
+use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
 use style::element_state::*;
 use style::properties::PropertyDeclarationBlock;
 use style::restyle_hints::ElementSnapshot;
@@ -91,7 +91,6 @@ use style::selector_impl::PseudoElement;
 use style::values::specified::Length;
 use url::Origin as UrlOrigin;
 use url::Url;
-use util::str::LengthOrPercentageOrAuto;
 use uuid::Uuid;
 use webrender_traits::WebGLError;
 

@@ -85,6 +85,7 @@ use std::mem;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace, QualName};
+use style::attr::LengthOrPercentageOrAuto;
 use style::element_state::*;
 use style::parser::ParserContextExtraData;
 use style::properties::DeclaredValue;
@@ -93,7 +94,6 @@ use style::properties::{PropertyDeclaration, PropertyDeclarationBlock, parse_sty
 use style::selector_impl::{NonTSPseudoClass, ServoSelectorImpl};
 use style::values::CSSFloat;
 use style::values::specified::{self, CSSColor, CSSRGBA, LengthOrPercentage};
-use util::str::LengthOrPercentageOrAuto;
 
 // TODO: Update focus state when the top-level browsing context gains or loses system focus,
 // and when the element enters or leaves a browsing context container.

@@ -42,10 +42,10 @@ use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
 use script_traits::{IFrameLoadInfo, MozBrowserEvent, ScriptMsg as ConstellationMsg};
 use std::cell::Cell;
 use string_cache::Atom;
+use style::attr::LengthOrPercentageOrAuto;
 use style::context::ReflowGoal;
 use url::Url;
 use util::prefs::mozbrowser_enabled;
-use util::str::LengthOrPercentageOrAuto;
 
 #[derive(HeapSizeOf)]
 enum SandboxAllowance {
