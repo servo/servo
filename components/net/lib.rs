@@ -6,7 +6,6 @@
 #![feature(custom_derive)]
 #![feature(box_syntax)]
 #![feature(fnbox)]
-#![feature(fs_time)]
 #![feature(mpsc_select)]
 #![feature(plugin)]
 #![plugin(plugins)]
