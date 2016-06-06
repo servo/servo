@@ -14,6 +14,7 @@ use dom::urlsearchparams::URLSearchParams;
 use std::borrow::ToOwned;
 use std::default::Default;
 use url::{Host, Url};
+use url::quirks::domain_to_unicode;
 
 // https://url.spec.whatwg.org/#url
 #[dom_struct]
@@ -99,6 +100,10 @@ impl URL {
             // Step 2.
             USVString("".to_owned())
         }
+    }
+
+    pub fn DomainToUnicode(_: GlobalRef, origin: USVString) -> USVString {
+        USVString(domain_to_unicode(&origin.0))
     }
 }
 
