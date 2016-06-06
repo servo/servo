@@ -30,49 +30,49 @@ interface Element : Node {
   [SameObject, PutForwards=value]
   readonly attribute DOMTokenList classList;
 
+  [Pure]
+  boolean hasAttributes();
   [SameObject]
   readonly attribute NamedNodeMap attributes;
   [Pure]
   sequence<DOMString> getAttributeNames();
   [Pure]
-  boolean hasAttributes();
-  [Pure]
   DOMString? getAttribute(DOMString name);
   [Pure]
   DOMString? getAttributeNS(DOMString? namespace, DOMString localName);
-  [Pure]
-  Attr? getAttributeNode(DOMString name);
-  [Pure]
-  Attr? getAttributeNodeNS(DOMString? namespace, DOMString localName);
   [Throws]
   void setAttribute(DOMString name, DOMString value);
   [Throws]
   void setAttributeNS(DOMString? namespace, DOMString name, DOMString value);
   void removeAttribute(DOMString name);
   void removeAttributeNS(DOMString? namespace, DOMString localName);
-  [Throws]
-  Attr removeAttributeNode(Attr oldAttr);
   boolean hasAttribute(DOMString name);
   boolean hasAttributeNS(DOMString? namespace, DOMString localName);
 
+  [Pure]
+  Attr? getAttributeNode(DOMString name);
+  [Pure]
+  Attr? getAttributeNodeNS(DOMString? namespace, DOMString localName);
   [Throws]
   Attr? setAttributeNode(Attr attr);
   [Throws]
   Attr? setAttributeNodeNS(Attr attr);
+  [Throws]
+  Attr removeAttributeNode(Attr oldAttr);
 
   [Pure, Throws]
   Element? closest(DOMString selectors);
-
   [Pure, Throws]
   boolean matches(DOMString selectors);
   [Pure, Throws]
-  boolean webkitMatchesSelector(DOMString selectors);
+  boolean webkitMatchesSelector(DOMString selectors); // historical alias of .matches
 
   HTMLCollection getElementsByTagName(DOMString localName);
   HTMLCollection getElementsByTagNameNS(DOMString? namespace, DOMString localName);
   HTMLCollection getElementsByClassName(DOMString classNames);
+
   [Throws]
-  Element? insertAdjacentElement(DOMString where_, Element element);
+  Element? insertAdjacentElement(DOMString where_, Element element); // historical
   [Throws]
   void insertAdjacentText(DOMString where_, DOMString data);
 };
