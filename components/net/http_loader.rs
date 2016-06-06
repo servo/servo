@@ -523,7 +523,7 @@ impl StreamedResponse {
         StreamedResponse { metadata: m, decoder: d }
     }
 
-    fn from_http_response(response: Box<HttpResponse>, m: Metadata) -> Result<StreamedResponse, LoadError> {
+    pub fn from_http_response(response: Box<HttpResponse>, m: Metadata) -> Result<StreamedResponse, LoadError> {
         let decoder = match response.content_encoding() {
             Some(Encoding::Gzip) => {
                 let result = GzDecoder::new(response);

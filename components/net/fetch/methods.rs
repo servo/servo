@@ -6,7 +6,7 @@ use connector::create_http_connector;
 use data_loader::decode;
 use fetch::cors_cache::CORSCache;
 use http_loader::{HttpState, set_default_accept_encoding, set_request_cookies};
-use http_loader::{NetworkHttpRequestFactory, ReadResult, obtain_response, read_block};
+use http_loader::{NetworkHttpRequestFactory, ReadResult, StreamedResponse, obtain_response, read_block};
 use hyper::header::{Accept, AcceptLanguage, Authorization, AccessControlAllowCredentials};
 use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
 use hyper::header::{AccessControlRequestHeaders, AccessControlMaxAge, AccessControlRequestMethod, Basic};
@@ -940,39 +940,50 @@ fn http_network_fetch(request: Rc<Request>,
 
             // We're about to spawn a thread to be waited on here
             *done_chan = Some(channel());
+            let meta = response.metadata().expect("Response metadata should exist at this stage"); 
             let done_sender = done_chan.as_ref().map(|ch| ch.0.clone());
             spawn_named(format!("fetch worker thread"), move || {
-                *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
+                match StreamedResponse::from_http_response(box res, meta) {
+                    Ok(mut res) => {
+                    *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
+                        loop {
+                            match read_block(&mut res) {
+                                Ok(ReadResult::Payload(chunk)) => {
+                                    if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
 
-                loop {
-                    match read_block(&mut res.response) {
-                        Ok(ReadResult::Payload(chunk)) => {
-                            if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
-
-                                body.extend_from_slice(&chunk);
-                                if let Some(ref sender) = done_sender {
-                                    let _ = sender.send(Data::Payload(chunk));
+                                        body.extend_from_slice(&chunk);
+                                        if let Some(ref sender) = done_sender {
+                                            let _ = sender.send(Data::Payload(chunk));
+                                        }
+                                    }
+                                },
+                                Ok(ReadResult::EOF) | Err(_) => {
+                                    let mut empty_vec = Vec::new();
+                                    let completed_body = match *res_body.lock().unwrap() {
+                                        ResponseBody::Receiving(ref mut body) => {
+                                            // avoid cloning the body
+                                            swap(body, &mut empty_vec);
+                                            empty_vec
+                                        },
+                                        _ => empty_vec,
+                                    };
+                                    *res_body.lock().unwrap() = ResponseBody::Done(completed_body);
+                                    if let Some(ref sender) = done_sender {
+                                        let _ = sender.send(Data::Done);
+                                    }
+                                    break;
                                 }
                             }
-                        },
-                        Ok(ReadResult::EOF) | Err(_) => {
-                            let mut empty_vec = Vec::new();
-                            let completed_body = match *res_body.lock().unwrap() {
-                                ResponseBody::Receiving(ref mut body) => {
-                                    // avoid cloning the body
-                                    swap(body, &mut empty_vec);
-                                    empty_vec
-                                },
-                                _ => empty_vec,
-                            };
-                            *res_body.lock().unwrap() = ResponseBody::Done(completed_body);
-                            if let Some(ref sender) = done_sender {
-                                let _ = sender.send(Data::Done);
-                            }
-                            break;
+
                         }
                     }
-
+                    Err(_) => {
+                        // XXXManishearth we should propagate this error somehow
+                        *res_body.lock().unwrap() = ResponseBody::Done(vec![]);
+                        if let Some(ref sender) = done_sender {
+                            let _ = sender.send(Data::Done);
+                        }
+                    }
                 }
             });
         },
