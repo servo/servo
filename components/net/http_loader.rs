@@ -434,7 +434,7 @@ fn strip_url(mut referrer_url: Url, origin_only: bool) -> Option<Url> {
 }
 
 /// https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer
-fn determine_request_referrer(headers: &mut Headers,
+pub fn determine_request_referrer(headers: &mut Headers,
                               referrer_policy: Option<ReferrerPolicy>,
                               referrer_url: Option<Url>,
                               url: Url) -> Option<Url> {
@@ -667,18 +667,21 @@ fn set_auth_header(headers: &mut Headers,
         if let Some(auth) = auth_from_url(url) {
             headers.set(auth);
         } else {
-            if let Some(ref auth_entry) = auth_cache.read().unwrap().entries.get(url) {
-                auth_from_entry(&auth_entry, headers);
+            if let Some(basic) = auth_from_cache(auth_cache, url) {
+                headers.set(Authorization(basic));
             }
         }
     }
 }
 
-fn auth_from_entry(auth_entry: &AuthCacheEntry, headers: &mut Headers) {
-    let user_name = auth_entry.user_name.clone();
-    let password  = Some(auth_entry.password.clone());
-
-    headers.set(Authorization(Basic { username: user_name, password: password }));
+pub fn auth_from_cache(auth_cache: &Arc<RwLock<AuthCache>>, url: &Url) -> Option<Basic> {
+    if let Some(ref auth_entry) = auth_cache.read().unwrap().entries.get(url) {
+        let user_name = auth_entry.user_name.clone();
+        let password  = Some(auth_entry.password.clone());
+        Some(Basic { username: user_name, password: password })
+    } else {
+        None
+    }
 }
 
 fn auth_from_url(doc_url: &Url) -> Option<Authorization<Basic>> {
@@ -955,6 +958,7 @@ pub fn load<A, B>(load_data: &LoadData,
             // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch step 12
             set_auth_header(&mut request_headers, &doc_url, &http_state.auth_cache);
         }
+
         //if there is a new auth header then set the request headers with it
         if let Some(ref auth_header) = new_auth_header {
             request_headers.set(auth_header.clone());

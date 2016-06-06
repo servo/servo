@@ -36,7 +36,7 @@ use hyper::header::Headers;
 use hyper::header::{ContentLength, ContentType};
 use hyper::http::RawStatus;
 use hyper::method::Method;
-use hyper::mime::{self, Mime};
+use hyper::mime::{self, Mime, Attr as MimeAttr, Value as MimeValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JS_ClearPendingException;
@@ -44,10 +44,10 @@ use js::jsapi::{JSContext, JS_ParseJSON, RootedValue};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::CoreResourceMsg::Fetch;
-use net_traits::trim_http_whitespace;
-use net_traits::{FetchResponseListener, Metadata, NetworkError, RequestSource};
-use net_traits::{CoreResourceThread, LoadOrigin};
 use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
+use net_traits::trim_http_whitespace;
+use net_traits::{CoreResourceThread, LoadOrigin};
+use net_traits::{FetchResponseListener, Metadata, NetworkError, RequestSource};
 use network_listener::{NetworkListener, PreInvoke};
 use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
@@ -62,6 +62,7 @@ use string_cache::Atom;
 use time;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::{Url, Position};
+use util::prefs::mozbrowser_enabled;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
 enum XMLHttpRequestState {
@@ -521,7 +522,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             Method::Get | Method::Head => None,
             _ => data
         };
-        // Step 4
+        // Step 4 (first half)
         let extracted = data.as_ref().map(|d| d.extract());
 
         self.request_body_len.set(extracted.as_ref().map_or(0, |e| e.0.len()));
@@ -572,6 +573,22 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         } else {
             unreachable!()
         };
+
+        let bypass_cross_origin_check = {
+            // We want to be able to do cross-origin requests in browser.html.
+            // If the XHR happens in a top level window and the mozbrowser
+            // preference is enabled, we allow bypassing the CORS check.
+            // This is a temporary measure until we figure out Servo privilege
+            // story. See https://github.com/servo/servo/issues/9582
+            if let GlobalRoot::Window(win) = self.global() {
+                let is_root_pipeline = win.parent_info().is_none();
+                let is_mozbrowser_enabled = mozbrowser_enabled();
+                is_root_pipeline && is_mozbrowser_enabled
+            } else {
+                false
+            }
+        };
+
         let mut request = RequestInit {
             method: self.request_method.borrow().clone(),
             url: self.request_url.borrow().clone().unwrap(),
@@ -589,18 +606,59 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             credentials_mode: credentials_mode,
             use_url_credentials: use_url_credentials,
             origin: self.global().r().get_url(),
+            referer_url: self.referrer_url.clone(),
+            referrer_policy: self.referrer_policy.clone(),
         };
-        // XHR spec differs from http, and says UTF-8 should be in capitals,
-        // instead of "utf-8", which is what Hyper defaults to. So not
-        // using content types provided by Hyper.
-        let n = "content-type";
+
+        if bypass_cross_origin_check {
+            request.mode = RequestMode::Navigate;
+        }
+
+        // step 4 (second half)
         match extracted {
-            Some((_, Some(ref content_type))) =>
-                request.headers.set_raw(n.to_owned(), vec![content_type.bytes().collect()]),
+            Some((_, ref content_type)) => {
+                // this should handle Document bodies too, not just BodyInit
+                let encoding = if let Some(BodyInit::String(_)) = data {
+                    // XHR spec differs from http, and says UTF-8 should be in capitals,
+                    // instead of "utf-8", which is what Hyper defaults to. So not
+                    // using content types provided by Hyper.
+                    Some(MimeValue::Ext("UTF-8".to_string()))
+                } else {
+                    None
+                };
+
+                let mut content_type_set = false;
+                if let Some(ref ct) = *content_type {
+                    if !request.headers.has::<ContentType>() {
+                        request.headers.set_raw("content-type", vec![ct.bytes().collect()]);
+                        content_type_set = true;
+                    }
+                }
+
+                if !content_type_set {
+                    let ct = request.headers.get::<ContentType>().map(|x| x.clone());
+                    if let Some(mut ct) = ct {
+                        if let Some(encoding) = encoding {
+                            for param in &mut (ct.0).2 {
+                                if param.0 == MimeAttr::Charset {
+                                    if !param.0.as_str().eq_ignore_ascii_case(encoding.as_str()) {
+                                        *param = (MimeAttr::Charset, encoding.clone());
+                                    }
+                                }
+                            }
+                        }
+                        // remove instead of mutate in place
+                        // https://github.com/hyperium/hyper/issues/821
+                        request.headers.remove_raw("content-type");
+                        request.headers.set(ct);
+                    }
+                }
+
+            }
             _ => (),
         }
 
-        debug!("request_headers = {:?}", *self.request_headers.borrow());
+        debug!("request.headers = {:?}", request.headers);
 
         self.fetch_time.set(time::now().to_timespec().sec);
 
@@ -1233,7 +1291,6 @@ impl XMLHttpRequest {
     fn fetch(&self,
               init: RequestInit,
               global: GlobalRef) -> ErrorResult {
-
         let xhr = Trusted::new(self);
 
         let context = Arc::new(Mutex::new(XHRContext {

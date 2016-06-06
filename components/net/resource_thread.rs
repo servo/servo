@@ -11,7 +11,7 @@ use cookie;
 use cookie_storage::CookieStorage;
 use data_loader;
 use devtools_traits::DevtoolsControlMsg;
-use fetch::methods::fetch;
+use fetch::methods::{fetch, FetchContext};
 use file_loader;
 use filemanager_thread::FileManagerThreadFactory;
 use hsts::HstsList;
@@ -23,11 +23,11 @@ use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
 use net_traits::LoadContext;
 use net_traits::ProgressMsg::Done;
+use net_traits::request::{Request, RequestInit};
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResponseAction, CoreResourceThread};
 use net_traits::{CoreResourceMsg, CookieSource, FetchResponseMsg, FetchTaskTarget, LoadConsumer};
 use net_traits::{LoadData, LoadResponse, NetworkError, ResourceId};
 use net_traits::{WebSocketCommunicate, WebSocketConnectData, ResourceThreads};
-use net_traits::request::{Request, RequestInit};
 use profile_traits::time::ProfilerChan;
 use rustc_serialize::json;
 use rustc_serialize::{Decodable, Encodable};
@@ -197,7 +197,7 @@ impl ResourceChannelManager {
             match self.from_client.recv().unwrap() {
                 CoreResourceMsg::Load(load_data, consumer, id_sender) =>
                     self.resource_manager.load(load_data, consumer, id_sender, control_sender.clone()),
-                CoreResourceMsg::Fetch(init, sender) => 
+                CoreResourceMsg::Fetch(init, sender) =>
                     self.resource_manager.fetch(init, sender),
                 CoreResourceMsg::WebsocketConnect(connect, connect_data) =>
                     self.resource_manager.websocket_connect(connect, connect_data),
@@ -486,21 +486,23 @@ impl CoreResourceManager {
                          cancel_listener));
     }
 
-    fn fetch(&self, init: RequestInit, sender: IpcSender<FetchResponseMsg>) {        
+    fn fetch(&self, init: RequestInit, sender: IpcSender<FetchResponseMsg>) {
         let http_state = HttpState {
             hsts_list: self.hsts_list.clone(),
             cookie_jar: self.cookie_jar.clone(),
             auth_cache: self.auth_cache.clone(),
             blocked_content: BLOCKED_CONTENT_RULES.clone(),
         };
+        let ua = self.user_agent.clone();
         spawn_named(format!("fetch thread for {}", init.url), move || {
             let request = Request::from_init(init);
-            // XXXManishearth: Check origin against pipeline id
+            // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
             // todo load context / mimesniff in fetch
             // todo referrer policy?
             // todo service worker stuff
             let mut target = Some(Box::new(sender) as Box<FetchTaskTarget + Send + 'static>);
-            fetch(Rc::new(request), &mut target, http_state);
+            let context = FetchContext { state: http_state, user_agent: ua };
+            fetch(Rc::new(request), &mut target, context);
         })
     }
 

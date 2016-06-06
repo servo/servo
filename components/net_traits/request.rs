@@ -4,7 +4,9 @@
 
 use hyper::header::Headers;
 use hyper::method::Method;
+use msg::constellation_msg::ReferrerPolicy;
 use std::cell::{Cell, RefCell};
+use std::mem::swap;
 use url::{Origin as UrlOrigin, Url};
 
 /// An [initiator](https://fetch.spec.whatwg.org/#concept-request-initiator)
@@ -125,6 +127,9 @@ pub struct RequestInit {
     // this should actually be set by fetch, but fetch
     // doesn't have info about the client right now
     pub origin: Url,
+    // XXXManishearth these should be part of the client object
+    pub referer_url: Option<Url>,
+    pub referrer_policy: Option<ReferrerPolicy>,
 }
 
 /// A [Request](https://fetch.spec.whatwg.org/#requests) as defined by the Fetch spec
@@ -151,8 +156,9 @@ pub struct Request {
     pub origin: RefCell<Origin>,
     pub omit_origin_header: Cell<bool>,
     pub same_origin_data: Cell<bool>,
+    /// https://fetch.spec.whatwg.org/#concept-request-referrer
     pub referer: RefCell<Referer>,
-    // TODO: referrer policy
+    pub referrer_policy: Cell<Option<ReferrerPolicy>>,
     pub synchronous: bool,
     pub mode: RequestMode,
     pub use_cors_preflight: bool,
@@ -191,6 +197,7 @@ impl Request {
             omit_origin_header: Cell::new(false),
             same_origin_data: Cell::new(false),
             referer: RefCell::new(Referer::Client),
+            referrer_policy: Cell::new(None),
             synchronous: false,
             mode: RequestMode::NoCORS,
             use_cors_preflight: false,
@@ -220,6 +227,12 @@ impl Request {
         req.credentials_mode = init.credentials_mode;
         req.use_url_credentials = init.use_url_credentials;
         *req.origin.borrow_mut() = Origin::Origin(init.origin.origin());
+        *req.referer.borrow_mut() = if let Some(url) = init.referer_url {
+            Referer::RefererUrl(url)
+        } else {
+            Referer::NoReferer
+        };
+        req.referrer_policy.set(init.referrer_policy);
         req
     }
 
@@ -246,6 +259,7 @@ impl Request {
             omit_origin_header: Cell::new(false),
             same_origin_data: Cell::new(false),
             referer: RefCell::new(Referer::Client),
+            referrer_policy: Cell::new(None),
             synchronous: false,
             // Step 1-2
             mode: match cors_attribute_state {
@@ -293,6 +307,30 @@ impl Request {
                 | Destination::Style | Destination::XSLT
                 | Destination::None => true,
             _ => false
+        }
+    }
+}
+
+impl Referer {
+    pub fn to_url(&self) -> Option<&Url> {
+        match *self {
+            Referer::NoReferer | Referer::Client => None,
+            Referer::RefererUrl(ref url) => Some(url)
+        }
+    }
+    pub fn from_url(url: Option<Url>) -> Self {
+        if let Some(url) = url {
+            Referer::RefererUrl(url)
+        } else {
+            Referer::NoReferer
+        }
+    }
+    pub fn take(&mut self) -> Option<Url> {
+        let mut new = Referer::Client;
+        swap(self, &mut new);
+        match new {
+            Referer::NoReferer | Referer::Client => None,
+            Referer::RefererUrl(url) => Some(url)
         }
     }
 }

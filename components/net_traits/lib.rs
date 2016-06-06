@@ -213,6 +213,7 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     fn process_response(&mut self, response: &Response) {
         let _ = self.send(FetchResponseMsg::ProcessResponse(response.metadata()));
     }
+
     fn process_response_chunk(&mut self, chunk: Vec<u8>) {
         let _ = self.send(FetchResponseMsg::ProcessResponseChunk(chunk));
     }
@@ -220,7 +221,8 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     fn process_response_eof(&mut self, response: &Response) {
         if response.is_network_error() {
             // todo: finer grained errors
-            let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Err(NetworkError::Internal("Network error".into()))));
+            let _ = self.send(FetchResponseMsg::ProcessResponseEOF(
+                              Err(NetworkError::Internal("Network error".into()))));
         } else {
             let _ = self.send(FetchResponseMsg::ProcessResponseEOF(Ok(())));
         }
