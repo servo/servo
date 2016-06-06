@@ -36,7 +36,7 @@ use hyper::header::Headers;
 use hyper::header::{ContentLength, ContentType};
 use hyper::http::RawStatus;
 use hyper::method::Method;
-use hyper::mime::{self, Mime};
+use hyper::mime::{self, Mime, Attr as MimeAttr, Value as MimeValue};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::JS_ClearPendingException;
@@ -521,7 +521,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             Method::Get | Method::Head => None,
             _ => data
         };
-        // Step 4
+        // Step 4 (first half)
         let extracted = data.as_ref().map(|d| d.extract());
 
         self.request_body_len.set(extracted.as_ref().map_or(0, |e| e.0.len()));
@@ -590,13 +590,55 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             use_url_credentials: use_url_credentials,
             origin: self.global().r().get_url(),
         };
-        // XHR spec differs from http, and says UTF-8 should be in capitals,
-        // instead of "utf-8", which is what Hyper defaults to. So not
-        // using content types provided by Hyper.
-        let n = "content-type";
+
+        // step 4 (second half)
         match extracted {
-            Some((_, Some(ref content_type))) =>
-                request.headers.set_raw(n.to_owned(), vec![content_type.bytes().collect()]),
+            Some((_, ref content_type)) => {
+                // this should handle Document bodies too
+                let encoding = if let Some(BodyInit::String(_)) = data {
+                    // XHR spec differs from http, and says UTF-8 should be in capitals,
+                    // instead of "utf-8", which is what Hyper defaults to. So not
+                    // using content types provided by Hyper.
+                    Some(MimeValue::Ext("UTF-8".to_string()))
+                } else {
+                    None
+                };
+
+                let mut content_type_set = false;
+                if let Some(ref ct) = *content_type {
+                    if !request.headers.has::<ContentType>() {
+                        request.headers.set_raw("content-type", vec![ct.bytes().collect()]);
+                        content_type_set = true;
+                    }
+                }
+                if !content_type_set {
+                    if let Some(old_ct) = request.headers.get_mut::<ContentType>() {
+                        if let Some(encoding) = encoding {
+                            // this can be made nicer once we have nonlexical lifetimes
+                            let new_ct = if let Some(ref charset) = old_ct.0.get_param("charset") {
+                                if !charset.as_str().eq_ignore_ascii_case(encoding.as_str()) {
+                                    let mut new_ct = old_ct.clone();
+                                    // the ordering should be retained
+                                    for mut param in &mut (new_ct.0).2 {
+                                        if param.0 == MimeAttr::Charset {
+                                            *param = (MimeAttr::Charset, encoding.clone())
+                                        }
+                                    }
+                                    Some(new_ct)
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            };
+                            if let Some(new_ct) = new_ct {
+                                *old_ct = new_ct;
+                            }
+                        }
+                    }
+                }
+
+            }
             _ => (),
         }
 
