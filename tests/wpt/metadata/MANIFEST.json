@@ -36028,7 +36028,16 @@
   "local_changes": {
     "deleted": [],
     "deleted_reftests": {},
-    "items": {},
+    "items": {
+      "testharness": {
+        "url/url-domainToUnicode.html": [
+          {
+            "path": "url/url-domainToUnicode.html",
+            "url": "/url/url-domainToUnicode.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {

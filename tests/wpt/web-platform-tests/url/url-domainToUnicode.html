@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title></title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(function() {
+    var domain = 'example.org'
+    assert_true(URL.domainToUnicode(domain) === domain, 'Ascii domain should be parsed correctly.')
+  }, 'URL.domainToUnicode valid input')
+
+  test(function() {
+    var domain = 'xn--maana-pta.com'
+    assert_true(URL.domainToUnicode(domain) === 'mañana.com', ' Ascii encoded domain should be parsed correctly.')
+  }, 'URL.domainToUnicode valid encoded input')
+
+  test(function() {
+    var domain = 'http://not.a.domain'
+    assert_true(URL.domainToUnicode(domain) === "", 'Invalid domain should be return an empty string.')
+  }, 'URL.domainToUnicode invalid input')
+</script>
