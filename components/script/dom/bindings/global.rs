@@ -26,6 +26,7 @@ use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_thread::{MainThreadScriptChan, ScriptThread, RunnableWrapper};
 use script_traits::{MsDuration, ScriptMsg as ConstellationMsg, TimerEventRequest};
 use task_source::dom_manipulation::DOMManipulationTaskSource;
+use task_source::file_reading::FileReadingTaskSource;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::Url;
 
@@ -219,10 +220,10 @@ impl<'a> GlobalRef<'a> {
 
     /// `ScriptChan` used to send messages to the event loop of this global's
     /// thread.
-    pub fn file_reading_task_source(&self) -> Box<ScriptChan + Send> {
+    pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
         match *self {
             GlobalRef::Window(ref window) => window.file_reading_task_source(),
-            GlobalRef::Worker(ref worker) => worker.script_chan(),
+            GlobalRef::Worker(ref worker) => worker.file_reading_task_source(),
         }
     }
 

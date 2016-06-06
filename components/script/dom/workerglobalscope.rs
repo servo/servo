@@ -39,6 +39,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Receiver;
+use task_source::file_reading::FileReadingTaskSource;
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback};
 use url::Url;
 
@@ -458,6 +459,10 @@ impl WorkerGlobalScope {
         } else {
             panic!("need to implement a sender for SharedWorker")
         }
+    }
+
+    pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
+        FileReadingTaskSource(self.script_chan())
     }
 
     pub fn pipeline(&self) -> PipelineId {
