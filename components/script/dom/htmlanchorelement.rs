@@ -64,7 +64,7 @@ impl HTMLAnchorElement {
         let attribute = self.upcast::<Element>().get_attribute(&ns!(), &atom!("href"));
         *self.url.borrow_mut() = attribute.and_then(|attribute| {
             let document = document_from_node(self);
-            document.url().join(&attribute.value()).ok()
+            document.base_url().join(&attribute.value()).ok()
         });
     }
 
