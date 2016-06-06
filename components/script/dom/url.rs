@@ -13,8 +13,8 @@ use dom::urlhelper::UrlHelper;
 use dom::urlsearchparams::URLSearchParams;
 use std::borrow::ToOwned;
 use std::default::Default;
-use url::{Host, Url};
 use url::quirks::domain_to_unicode;
+use url::{Host, Url};
 
 // https://url.spec.whatwg.org/#url
 #[dom_struct]
