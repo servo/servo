@@ -11,7 +11,7 @@ use cookie;
 use cookie_storage::CookieStorage;
 use data_loader;
 use devtools_traits::DevtoolsControlMsg;
-use fetch::methods::fetch;
+use fetch::methods::{fetch, FetchContext};
 use file_loader;
 use filemanager_thread::FileManagerThreadFactory;
 use hsts::HstsList;
@@ -493,6 +493,7 @@ impl CoreResourceManager {
             auth_cache: self.auth_cache.clone(),
             blocked_content: BLOCKED_CONTENT_RULES.clone(),
         };
+        let ua = self.user_agent.clone();
         spawn_named(format!("fetch thread for {}", init.url), move || {
             let request = Request::from_init(init);
             // XXXManishearth: Check origin against pipeline id
@@ -500,7 +501,8 @@ impl CoreResourceManager {
             // todo referrer policy?
             // todo service worker stuff
             let mut target = Some(Box::new(sender) as Box<FetchTaskTarget + Send + 'static>);
-            fetch(Rc::new(request), &mut target, http_state);
+            let context = FetchContext {state: http_state, user_agent: ua};
+            fetch(Rc::new(request), &mut target, context);
         })
     }
 
