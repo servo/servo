@@ -29,7 +29,7 @@ encoding = "0.2"
 euclid = {version = "0.6.4", features = ["plugins"]}
 fnv = "1.0"
 gfx_traits = {path = "../gfx_traits"}
-heapsize = "0.3.0"
+heapsize = "0.3.6"
 heapsize_plugin = "0.1.2"
 html5ever = {version = "0.5.1", features = ["heap_size", "unstable"]}
 hyper = {version = "0.9", features = ["serde-serialization"]}
