@@ -10,6 +10,7 @@ use dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyleDeclar
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
+use dom::bindings::codegen::Bindings::LocationBinding::LocationMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use dom::bindings::conversions::{FromJSValConvertible, jsstring_to_str};
 use dom::bindings::global::GlobalRef;
@@ -249,4 +250,12 @@ pub fn handle_request_animation_frame(context: &BrowsingContext,
         let msg = ScriptToDevtoolsControlMsg::FramerateTick(actor_name, time);
         devtools_sender.send(msg).unwrap();
     });
+}
+
+pub fn handle_reload(context: &BrowsingContext,
+                     id: PipelineId) {
+    let context = context.find(id).expect("There is no such context");
+    let win = context.active_window();
+    let location = win.Location();
+    location.Reload();
 }
