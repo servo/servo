@@ -2675,7 +2675,7 @@ impl DocumentMethods for Document {
                                    .filter(|node| filter_by_name(&name, node.r()))
                                    .peekable();
             if let Some(first) = elements.next() {
-                if elements.is_empty() {
+                if elements.peek().is_none() {
                     *found = true;
                     // TODO: Step 2.
                     // Step 3.
