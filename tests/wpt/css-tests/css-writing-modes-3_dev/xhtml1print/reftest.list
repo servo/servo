@@ -740,6 +740,15 @@ text-baseline-vlr-007.xht == reference/text-baseline-vrl-006-ref.xht
 text-baseline-vrl-002.xht == reference/text-baseline-vrl-002-ref.xht
 text-baseline-vrl-004.xht == reference/text-baseline-vrl-002-ref.xht
 text-baseline-vrl-006.xht == reference/text-baseline-vrl-006-ref.xht
+text-combine-upright-compression-001.xht == reference/text-combine-upright-compression-001-ref.xht
+text-combine-upright-compression-002.xht == reference/text-combine-upright-compression-002-ref.xht
+text-combine-upright-compression-003.xht == reference/text-combine-upright-compression-003-ref.xht
+text-combine-upright-compression-004.xht == reference/text-combine-upright-compression-004-ref.xht
+text-combine-upright-compression-005.xht == reference/text-combine-upright-compression-005-ref.xht
+text-combine-upright-compression-005a.xht == reference/text-combine-upright-compression-005-ref.xht
+text-combine-upright-compression-006.xht == reference/text-combine-upright-compression-006-ref.xht
+text-combine-upright-compression-006a.xht == reference/text-combine-upright-compression-006-ref.xht
+text-combine-upright-compression-007.xht == reference/text-combine-upright-compression-007-ref.xht
 text-combine-upright-decorations-001.xht == reference/text-combine-upright-decorations-001.xht
 text-combine-upright-inherit-all-001.xht == reference/text-combine-upright-inherit-all-001.xht
 text-combine-upright-inherit-all-002.xht == reference/text-combine-upright-inherit-all-002.xht
