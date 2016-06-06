@@ -25,7 +25,7 @@ pub enum Type {
 }
 
 /// A request [destination](https://fetch.spec.whatwg.org/#concept-request-destination)
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Destination {
     None, Document, Embed, Font, Image, Manifest,
     Media, Object, Report, Script, ServiceWorker,
@@ -43,12 +43,13 @@ pub enum Origin {
 #[derive(Clone, PartialEq)]
 pub enum Referer {
     NoReferer,
+    /// Default referer if nothing is specified
     Client,
     RefererUrl(Url)
 }
 
 /// A [request mode](https://fetch.spec.whatwg.org/#concept-request-mode)
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum RequestMode {
     Navigate,
     SameOrigin,
@@ -57,7 +58,7 @@ pub enum RequestMode {
 }
 
 /// Request [credentials mode](https://fetch.spec.whatwg.org/#concept-request-credentials-mode)
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Serialize, Deserialize)]
 pub enum CredentialsMode {
     Omit,
     CredentialsSameOrigin,
@@ -106,6 +107,26 @@ pub enum CORSSettings {
     UseCredentials
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct RequestInit {
+    pub method: Method,
+    pub url: Url,
+    pub headers: Headers,
+    pub unsafe_request: bool,
+    pub same_origin_data: bool,
+    pub body: Option<Vec<u8>>,
+    // TODO: cleint object
+    pub destination: Destination,
+    pub synchronous: bool,
+    pub mode: RequestMode,
+    pub use_cors_preflight: bool,
+    pub credentials_mode: CredentialsMode,
+    pub use_url_credentials: bool,
+    // this should actually be set by fetch, but fetch
+    // doesn't have info about the client right now
+    pub origin: Url,
+}
+
 /// A [Request](https://fetch.spec.whatwg.org/#requests) as defined by the Fetch spec
 #[derive(Clone)]
 pub struct Request {
@@ -130,7 +151,7 @@ pub struct Request {
     pub origin: RefCell<Origin>,
     pub omit_origin_header: Cell<bool>,
     pub same_origin_data: Cell<bool>,
-    pub referer: Referer,
+    pub referer: RefCell<Referer>,
     // TODO: referrer policy
     pub synchronous: bool,
     pub mode: RequestMode,
@@ -145,7 +166,7 @@ pub struct Request {
     pub url_list: RefCell<Vec<Url>>,
     pub redirect_count: Cell<u32>,
     pub response_tainting: Cell<ResponseTainting>,
-    pub done: Cell<bool>
+    pub done: Cell<bool>,
 }
 
 impl Request {
@@ -169,7 +190,7 @@ impl Request {
             origin: RefCell::new(origin.unwrap_or(Origin::Client)),
             omit_origin_header: Cell::new(false),
             same_origin_data: Cell::new(false),
-            referer: Referer::Client,
+            referer: RefCell::new(Referer::Client),
             synchronous: false,
             mode: RequestMode::NoCORS,
             use_cors_preflight: false,
@@ -183,6 +204,23 @@ impl Request {
             response_tainting: Cell::new(ResponseTainting::Basic),
             done: Cell::new(false)
         }
+    }
+
+    pub fn from_init(init: RequestInit) -> Request {
+        let mut req = Request::new(init.url, None, false);
+        *req.method.borrow_mut() = init.method;
+        *req.headers.borrow_mut() = init.headers;
+        req.unsafe_request = init.unsafe_request;
+        req.same_origin_data.set(init.same_origin_data);
+        *req.body.borrow_mut() = init.body;
+        req.destination = init.destination;
+        req.synchronous = init.synchronous;
+        req.mode = init.mode;
+        req.use_cors_preflight = init.use_cors_preflight;
+        req.credentials_mode = init.credentials_mode;
+        req.use_url_credentials = init.use_url_credentials;
+        *req.origin.borrow_mut() = Origin::Origin(init.origin.origin());
+        req
     }
 
     /// https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
@@ -207,7 +245,7 @@ impl Request {
             origin: RefCell::new(Origin::Client),
             omit_origin_header: Cell::new(false),
             same_origin_data: Cell::new(false),
-            referer: Referer::Client,
+            referer: RefCell::new(Referer::Client),
             synchronous: false,
             // Step 1-2
             mode: match cors_attribute_state {
