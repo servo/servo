@@ -302,7 +302,7 @@ impl Window {
         self.history_traversal_task_source.clone()
     }
 
-    pub fn file_reading_task_source(&self) -> Box<ScriptChan + Send> {
+    pub fn file_reading_task_source(&self) -> FileReadingTaskSource {
         self.file_reading_task_source.clone()
     }
 
