@@ -7,7 +7,6 @@
 #![feature(custom_derive)]
 #![feature(fnbox)]
 #![feature(plugin)]
-#![feature(panic_handler)]
 #![feature(reflect_marker)]
 #![feature(step_by)]
 
