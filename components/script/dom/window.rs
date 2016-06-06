@@ -45,7 +45,7 @@ use js::rust::Runtime;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
 use layout_interface::{LayoutRPC, Msg, Reflow, ReflowQueryType, MarginStyleResponse};
 use libc;
-use msg::constellation_msg::{LoadData, PanicMsg, PipelineId, SubpageId};
+use msg::constellation_msg::{FrameType, LoadData, PanicMsg, PipelineId, SubpageId};
 use msg::constellation_msg::{WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
@@ -202,7 +202,7 @@ pub struct Window {
     id: PipelineId,
 
     /// Subpage id associated with this page, if any.
-    parent_info: Option<(PipelineId, SubpageId)>,
+    parent_info: Option<(PipelineId, SubpageId, FrameType)>,
 
     /// Global static data related to the DOM.
     dom_static: GlobalStaticData,
@@ -330,7 +330,7 @@ impl Window {
         self.parent_info.map(|p| p.1)
     }
 
-    pub fn parent_info(&self) -> Option<(PipelineId, SubpageId)> {
+    pub fn parent_info(&self) -> Option<(PipelineId, SubpageId, FrameType)> {
         self.parent_info
     }
 
@@ -1510,7 +1510,20 @@ impl Window {
         self.current_state.get() == WindowState::Alive
     }
 
+    // https://html.spec.whatwg.org/multipage/#top-level-browsing-context
+    pub fn is_top_level(&self) -> bool {
+        match self.parent_info {
+            Some((_, _, FrameType::IFrame)) => false,
+            _ => true,
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#parent-browsing-context
     pub fn parent(&self) -> Option<Root<Window>> {
+        if self.is_top_level() {
+            return None;
+        }
+
         let browsing_context = self.browsing_context();
 
         browsing_context.frame_element().map(|frame_element| {
@@ -1559,7 +1572,7 @@ impl Window {
                timer_event_chan: IpcSender<TimerEvent>,
                layout_chan: Sender<Msg>,
                id: PipelineId,
-               parent_info: Option<(PipelineId, SubpageId)>,
+               parent_info: Option<(PipelineId, SubpageId, FrameType)>,
                window_size: Option<WindowSizeData>)
                -> Root<Window> {
         let layout_rpc: Box<LayoutRPC> = {

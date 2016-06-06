@@ -136,12 +136,13 @@ impl Pipeline {
 
         let (script_chan, content_ports) = match state.script_chan {
             Some(script_chan) => {
-                let (containing_pipeline_id, subpage_id, _) =
+                let (containing_pipeline_id, subpage_id, frame_type) =
                     state.parent_info.expect("script_pipeline != None but subpage_id == None");
                 let new_layout_info = NewLayoutInfo {
                     containing_pipeline_id: containing_pipeline_id,
                     new_pipeline_id: state.id,
                     subpage_id: subpage_id,
+                    frame_type: frame_type,
                     load_data: state.load_data.clone(),
                     paint_chan: layout_to_paint_chan.clone().to_opaque(),
                     panic_chan: state.panic_chan.clone(),
@@ -204,7 +205,7 @@ impl Pipeline {
 
             let unprivileged_pipeline_content = UnprivilegedPipelineContent {
                 id: state.id,
-                parent_info: state.parent_info.map(|(parent_id, subpage_id, _)| (parent_id, subpage_id)),
+                parent_info: state.parent_info,
                 constellation_chan: state.constellation_chan,
                 scheduler_chan: state.scheduler_chan,
                 devtools_chan: script_to_devtools_chan,
@@ -371,7 +372,7 @@ impl Pipeline {
 #[derive(Deserialize, Serialize)]
 pub struct UnprivilegedPipelineContent {
     id: PipelineId,
-    parent_info: Option<(PipelineId, SubpageId)>,
+    parent_info: Option<(PipelineId, SubpageId, FrameType)>,
     constellation_chan: IpcSender<ScriptMsg>,
     layout_to_constellation_chan: IpcSender<LayoutMsg>,
     scheduler_chan: IpcSender<TimerEventRequest>,
