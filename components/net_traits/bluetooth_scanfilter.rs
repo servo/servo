@@ -19,11 +19,7 @@ impl ServiceUUIDSequence {
     }
 
     fn get_services_set(&self) -> HashSet<String> {
-        let mut set = HashSet::new();
-        for s in self.0.iter() {
-            set.insert(s.clone());
-        }
-        set
+        self.0.iter().map(String::clone).collect()
     }
 }
 
@@ -80,11 +76,7 @@ impl BluetoothScanfilterSequence {
     }
 
     fn get_services_set(&self) -> HashSet<String> {
-        let mut set = HashSet::new();
-        for filter in self.iter() {
-            set = &set | &filter.services.get_services_set();
-        }
-        set
+        self.iter().flat_map(|filter| filter.services.get_services_set()).collect()
     }
 }
 
