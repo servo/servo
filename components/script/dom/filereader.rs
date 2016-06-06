@@ -23,11 +23,10 @@ use encoding::label::encoding_from_whatwg_label;
 use encoding::types::{DecoderTrap, EncodingRef};
 use hyper::mime::{Attr, Mime};
 use rustc_serialize::base64::{CharacterSet, Config, Newline, ToBase64};
-use script_runtime::ScriptThreadEventCategory::FileRead;
-use script_runtime::{ScriptChan, CommonScriptMsg};
-use script_thread::Runnable;
 use std::cell::Cell;
 use string_cache::Atom;
+use task_source::TaskSource;
+use task_source::file_reading::{FileReadingTaskSource, FileReadingTask};
 use util::thread::spawn_named;
 
 #[derive(PartialEq, Clone, Copy, JSTraceable, HeapSizeOf)]
@@ -358,10 +357,10 @@ impl FileReader {
         let fr = Trusted::new(self);
         let gen_id = self.generation_id.get();
 
-        let script_chan = self.global().r().file_reading_task_source();
+        let task_source = self.global().r().file_reading_task_source();
 
         spawn_named("file reader async operation".to_owned(), move || {
-            perform_annotated_read_operation(gen_id, load_data, blob_contents, fr, script_chan)
+            perform_annotated_read_operation(gen_id, load_data, blob_contents, fr, task_source)
         });
         Ok(())
     }
@@ -371,45 +370,13 @@ impl FileReader {
     }
 }
 
-#[derive(Clone)]
-pub enum FileReaderEvent {
-    ProcessRead(TrustedFileReader, GenerationId),
-    ProcessReadData(TrustedFileReader, GenerationId),
-    ProcessReadError(TrustedFileReader, GenerationId, DOMErrorName),
-    ProcessReadEOF(TrustedFileReader, GenerationId, ReadMetaData, DataSlice)
-}
-
-impl Runnable for FileReaderEvent {
-    fn handler(self: Box<FileReaderEvent>) {
-        let file_reader_event = *self;
-        match file_reader_event {
-            FileReaderEvent::ProcessRead(filereader, gen_id) => {
-                FileReader::process_read(filereader, gen_id);
-            },
-            FileReaderEvent::ProcessReadData(filereader, gen_id) => {
-                FileReader::process_read_data(filereader, gen_id);
-            },
-            FileReaderEvent::ProcessReadError(filereader, gen_id, error) => {
-                FileReader::process_read_error(filereader, gen_id, error);
-            },
-            FileReaderEvent::ProcessReadEOF(filereader, gen_id, data, blob_contents) => {
-                FileReader::process_read_eof(filereader, gen_id, data, blob_contents);
-            }
-        }
-    }
-}
-
 // https://w3c.github.io/FileAPI/#thread-read-operation
 fn perform_annotated_read_operation(gen_id: GenerationId, data: ReadMetaData, blob_contents: DataSlice,
-    filereader: TrustedFileReader, script_chan: Box<ScriptChan + Send>) {
-    let chan = &script_chan;
+    filereader: TrustedFileReader, task_source: FileReadingTaskSource) {
     // Step 4
-    let thread = box FileReaderEvent::ProcessRead(filereader.clone(), gen_id);
-    chan.send(CommonScriptMsg::RunnableMsg(FileRead, thread)).unwrap();
+    task_source.queue(FileReadingTask::ProcessRead(filereader.clone(), gen_id)).unwrap();
 
-    let thread = box FileReaderEvent::ProcessReadData(filereader.clone(), gen_id);
-    chan.send(CommonScriptMsg::RunnableMsg(FileRead, thread)).unwrap();
+    task_source.queue(FileReadingTask::ProcessReadData(filereader.clone(), gen_id)).unwrap();
 
-    let thread = box FileReaderEvent::ProcessReadEOF(filereader, gen_id, data, blob_contents);
-    chan.send(CommonScriptMsg::RunnableMsg(FileRead, thread)).unwrap();
+    task_source.queue(FileReadingTask::ProcessReadEOF(filereader, gen_id, data, blob_contents)).unwrap();
 }
