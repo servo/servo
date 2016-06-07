@@ -36030,6 +36030,12 @@
     "deleted_reftests": {},
     "items": {
       "testharness": {
+        "html/semantics/forms/the-form-element/form-indexed-element.html": [
+          {
+            "path": "html/semantics/forms/the-form-element/form-indexed-element.html",
+            "url": "/html/semantics/forms/the-form-element/form-indexed-element.html"
+          }
+        ],
         "url/url-domainToUnicode.html": [
           {
             "path": "url/url-domainToUnicode.html",
