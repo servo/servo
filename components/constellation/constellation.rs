@@ -1281,47 +1281,32 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 let prev = frame.current;
                 let next = match direction {
                     NavigationDirection::Forward(delta) => {
-                        if frame.next.len() < delta {
+                        if delta > frame.next.len() && delta > 0 {
                             return warn!("Invalid navigation delta");
                         }
-                        let mut new_current = frame.current;
-                        for _ in 0..delta {
-                            match frame.next.pop() {
-                                None => {
-                                    warn!("no next page to navigate to");
-                                    return;
-                                },
-                                Some(next) => {
-                                    frame.prev.push(frame.current);
-                                    frame.current = next;
-                                    new_current = next;
-                                },
-                            }
-                        }
-                        new_current
+                        let new_next_len = frame.next.len() - (delta - 1);
+                        frame.prev.push(frame.current);
+                        frame.prev.extend(frame.next.drain(new_next_len..).rev());
+                        frame.current = match frame.next.pop() {
+                            Some(frame) => frame,
+                            None => return warn!("Could not get next frame for forward navigation"),
+                        };
+                        frame.current
                     }
                     NavigationDirection::Back(delta) => {
-                        if frame.prev.len() < delta {
+                        if delta > frame.prev.len() && delta > 0 {
                             return warn!("Invalid navigation delta");
                         }
-                        let mut new_current = frame.current;
-                        for _ in 0..delta {
-                            match frame.prev.pop() {
-                                None => {
-                                    warn!("no prev page to navigate to");
-                                    return;
-                                },
-                                Some(prev) => {
-                                    frame.next.push(frame.current);
-                                    frame.current = prev;
-                                    new_current = prev;
-                                },
-                            }
-                        }
-                        new_current
+                        let new_prev_len = frame.prev.len() - (delta - 1);
+                        frame.next.push(frame.current);
+                        frame.next.extend(frame.prev.drain(new_prev_len..).rev());
+                        frame.current = match frame.prev.pop() {
+                            Some(frame) => frame,
+                            None => return warn!("Could not get prev frame for back navigation"),
+                        };
+                        frame.current
                     }
                 };
-                frame.current = next;
                 (prev, next)
             },
             None => {
