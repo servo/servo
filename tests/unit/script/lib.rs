@@ -15,5 +15,4 @@ extern crate url;
 #[cfg(test)] mod dom {
     mod bindings;
     mod blob;
-    mod xmlhttprequest;
 }

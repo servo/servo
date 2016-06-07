@@ -573,3 +573,27 @@ pub enum NetworkError {
     /// SSL validation error that has to be handled in the HTML parser
     SslValidation(Url),
 }
+
+/// Normalize `slice`, as defined by
+/// [the Fetch Spec](https://fetch.spec.whatwg.org/#concept-header-value-normalize).
+pub fn trim_http_whitespace(mut slice: &[u8]) -> &[u8] {
+    const HTTP_WS_BYTES: &'static [u8] = b"\x09\x0A\x0D\x20";
+
+    loop {
+        match slice.split_first() {
+            Some((first, remainder)) if HTTP_WS_BYTES.contains(first) =>
+                slice = remainder,
+            _ => break,
+        }
+    }
+
+    loop {
+        match slice.split_last() {
+            Some((last, remainder)) if HTTP_WS_BYTES.contains(last) =>
+                slice = remainder,
+            _ => break,
+        }
+    }
+
+    slice
+}
