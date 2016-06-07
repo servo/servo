@@ -40,6 +40,7 @@ use dom::eventtarget::EventTarget;
 use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
+use dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
 use dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use dom::nodelist::NodeList;
@@ -71,6 +72,7 @@ use std::mem;
 use std::ops::Range;
 use string_cache::{Atom, Namespace, QualName};
 use style::selector_impl::ServoSelectorImpl;
+use url::Url;
 use util::thread_state;
 use uuid::Uuid;
 
@@ -962,6 +964,7 @@ pub trait LayoutNodeHelpers {
 
     fn text_content(&self) -> String;
     fn selection(&self) -> Option<Range<usize>>;
+    fn image_url(&self) -> Option<Url>;
 }
 
 impl LayoutNodeHelpers for LayoutJS<Node> {
@@ -1081,6 +1084,15 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
         }
 
         None
+    }
+
+    #[allow(unsafe_code)]
+    fn image_url(&self) -> Option<Url> {
+        unsafe {
+            self.downcast::<HTMLImageElement>()
+                .expect("not an image!")
+                .image_url()
+        }
     }
 }
 

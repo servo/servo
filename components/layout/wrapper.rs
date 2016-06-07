@@ -48,7 +48,6 @@ use script::dom::document::{Document, LayoutDocumentHelpers};
 use script::dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmlcanvaselement::{LayoutHTMLCanvasElementHelpers, HTMLCanvasData};
 use script::dom::htmliframeelement::HTMLIFrameElement;
-use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
 use script::dom::node::{CAN_BE_FRAGMENTED, HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
 use script::dom::node::{LayoutNodeHelpers, Node, OpaqueStyleAndLayoutData};
 use script::dom::text::Text;
@@ -1147,11 +1146,8 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     }
 
     fn image_url(&self) -> Option<Url> {
-        unsafe {
-            self.get_jsmanaged().downcast()
-                .expect("not an image!")
-                .image_url()
-        }
+        let this = unsafe { self.get_jsmanaged() };
+        this.image_url()
     }
 
     fn canvas_data(&self) -> Option<HTMLCanvasData> {
