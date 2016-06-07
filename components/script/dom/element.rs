@@ -129,12 +129,12 @@ pub enum AdjacentPosition {
 
 impl AdjacentPosition {
     pub fn parse(position: &str) -> Fallible<AdjacentPosition> {
-        match position {
+        match_ignore_ascii_case! { &*position,
             "beforebegin" => Ok(AdjacentPosition::BeforeBegin),
             "afterbegin"  => Ok(AdjacentPosition::AfterEnd),
             "beforeend"   => Ok(AdjacentPosition::AfterBegin),
             "afterend"    => Ok(AdjacentPosition::BeforeEnd),
-            _             => Err(Error::Syntax),
+            _             => Err(Error::Syntax)
         }
     }
 }
