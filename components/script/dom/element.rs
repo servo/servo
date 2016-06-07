@@ -120,6 +120,25 @@ pub enum ElementCreator {
     ScriptCreated,
 }
 
+pub enum AdjacentPosition {
+    BeforeBegin,
+    AfterEnd,
+    AfterBegin,
+    BeforeEnd,
+}
+
+impl AdjacentPosition {
+    pub fn parse(position: &str) -> Fallible<AdjacentPosition> {
+        match position {
+            "beforebegin" => Ok(AdjacentPosition::BeforeBegin),
+            "afterbegin"  => Ok(AdjacentPosition::AfterEnd),
+            "beforeend"   => Ok(AdjacentPosition::AfterBegin),
+            "afterend"    => Ok(AdjacentPosition::BeforeEnd),
+            _             => Err(Error::Syntax),
+        }
+    }
+}
+
 //
 // Element methods
 //
@@ -1253,31 +1272,30 @@ impl Element {
     }
 
     // https://dom.spec.whatwg.org/#insert-adjacent
-    pub fn insert_adjacent(&self, where_: DOMString, node: &Node)
+    pub fn insert_adjacent(&self, where_: AdjacentPosition, node: &Node)
                            -> Fallible<Option<Root<Node>>> {
         let self_node = self.upcast::<Node>();
-        match &*where_ {
-            "beforebegin" => {
+        match where_ {
+            AdjacentPosition::BeforeBegin => {
                 if let Some(parent) = self_node.GetParentNode() {
                     Node::pre_insert(node, &parent, Some(self_node)).map(Some)
                 } else {
                     Ok(None)
                 }
             }
-            "afterbegin" => {
+            AdjacentPosition::AfterBegin => {
                 Node::pre_insert(node, &self_node, self_node.GetFirstChild().r()).map(Some)
             }
-            "beforeend" => {
+            AdjacentPosition::BeforeEnd => {
                 Node::pre_insert(node, &self_node, None).map(Some)
             }
-            "afterend" => {
+            AdjacentPosition::AfterEnd => {
                 if let Some(parent) = self_node.GetParentNode() {
                     Node::pre_insert(node, &parent, self_node.GetNextSibling().r()).map(Some)
                 } else {
                     Ok(None)
                 }
             }
-            _ => Err(Error::Syntax)
         }
     }
 
@@ -1996,6 +2014,7 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-insertadjacentelement
     fn InsertAdjacentElement(&self, where_: DOMString, element: &Element)
                              -> Fallible<Option<Root<Element>>> {
+        let where_ = try!(AdjacentPosition::parse(&*where_));
         let inserted_node = try!(self.insert_adjacent(where_, element.upcast()));
         Ok(inserted_node.map(|node| Root::downcast(node).unwrap()))
     }
@@ -2007,6 +2026,7 @@ impl ElementMethods for Element {
         let text = Text::new(data, &document_from_node(self));
 
         // Step 2.
+        let where_ = try!(AdjacentPosition::parse(&*where_));
         self.insert_adjacent(where_, text.upcast()).map(|_| ())
     }
 }
