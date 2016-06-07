@@ -611,29 +611,21 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     }
                 }
                 if !content_type_set {
-                    if let Some(old_ct) = request.headers.get_mut::<ContentType>() {
+                    let ct = request.headers.get::<ContentType>().map(|x| x.clone());
+                    if let Some(mut ct) = ct {
                         if let Some(encoding) = encoding {
-                            // this can be made nicer once we have nonlexical lifetimes
-                            let new_ct = if let Some(ref charset) = old_ct.0.get_param("charset") {
-                                if !charset.as_str().eq_ignore_ascii_case(encoding.as_str()) {
-                                    let mut new_ct = old_ct.clone();
-                                    // the ordering should be retained
-                                    for mut param in &mut (new_ct.0).2 {
-                                        if param.0 == MimeAttr::Charset {
-                                            *param = (MimeAttr::Charset, encoding.clone())
-                                        }
+                            for param in (ct.0).2.iter_mut() {
+                                if param.0 == MimeAttr::Charset {
+                                    if !param.0.as_str().eq_ignore_ascii_case(encoding.as_str()) {
+                                        *param = (MimeAttr::Charset, encoding.clone());
                                     }
-                                    Some(new_ct)
-                                } else {
-                                    None
                                 }
-                            } else {
-                                None
-                            };
-                            if let Some(new_ct) = new_ct {
-                                *old_ct = new_ct;
                             }
                         }
+                        // remove instead of mutate in place
+                        // https://github.com/hyperium/hyper/issues/821
+                        request.headers.remove_raw("content-type");
+                        request.headers.set(ct);
                     }
                 }
 
@@ -641,7 +633,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             _ => (),
         }
 
-        debug!("request_headers = {:?}", *self.request_headers.borrow());
+        debug!("request.headers = {:?}", request.headers);
 
         self.fetch_time.set(time::now().to_timespec().sec);
 
