@@ -14,6 +14,7 @@ app_units = "0.2.5"
 azure = {git = "https://github.com/servo/rust-azure", features = ["plugins"]}
 bitflags = "0.7"
 euclid = "0.7.1"
+fontsan = {git = "https://github.com/servo/fontsan"}
 fnv = "1.0"
 gfx_traits = {path = "../gfx_traits"}
 harfbuzz-sys = "0.1"

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use font_template::{FontTemplate, FontTemplateDescriptor};
+use fontsan;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use mime::{TopLevel, SubLevel};
@@ -255,12 +256,24 @@ impl FontCache {
                             }
                             let mut bytes = bytes.lock().unwrap();
                             let bytes = mem::replace(&mut *bytes, Vec::new());
-                            let command =
-                                Command::AddDownloadedWebFont(family_name.clone(),
-                                                              url.clone(),
-                                                              bytes,
-                                                              sender.clone());
-                            channel_to_self.send(command).unwrap();
+
+                            match fontsan::process(&bytes) {
+                                Ok(san) => {
+                                    let command =
+                                        Command::AddDownloadedWebFont(family_name.clone(),
+                                                                      url.clone(),
+                                                                      san,
+                                                                      sender.clone());
+                                    channel_to_self.send(command).unwrap();
+                                }
+                                Err(_) => {
+                                    // FIXME(servo/fontsan#1): get an error message
+                                    debug!("Sanitiser rejected web font: \
+                                            family={:?} url={}", family_name, url);
+                                    let msg = Command::AddWebFont(family_name.clone(), sources.clone(), sender.clone());
+                                    channel_to_self.send(msg).unwrap();
+                                }
+                            }
                         }
                     }
                 });
