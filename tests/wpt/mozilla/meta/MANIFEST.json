@@ -6550,6 +6550,12 @@
             "url": "/_mozilla/mozilla/mozbrowser/mozbrowser_click_fires_openwindow.html"
           }
         ],
+        "mozilla/mozbrowser/mozbrowser_iframe_parentage.html": [
+          {
+            "path": "mozilla/mozbrowser/mozbrowser_iframe_parentage.html",
+            "url": "/_mozilla/mozilla/mozbrowser/mozbrowser_iframe_parentage.html"
+          }
+        ],
         "mozilla/mozbrowser/mozbrowser_loadevents.html": [
           {
             "path": "mozilla/mozbrowser/mozbrowser_loadevents.html",
