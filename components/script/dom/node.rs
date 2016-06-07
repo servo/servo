@@ -41,6 +41,7 @@ use dom::htmlbodyelement::HTMLBodyElement;
 use dom::htmlcanvaselement::{LayoutHTMLCanvasElementHelpers, HTMLCanvasData};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
+use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
 use dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
 use dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
@@ -58,6 +59,7 @@ use html5ever::tree_builder::QuirksMode;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use layout_interface::Msg;
 use libc::{self, c_void, uintptr_t};
+use msg::constellation_msg::PipelineId;
 use parse::html::parse_html_fragment;
 use ref_slice::ref_slice;
 use script_traits::UntrustedNodeAddress;
@@ -967,6 +969,7 @@ pub trait LayoutNodeHelpers {
     fn selection(&self) -> Option<Range<usize>>;
     fn image_url(&self) -> Option<Url>;
     fn canvas_data(&self) -> Option<HTMLCanvasData>;
+    fn iframe_pipeline_id(&self) -> PipelineId;
 }
 
 impl LayoutNodeHelpers for LayoutJS<Node> {
@@ -1100,6 +1103,12 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
     fn canvas_data(&self) -> Option<HTMLCanvasData> {
         self.downcast()
             .map(|canvas| canvas.data())
+    }
+
+    fn iframe_pipeline_id(&self) -> PipelineId {
+        let iframe_element = self.downcast::<HTMLIFrameElement>()
+            .expect("not an iframe element!");
+        iframe_element.pipeline_id().unwrap()
     }
 }
 

@@ -47,7 +47,6 @@ use script::dom::characterdata::LayoutCharacterDataHelpers;
 use script::dom::document::{Document, LayoutDocumentHelpers};
 use script::dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
 use script::dom::htmlcanvaselement::HTMLCanvasData;
-use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::node::{CAN_BE_FRAGMENTED, HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
 use script::dom::node::{LayoutNodeHelpers, Node, OpaqueStyleAndLayoutData};
 use script::dom::text::Text;
@@ -1156,12 +1155,8 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     }
 
     fn iframe_pipeline_id(&self) -> PipelineId {
-        use script::dom::htmliframeelement::HTMLIFrameElementLayoutMethods;
-        unsafe {
-            let iframe_element = self.get_jsmanaged().downcast::<HTMLIFrameElement>()
-                .expect("not an iframe element!");
-            iframe_element.pipeline_id().unwrap()
-        }
+        let this = unsafe { self.get_jsmanaged() };
+        this.iframe_pipeline_id()
     }
 
     fn get_colspan(&self) -> u32 {
