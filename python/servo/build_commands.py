@@ -186,6 +186,10 @@ class MachCommands(CommandBase):
 
         if release:
             opts += ["--release"]
+            servo_path = release_path
+        else:
+            servo_path = dev_path
+
         if jobs is not None:
             opts += ["-j", jobs]
         if verbose:
@@ -240,6 +244,20 @@ class MachCommands(CommandBase):
         if sys.platform == "win32" or sys.platform == "msys":
             shutil.copy(path.join(self.get_top_dir(), "components", "servo", "servo.exe.manifest"),
                         path.join(base_path, "debug" if dev else "release"))
+
+        # On the Mac, set a lovely icon. This makes it easier to pick out the Servo binary in tools
+        # like Instruments.app.
+        if sys.platform == "darwin":
+            try:
+                import Cocoa
+                icon_path = path.join(self.get_top_dir(), "resources", "servo.png")
+                icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
+                if icon is not None:
+                    Cocoa.NSWorkspace.sharedWorkspace().setIcon_forFile_options_(icon,
+                                                                                 servo_path,
+                                                                                 0)
+            except ImportError:
+                pass
 
         # Generate Desktop Notification if elapsed-time > some threshold value
         notify_build_done(elapsed)
