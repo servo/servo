@@ -45,9 +45,9 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::trim_http_whitespace;
-use net_traits::{FetchResponseListener, Metadata, NetworkError, RequestSource};
-use net_traits::{CoreResourceThread, LoadOrigin};
 use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
+use net_traits::{CoreResourceThread, LoadOrigin};
+use net_traits::{FetchResponseListener, Metadata, NetworkError, RequestSource};
 use network_listener::{NetworkListener, PreInvoke};
 use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
@@ -1269,7 +1269,6 @@ impl XMLHttpRequest {
     fn fetch(&self,
               init: RequestInit,
               global: GlobalRef) -> ErrorResult {
-
         let xhr = Trusted::new(self);
 
         let context = Arc::new(Mutex::new(XHRContext {

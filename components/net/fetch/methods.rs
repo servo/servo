@@ -5,8 +5,9 @@
 use connector::create_http_connector;
 use data_loader::decode;
 use fetch::cors_cache::CORSCache;
-use http_loader::{auth_from_cache, determine_request_referrer, HttpState, set_default_accept_encoding, set_request_cookies};
+use http_loader::{HttpState, set_default_accept_encoding, set_request_cookies};
 use http_loader::{NetworkHttpRequestFactory, ReadResult, StreamedResponse, obtain_response, read_block};
+use http_loader::{auth_from_cache, determine_request_referrer};
 use hyper::header::{Accept, AcceptLanguage, Authorization, AccessControlAllowCredentials};
 use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
 use hyper::header::{AccessControlRequestHeaders, AccessControlMaxAge, AccessControlRequestMethod, Basic};
@@ -438,7 +439,6 @@ fn http_fetch(request: Rc<Request>,
               target: &mut Target,
               done_chan: &mut DoneChannel,
               context: &FetchContext) -> Response {
-
     // This is a new async fetch, reset the channel we are waiting on
     *done_chan = None;
     // Step 1
@@ -941,7 +941,7 @@ fn http_network_fetch(request: Rc<Request>,
     let wrapped_response = obtain_response(&factory, &url, &request.method.borrow(),
                                            &request.headers.borrow(),
                                            &cancellation_listener, &request.body.borrow(), &request.method.borrow(),
-                                           &None, request.redirect_count.get()+1, &None, "");
+                                           &None, request.redirect_count.get() + 1, &None, "");
 
     let mut response = Response::new();
     match wrapped_response {
@@ -955,7 +955,7 @@ fn http_network_fetch(request: Rc<Request>,
 
             // We're about to spawn a thread to be waited on here
             *done_chan = Some(channel());
-            let meta = response.metadata().expect("Response metadata should exist at this stage"); 
+            let meta = response.metadata().expect("Response metadata should exist at this stage");
             let done_sender = done_chan.as_ref().map(|ch| ch.0.clone());
             spawn_named(format!("fetch worker thread"), move || {
                 match StreamedResponse::from_http_response(box res, meta) {
@@ -965,7 +965,6 @@ fn http_network_fetch(request: Rc<Request>,
                             match read_block(&mut res) {
                                 Ok(ReadResult::Payload(chunk)) => {
                                     if let ResponseBody::Receiving(ref mut body) = *res_body.lock().unwrap() {
-
                                         body.extend_from_slice(&chunk);
                                         if let Some(ref sender) = done_sender {
                                             let _ = sender.send(Data::Payload(chunk));
