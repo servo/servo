@@ -68,6 +68,7 @@ use std::cmp::max;
 use std::default::Default;
 use std::iter::{self, FilterMap, Peekable};
 use std::mem;
+use std::ops::Range;
 use string_cache::{Atom, Namespace, QualName};
 use style::selector_impl::ServoSelectorImpl;
 use util::thread_state;
@@ -960,6 +961,7 @@ pub trait LayoutNodeHelpers {
     unsafe fn init_style_and_layout_data(&self, OpaqueStyleAndLayoutData);
 
     fn text_content(&self) -> String;
+    fn selection(&self) -> Option<Range<usize>>;
 }
 
 impl LayoutNodeHelpers for LayoutJS<Node> {
@@ -1066,6 +1068,19 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
         }
 
         panic!("not text!")
+    }
+
+    #[allow(unsafe_code)]
+    fn selection(&self) -> Option<Range<usize>> {
+        if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
+            return unsafe { area.selection_for_layout() };
+        }
+
+        if let Some(input) = self.downcast::<HTMLInputElement>() {
+            return unsafe { input.selection_for_layout() };
+        }
+
+        None
     }
 }
 

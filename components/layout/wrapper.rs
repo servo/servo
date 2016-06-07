@@ -49,8 +49,6 @@ use script::dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelper
 use script::dom::htmlcanvaselement::{LayoutHTMLCanvasElementHelpers, HTMLCanvasData};
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::htmlimageelement::LayoutHTMLImageElementHelpers;
-use script::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
-use script::dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use script::dom::node::{CAN_BE_FRAGMENTED, HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
 use script::dom::node::{LayoutNodeHelpers, Node, OpaqueStyleAndLayoutData};
 use script::dom::text::Text;
@@ -1142,15 +1140,10 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     fn selection(&self) -> Option<Range<ByteIndex>> {
         let this = unsafe { self.get_jsmanaged() };
 
-        let selection = if let Some(area) = this.downcast::<HTMLTextAreaElement>() {
-            unsafe { area.selection_for_layout() }
-        } else if let Some(input) = this.downcast::<HTMLInputElement>() {
-            unsafe { input.selection_for_layout() }
-        } else {
-            return None;
-        };
-        selection.map(|range| Range::new(ByteIndex(range.start as isize),
-                                         ByteIndex(range.len() as isize)))
+        this.selection().map(|range| {
+            Range::new(ByteIndex(range.start as isize),
+                       ByteIndex(range.len() as isize))
+        })
     }
 
     fn image_url(&self) -> Option<Url> {
