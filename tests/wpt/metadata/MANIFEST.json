@@ -36028,7 +36028,16 @@
   "local_changes": {
     "deleted": [],
     "deleted_reftests": {},
-    "items": {},
+    "items": {
+      "testharness": {
+        "html/semantics/forms/the-form-element/form-indexed-element.html": [
+          {
+            "path": "html/semantics/forms/the-form-element/form-indexed-element.html",
+            "url": "/html/semantics/forms/the-form-element/form-indexed-element.html"
+          }
+        ]
+      }
+    },
     "reftest_nodes": {}
   },
   "reftest_nodes": {

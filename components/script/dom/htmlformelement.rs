@@ -54,7 +54,7 @@ use task_source::TaskSource;
 use task_source::dom_manipulation::DOMManipulationTask;
 use url::form_urlencoded;
 use util::str::split_html_space_chars;
-
+n
 #[derive(JSTraceable, PartialEq, Clone, Copy, HeapSizeOf)]
 pub struct GenerationId(u32);
 
@@ -228,6 +228,12 @@ impl HTMLFormElementMethods for HTMLFormElement {
     // https://html.spec.whatwg.org/multipage/#dom-form-length
     fn Length(&self) -> u32 {
         self.Elements().Length() as u32
+    }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-form-item
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<Element>> {
+        let elements = self.Elements();
+        *elements.IndexedGetter(index, found)
     }
 }
 
