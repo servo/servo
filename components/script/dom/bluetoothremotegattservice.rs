@@ -170,6 +170,9 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                           service: BluetoothServiceUUID)
                           -> Fallible<Root<BluetoothRemoteGATTService>> {
         let uuid = try!(BluetoothUUID::GetService(self.global().r(), service)).to_string();
+        if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
+            return Err(Security)
+        }
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
             BluetoothMethodMsg::GetIncludedService(self.get_instance_id(),
@@ -196,7 +199,12 @@ impl BluetoothRemoteGATTServiceMethods for BluetoothRemoteGATTService {
                           -> Fallible<Vec<Root<BluetoothRemoteGATTService>>> {
         let mut uuid: Option<String> = None;
         if let Some(s) = service {
-            uuid = Some(try!(BluetoothUUID::GetService(self.global().r(), s)).to_string())
+            uuid = Some(try!(BluetoothUUID::GetService(self.global().r(), s)).to_string());
+            if let Some(ref uuid) = uuid {
+                if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
+                    return Err(Security)
+                }
+            }
         };
         let (sender, receiver) = ipc::channel().unwrap();
         self.get_bluetooth_thread().send(
