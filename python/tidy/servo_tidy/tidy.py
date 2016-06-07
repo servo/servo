@@ -41,6 +41,7 @@ ignored_files = [
     os.path.join(".", "tests", "wpt", "metadata", "MANIFEST.json"),
     os.path.join(".", "tests", "wpt", "metadata-css", "MANIFEST.json"),
     os.path.join(".", "components", "script", "dom", "webidls", "ForceTouchEvent.webidl"),
+    os.path.join(".", "components", "servo", "info_plist.rs"),
     # Hidden files
     os.path.join(".", "."),
 ]
