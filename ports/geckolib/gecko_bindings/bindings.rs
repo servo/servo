@@ -134,6 +134,8 @@ pub enum ServoNodeData { }
 pub enum ServoComputedValues { }
 pub enum RawServoStyleSheet { }
 pub enum RawServoStyleSet { }
+pub enum nsHTMLCSSStyleSheet { }
+pub enum ServoDeclarationBlock { }
 pub type ThreadSafePrincipalHolder = nsMainThreadPtrHolder<nsIPrincipal>;
 pub type ThreadSafeURIHolder = nsMainThreadPtrHolder<nsIURI>;
 extern "C" {
@@ -170,6 +172,8 @@ extern "C" {
     pub fn Gecko_ClassOrClassList(element: *mut RawGeckoElement,
                                   class_: *mut *mut nsIAtom,
                                   classList: *mut *mut *mut nsIAtom) -> u32;
+    pub fn Gecko_GetServoDeclarationBlock(element: *mut RawGeckoElement)
+     -> *mut ServoDeclarationBlock;
     pub fn Gecko_GetNodeData(node: *mut RawGeckoNode) -> *mut ServoNodeData;
     pub fn Gecko_SetNodeData(node: *mut RawGeckoNode,
                              data: *mut ServoNodeData);
@@ -242,6 +246,18 @@ extern "C" {
     pub fn Servo_StyleSheetHasRules(sheet: *mut RawServoStyleSheet) -> bool;
     pub fn Servo_InitStyleSet() -> *mut RawServoStyleSet;
     pub fn Servo_DropStyleSet(set: *mut RawServoStyleSet);
+    pub fn Servo_ParseStyleAttribute(bytes: *const u8, length: u8,
+                                     cache: *mut nsHTMLCSSStyleSheet)
+     -> *mut ServoDeclarationBlock;
+    pub fn Servo_DropDeclarationBlock(declarations:
+                                          *mut ServoDeclarationBlock);
+    pub fn Servo_GetDeclarationBlockCache(declarations:
+                                              *mut ServoDeclarationBlock)
+     -> *mut nsHTMLCSSStyleSheet;
+    pub fn Servo_SetDeclarationBlockImmutable(declarations:
+                                                  *mut ServoDeclarationBlock);
+    pub fn Servo_ClearDeclarationBlockCachePointer(declarations:
+                                                       *mut ServoDeclarationBlock);
     pub fn Servo_GetComputedValues(node: *mut RawGeckoNode)
      -> *mut ServoComputedValues;
     pub fn Servo_GetComputedValuesForAnonymousBox(parentStyleOrNull:
