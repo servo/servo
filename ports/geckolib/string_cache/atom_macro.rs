@@ -1,4 +1,4 @@
-use gecko_bindings::bindings::nsIAtom;
+use gecko_bindings::structs::nsIAtom;
 
 use Atom;
 

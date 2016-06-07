@@ -24,7 +24,7 @@ with open(objdir_path + "/dist/include/nsGkAtomList.h") as f:
     atoms = [line_to_atom(line) for line in lines]
 
 with open("atom_macro.rs", "w") as f:
-    f.write("use gecko_bindings::bindings::nsIAtom;\n\n")
+    f.write("use gecko_bindings::structs::nsIAtom;\n\n")
     f.write("use Atom;\n\n")
     f.write("pub fn unsafe_atom_from_static(ptr: *mut nsIAtom) -> Atom { unsafe { Atom::from_static(ptr) } }\n\n")
     for atom in atoms:
