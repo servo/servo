@@ -2029,6 +2029,40 @@ impl ElementMethods for Element {
         let where_ = try!(AdjacentPosition::parse(&*where_));
         self.insert_adjacent(where_, text.upcast()).map(|_| ())
     }
+
+    // https://w3c.github.io/DOM-Parsing/#dom-element-insertadjacenthtml
+    fn InsertAdjacentHTML(&self, position: DOMString, text: DOMString)
+                          -> ErrorResult {
+
+        // Step 1.
+        let position = try!(AdjacentPosition::parse(&*position));
+
+        let context = match position {
+            AdjacentPosition::BeforeBegin | AdjacentPosition::AfterEnd => {
+                match self.clone().upcast::<Node>().GetParentNode() {
+                    Some(ref node) if node.is::<Document>() => {
+                        return Err(Error::NoModificationAllowed)
+                    }
+                    None => return Err(Error::NoModificationAllowed),
+                    Some(node) => node,
+                }
+            }
+            AdjacentPosition::AfterBegin | AdjacentPosition::BeforeEnd => Root::from_ref(self.upcast::<Node>()),
+        };
+
+        // Step 2.
+        let context = match context.downcast::<Element>() {
+            Some(elem) if elem.local_name() != &atom!("html") ||
+                          !elem.html_element_in_html_document() => Root::from_ref(elem),
+            _ => Root::upcast(HTMLBodyElement::new(atom!("body"), None, &*context.owner_doc()))
+        };
+
+        // Step 3.
+        let fragment = try!(context.upcast::<Node>().parse_fragment(text));
+
+        // Step 4.
+        context.insert_adjacent(position, fragment.upcast()).map(|_| ())
+    }
 }
 
 pub fn fragment_affecting_attributes() -> [Atom; 3] {
