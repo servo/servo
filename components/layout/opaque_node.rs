@@ -6,8 +6,8 @@
 
 use gfx::display_list::OpaqueNode;
 use libc::{c_void, uintptr_t};
-use script::dom::bindings::js::LayoutJS;
-use script::dom::node::Node;
+use script::layout_interface::LayoutJS;
+use script::layout_interface::Node;
 use script::layout_interface::TrustedNodeAddress;
 use script_traits::UntrustedNodeAddress;
 

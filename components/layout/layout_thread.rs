@@ -47,7 +47,7 @@ use query::process_offset_parent_query;
 use query::{LayoutRPCImpl, process_content_box_request, process_content_boxes_request};
 use query::{process_node_geometry_request, process_node_layer_id_request, process_node_scroll_area_request};
 use query::{process_node_overflow_request, process_resolved_style_request, process_margin_style_query};
-use script::dom::node::OpaqueStyleAndLayoutData;
+use script::layout_interface::OpaqueStyleAndLayoutData;
 use script::layout_interface::{LayoutRPC, OffsetParentResponse, NodeOverflowResponse, MarginStyleResponse};
 use script::layout_interface::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
 use script::reporter::CSSErrorReporter;
