@@ -5,7 +5,7 @@
 use connector::create_http_connector;
 use data_loader::decode;
 use fetch::cors_cache::CORSCache;
-use http_loader::{auth_from_cache, HttpState, set_default_accept_encoding, set_request_cookies};
+use http_loader::{auth_from_cache, determine_request_referrer, HttpState, set_default_accept_encoding, set_request_cookies};
 use http_loader::{NetworkHttpRequestFactory, ReadResult, StreamedResponse, obtain_response, read_block};
 use hyper::header::{Accept, AcceptLanguage, Authorization, AccessControlAllowCredentials};
 use hyper::header::{AccessControlAllowOrigin, AccessControlAllowHeaders, AccessControlAllowMethods};
@@ -721,16 +721,14 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 
     // Step 6
     match *http_request.referer.borrow() {
-        // Referer::Client should not be here, but we don't set
-        // the referer yet, so we club it with NoReferer
-        Referer::NoReferer | Referer::Client =>
+        Referer::NoReferer =>
             http_request.headers.borrow_mut().set(RefererHeader("".to_owned())),
         Referer::RefererUrl(ref http_request_referer) =>
             http_request.headers.borrow_mut().set(RefererHeader(http_request_referer.to_string())),
-        // Referer::Client =>
-        //     // it should be impossible for referer to be anything else during fetching
-        //     // https://fetch.spec.whatwg.org/#concept-request-referrer
-        //     unreachable!()
+        Referer::Client =>
+            // it should be impossible for referer to be anything else during fetching
+            // https://fetch.spec.whatwg.org/#concept-request-referrer
+            unreachable!()
     };
 
     // Step 7
@@ -787,6 +785,17 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         headers.set(host);
         // accept header should not be set here, unlike http
         set_default_accept_encoding(headers);
+
+        // remove Referer headers set in past redirects/preflights
+        // this stops the assertion in determine_request_referrer from failing
+        headers.remove::<RefererHeader>();
+        let referrer_url = determine_request_referrer(headers, http_request.referrer_policy,
+                                                      http_request.referer.borrow_mut().take(),
+                                                      current_url.clone());
+        if let Some(referer_val) = referrer_url.clone() {
+            headers.set(RefererHeader(referer_val.into_string()));
+        }
+        *http_request.referer.borrow_mut() = Referer::from_url(referrer_url);
     }
 
     // Step 13
@@ -1111,12 +1120,16 @@ fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache, context: &F
         }
 
         // Substep 5
+        debug!("CORS check: Allowed methods: {:?}, current method: {:?}",
+                methods, request.method.borrow());
         if methods.iter().all(|method| *method != *request.method.borrow()) &&
             !is_simple_method(&*request.method.borrow()) {
             return Response::network_error();
         }
 
         // Substep 6
+        debug!("CORS check: Allowed headers: {:?}, current headers: {:?}",
+                header_names, request.headers.borrow());
         let set: HashSet<&UniCase<String>> = HashSet::from_iter(header_names.iter());
         if request.headers.borrow().iter().any(|ref hv| !set.contains(&UniCase(hv.name().to_owned())) &&
                                                         !is_simple_header(hv)) {
@@ -1199,6 +1212,7 @@ fn is_no_store_cache(headers: &Headers) -> bool {
     headers.has::<IfRange>()
 }
 
+/// https://fetch.spec.whatwg.org/#cors-safelisted-request-header
 fn is_simple_header(h: &HeaderView) -> bool {
     if h.is::<ContentType>() {
         match h.value() {

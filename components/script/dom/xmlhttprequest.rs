@@ -589,6 +589,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             credentials_mode: credentials_mode,
             use_url_credentials: use_url_credentials,
             origin: self.global().r().get_url(),
+            referer_url: self.referrer_url.clone(),
+            referrer_policy: self.referrer_policy.clone(),
         };
 
         // step 4 (second half)
