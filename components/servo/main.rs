@@ -37,6 +37,8 @@ use servo::util::opts::{self, ArgumentParsingResult};
 use servo::util::panicking::initiate_panic_hook;
 use std::rc::Rc;
 
+pub mod info_plist;
+
 fn main() {
     // Parse the command line options and store them globally
     let opts_result = opts::from_cmdline_args(&*args());
@@ -82,6 +84,8 @@ fn main() {
     };
 
     unregister_glutin_resize_handler(&window);
+
+    info_plist::hack_to_prevent_linker_from_stripping_the_info_plist();
 }
 
 fn register_glutin_resize_handler(window: &Rc<app::window::Window>,
@@ -96,6 +100,8 @@ fn unregister_glutin_resize_handler(window: &Rc<app::window::Window>) {
         window.remove_nested_event_loop_listener();
     }
 }
+
+// Just as the name implies, this is a hack to prevent the linker from stripping our `info.plist`.
 
 struct BrowserWrapper {
     browser: Browser<app::window::Window>,
