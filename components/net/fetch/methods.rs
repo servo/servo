@@ -804,18 +804,19 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
             let mut authorization_value = None;
 
             // Substep 4
-            // TODO be able to retrieve https://fetch.spec.whatwg.org/#authentication-entry
-
-            // Substep 5
-            if authentication_fetch_flag {
-
-                authorization_value = if has_credentials(&current_url) {
-                    Some(Basic {
+            if let Some(basic) = auth_from_cache(&context.state.auth_cache, &current_url) {
+                // either httpRequest's use-URL-credentials flag is unset
+                // or httpRequest's current url does not include credentials,
+                if !http_request.use_url_credentials || !has_credentials(&current_url) {
+                    authorization_value = Some(basic);
+                }
+            } else if authentication_fetch_flag {
+                // Substep 5
+                if has_credentials(&current_url) {
+                    authorization_value = Some(Basic {
                         username: current_url.username().to_owned(),
                         password: current_url.password().map(str::to_owned)
                     })
-                } else {
-                    auth_from_cache(&context.state.auth_cache, &current_url)
                 }
             }
 
