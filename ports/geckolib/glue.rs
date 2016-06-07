@@ -9,8 +9,9 @@ use data::PerDocumentStyleData;
 use env_logger;
 use euclid::Size2D;
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
-use gecko_bindings::bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues, ServoNodeData};
-use gecko_bindings::bindings::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
+use gecko_bindings::bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues};
+use gecko_bindings::bindings::{ServoDeclarationBlock, ServoNodeData, ThreadSafePrincipalHolder};
+use gecko_bindings::bindings::{ThreadSafeURIHolder, nsHTMLCSSStyleSheet};
 use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use gecko_bindings::structs::{SheetParsingMode, nsIAtom};
 use properties::GeckoComputedValues;
@@ -26,7 +27,7 @@ use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::parallel;
 use style::parser::ParserContextExtraData;
-use style::properties::ComputedValues;
+use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_impl::{SelectorImplExt, PseudoElementCascadeType};
 use style::stylesheets::Origin;
 use traversal::RecalcStyleOnly;
@@ -409,4 +410,49 @@ pub extern "C" fn Servo_DropStyleSet(data: *mut RawServoStyleSet) -> () {
     unsafe {
         let _ = Box::<PerDocumentStyleData>::from_raw(data as *mut PerDocumentStyleData);
     }
+}
+
+pub struct GeckoDeclarationBlock {
+    pub declarations: Option<PropertyDeclarationBlock>,
+    pub cache: *mut nsHTMLCSSStyleSheet,
+    pub immutable: bool,
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
+                                            cache: *mut nsHTMLCSSStyleSheet)
+                                            -> *mut ServoDeclarationBlock {
+    let value = unsafe { from_utf8_unchecked(slice::from_raw_parts(bytes, length as usize)) };
+    let declarations = Box::new(GeckoDeclarationBlock {
+        declarations: GeckoElement::parse_style_attribute(value),
+        cache: cache,
+        immutable: false,
+    });
+    Box::into_raw(declarations) as *mut ServoDeclarationBlock
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DropDeclarationBlock(declarations: *mut ServoDeclarationBlock) {
+    unsafe {
+        let _ = Box::<GeckoDeclarationBlock>::from_raw(declarations as *mut GeckoDeclarationBlock);
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_GetDeclarationBlockCache(declarations: *mut ServoDeclarationBlock)
+                                                 -> *mut nsHTMLCSSStyleSheet {
+    let declarations = unsafe { (declarations as *const GeckoDeclarationBlock).as_ref().unwrap() };
+    declarations.cache
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_SetDeclarationBlockImmutable(declarations: *mut ServoDeclarationBlock) {
+    let declarations = unsafe { (declarations as *mut GeckoDeclarationBlock).as_mut().unwrap() };
+    declarations.immutable = true;
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ClearDeclarationBlockCachePointer(declarations: *mut ServoDeclarationBlock) {
+    let declarations = unsafe { (declarations as *mut GeckoDeclarationBlock).as_mut().unwrap() };
+    declarations.cache = ptr::null_mut();
 }
