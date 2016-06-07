@@ -266,6 +266,10 @@
         "url": "/html-media-capture/capture_video_cancel-manual.html"
       },
       {
+        "path": "html/browsers/history/joint-session-history/joint-session-history-only-fully-active.html",
+        "url": "/html/browsers/history/joint-session-history/joint-session-history-only-fully-active.html"
+      },
+      {
         "path": "html/browsers/history/the-history-interface/non-automated/traverse_the_history_unload_prompt_1-manual.html",
         "url": "/html/browsers/history/the-history-interface/non-automated/traverse_the_history_unload_prompt_1-manual.html"
       },
@@ -36026,7 +36030,9 @@
     ]
   },
   "local_changes": {
-    "deleted": [],
+    "deleted": [
+      "html/browsers/history/joint-session-history/joint-session-history-only-fully-active.html"
+    ],
     "deleted_reftests": {},
     "items": {
       "testharness": {
@@ -36040,6 +36046,12 @@
           {
             "path": "html/semantics/embedded-content/the-iframe-element/change_parentage.html",
             "url": "/html/semantics/embedded-content/the-iframe-element/change_parentage.html"
+          }
+        ],
+        "html/semantics/embedded-content/the-iframe-element/cross_origin_parentage.html": [
+          {
+            "path": "html/semantics/embedded-content/the-iframe-element/cross_origin_parentage.html",
+            "url": "/html/semantics/embedded-content/the-iframe-element/cross_origin_parentage.html"
           }
         ],
         "html/semantics/embedded-content/the-iframe-element/same_origin_parentage.html": [
