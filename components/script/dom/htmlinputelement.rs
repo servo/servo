@@ -4,7 +4,7 @@
 
 use caseless::compatibility_caseless_match_str;
 use dom::activation::{Activatable, ActivationSource, synthetic_click_activation};
-use dom::attr::{Attr, AttrValue};
+use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
@@ -39,6 +39,7 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::ops::Range;
 use string_cache::Atom;
+use style::attr::AttrValue;
 use style::element_state::*;
 use textinput::KeyReaction::{DispatchInput, Nothing, RedrawSelection, TriggerDefaultAction};
 use textinput::Lines::Single;

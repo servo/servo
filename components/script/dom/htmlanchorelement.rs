@@ -2,9 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
 use dom::activation::Activatable;
-use dom::attr::AttrValue;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use dom::bindings::codegen::Bindings::HTMLAnchorElementBinding;
@@ -29,6 +27,7 @@ use num_traits::ToPrimitive;
 use script_traits::MozBrowserEvent;
 use std::default::Default;
 use string_cache::Atom;
+use style::attr::AttrValue;
 use url::Url;
 use util::prefs::mozbrowser_enabled;
 

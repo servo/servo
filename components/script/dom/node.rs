@@ -38,8 +38,11 @@ use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementCreator};
 use dom::eventtarget::EventTarget;
 use dom::htmlbodyelement::HTMLBodyElement;
+use dom::htmlcanvaselement::{LayoutHTMLCanvasElementHelpers, HTMLCanvasData};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
+use dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
+use dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
 use dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
 use dom::htmltextareaelement::{HTMLTextAreaElement, LayoutHTMLTextAreaElementHelpers};
 use dom::nodelist::NodeList;
@@ -56,6 +59,7 @@ use html5ever::tree_builder::QuirksMode;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use layout_interface::Msg;
 use libc::{self, c_void, uintptr_t};
+use msg::constellation_msg::PipelineId;
 use parse::html::parse_html_fragment;
 use ref_slice::ref_slice;
 use script_traits::UntrustedNodeAddress;
@@ -68,8 +72,10 @@ use std::cmp::max;
 use std::default::Default;
 use std::iter::{self, FilterMap, Peekable};
 use std::mem;
+use std::ops::Range;
 use string_cache::{Atom, Namespace, QualName};
 use style::selector_impl::ServoSelectorImpl;
+use url::Url;
 use util::thread_state;
 use uuid::Uuid;
 
@@ -960,6 +966,10 @@ pub trait LayoutNodeHelpers {
     unsafe fn init_style_and_layout_data(&self, OpaqueStyleAndLayoutData);
 
     fn text_content(&self) -> String;
+    fn selection(&self) -> Option<Range<usize>>;
+    fn image_url(&self) -> Option<Url>;
+    fn canvas_data(&self) -> Option<HTMLCanvasData>;
+    fn iframe_pipeline_id(&self) -> PipelineId;
 }
 
 impl LayoutNodeHelpers for LayoutJS<Node> {
@@ -1066,6 +1076,39 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
         }
 
         panic!("not text!")
+    }
+
+    #[allow(unsafe_code)]
+    fn selection(&self) -> Option<Range<usize>> {
+        if let Some(area) = self.downcast::<HTMLTextAreaElement>() {
+            return unsafe { area.selection_for_layout() };
+        }
+
+        if let Some(input) = self.downcast::<HTMLInputElement>() {
+            return unsafe { input.selection_for_layout() };
+        }
+
+        None
+    }
+
+    #[allow(unsafe_code)]
+    fn image_url(&self) -> Option<Url> {
+        unsafe {
+            self.downcast::<HTMLImageElement>()
+                .expect("not an image!")
+                .image_url()
+        }
+    }
+
+    fn canvas_data(&self) -> Option<HTMLCanvasData> {
+        self.downcast()
+            .map(|canvas| canvas.data())
+    }
+
+    fn iframe_pipeline_id(&self) -> PipelineId {
+        let iframe_element = self.downcast::<HTMLIFrameElement>()
+            .expect("not an iframe element!");
+        iframe_element.pipeline_id().unwrap()
     }
 }
 

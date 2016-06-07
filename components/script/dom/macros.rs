@@ -228,9 +228,9 @@ macro_rules! make_atomic_setter(
 macro_rules! make_legacy_color_setter(
     ( $attr:ident, $htmlname:tt ) => (
         fn $attr(&self, value: DOMString) {
-            use dom::attr::AttrValue;
             use dom::bindings::inheritance::Castable;
             use dom::element::Element;
+            use style::attr::AttrValue;
             let element = self.upcast::<Element>();
             let value = AttrValue::from_legacy_color(value.into());
             element.set_attribute(&atom!($htmlname), value)

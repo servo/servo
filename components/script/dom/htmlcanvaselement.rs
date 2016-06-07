@@ -4,7 +4,6 @@
 
 use canvas_traits::{CanvasMsg, FromLayoutMsg, CanvasData};
 use dom::attr::Attr;
-use dom::attr::AttrValue;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
 use dom::bindings::codegen::Bindings::HTMLCanvasElementBinding;
@@ -33,6 +32,7 @@ use offscreen_gl_context::GLContextAttributes;
 use rustc_serialize::base64::{STANDARD, ToBase64};
 use std::iter::repeat;
 use string_cache::Atom;
+use style::attr::AttrValue;
 
 const DEFAULT_WIDTH: u32 = 300;
 const DEFAULT_HEIGHT: u32 = 150;

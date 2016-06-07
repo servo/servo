@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -50,6 +49,7 @@ use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::sync::mpsc::Sender;
 use string_cache::Atom;
+use style::attr::AttrValue;
 use task_source::TaskSource;
 use task_source::dom_manipulation::DOMManipulationTask;
 use url::form_urlencoded;

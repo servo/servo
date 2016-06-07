@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::RGBA;
-use dom::attr::{Attr, AttrValue};
+use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::{EventHandlerNonNull, OnBeforeUnloadEventHandlerNonNull};
 use dom::bindings::codegen::Bindings::HTMLBodyElementBinding::{self, HTMLBodyElementMethods};
 use dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -18,6 +18,7 @@ use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use script_traits::ScriptMsg as ConstellationMsg;
 use string_cache::Atom;
+use style::attr::AttrValue;
 use time;
 use url::Url;
 

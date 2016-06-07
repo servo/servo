@@ -3,7 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use cssparser::RGBA;
-use dom::attr::{Attr, AttrValue};
+use dom::attr::Attr;
 use dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollectionMethods;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding;
 use dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableElementMethods;
@@ -24,7 +24,7 @@ use dom::node::{Node, document_from_node, window_from_node};
 use dom::virtualmethods::VirtualMethods;
 use std::cell::Cell;
 use string_cache::Atom;
-use style::attr::{LengthOrPercentageOrAuto, parse_unsigned_integer};
+use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_unsigned_integer};
 
 #[dom_struct]
 pub struct HTMLTableElement {

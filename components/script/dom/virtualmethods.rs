@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::{Attr, AttrValue};
+use dom::attr::Attr;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::inheritance::ElementTypeId;
 use dom::bindings::inheritance::HTMLElementTypeId;
@@ -47,7 +47,7 @@ use dom::htmltextareaelement::HTMLTextAreaElement;
 use dom::htmltitleelement::HTMLTitleElement;
 use dom::node::{ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
 use string_cache::Atom;
-
+use style::attr::AttrValue;
 
 /// Trait to allow DOM nodes to opt-in to overriding (or adding to) common
 /// behaviours. Replicates the effect of C++ virtual methods.
