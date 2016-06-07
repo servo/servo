@@ -1278,34 +1278,35 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // Get the ids for the previous and next pipelines.
         let (prev_pipeline_id, next_pipeline_id) = match self.frames.get_mut(&frame_id) {
             Some(frame) => {
+                let prev = frame.current;
                 let next = match direction {
-                    NavigationDirection::Forward => {
-                        match frame.next.pop() {
-                            None => {
-                                warn!("no next page to navigate to");
-                                return;
-                            },
-                            Some(next) => {
-                                frame.prev.push(frame.current);
-                                next
-                            },
+                    NavigationDirection::Forward(delta) => {
+                        if delta > frame.next.len() && delta > 0 {
+                            return warn!("Invalid navigation delta");
                         }
+                        let new_next_len = frame.next.len() - (delta - 1);
+                        frame.prev.push(frame.current);
+                        frame.prev.extend(frame.next.drain(new_next_len..).rev());
+                        frame.current = match frame.next.pop() {
+                            Some(frame) => frame,
+                            None => return warn!("Could not get next frame for forward navigation"),
+                        };
+                        frame.current
                     }
-                    NavigationDirection::Back => {
-                        match frame.prev.pop() {
-                            None => {
-                                warn!("no previous page to navigate to");
-                                return;
-                            },
-                            Some(prev) => {
-                                frame.next.push(frame.current);
-                                prev
-                            },
+                    NavigationDirection::Back(delta) => {
+                        if delta > frame.prev.len() && delta > 0 {
+                            return warn!("Invalid navigation delta");
                         }
+                        let new_prev_len = frame.prev.len() - (delta - 1);
+                        frame.next.push(frame.current);
+                        frame.next.extend(frame.prev.drain(new_prev_len..).rev());
+                        frame.current = match frame.prev.pop() {
+                            Some(frame) => frame,
+                            None => return warn!("Could not get prev frame for back navigation"),
+                        };
+                        frame.current
                     }
                 };
-                let prev = frame.current;
-                frame.current = next;
                 (prev, next)
             },
             None => {
