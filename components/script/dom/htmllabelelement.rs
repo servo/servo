@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use dom::activation::{Activatable, ActivationSource, synthetic_click_activation};
-use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use dom::bindings::inheritance::Castable;
@@ -18,6 +17,7 @@ use dom::htmlformelement::{FormControl, HTMLFormElement};
 use dom::node::{document_from_node, Node};
 use dom::virtualmethods::VirtualMethods;
 use string_cache::Atom;
+use style::attr::AttrValue;
 
 #[dom_struct]
 pub struct HTMLLabelElement {

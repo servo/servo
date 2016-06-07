@@ -4,7 +4,7 @@
 
 use document_loader::{DocumentLoader, LoadType};
 use dom::activation::{ActivationSource, synthetic_click_activation};
-use dom::attr::{Attr, AttrValue};
+use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding;
@@ -120,6 +120,7 @@ use std::ptr;
 use std::rc::Rc;
 use std::sync::Arc;
 use string_cache::{Atom, QualName};
+use style::attr::AttrValue;
 use style::context::ReflowGoal;
 use style::restyle_hints::ElementSnapshot;
 use style::servo::Stylesheet;
