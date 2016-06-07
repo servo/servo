@@ -229,6 +229,12 @@ impl HTMLFormElementMethods for HTMLFormElement {
     fn Length(&self) -> u32 {
         self.Elements().Length() as u32
     }
+
+    // https://html.spec.whatwg.org/multipage/forms.html#dom-form-item
+    fn IndexedGetter(&self, index: u32, found: &mut bool) -> Option<Root<Element>> {
+        let elements = self.Elements();
+        elements.IndexedGetter(index, found)
+    }
 }
 
 #[derive(Copy, Clone, HeapSizeOf, PartialEq)]
