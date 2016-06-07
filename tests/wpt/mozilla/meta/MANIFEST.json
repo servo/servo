@@ -6448,6 +6448,12 @@
             "url": "/_mozilla/mozilla/iframe-unblock-onload.html"
           }
         ],
+        "mozilla/iframe/cross_origin_parentage.html": [
+          {
+            "path": "mozilla/iframe/cross_origin_parentage.html",
+            "url": "/_mozilla/mozilla/iframe/cross_origin_parentage.html"
+          }
+        ],
         "mozilla/iframe/same_origin_parentage.html": [
           {
             "path": "mozilla/iframe/same_origin_parentage.html",
