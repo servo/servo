@@ -18,6 +18,7 @@ use hyper::method::Method;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use hyper::status::StatusCode;
 use mime_guess::guess_mime_type;
+use msg::constellation_msg::ReferrerPolicy;
 use net_traits::FetchTaskTarget;
 use net_traits::request::{CacheMode, CredentialsMode};
 use net_traits::request::{RedirectMode, Referer, Request, RequestMode, ResponseTainting};
@@ -148,14 +149,24 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
     // Step 5
     // TODO this step (CSP port/content blocking)
 
-    // Step 6-7
+    // Step 6
     // TODO this step (referer policy)
+    // currently the clients themselves set referer policy in RequestInit
+
+    if request.referrer_policy.get().is_none() {
+        request.referrer_policy.set(Some(ReferrerPolicy::NoRefWhenDowngrade));
+    }
 
     // Step 8
     if *request.referer.borrow() != Referer::NoReferer {
-        // TODO be able to invoke "determine request's referer"
-        // once this is filled in be sure to update the match
-        // referer below to have an unreachable branch for client
+        // remove Referer headers set in past redirects/preflights
+        // this stops the assertion in determine_request_referrer from failing
+        request.headers.borrow_mut().remove::<RefererHeader>();
+        let referrer_url = determine_request_referrer(&mut *request.headers.borrow_mut(),
+                                                      request.referrer_policy.get(),
+                                                      request.referer.borrow_mut().take(),
+                                                      request.current_url().clone());
+        *request.referer.borrow_mut() = Referer::from_url(referrer_url);
     }
 
     // Step 9
@@ -785,17 +796,6 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
         headers.set(host);
         // accept header should not be set here, unlike http
         set_default_accept_encoding(headers);
-
-        // remove Referer headers set in past redirects/preflights
-        // this stops the assertion in determine_request_referrer from failing
-        headers.remove::<RefererHeader>();
-        let referrer_url = determine_request_referrer(headers, http_request.referrer_policy,
-                                                      http_request.referer.borrow_mut().take(),
-                                                      current_url.clone());
-        if let Some(referer_val) = referrer_url.clone() {
-            headers.set(RefererHeader(referer_val.into_string()));
-        }
-        *http_request.referer.borrow_mut() = Referer::from_url(referrer_url);
     }
 
     // Step 13
@@ -1066,6 +1066,7 @@ fn cors_preflight_fetch(request: Rc<Request>, cache: &mut CORSCache, context: &F
     preflight.type_ = request.type_.clone();
     preflight.destination = request.destination.clone();
     *preflight.referer.borrow_mut() = request.referer.borrow().clone();
+    preflight.referrer_policy.set(preflight.referrer_policy.get());
 
     // Step 2
     preflight.headers.borrow_mut().set::<AccessControlRequestMethod>(

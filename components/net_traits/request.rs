@@ -158,7 +158,7 @@ pub struct Request {
     pub same_origin_data: Cell<bool>,
     /// https://fetch.spec.whatwg.org/#concept-request-referrer
     pub referer: RefCell<Referer>,
-    pub referrer_policy: Option<ReferrerPolicy>,
+    pub referrer_policy: Cell<Option<ReferrerPolicy>>,
     pub synchronous: bool,
     pub mode: RequestMode,
     pub use_cors_preflight: bool,
@@ -197,7 +197,7 @@ impl Request {
             omit_origin_header: Cell::new(false),
             same_origin_data: Cell::new(false),
             referer: RefCell::new(Referer::Client),
-            referrer_policy: None,
+            referrer_policy: Cell::new(None),
             synchronous: false,
             mode: RequestMode::NoCORS,
             use_cors_preflight: false,
@@ -232,7 +232,7 @@ impl Request {
         } else {
             Referer::NoReferer
         };
-        req.referrer_policy = init.referrer_policy;
+        req.referrer_policy.set(init.referrer_policy);
         req
     }
 
@@ -259,7 +259,7 @@ impl Request {
             omit_origin_header: Cell::new(false),
             same_origin_data: Cell::new(false),
             referer: RefCell::new(Referer::Client),
-            referrer_policy: None,
+            referrer_policy: Cell::new(None),
             synchronous: false,
             // Step 1-2
             mode: match cors_attribute_state {
