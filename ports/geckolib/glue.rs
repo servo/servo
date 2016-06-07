@@ -9,8 +9,9 @@ use data::PerDocumentStyleData;
 use env_logger;
 use euclid::Size2D;
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
-use gecko_bindings::bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues, ServoNodeData};
-use gecko_bindings::bindings::{ThreadSafePrincipalHolder, ThreadSafeURIHolder, nsIAtom};
+use gecko_bindings::bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues};
+use gecko_bindings::bindings::{ServoDeclarationBlock, ServoNodeData, ThreadSafePrincipalHolder};
+use gecko_bindings::bindings::{ThreadSafeURIHolder, nsIAtom};
 use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use gecko_bindings::structs::SheetParsingMode;
 use properties::GeckoComputedValues;
@@ -26,7 +27,7 @@ use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::parallel;
 use style::parser::ParserContextExtraData;
-use style::properties::ComputedValues;
+use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_impl::{SelectorImplExt, PseudoElementCascadeType};
 use style::stylesheets::Origin;
 use traversal::RecalcStyleOnly;
@@ -409,4 +410,39 @@ pub extern "C" fn Servo_DropStyleSet(data: *mut RawServoStyleSet) -> () {
     unsafe {
         let _ = Box::<PerDocumentStyleData>::from_raw(data as *mut PerDocumentStyleData);
     }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32)
+                                            -> *mut ServoDeclarationBlock {
+    let value = unsafe { from_utf8_unchecked(slice::from_raw_parts(bytes, length as usize)) };
+    let declarations = box GeckoElement::parse_style_attribute(value);
+    Box::into_raw(declarations) as *mut ServoDeclarationBlock
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_CloneDeclarationBlock(declarations: *mut ServoDeclarationBlock)
+                                              -> *mut ServoDeclarationBlock {
+    let declarations = unsafe { &*(declarations as *mut Option<PropertyDeclarationBlock>) };
+    let cloned_declarations = box declarations.clone();
+    Box::into_raw(cloned_declarations) as *mut ServoDeclarationBlock
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DropDeclarationBlock(declarations: *mut ServoDeclarationBlock) {
+    unsafe {
+        let declarations = declarations as *mut Option<PropertyDeclarationBlock>;
+        let _ = Box::<Option<PropertyDeclarationBlock>>::from_raw(declarations);
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_DeclarationBlocksEqual(declarations1: *mut ServoDeclarationBlock,
+                                               declarations2: *mut ServoDeclarationBlock)
+                                               -> bool {
+    let (declarations1, declarations2) = unsafe {
+        (&*(declarations1 as *mut Option<PropertyDeclarationBlock>),
+         &*(declarations2 as *mut Option<PropertyDeclarationBlock>))
+    };
+    *declarations1 == *declarations2
 }
