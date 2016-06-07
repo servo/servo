@@ -7,11 +7,11 @@
 use hyper::header::{AccessControlExposeHeaders, ContentType, Headers};
 use hyper::http::RawStatus;
 use hyper::status::StatusCode;
-use {Metadata, NetworkError};
 use std::ascii::AsciiExt;
 use std::cell::{Cell, RefCell};
 use std::sync::{Arc, Mutex};
 use url::Url;
+use {Metadata, NetworkError};
 
 /// [Response type](https://fetch.spec.whatwg.org/#concept-response-type)
 #[derive(Clone, PartialEq, Copy, Debug, Deserialize, Serialize)]

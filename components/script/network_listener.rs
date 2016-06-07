@@ -17,7 +17,7 @@ pub struct NetworkListener<Listener: PreInvoke + Send + 'static> {
 }
 
 impl<Listener: PreInvoke + Send + 'static> NetworkListener<Listener> {
-    pub fn notify<A: Action<Listener>+Send+'static>(&self, action: A) {
+    pub fn notify<A: Action<Listener> + Send + 'static>(&self, action: A) {
         if let Err(err) = self.script_chan.send(CommonScriptMsg::RunnableMsg(NetworkEvent, box ListenerRunnable {
             context: self.context.clone(),
             action: action,
@@ -51,12 +51,12 @@ pub trait PreInvoke {
 }
 
 /// A runnable for moving the async network events between threads.
-struct ListenerRunnable<A: Action<Listener>+Send+'static, Listener: PreInvoke + Send> {
+struct ListenerRunnable<A: Action<Listener> + Send + 'static, Listener: PreInvoke + Send> {
     context: Arc<Mutex<Listener>>,
     action: A,
 }
 
-impl<A: Action<Listener>+Send+'static, Listener: PreInvoke + Send> Runnable for ListenerRunnable<A, Listener> {
+impl<A: Action<Listener> + Send + 'static, Listener: PreInvoke + Send> Runnable for ListenerRunnable<A, Listener> {
     fn handler(self: Box<ListenerRunnable<A, Listener>>) {
         let this = *self;
         let mut context = this.context.lock().unwrap();
