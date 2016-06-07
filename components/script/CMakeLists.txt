@@ -3,17 +3,30 @@ cmake_minimum_required(VERSION 2.6)
 
 set(DUMMY ${CMAKE_BUILD_TYPE})
 
+FUNCTION(PREPEND var prefix)
+   SET(listVar "")
+   FOREACH(f ${ARGN})
+      LIST(APPEND listVar "${prefix}/${f}")
+   ENDFOREACH(f)
+   SET(${var} "${listVar}" PARENT_SCOPE)
+ENDFUNCTION(PREPEND)
+
 set(bindings_src ${PROJECT_SOURCE_DIR}/dom/bindings/codegen)
 set(webidls_src ${PROJECT_SOURCE_DIR}/dom/webidls)
 
-set(globalgen_src
+# Without Bindings/* stuff, since we install that separately below
+set(globalgen_base_src
   PrototypeList.rs
   RegisterBindings.rs
   InterfaceObjectMap.rs
   InterfaceTypes.rs
   InheritTypes.rs
-  Bindings/mod.rs
   UnionTypes.rs
+  )
+
+set(globalgen_src
+  ${globalgen_base_src}
+  Bindings/mod.rs
   )
 
 file(GLOB_RECURSE webidls ${webidls_src}/*.webidl)
@@ -76,3 +89,7 @@ foreach(binding IN LISTS bindings)
   add_custom_target(${binding} DEPENDS Bindings/${binding}Binding.rs)
   add_dependencies(generate-bindings ${binding})
 endforeach()
+
+PREPEND(globalgen_out ${CMAKE_BINARY_DIR}/ ${globalgen_base_src})
+install(FILES ${globalgen_out} DESTINATION .)
+install(DIRECTORY ${CMAKE_BINARY_DIR}/Bindings/ DESTINATION Bindings)

@@ -97,7 +97,7 @@ impl<'a> Drop for StackRootTLS<'a> {
 #[allow(unsafe_code)]
 pub unsafe fn new_rt_and_cx() -> Runtime {
     LiveDOMReferences::initialize();
-    let runtime = Runtime::new();
+    let runtime = Runtime::new(ptr::null_mut());
 
     JS_AddExtraGCRootsTracer(runtime.rt(), Some(trace_rust_roots), ptr::null_mut());
     JS_AddExtraGCRootsTracer(runtime.rt(), Some(trace_refcounted_objects), ptr::null_mut());

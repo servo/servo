@@ -7,6 +7,8 @@ extern crate cmake;
 fn main() {
     let _ = cmake::Config::new(".")
         .generator("Ninja")
-        .build_target("all")
+        .define("CMAKE_C_COMPILER", "cl.exe")
+        .define("CMAKE_CXX_COMPILER", "cl.exe")
+        .define("CMAKE_LINKER", "C:\\Program Files (x86)\\Microsoft Visual Studio 12.0\\VC\\bin\\amd64\\link.exe")
         .build();
 }
