@@ -75,6 +75,8 @@ interface Element : Node {
   Element? insertAdjacentElement(DOMString where_, Element element); // historical
   [Throws]
   void insertAdjacentText(DOMString where_, DOMString data);
+  [Throws]
+  void insertAdjacentHTML(DOMString position, DOMString html);
 };
 
 // http://dev.w3.org/csswg/cssom-view/#extensions-to-the-element-interface
