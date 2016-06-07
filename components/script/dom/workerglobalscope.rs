@@ -416,6 +416,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
 
 
 impl WorkerGlobalScope {
+    #[allow(unsafe_code)]
     pub fn execute_script(&self, source: DOMString) {
         let mut rval = RootedValue::new(self.runtime.cx(), UndefinedValue());
         match self.runtime.evaluate_script(
@@ -428,7 +429,10 @@ impl WorkerGlobalScope {
                     // TODO: An error needs to be dispatched to the parent.
                     // https://github.com/servo/servo/issues/6422
                     println!("evaluate_script failed");
-                    report_pending_exception(self.runtime.cx(), self.reflector().get_jsobject().get());
+                    unsafe {
+                        report_pending_exception(
+                            self.runtime.cx(), self.reflector().get_jsobject().get());
+                    }
                 }
             }
         }
