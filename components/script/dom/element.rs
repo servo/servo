@@ -2029,6 +2029,50 @@ impl ElementMethods for Element {
         let where_ = try!(AdjacentPosition::parse(&*where_));
         self.insert_adjacent(where_, text.upcast()).map(|_| ())
     }
+
+    // https://w3c.github.io/DOM-Parsing/#dom-element-insertadjacenthtml
+    fn InsertAdjacentHTML(&self, where_: DOMString, html: DOMString)
+                          -> ErrorResult {
+        fn step3(context: &Element, where_: AdjacentPosition, html: DOMString)
+                     -> ErrorResult {
+            // Step 3.
+            let fragment = try!(context.upcast::<Node>().parse_fragment(html));
+
+            // Step 4.
+            context.insert_adjacent(where_, fragment.upcast()).map(|_| ())
+        }
+
+        fn step2(context: &Element, where_: AdjacentPosition, html: DOMString)
+                     -> ErrorResult {
+            // Step 2.
+            if !context.upcast::<Node>().is::<Element>() &&
+               document_from_node(context).is_html_document() &&
+               context.local_name() == &atom!("html") &&
+               context.namespace() == &ns!(html) {
+                step3(Element::new(atom!("body"), ns!(html),
+                                   None, document_from_node(context).r()).r(),
+                      where_, html)
+            } else {
+                step3(context, where_, html)
+            }
+        }
+
+        // Step 1.
+        let where_ = try!(AdjacentPosition::parse(&*where_));
+
+        match where_ {
+            AdjacentPosition::BeforeBegin | AdjacentPosition::AfterEnd => {
+                match self.clone().upcast::<Node>().GetParentElement() {
+                    Some(ref node) if node.upcast::<Node>().is::<Document>() => {
+                        Err(Error::NoModificationAllowed)
+                    }
+                    None => Err(Error::NoModificationAllowed),
+                    Some(node) => step2(node.r(), where_, html),
+                }
+            }
+            AdjacentPosition::AfterBegin | AdjacentPosition::BeforeEnd => step2(self, where_, html),
+        }
+    }
 }
 
 pub fn fragment_affecting_attributes() -> [Atom; 3] {
