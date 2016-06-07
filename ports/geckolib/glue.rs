@@ -9,12 +9,14 @@ use data::PerDocumentStyleData;
 use env_logger;
 use euclid::Size2D;
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
-use gecko_bindings::bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues, ServoNodeData};
-use gecko_bindings::bindings::{ThreadSafePrincipalHolder, ThreadSafeURIHolder};
+use gecko_bindings::bindings::{RawServoStyleSet, RawServoStyleSheet, ServoComputedValues};
+use gecko_bindings::bindings::{ServoDeclarationBlock, ServoNodeData, ThreadSafePrincipalHolder};
+use gecko_bindings::bindings::{ThreadSafeURIHolder, nsHTMLCSSStyleSheet};
 use gecko_bindings::ptr::{GeckoArcPrincipal, GeckoArcURI};
 use gecko_bindings::structs::{SheetParsingMode, nsIAtom};
 use properties::GeckoComputedValues;
 use selector_impl::{GeckoSelectorImpl, PseudoElement, SharedStyleContext, Stylesheet};
+use std::cell::RefCell;
 use std::marker::PhantomData;
 use std::mem::{forget, transmute};
 use std::ptr;
@@ -26,7 +28,7 @@ use style::dom::{TDocument, TElement, TNode};
 use style::error_reporting::StdoutErrorReporter;
 use style::parallel;
 use style::parser::ParserContextExtraData;
-use style::properties::ComputedValues;
+use style::properties::{ComputedValues, PropertyDeclarationBlock};
 use style::selector_impl::{SelectorImplExt, PseudoElementCascadeType};
 use style::stylesheets::Origin;
 use traversal::RecalcStyleOnly;
@@ -409,4 +411,65 @@ pub extern "C" fn Servo_DropStyleSet(data: *mut RawServoStyleSet) -> () {
     unsafe {
         let _ = Box::<PerDocumentStyleData>::from_raw(data as *mut PerDocumentStyleData);
     }
+}
+
+pub struct GeckoDeclarationBlock {
+    pub declarations: Option<PropertyDeclarationBlock>,
+    pub cache: RefCell<*mut nsHTMLCSSStyleSheet>,
+    pub immutable: RefCell<bool>,
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ParseStyleAttribute(bytes: *const u8, length: u32,
+                                            cache: *mut nsHTMLCSSStyleSheet)
+                                            -> *mut ServoDeclarationBlock {
+    type Helpers = ArcHelpers<ServoDeclarationBlock, GeckoDeclarationBlock>;
+    let value = unsafe { from_utf8_unchecked(slice::from_raw_parts(bytes, length as usize)) };
+    let declarations = Arc::new(GeckoDeclarationBlock {
+        declarations: GeckoElement::parse_style_attribute(value),
+        cache: RefCell::new(cache),
+        immutable: RefCell::new(false),
+    });
+    Helpers::from(declarations)
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_AddRefDeclarationBlock(declarations: *mut ServoDeclarationBlock) {
+    type Helpers = ArcHelpers<ServoDeclarationBlock, GeckoDeclarationBlock>;
+    unsafe { Helpers::addref(declarations) }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ReleaseDeclarationBlock(declarations: *mut ServoDeclarationBlock) {
+    type Helpers = ArcHelpers<ServoDeclarationBlock, GeckoDeclarationBlock>;
+    unsafe { Helpers::release(declarations) }
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_GetDeclarationBlockCache(declarations: *mut ServoDeclarationBlock)
+                                                 -> *mut nsHTMLCSSStyleSheet {
+    type Helpers = ArcHelpers<ServoDeclarationBlock, GeckoDeclarationBlock>;
+    Helpers::with(declarations, |declarations| {
+        *declarations.cache.borrow()
+    })
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_SetDeclarationBlockImmutable(declarations: *mut ServoDeclarationBlock) {
+    type Helpers = ArcHelpers<ServoDeclarationBlock, GeckoDeclarationBlock>;
+    Helpers::with(declarations, |declarations| {
+        // We don't read the value of |immutable| yet, but we will need to
+        // once we support CSSOM access to element.style.
+        *declarations.immutable.borrow_mut() = true;
+    });
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_ClearDeclarationBlockCachePointer(declarations: *mut ServoDeclarationBlock) {
+    type Helpers = ArcHelpers<ServoDeclarationBlock, GeckoDeclarationBlock>;
+    Helpers::with(declarations, |declarations| {
+        // Clearing this pointer isn't necessary, but is just for safety, since
+        // we know the nsHTMLCSSStyleSheet is about to be destroyed.
+        *declarations.cache.borrow_mut() = ptr::null_mut();
+    });
 }

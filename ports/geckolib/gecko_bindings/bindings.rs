@@ -134,6 +134,8 @@ pub enum ServoNodeData { }
 pub enum ServoComputedValues { }
 pub enum RawServoStyleSheet { }
 pub enum RawServoStyleSet { }
+pub enum nsHTMLCSSStyleSheet { }
+pub enum ServoDeclarationBlock { }
 pub type ThreadSafePrincipalHolder = nsMainThreadPtrHolder<nsIPrincipal>;
 pub type ThreadSafeURIHolder = nsMainThreadPtrHolder<nsIURI>;
 extern "C" {
@@ -242,6 +244,20 @@ extern "C" {
     pub fn Servo_StyleSheetHasRules(sheet: *mut RawServoStyleSheet) -> bool;
     pub fn Servo_InitStyleSet() -> *mut RawServoStyleSet;
     pub fn Servo_DropStyleSet(set: *mut RawServoStyleSet);
+    pub fn Servo_ParseStyleAttribute(bytes: *const u8, length: u8,
+                                     cache: *mut nsHTMLCSSStyleSheet)
+     -> *mut ServoDeclarationBlock;
+    pub fn Servo_AddRefDeclarationBlock(declarations:
+                                            *mut ServoDeclarationBlock);
+    pub fn Servo_ReleaseDeclarationBlock(declarations:
+                                             *mut ServoDeclarationBlock);
+    pub fn Servo_GetDeclarationBlockCache(declarations:
+                                              *mut ServoDeclarationBlock)
+     -> *mut nsHTMLCSSStyleSheet;
+    pub fn Servo_SetDeclarationBlockImmutable(declarations:
+                                                  *mut ServoDeclarationBlock);
+    pub fn Servo_ClearDeclarationBlockCachePointer(declarations:
+                                                       *mut ServoDeclarationBlock);
     pub fn Servo_GetComputedValues(node: *mut RawGeckoNode)
      -> *mut ServoComputedValues;
     pub fn Servo_GetComputedValuesForAnonymousBox(parentStyleOrNull:

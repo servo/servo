@@ -8,19 +8,21 @@ use gecko_bindings::bindings::Gecko_ChildrenCount;
 use gecko_bindings::bindings::Gecko_ClassOrClassList;
 use gecko_bindings::bindings::Gecko_GetElementId;
 use gecko_bindings::bindings::Gecko_GetNodeData;
-use gecko_bindings::bindings::ServoNodeData;
 use gecko_bindings::bindings::{Gecko_ElementState, Gecko_GetAttrAsUTF8, Gecko_GetDocumentElement};
 use gecko_bindings::bindings::{Gecko_GetFirstChild, Gecko_GetFirstChildElement};
 use gecko_bindings::bindings::{Gecko_GetLastChild, Gecko_GetLastChildElement};
 use gecko_bindings::bindings::{Gecko_GetNextSibling, Gecko_GetNextSiblingElement};
 use gecko_bindings::bindings::{Gecko_GetParentElement, Gecko_GetParentNode};
 use gecko_bindings::bindings::{Gecko_GetPrevSibling, Gecko_GetPrevSiblingElement};
-use gecko_bindings::bindings::{Gecko_IsHTMLElementInHTMLDocument, Gecko_IsLink, Gecko_IsRootElement, Gecko_IsTextNode};
+use gecko_bindings::bindings::{Gecko_GetServoDeclarationBlock, Gecko_IsHTMLElementInHTMLDocument};
+use gecko_bindings::bindings::{Gecko_IsLink, Gecko_IsRootElement, Gecko_IsTextNode};
 use gecko_bindings::bindings::{Gecko_IsUnvisitedLink, Gecko_IsVisitedLink};
 #[allow(unused_imports)] // Used in commented-out code.
 use gecko_bindings::bindings::{Gecko_LocalName, Gecko_Namespace, Gecko_NodeIsElement, Gecko_SetNodeData};
 use gecko_bindings::bindings::{RawGeckoDocument, RawGeckoElement, RawGeckoNode};
+use gecko_bindings::bindings::{ServoDeclarationBlock, ServoNodeData};
 use gecko_bindings::structs::nsIAtom;
+use glue::{ArcHelpers, GeckoDeclarationBlock};
 use libc::uintptr_t;
 use properties::GeckoComputedValues;
 use selector_impl::{GeckoSelectorImpl, NonTSPseudoClass, PrivateStyleData};
@@ -30,6 +32,7 @@ use selectors::parser::{AttrSelector, NamespaceConstraint};
 use smallvec::VecLike;
 use std::cell::{Ref, RefCell, RefMut};
 use std::marker::PhantomData;
+use std::mem::transmute;
 use std::ops::BitOr;
 use std::ptr;
 use std::slice;
@@ -317,6 +320,15 @@ impl<'le> GeckoElement<'le> {
     unsafe fn from_ref(el: &RawGeckoElement) -> GeckoElement<'le> {
         GeckoElement::from_raw(el as *const RawGeckoElement as *mut RawGeckoElement)
     }
+
+    pub fn parse_style_attribute(value: &str) -> Option<PropertyDeclarationBlock> {
+        // FIXME(bholley): Real base URL and error reporter.
+        let base_url = &*DUMMY_BASE_URL;
+        // FIXME(heycam): Needs real ParserContextExtraData so that URLs parse
+        // properly.
+        let extra_data = ParserContextExtraData::default();
+        Some(parse_style_attribute(value, &base_url, Box::new(StdoutErrorReporter), extra_data))
+    }
 }
 
 lazy_static! {
@@ -324,6 +336,8 @@ lazy_static! {
         Url::parse("http://www.example.org").unwrap()
     };
 }
+
+static NO_STYLE_ATTRIBUTE: Option<PropertyDeclarationBlock> = None;
 
 impl<'le> TElement for GeckoElement<'le> {
     type ConcreteNode = GeckoNode<'le>;
@@ -334,20 +348,15 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn style_attribute(&self) -> &Option<PropertyDeclarationBlock> {
-        panic!("Requires signature modification - only implemented in stylo branch");
-        /*
-        // FIXME(bholley): We should do what Servo does here. Gecko needs to
-        // call into the Servo CSS parser and then cache the resulting block
-        // in the nsAttrValue. That will allow us to borrow it from here.
-        let attr = self.get_attr(&ns!(), &atom!("style"));
-        // FIXME(bholley): Real base URL and error reporter.
-        let base_url = &*DUMMY_BASE_URL;
-        // FIXME(heycam): Needs real ParserContextExtraData so that URLs parse
-        // properly.
-        let extra_data = ParserContextExtraData::default();
-        attr.map(|v| parse_style_attribute(&v, &base_url, Box::new(StdoutErrorReporter),
-                                           extra_data))
-        */
+        type Helpers = ArcHelpers<ServoDeclarationBlock, GeckoDeclarationBlock>;
+        unsafe {
+            let ptr = Gecko_GetServoDeclarationBlock(self.element);
+            if ptr.is_null() {
+                &NO_STYLE_ATTRIBUTE
+            } else {
+                Helpers::with(ptr, |arc| transmute(&arc.declarations))
+            }
+        }
     }
 
     fn get_state(&self) -> ElementState {
