@@ -37,6 +37,17 @@ use servo::util::opts::{self, ArgumentParsingResult};
 use servo::util::panicking::initiate_panic_hook;
 use std::rc::Rc;
 
+pub mod platform {
+    #[cfg(target_os = "macos")]
+    pub use platform::macos::deinit;
+
+    #[cfg(target_os = "macos")]
+    pub mod macos;
+
+    #[cfg(not(target_os = "macos"))]
+    pub fn deinit() {}
+}
+
 fn main() {
     // Parse the command line options and store them globally
     let opts_result = opts::from_cmdline_args(&*args());
@@ -82,6 +93,8 @@ fn main() {
     };
 
     unregister_glutin_resize_handler(&window);
+
+    platform::deinit()
 }
 
 fn register_glutin_resize_handler(window: &Rc<app::window::Window>,
