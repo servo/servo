@@ -38,6 +38,7 @@ use dom::documenttype::DocumentType;
 use dom::element::{Element, ElementCreator};
 use dom::eventtarget::EventTarget;
 use dom::htmlbodyelement::HTMLBodyElement;
+use dom::htmlcanvaselement::{LayoutHTMLCanvasElementHelpers, HTMLCanvasData};
 use dom::htmlcollection::HTMLCollection;
 use dom::htmlelement::HTMLElement;
 use dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
@@ -965,6 +966,7 @@ pub trait LayoutNodeHelpers {
     fn text_content(&self) -> String;
     fn selection(&self) -> Option<Range<usize>>;
     fn image_url(&self) -> Option<Url>;
+    fn canvas_data(&self) -> Option<HTMLCanvasData>;
 }
 
 impl LayoutNodeHelpers for LayoutJS<Node> {
@@ -1093,6 +1095,11 @@ impl LayoutNodeHelpers for LayoutJS<Node> {
                 .expect("not an image!")
                 .image_url()
         }
+    }
+
+    fn canvas_data(&self) -> Option<HTMLCanvasData> {
+        self.downcast()
+            .map(|canvas| canvas.data())
     }
 }
 

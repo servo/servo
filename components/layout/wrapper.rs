@@ -46,7 +46,7 @@ use script::dom::bindings::js::LayoutJS;
 use script::dom::characterdata::LayoutCharacterDataHelpers;
 use script::dom::document::{Document, LayoutDocumentHelpers};
 use script::dom::element::{Element, LayoutElementHelpers, RawLayoutElementHelpers};
-use script::dom::htmlcanvaselement::{LayoutHTMLCanvasElementHelpers, HTMLCanvasData};
+use script::dom::htmlcanvaselement::HTMLCanvasData;
 use script::dom::htmliframeelement::HTMLIFrameElement;
 use script::dom::node::{CAN_BE_FRAGMENTED, HAS_CHANGED, HAS_DIRTY_DESCENDANTS, IS_DIRTY};
 use script::dom::node::{LayoutNodeHelpers, Node, OpaqueStyleAndLayoutData};
@@ -1151,10 +1151,8 @@ impl<'ln> ThreadSafeLayoutNode for ServoThreadSafeLayoutNode<'ln> {
     }
 
     fn canvas_data(&self) -> Option<HTMLCanvasData> {
-        unsafe {
-            let canvas_element = self.get_jsmanaged().downcast();
-            canvas_element.map(|canvas| canvas.data())
-        }
+        let this = unsafe { self.get_jsmanaged() };
+        this.canvas_data()
     }
 
     fn iframe_pipeline_id(&self) -> PipelineId {
