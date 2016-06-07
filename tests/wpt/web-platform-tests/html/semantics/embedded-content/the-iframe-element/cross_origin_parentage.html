@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Check the frame heriarchy</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="iframe_harness.js"></script>
+<body>
+  <iframe src="http://www1.web-platform.test:8000/html/semantics/embedded-content/the-iframe-element/cross_origin_child.html"></iframe>
+</body>
+<script>
+    get_test_results('bffa23ee-b45a-4e9a-9405-87ab437d5cfa');
+    get_test_results('79a52de8-4222-427e-92db-caec28e75f8e');
+    get_test_results('6c8da65d-2c5e-44ef-bb0b-b8b9849aab19');
+    send_test_results({
+        "id": 'bffa23ee-b45a-4e9a-9405-87ab437d5cfa',
+        "parent": window.parent === window,
+        "top": window.top === window,
+    });
+</script>
