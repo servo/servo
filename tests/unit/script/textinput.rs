@@ -13,7 +13,7 @@ use msg::constellation_msg::CONTROL;
 use msg::constellation_msg::SUPER;
 use msg::constellation_msg::{Key, KeyModifiers};
 use script::clipboard_provider::DummyClipboardContext;
-use script::dom::bindings::str::DOMString;
+use script::test::DOMString;
 use script::textinput::{TextInput, TextPoint, Selection, Lines, Direction, SelectionDirection};
 
 fn text_input(lines: Lines, s: &str) -> TextInput<DummyClipboardContext> {

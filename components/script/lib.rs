@@ -106,6 +106,7 @@ pub mod script_runtime;
 #[allow(unsafe_code)]
 pub mod script_thread;
 mod task_source;
+pub mod test;
 pub mod textinput;
 mod timers;
 mod unpremultiplytable;
