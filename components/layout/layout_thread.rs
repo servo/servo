@@ -189,7 +189,10 @@ pub struct LayoutThread {
     first_reflow: bool,
 
     /// The workers that we use for parallel operation.
-    parallel_traversal: Option<WorkQueue<SharedLayoutContext, WorkQueueData>>,
+    parallel_traversal: WorkQueue<SharedLayoutContext, WorkQueueData>,
+
+    /// Flag to indicate whether to use parallel operations
+    parallel_flag: bool,
 
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
@@ -396,12 +399,13 @@ impl LayoutThread {
         let device = Device::new(
             MediaType::Screen,
             opts::get().initial_window_size.as_f32() * ScaleFactor::new(1.0));
-        let parallel_traversal = if opts::get().layout_threads != 1 {
-            Some(WorkQueue::new("LayoutWorker", thread_state::LAYOUT,
-                                opts::get().layout_threads))
-        } else {
-            None
-        };
+
+        let parallel_traversal = WorkQueue::new("LayoutWorker",
+                                    thread_state::LAYOUT,
+                                    opts::get().layout_threads);
+
+
+        debug!("Possible layout Threads: {}", opts::get().layout_threads);
 
         // Create the channel on which new animations can be sent.
         let (new_animations_sender, new_animations_receiver) = channel();
@@ -448,6 +452,7 @@ impl LayoutThread {
             font_cache_receiver: font_cache_receiver,
             font_cache_sender: ipc_font_cache_sender,
             parallel_traversal: parallel_traversal,
+            parallel_flag: true,
             generation: 0,
             new_animations_sender: new_animations_sender,
             new_animations_receiver: new_animations_receiver,
@@ -721,16 +726,15 @@ impl LayoutThread {
         });
 
         // ... as do each of the LayoutWorkers, if present.
-        if let Some(ref traversal) = self.parallel_traversal {
-            let sizes = traversal.heap_size_of_tls(heap_size_of_local_context);
-            for (i, size) in sizes.iter().enumerate() {
-                reports.push(Report {
-                    path: path![formatted_url,
-                                format!("layout-worker-{}-local-context", i)],
-                    kind: ReportKind::ExplicitJemallocHeapSize,
-                    size: *size,
-                });
-            }
+        let ref traversal = self.parallel_traversal;
+        let sizes = traversal.heap_size_of_tls(heap_size_of_local_context);
+        for (i, size) in sizes.iter().enumerate() {
+            reports.push(Report {
+                path: path![formatted_url,
+                            format!("layout-worker-{}-local-context", i)],
+                kind: ReportKind::ExplicitJemallocHeapSize,
+                size: *size,
+            });
         }
 
         reports_chan.send(reports);
@@ -783,9 +787,8 @@ impl LayoutThread {
     /// Shuts down the layout thread now. If there are any DOM nodes left, layout will now (safely)
     /// crash.
     fn exit_now(&mut self) {
-        if let Some(ref mut traversal) = self.parallel_traversal {
-            traversal.shutdown()
-        }
+        let ref mut traversal = self.parallel_traversal;
+        traversal.shutdown();
 
         self.paint_chan.send(LayoutToPaintMsg::Exit).unwrap();
     }
@@ -1003,7 +1006,12 @@ impl LayoutThread {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
 
+        // Parallelize if there's more than 750 objects based on rzambre's suggestion
+        // https://github.com/servo/servo/issues/10110
+        self.parallel_flag = opts::get().layout_threads > 1 && data.dom_count > 750;
         debug!("layout: received layout request for: {}", self.url);
+        debug!("Number of objects in DOM: {}", data.dom_count);
+        debug!("layout: parallel? {}", self.parallel_flag);
 
         let mut rw_data = possibly_locked_rw_data.lock();
 
@@ -1127,18 +1135,15 @@ impl LayoutThread {
                     self.time_profiler_chan.clone(),
                     || {
                 // Perform CSS selector matching and flow construction.
-                match self.parallel_traversal {
-                    None => {
-                        sequential::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
-                            node, &shared_layout_context);
-                    }
-                    Some(ref mut traversal) => {
-                        parallel::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
-                            node, &shared_layout_context, traversal);
-                    }
-                }
-            });
-
+                if self.parallel_flag {
+                    // Parallel mode
+                    parallel::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
+                    node, &shared_layout_context, &mut self.parallel_traversal);
+                } else {
+                    //Sequential mode
+                    sequential::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
+                    node, &shared_layout_context);
+                }});
             // TODO(pcwalton): Measure energy usage of text shaping, perhaps?
             let text_shaping_time =
                 (font::get_and_reset_text_shaping_performance_counter() as u64) /
@@ -1388,19 +1393,18 @@ impl LayoutThread {
                         self.time_profiler_chan.clone(),
                         || {
                     let profiler_metadata = self.profiler_metadata();
-                    match self.parallel_traversal {
-                        None => {
-                            // Sequential mode.
-                            LayoutThread::solve_constraints(&mut root_flow, &layout_context)
-                        }
-                        Some(ref mut parallel) => {
-                            // Parallel mode.
-                            LayoutThread::solve_constraints_parallel(parallel,
-                                                                   &mut root_flow,
-                                                                   profiler_metadata,
-                                                                   self.time_profiler_chan.clone(),
-                                                                   &*layout_context);
-                        }
+
+                    debug!("layout: post style parallel? {}", self.parallel_flag);
+                    if self.parallel_flag {
+                        // Parallel mode.
+                        LayoutThread::solve_constraints_parallel(&mut self.parallel_traversal,
+                                                                 &mut root_flow,
+                                                                 profiler_metadata,
+                                                                 self.time_profiler_chan.clone(),
+                                                                 &*layout_context);
+                    } else {
+                        //Sequential mode
+                        LayoutThread::solve_constraints(&mut root_flow, &layout_context);
                     }
                 });
             }
