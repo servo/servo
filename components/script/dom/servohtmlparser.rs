@@ -41,6 +41,7 @@ use util::resource_files::read_resource_file;
 pub struct Sink {
     pub base_url: Option<Url>,
     pub document: JS<Document>,
+    pub dom_count: Cell<i32>,
 }
 
 /// FragmentContext is used only to pass this group of related values
@@ -236,6 +237,7 @@ impl ServoHTMLParser {
         let sink = Sink {
             base_url: base_url,
             document: JS::from_ref(document),
+            dom_count: Cell::new(0),
         };
 
         let tb = TreeBuilder::new(sink, TreeBuilderOpts {
@@ -255,6 +257,7 @@ impl ServoHTMLParser {
             pipeline: pipeline,
         };
 
+
         reflect_dom_object(box parser, GlobalRef::Window(document.window()),
                            ServoHTMLParserBinding::Wrap)
     }
@@ -265,6 +268,7 @@ impl ServoHTMLParser {
         let sink = Sink {
             base_url: base_url,
             document: JS::from_ref(document),
+            dom_count: Cell::new(0),
         };
 
         let tb_opts = TreeBuilderOpts {
@@ -312,6 +316,7 @@ impl ServoHTMLParser {
     pub fn pending_input(&self) -> &DOMRefCell<Vec<String>> {
         &self.pending_input
     }
+
 
 }
 

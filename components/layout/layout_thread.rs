@@ -392,6 +392,8 @@ impl LayoutThread {
         let device = Device::new(
             MediaType::Screen,
             opts::get().initial_window_size.as_f32() * ScaleFactor::new(1.0));
+
+        //FIXME Diane
         let parallel_traversal = if opts::get().layout_threads != 1 {
             Some(WorkQueue::new("LayoutWorker", thread_state::LAYOUT,
                                 opts::get().layout_threads))
