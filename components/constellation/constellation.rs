@@ -50,10 +50,13 @@ use script_traits::{MozBrowserEvent, MozBrowserErrorType};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::Error as IOError;
+use std::iter::{Peekable, Rev};
 use std::marker::PhantomData;
 use std::mem::replace;
 use std::process;
+use std::slice::Iter;
 use std::sync::mpsc::{Sender, channel, Receiver};
+use std::time::Instant;
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
 use timer_scheduler::TimerScheduler;
@@ -217,26 +220,26 @@ pub struct InitialConstellationState {
 
 /// Stores the navigation context for a single frame in the frame tree.
 struct Frame {
-    prev: Vec<PipelineId>,
-    current: PipelineId,
-    next: Vec<PipelineId>,
+    prev: Vec<(PipelineId, Instant)>,
+    current: (PipelineId, Instant),
+    next: Vec<(PipelineId, Instant)>,
 }
 
 impl Frame {
     fn new(pipeline_id: PipelineId) -> Frame {
         Frame {
             prev: vec!(),
-            current: pipeline_id,
+            current: (pipeline_id, Instant::now()),
             next: vec!(),
         }
     }
 
-    fn load(&mut self, pipeline_id: PipelineId) -> Vec<PipelineId> {
+    fn load(&mut self, pipeline_id: PipelineId) -> Vec<(PipelineId, Instant)> {
         // TODO(gw): To also allow navigations within subframes
         // to affect the parent navigation history, this should bubble
         // up the navigation change to each parent.
         self.prev.push(self.current);
-        self.current = pipeline_id;
+        self.current = (pipeline_id, Instant::now());
         replace(&mut self.next, vec!())
     }
 }
@@ -273,15 +276,55 @@ impl<'a> Iterator for FrameTreeIterator<'a> {
                     continue;
                 },
             };
-            let pipeline = match self.pipelines.get(&frame.current) {
+            let pipeline = match self.pipelines.get(&frame.current.0) {
                 Some(pipeline) => pipeline,
                 None => {
-                    warn!("Pipeline {:?} iterated after closure.", frame.current);
+                    warn!("Pipeline {:?} iterated after closure.", frame.current.0);
                     continue;
                 },
             };
             self.stack.extend(pipeline.children.iter().map(|&c| c));
             return Some(frame)
+        }
+    }
+}
+
+type FrameIterator<'a> = Peekable<Rev<Iter<'a, (PipelineId, Instant)>>>;
+
+/// An iterator over the joint session history of a frame tree.
+/// Navigation entries are lazily interleaved by the time at
+/// which each navigation occurred.
+struct HistoryIterator<'a> {
+    stack: Vec<(FrameId, FrameIterator<'a>)>,
+    direction: NavigationDirection,
+}
+
+impl<'a> Iterator for HistoryIterator<'a> {
+    type Item = FrameId;
+    fn next(&mut self) -> Option<FrameId> {
+        match self.direction {
+            NavigationDirection::Forward(_) => {
+                self.stack.iter_mut()
+                          .filter_map(|&mut (frame_id, ref mut iter)| {
+                              iter.peek().cloned().map(|&(_, instant)| (frame_id, iter, instant))
+                          })
+                          .min_by_key(|&(_, _, instant)| instant)
+                          .map(|(frame_id, iter, _)| {
+                              iter.next();
+                              frame_id
+                          })
+            },
+            NavigationDirection::Back(_) => {
+                self.stack.iter_mut()
+                          .filter_map(|&mut (frame_id, ref mut iter)| {
+                              iter.peek().cloned().map(|&(_, instant)| (frame_id, iter, instant))
+                          })
+                          .max_by_key(|&(_, _, instant)| instant)
+                          .map(|(frame_id, iter, _)| {
+                              iter.next();
+                              frame_id
+                          })
+            }
         }
     }
 }
@@ -465,6 +508,63 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             stack: frame_id_root.into_iter().collect(),
             pipelines: &self.pipelines,
             frames: &self.frames,
+        }
+    }
+
+    fn full_frame_tree(&self, frame_id_root: FrameId) -> Vec<FrameId> {
+        let frame = match self.frames.get(&frame_id_root) {
+            Some(frame) => frame,
+            None => {
+                warn!("Tried to get full frame tree after frame {:?} closed.", frame_id_root);
+                return vec!();
+            }
+        };
+
+        let mut pipelines = vec!();
+        pipelines.extend(frame.next.iter().map(|&(pipeline_id, _)| pipeline_id));
+        pipelines.push(frame.current.0);
+        pipelines.extend(frame.prev.iter().map(|&(pipeline_id, _)| pipeline_id));
+
+        // There may be duplicate pipeline IDs due to state and hash changes
+        pipelines.dedup();
+
+        let mut frames = vec!(frame_id_root);
+        for pipeline_id in pipelines {
+            let pipeline = match self.pipelines.get(&pipeline_id) {
+                Some(pipeline) => pipeline,
+                None => {
+                    warn!("Tried to get children from closed pipeline {:?}", pipeline_id);
+                    continue;
+                }
+            };
+            for frame_id in &pipeline.children {
+                frames.extend_from_slice(&self.full_frame_tree(*frame_id));
+            }
+        }
+
+        frames
+    }
+
+    fn history_iterator(&self,
+                        frame_id_root: FrameId,
+                        direction: NavigationDirection)
+                        -> HistoryIterator {
+        let full_frame_tree = self.full_frame_tree(frame_id_root);
+        let stack = full_frame_tree.iter().filter_map(|frame_id| {
+            let frame = match self.frames.get(frame_id) {
+                Some(frame) => frame,
+                None => return None,
+            };
+            let iter = match direction {
+                NavigationDirection::Forward(_) => frame.next.iter().rev().peekable(),
+                NavigationDirection::Back(_) => frame.prev.iter().rev().peekable(),
+            };
+            Some((*frame_id, iter))
+        }).collect();
+
+        HistoryIterator {
+            stack: stack,
+            direction: direction,
         }
     }
 
@@ -1116,7 +1216,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             if let Some(_) = parent_pipeline_info {
                 let root_pipeline_id = self.root_frame_id
                     .and_then(|root_frame_id| self.frames.get(&root_frame_id))
-                    .map(|root_frame| root_frame.current);
+                    .map(|root_frame| root_frame.current.0);
 
                 let ancestor_info = self.get_mozbrowser_ancestor_info(pipeline_id);
                 if let Some((ancestor_id, subpage_id)) = ancestor_info {
@@ -1278,7 +1378,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // Get the ids for the previous and next pipelines.
         let (prev_pipeline_id, next_pipeline_id) = match self.frames.get_mut(&frame_id) {
             Some(frame) => {
-                let prev = frame.current;
+                let prev = frame.current.0;
                 let next = match direction {
                     NavigationDirection::Forward(delta) => {
                         if delta > frame.next.len() && delta > 0 {
@@ -1291,7 +1391,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                             Some(frame) => frame,
                             None => return warn!("Could not get next frame for forward navigation"),
                         };
-                        frame.current
+                        frame.current.0
                     }
                     NavigationDirection::Back(delta) => {
                         if delta > frame.prev.len() && delta > 0 {
@@ -1304,7 +1404,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                             Some(frame) => frame,
                             None => return warn!("Could not get prev frame for back navigation"),
                         };
-                        frame.current
+                        frame.current.0
                     }
                 };
                 (prev, next)
@@ -1368,7 +1468,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // the compositor below.
         let root_pipeline_id = self.root_frame_id
             .and_then(|root_frame_id| self.frames.get(&root_frame_id))
-            .map(|root_frame| root_frame.current);
+            .map(|root_frame| root_frame.current.0);
         let pipeline_id = self.focus_pipeline_id.or(root_pipeline_id);
 
         match pipeline_id {
@@ -1420,7 +1520,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                            resp_chan: IpcSender<Option<(PipelineId, bool)>>) {
         let current_pipeline_id = frame_id.or(self.root_frame_id)
             .and_then(|frame_id| self.frames.get(&frame_id))
-            .map(|frame| frame.current);
+            .map(|frame| frame.current.0);
         let current_pipeline_id_loaded = current_pipeline_id
             .map(|id| (id, true));
         let pipeline_id_loaded = self.pending_frames.iter().rev()
@@ -1558,7 +1658,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             WebDriverCommandMsg::TakeScreenshot(pipeline_id, reply) => {
                 let current_pipeline_id = self.root_frame_id
                     .and_then(|root_frame_id| self.frames.get(&root_frame_id))
-                    .map(|root_frame| root_frame.current);
+                    .map(|root_frame| root_frame.current.0);
                 if Some(pipeline_id) == current_pipeline_id {
                     self.compositor_proxy.send(ToCompositorMsg::CreatePng(reply));
                 } else {
@@ -1632,7 +1732,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         self.trigger_mozbrowserlocationchange(frame_change.new_pipeline_id);
 
         // Remove any evicted frames
-        for pipeline_id in evicted_frames.unwrap_or_default() {
+        for (pipeline_id, _) in evicted_frames.unwrap_or_default() {
             self.close_pipeline(pipeline_id, ExitPipelineMode::Normal);
         }
 
@@ -1699,7 +1799,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 None => return warn!("Frame {:?} resized after closing.", root_frame_id),
                 Some(frame) => frame,
             };
-            let pipeline_id = frame.current;
+            let pipeline_id = frame.current.0;
             let pipeline = match self.pipelines.get(&pipeline_id) {
                 None => return warn!("Pipeline {:?} resized after closing.", pipeline_id),
                 Some(pipeline) => pipeline,
@@ -1709,7 +1809,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 new_size,
                 size_type
             ));
-            for pipeline_id in frame.prev.iter().chain(&frame.next) {
+            for &(pipeline_id, _) in frame.prev.iter().chain(&frame.next) {
                 let pipeline = match self.pipelines.get(&pipeline_id) {
                     None => {
                         warn!("Inactive pipeline {:?} resized after closing.", pipeline_id);
@@ -1785,7 +1885,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // are met, then the output image should not change and a reftest
         // screenshot can safely be written.
         for frame in self.current_frame_tree_iter(self.root_frame_id) {
-            let pipeline_id = frame.current;
+            let pipeline_id = frame.current.0;
 
             let pipeline = match self.pipelines.get(&pipeline_id) {
                 None => { warn!("Pipeline {:?} screenshot while closing.", pipeline_id); continue; },
@@ -1809,7 +1909,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             }
 
             // See if this pipeline has reached idle script state yet.
-            match self.document_states.get(&frame.current) {
+            match self.document_states.get(&frame.current.0) {
                 Some(&DocumentState::Idle) => {}
                 Some(&DocumentState::Pending) | None => {
                     return ReadyToSave::DocumentLoading;
@@ -1829,7 +1929,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 }
 
                 // Get the epoch that the compositor has drawn for this pipeline.
-                let compositor_epoch = pipeline_states.get(&frame.current);
+                let compositor_epoch = pipeline_states.get(&frame.current.0);
                 match compositor_epoch {
                     Some(compositor_epoch) => {
                         // Synchronously query the layout thread to see if the current
@@ -1886,7 +1986,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // ordering is vital - so that if close_pipeline() ends up closing
         // any child frames, they can be removed from the parent frame correctly.
         let parent_info = self.frames.get(&frame_id)
-            .and_then(|frame| self.pipelines.get(&frame.current))
+            .and_then(|frame| self.pipelines.get(&frame.current.0))
             .and_then(|pipeline| pipeline.parent_info);
 
         let pipelines_to_close = {
@@ -1901,8 +2001,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             pipelines_to_close
         };
 
-        for pipeline_id in &pipelines_to_close {
-            self.close_pipeline(*pipeline_id, exit_mode);
+        for (pipeline_id, _) in pipelines_to_close {
+            self.close_pipeline(pipeline_id, exit_mode);
         }
 
         if self.frames.remove(&frame_id).is_none() {
@@ -1996,7 +2096,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     // Convert a frame to a sendable form to pass to the compositor
     fn frame_to_sendable(&self, frame_id: FrameId) -> Option<SendableFrameTree> {
         self.frames.get(&frame_id).and_then(|frame: &Frame| {
-            self.pipelines.get(&frame.current).map(|pipeline: &Pipeline| {
+            self.pipelines.get(&frame.current.0).map(|pipeline: &Pipeline| {
                 let mut frame_tree = SendableFrameTree {
                     pipeline: pipeline.to_sendable(),
                     size: pipeline.size,
@@ -2018,7 +2118,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     fn revoke_paint_permission(&self, pipeline_id: PipelineId) {
         let frame_id = self.pipeline_to_frame_map.get(&pipeline_id).map(|frame_id| *frame_id);
         for frame in self.current_frame_tree_iter(frame_id) {
-            self.pipelines.get(&frame.current).map(|pipeline| pipeline.revoke_paint_permission());
+            self.pipelines.get(&frame.current.0).map(|pipeline| pipeline.revoke_paint_permission());
         }
     }
 
@@ -2042,7 +2142,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         }
 
         for frame in self.current_frame_tree_iter(self.root_frame_id) {
-            self.pipelines.get(&frame.current).map(|pipeline| pipeline.grant_paint_permission());
+            self.pipelines.get(&frame.current.0).map(|pipeline| pipeline.grant_paint_permission());
         }
     }
 
@@ -2122,7 +2222,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                                pipeline_id: PipelineId,
                                root_frame_id: Option<FrameId>) -> bool {
         self.current_frame_tree_iter(root_frame_id)
-            .any(|current_frame| current_frame.current == pipeline_id)
+            .any(|current_frame| current_frame.current.0 == pipeline_id)
     }
 
 }
