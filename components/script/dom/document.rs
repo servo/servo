@@ -265,6 +265,8 @@ pub struct Document {
     /// https://w3c.github.io/uievents/#event-type-dblclick
     #[ignore_heap_size_of = "Defined in std"]
     last_click_info: DOMRefCell<Option<(Instant, Point2D<f32>)>>,
+    /// track number of dom elements issue #10110
+    dom_count: Cell<u32>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -430,6 +432,18 @@ impl Document {
                        .filter_map(Root::downcast::<HTMLBaseElement>)
                        .find(|element| element.upcast::<Element>().has_attribute(&local_name!("href")));
         self.base_element.set(base.r());
+    }
+
+    pub fn dom_count(&self) -> u32 {
+        self.dom_count.get()
+    }
+
+    pub fn increment_dom_count(&self) {
+        self.dom_count.set(self.dom_count.get() + 1);
+    }
+
+    pub fn decrement_dom_count(&self) {
+        self.dom_count.set(self.dom_count.get() - 1);
     }
 
     pub fn quirks_mode(&self) -> QuirksMode {
@@ -1847,6 +1861,7 @@ impl Document {
             referrer_policy: Cell::new(referrer_policy),
             target_element: MutNullableHeap::new(None),
             last_click_info: DOMRefCell::new(None),
+            dom_count: Cell::new(0),
         }
     }
 
