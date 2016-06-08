@@ -490,6 +490,13 @@ fn http_fetch(request: Rc<Request>,
     }
 
     // Step 4
+    let credentials = match request.credentials_mode {
+        CredentialsMode::Include => true,
+        CredentialsMode::CredentialsSameOrigin if request.response_tainting.get() == ResponseTainting::Basic
+            => true,
+        _ => false
+    };
+    // Step 5
     if response.is_none() {
         // Substep 1
         if cors_preflight_flag {
@@ -516,18 +523,10 @@ fn http_fetch(request: Rc<Request>,
         request.skip_service_worker.set(true);
 
         // Substep 3
-        let credentials = match request.credentials_mode {
-            CredentialsMode::Include => true,
-            CredentialsMode::CredentialsSameOrigin if request.response_tainting.get() == ResponseTainting::Basic
-                => true,
-            _ => false
-        };
-
-        // Substep 4
         let fetch_result = http_network_or_cache_fetch(request.clone(), credentials, authentication_fetch_flag,
                                                        done_chan, context);
 
-        // Substep 5
+        // Substep 4
         if cors_flag && cors_check(request.clone(), &fetch_result).is_err() {
             return Response::network_error();
         }
@@ -562,7 +561,7 @@ fn http_fetch(request: Rc<Request>,
         StatusCode::Unauthorized => {
             // Step 1
             // FIXME: Figure out what to do with request window objects
-            if cors_flag || request.credentials_mode != CredentialsMode::Include {
+            if cors_flag || !credentials {
                 return response;
             }
 
