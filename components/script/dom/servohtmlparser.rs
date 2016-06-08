@@ -233,6 +233,8 @@ impl ServoHTMLParser {
     #[allow(unrooted_must_root)]
     pub fn new(base_url: Option<Url>, document: &Document, pipeline: Option<PipelineId>)
                -> Root<ServoHTMLParser> {
+        debug!("ServoHTMLParser created");
+
         let sink = Sink {
             base_url: base_url,
             document: JS::from_ref(document),
@@ -254,6 +256,7 @@ impl ServoHTMLParser {
             last_chunk_received: Cell::new(false),
             pipeline: pipeline,
         };
+
 
         reflect_dom_object(box parser, GlobalRef::Window(document.window()),
                            ServoHTMLParserBinding::Wrap)
@@ -312,6 +315,7 @@ impl ServoHTMLParser {
     pub fn pending_input(&self) -> &DOMRefCell<Vec<String>> {
         &self.pending_input
     }
+
 
 }
 

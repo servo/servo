@@ -189,7 +189,10 @@ pub struct LayoutThread {
     first_reflow: bool,
 
     /// The workers that we use for parallel operation.
-    parallel_traversal: Option<WorkQueue<SharedLayoutContext, WorkQueueData>>,
+    parallel_traversal: WorkQueue<SharedLayoutContext, WorkQueueData>,
+    
+    /// Flag to indicate whether to use parallel operations
+    parallel_flag: bool,
 
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
@@ -396,12 +399,14 @@ impl LayoutThread {
         let device = Device::new(
             MediaType::Screen,
             opts::get().initial_window_size.as_f32() * ScaleFactor::new(1.0));
-        let parallel_traversal = if opts::get().layout_threads != 1 {
-            Some(WorkQueue::new("LayoutWorker", thread_state::LAYOUT,
-                                opts::get().layout_threads))
-        } else {
-            None
-        };
+
+        //FIXME Diane
+        let parallel_traversal = WorkQueue::new("LayoutWorker", 
+                                    thread_state::LAYOUT,
+                                    opts::get().layout_threads);
+        
+
+        debug!("Possible layout Threads: {}", opts::get().layout_threads);
 
         // Create the channel on which new animations can be sent.
         let (new_animations_sender, new_animations_receiver) = channel();
@@ -448,6 +453,7 @@ impl LayoutThread {
             font_cache_receiver: font_cache_receiver,
             font_cache_sender: ipc_font_cache_sender,
             parallel_traversal: parallel_traversal,
+            parallel_flag: true,
             generation: 0,
             new_animations_sender: new_animations_sender,
             new_animations_receiver: new_animations_receiver,
@@ -721,16 +727,15 @@ impl LayoutThread {
         });
 
         // ... as do each of the LayoutWorkers, if present.
-        if let Some(ref traversal) = self.parallel_traversal {
-            let sizes = traversal.heap_size_of_tls(heap_size_of_local_context);
-            for (i, size) in sizes.iter().enumerate() {
-                reports.push(Report {
-                    path: path![formatted_url,
-                                format!("layout-worker-{}-local-context", i)],
-                    kind: ReportKind::ExplicitJemallocHeapSize,
-                    size: *size,
-                });
-            }
+        let ref traversal = self.parallel_traversal;
+        let sizes = traversal.heap_size_of_tls(heap_size_of_local_context);
+        for (i, size) in sizes.iter().enumerate() {
+            reports.push(Report {
+                path: path![formatted_url,
+                            format!("layout-worker-{}-local-context", i)],
+                kind: ReportKind::ExplicitJemallocHeapSize,
+                size: *size,
+            });
         }
 
         reports_chan.send(reports);
@@ -783,9 +788,8 @@ impl LayoutThread {
     /// Shuts down the layout thread now. If there are any DOM nodes left, layout will now (safely)
     /// crash.
     fn exit_now(&mut self) {
-        if let Some(ref mut traversal) = self.parallel_traversal {
-            traversal.shutdown()
-        }
+        let ref mut traversal =  self.parallel_traversal;
+        traversal.shutdown();
 
         self.paint_chan.send(LayoutToPaintMsg::Exit).unwrap();
     }
@@ -1003,7 +1007,10 @@ impl LayoutThread {
         let document = unsafe { ServoLayoutNode::new(&data.document) };
         let document = document.as_document().unwrap();
 
+        self.parallel_flag = data.dom_count > 600;
         debug!("layout: received layout request for: {}", self.url);
+        debug!("Number of objects in DOM: {}", data.dom_count);
+        debug!("layout: parallel? {}", self.parallel_flag);
 
         let mut rw_data = possibly_locked_rw_data.lock();
 
@@ -1127,16 +1134,20 @@ impl LayoutThread {
                     self.time_profiler_chan.clone(),
                     || {
                 // Perform CSS selector matching and flow construction.
-                match self.parallel_traversal {
-                    None => {
+                match self.parallel_flag {
+                    false => {
+                        //Sequential mode
                         sequential::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
                             node, &shared_layout_context);
                     }
-                    Some(ref mut traversal) => {
+                    true => {
+                        //Parallel mode
+                        let ref mut traversal = self.parallel_traversal;
                         parallel::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
                             node, &shared_layout_context, traversal);
                     }
-                }
+                };
+                
             });
 
             // TODO(pcwalton): Measure energy usage of text shaping, perhaps?
@@ -1388,20 +1399,24 @@ impl LayoutThread {
                         self.time_profiler_chan.clone(),
                         || {
                     let profiler_metadata = self.profiler_metadata();
-                    match self.parallel_traversal {
-                        None => {
-                            // Sequential mode.
+                    
+                    debug!("layout: post style parallel? {}", self.parallel_flag);
+                    match self.parallel_flag {
+                        false => {
+                            //Sequential mode
                             LayoutThread::solve_constraints(&mut root_flow, &layout_context)
                         }
-                        Some(ref mut parallel) => {
+                        true => {
                             // Parallel mode.
-                            LayoutThread::solve_constraints_parallel(parallel,
+                            let ref mut traversal = self.parallel_traversal;
+                            LayoutThread::solve_constraints_parallel(traversal,
                                                                    &mut root_flow,
                                                                    profiler_metadata,
                                                                    self.time_profiler_chan.clone(),
                                                                    &*layout_context);
                         }
                     }
+
                 });
             }
 
