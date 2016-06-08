@@ -17,7 +17,7 @@ use euclid::size::Size2D;
 use gfx_traits::LayerId;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
+use msg::constellation_msg::{PipelineId, SubpageId, TraversalDirection};
 use net_traits::CoreResourceMsg;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use style_traits::cursor::Cursor;
@@ -91,8 +91,8 @@ pub enum ScriptMsg {
     /// Dispatch a mozbrowser event to a given iframe,
     /// or to the window if no subpage id is provided.
     MozBrowserEvent(PipelineId, Option<SubpageId>, MozBrowserEvent),
-    /// HTMLIFrameElement Forward or Back navigation.
-    Navigate(Option<(PipelineId, SubpageId)>, NavigationDirection),
+    /// HTMLIFrameElement Forward or Back traversal.
+    TraverseHistory(Option<PipelineId>, TraversalDirection),
     /// Favicon detected
     NewFavicon(Url),
     /// Status message to be displayed in the chrome, eg. a link URL on mouseover.
