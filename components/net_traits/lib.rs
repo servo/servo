@@ -213,6 +213,7 @@ impl FetchTaskTarget for IpcSender<FetchResponseMsg> {
     fn process_response(&mut self, response: &Response) {
         let _ = self.send(FetchResponseMsg::ProcessResponse(response.metadata()));
     }
+
     fn process_response_chunk(&mut self, chunk: Vec<u8>) {
         let _ = self.send(FetchResponseMsg::ProcessResponseChunk(chunk));
     }
