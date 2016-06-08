@@ -7,7 +7,7 @@
 <script>
 var iframe = document.querySelector('iframe');
 iframe.onload = function() {
-  alert(iframe.contentDocument.querySelector('#cookie').textContent);
+  alert(document.cookie + ' ' + iframe.contentDocument.querySelector('#cookie').textContent);
 };
 </script>
 </html>

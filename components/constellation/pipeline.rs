@@ -64,6 +64,7 @@ pub struct Pipeline {
     /// animations cause composites to be continually scheduled.
     pub running_animations: bool,
     pub children: Vec<FrameId>,
+    /// Whether this pipeline is considered distinct from public pipelines.
     pub is_private: bool,
 }
 

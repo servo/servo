@@ -13,7 +13,7 @@
 
       var gotGrandchildResult = false;
       privateFrame.addEventListener("mozbrowsershowmodalprompt", t.step_func(e => {
-        assert_not_equals(e.detail.message, '');
+        assert_equals(e.detail.message, 'private=active private=active');
         gotGrandchildResult = true;
       }));
 

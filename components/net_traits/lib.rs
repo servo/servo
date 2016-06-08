@@ -331,17 +331,15 @@ pub enum CoreResourceMsg {
     /// Request the data associated with a particular URL
     Load(LoadData, LoadConsumer, Option<IpcSender<ResourceId>>),
     /// Try to make a websocket connection to a URL.
-    WebsocketConnect(PipelineId, WebSocketCommunicate, WebSocketConnectData),
+    WebsocketConnect(WebSocketCommunicate, WebSocketConnectData),
     /// Store a set of cookies for a given originating URL
-    SetCookiesForUrl(PipelineId, Url, String, CookieSource),
+    SetCookiesForUrl(Url, String, CookieSource),
     /// Retrieve the stored cookies for a given URL
-    GetCookiesForUrl(PipelineId, Url, IpcSender<Option<String>>, CookieSource),
+    GetCookiesForUrl(Url, IpcSender<Option<String>>, CookieSource),
     /// Cancel a network request corresponding to a given `ResourceId`
     Cancel(ResourceId),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
     Synchronize(IpcSender<()>),
-    /// Send the channel for checking a private pipeline
-    SendConstellationMsgChannel(IpcSender<ConstellationMsg>),
     /// Break the load handler loop, send a reply when done cleaning up local resources
     //  and exit
     Exit(IpcSender<()>),

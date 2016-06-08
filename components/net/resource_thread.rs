@@ -18,12 +18,12 @@ use http_loader::{self, HttpState};
 use hyper::client::pool::Pool;
 use hyper::header::{ContentType, Header, SetCookie};
 use hyper::mime::{Mime, SubLevel, TopLevel};
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcReceiverSet};
 use mime_classifier::{ApacheBugFlag, MIMEClassifier, NoSniffFlag};
-use msg::constellation_msg::PipelineId;
-use net_traits::ConstellationMsg;
 use net_traits::LoadContext;
 use net_traits::ProgressMsg::Done;
+use net_traits::filemanager_thread::FileManagerThreadMsg;
+use net_traits::storage_thread::StorageThreadMsg;
 use net_traits::{AsyncResponseTarget, Metadata, ProgressMsg, ResponseAction, CoreResourceThread};
 use net_traits::{CoreResourceMsg, CookieSource, LoadConsumer, LoadData, LoadResponse, ResourceId};
 use net_traits::{NetworkError, WebSocketCommunicate, WebSocketConnectData, ResourceThreads};
@@ -162,90 +162,146 @@ fn start_sending_opt(start_chan: LoadConsumer, metadata: Metadata,
     }
 }
 
+/// Returns a tuple of (public, private) senders to the new threads.
 pub fn new_resource_threads(user_agent: String,
                             devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-                            profiler_chan: ProfilerChan) -> ResourceThreads {
-    ResourceThreads::new(new_core_resource_thread(user_agent, devtools_chan, profiler_chan),
-                         StorageThreadFactory::new(),
-                         FileManagerThreadFactory::new())
+                            profiler_chan: ProfilerChan) -> (ResourceThreads, ResourceThreads) {
+    let (public_core, private_core) = new_core_resource_thread(user_agent, devtools_chan, profiler_chan);
+    let storage: IpcSender<StorageThreadMsg> = StorageThreadFactory::new();
+    let filemanager: IpcSender<FileManagerThreadMsg> = FileManagerThreadFactory::new();
+    (ResourceThreads::new(public_core, storage.clone(), filemanager.clone()),
+     ResourceThreads::new(private_core, storage, filemanager))
 }
 
 
 /// Create a CoreResourceThread
 pub fn new_core_resource_thread(user_agent: String,
                                 devtools_chan: Option<Sender<DevtoolsControlMsg>>,
-                                profiler_chan: ProfilerChan) -> CoreResourceThread {
-    let hsts_preload = HstsList::from_servo_preload();
-    let (setup_chan, setup_port) = ipc::channel().unwrap();
-    let setup_chan_clone = setup_chan.clone();
+                                profiler_chan: ProfilerChan)
+                                -> (CoreResourceThread, CoreResourceThread) {
+    let (public_setup_chan, public_setup_port) = ipc::channel().unwrap();
+    let (private_setup_chan, private_setup_port) = ipc::channel().unwrap();
+    let public_setup_chan_clone = public_setup_chan.clone();
+    let private_setup_chan_clone = private_setup_chan.clone();
     spawn_named("ResourceManager".to_owned(), move || {
         let resource_manager = CoreResourceManager::new(
-            user_agent, hsts_preload, devtools_chan, profiler_chan
+            user_agent, devtools_chan, profiler_chan
         );
 
         let mut channel_manager = ResourceChannelManager {
-            from_client: setup_port,
-            resource_manager: resource_manager
+            resource_manager: resource_manager,
         };
-        channel_manager.start(setup_chan_clone);
+        channel_manager.start(public_setup_chan_clone,
+                              private_setup_chan_clone,
+                              public_setup_port,
+                              private_setup_port);
     });
-    setup_chan
+    (public_setup_chan, private_setup_chan)
 }
 
 struct ResourceChannelManager {
-    from_client: IpcReceiver<CoreResourceMsg>,
-    resource_manager: CoreResourceManager
+    resource_manager: CoreResourceManager,
+}
+
+fn create_resource_groups() -> (ResourceGroup, ResourceGroup) {
+    let mut hsts_list = HstsList::from_servo_preload();
+    let mut auth_cache = AuthCache::new();
+    let mut cookie_jar = CookieStorage::new();
+    if let Some(ref config_dir) = opts::get().config_dir {
+        read_json_from_file(&mut auth_cache, config_dir, "auth_cache.json");
+        read_json_from_file(&mut hsts_list, config_dir, "hsts_list.json");
+        read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
+    }
+    let resource_group = ResourceGroup {
+        cookie_jar: Arc::new(RwLock::new(cookie_jar)),
+        auth_cache: Arc::new(RwLock::new(auth_cache)),
+        hsts_list: Arc::new(RwLock::new(hsts_list.clone())),
+        connector: create_http_connector(),
+    };
+    let private_resource_group = ResourceGroup {
+        cookie_jar: Arc::new(RwLock::new(CookieStorage::new())),
+        auth_cache: Arc::new(RwLock::new(AuthCache::new())),
+        hsts_list: Arc::new(RwLock::new(HstsList::new())),
+        connector: create_http_connector(),
+    };
+    (resource_group, private_resource_group)
 }
 
 impl ResourceChannelManager {
-    fn start(&mut self, control_sender: CoreResourceThread) {
-        loop {
-            match self.from_client.recv().unwrap() {
-                CoreResourceMsg::Load(load_data, consumer, id_sender) =>
-                    self.resource_manager.load(load_data, consumer, id_sender, control_sender.clone()),
-                CoreResourceMsg::WebsocketConnect(pipeline_id, connect, connect_data) =>
-                    self.resource_manager.websocket_connect(pipeline_id, connect, connect_data),
-                CoreResourceMsg::SetCookiesForUrl(pipeline_id, request, cookie_list, source) =>
-                    self.resource_manager.set_cookies_for_url(pipeline_id, request, cookie_list, source),
-                CoreResourceMsg::GetCookiesForUrl(pipeline_id, url, consumer, source) => {
-                    let cookie_jar = &self.resource_manager.get_resource_group(Some(pipeline_id)).cookie_jar;
-                    let mut cookie_jar = cookie_jar.write().unwrap();
-                    consumer.send(cookie_jar.cookies_for_url(&url, source)).unwrap();
-                }
-                CoreResourceMsg::Cancel(res_id) => {
-                    if let Some(cancel_sender) = self.resource_manager.cancel_load_map.get(&res_id) {
-                        let _ = cancel_sender.send(());
-                    }
-                    self.resource_manager.cancel_load_map.remove(&res_id);
-                }
-                CoreResourceMsg::Synchronize(sender) => {
-                    let _ = sender.send(());
-                }
-                CoreResourceMsg::SendConstellationMsgChannel(sender) => {
-                    self.resource_manager.constellation_msg_chan = Some(sender);
-                }
-                CoreResourceMsg::Exit(sender) => {
-                    let resource_grp = self.resource_manager.get_resource_group(None);
-                    if let Some(ref config_dir) = opts::get().config_dir {
-                        match resource_grp.auth_cache.read() {
-                            Ok(auth_cache) => write_json_to_file(&*auth_cache, config_dir, "auth_cache.json"),
-                            Err(_) => warn!("Error writing auth cache to disk"),
-                        }
-                        match resource_grp.cookie_jar.read() {
-                            Ok(jar) => write_json_to_file(&*jar, config_dir, "cookie_jar.json"),
-                            Err(_) => warn!("Error writing cookie jar to disk"),
-                        }
-                        match resource_grp.hsts_list.read() {
-                            Ok(hsts) => write_json_to_file(&*hsts, config_dir, "hsts_list.json"),
-                            Err(_) => warn!("Error writing hsts list to disk"),
-                        }
-                    }
-                    let _ = sender.send(());
-                    break;
-                }
+    #[allow(unsafe_code)]
+    fn start(&mut self,
+             public_control_sender: CoreResourceThread,
+             private_control_sender: CoreResourceThread,
+             public_receiver: IpcReceiver<CoreResourceMsg>,
+             private_receiver: IpcReceiver<CoreResourceMsg>) {
+        let (public_resource_group, private_resource_group) = create_resource_groups();
 
+        let mut rx_set = IpcReceiverSet::new().unwrap();
+        let private_id = rx_set.add(private_receiver).unwrap();
+        let public_id = rx_set.add(public_receiver).unwrap();
+
+        loop {
+            for (id, data) in rx_set.select().unwrap().into_iter().map(|m| m.unwrap()) {
+                let (group, sender) = if id == private_id {
+                    (&private_resource_group, &private_control_sender)
+                } else {
+                    assert_eq!(id, public_id);
+                    (&public_resource_group, &public_control_sender)
+                };
+                if let Ok(msg) = data.to() {
+                    if !self.process_msg(msg, group, &sender) {
+                        break;
+                    }
+                }
             }
         }
+    }
+
+    /// Returns false if the thread should exit.
+    fn process_msg(&mut self,
+                   msg: CoreResourceMsg,
+                   group: &ResourceGroup,
+                   control_sender: &CoreResourceThread) -> bool {
+        match msg {
+            CoreResourceMsg::Load(load_data, consumer, id_sender) =>
+                self.resource_manager.load(load_data, consumer, id_sender, control_sender.clone(), group),
+            CoreResourceMsg::WebsocketConnect(connect, connect_data) =>
+                self.resource_manager.websocket_connect(connect, connect_data, group),
+            CoreResourceMsg::SetCookiesForUrl(request, cookie_list, source) =>
+                self.resource_manager.set_cookies_for_url(request, cookie_list, source, group),
+            CoreResourceMsg::GetCookiesForUrl(url, consumer, source) => {
+                let mut cookie_jar = group.cookie_jar.write().unwrap();
+                consumer.send(cookie_jar.cookies_for_url(&url, source)).unwrap();
+            }
+            CoreResourceMsg::Cancel(res_id) => {
+                if let Some(cancel_sender) = self.resource_manager.cancel_load_map.get(&res_id) {
+                    let _ = cancel_sender.send(());
+                }
+                self.resource_manager.cancel_load_map.remove(&res_id);
+            }
+            CoreResourceMsg::Synchronize(sender) => {
+                let _ = sender.send(());
+            }
+            CoreResourceMsg::Exit(sender) => {
+                if let Some(ref config_dir) = opts::get().config_dir {
+                    match group.auth_cache.read() {
+                        Ok(auth_cache) => write_json_to_file(&*auth_cache, config_dir, "auth_cache.json"),
+                        Err(_) => warn!("Error writing auth cache to disk"),
+                    }
+                    match group.cookie_jar.read() {
+                        Ok(jar) => write_json_to_file(&*jar, config_dir, "cookie_jar.json"),
+                        Err(_) => warn!("Error writing cookie jar to disk"),
+                    }
+                    match group.hsts_list.read() {
+                        Ok(hsts) => write_json_to_file(&*hsts, config_dir, "hsts_list.json"),
+                        Err(_) => warn!("Error writing hsts list to disk"),
+                    }
+                }
+                let _ = sender.send(());
+                return false;
+            }
+        }
+        true
     }
 }
 
@@ -392,35 +448,12 @@ pub struct CoreResourceManager {
     profiler_chan: ProfilerChan,
     cancel_load_map: HashMap<ResourceId, Sender<()>>,
     next_resource_id: ResourceId,
-    constellation_msg_chan: Option<IpcSender<ConstellationMsg>>,
-    resource_group: ResourceGroup,
-    private_resource_group: ResourceGroup,
 }
 
 impl CoreResourceManager {
     pub fn new(user_agent: String,
-               mut hsts_list: HstsList,
                devtools_channel: Option<Sender<DevtoolsControlMsg>>,
                profiler_chan: ProfilerChan) -> CoreResourceManager {
-        let mut auth_cache = AuthCache::new();
-        let mut cookie_jar = CookieStorage::new();
-        if let Some(ref config_dir) = opts::get().config_dir {
-            read_json_from_file(&mut auth_cache, config_dir, "auth_cache.json");
-            read_json_from_file(&mut hsts_list, config_dir, "hsts_list.json");
-            read_json_from_file(&mut cookie_jar, config_dir, "cookie_jar.json");
-        }
-        let resource_group = ResourceGroup {
-            cookie_jar: Arc::new(RwLock::new(cookie_jar)),
-            auth_cache: Arc::new(RwLock::new(auth_cache)),
-            hsts_list: Arc::new(RwLock::new(hsts_list.clone())),
-            connector: create_http_connector(),
-        };
-        let private_resource_group = ResourceGroup {
-            cookie_jar: Arc::new(RwLock::new(CookieStorage::new())),
-            auth_cache: Arc::new(RwLock::new(AuthCache::new())),
-            hsts_list: Arc::new(RwLock::new(HstsList::new())),
-            connector: create_http_connector(),
-        };
         CoreResourceManager {
             user_agent: user_agent,
             mime_classifier: Arc::new(MIMEClassifier::new()),
@@ -428,23 +461,19 @@ impl CoreResourceManager {
             profiler_chan: profiler_chan,
             cancel_load_map: HashMap::new(),
             next_resource_id: ResourceId(0),
-            constellation_msg_chan: None,
-            resource_group: resource_group,
-            private_resource_group: private_resource_group,
         }
     }
 
     fn set_cookies_for_url(&mut self,
-                           pipeline_id: PipelineId,
                            request: Url,
                            cookie_list: String,
-                           source: CookieSource) {
+                           source: CookieSource,
+                           resource_group: &ResourceGroup) {
         let header = Header::parse_header(&[cookie_list.into_bytes()]);
         if let Ok(SetCookie(cookies)) = header {
             for bare_cookie in cookies {
                 if let Some(cookie) = cookie::Cookie::new_wrapped(bare_cookie, &request, source) {
-                    let cookie_jar = &self.get_resource_group(Some(pipeline_id)).cookie_jar;
-                    let mut cookie_jar = cookie_jar.write().unwrap();
+                    let mut cookie_jar = resource_group.cookie_jar.write().unwrap();
                     cookie_jar.push(cookie, source);
                 }
             }
@@ -455,7 +484,8 @@ impl CoreResourceManager {
             load_data: LoadData,
             consumer: LoadConsumer,
             id_sender: Option<IpcSender<ResourceId>>,
-            resource_thread: CoreResourceThread) {
+            resource_thread: CoreResourceThread,
+            resource_grp: &ResourceGroup) {
         fn from_factory(factory: fn(LoadData, LoadConsumer, Arc<MIMEClassifier>, CancellationListener))
                         -> Box<FnBox(LoadData,
                                      LoadConsumer,
@@ -480,7 +510,6 @@ impl CoreResourceManager {
             "chrome" => from_factory(chrome_loader::factory),
             "file" => from_factory(file_loader::factory),
             "http" | "https" | "view-source" => {
-                let resource_grp = self.get_resource_group(load_data.pipeline_id);
                 let http_state = HttpState {
                     blocked_content: BLOCKED_CONTENT_RULES.clone(),
                     hsts_list: resource_grp.hsts_list.clone(),
@@ -510,27 +539,9 @@ impl CoreResourceManager {
     }
 
     fn websocket_connect(&self,
-                         pipeline_id: PipelineId,
                          connect: WebSocketCommunicate,
-                         connect_data: WebSocketConnectData) {
-        let resource_grp = self.get_resource_group(Some(pipeline_id));
-        websocket_loader::init(connect, connect_data, resource_grp.cookie_jar);
-    }
-
-    fn get_resource_group(&self, pipeline_id: Option<PipelineId>) -> ResourceGroup {
-        let is_private = match pipeline_id {
-            Some(id) => {
-                let (tx, rx) = ipc::channel::<bool>().unwrap();
-                let _ = self.constellation_msg_chan
-                            .as_ref()
-                            .unwrap().send(ConstellationMsg::IsPrivate(id, tx));
-                rx.recv().unwrap()
-            },
-            None => false
-        };
-        match is_private {
-            true => self.private_resource_group.clone(),
-            false => self.resource_group.clone(),
-        }
+                         connect_data: WebSocketConnectData,
+                         resource_grp: &ResourceGroup) {
+        websocket_loader::init(connect, connect_data, resource_grp.cookie_jar.clone());
     }
 }
