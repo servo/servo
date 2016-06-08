@@ -4,6 +4,7 @@
 
 use ipc_channel::ipc::IpcSender;
 use std::path::PathBuf;
+use super::{LoadConsumer, LoadData};
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -28,6 +29,9 @@ pub enum FileManagerThreadMsg {
 
     /// Delete the FileID entry
     DeleteFileID(Uuid),
+
+    /// Load resource by Blob URL
+    LoadBlob(LoadData, LoadConsumer),
 
     /// Shut down this thread
     Exit,

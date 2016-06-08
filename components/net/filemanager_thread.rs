@@ -2,20 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use blob_loader;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use mime_classifier::MIMEClassifier;
 use mime_guess::guess_mime_type_opt;
+use net_traits::blob_url_store::{BlobURLStoreEntry, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileManagerThreadMsg, FileManagerResult};
 use net_traits::filemanager_thread::{SelectedFile, FileManagerThreadError};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, RwLock};
+use url::Origin;
 use util::thread::spawn_named;
 use uuid::Uuid;
 
 pub struct FileManager {
     receiver: IpcReceiver<FileManagerThreadMsg>,
     idmap: HashMap<Uuid, PathBuf>,
+    classifier: Arc<MIMEClassifier>,
+    blob_url_store: Arc<RwLock<BlobURLStore>>,
 }
 
 pub trait FileManagerThreadFactory {
@@ -41,6 +48,8 @@ impl FileManager {
         FileManager {
             receiver: recv,
             idmap: HashMap::new(),
+            classifier: Arc::new(MIMEClassifier::new()),
+            blob_url_store: Arc::new(RwLock::new(BlobURLStore::new())),
         }
     }
 
@@ -52,6 +61,11 @@ impl FileManager {
                 FileManagerThreadMsg::SelectFiles(sender) => self.select_files(sender),
                 FileManagerThreadMsg::ReadFile(sender, id) => self.read_file(sender, id),
                 FileManagerThreadMsg::DeleteFileID(id) => self.delete_fileid(id),
+                FileManagerThreadMsg::LoadBlob(load_data, consumer) => {
+                    blob_loader::load(load_data, consumer,
+                                      self.blob_url_store.clone(),
+                                      self.classifier.clone());
+                },
                 FileManagerThreadMsg::Exit => break,
             }
         }
@@ -156,3 +170,37 @@ impl FileManager {
         self.idmap.remove(&id);
     }
 }
+
+pub struct BlobURLStore {
+    entries: HashMap<Uuid, (Origin, BlobURLStoreEntry)>,
+}
+
+impl BlobURLStore {
+    pub fn new() -> BlobURLStore {
+        BlobURLStore {
+            entries: HashMap::new(),
+        }
+    }
+
+    pub fn request(&self, id: Uuid, origin: &Origin) -> Result<&BlobURLStoreEntry, BlobURLStoreError> {
+        match self.entries.get(&id) {
+            Some(ref pair) => {
+                if pair.0 == *origin {
+                    Ok(&pair.1)
+                } else {
+                    Err(BlobURLStoreError::InvalidOrigin)
+                }
+            }
+            None => Err(BlobURLStoreError::InvalidKey)
+        }
+    }
+
+    pub fn add_entry(&mut self, id: Uuid, origin: Origin, blob: BlobURLStoreEntry) {
+        self.entries.insert(id, (origin, blob));
+    }
+
+    pub fn delete_entry(&mut self, id: Uuid) {
+        self.entries.remove(&id);
+    }
+}
+

@@ -43,6 +43,7 @@ use storage_thread::StorageThreadMsg;
 use url::Url;
 use websocket::header;
 
+pub mod blob_url_store;
 pub mod bluetooth_scanfilter;
 pub mod bluetooth_thread;
 pub mod filemanager_thread;
