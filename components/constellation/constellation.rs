@@ -295,7 +295,7 @@ type FrameIterator<'a> = Peekable<Rev<Iter<'a, (PipelineId, Instant)>>>;
 /// Navigation entries are lazily interleaved by the time at
 /// which each navigation occurred.
 struct HistoryIterator<'a> {
-    stack: Vec<(FrameId, FrameIterator<'a>)>,
+    stack: Vec<(FrameId, FrameIterator<'a>, Option<(PipelineId, Instant)>)>,
     direction: NavigationDirection,
 }
 
@@ -305,7 +305,7 @@ impl<'a> Iterator for HistoryIterator<'a> {
         match self.direction {
             NavigationDirection::Forward(_) => {
                 self.stack.iter_mut()
-                          .filter_map(|&mut (frame_id, ref mut iter)| {
+                          .filter_map(|&mut (frame_id, ref mut iter, _)| {
                               iter.peek().cloned().map(|&(_, instant)| (frame_id, iter, instant))
                           })
                           .min_by_key(|&(_, _, instant)| instant)
@@ -316,12 +316,19 @@ impl<'a> Iterator for HistoryIterator<'a> {
             },
             NavigationDirection::Back(_) => {
                 self.stack.iter_mut()
-                          .filter_map(|&mut (frame_id, ref mut iter)| {
-                              iter.peek().cloned().map(|&(_, instant)| (frame_id, iter, instant))
+                          .filter_map(|&mut (frame_id, ref mut iter, ref mut current_entry)| {
+                              if let &mut Some(current) = current_entry {
+                                  Some((frame_id, None, Some(current_entry), current.1))
+                              } else {
+                                  iter.peek().cloned().map(|&(_, instant)| (frame_id, Some(iter), None, instant))
+                              }
                           })
-                          .max_by_key(|&(_, _, instant)| instant)
-                          .map(|(frame_id, iter, _)| {
-                              iter.next();
+                          .max_by_key(|&(_, _, _, instant)| instant)
+                          .map(|(frame_id, ref mut iter, ref mut current, _)| {
+                              if let &mut Some(ref mut iter) = iter {
+                                  iter.next();
+                              }
+                              *current = None;
                               frame_id
                           })
             }
@@ -555,11 +562,16 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 Some(frame) => frame,
                 None => return None,
             };
-            let iter = match direction {
-                NavigationDirection::Forward(_) => frame.next.iter().rev().peekable(),
-                NavigationDirection::Back(_) => frame.prev.iter().rev().peekable(),
+            let (iter, current) = match direction {
+                NavigationDirection::Forward(_) => (frame.next.iter().rev().peekable(), None),
+                NavigationDirection::Back(_) => {
+                    let mut iter = frame.prev.iter();
+                    // We cannot navigate back past the first entry
+                    iter.next();
+                    (iter.rev().peekable(), Some(frame.current))
+                },
             };
-            Some((*frame_id, iter))
+            Some((*frame_id, iter, current))
         }).collect();
 
         HistoryIterator {
