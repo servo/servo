@@ -243,11 +243,6 @@ impl HTMLMediaElement {
         }
     }
 
-    #[inline]
-    pub fn htmlelement(&self) -> &HTMLElement {
-        &self.htmlelement
-    }
-
     // https://html.spec.whatwg.org/multipage/#internal-pause-steps
     fn internal_pause_steps(&self) {
         // Step 1

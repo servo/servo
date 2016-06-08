@@ -85,10 +85,6 @@ impl HTMLFormElement {
                            document,
                            HTMLFormElementBinding::Wrap)
     }
-
-    pub fn generation_id(&self) -> GenerationId {
-        self.generation_id.get()
-    }
 }
 
 impl HTMLFormElementMethods for HTMLFormElement {
@@ -662,6 +658,7 @@ impl HTMLFormElement {
 
 #[derive(JSTraceable, HeapSizeOf, Clone)]
 pub enum FormDatumValue {
+    #[allow(dead_code)]
     File(Root<File>),
     String(DOMString)
 }
@@ -701,6 +698,7 @@ pub enum FormMethod {
 }
 
 #[derive(HeapSizeOf)]
+#[allow(dead_code)]
 pub enum FormSubmittableElement {
     ButtonElement(Root<HTMLButtonElement>),
     InputElement(Root<HTMLInputElement>),

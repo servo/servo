@@ -2,11 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::bindings::codegen::Bindings::CSSRuleBinding;
 use dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleMethods;
 use dom::bindings::inheritance::Castable;
 use dom::bindings::js::{JS, Root};
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
+use dom::bindings::reflector::Reflector;
 use dom::bindings::str::DOMString;
 use dom::cssfontfacerule::CSSFontFaceRule;
 use dom::cssimportrule::CSSImportRule;
@@ -41,13 +40,6 @@ impl CSSRule {
             parent_stylesheet: JS::from_ref(parent_stylesheet),
             parent_stylesheet_removed: Cell::new(false),
         }
-    }
-
-    #[allow(unrooted_must_root)]
-    pub fn new(window: &Window, parent_stylesheet: &CSSStyleSheet) -> Root<CSSRule> {
-        reflect_dom_object(box CSSRule::new_inherited(parent_stylesheet),
-                           window,
-                           CSSRuleBinding::Wrap)
     }
 
     pub fn as_specific(&self) -> &SpecificCSSRule {

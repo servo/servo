@@ -79,7 +79,6 @@ impl NodeIteratorMethods for NodeIterator {
         match self.filter {
             Filter::None => None,
             Filter::Callback(ref nf) => Some((*nf).clone()),
-            Filter::Native(_) => panic!("Cannot convert native node filter to DOM NodeFilter")
         }
     }
 
@@ -200,7 +199,6 @@ impl NodeIterator {
         // Step 3-5.
         match self.filter {
             Filter::None => Ok(NodeFilterConstants::FILTER_ACCEPT),
-            Filter::Native(f) => Ok((f)(node)),
             Filter::Callback(ref callback) => callback.AcceptNode_(self, node, Rethrow)
         }
     }
@@ -210,6 +208,5 @@ impl NodeIterator {
 #[derive(JSTraceable)]
 pub enum Filter {
     None,
-    Native(fn (node: &Node) -> u16),
     Callback(Rc<NodeFilter>)
 }

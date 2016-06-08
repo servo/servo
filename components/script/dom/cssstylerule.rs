@@ -40,10 +40,6 @@ impl CSSStyleRule {
                            window,
                            CSSStyleRuleBinding::Wrap)
     }
-
-    pub fn style_rule(&self) -> Arc<RwLock<StyleRule>> {
-        self.stylerule.clone()
-    }
 }
 
 impl SpecificCSSRule for CSSStyleRule {

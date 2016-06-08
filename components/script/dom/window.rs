@@ -142,8 +142,6 @@ pub enum ReflowReason {
     ElementStateChanged,
 }
 
-pub type ScrollPoint = Point2D<Au>;
-
 #[dom_struct]
 pub struct Window {
     globalscope: GlobalScope,

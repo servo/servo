@@ -285,11 +285,6 @@ impl HTMLTextAreaElementMethods for HTMLTextAreaElement {
 
 
 impl HTMLTextAreaElement {
-    // https://html.spec.whatwg.org/multipage/#concept-fe-mutable
-    pub fn mutable(&self) -> bool {
-        // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-fe-mutable
-        !(self.Disabled() || self.ReadOnly())
-    }
     pub fn reset(&self) {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
         self.SetValue(self.DefaultValue());

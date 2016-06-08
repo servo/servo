@@ -157,7 +157,7 @@ pub mod weakref;
 pub mod xmlname;
 
 /// Generated JS-Rust bindings.
-#[allow(missing_docs, non_snake_case)]
+#[allow(dead_code, missing_docs, non_snake_case)]
 pub mod codegen {
     #[allow(unrooted_must_root)]
     pub mod Bindings {

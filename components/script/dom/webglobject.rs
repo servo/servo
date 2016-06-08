@@ -3,10 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
-use dom::bindings::codegen::Bindings::WebGLObjectBinding;
-use dom::bindings::js::Root;
-use dom::bindings::reflector::{Reflector, reflect_dom_object};
-use dom::window::Window;
+use dom::bindings::reflector::Reflector;
 
 #[dom_struct]
 pub struct WebGLObject {
@@ -18,9 +15,5 @@ impl WebGLObject {
         WebGLObject {
             reflector_: Reflector::new(),
         }
-    }
-
-    pub fn new(window: &Window) -> Root<WebGLObject> {
-        reflect_dom_object(box WebGLObject::new_inherited(), window, WebGLObjectBinding::Wrap)
     }
 }
