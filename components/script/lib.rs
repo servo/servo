@@ -118,6 +118,7 @@ mod serviceworker_manager;
 mod serviceworkerjob;
 mod stylesheet_loader;
 mod task_source;
+pub mod test;
 pub mod textinput;
 mod timers;
 mod unpremultiplytable;
