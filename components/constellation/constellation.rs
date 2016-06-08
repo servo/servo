@@ -703,9 +703,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_init_load(url);
             }
             // Handle a forward or back request
-            FromCompositorMsg::Navigate(pipeline_info, direction) => {
+            FromCompositorMsg::Navigate(pipeline_id, direction) => {
                 debug!("constellation got navigation message from compositor");
-                self.handle_navigate_msg(pipeline_info, direction);
+                self.handle_navigate_msg(pipeline_id, direction);
             }
             FromCompositorMsg::WindowSize(new_size, size_type) => {
                 debug!("constellation got window resize message");
@@ -754,9 +754,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_dom_load(pipeline_id)
             }
             // Handle a forward or back request
-            FromScriptMsg::Navigate(pipeline_info, direction) => {
+            FromScriptMsg::Navigate(pipeline_id, direction) => {
                 debug!("constellation got navigation message from script");
-                self.handle_navigate_msg(pipeline_info, direction);
+                self.handle_navigate_msg(pipeline_id, direction);
             }
             // Notification that the new document is ready to become active
             FromScriptMsg::ActivateDocument(pipeline_id) => {
@@ -1363,114 +1363,44 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     }
 
     fn handle_navigate_msg(&mut self,
-                           pipeline_info: Option<(PipelineId, SubpageId)>,
+                           pipeline_id: Option<PipelineId>,
                            direction: constellation_msg::NavigationDirection) {
         debug!("received message to navigate {:?}", direction);
 
-        // Get the frame id associated with the pipeline that sent
-        // the navigate message, or use root frame id by default.
-        let frame_id = pipeline_info
-            .and_then(|info| self.subpage_map.get(&info))
-            .and_then(|pipeline_id| self.pipeline_to_frame_map.get(&pipeline_id))
-            .cloned()
-            .or(self.root_frame_id);
-
-        // If the frame_id lookup fails, then we are in the middle of tearing down
-        // the root frame, so it is reasonable to silently ignore the navigation.
-        let frame_id = match frame_id {
-            None => return warn!("Navigation after root's closure."),
-            Some(frame_id) => frame_id,
-        };
-
-        // Check if the currently focused pipeline is the pipeline being replaced
-        // (or a child of it). This has to be done here, before the current
-        // frame tree is modified below.
-        let update_focus_pipeline = self.focused_pipeline_in_tree(frame_id);
-
-        // Get the ids for the previous and next pipelines.
-        let (prev_pipeline_id, next_pipeline_id) = match self.frames.get_mut(&frame_id) {
-            Some(frame) => {
-                let prev = frame.current.0;
-                let next = match direction {
-                    NavigationDirection::Forward(delta) => {
-                        if delta > frame.next.len() && delta > 0 {
-                            return warn!("Invalid navigation delta");
-                        }
-                        let new_next_len = frame.next.len() - (delta - 1);
-                        frame.prev.push(frame.current);
-                        frame.prev.extend(frame.next.drain(new_next_len..).rev());
-                        frame.current = match frame.next.pop() {
-                            Some(frame) => frame,
-                            None => return warn!("Could not get next frame for forward navigation"),
-                        };
-                        frame.current.0
-                    }
-                    NavigationDirection::Back(delta) => {
-                        if delta > frame.prev.len() && delta > 0 {
-                            return warn!("Invalid navigation delta");
-                        }
-                        let new_prev_len = frame.prev.len() - (delta - 1);
-                        frame.next.push(frame.current);
-                        frame.next.extend(frame.prev.drain(new_prev_len..).rev());
-                        frame.current = match frame.prev.pop() {
-                            Some(frame) => frame,
-                            None => return warn!("Could not get prev frame for back navigation"),
-                        };
-                        frame.current.0
-                    }
-                };
-                (prev, next)
-            },
-            None => {
-                warn!("no frame to navigate from");
-                return;
-            },
-        };
-
-        // If the currently focused pipeline is the one being changed (or a child
-        // of the pipeline being changed) then update the focus pipeline to be
-        // the replacement.
-        if update_focus_pipeline {
-            self.focus_pipeline_id = Some(next_pipeline_id);
-        }
-
-        // Suspend the old pipeline, and resume the new one.
-        if let Some(prev_pipeline) = self.pipelines.get(&prev_pipeline_id) {
-            prev_pipeline.freeze();
-        }
-        if let Some(next_pipeline) = self.pipelines.get(&next_pipeline_id) {
-            next_pipeline.thaw();
-        }
-
-        // Set paint permissions correctly for the compositor layers.
-        self.revoke_paint_permission(prev_pipeline_id);
-        self.send_frame_tree_and_grant_paint_permission();
-
-        // Update the owning iframe to point to the new subpage id.
-        // This makes things like contentDocument work correctly.
-        if let Some((parent_pipeline_id, subpage_id)) = pipeline_info {
-            let new_subpage_id = match self.pipelines.get(&next_pipeline_id) {
-                None => return warn!("Pipeline {:?} navigated to after closure.", next_pipeline_id),
-                Some(pipeline) => match pipeline.parent_info {
-                    None => return warn!("Pipeline {:?} has no parent info.", next_pipeline_id),
-                    Some((_, new_subpage_id, _)) => new_subpage_id,
-                },
+        let navigation_info = {
+            let frame_id = match self.get_top_level_frame_for_pipeline(pipeline_id) {
+                Some(frame_id) => frame_id,
+                None => return warn!("Navigate message received after root's closure."),
             };
-            let msg = ConstellationControlMsg::UpdateSubpageId(parent_pipeline_id,
-                                                               subpage_id,
-                                                               new_subpage_id,
-                                                               next_pipeline_id);
-            let result = match self.pipelines.get(&parent_pipeline_id) {
-                None => return warn!("Pipeline {:?} child navigated after closure.", parent_pipeline_id),
-                Some(pipeline) => pipeline.script_chan.send(msg),
+
+            let mut navigation_info: HashMap<FrameId, usize> = HashMap::new();
+            let mut history_iter = self.history_iterator(frame_id, direction);
+
+            let delta = match direction {
+                NavigationDirection::Forward(delta) => delta,
+                NavigationDirection::Back(delta) => delta,
             };
-            if let Err(e) = result {
-                self.handle_send_error(parent_pipeline_id, e);
+
+            for _ in 0..delta {
+                if let Some(frame_id) = history_iter.next() {
+                    let delta = match navigation_info.get(&frame_id) {
+                        Some(info) => info + 1,
+                        None => 1,
+                    };
+                    navigation_info.insert(frame_id, delta);
+                } else {
+                    return warn!("invalid forward navigation delta");
+                }
             }
 
-            // If this is an iframe, send a mozbrowser location change event.
-            // This is the result of a back/forward navigation.
-            self.trigger_mozbrowserlocationchange(next_pipeline_id);
+            navigation_info
+        };
+
+        for (frame_id, delta) in navigation_info {
+            match direction {
+                NavigationDirection::Forward(_) => self.navigate_frame(frame_id, NavigationDirection::Forward(delta)),
+                NavigationDirection::Back(_) => self.navigate_frame(frame_id, NavigationDirection::Back(delta)),
+            }
         }
     }
 
@@ -1679,6 +1609,114 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     }
                 }
             },
+        }
+    }
+
+    fn navigate_frame(&mut self, frame_id: FrameId, direction: NavigationDirection) {
+        // Check if the currently focused pipeline is the pipeline being replaced
+        // (or a child of it). This has to be done here, before the current
+        // frame tree is modified below.
+        let update_focus_pipeline = self.focused_pipeline_in_tree(frame_id);
+
+        // Get the ids for the previous and next pipelines.
+        let (prev_pipeline_id, next_pipeline_id) = match self.frames.get_mut(&frame_id) {
+            Some(frame) => {
+                let prev = frame.current.0;
+                let next = match direction {
+                    NavigationDirection::Forward(delta) => {
+                        if delta > frame.next.len() && delta > 0 {
+                            return warn!("Invalid navigation delta");
+                        }
+                        let new_next_len = frame.next.len() - (delta - 1);
+                        frame.prev.push(frame.current);
+                        frame.prev.extend(frame.next.drain(new_next_len..).rev());
+                        frame.current = match frame.next.pop() {
+                            Some(frame) => frame,
+                            None => return warn!("Could not get next frame for forward navigation"),
+                        };
+                        frame.current.0
+                    }
+                    NavigationDirection::Back(delta) => {
+                        if delta > frame.prev.len() && delta > 0 {
+                            return warn!("Invalid navigation delta");
+                        }
+                        let new_prev_len = frame.prev.len() - (delta - 1);
+                        frame.next.push(frame.current);
+                        frame.next.extend(frame.prev.drain(new_prev_len..).rev());
+                        frame.current = match frame.prev.pop() {
+                            Some(frame) => frame,
+                            None => return warn!("Could not get prev frame for back navigation"),
+                        };
+                        frame.current.0
+                    }
+                };
+                (prev, next)
+            },
+            None => {
+                warn!("no frame to navigate from");
+                return;
+            },
+        };
+
+        let pipeline_info = self.pipelines.get(&prev_pipeline_id).and_then(|p| p.parent_info);
+
+        // If the currently focused pipeline is the one being changed (or a child
+        // of the pipeline being changed) then update the focus pipeline to be
+        // the replacement.
+        if update_focus_pipeline {
+            self.focus_pipeline_id = Some(next_pipeline_id);
+        }
+
+        // Suspend the old pipeline, and resume the new one.
+        if let Some(prev_pipeline) = self.pipelines.get(&prev_pipeline_id) {
+            prev_pipeline.freeze();
+        }
+        if let Some(next_pipeline) = self.pipelines.get(&next_pipeline_id) {
+            next_pipeline.thaw();
+        }
+
+        // Set paint permissions correctly for the compositor layers.
+        self.revoke_paint_permission(prev_pipeline_id);
+        self.send_frame_tree_and_grant_paint_permission();
+
+        // Update the owning iframe to point to the new subpage id.
+        // This makes things like contentDocument work correctly.
+        if let Some((parent_pipeline_id, subpage_id, _)) = pipeline_info {
+            let new_subpage_id = match self.pipelines.get(&next_pipeline_id) {
+                None => return warn!("Pipeline {:?} navigated to after closure.", next_pipeline_id),
+                Some(pipeline) => match pipeline.parent_info {
+                    None => return warn!("Pipeline {:?} has no parent info.", next_pipeline_id),
+                    Some((_, new_subpage_id, _)) => new_subpage_id,
+                },
+            };
+            let msg = ConstellationControlMsg::UpdateSubpageId(parent_pipeline_id,
+                                                               subpage_id,
+                                                               new_subpage_id,
+                                                               next_pipeline_id);
+            let result = match self.pipelines.get(&parent_pipeline_id) {
+                None => return warn!("Pipeline {:?} child navigated after closure.", parent_pipeline_id),
+                Some(pipeline) => pipeline.script_chan.send(msg),
+            };
+            if let Err(e) = result {
+                self.handle_send_error(parent_pipeline_id, e);
+            }
+
+            // If this is an iframe, send a mozbrowser location change event.
+            // This is the result of a back/forward navigation.
+            self.trigger_mozbrowserlocationchange(next_pipeline_id);
+        }
+    }
+
+    fn get_top_level_frame_for_pipeline(&mut self, pipeline_id: Option<PipelineId>) -> Option<FrameId> {
+        if mozbrowser_enabled() {
+            pipeline_id.and_then(|id| self.get_mozbrowser_ancestor_info(id))
+                       .and_then(|info| self.subpage_map.get(&info))
+                       .and_then(|pipeline_id| self.pipeline_to_frame_map.get(&pipeline_id))
+                       .cloned()
+                       .or(self.root_frame_id)
+        } else {
+            // If mozbrowser is not enabled, the root frame is the only top-level frame
+            self.root_frame_id
         }
     }
 
