@@ -239,6 +239,8 @@ pub struct Document {
     origin: Origin,
     ///  https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-states
     referrer_policy: Cell<Option<ReferrerPolicy>>,
+    /// track number of dom elements issue #10110
+    dom_count: Cell<i32>,
 }
 
 #[derive(JSTraceable, HeapSizeOf)]
@@ -394,6 +396,14 @@ impl Document {
                        .filter_map(Root::downcast::<HTMLBaseElement>)
                        .find(|element| element.upcast::<Element>().has_attribute(&atom!("href")));
         self.base_element.set(base.r());
+    }
+
+    pub fn dom_count(&self) -> i32 {
+        self.dom_count.get()
+    }
+
+    pub fn increment_dom_count(&self) {
+        self.dom_count.set(self.dom_count.get()+ 1);
     }
 
     pub fn quirks_mode(&self) -> QuirksMode {
@@ -1699,6 +1709,7 @@ impl Document {
             origin: origin,
             //TODO - setting this for now so no Referer header set
             referrer_policy: Cell::new(Some(ReferrerPolicy::NoReferrer)),
+            dom_count: Cell::new(0),
         }
     }
 
