@@ -38,7 +38,7 @@ use dom::window::{ReflowReason, Window};
 use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, JSContext, MutableHandleValue};
 use js::jsval::{UndefinedValue, NullValue};
-use msg::constellation_msg::{FrameType, LoadData, NavigationDirection, PipelineId, SubpageId};
+use msg::constellation_msg::{FrameType, LoadData, TraversalDirection, PipelineId, SubpageId};
 use net_traits::response::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
@@ -419,15 +419,11 @@ unsafe fn build_mozbrowser_event_detail(event: MozBrowserEvent,
     }
 }
 
-
-pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> ErrorResult {
+pub fn Navigate(iframe: &HTMLIFrameElement, direction: TraversalDirection) -> ErrorResult {
     if iframe.Mozbrowser() {
         if iframe.upcast::<Node>().is_in_doc() {
             let window = window_from_node(iframe);
-
-            let pipeline_info = Some((window.pipeline(),
-                                      iframe.subpage_id().unwrap()));
-            let msg = ConstellationMsg::Navigate(pipeline_info, direction);
+            let msg = ConstellationMsg::TraverseHistory(iframe.pipeline(), direction);
             window.constellation_chan().send(msg).unwrap();
         }
 
@@ -500,12 +496,12 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goBack
     fn GoBack(&self) -> ErrorResult {
-        Navigate(self, NavigationDirection::Back(1))
+        Navigate(self, TraversalDirection::Back(1))
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/goForward
     fn GoForward(&self) -> ErrorResult {
-        Navigate(self, NavigationDirection::Forward(1))
+        Navigate(self, TraversalDirection::Forward(1))
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/reload

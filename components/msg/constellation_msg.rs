@@ -212,12 +212,12 @@ impl LoadData {
 }
 
 #[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize)]
-pub enum NavigationDirection {
+pub enum TraversalDirection {
     Forward(usize),
     Back(usize),
 }
 
-#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize)]
+#[derive(Clone, PartialEq, Eq, Copy, Hash, Debug, Deserialize, Serialize, PartialOrd, Ord)]
 pub struct FrameId(pub u32);
 
 /// Each pipeline ID needs to be unique. However, it also needs to be possible to
