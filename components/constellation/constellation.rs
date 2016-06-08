@@ -308,18 +308,18 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
           STF: ScriptThreadFactory<Message=Message>
 {
     pub fn start(state: InitialConstellationState) -> Sender<FromCompositorMsg> {
-        let (ipc_script_sender, ipc_script_receiver) = ipc::channel().expect("ipc channel failure");
-        let script_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_script_receiver);
-
-        let (ipc_layout_sender, ipc_layout_receiver) = ipc::channel().expect("ipc channel failure");
-        let layout_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_layout_receiver);
-
-        let (ipc_panic_sender, ipc_panic_receiver) = ipc::channel().expect("ipc channel failure");
-        let panic_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_panic_receiver);
-
         let (compositor_sender, compositor_receiver) = channel();
 
         spawn_named("Constellation".to_owned(), move || {
+            let (ipc_script_sender, ipc_script_receiver) = ipc::channel().expect("ipc channel failure");
+            let script_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_script_receiver);
+
+            let (ipc_layout_sender, ipc_layout_receiver) = ipc::channel().expect("ipc channel failure");
+            let layout_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_layout_receiver);
+
+            let (ipc_panic_sender, ipc_panic_receiver) = ipc::channel().expect("ipc channel failure");
+            let panic_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_panic_receiver);
+
             let mut constellation: Constellation<Message, LTF, STF> = Constellation {
                 script_sender: ipc_script_sender,
                 layout_sender: ipc_layout_sender,
