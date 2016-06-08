@@ -42,11 +42,6 @@ use std::sync::mpsc::Receiver;
 use timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle, OneshotTimers, TimerCallback};
 use url::Url;
 
-#[derive(Copy, Clone, PartialEq)]
-pub enum WorkerGlobalScopeTypeId {
-    DedicatedWorkerGlobalScope,
-}
-
 pub struct WorkerGlobalScopeInit {
     pub resource_threads: ResourceThreads,
     pub mem_profiler_chan: mem::ProfilerChan,

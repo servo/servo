@@ -53,10 +53,6 @@ impl WebGLBuffer {
 
 
 impl WebGLBuffer {
-    pub fn id(&self) -> u32 {
-        self.id
-    }
-
     // NB: Only valid buffer targets come here
     pub fn bind(&self, target: u32) -> WebGLResult<()> {
         if let Some(previous_target) = self.target.get() {

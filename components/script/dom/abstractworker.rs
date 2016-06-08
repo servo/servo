@@ -64,22 +64,9 @@ pub struct WorkerErrorHandler<T: Reflectable> {
     pub col_num: u32,
 }
 
-impl<T: Reflectable> WorkerErrorHandler<T> {
-    pub fn new(addr: Trusted<T>, msg: DOMString, file_name: DOMString, line_num: u32, col_num: u32)
-            -> WorkerErrorHandler<T> {
-        WorkerErrorHandler {
-            addr: addr,
-            msg: msg,
-            file_name: file_name,
-            line_num: line_num,
-            col_num: col_num,
-        }
-    }
-}
-
 #[derive(Copy, Clone)]
 pub struct SharedRt {
-    pub rt: *mut JSRuntime
+    rt: *mut JSRuntime
 }
 
 impl SharedRt {
@@ -94,10 +81,6 @@ impl SharedRt {
         unsafe {
             JS_RequestInterruptCallback(self.rt);
         }
-    }
-
-    pub fn rt(&self) -> *mut JSRuntime {
-        self.rt
     }
 }
 #[allow(unsafe_code)]

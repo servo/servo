@@ -52,10 +52,6 @@ impl WebGLFramebuffer {
 
 
 impl WebGLFramebuffer {
-    pub fn id(&self) -> u32 {
-        self.id
-    }
-
     pub fn bind(&self, target: u32) {
         self.target.set(Some(target));
         let cmd = WebGLCommand::BindFramebuffer(target, WebGLFramebufferBindingRequest::Explicit(self.id));
