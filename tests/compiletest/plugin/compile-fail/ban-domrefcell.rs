@@ -7,9 +7,9 @@
 
 extern crate script;
 
-use script::dom::bindings::cell::DOMRefCell;
-use script::dom::bindings::js::JS;
-use script::dom::node::Node;
+use script::test::DOMRefCell;
+use script::test::JS;
+use script::test::Node;
 
 struct Foo {
     bar: DOMRefCell<JS<Node>>
