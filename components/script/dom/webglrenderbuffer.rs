@@ -51,10 +51,6 @@ impl WebGLRenderbuffer {
 
 
 impl WebGLRenderbuffer {
-    pub fn id(&self) -> u32 {
-        self.id
-    }
-
     pub fn bind(&self, target: u32) {
         self.ever_bound.set(true);
         self.renderer.send(CanvasMsg::WebGL(WebGLCommand::BindRenderbuffer(target, self.id))).unwrap();

@@ -33,11 +33,6 @@ impl HTMLTableCellElement {
             htmlelement: HTMLElement::new_inherited(tag_name, prefix, document),
         }
     }
-
-    #[inline]
-    pub fn htmlelement(&self) -> &HTMLElement {
-        &self.htmlelement
-    }
 }
 
 impl HTMLTableCellElementMethods for HTMLTableCellElement {

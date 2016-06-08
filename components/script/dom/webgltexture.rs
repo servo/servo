@@ -73,10 +73,6 @@ impl WebGLTexture {
 
 
 impl WebGLTexture {
-    pub fn id(&self) -> u32 {
-        self.id
-    }
-
     // NB: Only valid texture targets come here
     pub fn bind(&self, target: u32) -> WebGLResult<()> {
         if self.is_deleted.get() {

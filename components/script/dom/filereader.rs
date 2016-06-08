@@ -375,6 +375,7 @@ impl FileReader {
 pub enum FileReaderEvent {
     ProcessRead(TrustedFileReader, GenerationId),
     ProcessReadData(TrustedFileReader, GenerationId),
+    #[allow(dead_code)]
     ProcessReadError(TrustedFileReader, GenerationId, DOMErrorName),
     ProcessReadEOF(TrustedFileReader, GenerationId, ReadMetaData, DataSlice)
 }
