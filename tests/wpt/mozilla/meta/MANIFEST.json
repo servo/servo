@@ -6448,6 +6448,12 @@
             "url": "/_mozilla/mozilla/iframe-unblock-onload.html"
           }
         ],
+        "mozilla/iframe/change_parentage.html": [
+          {
+            "path": "mozilla/iframe/change_parentage.html",
+            "url": "/_mozilla/mozilla/iframe/change_parentage.html"
+          }
+        ],
         "mozilla/iframe/same_origin_parentage.html": [
           {
             "path": "mozilla/iframe/same_origin_parentage.html",
