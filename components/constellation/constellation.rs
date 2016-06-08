@@ -85,9 +85,6 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel through which script messages can be sent to this object.
     script_sender: IpcSender<FromScriptMsg>,
 
-    /// A channel through which compositor messages can be sent to this object.
-    compositor_sender: Sender<FromCompositorMsg>,
-
     /// A channel through which layout thread messages can be sent to this object.
     layout_sender: IpcSender<FromLayoutMsg>,
 
@@ -321,12 +318,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         let panic_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_panic_receiver);
 
         let (compositor_sender, compositor_receiver) = channel();
-        let compositor_sender_clone = compositor_sender.clone();
 
         spawn_named("Constellation".to_owned(), move || {
             let mut constellation: Constellation<Message, LTF, STF> = Constellation {
                 script_sender: ipc_script_sender,
-                compositor_sender: compositor_sender_clone,
                 layout_sender: ipc_layout_sender,
                 script_receiver: script_receiver,
                 panic_sender: ipc_panic_sender,
@@ -2032,8 +2027,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             if let Some(frame_tree) = self.frame_to_sendable(root_frame_id) {
                 let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
                 self.compositor_proxy.send(ToCompositorMsg::SetFrameTree(frame_tree,
-                                                                         chan,
-                                                                         self.compositor_sender.clone()));
+                                                                         chan));
                 if port.recv().is_err() {
                     warn!("Compositor has discarded SetFrameTree");
                     return; // Our message has been discarded, probably shutting down.
