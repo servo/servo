@@ -113,6 +113,13 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual(msg, errors.next()[2])
         self.assertNoMoreErrors(errors)
 
+    def test_file_list(self):
+        file_list = tidy.get_file_list('./python/tidy/servo_tidy_tests/test_ignored', only_changed_files=False, exclude_dirs=[])
+        lst = list(file_list)
+        self.assertEqual(['./python/tidy/servo_tidy_tests/test_ignored/whee/test.rs'], lst)
+        file_list = tidy.get_file_list('./python/tidy/servo_tidy_tests/test_ignored', only_changed_files=False, exclude_dirs=['./python/tidy/servo_tidy_tests/test_ignored/whee'])
+        lst = list(file_list)
+        self.assertEqual([], lst)
 
 def do_tests():
     suite = unittest.TestLoader().loadTestsFromTestCase(CheckTidiness)
