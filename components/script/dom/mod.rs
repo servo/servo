@@ -217,9 +217,6 @@ pub mod abstractworkerglobalscope;
 pub mod activation;
 pub mod attr;
 pub mod beforeunloadevent;
-mod create;
-#[allow(unsafe_code)]
-#[deny(missing_docs, non_snake_case)]
 pub mod bindings;
 pub mod blob;
 pub mod bluetooth;
@@ -240,6 +237,7 @@ pub mod client;
 pub mod closeevent;
 pub mod comment;
 pub mod console;
+mod create;
 pub mod crypto;
 pub mod css;
 pub mod cssfontfacerule;
