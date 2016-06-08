@@ -36030,6 +36030,18 @@
     "deleted_reftests": {},
     "items": {
       "testharness": {
+        "html/semantics/embedded-content/the-iframe-element/change_parentage.html": [
+          {
+            "path": "html/semantics/embedded-content/the-iframe-element/change_parentage.html",
+            "url": "/html/semantics/embedded-content/the-iframe-element/change_parentage.html"
+          }
+        ],
+        "html/semantics/embedded-content/the-iframe-element/same_origin_parentage.html": [
+          {
+            "path": "html/semantics/embedded-content/the-iframe-element/same_origin_parentage.html",
+            "url": "/html/semantics/embedded-content/the-iframe-element/same_origin_parentage.html"
+          }
+        ],
         "url/url-domainToUnicode.html": [
           {
             "path": "url/url-domainToUnicode.html",
