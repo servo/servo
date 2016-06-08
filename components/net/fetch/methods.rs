@@ -702,8 +702,8 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 
     // Step 1
     let http_request = if request_has_no_window &&
-        request.redirect_mode.get() != RedirectMode::Follow {
-        request.clone()
+        request.redirect_mode.get() == RedirectMode::Error {
+        request
     } else {
         Rc::new((*request).clone())
     };
