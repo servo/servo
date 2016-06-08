@@ -153,6 +153,7 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
     // TODO this step (referer policy)
     // currently the clients themselves set referer policy in RequestInit
 
+    // Step 7
     if request.referrer_policy.get().is_none() {
         request.referrer_policy.set(Some(ReferrerPolicy::NoRefWhenDowngrade));
     }
@@ -299,14 +300,12 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
                     Data::Done => break,
                 }
             }
-        } else {
-            if let ResponseBody::Done(ref vec) = *response.body.lock().unwrap() {
-                // in case there was no channel to wait for, the body was
-                // obtained synchronously via basic_fetch for data/file/about/etc
-                // We should still send the body across as a chunk
-                if let Some(ref mut target) = *target {
-                    target.process_response_chunk(vec.clone());
-                }
+        } else if let ResponseBody::Done(ref vec) = *response.body.lock().unwrap() {
+            // in case there was no channel to wait for, the body was
+            // obtained synchronously via basic_fetch for data/file/about/etc
+            // We should still send the body across as a chunk
+            if let Some(ref mut target) = *target {
+                target.process_response_chunk(vec.clone());
             }
         }
 
@@ -347,14 +346,12 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
                 Data::Done => break,
             }
         }
-    } else {
-        if let Some(ref mut target) = *target {
-            if let ResponseBody::Done(ref vec) = *response.body.lock().unwrap() {
-                // in case there was no channel to wait for, the body was
-                // obtained synchronously via basic_fetch for data/file/about/etc
-                // We should still send the body across as a chunk
-                target.process_response_chunk(vec.clone());
-            }
+    } else if let Some(ref mut target) = *target {
+        if let ResponseBody::Done(ref vec) = *response.body.lock().unwrap() {
+            // in case there was no channel to wait for, the body was
+            // obtained synchronously via basic_fetch for data/file/about/etc
+            // We should still send the body across as a chunk
+            target.process_response_chunk(vec.clone());
         }
     }
 
@@ -793,7 +790,8 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
             port: current_url.port_or_known_default()
         };
         headers.set(host);
-        // accept header should not be set here, unlike http
+        // unlike http_loader, we should not set the accept header
+        // here, according to the fetch spec
         set_default_accept_encoding(headers);
     }
 
@@ -802,7 +800,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
     if credentials_flag {
         // Substep 1
         // TODO http://mxr.mozilla.org/servo/source/components/net/http_loader.rs#504
-        // XXXManishearth http_loader has block_cookies, should we do this too?
+        // XXXManishearth http_loader has block_cookies: support content blocking here too
         set_request_cookies(&current_url,
                             &mut *http_request.headers.borrow_mut(),
                             &context.state.cookie_jar);
@@ -813,8 +811,6 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 
             // Substep 4
             if let Some(basic) = auth_from_cache(&context.state.auth_cache, &current_url) {
-                // either httpRequest's use-URL-credentials flag is unset
-                // or httpRequest's current url does not include credentials,
                 if !http_request.use_url_credentials || !has_credentials(&current_url) {
                     authorization_value = Some(basic);
                 }
@@ -880,7 +876,7 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 
     // Step 18
     if response.is_none() {
-        response = Some(http_network_fetch(http_request.clone(), http_request.clone(), credentials_flag, done_chan));
+        response = Some(http_network_fetch(http_request.clone(), credentials_flag, done_chan));
     }
     let response = response.unwrap();
 
@@ -915,7 +911,6 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
 
 /// [HTTP network fetch](https://fetch.spec.whatwg.org/#http-network-fetch)
 fn http_network_fetch(request: Rc<Request>,
-                      _http_request: Rc<Request>,
                       _credentials_flag: bool,
                       done_chan: &mut DoneChannel) -> Response {
     // TODO: Implement HTTP network fetch spec
@@ -959,7 +954,7 @@ fn http_network_fetch(request: Rc<Request>,
             spawn_named(format!("fetch worker thread"), move || {
                 match StreamedResponse::from_http_response(box res, meta) {
                     Ok(mut res) => {
-                    *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
+                        *res_body.lock().unwrap() = ResponseBody::Receiving(vec![]);
                         loop {
                             match read_block(&mut res) {
                                 Ok(ReadResult::Payload(chunk)) => {

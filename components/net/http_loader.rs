@@ -940,6 +940,7 @@ pub fn load<A, B>(load_data: &LoadData,
             // https://fetch.spec.whatwg.org/#http-network-or-cache-fetch step 12
             set_auth_header(&mut request_headers, &doc_url, &http_state.auth_cache);
         }
+
         //if there is a new auth header then set the request headers with it
         if let Some(ref auth_header) = new_auth_header {
             request_headers.set(auth_header.clone());

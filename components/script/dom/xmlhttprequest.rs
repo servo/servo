@@ -595,7 +595,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         // step 4 (second half)
         match extracted {
             Some((_, ref content_type)) => {
-                // this should handle Document bodies too
+                // this should handle Document bodies too, not just BodyInit
                 let encoding = if let Some(BodyInit::String(_)) = data {
                     // XHR spec differs from http, and says UTF-8 should be in capitals,
                     // instead of "utf-8", which is what Hyper defaults to. So not
@@ -612,11 +612,12 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                         content_type_set = true;
                     }
                 }
+
                 if !content_type_set {
                     let ct = request.headers.get::<ContentType>().map(|x| x.clone());
                     if let Some(mut ct) = ct {
                         if let Some(encoding) = encoding {
-                            for param in (ct.0).2.iter_mut() {
+                            for param in &mut (ct.0).2 {
                                 if param.0 == MimeAttr::Charset {
                                     if !param.0.as_str().eq_ignore_ascii_case(encoding.as_str()) {
                                         *param = (MimeAttr::Charset, encoding.clone());
