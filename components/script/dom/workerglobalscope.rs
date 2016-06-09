@@ -67,7 +67,7 @@ pub fn prepare_workerscope_init(global: GlobalRef,
     let worker_id = global.get_next_worker_id();
     let optional_sender = match global.devtools_chan() {
             Some(ref chan) => {
-                let pipeline_id = global.pipeline();
+                let pipeline_id = global.pipeline_id();
                 let title = format!("{} for {}", worker_type, worker_url);
                 let page_info = DevtoolsPageInfo {
                     title: title,
@@ -281,7 +281,7 @@ impl LoadOrigin for WorkerGlobalScope {
         RequestSource::None
     }
     fn pipeline_id(&self) -> Option<PipelineId> {
-        Some(self.pipeline())
+        Some(self.pipeline_id())
     }
 }
 
@@ -453,13 +453,13 @@ impl WorkerGlobalScope {
         }
     }
 
-    pub fn pipeline(&self) -> PipelineId {
+    pub fn pipeline_id(&self) -> PipelineId {
         let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
         let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
         if let Some(dedicated) = dedicated {
-            return dedicated.pipeline();
+            return dedicated.pipeline_id();
         } else if let Some(service_worker) = service_worker {
-            return service_worker.pipeline();
+            return service_worker.pipeline_id();
         } else {
             panic!("need to implement a sender for SharedWorker")
         }
