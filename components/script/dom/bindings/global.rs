@@ -74,10 +74,10 @@ impl<'a> GlobalRef<'a> {
     }
 
     /// Get the `PipelineId` for this global scope.
-    pub fn pipeline(&self) -> PipelineId {
+    pub fn pipeline_id(&self) -> PipelineId {
         match *self {
-            GlobalRef::Window(window) => window.pipeline(),
-            GlobalRef::Worker(worker) => worker.pipeline(),
+            GlobalRef::Window(window) => window.pipeline_id(),
+            GlobalRef::Worker(worker) => worker.pipeline_id(),
         }
     }
 
