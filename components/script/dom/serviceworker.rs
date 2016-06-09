@@ -114,7 +114,7 @@ impl ServiceWorker {
             referrer_url: None,
             referrer_policy: None,
             request_source: global.request_source(),
-            pipeline_id: Some(global.pipeline())
+            pipeline_id: Some(global.pipeline_id())
         };
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
@@ -129,7 +129,7 @@ impl ServiceWorker {
         let trusted_client = Trusted::new(&*sw_client);
 
         ServiceWorkerGlobalScope::run_serviceworker_scope(
-            init, script_url, global.pipeline(), devtools_receiver, worker.runtime.clone(), worker_ref,
+            init, script_url, global.pipeline_id(), devtools_receiver, worker.runtime.clone(), worker_ref,
             global.script_chan(), sender, receiver, trusted_client, worker_load_origin);
 
         worker
