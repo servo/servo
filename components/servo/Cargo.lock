@@ -1241,7 +1241,7 @@ dependencies = [
 
 [[package]]
 name = "libz-sys"
-version = "1.0.3"
+version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "gcc 0.3.28 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1336,7 +1336,7 @@ version = "0.0.0"
 source = "git+https://github.com/servo/mozjs#2af5849a97a9f18acd482940ba3fa0c6797ed7eb"
 dependencies = [
  "libc 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
- "libz-sys 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libz-sys 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
