@@ -100,7 +100,7 @@ impl ServiceWorkerContainerMethods for ServiceWorkerContainer {
                                                                  script_url,
                                                                  scope_str.clone(),
                                                                  self);
-        ScriptThread::set_registration(scope, &*worker_registration, self.global().r().pipeline());
+        ScriptThread::set_registration(scope, &*worker_registration, self.global().r().pipeline_id());
         Ok(worker_registration)
     }
 }

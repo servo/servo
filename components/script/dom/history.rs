@@ -38,7 +38,7 @@ impl History {
 
 impl History {
     fn traverse_history(&self, direction: TraversalDirection) {
-        let pipeline = self.window.pipeline();
+        let pipeline = self.window.pipeline_id();
         let msg = ConstellationMsg::TraverseHistory(Some(pipeline), direction);
         let _ = self.window.constellation_chan().send(msg);
     }
@@ -47,7 +47,7 @@ impl History {
 impl HistoryMethods for History {
     // https://html.spec.whatwg.org/multipage/#dom-history-length
     fn Length(&self) -> u32 {
-        let pipeline = self.window.pipeline();
+        let pipeline = self.window.pipeline_id();
         let (sender, recv) = ipc::channel().expect("Failed to create channel to send jsh length.");
         let msg = ConstellationMsg::JointSessionHistoryLength(pipeline, sender);
         let _ = self.window.constellation_chan().send(msg);
