@@ -49,7 +49,7 @@ use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
 use net_traits::storage_thread::StorageType;
-use net_traits::{ResourceThreads, CustomResponseSender};
+use net_traits::{ResourceThreads, CustomResponseMediator};
 use num_traits::ToPrimitive;
 use open;
 use profile_traits::mem;
@@ -156,7 +156,7 @@ pub struct Window {
     #[ignore_heap_size_of = "channels are hard"]
     image_cache_chan: ImageCacheChan,
     #[ignore_heap_size_of = "channels are hard"]
-    custom_message_chan: IpcSender<CustomResponseSender>,
+    custom_message_chan: IpcSender<CustomResponseMediator>,
     browsing_context: MutNullableHeap<JS<BrowsingContext>>,
     performance: MutNullableHeap<JS<Performance>>,
     navigation_start: u64,
@@ -314,7 +314,7 @@ impl Window {
         self.image_cache_chan.clone()
     }
 
-    pub fn custom_message_chan(&self) -> IpcSender<CustomResponseSender> {
+    pub fn custom_message_chan(&self) -> IpcSender<CustomResponseMediator> {
         self.custom_message_chan.clone()
     }
 
@@ -1604,7 +1604,7 @@ impl Window {
                history_task_source: HistoryTraversalTaskSource,
                file_task_source: FileReadingTaskSource,
                image_cache_chan: ImageCacheChan,
-               custom_message_chan: IpcSender<CustomResponseSender>,
+               custom_message_chan: IpcSender<CustomResponseMediator>,
                image_cache_thread: ImageCacheThread,
                resource_threads: ResourceThreads,
                bluetooth_thread: IpcSender<BluetoothMethodMsg>,

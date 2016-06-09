@@ -96,12 +96,16 @@ impl CustomResponse {
     }
 }
 
-pub type CustomResponseSender = IpcSender<Option<CustomResponse>>;
+#[derive(Clone, Deserialize, Serialize)]
+pub struct CustomResponseMediator {
+    pub response_chan: IpcSender<Option<CustomResponse>>,
+    pub load_url: Url
+}
 
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub enum RequestSource {
-    Window(#[ignore_heap_size_of = "Defined in ipc-channel"] IpcSender<CustomResponseSender>),
-    Worker(#[ignore_heap_size_of = "Defined in ipc-channel"] IpcSender<CustomResponseSender>),
+    Window(#[ignore_heap_size_of = "Defined in ipc-channel"] IpcSender<CustomResponseMediator>),
+    Worker(#[ignore_heap_size_of = "Defined in ipc-channel"] IpcSender<CustomResponseMediator>),
     None
 }
 

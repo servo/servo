@@ -1871,8 +1871,8 @@ fn load_request_with_source(source: Source, expected_body: Vec<u8>) -> (Metadata
         }
     });
 
-    let network_sender = receiver.recv().unwrap();
-    network_sender.send(Some(mock_response)).unwrap();
+    let mediator = receiver.recv().unwrap();
+    mediator.response_chan.send(Some(mock_response)).unwrap();
     let (metadata, body) = join_handle.join().unwrap();
     (metadata, body)
 }
