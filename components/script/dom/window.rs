@@ -45,7 +45,7 @@ use js::rust::Runtime;
 use layout_interface::{ContentBoxResponse, ContentBoxesResponse, ResolvedStyleResponse, ScriptReflow};
 use layout_interface::{LayoutRPC, Msg, Reflow, ReflowQueryType, MarginStyleResponse};
 use libc;
-use msg::constellation_msg::{FrameType, LoadData, PanicMsg, PipelineId, SubpageId};
+use msg::constellation_msg::{FrameType, LoadData, PanicMsg, PipelineId};
 use msg::constellation_msg::{WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::{WebDriverJSError, WebDriverJSResult};
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
@@ -193,16 +193,14 @@ pub struct Window {
     /// page changes.
     devtools_wants_updates: Cell<bool>,
 
-    next_subpage_id: Cell<SubpageId>,
-
     /// Pending resize event, if any.
     resize_event: Cell<Option<(WindowSizeData, WindowSizeType)>>,
 
     /// Pipeline id associated with this page.
     id: PipelineId,
 
-    /// Subpage id associated with this page, if any.
-    parent_info: Option<(PipelineId, SubpageId, FrameType)>,
+    /// Parent id associated with this page, if any.
+    parent_info: Option<(PipelineId, FrameType)>,
 
     /// Global static data related to the DOM.
     dom_static: GlobalStaticData,
@@ -326,11 +324,7 @@ impl Window {
         self.id
     }
 
-    pub fn subpage(&self) -> Option<SubpageId> {
-        self.parent_info.map(|p| p.1)
-    }
-
-    pub fn parent_info(&self) -> Option<(PipelineId, SubpageId, FrameType)> {
+    pub fn parent_info(&self) -> Option<(PipelineId, FrameType)> {
         self.parent_info
     }
 
@@ -1401,13 +1395,6 @@ impl Window {
         WindowProxyHandler(self.dom_static.windowproxy_handler.0)
     }
 
-    pub fn get_next_subpage_id(&self) -> SubpageId {
-        let subpage_id = self.next_subpage_id.get();
-        let SubpageId(id_num) = subpage_id;
-        self.next_subpage_id.set(SubpageId(id_num + 1));
-        subpage_id
-    }
-
     pub fn get_pending_reflow_count(&self) -> u32 {
         self.pending_reflow_count.get()
     }
@@ -1513,7 +1500,7 @@ impl Window {
     // https://html.spec.whatwg.org/multipage/#top-level-browsing-context
     pub fn is_top_level(&self) -> bool {
         match self.parent_info {
-            Some((_, _, FrameType::IFrame)) => false,
+            Some((_, FrameType::IFrame)) => false,
             _ => true,
         }
     }
@@ -1572,7 +1559,7 @@ impl Window {
                timer_event_chan: IpcSender<TimerEvent>,
                layout_chan: Sender<Msg>,
                id: PipelineId,
-               parent_info: Option<(PipelineId, SubpageId, FrameType)>,
+               parent_info: Option<(PipelineId, FrameType)>,
                window_size: Option<WindowSizeData>)
                -> Root<Window> {
         let layout_rpc: Box<LayoutRPC> = {
@@ -1624,7 +1611,6 @@ impl Window {
             page_clip_rect: Cell::new(MAX_RECT),
             fragment_name: DOMRefCell::new(None),
             resize_event: Cell::new(None),
-            next_subpage_id: Cell::new(SubpageId(0)),
             layout_chan: layout_chan,
             layout_rpc: layout_rpc,
             window_size: Cell::new(window_size),
