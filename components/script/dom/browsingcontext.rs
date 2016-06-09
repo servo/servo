@@ -26,7 +26,7 @@ use js::jsapi::{JS_GetOwnPropertyDescriptorById, JS_HasPropertyById};
 use js::jsapi::{MutableHandle, MutableHandleObject, MutableHandleValue};
 use js::jsapi::{ObjectOpResult, PropertyDescriptor};
 use js::jsval::{UndefinedValue, PrivateValue};
-use msg::constellation_msg::{PipelineId, SubpageId};
+use msg::constellation_msg::PipelineId;
 use std::cell::Cell;
 use url::Url;
 
@@ -160,10 +160,10 @@ impl BrowsingContext {
         self.children.borrow_mut().push(JS::from_ref(&context));
     }
 
-    pub fn find_child_by_subpage(&self, subpage_id: SubpageId) -> Option<Root<Window>> {
+    pub fn find_child_by_id(&self, pipeline_id: PipelineId) -> Option<Root<Window>> {
         self.children.borrow().iter().find(|context| {
             let window = context.active_window();
-            window.subpage() == Some(subpage_id)
+            window.pipeline_id() == pipeline_id
         }).map(|context| context.active_window())
     }
 
