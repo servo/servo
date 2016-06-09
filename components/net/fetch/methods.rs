@@ -251,9 +251,14 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
         };
 
         // Step 15
-        // TODO this step (CSP/blocking)
+        if internal_response.url_list.borrow().is_empty() {
+            *internal_response.url_list.borrow_mut() = request.url_list.borrow().clone();
+        }
 
         // Step 16
+        // TODO this step (CSP/blocking)
+
+        // Step 17
         if !response.is_network_error() && (is_null_body_status(&internal_response.status) ||
             match *request.method.borrow() {
                 Method::Head | Method::Connect => true,
@@ -265,7 +270,7 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
             *body = ResponseBody::Empty;
         }
 
-        // Step 17
+        // Step 18
         // TODO be able to compare response integrity against request integrity metadata
         // if !response.is_network_error() {
 
@@ -280,7 +285,7 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
         // }
     }
 
-    // Step 18
+    // Step 19
     if request.synchronous {
         if let Some(ref mut target) = *target {
             // process_response is not supposed to be used
@@ -316,7 +321,7 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
         return response;
     }
 
-    // Step 19
+    // Step 20
     if request.body.borrow().is_some() && matches!(request.current_url().scheme(), "http" | "https") {
         if let Some(ref mut target) = *target {
             // XXXManishearth: We actually should be calling process_request
@@ -328,12 +333,12 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
         }
     }
 
-    // Step 20
+    // Step 21
     if let Some(ref mut target) = *target {
         target.process_response(&response);
     }
 
-    // Step 21
+    // Step 22
     if let Some(ref ch) = *done_chan {
         loop {
             match ch.1.recv()
@@ -355,10 +360,10 @@ fn main_fetch(request: Rc<Request>, cache: &mut CORSCache, cors_flag: bool,
         }
     }
 
-    // Step 22
+    // Step 23
     request.done.set(true);
 
-    // Step 23
+    // Step 24
     if let Some(ref mut target) = *target {
         target.process_response_eof(&response);
     }
@@ -476,12 +481,6 @@ fn http_fetch(request: Rc<Request>,
             }
 
             // Substep 4
-            let actual_response = res.actual_response();
-            if actual_response.url_list.borrow().is_empty() {
-                *actual_response.url_list.borrow_mut() = request.url_list.borrow().clone();
-            }
-
-            // Substep 5
             // TODO: set response's CSP list on actual_response
         }
     }
@@ -1030,9 +1029,6 @@ fn http_network_fetch(request: Rc<Request>,
         else if encoding.contains(&Encoding::Compress) {
         }
     };
-
-    // Step 6
-    *response.url_list.borrow_mut() = request.url_list.borrow().clone();
 
     // Step 7
     // TODO this step isn't possible yet
