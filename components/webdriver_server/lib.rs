@@ -251,7 +251,7 @@ impl Handler {
         }
     }
 
-    fn pipeline(&self, frame_id: Option<FrameId>) -> WebDriverResult<PipelineId> {
+    fn pipeline_id(&self, frame_id: Option<FrameId>) -> WebDriverResult<PipelineId> {
         let interval = 20;
         let iterations = 30_000 / interval;
         let (sender, receiver) = ipc::channel().unwrap();
@@ -271,11 +271,11 @@ impl Handler {
     }
 
     fn root_pipeline(&self) -> WebDriverResult<PipelineId> {
-        self.pipeline(None)
+        self.pipeline_id(None)
     }
 
     fn frame_pipeline(&self) -> WebDriverResult<PipelineId> {
-        self.pipeline(self.session.as_ref().and_then(|session| session.frame_id))
+        self.pipeline_id(self.session.as_ref().and_then(|session| session.frame_id))
     }
 
     fn session(&self) -> WebDriverResult<&WebDriverSession> {

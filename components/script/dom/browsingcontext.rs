@@ -150,7 +150,7 @@ impl BrowsingContext {
         old
     }
 
-    pub fn pipeline(&self) -> PipelineId {
+    pub fn pipeline_id(&self) -> PipelineId {
         self.id
     }
 
