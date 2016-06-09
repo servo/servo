@@ -266,6 +266,10 @@
         "url": "/html-media-capture/capture_video_cancel-manual.html"
       },
       {
+        "path": "html/browsers/history/joint-session-history/joint-session-history-only-fully-active.html",
+        "url": "/html/browsers/history/joint-session-history/joint-session-history-only-fully-active.html"
+      },
+      {
         "path": "html/browsers/history/the-history-interface/non-automated/traverse_the_history_unload_prompt_1-manual.html",
         "url": "/html/browsers/history/the-history-interface/non-automated/traverse_the_history_unload_prompt_1-manual.html"
       },
@@ -36034,6 +36038,12 @@
           {
             "path": "cssom-view/scrolling-no-browsing-context.html",
             "url": "/cssom-view/scrolling-no-browsing-context.html"
+          }
+        ],
+        "html/browsers/history/joint-session-history/joint-session-history-only-fully-active.html": [
+          {
+            "path": "html/browsers/history/joint-session-history/joint-session-history-only-fully-active.html",
+            "url": "/html/browsers/history/joint-session-history/joint-session-history-only-fully-active.html"
           }
         ],
         "html/semantics/embedded-content/the-iframe-element/change_parentage.html": [
