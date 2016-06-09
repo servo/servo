@@ -93,7 +93,7 @@ use js::jsapi::JS_GetRuntime;
 use js::jsapi::{JSContext, JSObject, JSRuntime};
 use msg::constellation_msg::{ALT, CONTROL, SHIFT, SUPER};
 use msg::constellation_msg::{Key, KeyModifiers, KeyState};
-use msg::constellation_msg::{PipelineId, ReferrerPolicy, SubpageId};
+use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::CookieSource::NonHTTP;
 use net_traits::CoreResourceMsg::{GetCookiesForUrl, SetCookiesForUrl};
 use net_traits::response::HttpsState;
@@ -1260,9 +1260,9 @@ impl Document {
 
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
         if PREFS.is_mozbrowser_enabled() {
-            if let Some((parent_pipeline_id, subpage_id, _)) = self.window.parent_info() {
+            if let Some((parent_pipeline_id, _)) = self.window.parent_info() {
                 let event = ConstellationMsg::MozBrowserEvent(parent_pipeline_id,
-                                                              subpage_id,
+                                                              self.window.pipeline_id(),
                                                               event);
                 self.window.constellation_chan().send(event).unwrap();
             }
@@ -1496,15 +1496,7 @@ impl Document {
     }
 
     /// Find an iframe element in the document.
-    pub fn find_iframe(&self, subpage_id: SubpageId) -> Option<Root<HTMLIFrameElement>> {
-        self.upcast::<Node>()
-            .traverse_preorder()
-            .filter_map(Root::downcast::<HTMLIFrameElement>)
-            .find(|node| node.subpage_id() == Some(subpage_id))
-    }
-
-    /// Find an iframe element in the document.
-    pub fn find_iframe_by_pipeline(&self, pipeline: PipelineId) -> Option<Root<HTMLIFrameElement>> {
+    pub fn find_iframe(&self, pipeline: PipelineId) -> Option<Root<HTMLIFrameElement>> {
         self.upcast::<Node>()
             .traverse_preorder()
             .filter_map(Root::downcast::<HTMLIFrameElement>)
