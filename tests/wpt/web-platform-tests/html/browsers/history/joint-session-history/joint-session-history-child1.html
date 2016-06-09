@@ -1,0 +1,18 @@
+<body>
+  <a id="link" href="joint-session-history-child2.html">Child1</a>.
+  <iframe id="grandchild"></iframe>
+</body>
+<script>
+  window.onload = function() {
+    var link = document.getElementById("link");
+    var grandchild = document.getElementById("grandchild");
+    var timer = window.setInterval(poll, 100);
+    function poll() {
+      if (grandchild.getAttribute("data-grandchild-loaded")) {
+        window.clearInterval(timer);
+        link.click();
+      }
+    }
+    grandchild.src="joint-session-history-grandchild1.html";
+  };
+</script>
