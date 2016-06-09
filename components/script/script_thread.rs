@@ -996,7 +996,10 @@ impl ScriptThread {
         let context = self.root_browsing_context();
         match msg {
             DevtoolScriptControlMsg::EvaluateJS(id, s, reply) => {
-                let window = get_browsing_context(&context, id).active_window();
+                let window = match context.find(id) {
+                    Some(browsing_context) => browsing_context.active_window(),
+                    None => return warn!("Message sent to closed pipeline {}.", id),
+                };
                 let global_ref = GlobalRef::Window(window.r());
                 devtools::handle_evaluate_js(&global_ref, s, reply)
             },
@@ -1013,7 +1016,10 @@ impl ScriptThread {
             DevtoolScriptControlMsg::ModifyAttribute(id, node_id, modifications) =>
                 devtools::handle_modify_attribute(&context, id, node_id, modifications),
             DevtoolScriptControlMsg::WantsLiveNotifications(id, to_send) => {
-                let window = get_browsing_context(&context, id).active_window();
+                let window = match context.find(id) {
+                    Some(browsing_context) => browsing_context.active_window(),
+                    None => return warn!("Message sent to closed pipeline {}.", id),
+                };
                 let global_ref = GlobalRef::Window(window.r());
                 devtools::handle_wants_live_notifications(&global_ref, to_send)
             },
@@ -1078,7 +1084,10 @@ impl ScriptThread {
 
     fn handle_resize(&self, id: PipelineId, size: WindowSizeData, size_type: WindowSizeType) {
         if let Some(ref context) = self.find_child_context(id) {
-            let window = context.active_window();
+            let window = match context.find(id) {
+                Some(browsing_context) => browsing_context.active_window(),
+                None => return warn!("Message sent to closed pipeline {}.", id),
+            };
             window.set_resize_event(size, size_type);
             return;
         }
@@ -1087,7 +1096,7 @@ impl ScriptThread {
             load.window_size = Some(size);
             return;
         }
-        panic!("resize sent to nonexistent pipeline");
+        warn!("resize sent to nonexistent pipeline");
     }
 
     fn handle_viewport(&self, id: PipelineId, rect: Rect<f32>) {
@@ -1096,8 +1105,7 @@ impl ScriptThread {
             if let Some(inner_context) = context.find(id) {
                 let window = inner_context.active_window();
                 if window.set_page_clip_rect_with_new_viewport(rect) {
-                    let context = get_browsing_context(&context, id);
-                    self.rebuild_and_force_reflow(&context, ReflowReason::Viewport);
+                    self.rebuild_and_force_reflow(&inner_context, ReflowReason::Viewport);
                 }
                 return;
             }
@@ -1107,7 +1115,7 @@ impl ScriptThread {
             load.clip_rect = Some(rect);
             return;
         }
-        panic!("Page rect message sent to nonexistent pipeline");
+        warn!("Page rect message sent to nonexistent pipeline");
     }
 
     fn handle_set_scroll_state(&self, id: PipelineId, scroll_state: &Point2D<f32>) {
@@ -1120,7 +1128,7 @@ impl ScriptThread {
             }
         }
 
-        panic!("Set scroll state message message sent to nonexistent pipeline: {:?}", id);
+        warn!("Set scroll state message message sent to nonexistent pipeline: {:?}", id);
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {
@@ -1173,8 +1181,10 @@ impl ScriptThread {
     }
 
     fn handle_loads_complete(&self, pipeline: PipelineId) {
-        let context = get_browsing_context(&self.root_browsing_context(), pipeline);
-        let doc = context.active_document();
+        let doc = match self.root_browsing_context().find(pipeline) {
+            Some(browsing_context) => browsing_context.active_document(),
+            None => return warn!("Message sent to closed pipeline {}.", pipeline),
+        };
         let doc = doc.r();
         if doc.loader().is_blocked() {
             return;
@@ -1231,7 +1241,7 @@ impl ScriptThread {
             load.is_frozen = true;
             return;
         }
-        panic!("freeze sent to nonexistent pipeline");
+        warn!("freeze sent to nonexistent pipeline");
     }
 
     /// Handles thaw message
@@ -1250,7 +1260,7 @@ impl ScriptThread {
             load.is_frozen = false;
             return;
         }
-        panic!("thaw sent to nonexistent pipeline");
+        warn!("thaw sent to nonexistent pipeline");
     }
 
     fn handle_focus_iframe_msg(&self,
@@ -1369,8 +1379,10 @@ impl ScriptThread {
 
     /// Handles a request for the window title.
     fn handle_get_title_msg(&self, pipeline_id: PipelineId) {
-        let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
-        let document = context.active_document();
+        let document = match self.root_browsing_context().find(pipeline_id) {
+            Some(browsing_context) => browsing_context.active_document(),
+            None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+        };
         document.send_title_to_compositor();
     }
 
@@ -1424,8 +1436,10 @@ impl ScriptThread {
 
     /// Handles when layout thread finishes all animation in one tick
     fn handle_tick_all_animations(&self, id: PipelineId) {
-        let context = get_browsing_context(&self.root_browsing_context(), id);
-        let document = context.active_document();
+        let document = match self.root_browsing_context().find(id) {
+            Some(browsing_context) => browsing_context.active_document(),
+            None => return warn!("Message sent to closed pipeline {}.", id),
+        };
         document.run_the_animation_frame_callbacks();
     }
 
@@ -1438,8 +1452,10 @@ impl ScriptThread {
 
     /// Notify the containing document of a child frame that has completed loading.
     fn handle_frame_load_event(&self, containing_pipeline: PipelineId, id: PipelineId) {
-        let context = get_browsing_context(&self.root_browsing_context(), containing_pipeline);
-        let document = context.active_document();
+        let document = match self.root_browsing_context().find(containing_pipeline) {
+            Some(browsing_context) => browsing_context.active_document(),
+            None => return warn!("Message sent to closed pipeline {}.", containing_pipeline),
+        };
         if let Some(iframe) = document.find_iframe_by_pipeline(id) {
             iframe.iframe_load_event_steps(id);
         }
@@ -1760,8 +1776,10 @@ impl ScriptThread {
             }
 
             MouseMoveEvent(point) => {
-                let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
-                let document = context.active_document();
+                let document = match self.root_browsing_context().find(pipeline_id) {
+                    Some(browsing_context) => browsing_context.active_document(),
+                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+                };
 
                 // Get the previous target temporarily
                 let prev_mouse_over_target = self.topmost_mouse_over_target.get();
@@ -1830,14 +1848,18 @@ impl ScriptThread {
             }
 
             TouchpadPressureEvent(point, pressure, phase) => {
-                let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
-                let document = context.active_document();
+                let document = match self.root_browsing_context().find(pipeline_id) {
+                    Some(browsing_context) => browsing_context.active_document(),
+                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+                };
                 document.r().handle_touchpad_pressure_event(self.js_runtime.rt(), point, pressure, phase);
             }
 
             KeyEvent(key, state, modifiers) => {
-                let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
-                let document = context.active_document();
+                let document = match self.root_browsing_context().find(pipeline_id) {
+                    Some(browsing_context) => browsing_context.active_document(),
+                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+                };
                 document.dispatch_key_event(key, state, modifiers, &self.constellation_chan);
             }
         }
@@ -1848,8 +1870,10 @@ impl ScriptThread {
                           mouse_event_type: MouseEventType,
                           button: MouseButton,
                           point: Point2D<f32>) {
-        let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
-        let document = context.active_document();
+        let document = match self.root_browsing_context().find(pipeline_id) {
+            Some(browsing_context) => browsing_context.active_document(),
+            None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+        };
         document.handle_mouse_event(self.js_runtime.rt(), button, point, mouse_event_type);
     }
 
@@ -1859,8 +1883,10 @@ impl ScriptThread {
                           identifier: TouchId,
                           point: Point2D<f32>)
                           -> bool {
-        let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
-        let document = context.active_document();
+        let document = match self.root_browsing_context().find(pipeline_id) {
+            Some(browsing_context) => browsing_context.active_document(),
+            None => { warn!("Message sent to closed pipeline {}.", pipeline_id); return true },
+        };
         document.handle_touch_event(self.js_runtime.rt(), event_type, identifier, point)
     }
 
@@ -1872,9 +1898,10 @@ impl ScriptThread {
         {
             let nurl = &load_data.url;
             if let Some(fragment) = nurl.fragment() {
-                let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
-                let document = context.active_document();
-                let document = document.r();
+                let document = match self.root_browsing_context().find(pipeline_id) {
+                    Some(browsing_context) => browsing_context.active_document(),
+                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+                };
                 let url = document.url();
                 if &url[..Position::AfterQuery] == &nurl[..Position::AfterQuery] &&
                     load_data.method == Method::Get {
@@ -1909,7 +1936,10 @@ impl ScriptThread {
     }
 
     fn handle_resize_event(&self, pipeline_id: PipelineId, new_size: WindowSizeData, size_type: WindowSizeType) {
-        let context = get_browsing_context(&self.root_browsing_context(), pipeline_id);
+        let context = match self.root_browsing_context().find(pipeline_id) {
+            Some(browsing_context) => browsing_context,
+            None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+        };
         let window = context.active_window();
         window.set_window_size(new_size);
         window.force_reflow(ReflowGoal::ForDisplay,
@@ -2072,6 +2102,7 @@ fn shut_down_layout(context_tree: &BrowsingContext) {
     }
 }
 
+// TODO: remove this function, as it's a source of panic.
 pub fn get_browsing_context(context: &BrowsingContext,
                             pipeline_id: PipelineId)
                             -> Root<BrowsingContext> {
