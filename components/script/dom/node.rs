@@ -298,6 +298,10 @@ impl Node {
         self.owner_doc().content_and_heritage_changed(self, NodeDamage::OtherNodeDamage);
         child.owner_doc().content_and_heritage_changed(child, NodeDamage::OtherNodeDamage);
     }
+
+    pub fn to_untrusted_node_address(&self) -> UntrustedNodeAddress {
+        UntrustedNodeAddress(self.reflector().get_jsobject().get() as *const c_void)
+    }
 }
 
 pub struct QuerySelectorIterator {
@@ -622,7 +626,7 @@ impl Node {
     pub fn scroll_offset(&self) -> Point2D<f32> {
         let document = self.owner_doc();
         let window = document.window();
-        window.scroll_offset_query(self.to_trusted_node_address())
+        window.scroll_offset_query(self)
     }
 
     // https://dom.spec.whatwg.org/#dom-childnode-before
