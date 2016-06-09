@@ -32,7 +32,7 @@ extern crate util;
 mod script_msg;
 
 use app_units::Au;
-use devtools_traits::ScriptToDevtoolsControlMsg;
+use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::Size2D;
 use euclid::length::Length;
 use euclid::point::Point2D;
@@ -44,22 +44,24 @@ use heapsize::HeapSizeOf;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use libc::c_void;
 use msg::constellation_msg::{FrameId, FrameType, Key, KeyModifiers, KeyState, LoadData};
-use msg::constellation_msg::{NavigationDirection, PanicMsg, PipelineId};
+use msg::constellation_msg::{NavigationDirection, PanicMsg, PipelineId, ReferrerPolicy};
 use msg::constellation_msg::{PipelineNamespaceId, SubpageId, WindowSizeData};
 use msg::constellation_msg::{WebDriverCommandMsg, WindowSizeType};
 use msg::webdriver_msg::WebDriverScriptCommand;
-use net_traits::ResourceThreads;
+use net_traits::LoadOrigin;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::response::HttpsState;
+use net_traits::{ResourceThreads, RequestSource};
 use profile_traits::mem;
+use profile_traits::time as profile_time;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::sync::mpsc::{Sender, Receiver};
 use url::Url;
 use util::ipc::OptionalOpaqueIpcSender;
 
-pub use script_msg::{LayoutMsg, ScriptMsg, EventResult};
+pub use script_msg::{LayoutMsg, ScriptMsg, EventResult, ServiceWorkerMsg, ScopeThings};
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
@@ -557,4 +559,59 @@ pub enum ConstellationMsg {
     WebDriverCommand(WebDriverCommandMsg),
     /// Reload the current page.
     Reload,
+    /// Service Worker Sender to communicate with it
+    ServiceWorkerManagerSender(IpcSender<ServiceWorkerMsg>)
+}
+
+/// Resources required by workerglobalscopes
+#[derive(Serialize, Deserialize, Clone)]
+pub struct WorkerGlobalScopeInit {
+    /// chan to a resource thread
+    pub resource_threads: ResourceThreads,
+    /// chan to the memory profiler
+    pub mem_profiler_chan: mem::ProfilerChan,
+    /// chan to the time profiler
+    pub time_profiler_chan: profile_time::ProfilerChan,
+    /// To devtools sender
+    pub to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    /// From devtools sender
+    pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
+    /// messages to send to constellation
+    pub constellation_chan: IpcSender<ScriptMsg>,
+    /// message to send to the scheduler
+    pub scheduler_chan: IpcSender<TimerEventRequest>,
+    /// sender which sends panic messages
+    pub panic_chan: IpcSender<PanicMsg>,
+    /// the worker id
+    pub worker_id: WorkerId,
+    /// closing flag required by workers
+    pub closing: bool,
+}
+
+/// Common entities representing a network load origin
+#[derive(Deserialize, Serialize, Clone)]
+pub struct WorkerScriptLoadOrigin {
+    /// referrer url
+    pub referrer_url: Option<Url>,
+    /// the referrer policy which is used
+    pub referrer_policy: Option<ReferrerPolicy>,
+    /// The request source
+    pub request_source: RequestSource,
+    /// the pipeline id of the entity requesting the load
+    pub pipeline_id: Option<PipelineId>
+}
+
+impl LoadOrigin for WorkerScriptLoadOrigin {
+    fn referrer_url(&self) -> Option<Url> {
+        self.referrer_url.clone()
+    }
+    fn referrer_policy(&self) -> Option<ReferrerPolicy> {
+        self.referrer_policy.clone()
+    }
+    fn request_source(&self) -> RequestSource {
+        self.request_source.clone()
+    }
+    fn pipeline_id(&self) -> Option<PipelineId> {
+        self.pipeline_id.clone()
+    }
 }

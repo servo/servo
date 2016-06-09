@@ -541,4 +541,8 @@ impl UnprivilegedPipelineContent {
     pub fn prefs(&self) -> HashMap<String, Pref> {
         self.prefs.clone()
     }
+
+    pub fn constellation_chan(&self) -> IpcSender<ScriptMsg> {
+        self.constellation_chan.clone()
+    }
 }

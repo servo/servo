@@ -83,6 +83,7 @@ use script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use script_runtime::{ScriptPort, StackRootTLS, new_rt_and_cx, get_reports};
 use script_traits::CompositorEvent::{KeyEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent};
 use script_traits::CompositorEvent::{TouchEvent, TouchpadPressureEvent};
+use script_traits::ScopeThings;
 use script_traits::{CompositorEvent, ConstellationControlMsg, EventResult};
 use script_traits::{InitialScriptState, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg};
@@ -213,7 +214,7 @@ enum MixedMessage {
     FromDevtools(DevtoolScriptControlMsg),
     FromImageCache(ImageCacheResult),
     FromScheduler(TimerEvent),
-    FromNetwork(IpcSender<Option<CustomResponse>>),
+    FromNetwork((IpcSender<Option<CustomResponse>>, Url)),
 }
 
 /// Messages used to control the script event loop
@@ -1044,10 +1045,10 @@ impl ScriptThread {
         msg.responder.unwrap().respond(msg.image_response);
     }
 
-    fn handle_msg_from_network(&self, msg: IpcSender<Option<CustomResponse>>) {
-        // We may detect controlling service workers here
-        // We send None as default
-        let _ = msg.send(None);
+    fn handle_msg_from_network(&self, network_sender: (IpcSender<Option<CustomResponse>>, Url)) {
+        let (net_sender, load_url) = network_sender;
+        // tell the constellation to activate the worker
+        self.constellation_chan.send(ConstellationMsg::NavigateForServiceWorker(net_sender, load_url)).unwrap();
     }
 
     fn handle_webdriver_msg(&self, pipeline_id: PipelineId, msg: WebDriverScriptCommand) {
@@ -1438,8 +1439,39 @@ impl ScriptThread {
         }
     }
 
-    fn handle_serviceworker_registration(&self, scope: Url, registration: &ServiceWorkerRegistration) {
-        self.registration_map.borrow_mut().insert(scope, JS::from_ref(registration));
+    fn handle_serviceworker_registration(&self,
+                                         scope: Url,
+                                         registration: &ServiceWorkerRegistration) {
+        {
+            let ref mut reg_ref = *self.registration_map.borrow_mut();
+            // according to spec we should replace, if an older registration exists for
+            // same scope otherwise just insert the new one
+            let _ = match reg_ref.remove(&scope) {
+                Some(_) => reg_ref.insert(scope.clone(), JS::from_ref(registration)),
+                None => reg_ref.insert(scope.clone(), JS::from_ref(registration))
+            };
+        }
+
+        // send ScopeThings to sw-manager
+        match self.handle_create_scope(&scope) {
+            Some(scope_things) => {
+                self.constellation_chan.send(ConstellationMsg::StoreScope(scope_things, scope)).unwrap()
+            },
+            None => warn!("could not send scope things to sw-manager")
+        }
+    }
+
+    fn handle_create_scope(&self, scope: &Url) -> Option<ScopeThings> {
+        let ref maybe_registration_ref = *self.registration_map.borrow();
+        let maybe_registration = maybe_registration_ref.get(scope);
+        let context = self.root_browsing_context();
+        let window = context.active_window();
+        let global_ref = GlobalRef::Window(window.r());
+        maybe_registration.and_then(|ref reg| {
+            let script_url = reg.get_installed().get_script_url();
+            Some(ServiceWorkerRegistration::create_scope_things(global_ref,
+                                                                script_url))
+        })
     }
 
     /// Handles a request for the window title.

@@ -4,7 +4,7 @@
 
 use devtools;
 use devtools_traits::DevtoolScriptControlMsg;
-use dom::abstractworker::{WorkerScriptLoadOrigin, WorkerScriptMsg, SharedRt , SimpleWorkerErrorHandler};
+use dom::abstractworker::{WorkerScriptMsg, SharedRt , SimpleWorkerErrorHandler};
 use dom::abstractworkerglobalscope::{SendableWorkerScriptChan, WorkerThreadWorkerChan};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DedicatedWorkerGlobalScopeBinding;
@@ -21,7 +21,6 @@ use dom::bindings::structuredclone::StructuredCloneData;
 use dom::messageevent::MessageEvent;
 use dom::worker::{TrustedWorkerAddress, WorkerMessageHandler};
 use dom::workerglobalscope::WorkerGlobalScope;
-use dom::workerglobalscope::WorkerGlobalScopeInit;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::jsapi::{HandleValue, JS_SetInterruptCallback};
@@ -29,11 +28,11 @@ use js::jsapi::{JSAutoCompartment, JSContext, RootedValue};
 use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
-use net_traits::{LoadContext, load_whole_resource, CustomResponse, IpcSend};
+use net_traits::{LoadContext, load_whole_resource, CustomResponseSender, IpcSend};
 use rand::random;
 use script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort, StackRootTLS, get_reports, new_rt_and_cx};
-use script_traits::{TimerEvent, TimerSource};
+use script_traits::{TimerEvent, TimerSource, WorkerScriptLoadOrigin, WorkerGlobalScopeInit};
 use std::mem::replace;
 use std::sync::mpsc::{Receiver, RecvError, Select, Sender, channel};
 use std::sync::{Arc, Mutex};
@@ -71,7 +70,7 @@ enum MixedMessage {
     FromWorker((TrustedWorkerAddress, WorkerScriptMsg)),
     FromScheduler((TrustedWorkerAddress, TimerEvent)),
     FromDevtools(DevtoolScriptControlMsg),
-    FromNetwork(IpcSender<Option<CustomResponse>>),
+    FromNetwork(CustomResponseSender),
 }
 
 // https://html.spec.whatwg.org/multipage/#dedicatedworkerglobalscope
@@ -340,9 +339,9 @@ impl DedicatedWorkerGlobalScope {
                 let _ar = AutoWorkerReset::new(self, linked_worker);
                 self.handle_script_event(msg);
             },
-            MixedMessage::FromNetwork(network_sender) => {
+            MixedMessage::FromNetwork((net_sender, _)) => {
                 // We send None as of now
-                let _ = network_sender.send(None);
+                let _ = net_sender.send(None);
             }
         }
     }

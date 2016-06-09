@@ -864,7 +864,7 @@ pub fn load<A, B>(load_data: &LoadData,
     let (msg_sender, msg_receiver) = ipc::channel().unwrap();
     match load_data.source {
         RequestSource::Window(ref sender) | RequestSource::Worker(ref sender) => {
-            sender.send(msg_sender.clone()).unwrap();
+            sender.send((msg_sender.clone(), doc_url.clone())).unwrap();
             let received_msg = msg_receiver.recv().unwrap();
             if let Some(custom_response) = received_msg {
                 let metadata = Metadata::default(doc_url.clone());

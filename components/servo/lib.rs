@@ -50,6 +50,8 @@ extern crate webdriver_server;
 extern crate webrender;
 extern crate webrender_traits;
 
+use script::ConstellationSender;
+
 #[cfg(feature = "webdriver")]
 fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
     webdriver_server::start_server(port, constellation);
@@ -106,7 +108,6 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
-        script::init();
 
         // Get both endpoints of a special channel for communication between
         // the client window and the compositor. This channel is unique because
@@ -159,6 +160,10 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
                                                       devtools_chan,
                                                       supports_clipboard,
                                                       webrender_api_sender.clone());
+
+        // Send the constellation sender, to service worker manager thread
+        let cons_sender_wrapped = ConstellationSender::NormalMode(constellation_chan.clone());
+        script::init(cons_sender_wrapped);
 
         if cfg!(feature = "webdriver") {
             if let Some(port) = opts.webdriver_port {
@@ -264,7 +269,10 @@ pub fn run_content_process(token: String) {
        create_sandbox();
     }
 
-    script::init();
+    // Send the constellation sender to service worker manager thread
+    let constellation_chan = unprivileged_content.constellation_chan();
+    let cons_sender_wrapped = ConstellationSender::MultiprocessMode(constellation_chan);
+    script::init(cons_sender_wrapped);
 
     unprivileged_content.start_all::<script_layout_interface::message::Msg,
                                      layout_thread::LayoutThread,

@@ -35,18 +35,19 @@ use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::StorageThreadMsg;
-use net_traits::{self, ResourceThreads, IpcSend};
+use net_traits::{self, ResourceThreads, IpcSend, CustomResponse};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pipeline::{ChildProcess, InitialPipelineState, Pipeline};
 use profile_traits::mem;
 use profile_traits::time;
 use rand::{random, Rng, SeedableRng, StdRng};
+use script_traits::ServiceWorkerMsg;
 use script_traits::{AnimationState, AnimationTickType, CompositorEvent};
 use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg};
 use script_traits::{DocumentState, LayoutControlMsg};
 use script_traits::{IFrameLoadInfo, IFrameSandboxState, TimerEventRequest};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
-use script_traits::{MozBrowserEvent, MozBrowserErrorType};
+use script_traits::{MozBrowserEvent, MozBrowserErrorType, ScopeThings};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::Error as IOError;
@@ -121,6 +122,9 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A channel through which messages can be sent to the bluetooth thread.
     bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+
+    /// Sender to Service Worker Manager thread
+    serviceworker_manager: Option<IpcSender<ServiceWorkerMsg>>,
 
     /// A list of all the pipelines. (See the `pipeline` module for more details.)
     pipelines: HashMap<PipelineId, Pipeline>,
@@ -337,6 +341,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 private_resource_threads: state.private_resource_threads,
                 image_cache_thread: state.image_cache_thread,
                 font_cache_thread: state.font_cache_thread,
+                serviceworker_manager: None,
                 pipelines: HashMap::new(),
                 frames: HashMap::new(),
                 subpage_map: HashMap::new(),
@@ -622,6 +627,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got reload message");
                 self.handle_reload_msg();
             }
+            FromCompositorMsg::ServiceWorkerManagerSender(sender) => {
+                // Send also the constellation sender to manager, so it can notify of worker timeouts
+                let _ = sender.send(ServiceWorkerMsg::ConstellationSender(self.script_sender.clone()));
+                self.serviceworker_manager = Some(sender);
+            }
         }
     }
 
@@ -815,6 +825,22 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::GetScrollOffset(pid, lid, send) => {
                 self.compositor_proxy.send(ToCompositorMsg::GetScrollOffset(pid, lid, send));
             }
+            FromScriptMsg::ServiceWorkerManagerSender(sender) => {
+                // Send also the constellation sender to manager, so it can notify of worker timeouts
+                let _ = sender.send(ServiceWorkerMsg::ConstellationSender(self.script_sender.clone()));
+                self.serviceworker_manager = Some(sender);
+            }
+            FromScriptMsg::ServiceWorkerTimeout(scope) => {
+                debug!("Service worker for {:?} terminated", scope);
+            }
+            FromScriptMsg::NavigateForServiceWorker(net_sender, load_url) => {
+                debug!("activation request for service worker received");
+                self.handle_serviceworker_msg(net_sender, load_url);
+            }
+            FromScriptMsg::StoreScope(scope_things, scope) => {
+                debug!("constellation got store registration scope message");
+                self.handle_store_scope(scope_things, scope);
+            }
         }
     }
 
@@ -840,6 +866,22 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 self.handle_panic(pipeline_id, panic_reason, backtrace);
             }
         }
+    }
+
+    fn handle_store_scope(&mut self, scope_things: ScopeThings, scope: Url) {
+        match self.serviceworker_manager {
+                    Some(ref mgr) => { let _ = mgr.send(ServiceWorkerMsg::StoreScope(scope_things, scope)); },
+                    None => { warn!("sending scope info to service worker manager failed"); }
+                }
+    }
+
+    fn handle_serviceworker_msg(&mut self,
+                                net_sender: IpcSender<Option<CustomResponse>>,
+                                scope_url: Url) {
+        match self.serviceworker_manager {
+                    Some(ref mgr) => { let _ = mgr.send(ServiceWorkerMsg::FromConstellation(net_sender, scope_url)); },
+                    None => { warn!("activation request to service worker manager failed"); }
+                }
     }
 
     fn handle_exit(&mut self) {
@@ -889,6 +931,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         debug!("Exiting bluetooth thread.");
         if let Err(e) = self.bluetooth_thread.send(BluetoothMethodMsg::Exit) {
             warn!("Exit bluetooth thread failed ({})", e);
+        }
+
+        if let Err(e) = self.serviceworker_manager.as_ref()
+                            .expect("sw-manager does not exist")
+                            .send(ServiceWorkerMsg::Exit) {
+            warn!("Exit service worker manager failed ({})", e);
         }
 
         debug!("Exiting font cache thread.");
@@ -1193,6 +1241,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // the new load. The framing element must be notified about the
         // requested change so it can update its internal state.
         let parent_info = self.pipelines.get(&source_id).and_then(|source| source.parent_info);
+
         match parent_info {
             Some((parent_pipeline_id, subpage_id, _)) => {
                 self.handle_load_start_msg(&source_id);
@@ -1200,7 +1249,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // and issue an iframe load through there.
                 let msg = ConstellationControlMsg::Navigate(parent_pipeline_id, subpage_id, load_data);
                 let result = match self.pipelines.get(&parent_pipeline_id) {
-                    Some(parent_pipeline) => parent_pipeline.script_chan.send(msg),
+                    Some(parent_pipeline) => {
+                        parent_pipeline.script_chan.send(msg)
+                    },
                     None => {
                         warn!("Pipeline {:?} child loaded after closure", parent_pipeline_id);
                         return None;
@@ -1232,6 +1283,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // Being here means either there are no pending frames, or none of the pending
                 // changes would be overridden by changing the subframe associated with source_id.
 
+
                 // Create the new pipeline
                 let window_size = self.pipelines.get(&source_id).and_then(|source| source.size);
                 let new_pipeline_id = PipelineId::new();
@@ -1243,6 +1295,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     Some(source) => source.freeze(),
                     None => warn!("Pipeline {:?} loaded after closure", source_id),
                 };
+
                 Some(new_pipeline_id)
             }
         }

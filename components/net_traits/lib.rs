@@ -94,7 +94,7 @@ impl CustomResponse {
     }
 }
 
-pub type CustomResponseSender = IpcSender<Option<CustomResponse>>;
+pub type CustomResponseSender = (IpcSender<Option<CustomResponse>>, Url);
 
 #[derive(Clone, Deserialize, Serialize, HeapSizeOf)]
 pub enum RequestSource {
