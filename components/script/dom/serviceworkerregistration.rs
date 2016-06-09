@@ -53,14 +53,14 @@ impl ServiceWorkerRegistration {
         let worker_load_origin = WorkerScriptLoadOrigin {
             referrer_url: None,
             referrer_policy: None,
-            pipeline_id: Some(global.pipeline())
+            pipeline_id: Some(global.pipeline_id())
         };
 
         let worker_id = global.get_next_worker_id();
         let init = prepare_workerscope_init(global, None);
         ScopeThings {
             script_url: script_url,
-            pipeline_id: global.pipeline(),
+            pipeline_id: global.pipeline_id(),
             init: init,
             worker_load_origin: worker_load_origin,
             devtools_chan: global.devtools_chan(),

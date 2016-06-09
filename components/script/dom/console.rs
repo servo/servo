@@ -18,7 +18,7 @@ impl Console {
         if let Some(chan) = global.devtools_chan() {
             let console_message = prepare_message(level, message);
             let devtools_message = ScriptToDevtoolsControlMsg::ConsoleAPI(
-                global.pipeline(),
+                global.pipeline_id(),
                 console_message,
                 global.get_worker_id());
             chan.send(devtools_message).unwrap();

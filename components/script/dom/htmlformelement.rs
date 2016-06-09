@@ -435,7 +435,7 @@ impl HTMLFormElement {
         // Step 2
         let nav = box PlannedNavigation {
             load_data: load_data,
-            pipeline_id: window.pipeline(),
+            pipeline_id: window.pipeline_id(),
             script_chan: window.main_thread_script_chan().clone(),
             generation_id: self.generation_id.get(),
             form: Trusted::new(self)

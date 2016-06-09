@@ -424,7 +424,7 @@ fn net_request_from_global(global: GlobalRef,
                            url: Url,
                            is_service_worker_global_scope: bool) -> NetTraitsRequest {
     let origin = Origin::Origin(global.get_url().origin());
-    let pipeline_id = global.pipeline();
+    let pipeline_id = global.pipeline_id();
     NetTraitsRequest::new(url,
                           Some(origin),
                           is_service_worker_global_scope,

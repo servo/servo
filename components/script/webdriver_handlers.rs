@@ -140,7 +140,7 @@ pub fn handle_get_frame_id(context: &BrowsingContext,
         }
     };
 
-    let frame_id = window.map(|x| x.map(|x| x.pipeline()));
+    let frame_id = window.map(|x| x.map(|x| x.pipeline_id()));
     reply.send(frame_id).unwrap()
 }
 
