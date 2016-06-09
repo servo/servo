@@ -78,7 +78,7 @@ use profile::mem as profile_mem;
 use profile::time as profile_time;
 use profile_traits::mem;
 use profile_traits::time;
-use script_traits::ConstellationMsg;
+use script_traits::{ConstellationMsg, SWManagerMsg};
 use std::rc::Rc;
 use std::sync::mpsc::Sender;
 use util::opts;
@@ -107,7 +107,6 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         // Global configuration options, parsed from the command line.
         let opts = opts::get();
 
-        script::init();
 
         // Get both endpoints of a special channel for communication between
         // the client window and the compositor. This channel is unique because
@@ -153,13 +152,16 @@ impl<Window> Browser<Window> where Window: WindowMethods + 'static {
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
-        let constellation_chan = create_constellation(opts.clone(),
-                                                      compositor_proxy.clone_compositor_proxy(),
-                                                      time_profiler_chan.clone(),
-                                                      mem_profiler_chan.clone(),
-                                                      devtools_chan,
-                                                      supports_clipboard,
-                                                      webrender_api_sender.clone());
+        let (constellation_chan, swmanager_sender) = create_constellation(opts.clone(),
+                                                                          compositor_proxy.clone_compositor_proxy(),
+                                                                          time_profiler_chan.clone(),
+                                                                          mem_profiler_chan.clone(),
+                                                                          devtools_chan,
+                                                                          supports_clipboard,
+                                                                          webrender_api_sender.clone());
+
+        // Send the constellation's swmanager sender to service worker manager thread
+        script::init(swmanager_sender);
 
         if cfg!(feature = "webdriver") {
             if let Some(port) = opts.webdriver_port {
@@ -207,7 +209,8 @@ fn create_constellation(opts: opts::Opts,
                         mem_profiler_chan: mem::ProfilerChan,
                         devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
                         supports_clipboard: bool,
-                        webrender_api_sender: Option<webrender_traits::RenderApiSender>) -> Sender<ConstellationMsg> {
+                        webrender_api_sender: Option<webrender_traits::RenderApiSender>)
+                        -> (Sender<ConstellationMsg>, IpcSender<SWManagerMsg>) {
     let bluetooth_thread: IpcSender<BluetoothMethodMsg> = BluetoothThreadFactory::new();
 
     let (public_resource_threads, private_resource_threads) =
@@ -232,7 +235,7 @@ fn create_constellation(opts: opts::Opts,
         supports_clipboard: supports_clipboard,
         webrender_api_sender: webrender_api_sender,
     };
-    let constellation_chan =
+    let (constellation_chan, from_swmanager_sender) =
         Constellation::<script_layout_interface::message::Msg,
                         layout_thread::LayoutThread,
                         script::script_thread::ScriptThread>::start(initial_state);
@@ -241,7 +244,7 @@ fn create_constellation(opts: opts::Opts,
         constellation_chan.send(ConstellationMsg::InitLoadUrl(url)).unwrap();
     };
 
-    constellation_chan
+    (constellation_chan, from_swmanager_sender)
 }
 
 /// Content process entry point.
@@ -261,7 +264,9 @@ pub fn run_content_process(token: String) {
        create_sandbox();
     }
 
-    script::init();
+    // Send the constellation sender to service worker manager thread
+    let from_swmanager_sender = unprivileged_content.swmanager_chan();
+    script::init(from_swmanager_sender);
 
     unprivileged_content.start_all::<script_layout_interface::message::Msg,
                                      layout_thread::LayoutThread,

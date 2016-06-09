@@ -33,19 +33,20 @@ use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::storage_thread::StorageThreadMsg;
-use net_traits::{self, ResourceThreads, IpcSend};
+use net_traits::{self, ResourceThreads, IpcSend, CustomResponseMediator};
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use pipeline::{ChildProcess, InitialPipelineState, Pipeline};
 use profile_traits::mem;
 use profile_traits::time;
 use rand::{random, Rng, SeedableRng, StdRng};
-use script_traits::webdriver_msg;
 use script_traits::{AnimationState, AnimationTickType, CompositorEvent};
 use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg};
 use script_traits::{DocumentState, LayoutControlMsg};
 use script_traits::{IFrameLoadInfo, IFrameSandboxState, TimerEventRequest};
 use script_traits::{LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory};
 use script_traits::{MozBrowserEvent, MozBrowserErrorType, WebDriverCommandMsg, WindowSizeData};
+use script_traits::{ScopeThings, SWManagerMsg};
+use script_traits::{webdriver_msg, ServiceWorkerMsg};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::io::Error as IOError;
@@ -120,6 +121,15 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A channel through which messages can be sent to the bluetooth thread.
     bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+
+    /// Sender to Service Worker Manager thread
+    serviceworker_manager: Option<IpcSender<ServiceWorkerMsg>>,
+
+    /// to receive sw manager message
+    swmanager_receiver: Receiver<SWManagerMsg>,
+
+    /// to send messages to this object
+    swmanager_sender: IpcSender<SWManagerMsg>,
 
     /// A list of all the pipelines. (See the `pipeline` module for more details.)
     pipelines: HashMap<PipelineId, Pipeline>,
@@ -308,8 +318,12 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
     where LTF: LayoutThreadFactory<Message=Message>,
           STF: ScriptThreadFactory<Message=Message>
 {
-    pub fn start(state: InitialConstellationState) -> Sender<FromCompositorMsg> {
+    pub fn start(state: InitialConstellationState) -> (Sender<FromCompositorMsg>, IpcSender<SWManagerMsg>) {
         let (compositor_sender, compositor_receiver) = channel();
+
+        // service worker manager to communicate with constellation
+        let (swmanager_sender, swmanager_receiver) = ipc::channel().expect("ipc channel failure");
+        let sw_mgr_clone = swmanager_sender.clone();
 
         spawn_named("Constellation".to_owned(), move || {
             let (ipc_script_sender, ipc_script_receiver) = ipc::channel().expect("ipc channel failure");
@@ -320,6 +334,8 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
 
             let (ipc_panic_sender, ipc_panic_receiver) = ipc::channel().expect("ipc channel failure");
             let panic_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_panic_receiver);
+
+            let swmanager_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(swmanager_receiver);
 
             let mut constellation: Constellation<Message, LTF, STF> = Constellation {
                 script_sender: ipc_script_sender,
@@ -336,6 +352,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 private_resource_threads: state.private_resource_threads,
                 image_cache_thread: state.image_cache_thread,
                 font_cache_thread: state.font_cache_thread,
+                serviceworker_manager: None,
+                swmanager_receiver: swmanager_receiver,
+                swmanager_sender: sw_mgr_clone,
                 pipelines: HashMap::new(),
                 frames: HashMap::new(),
                 subpage_map: HashMap::new(),
@@ -379,7 +398,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             PipelineNamespace::install(namespace_id);
             constellation.run();
         });
-        compositor_sender
+        (compositor_sender, swmanager_sender)
     }
 
     fn run(&mut self) {
@@ -431,6 +450,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             compositor_proxy: self.compositor_proxy.clone_compositor_proxy(),
             devtools_chan: self.devtools_chan.clone(),
             bluetooth_thread: self.bluetooth_thread.clone(),
+            swmanager_thread: self.swmanager_sender.clone(),
             image_cache_thread: self.image_cache_thread.clone(),
             font_cache_thread: self.font_cache_thread.clone(),
             resource_threads: resource_threads,
@@ -504,6 +524,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Compositor(FromCompositorMsg),
             Layout(FromLayoutMsg),
             Panic(PanicMsg),
+            FromSWManager(SWManagerMsg),
         }
 
         // Get one incoming request.
@@ -522,6 +543,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             let receiver_from_compositor = &self.compositor_receiver;
             let receiver_from_layout = &self.layout_receiver;
             let receiver_from_panic = &self.panic_receiver;
+            let receiver_from_swmanager = &self.swmanager_receiver;
             select! {
                 msg = receiver_from_script.recv() =>
                     Request::Script(msg.expect("Unexpected script channel panic in constellation")),
@@ -530,7 +552,9 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 msg = receiver_from_layout.recv() =>
                     Request::Layout(msg.expect("Unexpected layout channel panic in constellation")),
                 msg = receiver_from_panic.recv() =>
-                    Request::Panic(msg.expect("Unexpected panic channel panic in constellation"))
+                    Request::Panic(msg.expect("Unexpected panic channel panic in constellation")),
+                msg = receiver_from_swmanager.recv() =>
+                    Request::FromSWManager(msg.expect("Unexpected panic channel panic in constellation"))
             }
         };
 
@@ -547,6 +571,18 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             Request::Panic(message) => {
                 self.handle_request_from_panic(message);
             },
+            Request::FromSWManager(message) => {
+                self.handle_request_from_swmanager(message);
+            }
+        }
+    }
+
+    fn handle_request_from_swmanager(&mut self, message: SWManagerMsg) {
+        match message {
+            SWManagerMsg::OwnSender(sw_sender) => {
+                // store service worker manager for communicating with it.
+                self.serviceworker_manager = Some(sw_sender);
+            }
         }
     }
 
@@ -814,6 +850,14 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::GetScrollOffset(pid, lid, send) => {
                 self.compositor_proxy.send(ToCompositorMsg::GetScrollOffset(pid, lid, send));
             }
+            FromScriptMsg::NetworkRequest(mediator) => {
+                debug!("activation request for service worker received");
+                self.handle_activate_worker(mediator);
+            }
+            FromScriptMsg::RegisterServiceWorker(scope_things, scope) => {
+                debug!("constellation got store registration scope message");
+                self.handle_register_serviceworker(scope_things, scope);
+            }
         }
     }
 
@@ -838,6 +882,22 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("handling panic message ({:?})", pipeline_id);
                 self.handle_panic(pipeline_id, panic_reason, backtrace);
             }
+        }
+    }
+
+    fn handle_register_serviceworker(&self, scope_things: ScopeThings, scope: Url) {
+        if let Some(ref mgr) = self.serviceworker_manager {
+            let _ = mgr.send(ServiceWorkerMsg::RegisterServiceWorker(scope_things, scope));
+        } else {
+            warn!("sending scope info to service worker manager failed");
+        }
+    }
+
+    fn handle_activate_worker(&self, mediator: CustomResponseMediator) {
+        if let Some(ref mgr) = self.serviceworker_manager {
+            let _ = mgr.send(ServiceWorkerMsg::ActivateWorker(mediator));
+        } else {
+            warn!("activation request to service worker manager failed");
         }
     }
 
@@ -888,6 +948,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         debug!("Exiting bluetooth thread.");
         if let Err(e) = self.bluetooth_thread.send(BluetoothMethodMsg::Exit) {
             warn!("Exit bluetooth thread failed ({})", e);
+        }
+
+        debug!("Exiting service worker manager thread.");
+        if let Some(mgr) = self.serviceworker_manager.as_ref() {
+            if let Err(e) = mgr.send(ServiceWorkerMsg::Exit) {
+                warn!("Exit service worker manager failed ({})", e);
+            }
         }
 
         debug!("Exiting font cache thread.");
