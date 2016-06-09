@@ -1018,7 +1018,10 @@ fn http_network_fetch(request: Rc<Request>,
 
     // TODO Read request
 
-    // Step 5
+    // Step 5-9
+    // (needs stream bodies)
+
+    // Step 10
     // TODO when https://bugzilla.mozilla.org/show_bug.cgi?id=1030660
     // is resolved, this step will become uneccesary
     // TODO this step
@@ -1030,19 +1033,19 @@ fn http_network_fetch(request: Rc<Request>,
         }
     };
 
-    // Step 7
-    // TODO this step isn't possible yet
+    // Step 11
+    // TODO this step isn't possible yet (CSP)
 
-    // Step 8
+    // Step 12
     if response.is_network_error() && request.cache_mode.get() == CacheMode::NoStore {
         // TODO update response in the HTTP cache for request
     }
 
     // TODO this step isn't possible yet
-    // Step 9
+    // Step 13
 
     // TODO these steps
-    // Step 10
+    // Step 14
         // Substep 1
         // Substep 2
             // Sub-substep 1
@@ -1051,7 +1054,7 @@ fn http_network_fetch(request: Rc<Request>,
             // Sub-substep 4
         // Substep 3
 
-    // Step 11
+    // Step 15
     response
 }
 
