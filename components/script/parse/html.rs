@@ -94,11 +94,8 @@ impl<'a> TreeSink for servohtmlparser::Sink {
         }
 
         debug!("Create Element");   //FIXME diane
-        //I think count should happen when an element for the tree is created
-        //self.increment_dom_count(); //where's the servohtmlparser...
-        debug!("Dom_count: {}", self.dom_count.get()+1);
-        self.dom_count.set(self.dom_count.get()+1); 
-
+        debug!("Document dom_count: {}", self.document.dom_count()+1);
+        self.document.increment_dom_count();
 
         JS::from_ref(elem.upcast())
     }

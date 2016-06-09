@@ -401,6 +401,9 @@ impl LayoutThread {
             None
         };
 
+        debug!("Sequential Traversal: {}", parallel_traversal.is_none());
+        debug!("Layout Threads: {}", opts::get().layout_threads);
+
         // Create the channel on which new animations can be sent.
         let (new_animations_sender, new_animations_receiver) = channel();
 
@@ -1002,6 +1005,8 @@ impl LayoutThread {
         let document = document.as_document().unwrap();
 
         debug!("layout: received layout request for: {}", self.url);
+        //TODO Diane this is where you should try to set parallel/sequential 
+        debug!("Dom_count in layout: {}", document.dom_count());
 
         let mut rw_data = possibly_locked_rw_data.lock();
 
@@ -1125,6 +1130,7 @@ impl LayoutThread {
                     self.time_profiler_chan.clone(),
                     || {
                 // Perform CSS selector matching and flow construction.
+                debug!("Parallel Traversal match1");
                 match self.parallel_traversal {
                     None => {
                         sequential::traverse_dom::<ServoLayoutNode, RecalcStyleAndConstructFlows>(
@@ -1386,6 +1392,7 @@ impl LayoutThread {
                         self.time_profiler_chan.clone(),
                         || {
                     let profiler_metadata = self.profiler_metadata();
+                    debug!("Parallel Traversal match2");
                     match self.parallel_traversal {
                         None => {
                             // Sequential mode.
