@@ -125,10 +125,9 @@ fn convert_request_device_options(options: &RequestDeviceOptions,
     if let Some(ref opt_services) = options.optionalServices {
         for opt_service in opt_services {
             let uuid = try!(BluetoothUUID::GetService(global, opt_service.clone())).to_string();
-            if uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
-                return Err(Security)
+            if !uuid_is_blacklisted(uuid.as_ref(), Blacklist::All) {
+                optional_services.push(uuid);
             }
-            optional_services.push(uuid);
         }
     }
 

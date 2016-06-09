@@ -4,7 +4,7 @@
 
 use cssparser::Parser as CssParser;
 use document_loader::LoadType;
-use dom::attr::{Attr, AttrValue};
+use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding;
 use dom::bindings::codegen::Bindings::HTMLLinkElementBinding::HTMLLinkElementMethods;
@@ -36,6 +36,7 @@ use std::default::Default;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use string_cache::Atom;
+use style::attr::AttrValue;
 use style::media_queries::{MediaQueryList, parse_media_query_list};
 use style::parser::ParserContextExtraData;
 use style::servo::Stylesheet;

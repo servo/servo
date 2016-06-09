@@ -4,7 +4,6 @@
 
 use app_units::Au;
 use dom::attr::Attr;
-use dom::attr::AttrValue;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding;
 use dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
@@ -31,7 +30,7 @@ use script_runtime::ScriptThreadEventCategory::UpdateReplacedElement;
 use script_thread::Runnable;
 use std::sync::Arc;
 use string_cache::Atom;
-use style::attr::LengthOrPercentageOrAuto;
+use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use url::Url;
 
 #[derive(JSTraceable, HeapSizeOf)]

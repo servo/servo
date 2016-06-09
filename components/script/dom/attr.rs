@@ -18,7 +18,7 @@ use std::borrow::ToOwned;
 use std::cell::Ref;
 use std::mem;
 use string_cache::{Atom, Namespace};
-pub use style::attr::{AttrIdentifier, AttrValue};
+use style::attr::{AttrIdentifier, AttrValue};
 
 // https://dom.spec.whatwg.org/#interface-attr
 #[dom_struct]

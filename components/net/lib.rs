@@ -6,7 +6,6 @@
 #![feature(custom_derive)]
 #![feature(box_syntax)]
 #![feature(fnbox)]
-#![feature(fs_time)]
 #![feature(mpsc_select)]
 #![feature(plugin)]
 #![plugin(plugins)]
@@ -49,6 +48,7 @@ extern crate webrender_traits;
 extern crate websocket;
 
 pub mod about_loader;
+pub mod blob_loader;
 pub mod bluetooth_thread;
 pub mod chrome_loader;
 pub mod connector;

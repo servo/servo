@@ -4,7 +4,7 @@
 
 use document_loader::{DocumentLoader, LoadType};
 use dom::activation::{ActivationSource, synthetic_click_activation};
-use dom::attr::{Attr, AttrValue};
+use dom::attr::Attr;
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::DOMRectBinding::DOMRectMethods;
 use dom::bindings::codegen::Bindings::DocumentBinding;
@@ -120,6 +120,7 @@ use std::ptr;
 use std::rc::Rc;
 use std::sync::Arc;
 use string_cache::{Atom, QualName};
+use style::attr::AttrValue;
 use style::context::ReflowGoal;
 use style::restyle_hints::ElementSnapshot;
 use style::servo::Stylesheet;
@@ -1259,7 +1260,7 @@ impl Document {
 
     pub fn trigger_mozbrowser_event(&self, event: MozBrowserEvent) {
         if mozbrowser_enabled() {
-            if let Some((containing_pipeline_id, subpage_id)) = self.window.parent_info() {
+            if let Some((containing_pipeline_id, subpage_id, _)) = self.window.parent_info() {
                 let event = ConstellationMsg::MozBrowserEvent(containing_pipeline_id,
                                                               subpage_id,
                                                               event);
@@ -2550,8 +2551,12 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-defaultview
-    fn DefaultView(&self) -> Root<Window> {
-        Root::from_ref(&*self.window)
+    fn GetDefaultView(&self) -> Option<Root<Window>> {
+        if self.browsing_context.is_none() {
+            None
+        } else {
+            Some(Root::from_ref(&*self.window))
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-cookie
@@ -2674,7 +2679,7 @@ impl DocumentMethods for Document {
                                    .filter(|node| filter_by_name(&name, node.r()))
                                    .peekable();
             if let Some(first) = elements.next() {
-                if elements.is_empty() {
+                if elements.peek().is_none() {
                     *found = true;
                     // TODO: Step 2.
                     // Step 3.

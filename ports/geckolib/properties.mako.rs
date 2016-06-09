@@ -20,7 +20,9 @@ use gecko_bindings::bindings::{Gecko_CopyMozBindingFrom, Gecko_CopyListStyleType
 use gecko_bindings::bindings::{Gecko_SetMozBinding, Gecko_SetListStyleType};
 use gecko_bindings::bindings::{Gecko_SetNullImageValue, Gecko_SetGradientImageValue};
 use gecko_bindings::bindings::{Gecko_CreateGradient};
-use gecko_bindings::bindings::{Gecko_CopyImageValueFrom};
+use gecko_bindings::bindings::{Gecko_CopyImageValueFrom, Gecko_CopyFontFamilyFrom};
+use gecko_bindings::bindings::{Gecko_FontFamilyList_AppendGeneric, Gecko_FontFamilyList_AppendNamed};
+use gecko_bindings::bindings::{Gecko_FontFamilyList_Clear};
 use gecko_bindings::structs;
 use glue::ArcHelpers;
 use std::fmt::{self, Debug};
@@ -604,7 +606,40 @@ fn static_assert() {
     }
 </%self:impl_trait>
 
-<%self:impl_trait style_struct_name="Font" skip_longhands="font-style font-size font-weight" skip_additionals="*">
+<%self:impl_trait style_struct_name="Font"
+    skip_longhands="font-family font-style font-size font-weight"
+    skip_additionals="*">
+
+    fn set_font_family(&mut self, v: longhands::font_family::computed_value::T) {
+        use style::properties::longhands::font_family::computed_value::FontFamily;
+        use gecko_bindings::structs::FontFamilyType;
+
+        let list = &mut self.gecko.mFont.fontlist;
+        unsafe { Gecko_FontFamilyList_Clear(list); }
+
+        for family in &v.0 {
+            match *family {
+                FontFamily::FamilyName(ref name) => {
+                    unsafe { Gecko_FontFamilyList_AppendNamed(list, name.as_ptr()); }
+                }
+                FontFamily::Generic(ref name) => {
+                    let family_type =
+                        if name == &atom!("serif") { FontFamilyType::eFamily_serif }
+                        else if name == &atom!("sans-serif") { FontFamilyType::eFamily_sans_serif }
+                        else if name == &atom!("cursive") { FontFamilyType::eFamily_cursive }
+                        else if name == &atom!("fantasy") { FontFamilyType::eFamily_fantasy }
+                        else if name == &atom!("monospace") { FontFamilyType::eFamily_monospace }
+                        else { panic!("Unknown generic font family") };
+                    unsafe { Gecko_FontFamilyList_AppendGeneric(list, family_type); }
+                }
+            }
+        }
+    }
+
+    fn copy_font_family_from(&mut self, other: &Self) {
+        unsafe { Gecko_CopyFontFamilyFrom(&mut self.gecko.mFont, &other.gecko.mFont); }
+    }
+
     <%call expr="impl_keyword('font_style', 'mFont.style',
         data.longhands_by_name['font-style'].keyword, need_clone=False)"></%call>
 

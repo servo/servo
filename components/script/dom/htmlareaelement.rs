@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding;
 use dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
 use dom::bindings::inheritance::Castable;
@@ -15,6 +14,7 @@ use dom::node::Node;
 use dom::virtualmethods::VirtualMethods;
 use std::default::Default;
 use string_cache::Atom;
+use style::attr::AttrValue;
 
 #[dom_struct]
 pub struct HTMLAreaElement {

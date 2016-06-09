@@ -41,6 +41,9 @@ ignored_files = [
     os.path.join(".", "tests", "wpt", "metadata", "MANIFEST.json"),
     os.path.join(".", "tests", "wpt", "metadata-css", "MANIFEST.json"),
     os.path.join(".", "components", "script", "dom", "webidls", "ForceTouchEvent.webidl"),
+    # FIXME(pcwalton, #11679): This is a workaround for a tidy error on the quoted string
+    # `"__TEXT,_info_plist"` inside an attribute.
+    os.path.join(".", "components", "servo", "platform", "macos", "mod.rs"),
     # Hidden files
     os.path.join(".", "."),
 ]

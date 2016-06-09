@@ -85,9 +85,6 @@ pub struct Constellation<Message, LTF, STF> {
     /// A channel through which script messages can be sent to this object.
     script_sender: IpcSender<FromScriptMsg>,
 
-    /// A channel through which compositor messages can be sent to this object.
-    compositor_sender: Sender<FromCompositorMsg>,
-
     /// A channel through which layout thread messages can be sent to this object.
     layout_sender: IpcSender<FromLayoutMsg>,
 
@@ -311,22 +308,20 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
           STF: ScriptThreadFactory<Message=Message>
 {
     pub fn start(state: InitialConstellationState) -> Sender<FromCompositorMsg> {
-        let (ipc_script_sender, ipc_script_receiver) = ipc::channel().expect("ipc channel failure");
-        let script_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_script_receiver);
-
-        let (ipc_layout_sender, ipc_layout_receiver) = ipc::channel().expect("ipc channel failure");
-        let layout_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_layout_receiver);
-
-        let (ipc_panic_sender, ipc_panic_receiver) = ipc::channel().expect("ipc channel failure");
-        let panic_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_panic_receiver);
-
         let (compositor_sender, compositor_receiver) = channel();
-        let compositor_sender_clone = compositor_sender.clone();
 
         spawn_named("Constellation".to_owned(), move || {
+            let (ipc_script_sender, ipc_script_receiver) = ipc::channel().expect("ipc channel failure");
+            let script_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_script_receiver);
+
+            let (ipc_layout_sender, ipc_layout_receiver) = ipc::channel().expect("ipc channel failure");
+            let layout_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_layout_receiver);
+
+            let (ipc_panic_sender, ipc_panic_receiver) = ipc::channel().expect("ipc channel failure");
+            let panic_receiver = ROUTER.route_ipc_receiver_to_new_mpsc_receiver(ipc_panic_receiver);
+
             let mut constellation: Constellation<Message, LTF, STF> = Constellation {
                 script_sender: ipc_script_sender,
-                compositor_sender: compositor_sender_clone,
                 layout_sender: ipc_layout_sender,
                 script_receiver: script_receiver,
                 panic_sender: ipc_panic_sender,
@@ -1278,34 +1273,35 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // Get the ids for the previous and next pipelines.
         let (prev_pipeline_id, next_pipeline_id) = match self.frames.get_mut(&frame_id) {
             Some(frame) => {
+                let prev = frame.current;
                 let next = match direction {
-                    NavigationDirection::Forward => {
-                        match frame.next.pop() {
-                            None => {
-                                warn!("no next page to navigate to");
-                                return;
-                            },
-                            Some(next) => {
-                                frame.prev.push(frame.current);
-                                next
-                            },
+                    NavigationDirection::Forward(delta) => {
+                        if delta > frame.next.len() && delta > 0 {
+                            return warn!("Invalid navigation delta");
                         }
+                        let new_next_len = frame.next.len() - (delta - 1);
+                        frame.prev.push(frame.current);
+                        frame.prev.extend(frame.next.drain(new_next_len..).rev());
+                        frame.current = match frame.next.pop() {
+                            Some(frame) => frame,
+                            None => return warn!("Could not get next frame for forward navigation"),
+                        };
+                        frame.current
                     }
-                    NavigationDirection::Back => {
-                        match frame.prev.pop() {
-                            None => {
-                                warn!("no previous page to navigate to");
-                                return;
-                            },
-                            Some(prev) => {
-                                frame.next.push(frame.current);
-                                prev
-                            },
+                    NavigationDirection::Back(delta) => {
+                        if delta > frame.prev.len() && delta > 0 {
+                            return warn!("Invalid navigation delta");
                         }
+                        let new_prev_len = frame.prev.len() - (delta - 1);
+                        frame.next.push(frame.current);
+                        frame.next.extend(frame.prev.drain(new_prev_len..).rev());
+                        frame.current = match frame.prev.pop() {
+                            Some(frame) => frame,
+                            None => return warn!("Could not get prev frame for back navigation"),
+                        };
+                        frame.current
                     }
                 };
-                let prev = frame.current;
-                frame.current = next;
                 (prev, next)
             },
             None => {
@@ -2031,8 +2027,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             if let Some(frame_tree) = self.frame_to_sendable(root_frame_id) {
                 let (chan, port) = ipc::channel().expect("Failed to create IPC channel!");
                 self.compositor_proxy.send(ToCompositorMsg::SetFrameTree(frame_tree,
-                                                                         chan,
-                                                                         self.compositor_sender.clone()));
+                                                                         chan));
                 if port.recv().is_err() {
                     warn!("Compositor has discarded SetFrameTree");
                     return; // Our message has been discarded, probably shutting down.

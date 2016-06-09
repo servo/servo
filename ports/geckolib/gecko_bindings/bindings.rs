@@ -32,6 +32,9 @@ use structs::SheetParsingMode;
 use structs::nsMainThreadPtrHandle;
 use structs::nsMainThreadPtrHolder;
 use structs::nscolor;
+use structs::nsFont;
+use structs::FontFamilyList;
+use structs::FontFamilyType;
 use heapsize::HeapSizeOf;
 unsafe impl Send for nsStyleFont {}
 unsafe impl Sync for nsStyleFont {}
@@ -185,6 +188,12 @@ extern "C" {
                                           aString:
                                               *const ::std::os::raw::c_char,
                                           aLength: u32) -> bool;
+    pub fn Gecko_FontFamilyList_Clear(aList: *mut FontFamilyList);
+    pub fn Gecko_FontFamilyList_AppendNamed(aList: *mut FontFamilyList,
+                                            aName: *mut nsIAtom);
+    pub fn Gecko_FontFamilyList_AppendGeneric(list: *mut FontFamilyList,
+                                              familyType: FontFamilyType);
+    pub fn Gecko_CopyFontFamilyFrom(dst: *mut nsFont, src: *const nsFont);
     pub fn Gecko_SetListStyleType(style_struct: *mut nsStyleList, type_: u32);
     pub fn Gecko_CopyListStyleTypeFrom(dst: *mut nsStyleList,
                                        src: *const nsStyleList);

@@ -8,7 +8,6 @@ use app_units::Au;
 use cssparser::{Color, ToCss};
 use devtools_traits::AttrInfo;
 use dom::activation::Activatable;
-use dom::attr::AttrValue;
 use dom::attr::{Attr, AttrHelpersForLayout};
 use dom::bindings::cell::DOMRefCell;
 use dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
@@ -85,7 +84,7 @@ use std::mem;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use string_cache::{Atom, BorrowedAtom, BorrowedNamespace, Namespace, QualName};
-use style::attr::LengthOrPercentageOrAuto;
+use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::element_state::*;
 use style::parser::ParserContextExtraData;
 use style::properties::DeclaredValue;
@@ -118,6 +117,25 @@ pub struct Element {
 pub enum ElementCreator {
     ParserCreated,
     ScriptCreated,
+}
+
+pub enum AdjacentPosition {
+    BeforeBegin,
+    AfterEnd,
+    AfterBegin,
+    BeforeEnd,
+}
+
+impl AdjacentPosition {
+    pub fn parse(position: &str) -> Fallible<AdjacentPosition> {
+        match_ignore_ascii_case! { &*position,
+            "beforebegin" => Ok(AdjacentPosition::BeforeBegin),
+            "afterbegin"  => Ok(AdjacentPosition::AfterBegin),
+            "beforeend"   => Ok(AdjacentPosition::BeforeEnd),
+            "afterend"    => Ok(AdjacentPosition::AfterEnd),
+            _             => Err(Error::Syntax)
+        }
+    }
 }
 
 //
@@ -1253,31 +1271,30 @@ impl Element {
     }
 
     // https://dom.spec.whatwg.org/#insert-adjacent
-    pub fn insert_adjacent(&self, where_: DOMString, node: &Node)
+    pub fn insert_adjacent(&self, where_: AdjacentPosition, node: &Node)
                            -> Fallible<Option<Root<Node>>> {
         let self_node = self.upcast::<Node>();
-        match &*where_ {
-            "beforebegin" => {
+        match where_ {
+            AdjacentPosition::BeforeBegin => {
                 if let Some(parent) = self_node.GetParentNode() {
                     Node::pre_insert(node, &parent, Some(self_node)).map(Some)
                 } else {
                     Ok(None)
                 }
             }
-            "afterbegin" => {
+            AdjacentPosition::AfterBegin => {
                 Node::pre_insert(node, &self_node, self_node.GetFirstChild().r()).map(Some)
             }
-            "beforeend" => {
+            AdjacentPosition::BeforeEnd => {
                 Node::pre_insert(node, &self_node, None).map(Some)
             }
-            "afterend" => {
+            AdjacentPosition::AfterEnd => {
                 if let Some(parent) = self_node.GetParentNode() {
                     Node::pre_insert(node, &parent, self_node.GetNextSibling().r()).map(Some)
                 } else {
                     Ok(None)
                 }
             }
-            _ => Err(Error::Syntax)
         }
     }
 
@@ -1298,7 +1315,10 @@ impl Element {
         }
 
         // Step 5
-        let win = doc.DefaultView();
+        let win = match doc.GetDefaultView() {
+            None => return,
+            Some(win) => win,
+        };
 
         // Step 7
         if *self.root_element() == *self {
@@ -1636,7 +1656,10 @@ impl ElementMethods for Element {
         }
 
         // Step 3
-        let win = doc.DefaultView();
+        let win = match doc.GetDefaultView() {
+            None => return 0.0,
+            Some(win) => win,
+        };
 
         // Step 5
         if *self.root_element() == *self {
@@ -1684,7 +1707,10 @@ impl ElementMethods for Element {
         }
 
         // Step 5
-        let win = doc.DefaultView();
+        let win = match doc.GetDefaultView() {
+            None => return,
+            Some(win) => win,
+        };
 
         // Step 7
         if *self.root_element() == *self {
@@ -1722,7 +1748,10 @@ impl ElementMethods for Element {
         }
 
         // Step 3
-        let win = doc.DefaultView();
+        let win = match doc.GetDefaultView() {
+            None => return 0.0,
+            Some(win) => win,
+        };
 
         // Step 5
         if *self.root_element() == *self {
@@ -1770,7 +1799,10 @@ impl ElementMethods for Element {
         }
 
         // Step 5
-        let win = doc.DefaultView();
+        let win = match doc.GetDefaultView() {
+            None => return,
+            Some(win) => win,
+        };
 
         // Step 7
         if *self.root_element() == *self {
@@ -1996,6 +2028,7 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-insertadjacentelement
     fn InsertAdjacentElement(&self, where_: DOMString, element: &Element)
                              -> Fallible<Option<Root<Element>>> {
+        let where_ = try!(AdjacentPosition::parse(&*where_));
         let inserted_node = try!(self.insert_adjacent(where_, element.upcast()));
         Ok(inserted_node.map(|node| Root::downcast(node).unwrap()))
     }
@@ -2007,7 +2040,43 @@ impl ElementMethods for Element {
         let text = Text::new(data, &document_from_node(self));
 
         // Step 2.
+        let where_ = try!(AdjacentPosition::parse(&*where_));
         self.insert_adjacent(where_, text.upcast()).map(|_| ())
+    }
+
+    // https://w3c.github.io/DOM-Parsing/#dom-element-insertadjacenthtml
+    fn InsertAdjacentHTML(&self, position: DOMString, text: DOMString)
+                          -> ErrorResult {
+        // Step 1.
+        let position = try!(AdjacentPosition::parse(&*position));
+
+        let context = match position {
+            AdjacentPosition::BeforeBegin | AdjacentPosition::AfterEnd => {
+                match self.upcast::<Node>().GetParentNode() {
+                    Some(ref node) if node.is::<Document>() => {
+                        return Err(Error::NoModificationAllowed)
+                    }
+                    None => return Err(Error::NoModificationAllowed),
+                    Some(node) => node,
+                }
+            }
+            AdjacentPosition::AfterBegin | AdjacentPosition::BeforeEnd => {
+                Root::from_ref(self.upcast::<Node>())
+            }
+        };
+
+        // Step 2.
+        let context = match context.downcast::<Element>() {
+            Some(elem) if elem.local_name() != &atom!("html") ||
+                          !elem.html_element_in_html_document() => Root::from_ref(elem),
+            _ => Root::upcast(HTMLBodyElement::new(atom!("body"), None, &*context.owner_doc()))
+        };
+
+        // Step 3.
+        let fragment = try!(context.upcast::<Node>().parse_fragment(text));
+
+        // Step 4.
+        context.insert_adjacent(position, fragment.upcast()).map(|_| ())
     }
 }
 

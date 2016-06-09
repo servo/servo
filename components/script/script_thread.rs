@@ -63,7 +63,7 @@ use js::jsval::UndefinedValue;
 use js::rust::Runtime;
 use layout_interface::{self, NewLayoutThreadInfo, ReflowQueryType};
 use mem::heap_size_of_self_and_children;
-use msg::constellation_msg::{LoadData, PanicMsg, PipelineId, PipelineNamespace};
+use msg::constellation_msg::{FrameType, LoadData, PanicMsg, PipelineId, PipelineNamespace};
 use msg::constellation_msg::{SubpageId, WindowSizeData, WindowSizeType};
 use msg::webdriver_msg::WebDriverScriptCommand;
 use net_traits::LoadData as NetLoadData;
@@ -130,7 +130,7 @@ struct InProgressLoad {
     /// The pipeline which requested this load.
     pipeline_id: PipelineId,
     /// The parent pipeline and child subpage associated with this load, if any.
-    parent_info: Option<(PipelineId, SubpageId)>,
+    parent_info: Option<(PipelineId, SubpageId, FrameType)>,
     /// The current window size associated with this pipeline.
     window_size: Option<WindowSizeData>,
     /// Channel to the layout thread associated with this pipeline.
@@ -146,7 +146,7 @@ struct InProgressLoad {
 impl InProgressLoad {
     /// Create a new InProgressLoad object.
     fn new(id: PipelineId,
-           parent_info: Option<(PipelineId, SubpageId)>,
+           parent_info: Option<(PipelineId, SubpageId, FrameType)>,
            layout_chan: Sender<layout_interface::Msg>,
            window_size: Option<WindowSizeData>,
            url: Url) -> InProgressLoad {
@@ -1126,6 +1126,7 @@ impl ScriptThread {
             containing_pipeline_id,
             new_pipeline_id,
             subpage_id,
+            frame_type,
             load_data,
             paint_chan,
             panic_chan,
@@ -1163,7 +1164,7 @@ impl ScriptThread {
                      .unwrap();
 
         // Kick off the fetch for the new resource.
-        let new_load = InProgressLoad::new(new_pipeline_id, Some((containing_pipeline_id, subpage_id)),
+        let new_load = InProgressLoad::new(new_pipeline_id, Some((containing_pipeline_id, subpage_id, frame_type)),
                                            layout_chan, parent_window.window_size(),
                                            load_data.url.clone());
         self.start_page_load(new_load, load_data);
@@ -1459,7 +1460,7 @@ impl ScriptThread {
         }
         debug!("ScriptThread: loading {} on pipeline {:?}", incomplete.url, incomplete.pipeline_id);
 
-        let frame_element = incomplete.parent_info.and_then(|(parent_id, subpage_id)| {
+        let frame_element = incomplete.parent_info.and_then(|(parent_id, subpage_id, _)| {
             // The root context may not exist yet, if the parent of this frame
             // exists in a different script thread.
             let root_context = self.browsing_context.get();
@@ -1565,7 +1566,7 @@ impl ScriptThread {
             // We have a new root frame tree.
             self.browsing_context.set(Some(&new_context));
             (new_context, ContextToRemove::Root)
-        } else if let Some((parent, _)) = incomplete.parent_info {
+        } else if let Some((parent, _, _)) = incomplete.parent_info {
             // Create a new context tree entry. This will be a child context.
             let new_context = BrowsingContext::new(&window, frame_element, incomplete.pipeline_id);
 

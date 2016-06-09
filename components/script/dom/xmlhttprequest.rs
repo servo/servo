@@ -46,6 +46,7 @@ use js::jsapi::{JSContext, JS_ParseJSON, RootedValue};
 use js::jsval::{JSVal, NullValue, UndefinedValue};
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::CoreResourceMsg::Load;
+use net_traits::trim_http_whitespace;
 use net_traits::{AsyncResponseListener, AsyncResponseTarget, Metadata, NetworkError, RequestSource};
 use net_traits::{LoadConsumer, LoadContext, LoadData, ResourceCORSData, CoreResourceThread, LoadOrigin};
 use network_listener::{NetworkListener, PreInvoke};
@@ -1505,28 +1506,4 @@ pub fn is_field_value(slice: &[u8]) -> bool {
             _ => false // Previous character was a CR/LF but not part of the [CRLF] (SP|HT) rule
         }
     })
-}
-
-/// Normalize `self`, as defined by
-/// [the Fetch Spec](https://fetch.spec.whatwg.org/#concept-header-value-normalize).
-pub fn trim_http_whitespace(mut slice: &[u8]) -> &[u8] {
-    const HTTP_WS_BYTES: &'static [u8] = b"\x09\x0A\x0D\x20";
-
-    loop {
-        match slice.split_first() {
-            Some((first, remainder)) if HTTP_WS_BYTES.contains(first) =>
-                slice = remainder,
-            _ => break,
-        }
-    }
-
-    loop {
-        match slice.split_last() {
-            Some((last, remainder)) if HTTP_WS_BYTES.contains(last) =>
-                slice = remainder,
-            _ => break,
-        }
-    }
-
-    slice
 }

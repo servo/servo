@@ -51,7 +51,8 @@ do
 done
 
 # Other mapped types.
-for TYPE in SheetParsingMode nsMainThreadPtrHandle nsMainThreadPtrHolder nscolor
+for TYPE in SheetParsingMode nsMainThreadPtrHandle nsMainThreadPtrHolder nscolor nsFont \
+            FontFamilyList FontFamilyType
 do
   MAP_GECKO_TYPES=$MAP_GECKO_TYPES"-blacklist-type $TYPE "
   MAP_GECKO_TYPES=$MAP_GECKO_TYPES"-raw-line 'use structs::$TYPE;' "

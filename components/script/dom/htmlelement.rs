@@ -4,7 +4,6 @@
 
 use dom::activation::{ActivationSource, synthetic_click_activation};
 use dom::attr::Attr;
-use dom::attr::AttrValue;
 use dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
@@ -35,6 +34,7 @@ use std::borrow::ToOwned;
 use std::default::Default;
 use std::rc::Rc;
 use string_cache::Atom;
+use style::attr::AttrValue;
 use style::element_state::*;
 
 #[dom_struct]
