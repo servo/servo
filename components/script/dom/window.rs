@@ -325,7 +325,7 @@ impl Window {
         worker_id
     }
 
-    pub fn pipeline(&self) -> PipelineId {
+    pub fn pipeline_id(&self) -> PipelineId {
         self.id
     }
 
@@ -464,7 +464,7 @@ impl WindowMethods for Window {
         stderr.flush().unwrap();
 
         let (sender, receiver) = ipc::channel().unwrap();
-        self.constellation_chan().send(ConstellationMsg::Alert(self.pipeline(), s.to_string(), sender)).unwrap();
+        self.constellation_chan().send(ConstellationMsg::Alert(self.pipeline_id(), s.to_string(), sender)).unwrap();
 
         let should_display_alert_dialog = receiver.recv().unwrap();
         if should_display_alert_dialog {
@@ -1017,7 +1017,7 @@ impl Window {
         // TODO (farodin91): Raise an event to stop the current_viewport
         self.update_viewport_for_scroll(x, y);
 
-        let message = ConstellationMsg::ScrollFragmentPoint(self.pipeline(), layer_id, point, smooth);
+        let message = ConstellationMsg::ScrollFragmentPoint(self.pipeline_id(), layer_id, point, smooth);
         self.constellation_chan.send(message).unwrap();
     }
 
