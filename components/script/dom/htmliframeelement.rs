@@ -38,7 +38,7 @@ use dom::window::{ReflowReason, Window};
 use ipc_channel::ipc;
 use js::jsapi::{JSAutoCompartment, RootedValue, JSContext, MutableHandleValue};
 use js::jsval::{UndefinedValue, NullValue};
-use msg::constellation_msg::{FrameType, LoadData, NavigationDirection, PipelineId, SubpageId};
+use msg::constellation_msg::{FrameType, LoadData, NavigationDirection, PipelineId};
 use net_traits::response::HttpsState;
 use script_layout_interface::message::ReflowQueryType;
 use script_traits::IFrameSandboxState::{IFrameSandboxed, IFrameUnsandboxed};
@@ -68,7 +68,6 @@ bitflags! {
 pub struct HTMLIFrameElement {
     htmlelement: HTMLElement,
     pipeline_id: Cell<Option<PipelineId>>,
-    subpage_id: Cell<Option<SubpageId>>,
     sandbox: MutNullableHeap<JS<DOMTokenList>>,
     sandbox_allowance: Cell<Option<SandboxAllowance>>,
     load_blocker: DOMRefCell<Option<LoadBlocker>>,
@@ -94,14 +93,11 @@ impl HTMLIFrameElement {
         }).unwrap_or_else(|| Url::parse("about:blank").unwrap())
     }
 
-    pub fn generate_new_subpage_id(&self) -> (SubpageId, Option<SubpageId>) {
-        self.pipeline_id.set(Some(PipelineId::new()));
-
-        let old_subpage_id = self.subpage_id.get();
-        let win = window_from_node(self);
-        let subpage_id = win.get_next_subpage_id();
-        self.subpage_id.set(Some(subpage_id));
-        (subpage_id, old_subpage_id)
+    pub fn generate_new_pipeline_id(&self) -> (Option<PipelineId>, PipelineId) {
+        let old_pipeline_id = self.pipeline_id.get();
+        let new_pipeline_id = PipelineId::new();
+        self.pipeline_id.set(Some(new_pipeline_id));
+        (old_pipeline_id, new_pipeline_id)
     }
 
     pub fn navigate_or_reload_child_browsing_context(&self, load_data: Option<LoadData>) {
@@ -126,16 +122,14 @@ impl HTMLIFrameElement {
         }
 
         let window = window_from_node(self);
-        let (new_subpage_id, old_subpage_id) = self.generate_new_subpage_id();
-        let new_pipeline_id = self.pipeline_id.get().unwrap();
+        let (old_pipeline_id, new_pipeline_id) = self.generate_new_pipeline_id();
         let private_iframe = self.privatebrowsing();
         let frame_type = if self.Mozbrowser() { FrameType::MozBrowserIFrame } else { FrameType::IFrame };
 
         let load_info = IFrameLoadInfo {
             load_data: load_data,
             parent_pipeline_id: window.pipeline_id(),
-            new_subpage_id: new_subpage_id,
-            old_subpage_id: old_subpage_id,
+            old_pipeline_id: old_pipeline_id,
             new_pipeline_id: new_pipeline_id,
             sandbox: sandboxed,
             is_private: private_iframe,
@@ -184,8 +178,7 @@ impl HTMLIFrameElement {
         }
     }
 
-    pub fn update_subpage_id(&self, new_subpage_id: SubpageId, new_pipeline_id: PipelineId) {
-        self.subpage_id.set(Some(new_subpage_id));
+    pub fn update_pipeline_id(&self, new_pipeline_id: PipelineId) {
         self.pipeline_id.set(Some(new_pipeline_id));
 
         let mut blocker = self.load_blocker.borrow_mut();
@@ -200,7 +193,6 @@ impl HTMLIFrameElement {
         HTMLIFrameElement {
             htmlelement: HTMLElement::new_inherited(localName, prefix, document),
             pipeline_id: Cell::new(None),
-            subpage_id: Cell::new(None),
             sandbox: Default::default(),
             sandbox_allowance: Cell::new(None),
             load_blocker: DOMRefCell::new(None),
@@ -219,11 +211,6 @@ impl HTMLIFrameElement {
     #[inline]
     pub fn pipeline_id(&self) -> Option<PipelineId> {
         self.pipeline_id.get()
-    }
-
-    #[inline]
-    pub fn subpage_id(&self) -> Option<SubpageId> {
-        self.subpage_id.get()
     }
 
     pub fn change_visibility_status(&self, visibility: bool) {
@@ -283,11 +270,11 @@ impl HTMLIFrameElement {
     }
 
     pub fn get_content_window(&self) -> Option<Root<Window>> {
-        self.subpage_id.get().and_then(|subpage_id| {
+        self.pipeline_id.get().and_then(|pipeline_id| {
             let window = window_from_node(self);
             let window = window.r();
             let browsing_context = window.browsing_context();
-            browsing_context.find_child_by_subpage(subpage_id)
+            browsing_context.find_child_by_id(pipeline_id)
         })
     }
 
@@ -428,7 +415,7 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> E
             let window = window_from_node(iframe);
 
             let pipeline_info = Some((window.pipeline_id(),
-                                      iframe.subpage_id().unwrap()));
+                                      iframe.pipeline_id().unwrap()));
             let msg = ConstellationMsg::Navigate(pipeline_info, direction);
             window.constellation_chan().send(msg).unwrap();
         }
@@ -669,12 +656,11 @@ impl VirtualMethods for HTMLIFrameElement {
                 receiver.recv().unwrap()
             }
 
-            // Resetting the subpage id to None is required here so that
+            // Resetting the pipeline_id to None is required here so that
             // if this iframe is subsequently re-added to the document
             // the load doesn't think that it's a navigation, but instead
             // a new iframe. Without this, the constellation gets very
             // confused.
-            self.subpage_id.set(None);
             self.pipeline_id.set(None);
         }
     }
