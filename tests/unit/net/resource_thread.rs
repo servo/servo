@@ -7,7 +7,7 @@ use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net::resource_thread::new_core_resource_thread;
 use net_traits::hosts::{parse_hostsfile, host_replacement};
 use net_traits::{CoreResourceMsg, LoadData, LoadConsumer, LoadContext};
-use net_traits::{NetworkError, ProgressMsg, LoadOrigin, RequestSource};
+use net_traits::{NetworkError, ProgressMsg, LoadOrigin};
 use profile_traits::time::ProfilerChan;
 use std::borrow::ToOwned;
 use std::collections::HashMap;
@@ -27,9 +27,6 @@ impl LoadOrigin for ResourceTest {
     }
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
         None
-    }
-    fn request_source(&self) -> RequestSource {
-        RequestSource::None
     }
     fn pipeline_id(&self) -> Option<PipelineId> {
         None

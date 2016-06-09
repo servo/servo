@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Service Worker Tests</title>
+</head>
+<body>
+<p>This page tests the registration and initialization of Service Workers in Servo.</p>
+<div id="registration">
+    <a href="/dashboard-page.html">Go to Dashboard</a>
+    <a href="/profile.html">Go to Profile</a>
+    <iframe id="iframe_sw" width="" height="200"></iframe>
+    <br>
+    <button onclick="register_zero()">Register for Root</button>
+    <button onclick="register_one()">Register for Dashboard</button>
+    <button onclick="register_two()">Register for Profile</button>
+</div>
+    <script>
+    var reg = navigator.serviceWorker.register('iframe_sw.js', { 'scope': '/demo_iframe.html' });
+    console.log("From client worker registered: ", navigator.serviceWorker.controller);
+    console.log("Registered script source: ", navigator.serviceWorker.controller.scriptURL);
+    document.getElementById('iframe_sw').src = 'demo_iframe.html';
+
+    function register_zero() {
+        var reg = navigator.serviceWorker.register('sw.js', { 'scope': './' });
+        console.log("From client worker registered: ", navigator.serviceWorker.controller);
+        console.log("Registered script source: ", navigator.serviceWorker.controller.scriptURL);
+    }
+
+    function register_one() {
+        var reg = navigator.serviceWorker.register('sw_dashboard.js', { 'scope': '/dashboard' });
+        console.log("From client worker registered: ", navigator.serviceWorker.controller);
+        console.log("Registered script source: ", navigator.serviceWorker.controller.scriptURL);
+    }
+
+    function register_two() {
+        var reg = navigator.serviceWorker.register('sw_profile.js', { 'scope': '/profile' });
+        console.log("From client worker registered: ", navigator.serviceWorker.controller);
+        console.log("Registered script source: ", navigator.serviceWorker.controller.scriptURL);
+    }
+    </script>
+</body>
+</html>
