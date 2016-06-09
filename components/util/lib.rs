@@ -37,7 +37,7 @@ extern crate rustc_serialize;
 extern crate serde;
 extern crate smallvec;
 extern crate url;
-#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios")))]
+#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
 extern crate xdg;
 
 use std::sync::Arc;

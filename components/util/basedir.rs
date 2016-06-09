@@ -9,28 +9,43 @@
 #[cfg(any(target_os = "macos", target_os = "windows"))]
 use std::env;
 use std::path::PathBuf;
-#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios")))]
+#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
 use xdg;
 
-#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios")))]
+#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
 pub fn default_config_dir() -> Option<PathBuf> {
     let xdg_dirs = xdg::BaseDirectories::with_profile("servo", "default").unwrap();
     let config_dir = xdg_dirs.get_config_home();
     Some(config_dir)
 }
 
-#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios")))]
+#[cfg(target_os = "android")]
+pub fn default_config_dir() -> Option<PathBuf> {
+    Some(PathBuf::from("/sdcard/servo"))
+}
+
+#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
 pub fn default_data_dir() -> Option<PathBuf> {
     let xdg_dirs = xdg::BaseDirectories::with_profile("servo", "default").unwrap();
     let data_dir = xdg_dirs.get_data_home();
     Some(data_dir)
 }
 
-#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios")))]
+#[cfg(target_os = "android")]
+pub fn default_data_dir() -> Option<PathBuf> {
+    Some(PathBuf::from("/sdcard/servo"))
+}
+
+#[cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))]
 pub fn default_cache_dir() -> Option<PathBuf> {
     let xdg_dirs = xdg::BaseDirectories::with_profile("servo", "default").unwrap();
     let cache_dir = xdg_dirs.get_cache_home();
     Some(cache_dir)
+}
+
+#[cfg(target_os = "android")]
+pub fn default_cache_dir() -> Option<PathBuf> {
+    Some(PathBuf::from("/sdcard/servo"))
 }
 
 #[cfg(target_os = "macos")]
