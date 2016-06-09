@@ -32,6 +32,7 @@ use net_traits::{RequestSource, LoadOrigin, CustomResponseSender, IpcSend};
 use profile_traits::{mem, time};
 use script_runtime::{CommonScriptMsg, ScriptChan, ScriptPort};
 use script_traits::ScriptMsg as ConstellationMsg;
+use script_traits::WorkerGlobalScopeInit;
 use script_traits::{MsDuration, TimerEvent, TimerEventId, TimerEventRequest, TimerSource};
 use std::cell::Cell;
 use std::default::Default;
@@ -47,24 +48,11 @@ pub enum WorkerGlobalScopeTypeId {
     DedicatedWorkerGlobalScope,
 }
 
-pub struct WorkerGlobalScopeInit {
-    pub resource_threads: ResourceThreads,
-    pub mem_profiler_chan: mem::ProfilerChan,
-    pub time_profiler_chan: time::ProfilerChan,
-    pub to_devtools_sender: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
-    pub from_devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
-    pub constellation_chan: IpcSender<ConstellationMsg>,
-    pub scheduler_chan: IpcSender<TimerEventRequest>,
-    pub panic_chan: IpcSender<PanicMsg>,
-    pub worker_id: WorkerId,
-    pub closing: Arc<AtomicBool>,
-}
-
 pub fn prepare_workerscope_init(global: GlobalRef,
                                 worker_type: String,
                                 worker_url: Url,
                                 devtools_sender: IpcSender<DevtoolScriptControlMsg>,
-                                closing: Arc<AtomicBool>) -> WorkerGlobalScopeInit {
+                                closing: bool) -> WorkerGlobalScopeInit {
     let worker_id = global.get_next_worker_id();
     let optional_sender = match global.devtools_chan() {
             Some(ref chan) => {
@@ -169,7 +157,7 @@ impl WorkerGlobalScope {
             next_worker_id: Cell::new(WorkerId(0)),
             worker_id: init.worker_id,
             worker_url: worker_url,
-            closing: init.closing,
+            closing: Arc::new(AtomicBool::new(init.closing)),
             runtime: runtime,
             resource_threads: init.resource_threads,
             location: Default::default(),
@@ -248,6 +236,10 @@ impl WorkerGlobalScope {
 
     pub fn is_closing(&self) -> bool {
         self.closing.load(Ordering::SeqCst)
+    }
+
+    pub fn get_closing(&self) -> &Arc<AtomicBool> {
+        &self.closing
     }
 
     pub fn resource_threads(&self) -> &ResourceThreads {
@@ -441,13 +433,10 @@ impl WorkerGlobalScope {
     pub fn script_chan(&self) -> Box<ScriptChan + Send> {
         let dedicated =
             self.downcast::<DedicatedWorkerGlobalScope>();
-        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
         if let Some(dedicated) = dedicated {
             return dedicated.script_chan();
-        } else if let Some(service_worker) = service_worker {
-            return service_worker.script_chan();
         } else {
-            panic!("need to implement a sender for SharedWorker")
+            panic!("need to implement a sender for SharedWorker/ServiceWorker")
         }
     }
 
@@ -465,13 +454,10 @@ impl WorkerGlobalScope {
 
     pub fn new_script_pair(&self) -> (Box<ScriptChan + Send>, Box<ScriptPort + Send>) {
         let dedicated = self.downcast::<DedicatedWorkerGlobalScope>();
-        let service_worker = self.downcast::<ServiceWorkerGlobalScope>();
         if let Some(dedicated) = dedicated {
             return dedicated.new_script_pair();
-        } else if let Some(service_worker) = service_worker {
-            return service_worker.new_script_pair();
         } else {
-            panic!("need to implement a sender for SharedWorker")
+            panic!("need to implement a sender for SharedWorker/ServiceWorker")
         }
     }
 

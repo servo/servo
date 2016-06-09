@@ -41,7 +41,7 @@ use dom::event::{Event, EventBubbles, EventCancelable};
 use dom::htmlanchorelement::HTMLAnchorElement;
 use dom::node::{Node, NodeDamage, window_from_node};
 use dom::serviceworker::TrustedServiceWorkerAddress;
-use dom::serviceworkerregistration::ServiceWorkerRegistration;
+use dom::serviceworkerregistration::{ServiceWorkerRegistration, longest_prefix_match};
 use dom::servohtmlparser::ParserContext;
 use dom::uievent::UIEvent;
 use dom::window::{ReflowReason, ScriptHelpers, Window};
@@ -85,6 +85,7 @@ use script_traits::{CompositorEvent, ConstellationControlMsg, EventResult};
 use script_traits::{InitialScriptState, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg};
 use script_traits::{ScriptThreadFactory, TimerEvent, TimerEventRequest, TimerSource};
+use script_traits::{ServiceWorkerMsg, ScopeThings};
 use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress};
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
@@ -948,6 +949,22 @@ impl ScriptThread {
                 self.handle_framed_content_changed(containing_pipeline_id, subpage_id),
             ConstellationControlMsg::ReportCSSError(pipeline_id, filename, line, column, msg) =>
                 self.handle_css_error_reporting(pipeline_id, filename, line, column, msg),
+            ConstellationControlMsg::NavigateForServiceWorker(load_data, sw_manager_sender) => {
+                match self.handle_match_registration(&load_data.url) {
+                    Some(_) => self.handle_navigation_for_serviceworker(load_data.url, sw_manager_sender),
+                    None => debug!("No registrations for this url")
+                }
+            }
+        }
+    }
+
+    fn handle_navigation_for_serviceworker(&self,
+                                           url: Url,
+                                           sw_manager_sender: IpcSender<ServiceWorkerMsg>) {
+        let scope_things_try = self.handle_activate_worker(url.clone());
+        match scope_things_try {
+            Some(scope_things) => sw_manager_sender.send(ServiceWorkerMsg::ScopeEntities(scope_things, url)).unwrap(),
+            None => debug!("Could not activate service worker"),
         }
     }
 
@@ -1033,10 +1050,8 @@ impl ScriptThread {
         msg.responder.unwrap().respond(msg.image_response);
     }
 
-    fn handle_msg_from_network(&self, msg: IpcSender<Option<CustomResponse>>) {
-        // We may detect controlling service workers here
-        // We send None as default
-        let _ = msg.send(None);
+    fn handle_msg_from_network(&self, network_sender: IpcSender<Option<CustomResponse>>) {
+        self.constellation_chan.send(ConstellationMsg::MaybeResponse(network_sender)).unwrap();
     }
 
     fn handle_webdriver_msg(&self, pipeline_id: PipelineId, msg: WebDriverScriptCommand) {
@@ -1378,8 +1393,48 @@ impl ScriptThread {
         }
     }
 
-    fn handle_serviceworker_registration(&self, scope: Url, registration: &ServiceWorkerRegistration) {
-        self.registration_map.borrow_mut().insert(scope, JS::from_ref(registration));
+    fn handle_serviceworker_registration(&self,
+                                         scope: Url,
+                                         registration: &ServiceWorkerRegistration) {
+        let ref mut reg_ref = *self.registration_map.borrow_mut();
+        // according to spec, we should replace if an older registration exists for
+        // same scope otherwise just insert the new one
+        let _ = match reg_ref.remove(&scope) {
+            Some(_) => reg_ref.insert(scope, JS::from_ref(registration)),
+            None => reg_ref.insert(scope, JS::from_ref(registration))
+        };
+    }
+
+    #[allow(unrooted_must_root)]
+    fn handle_match_registration(&self, scope: &Url) -> Option<Url> {
+        let ref maybe_registration_ref = *self.registration_map.borrow();
+        for url in maybe_registration_ref.keys() {
+            if longest_prefix_match(&url, scope) {
+                return Some(url.clone());
+            }
+        }
+        None
+    }
+
+    fn handle_activate_worker(&self, scope: Url) -> Option<ScopeThings> {
+        let ref maybe_registration_ref = *self.registration_map.borrow();
+        let has_registration_scope = self.handle_match_registration(&scope);
+        match has_registration_scope {
+            Some(ref reg_scope) => {
+                let maybe_registration = maybe_registration_ref.get(reg_scope);
+                let context = self.root_browsing_context();
+                let window = context.active_window();
+                let global_ref = GlobalRef::Window(window.r());
+                match maybe_registration {
+                    Some(ref registration) => {
+                        let script_url = registration.get_installed().get_script_url();
+                        Some(ServiceWorkerRegistration::create_scope_things(global_ref, script_url))
+                    }
+                    None => None
+                }
+            }
+            None => None
+        }
     }
 
     /// Handles a request for the window title.

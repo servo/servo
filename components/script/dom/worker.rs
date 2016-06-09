@@ -3,8 +3,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
+use dom::abstractworker::WorkerScriptMsg;
 use dom::abstractworker::{SimpleWorkerErrorHandler, SharedRt, WorkerErrorHandler};
-use dom::abstractworker::{WorkerScriptLoadOrigin, WorkerScriptMsg};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
@@ -26,6 +26,7 @@ use ipc_channel::ipc;
 use js::jsapi::{HandleValue, JSContext, RootedValue, JSAutoCompartment};
 use js::jsval::UndefinedValue;
 use script_thread::Runnable;
+use script_traits::WorkerScriptLoadOrigin;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Sender, channel};
 use std::sync::{Arc, Mutex};
@@ -47,18 +48,18 @@ pub struct Worker {
 
 impl Worker {
     fn new_inherited(sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
-                     closing: Arc<AtomicBool>) -> Worker {
+                     closing: bool) -> Worker {
         Worker {
             eventtarget: EventTarget::new_inherited(),
             sender: sender,
-            closing: closing,
+            closing: Arc::new(AtomicBool::new(closing)),
             runtime: Arc::new(Mutex::new(None))
         }
     }
 
     pub fn new(global: GlobalRef,
                sender: Sender<(TrustedWorkerAddress, WorkerScriptMsg)>,
-               closing: Arc<AtomicBool>) -> Root<Worker> {
+               closing: bool) -> Root<Worker> {
         reflect_dom_object(box Worker::new_inherited(sender, closing),
                            global,
                            WorkerBinding::Wrap)
@@ -74,8 +75,8 @@ impl Worker {
         };
 
         let (sender, receiver) = channel();
-        let closing = Arc::new(AtomicBool::new(false));
-        let worker = Worker::new(global, sender.clone(), closing.clone());
+        let closing = false;
+        let worker = Worker::new(global, sender.clone(), closing);
         let worker_ref = Trusted::new(worker.r());
 
         let worker_load_origin = WorkerScriptLoadOrigin {

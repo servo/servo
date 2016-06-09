@@ -28,6 +28,7 @@
 #![plugin(heapsize_plugin)]
 #![plugin(phf_macros)]
 #![plugin(plugins)]
+#![plugin(serde_macros)]
 
 extern crate angle;
 extern crate app_units;
@@ -103,6 +104,7 @@ pub mod reporter;
 pub mod script_runtime;
 #[allow(unsafe_code)]
 pub mod script_thread;
+mod serviceworker_manager;
 mod task_source;
 pub mod textinput;
 mod timers;
@@ -110,8 +112,12 @@ mod unpremultiplytable;
 mod webdriver_handlers;
 
 use dom::bindings::codegen::RegisterBindings;
+use ipc_channel::ipc::IpcSender;
 use js::jsapi::{Handle, JSContext, JSObject, SetDOMProxyInformation};
+use script_traits::{ScriptMsg, ConstellationMsg, ServiceWorkerMsg};
+use serviceworker_manager::ServiceWorkerMessenger;
 use std::ptr;
+use std::sync::mpsc::Sender;
 use util::opts;
 
 #[cfg(target_os = "linux")]
@@ -155,10 +161,25 @@ fn perform_platform_specific_initialization() {
 #[cfg(not(target_os = "linux"))]
 fn perform_platform_specific_initialization() {}
 
+pub enum ConstellationSender {
+    MultiprocessMode(IpcSender<ScriptMsg>),
+    NormalMode(Sender<ConstellationMsg>)
+}
+
 #[allow(unsafe_code)]
-pub fn init() {
+pub fn init(constellation_sender: ConstellationSender) {
+    use ConstellationSender::{MultiprocessMode, NormalMode};
+
     unsafe {
         SetDOMProxyInformation(ptr::null(), 0, Some(script_thread::shadow_check_callback));
+    }
+
+    // fire up the service worker manager
+    let manager_sender: IpcSender<ServiceWorkerMsg> = ServiceWorkerMessenger::new();
+    // send its sender to constellation for future reference
+    match constellation_sender {
+        NormalMode(sender) => sender.send(ConstellationMsg::ServiceWorkerManagerSender(manager_sender)).unwrap(),
+        MultiprocessMode(sender) => sender.send(ScriptMsg::ServiceWorkerManagerSender(manager_sender)).unwrap()
     }
 
     // Create the global vtables used by the (generated) DOM

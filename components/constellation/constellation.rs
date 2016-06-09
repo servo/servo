@@ -41,6 +41,7 @@ use pipeline::{ChildProcess, InitialPipelineState, Pipeline};
 use profile_traits::mem;
 use profile_traits::time;
 use rand::{random, Rng, SeedableRng, StdRng};
+use script_traits::ServiceWorkerMsg;
 use script_traits::{AnimationState, AnimationTickType, CompositorEvent};
 use script_traits::{ConstellationControlMsg, ConstellationMsg as FromCompositorMsg};
 use script_traits::{DocumentState, LayoutControlMsg};
@@ -118,6 +119,9 @@ pub struct Constellation<Message, LTF, STF> {
 
     /// A channel through which messages can be sent to the bluetooth thread.
     bluetooth_thread: IpcSender<BluetoothMethodMsg>,
+
+    /// Sender to Service Worker Manager thread
+    serviceworker_manager: Option<IpcSender<ServiceWorkerMsg>>,
 
     /// A list of all the pipelines. (See the `pipeline` module for more details.)
     pipelines: HashMap<PipelineId, Pipeline>,
@@ -334,6 +338,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 resource_threads: state.resource_threads,
                 image_cache_thread: state.image_cache_thread,
                 font_cache_thread: state.font_cache_thread,
+                serviceworker_manager: None,
                 pipelines: HashMap::new(),
                 frames: HashMap::new(),
                 pipeline_to_frame_map: HashMap::new(),
@@ -601,6 +606,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 debug!("constellation got webdriver command message");
                 self.handle_webdriver_msg(command);
             }
+            FromCompositorMsg::ServiceWorkerManagerSender(sender) => {
+                // Send also the script sender to manager, so it can notify of worker timeouts
+                sender.send(ServiceWorkerMsg::ConstellationSender(self.script_sender.clone())).unwrap();
+                self.serviceworker_manager = Some(sender);
+            }
         }
     }
 
@@ -786,6 +796,18 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
             FromScriptMsg::GetScrollOffset(pid, lid, send) => {
                 self.compositor_proxy.send(ToCompositorMsg::GetScrollOffset(pid, lid, send));
             }
+            FromScriptMsg::ServiceWorkerManagerSender(sender) => {
+                // Send also the script sender to manager, so it can notify of worker timeouts
+                sender.send(ServiceWorkerMsg::ConstellationSender(self.script_sender.clone())).unwrap();
+                self.serviceworker_manager = Some(sender);
+            }
+            FromScriptMsg::ServiceWorkerTimeout(scope) => {
+                debug!("Service worker for {:?} terminated", scope);
+            }
+            FromScriptMsg::MaybeResponse(network_sender) => {
+                let sw_manager_ref = self.serviceworker_manager.as_ref().unwrap();
+                sw_manager_ref.send(ServiceWorkerMsg::NetworkSender(network_sender)).unwrap();
+            }
         }
     }
 
@@ -860,6 +882,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         debug!("Exiting bluetooth thread.");
         if let Err(e) = self.bluetooth_thread.send(BluetoothMethodMsg::Exit) {
             warn!("Exit bluetooth thread failed ({})", e);
+        }
+
+        if let Err(e) = self.serviceworker_manager.as_ref().unwrap().send(ServiceWorkerMsg::Exit) {
+            warn!("Exit service worker manager failed ({})", e);
         }
 
         debug!("Exiting font cache thread.");
@@ -1153,6 +1179,11 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
         // the new load. The framing element must be notified about the
         // requested change so it can update its internal state.
         let parent_info = self.pipelines.get(&source_id).and_then(|source| source.parent_info);
+
+        // Message for the script thread, so that it can send activation event to
+        // service worker managers, if any registration exists in the containing script thread.
+        let msg_for_sw_manager = ConstellationControlMsg::NavigateForServiceWorker(load_data.clone(),
+                                                          self.serviceworker_manager.clone().unwrap());
         match parent_info {
             Some((parent_pipeline_id, subpage_id, _)) => {
                 self.handle_load_start_msg(&source_id);
@@ -1160,7 +1191,10 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // and issue an iframe load through there.
                 let msg = ConstellationControlMsg::Navigate(parent_pipeline_id, subpage_id, load_data);
                 let result = match self.pipelines.get(&parent_pipeline_id) {
-                    Some(parent_pipeline) => parent_pipeline.script_chan.send(msg),
+                    Some(parent_pipeline) => {
+                        parent_pipeline.script_chan.send(msg_for_sw_manager).unwrap();
+                        parent_pipeline.script_chan.send(msg)
+                    },
                     None => {
                         warn!("Pipeline {:?} child loaded after closure", parent_pipeline_id);
                         return None;
@@ -1192,6 +1226,7 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                 // Being here means either there are no pending frames, or none of the pending
                 // changes would be overridden by changing the subframe associated with source_id.
 
+
                 // Create the new pipeline
                 let window_size = self.pipelines.get(&source_id).and_then(|source| source.size);
                 let new_pipeline_id = PipelineId::new();
@@ -1203,6 +1238,13 @@ impl<Message, LTF, STF> Constellation<Message, LTF, STF>
                     Some(source) => source.freeze(),
                     None => warn!("Pipeline {:?} loaded after closure", source_id),
                 };
+                // notify the script_thread of this pipeline so
+                // that the service worker manager can know.
+                match self.pipelines.get(&source_id) {
+                    Some(pipeline) => pipeline.script_chan.send(msg_for_sw_manager).unwrap(),
+                    None => {}
+                }
+
                 Some(new_pipeline_id)
             }
         }
