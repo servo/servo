@@ -568,6 +568,10 @@ fn http_fetch(request: Rc<Request>,
             // Step 3
             if !request.use_url_credentials || authentication_fetch_flag {
                 // TODO: Prompt the user for username and password from the window
+                // Wrong, but will have to do until we are able to prompt the user
+                // otherwise this creates an infinite loop
+                // We basically pretend that the user declined to enter credentials
+                return response;
             }
 
             // Step 4
@@ -585,6 +589,10 @@ fn http_fetch(request: Rc<Request>,
 
             // Step 3
             // TODO: Prompt the user for proxy authentication credentials
+            // Wrong, but will have to do until we are able to prompt the user
+            // otherwise this creates an infinite loop
+            // We basically pretend that the user declined to enter credentials
+            return response;
 
             // Step 4
             return http_fetch(request, cache,
