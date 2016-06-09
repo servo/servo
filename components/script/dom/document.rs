@@ -2551,8 +2551,12 @@ impl DocumentMethods for Document {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-defaultview
-    fn DefaultView(&self) -> Root<Window> {
-        Root::from_ref(&*self.window)
+    fn GetDefaultView(&self) -> Option<Root<Window>> {
+        if self.browsing_context.is_none() {
+            None
+        } else {
+            Some(Root::from_ref(&*self.window))
+        }
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-cookie
