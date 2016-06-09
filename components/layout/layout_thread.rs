@@ -1005,8 +1005,9 @@ impl LayoutThread {
         let document = document.as_document().unwrap();
 
         debug!("layout: received layout request for: {}", self.url);
-        //TODO Diane this is where you should try to set parallel/sequential 
-        debug!("Dom_count in layout: {}", document.dom_count());
+        //TODO Diane this is where you should try to set parallel/sequential
+        //Need to use layoutjs binding
+        debug!("Dom_count in layout: {}", data.dom_count);
 
         let mut rw_data = possibly_locked_rw_data.lock();
 
