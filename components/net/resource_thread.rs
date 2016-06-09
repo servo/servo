@@ -496,7 +496,7 @@ impl CoreResourceManager {
         let ua = self.user_agent.clone();
         spawn_named(format!("fetch thread for {}", init.url), move || {
             let request = Request::from_init(init);
-            // XXXManishearth: Check origin against pipeline id
+            // XXXManishearth: Check origin against pipeline id (also ensure that the mode is allowed)
             // todo load context / mimesniff in fetch
             // todo referrer policy?
             // todo service worker stuff
