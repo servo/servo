@@ -104,6 +104,7 @@ pub mod parse;
 pub mod script_runtime;
 #[allow(unsafe_code)]
 pub mod script_thread;
+mod serviceworker_manager;
 mod task_source;
 pub mod textinput;
 mod timers;
@@ -111,7 +112,10 @@ mod unpremultiplytable;
 mod webdriver_handlers;
 
 use dom::bindings::codegen::RegisterBindings;
+use ipc_channel::ipc::IpcSender;
 use js::jsapi::{Handle, JSContext, JSObject, SetDOMProxyInformation};
+use script_traits::SWManagerMsg;
+use serviceworker_manager::ServiceWorkerManager;
 use std::ptr;
 use util::opts;
 
@@ -157,10 +161,15 @@ fn perform_platform_specific_initialization() {
 fn perform_platform_specific_initialization() {}
 
 #[allow(unsafe_code)]
-pub fn init() {
+pub fn init(from_swmanager_sender: IpcSender<SWManagerMsg>) {
+    //use ConstellationSender::{MultiprocessMode, NormalMode};
+
     unsafe {
         SetDOMProxyInformation(ptr::null(), 0, Some(script_thread::shadow_check_callback));
     }
+
+    // Spawn the service worker manager passing the constellation sender
+    ServiceWorkerManager::spawn_manager(from_swmanager_sender);
 
     // Create the global vtables used by the (generated) DOM
     // bindings to implement JS proxies.

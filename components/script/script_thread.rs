@@ -71,7 +71,7 @@ use net_traits::LoadData as NetLoadData;
 use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheResult, ImageCacheThread};
 use net_traits::{AsyncResponseTarget, CoreResourceMsg, LoadConsumer, LoadContext, Metadata, ResourceThreads};
-use net_traits::{RequestSource, CustomResponse, CustomResponseSender, IpcSend};
+use net_traits::{RequestSource, CustomResponseMediator, IpcSend};
 use network_listener::NetworkListener;
 use parse::ParserRoot;
 use parse::html::{ParseContext, parse_html};
@@ -213,7 +213,7 @@ enum MixedMessage {
     FromDevtools(DevtoolScriptControlMsg),
     FromImageCache(ImageCacheResult),
     FromScheduler(TimerEvent),
-    FromNetwork(IpcSender<Option<CustomResponse>>),
+    FromNetwork(CustomResponseMediator),
 }
 
 /// Messages used to control the script event loop
@@ -339,10 +339,10 @@ pub struct ScriptThread {
     chan: MainThreadScriptChan,
 
     /// A handle to network event messages
-    custom_message_chan: IpcSender<CustomResponseSender>,
+    custom_message_chan: IpcSender<CustomResponseMediator>,
 
     /// The port which receives a sender from the network
-    custom_message_port: Receiver<CustomResponseSender>,
+    custom_message_port: Receiver<CustomResponseMediator>,
 
     dom_manipulation_task_source: DOMManipulationTaskSource,
 
@@ -1050,10 +1050,9 @@ impl ScriptThread {
         msg.responder.unwrap().respond(msg.image_response);
     }
 
-    fn handle_msg_from_network(&self, msg: IpcSender<Option<CustomResponse>>) {
-        // We may detect controlling service workers here
-        // We send None as default
-        let _ = msg.send(None);
+    fn handle_msg_from_network(&self, mediator: CustomResponseMediator) {
+        // tell the constellation to look for available service workers.
+        self.constellation_chan.send(ConstellationMsg::NetworkRequest(mediator)).unwrap();
     }
 
     fn handle_webdriver_msg(&self, pipeline_id: PipelineId, msg: WebDriverScriptCommand) {
@@ -1451,8 +1450,29 @@ impl ScriptThread {
         }
     }
 
-    fn handle_serviceworker_registration(&self, scope: Url, registration: &ServiceWorkerRegistration) {
-        self.registration_map.borrow_mut().insert(scope, JS::from_ref(registration));
+    fn handle_serviceworker_registration(&self,
+                                         scope: Url,
+                                         registration: &ServiceWorkerRegistration) {
+        {
+            let ref mut reg_ref = *self.registration_map.borrow_mut();
+            // according to spec we should replace if an older registration exists for
+            // same scope otherwise just insert the new one
+            let _ = reg_ref.remove(&scope);
+            reg_ref.insert(scope.clone(), JS::from_ref(registration));
+        }
+
+        // send ScopeThings to sw-manager
+        let ref maybe_registration_ref = *self.registration_map.borrow();
+        let maybe_registration = match maybe_registration_ref.get(&scope) {
+            Some(r) => r,
+            None => return
+        };
+        let context = self.root_browsing_context();
+        let window = context.active_window();
+        let global_ref = GlobalRef::Window(window.r());
+        let script_url = maybe_registration.get_installed().get_script_url();
+        let scope_things = ServiceWorkerRegistration::create_scope_things(global_ref, script_url);
+        self.constellation_chan.send(ConstellationMsg::RegisterServiceWorker(scope_things, scope)).unwrap();
     }
 
     /// Handles a request for the window title.

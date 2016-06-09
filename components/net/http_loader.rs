@@ -32,7 +32,7 @@ use net_traits::ProgressMsg::{Done, Payload};
 use net_traits::hosts::replace_hosts;
 use net_traits::response::HttpsState;
 use net_traits::{CookieSource, IncludeSubdomains, LoadConsumer, LoadContext, LoadData};
-use net_traits::{Metadata, NetworkError, RequestSource, CustomResponse};
+use net_traits::{Metadata, NetworkError, RequestSource, CustomResponse, CustomResponseMediator};
 use openssl;
 use openssl::ssl::error::{SslError, OpensslError};
 use profile_traits::time::{ProfilerCategory, profile, ProfilerChan, TimerMetadata};
@@ -878,7 +878,11 @@ pub fn load<A, B>(load_data: &LoadData,
     let (msg_sender, msg_receiver) = ipc::channel().unwrap();
     match load_data.source {
         RequestSource::Window(ref sender) | RequestSource::Worker(ref sender) => {
-            sender.send(msg_sender.clone()).unwrap();
+            let response_mediator = CustomResponseMediator {
+                response_chan: msg_sender,
+                load_url: doc_url.clone()
+            };
+            sender.send(response_mediator).unwrap();
             let received_msg = msg_receiver.recv().unwrap();
             if let Some(custom_response) = received_msg {
                 let metadata = Metadata::default(doc_url.clone());

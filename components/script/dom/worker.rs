@@ -2,9 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
+use devtools_traits::{ScriptToDevtoolsControlMsg, DevtoolsPageInfo};
+use dom::abstractworker::WorkerScriptMsg;
 use dom::abstractworker::{SimpleWorkerErrorHandler, SharedRt, WorkerErrorHandler};
-use dom::abstractworker::{WorkerScriptLoadOrigin, WorkerScriptMsg};
 use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::WorkerBinding;
 use dom::bindings::codegen::Bindings::WorkerBinding::WorkerMethods;
@@ -26,6 +26,7 @@ use ipc_channel::ipc;
 use js::jsapi::{HandleValue, JSContext, RootedValue, JSAutoCompartment};
 use js::jsval::UndefinedValue;
 use script_thread::Runnable;
+use script_traits::WorkerScriptLoadOrigin;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{Sender, channel};
 use std::sync::{Arc, Mutex};
@@ -86,16 +87,28 @@ impl Worker {
         };
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
+        let worker_id = global.get_next_worker_id();
+        let worker_type = "Worker".to_owned();
+        match global.devtools_chan() {
+            Some(ref chan) => {
+                let pipeline_id = global.pipeline();
+                let title = format!("{} for {}", worker_type, worker_url);
+                let page_info = DevtoolsPageInfo {
+                    title: title,
+                    url: worker_url.clone(),
+                };
+                chan.send(ScriptToDevtoolsControlMsg::NewGlobal((pipeline_id, Some(worker_id)),
+                                                                devtools_sender.clone(),
+                                                                page_info)).unwrap();
+            },
+            None => {}
+        };
 
-        let init = prepare_workerscope_init(global,
-            "Worker".to_owned(),
-            worker_url.clone(),
-            devtools_sender.clone(),
-            closing);
+        let init = prepare_workerscope_init(global, Some(devtools_sender));
 
         DedicatedWorkerGlobalScope::run_worker_scope(
             init, worker_url, global.pipeline(), devtools_receiver, worker.runtime.clone(), worker_ref,
-            global.script_chan(), sender, receiver, worker_load_origin);
+            global.script_chan(), sender, receiver, worker_load_origin, closing);
 
         Ok(worker)
     }
