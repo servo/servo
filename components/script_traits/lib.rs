@@ -52,6 +52,7 @@ use net_traits::bluetooth_thread::BluetoothMethodMsg;
 use net_traits::image_cache_thread::ImageCacheThread;
 use net_traits::response::HttpsState;
 use profile_traits::mem;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::sync::mpsc::{Sender, Receiver};
 use url::Url;
@@ -61,10 +62,32 @@ pub use script_msg::{LayoutMsg, ScriptMsg, EventResult};
 
 /// The address of a node. Layout sends these back. They must be validated via
 /// `from_untrusted_node_address` before they can be used, because we do not trust layout.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct UntrustedNodeAddress(pub *const c_void);
+
 #[allow(unsafe_code)]
 unsafe impl Send for UntrustedNodeAddress {}
+
+impl Serialize for UntrustedNodeAddress {
+    fn serialize<S: Serializer>(&self, s: &mut S) -> Result<(), S::Error> {
+        (self.0 as usize).serialize(s)
+    }
+}
+
+impl Deserialize for UntrustedNodeAddress {
+    fn deserialize<D: Deserializer>(d: &mut D) -> Result<UntrustedNodeAddress, D::Error> {
+        let value: usize = try!(Deserialize::deserialize(d));
+        Ok(UntrustedNodeAddress::from_id(value))
+    }
+}
+
+impl UntrustedNodeAddress {
+    /// Creates an `UntrustedNodeAddress` from the given pointer address value.
+    #[inline]
+    pub fn from_id(id: usize) -> UntrustedNodeAddress {
+        UntrustedNodeAddress(id as *const c_void)
+    }
+}
 
 /// Messages sent to the layout thread from the constellation and/or compositor.
 #[derive(Deserialize, Serialize)]
@@ -125,8 +148,8 @@ pub enum ConstellationControlMsg {
     SendEvent(PipelineId, CompositorEvent),
     /// Notifies script of the viewport.
     Viewport(PipelineId, Rect<f32>),
-    /// Notifies script of a new scroll offset.
-    SetScrollState(PipelineId, Point2D<f32>),
+    /// Notifies script of a new set of scroll offsets.
+    SetScrollState(PipelineId, Vec<(UntrustedNodeAddress, Point2D<f32>)>),
     /// Requests that the script thread immediately send the constellation the title of a pipeline.
     GetTitle(PipelineId),
     /// Notifies script thread to suspend all its timers

@@ -12,6 +12,7 @@ use dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnBeforeUnloadEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
 use dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use dom::bindings::codegen::Bindings::WindowBinding::{ScrollBehavior, ScrollToOptions};
 use dom::bindings::codegen::Bindings::WindowBinding::{self, FrameRequestCallback, WindowMethods};
 use dom::bindings::error::{Error, ErrorResult, Fallible, report_pending_exception};
@@ -68,7 +69,7 @@ use script_traits::{ScriptMsg as ConstellationMsg, TimerEventRequest, TimerSourc
 use std::ascii::AsciiExt;
 use std::borrow::ToOwned;
 use std::cell::Cell;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::ffi::CString;
 use std::io::{Write, stderr, stdout};
@@ -264,6 +265,10 @@ pub struct Window {
 
     error_reporter: CSSErrorReporter,
 
+    /// A list of scroll offsets for each scrollable element.
+    #[ignore_heap_size_of = "TODO(#6909) need to measure HashMap"]
+    scroll_offsets: DOMRefCell<HashMap<UntrustedNodeAddress, Point2D<f32>>>,
+
     #[ignore_heap_size_of = "Defined in ipc-channel"]
     panic_chan: IpcSender<PanicMsg>,
 }
@@ -353,6 +358,22 @@ impl Window {
 
     pub fn css_error_reporter(&self) -> Box<ParseErrorReporter + Send> {
         self.error_reporter.clone()
+    }
+
+    /// Clears the list of scroll offsets.
+    ///
+    /// This is called when layout gives us new ones and WebRender is in use.
+    pub fn reset_scroll_offsets(&self) {
+        self.scroll_offsets.borrow_mut().clear()
+    }
+
+    /// Adds a new scroll offset to our list of offsets.
+    ///
+    /// This is only called when WebRender is in use.
+    pub fn add_scroll_offset(&self,
+                             node_address: UntrustedNodeAddress,
+                             scroll_offset: &Point2D<f32>) {
+        self.scroll_offsets.borrow_mut().insert(node_address, *scroll_offset);
     }
 }
 
@@ -1240,7 +1261,28 @@ impl Window {
         self.layout_rpc.node_overflow().0.unwrap()
     }
 
-    pub fn scroll_offset_query(&self, node: TrustedNodeAddress) -> Point2D<f32> {
+    pub fn scroll_offset_query(&self, node: &Node) -> Point2D<f32> {
+        // WebRender always keeps the scroll offsets up to date and stored here in the window. So,
+        // if WR is in use, all we need to do is to check our list of scroll offsets and return the
+        // result.
+        if opts::get().use_webrender {
+            let mut node = Root::from_ref(node);
+            loop {
+                if let Some(scroll_offset) = self.scroll_offsets
+                                                 .borrow()
+                                                 .get(&node.to_untrusted_node_address()) {
+                    return *scroll_offset
+                }
+                node = match node.GetParentNode() {
+                    Some(node) => node,
+                    None => break,
+                }
+            }
+            let offset = self.current_viewport.get().origin;
+            return Point2D::new(offset.x.to_f32_px(), offset.y.to_f32_px())
+        }
+
+        let node = node.to_trusted_node_address();
         if !self.reflow(ReflowGoal::ForScriptQuery,
                         ReflowQueryType::NodeLayerIdQuery(node),
                         ReflowReason::Query) {
@@ -1639,6 +1681,7 @@ impl Window {
             webdriver_script_chan: DOMRefCell::new(None),
             ignore_further_async_events: Arc::new(AtomicBool::new(false)),
             error_reporter: error_reporter,
+            scroll_offsets: DOMRefCell::new(HashMap::new()),
             panic_chan: panic_chan,
         };
 

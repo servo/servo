@@ -26,6 +26,20 @@ use euclid::Matrix4D;
 use euclid::rect::Rect;
 use msg::constellation_msg::PipelineId;
 use std::fmt::{self, Debug, Formatter};
+use std::sync::atomic::{ATOMIC_USIZE_INIT, AtomicUsize, Ordering};
+
+/// The next ID that will be used for a special stacking context.
+///
+/// A special stacking context is a stacking context that is one of (a) the outer stacking context
+/// of an element with `overflow: scroll`; (b) generated content; (c) both (a) and (b).
+static NEXT_SPECIAL_STACKING_CONTEXT_ID: AtomicUsize = ATOMIC_USIZE_INIT;
+
+/// If none of the bits outside this mask are set, the stacking context is a special stacking
+/// context.
+///
+/// Note that we assume that the top 16 bits of the address space are unused on the platform.
+const SPECIAL_STACKING_CONTEXT_ID_MASK: usize = 0xffff;
+
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum LayerKind {
@@ -159,15 +173,32 @@ pub struct StackingContextId(
 );
 
 impl StackingContextId {
-    #[inline(always)]
+    #[inline]
     pub fn new(id: usize) -> StackingContextId {
         StackingContextId::new_of_type(id, FragmentType::FragmentBody)
     }
 
-    #[inline(always)]
+    /// Returns a new stacking context ID for a special stacking context.
+    fn special_id() -> usize {
+        ((NEXT_SPECIAL_STACKING_CONTEXT_ID.fetch_add(1, Ordering::SeqCst) + 1) << 2) &
+            SPECIAL_STACKING_CONTEXT_ID_MASK
+    }
+
+    #[inline]
     pub fn new_of_type(id: usize, fragment_type: FragmentType) -> StackingContextId {
-        debug_assert_eq!(id & fragment_type as usize, 0);
-        StackingContextId(id | fragment_type as usize)
+        debug_assert_eq!(id & (fragment_type as usize), 0);
+        if fragment_type == FragmentType::FragmentBody {
+            StackingContextId(id)
+        } else {
+            StackingContextId(StackingContextId::special_id() | (fragment_type as usize))
+        }
+    }
+
+    /// Returns an ID for the stacking context that forms the outer stacking context of an element
+    /// with `overflow: scroll`.
+    #[inline(always)]
+    pub fn new_outer(fragment_type: FragmentType) -> StackingContextId {
+        StackingContextId(StackingContextId::special_id() | (fragment_type as usize))
     }
 
     #[inline]
@@ -178,6 +209,21 @@ impl StackingContextId {
     #[inline]
     pub fn id(&self) -> usize {
         self.0 & !3
+    }
+
+    /// Returns the stacking context ID for the outer document/layout root.
+    #[inline]
+    pub fn root() -> StackingContextId {
+        StackingContextId(0)
+    }
+
+    /// Returns true if this is a special stacking context.
+    ///
+    /// A special stacking context is a stacking context that is one of (a) the outer stacking
+    /// context of an element with `overflow: scroll`; (b) generated content; (c) both (a) and (b).
+    #[inline]
+    pub fn is_special(&self) -> bool {
+        (self.0 & !SPECIAL_STACKING_CONTEXT_ID_MASK) == 0
     }
 }
 
