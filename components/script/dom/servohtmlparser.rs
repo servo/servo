@@ -24,7 +24,7 @@ use html5ever::tree_builder::{TreeBuilder, TreeBuilderOpts};
 use hyper::header::ContentType;
 use hyper::mime::{Mime, SubLevel, TopLevel};
 use js::jsapi::JSTracer;
-use msg::constellation_msg::{PipelineId, SubpageId};
+use msg::constellation_msg::PipelineId;
 use net_traits::{AsyncResponseListener, Metadata, NetworkError};
 use network_listener::PreInvoke;
 use parse::{TrustedParser, ParserRef, Parser};
@@ -61,19 +61,16 @@ pub struct ParserContext {
     is_synthesized_document: bool,
     /// The pipeline associated with this document.
     id: PipelineId,
-    /// The subpage associated with this document.
-    subpage: Option<SubpageId>,
     /// The URL for this document.
     url: Url,
 }
 
 impl ParserContext {
-    pub fn new(id: PipelineId, subpage: Option<SubpageId>, url: Url) -> ParserContext {
+    pub fn new(id: PipelineId, url: Url) -> ParserContext {
         ParserContext {
             parser: None,
             is_synthesized_document: false,
             id: id,
-            subpage: subpage,
             url: url,
         }
     }
@@ -95,7 +92,6 @@ impl AsyncResponseListener for ParserContext {
         };
         let content_type = metadata.clone().and_then(|meta| meta.content_type);
         let parser = match ScriptThread::page_headers_available(&self.id,
-                                                                self.subpage.as_ref(),
                                                                 metadata) {
             Some(parser) => parser,
             None => return,
