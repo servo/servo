@@ -8,13 +8,17 @@ use IFrameLoadInfo;
 use MouseButton;
 use MouseEventType;
 use MozBrowserEvent;
+use WorkerGlobalScopeInit;
+use WorkerScriptLoadOrigin;
 use canvas_traits::CanvasMsg;
+use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
 use euclid::point::Point2D;
 use euclid::size::Size2D;
 use gfx_traits::LayerId;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{Key, KeyModifiers, KeyState, LoadData};
 use msg::constellation_msg::{NavigationDirection, PipelineId, SubpageId};
+use net_traits::CustomResponseMediator;
 use offscreen_gl_context::{GLContextAttributes, GLLimits};
 use style_traits::cursor::Cursor;
 use style_traits::viewport::ViewportConstraints;
@@ -93,6 +97,8 @@ pub enum ScriptMsg {
     ActivateDocument(PipelineId),
     /// Set the document state for a pipeline (used by screenshot / reftests)
     SetDocumentState(PipelineId, DocumentState),
+    /// Message from network to constellation
+    NetworkRequest(CustomResponseMediator),
     /// Update the pipeline Url, which can change after redirections.
     SetFinalUrl(PipelineId, Url),
     /// Check if an alert dialog box should be presented
@@ -116,6 +122,45 @@ pub enum ScriptMsg {
     GetScrollOffset(PipelineId, LayerId, IpcSender<Point2D<f32>>),
     /// Notifies the constellation that this pipeline has exited.
     PipelineExited(PipelineId),
+    /// Store the data required to activate a service worker for the given scope
+    RegisterServiceWorker(ScopeThings, Url),
     /// Requests that the compositor shut down.
+    Exit
+}
+
+/// Entities required to spawn service workers
+#[derive(Deserialize, Serialize, Clone)]
+pub struct ScopeThings {
+    /// script resource url
+    pub script_url: Url,
+    /// pipeline which requested the activation
+    pub pipeline_id: PipelineId,
+    /// network load origin of the resource
+    pub worker_load_origin: WorkerScriptLoadOrigin,
+    /// base resources required to create worker global scopes
+    pub init: WorkerGlobalScopeInit,
+    /// the port to receive devtools message from
+    pub devtools_chan: Option<IpcSender<ScriptToDevtoolsControlMsg>>,
+    /// service worker id
+    pub worker_id: WorkerId,
+}
+
+/// Messages sent to Service Worker Manager thread
+#[derive(Deserialize, Serialize)]
+pub enum ServiceWorkerMsg {
+    /// Message to register the service worker
+    RegisterServiceWorker(ScopeThings, Url),
+    /// Message to activate the worker
+    ActivateWorker(CustomResponseMediator),
+    /// Timeout message sent by active service workers
+    Timeout(Url),
+    /// Exit the service worker manager
     Exit,
+}
+
+/// Messages outgoing from the Service Worker Manager thread
+#[derive(Deserialize, Serialize)]
+pub enum SWManagerMsg {
+    /// Provide the constellation with a means of communicating with the Service Worker Manager
+    OwnSender(IpcSender<ServiceWorkerMsg>),
 }

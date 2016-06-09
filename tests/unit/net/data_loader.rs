@@ -8,7 +8,7 @@ use ipc_channel::ipc;
 use msg::constellation_msg::{PipelineId, ReferrerPolicy};
 use net_traits::LoadConsumer::Channel;
 use net_traits::ProgressMsg::{Payload, Done};
-use net_traits::{LoadData, LoadContext, NetworkError, LoadOrigin, RequestSource};
+use net_traits::{LoadData, LoadContext, NetworkError, LoadOrigin};
 use self::hyper::header::ContentType;
 use self::hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 use url::Url;
@@ -21,9 +21,6 @@ impl LoadOrigin for DataLoadTest {
     }
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
         None
-    }
-    fn request_source(&self) -> RequestSource {
-        RequestSource::None
     }
     fn pipeline_id(&self) -> Option<PipelineId> {
         None
