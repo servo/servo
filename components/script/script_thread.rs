@@ -654,7 +654,7 @@ impl ScriptThread {
                 let window = context.active_window();
                 let resize_event = window.steal_resize_event();
                 match resize_event {
-                    Some(size) => resizes.push((window.pipeline(), size)),
+                    Some(size) => resizes.push((window.pipeline_id(), size)),
                     None => ()
                 }
             }
@@ -1407,7 +1407,7 @@ impl ScriptThread {
         // If root is being exited, shut down all contexts
         let context = self.root_browsing_context();
         let window = context.active_window();
-        if window.pipeline() == id {
+        if window.pipeline_id() == id {
             debug!("shutting down layout for root context {:?}", id);
             shut_down_layout(&context);
             let _ = self.constellation_chan.send(ConstellationMsg::PipelineExited(id));
@@ -1602,7 +1602,7 @@ impl ScriptThread {
         });
 
         let loader = DocumentLoader::new_with_threads(self.resource_threads.clone(),
-                                                      Some(browsing_context.pipeline()),
+                                                      Some(browsing_context.pipeline_id()),
                                                       Some(incomplete.url.clone()));
 
         let is_html_document = match metadata.content_type {
@@ -1632,7 +1632,7 @@ impl ScriptThread {
             .unwrap();
 
         // Notify devtools that a new script global exists.
-        self.notify_devtools(document.Title(), final_url.clone(), (browsing_context.pipeline(), None));
+        self.notify_devtools(document.Title(), final_url.clone(), (browsing_context.pipeline_id(), None));
 
         let is_javascript = incomplete.url.scheme() == "javascript";
         let parse_input = if is_javascript {

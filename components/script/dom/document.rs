@@ -616,7 +616,7 @@ impl Document {
             // Update the focus state for all elements in the focus chain.
             // https://html.spec.whatwg.org/multipage/#focus-chain
             if focus_type == FocusType::Element {
-                let event = ConstellationMsg::Focus(self.window.pipeline());
+                let event = ConstellationMsg::Focus(self.window.pipeline_id());
                 self.window.constellation_chan().send(event).unwrap();
             }
         }
@@ -636,7 +636,7 @@ impl Document {
     pub fn send_title_to_compositor(&self) {
         let window = self.window();
         window.constellation_chan()
-              .send(ConstellationMsg::SetTitle(window.pipeline(),
+              .send(ConstellationMsg::SetTitle(window.pipeline_id(),
                                                Some(String::from(self.Title()))))
               .unwrap();
     }
@@ -1285,7 +1285,7 @@ impl Document {
         // TODO: Should tick animation only when document is visible
         if !self.running_animation_callbacks.get() {
             let event = ConstellationMsg::ChangeRunningAnimationsState(
-                self.window.pipeline(),
+                self.window.pipeline_id(),
                 AnimationState::AnimationCallbacksPresent);
             self.window.constellation_chan().send(event).unwrap();
         }
@@ -1323,7 +1323,7 @@ impl Document {
         if self.animation_frame_list.borrow().is_empty() {
             mem::swap(&mut *self.animation_frame_list.borrow_mut(),
                       &mut animation_frame_list);
-            let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline(),
+            let event = ConstellationMsg::ChangeRunningAnimationsState(self.window.pipeline_id(),
                                                                        AnimationState::NoAnimationCallbacksPresent);
             self.window.constellation_chan().send(event).unwrap();
         }
@@ -1386,7 +1386,7 @@ impl Document {
         let loader = self.loader.borrow();
         if !loader.is_blocked() && !loader.events_inhibited() {
             let win = self.window();
-            let msg = MainThreadScriptMsg::DocumentLoadsComplete(win.pipeline());
+            let msg = MainThreadScriptMsg::DocumentLoadsComplete(win.pipeline_id());
             win.main_thread_script_chan().send(msg).unwrap();
         }
     }
@@ -1481,7 +1481,7 @@ impl Document {
     }
 
     pub fn notify_constellation_load(&self) {
-        let pipeline_id = self.window.pipeline();
+        let pipeline_id = self.window.pipeline_id();
         let event = ConstellationMsg::DOMLoad(pipeline_id);
         self.window.constellation_chan().send(event).unwrap();
 
@@ -1508,7 +1508,7 @@ impl Document {
         self.upcast::<Node>()
             .traverse_preorder()
             .filter_map(Root::downcast::<HTMLIFrameElement>)
-            .find(|node| node.pipeline() == Some(pipeline))
+            .find(|node| node.pipeline_id() == Some(pipeline))
     }
 
     pub fn get_dom_loading(&self) -> u64 {
