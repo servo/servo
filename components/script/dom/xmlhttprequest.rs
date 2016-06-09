@@ -61,6 +61,7 @@ use string_cache::Atom;
 use time;
 use timers::{OneshotTimerCallback, OneshotTimerHandle};
 use url::{Url, Position};
+use util::prefs::mozbrowser_enabled;
 
 #[derive(JSTraceable, PartialEq, Copy, Clone, HeapSizeOf)]
 enum XMLHttpRequestState {
@@ -571,6 +572,22 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         } else {
             unreachable!()
         };
+
+        let bypass_cross_origin_check = {
+            // We want to be able to do cross-origin requests in browser.html.
+            // If the XHR happens in a top level window and the mozbrowser
+            // preference is enabled, we allow bypassing the CORS check.
+            // This is a temporary measure until we figure out Servo privilege
+            // story. See https://github.com/servo/servo/issues/9582
+            if let GlobalRoot::Window(win) = self.global() {
+                let is_root_pipeline = win.parent_info().is_none();
+                let is_mozbrowser_enabled = mozbrowser_enabled();
+                is_root_pipeline && is_mozbrowser_enabled
+            } else {
+                false
+            }
+        };
+
         let mut request = RequestInit {
             method: self.request_method.borrow().clone(),
             url: self.request_url.borrow().clone().unwrap(),
@@ -591,6 +608,10 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             referer_url: self.referrer_url.clone(),
             referrer_policy: self.referrer_policy.clone(),
         };
+
+        if bypass_cross_origin_check {
+            request.mode = RequestMode::Navigate;
+        }
 
         // step 4 (second half)
         match extracted {
