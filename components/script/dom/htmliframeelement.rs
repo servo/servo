@@ -126,7 +126,7 @@ impl HTMLIFrameElement {
 
         let load_info = IFrameLoadInfo {
             load_data: load_data,
-            containing_pipeline_id: window.pipeline(),
+            containing_pipeline_id: window.pipeline_id(),
             new_subpage_id: new_subpage_id,
             old_subpage_id: old_subpage_id,
             new_pipeline_id: new_pipeline_id,
@@ -217,15 +217,11 @@ impl HTMLIFrameElement {
         self.subpage_id.get()
     }
 
-    pub fn pipeline(&self) -> Option<PipelineId> {
-        self.pipeline_id.get()
-    }
-
     /// https://html.spec.whatwg.org/multipage/#iframe-load-event-steps steps 1-4
     pub fn iframe_load_event_steps(&self, loaded_pipeline: PipelineId) {
         // TODO(#9592): assert that the load blocker is present at all times when we
         //              can guarantee that it's created for the case of iframe.reload().
-        assert_eq!(loaded_pipeline, self.pipeline().unwrap());
+        assert_eq!(loaded_pipeline, self.pipeline_id().unwrap());
 
         // TODO A cross-origin child document would not be easily accessible
         //      from this script thread. It's unclear how to implement
@@ -396,7 +392,7 @@ pub fn Navigate(iframe: &HTMLIFrameElement, direction: NavigationDirection) -> E
         if iframe.upcast::<Node>().is_in_doc() {
             let window = window_from_node(iframe);
 
-            let pipeline_info = Some((window.pipeline(),
+            let pipeline_info = Some((window.pipeline_id(),
                                       iframe.subpage_id().unwrap()));
             let msg = ConstellationMsg::Navigate(pipeline_info, direction);
             window.constellation_chan().send(msg).unwrap();

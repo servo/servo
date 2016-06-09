@@ -82,7 +82,7 @@ impl Worker {
             referrer_url: None,
             referrer_policy: None,
             request_source: global.request_source(),
-            pipeline_id: Some(global.pipeline())
+            pipeline_id: Some(global.pipeline_id())
         };
 
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
@@ -94,7 +94,7 @@ impl Worker {
             closing);
 
         DedicatedWorkerGlobalScope::run_worker_scope(
-            init, worker_url, global.pipeline(), devtools_receiver, worker.runtime.clone(), worker_ref,
+            init, worker_url, global.pipeline_id(), devtools_receiver, worker.runtime.clone(), worker_ref,
             global.script_chan(), sender, receiver, worker_load_origin);
 
         Ok(worker)
