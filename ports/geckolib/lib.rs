@@ -29,6 +29,7 @@ extern crate smallvec;
 #[macro_use(atom, ns)]
 extern crate string_cache;
 extern crate style;
+extern crate style_traits;
 extern crate url;
 extern crate util;
 

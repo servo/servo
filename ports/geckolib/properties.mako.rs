@@ -967,6 +967,59 @@ fn static_assert() {
     }
 </%self:impl_trait>
 
+<%self:impl_trait style_struct_name="Pointing"
+                  skip_longhands="cursor">
+
+    fn set_cursor(&mut self, v: longhands::cursor::computed_value::T) {
+        use style::properties::longhands::cursor::computed_value::T;
+        use style_traits::cursor::Cursor;
+
+        self.gecko.mCursor = match v {
+            T::AutoCursor => structs::NS_STYLE_CURSOR_AUTO,
+            T::SpecifiedCursor(cursor) => match cursor {
+                Cursor::NoCursor => structs::NS_STYLE_CURSOR_NONE,
+                Cursor::DefaultCursor => structs::NS_STYLE_CURSOR_DEFAULT,
+                Cursor::PointerCursor => structs::NS_STYLE_CURSOR_POINTER,
+                Cursor::ContextMenuCursor => structs::NS_STYLE_CURSOR_CONTEXT_MENU,
+                Cursor::HelpCursor => structs::NS_STYLE_CURSOR_HELP,
+                Cursor::ProgressCursor => structs::NS_STYLE_CURSOR_DEFAULT, // Gecko doesn't support "progress" yet
+                Cursor::WaitCursor => structs::NS_STYLE_CURSOR_WAIT,
+                Cursor::CellCursor => structs::NS_STYLE_CURSOR_CELL,
+                Cursor::CrosshairCursor => structs::NS_STYLE_CURSOR_CROSSHAIR,
+                Cursor::TextCursor => structs::NS_STYLE_CURSOR_TEXT,
+                Cursor::VerticalTextCursor => structs::NS_STYLE_CURSOR_VERTICAL_TEXT,
+                Cursor::AliasCursor => structs::NS_STYLE_CURSOR_ALIAS,
+                Cursor::CopyCursor => structs::NS_STYLE_CURSOR_COPY,
+                Cursor::MoveCursor => structs::NS_STYLE_CURSOR_MOVE,
+                Cursor::NoDropCursor => structs::NS_STYLE_CURSOR_NO_DROP,
+                Cursor::NotAllowedCursor => structs::NS_STYLE_CURSOR_NOT_ALLOWED,
+                Cursor::GrabCursor => structs::NS_STYLE_CURSOR_GRAB,
+                Cursor::GrabbingCursor => structs::NS_STYLE_CURSOR_GRABBING,
+                Cursor::EResizeCursor => structs::NS_STYLE_CURSOR_E_RESIZE,
+                Cursor::NResizeCursor => structs::NS_STYLE_CURSOR_N_RESIZE,
+                Cursor::NeResizeCursor => structs::NS_STYLE_CURSOR_NE_RESIZE,
+                Cursor::NwResizeCursor => structs::NS_STYLE_CURSOR_NW_RESIZE,
+                Cursor::SResizeCursor => structs::NS_STYLE_CURSOR_S_RESIZE,
+                Cursor::SeResizeCursor => structs::NS_STYLE_CURSOR_SE_RESIZE,
+                Cursor::SwResizeCursor => structs::NS_STYLE_CURSOR_SW_RESIZE,
+                Cursor::WResizeCursor => structs::NS_STYLE_CURSOR_W_RESIZE,
+                Cursor::EwResizeCursor => structs::NS_STYLE_CURSOR_EW_RESIZE,
+                Cursor::NsResizeCursor => structs::NS_STYLE_CURSOR_NS_RESIZE,
+                Cursor::NeswResizeCursor => structs::NS_STYLE_CURSOR_NESW_RESIZE,
+                Cursor::NwseResizeCursor => structs::NS_STYLE_CURSOR_NWSE_RESIZE,
+                Cursor::ColResizeCursor => structs::NS_STYLE_CURSOR_COL_RESIZE,
+                Cursor::RowResizeCursor => structs::NS_STYLE_CURSOR_ROW_RESIZE,
+                Cursor::AllScrollCursor => structs::NS_STYLE_CURSOR_ALL_SCROLL,
+                Cursor::ZoomInCursor => structs::NS_STYLE_CURSOR_ZOOM_IN,
+                Cursor::ZoomOutCursor => structs::NS_STYLE_CURSOR_ZOOM_OUT,
+            }
+        } as u8;
+    }
+
+    ${impl_simple_copy('cursor', 'mCursor')}
+
+</%self:impl_trait>
+
 <%def name="define_ffi_struct_accessor(style_struct)">
 #[no_mangle]
 #[allow(non_snake_case, unused_variables)]
