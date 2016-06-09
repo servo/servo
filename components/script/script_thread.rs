@@ -85,11 +85,12 @@ use script_traits::{CompositorEvent, ConstellationControlMsg, EventResult};
 use script_traits::{InitialScriptState, MouseButton, MouseEventType, MozBrowserEvent};
 use script_traits::{NewLayoutInfo, ScriptMsg as ConstellationMsg};
 use script_traits::{ScriptThreadFactory, TimerEvent, TimerEventRequest, TimerSource};
-use script_traits::{TouchEventType, TouchId};
+use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress};
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::option::Option;
+use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
 use std::sync::atomic::{Ordering, AtomicBool};
@@ -728,9 +729,9 @@ impl ScriptThread {
                         self.handle_viewport(id, rect);
                     })
                 }
-                FromConstellation(ConstellationControlMsg::SetScrollState(id, scroll_offset)) => {
+                FromConstellation(ConstellationControlMsg::SetScrollState(id, scroll_state)) => {
                     self.profile_event(ScriptThreadEventCategory::SetScrollState, || {
-                        self.handle_set_scroll_state(id, &scroll_offset);
+                        self.handle_set_scroll_state(id, &scroll_state);
                     })
                 }
                 FromConstellation(ConstellationControlMsg::TickAllAnimations(
@@ -1110,17 +1111,31 @@ impl ScriptThread {
         panic!("Page rect message sent to nonexistent pipeline");
     }
 
-    fn handle_set_scroll_state(&self, id: PipelineId, scroll_state: &Point2D<f32>) {
-        let context = self.browsing_context.get();
-        if let Some(context) = context {
-            if let Some(inner_context) = context.find(id) {
-                let window = inner_context.active_window();
-                window.update_viewport_for_scroll(-scroll_state.x, -scroll_state.y);
-                return
+    fn handle_set_scroll_state(&self,
+                               id: PipelineId,
+                               scroll_states: &[(UntrustedNodeAddress, Point2D<f32>)]) {
+        let window = match self.browsing_context.get() {
+            Some(context) => {
+                match context.find(id) {
+                    Some(inner_context) => inner_context.active_window(),
+                    None => {
+                        panic!("Set scroll state message sent to nonexistent pipeline: {:?}", id)
+                    }
+                }
+            }
+            None => panic!("Set scroll state message sent to nonexistent pipeline: {:?}", id),
+        };
+
+        let mut scroll_offsets = HashMap::new();
+        for &(node_address, ref scroll_offset) in scroll_states {
+            if node_address == UntrustedNodeAddress(ptr::null()) {
+                window.update_viewport_for_scroll(-scroll_offset.x, -scroll_offset.y);
+            } else {
+                scroll_offsets.insert(node_address,
+                                      Point2D::new(-scroll_offset.x, -scroll_offset.y));
             }
         }
-
-        panic!("Set scroll state message message sent to nonexistent pipeline: {:?}", id);
+        window.set_scroll_offsets(scroll_offsets)
     }
 
     fn handle_new_layout(&self, new_layout_info: NewLayoutInfo) {

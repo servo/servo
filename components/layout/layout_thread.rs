@@ -21,13 +21,13 @@ use euclid::size::Size2D;
 use flow::{self, Flow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use flow_ref::{self, FlowRef};
 use fnv::FnvHasher;
-use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, LayerInfo};
-use gfx::display_list::{OpaqueNode, StackingContext, StackingContextType, WebRenderImageInfo};
+use gfx::display_list::{ClippingRegion, DisplayItemMetadata, DisplayList, LayerInfo, OpaqueNode};
+use gfx::display_list::{ScrollOffsetMap, StackingContext, StackingContextType, WebRenderImageInfo};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
 use gfx::paint_thread::LayoutToPaintMsg;
-use gfx_traits::{color, Epoch, LayerId, ScrollPolicy, StackingContextId};
+use gfx_traits::{color, Epoch, FragmentType, LayerId, ScrollPolicy, StackingContextId};
 use heapsize::HeapSizeOf;
 use incremental::LayoutDamageComputation;
 use incremental::{REPAINT, STORE_OVERFLOW, REFLOW_OUT_OF_FLOW, REFLOW, REFLOW_ENTIRE_DOCUMENT};
@@ -51,8 +51,8 @@ use script::layout_interface::OpaqueStyleAndLayoutData;
 use script::layout_interface::{LayoutRPC, OffsetParentResponse, NodeOverflowResponse, MarginStyleResponse};
 use script::layout_interface::{Msg, NewLayoutThreadInfo, Reflow, ReflowQueryType, ScriptReflow};
 use script::reporter::CSSErrorReporter;
-use script_traits::StackingContextScrollState;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
+use script_traits::{StackingContextScrollState, UntrustedNodeAddress};
 use sequential;
 use serde_json;
 use std::borrow::ToOwned;
@@ -133,6 +133,9 @@ pub struct LayoutThreadData {
 
     /// A queued response for the offset parent/rect of a node.
     pub margin_style_response: MarginStyleResponse,
+
+    /// Scroll offsets of stacking contexts. This will only be populated if WebRender is in use.
+    pub stacking_context_scroll_offsets: ScrollOffsetMap,
 }
 
 /// Information needed by the layout thread.
@@ -472,6 +475,7 @@ impl LayoutThread {
                     resolved_style_response: None,
                     offset_parent_response: OffsetParentResponse::empty(),
                     margin_style_response: MarginStyleResponse::empty(),
+                    stacking_context_scroll_offsets: HashMap::new(),
               })),
               error_reporter: CSSErrorReporter {
                   pipelineid: id,
@@ -1172,7 +1176,9 @@ impl LayoutThread {
                     let point = Point2D::new(Au::from_f32_px(point.x), Au::from_f32_px(point.y));
                     let result = match rw_data.display_list {
                         None => panic!("Tried to hit test with no display list"),
-                        Some(ref dl) => dl.hit_test(point),
+                        Some(ref display_list) => {
+                            display_list.hit_test(&point, &rw_data.stacking_context_scroll_offsets)
+                        }
                     };
                     rw_data.hit_test_response = if result.len() > 0 {
                         (Some(result[0]), update_cursor)
@@ -1273,14 +1279,26 @@ impl LayoutThread {
     fn set_stacking_context_scroll_states<'a, 'b>(
             &mut self,
             new_scroll_states: Vec<StackingContextScrollState>,
-            _: &mut RwData<'a, 'b>) {
+            possibly_locked_rw_data: &mut RwData<'a, 'b>) {
+        let mut rw_data = possibly_locked_rw_data.lock();
+        let mut script_scroll_states = vec![];
+        let mut layout_scroll_states = HashMap::new();
         for new_scroll_state in &new_scroll_states {
-            if self.root_flow.is_some() && new_scroll_state.stacking_context_id.id() == 0 {
-                let _ = self.script_chan.send(ConstellationControlMsg::SetScrollState(
-                        self.id,
-                        new_scroll_state.scroll_offset));
+            let offset = new_scroll_state.scroll_offset;
+            layout_scroll_states.insert(new_scroll_state.stacking_context_id, offset);
+
+            if new_scroll_state.stacking_context_id == StackingContextId::root() {
+                script_scroll_states.push((UntrustedNodeAddress::from_id(0), offset))
+            } else if !new_scroll_state.stacking_context_id.is_special() &&
+                    new_scroll_state.stacking_context_id.fragment_type() ==
+                        FragmentType::FragmentBody {
+                let id = new_scroll_state.stacking_context_id.id();
+                script_scroll_states.push((UntrustedNodeAddress::from_id(id), offset))
             }
         }
+        let _ = self.script_chan
+                    .send(ConstellationControlMsg::SetScrollState(self.id, script_scroll_states));
+        rw_data.stacking_context_scroll_offsets = layout_scroll_states
     }
 
     fn tick_all_animations<'a, 'b>(&mut self, possibly_locked_rw_data: &mut RwData<'a, 'b>) {

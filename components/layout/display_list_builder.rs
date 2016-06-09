@@ -1686,13 +1686,18 @@ impl BlockFlowDisplayListBuilding for BlockFlow {
             return parent_id;
         }
 
-        let stacking_context_id =
+        let has_scrolling_overflow = self.has_scrolling_overflow();
+        let stacking_context_id = if has_scrolling_overflow {
+            StackingContextId::new_outer(self.fragment.fragment_type())
+        } else {
             StackingContextId::new_of_type(self.fragment.node.id() as usize,
-                                           self.fragment.fragment_type());
+                                           self.fragment.fragment_type())
+        };
         self.base.stacking_context_id = stacking_context_id;
 
-        let inner_stacking_context_id = if self.has_scrolling_overflow() {
-            StackingContextId::new_of_type(self.base.flow_id(), self.fragment.fragment_type())
+        let inner_stacking_context_id = if has_scrolling_overflow {
+            StackingContextId::new_of_type(self.fragment.node.id() as usize,
+                                           self.fragment.fragment_type())
         } else {
             stacking_context_id
         };
