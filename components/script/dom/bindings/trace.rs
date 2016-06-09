@@ -56,7 +56,7 @@ use js::jsapi::{GCTraceKindToAscii, Heap, TraceKind, JSObject, JSTracer};
 use js::jsval::JSVal;
 use js::rust::Runtime;
 use libc;
-use msg::constellation_msg::{FrameType, PipelineId, SubpageId, WindowSizeData, WindowSizeType, ReferrerPolicy};
+use msg::constellation_msg::{FrameType, PipelineId, WindowSizeData, WindowSizeType, ReferrerPolicy};
 use net_traits::filemanager_thread::SelectedFileId;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache_thread::{ImageCacheChan, ImageCacheThread};
@@ -295,7 +295,7 @@ no_jsmanaged_fields!(PropertyDeclarationBlock);
 no_jsmanaged_fields!(HashSet<T>);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
-no_jsmanaged_fields!(FrameType, SubpageId, WindowSizeData, WindowSizeType, PipelineId);
+no_jsmanaged_fields!(FrameType, WindowSizeData, WindowSizeType, PipelineId);
 no_jsmanaged_fields!(TimerEventId, TimerSource);
 no_jsmanaged_fields!(WorkerId);
 no_jsmanaged_fields!(QuirksMode);
