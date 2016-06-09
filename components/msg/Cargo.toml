@@ -18,9 +18,11 @@ hyper = {version = "0.9", features = ["serde-serialization"]}
 ipc-channel = {git = "https://github.com/servo/ipc-channel"}
 layers = {git = "https://github.com/servo/rust-layers", features = ["plugins"]}
 plugins = {path = "../plugins"}
+rand = "0.3"
 rustc-serialize = "0.3.4"
 serde = "0.7"
 serde_macros = "0.7"
 url = {version = "1.0.0", features = ["heap_size"]}
 util = {path = "../util"}
+uuid = {version = "0.2", features = ["v4"]}
 webrender_traits = {git = "https://github.com/servo/webrender_traits"}

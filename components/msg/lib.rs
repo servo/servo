@@ -15,10 +15,12 @@ extern crate heapsize;
 extern crate hyper;
 extern crate ipc_channel;
 extern crate layers;
+extern crate rand;
 extern crate rustc_serialize;
 extern crate serde;
 extern crate url;
 extern crate util;
+extern crate uuid;
 extern crate webrender_traits;
 
 pub mod constellation_msg;

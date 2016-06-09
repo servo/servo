@@ -1352,11 +1352,13 @@ dependencies = [
  "ipc-channel 0.2.3 (git+https://github.com/servo/ipc-channel)",
  "layers 0.2.5 (git+https://github.com/servo/rust-layers)",
  "plugins 0.0.1",
+ "rand 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_macros 0.7.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "url 1.1.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "util 0.0.1",
+ "uuid 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "webrender_traits 0.1.0 (git+https://github.com/servo/webrender_traits)",
 ]
 
