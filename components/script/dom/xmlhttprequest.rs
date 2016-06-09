@@ -47,7 +47,7 @@ use net_traits::CoreResourceMsg::Fetch;
 use net_traits::request::{CredentialsMode, Destination, RequestInit, RequestMode};
 use net_traits::trim_http_whitespace;
 use net_traits::{CoreResourceThread, LoadOrigin};
-use net_traits::{FetchResponseListener, Metadata, NetworkError, RequestSource};
+use net_traits::{FetchResponseListener, Metadata, NetworkError};
 use network_listener::{NetworkListener, PreInvoke};
 use parse::html::{ParseContext, parse_html};
 use parse::xml::{self, parse_xml};
@@ -273,13 +273,6 @@ impl LoadOrigin for XMLHttpRequest {
     }
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
         return self.referrer_policy;
-    }
-    fn request_source(&self) -> RequestSource {
-        if self.sync.get() {
-            RequestSource::None
-        } else {
-            self.global().r().request_source()
-        }
     }
     fn pipeline_id(&self) -> Option<PipelineId> {
         let global = self.global();

@@ -25,7 +25,7 @@ use net::hsts::HstsEntry;
 use net::http_loader::{LoadErrorType, HttpResponse};
 use net::http_loader::{load, LoadError, HttpRequestFactory, HttpRequest, UIProvider, HttpState};
 use net::resource_thread::{AuthCacheEntry, CancellationListener};
-use net_traits::{CustomResponse, RequestSource, Metadata, LoadOrigin};
+use net_traits::{CustomResponse, Metadata, LoadOrigin};
 use net_traits::{LoadData, CookieSource, LoadContext, IncludeSubdomains};
 use std::borrow::Cow;
 use std::io::{self, Write, Read, Cursor};
@@ -46,9 +46,6 @@ impl LoadOrigin for HttpTest {
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
         None
     }
-    fn request_source(&self) -> RequestSource {
-        RequestSource::None
-    }
     fn pipeline_id(&self) -> Option<PipelineId> {
         Some(PipelineId::fake_root_pipeline_id())
     }
@@ -65,9 +62,6 @@ impl<'a> LoadOrigin for LoadOriginInfo<'a> {
     }
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
         self.referrer_policy.clone()
-    }
-    fn request_source(&self) -> RequestSource {
-        RequestSource::None
     }
     fn pipeline_id(&self) -> Option<PipelineId> {
         None
@@ -174,11 +168,6 @@ fn redirect_with_headers(host: String, mut headers: Headers) -> MockResponse {
         RawStatus(301, Cow::Borrowed("Moved Permanently")),
         b"".to_vec()
     )
-}
-
-enum Source {
-    Window,
-    Worker
 }
 
 fn respond_404() -> MockResponse {
@@ -426,7 +415,7 @@ fn test_check_default_headers_loaded_in_every_request() {
                  &AssertMustHaveHeadersRequestFactory {
                      expected_headers: headers.clone(),
                      body: <[_]>::to_vec(&[])
-                 }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+                 }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), None);
 
     // Testing for method.POST
     load_data.method = Method::Post;
@@ -437,7 +426,7 @@ fn test_check_default_headers_loaded_in_every_request() {
                  &AssertMustHaveHeadersRequestFactory {
                      expected_headers: headers,
                      body: <[_]>::to_vec(&[])
-                 }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+                 }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), None);
 }
 
 #[test]
@@ -459,7 +448,7 @@ fn test_load_when_request_is_not_get_or_head_and_there_is_no_body_content_length
         None, &AssertMustIncludeHeadersRequestFactory {
             expected_headers: content_length,
             body: <[_]>::to_vec(&[])
-        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), None);
 }
 
 #[test]
@@ -490,7 +479,7 @@ fn test_request_and_response_data_with_network_messages() {
     request_headers.set(Host { hostname: "bar.foo".to_owned(), port: None });
     load_data.headers = request_headers.clone();
     let _ = load(&load_data, &ui_provider, &http_state, Some(devtools_chan), &Factory,
-                 DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+                 DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), None);
 
     // notification received from devtools
     let devhttprequest = expect_devtools_http_request(&devtools_port);
@@ -563,9 +552,6 @@ impl LoadOrigin for HttpTestNoPipeline {
     fn referrer_policy(&self) -> Option<ReferrerPolicy> {
         None
     }
-    fn request_source(&self) -> RequestSource {
-        RequestSource::None
-    }
     fn pipeline_id(&self) -> Option<PipelineId> {
         None
     }
@@ -594,7 +580,7 @@ fn test_request_and_response_message_from_devtool_without_pipeline_id() {
     let (devtools_chan, devtools_port) = mpsc::channel::<DevtoolsControlMsg>();
     let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTestNoPipeline);
     let _ = load(&load_data, &ui_provider, &http_state, Some(devtools_chan), &Factory,
-                 DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+                 DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), None);
 
     // notification received from devtools
     assert!(devtools_port.try_recv().is_err());
@@ -629,7 +615,7 @@ fn test_load_when_redirecting_from_a_post_should_rewrite_next_request_as_get() {
     let ui_provider = TestProvider::new();
 
     let _ = load(&load_data, &ui_provider, &http_state, None, &Factory,
-                 DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+                 DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), None);
 }
 
 #[test]
@@ -660,7 +646,8 @@ fn test_load_should_decode_the_response_as_deflate_when_response_headers_have_co
         &load_data, &ui_provider, &http_state, None,
         &Factory,
         DEFAULT_USER_AGENT.to_owned(),
-        &CancellationListener::new(None))
+        &CancellationListener::new(None),
+        None)
         .unwrap();
 
     assert_eq!(read_response(&mut response), "Yay!");
@@ -695,7 +682,8 @@ fn test_load_should_decode_the_response_as_gzip_when_response_headers_have_conte
         &ui_provider, &http_state,
         None, &Factory,
         DEFAULT_USER_AGENT.to_owned(),
-        &CancellationListener::new(None))
+        &CancellationListener::new(None),
+        None)
         .unwrap();
 
     assert_eq!(read_response(&mut response), "Yay!");
@@ -740,7 +728,8 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
         None,
         &Factory,
         DEFAULT_USER_AGENT.to_owned(),
-        &CancellationListener::new(None));
+        &CancellationListener::new(None),
+        None);
 }
 
 #[test]
@@ -770,7 +759,8 @@ fn test_load_doesnt_add_host_to_sts_list_when_url_is_http_even_if_sts_headers_ar
                  None,
                  &Factory,
                  DEFAULT_USER_AGENT.to_owned(),
-                 &CancellationListener::new(None));
+                 &CancellationListener::new(None),
+                 None);
 
     assert_eq!(http_state.hsts_list.read().unwrap().is_host_secure("mozilla.com"), false);
 }
@@ -802,7 +792,8 @@ fn test_load_adds_host_to_sts_list_when_url_is_https_and_sts_headers_are_present
                  None,
                  &Factory,
                  DEFAULT_USER_AGENT.to_owned(),
-                 &CancellationListener::new(None));
+                 &CancellationListener::new(None),
+                 None);
 
     assert!(http_state.hsts_list.read().unwrap().is_host_secure("mozilla.com"));
 }
@@ -836,7 +827,8 @@ fn test_load_sets_cookies_in_the_resource_manager_when_it_get_set_cookie_header_
                  None,
                  &Factory,
                  DEFAULT_USER_AGENT.to_owned(),
-                 &CancellationListener::new(None));
+                 &CancellationListener::new(None),
+                 None);
 
     assert_cookie_for_domain(http_state.cookie_jar.clone(), "http://mozilla.com", "mozillaIs=theBest");
 }
@@ -870,7 +862,7 @@ fn test_load_sets_requests_cookies_header_for_url_by_getting_cookies_from_the_re
                      expected_headers: cookie,
                      body: <[_]>::to_vec(&*load_data.data.unwrap())
                  }, DEFAULT_USER_AGENT.to_owned(),
-                 &CancellationListener::new(None));
+                 &CancellationListener::new(None), None);
 }
 
 #[test]
@@ -912,7 +904,7 @@ fn test_load_sends_secure_cookie_if_http_changed_to_https_due_to_entry_in_hsts_s
         &AssertMustIncludeHeadersRequestFactory {
             expected_headers: headers,
             body: <[_]>::to_vec(&*load_data.data.unwrap())
-        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), None);
 }
 
 #[test]
@@ -944,7 +936,7 @@ fn test_load_sends_cookie_if_nonhttp() {
         &AssertMustIncludeHeadersRequestFactory {
             expected_headers: headers,
             body: <[_]>::to_vec(&*load_data.data.unwrap())
-        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), None);
 }
 
 #[test]
@@ -973,7 +965,7 @@ fn test_cookie_set_with_httponly_should_not_be_available_using_getcookiesforurl(
                  None,
                  &Factory,
                  DEFAULT_USER_AGENT.to_owned(),
-                 &CancellationListener::new(None));
+                 &CancellationListener::new(None), None);
 
     let mut cookie_jar = http_state.cookie_jar.write().unwrap();
     assert!(cookie_jar.cookies_for_url(&url, CookieSource::NonHTTP).is_none());
@@ -1003,7 +995,7 @@ fn test_when_cookie_received_marked_secure_is_ignored_for_http() {
                  None,
                  &Factory,
                  DEFAULT_USER_AGENT.to_owned(),
-                 &CancellationListener::new(None));
+                 &CancellationListener::new(None), None);
 
     assert_cookie_for_domain(http_state.cookie_jar.clone(), "http://mozilla.com", "");
 }
@@ -1037,7 +1029,7 @@ fn test_when_cookie_set_marked_httpsonly_secure_isnt_sent_on_http_request() {
         &AssertMustNotIncludeHeadersRequestFactory {
             headers_not_expected: vec!["Cookie".to_owned()],
             body: <[_]>::to_vec(&*load_data.data.unwrap())
-        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), None);
 }
 
 #[test]
@@ -1060,7 +1052,7 @@ fn test_load_sets_content_length_to_length_of_request_body() {
                      expected_headers: content_len_headers,
                      body: <[_]>::to_vec(&*load_data.data.unwrap())
                  }, DEFAULT_USER_AGENT.to_owned(),
-                 &CancellationListener::new(None));
+                 &CancellationListener::new(None), None);
 }
 
 #[test]
@@ -1086,7 +1078,7 @@ fn test_load_uses_explicit_accept_from_headers_in_load_data() {
                      expected_headers: accept_headers,
                      body: <[_]>::to_vec("Yay!".as_bytes())
                  }, DEFAULT_USER_AGENT.to_owned(),
-                 &CancellationListener::new(None));
+                 &CancellationListener::new(None), None);
 }
 
 #[test]
@@ -1114,7 +1106,7 @@ fn test_load_sets_default_accept_to_html_xhtml_xml_and_then_anything_else() {
                      expected_headers: accept_headers,
                      body: <[_]>::to_vec("Yay!".as_bytes())
                  }, DEFAULT_USER_AGENT.to_owned(),
-                 &CancellationListener::new(None));
+                 &CancellationListener::new(None), None);
 }
 
 #[test]
@@ -1137,7 +1129,7 @@ fn test_load_uses_explicit_accept_encoding_from_load_data_headers() {
                      expected_headers: accept_encoding_headers,
                      body: <[_]>::to_vec("Yay!".as_bytes())
                  }, DEFAULT_USER_AGENT.to_owned(),
-                 &CancellationListener::new(None));
+                 &CancellationListener::new(None), None);
 }
 
 #[test]
@@ -1161,7 +1153,7 @@ fn test_load_sets_default_accept_encoding_to_gzip_and_deflate() {
                      expected_headers: accept_encoding_headers,
                      body: <[_]>::to_vec("Yay!".as_bytes())
                  }, DEFAULT_USER_AGENT.to_owned(),
-                 &CancellationListener::new(None));
+                 &CancellationListener::new(None), None);
 }
 
 #[test]
@@ -1189,7 +1181,7 @@ fn test_load_errors_when_there_a_redirect_loop() {
     let ui_provider = TestProvider::new();
 
     match load(&load_data, &ui_provider, &http_state, None, &Factory,
-               DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None)) {
+               DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), None) {
         Err(ref load_err) if load_err.error == LoadErrorType::RedirectLoop => (),
         _ => panic!("expected max redirects to fail")
     }
@@ -1222,7 +1214,7 @@ fn test_load_errors_when_there_is_too_many_redirects() {
               prefs::PrefValue::Number(redirect_limit));
 
     match load(&load_data, &ui_provider, &http_state, None, &Factory,
-               DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None)) {
+               DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), None) {
         Err(LoadError { error: LoadErrorType::MaxRedirects(num_redirects),
                         url, .. }) => {
             assert_eq!(num_redirects, redirect_limit as u32);
@@ -1264,7 +1256,7 @@ fn test_load_follows_a_redirect() {
     let ui_provider = TestProvider::new();
 
     match load(&load_data, &ui_provider, &http_state, None, &Factory,
-               DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None)) {
+               DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), None) {
         Err(e) => panic!("expected to follow a redirect {:?}", e),
         Ok(mut lr) => {
             let response = read_response(&mut lr);
@@ -1296,7 +1288,7 @@ fn test_load_errors_when_scheme_is_not_http_or_https() {
                None,
                &DontConnectFactory,
                DEFAULT_USER_AGENT.to_owned(),
-               &CancellationListener::new(None)) {
+               &CancellationListener::new(None), None) {
         Err(ref load_err) if load_err.error == LoadErrorType::UnsupportedScheme { scheme: "ftp".into() } => (),
         _ => panic!("expected ftp scheme to be unsupported")
     }
@@ -1315,7 +1307,7 @@ fn test_load_errors_when_viewing_source_and_inner_url_scheme_is_not_http_or_http
                None,
                &DontConnectFactory,
                DEFAULT_USER_AGENT.to_owned(),
-               &CancellationListener::new(None)) {
+               &CancellationListener::new(None), None) {
         Err(ref load_err) if load_err.error == LoadErrorType::UnsupportedScheme { scheme: "ftp".into() } => (),
         _ => panic!("expected ftp scheme to be unsupported")
     }
@@ -1357,7 +1349,7 @@ fn test_load_errors_when_cancelled() {
                None,
                &Factory,
                DEFAULT_USER_AGENT.to_owned(),
-               &cancel_listener) {
+               &cancel_listener, None) {
         Err(ref load_err) if load_err.error == LoadErrorType::Cancelled => (),
         _ => panic!("expected load cancelled error!")
     }
@@ -1427,7 +1419,7 @@ fn  test_redirect_from_x_to_y_provides_y_cookies_from_y() {
                None,
                &Factory,
                DEFAULT_USER_AGENT.to_owned(),
-               &CancellationListener::new(None)) {
+               &CancellationListener::new(None), None) {
         Err(e) => panic!("expected to follow a redirect {:?}", e),
         Ok(mut lr) => {
             let response = read_response(&mut lr);
@@ -1473,7 +1465,7 @@ fn test_redirect_from_x_to_x_provides_x_with_cookie_from_first_response() {
                None,
                &Factory,
                DEFAULT_USER_AGENT.to_owned(),
-               &CancellationListener::new(None)) {
+               &CancellationListener::new(None), None) {
         Err(e) => panic!("expected to follow a redirect {:?}", e),
         Ok(mut lr) => {
             let response = read_response(&mut lr);
@@ -1515,7 +1507,7 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
         None, &AssertMustIncludeHeadersRequestFactory {
             expected_headers: auth_header,
             body: <[_]>::to_vec(&[])
-        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), None);
 }
 
 #[test]
@@ -1542,7 +1534,7 @@ fn test_auth_ui_sets_header_on_401() {
         None, &AssertAuthHeaderRequestFactory {
             expected_headers: auth_header,
             body: <[_]>::to_vec(&[])
-        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None)) {
+        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), None) {
         Err(e) => panic!("response contained error {:?}", e),
         Ok(response) => {
             assert_eq!(response.metadata.status, Some(RawStatus(200, Cow::Borrowed("Ok"))));
@@ -1575,7 +1567,7 @@ fn test_auth_ui_needs_www_auth() {
 
     let response = load(&load_data, &AuthProvider, &http_state,
                         None, &Factory, DEFAULT_USER_AGENT.to_owned(),
-                        &CancellationListener::new(None));
+                        &CancellationListener::new(None), None);
     match response {
         Err(e) => panic!("response contained error {:?}", e),
         Ok(response) => {
@@ -1604,7 +1596,7 @@ fn assert_referer_header_matches(origin_info: &LoadOrigin,
                      expected_headers: referer_headers,
                      body: <[_]>::to_vec(&[])
                  }, DEFAULT_USER_AGENT.to_owned(),
-                 &CancellationListener::new(None));
+                 &CancellationListener::new(None), None);
 }
 
 fn assert_referer_header_not_included(origin_info: &LoadOrigin, request_url: &str) {
@@ -1622,7 +1614,7 @@ fn assert_referer_header_not_included(origin_info: &LoadOrigin, request_url: &st
         &AssertMustNotIncludeHeadersRequestFactory {
             headers_not_expected: vec!["Referer".to_owned()],
             body: <[_]>::to_vec(&[])
-        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), None);
 }
 
 #[test]
@@ -1860,7 +1852,7 @@ fn test_no_referer_set_with_noreferrer_policy() {
     assert_referer_header_not_included(&origin_info, request_url)
 }
 
-fn load_request_with_source(source: Source, expected_body: Vec<u8>) -> (Metadata, String) {
+fn load_request_for_custom_response(expected_body: Vec<u8>) -> (Metadata, String) {
     use ipc_channel::ipc;
     let (sender, receiver) = ipc::channel().unwrap();
 
@@ -1880,16 +1872,11 @@ fn load_request_with_source(source: Source, expected_body: Vec<u8>) -> (Metadata
     let url = Url::parse("http://mozilla.com").unwrap();
     let http_state = HttpState::new();
     let ui_provider = TestProvider::new();
-    let mut load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
-
-    match source {
-        Source::Window => load_data.source = RequestSource::Window(sender.clone()),
-        Source::Worker => load_data.source = RequestSource::Worker(sender.clone()),
-    }
+    let load_data = LoadData::new(LoadContext::Browsing, url.clone(), &HttpTest);
 
     let join_handle = thread::spawn(move || {
         let response = load(&load_data.clone(), &ui_provider, &http_state,
-        None, &Factory, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+        None, &Factory, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), Some(sender));
         match response {
             Ok(mut response) => {
                 let metadata = response.metadata.clone();
@@ -1900,24 +1887,16 @@ fn load_request_with_source(source: Source, expected_body: Vec<u8>) -> (Metadata
         }
     });
 
-    let network_sender = receiver.recv().unwrap();
-    network_sender.send(Some(mock_response)).unwrap();
+    let mediator = receiver.recv().unwrap();
+    mediator.response_chan.send(Some(mock_response)).unwrap();
     let (metadata, body) = join_handle.join().unwrap();
     (metadata, body)
 }
 
 #[test]
-fn test_custom_response_from_window() {
-    let expected_body = b"Yay! From Window".to_vec();
-    let (metadata, body) = load_request_with_source(Source::Window, expected_body.clone());
-    assert_eq!(metadata.status, Some(RawStatus(200, Cow::Borrowed("OK"))));
-    assert_eq!(body, String::from_utf8(expected_body).unwrap());
-}
-
-#[test]
-fn test_custom_response_from_worker() {
-    let expected_body = b"Yay! From Worker".to_vec();
-    let (metadata, body) = load_request_with_source(Source::Worker, expected_body.clone());
+fn test_custom_response() {
+    let expected_body = b"Yay!".to_vec();
+    let (metadata, body) = load_request_for_custom_response(expected_body.clone());
     assert_eq!(metadata.status, Some(RawStatus(200, Cow::Borrowed("OK"))));
     assert_eq!(body, String::from_utf8(expected_body).unwrap());
 }
@@ -1963,7 +1942,7 @@ fn test_content_blocked() {
         None, &AssertMustNotIncludeHeadersRequestFactory {
             headers_not_expected: vec!["Cookie".to_owned()],
             body: b"hi".to_vec(),
-        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+        }, DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), None);
     match response {
         Ok(_) => {},
         _ => panic!("request should have succeeded without cookies"),
@@ -1974,7 +1953,7 @@ fn test_content_blocked() {
     let response = load(
         &load_data, &ui_provider, &http_state,
         None, &Factory,
-        DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None));
+        DEFAULT_USER_AGENT.to_owned(), &CancellationListener::new(None), None);
     match response {
         Err(LoadError { error: LoadErrorType::ContentBlocked, .. }) => {},
         _ => panic!("request should have been blocked"),
