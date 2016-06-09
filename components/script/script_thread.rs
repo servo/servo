@@ -1108,7 +1108,10 @@ impl ScriptThread {
 
     fn handle_resize(&self, id: PipelineId, size: WindowSizeData, size_type: WindowSizeType) {
         if let Some(ref context) = self.find_child_context(id) {
-            let window = context.active_window();
+            let window = match context.find(id) {
+                Some(browsing_context) => browsing_context.active_window(),
+                None => return warn!("Message sent to closed pipeline {}.", id),
+            };
             window.set_resize_event(size, size_type);
             return;
         }
