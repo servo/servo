@@ -93,8 +93,6 @@ impl<'a> TreeSink for servohtmlparser::Sink {
             elem.set_attribute_from_parser(attr.name, DOMString::from(String::from(attr.value)), None);
         }
 
-        debug!("Create Element");   //FIXME diane
-        debug!("Document dom_count: {}", self.document.dom_count()+1);
         self.document.increment_dom_count();
 
         JS::from_ref(elem.upcast())
