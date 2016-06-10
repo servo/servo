@@ -147,7 +147,10 @@ impl WorkerMethods for Worker {
     fn PostMessage(&self, cx: *mut JSContext, message: HandleValue) -> ErrorResult {
         let data = try!(StructuredCloneData::write(cx, message));
         let address = Trusted::new(self);
-        self.sender.send((address, WorkerScriptMsg::DOMMessage(data))).unwrap();
+
+        // NOTE: step 9 of https://html.spec.whatwg.org/multipage/comms.html#dom-messageport-postmessage
+        // indicates that a nonexistent communication channel should result in a silent error.
+        let _ = self.sender.send((address, WorkerScriptMsg::DOMMessage(data)));
         Ok(())
     }
 
