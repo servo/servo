@@ -36030,6 +36030,12 @@
     "deleted_reftests": {},
     "items": {
       "testharness": {
+        "cssom-view/HTMLBody-ScrollArea_quirksmode.html": [
+          {
+            "path": "cssom-view/HTMLBody-ScrollArea_quirksmode.html",
+            "url": "/cssom-view/HTMLBody-ScrollArea_quirksmode.html"
+          }
+        ],
         "cssom-view/scrolling-no-browsing-context.html": [
           {
             "path": "cssom-view/scrolling-no-browsing-context.html",
