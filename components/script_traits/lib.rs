@@ -118,7 +118,7 @@ pub enum LayoutControlMsg {
 #[derive(Deserialize, Serialize)]
 pub struct NewLayoutInfo {
     /// Id of the parent of this new pipeline.
-    pub containing_pipeline_id: PipelineId,
+    pub parent_pipeline_id: PipelineId,
     /// Id of the newly-created pipeline.
     pub new_pipeline_id: PipelineId,
     /// Id of the new frame associated with this pipeline.
@@ -402,7 +402,7 @@ pub struct IFrameLoadInfo {
     /// Load data containing the url to load
     pub load_data: Option<LoadData>,
     /// Pipeline ID of the parent of this iframe
-    pub containing_pipeline_id: PipelineId,
+    pub parent_pipeline_id: PipelineId,
     /// The new subpage ID for this load
     pub new_subpage_id: SubpageId,
     /// The old subpage ID for this iframe, if a page was previously loaded.
