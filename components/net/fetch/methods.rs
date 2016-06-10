@@ -820,8 +820,10 @@ fn http_network_or_cache_fetch(request: Rc<Request>,
                 if !http_request.use_url_credentials || !has_credentials(&current_url) {
                     authorization_value = Some(basic);
                 }
-            } else if authentication_fetch_flag {
-                // Substep 5
+            }
+
+            // Substep 5
+            if authentication_fetch_flag && authorization_value.is_none() {
                 if has_credentials(&current_url) {
                     authorization_value = Some(Basic {
                         username: current_url.username().to_owned(),
