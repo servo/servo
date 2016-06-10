@@ -53,13 +53,11 @@ fn insert(parent: &Node, reference_child: Option<&Node>, child: NodeOrText<JS<No
     }
 }
 
-
 impl<'a> TreeSink for servohtmlparser::Sink {
     type Output = Self;
     fn finish(self) -> Self { self }
 
     type Handle = JS<Node>;
-
 
     fn get_document(&mut self) -> JS<Node> {
         JS::from_ref(self.document.upcast())
@@ -92,8 +90,6 @@ impl<'a> TreeSink for servohtmlparser::Sink {
         for attr in attrs {
             elem.set_attribute_from_parser(attr.name, DOMString::from(String::from(attr.value)), None);
         }
-
-        self.document.increment_dom_count();
 
         JS::from_ref(elem.upcast())
     }
